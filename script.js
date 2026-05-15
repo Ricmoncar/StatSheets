@@ -27,6 +27,12 @@ let db = null;
 try {
   firebase.initializeApp(FIREBASE_CONFIG);
   db = firebase.firestore();
+  // Offline persistence: writes hit local cache instantly, so snapshots
+  // always reflect your own changes immediately even before server confirms
+  db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+    if (err.code !== 'failed-precondition' && err.code !== 'unimplemented')
+      console.warn('Persistence error:', err);
+  });
 } catch(e) { console.error('Firebase init failed:', e); }
 
 // Track our own writes so onSnapshot doesn't re-render the screen we already updated
@@ -3350,7 +3356,9 @@ if (sidebarList && db) {
           loadPity(); updatePityDisplay();
         }
       } else {
-        // Viewed character was deleted remotely
+        // Character missing from snapshot — only treat as a real deletion
+        // if it wasn't just saved by us (guards against pre-confirmation snapshots)
+        if (currentId === _lastSaveId && Date.now() - _lastSaveTime < SELF_WRITE_WINDOW) return;
         currentId = null; stopBgAnim();
         document.getElementById('char-view').classList.remove('active');
         document.getElementById('editor').classList.remove('active');
