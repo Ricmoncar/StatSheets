@@ -2528,7 +2528,7 @@ input[type=number] { -moz-appearance: textfield; }
 /* ============================================================
    MOBILE & TABLET  ≤ 768 px
    ============================================================ */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
 
   /* ---- Base ---- */
   body { cursor: auto; }
@@ -2598,14 +2598,14 @@ input[type=number] { -moz-appearance: textfield; }
   }
   body.drawer-open #sidebar { left: 0; }
 
-  /* Backdrop */
+  /* Backdrop — starts at 275px so it never overlaps the sidebar
+     (iOS Safari backdrop-filter eats touch events even behind higher z-index) */
   #mobile-backdrop {
     display: none;
     position: fixed;
-    top: 52px; left: 0; right: 0; bottom: 0;
+    top: 52px; left: 275px; right: 0; bottom: 0;
     background: rgba(0, 0, 0, 0.72);
     z-index: 565;
-    backdrop-filter: blur(2px);
   }
   body.drawer-open #mobile-backdrop { display: block; }
   body.drawer-open { overflow: hidden; }
@@ -2630,6 +2630,8 @@ input[type=number] { -moz-appearance: textfield; }
     cursor: pointer;
     touch-action: manipulation;
   }
+  /* Disable slide transform — it shifts the element right as you tap, causing misses */
+  .char-entry:hover { transform: none; }
   .char-entry-actions { display: none; }
 
   /* ---- Content area ---- */
