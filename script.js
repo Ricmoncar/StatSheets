@@ -101,6 +101,12 @@ function updateCursor(e) {
 document.addEventListener('mousemove', updateCursor);
 
 // ============================================================
+// MOBILE DRAWER
+// ============================================================
+function toggleDrawer() { document.body.classList.toggle('drawer-open'); }
+function closeDrawer()  { document.body.classList.remove('drawer-open'); }
+
+// ============================================================
 // SOUND ENGINE
 // ============================================================
 const SOUNDS_PATH = 'sounds/';
@@ -1125,6 +1131,7 @@ function renderSidebar() {
         </button>
       </div>`;
     el.addEventListener('click', () => {
+      closeDrawer();
       if (isDraft) showEditor(c.id);
       else { playSound('characterchange', { volume: 0.7 }); viewChar(c.id); }
     });
@@ -1165,6 +1172,8 @@ function viewChar(id) {
 
   document.getElementById('cv-name').textContent = c.name || 'UNNAMED';
   document.getElementById('cv-name').style.color = c.color;
+  const mbn = document.getElementById('mobile-char-name');
+  if (mbn) { mbn.textContent = c.name || 'UNNAMED'; mbn.style.color = c.color || '#fff'; }
   updateGoldDisplay(c);
   
   const bioText = document.getElementById('cv-bio-text');

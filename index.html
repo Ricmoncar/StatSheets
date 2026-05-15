@@ -24,6 +24,20 @@
 
   <div id="notif"></div>
 
+  <!-- MOBILE TOP BAR (hidden on desktop via CSS) -->
+  <div id="mobile-topbar">
+    <button id="mobile-menu-btn" onclick="toggleDrawer()" aria-label="Menu">
+      <svg width="18" height="13" viewBox="0 0 18 13" fill="currentColor">
+        <rect width="18" height="2.5" rx="1.2"/>
+        <rect y="5.25" width="18" height="2.5" rx="1.2"/>
+        <rect y="10.5" width="18" height="2.5" rx="1.2"/>
+      </svg>
+    </button>
+    <div id="mobile-char-name">STATSHEETS</div>
+    <button class="btn sm accent" onclick="showEditor(null)">+ NEW</button>
+  </div>
+  <div id="mobile-backdrop" onclick="closeDrawer()"></div>
+
   <!-- Confirm dialog -->
   <div id="confirm-overlay">
     <div id="confirm-box">
