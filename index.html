@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STATSHEETS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- Custom cursor: pixel arrow -->
+  <div id="cursor">
+    <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px;">
+      <polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="white" />
+      <polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="black" stroke-width="1.5"
+        stroke-linejoin="round" />
+    </svg>
+  </div>
+
+  <div id="notif"></div>
+
+  <!-- Confirm dialog -->
+  <div id="confirm-overlay">
+    <div id="confirm-box">
+      <p id="confirm-msg"></p>
+      <div id="confirm-btns">
+        <button class="btn danger" id="confirm-yes">YES</button>
+        <button class="btn" id="confirm-no">NO</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDITOR BACKGROUND PATTERN -->
+  <canvas id="editor-pattern-canvas"
+    style="position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0.1; display:none;"></canvas>
+
+
+  <div id="app">
+    <header id="header">
+      <div id="logo">STAT<span>SHEETS</span></div>
+      <div id="header-btns">
+        <button class="btn accent" onclick="location.href='utilities.html'">UTILITIES</button>
+        <button class="btn accent" onclick="showEditor(null)">+ NEW CHARACTER</button>
+      </div>
+    </header>
+
+    <div id="main">
+      <nav id="sidebar">
+        <div id="sidebar-title">// CHARACTERS</div>
+        <div id="char-list"></div>
+      </nav>
+
+      <main id="content">
+        <canvas id="pattern-canvas"></canvas>
+
+        <div id="empty-state">
+          <!-- Pixel heart SVG, no emoji -->
+          <div class="empty-heart" id="empty-heart-container">
+            <svg id="empty-heart-svg" viewBox="0 0 40 36" width="140" height="126" xmlns="http://www.w3.org/2000/svg"
+              style="image-rendering:pixelated;">
+              <defs>
+                <linearGradient id="split-soul" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="40" y2="0">
+                  <stop offset="50%" stop-color="#0080ff" />
+                  <stop offset="50%" stop-color="#ff8000" />
+                </linearGradient>
+                <clipPath id="heart-clip">
+                  <rect x="4" y="0" width="12" height="4" />
+                  <rect x="24" y="0" width="12" height="4" />
+                  <rect x="0" y="4" width="18" height="4" />
+                  <rect x="22" y="4" width="18" height="4" />
+                  <rect x="0" y="8" width="40" height="4" />
+                  <rect x="0" y="12" width="40" height="4" />
+                  <rect x="2" y="16" width="36" height="4" />
+                  <rect x="4" y="20" width="32" height="4" />
+                  <rect x="8" y="24" width="24" height="4" />
+                  <rect x="12" y="28" width="16" height="4" />
+                  <rect x="16" y="32" width="8" height="4" />
+                </clipPath>
+              </defs>
+              <!-- Solid heart group: fill attr controls all rects -->
+              <g id="heart-solid" fill="#ff0000">
+                <rect x="4" y="0" width="12" height="4" />
+                <rect x="24" y="0" width="12" height="4" />
+                <rect x="0" y="4" width="18" height="4" />
+                <rect x="22" y="4" width="18" height="4" />
+                <rect x="0" y="8" width="40" height="4" />
+                <rect x="0" y="12" width="40" height="4" />
+                <rect x="2" y="16" width="36" height="4" />
+                <rect x="4" y="20" width="32" height="4" />
+                <rect x="8" y="24" width="24" height="4" />
+                <rect x="12" y="28" width="16" height="4" />
+                <rect x="16" y="32" width="8" height="4" />
+              </g>
+              <!-- Split-soul overlay (hidden by default) -->
+              <rect id="heart-split-overlay" x="0" y="0" width="40" height="36" fill="url(#split-soul)"
+                clip-path="url(#heart-clip)" style="display:none" />
+            </svg>
+          </div>
+          <div class="empty-title" style="font-size:18px">NO CHARACTERS YET</div>
+          <div class="empty-sub" style="font-size:11px">-- SELECT NEW CHARACTER --</div>
+          <button class="btn accent" onclick="showEditor(null)" style="padding: 12px 24px; font-size: 11px;">+ NEW
+            CHARACTER</button>
+        </div>
+
+
+        <!-- CHARACTER VIEW -->
+        <div id="char-view" style="position:relative;z-index:1;">
+          <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('stats',this)">
+              <svg width="10" height="10" viewBox="0 0 10 10" style="margin-right:5px;vertical-align:middle;">
+                <rect x="0" y="7" width="2" height="3" fill="currentColor" />
+                <rect x="3" y="4" width="2" height="6" fill="currentColor" />
+                <rect x="6" y="1" width="2" height="9" fill="currentColor" />
+                <rect x="9" y="0" width="1" height="10" fill="currentColor" />
+              </svg>
+              STATS
+            </button>
+            <button class="tab-btn" onclick="switchTab('style',this)">
+              <svg width="10" height="10" viewBox="0 0 10 10" style="margin-right:5px;vertical-align:middle;">
+                <circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1.5" />
+                <circle cx="5" cy="5" r="1.5" fill="currentColor" />
+              </svg>
+              STYLE
+            </button>
+          </div>
+
+
+          <div id="tab-stats">
+            <div class="char-header">
+              <div class="char-avatar-large" id="cv-avatar">
+                <!-- default silhouette -->
+                <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;">
+                  <rect x="12" y="2" width="8" height="8" fill="#555" />
+                  <rect x="10" y="10" width="12" height="10" fill="#555" />
+                  <rect x="8" y="20" width="6" height="8" fill="#555" />
+                  <rect x="18" y="20" width="6" height="8" fill="#555" />
+                </svg>
+              </div>
+              <div class="char-name-block" style="display: flex; flex-direction: column; justify-content: center;">
+                <div class="char-name-display" id="cv-name">???</div>
+                <div id="cv-gold-display" onclick="openGoldManager()" title="Open treasury">
+                  <svg width="11" height="11" viewBox="0 0 11 11" style="vertical-align:middle;margin-right:3px;"><circle cx="5.5" cy="5.5" r="4.5" fill="none" stroke="#ffe14a" stroke-width="1"/><circle cx="5.5" cy="5.5" r="2" fill="#ffe14a"/></svg>
+                  <span id="cv-gold-amount">0</span> G
+                </div>
+                <div id="cv-bio-text" style="font-size: 8px; color: #aaa; margin-top: 8px; line-height: 1.8; white-space: pre-wrap; word-break: break-word; display: none;"></div>
+              </div>
+              <div class="flex-row" style="align-self:flex-start;gap:8px;">
+                <!-- Edit icon: pencil -->
+                <button class="btn sm accent" onclick="editCurrent()" title="Edit">
+                  <svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:middle;">
+                    <path d="M7 1l2 2-6 6H1V7L7 1z" fill="none" stroke="currentColor" stroke-width="1.2" />
+                    <rect x="6" y="0" width="3" height="3" fill="currentColor" rx="0.5" />
+                  </svg>
+                  EDIT
+                </button>
+                <!-- Trash icon: delete -->
+                <button class="btn sm danger" onclick="deleteCurrent()" title="Delete">
+                  <svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:middle;">
+                    <rect x="1" y="3" width="8" height="1" fill="currentColor" />
+                    <rect x="3" y="1" width="4" height="1" fill="currentColor" />
+                    <path d="M2 4l1 6h4l1-6" fill="none" stroke="currentColor" stroke-width="1" />
+                  </svg>
+                  DEL
+                </button>
+              </div>
+            </div>
+            
+            <!-- TRAITS PANEL -->
+            <div class="panel traits-panel">
+              <div class="inv-header">
+                <div class="panel-title" style="margin-bottom:0; cursor:pointer; display:flex; align-items:center; gap: 8px; user-select:none;" onclick="togglePanel('traits-content', 'traits-chevron')">
+                  <span id="traits-chevron" style="transition: transform 0.3s; font-size: 10px;">▼</span>
+                  TRAITS
+                </div>
+                <div class="flex-row" style="gap:8px;">
+                  <button class="btn sm" onclick="openCultivationWindow()" title="Cultivation / scaling traits" id="btn-cultivation" style="display:none;">
+                    <svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:middle;margin-right:4px;"><path d="M5 1c-2 2-2 4 0 6-2-2-4-2-4 0 0-2 2-4 4-6zm0 0c2 2 2 4 0 6 2-2 4-2 4 0 0-2-2-4-4-6z" fill="currentColor"/></svg>
+                    SCALING
+                  </button>
+                  <button class="btn sm accent" onclick="rollTraits()" title="Roll for a new trait">
+                    <svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:middle;margin-right:4px;"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="3" cy="4" r="0.8" fill="currentColor"/><circle cx="7" cy="4" r="0.8" fill="currentColor"/><circle cx="5" cy="7" r="0.8" fill="currentColor"/></svg>
+                    ROLL
+                  </button>
+                  <button class="btn-info" id="btn-trait-info" onclick="openTraitCodex()" title="Trait Codex">i</button>
+                </div>
+              </div>
+              <div id="traits-content" class="collapsible-wrapper">
+                <div class="collapsible-content">
+                  <div id="cv-traits" class="traits-grid">
+                    <!-- Trait chips injected via JS -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;" onclick="togglePanel('stats-content', 'stats-chevron')">
+                <div style="display:flex; align-items:center; gap: 8px;">
+                  <span id="stats-chevron" style="transition: transform 0.3s; font-size: 10px;">▼</span>
+                  STATS
+                </div>
+                <button class="btn-info" id="btn-power-info" onclick="event.stopPropagation(); openPowerModal()" title="Power level reference">i</button>
+              </div>
+              <div id="stats-content" class="collapsible-wrapper">
+                <div class="collapsible-content">
+                  <div id="cv-stats"></div>
+                  <div id="cv-substats" style="padding: 16px; background: rgba(0, 0, 0, 0.4); border-top: 1px solid #333;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel inv-panel">
+              <div class="inv-header">
+                <div class="panel-title" style="margin-bottom:0; cursor:pointer; display:flex; align-items:center; gap: 8px; user-select:none;" onclick="togglePanel('inv-content', 'inv-chevron')">
+                  <span id="inv-chevron" style="transition: transform 0.3s; font-size: 10px;">▼</span>
+                  INVENTORY
+                </div>
+                <button class="btn sm accent" onclick="openItemEditor(currentId)">+ ADD ITEM</button>
+              </div>
+              <div id="inv-content" class="collapsible-wrapper">
+                <div class="collapsible-content">
+                  <div id="cv-inventory" class="inv-grid">
+                    <!-- Inventory cards injected via JS -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-style" style="display:none">
+            <div class="panel">
+              <div class="panel-title">BACKGROUND PATTERN</div>
+              <div id="cv-pattern-info"></div>
+            </div>
+          </div>
+
+        </div>
+        
+    <!-- EDITOR -->
+    <div id="editor">
+      <div class="editor-header-wrap" style="display:flex; align-items:center; gap: 16px; margin-bottom: 24px;">
+        <button class="btn icon-btn" onclick="cancelEditor()" title="Go Back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="editor-title" id="editor-title" style="margin-bottom: 0;">NEW CHARACTER</div>
+      </div>
+
+      <div class="editor-grid">
+        <!-- LEFT -->
+        <div>
+          <div class="panel">
+            <div class="panel-title">IDENTITY</div>
+            <div class="field">
+              <label>NAME</label>
+              <input type="text" id="e-name" placeholder="Enter name..." maxlength="24" />
+            </div>
+            <div class="field">
+              <label>BIO / LORE</label>
+              <textarea id="e-bio" placeholder="A short description..." rows="3"></textarea>
+            </div>
+            <div class="field">
+              <label>CHARACTER IMAGE</label>
+              <div class="avatar-upload-zone" id="avatar-zone" onclick="triggerImgUpload()">
+                <input type="file" id="avatar-file" accept="image/*" onchange="handleImgUpload(event)" />
+                <!-- pixel person silhouette, no emoji -->
+                <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;">
+                  <rect x="12" y="2" width="8" height="8" fill="currentColor" />
+                  <rect x="10" y="10" width="12" height="10" fill="currentColor" />
+                  <rect x="8" y="20" width="6" height="8" fill="currentColor" />
+                  <rect x="18" y="20" width="6" height="8" fill="currentColor" />
+                </svg>
+                <span>UPLOAD</span>
+              </div>
+              <div class="flex-row mt-8">
+                <button class="btn sm" onclick="clearAvatar()">CLEAR</button>
+              </div>
+            </div>
+            <!-- No label - wheel speaks for itself -->
+            <div class="color-wheel-wrap">
+              <label class="color-wheel-ring" id="color-wheel-ring">
+                <div class="color-wheel-preview" id="color-wheel-preview" style="background:#ffff00"></div>
+                <input type="color" id="e-color" value="#ffff00" oninput="updateColorWheel(this.value)" />
+              </label>
+              <div class="color-wheel-info">
+                <span class="color-wheel-hex" id="color-hex-label">#FFFF00</span>
+                <div class="color-wheel-swatch-row" id="cw-swatches"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div>
+          <div class="panel stats-panel">
+            <div class="panel-title">STATS</div>
+            <div class="field">
+              <label>HP &nbsp;<span style="color:#fff" id="hp-val-disp">50</span> <span id="e-tier-disp-hp"
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span></label>
+              <div class="flex-row">
+                <input type="range" min="1" max="1250" value="50" id="e-hp" oninput="updateStatDisplay('hp')"
+                  style="flex:1" />
+                <input type="number" id="e-hp-num" value="50" min="1" max="1250" oninput="syncStat('hp', this.value)"
+                  class="stat-num-input" />
+                <button class="btn sm" onclick="adjustStat('hp', 1)">+</button>
+                <button class="btn sm" onclick="adjustStat('hp', -1)">-</button>
+              </div>
+              <div class="stat-segs mt-8" id="e-hp-segs"></div>
+            </div>
+            <div class="field">
+              <label>ATTACK &nbsp;<span style="color:#fff" id="atk-val-disp">10</span> <span id="e-tier-disp-atk"
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span></label>
+              <div class="flex-row">
+                <input type="range" min="1" max="300" value="10" id="e-atk" oninput="updateStatDisplay('atk')"
+                  style="flex:1" />
+                <input type="number" id="e-atk-num" value="10" min="1" max="300" oninput="syncStat('atk', this.value)"
+                  class="stat-num-input" />
+                <button class="btn sm" onclick="adjustStat('atk', 1)">+</button>
+                <button class="btn sm" onclick="adjustStat('atk', -1)">-</button>
+              </div>
+              <div class="stat-segs mt-8" id="e-atk-segs"></div>
+            </div>
+            <div class="field">
+              <label>DEFENSE &nbsp;<span style="color:#fff" id="def-val-disp">10</span> <span id="e-tier-disp-def"
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span></label>
+              <div class="flex-row">
+                <input type="range" min="1" max="300" value="10" id="e-def" oninput="updateStatDisplay('def')"
+                  style="flex:1" />
+                <input type="number" id="e-def-num" value="10" min="1" max="300" oninput="syncStat('def', this.value)"
+                  class="stat-num-input" />
+                <button class="btn sm" onclick="adjustStat('def', 1)">+</button>
+                <button class="btn sm" onclick="adjustStat('def', -1)">-</button>
+              </div>
+              <div class="stat-segs mt-8" id="e-def-segs"></div>
+            </div>
+            <div class="field">
+              <label>MAGIC &nbsp;<span style="color:#fff" id="mag-val-disp">10</span> <span id="e-tier-disp-mag"
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span></label>
+              <div class="flex-row">
+                <input type="range" min="1" max="300" value="10" id="e-mag" oninput="updateStatDisplay('mag')"
+                  style="flex:1" />
+                <input type="number" id="e-mag-num" value="10" min="1" max="300" oninput="syncStat('mag', this.value)"
+                  class="stat-num-input" />
+                <button class="btn sm" onclick="adjustStat('mag', 1)">+</button>
+                <button class="btn sm" onclick="adjustStat('mag', -1)">-</button>
+              </div>
+              <div class="stat-segs mt-8" id="e-mag-segs"></div>
+            </div>
+            <div class="field">
+              <label>SPEED &nbsp;<span style="color:#fff" id="spd-val-disp">10</span> <span id="e-tier-disp-spd"
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span></label>
+              <div class="flex-row">
+                <input type="range" min="1" max="300" value="10" id="e-spd" oninput="updateStatDisplay('spd')"
+                  style="flex:1" />
+                <input type="number" id="e-spd-num" value="10" min="1" max="300" oninput="syncStat('spd', this.value)"
+                  class="stat-num-input" />
+                <button class="btn sm" onclick="adjustStat('spd', 1)">+</button>
+                <button class="btn sm" onclick="adjustStat('spd', -1)">-</button>
+              </div>
+              <div class="stat-segs mt-8" id="e-spd-segs"></div>
+            </div>
+
+          </div>
+
+          <div class="panel mt-16">
+            <div class="panel-title">BASE SUBSTATS</div>
+            <div class="field" style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <label style="color:#88ff88;" title="+5% healing power per 15 MAG. No max.">HEAL POWER (%)</label>
+                <input type="number" id="e-heal_pow" value="0" min="0" max="100" class="stat-num-input" style="width:100%" oninput="if(this.value>100)this.value=100;if(this.value<0)this.value=0;" />
+              </div>
+              <div>
+                <label style="color:#ff8888;" title="+0.3% crit chance per 20 ATK. Max 80% without items.">CRIT CHANCE (%)</label>
+                <input type="number" id="e-crit_rate" value="0" class="stat-num-input" style="width:100%; opacity:0.5; cursor:not-allowed;" readonly />
+              </div>
+              <div>
+                <label style="color:#cc0000;" title="+1% extra crit damage per 50 ATK. +0.1% extra crit damage per 1% crit chance.">EXTRA CRIT DMG (%)</label>
+                <input type="number" id="e-crit_dmg" value="0" class="stat-num-input" style="width:100%; opacity:0.5; cursor:not-allowed;" readonly />
+              </div>
+              <div>
+                <label style="color:#00ccaa;" title="+1% status effect resistance per 20 DEF. Max 50% without items.">STATUS RES (%)</label>
+                <input type="number" id="e-status_res" value="0" class="stat-num-input" style="width:100%; opacity:0.5; cursor:not-allowed;" readonly />
+              </div>
+              <div>
+                <label style="color:#ffff88;" title="+0.5% dexterity per 10 SPEED. Combat speed, weaving, dodging.">DEXTERITY (%)</label>
+                <input type="number" id="e-dexterity" value="0" min="0" max="10" step="0.1" class="stat-num-input" style="width:100%" oninput="if(this.value>10)this.value=10;if(this.value<0)this.value=0;" />
+              </div>
+              <div>
+                <label style="color:#8800cc;" title="Chance to survive with 1 hp. +0.20% resilience per 100 HP. Max 50%.">RESILIENCE (%)</label>
+                <input type="number" id="e-resilience" value="0" class="stat-num-input" style="width:100%; opacity:0.5; cursor:not-allowed;" readonly />
+              </div>
+              <div>
+                <label style="color:#ffffff;" title="Ignores defense. +1% true damage per 300 HP.">TRUE DAMAGE (%)</label>
+                <input type="number" id="e-true_dmg" value="0" class="stat-num-input" style="width:100%; opacity:0.5; cursor:not-allowed;" readonly />
+              </div>
+              <div>
+                <label style="color:#aa0000;" title="Heal from damage dealt. +1% lifesteal per 100 DEF.">LIFESTEAL (%)</label>
+                <input type="number" id="e-lifesteal" value="0" class="stat-num-input" style="width:100%; opacity:0.5; cursor:not-allowed;" readonly />
+              </div>
+              <div>
+                <label style="color:#00aaff;" title="Reduces skill cooldowns. +1% CDR per 20 SPEED. Max 40% without items.">COOLDOWN RED. (%)</label>
+                <input type="number" id="e-cooldown_red" value="0" class="stat-num-input" style="width:100%; opacity:0.5; cursor:not-allowed;" readonly />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PATTERN -->
+      <div class="panel">
+        <div class="panel-title">BACKGROUND PATTERN</div>
+        <div class="field">
+          <label>PATTERN TYPE</label>
+          <select id="e-pattern" onchange="onPatternChange()">
+            <option value="none">None</option>
+            <option value="checkerboard">Animated Checkerboard</option>
+            <option value="scrolling_lines">Scrolling Lines</option>
+            <option value="matrix_rain">Matrix Rain</option>
+            <option value="bouncing_diamonds">Bouncing Diamonds</option>
+            <option value="pulse_rings">Pulse Rings</option>
+            <option value="static_noise">Static Noise</option>
+            <option value="falling_pixels">Falling Pixels</option>
+            <option value="scanwave">Scan Wave</option>
+            <option value="crosshatch">Animated Crosshatch</option>
+            <option value="heartbeat">Heartbeat / ECG</option>
+            <option value="twinkling_stars">Twinkling Stars</option>
+            <option value="glitch_grid">Glitch Grid</option>
+            <option value="neural_network">Neural Network</option>
+            <option value="cyber_circuitry">Cyber Circuitry</option>
+            <option value="digital_vortex">Digital Vortex</option>
+          </select>
+        </div>
+        <div id="pattern-params"></div>
+        <div class="field" style="margin-top:16px;">
+          <label>PREVIEW</label>
+          <div id="pattern-preview-wrap">
+            <canvas id="pattern-preview-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-row mt-16">
+        <!-- Save: floppy-disk icon -->
+        <button class="btn success" onclick="saveCharacter()">
+          <svg width="11" height="11" viewBox="0 0 11 11" style="vertical-align:middle;margin-right:4px;">
+            <rect x="1" y="1" width="9" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1" />
+            <rect x="3" y="1" width="5" height="3" fill="currentColor" />
+            <rect x="3" y="6" width="5" height="4" fill="none" stroke="currentColor" stroke-width="1" />
+          </svg>
+          SAVE
+        </button>
+        <!-- Cancel: X icon -->
+        <button class="btn" onclick="cancelEditor()">
+          <svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:middle;margin-right:4px;">
+            <line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.5" />
+            <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          CANCEL
+        </button>
+      </div>
+
+    </div>
+    </main>
+  </div>
+  </div>
+
+
+  <!-- ITEM EDITOR MODAL -->
+  <div id="item-editor-overlay">
+    <div id="item-editor-modal">
+      <div id="item-editor-header">
+        <span id="ie-title">NEW ITEM</span>
+        <button class="btn-info" onclick="closeItemEditor()">✕</button>
+      </div>
+      <div id="item-editor-body">
+        <!-- Left: Identity & Icon -->
+        <div style="min-width:0;">
+          <div class="field">
+            <label>ITEM NAME</label>
+            <input type="text" id="ie-name" placeholder="e.g. Master Sword" maxlength="32">
+          </div>
+          <div class="field">
+            <label>DESCRIPTION</label>
+            <textarea id="ie-desc" rows="3" placeholder="A brief description..."
+              style="width:100%; padding:8px; background:var(--input-bg); color:var(--fg); border:1px solid #333; font-family:var(--font-main); font-size:8px; line-height:1.5; resize:none;"></textarea>
+          </div>
+          <div class="field">
+            <label style="display:flex; justify-content:space-between;">
+              ICON / IMAGE
+              <span style="cursor:pointer; color:var(--accent-yellow);"
+                onclick="document.getElementById('ie-img-upload').click()">[UPLOAD]</span>
+              <input type="file" id="ie-img-upload" accept="image/*" style="display:none;"
+                onchange="handleItemIconUpload(event)">
+            </label>
+            <div class="icon-picker-wrap" id="ie-icon-picker">
+              <!-- Icon picker injected via JS -->
+            </div>
+            <div style="font-size:7px; color:#555; text-align:right;">Selected: <span id="ie-selected-icon-name"
+                style="color:var(--accent-cyan);">None</span></div>
+          </div>
+        </div>
+        <!-- Right: Modifiers -->
+        <div style="min-width:0;">
+          <div class="field" style="margin-bottom:12px;">
+            <label style="display:flex; justify-content:space-between; align-items:center;">
+              STAT MODIFIERS
+              <button class="btn sm" onclick="addModRow()">+ ADD</button>
+            </label>
+          </div>
+          <div id="ie-mods-list">
+            <!-- Mod rows injected via JS -->
+          </div>
+          <div id="ie-mods-empty"
+            style="font-size:8px; color:#555; letter-spacing:1px; text-align:center; padding:20px; border:1px dashed #333; display:none;">
+            NO MODIFIERS
+          </div>
+        </div>
+      </div>
+      <div id="item-editor-footer">
+        <button class="btn" onclick="closeItemEditor()">CANCEL</button>
+        <button class="btn success" onclick="saveItem()">SAVE ITEM</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- POWER LEVEL MODAL -->
+  <div id="power-modal-overlay" onclick="closePowerModal()"></div>
+  <div id="power-modal">
+    <div id="power-modal-header">
+      <span>POWER LEVEL REFERENCE</span>
+      <button class="btn-info" onclick="closePowerModal()">✕</button>
+    </div>
+    <div id="power-modal-body">
+      <div class="pl-tier"
+        data-tooltip="Weaker than an average adult human. Fragile, slow, and limited in all combat capacities.">
+        <div class="pl-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+            stroke-width="1.5">
+            <circle cx="12" cy="6" r="3" />
+            <path d="M6 20v-3a6 6 0 0 1 12 0v3" />
+            <path d="M12 13l-3 5m3-5l3 5" stroke-width="1" opacity="0.4" />
+          </svg></div>
+        <div class="pl-text">
+          <div class="pl-title">BELOW AVERAGE HUMAN LEVEL</div>
+          <div class="pl-stats">HP: 1–25 &nbsp;|&nbsp; ATK: 1–5 &nbsp;|&nbsp; DEF: 1–5 &nbsp;|&nbsp; MAG: 1–5
+            &nbsp;|&nbsp; SPD: 1–5</div>
+        </div>
+      </div>
+      <div class="pl-tier" data-tooltip="An ordinary, healthy adult human. No special training or abilities.">
+        <div class="pl-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+            stroke-width="1.5">
+            <circle cx="12" cy="6" r="3" />
+            <path d="M6 20v-3a6 6 0 0 1 12 0v3" />
+          </svg></div>
+        <div class="pl-text">
+          <div class="pl-title">HUMAN LEVEL</div>
+          <div class="pl-stats">HP: 25–50 &nbsp;|&nbsp; ATK: 5–15 &nbsp;|&nbsp; DEF: 5–15 &nbsp;|&nbsp; MAG: 5–15
+            &nbsp;|&nbsp; SPD: 5–15</div>
+        </div>
+      </div>
+      <div class="pl-tier"
+        data-tooltip="A trained fighter, athlete, or skilled professional. Noticeably above the average person.">
+        <div class="pl-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+            stroke-width="1.5">
+            <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" />
+          </svg></div>
+        <div class="pl-text">
+          <div class="pl-title">ATHLETE / PROFICIENT LEVEL</div>
+          <div class="pl-stats">HP: 50–100 &nbsp;|&nbsp; ATK: 15–30 &nbsp;|&nbsp; DEF: 15–30 &nbsp;|&nbsp; MAG: 15–30
+            &nbsp;|&nbsp; SPD: 15–30</div>
+        </div>
+      </div>
+      <div class="pl-tier"
+        data-tooltip="Can handle threats common to city streets; gangs, armed thugs, small monsters. Peak human or lightly superhuman.">
+        <div class="pl-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+            stroke-width="1.5">
+            <path d="M18 11V7a3 3 0 0 0-6 0v2M6 11h12l1 10H5L6 11z" />
+            <path d="M10 15v2m4-2v2" stroke-width="1.2" />
+          </svg></div>
+        <div class="pl-text">
+          <div class="pl-title">STREET LEVEL</div>
+          <div class="pl-stats">HP: 100–225 &nbsp;|&nbsp; ATK: 30–50 &nbsp;|&nbsp; DEF: 30–50 &nbsp;|&nbsp; MAG: 30–50
+            &nbsp;|&nbsp; SPD: 30–50</div>
+        </div>
+      </div>
+      <div class="pl-tier"
+        data-tooltip="Can damage or withstand the equivalent of a wall being destroyed. Clearly superhuman.">
+        <div class="pl-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+            stroke-width="1.5">
+            <rect x="2" y="4" width="20" height="6" rx="1" />
+            <rect x="2" y="14" width="20" height="6" rx="1" />
+            <line x1="8" y1="4" x2="8" y2="10" />
+            <line x1="14" y1="14" x2="14" y2="20" />
+          </svg></div>
+        <div class="pl-text">
+          <div class="pl-title">WALL LEVEL</div>
+          <div class="pl-stats">HP: 225–350 &nbsp;|&nbsp; ATK: 50–70 &nbsp;|&nbsp; DEF: 50–70 &nbsp;|&nbsp; MAG: 50–70
+            &nbsp;|&nbsp; SPD: 50–70</div>
+        </div>
+      </div>
+      <div class="pl-tier"
+        data-tooltip="Attacks and durability scale to destroying or surviving full building collapses. A major threat.">
+        <div class="pl-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+            stroke-width="1.5">
+            <rect x="4" y="3" width="16" height="18" rx="1" />
+            <line x1="9" y1="3" x2="9" y2="21" />
+            <line x1="15" y1="3" x2="15" y2="21" />
+            <line x1="4" y1="9" x2="20" y2="9" />
+            <line x1="4" y1="15" x2="20" y2="15" />
+          </svg></div>
+        <div class="pl-text">
+          <div class="pl-title">BUILDING LEVEL</div>
+          <div class="pl-stats">HP: 350–500 &nbsp;|&nbsp; ATK: 70–125 &nbsp;|&nbsp; DEF: 70–125 &nbsp;|&nbsp; MAG:
+            70–125 &nbsp;|&nbsp; SPD: 70–125</div>
+        </div>
+      </div>
+      <div class="pl-tier"
+        data-tooltip="Power that can devastate entire cities. A catastrophic, near-apocalyptic individual threat.">
+        <div class="pl-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+            stroke-width="1.5">
+            <rect x="2" y="11" width="4" height="10" />
+            <rect x="10" y="7" width="4" height="14" />
+            <rect x="18" y="4" width="4" height="17" />
+            <line x1="2" y1="21" x2="22" y2="21" />
+          </svg></div>
+        <div class="pl-text">
+          <div class="pl-title">CITY LEVEL</div>
+          <div class="pl-stats">HP: 500–850 &nbsp;|&nbsp; ATK: 125–200 &nbsp;|&nbsp; DEF: 125–200 &nbsp;|&nbsp; MAG:
+            125–200 &nbsp;|&nbsp; SPD: 125–200</div>
+        </div>
+      </div>
+      <div class="pl-tier"
+        data-tooltip="Can crack or move mountains. Planetary-scale threat. Forces of nature themselves.">
+        <div class="pl-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+            stroke-width="1.5">
+            <path d="M2 20l7-10 4 5 3-4 6 9H2z" />
+          </svg></div>
+        <div class="pl-text">
+          <div class="pl-title">MOUNTAIN LEVEL</div>
+          <div class="pl-stats">HP: 850–1250 &nbsp;|&nbsp; ATK: 200–300 &nbsp;|&nbsp; DEF: 200–300 &nbsp;|&nbsp; MAG:
+            200–300 &nbsp;|&nbsp; SPD: 200–300</div>
+        </div>
+      </div>
+      <div class="pl-cap">CAPPED FOR NOW...</div>
+
+    </div>
+  </div>
+
+  <!-- TRAIT CODEX MODAL -->
+  <div id="trait-codex-overlay" onclick="closeTraitCodex()"></div>
+  <div id="trait-codex-modal">
+    <div id="trait-codex-header">
+      <span>TRAIT CODEX</span>
+      <div class="codex-rarity-legend">
+        <span class="codex-leg rar-common">COMMON 60%</span>
+        <span class="codex-leg rar-rare">RARE 30%</span>
+        <span class="codex-leg rar-epic">EPIC 18.4%</span>
+        <span class="codex-leg rar-legendary">LEGENDARY 1.5%</span>
+        <span class="codex-leg rar-mythic">MYTHIC 0.1%</span>
+        <span class="codex-leg rar-hexxed">HEXXED 0.02%</span>
+      </div>
+      <button class="btn-info" onclick="closeTraitCodex()">✕</button>
+    </div>
+    <div id="trait-codex-body">
+      <!-- Codex sections injected via JS -->
+    </div>
+  </div>
+
+  <!-- TRAIT ROLL MODAL -->
+  <div id="trait-roll-overlay">
+    <div id="trait-roll-stage">
+      <div id="pity-display">
+        <div id="pity-label">PITY &nbsp;<span id="pity-count">0</span> / 100</div>
+        <div id="pity-track"><div id="pity-fill"></div></div>
+      </div>
+      <div class="hand-title" id="roll-phase-title">DRAWING YOUR HAND...</div>
+      <div class="hand-sub" id="roll-phase-sub">&nbsp;</div>
+      <div id="trait-hand-cards" class="hand-cards"></div>
+      <div class="hand-actions" id="roll-phase-actions" style="display:none;">
+        <button class="btn" onclick="closeTraitRoll(true)">CANCEL</button>
+        <button class="btn accent" onclick="rerollHand()">REROLL HAND</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CULTIVATION / SCALING MODAL -->
+  <div id="cultivation-overlay" onclick="closeCultivationWindow()"></div>
+  <div id="cultivation-modal">
+    <div id="cultivation-header">
+      <span><span id="cult-title-name">CULTIVATION</span></span>
+      <button class="btn-info" onclick="closeCultivationWindow()">✕</button>
+    </div>
+    <div id="cultivation-body">
+      <!-- Cultivation content injected via JS -->
+    </div>
+  </div>
+
+
+
+  <!-- GOLD / TREASURY MODAL -->
+  <div id="gold-overlay" onclick="closeGoldManager()"></div>
+  <div id="gold-modal">
+    <div id="gold-modal-header">
+      <span>TREASURY</span>
+      <button class="btn-info" onclick="closeGoldManager()">✕</button>
+    </div>
+    <div id="gold-modal-body">
+      <div id="gold-balance-wrap">
+        <div id="gold-balance-label">BALANCE</div>
+        <div id="gold-balance-amount">0 G</div>
+      </div>
+      <div id="gold-controls">
+        <div class="field">
+          <label>AMOUNT</label>
+          <input type="number" id="gold-input" min="0" step="1" placeholder="0" class="stat-num-input" style="width:100%;font-size:12px;" />
+        </div>
+        <div class="field">
+          <label>NOTE (OPTIONAL)</label>
+          <input type="text" id="gold-note" placeholder="e.g. Bought a sword" maxlength="80"
+            style="width:100%;background:var(--input-bg);color:var(--fg);border:1px solid #333;font-family:var(--font-main);font-size:8px;padding:8px;letter-spacing:1px;" />
+        </div>
+        <div id="gold-action-btns">
+          <button class="btn success" onclick="transactGold(1)">+ ADD</button>
+          <button class="btn danger" onclick="transactGold(-1)">- REMOVE</button>
+        </div>
+      </div>
+      <div id="gold-history-wrap">
+        <div id="gold-history-label">TRANSACTION HISTORY</div>
+        <div id="gold-history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="global-tooltip"></div>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="script.js" defer></script>
+
+</body>
+
+</html>

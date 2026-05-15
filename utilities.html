@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>STATSHEETS - UTILITIES</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { padding: 40px; }
+  .back-btn { margin-bottom: 30px; }
+</style>
+</head>
+<body>
+
+<div id="cursor">
+  <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px;">
+    <polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="white"/>
+    <polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<div id="notif"></div>
+<div id="dice-overlay" onclick="dismissDice()"></div>
+
+<!-- Confirm dialog -->
+<div id="confirm-overlay">
+  <div id="confirm-box">
+    <p id="confirm-msg"></p>
+    <div id="confirm-btns">
+      <button class="btn danger" id="confirm-yes">YES</button>
+      <button class="btn" id="confirm-no">NO</button>
+    </div>
+  </div>
+</div>
+
+<!-- Power Level Info Modal -->
+<div id="power-modal-overlay" onclick="closePowerModal()"></div>
+<div id="power-modal">
+  <div class="panel">
+    <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center;">
+      POWER LEVEL REFERENCE
+      <button class="btn icon-btn" onclick="closePowerModal()">&times;</button>
+    </div>
+    <div class="pl-content">
+      <div class="pl-tier" data-tooltip="The standard limit for common entities.">Human / Small Building</div>
+      <div class="pl-tier" data-tooltip="Powerful enough to destroy large structures.">Large Building / City Block</div>
+      <div class="pl-tier" data-tooltip="Capable of wiping out an entire town.">Town Level</div>
+      <div class="pl-tier" data-tooltip="Devastating force capable of leveling a city.">City Level</div>
+      <div class="pl-tier" data-tooltip="True terror. Can erase a mountain from the map.">Mountain Level</div>
+    </div>
+    <div class="pl-cap">-- ASCENDED TIER --</div>
+  </div>
+</div>
+
+<div class="back-btn">
+  <button class="btn accent" onclick="location.href='index.html'">&lt; BACK TO MAIN MENU</button>
+</div>
+
+<div id="utilities-page">
+  <div class="editor-title">UTILITIES & TOOLS</div>
+  
+  <div class="editor-grid">
+    <!-- LEFT: DICE & CRIT -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">DICE ROLLER</div>
+        <div class="field">
+          <label>SIDES</label>
+          <input type="number" id="u-dice-sides" value="20" min="2" max="999"/>
+        </div>
+        <div class="dice-result-wrap">
+          <div class="dice-container">
+            <div id="dice-cube" class="cube">
+              <div class="face front" id="f-front">--</div>
+              <div class="face back" id="f-back"></div>
+              <div class="face right" id="f-right"></div>
+              <div class="face left" id="f-left"></div>
+              <div class="face top" id="f-top"></div>
+              <div class="face bottom" id="f-bottom"></div>
+            </div>
+          </div>
+          <button class="btn accent" onclick="rollDice()">ROLL DICE</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">CRIT CALCULATOR</div>
+        <div class="field">
+          <label>CRIT CHANCE (%)</label>
+          <input type="number" id="u-crit-chance" value="10" min="0" max="100"/>
+        </div>
+        <div class="field">
+          <label>EXTRA CRIT DMG (MULT)</label>
+          <input type="number" id="u-crit-extra" value="1" min="1" step="0.1"/>
+        </div>
+        <div class="dice-result-wrap">
+          <div id="crit-result">--</div>
+          <button class="btn accent" onclick="rollCrit()">ROLL CRIT</button>
+        </div>
+        <div id="crit-detail" style="font-size:8px; color:#555; text-align:center; margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: STAT CHECKER -->
+    <div class="panel stats-panel" style="min-width:450px;">
+      <div class="panel-title">STAT CHECKER (SIMULATOR)</div>
+      <div id="stat-checker-rows">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="global-tooltip"></div>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
