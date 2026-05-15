@@ -2523,6 +2523,7 @@ input[type=number] { -moz-appearance: textfield; }
    ============================================================ */
 #mobile-topbar  { display: none; }
 #mobile-backdrop { display: none; }
+#sidebar-footer { display: none; }
 
 /* ============================================================
    MOBILE & TABLET  ≤ 768 px
@@ -2608,6 +2609,28 @@ input[type=number] { -moz-appearance: textfield; }
   }
   body.drawer-open #mobile-backdrop { display: block; }
   body.drawer-open { overflow: hidden; }
+
+  /* ---- Sidebar footer (utilities link on mobile) ---- */
+  #sidebar-footer {
+    display: block;
+    padding: 10px 12px;
+    border-top: 1px solid #2a2a2a;
+    flex-shrink: 0;
+  }
+  #sidebar-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ---- Char list: push footer down ---- */
+  #char-list { flex: 1; }
+
+  /* ---- Char entries: make whole row tappable, hide invisible action buttons ---- */
+  .char-entry {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .char-entry-actions { display: none; }
 
   /* ---- Content area ---- */
   #content {
