@@ -4145,6 +4145,7 @@ function initTierList() {
           return ao - bo;
         });
         renderTierList();
+        renderLeaderboard();
       });
     }
     // Global tier list — live sync for all users
@@ -4241,6 +4242,48 @@ function dropOnTier(e, tier) {
   if (tier) { if (!_tierData[tier]) _tierData[tier] = []; _tierData[tier].push(charId); }
   saveTierList();
   renderTierList();
+}
+
+// ============================================================
+// STAT LEADERBOARD
+// ============================================================
+let _leaderboardStat = 'hp';
+
+function selectLeaderboardStat(stat, btn) {
+  _leaderboardStat = stat;
+  document.querySelectorAll('.lb-stat-btn').forEach(b => b.classList.remove('accent'));
+  if (btn) btn.classList.add('accent');
+  renderLeaderboard();
+}
+
+function renderLeaderboard() {
+  const wrap = document.getElementById('leaderboard-wrap');
+  if (!wrap) return;
+  if (!characters.length) {
+    wrap.innerHTML = `<div style="text-align:center;color:#444;font-size:8px;padding:24px;letter-spacing:1px;">NO CHARACTERS</div>`;
+    return;
+  }
+  const stat = _leaderboardStat;
+  const ranked = characters
+    .filter(c => !c.isPlaceholder)
+    .map(c => ({ c, val: +(getEffectiveStats(c)[stat] || 0) }))
+    .sort((a, b) => b.val - a.val);
+  const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
+  const isSub = ['heal_pow','crit_rate','crit_dmg','status_res','dexterity','resilience','true_dmg','lifesteal','cooldown_red'].includes(stat);
+  wrap.innerHTML = ranked.map(({ c, val }, i) => {
+    const av = c.avatar
+      ? `<img src="${c.avatar}" style="width:28px;height:28px;object-fit:cover;border:1px solid ${c.color};flex-shrink:0;">`
+      : `<svg viewBox="0 0 32 32" style="width:28px;height:28px;flex-shrink:0;"><rect x="12" y="2" width="8" height="8" fill="${c.color}"/><rect x="10" y="10" width="12" height="10" fill="${c.color}"/><rect x="8" y="20" width="6" height="8" fill="${c.color}"/><rect x="18" y="20" width="6" height="8" fill="${c.color}"/></svg>`;
+    const fmtVal = (val % 1 === 0 ? val : val.toFixed(1)) + (isSub ? '%' : '');
+    const rankColor = RANK_COLORS[i] || '#2a2a2a';
+    const rowBg = i < 3 ? `background:${rankColor}11;` : '';
+    return `<div class="lb-row" style="${rowBg}">
+      <span class="lb-rank" style="color:${RANK_COLORS[i] || '#333'}">#${i + 1}</span>
+      ${av}
+      <span class="lb-name" style="color:${c.color}">${c.name}</span>
+      <span class="lb-val">${fmtVal}</span>
+    </div>`;
+  }).join('');
 }
 
 // ============================================================

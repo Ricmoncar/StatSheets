@@ -2892,6 +2892,15 @@ input[type=number] { -moz-appearance: textfield; }
 .tier-chip-name { font-size: 6px; letter-spacing: 0.5px; max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
 
 /* ============================================================
+   STAT LEADERBOARD
+   ============================================================ */
+.lb-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid #0e0e0e; font-size: 8px; letter-spacing: 1px; }
+.lb-row:last-child { border-bottom: none; }
+.lb-rank { width: 28px; text-align: right; flex-shrink: 0; font-weight: bold; }
+.lb-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-val { color: var(--accent-cyan); flex-shrink: 0; font-size: 9px; }
+
+/* ============================================================
    CHARACTER CONTEXT MENU
    ============================================================ */
 #char-context-menu {

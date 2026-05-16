@@ -122,6 +122,28 @@
     </div>
   </div>
 
+  <!-- STAT LEADERBOARD -->
+  <div class="panel" style="margin-top:24px;">
+    <div class="panel-title">STAT LEADERBOARD</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+      <button class="btn sm lb-stat-btn accent" onclick="selectLeaderboardStat('hp',this)">HP</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('atk',this)">ATK</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('def',this)">DEF</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('mag',this)">MAG</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('spd',this)">SPD</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('heal_pow',this)">HEAL</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('crit_rate',this)">CRIT%</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('crit_dmg',this)">CRIT DMG</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('status_res',this)">STATUS RES</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('dexterity',this)">DEX</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('resilience',this)">RESIL</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('true_dmg',this)">TRUE DMG</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('lifesteal',this)">LIFESTEAL</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('cooldown_red',this)">CDR</button>
+    </div>
+    <div id="leaderboard-wrap"></div>
+  </div>
+
   <!-- SUGGESTION BOX -->
   <div class="panel" style="margin-top:24px;">
     <div class="panel-title">SUGGESTION BOX</div>
