@@ -2726,7 +2726,9 @@ input[type=number] { -moz-appearance: textfield; }
   }
 
   /* ---- Notifs below the top bar ---- */
-  #notif { top: 60px; left: 8px; right: 8px; }
+  /* bottom: auto unsets the desktop bottom:20px — without it #notif spans
+     the full screen height as an invisible z-9999 overlay that eats all taps */
+  #notif { top: 60px; left: 8px; right: 8px; bottom: auto; }
 
   /* ---- Utilities page ---- */
   #utilities-page .editor-grid { grid-template-columns: 1fr !important; }
