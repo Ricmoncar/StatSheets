@@ -4246,15 +4246,15 @@ function switchTierList(id) {
   renderTierList();
 }
 
-function deleteTierList(id) {
+async function deleteTierList(id) {
   if (_tierLists.length <= 1) { notify('CANNOT DELETE THE LAST LIST', 'err'); return; }
-  confirmAction('DELETE THIS TIER LIST?', () => {
-    if (_activeTierListId === id) {
-      const other = _tierLists.find(t => t.id !== id);
-      if (other) switchTierList(other.id);
-    }
-    db.collection('tierlists').doc(id).delete().catch(err => console.error('Delete tier list:', err));
-  });
+  const ok = await confirm2('DELETE THIS TIER LIST?');
+  if (!ok) return;
+  if (_activeTierListId === id) {
+    const other = _tierLists.find(t => t.id !== id);
+    if (other) switchTierList(other.id);
+  }
+  db.collection('tierlists').doc(id).delete().catch(err => console.error('Delete tier list:', err));
 }
 
 function promptNewTierList() {
