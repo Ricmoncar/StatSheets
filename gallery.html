@@ -599,7 +599,7 @@ function closeGalleryModal() {
 function renderGalleryGrid() {
   const grid = document.getElementById('gallery-img-grid');
   if (!_galleryImages.length) {
-    grid.innerHTML = '<div class="gallery-empty">NO IMAGES YET &mdash; ADD SOME ABOVE!</div>';
+    grid.innerHTML = '<div class="gallery-empty">NO IMAGES YET. ADD SOME ABOVE!</div>';
     return;
   }
   grid.innerHTML = _galleryImages.map((img, i) => {
