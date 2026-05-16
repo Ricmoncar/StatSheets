@@ -2800,6 +2800,63 @@ input[type=number] { -moz-appearance: textfield; }
 .folder-group.folder-drag-over .folder-contents { background: rgba(255,255,0,0.03); }
 
 /* ============================================================
+   SIDEBAR SEARCH
+   ============================================================ */
+#sidebar-search-wrap { padding: 6px 8px; border-bottom: 1px solid #1a1a1a; }
+#sidebar-search { width: 100%; box-sizing: border-box; background: #0a0a0a; border: 1px solid #1e1e1e; color: #aaa; font-family: inherit; font-size: 8px; letter-spacing: 1px; padding: 5px 8px; }
+#sidebar-search:focus { outline: none; border-color: #444; color: #fff; }
+#sidebar-search::placeholder { color: #2e2e2e; }
+
+/* ============================================================
+   CHARACTER TAGS
+   ============================================================ */
+.char-entry-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.char-entry-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+.char-tag { font-size: 6px; letter-spacing: 0.5px; padding: 1px 5px; border: 1px solid #2a2a2a; color: #555; background: rgba(255,255,255,0.02); white-space: nowrap; }
+.editor-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 7px; letter-spacing: 0.5px; padding: 2px 6px; border: 1px solid #333; color: #aaa; background: #111; }
+.editor-tag-remove { background: none; border: none; color: #555; cursor: pointer; font-size: 9px; padding: 0; line-height: 1; font-family: inherit; }
+.editor-tag-remove:hover { color: #ff4444; }
+
+/* ============================================================
+   ROLL HISTORY
+   ============================================================ */
+.history-row { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-bottom: 1px solid #111; font-size: 8px; letter-spacing: 1px; }
+.history-row:last-child { border-bottom: none; }
+.history-rar { font-size: 7px; min-width: 72px; flex-shrink: 0; }
+.history-name { flex: 1; color: #ccc; }
+.history-date { font-size: 7px; color: #444; flex-shrink: 0; }
+
+/* ============================================================
+   COMPARE MODAL
+   ============================================================ */
+#compare-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9994; }
+#compare-modal-overlay.open { display: block; }
+#compare-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 9995; width: 90vw; max-width: 520px; max-height: 85vh; overflow-y: auto; background: #000; border: 2px solid #333; animation: cv-fade-in 0.18s ease; }
+#compare-modal.open { display: block; }
+.cmp-names { display: flex; justify-content: space-between; align-items: center; font-size: 9px; letter-spacing: 1px; padding: 8px 0 12px; border-bottom: 1px solid #1e1e1e; margin-bottom: 8px; }
+.cmp-vs { color: #333; font-size: 8px; }
+.cmp-row { display: flex; align-items: center; padding: 5px 0; border-bottom: 1px solid #0e0e0e; font-size: 8px; letter-spacing: 1px; }
+.cmp-row:last-child { border-bottom: none; }
+.cmp-key { flex: 1; text-align: center; color: #444; font-size: 7px; }
+.cmp-val { width: 80px; text-align: center; color: #666; }
+.cmp-val.cmp-win { color: #4aff9e; font-weight: bold; }
+.cmp-val.cmp-lose { color: #555; }
+
+/* ============================================================
+   TIER LIST
+   ============================================================ */
+.tier-row { display: flex; align-items: stretch; min-height: 56px; border-bottom: 1px solid #111; }
+.tier-label { width: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border-right: 2px solid; letter-spacing: 0; }
+.tier-slots { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 10px; align-items: center; min-height: 52px; transition: background 0.1s; }
+.tier-slots.tier-drag-over, .tier-pool.tier-drag-over { background: rgba(255,255,0,0.04); }
+.tier-pool-label { font-size: 7px; letter-spacing: 2px; color: #333; padding: 10px 10px 4px; }
+.tier-pool { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; min-height: 52px; border-top: 1px solid #111; }
+.tier-chip { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 5px; border: 1px solid; cursor: grab; background: #0a0a0a; transition: opacity 0.15s, transform 0.1s; }
+.tier-chip:hover { transform: scale(1.05); }
+.tier-chip.dragging { opacity: 0.4; }
+.tier-chip-name { font-size: 6px; letter-spacing: 0.5px; max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+
+/* ============================================================
    CHARACTER CONTEXT MENU
    ============================================================ */
 #char-context-menu {

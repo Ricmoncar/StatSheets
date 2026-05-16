@@ -5,6 +5,11 @@ const STORAGE_KEY = 'statsheets_v1';
 const SEEN_TRAITS_KEY = 'statsheets_seen_traits';
 let characters = [];
 let folders = [];
+let _sidebarSearch = '';
+function filterSidebar(val) {
+  _sidebarSearch = (val || '').toLowerCase().trim();
+  renderSidebar();
+}
 let seenTraits = [];
 let currentId = null;
 let editingId = null;
@@ -1115,9 +1120,16 @@ function buildCharEntry(c, contextFolderId) {
     ? `<span style="color:#555;">${c.name}</span>&nbsp;<span style="font-size:6px;color:#444;">[DRAFT]</span>`
     : `<span style="color:${c.color}">${c.name || 'UNNAMED'}</span>`;
 
+  const tagsHtml = (c.tags && c.tags.length)
+    ? `<div class="char-entry-tags">${c.tags.map(t => `<span class="char-tag">${t}</span>`).join('')}</div>`
+    : '';
+
   el.innerHTML = `
     ${avatarHTML}
-    <div class="char-entry-name">${nameHtml}</div>`;
+    <div class="char-entry-info">
+      <div class="char-entry-name">${nameHtml}</div>
+      ${tagsHtml}
+    </div>`;
 
   el.addEventListener('contextmenu', e => openCharContextMenu(e, c.id));
 
@@ -1170,6 +1182,19 @@ function renderSidebar() {
   const list = document.getElementById('char-list');
   if (!list) return;
   list.innerHTML = '';
+
+  // Search mode: flat filtered list, no folder grouping
+  if (_sidebarSearch) {
+    const q = _sidebarSearch;
+    const filtered = characters.filter(c => c.name?.toLowerCase().includes(q));
+    if (!filtered.length) {
+      list.innerHTML = '<div style="padding:16px;font-size:8px;color:#333;letter-spacing:1px;text-align:center;">-- NO RESULTS --</div>';
+      return;
+    }
+    filtered.forEach(c => list.appendChild(buildCharEntry(c, c.folderId || null)));
+    return;
+  }
+
   if (!characters.length && !folders.length) {
     list.innerHTML = '<div style="padding:16px;font-size:8px;color:#333;letter-spacing:1px;text-align:center;line-height:2;">-- EMPTY --</div>';
     return;
@@ -1506,7 +1531,28 @@ function viewChar(id) {
   if (ptype !== 'none') startBgAnim(ptype, c.pattern?.params || {});
 
   renderInventory(c);
+  renderRollHistory(c);
   renderSidebar();
+}
+
+function renderRollHistory(c) {
+  const wrap = document.getElementById('cv-roll-history');
+  if (!wrap) return;
+  const hist = c.traitHistory || [];
+  if (!hist.length) {
+    wrap.innerHTML = `<div style="padding:16px;font-size:8px;color:#444;text-align:center;letter-spacing:1px;">NO ROLLS YET</div>`;
+    return;
+  }
+  const RAR_COLOR = { common:'var(--rar-common-fg)', rare:'var(--rar-rare-fg)', epic:'var(--rar-epic-fg)', legendary:'var(--rar-legendary-fg)', mythic:'var(--rar-mythic-fg)', hexxed:'var(--rar-hexxed-fg)' };
+  wrap.innerHTML = hist.map(h => {
+    const d = new Date(h.ts);
+    const ds = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `<div class="history-row">
+      <span class="history-rar" style="color:${RAR_COLOR[h.rarity]||'#aaa'}">${(h.rarity||'').toUpperCase()}</span>
+      <span class="history-name">${h.name}</span>
+      <span class="history-date">${ds}</span>
+    </div>`;
+  }).join('');
 }
 
 function switchTab(tab, btn) {
@@ -1514,6 +1560,34 @@ function switchTab(tab, btn) {
   btn.classList.add('active');
   document.getElementById('tab-stats').style.display = tab === 'stats' ? '' : 'none';
   document.getElementById('tab-style').style.display = tab === 'style' ? '' : 'none';
+}
+
+// ============================================================
+// CHARACTER TAGS
+// ============================================================
+let _editorTags = [];
+
+function renderEditorTags() {
+  const wrap = document.getElementById('e-tags-display');
+  if (!wrap) return;
+  wrap.innerHTML = _editorTags.map((t, i) =>
+    `<span class="editor-tag">${t}<button class="editor-tag-remove" onclick="removeEditorTag(${i})" title="Remove">×</button></span>`
+  ).join('');
+}
+
+function addEditorTag() {
+  const input = document.getElementById('e-tags-input');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val || _editorTags.includes(val) || _editorTags.length >= 8) return;
+  _editorTags.push(val);
+  input.value = '';
+  renderEditorTags();
+}
+
+function removeEditorTag(i) {
+  _editorTags.splice(i, 1);
+  renderEditorTags();
 }
 
 // ============================================================
@@ -1560,6 +1634,8 @@ function showEditor(id) {
     syncStat('hp', c.stats.hp);
     document.getElementById('e-spd').value = c.stats.spd;
     currentAvatarDataURL = c.avatar || null;
+    _editorTags = [...(c.tags || [])];
+    renderEditorTags();
     const ptype = c.pattern?.type || 'none';
     document.getElementById('e-pattern').value = ptype;
     patternParams = Object.assign({}, c.pattern?.params || {});
@@ -1586,6 +1662,8 @@ function showEditor(id) {
     document.getElementById('e-cooldown_red').value = 0;
 
     currentAvatarDataURL = null;
+    _editorTags = [];
+    renderEditorTags();
     document.getElementById('e-pattern').value = 'none';
     buildPatternParams('none');
   }
@@ -1803,7 +1881,8 @@ function saveCharacter() {
     traitStacks: existing.traitStacks || {},
     gold: existing.gold ?? 0,
     goldHistory: existing.goldHistory || [],
-    pity: existing.pity ?? 0
+    pity: existing.pity ?? 0,
+    tags: [..._editorTags]
   };
 
   if (editingId) {
@@ -3670,6 +3749,13 @@ function pickTraitFromHand(key) {
     if (t?.cultivation) c.traitStacks[k] = t.cultivation.defaultStacks || 0;
   });
 
+  const tDef = TRAITS[key];
+  if (tDef) {
+    c.traitHistory = c.traitHistory || [];
+    c.traitHistory.unshift({ key, name: tDef.name, rarity: tDef.rarity, ts: Date.now() });
+    if (c.traitHistory.length > 50) c.traitHistory.length = 50;
+  }
+
   saveData();
   playSound('equip', { rate: 1.15, volume: 0.9 });
   closeTraitRoll();
@@ -3878,6 +3964,127 @@ window.addEventListener('resize', () => {
 
 // ============================================================
 // GLOBAL SOUND TRIGGERS
+// ============================================================
+// CHARACTER COMPARISON
+// ============================================================
+function openCompare() {
+  const modal = document.getElementById('compare-modal');
+  const overlay = document.getElementById('compare-modal-overlay');
+  if (!modal) return;
+  const opts = characters.filter(c => !c.isPlaceholder)
+    .map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  const sa = document.getElementById('compare-sel-a');
+  const sb = document.getElementById('compare-sel-b');
+  sa.innerHTML = `<option value="">--</option>` + opts;
+  sb.innerHTML = `<option value="">--</option>` + opts;
+  if (currentId) sa.value = currentId;
+  overlay.classList.add('open');
+  modal.classList.add('open');
+  renderCompare();
+}
+function closeCompare() {
+  document.getElementById('compare-modal-overlay')?.classList.remove('open');
+  document.getElementById('compare-modal')?.classList.remove('open');
+}
+function renderCompare() {
+  const aId = document.getElementById('compare-sel-a')?.value;
+  const bId = document.getElementById('compare-sel-b')?.value;
+  const out  = document.getElementById('compare-content');
+  if (!out) return;
+  if (!aId || !bId || aId === bId) {
+    out.innerHTML = `<div style="text-align:center;color:#444;font-size:8px;padding:24px;letter-spacing:1px;">SELECT TWO DIFFERENT CHARACTERS</div>`;
+    return;
+  }
+  const a = characters.find(x => x.id === aId);
+  const b = characters.find(x => x.id === bId);
+  if (!a || !b) return;
+  const ea = getEffectiveStats(a), eb = getEffectiveStats(b);
+  const KEYS   = ['hp','atk','def','mag','spd','heal_pow','crit_rate','crit_dmg','status_res','dexterity','resilience','true_dmg','lifesteal','cooldown_red'];
+  const LABELS = { hp:'HP', atk:'ATK', def:'DEF', mag:'MAG', spd:'SPD', heal_pow:'HEAL POW', crit_rate:'CRIT%', crit_dmg:'CRIT DMG', status_res:'STATUS RES', dexterity:'DEX', resilience:'RESIL', true_dmg:'TRUE DMG', lifesteal:'LIFESTEAL', cooldown_red:'CDR' };
+  const rows = KEYS.map(k => {
+    const va = +(ea[k]||0).toFixed(1), vb = +(eb[k]||0).toFixed(1);
+    return `<div class="cmp-row">
+      <span class="cmp-val ${va>vb?'cmp-win':va<vb?'cmp-lose':''}">${va}</span>
+      <span class="cmp-key">${LABELS[k]}</span>
+      <span class="cmp-val ${vb>va?'cmp-win':vb<va?'cmp-lose':''}">${vb}</span>
+    </div>`;
+  }).join('');
+  out.innerHTML = `
+    <div class="cmp-names">
+      <span style="color:${a.color}">${a.name}</span>
+      <span class="cmp-vs">VS</span>
+      <span style="color:${b.color}">${b.name}</span>
+    </div>
+    <div class="cmp-rows">${rows}</div>`;
+}
+
+// ============================================================
+// TIER LIST (utilities page)
+// ============================================================
+const TIER_DEFS = ['S','A','B','C','D'];
+let _tierData = { S:[], A:[], B:[], C:[], D:[] };
+
+function initTierList() {
+  if (!document.getElementById('tier-list-wrap')) return;
+  try { const s = localStorage.getItem('tierlist_v1'); if (s) _tierData = { S:[], A:[], B:[], C:[], D:[], ...JSON.parse(s) }; } catch(e) {}
+  if (!characters.length) { setTimeout(initTierList, 600); return; }
+  renderTierList();
+}
+
+function saveTierList() {
+  localStorage.setItem('tierlist_v1', JSON.stringify(_tierData));
+}
+
+function renderTierList() {
+  const wrap = document.getElementById('tier-list-wrap');
+  if (!wrap) return;
+  const TIER_COLORS = { S:'#ff4a4a', A:'#ff884a', B:'#ffcc4a', C:'#4aff9e', D:'#4a9eff' };
+  const rankedIds = new Set(TIER_DEFS.flatMap(t => _tierData[t]||[]));
+  const unranked  = characters.filter(c => !c.isPlaceholder && !rankedIds.has(c.id));
+  wrap.innerHTML = TIER_DEFS.map(tier => `
+    <div class="tier-row">
+      <div class="tier-label" style="color:${TIER_COLORS[tier]};border-color:${TIER_COLORS[tier]};">${tier}</div>
+      <div class="tier-slots" id="tier-slots-${tier}"
+        ondragover="event.preventDefault();this.classList.add('tier-drag-over')"
+        ondragleave="this.classList.remove('tier-drag-over')"
+        ondrop="dropOnTier(event,'${tier}')">
+        ${(_tierData[tier]||[]).map(id => tierChip(id)).join('')}
+      </div>
+    </div>`).join('') +
+    `<div class="tier-pool-label">UNRANKED</div>
+    <div class="tier-pool" id="tier-pool"
+      ondragover="event.preventDefault();this.classList.add('tier-drag-over')"
+      ondragleave="this.classList.remove('tier-drag-over')"
+      ondrop="dropOnTier(event,null)">
+      ${unranked.map(c => tierChip(c.id)).join('')}
+    </div>`;
+}
+
+function tierChip(charId) {
+  const c = characters.find(x => x.id === charId);
+  if (!c) return '';
+  const av = c.avatar
+    ? `<img src="${c.avatar}" style="width:22px;height:22px;object-fit:cover;"/>`
+    : `<svg viewBox="0 0 32 32" style="width:22px;height:22px;"><rect x="12" y="2" width="8" height="8" fill="${c.color}"/><rect x="10" y="10" width="12" height="10" fill="${c.color}"/><rect x="8" y="20" width="6" height="8" fill="${c.color}"/><rect x="18" y="20" width="6" height="8" fill="${c.color}"/></svg>`;
+  return `<div class="tier-chip" draggable="true" title="${c.name}" style="border-color:${c.color}"
+    ondragstart="event.dataTransfer.setData('text/plain','${charId}');this.classList.add('dragging')"
+    ondragend="this.classList.remove('dragging')">
+    ${av}
+    <span class="tier-chip-name" style="color:${c.color}">${c.name}</span>
+  </div>`;
+}
+
+function dropOnTier(e, tier) {
+  e.preventDefault();
+  document.querySelectorAll('.tier-slots,.tier-pool').forEach(el => el.classList.remove('tier-drag-over'));
+  const charId = e.dataTransfer.getData('text/plain');
+  if (!charId) return;
+  TIER_DEFS.forEach(t => { _tierData[t] = (_tierData[t]||[]).filter(id => id !== charId); });
+  if (tier) { if (!_tierData[tier]) _tierData[tier] = []; _tierData[tier].push(charId); }
+  saveTierList();
+  renderTierList();
+}
+
 // ============================================================
 // Click sound on all interactive elements (capture phase so nothing is missed)
 document.addEventListener('click', (e) => {

@@ -51,6 +51,23 @@
     </div>
   </div>
 
+  <!-- Compare Modal -->
+  <div id="compare-modal-overlay" onclick="closeCompare()"></div>
+  <div id="compare-modal">
+    <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #222;">
+      <span>COMPARE CHARACTERS</span>
+      <button class="btn icon-btn" onclick="closeCompare()">&times;</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select id="compare-sel-a" onchange="renderCompare()" style="flex:1;background:#111;color:#eee;border:1px solid #333;font-family:inherit;font-size:8px;padding:5px;letter-spacing:1px;"></select>
+        <span style="font-size:8px;color:#444;">VS</span>
+        <select id="compare-sel-b" onchange="renderCompare()" style="flex:1;background:#111;color:#eee;border:1px solid #333;font-family:inherit;font-size:8px;padding:5px;letter-spacing:1px;"></select>
+      </div>
+      <div id="compare-content"></div>
+    </div>
+  </div>
+
   <!-- Folder Modal -->
   <div id="folder-modal-overlay" onclick="closeFolderModal()"></div>
   <div id="folder-modal">
@@ -115,6 +132,9 @@
         <div id="sidebar-title">
           <span>// CHARACTERS</span>
           <button class="btn icon-btn" onclick="openFolderModal(null)" title="New folder" style="margin-left:auto; float:right; font-size:8px; padding:2px 6px;">+</button>
+        </div>
+        <div id="sidebar-search-wrap">
+          <input type="text" id="sidebar-search" placeholder="SEARCH..." autocomplete="off" oninput="filterSidebar(this.value)"/>
         </div>
         <div id="char-list"></div>
         <div id="sidebar-footer">
@@ -221,6 +241,7 @@
               </div>
               <div class="flex-row" style="align-self:flex-start;gap:8px;">
                 <!-- Edit icon: pencil -->
+                <button class="btn sm" onclick="openCompare()" title="Compare with another character">&#9878; CMP</button>
                 <button class="btn sm accent" onclick="editCurrent()" title="Edit">
                   <svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:middle;">
                     <path d="M7 1l2 2-6 6H1V7L7 1z" fill="none" stroke="currentColor" stroke-width="1.2" />
@@ -264,6 +285,18 @@
                   <div id="cv-traits" class="traits-grid">
                     <!-- Trait chips injected via JS -->
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ROLL HISTORY PANEL -->
+            <div class="panel">
+              <div class="panel-title" style="cursor:pointer;user-select:none;" onclick="togglePanel('history-content','history-chevron')">
+                <span id="history-chevron" style="transition:transform 0.3s;font-size:10px;margin-right:8px;">▼</span>ROLL HISTORY
+              </div>
+              <div id="history-content" class="collapsible-wrapper">
+                <div class="collapsible-content">
+                  <div id="cv-roll-history"></div>
                 </div>
               </div>
             </div>
@@ -333,6 +366,15 @@
             <div class="field">
               <label>BIO / LORE</label>
               <textarea id="e-bio" placeholder="A short description..." rows="3"></textarea>
+            </div>
+            <div class="field">
+              <label>TAGS</label>
+              <div id="e-tags-display" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;min-height:10px;"></div>
+              <div style="display:flex;gap:6px;">
+                <input type="text" id="e-tags-input" placeholder="Add tag, press Enter..." maxlength="20" style="flex:1;"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();addEditorTag();}"/>
+                <button class="btn sm" type="button" onclick="addEditorTag()">+</button>
+              </div>
             </div>
             <div class="field">
               <label>CHARACTER IMAGE</label>

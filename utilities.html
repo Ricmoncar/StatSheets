@@ -112,6 +112,11 @@
       </div>
     </div>
   <div class="panel" style="margin-top:24px;">
+    <div class="panel-title">TIER LIST</div>
+    <div id="tier-list-wrap" style="min-height:80px;"></div>
+  </div>
+
+  <div class="panel" style="margin-top:24px;">
     <div class="panel-title">SUGGESTION BOX</div>
     <div class="field">
       <label>YOUR SUGGESTION</label>
@@ -133,6 +138,7 @@
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('suggestion-list')) loadSuggestions();
+    initTierList();
   });
 </script>
 </body>
