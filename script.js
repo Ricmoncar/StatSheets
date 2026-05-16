@@ -4013,12 +4013,40 @@ function renderCompare() {
   const ea = getEffectiveStats(a), eb = getEffectiveStats(b);
   const KEYS   = ['hp','atk','def','mag','spd','heal_pow','crit_rate','crit_dmg','status_res','dexterity','resilience','true_dmg','lifesteal','cooldown_red'];
   const LABELS = { hp:'HP', atk:'ATK', def:'DEF', mag:'MAG', spd:'SPD', heal_pow:'HEAL POW', crit_rate:'CRIT%', crit_dmg:'CRIT DMG', status_res:'STATUS RES', dexterity:'DEX', resilience:'RESIL', true_dmg:'TRUE DMG', lifesteal:'LIFESTEAL', cooldown_red:'CDR' };
+  const ICONS  = {
+    hp:          `<svg width="12" height="12" viewBox="0 0 10 10" style="color:var(--accent-green);flex-shrink:0"><path d="M5 9L1 5A2.5 2.5 0 0 1 5 2 2.5 2.5 0 0 1 9 5Z" fill="currentColor"/></svg>`,
+    atk:         `<svg width="12" height="12" viewBox="0 0 10 10" style="color:var(--accent-red);flex-shrink:0"><path d="M2 8l1 1 6-6-1-1-6 6zM1 9l2-1-1-1-1 2z" fill="currentColor"/></svg>`,
+    def:         `<svg width="12" height="12" viewBox="0 0 10 10" style="color:var(--accent-blue);flex-shrink:0"><path d="M1 2v4c0 3 4 3.5 4 3.5s4-.5 4-3.5V2l-4-1-4 1z" fill="currentColor"/></svg>`,
+    mag:         `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#ff44ff;flex-shrink:0"><path d="M5 1l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" fill="currentColor"/></svg>`,
+    spd:         `<svg width="12" height="12" viewBox="0 0 10 10" style="color:var(--accent-yellow);flex-shrink:0"><path d="M6 0L2 5H5L4 10L9 4H5Z" fill="currentColor"/></svg>`,
+    heal_pow:    `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#88ff88;flex-shrink:0"><path d="M4 1h2v3h3v2H6v3H4V6H1V4h3z" fill="currentColor"/></svg>`,
+    crit_rate:   `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#ff8888;flex-shrink:0"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="1.5" fill="currentColor"/></svg>`,
+    crit_dmg:    `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#cc0000;flex-shrink:0"><path d="M5 0l1.5 3.5L10 5l-3.5 1.5L5 10l-1.5-3.5L0 5l3.5-1.5z" fill="currentColor"/></svg>`,
+    status_res:  `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#00ccaa;flex-shrink:0"><path d="M1 2v4c0 3 4 3.5 4 3.5s4-.5 4-3.5V2l-4-1z" fill="none" stroke="currentColor" stroke-width="1"/><path d="M5 4l1 1-1 1-1-1z" fill="currentColor"/></svg>`,
+    dexterity:   `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#ffff88;flex-shrink:0"><path d="M2 8c1-2 4-2 6-4-1 2-4 2-6 4z" fill="currentColor"/><circle cx="8" cy="2" r="1" fill="currentColor"/></svg>`,
+    resilience:  `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#8800cc;flex-shrink:0"><path d="M5 9L1 5A2.5 2.5 0 0 1 5 2 2.5 2.5 0 0 1 9 5Z" fill="none" stroke="currentColor" stroke-width="1"/><rect x="4" y="3" width="2" height="4" fill="currentColor"/></svg>`,
+    true_dmg:    `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#ffffff;flex-shrink:0"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor"/></svg>`,
+    lifesteal:   `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#aa0000;flex-shrink:0"><path d="M5 0 Q5 5 2 7 A3 3 0 0 0 8 7 Q5 5 5 0 Z" fill="currentColor"/></svg>`,
+    cooldown_red:`<svg width="12" height="12" viewBox="0 0 10 10" style="color:#00aaff;flex-shrink:0"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><path d="M5 2 L5 5 L7 7" fill="none" stroke="currentColor" stroke-width="1"/></svg>`,
+  };
+  const globalMax = Math.max(...KEYS.flatMap(k => [+(ea[k]||0), +(eb[k]||0)]), 1);
   const rows = KEYS.map(k => {
     const va = +(ea[k]||0).toFixed(1), vb = +(eb[k]||0).toFixed(1);
+    const pctA = Math.round((va / globalMax) * 100);
+    const pctB = Math.round((vb / globalMax) * 100);
+    const winA = va > vb, winB = vb > va;
+    const barColorA = winA ? (a.color || '#4aff9e') : '#333';
+    const barColorB = winB ? (b.color || '#4aff9e') : '#333';
     return `<div class="cmp-row">
-      <span class="cmp-val ${va>vb?'cmp-win':va<vb?'cmp-lose':''}">${va}</span>
-      <span class="cmp-key">${LABELS[k]}</span>
-      <span class="cmp-val ${vb>va?'cmp-win':vb<va?'cmp-lose':''}">${vb}</span>
+      <div class="cmp-side-a">
+        <span class="cmp-val ${winA?'cmp-win':va<vb?'cmp-lose':''}">${va}</span>
+        <div class="cmp-bar-wrap cmp-bar-a"><div class="cmp-bar" style="width:${pctA}%;background:${barColorA};"></div></div>
+      </div>
+      <div class="cmp-center">${ICONS[k]||''}<span class="cmp-key">${LABELS[k]}</span></div>
+      <div class="cmp-side-b">
+        <div class="cmp-bar-wrap cmp-bar-b"><div class="cmp-bar" style="width:${pctB}%;background:${barColorB};"></div></div>
+        <span class="cmp-val ${winB?'cmp-win':vb<va?'cmp-lose':''}">${vb}</span>
+      </div>
     </div>`;
   }).join('');
   out.innerHTML = `

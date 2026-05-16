@@ -2862,12 +2862,19 @@ input[type=number] { -moz-appearance: textfield; }
 #compare-modal.open { display: block; }
 .cmp-names { display: flex; justify-content: space-between; align-items: center; font-size: 9px; letter-spacing: 1px; padding: 8px 0 12px; border-bottom: 1px solid #1e1e1e; margin-bottom: 8px; }
 .cmp-vs { color: #333; font-size: 8px; }
-.cmp-row { display: flex; align-items: center; padding: 5px 0; border-bottom: 1px solid #0e0e0e; font-size: 8px; letter-spacing: 1px; }
+.cmp-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 5px 0; border-bottom: 1px solid #0e0e0e; font-size: 8px; letter-spacing: 1px; gap: 4px; }
 .cmp-row:last-child { border-bottom: none; }
-.cmp-key { flex: 1; text-align: center; color: #444; font-size: 7px; }
-.cmp-val { width: 80px; text-align: center; color: #666; }
+.cmp-side-a { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.cmp-side-b { display: flex; align-items: center; justify-content: flex-start; gap: 5px; }
+.cmp-center { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.cmp-key { color: #444; font-size: 7px; letter-spacing: 1px; }
+.cmp-val { min-width: 32px; text-align: center; color: #666; flex-shrink: 0; }
 .cmp-val.cmp-win { color: #4aff9e; font-weight: bold; }
 .cmp-val.cmp-lose { color: #555; }
+.cmp-bar-wrap { position: relative; width: 60px; height: 5px; background: #1a1a1a; border-radius: 2px; flex-shrink: 0; }
+.cmp-bar { position: absolute; top: 0; height: 100%; border-radius: 2px; transition: width 0.2s; }
+.cmp-bar-a .cmp-bar { right: 0; }
+.cmp-bar-b .cmp-bar { left: 0; }
 
 /* ============================================================
    TIER LIST
