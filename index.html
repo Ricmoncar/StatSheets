@@ -413,7 +413,7 @@
             <div class="panel-title">STATS</div>
             <div class="field">
               <label>HP &nbsp;<span style="color:#fff" id="hp-val-disp">50</span> <span id="e-tier-disp-hp"
-                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span></label>
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span><span id="e-pl-hp" class="stat-pl-badge"></span></label>
               <div class="flex-row">
                 <input type="range" min="1" max="1250" value="50" id="e-hp" oninput="updateStatDisplay('hp')"
                   style="flex:1" />
@@ -426,7 +426,7 @@
             </div>
             <div class="field">
               <label>ATTACK &nbsp;<span style="color:#fff" id="atk-val-disp">10</span> <span id="e-tier-disp-atk"
-                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span></label>
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span><span id="e-pl-atk" class="stat-pl-badge"></span></label>
               <div class="flex-row">
                 <input type="range" min="1" max="300" value="10" id="e-atk" oninput="updateStatDisplay('atk')"
                   style="flex:1" />
@@ -439,7 +439,7 @@
             </div>
             <div class="field">
               <label>DEFENSE &nbsp;<span style="color:#fff" id="def-val-disp">10</span> <span id="e-tier-disp-def"
-                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span></label>
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span><span id="e-pl-def" class="stat-pl-badge"></span></label>
               <div class="flex-row">
                 <input type="range" min="1" max="300" value="10" id="e-def" oninput="updateStatDisplay('def')"
                   style="flex:1" />
@@ -452,7 +452,7 @@
             </div>
             <div class="field">
               <label>MAGIC &nbsp;<span style="color:#fff" id="mag-val-disp">10</span> <span id="e-tier-disp-mag"
-                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span></label>
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span><span id="e-pl-mag" class="stat-pl-badge"></span></label>
               <div class="flex-row">
                 <input type="range" min="1" max="300" value="10" id="e-mag" oninput="updateStatDisplay('mag')"
                   style="flex:1" />
@@ -465,7 +465,7 @@
             </div>
             <div class="field">
               <label>SPEED &nbsp;<span style="color:#fff" id="spd-val-disp">10</span> <span id="e-tier-disp-spd"
-                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span></label>
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span><span id="e-pl-spd" class="stat-pl-badge"></span></label>
               <div class="flex-row">
                 <input type="range" min="1" max="300" value="10" id="e-spd" oninput="updateStatDisplay('spd')"
                   style="flex:1" />
@@ -476,6 +476,8 @@
               </div>
               <div class="stat-segs mt-8" id="e-spd-segs"></div>
             </div>
+
+            <div id="e-overall-pl" style="margin-top:14px; padding:8px 10px; border:1px solid #222; background:#080808; font-size:8px; letter-spacing:1px; color:#444; text-align:center;"></div>
 
           </div>
 

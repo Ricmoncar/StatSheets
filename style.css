@@ -1504,15 +1504,16 @@ input[type=number] { -moz-appearance: textfield; }
 }
 .mod-row select:focus, .mod-row input:focus { border-color: var(--accent-cyan); outline: none; }
 
-.eff-stat-diff { 
-  font-size: 8px; 
-  padding: 8px 12px; 
-  margin: -8px -12px -8px 2px; 
-  cursor: help; 
-  display: inline-block; 
+.eff-stat-diff {
+  font-size: 8px;
+  padding: 8px 12px;
+  margin: -8px -12px -8px 2px;
+  cursor: help;
+  display: inline-block;
 }
 .eff-stat-diff.pos { color: var(--accent-green); }
 .eff-stat-diff.neg { color: var(--accent-red); }
+.stat-pl-badge { display: inline-block; font-size: 6px; letter-spacing: 1px; padding: 1px 5px; border: 1px solid currentColor; margin-left: 6px; vertical-align: middle; font-weight: bold; }
 
 /* ========================== */
 /* HOVER ANIMATIONS           */

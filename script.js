@@ -352,6 +352,54 @@ function _renderStatSegsFrame(val, key) {
 // ============================================================
 // STAT DISPLAY
 // ============================================================
+// ============================================================
+// POWER LEVEL AUTO-CALC
+// ============================================================
+const PL_TIERS = [
+  { label: 'BELOW HUMAN', short: '< HUMAN',  color: '#555' },
+  { label: 'HUMAN',       short: 'HUMAN',    color: '#888' },
+  { label: 'ATHLETE',     short: 'ATHLETE',  color: '#88ccff' },
+  { label: 'STREET',      short: 'STREET',   color: '#88ffaa' },
+  { label: 'WALL',        short: 'WALL',     color: '#ffff88' },
+  { label: 'BUILDING',    short: 'BUILDING', color: '#ffcc44' },
+  { label: 'CITY',        short: 'CITY',     color: '#ff8844' },
+  { label: 'MOUNTAIN',    short: 'MOUNTAIN', color: '#ff4444' },
+];
+// Minimum value to reach each tier (matches the power level reference modal exactly)
+const PL_THRESHOLDS = {
+  hp:  [1, 25,  50, 100, 225, 350, 500, 850],
+  atk: [1,  5,  15,  30,  50,  70, 125, 200],
+  def: [1,  5,  15,  30,  50,  70, 125, 200],
+  mag: [1,  5,  15,  30,  50,  70, 125, 200],
+  spd: [1,  5,  15,  30,  50,  70, 125, 200],
+};
+
+function getStatPL(stat, value) {
+  const thresholds = PL_THRESHOLDS[stat] || PL_THRESHOLDS.atk;
+  let tier = 0;
+  for (let i = 0; i < thresholds.length; i++) {
+    if (value >= thresholds[i]) tier = i;
+  }
+  return tier;
+}
+
+function updateEditorPowerLevels() {
+  const STATS = ['hp','atk','def','mag','spd'];
+  let total = 0;
+  STATS.forEach(stat => {
+    const input = document.getElementById('e-' + stat);
+    if (!input) return;
+    const tierIdx = getStatPL(stat, parseInt(input.value) || 0);
+    total += tierIdx;
+    const tier = PL_TIERS[tierIdx];
+    const badge = document.getElementById('e-pl-' + stat);
+    if (badge) { badge.textContent = tier.short; badge.style.color = tier.color; }
+  });
+  const overall = PL_TIERS[Math.floor(total / STATS.length)];
+  const overallEl = document.getElementById('e-overall-pl');
+  if (overallEl) overallEl.innerHTML = `OVERALL &nbsp;<span style="color:${overall.color};letter-spacing:1px;">${overall.label}</span>`;
+}
+
 function updateStatDisplay(stat) {
   const map = {
     hp: { disp: 'hp-val-disp', segs: 'e-hp-segs' },
@@ -367,6 +415,7 @@ function updateStatDisplay(stat) {
   document.getElementById(m.disp).textContent = val;
   document.getElementById('e-' + stat + '-num').value = val;
   renderStatSegs(val, stat, 1);
+  updateEditorPowerLevels();
 }
 
 function syncStat(stat, val) {
