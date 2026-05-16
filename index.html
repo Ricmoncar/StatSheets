@@ -51,6 +51,16 @@
     </div>
   </div>
 
+  <!-- Roll History Modal -->
+  <div id="roll-history-overlay" onclick="closeRollHistory()"></div>
+  <div id="roll-history-modal">
+    <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #222;">
+      <span>ROLL HISTORY</span>
+      <button class="btn icon-btn" onclick="closeRollHistory()">&times;</button>
+    </div>
+    <div id="cv-roll-history" style="max-height:60vh;overflow-y:auto;"></div>
+  </div>
+
   <!-- Compare Modal -->
   <div id="compare-modal-overlay" onclick="closeCompare()"></div>
   <div id="compare-modal">
@@ -277,6 +287,7 @@
                     <svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:middle;margin-right:4px;"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="3" cy="4" r="0.8" fill="currentColor"/><circle cx="7" cy="4" r="0.8" fill="currentColor"/><circle cx="5" cy="7" r="0.8" fill="currentColor"/></svg>
                     ROLL
                   </button>
+                  <button class="btn-info" onclick="openRollHistory()" title="Roll history">&#x1F4DC;</button>
                   <button class="btn-info" id="btn-trait-info" onclick="openTraitCodex()" title="Trait Codex">i</button>
                 </div>
               </div>
@@ -285,18 +296,6 @@
                   <div id="cv-traits" class="traits-grid">
                     <!-- Trait chips injected via JS -->
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- ROLL HISTORY PANEL -->
-            <div class="panel">
-              <div class="panel-title" style="cursor:pointer;user-select:none;" onclick="togglePanel('history-content','history-chevron')">
-                <span id="history-chevron" style="transition:transform 0.3s;font-size:10px;margin-right:8px;">▼</span>ROLL HISTORY
-              </div>
-              <div id="history-content" class="collapsible-wrapper">
-                <div class="collapsible-content">
-                  <div id="cv-roll-history"></div>
                 </div>
               </div>
             </div>

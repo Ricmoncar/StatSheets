@@ -2846,6 +2846,14 @@ input[type=number] { -moz-appearance: textfield; }
 .history-date { font-size: 7px; color: #444; flex-shrink: 0; }
 
 /* ============================================================
+   ROLL HISTORY MODAL
+   ============================================================ */
+#roll-history-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9994; }
+#roll-history-overlay.open { display: block; }
+#roll-history-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 9995; width: 90vw; max-width: 420px; background: #000; border: 2px solid #333; animation: cv-fade-in 0.18s ease; }
+#roll-history-modal.open { display: block; }
+
+/* ============================================================
    COMPARE MODAL
    ============================================================ */
 #compare-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9994; }

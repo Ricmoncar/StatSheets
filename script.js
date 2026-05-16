@@ -1531,8 +1531,19 @@ function viewChar(id) {
   if (ptype !== 'none') startBgAnim(ptype, c.pattern?.params || {});
 
   renderInventory(c);
-  renderRollHistory(c);
   renderSidebar();
+}
+
+function openRollHistory() {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  renderRollHistory(c);
+  document.getElementById('roll-history-overlay').classList.add('open');
+  document.getElementById('roll-history-modal').classList.add('open');
+}
+function closeRollHistory() {
+  document.getElementById('roll-history-overlay')?.classList.remove('open');
+  document.getElementById('roll-history-modal')?.classList.remove('open');
 }
 
 function renderRollHistory(c) {
