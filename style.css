@@ -2800,6 +2800,36 @@ input[type=number] { -moz-appearance: textfield; }
 .folder-group.folder-drag-over .folder-contents { background: rgba(255,255,0,0.03); }
 
 /* ============================================================
+   CHARACTER CONTEXT MENU
+   ============================================================ */
+#char-context-menu {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  min-width: 155px;
+  box-shadow: 4px 4px 0 #000;
+  user-select: none;
+}
+#char-context-menu.open { display: block; }
+.ctx-item {
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #aaa;
+  transition: background 0.08s, color 0.08s;
+}
+.ctx-item:hover { background: #181818; color: #fff; }
+.ctx-item.danger { color: #ff4444; }
+.ctx-item.danger:hover { background: rgba(255,68,68,0.08); color: #ff6666; }
+.ctx-section-label { color: #444; font-size: 7px; padding: 6px 14px 4px; cursor: default; }
+.ctx-section-label:hover { background: none; color: #444; }
+.ctx-folder-opt { padding-left: 20px; font-size: 8px; }
+.ctx-separator { border-top: 1px solid #1c1c1c; margin: 3px 0; }
+
+/* ============================================================
    FOLDER MODAL
    ============================================================ */
 #folder-modal-overlay {

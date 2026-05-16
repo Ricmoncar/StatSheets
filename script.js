@@ -1115,23 +1115,11 @@ function buildCharEntry(c, contextFolderId) {
     ? `<span style="color:#555;">${c.name}</span>&nbsp;<span style="font-size:6px;color:#444;">[DRAFT]</span>`
     : `<span style="color:${c.color}">${c.name || 'UNNAMED'}</span>`;
 
-  const folderOptions = [
-    `<option value="">-- No Folder --</option>`,
-    ...folders.map(f => `<option value="${f.id}" ${c.folderId === f.id ? 'selected' : ''}>${f.name}</option>`)
-  ].join('');
-
   el.innerHTML = `
     ${avatarHTML}
-    <div class="char-entry-name">${nameHtml}</div>
-    <div class="char-entry-actions">
-      ${!isDraft ? `<button class="btn icon-btn" onclick="event.stopPropagation();editChar('${c.id}')" title="Edit">
-        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M7 1l2 2-6 6H1V7L7 1z" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="6" y="0" width="3" height="3" fill="currentColor" rx="0.5"/></svg>
-      </button>` : ''}
-      <button class="btn icon-btn danger" onclick="event.stopPropagation();deleteChar('${c.id}')" title="Delete">
-        <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="3" width="8" height="1" fill="currentColor"/><rect x="3" y="1" width="4" height="1" fill="currentColor"/><path d="M2 4l1 6h4l1-6" fill="none" stroke="currentColor" stroke-width="1"/></svg>
-      </button>
-      ${folders.length ? `<select class="folder-select" title="Move to folder" onchange="event.stopPropagation();assignToFolder('${c.id}',this.value)" onclick="event.stopPropagation()">${folderOptions}</select>` : ''}
-    </div>`;
+    <div class="char-entry-name">${nameHtml}</div>`;
+
+  el.addEventListener('contextmenu', e => openCharContextMenu(e, c.id));
 
   el.addEventListener('click', () => {
     closeDrawer();
@@ -1324,6 +1312,78 @@ function assignToFolder(charId, folderId) {
   saveData(c);
   renderSidebar();
 }
+
+// ============================================================
+// CHARACTER CONTEXT MENU (right-click)
+// ============================================================
+let _ctxCharId = null;
+
+function openCharContextMenu(e, charId) {
+  e.preventDefault();
+  e.stopPropagation();
+  _ctxCharId = charId;
+  const menu = document.getElementById('char-context-menu');
+  if (!menu) return;
+  const c = characters.find(x => x.id === charId);
+  if (!c) return;
+
+  // Show/hide Edit for placeholder drafts
+  const editItem = document.getElementById('ctx-edit');
+  if (editItem) editItem.style.display = c.isPlaceholder ? 'none' : '';
+
+  // Populate folder list
+  const folderSection = document.getElementById('ctx-folder-section');
+  const folderList    = document.getElementById('ctx-folder-list');
+  if (folderSection) folderSection.style.display = folders.length ? '' : 'none';
+  if (folderList) {
+    folderList.innerHTML = [
+      `<div class="ctx-item ctx-folder-opt" onclick="ctxMoveToFolder(null)">&#x2014; NO FOLDER</div>`,
+      ...folders.map(f => `<div class="ctx-item ctx-folder-opt" style="color:${f.color}" onclick="ctxMoveToFolder('${f.id}')">${f.name}${c.folderId === f.id ? ' &#10003;' : ''}</div>`)
+    ].join('');
+  }
+
+  // Position at cursor, flip if too close to edge
+  menu.style.left = '-9999px';
+  menu.style.top  = '-9999px';
+  menu.classList.add('open');
+  requestAnimationFrame(() => {
+    const mw = menu.offsetWidth, mh = menu.offsetHeight;
+    const x = (e.clientX + mw > window.innerWidth)  ? e.clientX - mw : e.clientX;
+    const y = (e.clientY + mh > window.innerHeight) ? e.clientY - mh : e.clientY;
+    menu.style.left = x + 'px';
+    menu.style.top  = y + 'px';
+  });
+}
+
+function closeCharContextMenu() {
+  const menu = document.getElementById('char-context-menu');
+  if (menu) menu.classList.remove('open');
+  _ctxCharId = null;
+}
+
+function ctxEdit() {
+  const id = _ctxCharId;
+  closeCharContextMenu();
+  if (!id) return;
+  const c = characters.find(x => x.id === id);
+  if (!c) return;
+  c.isPlaceholder ? showEditor(id) : editChar(id);
+}
+
+function ctxDelete() {
+  const id = _ctxCharId;
+  closeCharContextMenu();
+  if (id) deleteChar(id);
+}
+
+function ctxMoveToFolder(folderId) {
+  const id = _ctxCharId;
+  closeCharContextMenu();
+  if (id) assignToFolder(id, folderId);
+}
+
+// Close context menu on any outside click
+document.addEventListener('click', () => closeCharContextMenu());
 
 // ============================================================
 // VIEW
