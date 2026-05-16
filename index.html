@@ -38,6 +38,40 @@
   </div>
   <div id="mobile-backdrop" onclick="closeDrawer()"></div>
 
+  <!-- Folder Modal -->
+  <div id="folder-modal-overlay" onclick="closeFolderModal()"></div>
+  <div id="folder-modal">
+    <div class="panel-title">
+      <span id="folder-modal-title">NEW FOLDER</span>
+      <button class="btn icon-btn" onclick="closeFolderModal()">&times;</button>
+    </div>
+    <div id="folder-modal-body">
+      <div class="field">
+        <label>NAME</label>
+        <input type="text" id="folder-modal-name" placeholder="Folder name..." maxlength="30"/>
+      </div>
+      <div class="field">
+        <label>COLOR</label>
+        <div id="folder-color-swatches">
+          <div class="folder-swatch" data-color="#4a9eff" style="background:#4a9eff;" onclick="pickFolderSwatch(this)"></div>
+          <div class="folder-swatch" data-color="#ff4a4a" style="background:#ff4a4a;" onclick="pickFolderSwatch(this)"></div>
+          <div class="folder-swatch" data-color="#4aff9e" style="background:#4aff9e;" onclick="pickFolderSwatch(this)"></div>
+          <div class="folder-swatch" data-color="#ffcc4a" style="background:#ffcc4a;" onclick="pickFolderSwatch(this)"></div>
+          <div class="folder-swatch" data-color="#cc4aff" style="background:#cc4aff;" onclick="pickFolderSwatch(this)"></div>
+          <div class="folder-swatch" data-color="#ff884a" style="background:#ff884a;" onclick="pickFolderSwatch(this)"></div>
+          <div class="folder-swatch" data-color="#4affee" style="background:#4affee;" onclick="pickFolderSwatch(this)"></div>
+          <div class="folder-swatch" data-color="#ff4a88" style="background:#ff4a88;" onclick="pickFolderSwatch(this)"></div>
+          <div class="folder-swatch" data-color="#ffffff" style="background:#ffffff;" onclick="pickFolderSwatch(this)"></div>
+        </div>
+        <input type="color" id="folder-modal-color" value="#4a9eff" style="margin-top:8px;width:100%;height:26px;cursor:pointer;border:1px solid #333;background:#111;" oninput="updateFolderSwatches(this.value)"/>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn accent" onclick="saveFolderModal()">SAVE</button>
+        <button class="btn" onclick="closeFolderModal()">CANCEL</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Confirm dialog -->
   <div id="confirm-overlay">
     <div id="confirm-box">

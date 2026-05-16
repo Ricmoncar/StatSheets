@@ -189,8 +189,8 @@ body::before {
   white-space: nowrap;
   line-height: 1.4;
 }
-.char-entry-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
-.char-entry:hover .char-entry-actions { opacity: 1; }
+.char-entry-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: center; gap: 4px; padding: 0 6px; background: #181818; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.char-entry:hover .char-entry-actions { opacity: 1; pointer-events: auto; }
 
 /* CONTENT AREA */
 #content { flex: 1; overflow-y: auto; padding: 24px; position: relative; }
@@ -2796,4 +2796,38 @@ input[type=number] { -moz-appearance: textfield; }
    ============================================================ */
 .char-entry.dragging { opacity: 0.4; }
 .char-entry.drag-over { border-left: 2px solid var(--accent-yellow, #ffff00) !important; background: rgba(255,255,0,0.04); }
+.folder-group.folder-drag-over .folder-header { background: rgba(255,255,0,0.08) !important; }
+.folder-group.folder-drag-over .folder-contents { background: rgba(255,255,0,0.03); }
+
+/* ============================================================
+   FOLDER MODAL
+   ============================================================ */
+#folder-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 9996;
+}
+#folder-modal-overlay.open { display: block; }
+#folder-modal {
+  display: none; position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9997;
+  min-width: 280px; max-width: 360px; width: 90vw;
+  background: #000; border: 2px solid #333;
+  animation: cv-fade-in 0.18s ease;
+}
+#folder-modal.open { display: block; }
+#folder-modal .panel-title { padding: 14px 18px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+#folder-modal-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+#folder-color-swatches { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
+.folder-swatch {
+  width: 22px; height: 22px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
+  flex-shrink: 0;
+}
+.folder-swatch:hover { transform: scale(1.15); }
+.folder-swatch.selected { border-color: #fff; }
 

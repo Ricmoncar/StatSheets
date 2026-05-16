@@ -1213,6 +1213,31 @@ function renderSidebar() {
     folderChars.forEach(c => {
       contents.appendChild(buildCharEntry(c, folder.id));
     });
+
+    // Make folder header + contents drop targets (for dragging chars INTO this folder)
+    const header = folderEl.querySelector('.folder-header');
+    [header, contents].forEach(zone => {
+      zone.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        folderEl.classList.add('folder-drag-over');
+      });
+      zone.addEventListener('dragleave', e => {
+        if (!folderEl.contains(e.relatedTarget)) folderEl.classList.remove('folder-drag-over');
+      });
+      zone.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        folderEl.classList.remove('folder-drag-over');
+        document.querySelectorAll('.char-entry').forEach(x => x.classList.remove('drag-over', 'dragging'));
+        const fromId = e.dataTransfer.getData('text/plain');
+        const ch = characters.find(x => x.id === fromId);
+        if (!ch || ch.folderId === folder.id) return;
+        ch.folderId = folder.id;
+        saveData(ch);
+        renderSidebar();
+      });
+    });
   });
 
   // --- UNGROUPED ---
@@ -1225,17 +1250,56 @@ function renderSidebar() {
 // ============================================================
 // FOLDER MANAGEMENT
 // ============================================================
+let _folderModalId = null;
+
 function openFolderModal(folderId) {
+  _folderModalId = folderId || null;
   const existing = folderId ? folders.find(f => f.id === folderId) : null;
-  const name = prompt(existing ? 'Rename folder:' : 'Folder name:', existing?.name || '');
-  if (name === null) return;
-  const color = prompt('Folder color (hex):', existing?.color || '#4a9eff') || '#4a9eff';
-  if (existing) {
-    db.collection('folders').doc(folderId).update({ name: name.trim() || 'Folder', color });
+  const titleEl = document.getElementById('folder-modal-title');
+  const nameEl  = document.getElementById('folder-modal-name');
+  const colorEl = document.getElementById('folder-modal-color');
+  if (!nameEl) return; // utilities page doesn't have the modal
+  if (titleEl) titleEl.textContent = existing ? 'EDIT FOLDER' : 'NEW FOLDER';
+  nameEl.value = existing?.name || '';
+  const color = existing?.color || '#4a9eff';
+  colorEl.value = color;
+  updateFolderSwatches(color);
+  document.getElementById('folder-modal-overlay').classList.add('open');
+  document.getElementById('folder-modal').classList.add('open');
+  nameEl.onkeydown = e => { if (e.key === 'Enter') saveFolderModal(); if (e.key === 'Escape') closeFolderModal(); };
+  setTimeout(() => nameEl.focus(), 30);
+}
+
+function closeFolderModal() {
+  const ov = document.getElementById('folder-modal-overlay');
+  const md = document.getElementById('folder-modal');
+  if (ov) ov.classList.remove('open');
+  if (md) md.classList.remove('open');
+}
+
+function saveFolderModal() {
+  const name  = (document.getElementById('folder-modal-name')?.value || '').trim() || 'New Folder';
+  const color = document.getElementById('folder-modal-color')?.value || '#4a9eff';
+  if (!db) { closeFolderModal(); return; }
+  if (_folderModalId) {
+    db.collection('folders').doc(_folderModalId).update({ name, color });
   } else {
-    const order = folders.length;
-    db.collection('folders').add({ name: name.trim() || 'New Folder', color, collapsed: false, order });
+    db.collection('folders').add({ name, color, collapsed: false, order: folders.length });
   }
+  closeFolderModal();
+}
+
+function updateFolderSwatches(color) {
+  document.querySelectorAll('.folder-swatch').forEach(s => {
+    s.classList.toggle('selected', s.dataset.color?.toLowerCase() === color?.toLowerCase());
+  });
+}
+
+function pickFolderSwatch(el) {
+  const color = el.dataset.color;
+  const colorEl = document.getElementById('folder-modal-color');
+  if (colorEl) colorEl.value = color;
+  updateFolderSwatches(color);
 }
 
 function deleteFolder(folderId) {
