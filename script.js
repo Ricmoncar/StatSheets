@@ -4261,7 +4261,10 @@ const AVG_STATS = ['hp','atk','def','mag','spd'];
 function getLeaderboardVal(c, stat) {
   const e = getEffectiveStats(c);
   if (stat === 'avg') {
-    return AVG_STATS.reduce((sum, s) => sum + (e[s] || 0), 0) / AVG_STATS.length;
+    // Geometric mean — punishes lopsided builds, rewards balanced stats.
+    // Floor at 1 so a zero stat doesn't wipe the score entirely.
+    const vals = AVG_STATS.map(s => Math.max(e[s] || 0, 1));
+    return Math.pow(vals.reduce((p, v) => p * v, 1), 1 / vals.length);
   }
   return e[stat] || 0;
 }
