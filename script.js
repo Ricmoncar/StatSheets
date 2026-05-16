@@ -4,6 +4,7 @@
 const STORAGE_KEY = 'statsheets_v1';
 const SEEN_TRAITS_KEY = 'statsheets_seen_traits';
 let characters = [];
+let folders = [];
 let seenTraits = [];
 let currentId = null;
 let editingId = null;
@@ -360,7 +361,7 @@ function updateStatDisplay(stat) {
   const val = parseInt(input.value);
   document.getElementById(m.disp).textContent = val;
   document.getElementById('e-' + stat + '-num').value = val;
-  renderStatSegs(val, stat);
+  renderStatSegs(val, stat, 1);
 }
 
 function syncStat(stat, val) {
@@ -1098,45 +1099,166 @@ function stopBgAnim() {
 // ============================================================
 // SIDEBAR
 // ============================================================
+function buildCharEntry(c, contextFolderId) {
+  const el = document.createElement('div');
+  const isDraft = !!c.isPlaceholder;
+  el.className = 'char-entry' + (c.id === currentId ? ' active' : '');
+  if (isDraft) el.style.cssText = 'border-left:2px dashed #444;opacity:0.6;';
+
+  const avatarHTML = c.avatar
+    ? `<div class="char-avatar-small"><img src="${c.avatar}"/></div>`
+    : `<div class="char-avatar-small" style="color:${isDraft ? '#555' : c.color};">
+        <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:18px;height:18px;"><rect x="12" y="2" width="8" height="8" fill="currentColor"/><rect x="10" y="10" width="12" height="10" fill="currentColor"/><rect x="8" y="20" width="6" height="8" fill="currentColor"/><rect x="18" y="20" width="6" height="8" fill="currentColor"/></svg>
+      </div>`;
+
+  const nameHtml = isDraft
+    ? `<span style="color:#555;">${c.name}</span>&nbsp;<span style="font-size:6px;color:#444;">[DRAFT]</span>`
+    : `<span style="color:${c.color}">${c.name || 'UNNAMED'}</span>`;
+
+  const folderOptions = [
+    `<option value="">-- No Folder --</option>`,
+    ...folders.map(f => `<option value="${f.id}" ${c.folderId === f.id ? 'selected' : ''}>${f.name}</option>`)
+  ].join('');
+
+  el.innerHTML = `
+    ${avatarHTML}
+    <div class="char-entry-name">${nameHtml}</div>
+    <div class="char-entry-actions">
+      ${!isDraft ? `<button class="btn icon-btn" onclick="event.stopPropagation();editChar('${c.id}')" title="Edit">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M7 1l2 2-6 6H1V7L7 1z" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="6" y="0" width="3" height="3" fill="currentColor" rx="0.5"/></svg>
+      </button>` : ''}
+      <button class="btn icon-btn danger" onclick="event.stopPropagation();deleteChar('${c.id}')" title="Delete">
+        <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="3" width="8" height="1" fill="currentColor"/><rect x="3" y="1" width="4" height="1" fill="currentColor"/><path d="M2 4l1 6h4l1-6" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+      </button>
+      ${folders.length ? `<select class="folder-select" title="Move to folder" onchange="event.stopPropagation();assignToFolder('${c.id}',this.value)" onclick="event.stopPropagation()">${folderOptions}</select>` : ''}
+    </div>`;
+
+  el.addEventListener('click', () => {
+    closeDrawer();
+    if (isDraft) showEditor(c.id);
+    else { playSound('characterchange', { volume: 0.7 }); viewChar(c.id); }
+  });
+
+  // Drag and drop
+  el.setAttribute('draggable', 'true');
+  el.dataset.charId = c.id;
+  el.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', c.id);
+    e.dataTransfer.effectAllowed = 'move';
+    el.classList.add('dragging');
+  });
+  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+  el.addEventListener('dragover', e => {
+    e.preventDefault();
+    document.querySelectorAll('.char-entry').forEach(x => x.classList.remove('drag-over'));
+    el.classList.add('drag-over');
+  });
+  el.addEventListener('drop', e => {
+    e.preventDefault();
+    document.querySelectorAll('.char-entry').forEach(x => x.classList.remove('drag-over', 'dragging'));
+    const fromId = e.dataTransfer.getData('text/plain');
+    const toId = c.id;
+    if (fromId === toId) return;
+    const arr = [...characters];
+    const fromIdx = arr.findIndex(x => x.id === fromId);
+    const toIdx   = arr.findIndex(x => x.id === toId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const [moved] = arr.splice(fromIdx, 1);
+    // If dropped into a folder context, assign that folder
+    if (contextFolderId !== null) moved.folderId = contextFolderId;
+    else moved.folderId = null;
+    const insertAt = arr.findIndex(x => x.id === toId);
+    arr.splice(insertAt, 0, moved);
+    arr.forEach((ch, i) => { ch.order = i; });
+    characters = arr;
+    renderSidebar();
+    arr.forEach(ch => db.collection('characters').doc(ch.id).update({ order: ch.order, folderId: ch.folderId || null }).catch(() => {}));
+  });
+
+  return el;
+}
+
 function renderSidebar() {
   const list = document.getElementById('char-list');
   if (!list) return;
   list.innerHTML = '';
-  if (!characters.length) {
+  if (!characters.length && !folders.length) {
     list.innerHTML = '<div style="padding:16px;font-size:8px;color:#333;letter-spacing:1px;text-align:center;line-height:2;">-- EMPTY --</div>';
     return;
   }
-  characters.forEach(c => {
-    const el = document.createElement('div');
-    const isDraft = !!c.isPlaceholder;
-    el.className = 'char-entry' + (c.id === currentId ? ' active' : '');
-    if (isDraft) el.style.cssText = 'border-left:2px dashed #444;opacity:0.6;';
-    const avatarHTML = c.avatar
-      ? `<div class="char-avatar-small"><img src="${c.avatar}"/></div>`
-      : `<div class="char-avatar-small" style="color:${isDraft ? '#555' : c.color};">
-          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:18px;height:18px;"><rect x="12" y="2" width="8" height="8" fill="currentColor"/><rect x="10" y="10" width="12" height="10" fill="currentColor"/><rect x="8" y="20" width="6" height="8" fill="currentColor"/><rect x="18" y="20" width="6" height="8" fill="currentColor"/></svg>
-        </div>`;
-    const nameHtml = isDraft
-      ? `<span style="color:#555;">${c.name}</span>&nbsp;<span style="font-size:6px;color:#444;">[DRAFT]</span>`
-      : `<span style="color:${c.color}">${c.name || 'UNNAMED'}</span>`;
-    el.innerHTML = `
-      ${avatarHTML}
-      <div class="char-entry-name">${nameHtml}</div>
-      <div class="char-entry-actions">
-        ${!isDraft ? `<button class="btn icon-btn" onclick="event.stopPropagation();editChar('${c.id}')" title="Edit">
-          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M7 1l2 2-6 6H1V7L7 1z" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="6" y="0" width="3" height="3" fill="currentColor" rx="0.5"/></svg>
-        </button>` : ''}
-        <button class="btn icon-btn danger" onclick="event.stopPropagation();deleteChar('${c.id}')" title="Delete">
-          <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="3" width="8" height="1" fill="currentColor"/><rect x="3" y="1" width="4" height="1" fill="currentColor"/><path d="M2 4l1 6h4l1-6" fill="none" stroke="currentColor" stroke-width="1"/></svg>
-        </button>
-      </div>`;
-    el.addEventListener('click', () => {
-      closeDrawer();
-      if (isDraft) showEditor(c.id);
-      else { playSound('characterchange', { volume: 0.7 }); viewChar(c.id); }
+
+  // --- FOLDERS ---
+  folders.forEach(folder => {
+    const folderChars = characters.filter(c => c.folderId === folder.id);
+    const folderEl = document.createElement('div');
+    folderEl.className = 'folder-group';
+
+    const isCollapsed = folder.collapsed;
+    folderEl.innerHTML = `
+      <div class="folder-header" style="border-left: 3px solid ${folder.color};" onclick="toggleFolder('${folder.id}')">
+        <span class="folder-toggle">${isCollapsed ? '▶' : '▼'}</span>
+        <span class="folder-name" style="color:${folder.color};">${folder.name}</span>
+        <span class="folder-count" style="color:#555;">(${folderChars.length})</span>
+        <div class="folder-actions" onclick="event.stopPropagation()">
+          <button class="btn icon-btn" title="Edit folder" onclick="openFolderModal('${folder.id}')">&#9998;</button>
+          <button class="btn icon-btn danger" title="Delete folder" onclick="deleteFolder('${folder.id}')">&#x2715;</button>
+        </div>
+      </div>
+      <div class="folder-contents" ${isCollapsed ? 'style="display:none;"' : ''} id="folder-${folder.id}-contents">
+      </div>
+    `;
+    list.appendChild(folderEl);
+
+    const contents = folderEl.querySelector('.folder-contents');
+    folderChars.forEach(c => {
+      contents.appendChild(buildCharEntry(c, folder.id));
     });
-    list.appendChild(el);
   });
+
+  // --- UNGROUPED ---
+  const ungrouped = characters.filter(c => !c.folderId);
+  ungrouped.forEach(c => {
+    list.appendChild(buildCharEntry(c, null));
+  });
+}
+
+// ============================================================
+// FOLDER MANAGEMENT
+// ============================================================
+function openFolderModal(folderId) {
+  const existing = folderId ? folders.find(f => f.id === folderId) : null;
+  const name = prompt(existing ? 'Rename folder:' : 'Folder name:', existing?.name || '');
+  if (name === null) return;
+  const color = prompt('Folder color (hex):', existing?.color || '#4a9eff') || '#4a9eff';
+  if (existing) {
+    db.collection('folders').doc(folderId).update({ name: name.trim() || 'Folder', color });
+  } else {
+    const order = folders.length;
+    db.collection('folders').add({ name: name.trim() || 'New Folder', color, collapsed: false, order });
+  }
+}
+
+function deleteFolder(folderId) {
+  if (!confirm('Delete this folder? Characters inside will become ungrouped.')) return;
+  characters.filter(c => c.folderId === folderId).forEach(c => {
+    c.folderId = null;
+    saveData(c);
+  });
+  db.collection('folders').doc(folderId).delete();
+}
+
+function toggleFolder(folderId) {
+  const f = folders.find(x => x.id === folderId);
+  if (!f) return;
+  db.collection('folders').doc(folderId).update({ collapsed: !f.collapsed });
+}
+
+function assignToFolder(charId, folderId) {
+  const c = characters.find(x => x.id === charId);
+  if (!c) return;
+  c.folderId = folderId || null;
+  saveData(c);
+  renderSidebar();
 }
 
 // ============================================================
@@ -1822,6 +1944,50 @@ function rollCrit() {
       }
     }
   }, 50);
+}
+
+// ============================================================
+// SUGGESTION BOX
+// ============================================================
+function submitSuggestion() {
+  if (!db) return;
+  const text = (document.getElementById('suggestion-text')?.value || '').trim();
+  if (!text) {
+    const s = document.getElementById('suggestion-status');
+    if (s) s.textContent = 'Please write something first.';
+    return;
+  }
+  db.collection('suggestions').add({ text, createdAt: Date.now() })
+    .then(() => {
+      const el = document.getElementById('suggestion-text');
+      if (el) el.value = '';
+      const s = document.getElementById('suggestion-status');
+      if (s) { s.textContent = 'Submitted!'; setTimeout(() => { s.textContent = ''; }, 3000); }
+      loadSuggestions();
+    })
+    .catch(() => {
+      const s = document.getElementById('suggestion-status');
+      if (s) s.textContent = 'Failed to submit.';
+    });
+}
+
+function loadSuggestions() {
+  if (!db) return;
+  const list = document.getElementById('suggestion-list');
+  if (!list) return;
+  db.collection('suggestions').orderBy('createdAt', 'desc').limit(20).get()
+    .then(snap => {
+      if (snap.empty) { list.innerHTML = ''; return; }
+      list.innerHTML = '<div style="font-size:8px;color:#555;letter-spacing:1px;margin-bottom:8px;">RECENT SUGGESTIONS</div>' +
+        snap.docs.map(d => {
+          const data = d.data();
+          const date = new Date(data.createdAt).toLocaleDateString();
+          return `<div style="background:#111;border:1px solid #222;padding:8px;margin-bottom:6px;font-size:8px;line-height:1.6;">
+            <div style="color:#aaa;">${data.text}</div>
+            <div style="color:#444;margin-top:4px;">${date}</div>
+          </div>`;
+        }).join('');
+    });
 }
 
 // ============================================================
@@ -3466,7 +3632,11 @@ if (sidebarList && db) {
   db.collection('characters').onSnapshot(snapshot => {
     characters = snapshot.docs
       .map(d => d.data())
-      .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      .sort((a, b) => {
+        const ao = a.order != null ? a.order : (a.createdAt || 0);
+        const bo = b.order != null ? b.order : (b.createdAt || 0);
+        return ao - bo;
+      });
 
     renderSidebar();
 
@@ -3507,6 +3677,11 @@ if (sidebarList && db) {
     console.error('Firestore error:', err);
     notify('CONNECTION ERROR', 'err');
   });
+
+  db.collection('folders').orderBy('order').onSnapshot(snap => {
+    folders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderSidebar();
+  }, () => {});
 
 } else if (sidebarList) {
   // No Firebase — silent localStorage fallback
