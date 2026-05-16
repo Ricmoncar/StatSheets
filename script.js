@@ -4247,13 +4247,23 @@ function dropOnTier(e, tier) {
 // ============================================================
 // STAT LEADERBOARD
 // ============================================================
-let _leaderboardStat = 'hp';
+let _leaderboardStat = 'avg';
 
 function selectLeaderboardStat(stat, btn) {
   _leaderboardStat = stat;
   document.querySelectorAll('.lb-stat-btn').forEach(b => b.classList.remove('accent'));
   if (btn) btn.classList.add('accent');
   renderLeaderboard();
+}
+
+const AVG_STATS = ['hp','atk','def','mag','spd'];
+
+function getLeaderboardVal(c, stat) {
+  const e = getEffectiveStats(c);
+  if (stat === 'avg') {
+    return AVG_STATS.reduce((sum, s) => sum + (e[s] || 0), 0) / AVG_STATS.length;
+  }
+  return e[stat] || 0;
 }
 
 function renderLeaderboard() {
@@ -4266,7 +4276,7 @@ function renderLeaderboard() {
   const stat = _leaderboardStat;
   const ranked = characters
     .filter(c => !c.isPlaceholder)
-    .map(c => ({ c, val: +(getEffectiveStats(c)[stat] || 0) }))
+    .map(c => ({ c, val: +getLeaderboardVal(c, stat).toFixed(1) }))
     .sort((a, b) => b.val - a.val);
   const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
   const isSub = ['heal_pow','crit_rate','crit_dmg','status_res','dexterity','resilience','true_dmg','lifesteal','cooldown_red'].includes(stat);
