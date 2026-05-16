@@ -38,7 +38,7 @@ try {
 // Track our own writes so onSnapshot doesn't re-render the screen we already updated
 let _lastSaveId = null;
 let _lastSaveTime = 0;
-const SELF_WRITE_WINDOW = 2500; // ms
+const SELF_WRITE_WINDOW = 8000; // ms
 
 function loadData() { characters = []; } // no-op — data comes from Firestore
 
@@ -2675,7 +2675,7 @@ const TRAITS = {
   debt_collector:{ name:'Debt Collector', rarity:'legendary', desc:'All damage you take is stored silently. Once per fight, release it all as a single True Damage hit on any target.', passive:[], notes:'Track all damage received. Release as one True Damage burst.' },
   black_hole:   { name:'Black Hole', rarity:'legendary', desc:'Each round, all enemies lose 5% to all stats. You gain 5% to all stats. Both stack per round.', passive:[], situational:[{id:'bh-1', label:'After round 1 (you +5% all stats)', passive:[{stat:'all_main',op:'pct',value:5}]},{id:'bh-3', label:'After round 3 (you +15% all stats)', passive:[{stat:'all_main',op:'pct',value:15}]},{id:'bh-5', label:'After round 5 (you +25% all stats)', passive:[{stat:'all_main',op:'pct',value:25}]}] },
   thundergod:   { name:'Thundergod', rarity:'legendary', desc:'At the start of every round, automatically deal True Damage equal to 30% of your ATK to all enemies simultaneously.', passive:[], notes:'Round-start True Damage burst to all enemies. Scales with ATK.' },
-  conqueror:    { name:'Conqueror', rarity:'legendary', desc:'Every combat encounter you survive permanently increases all stats by 1%. Stacks up to 100 victories.', passive:[], cultivation:{label:'Victories', perStack:{stat:'all_main',op:'pct',value:1}, defaultStacks:0, maxStacks:100} },
+  conqueror:    { name:'Conqueror', rarity:'legendary', desc:'Every combat encounter you survive permanently increases all main stats by 1% and all substats by +1. Stacks up to 100 victories.', passive:[], cultivation:{label:'Victories', perStack:[{stat:'all_main',op:'pct',value:1},{stat:'all_sub',op:'add',value:1}], defaultStacks:0, maxStacks:100} },
   soul_link:    { name:'Soul Link', rarity:'legendary', desc:'Bond to one ally. You share 50% of all buffs either of you receives, and split 30% of all damage either of you takes.', passive:[], notes:'Choose one ally to bond with. Buff sharing and damage splitting apply both ways.' },
   bloodrage:    { name:'Bloodrage', rarity:'legendary', desc:'For every 10% of max HP lost, gain +6% ATK. At 10% HP remaining: +54% ATK.', passive:[], situational:[{id:'br-10', label:'Lost 10% HP (+6% ATK)', passive:[{stat:'atk',op:'pct',value:6}]},{id:'br-30', label:'Lost 30% HP (+18% ATK)', passive:[{stat:'atk',op:'pct',value:18}]},{id:'br-50', label:'Lost 50% HP (+30% ATK)', passive:[{stat:'atk',op:'pct',value:30}]},{id:'br-70', label:'Lost 70% HP (+42% ATK)', passive:[{stat:'atk',op:'pct',value:42}]},{id:'br-90', label:'Lost 90% HP (+54% ATK)', passive:[{stat:'atk',op:'pct',value:54}]}] },
   chrono_break: { name:'Chrono Break', rarity:'legendary', desc:'Once per fight, completely undo the last round. HP, positions, and actions revert as if it never happened.', passive:[], notes:'One use per fight. Declared immediately after a round ends.' },
@@ -2914,9 +2914,13 @@ function buildTraitPassives(c) {
     });
     if (def.cultivation) {
       const n = stacks[key] != null ? stacks[key] : (def.cultivation.defaultStacks || 0);
-      const per = def.cultivation.perStack;
-      if (per && n > 0) {
-        out.push({ ...per, value: per.value * n, _src:key+':cult'});
+      if (n > 0) {
+        const perArr = Array.isArray(def.cultivation.perStack)
+          ? def.cultivation.perStack
+          : (def.cultivation.perStack ? [def.cultivation.perStack] : []);
+        perArr.forEach(per => {
+          out.push({ ...per, value: per.value * n, _src: key + ':cult' });
+        });
       }
     }
   });
@@ -2941,7 +2945,7 @@ function _traitPassivesToMods(passives) {
     if (p.op === 'derived') return; // handled later
     // resilience is hard-capped at 50% inside orig; handle it in the post-pass instead.
     if (p.stat === 'resilience') return;
-    const stats = p.stat === 'all_main' ? MAIN_STATS : [p.stat];
+    const stats = p.stat === 'all_main' ? MAIN_STATS : p.stat === 'all_sub' ? SUB_STATS : [p.stat];
     stats.forEach(stat => {
       if (p.op === 'add') {
         expanded.push({ stat, op: 'add', value: p.value });
@@ -3417,7 +3421,10 @@ function refreshCultivationPreviews() {
       const sign = diff>0?'+':'';
       return `<div class='cult-stat-row'><span>${label}</span><span class='${diff>0?"tt-pos":"tt-neg"}'>${sign}${diff.toFixed(suffix?1:0)}${suffix}</span></div>`;
     };
-    const html = ['hp','atk','def','mag','spd'].map(k => stat(k, k.toUpperCase())).join('');
+    const subLabels = {heal_pow:'HEAL PWR',crit_rate:'CRIT RATE',crit_dmg:'CRIT DMG',status_res:'STATUS RES',dexterity:'DEXTERITY',resilience:'RESILIENCE',true_dmg:'TRUE DMG',lifesteal:'LIFESTEAL',cooldown_red:'CDR'};
+    const mainHtml = ['hp','atk','def','mag','spd'].map(k => stat(k, k.toUpperCase())).join('');
+    const subHtml  = Object.keys(subLabels).map(k => stat(k, subLabels[k])).join('');
+    const html = mainHtml + subHtml;
     const el = document.getElementById('cult-preview-'+key);
     if (el) el.innerHTML = `<div class='cult-preview-title'>SCALED STAT DELTA</div>${html || '<div class="cult-stat-row"><span>-</span><span>-</span></div>'}`;
   });
@@ -3454,7 +3461,9 @@ if (sidebarList && db) {
 
     renderSidebar();
 
-    const isSelf = currentId === _lastSaveId && (Date.now() - _lastSaveTime < SELF_WRITE_WINDOW);
+    const currentDoc = snapshot.docs.find(d => d.id === currentId);
+    const isSelf = (currentDoc?.metadata?.hasPendingWrites === true) ||
+                   (currentId === _lastSaveId && (Date.now() - _lastSaveTime < SELF_WRITE_WINDOW));
 
     if (currentId) {
       const c = characters.find(x => x.id === currentId);
