@@ -1989,6 +1989,13 @@ document.addEventListener('mouseover', function(e) {
   if (c) chip.dataset.tooltip = buildTraitTooltip(c, key);
 }, true);
 
+// Lazy tier-chip tooltip: show character stats on hover.
+document.addEventListener('mouseover', function(e) {
+  const chip = e.target.closest('.tier-chip');
+  if (!chip || chip.dataset.tooltip !== undefined) return;
+  chip.dataset.tooltip = buildTierChipTooltip(chip.dataset.charId);
+}, true);
+
 // Global Tooltip
 (function initGlobalTooltip() {
   const tooltip = document.getElementById('global-tooltip');
@@ -4064,6 +4071,45 @@ function renderCompare() {
 const TIER_DEFS = ['S','A','B','C','D'];
 let _tierData = { S:[], A:[], B:[], C:[], D:[] };
 
+function buildTierChipTooltip(charId) {
+  const c = characters.find(x => x.id === charId);
+  if (!c) return '';
+  const e = getEffectiveStats(c);
+  const fmt = v => (v % 1 === 0 ? v : +v.toFixed(1));
+  const main = [
+    ['HP',  e.hp,  'var(--accent-green)'],
+    ['ATK', e.atk, 'var(--accent-red)'],
+    ['DEF', e.def, 'var(--accent-blue)'],
+    ['MAG', e.mag, '#ff44ff'],
+    ['SPD', e.spd, 'var(--accent-yellow)'],
+  ];
+  const subs = [
+    ['CRIT%',   e.crit_rate,    '#ff8888'],
+    ['CRIT DMG',e.crit_dmg,     '#cc0000'],
+    ['HEAL POW',e.heal_pow,     '#88ff88'],
+    ['STATUS RES',e.status_res, '#00ccaa'],
+    ['DEX',     e.dexterity,    '#ffff88'],
+    ['RESIL',   e.resilience,   '#8800cc'],
+    ['TRUE DMG',e.true_dmg,     '#ffffff'],
+    ['LIFESTEAL',e.lifesteal,   '#aa0000'],
+    ['CDR',     e.cooldown_red, '#00aaff'],
+  ].filter(([, v]) => v > 0);
+  let html = `<div style="color:${c.color};font-size:9px;letter-spacing:1px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #222;">${c.name}</div>`;
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;${subs.length ? 'margin-bottom:8px;' : ''}">`;
+  main.forEach(([lbl, val, col]) => {
+    html += `<div style="font-size:7px;letter-spacing:1px;"><span style="color:#555;">${lbl}:</span> <span style="color:${col};">${fmt(val)}</span></div>`;
+  });
+  html += '</div>';
+  if (subs.length) {
+    html += `<div style="border-top:1px solid #1a1a1a;padding-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;">`;
+    subs.forEach(([lbl, val, col]) => {
+      html += `<div style="font-size:7px;letter-spacing:1px;"><span style="color:#555;">${lbl}:</span> <span style="color:${col};">${fmt(val)}%</span></div>`;
+    });
+    html += '</div>';
+  }
+  return html;
+}
+
 function initTierList() {
   if (!document.getElementById('tier-list-wrap')) return;
   if (db) {
@@ -4103,6 +4149,8 @@ function saveTierList() {
 function renderTierList() {
   const wrap = document.getElementById('tier-list-wrap');
   if (!wrap) return;
+  // Clear cached tooltips so re-renders pick up fresh stats
+  wrap.querySelectorAll('.tier-chip[data-tooltip]').forEach(el => delete el.dataset.tooltip);
   const TIER_COLORS = { S:'#ff4a4a', A:'#ff884a', B:'#ffcc4a', C:'#4aff9e', D:'#4a9eff' };
   const rankedIds = new Set(TIER_DEFS.flatMap(t => _tierData[t]||[]));
   const unranked  = characters.filter(c => !c.isPlaceholder && !rankedIds.has(c.id));
