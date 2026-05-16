@@ -3258,6 +3258,46 @@ const RARITY_LABEL = { common:'COMMON', rare:'RARE', epic:'EPIC', legendary:'LEG
 const RARITY_WEIGHTS = { common:60, rare:30, epic:18.4, legendary:1.5, mythic:0.3, hexxed:0.1 };
 const PITY_WEIGHTS   = { common:0,  rare:0,  epic:5,    legendary:85,  mythic:9,   hexxed:1   };
 
+// ============================================================
+// SHIMMYFUL — 0.1% upgrade for common traits
+// ============================================================
+const SHIMMYFUL_TRAITS = {
+  favored:     { name:'SHIMMYFUL Favored',      desc:'+50% Crit Chance.',                                                           passive:[{stat:'crit_rate',op:'add',value:50}] },
+  spicy:       { name:'SHIMMYFUL Spicy',        desc:'+40% Resilience.',                                                            passive:[{stat:'resilience',op:'add',value:40}] },
+  sonic:       { name:'SHIMMYFUL Sonic',        desc:'+40% SPD, +40% Dexterity.',                                                   passive:[{stat:'spd',op:'pct',value:40},{stat:'dexterity',op:'add',value:40}] },
+  flaming:     { name:'SHIMMYFUL Flaming',      desc:'100% chance to BURN on hit. BURN deals triple damage.',                       passive:[] },
+  enchanted:   { name:'SHIMMYFUL Enchanted',    desc:'+40% MAG, +40% Heal Power.',                                                  passive:[{stat:'mag',op:'pct',value:40},{stat:'heal_pow',op:'add',value:40}] },
+  steadfast:   { name:'SHIMMYFUL Steadfast',    desc:'+40% True Damage. Pierces all resistances.',                                  passive:[{stat:'true_dmg',op:'add',value:40}] },
+  bombastic:   { name:'SHIMMYFUL Bombastic',    desc:'Explosions are x10 bigger and chain to nearby targets.',                      passive:[] },
+  counterfeit: { name:'SHIMMYFUL Counterfeit',  desc:'Shops are 60% cheaper.',                                                      passive:[] },
+  sticky:      { name:'SHIMMYFUL Sticky',       desc:"everything you touch is yours :)",                                             passive:[] },
+  tough:       { name:'SHIMMYFUL Tough',        desc:'+50% DEF.',                                                                   passive:[{stat:'def',op:'pct',value:50}] },
+  hearty:      { name:'SHIMMYFUL Hearty',       desc:'+65% HP.',                                                                    passive:[{stat:'hp',op:'pct',value:65}] },
+  keen:        { name:'SHIMMYFUL Keen',         desc:'+45% ATK, +35% Crit Chance.',                                                 passive:[{stat:'atk',op:'pct',value:45},{stat:'crit_rate',op:'add',value:35}] },
+  scholarly:   { name:'SHIMMYFUL Scholarly',    desc:'+45% MAG, +50% Cooldown Reduction.',                                          passive:[{stat:'mag',op:'pct',value:45},{stat:'cooldown_red',op:'add',value:50}] },
+  lightfooted: { name:'SHIMMYFUL Light-Footed', desc:'+75% SPD.',                                                                   passive:[{stat:'spd',op:'pct',value:75}] },
+  regenerative:{ name:'SHIMMYFUL Regenerative', desc:'+65% Heal Power, +40% HP.',                                                   passive:[{stat:'heal_pow',op:'add',value:65},{stat:'hp',op:'pct',value:40}] },
+  reckless:    { name:'SHIMMYFUL Reckless',     desc:'+75% ATK. DEF penalty removed.',                                              passive:[{stat:'atk',op:'pct',value:75}] },
+  ironclad:    { name:'SHIMMYFUL Ironclad',     desc:'+65% DEF. SPD penalty removed.',                                              passive:[{stat:'def',op:'pct',value:65}] },
+  precise:     { name:'SHIMMYFUL Precise',      desc:'+55% Crit Chance, +55% Crit Damage. No penalties.',                           passive:[{stat:'crit_rate',op:'add',value:55},{stat:'crit_dmg',op:'add',value:55}] },
+  glassjaw:    { name:'SHIMMYFUL Glass Jaw',    desc:'+75% ATK. Resilience penalty removed.',                                       passive:[{stat:'atk',op:'pct',value:75}] },
+  shocking:    { name:'SHIMMYFUL Shocking',     desc:'Every hit Shocks AND Stuns. Effects last longer.',                            passive:[] },
+  wellfed:     { name:'SHIMMYFUL Well-Fed',     desc:'+45% HP, +40% Lifesteal.',                                                    passive:[{stat:'hp',op:'pct',value:45},{stat:'lifesteal',op:'add',value:40}] },
+  caffeinated: { name:'SHIMMYFUL Caffeinated',  desc:'+60% SPD, +60% Cooldown Reduction.',                                          passive:[{stat:'spd',op:'pct',value:60},{stat:'cooldown_red',op:'add',value:60}] },
+  stubborn:    { name:'SHIMMYFUL Stubborn',     desc:'Fully immune to ALL crowd control. No exceptions.',                           passive:[] },
+  nightowl:    { name:'SHIMMYFUL Night Owl',    desc:'+55% ATK, +55% SPD in the dark or at night.',                                 passive:[], situational:[{id:'nightowl-dark', label:'It is dark / nighttime', passive:[{stat:'atk',op:'pct',value:55},{stat:'spd',op:'pct',value:55}]}] },
+  headstrong:  { name:'SHIMMYFUL Headstrong',   desc:'+80% Status Resistance. Immune to 1 status effect per battle.',               passive:[{stat:'status_res',op:'add',value:80}] },
+  resolute:    { name:'SHIMMYFUL Resolute',     desc:'+45% Resilience. At ≤30% HP: +65% ATK AND immune to death once.',             passive:[{stat:'resilience',op:'add',value:45}], situational:[{id:'res-low', label:'Currently at ≤30% HP', passive:[{stat:'atk',op:'pct',value:65}]}] },
+  grounded:    { name:'SHIMMYFUL Grounded',     desc:'+55% DEF. Immune to knockback AND all crowd control.',                        passive:[{stat:'def',op:'pct',value:55}] },
+};
+
+function isShimmyful(c, key) {
+  return !!(c.shimmyfulTraits && c.shimmyfulTraits.includes(key));
+}
+function getTraitDef(c, key) {
+  return (isShimmyful(c, key) && SHIMMYFUL_TRAITS[key]) ? SHIMMYFUL_TRAITS[key] : TRAITS[key];
+}
+
 function rollRarity(weights) {
   const w = weights || RARITY_WEIGHTS;
   const total = Object.values(w).reduce((a,b) => a+b, 0);
@@ -3283,7 +3323,11 @@ function rollHand(isPityRoll) {
   let tries = 0;
   while (hand.length < 3 && tries < 50) {
     const k = rollOneTrait(null, weights);
-    if (!seen.has(k)) { seen.add(k); hand.push(k); }
+    if (!seen.has(k)) {
+      seen.add(k);
+      const shimmyful = TRAITS[k]?.rarity === 'common' && Math.random() < 0.001;
+      hand.push({ key: k, shimmyful });
+    }
     tries++;
   }
   return hand;
@@ -3406,8 +3450,10 @@ function buildTraitPassives(c) {
   const triggers = c.traitTriggers || {};
   const stacks = c.traitStacks || {};
   getActiveTraits(c).forEach(({key, def}) => {
-    (def.passive || []).forEach(p => out.push({ ...p, _src:key }));
-    (def.situational || []).forEach(sit => {
+    // Use shimmyful passive overrides if applicable
+    const activeDef = isShimmyful(c, key) && SHIMMYFUL_TRAITS[key] ? SHIMMYFUL_TRAITS[key] : def;
+    (activeDef.passive || []).forEach(p => out.push({ ...p, _src:key }));
+    (activeDef.situational || def.situational || []).forEach(sit => {
       if (triggers[key + ':' + sit.id]) {
         (sit.passive || []).forEach(p => out.push({ ...p, _src:key+':'+sit.id }));
       }
@@ -3524,12 +3570,15 @@ function renderTraitsDisplay(c) {
     const t = TRAITS[key];
     if (!t) return '';
     const rarity = t.rarity;
+    const shimmy = isShimmyful(c, key) && SHIMMYFUL_TRAITS[key];
+    const displayDef = shimmy || t;
     const sitButtons = renderTraitSituationals(c, key);
     return `
-      <div class="trait-chip rar-${rarity}" data-trait="${key}">
+      <div class="trait-chip rar-${rarity}${shimmy ? ' shimmyful' : ''}" data-trait="${key}">
+        ${shimmy ? '<div class="shimmy-star">✦</div>' : ''}
         <div class="trait-chip-rarity">${RARITY_LABEL[rarity]}</div>
-        <div class="trait-chip-name">${t.name}</div>
-        <div class="trait-chip-desc">${t.desc}</div>
+        <div class="trait-chip-name">${displayDef.name}</div>
+        <div class="trait-chip-desc">${displayDef.desc}</div>
         ${sitButtons}
         <button class="trait-chip-remove" onclick="removeTrait('${key}', event)" title="Remove trait">✕</button>
       </div>`;
@@ -3603,6 +3652,7 @@ function removeTrait(key, ev) {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
   c.traits = (c.traits || []).filter(k => k !== key);
+  c.shimmyfulTraits = (c.shimmyfulTraits || []).filter(k => k !== key);
   playSound('delete');
   // Clean up triggers/stacks for removed trait
   if (c.traitTriggers) {
@@ -3692,7 +3742,7 @@ function rollTraits() {
   if (isPityRoll) {
     finalPity = 0;
   } else {
-    const rarities = currentHand.map(k => TRAITS[k].rarity);
+    const rarities = currentHand.map(h => TRAITS[h.key].rarity);
     if (rarities.includes('hexxed')) {
       finalPity = 0;
     } else if (rarities.includes('mythic')) {
@@ -3740,7 +3790,8 @@ function rollTraits() {
   [1400, 1950, 2500].forEach((delay, i) => {
     setTimeout(() => {
       clearInterval(timers[i]);
-      const key = currentHand[i];
+      const handItem = currentHand[i];
+      const key = handItem.key;
       const t = TRAITS[key];
       const card = cardEls[i];
 
@@ -3757,6 +3808,23 @@ function rollTraits() {
       if (t.rarity === 'hexxed') playSound('hexxed', { volume: 0.9 });
       else if (t.rarity === 'mythic') playSound('mythic', { volume: 0.85 });
       else if (t.rarity === 'legendary') playSound('legendary', { volume: 0.8 });
+
+      // SHIMMYFUL reveal — fires 400ms after the base reveal
+      if (handItem.shimmyful) {
+        setTimeout(() => {
+          const sd = SHIMMYFUL_TRAITS[key];
+          card.classList.add('shimmyful');
+          card.querySelector('.hand-card-name').textContent = sd.name;
+          card.querySelector('.hand-card-desc').textContent = sd.desc;
+          card.style.filter = 'brightness(2.5)';
+          setTimeout(() => {
+            card.style.transition = 'filter 0.4s ease';
+            card.style.filter = '';
+            setTimeout(() => { card.style.transition = ''; }, 420);
+          }, 80);
+          playSound('legendary', { rate: 1.85, volume: 0.9 });
+        }, 400);
+      }
 
       // Mark as seen
       if (!seenTraits.includes(key)) {
@@ -3791,14 +3859,18 @@ function rerollHand() {
   rollTraits();
 }
 
-function pickTraitFromHand(key) {
+function pickTraitFromHand(handItem) {
+  const key = handItem.key;
+  const shimmyful = !!handItem.shimmyful;
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
   c.traits = c.traits || [];
+  c.shimmyfulTraits = c.shimmyfulTraits || [];
 
   // "Bravest of the Brave" mythic: grants 2 bonus rare/epic
   if (key === 'brave') {
     c.traits = ['brave'];
+    c.shimmyfulTraits = [];
     const pool = Object.entries(TRAITS).filter(([,t]) => t.rarity==='rare' || t.rarity==='epic').map(([k])=>k);
     const seen = new Set(['brave']);
     while (c.traits.length < 3) {
@@ -3807,6 +3879,7 @@ function pickTraitFromHand(key) {
     }
   } else {
     c.traits = [key];
+    c.shimmyfulTraits = shimmyful ? [key] : [];
   }
 
   // Reset triggers/stacks for the new selection
@@ -3820,7 +3893,8 @@ function pickTraitFromHand(key) {
   const tDef = TRAITS[key];
   if (tDef) {
     c.traitHistory = c.traitHistory || [];
-    c.traitHistory.unshift({ key, name: tDef.name, rarity: tDef.rarity, ts: Date.now() });
+    const histName = shimmyful && SHIMMYFUL_TRAITS[key] ? SHIMMYFUL_TRAITS[key].name : tDef.name;
+    c.traitHistory.unshift({ key, name: histName, rarity: tDef.rarity, shimmyful, ts: Date.now() });
     if (c.traitHistory.length > 50) c.traitHistory.length = 50;
   }
 
@@ -3828,8 +3902,8 @@ function pickTraitFromHand(key) {
   playSound('equip', { rate: 1.15, volume: 0.9 });
   closeTraitRoll();
   viewChar(currentId);
-  const t = TRAITS[key];
-  notify(`${RARITY_LABEL[t.rarity]}: ${t.name}!`, 'ok');
+  const displayName = shimmyful && SHIMMYFUL_TRAITS[key] ? SHIMMYFUL_TRAITS[key].name : tDef.name;
+  notify(`${RARITY_LABEL[tDef.rarity]}: ${displayName}!`, 'ok');
 }
 
 function closeTraitRoll(cancelled = false) {

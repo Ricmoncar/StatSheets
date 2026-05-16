@@ -1779,6 +1779,47 @@ input[type=number] { -moz-appearance: textfield; }
   50%      { opacity: 1;   transform: scale(1.1); }
 }
 
+/* SHIMMYFUL — soft green outer ring + star */
+.trait-chip.shimmyful {
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 0 5px rgba(80,255,140,0.55),
+    0 0 18px rgba(80,255,140,0.35);
+  animation: shimmy-pulse 2.8s ease-in-out infinite;
+}
+@keyframes shimmy-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px #000, 0 0 0 5px rgba(80,255,140,0.5),  0 0 14px rgba(80,255,140,0.25); }
+  50%       { box-shadow: 0 0 0 3px #000, 0 0 0 5px rgba(80,255,140,0.85), 0 0 28px rgba(80,255,140,0.55); }
+}
+.shimmy-star {
+  position: absolute;
+  top: 6px; right: 8px;
+  font-size: 10px;
+  color: #50ff8c;
+  text-shadow: 0 0 6px rgba(80,255,140,0.9);
+  pointer-events: none;
+  animation: shimmy-star-spin 3s ease-in-out infinite;
+}
+@keyframes shimmy-star-spin {
+  0%, 100% { opacity: 0.7; transform: scale(1)   rotate(0deg); }
+  50%       { opacity: 1;   transform: scale(1.25) rotate(20deg); }
+}
+
+/* SHIMMYFUL hand card overlay */
+.hand-card.shimmyful {
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 0 5px rgba(80,255,140,0.6),
+    0 0 24px rgba(80,255,140,0.5),
+    var(--c-glow, 0 0 0 transparent);
+  animation: shimmy-pulse 2.8s ease-in-out infinite,
+             hand-card-deal 0.55s cubic-bezier(0.2,0.8,0.2,1.05) both;
+}
+.hand-card.shimmyful .hand-card-rarity::after {
+  content: ' ✦';
+  color: #50ff8c;
+}
+
 /* HEXXED — slow void pulse + drifting wisp + chromatic glitch */
 .trait-chip.rar-hexxed,
 .codex-entry.rar-hexxed {
