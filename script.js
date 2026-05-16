@@ -4069,7 +4069,9 @@ function renderCompare() {
 // TIER LIST (utilities page)
 // ============================================================
 const TIER_DEFS = ['S','A','B','C','D','F'];
-let _tierData = { S:[], A:[], B:[], C:[], D:[], F:[] };
+let _tierData     = { S:[], A:[], B:[], C:[], D:[], F:[] };
+let _tierLists    = [];   // [{ id, name, S, A, B, C, D, F, createdAt }]
+let _activeTierListId = null;
 
 function buildTierChipTooltip(charId) {
   const c = characters.find(x => x.id === charId);
@@ -4135,8 +4137,7 @@ function buildTierChipTooltip(charId) {
 function initTierList() {
   if (!document.getElementById('tier-list-wrap')) return;
   if (db) {
-    // On utilities page there's no #char-list, so the main onSnapshot never ran.
-    // Spin up a dedicated characters listener here.
+    // On utilities page there's no #char-list — spin up a dedicated characters listener.
     if (!document.getElementById('char-list')) {
       db.collection('characters').onSnapshot(snap => {
         characters = snap.docs.map(d => d.data()).sort((a, b) => {
@@ -4148,25 +4149,124 @@ function initTierList() {
         renderLeaderboard();
       });
     }
-    // Global tier list — live sync for all users
-    db.collection('settings').doc('tierlist').onSnapshot(snap => {
-      _tierData = { S:[], A:[], B:[], C:[], D:[], F:[], ...(snap.exists ? snap.data() : {}) };
+    // Multi-list: listen to the whole tierlists collection
+    db.collection('tierlists').orderBy('createdAt').onSnapshot(snap => {
+      _tierLists = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (!_tierLists.length) { createTierList('MAIN'); return; }
+      // Keep active id if still valid; otherwise default to first
+      if (!_activeTierListId || !_tierLists.find(t => t.id === _activeTierListId)) {
+        _activeTierListId = _tierLists[0].id;
+      }
+      const active = _tierLists.find(t => t.id === _activeTierListId);
+      _tierData = { S:[], A:[], B:[], C:[], D:[], F:[], ...active };
+      renderTierListTabs();
       renderTierList();
     });
     return;
   }
-  // No Firebase — localStorage fallback
-  try { const s = localStorage.getItem('tierlist_v1'); if (s) _tierData = { S:[], A:[], B:[], C:[], D:[], ...JSON.parse(s) }; } catch(e) {}
+  // No Firebase — localStorage fallback (single list)
+  try { const s = localStorage.getItem('tierlist_v1'); if (s) _tierData = { S:[], A:[], B:[], C:[], D:[], F:[], ...JSON.parse(s) }; } catch(e) {}
   if (!characters.length) { setTimeout(initTierList, 600); return; }
   renderTierList();
 }
 
 function saveTierList() {
-  if (db) {
-    db.collection('settings').doc('tierlist').set(_tierData).catch(err => console.error('TierList save:', err));
-  } else {
+  if (db && _activeTierListId) {
+    db.collection('tierlists').doc(_activeTierListId).update({
+      S: _tierData.S||[], A: _tierData.A||[], B: _tierData.B||[],
+      C: _tierData.C||[], D: _tierData.D||[], F: _tierData.F||[],
+    }).catch(err => console.error('TierList save:', err));
+  } else if (!db) {
     localStorage.setItem('tierlist_v1', JSON.stringify(_tierData));
   }
+}
+
+function createTierList(name) {
+  if (!db) return;
+  const ref = db.collection('tierlists').doc();
+  _activeTierListId = ref.id;
+  ref.set({ name: name.toUpperCase(), S:[], A:[], B:[], C:[], D:[], F:[], createdAt: Date.now() })
+    .catch(err => console.error('Create tier list:', err));
+}
+
+function switchTierList(id) {
+  _activeTierListId = id;
+  const list = _tierLists.find(t => t.id === id);
+  _tierData = { S:[], A:[], B:[], C:[], D:[], F:[], ...(list || {}) };
+  renderTierListTabs();
+  renderTierList();
+}
+
+function deleteTierList(id) {
+  if (_tierLists.length <= 1) { notify('CANNOT DELETE THE LAST LIST', 'err'); return; }
+  confirmAction('DELETE THIS TIER LIST?', () => {
+    if (_activeTierListId === id) {
+      const other = _tierLists.find(t => t.id !== id);
+      if (other) switchTierList(other.id);
+    }
+    db.collection('tierlists').doc(id).delete().catch(err => console.error('Delete tier list:', err));
+  });
+}
+
+function promptNewTierList() {
+  const tabs = document.getElementById('tier-list-tabs');
+  if (!tabs || tabs.querySelector('.tl-new-input')) return;
+  const div = document.createElement('div');
+  div.className = 'tl-tab tl-new-input';
+  div.innerHTML = `<input id="tl-new-name" type="text" placeholder="NAME" maxlength="16"
+    style="font-family:inherit;font-size:7px;background:transparent;color:#eee;border:none;outline:none;width:72px;letter-spacing:1px;text-transform:uppercase;"/>
+    <button onclick="confirmNewTierList()" style="background:none;border:none;color:var(--accent-green);cursor:pointer;font-family:inherit;font-size:10px;padding:0 2px;">✓</button>
+    <button onclick="this.closest('.tl-new-input').remove()" style="background:none;border:none;color:#555;cursor:pointer;font-family:inherit;font-size:10px;padding:0;">✕</button>`;
+  // Insert before the + button (last child)
+  tabs.insertBefore(div, tabs.lastElementChild);
+  const inp = div.querySelector('#tl-new-name');
+  inp.focus();
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') confirmNewTierList();
+    if (e.key === 'Escape') div.remove();
+  });
+}
+
+function confirmNewTierList() {
+  const inp = document.getElementById('tl-new-name');
+  if (!inp) return;
+  const name = inp.value.trim();
+  inp.closest('.tl-new-input').remove();
+  if (name) createTierList(name);
+}
+
+function renameTierList(id, el) {
+  const original = el.textContent;
+  el.contentEditable = 'true';
+  el.focus();
+  const sel = window.getSelection(), range = document.createRange();
+  range.selectNodeContents(el); sel.removeAllRanges(); sel.addRange(range);
+  const finish = () => {
+    el.contentEditable = 'false';
+    const newName = el.textContent.trim().toUpperCase() || original;
+    el.textContent = newName;
+    if (db && newName !== original) {
+      db.collection('tierlists').doc(id).update({ name: newName }).catch(() => {});
+    }
+  };
+  el.addEventListener('blur', finish, { once: true });
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+    if (e.key === 'Escape') { el.textContent = original; el.blur(); }
+  });
+}
+
+function renderTierListTabs() {
+  const wrap = document.getElementById('tier-list-tabs');
+  if (!wrap) return;
+  wrap.innerHTML = _tierLists.map(t => `
+    <div class="tl-tab${t.id === _activeTierListId ? ' active' : ''}" onclick="switchTierList('${t.id}')">
+      <span class="tl-tab-name" ondblclick="event.stopPropagation();renameTierList('${t.id}',this)">${t.name}</span>
+      ${_tierLists.length > 1
+        ? `<button class="tl-tab-del" onclick="event.stopPropagation();deleteTierList('${t.id}')">&times;</button>`
+        : ''}
+    </div>`).join('') +
+    `<button class="tl-tab-add" onclick="promptNewTierList()">+</button>`;
 }
 
 function renderTierList() {
