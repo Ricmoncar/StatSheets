@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>STATSHEETS - GALLERY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css?v=3">
+<style>
+  body { padding: 40px; }
+
+  /* ── Page Header ─────────────────────────────────────────── */
+  #gallery-page-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .gallery-page-title {
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--accent-cyan);
+    margin-left: 8px;
+  }
+
+  /* ── Character Grid ──────────────────────────────────────── */
+  #char-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+  .char-card {
+    background: var(--panel-bg);
+    border: 2px solid #333;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .char-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+  }
+  .char-card-avatar {
+    width: 100%;
+    aspect-ratio: 1;
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .char-card-avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .char-card-avatar .no-avatar {
+    font-size: 7px;
+    color: #2a2a2a;
+    letter-spacing: 1px;
+    text-align: center;
+    line-height: 2;
+  }
+  .char-card-img-count {
+    position: absolute;
+    bottom: 5px; right: 5px;
+    background: rgba(0,0,0,0.82);
+    color: #777;
+    font-size: 6px;
+    letter-spacing: 1px;
+    padding: 2px 5px;
+    pointer-events: none;
+  }
+  .char-card-name {
+    padding: 8px 6px;
+    font-size: 7px;
+    letter-spacing: 1px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-top: 1px solid #1a1a1a;
+  }
+
+  /* ── No Characters ───────────────────────────────────────── */
+  #no-chars {
+    text-align: center;
+    padding: 80px 40px;
+    font-size: 8px;
+    color: #2a2a2a;
+    letter-spacing: 2px;
+    line-height: 2.5;
+  }
+
+  /* ── Gallery Modal ───────────────────────────────────────── */
+  #gallery-modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.94);
+    z-index: 5000;
+    overflow-y: auto;
+    padding: 32px 20px 60px;
+  }
+  #gallery-modal-overlay.open { display: block; }
+  #gallery-modal {
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  #gallery-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #222;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  #gallery-modal-charname {
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+  #gallery-modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Upload UI ───────────────────────────────────────────── */
+  #upload-drop-zone {
+    border: 2px dashed #2a2a2a;
+    padding: 22px 20px;
+    text-align: center;
+    font-size: 7px;
+    color: #444;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    user-select: none;
+  }
+  #upload-drop-zone:hover,
+  #upload-drop-zone.drag-over {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  .gallery-upload-progress {
+    height: 3px;
+    background: #111;
+    margin-bottom: 8px;
+    overflow: hidden;
+    display: none;
+  }
+  .gallery-upload-bar {
+    height: 100%;
+    background: var(--accent-cyan);
+    width: 0%;
+    transition: width 0.2s;
+  }
+  #upload-status {
+    font-size: 7px;
+    color: #555;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 12px;
+    min-height: 14px;
+  }
+
+  /* ── Image Grid ──────────────────────────────────────────── */
+  #gallery-img-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 10px;
+  }
+  .gallery-img-item {
+    position: relative;
+    aspect-ratio: 1;
+    background: #080808;
+    overflow: hidden;
+    border: 1px solid #1a1a1a;
+    cursor: pointer;
+  }
+  .gallery-img-item img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.15s;
+  }
+  .gallery-img-item:hover img { opacity: 0.55; }
+
+  .gallery-img-del {
+    position: absolute;
+    top: 6px; right: 6px;
+    background: rgba(180,0,0,0.92);
+    color: #fff;
+    border: none;
+    font-family: var(--font-main);
+    font-size: 7px;
+    letter-spacing: 1px;
+    padding: 3px 7px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 2;
+  }
+  .gallery-img-item:hover .gallery-img-del { opacity: 1; }
+  .gallery-img-del:hover { background: #cc0000; }
+
+  .gallery-img-label {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.75);
+    font-size: 6px;
+    letter-spacing: 1px;
+    padding: 4px 6px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none;
+  }
+  .gallery-img-item:hover .gallery-img-label { opacity: 1; }
+
+  .gallery-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 50px 20px;
+    font-size: 8px;
+    color: #2a2a2a;
+    letter-spacing: 2px;
+    line-height: 2.5;
+  }
+
+  /* ── Lightbox ────────────────────────────────────────────── */
+  #lightbox-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.97);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+  }
+  #lightbox-overlay.open { display: flex; }
+
+  #lightbox-img {
+    max-width: 90vw;
+    max-height: 88vh;
+    object-fit: contain;
+    display: block;
+    border: 1px solid #222;
+  }
+  #lightbox-close {
+    position: fixed;
+    top: 16px; right: 16px;
+    background: #111;
+    color: #fff;
+    font-family: var(--font-main);
+    font-size: 10px;
+    border: 1px solid #333;
+    padding: 6px 10px;
+    cursor: pointer;
+    z-index: 9001;
+    letter-spacing: 1px;
+  }
+  #lightbox-close:hover { background: #222; }
+
+  .lightbox-nav {
+    position: fixed;
+    top: 50%; transform: translateY(-50%);
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    font-family: var(--font-main);
+    font-size: 10px;
+    border: 1px solid #333;
+    padding: 14px 8px;
+    cursor: pointer;
+    z-index: 9001;
+    letter-spacing: 1px;
+    transition: background 0.1s;
+  }
+  .lightbox-nav:hover { background: rgba(255,255,255,0.1); }
+  #lightbox-prev { left: 12px; }
+  #lightbox-next { right: 12px; }
+
+  #lightbox-counter {
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    color: #444;
+    letter-spacing: 2px;
+    z-index: 9001;
+    pointer-events: none;
+  }
+  #lightbox-name {
+    position: fixed;
+    top: 16px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 7px;
+    color: #555;
+    letter-spacing: 2px;
+    z-index: 9001;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<div id="cursor">
+  <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px;">
+    <polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="white"/>
+    <polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<div id="notif"></div>
+
+<!-- Confirm dialog -->
+<div id="confirm-overlay">
+  <div id="confirm-box">
+    <p id="confirm-msg"></p>
+    <div id="confirm-btns">
+      <button class="btn danger" id="confirm-yes">YES</button>
+      <button class="btn" id="confirm-no">NO</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Gallery Modal ─────────────────────────────────────────── -->
+<div id="gallery-modal-overlay">
+  <div id="gallery-modal">
+    <div id="gallery-modal-header">
+      <div id="gallery-modal-charname"></div>
+      <div id="gallery-modal-actions">
+        <label class="btn accent" style="cursor:pointer;">
+          + ADD IMAGES
+          <input type="file" id="gallery-file-input" accept="image/*" multiple
+                 style="display:none;" onchange="handleFileSelect(event)"/>
+        </label>
+        <button class="btn" onclick="closeGalleryModal()">&times; CLOSE</button>
+      </div>
+    </div>
+
+    <div id="upload-drop-zone">
+      DROP IMAGES HERE OR CLICK TO UPLOAD &nbsp;&mdash;&nbsp; AUTO-COMPRESSED TO FIT
+    </div>
+
+    <div class="gallery-upload-progress" id="upload-progress-wrap">
+      <div class="gallery-upload-bar" id="upload-progress-bar"></div>
+    </div>
+    <div id="upload-status"></div>
+
+    <div id="gallery-img-grid"></div>
+  </div>
+</div>
+
+<!-- ── Lightbox ──────────────────────────────────────────────── -->
+<div id="lightbox-overlay">
+  <button id="lightbox-close" onclick="closeLightbox()">&times;</button>
+  <div id="lightbox-name"></div>
+  <button class="lightbox-nav" id="lightbox-prev" onclick="lightboxNav(-1)">&#9664;</button>
+  <img id="lightbox-img" src="" alt=""/>
+  <button class="lightbox-nav" id="lightbox-next" onclick="lightboxNav(1)">&#9654;</button>
+  <div id="lightbox-counter"></div>
+</div>
+
+<!-- ── Page ──────────────────────────────────────────────────── -->
+<div id="gallery-page-header">
+  <button class="btn accent" onclick="location.href='index.html'">&lt; MAIN</button>
+  <button class="btn" onclick="location.href='utilities.html'">UTILITIES</button>
+  <div class="gallery-page-title">// CHARACTER GALLERY</div>
+</div>
+
+<div id="char-grid"></div>
+<div id="no-chars">NO CHARACTERS FOUND<br>CREATE CHARACTERS FROM THE MAIN MENU FIRST</div>
+
+<div id="global-tooltip"></div>
+
+<!-- Firebase (no Storage needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+// ============================================================
+// FIREBASE
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBRtoLzS--wz_6sD4rWMgzcwZnHVHUBNdg",
+  authDomain:        "statsheets-3668d.firebaseapp.com",
+  projectId:         "statsheets-3668d",
+  storageBucket:     "statsheets-3668d.firebasestorage.app",
+  messagingSenderId: "558910483943",
+  appId:             "1:558910483943:web:c468342f15569a4cf0e142"
+};
+
+let db = null;
+try {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+  db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+} catch(e) { console.error('Firebase init failed:', e); }
+
+// ============================================================
+// CURSOR
+// ============================================================
+document.addEventListener('mousemove', e => {
+  const c = document.getElementById('cursor');
+  if (c) { c.style.left = e.clientX + 'px'; c.style.top = e.clientY + 'px'; }
+});
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+function notify(msg, type = 'ok') {
+  const wrap = document.getElementById('notif');
+  const el = document.createElement('div');
+  el.className = 'notif-item ' + type;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ============================================================
+// CONFIRM DIALOG
+// ============================================================
+let _confirmResolve = null;
+function confirm2(msg) {
+  return new Promise(res => {
+    document.getElementById('confirm-msg').textContent = msg;
+    document.getElementById('confirm-overlay').classList.add('open');
+    _confirmResolve = res;
+  });
+}
+document.getElementById('confirm-yes').onclick = () => {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  if (_confirmResolve) _confirmResolve(true);
+};
+document.getElementById('confirm-no').onclick = () => {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  if (_confirmResolve) _confirmResolve(false);
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let _characters    = [];
+let _activeCharId  = null;
+let _galleryImages = []; // [{id, dataUrl, name, uploadedAt}]
+let _lightboxIdx   = 0;
+let _galleryUnsub  = null;
+let _charImgCounts = {}; // charId → count
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+// ============================================================
+// IMAGE COMPRESSION
+// Progressively reduces size until the base64 dataUrl fits
+// comfortably inside a Firestore document (< ~700KB string).
+// ============================================================
+const MAX_B64_LEN = 720000; // ~540KB actual data — leaves headroom for doc overhead
+
+function resizeAndCompress(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = ev => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+          else                 { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width  = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function compressToFit(file) {
+  const steps = [
+    { dim: 1400, q: 0.85 },
+    { dim: 1200, q: 0.80 },
+    { dim: 1000, q: 0.75 },
+    { dim: 900,  q: 0.70 },
+    { dim: 800,  q: 0.62 },
+    { dim: 700,  q: 0.52 },
+    { dim: 600,  q: 0.42 },
+    { dim: 480,  q: 0.35 },
+  ];
+  for (const { dim, q } of steps) {
+    const dataUrl = await resizeAndCompress(file, dim, q);
+    if (dataUrl.length <= MAX_B64_LEN) return dataUrl;
+  }
+  // Last resort — very small
+  return resizeAndCompress(file, 380, 0.28);
+}
+
+// ============================================================
+// LOAD CHARACTERS
+// ============================================================
+function initGallery() {
+  if (!db) { notify('FIREBASE NOT CONNECTED', 'err'); return; }
+  db.collection('characters').orderBy('createdAt').onSnapshot(snap => {
+    _characters = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCharGrid();
+  }, err => console.error('chars error:', err));
+}
+
+// ============================================================
+// CHARACTER GRID
+// ============================================================
+function renderCharGrid() {
+  const grid  = document.getElementById('char-grid');
+  const noMsg = document.getElementById('no-chars');
+
+  if (!_characters.length) {
+    grid.innerHTML = '';
+    noMsg.style.display = '';
+    return;
+  }
+  noMsg.style.display = 'none';
+
+  grid.innerHTML = _characters.map(c => {
+    const col   = c.color || '#ffffff';
+    const count = _charImgCounts[c.id];
+    const badge = count !== undefined
+      ? `<div class="char-card-img-count">${count} IMG${count !== 1 ? 'S' : ''}</div>`
+      : '';
+    const avatar = c.avatar
+      ? `<img src="${c.avatar}" alt="${esc(c.name)}" draggable="false"/>`
+      : `<div class="no-avatar">NO<br>IMAGE</div>`;
+
+    return `<div class="char-card" style="border-color:${col};"
+               data-char-id="${c.id}"
+               onclick="openGalleryModal('${c.id}')">
+      <div class="char-card-avatar">${avatar}${badge}</div>
+      <div class="char-card-name" style="color:${col};">${esc(c.name) || 'UNNAMED'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// GALLERY MODAL
+// ============================================================
+function openGalleryModal(charId) {
+  const c = _characters.find(x => x.id === charId);
+  if (!c) return;
+  _activeCharId = charId;
+
+  const nameEl = document.getElementById('gallery-modal-charname');
+  nameEl.textContent = c.name || 'UNNAMED';
+  nameEl.style.color = c.color || '#fff';
+
+  document.getElementById('gallery-modal-overlay').classList.add('open');
+  document.getElementById('gallery-img-grid').innerHTML =
+    '<div class="gallery-empty">LOADING...</div>';
+  setUploadStatus('');
+
+  if (_galleryUnsub) { _galleryUnsub(); _galleryUnsub = null; }
+
+  _galleryUnsub = db.collection('characters').doc(charId)
+    .collection('gallery')
+    .orderBy('uploadedAt')
+    .onSnapshot(snap => {
+      _galleryImages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderGalleryGrid();
+      _charImgCounts[charId] = _galleryImages.length;
+      updateCardBadge(charId);
+    }, err => {
+      console.error('gallery listener error:', err);
+      document.getElementById('gallery-img-grid').innerHTML =
+        `<div class="gallery-empty">ERROR: ${err.message}</div>`;
+    });
+}
+
+function closeGalleryModal() {
+  document.getElementById('gallery-modal-overlay').classList.remove('open');
+  if (_galleryUnsub) { _galleryUnsub(); _galleryUnsub = null; }
+  _activeCharId  = null;
+  _galleryImages = [];
+}
+
+function renderGalleryGrid() {
+  const grid = document.getElementById('gallery-img-grid');
+  if (!_galleryImages.length) {
+    grid.innerHTML = '<div class="gallery-empty">NO IMAGES YET &mdash; ADD SOME ABOVE!</div>';
+    return;
+  }
+  grid.innerHTML = _galleryImages.map((img, i) => {
+    const d = new Date(img.uploadedAt || 0);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const label = img.name || dateStr;
+    return `<div class="gallery-img-item" onclick="openLightbox(${i})">
+      <img src="${img.dataUrl}" alt="${esc(img.name || '')}" loading="lazy"/>
+      <button class="gallery-img-del" onclick="deleteImage(event,'${img.id}')">DEL</button>
+      <div class="gallery-img-label">${esc(label)}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateCardBadge(charId) {
+  const card = document.querySelector(`.char-card[data-char-id="${charId}"]`);
+  if (!card) return;
+  let badge = card.querySelector('.char-card-img-count');
+  const n = _charImgCounts[charId] || 0;
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.className = 'char-card-img-count';
+    card.querySelector('.char-card-avatar').appendChild(badge);
+  }
+  badge.textContent = n + ' IMG' + (n !== 1 ? 'S' : '');
+}
+
+// ============================================================
+// UPLOAD
+// ============================================================
+function handleFileSelect(e) {
+  const files = Array.from(e.target.files);
+  e.target.value = '';
+  if (files.length) uploadFiles(files);
+}
+
+async function uploadFiles(files) {
+  if (!_activeCharId || !db) return;
+
+  const valid = files.filter(f => f.type.startsWith('image/'));
+  if (!valid.length) { notify('NO IMAGE FILES FOUND', 'err'); return; }
+
+  for (let i = 0; i < valid.length; i++) {
+    setUploadStatus(`PROCESSING ${i + 1} / ${valid.length}...`);
+    setProgress(true, 10);
+    try {
+      const dataUrl = await compressToFit(valid[i]);
+      setProgress(true, 70);
+      const id = genId();
+      await db.collection('characters').doc(_activeCharId)
+        .collection('gallery').doc(id).set({
+          dataUrl,
+          name: valid[i].name,
+          uploadedAt: Date.now(),
+        });
+      setProgress(true, 100);
+      notify('IMAGE ADDED!', 'ok');
+    } catch(e) {
+      console.error('upload error:', e);
+      notify(`${valid[i].name}: FAILED — ${e.message}`, 'err');
+    }
+    await delay(180); // let the bar flash 100% briefly
+    setProgress(false, 0);
+  }
+  setUploadStatus('');
+}
+
+function setUploadStatus(txt) {
+  document.getElementById('upload-status').textContent = txt;
+}
+function setProgress(visible, pct) {
+  const wrap = document.getElementById('upload-progress-wrap');
+  const bar  = document.getElementById('upload-progress-bar');
+  wrap.style.display = visible ? '' : 'none';
+  bar.style.width = pct + '%';
+}
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ============================================================
+// DELETE IMAGE
+// ============================================================
+async function deleteImage(e, imgId) {
+  e.stopPropagation();
+  const ok = await confirm2('DELETE THIS IMAGE?');
+  if (!ok) return;
+  try {
+    await db.collection('characters').doc(_activeCharId)
+      .collection('gallery').doc(imgId).delete();
+    notify('IMAGE DELETED', 'ok');
+  } catch(e) {
+    console.error('delete error:', e);
+    notify('DELETE FAILED: ' + e.message, 'err');
+  }
+}
+
+// ============================================================
+// DRAG & DROP
+// ============================================================
+const dropZone = document.getElementById('upload-drop-zone');
+dropZone.addEventListener('click', () =>
+  document.getElementById('gallery-file-input').click());
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () =>
+  dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (files.length) uploadFiles(files);
+  else notify('NO IMAGE FILES IN DROP', 'err');
+});
+
+document.getElementById('gallery-modal-overlay').addEventListener('click', e => {
+  if (e.target.id === 'gallery-modal-overlay') closeGalleryModal();
+});
+
+// ============================================================
+// LIGHTBOX
+// ============================================================
+function openLightbox(idx) {
+  _lightboxIdx = idx;
+  updateLightboxDisplay();
+  document.getElementById('lightbox-overlay').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox-overlay').classList.remove('open');
+}
+function lightboxNav(dir) {
+  if (!_galleryImages.length) return;
+  _lightboxIdx = (_lightboxIdx + dir + _galleryImages.length) % _galleryImages.length;
+  updateLightboxDisplay();
+}
+function updateLightboxDisplay() {
+  const img = _galleryImages[_lightboxIdx];
+  if (!img) return;
+  document.getElementById('lightbox-img').src = img.dataUrl;
+  document.getElementById('lightbox-name').textContent = img.name || '';
+  document.getElementById('lightbox-counter').textContent =
+    (_lightboxIdx + 1) + ' / ' + _galleryImages.length;
+  const multi = _galleryImages.length > 1;
+  document.getElementById('lightbox-prev').style.display = multi ? '' : 'none';
+  document.getElementById('lightbox-next').style.display = multi ? '' : 'none';
+}
+
+document.getElementById('lightbox-overlay').addEventListener('click', e => {
+  if (e.target.id === 'lightbox-overlay' || e.target.id === 'lightbox-img') closeLightbox();
+});
+
+// ============================================================
+// KEYBOARD
+// ============================================================
+document.addEventListener('keydown', e => {
+  const lbOpen = document.getElementById('lightbox-overlay').classList.contains('open');
+  if (lbOpen) {
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   lightboxNav(-1);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') lightboxNav(1);
+    if (e.key === 'Escape') closeLightbox();
+    return;
+  }
+  if (document.getElementById('gallery-modal-overlay').classList.contains('open') &&
+      e.key === 'Escape') closeGalleryModal();
+});
+
+// ============================================================
+// UTIL
+// ============================================================
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', initGallery);
+</script>
+</body>
+</html>
