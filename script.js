@@ -3119,6 +3119,7 @@ const TRAITS = {
   catastrophe:   { name:'Catastrophe', rarity:'legendary', desc:'Every round, all combatants (allies, enemies, and yourself) take damage equal to your full ATK stat. Cannot be mitigated or reduced.', passive:[], notes:'AoE True Damage pulse every round equal to your full ATK. Affects everyone in the fight, including allies and yourself.' },
   life_support:  { name:'Life Support', rarity:'legendary', desc:'Revive a knocked-out ally at the cost of 45% of your current HP (cannot drop you below 1 HP). Each ally revived permanently grants you +25% DEF and +25% SPD.', passive:[], cultivation:{label:'Allies Revived', perStack:[{stat:'def',op:'pct',value:25},{stat:'spd',op:'pct',value:25}], defaultStacks:0, maxStacks:10}, notes:'HP cost is 45% of your current HP at time of use. Cannot kill you.' },
   schism:        { name:'Schism', rarity:'legendary', desc:'+2 ATK per 1% Heal Power you have.', passive:[{op:'derived', stat:'atk', from:'heal_pow', per:1, perValue:2}] },
+  find_your_spark: { name:'Find Your Spark', rarity:'legendary', desc:'+1 DEF per 1 SPD. +2 HP per 1 Dexterity.', passive:[{op:'derived',stat:'def',from:'spd',per:1,perValue:1},{op:'derived',stat:'hp',from:'dexterity',per:1,perValue:2}] },
 
   // ============ MYTHIC (gradient orange/yellow, sun) ============
   adaptation:  { name:'Adaptation', rarity:'mythic', desc:'Every hit from an enemy → +15% DEF vs that enemy. Stacks infinitely.', passive:[], situational:[{id:'adp-stk', label:'Per stack vs an enemy', passive:[{stat:'def',op:'pct',value:15}]}] },
@@ -4045,6 +4046,7 @@ function renderTierList() {
     <div class="tier-row">
       <div class="tier-label" style="color:${TIER_COLORS[tier]};border-color:${TIER_COLORS[tier]};">${tier}</div>
       <div class="tier-slots" id="tier-slots-${tier}"
+        onclick="placeTierChip('${tier}')"
         ondragover="event.preventDefault();this.classList.add('tier-drag-over')"
         ondragleave="this.classList.remove('tier-drag-over')"
         ondrop="dropOnTier(event,'${tier}')">
@@ -4053,11 +4055,31 @@ function renderTierList() {
     </div>`).join('') +
     `<div class="tier-pool-label">UNRANKED</div>
     <div class="tier-pool" id="tier-pool"
+      onclick="placeTierChip(null)"
       ondragover="event.preventDefault();this.classList.add('tier-drag-over')"
       ondragleave="this.classList.remove('tier-drag-over')"
       ondrop="dropOnTier(event,null)">
       ${unranked.map(c => tierChip(c.id)).join('')}
     </div>`;
+}
+
+let _selectedTierChip = null;
+
+function selectTierChip(charId) {
+  _selectedTierChip = (_selectedTierChip === charId) ? null : charId;
+  document.querySelectorAll('.tier-chip').forEach(el => {
+    el.classList.toggle('tier-chip-selected', el.dataset.charId === _selectedTierChip);
+  });
+}
+
+function placeTierChip(tier) {
+  if (!_selectedTierChip) return;
+  const charId = _selectedTierChip;
+  _selectedTierChip = null;
+  TIER_DEFS.forEach(t => { _tierData[t] = (_tierData[t]||[]).filter(id => id !== charId); });
+  if (tier) { if (!_tierData[tier]) _tierData[tier] = []; _tierData[tier].push(charId); }
+  saveTierList();
+  renderTierList();
 }
 
 function tierChip(charId) {
@@ -4066,7 +4088,9 @@ function tierChip(charId) {
   const av = c.avatar
     ? `<img src="${c.avatar}" style="width:22px;height:22px;object-fit:cover;"/>`
     : `<svg viewBox="0 0 32 32" style="width:22px;height:22px;"><rect x="12" y="2" width="8" height="8" fill="${c.color}"/><rect x="10" y="10" width="12" height="10" fill="${c.color}"/><rect x="8" y="20" width="6" height="8" fill="${c.color}"/><rect x="18" y="20" width="6" height="8" fill="${c.color}"/></svg>`;
-  return `<div class="tier-chip" draggable="true" title="${c.name}" style="border-color:${c.color}"
+  const isSelected = _selectedTierChip === charId;
+  return `<div class="tier-chip${isSelected?' tier-chip-selected':''}" draggable="true" data-char-id="${charId}" title="${c.name}" style="border-color:${c.color}"
+    onclick="event.stopPropagation();selectTierChip('${charId}')"
     ondragstart="event.dataTransfer.setData('text/plain','${charId}');this.classList.add('dragging')"
     ondragend="this.classList.remove('dragging')">
     ${av}

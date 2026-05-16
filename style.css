@@ -2754,6 +2754,25 @@ input[type=number] { -moz-appearance: textfield; }
   /* ---- Pattern canvas: make sure it doesn't overflow ---- */
   #pattern-canvas { pointer-events: none; }
 
+  /* ---- Sidebar search ---- */
+  #sidebar-search { font-size: 16px; } /* prevent iOS auto-zoom */
+
+  /* ---- Editor tag input ---- */
+  #e-tags-input { font-size: 16px; }
+
+  /* ---- Compare modal: stack selectors vertically ---- */
+  #compare-modal { width: 96vw; max-width: 96vw; }
+  #compare-modal > div:nth-child(2) > div:first-child { flex-direction: column; }
+
+  /* ---- Tier list: larger chips for touch ---- */
+  .tier-chip { padding: 6px 7px; }
+  .tier-chip-name { font-size: 7px; max-width: 60px; }
+  .tier-label { font-size: 16px; width: 40px; }
+  .tier-slots, .tier-pool { gap: 8px; padding: 8px; }
+
+  /* ---- Folder actions: always visible on touch ---- */
+  .folder-actions { opacity: 1; }
+
 } /* end @media mobile */
 
 /* ============================================================
@@ -2854,6 +2873,7 @@ input[type=number] { -moz-appearance: textfield; }
 .tier-chip { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 5px; border: 1px solid; cursor: grab; background: #0a0a0a; transition: opacity 0.15s, transform 0.1s; }
 .tier-chip:hover { transform: scale(1.05); }
 .tier-chip.dragging { opacity: 0.4; }
+.tier-chip.tier-chip-selected { box-shadow: 0 0 0 2px #ffff00; opacity: 1; }
 .tier-chip-name { font-size: 6px; letter-spacing: 0.5px; max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
 
 /* ============================================================
