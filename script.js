@@ -4068,8 +4068,8 @@ function renderCompare() {
 // ============================================================
 // TIER LIST (utilities page)
 // ============================================================
-const TIER_DEFS = ['S','A','B','C','D'];
-let _tierData = { S:[], A:[], B:[], C:[], D:[] };
+const TIER_DEFS = ['S','A','B','C','D','F'];
+let _tierData = { S:[], A:[], B:[], C:[], D:[], F:[] };
 
 function buildTierChipTooltip(charId) {
   const c = characters.find(x => x.id === charId);
@@ -4084,29 +4084,51 @@ function buildTierChipTooltip(charId) {
     ['SPD', e.spd, 'var(--accent-yellow)'],
   ];
   const subs = [
-    ['CRIT%',   e.crit_rate,    '#ff8888'],
-    ['CRIT DMG',e.crit_dmg,     '#cc0000'],
-    ['HEAL POW',e.heal_pow,     '#88ff88'],
-    ['STATUS RES',e.status_res, '#00ccaa'],
-    ['DEX',     e.dexterity,    '#ffff88'],
-    ['RESIL',   e.resilience,   '#8800cc'],
-    ['TRUE DMG',e.true_dmg,     '#ffffff'],
-    ['LIFESTEAL',e.lifesteal,   '#aa0000'],
-    ['CDR',     e.cooldown_red, '#00aaff'],
+    ['CRIT%',     e.crit_rate,    '#ff8888'],
+    ['CRIT DMG',  e.crit_dmg,     '#cc0000'],
+    ['HEAL POW',  e.heal_pow,     '#88ff88'],
+    ['STATUS RES',e.status_res,   '#00ccaa'],
+    ['DEX',       e.dexterity,    '#ffff88'],
+    ['RESIL',     e.resilience,   '#8800cc'],
+    ['TRUE DMG',  e.true_dmg,     '#ffffff'],
+    ['LIFESTEAL', e.lifesteal,    '#aa0000'],
+    ['CDR',       e.cooldown_red, '#00aaff'],
   ].filter(([, v]) => v > 0);
+  const RAR_COL = { common:'var(--rar-common-fg)', rare:'var(--rar-rare-fg)', epic:'var(--rar-epic-fg)', legendary:'var(--rar-legendary-fg)', mythic:'var(--rar-mythic-fg)', hexxed:'var(--rar-hexxed-fg)' };
+
   let html = `<div style="color:${c.color};font-size:9px;letter-spacing:1px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #222;">${c.name}</div>`;
+
+  // Main stats
   html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;${subs.length ? 'margin-bottom:8px;' : ''}">`;
   main.forEach(([lbl, val, col]) => {
     html += `<div style="font-size:7px;letter-spacing:1px;"><span style="color:#555;">${lbl}:</span> <span style="color:${col};">${fmt(val)}</span></div>`;
   });
   html += '</div>';
+
+  // Sub stats
   if (subs.length) {
-    html += `<div style="border-top:1px solid #1a1a1a;padding-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;">`;
+    html += `<div style="border-top:1px solid #1a1a1a;padding-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;margin-bottom:8px;">`;
     subs.forEach(([lbl, val, col]) => {
       html += `<div style="font-size:7px;letter-spacing:1px;"><span style="color:#555;">${lbl}:</span> <span style="color:${col};">${fmt(val)}%</span></div>`;
     });
     html += '</div>';
   }
+
+  // Traits
+  const traitKeys = (c.traits || []).filter(k => TRAITS[k]);
+  if (traitKeys.length) {
+    html += `<div style="border-top:1px solid #1a1a1a;padding-top:7px;display:flex;flex-direction:column;gap:6px;">`;
+    traitKeys.forEach(k => {
+      const t = TRAITS[k];
+      const col = RAR_COL[t.rarity] || '#aaa';
+      html += `<div>
+        <div style="color:${col};font-size:7px;letter-spacing:1px;margin-bottom:2px;">${(RARITY_LABEL[t.rarity]||t.rarity).toUpperCase()} — ${t.name}</div>
+        <div style="color:#888;font-size:6px;letter-spacing:0.5px;line-height:1.5;">${t.desc}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
   return html;
 }
 
@@ -4127,7 +4149,7 @@ function initTierList() {
     }
     // Global tier list — live sync for all users
     db.collection('settings').doc('tierlist').onSnapshot(snap => {
-      _tierData = { S:[], A:[], B:[], C:[], D:[], ...(snap.exists ? snap.data() : {}) };
+      _tierData = { S:[], A:[], B:[], C:[], D:[], F:[], ...(snap.exists ? snap.data() : {}) };
       renderTierList();
     });
     return;
@@ -4151,7 +4173,7 @@ function renderTierList() {
   if (!wrap) return;
   // Clear cached tooltips so re-renders pick up fresh stats
   wrap.querySelectorAll('.tier-chip[data-tooltip]').forEach(el => delete el.dataset.tooltip);
-  const TIER_COLORS = { S:'#ff4a4a', A:'#ff884a', B:'#ffcc4a', C:'#4aff9e', D:'#4a9eff' };
+  const TIER_COLORS = { S:'#ff4a4a', A:'#ff884a', B:'#ffcc4a', C:'#4aff9e', D:'#4a9eff', F:'#888888' };
   const rankedIds = new Set(TIER_DEFS.flatMap(t => _tierData[t]||[]));
   const unranked  = characters.filter(c => !c.isPlaceholder && !rankedIds.has(c.id));
   wrap.innerHTML = TIER_DEFS.map(tier => `
