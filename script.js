@@ -1382,6 +1382,28 @@ function ctxMoveToFolder(folderId) {
   if (id) assignToFolder(id, folderId);
 }
 
+function ctxDuplicate() {
+  const id = _ctxCharId;
+  closeCharContextMenu();
+  if (!id) return;
+  const src = characters.find(x => x.id === id);
+  if (!src) return;
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = genId();
+  copy.createdAt = Date.now();
+  copy.order = characters.reduce((m, c) => Math.max(m, c.order ?? 0), 0) + 1;
+  copy.isPlaceholder = false;
+  // Find a unique name: "Name (1)", "Name (2)", etc.
+  const base = src.name.replace(/ \(\d+\)$/, '');
+  let n = 1;
+  while (characters.some(c => c.name === `${base} (${n})`)) n++;
+  copy.name = `${base} (${n})`;
+  characters.push(copy);
+  saveData(copy);
+  renderSidebar();
+  notify(`"${copy.name}" CREATED`, 'ok');
+}
+
 // Close context menu on any outside click
 document.addEventListener('click', () => closeCharContextMenu());
 
@@ -2348,6 +2370,9 @@ function renderInventory(c) {
       </div>
       <button class="btn sm ${i.equipped ? 'accent' : ''} equip-btn-abs" onclick="toggleEquip('${i.id}')">${i.equipped ? 'UNEQUIP' : 'EQUIP'}</button>
       <div class="inv-card-actions-abs">
+        <button class="btn sm icon-btn" onclick="copyItem('${i.id}')" title="Copy item">
+          <svg width="10" height="10" viewBox="0 0 10 10"><rect x="3" y="3" width="6" height="7" fill="none" stroke="currentColor" stroke-width="1"/><rect x="1" y="1" width="6" height="7" fill="none" stroke="currentColor" stroke-width="1"/><rect x="1" y="1" width="6" height="7" fill="currentColor" opacity="0.15"/></svg>
+        </button>
         <button class="btn sm icon-btn" onclick="openItemEditor('${c.id}', '${i.id}')" title="Edit">
           <svg width="10" height="10" viewBox="0 0 10 10"><path d="M7 1l2 2-6 6H1V7L7 1z" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="6" y="0" width="3" height="3" fill="currentColor" rx="0.5"/></svg>
         </button>
@@ -2409,6 +2434,32 @@ function deleteItem(itemId) {
   c.inventory = c.inventory.filter(i => i.id !== itemId);
   saveData();
   viewChar(currentId);
+}
+
+let _copiedItem = null;
+
+function copyItem(itemId) {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  const item = c.inventory.find(i => i.id === itemId);
+  if (!item) return;
+  _copiedItem = JSON.parse(JSON.stringify(item));
+  notify(`"${item.name}" COPIED`, 'ok');
+  const btn = document.getElementById('paste-item-btn');
+  if (btn) { btn.style.display = ''; btn.textContent = `PASTE "${item.name}"`; }
+}
+
+function pasteItem() {
+  if (!_copiedItem) return;
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  const newItem = { ...JSON.parse(JSON.stringify(_copiedItem)), id: genId(), equipped: false };
+  if (!c.inventory) c.inventory = [];
+  c.inventory.push(newItem);
+  saveData();
+  renderInventory(c);
+  updateLiveStats(c);
+  notify(`"${newItem.name}" PASTED`, 'ok');
 }
 
 function buildIconPicker() {
@@ -2891,6 +2942,8 @@ const TRAITS = {
   shadowstrike: { name:'Shadowstrike', rarity:'epic', desc:'The first attack you make each fight ignores DEF entirely and deals True Damage equal to 25% of the target\'s current HP.', passive:[], notes:'First attack each fight only. Bypasses all DEF and shields.' },
   grounded:     { name:'Grounded', rarity:'epic', desc:'Immune to knockback, displacement, and aerial effects. +20% DEF vs magic. +15% Status Resistance.', passive:[{stat:'status_res',op:'add',value:15}], notes:'Immune to all movement/displacement effects. +20% DEF specifically against magic damage.' },
   piles_of_bones:{ name:'Piles of Bones', rarity:'epic', desc:'+1% Crit Chance and +1% Crit Damage per kill. Permanent.', passive:[], cultivation:{label:'Kills', perStack:[{stat:'crit_rate',op:'add',value:1},{stat:'crit_dmg',op:'add',value:1}], defaultStacks:0, maxStacks:500} },
+  spite:         { name:'Spite', rarity:'epic', desc:'+15% ATK per debuff or status effect currently active on you. The more they pile on, the worse an idea that was.', passive:[], situational:[{id:'sp-1', label:'1 debuff active (+15% ATK)', passive:[{stat:'atk',op:'pct',value:15}]},{id:'sp-2', label:'2 debuffs active (+30% ATK)', passive:[{stat:'atk',op:'pct',value:30}]},{id:'sp-3', label:'3 debuffs active (+45% ATK)', passive:[{stat:'atk',op:'pct',value:45}]},{id:'sp-4', label:'4+ debuffs active (+60% ATK)', passive:[{stat:'atk',op:'pct',value:60}]}] },
+  exposed:       { name:'Exposed', rarity:'epic', desc:'Your DEF is permanently 0. But on every attack turn you take, the target\'s DEF is also reduced to 0 for that hit. Mutually assured vulnerability.', passive:[{stat:'def',op:'pct',value:-100}], notes:'DEF is set to 0 — strip all DEF items and buffs. On your attack turns, also zero the target\'s DEF for that hit.' },
 
   // ============ LEGENDARY (yellow, glow) ============
   godly:       { name:'Godly', rarity:'legendary', desc:'+40% ATK, +40% DEF', passive:[{stat:'atk',op:'pct',value:40},{stat:'def',op:'pct',value:40}] },
@@ -3014,6 +3067,7 @@ const TRAITS = {
   legacy:        { name:'Legacy', rarity:'mythic', desc:'Upon being knocked out in a fight, transfer 100% of your 3 highest stats to one chosen ally for the rest of that fight.', passive:[], notes:'Activates on knockout only. Chosen ally receives your top 3 stat values as flat bonuses for that fight.' },
   ultrakill:     { name:'Ultrakill', rarity:'mythic', desc:'x3 ATK and x3 SPD. Both stats drop by 5% each turn. Killing an enemy immediately resets ATK and SPD to full and grants you an extra turn.', passive:[{stat:'atk',op:'mul',value:3},{stat:'spd',op:'mul',value:3}], situational:[{id:'uk-t1', label:'After turn 1 (-5% ATK & SPD)', passive:[{stat:'atk',op:'pct',value:-5},{stat:'spd',op:'pct',value:-5}]},{id:'uk-t2', label:'After turn 2 (-10% ATK & SPD)', passive:[{stat:'atk',op:'pct',value:-10},{stat:'spd',op:'pct',value:-10}]},{id:'uk-t3', label:'After turn 3 (-15% ATK & SPD)', passive:[{stat:'atk',op:'pct',value:-15},{stat:'spd',op:'pct',value:-15}]},{id:'uk-t4', label:'After turn 4 (-20% ATK & SPD)', passive:[{stat:'atk',op:'pct',value:-20},{stat:'spd',op:'pct',value:-20}]},{id:'uk-t5', label:'Turn 5+ (-25% ATK & SPD)', passive:[{stat:'atk',op:'pct',value:-25},{stat:'spd',op:'pct',value:-25}]}], notes:'Kill = ATK and SPD decay fully reset + gain an extra action immediately.' },
   disturbing_peace: { name:'Disturbing The Peace', rarity:'mythic', desc:'x1.2 to ATK, MAG, and SPD per round (compounding). Each spare adds +x0.5 to the multiplier. With 3+ spares in a fight and 1 enemy left: buff locks at x3, +100% Heal Power, +100% True DMG.', passive:[], situational:[{id:'dp-r1', label:'Round 1 (x1.2 ATK/MAG/SPD)', passive:[{stat:'atk',op:'mul',value:1.2},{stat:'mag',op:'mul',value:1.2},{stat:'spd',op:'mul',value:1.2}]},{id:'dp-r2', label:'Round 2 (x1.44)', passive:[{stat:'atk',op:'mul',value:1.44},{stat:'mag',op:'mul',value:1.44},{stat:'spd',op:'mul',value:1.44}]},{id:'dp-r3', label:'Round 3 (x1.73)', passive:[{stat:'atk',op:'mul',value:1.73},{stat:'mag',op:'mul',value:1.73},{stat:'spd',op:'mul',value:1.73}]},{id:'dp-spare1', label:'+1 spare stacked (+x0.5)', passive:[{stat:'atk',op:'mul',value:1.5},{stat:'mag',op:'mul',value:1.5},{stat:'spd',op:'mul',value:1.5}]},{id:'dp-spare2', label:'+2 spares stacked (+x1.0)', passive:[{stat:'atk',op:'mul',value:2},{stat:'mag',op:'mul',value:2},{stat:'spd',op:'mul',value:2}]},{id:'dp-mercy', label:'MERCY JUDGMENT (3+ spares, 1 enemy left)', passive:[{stat:'atk',op:'mul',value:3},{stat:'mag',op:'mul',value:3},{stat:'spd',op:'mul',value:3},{stat:'heal_pow',op:'add',value:100},{stat:'true_dmg',op:'add',value:100}]}], notes:'Round multiplier and spare multiplier combine. Mercy Judgment requires both conditions at once.' },
+  soul_eater:    { name:'Soul Eater', rarity:'mythic', desc:'Each enemy you kill permanently transfers 5% of their highest stat to you. Track kills as stacks.', passive:[], cultivation:{label:'Souls Devoured', perStack:[{stat:'all_main',op:'add',value:3}], defaultStacks:0, maxStacks:999}, notes:'On each kill, identify the enemy\'s highest stat and transfer 5% of that value to your matching stat permanently. The +3/stack here is an approximation for the simulator — adjust stacks to reflect actual absorbed values.' },
   unrelentless_hunger: { name:'Unrelentless Hunger', rarity:'mythic', desc:'x2 ATK per bleeding enemy. All your attacks inflict bleed for 3 turns. With 2+ bleeding enemies: x2 SPD.', passive:[], situational:[{id:'uh-1b', label:'1 enemy bleeding (x2 ATK)', passive:[{stat:'atk',op:'mul',value:2}]},{id:'uh-2b', label:'2 enemies bleeding (x4 ATK + x2 SPD)', passive:[{stat:'atk',op:'mul',value:4},{stat:'spd',op:'mul',value:2}]},{id:'uh-3b', label:'3 enemies bleeding (x6 ATK + x2 SPD)', passive:[{stat:'atk',op:'mul',value:6},{stat:'spd',op:'mul',value:2}]},{id:'uh-4b', label:'4+ enemies bleeding (x8 ATK + x2 SPD)', passive:[{stat:'atk',op:'mul',value:8},{stat:'spd',op:'mul',value:2}]}], notes:'Every attack you make inflicts bleed on the target for 3 turns. Track active bleed counts.' },
 
   // ============ HEXXED (gradient dark purple/black, void) ============

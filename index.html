@@ -41,6 +41,8 @@
   <!-- Character right-click context menu -->
   <div id="char-context-menu" onclick="event.stopPropagation()">
     <div class="ctx-item" id="ctx-edit" onclick="ctxEdit()">&#9998;&nbsp; EDIT</div>
+    <div class="ctx-item" id="ctx-duplicate" onclick="ctxDuplicate()">&#10064;&nbsp; DUPLICATE</div>
+    <div class="ctx-separator"></div>
     <div class="ctx-item danger" id="ctx-delete" onclick="ctxDelete()">&#x2715;&nbsp; DELETE</div>
     <div id="ctx-folder-section">
       <div class="ctx-separator"></div>
@@ -289,6 +291,7 @@
                   INVENTORY
                 </div>
                 <button class="btn sm accent" onclick="openItemEditor(currentId)">+ ADD ITEM</button>
+                <button class="btn sm" id="paste-item-btn" onclick="pasteItem()" style="display:none;"></button>
               </div>
               <div id="inv-content" class="collapsible-wrapper">
                 <div class="collapsible-content">
