@@ -1663,9 +1663,14 @@ document.addEventListener('mouseover', function(e) {
   document.addEventListener('mouseout', (e) => {
     const target = e.target.closest('[data-tooltip]');
     if (!target) return;
-    
+
     tooltip.style.display = 'none';
   });
+
+  // On touch devices mouseleave never fires — hide on any subsequent tap
+  document.addEventListener('touchstart', () => {
+    tooltip.style.display = 'none';
+  }, { passive: true });
 })();
 
 // ============================================================
