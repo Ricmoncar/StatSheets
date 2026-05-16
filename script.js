@@ -4334,7 +4334,7 @@ function renderTierList() {
         ondragover="event.preventDefault();this.classList.add('tier-drag-over')"
         ondragleave="this.classList.remove('tier-drag-over')"
         ondrop="dropOnTier(event,'${tier}')">
-        ${(_tierData[tier]||[]).map(id => tierChip(id)).join('')}
+        ${(_tierData[tier]||[]).map(id => tierChip(id, tier)).join('')}
       </div>
     </div>`).join('') +
     `<div class="tier-pool-label">UNRANKED</div>
@@ -4343,7 +4343,7 @@ function renderTierList() {
       ondragover="event.preventDefault();this.classList.add('tier-drag-over')"
       ondragleave="this.classList.remove('tier-drag-over')"
       ondrop="dropOnTier(event,null)">
-      ${unranked.map(c => tierChip(c.id)).join('')}
+      ${unranked.map(c => tierChip(c.id, null)).join('')}
     </div>`;
 }
 
@@ -4366,20 +4366,52 @@ function placeTierChip(tier) {
   renderTierList();
 }
 
-function tierChip(charId) {
+function tierChip(charId, tier) {
   const c = characters.find(x => x.id === charId);
   if (!c) return '';
   const av = c.avatar
     ? `<img src="${c.avatar}" style="width:22px;height:22px;object-fit:cover;"/>`
     : `<svg viewBox="0 0 32 32" style="width:22px;height:22px;"><rect x="12" y="2" width="8" height="8" fill="${c.color}"/><rect x="10" y="10" width="12" height="10" fill="${c.color}"/><rect x="8" y="20" width="6" height="8" fill="${c.color}"/><rect x="18" y="20" width="6" height="8" fill="${c.color}"/></svg>`;
   const isSelected = _selectedTierChip === charId;
+  const t = tier ? `'${tier}'` : 'null';
   return `<div class="tier-chip${isSelected?' tier-chip-selected':''}" draggable="true" data-char-id="${charId}" title="${c.name}" style="border-color:${c.color}"
     onclick="event.stopPropagation();selectTierChip('${charId}')"
     ondragstart="event.dataTransfer.setData('text/plain','${charId}');this.classList.add('dragging')"
-    ondragend="this.classList.remove('dragging')">
+    ondragend="document.querySelectorAll('.chip-drop-before,.chip-drop-after').forEach(e=>e.classList.remove('chip-drop-before','chip-drop-after'));this.classList.remove('dragging')"
+    ondragover="event.preventDefault();event.stopPropagation();chipDragOver(event,this)"
+    ondragleave="this.classList.remove('chip-drop-before','chip-drop-after')"
+    ondrop="event.stopPropagation();chipDrop(event,this,${t},'${charId}')">
     ${av}
     <span class="tier-chip-name" style="color:${c.color}">${c.name}</span>
   </div>`;
+}
+
+function chipDragOver(e, el) {
+  const mid = el.getBoundingClientRect().left + el.offsetWidth / 2;
+  if (e.clientX < mid) {
+    el.classList.add('chip-drop-before');
+    el.classList.remove('chip-drop-after');
+  } else {
+    el.classList.add('chip-drop-after');
+    el.classList.remove('chip-drop-before');
+  }
+}
+
+function chipDrop(e, el, tier, targetCharId) {
+  e.preventDefault();
+  el.classList.remove('chip-drop-before', 'chip-drop-after');
+  const draggedId = e.dataTransfer.getData('text/plain');
+  if (!draggedId || draggedId === targetCharId) return;
+  const insertBefore = e.clientX < el.getBoundingClientRect().left + el.offsetWidth / 2;
+  // Remove dragged from all tiers
+  TIER_DEFS.forEach(t => { _tierData[t] = (_tierData[t]||[]).filter(id => id !== draggedId); });
+  if (tier) {
+    const arr = _tierData[tier] = (_tierData[tier] || []);
+    const idx = arr.indexOf(targetCharId);
+    arr.splice(insertBefore ? idx : idx + 1, 0, draggedId);
+  }
+  saveTierList();
+  renderTierList();
 }
 
 function dropOnTier(e, tier) {
