@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=3">
 <style>
   body { padding: 40px; }
   .back-btn { margin-bottom: 30px; }
@@ -61,10 +61,12 @@
 
 <div id="utilities-page">
   <div class="editor-title">UTILITIES & TOOLS</div>
-  
-  <div class="editor-grid">
+
+  <!-- TOP ROW: Dice+Crit (left) | Tier List (right, full height) -->
+  <div class="editor-grid" style="align-items: stretch;">
+
     <!-- LEFT: DICE & CRIT -->
-    <div>
+    <div style="display:flex; flex-direction:column; gap:20px;">
       <div class="panel">
         <div class="panel-title">DICE ROLLER</div>
         <div class="field">
@@ -104,18 +106,23 @@
       </div>
     </div>
 
-    <!-- RIGHT: STAT CHECKER -->
-    <div class="panel stats-panel" style="min-width:450px;">
-      <div class="panel-title">STAT CHECKER (SIMULATOR)</div>
-      <div id="stat-checker-rows">
-        <!-- Injected via JS -->
-      </div>
+    <!-- RIGHT: TIER LIST (stretches to match left column height) -->
+    <div class="panel" style="display:flex; flex-direction:column;">
+      <div class="panel-title">TIER LIST</div>
+      <div id="tier-list-wrap" style="flex:1; overflow-y:auto;"></div>
     </div>
-  <div class="panel" style="margin-top:24px;">
-    <div class="panel-title">TIER LIST</div>
-    <div id="tier-list-wrap" style="min-height:80px;"></div>
+
+  </div><!-- /editor-grid -->
+
+  <!-- BELOW: STAT CHECKER -->
+  <div class="panel stats-panel" style="margin-top:24px;">
+    <div class="panel-title">STAT CHECKER (SIMULATOR)</div>
+    <div id="stat-checker-rows">
+      <!-- Injected via JS -->
+    </div>
   </div>
 
+  <!-- SUGGESTION BOX -->
   <div class="panel" style="margin-top:24px;">
     <div class="panel-title">SUGGESTION BOX</div>
     <div class="field">
@@ -128,13 +135,14 @@
     </div>
     <div id="suggestion-list" style="margin-top:16px;"></div>
   </div>
-</div>
+
+</div><!-- /utilities-page -->
 
 <div id="global-tooltip"></div>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="script.js"></script>
+<script src="script.js?v=3"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('suggestion-list')) loadSuggestions();

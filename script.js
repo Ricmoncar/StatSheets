@@ -4067,6 +4067,19 @@ let _tierData = { S:[], A:[], B:[], C:[], D:[] };
 function initTierList() {
   if (!document.getElementById('tier-list-wrap')) return;
   try { const s = localStorage.getItem('tierlist_v1'); if (s) _tierData = { S:[], A:[], B:[], C:[], D:[], ...JSON.parse(s) }; } catch(e) {}
+  // On utilities page, the main onSnapshot listener doesn't run (no #char-list).
+  // Set up a dedicated listener here so characters are always populated.
+  if (!document.getElementById('char-list') && db) {
+    db.collection('characters').onSnapshot(snap => {
+      characters = snap.docs.map(d => d.data()).sort((a, b) => {
+        const ao = a.order != null ? a.order : (a.createdAt || 0);
+        const bo = b.order != null ? b.order : (b.createdAt || 0);
+        return ao - bo;
+      });
+      renderTierList();
+    });
+    return;
+  }
   if (!characters.length) { setTimeout(initTierList, 600); return; }
   renderTierList();
 }
