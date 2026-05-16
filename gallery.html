@@ -211,6 +211,41 @@
   .gallery-img-item:hover .gallery-img-del { opacity: 1; }
   .gallery-img-del:hover { background: #cc0000; }
 
+  .gallery-img-ren {
+    position: absolute;
+    top: 6px; left: 6px;
+    background: rgba(0,100,180,0.92);
+    color: #fff;
+    border: none;
+    font-family: var(--font-main);
+    font-size: 7px;
+    letter-spacing: 1px;
+    padding: 3px 7px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 2;
+  }
+  .gallery-img-item:hover .gallery-img-ren { opacity: 1; }
+  .gallery-img-ren:hover { background: rgba(0,130,220,0.95); }
+
+  .gallery-rename-input {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-top: 1px solid var(--accent-cyan);
+    font-family: var(--font-main);
+    font-size: 6px;
+    letter-spacing: 1px;
+    padding: 5px 6px;
+    z-index: 4;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   .gallery-img-label {
     position: absolute;
     bottom: 0; left: 0; right: 0;
@@ -608,6 +643,7 @@ function renderGalleryGrid() {
     const label = img.name || dateStr;
     return `<div class="gallery-img-item" onclick="openLightbox(${i})">
       <img src="${img.dataUrl}" alt="${esc(img.name || '')}" loading="lazy"/>
+      <button class="gallery-img-ren" onclick="renameImage(event,'${img.id}','${esc(img.name || '')}')">REN</button>
       <button class="gallery-img-del" onclick="deleteImage(event,'${img.id}')">DEL</button>
       <div class="gallery-img-label">${esc(label)}</div>
     </div>`;
@@ -677,6 +713,52 @@ function setProgress(visible, pct) {
   bar.style.width = pct + '%';
 }
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ============================================================
+// RENAME IMAGE
+// ============================================================
+function renameImage(e, imgId, currentName) {
+  e.stopPropagation();
+  const item = e.target.closest('.gallery-img-item');
+  if (!item) return;
+
+  // If an input is already open on this tile, just focus it
+  const existing = item.querySelector('.gallery-rename-input');
+  if (existing) { existing.focus(); return; }
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'gallery-rename-input';
+  input.value = currentName || '';
+  input.placeholder = 'ENTER NAME...';
+  item.appendChild(input);
+  input.focus();
+  input.select();
+
+  let saved = false;
+  const finish = async (save) => {
+    if (saved) return;
+    saved = true;
+    const newName = input.value.trim();
+    input.remove();
+    if (save && newName !== currentName) {
+      try {
+        await db.collection('characters').doc(_activeCharId)
+          .collection('gallery').doc(imgId).update({ name: newName || '' });
+        notify('RENAMED!', 'ok');
+      } catch(err) {
+        notify('RENAME FAILED: ' + err.message, 'err');
+      }
+    }
+  };
+
+  input.addEventListener('keydown', ev => {
+    ev.stopPropagation();
+    if (ev.key === 'Enter')  finish(true);
+    if (ev.key === 'Escape') finish(false);
+  });
+  input.addEventListener('blur', () => finish(false));
+}
 
 // ============================================================
 // DELETE IMAGE
