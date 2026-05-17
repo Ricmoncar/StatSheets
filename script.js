@@ -3973,7 +3973,7 @@ function openTraitCodex() {
   const body = document.getElementById('trait-codex-body');
   body.innerHTML = RARITY_ORDER.map(rar => {
     const allOfRarity = Object.entries(TRAITS).filter(([k, t]) => t.rarity === rar);
-    const seenOfRarity = allOfRarity.filter(([k, t]) => k === 'determination' || seenTraits.includes(k));
+    const seenOfRarity = allOfRarity.filter(([k, t]) => k === 'determination' || t.rarity === 'duality' || seenTraits.includes(k));
     const countTotal = allOfRarity.length;
     const countSeen = seenOfRarity.length;
 
