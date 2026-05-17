@@ -2478,9 +2478,12 @@ function renderRadarChart(c) {
   ];
   const pts = arr => arr.map(p => p.join(',')).join(' ');
 
-  // Normalized values — capped at 2× hardmax so trait buffs can pop beyond ring
-  const rawNorm = KEYS.map(k => (eff[k] || 0) / HMAX[k]);
-  const norm    = rawNorm.map(v => Math.min(v, 2.0));
+  // Normalise each stat against hard-max to get the real global percentage,
+  // then rescale the whole set so the largest value always hits the outer ring.
+  // This keeps every character's chart a readable size regardless of power level.
+  const rawNorm  = KEYS.map(k => (eff[k] || 0) / HMAX[k]);
+  const personal = Math.max(...rawNorm, 0.001); // biggest stat relative to hard-max
+  const norm     = rawNorm.map(v => Math.min(v / personal, 1.0));
 
   // ── Grid rings ──────────────────────────────────────────────
   const rings = [0.25, 0.5, 0.75, 1.0].map(f => {
@@ -2517,7 +2520,7 @@ function renderRadarChart(c) {
     const [lx, ly] = cartesian(i, labelR);
     const anchor = lx < cx - 8 ? 'end' : lx > cx + 8 ? 'start' : 'middle';
     const pct = Math.round(rawNorm[i] * 100);
-    const overflowing = rawNorm[i] > 1.0;
+    const overflowing = rawNorm[i] > 1.0; // still flag true hard-max overflow in the label
     return `
       <text x="${lx}" y="${ly - 5}" text-anchor="${anchor}" dominant-baseline="middle"
         font-family="inherit" font-size="8" letter-spacing="1.5" fill="${COLS[k]}" font-weight="bold">${LBLS[i]}</text>
