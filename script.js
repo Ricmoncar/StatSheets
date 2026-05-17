@@ -88,8 +88,15 @@ async function migrateLocalStorage() {
 function loadSeenTraits() {
   try { seenTraits = JSON.parse(localStorage.getItem(SEEN_TRAITS_KEY)) || []; }
   catch { seenTraits = []; }
+  if (!seenTraits.includes('determination')) {
+    seenTraits.push('determination');
+    saveSeenTraits();
+  }
 }
-function saveSeenTraits() { localStorage.setItem(SEEN_TRAITS_KEY, JSON.stringify(seenTraits)); }
+function saveSeenTraits() {
+  try { localStorage.setItem(SEEN_TRAITS_KEY, JSON.stringify(seenTraits)); }
+  catch (e) { console.warn("localStorage not available:", e); }
+}
 
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
@@ -1939,6 +1946,10 @@ function saveCharacter() {
     traits: existing.traits || [],
     traitTriggers: existing.traitTriggers || {},
     traitStacks: existing.traitStacks || {},
+    dualityState: existing.dualityState || {},
+    traitHistory: existing.traitHistory || [],
+    folderId: existing.folderId || null,
+    order: existing.order ?? null,
     gold: existing.gold ?? 0,
     goldHistory: existing.goldHistory || [],
     pity: existing.pity ?? 0,
@@ -2537,7 +2548,7 @@ function toggleEquip(itemId) {
   if (item) {
     item.equipped = !item.equipped;
     playSound('equip', { rate: item.equipped ? 1.05 : 0.88, volume: 0.85 });
-    saveData();
+    saveData(c);
     renderInventory(c);
     updateLiveStats(c);
     // Trait tooltips are lazily cached — invalidate so the next hover recomputes
@@ -2554,10 +2565,14 @@ function updateLiveStats(c) {
   stats.forEach(key => {
     const baseVal = c.stats[key] || 0;
     const effVal = effStats[key];
-    const diff = effVal - baseVal;
-    let diffHtml = '';
-    if (diff > 0) diffHtml = `<span class="eff-stat-diff pos">(+${diff})</span>`;
-    else if (diff < 0) diffHtml = `<span class="eff-stat-diff neg">(${diff})</span>`;
+     const diff = effVal - baseVal;
+     let diffHtml = '';
+     if (diff !== 0) {
+       const tooltip = buildStatBreakdownTooltip(c, key);
+       const sign = diff > 0 ? '+' : '';
+       const cls = diff > 0 ? 'pos' : 'neg';
+       diffHtml = `<span class="eff-stat-diff ${cls}" data-tooltip="${tooltip}">(${sign}${diff})</span>`;
+     }
 
     const row = document.getElementById(`stat-segs-${key}`)?.parentElement;
     if (row) {
@@ -2578,7 +2593,7 @@ function deleteItem(itemId) {
   if (!confirm("Delete this item?")) return;
   playSound('delete');
   c.inventory = c.inventory.filter(i => i.id !== itemId);
-  saveData();
+  saveData(c);
   viewChar(currentId);
 }
 
@@ -2602,7 +2617,7 @@ function pasteItem() {
   const newItem = { ...JSON.parse(JSON.stringify(_copiedItem)), id: genId(), equipped: false };
   if (!c.inventory) c.inventory = [];
   c.inventory.push(newItem);
-  saveData();
+  saveData(c);
   renderInventory(c);
   updateLiveStats(c);
   notify(`"${newItem.name}" PASTED`, 'ok');
@@ -2767,7 +2782,7 @@ function saveItem() {
     c.inventory.push(item);
   }
 
-  saveData();
+  saveData(c);
   playSound('save');
   closeItemEditor();
   viewChar(currentId);
@@ -3251,12 +3266,64 @@ const TRAITS = {
   hx_sticky:   { name:'Fingering Sticky', rarity:'hexxed', desc:'your fingers are very sticky :) also u get the sticky fingers stand.', passive:[], notes:'Flavor / reference trait.' },
   hx_spicy:    { name:'Determined Spicy', rarity:'hexxed', desc:'+90% Resilience (capped). Surviving on 1HP → x2 all stats infinitely.', passive:[{stat:'resilience',op:'add',value:90}], situational:[{id:'hxds-1', label:'Survived once on 1HP (x2 all)', passive:[{stat:'all_main',op:'mul',value:2}]}, {id:'hxds-2', label:'Survived twice on 1HP (x4 all)', passive:[{stat:'all_main',op:'mul',value:4}]}] },
   hx_armor:    { name:'Full-Plate Armored', rarity:'hexxed', desc:'x10 DEF', passive:[{stat:'def',op:'mul',value:10}] },
+
+  // ============ DUALITY (heavenly/hellforged toggle) ============
+  du_tank: {
+    name:'Divine Bulwark', rarity:'duality',
+    desc:'Absorb all incoming party damage. Each hit heals you for 5% of the damage. +250% DEF.',
+    passive:[{stat:'def',op:'pct',value:250}],
+    heavenly:  { name:'Divine Bulwark',   desc:'Absorb all incoming party damage. Each hit heals you for 5% of the damage. +250% DEF.',                                                    passive:[{stat:'def',op:'pct',value:250}] },
+    hellforged:{ name:'Infernal Bastion', desc:'Every hit you take permanently stacks +5% DEF for that fight. No cap. +250% HP.',                                                          passive:[{stat:'hp',op:'pct',value:250}] },
+  },
+  du_atk: {
+    name:'Radiant Strike', rarity:'duality',
+    desc:'Every attack radiates to all adjacent enemies for 40% of the hit. Crits blind. +100% Crit Chance, +250% Crit Damage.',
+    passive:[{stat:'crit_rate',op:'add',value:100},{stat:'crit_dmg',op:'add',value:250}],
+    heavenly:  { name:'Radiant Strike', desc:'Every attack radiates to all adjacent enemies for 40% of the hit. Crits blind. +100% Crit Chance, +250% Crit Damage.',                        passive:[{stat:'crit_rate',op:'add',value:100},{stat:'crit_dmg',op:'add',value:250}] },
+    hellforged:{ name:'Soulreap',       desc:"Every kill permanently grants +10% ATK for the campaign. Crits steal 20% of the target's remaining HP as True Damage. +250% ATK.",          passive:[{stat:'atk',op:'pct',value:250}] },
+  },
+  du_mag: {
+    name:'Celestial Surge', rarity:'duality',
+    desc:'+250% MAG. Your spells leave lingering auras that heal allies for 5% HP per round.',
+    passive:[{stat:'mag',op:'pct',value:250}],
+    heavenly:  { name:'Celestial Surge',   desc:'+250% MAG. Your spells leave lingering auras that heal allies for 5% HP per round.',                                                       passive:[{stat:'mag',op:'pct',value:250}] },
+    hellforged:{ name:'Infernal Grimoire', desc:"+250% MAG. Each spell permanently shreds 15% of the target's MAG for that fight.",                                                        passive:[{stat:'mag',op:'pct',value:250}] },
+  },
+  du_heal: {
+    name:'Absolution', rarity:'duality',
+    desc:'Overheals convert to shields. Healed allies become immune to the next debuff. +300% Heal Power.',
+    passive:[{stat:'heal_pow',op:'add',value:300}],
+    heavenly:  { name:'Absolution',  desc:'Overheals convert to shields. Healed allies become immune to the next debuff applied to them. +300% Heal Power.',                              passive:[{stat:'heal_pow',op:'add',value:300}] },
+    hellforged:{ name:'Blood Tithe', desc:'Sacrifice 10% of your HP to deal it as True Damage, then heal an ally for triple the sacrificed amount. +200% HP.',                            passive:[{stat:'hp',op:'pct',value:200}] },
+  },
+  du_spd: {
+    name:'Ascent', rarity:'duality',
+    desc:'+250% SPD. You act twice every round. Auto-dodge the first attack each round. Attacks can never be blocked, parried, or evaded.',
+    passive:[{stat:'spd',op:'pct',value:250}],
+    heavenly:  { name:'Ascent',       desc:'+250% SPD. You act twice every round. Auto-dodge the first attack each round. Attacks can never be blocked, parried, or evaded.',               passive:[{stat:'spd',op:'pct',value:250}] },
+    hellforged:{ name:'Death Sprint', desc:"+250% SPD. If your SPD exceeds the target's, the difference is dealt as bonus True Damage on every hit. Each enemy defeated permanently multiplies your SPD and DEX by 5 for the rest of that fight.", passive:[{stat:'spd',op:'pct',value:250}] },
+  },
+  du_hybrid: {
+    name:'Covenant', rarity:'duality',
+    desc:'Bond with one ally: share 75% of all stats between both of you. If either is defeated, the survivor gains x2 to all stats.',
+    passive:[],
+    heavenly:  { name:'Covenant', desc:'Bond with one ally: share 75% of all stats between both of you. If either is defeated, the survivor gains x2 to all stats.', passive:[] },
+    hellforged:{ name:'Devour',   desc:'Copy the trait of every enemy you kill and add it to yourself for the rest of that fight. Stacks infinitely.',                passive:[] },
+  },
+
+  // ============ DETERMINED (evolving heartbeat) ============
+  determination: {
+    name:'Determination', rarity:'determined',
+    desc:'Revive infinitely in a fight, losing 1% main stats per defeat. Defeating enemies grants x1.5 current main stats permanently (max x10); at max: evolves to HATRED. Sparing enemies grants +5% Heal Power & +5% DEF per spare (max x10); at max: evolves to MERCYFUL.',
+    passive:[],
+    notes:'Track defeats, kill stacks, and spare stacks on the chip. At 10 kills: HATRED. At 10 spares: MERCYFUL.',
+  },
 };
 
-const RARITY_ORDER = ['common','rare','epic','legendary','mythic','hexxed'];
-const RARITY_LABEL = { common:'COMMON', rare:'RARE', epic:'EPIC', legendary:'LEGENDARY', mythic:'MYTHIC', hexxed:'HEXXED' };
-const RARITY_WEIGHTS = { common:60, rare:30, epic:18.4, legendary:1.5, mythic:0.1, hexxed:0.015 };
-const PITY_WEIGHTS   = { common:0,  rare:0,  epic:5,    legendary:85,  mythic:9,   hexxed:1   };
+const RARITY_ORDER = ['common','rare','epic','legendary','mythic','hexxed','duality','determined'];
+const RARITY_LABEL = { common:'COMMON', rare:'RARE', epic:'EPIC', legendary:'LEGENDARY', mythic:'MYTHIC', hexxed:'HEXXED', duality:'DUALITY', determined:'DETERMINED' };
+const RARITY_WEIGHTS = { common:60, rare:30, epic:18.4, legendary:1.5, mythic:0.1, hexxed:0.02, duality:0.01, determined:0.005 };
+const PITY_WEIGHTS   = { common:0,  rare:0,  epic:5,    legendary:79.9, mythic:9,   hexxed:1,    duality:5, determined:0.1 };
 
 // ============================================================
 // SHIMMYFUL — 0.1% upgrade for common traits
@@ -3459,7 +3526,7 @@ function transactGold(direction) {
   });
   if (c.goldHistory.length > 200) c.goldHistory.length = 200;
 
-  saveData();
+  saveData(c);
   playSound('save', { rate: direction > 0 ? 1.1 : 0.9, volume: 0.8 });
   renderGoldManager(c);
   updateGoldDisplay(c);
@@ -3501,7 +3568,7 @@ function loadPity() {
 }
 function savePity() {
   const c = characters.find(x => x.id === currentId);
-  if (c) { c.pity = traitPity; saveData(); }
+  if (c) { c.pity = traitPity; saveData(c); }
 }
 
 function updatePityDisplay() {
@@ -3529,6 +3596,37 @@ function buildTraitPassives(c) {
   const triggers = c.traitTriggers || {};
   const stacks = c.traitStacks || {};
   getActiveTraits(c).forEach(({key, def}) => {
+    // DUALITY — use heavenly or hellforged passive set based on current state
+    if (def.rarity === 'duality') {
+      const state = (c.dualityState || {})[key] || 'heavenly';
+      const sd = def[state] || def;
+      (sd.passive || []).forEach(p => out.push({ ...p, _src:key }));
+      return;
+    }
+    // DETERMINATION — MERCYFUL grants stat passives; check forced state override first
+    if (key === 'determination') {
+      const forced  = (stacks['determination:state'] || '');
+      const kills_  = (stacks['determination:kills']  || 0);
+      const spares_ = (stacks['determination:spares'] || 0);
+      const deaths_ = (stacks['determination:deaths'] || 0);
+      const detState = forced || (kills_ >= 10 ? 'hatred' : spares_ >= 10 ? 'mercyful' : 'determined');
+      if (detState === 'mercyful') {
+        out.push({stat:'heal_pow',op:'pct',value:900,_src:key});
+        out.push({stat:'def',op:'pct',value:900,_src:key});
+      } else if (detState === 'determined') {
+        if (kills_ > 0) {
+          out.push({stat:'all_main',op:'mul',value:Math.min(10, Math.pow(1.5, kills_)),_src:key});
+        }
+        if (spares_ > 0) {
+          out.push({stat:'heal_pow',op:'add',value:5 * spares_,_src:key});
+          out.push({stat:'def',op:'pct',value:5 * spares_,_src:key});
+        }
+        if (deaths_ > 0) {
+          out.push({stat:'all_main',op:'mul',value:Math.pow(0.99, deaths_),_src:key});
+        }
+      }
+      return;
+    }
     // Use shimmyful passive overrides if applicable (works for both common and legendary shimmy)
     const _shimDef = isShimmyful(c, key) ? getShimmyfulDef(key) : null;
     const activeDef = _shimDef || def;
@@ -3650,6 +3748,72 @@ function renderTraitsDisplay(c) {
     const t = TRAITS[key];
     if (!t) return '';
     const rarity = t.rarity;
+    // DUALITY — heavenly/hellforged toggle chip
+    if (rarity === 'duality') {
+      const duState = (c.dualityState || {})[key] || 'heavenly';
+      const duDef   = t[duState] || t;
+      const duLabel = duState === 'heavenly' ? 'HEAVENLY' : 'HELLFORGED';
+      return `
+        <div class="trait-chip rar-duality duality-${duState}" data-trait="${key}">
+          <div class="trait-chip-rarity">${duLabel}</div>
+          <div class="trait-chip-name">${duDef.name}</div>
+          <div class="trait-chip-desc">${duDef.desc}</div>
+          <div class="duality-toggle-row">
+            <button class="duality-toggle" onclick="toggleDuality('${key}',event)" title="Switch between HEAVENLY and HELLFORGED">☯</button>
+          </div>
+          <button class="trait-chip-remove" onclick="removeTrait('${key}', event)" title="Remove trait">✕</button>
+        </div>`;
+    }
+    // DETERMINATION — evolving chip with state buttons + counters
+    if (key === 'determination') {
+      const stacks_ = c.traitStacks || {};
+      const kills  = stacks_['determination:kills']  || 0;
+      const deaths = stacks_['determination:deaths'] || 0;
+      const spares = stacks_['determination:spares'] || 0;
+      const forced = stacks_['determination:state']  || '';
+      // Forced state takes priority, then counter thresholds
+      const state = forced || (kills >= 10 ? 'hatred' : spares >= 10 ? 'mercyful' : 'determined');
+      let chipClass = 'rar-determined';
+      let rarLabel  = 'DETERMINED';
+      let dispName  = 'Determination';
+      let dispDesc  = t.desc;
+      if (state === 'hatred') {
+        chipClass += ' det-hatred'; rarLabel = 'HATRED'; dispName = 'HATRED';
+        dispDesc = 'Absorb every defeated enemy: permanently add all their non-HP main stats to yours for the rest of that fight. Lose -1% HP per absorb. Revive infinitely with no stat loss.';
+      } else if (state === 'mercyful') {
+        chipClass += ' det-mercyful'; rarLabel = 'MERCYFUL'; dispName = 'MERCYFUL';
+        dispDesc = 'Revive infinitely without losing stats. x10 Heal Power, x10 DEF. Healing received is divided by 5.';
+      }
+      return `
+        <div class="trait-chip ${chipClass}" data-trait="${key}">
+          <div class="trait-chip-rarity">${rarLabel}</div>
+          <div class="trait-chip-name">${dispName}</div>
+          <div class="trait-chip-desc">${dispDesc}</div>
+          <div class="det-state-btns">
+            <button class="btn sm det-state-btn${state==='hatred'?' det-state-active':''}" onclick="setDeterminationState('${key}','hatred',event)">⚔ HATRED</button>
+            <button class="btn sm det-state-btn${state==='determined'?' det-state-active':''}" onclick="setDeterminationState('${key}','determined',event)">♥ RESET</button>
+            <button class="btn sm det-state-btn${state==='mercyful'?' det-state-active':''}" onclick="setDeterminationState('${key}','mercyful',event)">✦ MERCYFUL</button>
+          </div>
+          <div class="det-counters">
+            <div class="det-counter">
+              <span class="det-label">DEFEATS: ${deaths}</span>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','deaths',1,event)">+</button>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','deaths',-1,event)">-</button>
+            </div>
+            <div class="det-counter">
+              <span class="det-label">KILLS: ${kills}/10</span>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','kills',1,event)">+</button>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','kills',-1,event)">-</button>
+            </div>
+            <div class="det-counter">
+              <span class="det-label">SPARES: ${spares}/10</span>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','spares',1,event)">+</button>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','spares',-1,event)">-</button>
+            </div>
+          </div>
+          <button class="trait-chip-remove" onclick="removeTrait('${key}', event)" title="Remove trait">✕</button>
+        </div>`;
+    }
     const shimmyDef = isShimmyful(c, key) ? getShimmyfulDef(key) : null;
     const isLegShimmy = shimmyDef && rarity === 'legendary';
     const displayDef = shimmyDef || t;
@@ -3723,7 +3887,7 @@ function toggleTraitTrigger(triggerKey, ev) {
   if (!c) return;
   c.traitTriggers = c.traitTriggers || {};
   c.traitTriggers[triggerKey] = !c.traitTriggers[triggerKey];
-  saveData();
+  saveData(c);
   updateLiveStats(c);
   renderTraitsDisplay(c);
 }
@@ -3734,13 +3898,19 @@ function removeTrait(key, ev) {
   if (!c) return;
   c.traits = (c.traits || []).filter(k => k !== key);
   c.shimmyfulTraits = (c.shimmyfulTraits || []).filter(k => k !== key);
+  if (c.dualityState) delete c.dualityState[key];
   playSound('delete');
   // Clean up triggers/stacks for removed trait
   if (c.traitTriggers) {
     Object.keys(c.traitTriggers).forEach(tk => { if (tk.startsWith(key+':')) delete c.traitTriggers[tk]; });
   }
-  if (c.traitStacks) delete c.traitStacks[key];
-  saveData();
+  if (c.traitStacks) {
+    delete c.traitStacks[key];
+    delete c.traitStacks[key+':kills'];
+    delete c.traitStacks[key+':deaths'];
+    delete c.traitStacks[key+':spares'];
+  }
+  saveData(c);
   updateLiveStats(c);
   renderTraitsDisplay(c);
   // Hide tooltip so it doesn't get stuck to the mouse
@@ -3753,13 +3923,77 @@ function removeTrait(key, ev) {
 // TRAIT CODEX
 // ============================================================
 function openTraitCodex() {
+  if (!seenTraits.includes('determination')) {
+    seenTraits.push('determination');
+    saveSeenTraits();
+  }
   const body = document.getElementById('trait-codex-body');
   body.innerHTML = RARITY_ORDER.map(rar => {
     const allOfRarity = Object.entries(TRAITS).filter(([k, t]) => t.rarity === rar);
-    const seenOfRarity = allOfRarity.filter(([k, t]) => seenTraits.includes(k));
-    
+    const seenOfRarity = allOfRarity.filter(([k, t]) => k === 'determination' || seenTraits.includes(k));
     const countTotal = allOfRarity.length;
     const countSeen = seenOfRarity.length;
+
+    // DUALITY — glitching title, entries show both heavenly and hellforged sides
+    if (rar === 'duality') {
+      return `
+        <div class="codex-section rar-duality">
+          <div class="codex-section-title">
+            <span class="codex-rar-tag duality-split-tag" data-h="HEAVENLY (${countSeen}/${countTotal})" data-hf="HELLFORGED (${countSeen}/${countTotal})">HELLFORGED (${countSeen}/${countTotal})</span>
+            <span class="codex-rar-chance">${RARITY_WEIGHTS[rar]}% chance</span>
+          </div>
+          <div class="codex-list">
+            ${seenOfRarity.map(([k, t]) => `
+              <div class="codex-entry rar-duality codex-duality-entry">
+                <div class="codex-duality-side heavenly-side">
+                  <div class="codex-duality-label">HEAVENLY</div>
+                  <div class="codex-entry-name" style="color:#88c8ff">${t.heavenly?.name || t.name}</div>
+                  <div class="codex-entry-desc" style="color:#4a7abf">${t.heavenly?.desc || t.desc}</div>
+                </div>
+                <div class="codex-duality-divider">☯</div>
+                <div class="codex-duality-side hellforged-side">
+                  <div class="codex-duality-label">HELLFORGED</div>
+                  <div class="codex-entry-name" style="color:#ffd04a">${t.hellforged?.name || t.name}</div>
+                  <div class="codex-entry-desc" style="color:#cc9930">${t.hellforged?.desc || t.desc}</div>
+                </div>
+              </div>
+            `).join('')}
+            ${countSeen === 0 ? `<div style="font-size:8px;color:#444;padding:8px;">NOTHING UNLOCKED YET</div>` : ''}
+          </div>
+        </div>`;
+    }
+
+    // DETERMINED — pulsing section with evolution path display
+    if (rar === 'determined') {
+      return `
+        <div class="codex-section rar-determined det-codex-section">
+          <div class="codex-section-title">
+            <span class="codex-rar-tag rar-determined det-codex-tag">DETERMINED (${countSeen}/${countTotal})</span>
+            <span class="codex-rar-chance">${RARITY_WEIGHTS[rar]}% chance</span>
+          </div>
+          <div class="codex-list">
+            ${seenOfRarity.map(([k, t]) => `
+              <div class="codex-entry rar-determined det-codex-entry">
+                <div class="codex-entry-name">${t.name}</div>
+                <div class="codex-entry-desc">${t.desc}</div>
+                <div class="det-codex-paths">
+                  <div class="det-codex-path hatred-path">
+                    <span class="det-path-label">10 KILLS</span>
+                    <span class="det-path-arrow">→</span>
+                    <span class="det-path-name hatred-name">HATRED</span>
+                  </div>
+                  <div class="det-codex-path mercyful-path">
+                    <span class="det-path-label">10 SPARES</span>
+                    <span class="det-path-arrow">→</span>
+                    <span class="det-path-name mercyful-name">MERCYFUL</span>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+            ${countSeen === 0 ? `<div class="det-codex-empty">NOTHING UNLOCKED YET</div>` : ''}
+          </div>
+        </div>`;
+    }
 
     return `
       <div class="codex-section rar-${rar}">
@@ -3829,7 +4063,7 @@ function rollTraits() {
     } else if (rarities.includes('mythic')) {
       finalPity = Math.max(0, traitPity - 80);
     } else if (rarities.includes('legendary')) {
-      finalPity = Math.max(0, traitPity - 40);
+      finalPity = Math.max(0, traitPity - 25);
     }
   }
 
@@ -3949,6 +4183,65 @@ function rollTraits() {
   });
 }
 
+function toggleDuality(key, ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  c.dualityState = c.dualityState || {};
+  const current = c.dualityState[key] || 'heavenly';
+  const next = current === 'heavenly' ? 'hellforged' : 'heavenly';
+  // Trigger the transition animation on the chip before re-rendering
+  const chip = document.querySelector(`.trait-chip[data-trait="${key}"]`);
+  if (chip) {
+    const animClass = next === 'hellforged' ? 'duality-to-hell' : 'duality-to-heaven';
+    chip.classList.add(animClass);
+    setTimeout(() => {
+      c.dualityState[key] = next;
+      playSound('pop', { rate: next === 'hellforged' ? 0.65 : 1.35, volume: 0.85 });
+      saveData(c);
+      updateLiveStats(c);
+      renderTraitsDisplay(c);
+    }, 480);
+  } else {
+    c.dualityState[key] = next;
+    saveData(c);
+    updateLiveStats(c);
+    renderTraitsDisplay(c);
+  }
+}
+
+function adjustDetermination(key, counter, delta, ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  c.traitStacks = c.traitStacks || {};
+  const stackKey = key + ':' + counter;
+  const maxVal = (counter === 'kills' || counter === 'spares') ? 10 : 9999;
+  c.traitStacks[stackKey] = Math.max(0, Math.min(maxVal, (c.traitStacks[stackKey] || 0) + delta));
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+}
+
+function setDeterminationState(key, state, ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  c.traitStacks = c.traitStacks || {};
+  if (state === 'determined') {
+    // Reset: clear forced override and counters
+    delete c.traitStacks['determination:state'];
+    c.traitStacks['determination:kills']  = 0;
+    c.traitStacks['determination:deaths'] = 0;
+    c.traitStacks['determination:spares'] = 0;
+  } else {
+    c.traitStacks['determination:state'] = state;
+  }
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+}
+
 function rerollHand() {
   rollTraits();
 }
@@ -3974,6 +4267,18 @@ function pickTraitFromHand(handItem) {
   } else {
     c.traits = [key];
     c.shimmyfulTraits = shimmyful ? [key] : [];
+    // Initialize duality state
+    if (TRAITS[key]?.rarity === 'duality') {
+      c.dualityState = c.dualityState || {};
+      c.dualityState[key] = 'heavenly';
+    }
+    // Initialize determination counters
+    if (key === 'determination') {
+      c.traitStacks = c.traitStacks || {};
+      c.traitStacks['determination:kills']  = 0;
+      c.traitStacks['determination:deaths'] = 0;
+      c.traitStacks['determination:spares'] = 0;
+    }
   }
 
   // Reset triggers/stacks for the new selection
@@ -3993,7 +4298,16 @@ function pickTraitFromHand(handItem) {
     if (c.traitHistory.length > 50) c.traitHistory.length = 50;
   }
 
-  saveData();
+  let updatedSeen = false;
+  c.traits.forEach(k => {
+    if (TRAITS[k] && !seenTraits.includes(k)) {
+      seenTraits.push(k);
+      updatedSeen = true;
+    }
+  });
+  if (updatedSeen) saveSeenTraits();
+
+  saveData(c);
   playSound('equip', { rate: 1.15, volume: 0.9 });
   closeTraitRoll();
   viewChar(currentId);
@@ -4062,7 +4376,7 @@ function adjustStacks(key, delta) {
   if (input) input.value = next;
   const slider = document.querySelector(`.cult-block[data-key="${key}"] .cult-slider`);
   if (slider) slider.value = next;
-  saveData();
+  saveData(c);
   refreshCultivationPreviews();
   updateLiveStats(c);
   renderTraitsDisplay(c);
@@ -4074,7 +4388,7 @@ function setStacks(key, val) {
   const v = Math.max(0, Math.min(max, parseInt(val) || 0));
   c.traitStacks = c.traitStacks || {};
   c.traitStacks[key] = v;
-  saveData();
+  saveData(c);
   refreshCultivationPreviews();
   updateLiveStats(c);
   renderTraitsDisplay(c);
@@ -4138,6 +4452,18 @@ if (sidebarList && db) {
         const bo = b.order != null ? b.order : (b.createdAt || 0);
         return ao - bo;
       });
+
+    // Auto-discover seen traits from loaded characters
+    let updatedSeen = false;
+    characters.forEach(c => {
+      (c.traits || []).forEach(k => {
+        if (TRAITS[k] && !seenTraits.includes(k)) {
+          seenTraits.push(k);
+          updatedSeen = true;
+        }
+      });
+    });
+    if (updatedSeen) saveSeenTraits();
 
     renderSidebar();
 
