@@ -1793,16 +1793,39 @@ input[type=number] { -moz-appearance: textfield; }
 }
 .shimmy-star {
   position: absolute;
-  top: 6px; right: 8px;
-  font-size: 10px;
+  top: 5px; right: 8px;
+  font-size: 16px;
   color: #50ff8c;
   text-shadow: 0 0 6px rgba(80,255,140,0.9);
   pointer-events: none;
   animation: shimmy-star-spin 3s ease-in-out infinite;
 }
+/* Gold star for legendary shimmyful */
+.shimmy-leg-star {
+  color: #ffd84a;
+  text-shadow: 0 0 8px rgba(255,200,60,0.95), 0 0 18px rgba(255,180,20,0.5);
+  animation: shimmy-leg-star-spin 2.5s ease-in-out infinite;
+}
 @keyframes shimmy-star-spin {
   0%, 100% { opacity: 0.7; transform: scale(1)   rotate(0deg); }
   50%       { opacity: 1;   transform: scale(1.25) rotate(20deg); }
+}
+@keyframes shimmy-leg-star-spin {
+  0%, 100% { opacity: 0.75; transform: scale(1)    rotate(-10deg); }
+  50%       { opacity: 1;   transform: scale(1.3)  rotate(15deg); }
+}
+
+/* LEGENDARY SHIMMYFUL — gold/amber outer ring */
+.trait-chip.shimmyful.shimmy-leg {
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 0 5px rgba(255,200,60,0.65),
+    0 0 22px rgba(255,180,20,0.4);
+  animation: shimmy-leg-pulse 2.5s ease-in-out infinite;
+}
+@keyframes shimmy-leg-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px #000, 0 0 0 5px rgba(255,200,60,0.55), 0 0 16px rgba(255,180,20,0.3); }
+  50%       { box-shadow: 0 0 0 3px #000, 0 0 0 6px rgba(255,210,80,0.95), 0 0 36px rgba(255,170,0,0.65); }
 }
 
 /* SHIMMYFUL hand card overlay */
@@ -1815,9 +1838,17 @@ input[type=number] { -moz-appearance: textfield; }
   animation: shimmy-pulse 2.8s ease-in-out infinite,
              hand-card-deal 0.55s cubic-bezier(0.2,0.8,0.2,1.05) both;
 }
-.hand-card.shimmyful .hand-card-rarity::after {
-  content: ' ✦';
-  color: #50ff8c;
+.hand-card.shimmyful .hand-card-rarity::after { content: none; }
+
+/* Legendary shimmyful hand card — gold ring */
+.hand-card.shimmyful.shimmy-leg {
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 0 5px rgba(255,200,60,0.7),
+    0 0 30px rgba(255,170,0,0.55),
+    var(--c-glow, 0 0 0 transparent);
+  animation: shimmy-leg-pulse 2.5s ease-in-out infinite,
+             hand-card-deal 0.55s cubic-bezier(0.2,0.8,0.2,1.05) both;
 }
 
 /* HEXXED — slow void pulse + drifting wisp + chromatic glitch */
