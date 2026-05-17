@@ -3255,7 +3255,7 @@ const TRAITS = {
 
 const RARITY_ORDER = ['common','rare','epic','legendary','mythic','hexxed'];
 const RARITY_LABEL = { common:'COMMON', rare:'RARE', epic:'EPIC', legendary:'LEGENDARY', mythic:'MYTHIC', hexxed:'HEXXED' };
-const RARITY_WEIGHTS = { common:60, rare:30, epic:18.4, legendary:1.5, mythic:0.3, hexxed:0.1 };
+const RARITY_WEIGHTS = { common:60, rare:30, epic:18.4, legendary:1.5, mythic:0.1, hexxed:0.015 };
 const PITY_WEIGHTS   = { common:0,  rare:0,  epic:5,    legendary:85,  mythic:9,   hexxed:1   };
 
 // ============================================================
@@ -3325,7 +3325,7 @@ function rollHand(isPityRoll) {
     const k = rollOneTrait(null, weights);
     if (!seen.has(k)) {
       seen.add(k);
-      const shimmyful = TRAITS[k]?.rarity === 'common' && Math.random() < 0.005;
+      const shimmyful = TRAITS[k]?.rarity === 'common' && Math.random() < 0.01;
       hand.push({ key: k, shimmyful });
     }
     tries++;
