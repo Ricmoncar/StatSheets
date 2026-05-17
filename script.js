@@ -3931,11 +3931,7 @@ function rollTraits() {
         // Shimmy fires at +400ms, flash+transition takes ~500ms → need ~900ms.
         // Add extra buffer so the glow is clearly visible before CTAs appear.
         const hasShimmy = currentHand.some(h => h.shimmyful);
-        const hasLegShimmy = currentHand.some(h => h.shimmyful && TRAITS[h.key]?.rarity === 'legendary');
         const interactDelay = hasShimmy ? 1600 : 380;
-        if (hasShimmy) {
-          sub.textContent = hasLegShimmy ? '★ A SHIMMYFUL LEGENDARY APPEARED! ★' : '✦ A SHIMMYFUL TRAIT APPEARED! ✦';
-        }
         setTimeout(() => {
           traitPity = finalPity;
           savePity();
