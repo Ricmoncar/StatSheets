@@ -3325,7 +3325,7 @@ function rollHand(isPityRoll) {
     const k = rollOneTrait(null, weights);
     if (!seen.has(k)) {
       seen.add(k);
-      const shimmyful = TRAITS[k]?.rarity === 'common' && Math.random() < 0.0025;
+      const shimmyful = TRAITS[k]?.rarity === 'common' && Math.random() < 0.003;
       hand.push({ key: k, shimmyful });
     }
     tries++;
