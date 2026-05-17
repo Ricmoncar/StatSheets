@@ -3757,12 +3757,16 @@ function rollHand(isPityRoll) {
 // GOLD / TREASURY
 // ============================================================
 function formatGold(n) {
-  return Math.abs(Math.round(n)).toLocaleString();
+  const v = Math.round(n);
+  return (v < 0 ? '-' : '') + Math.abs(v).toLocaleString();
 }
 
 function updateGoldDisplay(c) {
   const amtEl = document.getElementById('cv-gold-amount');
-  if (amtEl) amtEl.textContent = formatGold(c.gold || 0);
+  if (!amtEl) return;
+  const gold = c.gold || 0;
+  amtEl.textContent = formatGold(gold);
+  amtEl.style.color = gold < 0 ? '#ff4444' : '';
 }
 
 function openGoldManager() {
@@ -3789,7 +3793,6 @@ function transactGold(direction) {
   const note = document.getElementById('gold-note').value.trim();
 
   const current = c.gold || 0;
-  if (direction < 0 && amount > current) { notify("NOT ENOUGH GOLD!", 'err'); return; }
   c.gold = current + direction * amount;
   c.goldHistory = c.goldHistory || [];
   c.goldHistory.unshift({
@@ -3809,7 +3812,10 @@ function transactGold(direction) {
 }
 
 function renderGoldManager(c) {
-  document.getElementById('gold-balance-amount').textContent = formatGold(c.gold || 0) + ' G';
+  const gold = c.gold || 0;
+  const balEl = document.getElementById('gold-balance-amount');
+  balEl.textContent = formatGold(gold) + ' G';
+  balEl.style.color = gold < 0 ? '#ff4444' : '';
   const list = document.getElementById('gold-history-list');
   const history = c.goldHistory || [];
   if (!history.length) {
