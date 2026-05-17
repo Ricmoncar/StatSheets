@@ -3824,6 +3824,159 @@ input[type=number] { -moz-appearance: textfield; }
 .lb-val { color: var(--accent-cyan); flex-shrink: 0; font-size: 9px; }
 
 /* ============================================================
+   TRAIT SUGGESTION BOX
+   ============================================================ */
+.sugg-input {
+  width: 100%;
+  background: #0d0d0d;
+  color: #eee;
+  border: 1px solid #2a2a2a;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 1px;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.sugg-input:focus { outline: none; border-color: #444; }
+
+.sugg-textarea {
+  width: 100%;
+  background: #0d0d0d;
+  color: #ccc;
+  border: 1px solid #2a2a2a;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 8px;
+  line-height: 1.7;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.sugg-textarea:focus { outline: none; border-color: #444; }
+
+/* Rarity picker */
+.sugg-rarity-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sugg-rar-btn {
+  font-family: inherit;
+  font-size: 7.5px;
+  letter-spacing: 1.5px;
+  padding: 5px 10px;
+  border: 1px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.15s, filter 0.15s, transform 0.1s;
+}
+.sugg-rar-btn:hover    { opacity: 0.6; }
+.sugg-rar-btn.sugg-rar-active {
+  opacity: 1;
+  filter: brightness(1.25);
+  transform: translateY(-1px);
+}
+.sugg-rar-btn.rar-common     { color: #c0c0c0; }
+.sugg-rar-btn.rar-rare       { color: #4aa9ff; }
+.sugg-rar-btn.rar-epic       { color: #c98bff; }
+.sugg-rar-btn.rar-legendary  { color: #ffe14a; }
+.sugg-rar-btn.rar-mythic     { color: #ffd86a; }
+.sugg-rar-btn.rar-hexxed     { color: #c46aff; }
+.sugg-rar-btn.rar-duality    { color: #88c8ff; }
+.sugg-rar-btn.rar-determined { color: #ff3333; }
+
+/* Suggestion cards */
+.sugg-card {
+  border: 1px solid #2a2a2a;
+  border-left-width: 3px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  transition: filter 0.15s;
+}
+.sugg-card:hover { filter: brightness(1.08); }
+
+.sugg-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.sugg-rar-tag {
+  font-size: 7px;
+  letter-spacing: 2px;
+  padding: 3px 7px;
+  border: 1px solid currentColor;
+  flex-shrink: 0;
+}
+.sugg-card-name {
+  font-size: 11px;
+  letter-spacing: 2px;
+  flex: 1;
+  font-weight: bold;
+}
+.sugg-card-desc {
+  font-size: 8px;
+  color: #999;
+  line-height: 1.7;
+  margin-bottom: 8px;
+}
+.sugg-card-effect {
+  font-size: 7.5px;
+  color: #666;
+  line-height: 1.6;
+  padding: 7px 10px;
+  border-left: 2px solid #2a2a2a;
+  margin-bottom: 8px;
+}
+.sugg-effect-label {
+  display: block;
+  font-size: 6.5px;
+  letter-spacing: 2px;
+  color: #444;
+  margin-bottom: 4px;
+}
+.sugg-card-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
+  letter-spacing: 1px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #1a1a1a;
+}
+
+/* Vote button */
+.sugg-vote-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 4px 9px;
+  border: 1px solid #333;
+  background: transparent;
+  color: #555;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.sugg-vote-btn:hover:not(.voted) {
+  color: #88ff88;
+  border-color: #44aa44;
+}
+.sugg-vote-btn.voted {
+  color: #44aa44;
+  border-color: #2a6a2a;
+  background: rgba(40,100,40,0.12);
+  cursor: default;
+}
+.sugg-vote-count { font-weight: bold; }
+
+/* ============================================================
    CHARACTER CONTEXT MENU
    ============================================================ */
 #char-context-menu {

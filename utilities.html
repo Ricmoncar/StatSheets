@@ -149,16 +149,55 @@
 
   <!-- SUGGESTION BOX -->
   <div class="panel" style="margin-top:24px;">
-    <div class="panel-title">SUGGESTION BOX</div>
-    <div class="field">
-      <label>YOUR SUGGESTION</label>
-      <textarea id="suggestion-text" rows="4" placeholder="Type your suggestion here..." style="width:100%; background:#111; color:#eee; border:1px solid #333; padding:8px; font-family:inherit; font-size:8px; resize:vertical; box-sizing:border-box;"></textarea>
+    <div class="panel-title">TRAIT SUGGESTION BOX</div>
+    <p style="font-size:8px;color:#555;letter-spacing:1px;margin:0 0 18px;">Got an idea for a new trait? Fill it in below. The more detail the better.</p>
+
+    <div class="sugg-form">
+      <div class="field">
+        <label>TRAIT NAME</label>
+        <input type="text" id="sugg-name" placeholder="e.g. Phantom Step, Bloodpact..." maxlength="60"
+          class="sugg-input" />
+      </div>
+
+      <div class="field">
+        <label>SUGGESTED RARITY</label>
+        <div class="sugg-rarity-picker" id="sugg-rarity-picker">
+          <button class="sugg-rar-btn rar-common"     data-rar="common"     onclick="pickSuggRarity('common')">COMMON</button>
+          <button class="sugg-rar-btn rar-rare"       data-rar="rare"       onclick="pickSuggRarity('rare')">RARE</button>
+          <button class="sugg-rar-btn rar-epic"       data-rar="epic"       onclick="pickSuggRarity('epic')">EPIC</button>
+          <button class="sugg-rar-btn rar-legendary"  data-rar="legendary"  onclick="pickSuggRarity('legendary')">LEGENDARY</button>
+          <button class="sugg-rar-btn rar-mythic"     data-rar="mythic"     onclick="pickSuggRarity('mythic')">MYTHIC</button>
+          <button class="sugg-rar-btn rar-hexxed"     data-rar="hexxed"     onclick="pickSuggRarity('hexxed')">HEXXED</button>
+          <button class="sugg-rar-btn rar-duality"    data-rar="duality"    onclick="pickSuggRarity('duality')">DUALITY</button>
+          <button class="sugg-rar-btn rar-determined" data-rar="determined" onclick="pickSuggRarity('determined')">DETERMINED</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>WHAT DOES IT DO?</label>
+        <textarea id="sugg-desc" rows="3" placeholder="Describe the trait's effect in plain language..."
+          class="sugg-textarea"></textarea>
+      </div>
+
+      <div class="field">
+        <label>STAT EFFECT IDEA <span style="color:#3a3a3a;font-size:7px;letter-spacing:0;">(OPTIONAL)</span></label>
+        <textarea id="sugg-effect" rows="2" placeholder="e.g. +50% ATK, ×2 DEF when below 20% HP, +30 Crit Rate..."
+          class="sugg-textarea"></textarea>
+      </div>
+
+      <div class="field">
+        <label>YOUR NAME <span style="color:#3a3a3a;font-size:7px;letter-spacing:0;">(OPTIONAL)</span></label>
+        <input type="text" id="sugg-submitter" placeholder="Leave blank for Anonymous" maxlength="32"
+          class="sugg-input" style="max-width:280px;" />
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;margin-top:4px;">
+        <button class="btn accent" onclick="submitSuggestion()">SUBMIT SUGGESTION</button>
+        <span id="suggestion-status" style="font-size:8px;color:#555;letter-spacing:1px;"></span>
+      </div>
     </div>
-    <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
-      <button class="btn accent" onclick="submitSuggestion()">SUBMIT</button>
-      <span id="suggestion-status" style="font-size:8px; color:#555;"></span>
-    </div>
-    <div id="suggestion-list" style="margin-top:16px;"></div>
+
+    <div id="suggestion-list" style="margin-top:28px;"></div>
   </div>
 
 </div><!-- /utilities-page -->
@@ -170,7 +209,7 @@
 <script src="script.js?v=3"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('suggestion-list')) loadSuggestions();
+    if (document.getElementById('suggestion-list')) { pickSuggRarity('common'); loadSuggestions(); }
     initTierList();
   });
 </script>

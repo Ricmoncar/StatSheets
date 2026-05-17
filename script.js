@@ -2274,42 +2274,123 @@ function rollCrit() {
 // ============================================================
 // SUGGESTION BOX
 // ============================================================
+let _selectedSuggRarity = 'common';
+
+function pickSuggRarity(rar) {
+  _selectedSuggRarity = rar;
+  document.querySelectorAll('.sugg-rar-btn').forEach(b => {
+    b.classList.toggle('sugg-rar-active', b.dataset.rar === rar);
+  });
+}
+
+const SUGG_RAR_COLORS = {
+  common:     { fg: '#c0c0c0', border: '#6a6a6a', bg: '#111111' },
+  rare:       { fg: '#4aa9ff', border: '#1f73d4', bg: '#05111f' },
+  epic:       { fg: '#c98bff', border: '#8a3fff', bg: '#12071f' },
+  legendary:  { fg: '#ffe14a', border: '#ffae00', bg: '#1e1500' },
+  mythic:     { fg: '#ffd86a', border: '#ff6a00', bg: '#1c0800' },
+  hexxed:     { fg: '#c46aff', border: '#5400a0', bg: '#08000f' },
+  duality:    { fg: '#88c8ff', border: '#1a3080', bg: '#03040e' },
+  determined: { fg: '#ff3333', border: '#880000', bg: '#040000' },
+};
+
 function submitSuggestion() {
   if (!db) return;
-  const text = (document.getElementById('suggestion-text')?.value || '').trim();
-  if (!text) {
-    const s = document.getElementById('suggestion-status');
-    if (s) s.textContent = 'Please write something first.';
-    return;
-  }
-  db.collection('suggestions').add({ text, createdAt: Date.now() })
+  const name      = (document.getElementById('sugg-name')?.value      || '').trim();
+  const desc      = (document.getElementById('sugg-desc')?.value      || '').trim();
+  const effect    = (document.getElementById('sugg-effect')?.value    || '').trim();
+  const submitter = (document.getElementById('sugg-submitter')?.value || '').trim();
+  const status    = document.getElementById('suggestion-status');
+
+  if (!name) { if (status) status.textContent = 'TRAIT NAME IS REQUIRED.'; return; }
+  if (!desc) { if (status) status.textContent = 'PLEASE DESCRIBE WHAT IT DOES.'; return; }
+
+  const doc = {
+    name, rarity: _selectedSuggRarity,
+    desc,
+    effect: effect || null,
+    submitter: submitter || null,
+    createdAt: Date.now(),
+    votes: 0,
+  };
+
+  db.collection('suggestions').add(doc)
     .then(() => {
-      const el = document.getElementById('suggestion-text');
-      if (el) el.value = '';
-      const s = document.getElementById('suggestion-status');
-      if (s) { s.textContent = 'Submitted!'; setTimeout(() => { s.textContent = ''; }, 3000); }
+      ['sugg-name', 'sugg-desc', 'sugg-effect', 'sugg-submitter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      pickSuggRarity('common');
+      if (status) {
+        status.style.color = '#44ff88';
+        status.textContent = 'SUGGESTION SUBMITTED!';
+        setTimeout(() => { status.textContent = ''; status.style.color = '#555'; }, 3500);
+      }
       loadSuggestions();
     })
     .catch(() => {
-      const s = document.getElementById('suggestion-status');
-      if (s) s.textContent = 'Failed to submit.';
+      if (status) { status.style.color = '#ff4444'; status.textContent = 'FAILED TO SUBMIT.'; }
     });
+}
+
+function voteSuggestion(id) {
+  if (!db) return;
+  const VOTED_KEY = 'sugg_voted_v1';
+  let voted = [];
+  try { voted = JSON.parse(localStorage.getItem(VOTED_KEY)) || []; } catch {}
+  if (voted.includes(id)) { notify('ALREADY VOTED', 'err'); return; }
+
+  db.collection('suggestions').doc(id).update({
+    votes: firebase.firestore.FieldValue.increment(1)
+  }).then(() => {
+    voted.push(id);
+    localStorage.setItem(VOTED_KEY, JSON.stringify(voted));
+    loadSuggestions();
+  });
 }
 
 function loadSuggestions() {
   if (!db) return;
   const list = document.getElementById('suggestion-list');
   if (!list) return;
-  db.collection('suggestions').orderBy('createdAt', 'desc').limit(20).get()
+
+  let voted = [];
+  try { voted = JSON.parse(localStorage.getItem('sugg_voted_v1')) || []; } catch {}
+
+  db.collection('suggestions').orderBy('createdAt', 'desc').limit(40).get()
     .then(snap => {
-      if (snap.empty) { list.innerHTML = ''; return; }
-      list.innerHTML = '<div style="font-size:8px;color:#555;letter-spacing:1px;margin-bottom:8px;">RECENT SUGGESTIONS</div>' +
-        snap.docs.map(d => {
-          const data = d.data();
-          const date = new Date(data.createdAt).toLocaleDateString();
-          return `<div style="background:#111;border:1px solid #222;padding:8px;margin-bottom:6px;font-size:8px;line-height:1.6;">
-            <div style="color:#aaa;">${data.text}</div>
-            <div style="color:#444;margin-top:4px;">${date}</div>
+      if (snap.empty) {
+        list.innerHTML = '<div style="font-size:8px;color:#333;padding:8px 0;letter-spacing:1px;">NO SUGGESTIONS YET — BE THE FIRST.</div>';
+        return;
+      }
+
+      // Sort by votes desc client-side, preserve date-desc within same vote count
+      const docs = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.votes || 0) - (a.votes || 0) || b.createdAt - a.createdAt);
+
+      list.innerHTML =
+        `<div style="font-size:8px;color:#444;letter-spacing:2px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #1a1a1a;">SUGGESTIONS (${docs.length})</div>` +
+        docs.map(s => {
+          const c = SUGG_RAR_COLORS[s.rarity] || SUGG_RAR_COLORS.common;
+          const date = new Date(s.createdAt).toLocaleDateString();
+          const hasVoted = voted.includes(s.id);
+          const rar = (s.rarity || 'common').toUpperCase();
+
+          return `<div class="sugg-card" style="border-color:${c.border};background:${c.bg};">
+            <div class="sugg-card-header">
+              <span class="sugg-rar-tag" style="color:${c.fg};border-color:${c.border};">${rar}</span>
+              <span class="sugg-card-name" style="color:${c.fg};">${s.name}</span>
+              <button class="sugg-vote-btn${hasVoted ? ' voted' : ''}" onclick="voteSuggestion('${s.id}')" title="${hasVoted ? 'Already voted' : 'Upvote this trait'}">
+                ▲&thinsp;<span class="sugg-vote-count">${s.votes || 0}</span>
+              </button>
+            </div>
+            <div class="sugg-card-desc">${s.desc}</div>
+            ${s.effect ? `<div class="sugg-card-effect"><span class="sugg-effect-label">STAT IDEA</span>${s.effect}</div>` : ''}
+            <div class="sugg-card-footer">
+              <span style="color:#444;">${s.submitter ? '— ' + s.submitter : '— Anonymous'}</span>
+              <span style="color:#333;">${date}</span>
+            </div>
           </div>`;
         }).join('');
     });
