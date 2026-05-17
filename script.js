@@ -88,10 +88,6 @@ async function migrateLocalStorage() {
 function loadSeenTraits() {
   try { seenTraits = JSON.parse(localStorage.getItem(SEEN_TRAITS_KEY)) || []; }
   catch { seenTraits = []; }
-  if (!seenTraits.includes('determination')) {
-    seenTraits.push('determination');
-    saveSeenTraits();
-  }
 }
 function saveSeenTraits() {
   try { localStorage.setItem(SEEN_TRAITS_KEY, JSON.stringify(seenTraits)); }
@@ -3353,6 +3349,21 @@ const TRAITS = {
     heavenly: { name: 'Covenant', desc: 'Bond with one ally: share 75% of all stats between both of you. If either is defeated, the survivor gains x2 to all stats.', passive: [] },
     hellforged: { name: 'Devour', desc: 'Copy the trait of every enemy you kill and add it to yourself for the rest of that fight. Stacks infinitely.', passive: [] },
   },
+  du_ruler: {
+    name: 'Saviour', rarity: 'duality',
+    desc: 'Grants ×2 HP and ×2 DEF to all party members. Each fallen ally increases everyone\'s DEF by +50% of your DEF. Party-wide +30 Resilience. If knocked out first: all allies gain +100% Heal Power. If last standing: HP fully regens and gain +20 Resilience.',
+    passive: [{ stat: 'hp', op: 'pct', value: 100 }, { stat: 'def', op: 'pct', value: 100 }, { stat: 'resilience', op: 'add', value: 30 }],
+    heavenly: {
+      name: 'Saviour',
+      desc: 'Grants ×2 HP and ×2 DEF to all party members. Each fallen ally increases everyone\'s DEF by +50% of your DEF. Party-wide +30 Resilience. If knocked out first: all allies gain +100% Heal Power. If last standing: HP fully regens and gain +20 Resilience.',
+      passive: [{ stat: 'hp', op: 'pct', value: 100 }, { stat: 'def', op: 'pct', value: 100 }, { stat: 'resilience', op: 'add', value: 30 }],
+    },
+    hellforged: {
+      name: 'Dictator',
+      desc: '×2 all stats per surviving ally. Allies gain 50% of your ATK as bonus attack and ×2 Crit Chance. Each ally knocked out: −50% all non-HP stats. All allies down: stats reset, ATK & DEF ×4. If you fall first: all remaining allies gain ×2 ATK.',
+      passive: [{ stat: 'all_main', op: 'mul', value: 2 }, { stat: 'crit_rate', op: 'add', value: 100 }],
+    },
+  },
 
   // ============ DETERMINED (evolving heartbeat) ============
   determination: {
@@ -3966,14 +3977,10 @@ function removeTrait(key, ev) {
 // TRAIT CODEX
 // ============================================================
 function openTraitCodex() {
-  if (!seenTraits.includes('determination')) {
-    seenTraits.push('determination');
-    saveSeenTraits();
-  }
   const body = document.getElementById('trait-codex-body');
   body.innerHTML = RARITY_ORDER.map(rar => {
     const allOfRarity = Object.entries(TRAITS).filter(([k, t]) => t.rarity === rar);
-    const seenOfRarity = allOfRarity.filter(([k, t]) => k === 'determination' || t.rarity === 'duality' || seenTraits.includes(k));
+    const seenOfRarity = allOfRarity.filter(([k, t]) => seenTraits.includes(k));
     const countTotal = allOfRarity.length;
     const countSeen = seenOfRarity.length;
 
