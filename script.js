@@ -363,22 +363,31 @@ function _renderStatSegsFrame(val, key) {
 // POWER LEVEL AUTO-CALC
 // ============================================================
 const PL_TIERS = [
-  { label: 'BELOW HUMAN', short: '< HUMAN', color: '#555' },
-  { label: 'HUMAN', short: 'HUMAN', color: '#888' },
-  { label: 'ATHLETE', short: 'ATHLETE', color: '#88ccff' },
-  { label: 'STREET', short: 'STREET', color: '#88ffaa' },
-  { label: 'WALL', short: 'WALL', color: '#ffff88' },
-  { label: 'BUILDING', short: 'BUILDING', color: '#ffcc44' },
-  { label: 'CITY', short: 'CITY', color: '#ff8844' },
-  { label: 'MOUNTAIN', short: 'MOUNTAIN', color: '#ff4444' },
+  { label: 'BELOW HUMAN',  short: '< HUMAN',    color: '#555555' },
+  { label: 'HUMAN',        short: 'HUMAN',       color: '#888888' },
+  { label: 'ATHLETE',      short: 'ATHLETE',     color: '#88ccff' },
+  { label: 'STREET',       short: 'STREET',      color: '#88ffaa' },
+  { label: 'WALL',         short: 'WALL',        color: '#ffff88' },
+  { label: 'BUILDING',     short: 'BUILDING',    color: '#ffcc44' },
+  { label: 'CITY',         short: 'CITY',        color: '#ff8844' },
+  { label: 'MOUNTAIN',     short: 'MOUNTAIN',    color: '#ff4444' },
+  { label: 'ISLAND',       short: 'ISLAND',      color: '#ff2200' },
+  { label: 'COUNTRY',      short: 'COUNTRY',     color: '#ff0088' },
+  { label: 'CONTINENT',    short: 'CONTINENT',   color: '#dd00dd' },
+  { label: 'PLANETARY',    short: 'PLANETARY',   color: '#aa00ff' },
+  { label: 'STELLAR',      short: 'STELLAR',     color: '#6600ff' },
+  { label: 'GALACTIC',     short: 'GALACTIC',    color: '#0044ff' },
+  { label: 'UNIVERSAL',    short: 'UNIVERSAL',   color: '#00aaff' },
+  { label: 'MULTIVERSAL',  short: 'MULTI',       color: '#00ffee' },
+  { label: 'OMNIVERSAL',   short: 'OMNI',        color: '#ffffff' },
 ];
 // Minimum value to reach each tier (matches the power level reference modal exactly)
 const PL_THRESHOLDS = {
-  hp: [1, 25, 50, 100, 225, 350, 500, 850],
-  atk: [1, 5, 15, 30, 50, 70, 125, 200],
-  def: [1, 5, 15, 30, 50, 70, 125, 200],
-  mag: [1, 5, 15, 30, 50, 70, 125, 200],
-  spd: [1, 5, 15, 30, 50, 70, 125, 200],
+  hp:  [1, 25,  50,  100, 225,  350,  500,  850,  1300, 2200,  3500,  6000,  12000, 25000,  55000,  120000, 300000],
+  atk: [1,  5,  15,   30,  50,   70,  125,  200,   275,  400,   600,   900,   1500,  3000,   6000,   12000,  25000],
+  def: [1,  5,  15,   30,  50,   70,  125,  200,   275,  400,   600,   900,   1500,  3000,   6000,   12000,  25000],
+  mag: [1,  5,  15,   30,  50,   70,  125,  200,   275,  400,   600,   900,   1500,  3000,   6000,   12000,  25000],
+  spd: [1,  5,  15,   30,  50,   70,  125,  200,   275,  400,   600,   900,   1500,  3000,   6000,   12000,  25000],
 };
 
 function getStatPL(stat, value) {
@@ -388,6 +397,22 @@ function getStatPL(stat, value) {
     if (value >= thresholds[i]) tier = i;
   }
   return tier;
+}
+
+function getCharOverallPL(c) {
+  const STATS = ['hp', 'atk', 'def', 'mag', 'spd'];
+  const eff = getEffectiveStats(c);
+  let total = 0;
+  STATS.forEach(stat => { total += getStatPL(stat, eff[stat] || 0); });
+  return PL_TIERS[Math.min(Math.floor(total / STATS.length), PL_TIERS.length - 1)];
+}
+
+function updateCharPLBadge(c) {
+  const el = document.getElementById('cv-pl-badge');
+  if (!el || !c) return;
+  const tier = getCharOverallPL(c);
+  const isTop = tier.short === 'OMNI';
+  el.innerHTML = `<span class="cv-pl-label${isTop ? ' cv-pl-omni' : ''}" style="color:${tier.color};">${tier.label} LEVEL</span>`;
 }
 
 function updateEditorPowerLevels() {
@@ -1521,6 +1546,7 @@ function viewChar(id) {
 
   document.getElementById('cv-name').textContent = c.name || 'UNNAMED';
   document.getElementById('cv-name').style.color = c.color;
+  updateCharPLBadge(c);
   const mbn = document.getElementById('mobile-char-name');
   if (mbn) { mbn.textContent = c.name || 'UNNAMED'; mbn.style.color = c.color || '#fff'; }
   updateGoldDisplay(c);
@@ -2585,6 +2611,7 @@ function updateLiveStats(c) {
   });
 
   renderSubstatsDisplay(c, effStats);
+  updateCharPLBadge(c);
 }
 
 function deleteItem(itemId) {

@@ -897,8 +897,27 @@ input[type=number] { -moz-appearance: textfield; }
   font-size: 18px;
   letter-spacing: 3px;
   line-height: 1.4;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
   word-break: break-word;
+}
+/* Power level badge under character name */
+.cv-pl-label {
+  font-size: 7.5px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  font-weight: bold;
+  opacity: 0.9;
+  font-family: inherit;
+  display: inline-block;
+}
+.cv-pl-omni {
+  animation: omni-pl-glow 2.2s ease-in-out infinite;
+  text-shadow: 0 0 8px rgba(255,255,255,0.9), 0 0 18px rgba(180,210,255,0.7);
+  letter-spacing: 3px;
+}
+@keyframes omni-pl-glow {
+  0%, 100% { opacity: 0.85; text-shadow: 0 0 8px rgba(255,255,255,0.9), 0 0 20px rgba(180,210,255,0.6); }
+  50%       { opacity: 1;    text-shadow: 0 0 14px #fff, 0 0 30px rgba(140,200,255,0.9), 0 0 50px rgba(100,180,255,0.5); }
 }
 .char-color-badge {
   display: inline-block;
