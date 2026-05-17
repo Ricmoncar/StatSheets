@@ -1543,6 +1543,7 @@ function viewChar(id) {
   document.getElementById('cv-name').textContent = c.name || 'UNNAMED';
   document.getElementById('cv-name').style.color = c.color;
   updateCharPLBadge(c);
+  renderRadarChart(c);
   const mbn = document.getElementById('mobile-char-name');
   if (mbn) { mbn.textContent = c.name || 'UNNAMED'; mbn.style.color = c.color || '#fff'; }
   updateGoldDisplay(c);
@@ -2396,6 +2397,143 @@ function loadSuggestions() {
     });
 }
 
+function submitGeneralSuggestion() {
+  if (!db) return;
+  const text = (document.getElementById('gen-sugg-text')?.value || '').trim();
+  const status = document.getElementById('gen-sugg-status');
+  if (!text) { if (status) status.textContent = 'WRITE SOMETHING FIRST.'; return; }
+  db.collection('general_suggestions').add({ text, createdAt: Date.now() })
+    .then(() => {
+      const el = document.getElementById('gen-sugg-text');
+      if (el) el.value = '';
+      if (status) {
+        status.style.color = '#44ff88';
+        status.textContent = 'SUBMITTED!';
+        setTimeout(() => { status.textContent = ''; status.style.color = '#555'; }, 3000);
+      }
+      loadGeneralSuggestions();
+    })
+    .catch(() => { if (status) { status.style.color = '#ff4444'; status.textContent = 'FAILED.'; } });
+}
+
+function loadGeneralSuggestions() {
+  if (!db) return;
+  const list = document.getElementById('gen-suggestion-list');
+  if (!list) return;
+  db.collection('general_suggestions').orderBy('createdAt', 'desc').limit(20).get()
+    .then(snap => {
+      if (snap.empty) { list.innerHTML = '<div style="font-size:8px;color:#333;letter-spacing:1px;">NONE YET.</div>'; return; }
+      list.innerHTML = '<div style="font-size:8px;color:#444;letter-spacing:2px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #1a1a1a;">RECENT</div>' +
+        snap.docs.map(d => {
+          const data = d.data();
+          const date = new Date(data.createdAt).toLocaleDateString();
+          return `<div style="padding:9px 12px;margin-bottom:8px;border:1px solid #1e1e1e;border-left:2px solid #2a2a2a;font-size:8px;line-height:1.7;color:#888;">${data.text}<div style="color:#333;font-size:7px;margin-top:6px;letter-spacing:1px;">${date}</div></div>`;
+        }).join('');
+    });
+}
+
+// ============================================================
+// RADAR CHART
+// ============================================================
+function _hexToRgb(hex) {
+  const h = (hex || '#888888').replace('#', '');
+  if (h.length === 3) {
+    return [parseInt(h[0]+h[0],16), parseInt(h[1]+h[1],16), parseInt(h[2]+h[2],16)];
+  }
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+
+function toggleRadarChart() {
+  const wrap = document.getElementById('cv-radar-wrap');
+  const btn  = document.getElementById('btn-radar');
+  if (!wrap) return;
+  const nowVisible = wrap.style.display !== 'none';
+  wrap.style.display = nowVisible ? 'none' : 'block';
+  if (btn) btn.classList.toggle('radar-active', !nowVisible);
+  if (!nowVisible) {
+    const c = characters.find(x => x.id === currentId);
+    if (c) renderRadarChart(c);
+  }
+}
+
+function renderRadarChart(c) {
+  const svg = document.getElementById('cv-radar-svg');
+  if (!svg || !c || document.getElementById('cv-radar-wrap')?.style.display === 'none') return;
+
+  const eff  = getEffectiveStats(c);
+  const KEYS = ['hp', 'atk', 'def', 'mag', 'spd'];
+  const LBLS = ['HP', 'ATK', 'DEF', 'MAG', 'SPD'];
+  const COLS = { hp: '#44dd77', atk: '#ff4444', def: '#4499ff', mag: '#ff44ff', spd: '#ffcc00' };
+  const HMAX = STAT_HARD_MAX; // { hp:1250, atk:300, def:300, mag:300, spd:300 }
+
+  const cx = 150, cy = 138, R = 95;
+  const n = KEYS.length;
+  const step = (Math.PI * 2) / n;
+  const a0 = -Math.PI / 2; // start top
+
+  const angle  = i => a0 + step * i;
+  const cartesian = (i, frac) => [
+    cx + Math.cos(angle(i)) * R * frac,
+    cy + Math.sin(angle(i)) * R * frac
+  ];
+  const pts = arr => arr.map(p => p.join(',')).join(' ');
+
+  // Normalized values — capped at 2× hardmax so trait buffs can pop beyond ring
+  const rawNorm = KEYS.map(k => (eff[k] || 0) / HMAX[k]);
+  const norm    = rawNorm.map(v => Math.min(v, 2.0));
+
+  // ── Grid rings ──────────────────────────────────────────────
+  const rings = [0.25, 0.5, 0.75, 1.0].map(f => {
+    const p = pts(KEYS.map((_, i) => cartesian(i, f)));
+    const isEdge = f === 1.0;
+    return `<polygon points="${p}" fill="none" stroke="${isEdge ? '#252525' : '#181818'}" stroke-width="${isEdge ? 1 : 0.5}" stroke-dasharray="${isEdge ? 'none' : '2 3'}"/>`;
+  }).join('');
+
+  // ── Axis spokes ──────────────────────────────────────────────
+  const spokes = KEYS.map((_, i) => {
+    const [x, y] = cartesian(i, 1.05);
+    return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#1c1c1c" stroke-width="1"/>`;
+  }).join('');
+
+  // ── Stat polygon ────────────────────────────────────────────
+  const polyPts = pts(norm.map((v, i) => cartesian(i, v)));
+  const [r, g, b] = _hexToRgb(c.color || '#888888');
+  const fill   = `rgba(${r},${g},${b},0.15)`;
+  const stroke = `rgba(${r},${g},${b},0.85)`;
+
+  // ── Glow polygon (slightly larger, more transparent) ────────
+  const glowPts = pts(norm.map((v, i) => cartesian(i, v)));
+
+  // ── Vertex dots ─────────────────────────────────────────────
+  const dots = norm.map((v, i) => {
+    const [dx, dy] = cartesian(i, v);
+    const col = COLS[KEYS[i]];
+    return `<circle cx="${dx}" cy="${dy}" r="3.5" fill="${col}" stroke="#000" stroke-width="1"/>`;
+  }).join('');
+
+  // ── Labels ──────────────────────────────────────────────────
+  const labelR = 1.26;
+  const labels = KEYS.map((k, i) => {
+    const [lx, ly] = cartesian(i, labelR);
+    const anchor = lx < cx - 8 ? 'end' : lx > cx + 8 ? 'start' : 'middle';
+    const pct = Math.round(rawNorm[i] * 100);
+    const overflowing = rawNorm[i] > 1.0;
+    return `
+      <text x="${lx}" y="${ly - 5}" text-anchor="${anchor}" dominant-baseline="middle"
+        font-family="inherit" font-size="8" letter-spacing="1.5" fill="${COLS[k]}" font-weight="bold">${LBLS[i]}</text>
+      <text x="${lx}" y="${ly + 6}" text-anchor="${anchor}" dominant-baseline="middle"
+        font-family="inherit" font-size="6.5" letter-spacing="0.5" fill="${overflowing ? COLS[k] : '#444'}">${overflowing ? '⚡' : ''}${pct}%</text>`;
+  }).join('');
+
+  // ── Center dot ──────────────────────────────────────────────
+  const centerDot = `<circle cx="${cx}" cy="${cy}" r="2" fill="#2a2a2a"/>`;
+
+  svg.innerHTML = rings + spokes +
+    `<polygon points="${glowPts}" fill="none" stroke="${stroke}" stroke-width="4" stroke-linejoin="round" opacity="0.15"/>` +
+    `<polygon points="${polyPts}" fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>` +
+    dots + centerDot + labels;
+}
+
 // ============================================================
 // INVENTORY SYSTEM
 // ============================================================
@@ -2689,6 +2827,7 @@ function updateLiveStats(c) {
 
   renderSubstatsDisplay(c, effStats);
   updateCharPLBadge(c);
+  renderRadarChart(c);
 }
 
 function deleteItem(itemId) {

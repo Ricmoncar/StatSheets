@@ -1097,6 +1097,32 @@ input[type=number] { -moz-appearance: textfield; }
 }
 .btn-info:hover { background: var(--accent-cyan); color: #000; }
 
+/* Radar toggle override — uses ? not italic i */
+.radar-toggle-btn {
+  font-family: inherit !important;
+  font-style: normal !important;
+  font-size: 9px !important;
+  border-color: #333 !important;
+  color: #444 !important;
+  cursor: pointer !important;
+  transition: border-color 0.15s, color 0.15s, background 0.15s !important;
+}
+.radar-toggle-btn:hover { background: #111 !important; color: #888 !important; border-color: #555 !important; }
+.radar-toggle-btn.radar-active { border-color: var(--accent-cyan) !important; color: var(--accent-cyan) !important; background: rgba(0,220,255,0.06) !important; }
+
+/* Radar chart */
+#cv-radar-wrap {
+  padding: 14px 16px 6px;
+  border-top: 1px solid #151515;
+}
+.radar-svg {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
 /* ============================================================
    POWER LEVEL MODAL
    ============================================================ */

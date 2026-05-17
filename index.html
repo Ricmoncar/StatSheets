@@ -308,11 +308,17 @@
                   <span id="stats-chevron" style="transition: transform 0.3s; font-size: 10px;">▼</span>
                   STATS
                 </div>
-                <button class="btn-info" id="btn-power-info" onclick="event.stopPropagation(); openPowerModal()" title="Power level reference">i</button>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <button class="btn-info radar-toggle-btn" id="btn-radar" onclick="event.stopPropagation(); toggleRadarChart()" title="Toggle stat radar chart">?</button>
+                  <button class="btn-info" id="btn-power-info" onclick="event.stopPropagation(); openPowerModal()" title="Power level reference">i</button>
+                </div>
               </div>
               <div id="stats-content" class="collapsible-wrapper">
                 <div class="collapsible-content">
                   <div id="cv-stats"></div>
+                  <div id="cv-radar-wrap" style="display:none;">
+                    <svg id="cv-radar-svg" viewBox="0 0 300 280" xmlns="http://www.w3.org/2000/svg" class="radar-svg"></svg>
+                  </div>
                   <div id="cv-substats" style="padding: 16px; background: rgba(0, 0, 0, 0.4); border-top: 1px solid #333;"></div>
                 </div>
               </div>

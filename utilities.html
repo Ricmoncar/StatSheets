@@ -200,6 +200,21 @@
     <div id="suggestion-list" style="margin-top:28px;"></div>
   </div>
 
+  <!-- GENERAL SUGGESTION BOX -->
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title">GENERAL SUGGESTION BOX</div>
+    <p style="font-size:8px;color:#555;letter-spacing:1px;margin:0 0 14px;">Anything else — bugs, features, feedback, whatever.</p>
+    <div class="field">
+      <textarea id="gen-sugg-text" rows="4" placeholder="Type your suggestion here..."
+        class="sugg-textarea"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+      <button class="btn" onclick="submitGeneralSuggestion()">SUBMIT</button>
+      <span id="gen-sugg-status" style="font-size:8px;color:#555;letter-spacing:1px;"></span>
+    </div>
+    <div id="gen-suggestion-list" style="margin-top:20px;"></div>
+  </div>
+
 </div><!-- /utilities-page -->
 
 <div id="global-tooltip"></div>
@@ -210,6 +225,7 @@
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('suggestion-list')) { pickSuggRarity('common'); loadSuggestions(); }
+    if (document.getElementById('gen-suggestion-list')) loadGeneralSuggestions();
     initTierList();
   });
 </script>
