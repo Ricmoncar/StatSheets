@@ -3838,6 +3838,15 @@ function rollTraits() {
       }, 60);
 
       if (i === 2) {
+        // If any card is shimmyful, wait for the shimmy animation to finish
+        // before making the hand interactive (so players don't miss it).
+        // Shimmy fires at +400ms, flash+transition takes ~500ms → need ~900ms.
+        // Add extra buffer so the glow is clearly visible before CTAs appear.
+        const hasShimmy = currentHand.some(h => h.shimmyful);
+        const interactDelay = hasShimmy ? 1600 : 380;
+        if (hasShimmy) {
+          sub.textContent = '✦ A SHIMMYFUL TRAIT APPEARED! ✦';
+        }
         setTimeout(() => {
           traitPity = finalPity;
           savePity();
@@ -3849,7 +3858,7 @@ function rollTraits() {
             c.onclick = () => pickTraitFromHand(currentHand[ci]);
           });
           actions.style.display = '';
-        }, 380);
+        }, interactDelay);
       }
     }, delay);
   });
