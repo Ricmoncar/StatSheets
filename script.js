@@ -3323,7 +3323,7 @@ const TRAITS = {
 const RARITY_ORDER = ['common','rare','epic','legendary','mythic','hexxed','duality','determined'];
 const RARITY_LABEL = { common:'COMMON', rare:'RARE', epic:'EPIC', legendary:'LEGENDARY', mythic:'MYTHIC', hexxed:'HEXXED', duality:'DUALITY', determined:'DETERMINED' };
 const RARITY_WEIGHTS = { common:60, rare:30, epic:18.4, legendary:1.5, mythic:0.1, hexxed:0.02, duality:0.01, determined:0.005 };
-const PITY_WEIGHTS   = { common:0,  rare:0,  epic:5,    legendary:79.9, mythic:9,   hexxed:1,    duality:5, determined:0.1 };
+const PITY_WEIGHTS   = { common:0,  rare:0,  epic:5,    legendary:68.9, mythic:20,  hexxed:1,    duality:5, determined:0.1 };
 
 // ============================================================
 // SHIMMYFUL — 0.1% upgrade for common traits
