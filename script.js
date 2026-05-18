@@ -1812,12 +1812,12 @@ function _esc(s) {
 }
 
 function getPlatformIcon(url) {
-  if (!url) return `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#333" stroke-width="1.2"><path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8"/><path d="M8 1h3v3M11 1 6 6" stroke-linecap="round"/></svg>`;
+  if (!url) return `<svg width="18" height="18" viewBox="0 0 12 12" fill="none" stroke="#333" stroke-width="1.2"><path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8"/><path d="M8 1h3v3M11 1 6 6" stroke-linecap="round"/></svg>`;
   if (/youtu\.?be/.test(url))
-    return `<svg width="12" height="12" viewBox="0 0 12 12"><rect width="12" height="12" rx="2" fill="#ff0000"/><polygon points="5,4 5,8 9,6" fill="white"/></svg>`;
+    return `<svg width="18" height="18" viewBox="0 0 12 12"><rect width="12" height="12" rx="2" fill="#ff0000"/><polygon points="5,4 5,8 9,6" fill="white"/></svg>`;
   if (/spotify/.test(url))
-    return `<svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="6" fill="#1db954"/><path d="M3.5 4.5c1.5-.7 3.5-.6 5 .3M3.5 6.2c1.2-.5 2.8-.5 4 .3M3.5 7.9c.9-.4 2.1-.4 3 .2" stroke="white" stroke-width="0.9" stroke-linecap="round" fill="none"/></svg>`;
-  return `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#555" stroke-width="1.2"><path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8"/><path d="M8 1h3v3M11 1 6 6" stroke-linecap="round"/></svg>`;
+    return `<svg width="18" height="18" viewBox="0 0 12 12"><circle cx="6" cy="6" r="6" fill="#1db954"/><path d="M3.5 4.5c1.5-.7 3.5-.6 5 .3M3.5 6.2c1.2-.5 2.8-.5 4 .3M3.5 7.9c.9-.4 2.1-.4 3 .2" stroke="white" stroke-width="0.9" stroke-linecap="round" fill="none"/></svg>`;
+  return `<svg width="18" height="18" viewBox="0 0 12 12" fill="none" stroke="#555" stroke-width="1.2"><path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8"/><path d="M8 1h3v3M11 1 6 6" stroke-linecap="round"/></svg>`;
 }
 
 function renderInfoLinks(key) {
@@ -1831,6 +1831,7 @@ function renderInfoLinks(key) {
     row.className = 'info-link-row';
     const hasUrl = !!link.url;
     row.innerHTML =
+      `<input type="text" class="info-link-title" placeholder="Title (optional)..." value="${_esc(link.title)}" oninput="updateInfoLink('${key}',${idx},'title',this.value)">` +
       `<a class="info-link-platform" href="${_esc(link.url) || '#'}" target="_blank" rel="noopener" tabindex="${hasUrl ? '0' : '-1'}" style="pointer-events:${hasUrl ? 'auto' : 'none'}">${getPlatformIcon(link.url)}</a>` +
       `<input type="text" class="info-link-url" placeholder="YouTube or Spotify URL..." value="${_esc(link.url)}" oninput="updateInfoLink('${key}',${idx},'url',this.value)">` +
       `<input type="text" class="info-link-note" placeholder="add a note..." value="${_esc(link.note)}" oninput="updateInfoLink('${key}',${idx},'note',this.value)">` +
@@ -1845,10 +1846,10 @@ function addInfoLink(key) {
   if (!c) return;
   c.info = c.info || {};
   c.info[key] = c.info[key] || [];
-  c.info[key].push({ url: '', note: '' });
+  c.info[key].push({ title: '', url: '', note: '' });
   renderInfoLinks(key);
   const container = document.getElementById('info-links-' + key);
-  if (container) { const ins = container.querySelectorAll('.info-link-url'); if (ins.length) ins[ins.length-1].focus(); }
+  if (container) { const ins = container.querySelectorAll('.info-link-title'); if (ins.length) ins[ins.length-1].focus(); }
   saveData(c);
 }
 
