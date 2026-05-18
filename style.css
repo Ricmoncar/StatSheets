@@ -2012,6 +2012,127 @@ input[type=number] { -moz-appearance: textfield; }
              hand-card-deal 0.55s cubic-bezier(0.2,0.8,0.2,1.05) both;
 }
 
+/* ============================================================
+   OWNER SUBTITLE (stats tab)
+   ============================================================ */
+.cv-owner-subtitle {
+  font-family: var(--font-main);
+  font-size: 7px;
+  letter-spacing: 3px;
+  color: var(--char-color, #ffff00);
+  opacity: 0.55;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+/* ============================================================
+   INFO TAB — character dossier
+   ============================================================ */
+.info-dossier {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.info-owner-section {
+  padding: 22px 22px 18px;
+}
+
+.info-field-label {
+  font-family: var(--font-main);
+  font-size: 6px;
+  letter-spacing: 2px;
+  color: #3a3a3a;
+  margin-bottom: 9px;
+  text-transform: uppercase;
+}
+
+.info-owner-input {
+  font-family: var(--font-main);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--fg);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #1c1c1c;
+  width: 100%;
+  padding: 4px 0 6px;
+  outline: none;
+  transition: border-color 0.2s, color 0.2s;
+}
+.info-owner-input:focus {
+  border-bottom-color: var(--char-color, #ffff00);
+  color: var(--char-color, #ffff00);
+}
+.info-owner-input::placeholder { color: #282828; }
+
+.info-rule {
+  height: 1px;
+  background: #181818;
+  margin: 0 22px;
+}
+
+.info-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 0 22px;
+}
+
+.info-cell {
+  padding: 14px 16px 14px 0;
+  border-bottom: 1px solid #131313;
+}
+.info-cell-right {
+  padding-left: 16px;
+  padding-right: 0;
+  border-left: 1px solid #131313;
+}
+.info-cell-full {
+  grid-column: 1 / -1;
+  padding-right: 0;
+  border-left: none;
+}
+
+.info-cell-input {
+  font-family: var(--font-main);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #aaa;
+  background: transparent;
+  border: none;
+  width: 100%;
+  padding: 0;
+  outline: none;
+  transition: color 0.15s;
+}
+.info-cell-input:focus { color: var(--fg); }
+.info-cell-input::placeholder { color: #222; }
+
+.info-bio-section {
+  padding: 18px 22px 22px;
+}
+
+.info-bio-area {
+  font-family: var(--font-main);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  line-height: 1.9;
+  color: #888;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid #191919;
+  width: 100%;
+  padding: 12px 14px;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  min-height: 120px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.info-bio-area:focus {
+  border-color: #2a2a2a;
+  color: var(--fg);
+}
+.info-bio-area::placeholder { color: #222; }
+
 /* HEXXED — slow void pulse + drifting wisp + chromatic glitch */
 .trait-chip.rar-hexxed,
 .codex-entry.rar-hexxed {

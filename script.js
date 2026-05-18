@@ -1593,6 +1593,21 @@ function viewChar(id) {
     bioText.style.display = 'none';
   }
 
+  // Populate INFO tab fields
+  const _info = c.info || {};
+  const _setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  _setVal('cv-info-owner',  _info.owner);
+  _setVal('cv-info-age',    _info.age);
+  _setVal('cv-info-race',   _info.race);
+  _setVal('cv-info-origin', _info.origin);
+  _setVal('cv-info-bio',    _info.bio);
+  // Owner subtitle in stats tab
+  const ownerDisp = document.getElementById('cv-info-owner-display');
+  if (ownerDisp) {
+    ownerDisp.textContent = _info.owner ? 'BY ' + _info.owner.toUpperCase() : '';
+    ownerDisp.style.display = _info.owner ? '' : 'none';
+  }
+
   // Set color on the view root for all panels to inherit
   document.getElementById('char-view').style.setProperty('--char-color', c.color);
   const statsEl = document.getElementById('cv-stats');
@@ -1687,6 +1702,22 @@ function switchTab(tab, btn) {
   btn.classList.add('active');
   document.getElementById('tab-stats').style.display = tab === 'stats' ? '' : 'none';
   document.getElementById('tab-style').style.display = tab === 'style' ? '' : 'none';
+  document.getElementById('tab-info').style.display  = tab === 'info'  ? '' : 'none';
+}
+
+let _infoSaveTimer = null;
+function saveInfoField(key, val) {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  c.info = c.info || {};
+  c.info[key] = val;
+  // Update owner subtitle in stats tab live
+  if (key === 'owner') {
+    const el = document.getElementById('cv-info-owner-display');
+    if (el) { el.textContent = val ? 'BY ' + val.toUpperCase() : ''; el.style.display = val ? '' : 'none'; }
+  }
+  clearTimeout(_infoSaveTimer);
+  _infoSaveTimer = setTimeout(() => saveData(c), 600);
 }
 
 // ============================================================
@@ -4118,20 +4149,14 @@ const SHIMMYFUL_TRAITS = {
 // ============================================================
 // SHIMMYFUL MYTHICS — 1% chance per mythic roll
 // Orange ring matching mythic flame color. ✦ star, orange glow.
-// ============================================================
+// Excludes 7 mythics that already have hexxed variants:
+// adaptation, bloodlust, glasscannon, magical, nesting, vengeance, raidboss
 const SHIMMYFUL_MYTHIC_TRAITS = {
-  adaptation:         { name: 'SHIMMYFUL Adaptation',          desc: 'Every hit from an enemy → +25% DEF AND +5% ATK vs that enemy. Stacks infinitely.', passive: [], situational: [{ id: 'adp-stk', label: 'Per stack vs an enemy', passive: [{ stat: 'def', op: 'pct', value: 25 }, { stat: 'atk', op: 'pct', value: 5 }] }] },
   acclrsorc:          { name: 'SHIMMYFUL Accelerating Sorcery',desc: 'Each turn, +15% Cooldown Reduction and +5% MAG.', passive: [], situational: [{ id: 'as-1', label: 'After 1 turn (+15% CDR, +5% MAG)', passive: [{ stat: 'cooldown_red', op: 'add', value: 15 }, { stat: 'mag', op: 'pct', value: 5 }] }, { id: 'as-3', label: 'After 3 turns (+45% CDR, +15% MAG)', passive: [{ stat: 'cooldown_red', op: 'add', value: 45 }, { stat: 'mag', op: 'pct', value: 15 }] }] },
   brave:              { name: 'SHIMMYFUL Bravest of the Brave', desc: 'On pick, guaranteed 3 additional rare/epic traits — one is guaranteed epic.', passive: [], notes: 'Meta. Grants 3 bonus rare/epic traits on pick; at least one must be epic.' },
-  bloodlust:          { name: 'SHIMMYFUL Bloodlust',           desc: 'No HP drain per round. +150% Lifesteal. Each hit costs 1% HP but gains +8% Lifesteal.', passive: [{ stat: 'lifesteal', op: 'add', value: 150 }] },
   allforyou:          { name: 'SHIMMYFUL All for You!',        desc: 'Heals & buffs you give allies are x4. You also receive 25% of whatever you give.', passive: [], notes: 'Support multiplier. You receive 25% of buff/heal value as a bonus to yourself.' },
-  glasscannon:        { name: 'SHIMMYFUL Glass Cannon',        desc: '+250% ATK. DEF and HP penalties halved (-45% DEF, -40% HP).', passive: [{ stat: 'atk', op: 'pct', value: 250 }, { stat: 'def', op: 'pct', value: -45 }, { stat: 'hp', op: 'pct', value: -40 }] },
-  magical:            { name: 'SHIMMYFUL Magical Girl',        desc: 'Transform instantly on fight start: +25% all stats, +150% MAG.', passive: [{ stat: 'all_main', op: 'pct', value: 25 }, { stat: 'mag', op: 'pct', value: 150 }] },
-  nesting:            { name: 'SHIMMYFUL Nesting Doll',        desc: '5 revives. Lose only -15% HP and -15% ATK per revive.', passive: [], situational: [{ id: 'nd-1', label: 'After 1 revive', passive: [{ stat: 'hp', op: 'pct', value: -15 }, { stat: 'atk', op: 'pct', value: -15 }] }, { id: 'nd-5', label: 'After 5 revives', passive: [{ stat: 'hp', op: 'pct', value: -75 }, { stat: 'atk', op: 'pct', value: -75 }] }] },
   lucifer:            { name: "SHIMMYFUL Lucifer's Champion",  desc: '+35% all stats, +90% SPD, +90% Dex. BURN stacks deal double damage.', passive: [{ stat: 'all_main', op: 'pct', value: 35 }, { stat: 'spd', op: 'pct', value: 90 }, { stat: 'dexterity', op: 'add', value: 90 }] },
   zoe:                { name: "SHIMMYFUL Zoe's Champion",      desc: '+35% all stats, +90% HP, +90% Heal Power. Heal mirror to self is doubled.', passive: [{ stat: 'all_main', op: 'pct', value: 35 }, { stat: 'hp', op: 'pct', value: 90 }, { stat: 'heal_pow', op: 'add', value: 90 }] },
-  vengeance:          { name: 'SHIMMYFUL Vengeance',           desc: 'Per ally dead: x2.5 stats. All allies dead: x5 stats, no DEF penalty, +50% Lifesteal.', passive: [], situational: [{ id: 'vg-1', label: '1 ally down (x2.5 stats)', passive: [{ stat: 'all_main', op: 'mul', value: 2.5 }] }, { id: 'vg-all', label: 'All allies down (x5 stats, +50% Lifesteal)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }, { stat: 'lifesteal', op: 'add', value: 50 }] }] },
-  raidboss:           { name: 'SHIMMYFUL Raid Boss',           desc: 'Skip first turn (unchainable, +150% DEF). After: x3 all stats.', passive: [], situational: [{ id: 'rb-t1', label: 'Turn 1 (unchainable)', passive: [{ stat: 'def', op: 'pct', value: 150 }] }, { id: 'rb-loose', label: 'After turn 1 (released)', passive: [{ stat: 'all_main', op: 'mul', value: 3 }] }] },
   honored_one:        { name: 'SHIMMYFUL The Honored One',     desc: 'If you are the last surviving ally: ATK x7, MAG x7, SPD x3.', passive: [], situational: [{ id: 'ho-last', label: 'Last ally standing', passive: [{ stat: 'atk', op: 'mul', value: 7 }, { stat: 'mag', op: 'mul', value: 7 }, { stat: 'spd', op: 'mul', value: 3 }] }] },
   transcendence:      { name: 'SHIMMYFUL Transcendence',       desc: 'Twice per session: for one fight, all damage dealt x3 and all damage received is quartered.', passive: [], notes: 'Two activations per session. No permanent stat change.' },
   world_ender:        { name: 'SHIMMYFUL World Ender',         desc: '+70% ATK, +70% True DMG. Your top 2 strongest attacks each fight bypass all defenses.', passive: [{ stat: 'atk', op: 'pct', value: 70 }, { stat: 'true_dmg', op: 'add', value: 70 }] },
