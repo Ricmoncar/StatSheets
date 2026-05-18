@@ -4355,11 +4355,11 @@ const TRAITS = {
   // ============ LOL-INSPIRED: DUALITY ============
   hunterhunted: {
     name: 'Hunter / Hunted', rarity: 'duality',
-    desc: 'Every 3 turns survived in combat, permanently gain +7.5% to all stats for the rest of the encounter. The longer the fight, the more overwhelming you become.',
+    desc: 'Every 3 turns survived in combat, permanently gain +7.5% to all stats for the rest of the encounter. Also, gain +5 HP and +5 DEF per turn. The longer the fight, the more overwhelming you become.',
     passive: [],
     heavenly: {
       name: 'Hunted',
-      desc: 'Every 3 turns survived in combat, permanently gain +7.5% to all stats for the rest of the encounter. The longer the fight, the more overwhelming you become.',
+      desc: 'Every 3 turns survived in combat, permanently gain +7.5% to all stats for the rest of the encounter. Also, gain +5 HP and +5 DEF per turn. The longer the fight, the more overwhelming you become.',
       passive: []
     },
     hellforged: {
@@ -4367,7 +4367,12 @@ const TRAITS = {
       desc: 'While actively in combat, gain +50 ATK. If you spend a full turn without attacking, lose 5% current HP.',
       passive: []
     },
-    situational: [{ id: 'hh-hunted3', label: 'HEAVENLY: After 3 turns (+7.5% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 7.5 }] }, { id: 'hh-hunted6', label: 'HEAVENLY: After 6 turns (+15% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 15 }] }, { id: 'hh-hunter', label: 'HELLFORGED: While attacking (+50 ATK)', passive: [{ stat: 'atk', op: 'add', value: 50 }] }],
+    situational: [
+      { id: 'hh-hunted3', label: 'HEAVENLY: After 3 turns (+7.5% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 7.5 }] },
+      { id: 'hh-hunted6', label: 'HEAVENLY: After 6 turns (+15% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 15 }] },
+      { id: 'hh-hunted10', label: 'HEAVENLY: After 10 turns (+25% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 25 }] },
+      { id: 'hh-hunter', label: 'HELLFORGED: While attacking (+50 ATK)', passive: [{ stat: 'atk', op: 'add', value: 50 }] }
+    ],
   },
   daybreaknight: {
     name: 'Daybreak / Nightfall', rarity: 'duality',
@@ -5371,7 +5376,8 @@ function renderTraitSituationals(c, key) {
     .map(sit => {
       const id = key + ':' + sit.id;
       const on = !!triggers[id];
-      return `<button class="trait-trigger-btn ${on ? 'on' : ''}" onclick="toggleTraitTrigger('${id}', event)" data-tooltip="${(sit.desc || 'Toggle this scenario to preview your stats.')}">&#9889; ${sit.label}${on ? ' ON' : ''}</button>`;
+      const emoji = key === 'hunterhunted' ? '' : '&#9889; ';
+      return `<button class="trait-trigger-btn ${on ? 'on' : ''}" onclick="toggleTraitTrigger('${id}', event)" data-tooltip="${(sit.desc || 'Toggle this scenario to preview your stats.')}">${emoji}${sit.label}${on ? ' ON' : ''}</button>`;
     }).join('');
   if (!buttons) return '';
   return `<div class="trait-triggers">${buttons}</div>`;
