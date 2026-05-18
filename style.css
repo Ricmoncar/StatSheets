@@ -2035,9 +2035,9 @@ input[type=number] { -moz-appearance: textfield; }
 
 .info-tiny-label {
   font-family: var(--font-main);
-  font-size: 6px;
+  font-size: 8px;
   letter-spacing: 2px;
-  color: #363636;
+  color: #c8c8c8;
   margin-bottom: 9px;
 }
 
