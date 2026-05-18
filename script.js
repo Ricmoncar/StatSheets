@@ -1692,6 +1692,26 @@ function switchTab(tab, btn) {
 // ============================================================
 // ALTERNATE FORMS — view-side
 // ============================================================
+// Sync just the avatar element to whichever form is active (used on remote updates)
+function _syncAvatarEl(c) {
+  const idx = c.activeFormIdx || 0;
+  const af  = idx > 0 ? (c.altForms || [])[idx - 1] : null;
+  const src = (af && af.avatar) ? af.avatar : c.avatar;
+  const el  = document.getElementById('cv-avatar');
+  if (!el) return;
+  el.style.borderColor = c.color;
+  if (src) {
+    el.innerHTML = `<img src="${src}"/>`;
+  } else {
+    el.innerHTML = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:56px;height:56px;">
+      <rect x="12" y="2" width="8" height="8" fill="${c.color}"/>
+      <rect x="10" y="10" width="12" height="10" fill="${c.color}"/>
+      <rect x="8"  y="20" width="6" height="8"  fill="${c.color}"/>
+      <rect x="18" y="20" width="6" height="8"  fill="${c.color}"/>
+    </svg>`;
+  }
+}
+
 function renderFormSwitcher(c) {
   const wrap = document.getElementById('cv-form-switcher');
   if (!wrap) return;
@@ -3179,9 +3199,12 @@ function toggleEquip(itemId) {
 
 function updateLiveStats(c) {
   const effStats = getEffectiveStats(c);
+  const _afIdx = c.activeFormIdx || 0;
+  const _af    = _afIdx > 0 ? (c.altForms || [])[_afIdx - 1] : null;
+  const _baseStats = _af ? _af.stats : c.stats;
   const stats = ['hp', 'atk', 'def', 'mag', 'spd'];
   stats.forEach(key => {
-    const baseVal = c.stats[key] || 0;
+    const baseVal = _baseStats[key] || 0;
     const effVal = effStats[key];
     const diff = effVal - baseVal;
     let diffHtml = '';
@@ -5232,6 +5255,9 @@ if (sidebarList && db) {
           renderTraitsDisplay(c);
           renderInventory(c);
           loadPity(); updatePityDisplay();
+          // Keep form switcher + avatar in sync (another user may have switched forms)
+          renderFormSwitcher(c);
+          _syncAvatarEl(c);
         }
       } else {
         // Character missing from snapshot — only treat as a real deletion
