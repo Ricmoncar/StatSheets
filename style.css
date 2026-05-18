@@ -2371,6 +2371,43 @@ input[type=number] { -moz-appearance: textfield; }
 }
 .info-link-remove:hover { color: #ff4444; }
 
+.info-link-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.info-link-play {
+  font-family: var(--font-main);
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: var(--char-color, #ffff00);
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  padding: 3px 7px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.info-link-play:hover {
+  background: var(--char-color, #ffff00);
+  color: #000;
+  border-color: var(--char-color, #ffff00);
+}
+
+.info-link-player {
+  margin-top: 8px;
+  overflow: hidden;
+}
+.info-link-player iframe {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  height: 191px; /* 16:9 of 340px */
+  border: none;
+}
+
 .info-add-link-btn {
   font-family: var(--font-main);
   font-size: 7px;

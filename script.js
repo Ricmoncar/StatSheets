@@ -1820,6 +1820,12 @@ function getPlatformIcon(url) {
   return `<svg width="18" height="18" viewBox="0 0 12 12" fill="none" stroke="#555" stroke-width="1.2"><path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8"/><path d="M8 1h3v3M11 1 6 6" stroke-linecap="round"/></svg>`;
 }
 
+function getYouTubeId(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
 function renderInfoLinks(key) {
   const container = document.getElementById('info-links-' + key);
   if (!container) return;
@@ -1827,18 +1833,53 @@ function renderInfoLinks(key) {
   const links = (c && c.info && c.info[key]) || [];
   container.innerHTML = '';
   links.forEach((link, idx) => {
+    const entry = document.createElement('div');
+    entry.className = 'info-link-entry';
+    const hasUrl = !!link.url;
+    const vid = getYouTubeId(link.url);
     const row = document.createElement('div');
     row.className = 'info-link-row';
-    const hasUrl = !!link.url;
     row.innerHTML =
       `<input type="text" class="info-link-title" placeholder="Title (optional)..." value="${_esc(link.title)}" oninput="updateInfoLink('${key}',${idx},'title',this.value)">` +
       `<a class="info-link-platform" href="${_esc(link.url) || '#'}" target="_blank" rel="noopener" tabindex="${hasUrl ? '0' : '-1'}" style="pointer-events:${hasUrl ? 'auto' : 'none'}">${getPlatformIcon(link.url)}</a>` +
       `<input type="text" class="info-link-url" placeholder="YouTube or Spotify URL..." value="${_esc(link.url)}" oninput="updateInfoLink('${key}',${idx},'url',this.value)">` +
       `<input type="text" class="info-link-note" placeholder="add a note..." value="${_esc(link.note)}" oninput="updateInfoLink('${key}',${idx},'note',this.value)">` +
-      `<a class="info-link-open" href="${_esc(link.url) || '#'}" target="_blank" rel="noopener" style="opacity:${hasUrl ? '0.55' : '0.15'};pointer-events:${hasUrl ? 'auto' : 'none'}">▶</a>` +
+      (vid ? `<button class="info-link-play" onclick="playInfoLink('${key}',${idx})">▶ PLAY</button>` : '') +
+      `<a class="info-link-open" href="${_esc(link.url) || '#'}" target="_blank" rel="noopener" style="opacity:${hasUrl ? '0.55' : '0.15'};pointer-events:${hasUrl ? 'auto' : 'none'}" title="Open in new tab">↗</a>` +
       `<button class="info-link-remove" onclick="removeInfoLink('${key}',${idx})" title="Remove">×</button>`;
-    container.appendChild(row);
+    const player = document.createElement('div');
+    player.className = 'info-link-player';
+    player.style.display = 'none';
+    entry.appendChild(row);
+    entry.appendChild(player);
+    container.appendChild(entry);
   });
+}
+
+function playInfoLink(key, idx) {
+  const container = document.getElementById('info-links-' + key);
+  if (!container) return;
+  const entries = container.querySelectorAll('.info-link-entry');
+  const entry = entries[idx];
+  if (!entry) return;
+  const player = entry.querySelector('.info-link-player');
+  const btn    = entry.querySelector('.info-link-play');
+  if (!player) return;
+  if (player.dataset.active === '1') {
+    player.innerHTML = '';
+    player.style.display = 'none';
+    player.dataset.active = '0';
+    if (btn) btn.textContent = '▶ PLAY';
+  } else {
+    const c = characters.find(x => x.id === currentId);
+    const link = c && c.info && c.info[key] && c.info[key][idx];
+    const vid = link && getYouTubeId(link.url);
+    if (!vid) return;
+    player.innerHTML = `<iframe src="https://www.youtube.com/embed/${vid}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+    player.style.display = '';
+    player.dataset.active = '1';
+    if (btn) btn.textContent = '■ STOP';
+  }
 }
 
 function addInfoLink(key) {
@@ -1866,20 +1907,35 @@ function updateInfoLink(key, idx, field, val) {
   if (!c || !c.info || !c.info[key] || !c.info[key][idx]) return;
   c.info[key][idx][field] = val;
   if (field === 'url') {
-    // refresh platform icon link + open button live
     const container = document.getElementById('info-links-' + key);
     if (container) {
-      const rows = container.querySelectorAll('.info-link-row');
-      if (rows[idx]) {
-        const iconLink = rows[idx].querySelector('.info-link-platform');
+      const entries = container.querySelectorAll('.info-link-entry');
+      const entry = entries[idx];
+      if (entry) {
+        const row = entry.querySelector('.info-link-row');
+        const iconLink = row.querySelector('.info-link-platform');
         iconLink.innerHTML = getPlatformIcon(val);
         iconLink.href = val || '#';
         iconLink.style.pointerEvents = val ? 'auto' : 'none';
         iconLink.tabIndex = val ? 0 : -1;
-        const openBtn = rows[idx].querySelector('.info-link-open');
+        const openBtn = row.querySelector('.info-link-open');
         openBtn.href = val || '#';
         openBtn.style.opacity = val ? '0.55' : '0.15';
         openBtn.style.pointerEvents = val ? 'auto' : 'none';
+        // Add/remove play button based on whether URL is YouTube
+        const vid = getYouTubeId(val);
+        let playBtn = row.querySelector('.info-link-play');
+        if (vid && !playBtn) {
+          playBtn = document.createElement('button');
+          playBtn.className = 'info-link-play';
+          playBtn.textContent = '▶ PLAY';
+          playBtn.onclick = () => playInfoLink(key, idx);
+          openBtn.before(playBtn);
+        } else if (!vid && playBtn) {
+          const player = entry.querySelector('.info-link-player');
+          if (player) { player.innerHTML = ''; player.style.display = 'none'; player.dataset.active = '0'; }
+          playBtn.remove();
+        }
       }
     }
   }
