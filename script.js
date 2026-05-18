@@ -4394,6 +4394,9 @@ const TRAITS = {
   cosmicradiance: { name: 'Cosmic Radiance', rarity: 'mythic', desc: 'Once per battle: after a 1-turn channel, all allies become fully invulnerable for 3 turns — they cannot be hurt, debuffed, or displaced.', passive: [] },
   temperedfate: { name: 'Tempered Fate', rarity: 'mythic', desc: 'Once per battle: freeze every unit except yourself in stasis for 2 turns. Allies and enemies alike cannot act or take damage. Only you may move and act freely.', passive: [] },
   attached: { name: 'Attached', rarity: 'mythic', desc: 'At battle start, tether to the nearest ally. While attached: you cannot be targeted, and you passively grant them 75% of all your stats as bonus stats. You may still act and use abilities freely.\n\nIf your tether ally dies, you detach. Your DEF drops by 50% for 2 turns while you are vulnerable.', passive: [], situational: [{ id: 'att-vulnerable', label: 'Detached / Vulnerable (-50% DEF)', passive: [{ stat: 'def', op: 'pct', value: -50 }] }] },
+
+  // ============ SPECIAL ============
+  girlyopscurse: { name: "Girlypop's Curse", rarity: 'legendary', desc: "MAG is doubled (x2). Upon receiving this curse, gain 2 random common traits and 1 random rare trait. Those bonus traits each have a 25% chance of being shimmyful. Your character's gender is permanently reversed.", passive: [{ stat: 'mag', op: 'mul', value: 2 }], notes: "On pickup: roll 2 commons + 1 rare, each with 25% shimmy chance. Gender reversal is a permanent RP/flavor mechanic." },
 };
 
 // ============================================================
@@ -4541,6 +4544,7 @@ const TRAIT_ROLES = {
   cosmicradiance: 'support',
   temperedfate: 'utility',
   attached: 'support',
+  girlyopscurse: 'utility',
 };
 const ROLE_ORDER  = ['dps', 'tank', 'assassin', 'support', 'scaling', 'utility'];
 const ROLE_LABELS = { dps:'DPS', tank:'TANK', assassin:'ASSASSIN', support:'SUPPORT', scaling:'SCALING', utility:'UTILITY' };
@@ -4613,6 +4617,7 @@ const SHIMMYFUL_MYTHIC_TRAITS = {
   cosmicradiance: { name: 'SHIMMYFUL Cosmic Radiance', desc: 'Once per battle: after a 1-turn channel, all allies are fully invulnerable for 5 turns and are fully healed at the start of each invulnerable turn.', passive: [] },
   temperedfate: { name: 'SHIMMYFUL Tempered Fate', desc: 'Once per battle: freeze every unit except yourself in stasis for 3 turns. While active, you gain +50% to all main stats and may act freely.', passive: [], situational: [{ id: 'tf-shimmy-active', label: 'SHIMMYFUL Tempered Fate active (+50% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 50 }] }] },
   attached: { name: 'SHIMMYFUL Attached', desc: 'At battle start, tether to the nearest ally. While attached: you cannot be targeted and grant them 100% of all your stats as bonus stats. You may act freely.\n\nIf your tether ally dies, you detach. Your DEF only drops by 25% for 1 turn.', passive: [], situational: [{ id: 'att-vulnerable-shimmy', label: 'Detached / Vulnerable (-25% DEF)', passive: [{ stat: 'def', op: 'pct', value: -25 }] }] },
+  girlyopscurse: { name: "SHIMMYFUL Girlypop's Curse", desc: "MAG is tripled (x3). Upon receiving this curse, gain 3 random common traits and 2 random rare traits. All bonus traits are guaranteed shimmyful. Your character's gender is permanently reversed.", passive: [{ stat: 'mag', op: 'mul', value: 3 }], notes: "On pickup: roll 3 commons + 2 rares, ALL guaranteed shimmyful. Gender reversal is a permanent RP/flavor mechanic." },
 };
 
 // ============================================================
