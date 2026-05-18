@@ -2457,7 +2457,7 @@ function toggleRadarChart() {
 }
 
 // Animated radar state — tracks interpolated effective stat values per character
-const _radarAnim = { charId: null, current: null, target: null, frame: null, personalMax: null };
+const _radarAnim = { charId: null, current: null, target: null, frame: null };
 const RADAR_KEYS = ['hp', 'atk', 'def', 'mag', 'spd'];
 
 function renderRadarChart(c) {
@@ -2474,12 +2474,6 @@ function renderRadarChart(c) {
     _radarAnim.charId  = c.id;
     _radarAnim.current = { ...target };
     _radarAnim.target  = { ...target };
-    // Lock the baseline to passive-only stats so situational buffs always visually expand
-    // a stat outward rather than making everything else compress inward.
-    const cPassive   = { ...c, situational: [] };
-    const effPassive = getEffectiveStats(cPassive);
-    const rawBase    = RADAR_KEYS.map(k => (effPassive[k] || 0) / STAT_HARD_MAX[k]);
-    _radarAnim.personalMax = Math.max(...rawBase, 0.001);
     if (_radarAnim.frame) { cancelAnimationFrame(_radarAnim.frame); _radarAnim.frame = null; }
     _drawRadarFrame(svg, c, _radarAnim.current);
     return;
@@ -2512,7 +2506,6 @@ function _drawRadarFrame(svg, c, effVals) {
 
   // cy=155 gives headroom above the chart for stats that overflow the outer ring
   const cx = 150, cy = 155, R = 95;
-  const VCAP = 1.5; // stats can extend up to 1.5× the outer ring visually
   const step = (Math.PI * 2) / RADAR_KEYS.length;
   const a0   = -Math.PI / 2;
 
@@ -2523,10 +2516,12 @@ function _drawRadarFrame(svg, c, effVals) {
   ];
   const pts = arr => arr.map(p => p.join(',')).join(' ');
 
-  // Outer ring = locked passive baseline. Buffs expand the shape; debuffs shrink it.
-  const rawNorm  = RADAR_KEYS.map(k => effVals[k] / HMAX[k]);
-  const personal = _radarAnim.personalMax || Math.max(...rawNorm, 0.001);
-  const norm     = rawNorm.map(v => Math.min(v / personal, VCAP));
+  // Outer ring = Mountain Level cap (STAT_HARD_MAX). Linear up to that limit;
+  // past it, log2-compressed growth so the chart doesn't explode off-screen.
+  const rawNorm = RADAR_KEYS.map(k => effVals[k] / HMAX[k]);
+  const norm    = rawNorm.map(v =>
+    v <= 1.0 ? v : Math.min(1.0 + 0.35 * Math.log2(v), 1.5)
+  );
 
   // ── Grid rings ──────────────────────────────────────────────
   const rings = [0.25, 0.5, 0.75, 1.0].map(f => {
@@ -2556,9 +2551,8 @@ function _drawRadarFrame(svg, c, effVals) {
   const labels = RADAR_KEYS.map((k, i) => {
     const [lx, ly] = cartesian(i, labelR);
     const anchor      = lx < cx - 8 ? 'end' : lx > cx + 8 ? 'start' : 'middle';
-    const relV        = rawNorm[i] / personal; // 1.0 = outer ring (baseline), >1 = buffed
-    const pct         = Math.round(relV * 100);
-    const overflowing = relV > 1.005;
+    const pct         = Math.round(rawNorm[i] * 100); // 100% = Mountain Level cap
+    const overflowing = rawNorm[i] > 1.005; // above the outer ring (beyond Mountain Level)
     return `
       <text x="${lx}" y="${ly - 5}" text-anchor="${anchor}" dominant-baseline="middle"
         font-family="inherit" font-size="8" letter-spacing="1.5" fill="${COLS[k]}" font-weight="bold">${LBLS[i]}</text>
