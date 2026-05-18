@@ -4101,22 +4101,25 @@ input[type=number] { -moz-appearance: textfield; }
 
 /* ── View-side: form switcher chips next to the name ── */
 .form-chip {
+  font-family: var(--font-main);
   font-size: 7px;
-  padding: 1px 7px 3px;
   letter-spacing: 1px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: #3a3a3a;
+  padding: 3px 9px;
+  border: 1px solid #2a2a2a;
+  background: #000;
+  color: #444;
   cursor: pointer;
-  transition: color 0.1s, border-color 0.1s;
   white-space: nowrap;
-  line-height: 1;
+  transition: color 0.1s, border-color 0.1s;
 }
-.form-chip:hover { color: #666; }
+.form-chip:hover {
+  color: #999;
+  border-color: #555;
+}
 .form-chip.form-chip-active {
   color: var(--char-color, #ffff00);
-  border-bottom-color: var(--char-color, #ffff00);
+  border-color: var(--char-color, #ffff00);
+  box-shadow: 0 0 6px var(--char-color, #ffff00)55;
 }
 
 /* ── Editor-side: form cards ── */
