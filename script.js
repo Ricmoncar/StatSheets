@@ -1596,11 +1596,31 @@ function viewChar(id) {
   // Populate INFO tab fields
   const _info = c.info || {};
   const _setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-  _setVal('cv-info-owner',  _info.owner);
-  _setVal('cv-info-age',    _info.age);
-  _setVal('cv-info-race',   _info.race);
-  _setVal('cv-info-origin', _info.origin);
-  _setVal('cv-info-bio',    _info.bio);
+  _setVal('cv-info-owner',       _info.owner);
+  _setVal('cv-info-age',         _info.age);
+  _setVal('cv-info-pronouns',    _info.pronouns);
+  _setVal('cv-info-race',        _info.race);
+  _setVal('cv-info-height',      _info.height);
+  _setVal('cv-info-origin',      _info.origin);
+  _setVal('cv-info-occupation',  _info.occupation);
+  _setVal('cv-info-affiliation', _info.affiliation);
+  _setVal('cv-info-personality', _info.personality);
+  _setVal('cv-info-goals',       _info.goals);
+  _setVal('cv-info-fears',       _info.fears);
+  _setVal('cv-info-bio',         _info.bio);
+  _setVal('cv-info-notes',       _info.notes);
+  // Reset all markdown wraps to edit mode on character switch
+  ['personality','goals','fears','bio','notes'].forEach(k => {
+    const wrap = document.getElementById('info-md-' + k);
+    if (!wrap) return;
+    wrap.dataset.mode = 'edit';
+    const ta  = wrap.querySelector('textarea');
+    const pv  = wrap.querySelector('.info-md-rendered');
+    const btn = wrap.querySelector('.info-md-btn');
+    if (ta)  ta.style.display  = '';
+    if (pv)  { pv.style.display = 'none'; pv.innerHTML = ''; }
+    if (btn) btn.textContent = '▶ PREVIEW';
+  });
   // Owner subtitle in stats tab
   const ownerDisp = document.getElementById('cv-info-owner-display');
   if (ownerDisp) {
@@ -1718,6 +1738,56 @@ function saveInfoField(key, val) {
   }
   clearTimeout(_infoSaveTimer);
   _infoSaveTimer = setTimeout(() => saveData(c), 600);
+}
+
+function inlineMarkdown(raw) {
+  // Escape HTML first so user content can't inject tags
+  let s = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*(.+?)\*/g,     '<em>$1</em>');
+  s = s.replace(/~~(.+?)~~/g,     '<del>$1</del>');
+  s = s.replace(/`(.+?)`/g,       '<code>$1</code>');
+  return s;
+}
+
+function renderMarkdown(raw) {
+  if (!raw || !raw.trim()) return '<span style="opacity:0.2;font-size:7px;letter-spacing:1px;">— empty —</span>';
+  const lines = raw.split('\n');
+  let html = '', inList = false;
+  for (const line of lines) {
+    if (/^### /.test(line))         { if (inList){html+='</ul>';inList=false;} html+=`<h5>${inlineMarkdown(line.slice(4))}</h5>`; continue; }
+    if (/^## /.test(line))          { if (inList){html+='</ul>';inList=false;} html+=`<h4>${inlineMarkdown(line.slice(3))}</h4>`; continue; }
+    if (/^# /.test(line))           { if (inList){html+='</ul>';inList=false;} html+=`<h3>${inlineMarkdown(line.slice(2))}</h3>`; continue; }
+    if (/^> /.test(line))           { if (inList){html+='</ul>';inList=false;} html+=`<blockquote>${inlineMarkdown(line.slice(2))}</blockquote>`; continue; }
+    if (/^---+$/.test(line.trim())) { if (inList){html+='</ul>';inList=false;} html+='<hr>'; continue; }
+    if (/^[-*] /.test(line))        { if (!inList){html+='<ul>';inList=true;} html+=`<li>${inlineMarkdown(line.slice(2))}</li>`; continue; }
+    if (inList)                     { html+='</ul>'; inList=false; }
+    if (!line.trim())               { html+='<br>'; continue; }
+    html+=`<p>${inlineMarkdown(line)}</p>`;
+  }
+  if (inList) html+='</ul>';
+  return html;
+}
+
+function toggleInfoPreview(key) {
+  const wrap = document.getElementById('info-md-' + key);
+  if (!wrap) return;
+  const textarea = wrap.querySelector('textarea');
+  const preview  = wrap.querySelector('.info-md-rendered');
+  const btn      = wrap.querySelector('.info-md-btn');
+  if (wrap.dataset.mode !== 'preview') {
+    preview.innerHTML = renderMarkdown(textarea.value);
+    preview.style.display = '';
+    textarea.style.display = 'none';
+    btn.textContent = '✎ EDIT';
+    wrap.dataset.mode = 'preview';
+  } else {
+    preview.style.display = 'none';
+    textarea.style.display = '';
+    textarea.focus();
+    btn.textContent = '▶ PREVIEW';
+    wrap.dataset.mode = 'edit';
+  }
 }
 
 // ============================================================

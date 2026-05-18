@@ -366,46 +366,118 @@
           <div id="tab-info" style="display:none">
             <div class="panel info-dossier">
 
-              <!-- Owner / Creator — top subtitle -->
-              <div class="info-owner-section">
-                <div class="info-field-label">OWNER / CREATOR</div>
+              <!-- OWNER BAND -->
+              <div class="info-owner-band">
+                <div class="info-tiny-label">OWNER / CREATOR</div>
                 <input type="text" id="cv-info-owner" class="info-owner-input"
-                       placeholder="—" maxlength="48"
+                       placeholder="Unknown" maxlength="48"
                        oninput="saveInfoField('owner', this.value)" />
               </div>
 
-              <div class="info-rule"></div>
-
-              <!-- Core fields grid -->
-              <div class="info-fields-grid">
-                <div class="info-cell">
-                  <div class="info-field-label">AGE</div>
-                  <input type="text" id="cv-info-age" class="info-cell-input"
-                         placeholder="—" maxlength="32"
-                         oninput="saveInfoField('age', this.value)" />
-                </div>
-                <div class="info-cell info-cell-right">
-                  <div class="info-field-label">RACE / SPECIES</div>
-                  <input type="text" id="cv-info-race" class="info-cell-input"
-                         placeholder="—" maxlength="48"
-                         oninput="saveInfoField('race', this.value)" />
-                </div>
-                <div class="info-cell info-cell-full">
-                  <div class="info-field-label">ORIGIN</div>
-                  <input type="text" id="cv-info-origin" class="info-cell-input"
-                         placeholder="—" maxlength="64"
-                         oninput="saveInfoField('origin', this.value)" />
+              <!-- IDENTITY -->
+              <div class="info-section">
+                <div class="info-section-hd">IDENTITY</div>
+                <div class="info-row">
+                  <div class="info-field-group">
+                    <div class="info-tiny-label">AGE</div>
+                    <input type="text" id="cv-info-age" class="info-line-input" placeholder="—" maxlength="32" oninput="saveInfoField('age',this.value)"/>
+                  </div>
+                  <div class="info-field-group">
+                    <div class="info-tiny-label">PRONOUNS</div>
+                    <input type="text" id="cv-info-pronouns" class="info-line-input" placeholder="—" maxlength="32" oninput="saveInfoField('pronouns',this.value)"/>
+                  </div>
+                  <div class="info-field-group">
+                    <div class="info-tiny-label">RACE / SPECIES</div>
+                    <input type="text" id="cv-info-race" class="info-line-input" placeholder="—" maxlength="48" oninput="saveInfoField('race',this.value)"/>
+                  </div>
+                  <div class="info-field-group">
+                    <div class="info-tiny-label">HEIGHT</div>
+                    <input type="text" id="cv-info-height" class="info-line-input" placeholder="—" maxlength="24" oninput="saveInfoField('height',this.value)"/>
+                  </div>
                 </div>
               </div>
 
-              <div class="info-rule"></div>
+              <!-- ORIGIN -->
+              <div class="info-section">
+                <div class="info-section-hd">ORIGIN</div>
+                <div class="info-row">
+                  <div class="info-field-group">
+                    <div class="info-tiny-label">HOMETOWN / ORIGIN</div>
+                    <input type="text" id="cv-info-origin" class="info-line-input" placeholder="—" maxlength="64" oninput="saveInfoField('origin',this.value)"/>
+                  </div>
+                  <div class="info-field-group">
+                    <div class="info-tiny-label">OCCUPATION / ROLE</div>
+                    <input type="text" id="cv-info-occupation" class="info-line-input" placeholder="—" maxlength="48" oninput="saveInfoField('occupation',this.value)"/>
+                  </div>
+                </div>
+                <div class="info-row" style="padding-top:0;">
+                  <div class="info-field-group" style="flex:1 1 100%;">
+                    <div class="info-tiny-label">AFFILIATION(S)</div>
+                    <input type="text" id="cv-info-affiliation" class="info-line-input" placeholder="—" maxlength="80" oninput="saveInfoField('affiliation',this.value)"/>
+                  </div>
+                </div>
+              </div>
 
-              <!-- Bio -->
-              <div class="info-bio-section">
-                <div class="info-field-label">BIO</div>
-                <textarea id="cv-info-bio" class="info-bio-area" rows="8"
-                          placeholder="Write something about this character..."
-                          oninput="saveInfoField('bio', this.value)"></textarea>
+              <!-- PROFILE -->
+              <div class="info-section">
+                <div class="info-section-hd">PROFILE</div>
+                <div class="info-md-group">
+                  <div class="info-tiny-label">PERSONALITY</div>
+                  <div class="info-md-wrap" id="info-md-personality" data-mode="edit">
+                    <textarea id="cv-info-personality" class="info-md-textarea" rows="3"
+                              placeholder="Describe their personality... **bold**, *italic*, # heading"
+                              oninput="saveInfoField('personality',this.value)"></textarea>
+                    <div class="info-md-rendered" style="display:none" onclick="toggleInfoPreview('personality')"></div>
+                    <button class="info-md-btn" onclick="toggleInfoPreview('personality')">▶ PREVIEW</button>
+                  </div>
+                </div>
+                <div class="info-row-md">
+                  <div class="info-md-group">
+                    <div class="info-tiny-label">GOALS / MOTIVATIONS</div>
+                    <div class="info-md-wrap" id="info-md-goals" data-mode="edit">
+                      <textarea id="cv-info-goals" class="info-md-textarea" rows="3"
+                                placeholder="What drives them?"
+                                oninput="saveInfoField('goals',this.value)"></textarea>
+                      <div class="info-md-rendered" style="display:none" onclick="toggleInfoPreview('goals')"></div>
+                      <button class="info-md-btn" onclick="toggleInfoPreview('goals')">▶ PREVIEW</button>
+                    </div>
+                  </div>
+                  <div class="info-md-group">
+                    <div class="info-tiny-label">FEARS / WEAKNESSES</div>
+                    <div class="info-md-wrap" id="info-md-fears" data-mode="edit">
+                      <textarea id="cv-info-fears" class="info-md-textarea" rows="3"
+                                placeholder="What do they fear?"
+                                oninput="saveInfoField('fears',this.value)"></textarea>
+                      <div class="info-md-rendered" style="display:none" onclick="toggleInfoPreview('fears')"></div>
+                      <button class="info-md-btn" onclick="toggleInfoPreview('fears')">▶ PREVIEW</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- LORE -->
+              <div class="info-section info-section-last">
+                <div class="info-section-hd">LORE</div>
+                <div class="info-md-group">
+                  <div class="info-tiny-label">BIO</div>
+                  <div class="info-md-wrap" id="info-md-bio" data-mode="edit">
+                    <textarea id="cv-info-bio" class="info-md-textarea" rows="7"
+                              placeholder="Write the character's story... supports **bold**, *italic*, # headings, - lists, > quotes"
+                              oninput="saveInfoField('bio',this.value)"></textarea>
+                    <div class="info-md-rendered" style="display:none" onclick="toggleInfoPreview('bio')"></div>
+                    <button class="info-md-btn" onclick="toggleInfoPreview('bio')">▶ PREVIEW</button>
+                  </div>
+                </div>
+                <div class="info-md-group" style="margin-top:16px;">
+                  <div class="info-tiny-label">NOTES</div>
+                  <div class="info-md-wrap" id="info-md-notes" data-mode="edit">
+                    <textarea id="cv-info-notes" class="info-md-textarea" rows="3"
+                              placeholder="Extra notes, lore details, references..."
+                              oninput="saveInfoField('notes',this.value)"></textarea>
+                    <div class="info-md-rendered" style="display:none" onclick="toggleInfoPreview('notes')"></div>
+                    <button class="info-md-btn" onclick="toggleInfoPreview('notes')">▶ PREVIEW</button>
+                  </div>
+                </div>
               </div>
 
             </div>
