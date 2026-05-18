@@ -6377,3 +6377,352 @@ const _HOVER_SEL = [
 document.addEventListener('mouseover', (e) => {
   if (e.target.closest(_HOVER_SEL)) playHover();
 });
+
+// ============================================================
+// HEIGHT CHART
+// ============================================================
+let _hcData = { entries: [] };
+let _hcSelectedId = null;
+let _hcUnit = 'cm';
+let _hcUnsub = null;
+let _hcDrag = null;
+let _hcDragged = false;
+let _hcSaveT = null;
+
+const HC_SILHOUETTE = `<svg viewBox="0 0 28 72" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;">
+  <rect x="9" y="1" width="10" height="11" rx="4" fill="currentColor"/>
+  <rect x="7" y="13" width="14" height="18" fill="currentColor"/>
+  <rect x="1" y="13" width="7" height="14" rx="2" fill="currentColor"/>
+  <rect x="20" y="13" width="7" height="14" rx="2" fill="currentColor"/>
+  <rect x="7" y="31" width="6" height="22" fill="currentColor"/>
+  <rect x="15" y="31" width="6" height="22" fill="currentColor"/>
+  <rect x="4" y="51" width="9" height="5" rx="1" fill="currentColor"/>
+  <rect x="15" y="51" width="9" height="5" rx="1" fill="currentColor"/>
+</svg>`;
+
+// Global drag/drop listeners (attached once)
+document.addEventListener('mousemove', function(e) {
+  if (!_hcDrag) return;
+  const stage = document.getElementById('hc-stage');
+  if (!stage) return;
+  const rect = stage.getBoundingClientRect();
+  const newXPct = Math.max(0.02, Math.min(0.98, (e.clientX - rect.left) / rect.width));
+  _hcDrag.entry.xPct = newXPct;
+  _hcDrag.el.style.left = (newXPct * 100) + '%';
+  _hcDragged = true;
+});
+document.addEventListener('mouseup', function() {
+  if (_hcDrag) { _hcDebounceSave(); _hcDrag = null; }
+});
+document.addEventListener('touchmove', function(e) {
+  if (!_hcDrag) return;
+  const stage = document.getElementById('hc-stage');
+  if (!stage) return;
+  const rect = stage.getBoundingClientRect();
+  const touch = e.touches[0];
+  const newXPct = Math.max(0.02, Math.min(0.98, (touch.clientX - rect.left) / rect.width));
+  _hcDrag.entry.xPct = newXPct;
+  _hcDrag.el.style.left = (newXPct * 100) + '%';
+  _hcDragged = true;
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('touchend', function() {
+  if (_hcDrag) { _hcDebounceSave(); _hcDrag = null; }
+});
+
+function openHeightChart() {
+  document.getElementById('hc-overlay').style.display = 'block';
+  document.getElementById('hc-modal').style.display = 'flex';
+  document.getElementById('hc-btn-cm').classList.toggle('active', _hcUnit === 'cm');
+  document.getElementById('hc-btn-in').classList.toggle('active', _hcUnit === 'in');
+  _hcSubscribe();
+}
+
+function closeHeightChart() {
+  document.getElementById('hc-overlay').style.display = 'none';
+  document.getElementById('hc-modal').style.display = 'none';
+  if (_hcUnsub) { _hcUnsub(); _hcUnsub = null; }
+}
+
+function _hcSubscribe() {
+  if (_hcUnsub) _hcUnsub();
+  if (!db) return;
+  _hcUnsub = db.collection('heightchart').doc('main').onSnapshot(snap => {
+    _hcData = snap.exists ? snap.data() : { entries: [] };
+    if (!_hcData.entries) _hcData.entries = [];
+    renderHeightChart();
+  });
+}
+
+function _hcSave() {
+  if (!db) return;
+  db.collection('heightchart').doc('main').set(_hcData).catch(e => console.error('HC save error', e));
+}
+
+function _hcDebounceSave() {
+  clearTimeout(_hcSaveT);
+  _hcSaveT = setTimeout(_hcSave, 500);
+}
+
+function setHCUnit(unit) {
+  _hcUnit = unit;
+  document.getElementById('hc-btn-cm').classList.toggle('active', unit === 'cm');
+  document.getElementById('hc-btn-in').classList.toggle('active', unit === 'in');
+  if (_hcSelectedId) _hcPopulateEditPanel(_hcSelectedId);
+  renderHeightChart();
+}
+
+function _hcCmToIn(cm) { return +(cm / 2.54).toFixed(1); }
+function _hcInToCm(inch) { return +(inch * 2.54).toFixed(1); }
+function _hcFmtHeight(cm) {
+  if (_hcUnit === 'cm') return Math.round(cm) + 'cm';
+  const totalIn = cm / 2.54;
+  const ft = Math.floor(totalIn / 12);
+  const inPart = Math.round(totalIn % 12);
+  return ft + "'" + inPart + '"';
+}
+function _hcMaxCm() {
+  if (!_hcData.entries.length) return 220;
+  const max = Math.max(..._hcData.entries.map(e => e.heightCm || 0));
+  return Math.max(220, Math.ceil((max + 25) / 10) * 10);
+}
+
+function renderHeightChart() {
+  const stage = document.getElementById('hc-stage');
+  const ruler = document.getElementById('hc-ruler');
+  const charsEl = document.getElementById('hc-chars');
+  if (!stage || !ruler || !charsEl) return;
+
+  const stageH = stage.clientHeight || 440;
+  const maxCm = _hcMaxCm();
+  const pxPerCm = stageH / maxCm;
+
+  // ── Ruler & grid lines ──
+  ruler.innerHTML = '';
+  stage.querySelectorAll('.hc-grid-line').forEach(e => e.remove());
+  ruler.style.position = 'relative';
+  ruler.style.height = stageH + 'px';
+
+  const interval = maxCm > 600 ? 100 : maxCm > 300 ? 50 : maxCm > 150 ? 25 : 10;
+  for (let h = 0; h <= maxCm; h += interval) {
+    const yPx = stageH - h * pxPerCm;
+    const isMajor = h % (interval * 2) === 0;
+
+    // Ruler tick
+    const tick = document.createElement('div');
+    tick.className = 'hc-tick' + (isMajor ? ' major' : '');
+    tick.style.cssText = `position:absolute; top:${yPx}px; right:0; left:0; height:1px; display:flex; align-items:center; justify-content:flex-end; padding-right:8px;`;
+    const lbl = document.createElement('span');
+    lbl.className = 'hc-tick-label';
+    lbl.textContent = _hcUnit === 'cm' ? h : _hcFmtHeight(h);
+    tick.appendChild(lbl);
+    ruler.appendChild(tick);
+
+    // Grid line across stage
+    const gl = document.createElement('div');
+    gl.className = 'hc-grid-line' + (isMajor ? ' major' : '');
+    gl.style.cssText = `bottom:${h * pxPerCm}px;`;
+    stage.appendChild(gl);
+  }
+
+  // ── Character sprites ──
+  charsEl.innerHTML = '';
+
+  _hcData.entries.forEach(entry => {
+    const cm = entry.heightCm || 170;
+    const charHeightPx = cm * pxPerCm;
+    const xPct = (entry.xPct != null ? entry.xPct : 0.5) * 100;
+    const isSelected = entry.id === _hcSelectedId;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'hc-char-wrap' + (isSelected ? ' selected' : '');
+    wrap.style.left = xPct + '%';
+    wrap.dataset.id = entry.id;
+
+    // Drag start
+    wrap.addEventListener('mousedown', function(e) {
+      e.stopPropagation();
+      _hcDragged = false;
+      _hcDrag = { entry, el: wrap, startX: e.clientX, startXPct: entry.xPct != null ? entry.xPct : 0.5 };
+    });
+    wrap.addEventListener('touchstart', function(e) {
+      _hcDragged = false;
+      _hcDrag = { entry, el: wrap };
+    }, { passive: true });
+    wrap.addEventListener('click', function() {
+      if (_hcDragged) { _hcDragged = false; return; }
+      hcSelectEntry(entry.id);
+    });
+
+    // Anchor (height: 0, overflow: visible)
+    const anchor = document.createElement('div');
+    anchor.className = 'hc-anchor';
+
+    // Name tag (above sprite)
+    const nameTag = document.createElement('div');
+    nameTag.className = 'hc-char-name-tag';
+    nameTag.style.bottom = (charHeightPx + 8) + 'px';
+    nameTag.textContent = entry.name || '???';
+    anchor.appendChild(nameTag);
+
+    // Sprite or silhouette
+    if (entry.spriteBase64) {
+      const topF = entry.spriteTopFrac != null ? entry.spriteTopFrac : 0;
+      const botF = entry.spriteBotFrac != null ? entry.spriteBotFrac : 1;
+      const fracH = Math.max(0.01, botF - topF);
+      const fullH = charHeightPx / fracH;
+      const bottomOffset = (1 - botF) * fullH;
+
+      const img = document.createElement('img');
+      img.src = entry.spriteBase64;
+      img.className = 'hc-char-sprite';
+      img.style.height = fullH + 'px';
+      img.style.bottom = (-bottomOffset) + 'px';
+      img.draggable = false;
+      anchor.appendChild(img);
+    } else {
+      const silDiv = document.createElement('div');
+      silDiv.innerHTML = HC_SILHOUETTE;
+      const svg = silDiv.firstElementChild;
+      svg.className = 'hc-char-svg';
+      svg.style.height = charHeightPx + 'px';
+      svg.style.color = entry.color || '#888';
+      anchor.appendChild(svg);
+    }
+
+    // Height tag (below ground)
+    const htTag = document.createElement('div');
+    htTag.className = 'hc-char-ht-tag';
+    htTag.textContent = _hcFmtHeight(cm);
+    anchor.appendChild(htTag);
+
+    wrap.appendChild(anchor);
+    charsEl.appendChild(wrap);
+  });
+}
+
+function hcAddEntry() {
+  const id = (typeof genId === 'function') ? genId() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+  // Spread new entries across the chart
+  const usedX = _hcData.entries.map(e => e.xPct || 0.5);
+  let xPct = 0.1;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    xPct = 0.08 + Math.random() * 0.84;
+    if (usedX.every(x => Math.abs(x - xPct) > 0.07)) break;
+  }
+  const entry = { id, name: 'CHARACTER', heightCm: 170, color: '#aaaaaa', xPct, spriteBase64: null, spriteTopFrac: 0, spriteBotFrac: 1 };
+  _hcData.entries.push(entry);
+  _hcSelectedId = id;
+  _hcSave();
+  _hcPopulateEditPanel(id);
+}
+
+function hcSelectEntry(id) {
+  _hcSelectedId = id;
+  _hcPopulateEditPanel(id);
+  renderHeightChart();
+}
+
+function _hcPopulateEditPanel(id) {
+  const entry = _hcData.entries.find(e => e.id === id);
+  if (!entry) return;
+  const panel = document.getElementById('hc-edit-panel');
+  panel.style.display = 'block';
+  document.getElementById('hc-edit-name').value = entry.name || '';
+  const hVal = _hcUnit === 'cm' ? Math.round(entry.heightCm) : _hcCmToIn(entry.heightCm);
+  document.getElementById('hc-edit-height').value = hVal;
+  document.getElementById('hc-height-label').textContent = 'HEIGHT (' + _hcUnit.toUpperCase() + ')';
+  document.getElementById('hc-edit-color').value = entry.color || '#aaaaaa';
+  document.getElementById('hc-clear-btn').style.display = entry.spriteBase64 ? 'inline-block' : 'none';
+}
+
+function hcUpdateField(field, val) {
+  const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
+  if (!entry) return;
+  if (field === 'heightInput') {
+    if (!val || isNaN(val) || val <= 0) return;
+    entry.heightCm = _hcUnit === 'cm' ? val : _hcInToCm(val);
+  } else {
+    entry[field] = val;
+  }
+  renderHeightChart();
+  _hcDebounceSave();
+}
+
+function hcDeleteEntry() {
+  if (!_hcSelectedId) return;
+  _hcData.entries = _hcData.entries.filter(e => e.id !== _hcSelectedId);
+  _hcSelectedId = null;
+  document.getElementById('hc-edit-panel').style.display = 'none';
+  _hcSave();
+}
+
+function hcTriggerUpload() {
+  if (!_hcSelectedId) return;
+  const inp = document.getElementById('hc-sprite-file');
+  inp.value = '';
+  inp.click();
+}
+
+function hcClearSprite() {
+  const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
+  if (!entry) return;
+  entry.spriteBase64 = null;
+  entry.spriteTopFrac = 0;
+  entry.spriteBotFrac = 1;
+  document.getElementById('hc-clear-btn').style.display = 'none';
+  _hcSave();
+}
+
+function hcHandleSprite(ev) {
+  const file = ev.target.files[0];
+  if (!file || !_hcSelectedId) return;
+  const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
+  if (!entry) return;
+
+  const reader = new FileReader();
+  reader.onload = function(re) {
+    const img = new Image();
+    img.onload = function() {
+      // 1. Analyze bounds on original (max 600x1200 analysis canvas for perf)
+      const analyseW = Math.min(img.naturalWidth, 600);
+      const analyseH = Math.round(img.naturalHeight * (analyseW / img.naturalWidth));
+      const ac = document.createElement('canvas');
+      ac.width = analyseW; ac.height = analyseH;
+      ac.getContext('2d').drawImage(img, 0, 0, analyseW, analyseH);
+      const px = ac.getContext('2d').getImageData(0, 0, analyseW, analyseH).data;
+
+      let topRow = analyseH, botRow = -1;
+      for (let y = 0; y < analyseH; y++) {
+        for (let x = 0; x < analyseW; x++) {
+          if (px[(y * analyseW + x) * 4 + 3] > 16) {
+            if (y < topRow) topRow = y;
+            if (y > botRow) botRow = y;
+          }
+        }
+      }
+      if (botRow < 0) { topRow = 0; botRow = analyseH - 1; }
+      const topFrac = topRow / analyseH;
+      const botFrac = (botRow + 1) / analyseH;
+
+      // 2. Resize for storage: max 200px wide, preserve aspect
+      const maxW = 200;
+      const ratio = Math.min(1, maxW / img.naturalWidth);
+      const sw = Math.round(img.naturalWidth * ratio);
+      const sh = Math.round(img.naturalHeight * ratio);
+      const rc = document.createElement('canvas');
+      rc.width = sw; rc.height = sh;
+      rc.getContext('2d').drawImage(img, 0, 0, sw, sh);
+      const base64 = rc.toDataURL('image/png');
+
+      entry.spriteBase64 = base64;
+      entry.spriteTopFrac = topFrac;
+      entry.spriteBotFrac = botFrac;
+      document.getElementById('hc-clear-btn').style.display = 'inline-block';
+      _hcSave();
+      if (typeof notify === 'function') notify('SPRITE UPLOADED', 'ok');
+    };
+    img.src = re.target.result;
+  };
+  reader.readAsDataURL(file);
+}

@@ -58,6 +58,7 @@
 <div class="back-btn">
   <button class="btn accent" onclick="location.href='index.html'">&lt; BACK TO MAIN MENU</button>
   <button class="btn accent" onclick="location.href='gallery.html'" style="margin-left:8px;">GALLERY</button>
+  <button class="btn accent" onclick="openHeightChart()" style="margin-left:8px;">📏 HEIGHT CHART</button>
 </div>
 
 <div id="utilities-page">
@@ -216,6 +217,59 @@
   </div>
 
 </div><!-- /utilities-page -->
+
+<!-- HEIGHT CHART MODAL -->
+<div id="hc-overlay" onclick="closeHeightChart()"></div>
+<div id="hc-modal">
+  <div id="hc-header">
+    <span>HEIGHT CHART</span>
+    <div id="hc-unit-toggle">
+      <button class="btn sm" id="hc-btn-cm" onclick="setHCUnit('cm')">CM</button>
+      <button class="btn sm" id="hc-btn-in" onclick="setHCUnit('in')">IN</button>
+    </div>
+    <button class="btn-info" onclick="closeHeightChart()">✕</button>
+  </div>
+  <div id="hc-body">
+    <div id="hc-chart-wrap">
+      <div id="hc-ruler"></div>
+      <div id="hc-stage">
+        <div id="hc-chars"></div>
+        <div id="hc-ground-line"></div>
+      </div>
+    </div>
+    <div id="hc-bottom-bar">
+      <button class="btn accent sm" onclick="hcAddEntry()">+ ADD CHARACTER</button>
+      <span id="hc-hint" style="font-size:6px;color:#444;letter-spacing:1px;margin-left:10px;">DRAG TO REPOSITION</span>
+    </div>
+    <div id="hc-edit-panel">
+      <div class="hc-edit-row">
+        <div class="hc-edit-field">
+          <div class="hc-edit-label">NAME</div>
+          <input type="text" id="hc-edit-name" class="hc-edit-input" placeholder="Character name..." maxlength="30" oninput="hcUpdateField('name',this.value)"/>
+        </div>
+        <div class="hc-edit-field">
+          <div class="hc-edit-label" id="hc-height-label">HEIGHT (CM)</div>
+          <input type="number" id="hc-edit-height" class="hc-edit-input hc-edit-input-short" placeholder="170" min="1" max="1500" oninput="hcUpdateField('heightInput',+this.value)"/>
+        </div>
+        <div class="hc-edit-field">
+          <div class="hc-edit-label">COLOR</div>
+          <input type="color" id="hc-edit-color" class="hc-color-input" value="#aaaaaa" oninput="hcUpdateField('color',this.value)"/>
+        </div>
+        <div class="hc-edit-field">
+          <div class="hc-edit-label">SPRITE (PNG)</div>
+          <div style="display:flex;gap:5px;">
+            <button class="btn sm" onclick="hcTriggerUpload()">UPLOAD</button>
+            <button class="btn sm" id="hc-clear-btn" onclick="hcClearSprite()" style="display:none;">CLEAR</button>
+          </div>
+          <input type="file" id="hc-sprite-file" accept="image/*" style="display:none;" onchange="hcHandleSprite(event)"/>
+        </div>
+        <div class="hc-edit-field" style="justify-content:flex-end;">
+          <button class="btn sm danger" onclick="hcDeleteEntry()">DELETE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="global-tooltip"></div>
 <!-- Firebase -->
