@@ -4368,9 +4368,9 @@ const TRAITS = {
       passive: []
     },
     situational: [
-      { id: 'hh-hunted3', label: 'HEAVENLY: After 3 turns (+7.5% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 7.5 }] },
-      { id: 'hh-hunted6', label: 'HEAVENLY: After 6 turns (+15% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 15 }] },
-      { id: 'hh-hunted10', label: 'HEAVENLY: After 10 turns (+25% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 25 }] },
+      { id: 'hh-hunted3', label: 'HEAVENLY: After 3 turns (+7.5% all stats, +15 HP/DEF)', passive: [{ stat: 'all_main', op: 'pct', value: 7.5 }, { stat: 'hp', op: 'add', value: 15 }, { stat: 'def', op: 'add', value: 15 }] },
+      { id: 'hh-hunted6', label: 'HEAVENLY: After 6 turns (+15% all stats, +30 HP/DEF)', passive: [{ stat: 'all_main', op: 'pct', value: 15 }, { stat: 'hp', op: 'add', value: 30 }, { stat: 'def', op: 'add', value: 30 }] },
+      { id: 'hh-hunted10', label: 'HEAVENLY: After 10 turns (+25% all stats, +50 HP/DEF)', passive: [{ stat: 'all_main', op: 'pct', value: 25 }, { stat: 'hp', op: 'add', value: 50 }, { stat: 'def', op: 'add', value: 50 }] },
       { id: 'hh-hunter', label: 'HELLFORGED: While attacking (+50 ATK)', passive: [{ stat: 'atk', op: 'add', value: 50 }] }
     ],
   },
