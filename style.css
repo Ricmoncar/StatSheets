@@ -1913,6 +1913,39 @@ input[type=number] { -moz-appearance: textfield; }
              hand-card-deal 0.55s cubic-bezier(0.2,0.8,0.2,1.05) both;
 }
 
+/* RARE SHIMMYFUL — blue outer ring */
+.trait-chip.shimmyful.shimmy-rare {
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 0 5px rgba(74,169,255,0.65),
+    0 0 20px rgba(74,169,255,0.35);
+  animation: shimmy-rare-pulse 2.6s ease-in-out infinite;
+}
+@keyframes shimmy-rare-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px #000, 0 0 0 5px rgba(74,169,255,0.55), 0 0 14px rgba(74,169,255,0.25); }
+  50%       { box-shadow: 0 0 0 3px #000, 0 0 0 6px rgba(74,169,255,0.95), 0 0 32px rgba(74,169,255,0.6); }
+}
+/* Blue star for rare shimmyful */
+.shimmy-rare-star {
+  color: #4aa9ff;
+  text-shadow: 0 0 8px rgba(74,169,255,0.95), 0 0 18px rgba(74,169,255,0.5);
+  animation: shimmy-rare-star-spin 2.8s ease-in-out infinite;
+}
+@keyframes shimmy-rare-star-spin {
+  0%, 100% { opacity: 0.75; transform: scale(1)   rotate(5deg); }
+  50%       { opacity: 1;   transform: scale(1.2)  rotate(-15deg); }
+}
+/* Rare shimmyful hand card — blue ring */
+.hand-card.shimmyful.shimmy-rare {
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 0 5px rgba(74,169,255,0.7),
+    0 0 28px rgba(74,169,255,0.5),
+    var(--c-glow, 0 0 0 transparent);
+  animation: shimmy-rare-pulse 2.6s ease-in-out infinite,
+             hand-card-deal 0.55s cubic-bezier(0.2,0.8,0.2,1.05) both;
+}
+
 /* HEXXED — slow void pulse + drifting wisp + chromatic glitch */
 .trait-chip.rar-hexxed,
 .codex-entry.rar-hexxed {
