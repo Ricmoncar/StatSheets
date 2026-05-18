@@ -335,22 +335,32 @@ body::before {
 .field select { cursor: none; }
 .field select option { background: #111; color: #fff; }
 
-/* RANGE */
-.field input[type=range] {
+/* RANGE — shared between .field and .form-stat-block */
+.field input[type=range],
+.form-stat-block input[type=range] {
   -webkit-appearance: none;
   width: 100%; height: 8px;
   background: #2a2a2a;
   border: 1px solid #888;
   outline: none; padding: 0;
 }
-.field input[type=range]::-webkit-slider-thumb {
+.field input[type=range]::-webkit-slider-thumb,
+.form-stat-block input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 16px; height: 16px;
   background: #fff;
   cursor: none;
   border: 2px solid #000;
 }
-.field input[type=range]:focus { border-color: var(--accent-yellow); }
+.field input[type=range]::-moz-range-thumb,
+.form-stat-block input[type=range]::-moz-range-thumb {
+  width: 16px; height: 16px;
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 0;
+}
+.field input[type=range]:focus,
+.form-stat-block input[type=range]:focus { border-color: var(--accent-yellow); }
 
 /* COLOR WHEEL */
 @keyframes wheel-glow {
@@ -432,7 +442,14 @@ input[type=number] { -moz-appearance: textfield; }
   padding: 5px 4px !important;
   text-align: center;
   flex-shrink: 0;
+  background: var(--input-bg);
+  color: var(--fg);
+  border: 1px solid #2a2a2a;
+  font-family: var(--font-main);
+  outline: none;
+  transition: border-color 0.15s;
 }
+.stat-num-input:focus { border-color: #555; }
 
 /* STAT BARS — SEGMENTED PIXEL STYLE */
 .stat-row {
@@ -4077,4 +4094,167 @@ input[type=number] { -moz-appearance: textfield; }
 }
 .folder-swatch:hover { transform: scale(1.15); }
 .folder-swatch.selected { border-color: #fff; }
+
+/* ============================================================
+   ALTERNATE FORMS
+   ============================================================ */
+
+/* ── View-side: form switcher chips next to the name ── */
+.form-chip {
+  font-size: 7px;
+  padding: 2px 8px;
+  letter-spacing: 1px;
+  border: 1px solid #2a2a2a;
+  background: #0d0d0d;
+  color: #555;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.form-chip:hover {
+  border-color: #444;
+  color: #888;
+}
+.form-chip.form-chip-active {
+  border-color: var(--char-color, #ffff00);
+  color: var(--char-color, #ffff00);
+  background: rgba(255,255,255,0.03);
+}
+
+/* ── Editor-side: form cards ── */
+.form-editor-card {
+  border: 1px solid #1e1e1e;
+  background: #080808;
+  margin-bottom: 12px;
+}
+.form-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  border-bottom: 1px solid #161616;
+  background: #0f0f0f;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #555;
+}
+.form-editor-body {
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Top row: avatar + name */
+.form-top-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.form-avatar-col {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.form-name-col {
+  flex: 1;
+  min-width: 0;
+}
+.form-name-input {
+  width: 100%;
+  background: #0d0d0d;
+  border: 1px solid #2a2a2a;
+  color: #ccc;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 6px 8px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.form-name-input:focus { border-color: #555; }
+.form-name-input::placeholder { color: #2e2e2e; }
+
+/* Avatar upload zone */
+.form-avatar-zone {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #222;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  background: #0a0a0a;
+  transition: border-color 0.15s;
+  flex-shrink: 0;
+}
+.form-avatar-zone:hover { border-color: #444; }
+.form-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  color: #666;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.form-avatar-zone:hover .form-avatar-overlay { opacity: 1; }
+
+/* Stat blocks inside a form card — mirrors the main editor layout */
+.form-stats-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-top: 4px;
+  border-top: 1px solid #131313;
+}
+.form-stat-block {
+  padding-bottom: 12px;
+  margin-bottom: 2px;
+}
+.form-stat-block:last-child { padding-bottom: 4px; }
+.form-stat-lbl {
+  display: flex;
+  align-items: center;
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: #555;
+  white-space: nowrap;
+}
+.form-stat-block:hover .stat-seg.on,
+.form-stat-block:hover .stat-seg.peak {
+  animation: seg-wave 0.4s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i) * 0.03s);
+}
+/* Overall PL bar at the bottom of the stats section */
+.form-overall-pl {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #444;
+  text-align: center;
+  padding: 7px 10px;
+  border: 1px solid #1a1a1a;
+  background: #060606;
+  margin-top: 4px;
+}
+
+/* Substats grid — 3 columns, all 9 substats */
+.form-substats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 10px;
+  padding-top: 10px;
+  border-top: 1px solid #131313;
+}
+.form-substat-cell {
+  display: flex;
+  flex-direction: column;
+}
 

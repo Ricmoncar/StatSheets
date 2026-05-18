@@ -16,6 +16,8 @@ let editingId = null;
 let previewAnim = null;
 let bgAnim = null;
 let editorAnim = null;
+let _editorForms = [];
+let _formUploadIdx = null;
 
 // ============================================================
 // FIREBASE
@@ -467,13 +469,37 @@ function adjustStat(stat, delta) {
 // ============================================================
 let currentAvatarDataURL = null;
 
+// Compress/resize an image dataURL to fit within maxSide × maxSide at the given JPEG quality.
+// Returns a Promise that resolves to the compressed dataURL.
+function compressImage(dataURL, maxSide = 512, quality = 0.82) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxSide || height > maxSide) {
+        if (width >= height) { height = Math.round(height * maxSide / width); width = maxSide; }
+        else                 { width  = Math.round(width  * maxSide / height); height = maxSide; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataURL); // fallback: keep original
+    img.src = dataURL;
+  });
+}
+
 function triggerImgUpload() { document.getElementById('avatar-file').click(); }
 
 function handleImgUpload(ev) {
   const file = ev.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => { currentAvatarDataURL = e.target.result; renderAvatarZone(); };
+  reader.onload = async e => {
+    currentAvatarDataURL = await compressImage(e.target.result, 512, 0.82);
+    renderAvatarZone();
+  };
   reader.readAsDataURL(file);
 }
 
@@ -1532,9 +1558,14 @@ function viewChar(id) {
   document.getElementById('editor').classList.remove('active');
   if (previewAnim) cancelAnimationFrame(previewAnim);
 
+  // Resolve active form avatar (falls back to base avatar if alt form has none)
+  const _cvFormIdx = c.activeFormIdx || 0;
+  const _cvAltForm = _cvFormIdx > 0 ? (c.altForms || [])[_cvFormIdx - 1] : null;
+  const _cvAvatar = (_cvAltForm && _cvAltForm.avatar) ? _cvAltForm.avatar : c.avatar;
+
   const avatarEl = document.getElementById('cv-avatar');
-  if (c.avatar) {
-    avatarEl.innerHTML = `<img src="${c.avatar}"/>`;
+  if (_cvAvatar) {
+    avatarEl.innerHTML = `<img src="${_cvAvatar}"/>`;
   } else {
     avatarEl.innerHTML = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:56px;height:56px;">
       <rect x="12" y="2" width="8" height="8" fill="${c.color}"/>
@@ -1547,6 +1578,7 @@ function viewChar(id) {
 
   document.getElementById('cv-name').textContent = c.name || 'UNNAMED';
   document.getElementById('cv-name').style.color = c.color;
+  renderFormSwitcher(c);
   updateCharPLBadge(c);
   renderRadarChart(c);
   const mbn = document.getElementById('mobile-char-name');
@@ -1658,6 +1690,285 @@ function switchTab(tab, btn) {
 }
 
 // ============================================================
+// ALTERNATE FORMS — view-side
+// ============================================================
+function renderFormSwitcher(c) {
+  const wrap = document.getElementById('cv-form-switcher');
+  if (!wrap) return;
+  const forms = c.altForms || [];
+  if (!forms.length) { wrap.innerHTML = ''; return; }
+  const active = c.activeFormIdx || 0;
+  const all = [{ name: 'BASE' }, ...forms];
+  wrap.innerHTML = all.map((f, i) => {
+    const label = i === 0 ? 'BASE' : (f.name || `FORM ${i}`);
+    return `<button class="btn sm form-chip${i === active ? ' form-chip-active' : ''}" onclick="switchForm(${i})">${label}</button>`;
+  }).join('');
+}
+
+function switchForm(idx) {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  c.activeFormIdx = idx;
+  saveData(c);
+  viewChar(c.id);
+}
+
+// ============================================================
+// ALTERNATE FORMS — editor-side
+// ============================================================
+
+// Build a full substats object from a partial source; coerceNumbers=true rounds to numbers
+function _fullSubstats(src, coerce) {
+  const s = src || {};
+  const n = coerce ? (v => +v || 0) : (v => v || 0);
+  return {
+    heal_pow:    n(s.heal_pow),
+    crit_rate:   n(s.crit_rate),
+    crit_dmg:    n(s.crit_dmg),
+    status_res:  n(s.status_res),
+    dexterity:   n(s.dexterity),
+    resilience:  n(s.resilience),
+    true_dmg:    n(s.true_dmg),
+    lifesteal:   n(s.lifesteal),
+    cooldown_red:n(s.cooldown_red),
+  };
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Form stats cap at COUNTRY level (PL_THRESHOLDS index 9)
+const _FORM_STAT_MAX = { hp: 2200, atk: 400, def: 400, mag: 400, spd: 400 };
+
+function syncFormStat(formIdx, key, val) {
+  const max = _FORM_STAT_MAX[key] || 9999;
+  const v = Math.min(max, Math.max(1, parseInt(val) || 1));
+  if (!_editorForms[formIdx]) return;
+  _editorForms[formIdx].stats[key] = v;
+
+  const slider = document.getElementById(`fslider-${formIdx}-${key}`);
+  const numEl  = document.getElementById(`fnum-${formIdx}-${key}`);
+  const dispEl = document.getElementById(`fdisp-${formIdx}-${key}`);
+  const plEl   = document.getElementById(`fpl-${formIdx}-${key}`);
+
+  if (slider && +slider.value !== v) slider.value = v;
+  if (numEl  && +numEl.value  !== v) numEl.value  = v;
+  if (dispEl) dispEl.textContent = v;
+  if (plEl) {
+    const t = PL_TIERS[getStatPL(key, v)];
+    plEl.textContent = t.short;
+    plEl.style.color = t.color;
+  }
+  updateFormStatBar(formIdx, key, v);
+  updateFormOverallPL(formIdx);
+}
+
+function updateFormOverallPL(formIdx) {
+  const f  = _editorForms[formIdx];
+  const el = document.getElementById(`foverall-pl-${formIdx}`);
+  if (!f || !el) return;
+  let total = 0;
+  ['hp','atk','def','mag','spd'].forEach(s => { total += getStatPL(s, +f.stats[s] || 0); });
+  const tier = PL_TIERS[Math.min(Math.floor(total / 5), PL_TIERS.length - 1)];
+  el.innerHTML = `OVERALL &nbsp;<span style="color:${tier.color};letter-spacing:1px;">${tier.label}</span>`;
+}
+
+const _FORM_STAT_DEFS = [
+  { key: 'hp',  label: 'HP',  color: 'var(--accent-green)',
+    icon: `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 9L1 5A2.5 2.5 0 0 1 5 2 2.5 2.5 0 0 1 9 5Z" fill="var(--accent-green)"/></svg>` },
+  { key: 'atk', label: 'ATK', color: 'var(--accent-red)',
+    icon: `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 8l1 1 6-6-1-1-6 6zM1 9l2-1-1-1-1 2z" fill="var(--accent-red)"/></svg>` },
+  { key: 'def', label: 'DEF', color: 'var(--accent-blue)',
+    icon: `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 2v4c0 3 4 3.5 4 3.5s4-.5 4-3.5V2l-4-1-4 1z" fill="var(--accent-blue)"/></svg>` },
+  { key: 'mag', label: 'MAG', color: '#ff44ff',
+    icon: `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" fill="#ff44ff"/></svg>` },
+  { key: 'spd', label: 'SPD', color: 'var(--accent-yellow)',
+    icon: `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M6 0L2 5H5L4 10L9 4H5Z" fill="var(--accent-yellow)"/></svg>` },
+];
+
+// Render a static segmented stat bar as HTML (used for form cards)
+function _formStatBarHTML(val, key) {
+  const baseMax = STAT_BASE_MAX[key];
+  if (!baseMax) return '';
+  const v = Math.max(1, +val || 1);
+  const tier = Math.floor((v - 1) / baseMax);
+  const valInTier = ((v - 1) % baseMax) + 1;
+  const exactFilled = Math.max(0, Math.min(100, valInTier / baseMax * 100)) / 100 * SEG_COUNT;
+  const fullFilled = Math.floor(exactFilled);
+  return Array.from({ length: SEG_COUNT }, (_, i) => {
+    let fillPct = i < fullFilled ? 100 : (i === fullFilled ? (exactFilled - fullFilled) * 100 : 0);
+    const isPeak = (i === Math.ceil(exactFilled) - 1) && exactFilled > 0;
+    const isOn = fillPct > 0;
+    let fgCls = `stat-seg fill-fg ${key}${isOn ? (isPeak ? ' peak' : ' on') : ''}${tier > 0 && isOn ? ` tier-${Math.min(tier, 15)}` : ''}`;
+    let bgCls = `stat-seg ghost-bg ${key}${tier > 0 ? ' on' : ''}`;
+    const clip = `polygon(0 0,${fillPct}% 0,${fillPct}% 100%,0 100%)`;
+    return `<div class="stat-seg-wrap" style="--i:${i};flex:1;position:relative;"><div class="${bgCls}" style="position:absolute;inset:0;"></div><div class="${fgCls}" style="position:absolute;inset:0;z-index:1;clip-path:${clip};"></div></div>`;
+  }).join('');
+}
+
+// Update one form's stat bar in-place without re-rendering the whole card
+function updateFormStatBar(formIdx, key, val) {
+  const el = document.getElementById(`fbar-${formIdx}-${key}`);
+  if (el) el.innerHTML = _formStatBarHTML(+val || 1, key);
+}
+
+function renderEditorForms() {
+  const wrap = document.getElementById('e-forms-list');
+  const addBtn = document.getElementById('add-form-btn');
+  const countEl = document.getElementById('forms-count');
+  if (!wrap) return;
+  if (countEl) countEl.textContent = `(${_editorForms.length}/4)`;
+  if (addBtn) addBtn.disabled = _editorForms.length >= 4;
+
+  if (!_editorForms.length) {
+    wrap.innerHTML = `<div style="color:#3a3a3a;font-size:8px;letter-spacing:1px;padding:10px 0 4px;">NO ALTERNATE FORMS YET.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = _editorForms.map((f, i) => {
+    const av = f.avatar
+      ? `<img src="${f.avatar}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+      : `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="width:52px;height:52px;opacity:0.3;">
+          <rect x="12" y="2" width="8" height="8" fill="currentColor"/>
+          <rect x="10" y="10" width="12" height="10" fill="currentColor"/>
+          <rect x="8"  y="20" width="6" height="8" fill="currentColor"/>
+          <rect x="18" y="20" width="6" height="8" fill="currentColor"/>
+         </svg>`;
+
+    const statRows = _FORM_STAT_DEFS.map(s => {
+      const v = +f.stats[s.key] || 1;
+      const max = _FORM_STAT_MAX[s.key];
+      const tier = PL_TIERS[getStatPL(s.key, v)];
+      return `<div class="form-stat-block">
+        <label class="form-stat-lbl">
+          ${s.icon}
+          <span style="color:${s.color};margin-left:5px;">${s.label}</span>
+          &nbsp;<span id="fdisp-${i}-${s.key}" style="color:#fff;">${v}</span>
+          <span id="fpl-${i}-${s.key}" class="stat-pl-badge" style="color:${tier.color};">${tier.short}</span>
+        </label>
+        <div class="flex-row" style="gap:6px;margin-top:5px;">
+          <input type="range" min="1" max="${max}" value="${v}" id="fslider-${i}-${s.key}"
+            oninput="syncFormStat(${i},'${s.key}',this.value)" style="flex:1;"/>
+          <input type="number" value="${v}" min="1" max="${max}" id="fnum-${i}-${s.key}"
+            oninput="syncFormStat(${i},'${s.key}',this.value)"
+            class="stat-num-input" style="width:72px;text-align:right;"/>
+          <button class="btn sm" onclick="syncFormStat(${i},'${s.key}',+document.getElementById('fnum-${i}-${s.key}').value+1)">+</button>
+          <button class="btn sm" onclick="syncFormStat(${i},'${s.key}',+document.getElementById('fnum-${i}-${s.key}').value-1)">-</button>
+        </div>
+        <div class="stat-segs mt-8" id="fbar-${i}-${s.key}">${_formStatBarHTML(v, s.key)}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="form-editor-card">
+      <div class="form-editor-header">
+        <span>FORM ${i + 1}</span>
+        <button class="btn sm danger" onclick="removeEditorForm(${i})">&#x2715; REMOVE</button>
+      </div>
+      <div class="form-editor-body">
+
+        <div class="form-top-row">
+          <div class="form-avatar-col">
+            <div class="form-avatar-zone" onclick="triggerFormImgUpload(${i})">
+              ${av}
+              <div class="form-avatar-overlay">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <rect x="1" y="5" width="14" height="10" rx="1"/>
+                  <circle cx="8" cy="10" r="3"/>
+                  <path d="M5 5V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1"/>
+                </svg>
+              </div>
+            </div>
+            ${f.avatar ? `<button class="btn sm" onclick="clearFormAvatar(${i})" style="margin-top:5px;width:100%;font-size:6px;letter-spacing:0;">CLEAR</button>` : ''}
+          </div>
+          <div class="form-name-col">
+            <label style="font-size:7px;letter-spacing:2px;color:#444;display:block;margin-bottom:5px;">FORM NAME</label>
+            <input type="text" value="${escHtml(f.name || '')}" maxlength="20"
+              placeholder="e.g. Awakened, Final Boss..."
+              oninput="_editorForms[${i}].name=this.value"
+              class="form-name-input"/>
+            <div style="font-size:7px;letter-spacing:1px;color:#333;margin-top:10px;line-height:1.8;">
+              Traits &amp; passive abilities<br>are shared across all forms.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-stats-section">
+          ${statRows}
+          <div id="foverall-pl-${i}" class="form-overall-pl"></div>
+        </div>
+
+        <div class="form-substats-grid">
+          ${[
+            { key:'heal_pow',    label:'HEAL POW',   color:'#88ff88', min:0,   max:999,  step:1   },
+            { key:'crit_rate',   label:'CRIT RATE',  color:'#ff8888', min:0,   max:100,  step:0.1 },
+            { key:'crit_dmg',    label:'CRIT DMG',   color:'#cc2222', min:0,   max:999,  step:1   },
+            { key:'status_res',  label:'STATUS RES', color:'#00ccaa', min:0,   max:100,  step:0.1 },
+            { key:'dexterity',   label:'DEX',        color:'#ffff88', min:0,   max:100,  step:0.1 },
+            { key:'resilience',  label:'RESILIENCE', color:'#8844cc', min:0,   max:100,  step:0.1 },
+            { key:'true_dmg',    label:'TRUE DMG',   color:'#ffffff', min:0,   max:999,  step:1   },
+            { key:'lifesteal',   label:'LIFESTEAL',  color:'#aa2222', min:0,   max:100,  step:0.1 },
+            { key:'cooldown_red',label:'CDR',        color:'#00aaff', min:0,   max:100,  step:0.1 },
+          ].map(ss => `
+            <div class="form-substat-cell">
+              <label style="font-size:6px;letter-spacing:1px;color:${ss.color};">${ss.label} (%)</label>
+              <input type="number" value="${+(f.substats[ss.key]||0).toFixed(2)}"
+                min="${ss.min}" max="${ss.max}" step="${ss.step}"
+                oninput="_editorForms[${i}].substats.${ss.key}=+this.value||0"
+                class="stat-num-input" style="width:100%;margin-top:4px;font-size:8px;"/>
+            </div>`).join('')}
+        </div>
+
+      </div>
+    </div>`;
+  }).join('');
+  // Seed the overall PL displays (DOM must exist first)
+  _editorForms.forEach((_, i) => updateFormOverallPL(i));
+}
+
+function addEditorForm() {
+  if (_editorForms.length >= 4) return;
+  _editorForms.push({
+    name: '',
+    avatar: null,
+    stats: { hp: 50, atk: 10, def: 10, mag: 10, spd: 10 },
+    substats: _fullSubstats()
+  });
+  renderEditorForms();
+}
+
+function removeEditorForm(idx) {
+  _editorForms.splice(idx, 1);
+  renderEditorForms();
+}
+
+function clearFormAvatar(idx) {
+  _editorForms[idx].avatar = null;
+  renderEditorForms();
+}
+
+function triggerFormImgUpload(idx) {
+  _formUploadIdx = idx;
+  document.getElementById('form-avatar-file').click();
+}
+
+function handleFormAvatarUpload(event) {
+  const file = event.target.files[0];
+  if (!file || _formUploadIdx === null) return;
+  const idx = _formUploadIdx;
+  _formUploadIdx = null;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    if (_editorForms[idx]) {
+      _editorForms[idx].avatar = await compressImage(e.target.result, 512, 0.82);
+      renderEditorForms();
+    }
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+// ============================================================
 // CHARACTER TAGS
 // ============================================================
 let _editorTags = [];
@@ -1731,6 +2042,13 @@ function showEditor(id) {
     currentAvatarDataURL = c.avatar || null;
     _editorTags = [...(c.tags || [])];
     renderEditorTags();
+    _editorForms = (c.altForms || []).map(f => ({
+      name: f.name || '',
+      avatar: f.avatar || null,
+      stats: { hp: f.stats?.hp || 50, atk: f.stats?.atk || 10, def: f.stats?.def || 10, mag: f.stats?.mag || 10, spd: f.stats?.spd || 10 },
+      substats: _fullSubstats(f.substats)
+    }));
+    renderEditorForms();
     const ptype = c.pattern?.type || 'none';
     document.getElementById('e-pattern').value = ptype;
     patternParams = Object.assign({}, c.pattern?.params || {});
@@ -1759,6 +2077,8 @@ function showEditor(id) {
     currentAvatarDataURL = null;
     _editorTags = [];
     renderEditorTags();
+    _editorForms = [];
+    renderEditorForms();
     document.getElementById('e-pattern').value = 'none';
     buildPatternParams('none');
   }
@@ -1981,7 +2301,14 @@ function saveCharacter() {
     gold: existing.gold ?? 0,
     goldHistory: existing.goldHistory || [],
     pity: existing.pity ?? 0,
-    tags: [..._editorTags]
+    tags: [..._editorTags],
+    altForms: _editorForms.map(f => ({
+      name: f.name || '',
+      avatar: f.avatar || null,
+      stats: { hp: +f.stats.hp || 1, atk: +f.stats.atk || 1, def: +f.stats.def || 1, mag: +f.stats.mag || 1, spd: +f.stats.spd || 1 },
+      substats: _fullSubstats(f.substats, true)
+    })),
+    activeFormIdx: existing.activeFormIdx || 0
   };
 
   if (editingId) {
@@ -2621,16 +2948,22 @@ let currentItemIconImage = null;
 let editingItemId = null;
 
 function getEffectiveStats(c) {
-  const base = { ...c.stats };
-  const subBase = c.substats || {
+  // If an alternate form is active, use its stats/substats as the base
+  const _activeFormIdx = c.activeFormIdx || 0;
+  const _activeAltForm = _activeFormIdx > 0 ? (c.altForms || [])[_activeFormIdx - 1] : null;
+  const base = { ...(_activeAltForm ? _activeAltForm.stats : c.stats) };
+  const subBase = (_activeAltForm ? _activeAltForm.substats : null) || c.substats || {
     heal_pow: 0, crit_rate: 0, crit_dmg: 0,
     status_res: 0, dexterity: 0, resilience: 0,
     true_dmg: 0, lifesteal: 0, cooldown_red: 0
   };
 
-  // Enforce locked substats to ALWAYS have a 0 base, even if legacy data exists
-  const lockedSubstats = ['crit_rate', 'crit_dmg', 'status_res', 'resilience', 'true_dmg', 'lifesteal', 'cooldown_red'];
-  lockedSubstats.forEach(key => subBase[key] = 0);
+  // For base characters, locked substats are always 0 (they're fully derived from main stats).
+  // For alt forms, the user can set them freely — those values become the starting base.
+  if (!_activeAltForm) {
+    const lockedSubstats = ['crit_rate', 'crit_dmg', 'status_res', 'resilience', 'true_dmg', 'lifesteal', 'cooldown_red'];
+    lockedSubstats.forEach(key => subBase[key] = 0);
+  }
 
   const items = (c.inventory || []).filter(i => i.equipped);
 

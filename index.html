@@ -243,8 +243,11 @@
                 </svg>
               </div>
               <div class="char-name-block" style="display: flex; flex-direction: column; justify-content: center;">
-                <div class="char-name-display" id="cv-name">???</div>
-                <div id="cv-pl-badge" style="margin-bottom:6px;margin-top:-4px;"></div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <div class="char-name-display" id="cv-name">???</div>
+                  <div id="cv-form-switcher" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
+                </div>
+                <div id="cv-pl-badge" style="margin-bottom:6px;margin-top:2px;"></div>
                 <div id="cv-gold-display" onclick="openGoldManager()" title="Open treasury">
                   <svg width="11" height="11" viewBox="0 0 11 11" style="vertical-align:middle;margin-right:3px;"><circle cx="5.5" cy="5.5" r="4.5" fill="none" stroke="#ffe14a" stroke-width="1"/><circle cx="5.5" cy="5.5" r="2" fill="#ffe14a"/></svg>
                   <span id="cv-gold-amount">0</span> G
@@ -531,6 +534,17 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- ALTERNATE FORMS -->
+      <div class="panel mt-16">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;">
+          ALTERNATE FORMS
+          <span id="forms-count" style="color:#444;font-size:8px;font-weight:normal;">(0/4)</span>
+        </div>
+        <p style="font-size:8px;color:#555;letter-spacing:1px;margin:0 0 12px;">Add up to 4 extra forms with different stats &amp; images. Traits are always shared.</p>
+        <div id="e-forms-list"></div>
+        <button class="btn sm" id="add-form-btn" onclick="addEditorForm()" style="margin-top:10px;">+ ADD FORM</button>
       </div>
 
       <!-- PATTERN -->
@@ -865,6 +879,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="script.js?v=3"></script>
+  <!-- Hidden file input for per-form avatar uploads — kept outside any click zones -->
+  <input type="file" id="form-avatar-file" accept="image/*" onchange="handleFormAvatarUpload(event)" style="display:none;">
 
 </body>
 
