@@ -3625,6 +3625,89 @@ const TRAITS = {
   },
 };
 
+// ============================================================
+// TRAIT ROLES — used by the codex to group traits within each rarity
+// Values: 'dps' | 'tank' | 'assassin' | 'support' | 'scaling' | 'utility'
+// ============================================================
+const TRAIT_ROLES = {
+  // COMMON
+  favored:'dps', spicy:'tank', sonic:'assassin', flaming:'dps',
+  enchanted:'support', steadfast:'dps', bombastic:'utility',
+  counterfeit:'utility', sticky:'utility', tough:'tank', hearty:'tank',
+  keen:'dps', scholarly:'support', lightfooted:'assassin',
+  regenerative:'support', reckless:'dps', ironclad:'tank',
+  precise:'dps', glassjaw:'dps', shocking:'utility', wellfed:'tank',
+  caffeinated:'assassin', stubborn:'tank', nightowl:'dps',
+  headstrong:'tank', resolute:'tank', grounded:'tank',
+  // RARE
+  assassin:'assassin', executioner:'dps', lethal:'dps', toxic:'dps',
+  frostbite:'dps', buff:'dps', armored:'tank', workhorse:'support',
+  shielding:'tank', saving:'utility', voided:'utility', legday:'assassin',
+  shrinkray:'utility', vital:'tank', swiftstrike:'assassin',
+  spellweaver:'support', lifeline:'support', weakpoint:'dps',
+  berserker:'dps', bulwark:'tank', overdrive:'dps', solo:'scaling',
+  packhunter:'dps', laststand:'tank', opportunist:'dps',
+  momentum:'dps', adrenaline:'dps', secondwind:'tank',
+  mending:'support', fortify:'tank', evasion:'assassin',
+  warcry:'support', bubbly:'utility',
+  // EPIC
+  economic:'utility', pyromaniac:'dps', prime:'dps', overflowing:'support',
+  vampiric:'tank', solar:'assassin', gambler:'dps', deferred:'dps',
+  trueT:'dps', heavyhitter:'dps', clothesline:'support', dawn:'tank',
+  warmup:'utility', colossus:'tank', archmage:'support', phantom:'assassin',
+  juggernaut:'tank', irongiant:'tank', spellblade:'dps', reaper:'dps',
+  onslaught:'dps', absorbent:'tank', mirror:'tank', echo:'dps',
+  timebomb:'dps', overdose:'dps', shieldbreak:'dps', warden:'support',
+  empower:'support', commander:'support', second_skin:'tank', blitz:'dps',
+  siphon:'dps', double_tap:'dps', sentinel:'tank', pressure_pt:'dps',
+  deadweight:'dps', chain:'dps', war_drum:'support', overclock:'support',
+  shadowstrike:'assassin', piles_of_bones:'scaling', spite:'dps',
+  exposed:'dps', vitalsiphon:'tank', corepiercer:'dps', desperate:'support',
+  rampage:'dps', bounty:'scaling', kinetic:'assassin',
+  // LEGENDARY
+  godly:'dps', rct:'support', gluttonous:'scaling', cultivation:'scaling',
+  cursed:'dps', angelic:'support', ryoiki:'tank', celestial:'tank',
+  temporal:'utility', spiritual:'support', circle:'support', bigbrain:'tank',
+  giant:'dps', goliath:'dps', allin:'dps', thornwall:'tank',
+  apex_pred:'dps', ironvow:'scaling', soulforge:'scaling', final_stand:'dps',
+  thousandcuts:'dps', eternal_flame:'tank', entropy:'dps',
+  phantom_step:'assassin', apex_hunger:'scaling', reapers_mark:'dps',
+  parasite:'dps', forsaken:'dps', twin_fangs:'dps', condemned:'dps',
+  warpath:'scaling', blood_frenzy:'dps', voidborn:'dps', martyr:'support',
+  hex_eater:'tank', phantom_pain:'dps', guillotine:'dps',
+  doppelganger:'utility', sundering:'dps', necromancer:'utility',
+  debt_collector:'dps', black_hole:'dps', thundergod:'dps',
+  conqueror:'scaling', soul_link:'support', bloodrage:'dps',
+  chrono_break:'utility', cannibal:'scaling', bulwark_aura:'support',
+  war_priest:'support', vanguard:'tank', last_rites:'support',
+  resonance:'support', mentor:'support', self_sacrifice:'support',
+  bodyguard:'support', rallying_cry:'support', hexbinder:'utility',
+  disruptor:'support', nemesis:'dps', lonewolf:'scaling',
+  catastrophe:'utility', life_support:'support', schism:'scaling',
+  find_your_spark:'scaling',
+  // MYTHIC
+  adaptation:'tank', acclrsorc:'support', brave:'utility', bloodlust:'dps',
+  allforyou:'support', glasscannon:'dps', magical:'support', nesting:'tank',
+  lucifer:'dps', zoe:'support', vengeance:'dps', raidboss:'tank',
+  honored_one:'dps', transcendence:'utility', world_ender:'dps',
+  paradox:'utility', usurper:'utility', sovereign:'tank', void_emperor:'utility',
+  plague_bearer:'dps', abyss_walker:'tank', mythbreaker:'utility',
+  legacy:'support', ultrakill:'dps', disturbing_peace:'scaling',
+  soul_eater:'scaling', unrelentless_hunger:'dps',
+  // HEXXED
+  hx_shadow:'assassin', hx_royal:'dps', hx_shrink:'utility', hx_void:'utility',
+  hx_econ:'utility', hx_pyro:'dps', hx_vamp:'dps', hx_solar:'assassin',
+  hx_gamble:'dps', hx_defer:'dps', hx_true:'dps', hx_heavy:'dps',
+  hx_dusk:'tank', hx_gymbro:'utility', hx_godly:'dps', hx_cult:'scaling',
+  hx_cursed:'dps', hx_angel:'support', hx_ryoiki:'tank', hx_temp:'utility',
+  hx_spirit:'support', hx_giant:'dps', hx_goliath:'dps', hx_adapt:'tank',
+  hx_blood:'dps', hx_glass:'dps', hx_magic:'support', hx_nest:'tank',
+  hx_veng:'dps', hx_raid:'tank', hx_sticky:'utility', hx_spicy:'tank',
+  hx_armor:'tank',
+};
+const ROLE_ORDER  = ['dps', 'tank', 'assassin', 'support', 'scaling', 'utility'];
+const ROLE_LABELS = { dps:'DPS', tank:'TANK', assassin:'ASSASSIN', support:'SUPPORT', scaling:'SCALING', utility:'UTILITY' };
+
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic', 'hexxed', 'duality', 'determined'];
 const RARITY_LABEL = { common: 'COMMON', rare: 'RARE', epic: 'EPIC', legendary: 'LEGENDARY', mythic: 'MYTHIC', hexxed: 'HEXXED', duality: 'DUALITY', determined: 'DETERMINED' };
 const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.1, hexxed: 0.02, duality: 0.01, determined: 0.005 };
@@ -4302,6 +4385,26 @@ function openTraitCodex() {
         </div>`;
     }
 
+    // Group seen traits by role
+    const byRole = {};
+    ROLE_ORDER.forEach(r => { byRole[r] = []; });
+    seenOfRarity.forEach(([k, t]) => {
+      const role = TRAIT_ROLES[k] || 'utility';
+      byRole[role].push([k, t]);
+    });
+    const groupedHtml = ROLE_ORDER.flatMap(role => {
+      const entries = byRole[role];
+      if (!entries.length) return [];
+      return [
+        `<div class="codex-role-sep">${ROLE_LABELS[role]}</div>`,
+        ...entries.map(([k, t]) => `
+          <div class="codex-entry rar-${rar}">
+            <div class="codex-entry-name">${t.name}</div>
+            <div class="codex-entry-desc">${t.desc}</div>
+          </div>`)
+      ];
+    }).join('');
+
     return `
       <div class="codex-section rar-${rar}">
         <div class="codex-section-title">
@@ -4309,12 +4412,7 @@ function openTraitCodex() {
           <span class="codex-rar-chance">${RARITY_WEIGHTS[rar]}% chance</span>
         </div>
         <div class="codex-list">
-          ${seenOfRarity.map(([k, t]) => `
-            <div class="codex-entry rar-${rar}">
-              <div class="codex-entry-name">${t.name}</div>
-              <div class="codex-entry-desc">${t.desc}</div>
-            </div>
-          `).join('')}
+          ${groupedHtml}
           ${countSeen === 0 ? `<div style="font-size:8px; color:#444; padding:8px;">NOTHING UNLOCKED YET</div>` : ''}
         </div>
       </div>`;

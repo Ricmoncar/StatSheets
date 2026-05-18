@@ -2070,6 +2070,20 @@ input[type=number] { -moz-appearance: textfield; }
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
 }
+.codex-role-sep {
+  grid-column: 1 / -1;
+  font-size: 7px;
+  letter-spacing: 3px;
+  color: #3a3a3a;
+  padding: 8px 2px 3px;
+  border-top: 1px solid #1c1c1c;
+  margin-top: 2px;
+}
+.codex-role-sep:first-child {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 2px;
+}
 .codex-entry {
   position: relative;
   padding: 12px 14px;
