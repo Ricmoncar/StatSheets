@@ -6584,7 +6584,7 @@ function renderHeightChart() {
       const silDiv = document.createElement('div');
       silDiv.innerHTML = HC_SILHOUETTE;
       const svg = silDiv.firstElementChild;
-      svg.className = 'hc-char-svg';
+      svg.setAttribute('class', 'hc-char-svg');
       svg.style.height = charHeightPx + 'px';
       svg.style.color = entry.color || '#888';
       anchor.appendChild(svg);

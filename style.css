@@ -4796,7 +4796,7 @@ input[type=number] { -moz-appearance: textfield; }
 #hc-modal {
   display: none; position: fixed;
   top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: 92vw; max-width: 960px; max-height: 92vh;
+  width: 92vw; max-width: 1000px; height: 90vh;
   background: #0d0d0d; border: 1px solid #2a2a2a;
   z-index: 201; flex-direction: column; overflow: hidden;
   font-family: var(--font-main); color: #eee;
@@ -4811,7 +4811,6 @@ input[type=number] { -moz-appearance: textfield; }
 #hc-body { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
 #hc-chart-wrap {
   display: flex; flex: 1; overflow: hidden; min-height: 0;
-  max-height: 500px;
 }
 #hc-ruler {
   width: 46px; flex-shrink: 0; position: relative;
