@@ -1829,11 +1829,12 @@ function renderInfoLinks(key) {
   links.forEach((link, idx) => {
     const row = document.createElement('div');
     row.className = 'info-link-row';
+    const hasUrl = !!link.url;
     row.innerHTML =
-      `<span class="info-link-platform">${getPlatformIcon(link.url)}</span>` +
+      `<a class="info-link-platform" href="${_esc(link.url) || '#'}" target="_blank" rel="noopener" tabindex="${hasUrl ? '0' : '-1'}" style="pointer-events:${hasUrl ? 'auto' : 'none'}">${getPlatformIcon(link.url)}</a>` +
       `<input type="text" class="info-link-url" placeholder="YouTube or Spotify URL..." value="${_esc(link.url)}" oninput="updateInfoLink('${key}',${idx},'url',this.value)">` +
       `<input type="text" class="info-link-note" placeholder="add a note..." value="${_esc(link.note)}" oninput="updateInfoLink('${key}',${idx},'note',this.value)">` +
-      `<a class="info-link-open" href="${_esc(link.url) || '#'}" target="_blank" rel="noopener" style="${link.url ? '' : 'visibility:hidden'}">▶</a>` +
+      `<a class="info-link-open" href="${_esc(link.url) || '#'}" target="_blank" rel="noopener" style="opacity:${hasUrl ? '0.55' : '0.15'};pointer-events:${hasUrl ? 'auto' : 'none'}">▶</a>` +
       `<button class="info-link-remove" onclick="removeInfoLink('${key}',${idx})" title="Remove">×</button>`;
     container.appendChild(row);
   });
@@ -1864,15 +1865,20 @@ function updateInfoLink(key, idx, field, val) {
   if (!c || !c.info || !c.info[key] || !c.info[key][idx]) return;
   c.info[key][idx][field] = val;
   if (field === 'url') {
-    // refresh platform icon + open button live
+    // refresh platform icon link + open button live
     const container = document.getElementById('info-links-' + key);
     if (container) {
       const rows = container.querySelectorAll('.info-link-row');
       if (rows[idx]) {
-        rows[idx].querySelector('.info-link-platform').innerHTML = getPlatformIcon(val);
-        const a = rows[idx].querySelector('.info-link-open');
-        a.href = val || '#';
-        a.style.visibility = val ? '' : 'hidden';
+        const iconLink = rows[idx].querySelector('.info-link-platform');
+        iconLink.innerHTML = getPlatformIcon(val);
+        iconLink.href = val || '#';
+        iconLink.style.pointerEvents = val ? 'auto' : 'none';
+        iconLink.tabIndex = val ? 0 : -1;
+        const openBtn = rows[idx].querySelector('.info-link-open');
+        openBtn.href = val || '#';
+        openBtn.style.opacity = val ? '0.55' : '0.15';
+        openBtn.style.pointerEvents = val ? 'auto' : 'none';
       }
     }
   }
