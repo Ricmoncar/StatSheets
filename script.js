@@ -4355,14 +4355,34 @@ const TRAITS = {
   // ============ LOL-INSPIRED: DUALITY ============
   hunterhunted: {
     name: 'Hunter / Hunted', rarity: 'duality',
-    desc: 'HEAVENLY — Hunter: While actively in combat, gain +50 ATK. If you spend a full turn without attacking, lose 5% current HP.\nHELLFORGED — Hunted: Every 3 turns survived in combat, permanently gain +7.5% to all stats for the rest of the encounter. The longer the fight, the more overwhelming you become.',
+    desc: 'Every 3 turns survived in combat, permanently gain +7.5% to all stats for the rest of the encounter. The longer the fight, the more overwhelming you become.',
     passive: [],
-    situational: [{ id: 'hh-hunter', label: 'HEAVENLY: While attacking (+50 ATK)', passive: [{ stat: 'atk', op: 'add', value: 50 }] }, { id: 'hh-hunted3', label: 'HELLFORGED: After 3 turns (+7.5% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 7.5 }] }, { id: 'hh-hunted6', label: 'HELLFORGED: After 6 turns (+15% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 15 }] }],
+    heavenly: {
+      name: 'Hunted',
+      desc: 'Every 3 turns survived in combat, permanently gain +7.5% to all stats for the rest of the encounter. The longer the fight, the more overwhelming you become.',
+      passive: []
+    },
+    hellforged: {
+      name: 'Hunter',
+      desc: 'While actively in combat, gain +50 ATK. If you spend a full turn without attacking, lose 5% current HP.',
+      passive: []
+    },
+    situational: [{ id: 'hh-hunted3', label: 'HEAVENLY: After 3 turns (+7.5% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 7.5 }] }, { id: 'hh-hunted6', label: 'HEAVENLY: After 6 turns (+15% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 15 }] }, { id: 'hh-hunter', label: 'HELLFORGED: While attacking (+50 ATK)', passive: [{ stat: 'atk', op: 'add', value: 50 }] }],
   },
   daybreaknight: {
     name: 'Daybreak / Nightfall', rarity: 'duality',
-    desc: 'HEAVENLY — Daybreak: Skills deal +30% damage in the first half of combat. ATK gradually fades as time passes.\nHELLFORGED — Nightfall: Start weakened. Every 3 turns of combat, permanently gain +10% to all damage. Gets increasingly terrifying.',
+    desc: 'Skills deal +30% damage in the first half of combat. ATK gradually fades as time passes.',
     passive: [],
+    heavenly: {
+      name: 'Daybreak',
+      desc: 'Skills deal +30% damage in the first half of combat. ATK gradually fades as time passes.',
+      passive: []
+    },
+    hellforged: {
+      name: 'Nightfall',
+      desc: 'Start weakened. Every 3 turns of combat, permanently gain +10% to all damage. Gets increasingly terrifying.',
+      passive: []
+    },
     situational: [{ id: 'dn-day', label: 'HEAVENLY: Early combat (+30% skill damage)', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }, { id: 'dn-night3', label: 'HELLFORGED: After 3 turns (+10% all damage)', passive: [{ stat: 'atk', op: 'pct', value: 10 }] }, { id: 'dn-night9', label: 'HELLFORGED: After 9 turns (+30% all damage)', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }],
   },
   // ============ LOL-INSPIRED: SUPPORT / UTILITY ============
@@ -5084,6 +5104,18 @@ function buildTraitPassives(c) {
       const state = (c.dualityState || {})[key] || 'heavenly';
       const sd = def[state] || def;
       (sd.passive || []).forEach(p => out.push({ ...p, _src: key }));
+      // Also process situational passives for duality traits!
+      (sd.situational || def.situational || []).forEach(sit => {
+        const isHeavenlySit = sit.label.startsWith('HEAVENLY');
+        const isHellforgedSit = sit.label.startsWith('HELLFORGED');
+        
+        if (state === 'heavenly' && isHellforgedSit) return;
+        if (state === 'hellforged' && isHeavenlySit) return;
+        
+        if (triggers[key + ':' + sit.id]) {
+          (sit.passive || []).forEach(p => out.push({ ...p, _src: key + ':' + sit.id }));
+        }
+      });
       return;
     }
     // DETERMINATION — MERCYFUL grants stat passives; check forced state override first
@@ -5236,11 +5268,13 @@ function renderTraitsDisplay(c) {
       const duState = (c.dualityState || {})[key] || 'heavenly';
       const duDef = t[duState] || t;
       const duLabel = duState === 'heavenly' ? 'HEAVENLY' : 'HELLFORGED';
+      const sitButtons = renderTraitSituationals(c, key);
       return `
         <div class="trait-chip rar-duality duality-${duState}" data-trait="${key}">
           <div class="trait-chip-rarity">${duLabel}</div>
           <div class="trait-chip-name">${duDef.name}</div>
           <div class="trait-chip-desc">${duDef.desc}</div>
+          ${sitButtons}
           <div class="duality-toggle-row">
             <button class="duality-toggle" onclick="toggleDuality('${key}',event)" title="Switch between HEAVENLY and HELLFORGED">☯</button>
           </div>
@@ -5320,7 +5354,19 @@ function renderTraitSituationals(c, key) {
   const t = TRAITS[key];
   if (!t || !t.situational || !t.situational.length) return '';
   const triggers = c.traitTriggers || {};
-  const buttons = t.situational
+  let pool = t.situational;
+  
+  // If it's a duality trait, filter situationals based on the current duality state
+  if (t.rarity === 'duality') {
+    const duState = (c.dualityState || {})[key] || 'heavenly';
+    if (duState === 'heavenly') {
+      pool = pool.filter(sit => sit.label.startsWith('HEAVENLY'));
+    } else {
+      pool = pool.filter(sit => sit.label.startsWith('HELLFORGED'));
+    }
+  }
+
+  const buttons = pool
     .filter(sit => sit.passive && sit.passive.length > 0)
     .map(sit => {
       const id = key + ':' + sit.id;
@@ -5693,6 +5739,16 @@ function toggleDuality(key, ev) {
   c.dualityState = c.dualityState || {};
   const current = c.dualityState[key] || 'heavenly';
   const next = current === 'heavenly' ? 'hellforged' : 'heavenly';
+
+  // Clear any active situational triggers for this trait when toggled
+  if (c.traitTriggers) {
+    Object.keys(c.traitTriggers).forEach(tk => {
+      if (tk.startsWith(key + ':')) {
+        delete c.traitTriggers[tk];
+      }
+    });
+  }
+
   // Trigger the transition animation on the chip before re-rendering
   const chip = document.querySelector(`.trait-chip[data-trait="${key}"]`);
   if (chip) {
@@ -5757,15 +5813,93 @@ function pickTraitFromHand(handItem) {
   c.traits = c.traits || [];
   c.shimmyfulTraits = c.shimmyfulTraits || [];
 
-  // "Bravest of the Brave" mythic: grants 2 bonus rare/epic
+  // "Bravest of the Brave" mythic: grants bonus traits
   if (key === 'brave') {
     c.traits = ['brave'];
-    c.shimmyfulTraits = [];
-    const pool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'rare' || t.rarity === 'epic').map(([k]) => k);
+    c.shimmyfulTraits = shimmyful ? ['brave'] : [];
     const seen = new Set(['brave']);
-    while (c.traits.length < 3) {
-      const k = pool[Math.floor(Math.random() * pool.length)];
-      if (!seen.has(k)) { seen.add(k); c.traits.push(k); }
+    if (shimmyful) {
+      // Guaranteed 3 additional rare/epic traits — one is guaranteed epic.
+      const epicPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'epic').map(([k]) => k);
+      const rareEpicPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'rare' || t.rarity === 'epic').map(([k]) => k);
+      
+      // Roll 1 epic trait first
+      let rolledEpic = false;
+      while (!rolledEpic) {
+        const k = epicPool[Math.floor(Math.random() * epicPool.length)];
+        if (!seen.has(k)) {
+          seen.add(k);
+          c.traits.push(k);
+          rolledEpic = true;
+        }
+      }
+      
+      // Roll 2 more rare/epic traits
+      while (c.traits.length < 4) {
+        const k = rareEpicPool[Math.floor(Math.random() * rareEpicPool.length)];
+        if (!seen.has(k)) {
+          seen.add(k);
+          c.traits.push(k);
+        }
+      }
+    } else {
+      // Guaranteed 2 additional rare/epic traits
+      const rareEpicPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'rare' || t.rarity === 'epic').map(([k]) => k);
+      while (c.traits.length < 3) {
+        const k = rareEpicPool[Math.floor(Math.random() * rareEpicPool.length)];
+        if (!seen.has(k)) {
+          seen.add(k);
+          c.traits.push(k);
+        }
+      }
+    }
+  } else if (key === 'girlyopscurse') {
+    c.traits = ['girlyopscurse'];
+    c.shimmyfulTraits = shimmyful ? ['girlyopscurse'] : [];
+    const seen = new Set(['girlyopscurse']);
+    const commonPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'common').map(([k]) => k);
+    const rarePool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'rare').map(([k]) => k);
+    
+    if (shimmyful) {
+      // Gain 3 random common traits and 2 random rare traits. All bonus traits guaranteed shimmyful.
+      while (seen.size < 4) {
+        const k = commonPool[Math.floor(Math.random() * commonPool.length)];
+        if (!seen.has(k)) {
+          seen.add(k);
+          c.traits.push(k);
+          c.shimmyfulTraits.push(k);
+        }
+      }
+      while (seen.size < 6) {
+        const k = rarePool[Math.floor(Math.random() * rarePool.length)];
+        if (!seen.has(k)) {
+          seen.add(k);
+          c.traits.push(k);
+          c.shimmyfulTraits.push(k);
+        }
+      }
+    } else {
+      // Gain 2 random common traits and 1 random rare trait. Each bonus trait has a 25% chance of being shimmyful.
+      while (seen.size < 3) {
+        const k = commonPool[Math.floor(Math.random() * commonPool.length)];
+        if (!seen.has(k)) {
+          seen.add(k);
+          c.traits.push(k);
+          if (Math.random() < 0.25) {
+            c.shimmyfulTraits.push(k);
+          }
+        }
+      }
+      while (seen.size < 4) {
+        const k = rarePool[Math.floor(Math.random() * rarePool.length)];
+        if (!seen.has(k)) {
+          seen.add(k);
+          c.traits.push(k);
+          if (Math.random() < 0.25) {
+            c.shimmyfulTraits.push(k);
+          }
+        }
+      }
     }
   } else {
     c.traits = [key];
