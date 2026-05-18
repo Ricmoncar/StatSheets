@@ -1632,6 +1632,9 @@ function viewChar(id) {
       wrap.dataset.mode = 'edit';
     }
   });
+  // Render media link rows
+  renderInfoLinks('soundtrack');
+  renderInfoLinks('voiceclaims');
   // Owner subtitle in stats tab
   const ownerDisp = document.getElementById('cv-info-owner-display');
   if (ownerDisp) {
@@ -1799,6 +1802,82 @@ function toggleInfoPreview(key) {
     btn.textContent = '▶ PREVIEW';
     wrap.dataset.mode = 'edit';
   }
+}
+
+// ============================================================
+// INFO TAB — media links
+// ============================================================
+function _esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function getPlatformIcon(url) {
+  if (!url) return `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#333" stroke-width="1.2"><path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8"/><path d="M8 1h3v3M11 1 6 6" stroke-linecap="round"/></svg>`;
+  if (/youtu\.?be/.test(url))
+    return `<svg width="12" height="12" viewBox="0 0 12 12"><rect width="12" height="12" rx="2" fill="#ff0000"/><polygon points="5,4 5,8 9,6" fill="white"/></svg>`;
+  if (/spotify/.test(url))
+    return `<svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="6" fill="#1db954"/><path d="M3.5 4.5c1.5-.7 3.5-.6 5 .3M3.5 6.2c1.2-.5 2.8-.5 4 .3M3.5 7.9c.9-.4 2.1-.4 3 .2" stroke="white" stroke-width="0.9" stroke-linecap="round" fill="none"/></svg>`;
+  return `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#555" stroke-width="1.2"><path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8"/><path d="M8 1h3v3M11 1 6 6" stroke-linecap="round"/></svg>`;
+}
+
+function renderInfoLinks(key) {
+  const container = document.getElementById('info-links-' + key);
+  if (!container) return;
+  const c = characters.find(x => x.id === currentId);
+  const links = (c && c.info && c.info[key]) || [];
+  container.innerHTML = '';
+  links.forEach((link, idx) => {
+    const row = document.createElement('div');
+    row.className = 'info-link-row';
+    row.innerHTML =
+      `<span class="info-link-platform">${getPlatformIcon(link.url)}</span>` +
+      `<input type="text" class="info-link-url" placeholder="YouTube or Spotify URL..." value="${_esc(link.url)}" oninput="updateInfoLink('${key}',${idx},'url',this.value)">` +
+      `<input type="text" class="info-link-note" placeholder="add a note..." value="${_esc(link.note)}" oninput="updateInfoLink('${key}',${idx},'note',this.value)">` +
+      `<a class="info-link-open" href="${_esc(link.url) || '#'}" target="_blank" rel="noopener" style="${link.url ? '' : 'visibility:hidden'}">▶</a>` +
+      `<button class="info-link-remove" onclick="removeInfoLink('${key}',${idx})" title="Remove">×</button>`;
+    container.appendChild(row);
+  });
+}
+
+function addInfoLink(key) {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  c.info = c.info || {};
+  c.info[key] = c.info[key] || [];
+  c.info[key].push({ url: '', note: '' });
+  renderInfoLinks(key);
+  const container = document.getElementById('info-links-' + key);
+  if (container) { const ins = container.querySelectorAll('.info-link-url'); if (ins.length) ins[ins.length-1].focus(); }
+  saveData(c);
+}
+
+function removeInfoLink(key, idx) {
+  const c = characters.find(x => x.id === currentId);
+  if (!c || !c.info || !c.info[key]) return;
+  c.info[key].splice(idx, 1);
+  renderInfoLinks(key);
+  saveData(c);
+}
+
+function updateInfoLink(key, idx, field, val) {
+  const c = characters.find(x => x.id === currentId);
+  if (!c || !c.info || !c.info[key] || !c.info[key][idx]) return;
+  c.info[key][idx][field] = val;
+  if (field === 'url') {
+    // refresh platform icon + open button live
+    const container = document.getElementById('info-links-' + key);
+    if (container) {
+      const rows = container.querySelectorAll('.info-link-row');
+      if (rows[idx]) {
+        rows[idx].querySelector('.info-link-platform').innerHTML = getPlatformIcon(val);
+        const a = rows[idx].querySelector('.info-link-open');
+        a.href = val || '#';
+        a.style.visibility = val ? '' : 'hidden';
+      }
+    }
+  }
+  clearTimeout(_infoSaveTimer);
+  _infoSaveTimer = setTimeout(() => saveData(c), 600);
 }
 
 // ============================================================
