@@ -2071,14 +2071,24 @@ input[type=number] { -moz-appearance: textfield; }
 .info-section { border-bottom: 1px solid #141414; }
 .info-section-last { border-bottom: none; padding-bottom: 8px; }
 
+.info-name-title {
+  font-family: var(--font-main);
+  font-size: 20px;
+  letter-spacing: 3px;
+  color: var(--char-color, #ffff00);
+  text-shadow: 0 0 18px var(--char-color, #ffff00), 0 0 40px rgba(255,255,255,0.1);
+  padding: 28px 24px 10px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
 .info-section-hd {
   font-family: var(--font-main);
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 3px;
   color: var(--char-color, #ffff00);
   opacity: 0.7;
-  padding: 16px 22px 14px;
-  border-left: 3px solid var(--char-color, #ffff00);
+  padding: 16px 24px 14px;
   display: block;
 }
 
@@ -4074,6 +4084,18 @@ input[type=number] { -moz-appearance: textfield; }
 
   /* ---- Folder actions: always visible on touch ---- */
   .folder-actions { opacity: 1; }
+
+  /* ---- INFO tab ---- */
+  .info-name-title { font-size: 14px; padding: 20px 16px 6px; }
+  .info-owner-band { padding: 14px 16px 14px; }
+  .info-owner-input { font-size: 16px; } /* prevent iOS auto-zoom */
+  .info-section-hd { font-size: 10px; padding: 12px 16px 10px; }
+  .info-row { padding: 0 16px 14px; gap: 10px 14px; }
+  .info-field-group { min-width: 80px; }
+  .info-line-input { font-size: 16px; } /* prevent iOS auto-zoom */
+  .info-md-group { padding: 0 16px 14px; }
+  .info-row-md { flex-direction: column; }
+  .info-md-textarea { font-size: 16px; } /* prevent iOS auto-zoom */
 
 } /* end @media mobile */
 

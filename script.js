@@ -1595,6 +1595,8 @@ function viewChar(id) {
 
   // Populate INFO tab fields
   const _info = c.info || {};
+  const nameTitleEl = document.getElementById('cv-info-name-title');
+  if (nameTitleEl) nameTitleEl.textContent = c.name || '???';
   const _setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
   _setVal('cv-info-owner',       _info.owner);
   _setVal('cv-info-age',         _info.age);
