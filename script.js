@@ -5369,13 +5369,14 @@ function renderTraitsDisplay(c) {
 }
 
 function renderTraitSituationals(c, key) {
-  const t = TRAITS[key];
+  const t = getTraitDef(c, key);
   if (!t || !t.situational || !t.situational.length) return '';
   const triggers = c.traitTriggers || {};
   let pool = t.situational;
 
   // If it's a duality trait, filter situationals based on the current duality state
-  if (t.rarity === 'duality') {
+  const baseDef = TRAITS[key];
+  if (baseDef && baseDef.rarity === 'duality') {
     const duState = (c.dualityState || {})[key] || 'heavenly';
     if (duState === 'heavenly') {
       pool = pool.filter(sit => sit.label.startsWith('HEAVENLY'));
@@ -5397,8 +5398,11 @@ function renderTraitSituationals(c, key) {
 }
 
 function buildTraitTooltip(c, key) {
-  const t = TRAITS[key];
-  if (!t) return '';
+  const baseDef = TRAITS[key];
+  if (!baseDef) return '';
+  const t = getTraitDef(c, key);
+  const rarity = baseDef.rarity;
+
   // Show concrete stat deltas this trait contributes RIGHT NOW.
   const baseNoTrait = JSON.parse(JSON.stringify(c));
   baseNoTrait.traits = (baseNoTrait.traits || []).filter(k => k !== key);
@@ -5429,7 +5433,7 @@ function buildTraitTooltip(c, key) {
   if (t.notes) extras += `<div class='tt-note'>${t.notes}</div>`;
   if (!lines) lines = `<div class='tt-note'>No direct stat change while passive. See description.</div>`;
 
-  return `<div class='tt-header rar-${t.rarity}'>${RARITY_LABEL[t.rarity]} • ${t.name}</div><div class='tt-desc'>${t.desc}</div><div class='tt-breakdown'>${lines}</div>${extras}`;
+  return `<div class='tt-header rar-${rarity}'>${RARITY_LABEL[rarity]} • ${t.name}</div><div class='tt-desc'>${t.desc}</div><div class='tt-breakdown'>${lines}</div>${extras}`;
 }
 
 function toggleTraitTrigger(triggerKey, ev) {
@@ -5988,13 +5992,14 @@ function openCultivationWindow() {
   const body = document.getElementById('cultivation-body');
   c.traitStacks = c.traitStacks || {};
   body.innerHTML = traits.map(key => {
-    const t = TRAITS[key];
+    const t = getTraitDef(c, key);
     const cult = t.cultivation;
     const stacks = c.traitStacks[key] != null ? c.traitStacks[key] : (cult.defaultStacks || 0);
+    const rarity = TRAITS[key].rarity;
     return `
-      <div class="cult-block rar-${t.rarity}" data-key="${key}">
+      <div class="cult-block rar-${rarity}" data-key="${key}">
         <div class="cult-block-header">
-          <span class="cult-tag rar-${t.rarity}">${RARITY_LABEL[t.rarity]}</span>
+          <span class="cult-tag rar-${rarity}">${RARITY_LABEL[rarity]}</span>
           <span class="cult-name">${t.name}</span>
         </div>
         <div class="cult-desc">${t.desc}</div>
@@ -6024,8 +6029,9 @@ function adjustStacks(key, delta) {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
   c.traitStacks = c.traitStacks || {};
-  const max = TRAITS[key].cultivation.maxStacks;
-  const cur = c.traitStacks[key] != null ? c.traitStacks[key] : (TRAITS[key].cultivation.defaultStacks || 0);
+  const t = getTraitDef(c, key);
+  const max = t.cultivation.maxStacks;
+  const cur = c.traitStacks[key] != null ? c.traitStacks[key] : (t.cultivation.defaultStacks || 0);
   const next = Math.max(0, Math.min(max, cur + delta));
   c.traitStacks[key] = next;
   const input = document.getElementById('cult-input-' + key);
@@ -6040,7 +6046,8 @@ function adjustStacks(key, delta) {
 function setStacks(key, val) {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
-  const max = TRAITS[key].cultivation.maxStacks;
+  const t = getTraitDef(c, key);
+  const max = t.cultivation.maxStacks;
   const v = Math.max(0, Math.min(max, parseInt(val) || 0));
   c.traitStacks = c.traitStacks || {};
   c.traitStacks[key] = v;
