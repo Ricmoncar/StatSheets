@@ -6331,10 +6331,11 @@ function buildTierChipTooltip(charId) {
   if (traitKeys.length) {
     html += `<div style="border-top:1px solid #1a1a1a;padding-top:7px;display:flex;flex-direction:column;gap:6px;">`;
     traitKeys.forEach(k => {
-      const t = TRAITS[k];
-      const col = RAR_COL[t.rarity] || '#aaa';
+      const t = getTraitDef(c, k);
+      const rarity = TRAITS[k].rarity;
+      const col = RAR_COL[rarity] || '#aaa';
       html += `<div>
-        <div style="color:${col};font-size:7px;letter-spacing:1px;margin-bottom:2px;">${(RARITY_LABEL[t.rarity] || t.rarity).toUpperCase()} — ${t.name}</div>
+        <div style="color:${col};font-size:7px;letter-spacing:1px;margin-bottom:2px;">${(RARITY_LABEL[rarity] || rarity).toUpperCase()} — ${t.name}</div>
         <div style="color:#888;font-size:6px;letter-spacing:0.5px;line-height:1.5;">${t.desc}</div>
       </div>`;
     });
