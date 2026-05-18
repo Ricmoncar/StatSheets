@@ -2516,12 +2516,17 @@ function _drawRadarFrame(svg, c, effVals) {
   ];
   const pts = arr => arr.map(p => p.join(',')).join(' ');
 
-  // Outer ring = Mountain Level cap (STAT_HARD_MAX). Linear up to that limit;
-  // past it, log2-compressed growth so the chart doesn't explode off-screen.
+  // Outer ring = Mountain Level cap (STAT_HARD_MAX).
+  // Below the cap: sqrt curve so weaker characters aren't invisibly tiny —
+  //   athlete-level (~5% of cap) appears at ~22% of the ring rather than 5%.
+  //   Mountain-level still hits the ring exactly.
+  // Past the cap: log2-compressed so the shape grows but slows down fast.
   const rawNorm = RADAR_KEYS.map(k => effVals[k] / HMAX[k]);
-  const norm    = rawNorm.map(v =>
-    v <= 1.0 ? v : Math.min(1.0 + 0.35 * Math.log2(v), 1.5)
-  );
+  const norm    = rawNorm.map(v => {
+    if (v <= 0)   return 0;
+    if (v <= 1.0) return Math.sqrt(v);
+    return Math.min(1.0 + 0.35 * Math.log2(v), 1.5);
+  });
 
   // ── Grid rings ──────────────────────────────────────────────
   const rings = [0.25, 0.5, 0.75, 1.0].map(f => {
