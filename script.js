@@ -1513,7 +1513,6 @@ document.addEventListener('click', () => closeCharContextMenu());
 // VIEW
 // ============================================================
 function viewChar(id) {
-  const savedScroll = window.scrollY; // preserve scroll — animation restart briefly sets display:none
   currentId = id;
   loadPity();
   const c = characters.find(x => x.id === id);
@@ -1521,10 +1520,14 @@ function viewChar(id) {
 
   document.getElementById('empty-state').style.display = 'none';
   const cv = document.getElementById('char-view');
-  cv.classList.remove('active');
-  void cv.offsetWidth; // force reflow to restart animation
-  cv.classList.add('active');
-  requestAnimationFrame(() => window.scrollTo({ top: savedScroll, behavior: 'instant' }));
+  if (!cv.classList.contains('active')) {
+    // First reveal — play the entry animation (doesn't scroll reset because
+    // the view wasn't taking up any space before).
+    cv.classList.add('active');
+  }
+  // When already visible, skip the remove→reflow→add cycle entirely.
+  // That cycle briefly sets display:none which collapses page height and
+  // resets scroll. Content updates in-place instead.
 
   document.getElementById('editor').classList.remove('active');
   if (previewAnim) cancelAnimationFrame(previewAnim);
