@@ -4364,14 +4364,17 @@ const TRAITS = {
     },
     hellforged: {
       name: 'Hunter',
-      desc: 'While actively in combat, gain +50 ATK. If you spend a full turn without attacking, lose 5% current HP.',
+      desc: 'While actively in combat, gain +75 ATK. Each attack increases this gain by +5. If you spend a full turn without attacking, lose 5% current HP.',
       passive: []
     },
     situational: [
       { id: 'hh-hunted3', label: 'HEAVENLY: After 3 turns (+7.5% all stats, +15 HP/DEF)', passive: [{ stat: 'all_main', op: 'pct', value: 7.5 }, { stat: 'hp', op: 'add', value: 15 }, { stat: 'def', op: 'add', value: 15 }] },
       { id: 'hh-hunted6', label: 'HEAVENLY: After 6 turns (+15% all stats, +30 HP/DEF)', passive: [{ stat: 'all_main', op: 'pct', value: 15 }, { stat: 'hp', op: 'add', value: 30 }, { stat: 'def', op: 'add', value: 30 }] },
       { id: 'hh-hunted10', label: 'HEAVENLY: After 10 turns (+25% all stats, +50 HP/DEF)', passive: [{ stat: 'all_main', op: 'pct', value: 25 }, { stat: 'hp', op: 'add', value: 50 }, { stat: 'def', op: 'add', value: 50 }] },
-      { id: 'hh-hunter', label: 'HELLFORGED: While attacking (+50 ATK)', passive: [{ stat: 'atk', op: 'add', value: 50 }] }
+      { id: 'hh-hunter', label: 'HELLFORGED: While attacking (+75 ATK)', passive: [{ stat: 'atk', op: 'add', value: 75 }] },
+      { id: 'hh-hunter3', label: 'HELLFORGED: While attacking, 3 attacks (+90 ATK)', passive: [{ stat: 'atk', op: 'add', value: 90 }] },
+      { id: 'hh-hunter5', label: 'HELLFORGED: While attacking, 5 attacks (+100 ATK)', passive: [{ stat: 'atk', op: 'add', value: 100 }] },
+      { id: 'hh-hunter10', label: 'HELLFORGED: While attacking, 10 attacks (+125 ATK)', passive: [{ stat: 'atk', op: 'add', value: 125 }] }
     ],
   },
   daybreaknight: {
