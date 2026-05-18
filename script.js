@@ -4116,6 +4116,40 @@ const SHIMMYFUL_TRAITS = {
 };
 
 // ============================================================
+// SHIMMYFUL MYTHICS — 1% chance per mythic roll
+// Orange ring matching mythic flame color. ✦ star, orange glow.
+// ============================================================
+const SHIMMYFUL_MYTHIC_TRAITS = {
+  adaptation:         { name: 'SHIMMYFUL Adaptation',          desc: 'Every hit from an enemy → +25% DEF AND +5% ATK vs that enemy. Stacks infinitely.', passive: [], situational: [{ id: 'adp-stk', label: 'Per stack vs an enemy', passive: [{ stat: 'def', op: 'pct', value: 25 }, { stat: 'atk', op: 'pct', value: 5 }] }] },
+  acclrsorc:          { name: 'SHIMMYFUL Accelerating Sorcery',desc: 'Each turn, +15% Cooldown Reduction and +5% MAG.', passive: [], situational: [{ id: 'as-1', label: 'After 1 turn (+15% CDR, +5% MAG)', passive: [{ stat: 'cooldown_red', op: 'add', value: 15 }, { stat: 'mag', op: 'pct', value: 5 }] }, { id: 'as-3', label: 'After 3 turns (+45% CDR, +15% MAG)', passive: [{ stat: 'cooldown_red', op: 'add', value: 45 }, { stat: 'mag', op: 'pct', value: 15 }] }] },
+  brave:              { name: 'SHIMMYFUL Bravest of the Brave', desc: 'On pick, guaranteed 3 additional rare/epic traits — one is guaranteed epic.', passive: [], notes: 'Meta. Grants 3 bonus rare/epic traits on pick; at least one must be epic.' },
+  bloodlust:          { name: 'SHIMMYFUL Bloodlust',           desc: 'No HP drain per round. +150% Lifesteal. Each hit costs 1% HP but gains +8% Lifesteal.', passive: [{ stat: 'lifesteal', op: 'add', value: 150 }] },
+  allforyou:          { name: 'SHIMMYFUL All for You!',        desc: 'Heals & buffs you give allies are x4. You also receive 25% of whatever you give.', passive: [], notes: 'Support multiplier. You receive 25% of buff/heal value as a bonus to yourself.' },
+  glasscannon:        { name: 'SHIMMYFUL Glass Cannon',        desc: '+250% ATK. DEF and HP penalties halved (-45% DEF, -40% HP).', passive: [{ stat: 'atk', op: 'pct', value: 250 }, { stat: 'def', op: 'pct', value: -45 }, { stat: 'hp', op: 'pct', value: -40 }] },
+  magical:            { name: 'SHIMMYFUL Magical Girl',        desc: 'Transform instantly on fight start: +25% all stats, +150% MAG.', passive: [{ stat: 'all_main', op: 'pct', value: 25 }, { stat: 'mag', op: 'pct', value: 150 }] },
+  nesting:            { name: 'SHIMMYFUL Nesting Doll',        desc: '5 revives. Lose only -15% HP and -15% ATK per revive.', passive: [], situational: [{ id: 'nd-1', label: 'After 1 revive', passive: [{ stat: 'hp', op: 'pct', value: -15 }, { stat: 'atk', op: 'pct', value: -15 }] }, { id: 'nd-5', label: 'After 5 revives', passive: [{ stat: 'hp', op: 'pct', value: -75 }, { stat: 'atk', op: 'pct', value: -75 }] }] },
+  lucifer:            { name: "SHIMMYFUL Lucifer's Champion",  desc: '+35% all stats, +90% SPD, +90% Dex. BURN stacks deal double damage.', passive: [{ stat: 'all_main', op: 'pct', value: 35 }, { stat: 'spd', op: 'pct', value: 90 }, { stat: 'dexterity', op: 'add', value: 90 }] },
+  zoe:                { name: "SHIMMYFUL Zoe's Champion",      desc: '+35% all stats, +90% HP, +90% Heal Power. Heal mirror to self is doubled.', passive: [{ stat: 'all_main', op: 'pct', value: 35 }, { stat: 'hp', op: 'pct', value: 90 }, { stat: 'heal_pow', op: 'add', value: 90 }] },
+  vengeance:          { name: 'SHIMMYFUL Vengeance',           desc: 'Per ally dead: x2.5 stats. All allies dead: x5 stats, no DEF penalty, +50% Lifesteal.', passive: [], situational: [{ id: 'vg-1', label: '1 ally down (x2.5 stats)', passive: [{ stat: 'all_main', op: 'mul', value: 2.5 }] }, { id: 'vg-all', label: 'All allies down (x5 stats, +50% Lifesteal)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }, { stat: 'lifesteal', op: 'add', value: 50 }] }] },
+  raidboss:           { name: 'SHIMMYFUL Raid Boss',           desc: 'Skip first turn (unchainable, +150% DEF). After: x3 all stats.', passive: [], situational: [{ id: 'rb-t1', label: 'Turn 1 (unchainable)', passive: [{ stat: 'def', op: 'pct', value: 150 }] }, { id: 'rb-loose', label: 'After turn 1 (released)', passive: [{ stat: 'all_main', op: 'mul', value: 3 }] }] },
+  honored_one:        { name: 'SHIMMYFUL The Honored One',     desc: 'If you are the last surviving ally: ATK x7, MAG x7, SPD x3.', passive: [], situational: [{ id: 'ho-last', label: 'Last ally standing', passive: [{ stat: 'atk', op: 'mul', value: 7 }, { stat: 'mag', op: 'mul', value: 7 }, { stat: 'spd', op: 'mul', value: 3 }] }] },
+  transcendence:      { name: 'SHIMMYFUL Transcendence',       desc: 'Twice per session: for one fight, all damage dealt x3 and all damage received is quartered.', passive: [], notes: 'Two activations per session. No permanent stat change.' },
+  world_ender:        { name: 'SHIMMYFUL World Ender',         desc: '+70% ATK, +70% True DMG. Your top 2 strongest attacks each fight bypass all defenses.', passive: [{ stat: 'atk', op: 'pct', value: 70 }, { stat: 'true_dmg', op: 'add', value: 70 }] },
+  paradox:            { name: 'SHIMMYFUL Paradox',             desc: 'At fight start, all stats are inverted AND doubled. Your former highest becomes your new highest.', passive: [], notes: 'Stat inversion + x2 applied at fight start. Former top stat retains its advantage.' },
+  usurper:            { name: 'SHIMMYFUL Usurper',             desc: 'Steal the enemy\'s top TWO passive stat buffs at fight start. They also take 10% of each stolen stat as True Damage per round.', passive: [], notes: 'Steal top two passive buffs. Enemy bleeds 10% of each stolen value per round as True Damage.' },
+  sovereign:          { name: 'SHIMMYFUL Sovereign',           desc: 'Immune to ALL debuffs, status effects, and damage-over-time. +55% all main stats.', passive: [{ stat: 'all_main', op: 'pct', value: 55 }, { stat: 'status_res', op: 'add', value: 100 }] },
+  void_emperor:       { name: 'SHIMMYFUL Void Emperor',        desc: 'Twice per fight: permanently set any enemy stat to 0 for that fight. Can target HP (minimum 1 HP).', passive: [], notes: 'Valid targets: ATK, DEF, MAG, SPD, or HP (floored at 1 HP). Effect is irreversible for that fight.' },
+  plague_bearer:      { name: 'SHIMMYFUL Plague Bearer',       desc: 'Every hit applies plague that stacks up to 3x. Each stack: -6% to all enemy stats until end of fight.', passive: [], notes: 'Up to 3 stacks per target. Each stack = -6% all stats. Stacks refresh on re-application.' },
+  abyss_walker:       { name: 'SHIMMYFUL Abyss Walker',        desc: '60% chance to phase through any incoming attack (0 damage). Phased attacks also reflect 20% as True Damage. +45% all stats.', passive: [{ stat: 'all_main', op: 'pct', value: 45 }] },
+  mythbreaker:        { name: 'SHIMMYFUL Mythbreaker',         desc: 'Nullify ALL enemy trait effects — legendary, mythic, hexxed, and duality. Your own traits are unaffected.', passive: [] },
+  legacy:             { name: 'SHIMMYFUL Legacy',              desc: 'Upon knockout, transfer 150% of ALL your stats to one chosen ally for the rest of that fight.', passive: [], notes: 'All stats at 150% value transferred to chosen ally on knockout.' },
+  ultrakill:          { name: 'SHIMMYFUL Ultrakill',           desc: 'x4 ATK and x4 SPD. Both drop by -3% each turn. Killing an enemy resets both to full AND grants an extra turn.', passive: [{ stat: 'atk', op: 'mul', value: 4 }, { stat: 'spd', op: 'mul', value: 4 }], situational: [{ id: 'uk-t1', label: 'After turn 1 (-3% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -3 }, { stat: 'spd', op: 'pct', value: -3 }] }, { id: 'uk-t3', label: 'After turn 3 (-9% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -9 }, { stat: 'spd', op: 'pct', value: -9 }] }, { id: 'uk-t5', label: 'Turn 5+ (-15% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -15 }, { stat: 'spd', op: 'pct', value: -15 }] }] },
+  disturbing_peace:   { name: 'SHIMMYFUL Disturbing The Peace',desc: 'x1.35 to ATK, MAG, SPD per round (compounding). Mercy Judgment requires only 2+ spares. Locked buff is x4, +150% Heal Power, +150% True DMG.', passive: [], situational: [{ id: 'dp-r1', label: 'Round 1 (x1.35 ATK/MAG/SPD)', passive: [{ stat: 'atk', op: 'mul', value: 1.35 }, { stat: 'mag', op: 'mul', value: 1.35 }, { stat: 'spd', op: 'mul', value: 1.35 }] }, { id: 'dp-r2', label: 'Round 2 (x1.82)', passive: [{ stat: 'atk', op: 'mul', value: 1.82 }, { stat: 'mag', op: 'mul', value: 1.82 }, { stat: 'spd', op: 'mul', value: 1.82 }] }, { id: 'dp-r3', label: 'Round 3 (x2.46)', passive: [{ stat: 'atk', op: 'mul', value: 2.46 }, { stat: 'mag', op: 'mul', value: 2.46 }, { stat: 'spd', op: 'mul', value: 2.46 }] }, { id: 'dp-mercy', label: 'MERCY JUDGMENT (2+ spares, 1 enemy left)', passive: [{ stat: 'atk', op: 'mul', value: 4 }, { stat: 'mag', op: 'mul', value: 4 }, { stat: 'spd', op: 'mul', value: 4 }, { stat: 'heal_pow', op: 'add', value: 150 }, { stat: 'true_dmg', op: 'add', value: 150 }] }] },
+  soul_eater:         { name: 'SHIMMYFUL Soul Eater',          desc: 'Each kill: absorb 10% of enemy\'s highest stat AND 3% of all their other stats permanently.', passive: [], cultivation: { label: 'Souls Devoured', perStack: [{ stat: 'all_main', op: 'add', value: 5 }], defaultStacks: 0, maxStacks: 999 }, notes: 'Per kill: +10% of enemy top stat to matching stat, +3% of all other enemy stats. Stack approx. for simulator.' },
+  unrelentless_hunger:{ name: 'SHIMMYFUL Unrelentless Hunger', desc: 'x3 ATK per bleeding enemy. All attacks inflict bleed for 5 turns. With 2+ bleeding enemies: x3 SPD.', passive: [], situational: [{ id: 'uh-1b', label: '1 enemy bleeding (x3 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 3 }] }, { id: 'uh-2b', label: '2 enemies bleeding (x6 ATK + x3 SPD)', passive: [{ stat: 'atk', op: 'mul', value: 6 }, { stat: 'spd', op: 'mul', value: 3 }] }, { id: 'uh-3b', label: '3 enemies bleeding (x9 ATK + x3 SPD)', passive: [{ stat: 'atk', op: 'mul', value: 9 }, { stat: 'spd', op: 'mul', value: 3 }] }, { id: 'uh-4b', label: '4+ enemies bleeding (x12 ATK + x3 SPD)', passive: [{ stat: 'atk', op: 'mul', value: 12 }, { stat: 'spd', op: 'mul', value: 3 }] }] },
+};
+
+// ============================================================
 // SHIMMYFUL EPICS — 1% chance per epic roll
 // Purple ring matching epic color. ✦ star, purple glow.
 // ============================================================
@@ -4286,6 +4320,7 @@ function isShimmyful(c, key) {
 function getShimmyfulDef(key) {
   const rarity = TRAITS[key]?.rarity;
   if (rarity === 'legendary') return SHIMMYFUL_LEGENDARY_TRAITS[key];
+  if (rarity === 'mythic')    return SHIMMYFUL_MYTHIC_TRAITS[key];
   if (rarity === 'epic')      return SHIMMYFUL_EPIC_TRAITS[key];
   if (rarity === 'rare')      return SHIMMYFUL_RARE_TRAITS[key];
   return SHIMMYFUL_TRAITS[key];
@@ -4328,7 +4363,7 @@ function rollHand(isPityRoll) {
     if (!seen.has(k)) {
       seen.add(k);
       const _r = TRAITS[k]?.rarity;
-      const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
+      const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'mythic' && Math.random() < 0.01) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
       hand.push({ key: k, shimmyful });
     }
     tries++;
@@ -4678,14 +4713,15 @@ function renderTraitsDisplay(c) {
         </div>`;
     }
     const shimmyDef = isShimmyful(c, key) ? getShimmyfulDef(key) : null;
-    const isLegShimmy  = shimmyDef && rarity === 'legendary';
-    const isEpicShimmy = shimmyDef && rarity === 'epic';
-    const isRareShimmy = shimmyDef && rarity === 'rare';
+    const isLegShimmy    = shimmyDef && rarity === 'legendary';
+    const isMythicShimmy = shimmyDef && rarity === 'mythic';
+    const isEpicShimmy   = shimmyDef && rarity === 'epic';
+    const isRareShimmy   = shimmyDef && rarity === 'rare';
     const displayDef = shimmyDef || t;
     const sitButtons = renderTraitSituationals(c, key);
     return `
-      <div class="trait-chip rar-${rarity}${shimmyDef ? ' shimmyful' : ''}${isLegShimmy ? ' shimmy-leg' : ''}${isEpicShimmy ? ' shimmy-epic' : ''}${isRareShimmy ? ' shimmy-rare' : ''}" data-trait="${key}">
-        ${shimmyDef ? `<div class="shimmy-star${isLegShimmy ? ' shimmy-leg-star' : ''}${isEpicShimmy ? ' shimmy-epic-star' : ''}${isRareShimmy ? ' shimmy-rare-star' : ''}">` + (isLegShimmy ? '★' : '✦') + '</div>' : ''}
+      <div class="trait-chip rar-${rarity}${shimmyDef ? ' shimmyful' : ''}${isLegShimmy ? ' shimmy-leg' : ''}${isMythicShimmy ? ' shimmy-mythic' : ''}${isEpicShimmy ? ' shimmy-epic' : ''}${isRareShimmy ? ' shimmy-rare' : ''}" data-trait="${key}">
+        ${shimmyDef ? `<div class="shimmy-star${isLegShimmy ? ' shimmy-leg-star' : ''}${isMythicShimmy ? ' shimmy-mythic-star' : ''}${isEpicShimmy ? ' shimmy-epic-star' : ''}${isRareShimmy ? ' shimmy-rare-star' : ''}">` + (isLegShimmy ? '★' : '✦') + '</div>' : ''}
         <div class="trait-chip-rarity">${RARITY_LABEL[rarity]}</div>
         <div class="trait-chip-name">${displayDef.name}</div>
         <div class="trait-chip-desc">${displayDef.desc}</div>
@@ -5003,20 +5039,22 @@ function rollTraits() {
       // SHIMMYFUL reveal — fires 400ms after the base reveal
       if (handItem.shimmyful) {
         setTimeout(() => {
-          const isLegShimmy  = t.rarity === 'legendary';
-          const isEpicShimmy = t.rarity === 'epic';
-          const isRareShimmy = t.rarity === 'rare';
-          const sd = isLegShimmy ? SHIMMYFUL_LEGENDARY_TRAITS[key] : isEpicShimmy ? SHIMMYFUL_EPIC_TRAITS[key] : isRareShimmy ? SHIMMYFUL_RARE_TRAITS[key] : SHIMMYFUL_TRAITS[key];
+          const isLegShimmy    = t.rarity === 'legendary';
+          const isMythicShimmy = t.rarity === 'mythic';
+          const isEpicShimmy   = t.rarity === 'epic';
+          const isRareShimmy   = t.rarity === 'rare';
+          const sd = isLegShimmy ? SHIMMYFUL_LEGENDARY_TRAITS[key] : isMythicShimmy ? SHIMMYFUL_MYTHIC_TRAITS[key] : isEpicShimmy ? SHIMMYFUL_EPIC_TRAITS[key] : isRareShimmy ? SHIMMYFUL_RARE_TRAITS[key] : SHIMMYFUL_TRAITS[key];
           if (!sd) return;
           card.classList.add('shimmyful');
-          if (isLegShimmy)  card.classList.add('shimmy-leg');
-          if (isEpicShimmy) card.classList.add('shimmy-epic');
-          if (isRareShimmy) card.classList.add('shimmy-rare');
+          if (isLegShimmy)    card.classList.add('shimmy-leg');
+          if (isMythicShimmy) card.classList.add('shimmy-mythic');
+          if (isEpicShimmy)   card.classList.add('shimmy-epic');
+          if (isRareShimmy)   card.classList.add('shimmy-rare');
           card.querySelector('.hand-card-name').textContent = sd.name;
           card.querySelector('.hand-card-desc').textContent = sd.desc;
           // Update rarity label suffix
           const rarEl = card.querySelector('.hand-card-rarity');
-          if (rarEl) rarEl.innerHTML = rarEl.textContent + (isLegShimmy ? ' <span style="color:#ffd84a">★</span>' : isEpicShimmy ? ' <span style="color:#c98bff">✦</span>' : isRareShimmy ? ' <span style="color:#4aa9ff">✦</span>' : ' <span style="color:#50ff8c">✦</span>');
+          if (rarEl) rarEl.innerHTML = rarEl.textContent + (isLegShimmy ? ' <span style="color:#ffd84a">★</span>' : isMythicShimmy ? ' <span style="color:#ff8c00">✦</span>' : isEpicShimmy ? ' <span style="color:#c98bff">✦</span>' : isRareShimmy ? ' <span style="color:#4aa9ff">✦</span>' : ' <span style="color:#50ff8c">✦</span>');
           card.style.filter = 'brightness(2.8)';
           setTimeout(() => {
             card.style.transition = 'filter 0.5s ease';
