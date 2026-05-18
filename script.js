@@ -1611,17 +1611,26 @@ function viewChar(id) {
   _setVal('cv-info-fears',       _info.fears);
   _setVal('cv-info-bio',         _info.bio);
   _setVal('cv-info-notes',       _info.notes);
-  // Reset all markdown wraps to edit mode on character switch
+  // If field has content → show preview; if empty → show edit
   ['personality','goals','fears','bio','notes'].forEach(k => {
     const wrap = document.getElementById('info-md-' + k);
     if (!wrap) return;
-    wrap.dataset.mode = 'edit';
     const ta  = wrap.querySelector('textarea');
     const pv  = wrap.querySelector('.info-md-rendered');
     const btn = wrap.querySelector('.info-md-btn');
-    if (ta)  ta.style.display  = '';
-    if (pv)  { pv.style.display = 'none'; pv.innerHTML = ''; }
-    if (btn) btn.textContent = '▶ PREVIEW';
+    if (_info[k] && _info[k].trim()) {
+      pv.innerHTML = renderMarkdown(_info[k]);
+      pv.style.display = '';
+      ta.style.display = 'none';
+      if (btn) btn.textContent = '✎ EDIT';
+      wrap.dataset.mode = 'preview';
+    } else {
+      pv.style.display = 'none';
+      pv.innerHTML = '';
+      ta.style.display = '';
+      if (btn) btn.textContent = '▶ PREVIEW';
+      wrap.dataset.mode = 'edit';
+    }
   });
   // Owner subtitle in stats tab
   const ownerDisp = document.getElementById('cv-info-owner-display');
