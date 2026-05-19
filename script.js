@@ -51,12 +51,27 @@ const SELF_WRITE_WINDOW = 8000; // ms
 function loadData() { characters = []; } // no-op — data comes from Firestore
 
 function _stripUndefined(obj) {
-  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(item => _stripUndefined(item));
   return Object.fromEntries(
     Object.entries(obj)
       .filter(([, v]) => v !== undefined)
       .map(([k, v]) => [k, _stripUndefined(v)])
   );
+}
+
+// Migrate any character data that may have been written in an old format.
+// Old perfectSoulData.history was Array<Array> (Firestore-illegal); new format is Array<{souls:[]}>.
+function _migrateCharacter(c) {
+  if (c.perfectSoulData && Array.isArray(c.perfectSoulData.history)) {
+    let dirty = false;
+    c.perfectSoulData.history = c.perfectSoulData.history.map(entry => {
+      if (Array.isArray(entry)) { dirty = true; return { souls: entry }; }
+      return entry;
+    });
+    if (dirty) saveData(c); // write corrected format back to Firestore immediately
+  }
+  return c;
 }
 
 function saveData(charObj) {
@@ -6754,7 +6769,7 @@ if (sidebarList && db) {
 
   db.collection('characters').onSnapshot(snapshot => {
     characters = snapshot.docs
-      .map(d => d.data())
+      .map(d => _migrateCharacter(d.data()))
       .sort((a, b) => {
         const ao = a.order != null ? a.order : (a.createdAt || 0);
         const bo = b.order != null ? b.order : (b.createdAt || 0);
