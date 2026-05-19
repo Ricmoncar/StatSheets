@@ -3338,6 +3338,15 @@ function renderSubstatsDisplay(c, effStats) {
     { key: 'cooldown_red', label: 'COOLDOWN RED.', color: '#00aaff', icon: '<svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><path d="M5 2 L5 5 L7 7" fill="none" stroke="currentColor" stroke-width="1"/></svg>', title: 'Reduces skill cooldowns. +1% CDR per 20 SPEED. Max 40% without items.' },
   ];
 
+  let sanityExtra = '';
+  if (c.traits && c.traits.includes('perfectsoul')) {
+    const souls = (c.perfectSoulData && c.perfectSoulData.souls) ? c.perfectSoulData.souls.length : 0;
+    const sanity = 80 - souls * 5;
+    const sanityColor = sanity < 0 ? '#cc4444' : sanity <= 30 ? '#cc8844' : '#aaaaaa';
+    const sanityTip = `<div style='color:#dd88ff;font-weight:bold;margin-bottom:4px;'>SANITY</div>Starts at 80. -5 per absorbed soul. Turns red when negative.`.replace(/"/g, '&quot;');
+    sanityExtra = `<div style="display:flex; justify-content:space-between; align-items:center; font-size: 9px; letter-spacing: 1px; border-bottom: 1px solid #222; padding-bottom: 4px;" data-tooltip="${sanityTip}"><span style="color: #dd88ff; font-weight: bold; display:flex; align-items:center;"><span style="opacity: 0.8; margin-right: 4px;"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="4" r="3" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="3.5" cy="3.5" r="0.7" fill="currentColor"/><circle cx="6.5" cy="3.5" r="0.7" fill="currentColor"/><path d="M3.5 5.5 Q5 6.5 6.5 5.5" fill="none" stroke="currentColor" stroke-width="0.8"/><line x1="5" y1="7" x2="5" y2="9" stroke="currentColor" stroke-width="1"/></svg></span> SANITY</span><span style="color: ${sanityColor}; text-align:right;">${sanity}</span></div>`;
+  }
+
   subStatsEl.innerHTML = `<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">` + subStats.map(s => {
     // The base input value entered by user, not the scaled base
     // Force locked substats to 0 for display consistency
@@ -3405,7 +3414,7 @@ function renderSubstatsDisplay(c, effStats) {
         <span style="color: #fff; text-align:right;">${effVal.toFixed(1)}%${diffHtml}</span>
       </div>
     `;
-  }).join('') + `</div>`;
+  }).join('') + sanityExtra + `</div>`;
 }
 
 function renderInventory(c) {
@@ -5957,7 +5966,7 @@ function absorbPerfectSoul(ev) {
   };
   c.perfectSoulData = c.perfectSoulData || { souls: [], history: [] };
   c.perfectSoulData.history = c.perfectSoulData.history || [];
-  c.perfectSoulData.history.push(JSON.parse(JSON.stringify(c.perfectSoulData.souls || [])));
+  c.perfectSoulData.history.push({ souls: JSON.parse(JSON.stringify(c.perfectSoulData.souls || [])) });
   if (c.perfectSoulData.history.length > 20) c.perfectSoulData.history.shift();
   c.perfectSoulData.souls = c.perfectSoulData.souls || [];
   c.perfectSoulData.souls.push({ name: _psSelectedChar, pct, stats: absorbed });
@@ -5970,7 +5979,7 @@ function undoPerfectSoul(ev) {
   if (ev) ev.stopPropagation();
   const c = characters.find(x => x.id === currentId);
   if (!c || !c.perfectSoulData || !c.perfectSoulData.history || !c.perfectSoulData.history.length) return;
-  c.perfectSoulData.souls = c.perfectSoulData.history.pop();
+  c.perfectSoulData.souls = (c.perfectSoulData.history.pop() || {}).souls || [];
   saveData(c);
   updateLiveStats(c);
   renderTraitsDisplay(c);
@@ -5983,7 +5992,7 @@ function resetPerfectSoul(ev) {
   c.perfectSoulData = c.perfectSoulData || { souls: [], history: [] };
   c.perfectSoulData.history = c.perfectSoulData.history || [];
   if (c.perfectSoulData.souls && c.perfectSoulData.souls.length) {
-    c.perfectSoulData.history.push(JSON.parse(JSON.stringify(c.perfectSoulData.souls)));
+    c.perfectSoulData.history.push({ souls: JSON.parse(JSON.stringify(c.perfectSoulData.souls)) });
     if (c.perfectSoulData.history.length > 20) c.perfectSoulData.history.shift();
   }
   c.perfectSoulData.souls = [];
