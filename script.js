@@ -4930,7 +4930,7 @@ const SHIMMYFUL_EPIC_TRAITS = {
   envy:          { name: 'SHIMMYFUL Envy', desc: 'Copy the last 2 different stat buffs used by any enemy simultaneously. Both bonuses persist until each is individually replaced.', passive: [], notes: 'Mirrors the 2 most recent distinct stat buffs from any enemy. Track both manually.' },
   ouroboros:     { name: 'SHIMMYFUL Ouroboros', desc: 'On death, fully revive at 100% HP. ATK/DEF and MAG/SPD swap, and you gain +50% to all main stats. Can trigger TWICE per battle.', passive: [], situational: [{ id: 'ouro-s-phase', label: 'Ouroboros Phase (stats swapped + +50% all main stats)', passive: [{ stat: 'all_main', op: 'pct', value: 50 }] }], notes: 'Two-use revive per battle. Each revive: ATK swaps DEF, MAG swaps SPD, +50% all main stats.' },
   whoreofbabylon:{ name: 'SHIMMYFUL Whore of Babylon', desc: 'When below 33% HP: automatically gain +75% ATK, +60% SPD, and only -10% DEF. The downside nearly disappears.', passive: [], situational: [{ id: 'wob-s-active', label: 'SHIMMYFUL Whore of Babylon active (below 33% HP)', passive: [{ stat: 'atk', op: 'pct', value: 75 }, { stat: 'spd', op: 'pct', value: 60 }, { stat: 'def', op: 'pct', value: -10 }] }] },
-  missingno:     { name: 'SHIMMYFUL Missing No.', desc: 'At the start of each battle, all your stats are independently randomized between x0.5 and x5 of their base values. One randomly chosen stat is also locked to exactly x3.', passive: [], notes: 'Each stat rolled 0.5x–5x base. One random stat guaranteed x3. Pure chaos with a guaranteed upside.' },
+  missingno:     { name: 'SHIMMYFUL Missing No.', desc: 'At the start of each battle, all your stats are independently randomized between x0.25 and x5.5 of their base values. One randomly chosen stat is also locked to exactly x3.', passive: [], notes: 'Each stat rolled 0.25x–5.5x base. One random stat guaranteed x3. Pure chaos with a guaranteed upside.' },
   jackpot:       { name: 'SHIMMYFUL Jackpot', desc: 'On kill: roll 1d3. 1 = +30 ATK permanently. 2 = +30 DEF permanently. 3 = restore 50% HP.', passive: [], situational: [{ id: 'jp-s-atk1', label: '1x rolled 1 — +30 ATK', passive: [{ stat: 'atk', op: 'add', value: 30 }] }, { id: 'jp-s-atk2', label: '2x rolled 1 — +60 ATK', passive: [{ stat: 'atk', op: 'add', value: 60 }] }, { id: 'jp-s-atk3', label: '3x rolled 1 — +90 ATK', passive: [{ stat: 'atk', op: 'add', value: 90 }] }, { id: 'jp-s-def1', label: '1x rolled 2 — +30 DEF', passive: [{ stat: 'def', op: 'add', value: 30 }] }, { id: 'jp-s-def2', label: '2x rolled 2 — +60 DEF', passive: [{ stat: 'def', op: 'add', value: 60 }] }, { id: 'jp-s-def3', label: '3x rolled 2 — +90 DEF', passive: [{ stat: 'def', op: 'add', value: 90 }] }], notes: 'On kill, roll 1d3. Toggle the closest stack count. Roll 3 = 50% HP restore.' },
   // Story/thematic epics
   ascendedtogether:{ name: 'SHIMMYFUL Ascended Together.', desc: 'If an ally transforms or ascends, you automatically transform into a similar version of their form and gain +30% all stats for the fight.', passive: [], situational: [{ id: 'at-s-active', label: 'Ascended (mirroring ally transformation, +30% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 30 }] }], notes: 'RP: mirrors ally transformation. +30% all stats while transformed.' },
@@ -5619,7 +5619,7 @@ function renderTraitSituationals(c, key) {
       const parts = ['hp', 'atk', 'def', 'mag', 'spd'].map(s => `${s.toUpperCase()} x${rolls[s].toFixed(2)}`).join(' &nbsp; ');
       rollDisplay = `<div style="font-size:7px;color:#aaa;letter-spacing:1px;margin-bottom:4px;">${parts}</div>`;
     }
-    return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollMissingNo(event)" data-tooltip="Randomize all stats between x0.5 and x3 (x5 for SHIMMYFUL). Simulates the start-of-battle chaos roll.">&#9889; REROLL STATS</button></div>`;
+    return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollMissingNo(event)" data-tooltip="Randomize all stats between x0.5–x3 (x0.25–x5.5 for SHIMMYFUL). Simulates the start-of-battle chaos roll.">&#9889; REROLL STATS</button></div>`;
   }
   // AT THOUSAND DOORS — custom ROLL ENCOUNTER button
   if (key === 'thousanddoors') {
@@ -5736,11 +5736,14 @@ function rollMissingNo(ev) {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
   const shimmy = isShimmyful(c, 'missingno');
-  const maxMult = shimmy ? 5.0 : 3.0;
   const STATS = ['hp', 'atk', 'def', 'mag', 'spd'];
   const rolls = {};
-  STATS.forEach(s => { rolls[s] = Math.round((0.5 + Math.random() * (maxMult - 0.5)) * 100) / 100; });
-  if (shimmy) rolls[STATS[Math.floor(Math.random() * STATS.length)]] = 3.0;
+  if (shimmy) {
+    STATS.forEach(s => { rolls[s] = Math.round((0.25 + Math.random() * (5.5 - 0.25)) * 100) / 100; });
+    rolls[STATS[Math.floor(Math.random() * STATS.length)]] = 3.0;
+  } else {
+    STATS.forEach(s => { rolls[s] = Math.round((0.5 + Math.random() * (3.0 - 0.5)) * 100) / 100; });
+  }
   c.missingNoRolls = rolls;
   saveData(c);
   updateLiveStats(c);
@@ -7423,3 +7426,17 @@ function hcHandleSprite(ev) {
   };
   reader.readAsDataURL(file);
 }
+
+// One-time helper: run giveJukoShimmyfulMissingNo() from the browser console to patch Juko's data in Firestore.
+window.giveJukoShimmyfulMissingNo = async function () {
+  const snap = await db.collection('characters').where('name', '==', 'Juko').get();
+  if (snap.empty) { console.warn('No character named Juko found.'); return; }
+  for (const doc of snap.docs) {
+    const d = doc.data();
+    const traits = Array.from(new Set([...(d.traits || []), 'missingno']));
+    const shimmy = Array.from(new Set([...(d.shimmyfulTraits || []), 'missingno']));
+    await db.collection('characters').doc(doc.id).update({ traits, shimmyfulTraits: shimmy });
+    console.log(`Patched ${doc.id} (${d.name}): traits=${JSON.stringify(traits)}, shimmyful=${JSON.stringify(shimmy)}`);
+  }
+  console.log('Done. Refresh the page to see changes.');
+};
