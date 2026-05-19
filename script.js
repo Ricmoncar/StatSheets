@@ -50,6 +50,15 @@ const SELF_WRITE_WINDOW = 8000; // ms
 
 function loadData() { characters = []; } // no-op — data comes from Firestore
 
+function _stripUndefined(obj) {
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+  return Object.fromEntries(
+    Object.entries(obj)
+      .filter(([, v]) => v !== undefined)
+      .map(([k, v]) => [k, _stripUndefined(v)])
+  );
+}
+
 function saveData(charObj) {
   const c = charObj || characters.find(x => x.id === currentId);
   if (!c || !db) return;
@@ -58,7 +67,7 @@ function saveData(charObj) {
   // Keep local array in sync optimistically
   const idx = characters.findIndex(x => x.id === c.id);
   if (idx >= 0) characters[idx] = c; else characters.push(c);
-  db.collection('characters').doc(c.id).set(c).catch(err => {
+  db.collection('characters').doc(c.id).set(_stripUndefined(c)).catch(err => {
     console.error('Firestore write error:', err);
     notify('SAVE FAILED', 'err');
   });
@@ -7429,7 +7438,7 @@ function hcHandleSprite(ev) {
 
 // One-time helper: run giveJukoShimmyfulMissingNo() from the browser console to patch Juko's data in Firestore.
 window.giveJukoShimmyfulMissingNo = async function () {
-  const snap = await db.collection('characters').where('name', '==', 'Juko').get();
+  const snap = await db.collection('characters').where('name', '==', 'Juko!').get();
   if (snap.empty) { console.warn('No character named Juko found.'); return; }
   for (const doc of snap.docs) {
     const d = doc.data();
