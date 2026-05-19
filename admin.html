@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ADMIN — STATSHEETS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --font: 'Press Start 2P', monospace;
+  --bg: #080808;
+  --panel: #0d0d0d;
+  --border: #1e1e1e;
+  --fg: #ccc;
+  --accent: #ffcc00;
+  --danger: #cc2222;
+  --ok: #22aa55;
+  --shimmy: #cc88ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 8px; line-height: 1.6; }
+
+/* ── AUTH ── */
+#auth-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #000; display: flex; align-items: center; justify-content: center;
+}
+#auth-box {
+  border: 1px solid #2a2a2a; padding: 48px 40px; width: 320px;
+  background: #080808; text-align: center;
+}
+#auth-logo { font-size: 11px; letter-spacing: 3px; color: var(--accent); margin-bottom: 8px; }
+#auth-sub  { font-size: 6px; color: #2a2a2a; letter-spacing: 2px; margin-bottom: 28px; }
+#auth-input {
+  font-family: var(--font); font-size: 8px; letter-spacing: 3px;
+  width: 100%; padding: 10px 12px; background: #111; border: 1px solid #2a2a2a;
+  color: #ccc; outline: none; text-align: center; margin-bottom: 10px;
+  transition: border-color 0.15s;
+}
+#auth-input:focus { border-color: #444; }
+#auth-btn {
+  font-family: var(--font); font-size: 8px; letter-spacing: 2px;
+  padding: 9px 0; background: var(--accent); color: #000; border: none;
+  cursor: pointer; width: 100%; transition: background 0.1s;
+}
+#auth-btn:hover { background: #fff; }
+#auth-err { font-size: 6px; color: var(--danger); letter-spacing: 1px; margin-top: 10px; min-height: 12px; }
+
+/* ── LAYOUT ── */
+#admin-wrap { padding: 28px 32px; max-width: 1300px; margin: 0 auto; }
+
+.admin-header {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 28px;
+}
+.admin-header h1 { font-size: 11px; letter-spacing: 4px; color: var(--accent); }
+.admin-header .meta { font-size: 6px; color: #2a2a2a; letter-spacing: 1px; }
+
+.panel {
+  background: var(--panel); border: 1px solid var(--border);
+  padding: 20px; margin-bottom: 18px;
+}
+.panel-title {
+  font-size: 9px; letter-spacing: 3px; color: var(--accent);
+  border-bottom: 1px solid #161616; padding-bottom: 12px; margin-bottom: 16px;
+}
+
+/* ── CONTROLS ── */
+.btn {
+  font-family: var(--font); font-size: 7px; letter-spacing: 1px;
+  padding: 7px 11px; background: rgba(0,0,0,0.6); border: 1px solid #444;
+  color: #ccc; cursor: pointer; transition: all 0.1s;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn:hover { background: #ccc; color: #000; }
+.btn.accent { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn.accent:hover { background: #fff; border-color: #fff; }
+.btn.danger { border-color: #882222; color: #c44; }
+.btn.danger:hover { background: #c44; color: #fff; border-color: #c44; }
+.btn.sm { font-size: 6px; padding: 5px 8px; }
+.btn:disabled { opacity: 0.3; pointer-events: none; }
+
+input[type="text"], input[type="number"], input[type="password"], select {
+  font-family: var(--font); font-size: 7px; letter-spacing: 1px;
+  padding: 6px 8px; background: #080808; border: 1px solid #2a2a2a;
+  color: #ccc; outline: none; transition: border-color 0.15s;
+}
+input:focus, select:focus { border-color: #555; }
+
+.field { margin-bottom: 10px; }
+.field label { display: block; font-size: 6px; color: #444; letter-spacing: 1px; margin-bottom: 4px; }
+
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* ── TRAIT CHIPS ── */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 7px; border: 1px solid #2a2a2a; margin: 2px;
+  font-size: 6px; letter-spacing: 0.5px; color: #888;
+}
+.chip.shimmy { border-color: var(--shimmy); color: var(--shimmy); }
+.chip-x {
+  background: none; border: none; color: #333; cursor: pointer;
+  font-size: 12px; line-height: 1; padding: 0 1px; font-family: sans-serif;
+}
+.chip-x:hover { color: var(--danger); }
+
+/* ── TABLE ── */
+.table { width: 100%; border-collapse: collapse; font-size: 6px; letter-spacing: 0.5px; }
+.table th { color: #333; padding: 6px 8px; border-bottom: 1px solid #161616; text-align: left; font-size: 6px; }
+.table td { padding: 7px 8px; border-bottom: 1px solid #111; vertical-align: top; }
+.table tbody tr:hover td { background: #0f0f0f; }
+
+/* ── CHAR DOT ── */
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+/* ── STATUS BAR ── */
+#notif {
+  position: fixed; bottom: 18px; right: 18px; z-index: 1000;
+  font-size: 7px; letter-spacing: 1px; padding: 8px 14px;
+  background: #111; border: 1px solid #333; color: #ccc;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+#notif.vis { opacity: 1; }
+#notif.ok  { border-color: var(--ok); color: var(--ok); }
+#notif.err { border-color: var(--danger); color: var(--danger); }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid #161616; margin: 14px 0; }
+
+.stat-color-hp  { color: #ff6666; }
+.stat-color-atk { color: #ff8844; }
+.stat-color-def { color: #4499ff; }
+.stat-color-mag { color: #bb88ff; }
+.stat-color-spd { color: #66ee88; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ AUTH OVERLAY ═══════════════ -->
+<div id="auth-overlay">
+  <div id="auth-box">
+    <div id="auth-logo">ADMIN</div>
+    <div id="auth-sub">STATSHEETS // RESTRICTED</div>
+    <input type="password" id="auth-input" placeholder="PASSWORD" autocomplete="off"
+           onkeydown="if(event.key==='Enter')submitAuth()"/>
+    <button id="auth-btn" onclick="submitAuth()">ENTER</button>
+    <div id="auth-err"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ ADMIN CONTENT ═══════════════ -->
+<div id="admin-wrap" style="display:none;">
+
+  <div class="admin-header">
+    <div>
+      <h1>ADMIN PANEL</h1>
+      <div style="font-size:6px;color:#333;letter-spacing:1px;margin-top:6px;" id="char-count">CONNECTING...</div>
+    </div>
+    <div class="meta">STATSHEETS // RESTRICTED ACCESS</div>
+  </div>
+
+  <!-- ── TRAIT EDITOR ── -->
+  <div class="panel">
+    <div class="panel-title">TRAIT EDITOR</div>
+    <div class="grid2">
+
+      <!-- left: trait list -->
+      <div>
+        <div class="field">
+          <label>CHARACTER</label>
+          <select id="te-char" style="width:100%;" onchange="teLoadChar()">
+            <option value="">-- SELECT --</option>
+          </select>
+        </div>
+
+        <div id="te-traits-wrap" style="min-height:32px;margin-bottom:10px;">
+          <span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">No character selected.</span>
+        </div>
+
+        <hr class="divider">
+
+        <div class="row" style="margin-bottom:8px;">
+          <input type="text" id="te-add-key" list="trait-dl" placeholder="TRAIT KEY..." style="flex:1;" onkeydown="if(event.key==='Enter')teAddTrait()"/>
+          <datalist id="trait-dl"></datalist>
+          <label style="font-size:6px;color:#555;letter-spacing:1px;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;">
+            <input type="checkbox" id="te-shimmy"/> SHIMMYFUL
+          </label>
+          <button class="btn sm accent" onclick="teAddTrait()">+ ADD</button>
+        </div>
+
+        <div class="row">
+          <button class="btn sm" onclick="teSave()">SAVE TRAITS</button>
+          <button class="btn sm danger" onclick="teClearAll()">CLEAR ALL</button>
+        </div>
+        <div id="te-msg" style="font-size:6px;color:#444;letter-spacing:1px;margin-top:8px;min-height:12px;"></div>
+      </div>
+
+      <!-- right: stat override -->
+      <div>
+        <div class="field"><label>QUICK STAT OVERRIDE</label></div>
+        <div id="qs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">Select a character first.</span>
+        </div>
+        <div style="margin-top:12px;">
+          <button class="btn sm accent" onclick="qsSave()">SAVE STATS</button>
+        </div>
+        <hr class="divider">
+        <div class="field"><label>RENAME CHARACTER</label></div>
+        <div class="row">
+          <input type="text" id="rename-input" placeholder="NEW NAME..." style="flex:1;"/>
+          <button class="btn sm" onclick="renameChar()">RENAME</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── BULK OPERATIONS ── -->
+  <div class="panel">
+    <div class="panel-title">BULK TRAIT OPERATIONS</div>
+    <div class="grid2">
+
+      <div>
+        <div class="panel-title" style="font-size:7px;border:none;padding:0;margin-bottom:12px;color:#ccc;">GIVE TO ALL</div>
+        <div class="field">
+          <label>TRAIT KEY</label>
+          <input type="text" id="bulk-key" list="trait-dl" placeholder="e.g. perfectsoul" style="width:100%;"/>
+        </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="bulk-shimmy"/> MAKE SHIMMYFUL
+          </label>
+        </div>
+        <div class="row">
+          <button class="btn accent" onclick="bulkGive()">GIVE TO ALL CHARS</button>
+          <button class="btn danger" onclick="bulkRemove()">REMOVE FROM ALL</button>
+        </div>
+        <div id="bulk-msg" style="font-size:6px;color:#444;letter-spacing:1px;margin-top:8px;min-height:12px;"></div>
+      </div>
+
+      <div>
+        <div class="panel-title" style="font-size:7px;border:none;padding:0;margin-bottom:12px;color:#ccc;">DANGER ZONE</div>
+        <div class="field">
+          <label>NUKE A SPECIFIC TRAIT FROM EVERYONE</label>
+          <div class="row" style="margin-top:4px;">
+            <input type="text" id="nuke-key" list="trait-dl" placeholder="TRAIT KEY..." style="flex:1;"/>
+            <button class="btn sm danger" onclick="nukeTraitFromAll()">NUKE</button>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="field">
+          <label>WIPE ALL TRAITS FROM EVERY CHARACTER</label>
+          <button class="btn danger" style="margin-top:4px;" onclick="wipeAllEveryone()">WIPE EVERYONE</button>
+        </div>
+        <div id="nuke-msg" style="font-size:6px;color:#444;letter-spacing:1px;margin-top:8px;min-height:12px;"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── OVERVIEW TABLE ── -->
+  <div class="panel">
+    <div class="panel-title">CHARACTER OVERVIEW</div>
+    <div style="overflow-x:auto;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>NAME</th>
+            <th>TRAITS (COUNT)</th>
+            <th>SHIMMYFUL</th>
+            <th>BASE STATS</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="overview-body">
+          <tr><td colspan="5" style="text-align:center;color:#2a2a2a;padding:20px;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /admin-wrap -->
+
+<div id="notif"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
+// ════════════════════════════════════════════════════════════
+// AUTH — btoa('maxshimmy') === 'bWF4c2hpbW15'
+// ════════════════════════════════════════════════════════════
+(function bootstrap() {
+  if (sessionStorage.getItem('_adm') === '1') unlock();
+})();
+
+function submitAuth() {
+  const val = document.getElementById('auth-input').value;
+  if (btoa(val) === 'bWF4c2hpbW15') {
+    sessionStorage.setItem('_adm', '1');
+    unlock();
+  } else {
+    document.getElementById('auth-err').textContent = 'WRONG PASSWORD.';
+    document.getElementById('auth-input').value = '';
+    document.getElementById('auth-input').focus();
+  }
+}
+
+function unlock() {
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.getElementById('admin-wrap').style.display = 'block';
+  initAdmin();
+}
+
+// ════════════════════════════════════════════════════════════
+// FIREBASE
+// ════════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBRtoLzS--wz_6sD4rWMgzcwZnHVHUBNdg",
+  authDomain: "statsheets-3668d.firebaseapp.com",
+  projectId: "statsheets-3668d",
+  storageBucket: "statsheets-3668d.firebasestorage.app",
+  messagingSenderId: "558910483943",
+  appId: "1:558910483943:web:c468342f15569a4cf0e142"
+};
+
+let db = null;
+let characters = [];
+let _pending = null; // deep copy of character being edited
+
+firebase.initializeApp(FIREBASE_CONFIG);
+db = firebase.firestore();
+
+function _strip(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(x => _strip(x));
+  return Object.fromEntries(
+    Object.entries(obj).filter(([,v]) => v !== undefined).map(([k,v]) => [k, _strip(v)])
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+function initAdmin() {
+  db.collection('characters').onSnapshot(snap => {
+    characters = snap.docs.map(d => d.data()).sort((a, b) => {
+      const ao = a.order != null ? a.order : (a.createdAt || 0);
+      const bo = b.order != null ? b.order : (b.createdAt || 0);
+      return ao - bo;
+    });
+    document.getElementById('char-count').textContent = characters.length + ' CHARACTERS LOADED';
+    refreshSelects();
+    buildDatalist();
+    renderOverview();
+    if (_pending) {
+      // refresh pending char from updated data
+      const fresh = characters.find(c => c.id === _pending.id);
+      if (fresh) { _pending = JSON.parse(JSON.stringify(fresh)); renderTeTraits(); renderQs(); }
+    }
+  }, err => notify('CONNECTION ERROR: ' + err.message, 'err'));
+}
+
+function refreshSelects() {
+  const sel = document.getElementById('te-char');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">-- SELECT --</option>' +
+    characters.map(c => `<option value="${c.id}"${c.id === cur ? ' selected' : ''}>${c.name || c.id}</option>`).join('');
+}
+
+function buildDatalist() {
+  const keys = new Set();
+  characters.forEach(c => {
+    (c.traits || []).forEach(k => keys.add(k));
+    (c.shimmyfulTraits || []).forEach(k => keys.add(k));
+  });
+  const dl = document.getElementById('trait-dl');
+  dl.innerHTML = [...keys].sort().map(k => `<option value="${k}">`).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// TRAIT EDITOR
+// ════════════════════════════════════════════════════════════
+function teLoadChar() {
+  const id = document.getElementById('te-char').value;
+  if (!id) {
+    _pending = null;
+    document.getElementById('te-traits-wrap').innerHTML =
+      '<span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">No character selected.</span>';
+    document.getElementById('qs-grid').innerHTML =
+      '<span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">Select a character first.</span>';
+    document.getElementById('rename-input').value = '';
+    return;
+  }
+  const c = characters.find(x => x.id === id);
+  if (!c) return;
+  _pending = JSON.parse(JSON.stringify(c));
+  _pending.traits = _pending.traits || [];
+  _pending.shimmyfulTraits = _pending.shimmyfulTraits || [];
+  document.getElementById('te-msg').textContent = '';
+  document.getElementById('rename-input').value = c.name || '';
+  renderTeTraits();
+  renderQs();
+}
+
+function renderTeTraits() {
+  const wrap = document.getElementById('te-traits-wrap');
+  if (!_pending || !_pending.traits.length) {
+    wrap.innerHTML = '<span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">No traits yet.</span>';
+    return;
+  }
+  wrap.innerHTML = _pending.traits.map(k => {
+    const isS = (_pending.shimmyfulTraits || []).includes(k);
+    const safe = k.replace(/'/g, "\\'");
+    return `<span class="chip${isS ? ' shimmy' : ''}">
+      ${k}${isS ? ' ✦' : ''}
+      <button class="chip-x" onclick="teRemoveTrait('${safe}')">×</button>
+    </span>`;
+  }).join('');
+}
+
+function teAddTrait() {
+  if (!_pending) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
+  const key = document.getElementById('te-add-key').value.trim().toLowerCase().replace(/\s+/g, '');
+  if (!key) return;
+  if (!_pending.traits.includes(key)) _pending.traits.push(key);
+  if (document.getElementById('te-shimmy').checked) {
+    _pending.shimmyfulTraits = _pending.shimmyfulTraits || [];
+    if (!_pending.shimmyfulTraits.includes(key)) _pending.shimmyfulTraits.push(key);
+  }
+  document.getElementById('te-add-key').value = '';
+  document.getElementById('te-shimmy').checked = false;
+  renderTeTraits();
+}
+
+function teRemoveTrait(key) {
+  if (!_pending) return;
+  _pending.traits = _pending.traits.filter(k => k !== key);
+  _pending.shimmyfulTraits = (_pending.shimmyfulTraits || []).filter(k => k !== key);
+  renderTeTraits();
+}
+
+function teClearAll() {
+  if (!_pending) return;
+  if (!confirm('Clear ALL traits from ' + (_pending.name || _pending.id) + '?')) return;
+  _pending.traits = [];
+  _pending.shimmyfulTraits = [];
+  renderTeTraits();
+}
+
+function teSave() {
+  if (!_pending) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
+  const c = characters.find(x => x.id === _pending.id);
+  if (!c) return;
+  c.traits = [..._pending.traits];
+  c.shimmyfulTraits = [...(_pending.shimmyfulTraits || [])];
+  db.collection('characters').doc(c.id).set(_strip(c))
+    .then(() => {
+      const m = document.getElementById('te-msg');
+      m.style.color = '#22aa55';
+      m.textContent = '✓ SAVED';
+      setTimeout(() => { m.textContent = ''; }, 2500);
+      notify('SAVED: ' + (c.name || c.id), 'ok');
+    })
+    .catch(err => notify('SAVE FAILED: ' + err.message, 'err'));
+}
+
+// ════════════════════════════════════════════════════════════
+// QUICK STATS
+// ════════════════════════════════════════════════════════════
+const STAT_COLORS = { hp:'#ff6666', atk:'#ff8844', def:'#4499ff', mag:'#bb88ff', spd:'#66ee88' };
+
+function renderQs() {
+  const grid = document.getElementById('qs-grid');
+  if (!_pending) {
+    grid.innerHTML = '<span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">Select a character first.</span>';
+    return;
+  }
+  const s = _pending.stats || {};
+  grid.innerHTML = ['hp','atk','def','mag','spd'].map(k => `
+    <div>
+      <div style="font-size:5.5px;color:${STAT_COLORS[k]};letter-spacing:1px;margin-bottom:3px;">${k.toUpperCase()}</div>
+      <input type="number" id="qs-${k}" value="${s[k]||0}" min="1" style="width:100%;"/>
+    </div>`).join('');
+}
+
+function qsSave() {
+  if (!_pending) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
+  const c = characters.find(x => x.id === _pending.id);
+  if (!c) return;
+  c.stats = c.stats || {};
+  ['hp','atk','def','mag','spd'].forEach(k => {
+    const v = parseInt(document.getElementById('qs-' + k)?.value);
+    if (!isNaN(v) && v > 0) c.stats[k] = v;
+  });
+  db.collection('characters').doc(c.id).set(_strip(c))
+    .then(() => notify('STATS SAVED: ' + (c.name || c.id), 'ok'))
+    .catch(err => notify('SAVE FAILED: ' + err.message, 'err'));
+}
+
+function renameChar() {
+  if (!_pending) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
+  const newName = document.getElementById('rename-input').value.trim();
+  if (!newName) { notify('ENTER A NAME', 'err'); return; }
+  const c = characters.find(x => x.id === _pending.id);
+  if (!c) return;
+  const old = c.name;
+  c.name = newName;
+  _pending.name = newName;
+  db.collection('characters').doc(c.id).set(_strip(c))
+    .then(() => {
+      refreshSelects();
+      notify('"' + old + '" → "' + newName + '"', 'ok');
+    })
+    .catch(err => notify('RENAME FAILED: ' + err.message, 'err'));
+}
+
+// ════════════════════════════════════════════════════════════
+// BULK OPERATIONS
+// ════════════════════════════════════════════════════════════
+function _batchWrite(updates, successMsg, statusId) {
+  const LIMIT = 500;
+  const chunks = [];
+  for (let i = 0; i < updates.length; i += LIMIT) chunks.push(updates.slice(i, i + LIMIT));
+  const promises = chunks.map(chunk => {
+    const batch = db.batch();
+    chunk.forEach(({ id, data }) => batch.set(db.collection('characters').doc(id), data));
+    return batch.commit();
+  });
+  return Promise.all(promises)
+    .then(() => {
+      if (statusId) { const el = document.getElementById(statusId); if (el) { el.style.color = '#22aa55'; el.textContent = successMsg; } }
+      notify(successMsg, 'ok');
+    })
+    .catch(err => notify('BATCH FAILED: ' + err.message, 'err'));
+}
+
+function bulkGive() {
+  const key = document.getElementById('bulk-key').value.trim().toLowerCase().replace(/\s+/g,'');
+  const shimmy = document.getElementById('bulk-shimmy').checked;
+  if (!key) { notify('ENTER A TRAIT KEY', 'err'); return; }
+  if (!confirm(`Give "${key}" to ALL ${characters.length} characters?` + (shimmy ? ' (SHIMMYFUL)' : ''))) return;
+  let count = 0;
+  const updates = characters.map(c => {
+    const u = JSON.parse(JSON.stringify(c));
+    u.traits = u.traits || [];
+    u.shimmyfulTraits = u.shimmyfulTraits || [];
+    if (!u.traits.includes(key)) { u.traits.push(key); count++; }
+    if (shimmy && !u.shimmyfulTraits.includes(key)) u.shimmyfulTraits.push(key);
+    Object.assign(c, u);
+    return { id: c.id, data: _strip(u) };
+  });
+  _batchWrite(updates, `✓ GAVE "${key}" TO ${count} CHARS`, 'bulk-msg');
+}
+
+function bulkRemove() {
+  const key = document.getElementById('bulk-key').value.trim().toLowerCase().replace(/\s+/g,'');
+  if (!key) { notify('ENTER A TRAIT KEY', 'err'); return; }
+  _doRemoveAll(key, 'bulk-msg');
+}
+
+function nukeTraitFromAll() {
+  const key = document.getElementById('nuke-key').value.trim().toLowerCase().replace(/\s+/g,'');
+  if (!key) { notify('ENTER A TRAIT KEY', 'err'); return; }
+  _doRemoveAll(key, 'nuke-msg');
+}
+
+function _doRemoveAll(key, statusId) {
+  if (!confirm(`Remove "${key}" from ALL characters who have it?`)) return;
+  let count = 0;
+  const updates = [];
+  characters.forEach(c => {
+    if (!(c.traits || []).includes(key)) return;
+    const u = JSON.parse(JSON.stringify(c));
+    u.traits = (u.traits || []).filter(k => k !== key);
+    u.shimmyfulTraits = (u.shimmyfulTraits || []).filter(k => k !== key);
+    Object.assign(c, u);
+    updates.push({ id: c.id, data: _strip(u) });
+    count++;
+  });
+  if (!count) { notify('NO CHARACTERS HAD THAT TRAIT', 'ok'); return; }
+  _batchWrite(updates, `✓ REMOVED "${key}" FROM ${count} CHARS`, statusId);
+}
+
+function wipeAllEveryone() {
+  if (!confirm(`⚠ WIPE ALL TRAITS FROM ALL ${characters.length} CHARACTERS?`)) return;
+  if (!confirm('SECOND CONFIRMATION — THIS CANNOT BE UNDONE.')) return;
+  const updates = characters.map(c => {
+    const u = JSON.parse(JSON.stringify(c));
+    u.traits = [];
+    u.shimmyfulTraits = [];
+    Object.assign(c, u);
+    return { id: c.id, data: _strip(u) };
+  });
+  _batchWrite(updates, `✓ WIPED ALL TRAITS FROM ${characters.length} CHARS`, 'nuke-msg');
+}
+
+// ════════════════════════════════════════════════════════════
+// OVERVIEW TABLE
+// ════════════════════════════════════════════════════════════
+function renderOverview() {
+  const tbody = document.getElementById('overview-body');
+  if (!tbody) return;
+  if (!characters.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#2a2a2a;padding:20px;">No characters.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = characters.map(c => {
+    const traits = c.traits || [];
+    const shimmy = c.shimmyfulTraits || [];
+    const s = c.stats || {};
+    const traitHtml = traits.length
+      ? traits.map(k => `<span class="chip${shimmy.includes(k) ? ' shimmy' : ''}" style="font-size:5.5px;padding:2px 5px;">${k}${shimmy.includes(k) ? ' ✦' : ''}</span>`).join('')
+      : '<span style="color:#2a2a2a;">—</span>';
+    const shimHtml = shimmy.length
+      ? shimmy.map(k => `<span style="color:var(--shimmy);font-size:5.5px;">${k}</span>`).join('<span style="color:#333;"> · </span>')
+      : '<span style="color:#2a2a2a;">—</span>';
+    const statsHtml = `<span class="stat-color-hp">${s.hp||0}</span> <span style="color:#333;">/</span> <span class="stat-color-atk">${s.atk||0}</span> <span style="color:#333;">/</span> <span class="stat-color-def">${s.def||0}</span> <span style="color:#333;">/</span> <span class="stat-color-mag">${s.mag||0}</span> <span style="color:#333;">/</span> <span class="stat-color-spd">${s.spd||0}</span>`;
+    return `<tr>
+      <td style="white-space:nowrap;">
+        <span class="dot" style="background:${c.color||'#333'};"></span>
+        <span style="font-size:7px;">${c.name || c.id}</span>
+        <div style="font-size:5px;color:#2a2a2a;margin-top:3px;">${traits.length} TRAIT${traits.length!==1?'S':''}</div>
+      </td>
+      <td>${traitHtml}</td>
+      <td>${shimHtml}</td>
+      <td style="font-size:6px;white-space:nowrap;">${statsHtml}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn sm" onclick="jumpToEdit('${c.id}')">EDIT</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function jumpToEdit(id) {
+  const sel = document.getElementById('te-char');
+  sel.value = id;
+  teLoadChar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ════════════════════════════════════════════════════════════
+// NOTIFY
+// ════════════════════════════════════════════════════════════
+let _nt = null;
+function notify(msg, type) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.className = 'vis ' + (type || '');
+  clearTimeout(_nt);
+  _nt = setTimeout(() => { el.className = (el.className || '').replace('vis', '').trim(); }, 3000);
+}
+</script>
+</body>
+</html>
