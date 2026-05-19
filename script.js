@@ -3338,12 +3338,34 @@ function renderSubstatsDisplay(c, effStats) {
     { key: 'cooldown_red', label: 'COOLDOWN RED.', color: '#00aaff', icon: '<svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><path d="M5 2 L5 5 L7 7" fill="none" stroke="currentColor" stroke-width="1"/></svg>', title: 'Reduces skill cooldowns. +1% CDR per 20 SPEED. Max 40% without items.' },
   ];
 
+  // Sanity: base 80 for perfectsoul owners (−5/soul), 100 otherwise. Items can add/subtract.
+  const _hasPerfectSoul = c.traits && c.traits.includes('perfectsoul');
+  let _sanityItemDelta = 0;
+  let _sanityItemLines = '';
+  (c.inventory || []).filter(i => i.equipped).forEach(item => {
+    (item.mods || []).forEach(m => {
+      if (m.stat !== 'sanity') return;
+      const v = parseFloat(m.value) || 0;
+      let d = 0;
+      if (m.op === 'add') d = v;
+      if (m.op === 'sub') d = -v;
+      if (d !== 0) {
+        _sanityItemDelta += d;
+        _sanityItemLines += `<div style='margin-top:2px'><span style='color:#aaa;'>${item.name}:</span> ${d > 0 ? '+' : ''}${d}</div>`;
+      }
+    });
+  });
   let sanityExtra = '';
-  if (c.traits && c.traits.includes('perfectsoul')) {
-    const souls = (c.perfectSoulData && c.perfectSoulData.souls) ? c.perfectSoulData.souls.length : 0;
-    const sanity = 80 - souls * 5;
+  if (_hasPerfectSoul || _sanityItemDelta !== 0) {
+    const souls = (_hasPerfectSoul && c.perfectSoulData && c.perfectSoulData.souls) ? c.perfectSoulData.souls.length : 0;
+    const sanityBase = _hasPerfectSoul ? (80 - souls * 5) : 100;
+    const sanity = sanityBase + _sanityItemDelta;
     const sanityColor = sanity < 0 ? '#cc4444' : sanity <= 30 ? '#cc8844' : '#aaaaaa';
-    const sanityTip = `<div style='color:#dd88ff;font-weight:bold;margin-bottom:4px;'>SANITY</div>Starts at 80. -5 per absorbed soul. Turns red when negative.`.replace(/"/g, '&quot;');
+    let sanityTipBody = `<div style='color:#dd88ff;font-weight:bold;margin-bottom:4px;'>SANITY</div>`;
+    if (_hasPerfectSoul) sanityTipBody += `<div style='margin-bottom:6px;'>Base 80. -5 per absorbed soul.</div>`;
+    else sanityTipBody += `<div style='margin-bottom:6px;'>Base 100.</div>`;
+    if (_sanityItemLines) sanityTipBody += `<div style='color:var(--accent-cyan);margin-bottom:4px;border-bottom:1px solid #333;padding-bottom:4px;'>ITEM MODIFIERS</div>${_sanityItemLines}`;
+    const sanityTip = sanityTipBody.replace(/"/g, '&quot;');
     sanityExtra = `<div style="display:flex; justify-content:space-between; align-items:center; font-size: 9px; letter-spacing: 1px; border-bottom: 1px solid #222; padding-bottom: 4px;" data-tooltip="${sanityTip}"><span style="color: #dd88ff; font-weight: bold; display:flex; align-items:center;"><span style="opacity: 0.8; margin-right: 4px;"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="4" r="3" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="3.5" cy="3.5" r="0.7" fill="currentColor"/><circle cx="6.5" cy="3.5" r="0.7" fill="currentColor"/><path d="M3.5 5.5 Q5 6.5 6.5 5.5" fill="none" stroke="currentColor" stroke-width="0.8"/><line x1="5" y1="7" x2="5" y2="9" stroke="currentColor" stroke-width="1"/></svg></span> SANITY</span><span style="color: ${sanityColor}; text-align:right;">${sanity}</span></div>`;
   }
 
@@ -3623,6 +3645,7 @@ function renderModRows(mods) {
         <option value="true_dmg" ${m.stat === 'true_dmg' ? 'selected' : ''}>TRUE DAMAGE (%)</option>
         <option value="lifesteal" ${m.stat === 'lifesteal' ? 'selected' : ''}>LIFESTEAL (%)</option>
         <option value="cooldown_red" ${m.stat === 'cooldown_red' ? 'selected' : ''}>COOLDOWN RED. (%)</option>
+        <option value="sanity" ${m.stat === 'sanity' ? 'selected' : ''}>SANITY</option>
       </select>
       <select class="mod-op" value="${m.op}">
         <option value="add" ${m.op === 'add' ? 'selected' : ''}>Add (+)</option>
