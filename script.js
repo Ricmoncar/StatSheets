@@ -7483,6 +7483,7 @@ function renderHeightChart() {
     wrap.className = 'hc-char-wrap' + (isSelected ? ' selected' : '');
     wrap.style.left = xPct + '%';
     wrap.dataset.id = entry.id;
+    wrap.style.setProperty('--hc-char-color', entry.color || '#555');
 
     // Drag start
     wrap.addEventListener('mousedown', function (e) {
@@ -7571,15 +7572,24 @@ function hcSelectEntry(id) {
 function _hcPopulateEditPanel(id) {
   const entry = _hcData.entries.find(e => e.id === id);
   if (!entry) return;
+  // Show sidebar edit panel, hide empty state
+  document.getElementById('hc-sidebar-empty').style.display = 'none';
   const panel = document.getElementById('hc-edit-panel');
-  panel.style.display = 'block';
+  panel.style.display = 'flex';
+  // Color bar
+  const bar = document.getElementById('hc-char-color-bar');
+  if (bar) bar.style.background = entry.color || '#555';
+  // Fields
   document.getElementById('hc-edit-name').value = entry.name || '';
   const hVal = _hcUnit === 'cm' ? Math.round(entry.heightCm) : _hcCmToIn(entry.heightCm);
   document.getElementById('hc-edit-height').value = hVal;
   document.getElementById('hc-height-label').textContent = 'HEIGHT (' + _hcUnit.toUpperCase() + ')';
-  document.getElementById('hc-edit-color').value = entry.color || '#aaaaaa';
+  const col = entry.color || '#aaaaaa';
+  document.getElementById('hc-edit-color').value = col;
+  const hexEl = document.getElementById('hc-color-hex');
+  if (hexEl) hexEl.textContent = col;
   document.getElementById('hc-clear-btn').style.display = entry.spriteBase64 ? 'inline-block' : 'none';
-  // Crop sliders (only shown when sprite is set)
+  // Crop sliders (only when sprite is set)
   const cropSec = document.getElementById('hc-crop-section');
   if (cropSec) {
     cropSec.style.display = entry.spriteBase64 ? 'flex' : 'none';
@@ -7687,6 +7697,12 @@ function hcUpdateField(field, val) {
   } else {
     entry[field] = val;
   }
+  if (field === 'color') {
+    const bar = document.getElementById('hc-char-color-bar');
+    if (bar) bar.style.background = val;
+    const hexEl = document.getElementById('hc-color-hex');
+    if (hexEl) hexEl.textContent = val;
+  }
   renderHeightChart();
   _hcDebounceSave();
 }
@@ -7696,7 +7712,9 @@ function hcDeleteEntry() {
   _hcData.entries = _hcData.entries.filter(e => e.id !== _hcSelectedId);
   _hcSelectedId = null;
   document.getElementById('hc-edit-panel').style.display = 'none';
+  document.getElementById('hc-sidebar-empty').style.display = 'flex';
   _hcSave();
+  renderHeightChart();
 }
 
 function hcTriggerUpload() {
