@@ -2597,6 +2597,7 @@ function saveCharacter() {
     info: existing.info || {},
     missingNoRolls: existing.missingNoRolls,
     thousandDoorsAccum: existing.thousandDoorsAccum,
+    thousandDoorsHistory: existing.thousandDoorsHistory,
     drunkStats: existing.drunkStats,
     drunkCount: existing.drunkCount,
   };
@@ -5633,7 +5634,11 @@ function renderTraitSituationals(c, key) {
       }).join(' &nbsp; ');
       display = `<div style="font-size:7px;color:#aaa;letter-spacing:1px;margin-bottom:4px;">${parts}</div>`;
     }
-    return `<div class="trait-triggers">${display}<button class="trait-trigger-btn" onclick="rollThousandDoors(event)" data-tooltip="Roll a random stat multiplier for a random stat. Results compound and are permanent.">&#9889; ROLL ENCOUNTER</button></div>`;
+    const hasAccum = Object.values(accum).some(v => v !== 1);
+    const hasHistory = c.thousandDoorsHistory && c.thousandDoorsHistory.length > 0;
+    const undoBtn = hasHistory ? `<button class="trait-trigger-btn" onclick="undoThousandDoors(event)" data-tooltip="Undo the last roll.">&#8592; UNDO</button>` : '';
+    const resetBtn = hasAccum ? `<button class="trait-trigger-btn" onclick="resetThousandDoors(event)" data-tooltip="Reset all stat multipliers back to x1.00.">&#8635; RESET</button>` : '';
+    return `<div class="trait-triggers">${display}<button class="trait-trigger-btn" onclick="rollThousandDoors(event)" data-tooltip="Roll a random stat multiplier for a random stat. Results compound and are permanent.">&#9889; ROLL ENCOUNTER</button>${undoBtn}${resetBtn}</div>`;
   }
   // ANOTHER, AND ANOTHER — custom reroll ATK/MAG and DEF/HP buttons
   if (key === 'anotherandanother') {
@@ -5760,7 +5765,35 @@ function rollThousandDoors(ev) {
   }
   mult = Math.round(mult * 100) / 100;
   c.thousandDoorsAccum = c.thousandDoorsAccum || {};
+  c.thousandDoorsHistory = c.thousandDoorsHistory || [];
+  c.thousandDoorsHistory.push({ ...c.thousandDoorsAccum });
+  if (c.thousandDoorsHistory.length > 20) c.thousandDoorsHistory.shift();
   c.thousandDoorsAccum[s] = Math.round(((c.thousandDoorsAccum[s] || 1) * mult) * 100) / 100;
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+}
+
+function undoThousandDoors(ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c || !c.thousandDoorsHistory || !c.thousandDoorsHistory.length) return;
+  c.thousandDoorsAccum = c.thousandDoorsHistory.pop();
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+}
+
+function resetThousandDoors(ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  c.thousandDoorsHistory = c.thousandDoorsHistory || [];
+  if (c.thousandDoorsAccum && Object.keys(c.thousandDoorsAccum).length) {
+    c.thousandDoorsHistory.push({ ...c.thousandDoorsAccum });
+    if (c.thousandDoorsHistory.length > 20) c.thousandDoorsHistory.shift();
+  }
+  c.thousandDoorsAccum = {};
   saveData(c);
   updateLiveStats(c);
   renderTraitsDisplay(c);
@@ -5806,7 +5839,7 @@ function removeTrait(key, ev) {
   c.shimmyfulTraits = (c.shimmyfulTraits || []).filter(k => k !== key);
   if (c.dualityState) delete c.dualityState[key];
   if (key === 'missingno') delete c.missingNoRolls;
-  if (key === 'thousanddoors') delete c.thousandDoorsAccum;
+  if (key === 'thousanddoors') { delete c.thousandDoorsAccum; delete c.thousandDoorsHistory; }
   if (key === 'anotherandanother') { delete c.drunkStats; delete c.drunkCount; }
   playSound('delete');
   // Clean up triggers/stacks for removed trait
