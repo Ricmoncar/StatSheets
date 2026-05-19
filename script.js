@@ -7579,6 +7579,103 @@ function _hcPopulateEditPanel(id) {
   document.getElementById('hc-height-label').textContent = 'HEIGHT (' + _hcUnit.toUpperCase() + ')';
   document.getElementById('hc-edit-color').value = entry.color || '#aaaaaa';
   document.getElementById('hc-clear-btn').style.display = entry.spriteBase64 ? 'inline-block' : 'none';
+  // Crop sliders (only shown when sprite is set)
+  const cropSec = document.getElementById('hc-crop-section');
+  if (cropSec) {
+    cropSec.style.display = entry.spriteBase64 ? 'flex' : 'none';
+    if (entry.spriteBase64) {
+      const topPct = Math.round((entry.spriteTopFrac || 0) * 100);
+      const botPct = Math.round((entry.spriteBotFrac != null ? entry.spriteBotFrac : 1) * 100);
+      document.getElementById('hc-crop-top').value = topPct;
+      document.getElementById('hc-crop-bot').value = botPct;
+      document.getElementById('hc-crop-top-val').textContent = topPct + '%';
+      document.getElementById('hc-crop-bot-val').textContent = botPct + '%';
+    }
+  }
+}
+
+function hcUpdateCrop(field, val) {
+  const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
+  if (!entry) return;
+  const frac = val / 100;
+  if (field === 'top') {
+    entry.spriteTopFrac = Math.min(frac, (entry.spriteBotFrac != null ? entry.spriteBotFrac : 1) - 0.01);
+    document.getElementById('hc-crop-top-val').textContent = val + '%';
+  } else {
+    entry.spriteBotFrac = Math.max(frac, (entry.spriteTopFrac || 0) + 0.01);
+    document.getElementById('hc-crop-bot-val').textContent = val + '%';
+  }
+  renderHeightChart();
+  _hcDebounceSave();
+}
+
+function hcOpenImportPicker() {
+  const win = document.getElementById('hc-import-win');
+  if (!win) return;
+  win.style.display = 'flex';
+  document.getElementById('hc-import-search').value = '';
+  renderHCImportList();
+}
+
+function hcCloseImportPicker() {
+  const win = document.getElementById('hc-import-win');
+  if (win) win.style.display = 'none';
+}
+
+function renderHCImportList() {
+  const list = document.getElementById('hc-import-list');
+  if (!list) return;
+  const q = (document.getElementById('hc-import-search').value || '').toLowerCase().trim();
+  const pool = (typeof characters !== 'undefined' && characters) ? characters : [];
+  const filtered = q ? pool.filter(c => (c.name || '').toLowerCase().includes(q)) : pool;
+  if (!filtered.length) {
+    list.innerHTML = '<div class="hc-imp-empty">' + (q ? 'NO MATCH' : 'NO CHARACTERS LOADED') + '</div>';
+    return;
+  }
+  const addedIds = new Set(_hcData.entries.map(e => e.rosterId).filter(Boolean));
+  list.innerHTML = filtered.map(c => {
+    const already = addedIds.has(c.id);
+    const dot = c.color || '#666';
+    const name = (c.name || c.id || '???').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    return `<div class="hc-imp-row${already ? ' hc-imp-already' : ''}" data-id="${c.id}" onclick="hcImportChar(this.dataset.id)">
+      <span class="hc-imp-dot" style="background:${dot};"></span>
+      <span class="hc-imp-name">${name}</span>
+      ${already ? '<span class="hc-imp-tag">ADDED</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function hcImportChar(rosterId) {
+  const c = (typeof characters !== 'undefined' && characters) ? characters.find(x => x.id === rosterId) : null;
+  if (!c) return;
+  // If already on chart, just select and close
+  const existing = _hcData.entries.find(e => e.rosterId === rosterId);
+  if (existing) {
+    hcSelectEntry(existing.id);
+    hcCloseImportPicker();
+    return;
+  }
+  const id = (typeof genId === 'function') ? genId() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const usedX = _hcData.entries.map(e => e.xPct != null ? e.xPct : 0.5);
+  let xPct = 0.5;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    xPct = 0.08 + Math.random() * 0.84;
+    if (usedX.every(x => Math.abs(x - xPct) > 0.06)) break;
+  }
+  const entry = {
+    id, rosterId,
+    name: c.name || 'CHARACTER',
+    heightCm: 170,
+    color: c.color || '#aaaaaa',
+    xPct,
+    spriteBase64: null, spriteTopFrac: 0, spriteBotFrac: 1
+  };
+  _hcData.entries.push(entry);
+  _hcSelectedId = id;
+  _hcSave();
+  renderHeightChart();
+  _hcPopulateEditPanel(id);
+  renderHCImportList(); // refresh badges
 }
 
 function hcUpdateField(field, val) {

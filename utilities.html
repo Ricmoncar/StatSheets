@@ -239,6 +239,7 @@
     </div>
     <div id="hc-bottom-bar">
       <button class="btn accent sm" onclick="hcAddEntry()">+ ADD CHARACTER</button>
+      <button class="btn sm" onclick="hcOpenImportPicker()" style="margin-left:6px;">IMPORT FROM ROSTER</button>
       <span id="hc-hint" style="font-size:6px;color:#444;letter-spacing:1px;margin-left:10px;">DRAG TO REPOSITION</span>
     </div>
     <div id="hc-edit-panel">
@@ -263,10 +264,33 @@
           </div>
           <input type="file" id="hc-sprite-file" accept="image/*" style="display:none;" onchange="hcHandleSprite(event)"/>
         </div>
+        <div id="hc-crop-section" class="hc-edit-field">
+          <div class="hc-edit-label">HEAD</div>
+          <div class="hc-crop-row">
+            <input type="range" class="hc-crop-slider" id="hc-crop-top" min="0" max="99" value="0" oninput="hcUpdateCrop('top',+this.value)"/>
+            <span class="hc-crop-val" id="hc-crop-top-val">0%</span>
+          </div>
+          <div class="hc-edit-label" style="margin-top:6px;">FEET</div>
+          <div class="hc-crop-row">
+            <input type="range" class="hc-crop-slider" id="hc-crop-bot" min="1" max="100" value="100" oninput="hcUpdateCrop('bot',+this.value)"/>
+            <span class="hc-crop-val" id="hc-crop-bot-val">100%</span>
+          </div>
+        </div>
         <div class="hc-edit-field" style="justify-content:flex-end;">
           <button class="btn sm danger" onclick="hcDeleteEntry()">DELETE</button>
         </div>
       </div>
+    </div>
+  </div>
+  <!-- Import picker overlay -->
+  <div id="hc-import-win" onclick="if(event.target===this)hcCloseImportPicker()">
+    <div id="hc-import-box">
+      <div id="hc-import-header">
+        <span>PICK FROM ROSTER</span>
+        <button class="btn-info" onclick="hcCloseImportPicker()">✕</button>
+      </div>
+      <input type="text" id="hc-import-search" placeholder="SEARCH..." oninput="renderHCImportList()"/>
+      <div id="hc-import-list"></div>
     </div>
   </div>
 </div>
