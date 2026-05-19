@@ -2524,6 +2524,57 @@ input[type=number] { -moz-appearance: textfield; }
 .trait-text-input::placeholder { color: #444; }
 .trait-text-input:focus { border-color: #666; color: #eee; }
 
+/* Perfect Soul picker */
+.ps-panel { flex-direction: column !important; align-items: flex-start !important; gap: 0 !important; }
+.ps-soul-list { width: 100%; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #1e1e1e; }
+.ps-soul-row { font-size: 6px; color: #bbb; letter-spacing: 0.5px; margin-bottom: 3px; line-height: 1.5; }
+.ps-soul-name { color: #ccc; }
+.ps-soul-pct { color: #666; }
+.ps-soul-stats { color: #555; }
+
+.ps-picker-wrap { width: 100%; margin-bottom: 6px; }
+.ps-select-btn {
+  font-family: var(--font-main); font-size: 7px; letter-spacing: 1px;
+  padding: 6px 10px; width: 100%; text-align: left;
+  background: rgba(0,0,0,0.55); border: 1px solid #333; color: #777; cursor: none;
+}
+.ps-select-btn:hover { border-color: #555; color: #bbb; }
+.ps-selected-char {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; background: rgba(0,0,0,0.55);
+  border: 1px solid #333; cursor: none;
+}
+.ps-selected-char:hover { border-color: #555; }
+.ps-char-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.ps-sel-name { font-family: var(--font-main); font-size: 7px; letter-spacing: 1px; color: #ddd; flex-shrink: 0; }
+.ps-sel-stats { font-family: var(--font-main); font-size: 5.5px; color: #484848; flex: 1; letter-spacing: 0; }
+.ps-clear-btn {
+  background: none; border: none; color: #444; font-size: 11px;
+  cursor: none; padding: 0 2px; line-height: 1; margin-left: auto; flex-shrink: 0;
+}
+.ps-clear-btn:hover { color: #c44; }
+
+.ps-picker-dropdown {
+  width: 100%; background: #0c0c0c; border: 1px solid #222; border-top: none;
+  display: flex; flex-direction: column; max-height: 200px;
+}
+.ps-search-input {
+  font-family: var(--font-main); font-size: 7px; letter-spacing: 1px;
+  padding: 6px 8px; background: #080808; border: none;
+  border-bottom: 1px solid #1a1a1a; color: #aaa; outline: none; flex-shrink: 0;
+}
+.ps-search-input::placeholder { color: #2e2e2e; }
+.ps-picker-list { overflow-y: auto; flex: 1; }
+.ps-char-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; cursor: none; border-bottom: 1px solid #111;
+}
+.ps-char-row:hover { background: #161616; }
+.ps-char-row.selected { background: #181818; }
+.ps-char-name-lbl { font-family: var(--font-main); font-size: 7px; color: #ccc; letter-spacing: 0.5px; flex-shrink: 0; min-width: 70px; }
+.ps-char-stats-lbl { font-family: var(--font-main); font-size: 5.5px; color: #3a3a3a; letter-spacing: 0; }
+.ps-action-row { display: flex; gap: 5px; flex-wrap: wrap; }
+
 /* ============================================================
    TRAIT CODEX MODAL
    ============================================================ */

@@ -5694,6 +5694,8 @@ function renderTraitSituationals(c, key) {
     const data = c.perfectSoulData || { souls: [], history: [] };
     const souls = data.souls || [];
     const shimmy = isShimmyful(c, key);
+
+    // Soul history list
     let soulList = '';
     if (souls.length > 0) {
       const rows = souls.map(s => {
@@ -5701,18 +5703,47 @@ function renderTraitSituationals(c, key) {
           .filter(k => s.stats && s.stats[k])
           .map(k => `+${Math.round(s.stats[k])} ${k.toUpperCase()}`)
           .join(' ');
-        return `<div style="font-size:6px;color:#bbb;margin-bottom:2px;letter-spacing:0.5px;">&#9670; ${s.name || '?'} <span style="color:#666;">(${s.pct}%)</span>&nbsp;&nbsp;<span style="color:#555;">${statsStr}</span></div>`;
+        return `<div class="ps-soul-row"><span class="ps-soul-name">&#9670; ${s.name || '?'}</span> <span class="ps-soul-pct">(${s.pct}%)</span> <span class="ps-soul-stats">${statsStr}</span></div>`;
       }).join('');
-      soulList = `<div style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #1e1e1e;">${rows}</div>`;
+      soulList = `<div class="ps-soul-list">${rows}</div>`;
     }
-    const charOpts = (typeof characters !== 'undefined' ? characters : [])
-      .map(ch => `<option value="${(ch.name || '').replace(/"/g, '&quot;')}">`).join('');
+
+    // Character picker header
+    const sel = _psSelectedChar ? (typeof characters !== 'undefined' ? characters : []).find(x => x.name === _psSelectedChar) : null;
+    let pickerHeader;
+    if (sel) {
+      const ts = sel.stats || {};
+      pickerHeader = `<div class="ps-selected-char" onclick="togglePsPicker(event)">
+        <span class="ps-char-dot" style="background:${sel.color||'#888'};"></span>
+        <span class="ps-sel-name">${sel.name}</span>
+        <span class="ps-sel-stats">HP ${ts.hp||0} · ATK ${ts.atk||0} · DEF ${ts.def||0} · MAG ${ts.mag||0} · SPD ${ts.spd||0}</span>
+        <button class="ps-clear-btn" onclick="clearPsChar(event)">&#10005;</button>
+      </div>`;
+    } else {
+      pickerHeader = `<button class="ps-select-btn" onclick="togglePsPicker(event)">+ SELECT CHARACTER &#9660;</button>`;
+    }
+
+    // Picker dropdown (when open)
+    let pickerDropdown = '';
+    if (_psPickerOpen) {
+      const charRows = (typeof characters !== 'undefined' ? characters : []).map(ch => {
+        const ts = ch.stats || {};
+        const isSel = ch.name === _psSelectedChar;
+        return `<div class="ps-char-row${isSel ? ' selected' : ''}" data-name="${(ch.name||'').replace(/"/g,'&quot;')}" onclick="selectPsChar(${JSON.stringify(ch.name)}, event)">
+          <span class="ps-char-dot" style="background:${ch.color||'#888'};"></span>
+          <span class="ps-char-name-lbl">${ch.name||'?'}</span>
+          <span class="ps-char-stats-lbl">HP ${ts.hp||0} · ATK ${ts.atk||0} · DEF ${ts.def||0} · MAG ${ts.mag||0} · SPD ${ts.spd||0}</span>
+        </div>`;
+      }).join('');
+      pickerDropdown = `<div class="ps-picker-dropdown"><input type="text" class="ps-search-input" placeholder="SEARCH..." oninput="filterPsPicker(this.value)" autocomplete="off"/><div class="ps-picker-list" id="ps-picker-list">${charRows}</div></div>`;
+    }
+
     const hasHistory = data.history && data.history.length > 0;
     const hasSouls = souls.length > 0;
-    const undoBtn = hasHistory ? `<button class="trait-trigger-btn" onclick="undoPerfectSoul(event)" data-tooltip="Undo the last absorption.">&#8592; UNDO</button>` : '';
-    const resetBtn = hasSouls ? `<button class="trait-trigger-btn" onclick="resetPerfectSoul(event)" data-tooltip="Remove all absorbed souls and reset stat gains.">&#8635; RESET</button>` : '';
     const rangeHint = shimmy ? '55–90%' : '40–80%';
-    return `<div class="trait-triggers" style="flex-direction:column;align-items:flex-start;">${soulList}<div style="display:flex;gap:5px;align-items:center;margin-bottom:5px;width:100%;"><input id="ps-input-${c.id}" type="text" class="trait-text-input" placeholder="CHARACTER NAME..." autocomplete="off" list="ps-chars-${c.id}"/><datalist id="ps-chars-${c.id}">${charOpts}</datalist></div><div style="display:flex;gap:5px;flex-wrap:wrap;"><button class="trait-trigger-btn" onclick="absorbPerfectSoul(event)" data-tooltip="Roll ${rangeHint} of the target character's stats and absorb them permanently.">&#9889; ABSORB SOUL</button>${undoBtn}${resetBtn}</div></div>`;
+    const undoBtn = hasHistory ? `<button class="trait-trigger-btn" onclick="undoPerfectSoul(event)" data-tooltip="Undo the last absorption.">&#8592; UNDO</button>` : '';
+    const resetBtn = hasSouls ? `<button class="trait-trigger-btn" onclick="resetPerfectSoul(event)" data-tooltip="Remove all absorbed souls.">&#8635; RESET</button>` : '';
+    return `<div class="trait-triggers ps-panel">${soulList}<div class="ps-picker-wrap">${pickerHeader}${pickerDropdown}</div><div class="ps-action-row"><button class="trait-trigger-btn" onclick="absorbPerfectSoul(event)" data-tooltip="Roll ${rangeHint} of the selected character's stats and absorb permanently.">&#9889; ABSORB SOUL</button>${undoBtn}${resetBtn}</div></div>`;
   }
   const t = getTraitDef(c, key);
   if (!t || !t.situational || !t.situational.length) return '';
@@ -5873,14 +5904,47 @@ function rollAnotherandAnother(type, ev) {
   renderTraitsDisplay(c);
 }
 
+let _psSelectedChar = null;
+let _psPickerOpen = false;
+
+function togglePsPicker(ev) {
+  if (ev) ev.stopPropagation();
+  _psPickerOpen = !_psPickerOpen;
+  const c = characters.find(x => x.id === currentId);
+  if (c) renderTraitsDisplay(c);
+}
+
+function filterPsPicker(val) {
+  const q = (val || '').toLowerCase();
+  const listEl = document.getElementById('ps-picker-list');
+  if (!listEl) return;
+  listEl.querySelectorAll('.ps-char-row').forEach(row => {
+    row.style.display = (row.dataset.name || '').toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function selectPsChar(name, ev) {
+  if (ev) ev.stopPropagation();
+  _psSelectedChar = name;
+  _psPickerOpen = false;
+  const c = characters.find(x => x.id === currentId);
+  if (c) renderTraitsDisplay(c);
+}
+
+function clearPsChar(ev) {
+  if (ev) ev.stopPropagation();
+  _psSelectedChar = null;
+  _psPickerOpen = false;
+  const c = characters.find(x => x.id === currentId);
+  if (c) renderTraitsDisplay(c);
+}
+
 function absorbPerfectSoul(ev) {
   if (ev) ev.stopPropagation();
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
-  const input = document.getElementById('ps-input-' + c.id);
-  const charName = (input ? input.value.trim() : '');
-  if (!charName) { notify('ENTER A CHARACTER NAME', 'err'); return; }
-  const target = characters.find(x => x.name === charName);
+  if (!_psSelectedChar) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
+  const target = characters.find(x => x.name === _psSelectedChar);
   if (!target) { notify('CHARACTER NOT FOUND', 'err'); return; }
   const shimmy = isShimmyful(c, 'perfectsoul');
   const pct = shimmy
@@ -5899,8 +5963,7 @@ function absorbPerfectSoul(ev) {
   c.perfectSoulData.history.push(JSON.parse(JSON.stringify(c.perfectSoulData.souls || [])));
   if (c.perfectSoulData.history.length > 20) c.perfectSoulData.history.shift();
   c.perfectSoulData.souls = c.perfectSoulData.souls || [];
-  c.perfectSoulData.souls.push({ name: charName, pct, stats: absorbed });
-  if (input) input.value = '';
+  c.perfectSoulData.souls.push({ name: _psSelectedChar, pct, stats: absorbed });
   saveData(c);
   updateLiveStats(c);
   renderTraitsDisplay(c);
