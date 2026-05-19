@@ -5704,22 +5704,19 @@ function renderTraitSituationals(c, key) {
     const souls = data.souls || [];
     const shimmy = isShimmyful(c, key);
 
-    // Sanity
-    const sanity = 80 - souls.length * 5;
-    const sanityColor = sanity < 0 ? '#c44' : sanity <= 30 ? '#c87' : '#777';
-    const sanityDisplay = `<div class="ps-sanity-bar"><span class="ps-sanity-label">SANITY</span><span class="ps-sanity-val" style="color:${sanityColor};">${sanity}%</span></div>`;
-
-    // Soul history list
+    // Soul list toggle button + collapsible list
     let soulList = '';
     if (souls.length > 0) {
-      const rows = souls.map(s => {
+      const arrow = _psSoulListOpen ? '&#9650;' : '&#9660;';
+      const rows = souls.map((s, i) => {
         const statsStr = ['hp','atk','def','mag','spd']
           .filter(k => s.stats && s.stats[k])
           .map(k => `+${Math.round(s.stats[k])} ${k.toUpperCase()}`)
           .join(' ');
-        return `<div class="ps-soul-row"><span class="ps-soul-name">&#9670; ${s.name || '?'}</span> <span class="ps-soul-pct">(${s.pct}%)</span> <span class="ps-soul-stats">${statsStr}</span></div>`;
+        return `<div class="ps-soul-row"><span class="ps-soul-index">#${i+1}</span><span class="ps-soul-name">&#9670; ${s.name || '?'}</span> <span class="ps-soul-pct">(${s.pct}%)</span> <span class="ps-soul-stats">${statsStr}</span></div>`;
       }).join('');
-      soulList = `<div class="ps-soul-list">${rows}</div>`;
+      const listHtml = _psSoulListOpen ? `<div class="ps-soul-list">${rows}</div>` : '';
+      soulList = `<div class="ps-souls-toggle-wrap"><button class="trait-trigger-btn ps-souls-toggle-btn" onclick="togglePsSoulList(event)">SOULS ABSORBED (${souls.length}) ${arrow}</button>${listHtml}</div>`;
     }
 
     // Character picker header
@@ -5749,7 +5746,7 @@ function renderTraitSituationals(c, key) {
     const rangeHint = shimmy ? '55–90%' : '40–80%';
     const undoBtn = hasHistory ? `<button class="trait-trigger-btn" onclick="undoPerfectSoul(event)" data-tooltip="Undo the last absorption.">&#8592; UNDO</button>` : '';
     const resetBtn = hasSouls ? `<button class="trait-trigger-btn" onclick="resetPerfectSoul(event)" data-tooltip="Remove all absorbed souls.">&#8635; RESET</button>` : '';
-    return `<div class="trait-triggers ps-panel">${sanityDisplay}${soulList}<div class="ps-picker-wrap">${pickerHeader}${pickerDropdown}</div><div class="ps-action-row"><button class="trait-trigger-btn" onclick="absorbPerfectSoul(event)" data-tooltip="Roll ${rangeHint} of the selected character's stats and absorb permanently.">&#9889; ABSORB SOUL</button>${undoBtn}${resetBtn}</div></div>`;
+    return `<div class="trait-triggers ps-panel">${soulList}<div class="ps-picker-wrap">${pickerHeader}${pickerDropdown}</div><div class="ps-action-row"><button class="trait-trigger-btn" onclick="absorbPerfectSoul(event)" data-tooltip="Roll ${rangeHint} of the selected character's stats and absorb permanently.">&#9889; ABSORB SOUL</button>${undoBtn}${resetBtn}</div></div>`;
   }
   const t = getTraitDef(c, key);
   if (!t || !t.situational || !t.situational.length) return '';
@@ -5912,10 +5909,18 @@ function rollAnotherandAnother(type, ev) {
 
 let _psSelectedChar = null;
 let _psPickerOpen = false;
+let _psSoulListOpen = false;
 
 function togglePsPicker(ev) {
   if (ev) ev.stopPropagation();
   _psPickerOpen = !_psPickerOpen;
+  const c = characters.find(x => x.id === currentId);
+  if (c) renderTraitsDisplay(c);
+}
+
+function togglePsSoulList(ev) {
+  if (ev) ev.stopPropagation();
+  _psSoulListOpen = !_psSoulListOpen;
   const c = characters.find(x => x.id === currentId);
   if (c) renderTraitsDisplay(c);
 }
