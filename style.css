@@ -2509,6 +2509,20 @@ input[type=number] { -moz-appearance: textfield; }
   opacity: 0.55;
   font-style: italic;
 }
+.trait-text-input {
+  font-family: var(--font-main);
+  font-size: 7px;
+  letter-spacing: 1px;
+  padding: 5px 8px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid #444;
+  color: #ccc;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.trait-text-input::placeholder { color: #444; }
+.trait-text-input:focus { border-color: #666; color: #eee; }
 
 /* ============================================================
    TRAIT CODEX MODAL

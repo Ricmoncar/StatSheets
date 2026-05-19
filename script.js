@@ -2609,6 +2609,7 @@ function saveCharacter() {
     thousandDoorsHistory: existing.thousandDoorsHistory,
     drunkStats: existing.drunkStats,
     drunkCount: existing.drunkCount,
+    perfectSoulData: existing.perfectSoulData,
   };
 
   if (editingId) {
@@ -4510,7 +4511,7 @@ const TRAITS = {
   turningpoint:    { name: 'Turning Point', rarity: 'legendary', desc: 'When dropping below 40% HP, gain x10 SPD and x10 DEX. This decreases by 20% each round (minimum x0.25). Gain an extra turn while the multiplier is above x4.', passive: [], situational: [{ id: 'tp-t1', label: 'Turn 1: x10 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 10 }, { stat: 'dexterity', op: 'mul', value: 10 }] }, { id: 'tp-t2', label: 'Turn 2: x8 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 8 }, { stat: 'dexterity', op: 'mul', value: 8 }] }, { id: 'tp-t3', label: 'Turn 3: x6.4 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 6.4 }, { stat: 'dexterity', op: 'mul', value: 6.4 }] }, { id: 'tp-t4', label: 'Turn 4: x5.1 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 5.1 }, { stat: 'dexterity', op: 'mul', value: 5.1 }] }, { id: 'tp-t5', label: 'Turn 5: x4.1 SPD and DEX', passive: [{ stat: 'spd', op: 'mul', value: 4.1 }, { stat: 'dexterity', op: 'mul', value: 4.1 }] }, { id: 'tp-fade', label: 'Faded (x0.25 SPD and DEX floor)', passive: [{ stat: 'spd', op: 'mul', value: 0.25 }, { stat: 'dexterity', op: 'mul', value: 0.25 }] }] },
   keepup:          { name: 'KEEP UP', rarity: 'legendary', desc: 'Start with x2 SPD and x2 DEX. Every turn your SPD and DEX increase by x1.5. Enemies\' SPD and DEX increase by x1.4 (your party is unaffected). +1 ATK per 20 SPD, +1 MAG per 5 DEX.', passive: [{ op: 'derived', stat: 'atk', from: 'spd', per: 20, perValue: 1 }, { op: 'derived', stat: 'mag', from: 'dexterity', per: 5, perValue: 1 }], situational: [{ id: 'ku-t1', label: 'Turn 1 (x2 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 2 }, { stat: 'dexterity', op: 'mul', value: 2 }] }, { id: 'ku-t2', label: 'Turn 2 (x3 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 3 }, { stat: 'dexterity', op: 'mul', value: 3 }] }, { id: 'ku-t3', label: 'Turn 3 (x4.5 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 4.5 }, { stat: 'dexterity', op: 'mul', value: 4.5 }] }, { id: 'ku-t4', label: 'Turn 4 (x6.75 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 6.75 }, { stat: 'dexterity', op: 'mul', value: 6.75 }] }, { id: 'ku-t5', label: 'Turn 5 (x10 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 10 }, { stat: 'dexterity', op: 'mul', value: 10 }] }, { id: 'ku-t6', label: 'Turn 6 (x15 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 15 }, { stat: 'dexterity', op: 'mul', value: 15 }] }], notes: 'Toggle exactly one turn button at a time. ATK and MAG bonuses from SPD/DEX are derived automatically.' },
   wartrivial:      { name: 'War, What a Trivial thing.', rarity: 'legendary', desc: 'Permanently gain +10 to all stats for every fight you leave early.', passive: [], situational: [{ id: 'wt-1', label: '1 fight left early (+10 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 10 }] }, { id: 'wt-3', label: '3 fights left (+30 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 30 }] }, { id: 'wt-5', label: '5 fights left (+50 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 50 }] }, { id: 'wt-10', label: '10 fights left (+100 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 100 }] }, { id: 'wt-20', label: '20 fights left (+200 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 200 }] }] },
-  perfectsoul:     { name: 'I want a perfect soul.', rarity: 'legendary', desc: 'Absorb enemies\' souls if they are below 20% HP, gaining a portion of their stats. Each soul absorbed reduces your sanity.', passive: [], situational: [{ id: 'ps-1', label: '1 soul absorbed', passive: [{ stat: 'all_main', op: 'pct', value: 15 }] }, { id: 'ps-3', label: '3 souls absorbed', passive: [{ stat: 'all_main', op: 'pct', value: 45 }] }, { id: 'ps-5', label: '5 souls absorbed', passive: [{ stat: 'all_main', op: 'pct', value: 75 }] }, { id: 'ps-10', label: '10 souls absorbed', passive: [{ stat: 'all_main', op: 'pct', value: 150 }] }], notes: 'Absorb below 20% HP. Toggle the closest soul count as an approximation.' },
+  perfectsoul:     { name: 'I want a perfect soul.', rarity: 'legendary', desc: 'Absorb enemies\' souls if they are below 20% HP, gaining a portion of their stats. Each soul absorbed reduces your sanity.', passive: [], notes: 'Select a character and click ABSORB SOUL to permanently gain 40-80% of their stats.' },
   lotuswaters:     { name: 'Lotus Waters', rarity: 'legendary', desc: 'Your water abilities turn pink, or you gain water manipulation. Your water heals enemies for +5% HP per turn and damages them for -5% HP per turn while in it. Once per battle: flood the arena for 2 rounds.', passive: [], notes: 'No shimmyful. Has a Hexxed variant: Lavender Waters.' },
   lavenderwaters:  { name: 'Lavender Waters', rarity: 'hexxed', desc: 'Your water abilities turn lavender, or you gain water manipulation. Your water heals enemies for +15% HP per turn and damages them for -15% HP per turn while in it. Once per battle: flood the arena for 3 rounds.', passive: [], notes: 'Hexxed version of Lotus Waters. No shimmyful.' },
   reekofdisease:   { name: 'You reek of disease.', rarity: 'legendary', desc: 'If an enemy is below 40% HP, immediately apply 5 stacks of POISON on them, dealing -20% HP per turn until they are defeated.', passive: [], notes: 'Auto-apply 5 poison stacks to enemies below 40% HP. -20% HP per turn total.' },
@@ -5129,7 +5130,7 @@ const SHIMMYFUL_LEGENDARY_TRAITS = {
   turningpoint:     { name: 'SHIMMYFUL Turning Point', desc: 'When dropping below 40% HP, gain x15 SPD and x15 DEX. This decreases by 20% each round (minimum x0.25). Gain an extra turn while the multiplier is above x4.', passive: [], situational: [{ id: 'tp-s-t1', label: 'Turn 1: x15 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 15 }, { stat: 'dexterity', op: 'mul', value: 15 }] }, { id: 'tp-s-t2', label: 'Turn 2: x12 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 12 }, { stat: 'dexterity', op: 'mul', value: 12 }] }, { id: 'tp-s-t3', label: 'Turn 3: x9.6 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 9.6 }, { stat: 'dexterity', op: 'mul', value: 9.6 }] }, { id: 'tp-s-t4', label: 'Turn 4: x7.68 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 7.68 }, { stat: 'dexterity', op: 'mul', value: 7.68 }] }, { id: 'tp-s-t5', label: 'Turn 5: x6.1 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 6.1 }, { stat: 'dexterity', op: 'mul', value: 6.1 }] }, { id: 'tp-s-fade', label: 'Faded (x0.25 SPD and DEX floor)', passive: [{ stat: 'spd', op: 'mul', value: 0.25 }, { stat: 'dexterity', op: 'mul', value: 0.25 }] }] },
   keepup:           { name: 'SHIMMYFUL KEEP UP', desc: 'Start with x3 SPD and x3 DEX. Every turn your SPD and DEX increase by x1.5. Enemies\' SPD and DEX increase by x1.4. +1 ATK per 10 SPD, +1 MAG per 2.5 DEX.', passive: [{ op: 'derived', stat: 'atk', from: 'spd', per: 10, perValue: 1 }, { op: 'derived', stat: 'mag', from: 'dexterity', per: 2.5, perValue: 1 }], situational: [{ id: 'ku-s-t1', label: 'Turn 1 (x3 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 3 }, { stat: 'dexterity', op: 'mul', value: 3 }] }, { id: 'ku-s-t2', label: 'Turn 2 (x4.5 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 4.5 }, { stat: 'dexterity', op: 'mul', value: 4.5 }] }, { id: 'ku-s-t3', label: 'Turn 3 (x6.75 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 6.75 }, { stat: 'dexterity', op: 'mul', value: 6.75 }] }, { id: 'ku-s-t4', label: 'Turn 4 (x10 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 10 }, { stat: 'dexterity', op: 'mul', value: 10 }] }, { id: 'ku-s-t5', label: 'Turn 5 (x15 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 15 }, { stat: 'dexterity', op: 'mul', value: 15 }] }, { id: 'ku-s-t6', label: 'Turn 6 (x22.5 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 22.5 }, { stat: 'dexterity', op: 'mul', value: 22.5 }] }], notes: 'Toggle exactly one turn button at a time. ATK/MAG from SPD/DEX derived at double rate.' },
   wartrivial:       { name: 'SHIMMYFUL War, What a Trivial thing.', desc: 'Permanently gain +15 to all stats for every fight you leave early.', passive: [], situational: [{ id: 'wt-s-1', label: '1 fight left early (+15 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 15 }] }, { id: 'wt-s-3', label: '3 fights left (+45 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 45 }] }, { id: 'wt-s-5', label: '5 fights left (+75 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 75 }] }, { id: 'wt-s-10', label: '10 fights left (+150 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 150 }] }, { id: 'wt-s-20', label: '20 fights left (+300 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 300 }] }] },
-  perfectsoul:      { name: 'SHIMMYFUL I want a perfect soul.', desc: 'Absorb enemies\' souls if they are below 30% HP, gaining a larger portion of their stats. Each soul absorbed reduces your sanity.', passive: [], situational: [{ id: 'ps-s-1', label: '1 soul absorbed', passive: [{ stat: 'all_main', op: 'pct', value: 20 }] }, { id: 'ps-s-3', label: '3 souls absorbed', passive: [{ stat: 'all_main', op: 'pct', value: 60 }] }, { id: 'ps-s-5', label: '5 souls absorbed', passive: [{ stat: 'all_main', op: 'pct', value: 100 }] }, { id: 'ps-s-10', label: '10 souls absorbed', passive: [{ stat: 'all_main', op: 'pct', value: 200 }] }], notes: 'Absorb below 30% HP. +20% all stats per soul (vs base +15%).' },
+  perfectsoul:      { name: 'SHIMMYFUL I want a perfect soul.', desc: 'Absorb enemies\' souls if they are below 30% HP, gaining a larger portion of their stats. Each soul absorbed reduces your sanity.', passive: [], notes: 'Select a character and click ABSORB SOUL to permanently gain 55-90% of their stats (wider range than base).' },
   reekofdisease:    { name: 'SHIMMYFUL You reek of disease.', desc: 'If an enemy is below 55% HP, immediately apply 7 stacks of POISON on them, dealing -30% HP per turn until they are defeated.', passive: [], notes: 'Auto-apply 7 poison stacks to enemies below 55% HP. -30% HP per turn total.' },
   megalostrikeback: { name: 'SHIMMYFUL Megalo Strike Back', desc: 'If fighting the same enemy for the second time, gain +250% Crit Chance and +250% Crit Damage. Defeating that enemy permanently adds these bonuses to your stats.', passive: [], situational: [{ id: 'msb-s-2nd', label: 'Second fight vs this enemy (+250% Crit, +250% Crit DMG)', passive: [{ stat: 'crit_rate', op: 'pct', value: 250 }, { stat: 'crit_dmg', op: 'pct', value: 250 }] }, { id: 'msb-s-perm', label: 'Enemy defeated (permanent +250% Crit, +250% Crit DMG)', passive: [{ stat: 'crit_rate', op: 'pct', value: 250 }, { stat: 'crit_dmg', op: 'pct', value: 250 }] }] },
   engarde:          { name: 'SHIMMYFUL En garde!', desc: 'Pick one enemy and force them into a separate 1v1 arena. Neither can interact with other units. The arena lasts 5 rounds or until one is knocked out. The winner gains x2 ATK and SPD for the rest of the fight.', passive: [], situational: [{ id: 'eg-s-arena', label: 'In the arena (1v1 active)', passive: [] }, { id: 'eg-s-win', label: 'Won the arena (x2 ATK and SPD)', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'spd', op: 'mul', value: 2 }] }] },
@@ -5411,6 +5412,21 @@ function buildTraitPassives(c) {
       }
       // still fall through to pick up the 15-drink situational button
     }
+    // I WANT A PERFECT SOUL — apply absorbed soul stats as flat additions
+    if (key === 'perfectsoul') {
+      const data = c.perfectSoulData;
+      if (data && data.souls && data.souls.length) {
+        const totals = { hp: 0, atk: 0, def: 0, mag: 0, spd: 0 };
+        data.souls.forEach(soul => {
+          const s = soul.stats || {};
+          Object.keys(totals).forEach(k => { totals[k] += (s[k] || 0); });
+        });
+        Object.entries(totals).forEach(([stat, val]) => {
+          if (val > 0) out.push({ stat, op: 'add', value: Math.round(val), _src: key });
+        });
+      }
+      return;
+    }
     // Use shimmyful passive overrides if applicable (works for both common and legendary shimmy)
     const _shimDef = isShimmyful(c, key) ? getShimmyfulDef(key) : null;
     const activeDef = _shimDef || def;
@@ -5673,6 +5689,31 @@ function renderTraitSituationals(c, key) {
     }
     return `<div class="trait-triggers">${display}<button class="trait-trigger-btn" onclick="rollAnotherandAnother('atkmag', event)" data-tooltip="Randomize ATK and MAG (bias toward lower values). Simulates landing a hit.">&#9889; REROLL ATK/MAG</button><button class="trait-trigger-btn" onclick="rollAnotherandAnother('defhp', event)" data-tooltip="Randomize DEF and HP (bias toward lower values). Simulates taking a hit.">&#9889; REROLL DEF/HP</button>${sitBtns}</div>`;
   }
+  // I WANT A PERFECT SOUL — soul absorber
+  if (key === 'perfectsoul') {
+    const data = c.perfectSoulData || { souls: [], history: [] };
+    const souls = data.souls || [];
+    const shimmy = isShimmyful(c, key);
+    let soulList = '';
+    if (souls.length > 0) {
+      const rows = souls.map(s => {
+        const statsStr = ['hp','atk','def','mag','spd']
+          .filter(k => s.stats && s.stats[k])
+          .map(k => `+${Math.round(s.stats[k])} ${k.toUpperCase()}`)
+          .join(' ');
+        return `<div style="font-size:6px;color:#bbb;margin-bottom:2px;letter-spacing:0.5px;">&#9670; ${s.name || '?'} <span style="color:#666;">(${s.pct}%)</span>&nbsp;&nbsp;<span style="color:#555;">${statsStr}</span></div>`;
+      }).join('');
+      soulList = `<div style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #1e1e1e;">${rows}</div>`;
+    }
+    const charOpts = (typeof characters !== 'undefined' ? characters : [])
+      .map(ch => `<option value="${(ch.name || '').replace(/"/g, '&quot;')}">`).join('');
+    const hasHistory = data.history && data.history.length > 0;
+    const hasSouls = souls.length > 0;
+    const undoBtn = hasHistory ? `<button class="trait-trigger-btn" onclick="undoPerfectSoul(event)" data-tooltip="Undo the last absorption.">&#8592; UNDO</button>` : '';
+    const resetBtn = hasSouls ? `<button class="trait-trigger-btn" onclick="resetPerfectSoul(event)" data-tooltip="Remove all absorbed souls and reset stat gains.">&#8635; RESET</button>` : '';
+    const rangeHint = shimmy ? '55–90%' : '40–80%';
+    return `<div class="trait-triggers" style="flex-direction:column;align-items:flex-start;">${soulList}<div style="display:flex;gap:5px;align-items:center;margin-bottom:5px;width:100%;"><input id="ps-input-${c.id}" type="text" class="trait-text-input" placeholder="CHARACTER NAME..." autocomplete="off" list="ps-chars-${c.id}"/><datalist id="ps-chars-${c.id}">${charOpts}</datalist></div><div style="display:flex;gap:5px;flex-wrap:wrap;"><button class="trait-trigger-btn" onclick="absorbPerfectSoul(event)" data-tooltip="Roll ${rangeHint} of the target character's stats and absorb them permanently.">&#9889; ABSORB SOUL</button>${undoBtn}${resetBtn}</div></div>`;
+  }
   const t = getTraitDef(c, key);
   if (!t || !t.situational || !t.situational.length) return '';
   const triggers = c.traitTriggers || {};
@@ -5832,6 +5873,65 @@ function rollAnotherandAnother(type, ev) {
   renderTraitsDisplay(c);
 }
 
+function absorbPerfectSoul(ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  const input = document.getElementById('ps-input-' + c.id);
+  const charName = (input ? input.value.trim() : '');
+  if (!charName) { notify('ENTER A CHARACTER NAME', 'err'); return; }
+  const target = characters.find(x => x.name === charName);
+  if (!target) { notify('CHARACTER NOT FOUND', 'err'); return; }
+  const shimmy = isShimmyful(c, 'perfectsoul');
+  const pct = shimmy
+    ? Math.round(55 + Math.random() * 35)
+    : Math.round(40 + Math.random() * 40);
+  const ts = target.stats || {};
+  const absorbed = {
+    hp:  Math.round((ts.hp  || 0) * pct / 100),
+    atk: Math.round((ts.atk || 0) * pct / 100),
+    def: Math.round((ts.def || 0) * pct / 100),
+    mag: Math.round((ts.mag || 0) * pct / 100),
+    spd: Math.round((ts.spd || 0) * pct / 100),
+  };
+  c.perfectSoulData = c.perfectSoulData || { souls: [], history: [] };
+  c.perfectSoulData.history = c.perfectSoulData.history || [];
+  c.perfectSoulData.history.push(JSON.parse(JSON.stringify(c.perfectSoulData.souls || [])));
+  if (c.perfectSoulData.history.length > 20) c.perfectSoulData.history.shift();
+  c.perfectSoulData.souls = c.perfectSoulData.souls || [];
+  c.perfectSoulData.souls.push({ name: charName, pct, stats: absorbed });
+  if (input) input.value = '';
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+}
+
+function undoPerfectSoul(ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c || !c.perfectSoulData || !c.perfectSoulData.history || !c.perfectSoulData.history.length) return;
+  c.perfectSoulData.souls = c.perfectSoulData.history.pop();
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+}
+
+function resetPerfectSoul(ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  c.perfectSoulData = c.perfectSoulData || { souls: [], history: [] };
+  c.perfectSoulData.history = c.perfectSoulData.history || [];
+  if (c.perfectSoulData.souls && c.perfectSoulData.souls.length) {
+    c.perfectSoulData.history.push(JSON.parse(JSON.stringify(c.perfectSoulData.souls)));
+    if (c.perfectSoulData.history.length > 20) c.perfectSoulData.history.shift();
+  }
+  c.perfectSoulData.souls = [];
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+}
+
 function toggleTraitTrigger(triggerKey, ev) {
   if (ev) ev.stopPropagation();
   const c = characters.find(x => x.id === currentId);
@@ -5852,6 +5952,7 @@ function removeTrait(key, ev) {
   if (c.dualityState) delete c.dualityState[key];
   if (key === 'missingno') delete c.missingNoRolls;
   if (key === 'thousanddoors') { delete c.thousandDoorsAccum; delete c.thousandDoorsHistory; }
+  if (key === 'perfectsoul') delete c.perfectSoulData;
   if (key === 'anotherandanother') { delete c.drunkStats; delete c.drunkCount; }
   playSound('delete');
   // Clean up triggers/stacks for removed trait
