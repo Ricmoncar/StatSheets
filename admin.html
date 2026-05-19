@@ -351,6 +351,14 @@ input:focus, select:focus { border-color: #555; }
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
 // ════════════════════════════════════════════════════════════
+// GLOBALS
+// ════════════════════════════════════════════════════════════
+let db = null;
+let characters = [];
+let _pending = null;
+let _hasUnsavedChanges = false;
+
+// ════════════════════════════════════════════════════════════
 // AUTH — btoa('maxshimmy') === 'bWF4c2hpbW15'
 // ════════════════════════════════════════════════════════════
 (function bootstrap() {
@@ -387,10 +395,6 @@ const FIREBASE_CONFIG = {
   appId: "1:558910483943:web:c468342f15569a4cf0e142"
 };
 
-let db = null;
-let characters = [];
-let _pending = null;
-
 firebase.initializeApp(FIREBASE_CONFIG);
 db = firebase.firestore();
 
@@ -425,7 +429,7 @@ function initAdmin() {
     renderCharList();
     buildDatalist();
     renderOverview();
-    if (_pending) {
+    if (_pending && !_hasUnsavedChanges) {
       const fresh = characters.find(c => c.id === _pending.id);
       if (fresh) { _pending = JSON.parse(JSON.stringify(fresh)); renderTeTraits(); renderQs(); }
     }
@@ -482,6 +486,7 @@ function buildDatalist() {
 function teLoadChar(id) {
   if (!id) {
     _pending = null;
+    _hasUnsavedChanges = false;
     renderCharList();
     document.getElementById('te-traits-wrap').innerHTML =
       '<span style="font-size:8px;color:#252525;letter-spacing:1px;">No character selected.</span>';
@@ -495,6 +500,7 @@ function teLoadChar(id) {
   _pending = JSON.parse(JSON.stringify(c));
   _pending.traits = _pending.traits || [];
   _pending.shimmyfulTraits = _pending.shimmyfulTraits || [];
+  _hasUnsavedChanges = false;
   document.getElementById('te-msg').textContent = '';
   document.getElementById('rename-input').value = c.name || '';
   renderCharList();
@@ -528,6 +534,7 @@ function teAddTrait() {
   }
   document.getElementById('te-add-key').value = '';
   document.getElementById('te-shimmy').checked = false;
+  _hasUnsavedChanges = true;
   renderTeTraits();
 }
 
@@ -535,6 +542,7 @@ function teRemoveTrait(key) {
   if (!_pending) return;
   _pending.traits = _pending.traits.filter(k => k !== key);
   _pending.shimmyfulTraits = (_pending.shimmyfulTraits || []).filter(k => k !== key);
+  _hasUnsavedChanges = true;
   renderTeTraits();
 }
 
@@ -543,6 +551,7 @@ function teClearAll() {
   if (!confirm('Clear ALL traits from ' + (_pending.name || _pending.id) + '?')) return;
   _pending.traits = [];
   _pending.shimmyfulTraits = [];
+  _hasUnsavedChanges = true;
   renderTeTraits();
 }
 
@@ -554,6 +563,7 @@ function teSave() {
   c.shimmyfulTraits = [...(_pending.shimmyfulTraits || [])];
   db.collection('characters').doc(c.id).set(_strip(c))
     .then(() => {
+      _hasUnsavedChanges = false;
       const m = document.getElementById('te-msg');
       m.style.color = '#22aa55';
       m.textContent = '✓ SAVED';

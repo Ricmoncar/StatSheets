@@ -6793,9 +6793,7 @@ if (sidebarList && db) {
 
     renderSidebar();
 
-    const currentDoc = snapshot.docs.find(d => d.id === currentId);
-    const isSelf = (currentDoc?.metadata?.hasPendingWrites === true) ||
-      (currentId === _lastSaveId && (Date.now() - _lastSaveTime < SELF_WRITE_WINDOW));
+    const isSelf = (currentId === _lastSaveId && (Date.now() - _lastSaveTime < SELF_WRITE_WINDOW));
 
     if (currentId) {
       const c = characters.find(x => x.id === currentId);
