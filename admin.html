@@ -20,7 +20,7 @@
   --shimmy: #cc88ff;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 8px; line-height: 1.6; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 11px; line-height: 1.7; }
 
 /* ── AUTH ── */
 #auth-overlay {
@@ -28,100 +28,143 @@ body { background: var(--bg); color: var(--fg); font-family: var(--font); font-s
   background: #000; display: flex; align-items: center; justify-content: center;
 }
 #auth-box {
-  border: 1px solid #2a2a2a; padding: 48px 40px; width: 320px;
+  border: 1px solid #2a2a2a; padding: 52px 44px; width: 360px;
   background: #080808; text-align: center;
 }
-#auth-logo { font-size: 11px; letter-spacing: 3px; color: var(--accent); margin-bottom: 8px; }
-#auth-sub  { font-size: 6px; color: #2a2a2a; letter-spacing: 2px; margin-bottom: 28px; }
+#auth-logo { font-size: 14px; letter-spacing: 4px; color: var(--accent); margin-bottom: 8px; }
+#auth-sub  { font-size: 8px; color: #2a2a2a; letter-spacing: 2px; margin-bottom: 32px; }
 #auth-input {
-  font-family: var(--font); font-size: 8px; letter-spacing: 3px;
-  width: 100%; padding: 10px 12px; background: #111; border: 1px solid #2a2a2a;
-  color: #ccc; outline: none; text-align: center; margin-bottom: 10px;
+  font-family: var(--font); font-size: 10px; letter-spacing: 3px;
+  width: 100%; padding: 12px 14px; background: #111; border: 1px solid #2a2a2a;
+  color: #ccc; outline: none; text-align: center; margin-bottom: 12px;
   transition: border-color 0.15s;
 }
 #auth-input:focus { border-color: #444; }
 #auth-btn {
-  font-family: var(--font); font-size: 8px; letter-spacing: 2px;
-  padding: 9px 0; background: var(--accent); color: #000; border: none;
+  font-family: var(--font); font-size: 10px; letter-spacing: 2px;
+  padding: 11px 0; background: var(--accent); color: #000; border: none;
   cursor: pointer; width: 100%; transition: background 0.1s;
 }
 #auth-btn:hover { background: #fff; }
-#auth-err { font-size: 6px; color: var(--danger); letter-spacing: 1px; margin-top: 10px; min-height: 12px; }
+#auth-err { font-size: 8px; color: var(--danger); letter-spacing: 1px; margin-top: 12px; min-height: 14px; }
 
 /* ── LAYOUT ── */
-#admin-wrap { padding: 28px 32px; max-width: 1300px; margin: 0 auto; }
+#admin-wrap { padding: 32px 36px; max-width: 1440px; margin: 0 auto; }
 
 .admin-header {
   display: flex; justify-content: space-between; align-items: flex-end;
-  padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 28px;
+  padding-bottom: 22px; border-bottom: 1px solid var(--border); margin-bottom: 32px;
 }
-.admin-header h1 { font-size: 11px; letter-spacing: 4px; color: var(--accent); }
-.admin-header .meta { font-size: 6px; color: #2a2a2a; letter-spacing: 1px; }
+.admin-header h1 { font-size: 14px; letter-spacing: 4px; color: var(--accent); }
+.admin-header .meta { font-size: 8px; color: #2a2a2a; letter-spacing: 1px; }
 
 .panel {
   background: var(--panel); border: 1px solid var(--border);
-  padding: 20px; margin-bottom: 18px;
+  padding: 26px; margin-bottom: 20px;
 }
 .panel-title {
-  font-size: 9px; letter-spacing: 3px; color: var(--accent);
-  border-bottom: 1px solid #161616; padding-bottom: 12px; margin-bottom: 16px;
+  font-size: 10px; letter-spacing: 3px; color: var(--accent);
+  border-bottom: 1px solid #161616; padding-bottom: 14px; margin-bottom: 22px;
 }
 
 /* ── CONTROLS ── */
 .btn {
-  font-family: var(--font); font-size: 7px; letter-spacing: 1px;
-  padding: 7px 11px; background: rgba(0,0,0,0.6); border: 1px solid #444;
+  font-family: var(--font); font-size: 9px; letter-spacing: 1px;
+  padding: 9px 14px; background: rgba(0,0,0,0.6); border: 1px solid #444;
   color: #ccc; cursor: pointer; transition: all 0.1s;
-  display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; gap: 6px;
 }
 .btn:hover { background: #ccc; color: #000; }
 .btn.accent { background: var(--accent); color: #000; border-color: var(--accent); }
 .btn.accent:hover { background: #fff; border-color: #fff; }
 .btn.danger { border-color: #882222; color: #c44; }
 .btn.danger:hover { background: #c44; color: #fff; border-color: #c44; }
-.btn.sm { font-size: 6px; padding: 5px 8px; }
+.btn.sm { font-size: 8px; padding: 7px 11px; }
 .btn:disabled { opacity: 0.3; pointer-events: none; }
 
 input[type="text"], input[type="number"], input[type="password"], select {
-  font-family: var(--font); font-size: 7px; letter-spacing: 1px;
-  padding: 6px 8px; background: #080808; border: 1px solid #2a2a2a;
+  font-family: var(--font); font-size: 9px; letter-spacing: 1px;
+  padding: 8px 10px; background: #080808; border: 1px solid #2a2a2a;
   color: #ccc; outline: none; transition: border-color 0.15s;
 }
 input:focus, select:focus { border-color: #555; }
 
-.field { margin-bottom: 10px; }
-.field label { display: block; font-size: 6px; color: #444; letter-spacing: 1px; margin-bottom: 4px; }
+.field { margin-bottom: 14px; }
+.field > label { display: block; font-size: 8px; color: #555; letter-spacing: 1px; margin-bottom: 6px; }
 
-.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+/* ── CHARACTER LIST PICKER ── */
+.char-picker-wrap {
+  border: 1px solid #1a1a1a; background: #080808;
+}
+.char-search {
+  font-family: var(--font); font-size: 9px; letter-spacing: 1px;
+  width: 100%; padding: 11px 14px; background: #0b0b0b; border: none;
+  border-bottom: 1px solid #1a1a1a; color: #aaa; outline: none;
+  transition: border-bottom-color 0.15s;
+}
+.char-search:focus { border-bottom-color: #333; }
+.char-search::placeholder { color: #2d2d2d; }
+.char-list {
+  max-height: 340px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: #1e1e1e transparent;
+}
+.char-list::-webkit-scrollbar { width: 4px; }
+.char-list::-webkit-scrollbar-thumb { background: #1e1e1e; }
+.char-card {
+  display: flex; align-items: center; gap: 13px;
+  padding: 11px 14px; cursor: pointer; border-bottom: 1px solid #0f0f0f;
+  transition: background 0.08s; user-select: none;
+  border-left: 2px solid transparent;
+}
+.char-card:last-child { border-bottom: none; }
+.char-card:hover { background: #111; }
+.char-card.selected { background: #111; border-left-color: var(--accent); }
+.char-card-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
+.char-card-info { flex: 1; min-width: 0; }
+.char-card-name { font-size: 9px; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+.char-card.selected .char-card-name { color: var(--accent); }
+.char-card-meta { font-size: 7px; color: #333; margin-top: 3px; letter-spacing: 0.5px; }
+.char-list-empty { padding: 20px 14px; font-size: 8px; color: #252525; text-align: center; letter-spacing: 1px; }
+
+/* ── TRAIT EDITOR LAYOUT ── */
+.te-layout {
+  display: grid;
+  grid-template-columns: 290px 1fr;
+  gap: 28px;
+}
+.te-right { display: flex; flex-direction: column; gap: 22px; }
+.te-right-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
 /* ── TRAIT CHIPS ── */
 .chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 7px; border: 1px solid #2a2a2a; margin: 2px;
-  font-size: 6px; letter-spacing: 0.5px; color: #888;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border: 1px solid #2a2a2a; margin: 3px;
+  font-size: 8px; letter-spacing: 0.5px; color: #888;
 }
 .chip.shimmy { border-color: var(--shimmy); color: var(--shimmy); }
 .chip-x {
   background: none; border: none; color: #333; cursor: pointer;
-  font-size: 12px; line-height: 1; padding: 0 1px; font-family: sans-serif;
+  font-size: 14px; line-height: 1; padding: 0 1px; font-family: sans-serif;
 }
 .chip-x:hover { color: var(--danger); }
 
-/* ── TABLE ── */
-.table { width: 100%; border-collapse: collapse; font-size: 6px; letter-spacing: 0.5px; }
-.table th { color: #333; padding: 6px 8px; border-bottom: 1px solid #161616; text-align: left; font-size: 6px; }
-.table td { padding: 7px 8px; border-bottom: 1px solid #111; vertical-align: top; }
+/* ── OVERVIEW TABLE ── */
+.table { width: 100%; border-collapse: collapse; font-size: 9px; letter-spacing: 0.5px; }
+.table th { color: #444; padding: 9px 12px; border-bottom: 1px solid #161616; text-align: left; font-size: 8px; letter-spacing: 1px; }
+.table td { padding: 11px 12px; border-bottom: 1px solid #111; vertical-align: middle; }
 .table tbody tr:hover td { background: #0f0f0f; }
 
-/* ── CHAR DOT ── */
-.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+/* ── DOT ── */
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; vertical-align: middle; }
 
-/* ── STATUS BAR ── */
+/* ── NOTIFY ── */
 #notif {
-  position: fixed; bottom: 18px; right: 18px; z-index: 1000;
-  font-size: 7px; letter-spacing: 1px; padding: 8px 14px;
+  position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+  font-size: 9px; letter-spacing: 1px; padding: 10px 16px;
   background: #111; border: 1px solid #333; color: #ccc;
   opacity: 0; pointer-events: none; transition: opacity 0.25s;
 }
@@ -130,13 +173,18 @@ input:focus, select:focus { border-color: #555; }
 #notif.err { border-color: var(--danger); color: var(--danger); }
 
 /* ── DIVIDER ── */
-.divider { border: none; border-top: 1px solid #161616; margin: 14px 0; }
+.divider { border: none; border-top: 1px solid #161616; margin: 16px 0; }
 
 .stat-color-hp  { color: #ff6666; }
 .stat-color-atk { color: #ff8844; }
 .stat-color-def { color: #4499ff; }
 .stat-color-mag { color: #bb88ff; }
 .stat-color-spd { color: #66ee88; }
+
+.section-label {
+  font-size: 8px; letter-spacing: 2px; color: #555;
+  margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #141414;
+}
 </style>
 </head>
 <body>
@@ -159,7 +207,7 @@ input:focus, select:focus { border-color: #555; }
   <div class="admin-header">
     <div>
       <h1>ADMIN PANEL</h1>
-      <div style="font-size:6px;color:#333;letter-spacing:1px;margin-top:6px;" id="char-count">CONNECTING...</div>
+      <div style="font-size:8px;color:#333;letter-spacing:1px;margin-top:8px;" id="char-count">CONNECTING...</div>
     </div>
     <div class="meta">STATSHEETS // RESTRICTED ACCESS</div>
   </div>
@@ -167,56 +215,67 @@ input:focus, select:focus { border-color: #555; }
   <!-- ── TRAIT EDITOR ── -->
   <div class="panel">
     <div class="panel-title">TRAIT EDITOR</div>
-    <div class="grid2">
+    <div class="te-layout">
 
-      <!-- left: trait list -->
+      <!-- left: character picker -->
       <div>
-        <div class="field">
-          <label>CHARACTER</label>
-          <select id="te-char" style="width:100%;" onchange="teLoadChar()">
-            <option value="">-- SELECT --</option>
-          </select>
-        </div>
-
-        <div id="te-traits-wrap" style="min-height:32px;margin-bottom:10px;">
-          <span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">No character selected.</span>
-        </div>
-
-        <hr class="divider">
-
-        <div class="row" style="margin-bottom:8px;">
-          <input type="text" id="te-add-key" list="trait-dl" placeholder="TRAIT KEY..." style="flex:1;" onkeydown="if(event.key==='Enter')teAddTrait()"/>
-          <datalist id="trait-dl"></datalist>
-          <label style="font-size:6px;color:#555;letter-spacing:1px;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;">
-            <input type="checkbox" id="te-shimmy"/> SHIMMYFUL
-          </label>
-          <button class="btn sm accent" onclick="teAddTrait()">+ ADD</button>
-        </div>
-
-        <div class="row">
-          <button class="btn sm" onclick="teSave()">SAVE TRAITS</button>
-          <button class="btn sm danger" onclick="teClearAll()">CLEAR ALL</button>
-        </div>
-        <div id="te-msg" style="font-size:6px;color:#444;letter-spacing:1px;margin-top:8px;min-height:12px;"></div>
-      </div>
-
-      <!-- right: stat override -->
-      <div>
-        <div class="field"><label>QUICK STAT OVERRIDE</label></div>
-        <div id="qs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">Select a character first.</span>
-        </div>
-        <div style="margin-top:12px;">
-          <button class="btn sm accent" onclick="qsSave()">SAVE STATS</button>
-        </div>
-        <hr class="divider">
-        <div class="field"><label>RENAME CHARACTER</label></div>
-        <div class="row">
-          <input type="text" id="rename-input" placeholder="NEW NAME..." style="flex:1;"/>
-          <button class="btn sm" onclick="renameChar()">RENAME</button>
+        <div class="section-label">SELECT CHARACTER</div>
+        <div class="char-picker-wrap">
+          <input type="text" class="char-search" id="char-search"
+                 placeholder="SEARCH..." oninput="filterCharList()"/>
+          <div id="char-list" class="char-list">
+            <div class="char-list-empty">CONNECTING...</div>
+          </div>
         </div>
       </div>
 
+      <!-- right: traits + stats + rename -->
+      <div class="te-right">
+
+        <!-- traits section -->
+        <div>
+          <div class="section-label">TRAITS</div>
+          <div id="te-traits-wrap" style="min-height:40px;margin-bottom:14px;">
+            <span style="font-size:8px;color:#252525;letter-spacing:1px;">No character selected.</span>
+          </div>
+          <hr class="divider"/>
+          <div class="row" style="margin-bottom:12px;">
+            <input type="text" id="te-add-key" list="trait-dl" placeholder="TRAIT KEY..."
+                   style="flex:1;" onkeydown="if(event.key==='Enter')teAddTrait()"/>
+            <datalist id="trait-dl"></datalist>
+            <label style="font-size:8px;color:#555;letter-spacing:1px;display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;">
+              <input type="checkbox" id="te-shimmy"/> SHIMMYFUL
+            </label>
+            <button class="btn sm accent" onclick="teAddTrait()">+ ADD</button>
+          </div>
+          <div class="row">
+            <button class="btn sm" onclick="teSave()">SAVE TRAITS</button>
+            <button class="btn sm danger" onclick="teClearAll()">CLEAR ALL</button>
+          </div>
+          <div id="te-msg" style="font-size:8px;color:#444;letter-spacing:1px;margin-top:10px;min-height:14px;"></div>
+        </div>
+
+        <!-- stat override + rename -->
+        <div class="te-right-bottom">
+          <div>
+            <div class="section-label">QUICK STAT OVERRIDE</div>
+            <div id="qs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <span style="font-size:8px;color:#252525;letter-spacing:1px;">Select a character first.</span>
+            </div>
+            <div style="margin-top:14px;">
+              <button class="btn sm accent" onclick="qsSave()">SAVE STATS</button>
+            </div>
+          </div>
+          <div>
+            <div class="section-label">RENAME CHARACTER</div>
+            <input type="text" id="rename-input" placeholder="NEW NAME..." style="width:100%;"/>
+            <div style="margin-top:12px;">
+              <button class="btn sm" onclick="renameChar()">RENAME</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 
@@ -226,13 +285,13 @@ input:focus, select:focus { border-color: #555; }
     <div class="grid2">
 
       <div>
-        <div class="panel-title" style="font-size:7px;border:none;padding:0;margin-bottom:12px;color:#ccc;">GIVE TO ALL</div>
+        <div class="section-label">GIVE TO ALL</div>
         <div class="field">
           <label>TRAIT KEY</label>
           <input type="text" id="bulk-key" list="trait-dl" placeholder="e.g. perfectsoul" style="width:100%;"/>
         </div>
         <div class="field">
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
             <input type="checkbox" id="bulk-shimmy"/> MAKE SHIMMYFUL
           </label>
         </div>
@@ -240,24 +299,24 @@ input:focus, select:focus { border-color: #555; }
           <button class="btn accent" onclick="bulkGive()">GIVE TO ALL CHARS</button>
           <button class="btn danger" onclick="bulkRemove()">REMOVE FROM ALL</button>
         </div>
-        <div id="bulk-msg" style="font-size:6px;color:#444;letter-spacing:1px;margin-top:8px;min-height:12px;"></div>
+        <div id="bulk-msg" style="font-size:8px;color:#444;letter-spacing:1px;margin-top:10px;min-height:14px;"></div>
       </div>
 
       <div>
-        <div class="panel-title" style="font-size:7px;border:none;padding:0;margin-bottom:12px;color:#ccc;">DANGER ZONE</div>
+        <div class="section-label">DANGER ZONE</div>
         <div class="field">
           <label>NUKE A SPECIFIC TRAIT FROM EVERYONE</label>
-          <div class="row" style="margin-top:4px;">
+          <div class="row" style="margin-top:6px;">
             <input type="text" id="nuke-key" list="trait-dl" placeholder="TRAIT KEY..." style="flex:1;"/>
             <button class="btn sm danger" onclick="nukeTraitFromAll()">NUKE</button>
           </div>
         </div>
-        <hr class="divider">
+        <hr class="divider"/>
         <div class="field">
           <label>WIPE ALL TRAITS FROM EVERY CHARACTER</label>
-          <button class="btn danger" style="margin-top:4px;" onclick="wipeAllEveryone()">WIPE EVERYONE</button>
+          <button class="btn danger" style="margin-top:6px;" onclick="wipeAllEveryone()">WIPE EVERYONE</button>
         </div>
-        <div id="nuke-msg" style="font-size:6px;color:#444;letter-spacing:1px;margin-top:8px;min-height:12px;"></div>
+        <div id="nuke-msg" style="font-size:8px;color:#444;letter-spacing:1px;margin-top:10px;min-height:14px;"></div>
       </div>
 
     </div>
@@ -271,14 +330,14 @@ input:focus, select:focus { border-color: #555; }
         <thead>
           <tr>
             <th>NAME</th>
-            <th>TRAITS (COUNT)</th>
+            <th>TRAITS</th>
             <th>SHIMMYFUL</th>
             <th>BASE STATS</th>
             <th></th>
           </tr>
         </thead>
         <tbody id="overview-body">
-          <tr><td colspan="5" style="text-align:center;color:#2a2a2a;padding:20px;">Loading...</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:#252525;padding:28px;">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -330,17 +389,26 @@ const FIREBASE_CONFIG = {
 
 let db = null;
 let characters = [];
-let _pending = null; // deep copy of character being edited
+let _pending = null;
 
 firebase.initializeApp(FIREBASE_CONFIG);
 db = firebase.firestore();
 
 function _strip(obj) {
-  if (obj === null || typeof obj !== 'object') return obj;
+  if (obj === null || typeof obj !== 'object') {
+    if (typeof obj === 'number' && !isFinite(obj)) return 0;
+    return obj;
+  }
   if (Array.isArray(obj)) return obj.map(x => _strip(x));
   return Object.fromEntries(
     Object.entries(obj).filter(([,v]) => v !== undefined).map(([k,v]) => [k, _strip(v)])
   );
+}
+
+function _esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -354,22 +422,48 @@ function initAdmin() {
       return ao - bo;
     });
     document.getElementById('char-count').textContent = characters.length + ' CHARACTERS LOADED';
-    refreshSelects();
+    renderCharList();
     buildDatalist();
     renderOverview();
     if (_pending) {
-      // refresh pending char from updated data
       const fresh = characters.find(c => c.id === _pending.id);
       if (fresh) { _pending = JSON.parse(JSON.stringify(fresh)); renderTeTraits(); renderQs(); }
     }
   }, err => notify('CONNECTION ERROR: ' + err.message, 'err'));
 }
 
-function refreshSelects() {
-  const sel = document.getElementById('te-char');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">-- SELECT --</option>' +
-    characters.map(c => `<option value="${c.id}"${c.id === cur ? ' selected' : ''}>${c.name || c.id}</option>`).join('');
+// ════════════════════════════════════════════════════════════
+// CHARACTER LIST PICKER
+// ════════════════════════════════════════════════════════════
+function renderCharList() {
+  const list = document.getElementById('char-list');
+  const q = (document.getElementById('char-search').value || '').toLowerCase().trim();
+  const filtered = q
+    ? characters.filter(c => (c.name || c.id || '').toLowerCase().includes(q))
+    : characters;
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="char-list-empty">' + (q ? 'NO MATCH' : 'NO CHARACTERS') + '</div>';
+    return;
+  }
+
+  const selectedId = _pending ? _pending.id : null;
+  list.innerHTML = filtered.map(c => {
+    const traitCount = (c.traits || []).length;
+    const isSelected = c.id === selectedId;
+    const dot = c.color || '#444';
+    return `<div class="char-card${isSelected ? ' selected' : ''}" data-id="${_esc(c.id)}" onclick="teLoadChar(this.dataset.id)">
+      <span class="char-card-dot" style="background:${_esc(dot)};"></span>
+      <div class="char-card-info">
+        <div class="char-card-name">${_esc(c.name || c.id)}</div>
+        <div class="char-card-meta">${traitCount} TRAIT${traitCount !== 1 ? 'S' : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterCharList() {
+  renderCharList();
 }
 
 function buildDatalist() {
@@ -379,20 +473,20 @@ function buildDatalist() {
     (c.shimmyfulTraits || []).forEach(k => keys.add(k));
   });
   const dl = document.getElementById('trait-dl');
-  dl.innerHTML = [...keys].sort().map(k => `<option value="${k}">`).join('');
+  dl.innerHTML = [...keys].sort().map(k => `<option value="${_esc(k)}">`).join('');
 }
 
 // ════════════════════════════════════════════════════════════
 // TRAIT EDITOR
 // ════════════════════════════════════════════════════════════
-function teLoadChar() {
-  const id = document.getElementById('te-char').value;
+function teLoadChar(id) {
   if (!id) {
     _pending = null;
+    renderCharList();
     document.getElementById('te-traits-wrap').innerHTML =
-      '<span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">No character selected.</span>';
+      '<span style="font-size:8px;color:#252525;letter-spacing:1px;">No character selected.</span>';
     document.getElementById('qs-grid').innerHTML =
-      '<span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">Select a character first.</span>';
+      '<span style="font-size:8px;color:#252525;letter-spacing:1px;">Select a character first.</span>';
     document.getElementById('rename-input').value = '';
     return;
   }
@@ -403,6 +497,7 @@ function teLoadChar() {
   _pending.shimmyfulTraits = _pending.shimmyfulTraits || [];
   document.getElementById('te-msg').textContent = '';
   document.getElementById('rename-input').value = c.name || '';
+  renderCharList();
   renderTeTraits();
   renderQs();
 }
@@ -410,15 +505,14 @@ function teLoadChar() {
 function renderTeTraits() {
   const wrap = document.getElementById('te-traits-wrap');
   if (!_pending || !_pending.traits.length) {
-    wrap.innerHTML = '<span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">No traits yet.</span>';
+    wrap.innerHTML = '<span style="font-size:8px;color:#252525;letter-spacing:1px;">No traits yet.</span>';
     return;
   }
   wrap.innerHTML = _pending.traits.map(k => {
     const isS = (_pending.shimmyfulTraits || []).includes(k);
-    const safe = k.replace(/'/g, "\\'");
     return `<span class="chip${isS ? ' shimmy' : ''}">
-      ${k}${isS ? ' ✦' : ''}
-      <button class="chip-x" onclick="teRemoveTrait('${safe}')">×</button>
+      ${_esc(k)}${isS ? ' ✦' : ''}
+      <button class="chip-x" data-key="${_esc(k)}" onclick="teRemoveTrait(this.dataset.key)">×</button>
     </span>`;
   }).join('');
 }
@@ -477,13 +571,13 @@ const STAT_COLORS = { hp:'#ff6666', atk:'#ff8844', def:'#4499ff', mag:'#bb88ff',
 function renderQs() {
   const grid = document.getElementById('qs-grid');
   if (!_pending) {
-    grid.innerHTML = '<span style="font-size:6px;color:#2a2a2a;letter-spacing:1px;">Select a character first.</span>';
+    grid.innerHTML = '<span style="font-size:8px;color:#252525;letter-spacing:1px;">Select a character first.</span>';
     return;
   }
   const s = _pending.stats || {};
   grid.innerHTML = ['hp','atk','def','mag','spd'].map(k => `
     <div>
-      <div style="font-size:5.5px;color:${STAT_COLORS[k]};letter-spacing:1px;margin-bottom:3px;">${k.toUpperCase()}</div>
+      <div style="font-size:7px;color:${STAT_COLORS[k]};letter-spacing:1px;margin-bottom:4px;">${k.toUpperCase()}</div>
       <input type="number" id="qs-${k}" value="${s[k]||0}" min="1" style="width:100%;"/>
     </div>`).join('');
 }
@@ -513,7 +607,7 @@ function renameChar() {
   _pending.name = newName;
   db.collection('characters').doc(c.id).set(_strip(c))
     .then(() => {
-      refreshSelects();
+      renderCharList();
       notify('"' + old + '" → "' + newName + '"', 'ok');
     })
     .catch(err => notify('RENAME FAILED: ' + err.message, 'err'));
@@ -533,7 +627,10 @@ function _batchWrite(updates, successMsg, statusId) {
   });
   return Promise.all(promises)
     .then(() => {
-      if (statusId) { const el = document.getElementById(statusId); if (el) { el.style.color = '#22aa55'; el.textContent = successMsg; } }
+      if (statusId) {
+        const el = document.getElementById(statusId);
+        if (el) { el.style.color = '#22aa55'; el.textContent = successMsg; }
+      }
       notify(successMsg, 'ok');
     })
     .catch(err => notify('BATCH FAILED: ' + err.message, 'err'));
@@ -606,7 +703,7 @@ function renderOverview() {
   const tbody = document.getElementById('overview-body');
   if (!tbody) return;
   if (!characters.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#2a2a2a;padding:20px;">No characters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#252525;padding:24px;">No characters.</td></tr>';
     return;
   }
   tbody.innerHTML = characters.map(c => {
@@ -614,32 +711,32 @@ function renderOverview() {
     const shimmy = c.shimmyfulTraits || [];
     const s = c.stats || {};
     const traitHtml = traits.length
-      ? traits.map(k => `<span class="chip${shimmy.includes(k) ? ' shimmy' : ''}" style="font-size:5.5px;padding:2px 5px;">${k}${shimmy.includes(k) ? ' ✦' : ''}</span>`).join('')
-      : '<span style="color:#2a2a2a;">—</span>';
+      ? traits.map(k => `<span class="chip${shimmy.includes(k) ? ' shimmy' : ''}" style="margin:2px 2px;">${_esc(k)}${shimmy.includes(k) ? ' ✦' : ''}</span>`).join('')
+      : '<span style="color:#252525;">—</span>';
     const shimHtml = shimmy.length
-      ? shimmy.map(k => `<span style="color:var(--shimmy);font-size:5.5px;">${k}</span>`).join('<span style="color:#333;"> · </span>')
-      : '<span style="color:#2a2a2a;">—</span>';
-    const statsHtml = `<span class="stat-color-hp">${s.hp||0}</span> <span style="color:#333;">/</span> <span class="stat-color-atk">${s.atk||0}</span> <span style="color:#333;">/</span> <span class="stat-color-def">${s.def||0}</span> <span style="color:#333;">/</span> <span class="stat-color-mag">${s.mag||0}</span> <span style="color:#333;">/</span> <span class="stat-color-spd">${s.spd||0}</span>`;
+      ? shimmy.map(k => `<span style="color:var(--shimmy);font-size:8px;">${_esc(k)}</span>`).join('<span style="color:#333;"> · </span>')
+      : '<span style="color:#252525;">—</span>';
+    const statsHtml = `<span class="stat-color-hp">${s.hp||0}</span><span style="color:#333;"> / </span><span class="stat-color-atk">${s.atk||0}</span><span style="color:#333;"> / </span><span class="stat-color-def">${s.def||0}</span><span style="color:#333;"> / </span><span class="stat-color-mag">${s.mag||0}</span><span style="color:#333;"> / </span><span class="stat-color-spd">${s.spd||0}</span>`;
     return `<tr>
       <td style="white-space:nowrap;">
-        <span class="dot" style="background:${c.color||'#333'};"></span>
-        <span style="font-size:7px;">${c.name || c.id}</span>
-        <div style="font-size:5px;color:#2a2a2a;margin-top:3px;">${traits.length} TRAIT${traits.length!==1?'S':''}</div>
+        <span style="display:inline-flex;align-items:center;gap:10px;">
+          <span class="dot" style="background:${_esc(c.color||'#333')};border:1px solid rgba(255,255,255,0.06);"></span>
+          <span style="font-size:9px;">${_esc(c.name || c.id)}</span>
+        </span>
+        <div style="font-size:7px;color:#2a2a2a;margin-top:4px;margin-left:21px;">${traits.length} TRAIT${traits.length!==1?'S':''}</div>
       </td>
       <td>${traitHtml}</td>
       <td>${shimHtml}</td>
-      <td style="font-size:6px;white-space:nowrap;">${statsHtml}</td>
+      <td style="white-space:nowrap;">${statsHtml}</td>
       <td style="white-space:nowrap;">
-        <button class="btn sm" onclick="jumpToEdit('${c.id}')">EDIT</button>
+        <button class="btn sm" data-id="${_esc(c.id)}" onclick="jumpToEdit(this.dataset.id)">EDIT</button>
       </td>
     </tr>`;
   }).join('');
 }
 
 function jumpToEdit(id) {
-  const sel = document.getElementById('te-char');
-  sel.value = id;
-  teLoadChar();
+  teLoadChar(id);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -652,7 +749,7 @@ function notify(msg, type) {
   el.textContent = msg;
   el.className = 'vis ' + (type || '');
   clearTimeout(_nt);
-  _nt = setTimeout(() => { el.className = (el.className || '').replace('vis', '').trim(); }, 3000);
+  _nt = setTimeout(() => { el.className = (el.className || '').replace('vis','').trim(); }, 3000);
 }
 </script>
 </body>
