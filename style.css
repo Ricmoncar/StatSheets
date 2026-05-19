@@ -2486,14 +2486,17 @@ input[type=number] { -moz-appearance: textfield; }
 }
 .trait-trigger-btn {
   font-family: var(--font-main);
-  font-size: 7px;
+  font-size: 9px;
   letter-spacing: 1px;
-  padding: 6px 8px;
+  padding: 7px 11px;
   background: rgba(0,0,0,0.55);
   border: 1px solid var(--c-border, #555);
   color: var(--c-fg, #ccc);
   cursor: none;
   transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .trait-trigger-btn:hover {
   background: var(--c-fg, #fff);
@@ -2529,11 +2532,23 @@ input[type=number] { -moz-appearance: textfield; }
 .ps-souls-toggle-wrap { width: 100%; margin-bottom: 8px; }
 .ps-souls-toggle-btn { width: 100%; text-align: left; margin-bottom: 0 !important; }
 .ps-soul-list { width: 100%; margin-top: 6px; padding-bottom: 6px; border-bottom: 1px solid #1e1e1e; }
-.ps-soul-row { font-size: 6px; color: #bbb; letter-spacing: 0.5px; margin-bottom: 3px; line-height: 1.5; display: flex; gap: 5px; align-items: baseline; }
-.ps-soul-index { color: #444; min-width: 16px; }
-.ps-soul-name { color: #ccc; }
-.ps-soul-pct { color: #666; }
-.ps-soul-stats { color: #555; }
+.ps-soul-row { font-size: 6px; color: #bbb; letter-spacing: 0.5px; margin-bottom: 4px; line-height: 1.5; display: flex; gap: 5px; align-items: center; }
+.ps-soul-index { color: #444; min-width: 16px; flex-shrink: 0; }
+.ps-soul-name { color: #ccc; flex-shrink: 0; }
+.ps-soul-pct { color: #555; flex-shrink: 0; }
+.ps-soul-stats { flex: 1; display: flex; gap: 4px; flex-wrap: wrap; }
+.ps-soul-stat-hp  { color: #ff6666; }
+.ps-soul-stat-atk { color: #ff8844; }
+.ps-soul-stat-def { color: #4499ff; }
+.ps-soul-stat-mag { color: #bb88ff; }
+.ps-soul-stat-spd { color: #66ee88; }
+.ps-soul-remove-btn {
+  margin-left: auto; flex-shrink: 0;
+  background: none; border: none; color: #333;
+  font-size: 11px; line-height: 1; padding: 0 2px; cursor: none;
+  transition: color 0.1s;
+}
+.ps-soul-remove-btn:hover { color: #c44; }
 
 .ps-picker-wrap { width: 100%; margin-bottom: 6px; }
 .ps-select-btn {
@@ -2567,7 +2582,7 @@ input[type=number] { -moz-appearance: textfield; }
   border-bottom: 1px solid #1a1a1a; color: #aaa; outline: none; flex-shrink: 0;
 }
 .ps-search-input::placeholder { color: #2e2e2e; }
-.ps-picker-list { overflow-y: auto; flex: 1; }
+.ps-picker-list { overflow-y: auto; flex: 1; overscroll-behavior: contain; }
 .ps-char-row {
   display: flex; align-items: center; gap: 8px;
   padding: 5px 8px; cursor: none; border-bottom: 1px solid #111;

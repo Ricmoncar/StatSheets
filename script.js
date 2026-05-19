@@ -5704,19 +5704,27 @@ function renderTraitSituationals(c, key) {
     const souls = data.souls || [];
     const shimmy = isShimmyful(c, key);
 
+    // SVG icons used in buttons
+    const svgBolt   = `<svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M6.5 1L2 6h3.5L4 10 9 5H5.5z"/></svg>`;
+    const svgUndo   = `<svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v3h3"/><path d="M3 5A4 4 0 1 0 5 2"/></svg>`;
+    const svgReset  = `<svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 5.5A3.5 3.5 0 0 1 9 3"/><path d="M9 5.5A3.5 3.5 0 0 1 2 8"/><path d="M7 1.5l2 1.5-2 1.5"/><path d="M4 9.5L2 8l2-1.5"/></svg>`;
+    const svgChevD  = `<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 3l3.5 3 3.5-3"/></svg>`;
+    const svgChevU  = `<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 6l3.5-3 3.5 3"/></svg>`;
+    const statColors = { hp: 'ps-soul-stat-hp', atk: 'ps-soul-stat-atk', def: 'ps-soul-stat-def', mag: 'ps-soul-stat-mag', spd: 'ps-soul-stat-spd' };
+
     // Soul list toggle button + collapsible list
     let soulList = '';
     if (souls.length > 0) {
-      const arrow = _psSoulListOpen ? '&#9650;' : '&#9660;';
+      const chevron = _psSoulListOpen ? svgChevU : svgChevD;
       const rows = souls.map((s, i) => {
-        const statsStr = ['hp','atk','def','mag','spd']
+        const statSpans = ['hp','atk','def','mag','spd']
           .filter(k => s.stats && s.stats[k])
-          .map(k => `+${Math.round(s.stats[k])} ${k.toUpperCase()}`)
-          .join(' ');
-        return `<div class="ps-soul-row"><span class="ps-soul-index">#${i+1}</span><span class="ps-soul-name">&#9670; ${s.name || '?'}</span> <span class="ps-soul-pct">(${s.pct}%)</span> <span class="ps-soul-stats">${statsStr}</span></div>`;
+          .map(k => `<span class="${statColors[k]}">+${Math.round(s.stats[k])} ${k.toUpperCase()}</span>`)
+          .join('');
+        return `<div class="ps-soul-row"><span class="ps-soul-index">#${i+1}</span><span class="ps-soul-name">&#9670; ${s.name || '?'}</span><span class="ps-soul-pct">(${s.pct}%)</span><span class="ps-soul-stats">${statSpans}</span><button class="ps-soul-remove-btn" data-idx="${i}" onclick="removePerfectSoul(+this.dataset.idx, event)" data-tooltip="Remove this soul.">&#10005;</button></div>`;
       }).join('');
       const listHtml = _psSoulListOpen ? `<div class="ps-soul-list">${rows}</div>` : '';
-      soulList = `<div class="ps-souls-toggle-wrap"><button class="trait-trigger-btn ps-souls-toggle-btn" onclick="togglePsSoulList(event)">SOULS ABSORBED (${souls.length}) ${arrow}</button>${listHtml}</div>`;
+      soulList = `<div class="ps-souls-toggle-wrap"><button class="trait-trigger-btn ps-souls-toggle-btn" onclick="togglePsSoulList(event)">SOULS ABSORBED (${souls.length}) ${chevron}</button>${listHtml}</div>`;
     }
 
     // Character picker header
@@ -5738,15 +5746,15 @@ function renderTraitSituationals(c, key) {
         const safeName = (ch.name || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
         return `<div class="ps-char-row${isSel ? ' selected' : ''}" data-name="${safeName}" onclick="selectPsChar(this.dataset.name, event)"><span class="ps-char-dot" style="background:${ch.color||'#888'};"></span><span class="ps-char-name-lbl">${ch.name||'?'}</span><span class="ps-char-stats-lbl">HP ${ts.hp||0} · ATK ${ts.atk||0} · DEF ${ts.def||0} · MAG ${ts.mag||0} · SPD ${ts.spd||0}</span></div>`;
       }).join('');
-      pickerDropdown = `<div class="ps-picker-dropdown"><input type="text" class="ps-search-input" placeholder="SEARCH..." oninput="filterPsPicker(this.value)" autocomplete="off"/><div class="ps-picker-list" id="ps-picker-list">${charRows}</div></div>`;
+      pickerDropdown = `<div class="ps-picker-dropdown"><input type="text" class="ps-search-input" placeholder="SEARCH..." oninput="filterPsPicker(this.value)" autocomplete="off"/><div class="ps-picker-list" id="ps-picker-list" onwheel="event.stopPropagation()">${charRows}</div></div>`;
     }
 
     const hasHistory = data.history && data.history.length > 0;
     const hasSouls = souls.length > 0;
     const rangeHint = shimmy ? '55–90%' : '40–80%';
-    const undoBtn = hasHistory ? `<button class="trait-trigger-btn" onclick="undoPerfectSoul(event)" data-tooltip="Undo the last absorption.">&#8592; UNDO</button>` : '';
-    const resetBtn = hasSouls ? `<button class="trait-trigger-btn" onclick="resetPerfectSoul(event)" data-tooltip="Remove all absorbed souls.">&#8635; RESET</button>` : '';
-    return `<div class="trait-triggers ps-panel">${soulList}<div class="ps-picker-wrap">${pickerHeader}${pickerDropdown}</div><div class="ps-action-row"><button class="trait-trigger-btn" onclick="absorbPerfectSoul(event)" data-tooltip="Roll ${rangeHint} of the selected character's stats and absorb permanently.">&#9889; ABSORB SOUL</button>${undoBtn}${resetBtn}</div></div>`;
+    const undoBtn = hasHistory ? `<button class="trait-trigger-btn" onclick="undoPerfectSoul(event)" data-tooltip="Undo the last absorption.">${svgUndo} UNDO</button>` : '';
+    const resetBtn = hasSouls ? `<button class="trait-trigger-btn" onclick="resetPerfectSoul(event)" data-tooltip="Remove all absorbed souls.">${svgReset} RESET</button>` : '';
+    return `<div class="trait-triggers ps-panel">${soulList}<div class="ps-picker-wrap">${pickerHeader}${pickerDropdown}</div><div class="ps-action-row"><button class="trait-trigger-btn" onclick="absorbPerfectSoul(event)" data-tooltip="Roll ${rangeHint} of the selected character's stats and absorb permanently.">${svgBolt} ABSORB SOUL</button>${undoBtn}${resetBtn}</div></div>`;
   }
   const t = getTraitDef(c, key);
   if (!t || !t.situational || !t.situational.length) return '';
@@ -6001,6 +6009,20 @@ function resetPerfectSoul(ev) {
     if (c.perfectSoulData.history.length > 20) c.perfectSoulData.history.shift();
   }
   c.perfectSoulData.souls = [];
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+}
+
+function removePerfectSoul(idx, ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c || !c.perfectSoulData || !c.perfectSoulData.souls) return;
+  if (idx < 0 || idx >= c.perfectSoulData.souls.length) return;
+  c.perfectSoulData.history = c.perfectSoulData.history || [];
+  c.perfectSoulData.history.push({ souls: JSON.parse(JSON.stringify(c.perfectSoulData.souls)) });
+  if (c.perfectSoulData.history.length > 20) c.perfectSoulData.history.shift();
+  c.perfectSoulData.souls.splice(idx, 1);
   saveData(c);
   updateLiveStats(c);
   renderTraitsDisplay(c);
