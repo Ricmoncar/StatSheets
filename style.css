@@ -2574,6 +2574,13 @@ input[type=number] { -moz-appearance: textfield; }
 .ps-char-name-lbl { font-family: var(--font-main); font-size: 7px; color: #ccc; letter-spacing: 0.5px; flex-shrink: 0; min-width: 70px; }
 .ps-char-stats-lbl { font-family: var(--font-main); font-size: 5.5px; color: #3a3a3a; letter-spacing: 0; }
 .ps-action-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.ps-sanity-bar {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; margin-bottom: 8px;
+  padding-bottom: 7px; border-bottom: 1px solid #1a1a1a;
+}
+.ps-sanity-label { font-family: var(--font-main); font-size: 6px; letter-spacing: 2px; color: #3a3a3a; }
+.ps-sanity-val { font-family: var(--font-main); font-size: 9px; letter-spacing: 1px; font-weight: bold; }
 
 /* ============================================================
    TRAIT CODEX MODAL

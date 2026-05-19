@@ -5695,6 +5695,11 @@ function renderTraitSituationals(c, key) {
     const souls = data.souls || [];
     const shimmy = isShimmyful(c, key);
 
+    // Sanity
+    const sanity = 80 - souls.length * 5;
+    const sanityColor = sanity < 0 ? '#c44' : sanity <= 30 ? '#c87' : '#777';
+    const sanityDisplay = `<div class="ps-sanity-bar"><span class="ps-sanity-label">SANITY</span><span class="ps-sanity-val" style="color:${sanityColor};">${sanity}%</span></div>`;
+
     // Soul history list
     let soulList = '';
     if (souls.length > 0) {
@@ -5713,27 +5718,19 @@ function renderTraitSituationals(c, key) {
     let pickerHeader;
     if (sel) {
       const ts = sel.stats || {};
-      pickerHeader = `<div class="ps-selected-char" onclick="togglePsPicker(event)">
-        <span class="ps-char-dot" style="background:${sel.color||'#888'};"></span>
-        <span class="ps-sel-name">${sel.name}</span>
-        <span class="ps-sel-stats">HP ${ts.hp||0} · ATK ${ts.atk||0} · DEF ${ts.def||0} · MAG ${ts.mag||0} · SPD ${ts.spd||0}</span>
-        <button class="ps-clear-btn" onclick="clearPsChar(event)">&#10005;</button>
-      </div>`;
+      pickerHeader = `<div class="ps-selected-char" onclick="togglePsPicker(event)"><span class="ps-char-dot" style="background:${sel.color||'#888'};"></span><span class="ps-sel-name">${sel.name}</span><span class="ps-sel-stats">HP ${ts.hp||0} · ATK ${ts.atk||0} · DEF ${ts.def||0} · MAG ${ts.mag||0} · SPD ${ts.spd||0}</span><button class="ps-clear-btn" onclick="clearPsChar(event)">&#10005;</button></div>`;
     } else {
       pickerHeader = `<button class="ps-select-btn" onclick="togglePsPicker(event)">+ SELECT CHARACTER &#9660;</button>`;
     }
 
-    // Picker dropdown (when open)
+    // Picker dropdown (when open) — use data-name + this.dataset.name to avoid quote-escaping bugs in onclick
     let pickerDropdown = '';
     if (_psPickerOpen) {
       const charRows = (typeof characters !== 'undefined' ? characters : []).map(ch => {
         const ts = ch.stats || {};
         const isSel = ch.name === _psSelectedChar;
-        return `<div class="ps-char-row${isSel ? ' selected' : ''}" data-name="${(ch.name||'').replace(/"/g,'&quot;')}" onclick="selectPsChar(${JSON.stringify(ch.name)}, event)">
-          <span class="ps-char-dot" style="background:${ch.color||'#888'};"></span>
-          <span class="ps-char-name-lbl">${ch.name||'?'}</span>
-          <span class="ps-char-stats-lbl">HP ${ts.hp||0} · ATK ${ts.atk||0} · DEF ${ts.def||0} · MAG ${ts.mag||0} · SPD ${ts.spd||0}</span>
-        </div>`;
+        const safeName = (ch.name || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+        return `<div class="ps-char-row${isSel ? ' selected' : ''}" data-name="${safeName}" onclick="selectPsChar(this.dataset.name, event)"><span class="ps-char-dot" style="background:${ch.color||'#888'};"></span><span class="ps-char-name-lbl">${ch.name||'?'}</span><span class="ps-char-stats-lbl">HP ${ts.hp||0} · ATK ${ts.atk||0} · DEF ${ts.def||0} · MAG ${ts.mag||0} · SPD ${ts.spd||0}</span></div>`;
       }).join('');
       pickerDropdown = `<div class="ps-picker-dropdown"><input type="text" class="ps-search-input" placeholder="SEARCH..." oninput="filterPsPicker(this.value)" autocomplete="off"/><div class="ps-picker-list" id="ps-picker-list">${charRows}</div></div>`;
     }
@@ -5743,7 +5740,7 @@ function renderTraitSituationals(c, key) {
     const rangeHint = shimmy ? '55–90%' : '40–80%';
     const undoBtn = hasHistory ? `<button class="trait-trigger-btn" onclick="undoPerfectSoul(event)" data-tooltip="Undo the last absorption.">&#8592; UNDO</button>` : '';
     const resetBtn = hasSouls ? `<button class="trait-trigger-btn" onclick="resetPerfectSoul(event)" data-tooltip="Remove all absorbed souls.">&#8635; RESET</button>` : '';
-    return `<div class="trait-triggers ps-panel">${soulList}<div class="ps-picker-wrap">${pickerHeader}${pickerDropdown}</div><div class="ps-action-row"><button class="trait-trigger-btn" onclick="absorbPerfectSoul(event)" data-tooltip="Roll ${rangeHint} of the selected character's stats and absorb permanently.">&#9889; ABSORB SOUL</button>${undoBtn}${resetBtn}</div></div>`;
+    return `<div class="trait-triggers ps-panel">${sanityDisplay}${soulList}<div class="ps-picker-wrap">${pickerHeader}${pickerDropdown}</div><div class="ps-action-row"><button class="trait-trigger-btn" onclick="absorbPerfectSoul(event)" data-tooltip="Roll ${rangeHint} of the selected character's stats and absorb permanently.">&#9889; ABSORB SOUL</button>${undoBtn}${resetBtn}</div></div>`;
   }
   const t = getTraitDef(c, key);
   if (!t || !t.situational || !t.situational.length) return '';
