@@ -51,7 +51,10 @@ const SELF_WRITE_WINDOW = 8000; // ms
 function loadData() { characters = []; } // no-op — data comes from Firestore
 
 function _stripUndefined(obj) {
-  if (obj === null || typeof obj !== 'object') return obj;
+  if (obj === null || typeof obj !== 'object') {
+    if (typeof obj === 'number' && !isFinite(obj)) return 0;
+    return obj;
+  }
   if (Array.isArray(obj)) return obj.map(item => _stripUndefined(item));
   return Object.fromEntries(
     Object.entries(obj)
@@ -69,7 +72,7 @@ function _migrateCharacter(c) {
       if (Array.isArray(entry)) { dirty = true; return { souls: entry }; }
       return entry;
     });
-    if (dirty) saveData(c); // write corrected format back to Firestore immediately
+    if (dirty) setTimeout(() => saveData(c), 0); // defer until after onSnapshot rebuilds characters[]
   }
   return c;
 }
