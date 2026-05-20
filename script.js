@@ -6231,11 +6231,11 @@ let _autoRollMode = false;
 let _autoRollStopRarity = 'legendary'; // rare | epic | legendary | mythic
 let _autoRollStopShimmy = true;
 
-const _AR_RARITY_RANK = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4, hexxed: 99, duality: 99 };
+const _AR_RARITY_RANK = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4, hexxed: 99, duality: 99, determined: 99 };
 
 function _arIsStop(handItem) {
   const rar = (TRAITS[handItem.key]?.rarity || '').toLowerCase();
-  if (rar === 'hexxed' || rar === 'duality') return true;
+  if (rar === 'hexxed' || rar === 'duality' || rar === 'determined') return true;
   if (handItem.shimmyful && _autoRollStopShimmy) return true;
   // unknown non-empty rarity → treat as above mythic so nothing exotic gets skipped
   const rank = rar ? (_AR_RARITY_RANK[rar] ?? 99) : 0;
