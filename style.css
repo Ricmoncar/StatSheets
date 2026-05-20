@@ -5040,55 +5040,64 @@ input[type=number] { -moz-appearance: textfield; }
   pointer-events: none; z-index: 0; border-radius: 50%;
 }
 
-/* BLAZE — fire pool at feet, embers rise */
+/* BLAZE — char-colored fire pool at feet, embers rise */
 .hc-aura-el.hc-aura-blaze {
-  background: radial-gradient(ellipse 70% 28% at 50% 100%, rgba(255,80,0,.45) 0%, rgba(255,30,0,.18) 55%, transparent 100%);
-  animation: hc-atm-blaze 1.2s ease-in-out infinite alternate;
+  background: radial-gradient(ellipse 70% 28% at 50% 100%,
+    color-mix(in srgb, var(--hc-char-color, #ff6020) 55%, transparent) 0%,
+    color-mix(in srgb, var(--hc-char-color, #ff4000) 18%, transparent) 55%,
+    transparent 100%);
+  animation: hc-atm-blaze 1.4s ease-in-out infinite alternate;
 }
 @keyframes hc-atm-blaze {
-  from { opacity: .65; transform: translateX(-50%) scaleX(.86); }
-  to   { opacity: 1;   transform: translateX(-50%) scaleX(1.14); }
+  from { opacity: .72; transform: translateX(-50%) scaleX(.92); }
+  to   { opacity: 1;   transform: translateX(-50%) scaleX(1.08); }
 }
 .hc-char-wrap[data-aura="blaze"] .hc-char-sprite,
-.hc-char-wrap[data-aura="blaze"] .hc-char-svg { animation: hc-glow-blaze 1.2s ease-in-out infinite alternate; }
+.hc-char-wrap[data-aura="blaze"] .hc-char-svg { animation: hc-glow-blaze 1.4s ease-in-out infinite alternate; }
 @keyframes hc-glow-blaze {
-  from { filter: drop-shadow(0 0 3px rgba(255,100,0,.75)) drop-shadow(0 0 8px rgba(255,40,0,.45)); }
-  to   { filter: drop-shadow(0 0 9px rgba(255,140,0,1))   drop-shadow(0 0 22px rgba(255,55,0,.85)); }
+  from { filter: drop-shadow(0 0 3px var(--hc-char-color, #ff6020)); }
+  to   { filter: drop-shadow(0 0 10px var(--hc-char-color, #ff8c00)) drop-shadow(0 0 20px var(--hc-char-color, #ff4000)); }
 }
 
-/* SHADOW — dark purple smoke drifting up */
+/* SHADOW — char-colored mist rising from below */
 .hc-aura-el.hc-aura-shadow {
-  background: radial-gradient(ellipse 68% 55% at 50% 88%, rgba(80,0,130,.50) 0%, rgba(30,0,70,.20) 58%, transparent 100%);
+  background: radial-gradient(ellipse 68% 55% at 50% 88%,
+    color-mix(in srgb, var(--hc-char-color, #9030d0) 45%, transparent) 0%,
+    color-mix(in srgb, var(--hc-char-color, #5010a0) 16%, transparent) 58%,
+    transparent 100%);
   animation: hc-atm-shadow 2.8s ease-in-out infinite alternate;
 }
 @keyframes hc-atm-shadow {
-  from { opacity: .45; transform: translateX(-50%) scaleY(.90); }
-  to   { opacity: .95; transform: translateX(-50%) scaleY(1.10); }
+  from { opacity: .50; transform: translateX(-50%) scaleY(.95); }
+  to   { opacity: .95; transform: translateX(-50%) scaleY(1.05); }
 }
 .hc-char-wrap[data-aura="shadow"] .hc-char-sprite,
 .hc-char-wrap[data-aura="shadow"] .hc-char-svg { animation: hc-glow-shadow 2.8s ease-in-out infinite alternate; }
 @keyframes hc-glow-shadow {
-  from { filter: drop-shadow(0 0 5px rgba(100,0,170,.65)) drop-shadow(0 0 10px rgba(25,0,55,.9)); }
-  to   { filter: drop-shadow(0 0 12px rgba(160,0,255,.95)) drop-shadow(0 0 26px rgba(55,0,110,1)); }
+  from { filter: drop-shadow(0 0 5px var(--hc-char-color, #9030d0)); }
+  to   { filter: drop-shadow(0 0 13px var(--hc-char-color, #c040ff)) drop-shadow(0 0 26px var(--hc-char-color, #5010a0)); }
 }
 
-/* VOID — expanding dark mass, breathes in and out */
+/* VOID — slow breath, subtle scale, deep char-colored mass */
 .hc-aura-el.hc-aura-void {
-  background: radial-gradient(ellipse 78% 55% at 50% 68%, rgba(45,0,120,.55) 0%, rgba(15,0,55,.22) 58%, transparent 100%);
-  animation: hc-atm-void 1.7s ease-in-out infinite alternate;
+  background: radial-gradient(ellipse 78% 55% at 50% 68%,
+    color-mix(in srgb, var(--hc-char-color, #5010a0) 50%, transparent) 0%,
+    color-mix(in srgb, var(--hc-char-color, #1a0055) 18%, transparent) 58%,
+    transparent 100%);
+  animation: hc-atm-void 2.2s ease-in-out infinite alternate;
 }
 @keyframes hc-atm-void {
-  from { opacity: .65; transform: translateX(-50%) scale(.82); }
-  to   { opacity: 1;   transform: translateX(-50%) scale(1.18); }
+  from { opacity: .68; transform: translateX(-50%) scale(.94); }
+  to   { opacity: 1;   transform: translateX(-50%) scale(1.06); }
 }
 .hc-char-wrap[data-aura="void"] .hc-char-sprite,
-.hc-char-wrap[data-aura="void"] .hc-char-svg { animation: hc-glow-void 1.7s ease-in-out infinite alternate; }
+.hc-char-wrap[data-aura="void"] .hc-char-svg { animation: hc-glow-void 2.2s ease-in-out infinite alternate; }
 @keyframes hc-glow-void {
-  from { filter: drop-shadow(0 0 6px rgba(70,0,180,.75)) drop-shadow(0 0 14px rgba(12,0,55,.95)); }
-  to   { filter: drop-shadow(0 0 15px rgba(110,0,255,1)) drop-shadow(0 0 32px rgba(28,0,90,1)); }
+  from { filter: drop-shadow(0 0 6px var(--hc-char-color, #7020d0)); }
+  to   { filter: drop-shadow(0 0 16px var(--hc-char-color, #9030ff)) drop-shadow(0 0 30px var(--hc-char-color, #4010a0)); }
 }
 
-/* CORRUPT — RGB glitch, color channels split and jump (steps timing = digital stutter) */
+/* CORRUPT — RGB glitch, color channels split and jump (fixed colors — intentional) */
 .hc-aura-el.hc-aura-corrupt {
   background: none;
   animation: hc-atm-corrupt 0.2s steps(5, start) infinite;
@@ -5111,56 +5120,58 @@ input[type=number] { -moz-appearance: textfield; }
   80% { filter: hue-rotate(288deg) drop-shadow(0 0 8px rgba(255,0,255,1))    drop-shadow(1px 0 3px rgba(0,80,255,.5)); }
 }
 
-/* GHOST — sprite phases in and out, blurs as it vanishes */
+/* GHOST — sprite phases in and out, full opacity at rest, blurs only mid-phase */
 .hc-aura-el.hc-aura-ghost {
-  background: radial-gradient(ellipse 80% 70% at 50% 55%, rgba(190,210,255,.07) 0%, transparent 70%);
-  animation: hc-atm-ghost 3.0s ease-in-out infinite;
+  background: radial-gradient(ellipse 80% 70% at 50% 55%,
+    color-mix(in srgb, var(--hc-char-color, #b0d0ff) 10%, transparent) 0%,
+    transparent 70%);
+  animation: hc-atm-ghost 3.4s ease-in-out infinite;
 }
 @keyframes hc-atm-ghost {
-  0%, 100% { opacity: .9; } 40%, 60% { opacity: .1; }
+  0%, 20%, 80%, 100% { opacity: .85; }
+  45%, 55%           { opacity: .08; }
 }
 .hc-char-wrap[data-aura="ghost"] .hc-char-sprite,
-.hc-char-wrap[data-aura="ghost"] .hc-char-svg { animation: hc-glow-ghost 3.0s ease-in-out infinite; }
+.hc-char-wrap[data-aura="ghost"] .hc-char-svg { animation: hc-glow-ghost 3.4s ease-in-out infinite; }
 @keyframes hc-glow-ghost {
-  0%   { opacity: .95; filter: drop-shadow(0 0 3px rgba(180,210,255,.5)); }
-  35%  { opacity: .15; filter: drop-shadow(0 0 12px rgba(200,230,255,.95)) blur(2px); }
-  65%  { opacity: .15; filter: drop-shadow(0 0 12px rgba(200,230,255,.95)) blur(2px); }
-  100% { opacity: .95; filter: drop-shadow(0 0 3px rgba(180,210,255,.5)); }
+  0%, 20%, 80%, 100% { opacity: .95; filter: drop-shadow(0 0 3px var(--hc-char-color, #b0d0ff)); }
+  45%, 55%           { opacity: .10; filter: drop-shadow(0 0 14px var(--hc-char-color, #d0e8ff)) blur(2px); }
 }
 
-/* CRIMSON — blood pool at feet, drops fall DOWN */
+/* CRIMSON — char-colored blood pool at feet, drops fall DOWN */
 .hc-aura-el.hc-aura-crimson {
-  background: radial-gradient(ellipse 78% 18% at 50% 100%, rgba(200,0,20,.55) 0%, rgba(90,0,10,.20) 65%, transparent 100%);
+  background: radial-gradient(ellipse 78% 18% at 50% 100%,
+    color-mix(in srgb, var(--hc-char-color, #cc0015) 55%, transparent) 0%,
+    color-mix(in srgb, var(--hc-char-color, #800008) 18%, transparent) 65%,
+    transparent 100%);
   animation: hc-atm-crimson 2.2s ease-in-out infinite alternate;
 }
 @keyframes hc-atm-crimson {
-  from { opacity: .55; transform: translateX(-50%) scaleX(.88); }
-  to   { opacity: 1;   transform: translateX(-50%) scaleX(1.12); }
+  from { opacity: .58; transform: translateX(-50%) scaleX(.91); }
+  to   { opacity: 1;   transform: translateX(-50%) scaleX(1.09); }
 }
 .hc-char-wrap[data-aura="crimson"] .hc-char-sprite,
 .hc-char-wrap[data-aura="crimson"] .hc-char-svg { animation: hc-glow-crimson 2.2s ease-in-out infinite alternate; }
 @keyframes hc-glow-crimson {
-  from { filter: drop-shadow(0 0 4px rgba(200,0,20,.7))  drop-shadow(0 0 10px rgba(90,0,10,.55)); }
-  to   { filter: drop-shadow(0 0 10px rgba(255,0,30,1))  drop-shadow(0 0 24px rgba(140,0,20,.85)); }
+  from { filter: drop-shadow(0 0 4px var(--hc-char-color, #cc0015)); }
+  to   { filter: drop-shadow(0 0 11px var(--hc-char-color, #ff0020)) drop-shadow(0 0 24px var(--hc-char-color, #800010)); }
 }
 
-/* HAZE — sprite slowly rotates through every hue, creates a trippy shifting tint */
-.hc-aura-el.hc-aura-haze {
-  background: conic-gradient(rgba(255,0,0,.10), rgba(255,255,0,.08), rgba(0,255,0,.10), rgba(0,255,255,.08), rgba(0,0,255,.10), rgba(255,0,255,.08), rgba(255,0,0,.10));
-  animation: hc-atm-haze 5.0s linear infinite;
-}
-@keyframes hc-atm-haze { to { transform: translateX(-50%) rotate(360deg); } }
+/* HAZE — smooth rainbow hue-rotate on sprite only, no spinning background */
+.hc-aura-el.hc-aura-haze { background: none; }
 .hc-char-wrap[data-aura="haze"] .hc-char-sprite,
-.hc-char-wrap[data-aura="haze"] .hc-char-svg { animation: hc-glow-haze 5.0s linear infinite; }
+.hc-char-wrap[data-aura="haze"] .hc-char-svg { animation: hc-glow-haze 6.0s linear infinite; }
 @keyframes hc-glow-haze {
-  0%   { filter: hue-rotate(0deg)   drop-shadow(0 0 7px rgba(255,80,80,.65)); }
-  25%  { filter: hue-rotate(90deg)  drop-shadow(0 0 7px rgba(80,255,80,.65)); }
-  50%  { filter: hue-rotate(180deg) drop-shadow(0 0 7px rgba(80,80,255,.65)); }
-  75%  { filter: hue-rotate(270deg) drop-shadow(0 0 7px rgba(255,255,80,.65)); }
-  100% { filter: hue-rotate(360deg) drop-shadow(0 0 7px rgba(255,80,80,.65)); }
+  0%   { filter: hue-rotate(0deg)   drop-shadow(0 0 7px rgba(255,80,80,.70)); }
+  16%  { filter: hue-rotate(60deg)  drop-shadow(0 0 7px rgba(255,200,0,.70)); }
+  33%  { filter: hue-rotate(120deg) drop-shadow(0 0 7px rgba(80,255,80,.70)); }
+  50%  { filter: hue-rotate(180deg) drop-shadow(0 0 7px rgba(0,200,255,.70)); }
+  66%  { filter: hue-rotate(240deg) drop-shadow(0 0 7px rgba(80,80,255,.70)); }
+  83%  { filter: hue-rotate(300deg) drop-shadow(0 0 7px rgba(255,0,220,.70)); }
+  100% { filter: hue-rotate(360deg) drop-shadow(0 0 7px rgba(255,80,80,.70)); }
 }
 
-/* STATIC — broken signal; grayscale flicker at TV-frame cadence */
+/* STATIC — broken signal; grayscale flicker at TV-frame cadence (fixed colors — intentional) */
 .hc-aura-el.hc-aura-static { background: none; }
 .hc-char-wrap[data-aura="static"] .hc-char-sprite,
 .hc-char-wrap[data-aura="static"] .hc-char-svg { animation: hc-glow-static 0.09s steps(4, start) infinite; }
@@ -5171,16 +5182,62 @@ input[type=number] { -moz-appearance: textfield; }
   75%  { filter: grayscale(1)  contrast(5)   brightness(2.2) drop-shadow(0 0 8px rgba(255,255,255,1));  opacity: .4; }
 }
 
+/* NEON — crisp char-color edge glow, no atmospheric, tight pulsing */
+.hc-aura-el.hc-aura-neon { background: none; }
+.hc-char-wrap[data-aura="neon"] .hc-char-sprite,
+.hc-char-wrap[data-aura="neon"] .hc-char-svg { animation: hc-glow-neon 1.5s ease-in-out infinite alternate; }
+@keyframes hc-glow-neon {
+  from { filter: drop-shadow(0 0 2px var(--hc-char-color, #fff)) drop-shadow(0 0 5px var(--hc-char-color, #fff)); }
+  to   { filter: drop-shadow(0 0 4px var(--hc-char-color, #fff)) drop-shadow(0 0 12px var(--hc-char-color, #fff)) drop-shadow(0 0 26px var(--hc-char-color, #fff)); }
+}
+
+/* PULSE — expanding sonar rings from feet in char color */
+.hc-aura-el.hc-aura-pulse { background: none; overflow: visible; border-radius: 0; }
+.hc-aura-el.hc-aura-pulse::before,
+.hc-aura-el.hc-aura-pulse::after {
+  content: '';
+  position: absolute; bottom: 4%; left: 50%;
+  width: 68%; height: 22%;
+  border-radius: 50%;
+  border: 1.5px solid var(--hc-char-color, #ccc);
+  box-shadow: 0 0 5px var(--hc-char-color, #ccc);
+  animation: hc-pulse-ring 2.4s ease-out infinite;
+}
+.hc-aura-el.hc-aura-pulse::after { animation-delay: -1.2s; }
+@keyframes hc-pulse-ring {
+  0%   { transform: translateX(-50%) scale(0.1); opacity: .85; }
+  100% { transform: translateX(-50%) scale(3.2); opacity: 0; }
+}
+.hc-char-wrap[data-aura="pulse"] .hc-char-sprite,
+.hc-char-wrap[data-aura="pulse"] .hc-char-svg { animation: hc-glow-pulse 2.4s ease-in-out infinite alternate; }
+@keyframes hc-glow-pulse {
+  from { filter: drop-shadow(0 0 3px var(--hc-char-color, #ccc)); }
+  to   { filter: drop-shadow(0 0 9px var(--hc-char-color, #ccc)) drop-shadow(0 0 18px var(--hc-char-color, #ccc)); }
+}
+
+/* REAPER — normal most of the time; periodically flashes to near-silhouette with char-color edge flare */
+.hc-aura-el.hc-aura-reaper {
+  background: radial-gradient(ellipse 65% 35% at 50% 96%,
+    rgba(0,0,0,.65) 0%, rgba(0,0,0,.22) 55%, transparent 100%);
+}
+.hc-char-wrap[data-aura="reaper"] .hc-char-sprite,
+.hc-char-wrap[data-aura="reaper"] .hc-char-svg { animation: hc-glow-reaper 4.0s ease-in-out infinite; }
+@keyframes hc-glow-reaper {
+  0%,  75%, 100% { filter: drop-shadow(0 0 4px var(--hc-char-color, #cc0000)); opacity: 1; }
+  82%            { filter: brightness(.07) drop-shadow(0 0 10px var(--hc-char-color, #ff2020)) drop-shadow(0 0 20px var(--hc-char-color, #880000)); opacity: .9; }
+  90%            { filter: brightness(.05) drop-shadow(0 0 16px var(--hc-char-color, #ff4040)) drop-shadow(0 0 28px var(--hc-char-color, #ff0000)); opacity: .85; }
+}
+
 /* ── Aura particles ── */
 .hc-aura-particle { position: absolute; pointer-events: none; }
 /* Rise (blaze) */
-.hc-ap-blaze { width: 3px; height: 3px; border-radius: 50%; background: #ff9050; box-shadow: 0 0 4px #ff4000; animation: hc-particle-rise linear infinite; }
+.hc-ap-blaze { width: 3px; height: 3px; border-radius: 50%; background: var(--hc-char-color, #ff9050); box-shadow: 0 0 4px var(--hc-char-color, #ff4000); animation: hc-particle-rise linear infinite; }
 @keyframes hc-particle-rise {
   0%   { transform: translateY(0)     scale(1);   opacity: .9; }
   100% { transform: translateY(-65px) scale(0.1); opacity: 0; }
 }
 /* Drip (crimson — fall DOWN) */
-.hc-ap-crimson { width: 3px; height: 6px; border-radius: 1px 1px 3px 3px; background: #cc0015; box-shadow: 0 0 4px #800008; animation: hc-particle-drip linear infinite; }
+.hc-ap-crimson { width: 3px; height: 6px; border-radius: 1px 1px 3px 3px; background: var(--hc-char-color, #cc0015); box-shadow: 0 0 4px var(--hc-char-color, #800008); animation: hc-particle-drip linear infinite; }
 @keyframes hc-particle-drip {
   0%   { transform: translateY(0)    scale(1);   opacity: .9; }
   100% { transform: translateY(55px) scale(.5);  opacity: 0; }
