@@ -967,11 +967,21 @@
       <div class="hand-title" id="roll-phase-title">DRAWING YOUR HAND...</div>
       <div class="hand-sub" id="roll-phase-sub">&nbsp;</div>
       <div id="trait-hand-cards" class="hand-cards"></div>
-      <div id="auto-roll-status"></div>
       <div class="hand-actions" id="roll-phase-actions" style="display:none;">
         <button class="btn" onclick="closeTraitRoll(true)">CANCEL</button>
         <button class="btn accent" id="reroll-hand-btn" onclick="rerollHand()">REROLL HAND</button>
-        <button class="btn" id="auto-roll-btn" onclick="toggleAutoRoll()" title="When ON: stops rolling automatically when a new trait appears. You still must tap REROLL each time.">AUTO: OFF</button>
+        <button class="btn" id="auto-roll-btn" onclick="toggleAutoRoll()">AUTO: OFF</button>
+      </div>
+      <div id="auto-roll-settings" style="display:none;">
+        <span class="ar-label">STOP AT</span>
+        <div class="ar-rar-group">
+          <button class="ar-rar-btn" data-rar="rare"      onclick="setAutoRollRarity('rare')">RARE</button>
+          <button class="ar-rar-btn" data-rar="epic"      onclick="setAutoRollRarity('epic')">EPIC</button>
+          <button class="ar-rar-btn active" data-rar="legendary" onclick="setAutoRollRarity('legendary')">LEGENDARY</button>
+          <button class="ar-rar-btn" data-rar="mythic"   onclick="setAutoRollRarity('mythic')">MYTHIC</button>
+        </div>
+        <div class="ar-divider"></div>
+        <button class="ar-shimmy-btn active" id="ar-shimmy-btn" onclick="toggleAutoRollShimmy()">✦ SHIMMY</button>
       </div>
     </div>
   </div>

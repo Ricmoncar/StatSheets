@@ -3795,6 +3795,47 @@ input[type=number] { -moz-appearance: textfield; }
 #auto-roll-btn { min-width: 94px; letter-spacing: 1px; }
 #auto-roll-btn.accent { background: #1a2e1a; color: #4eff7a; border-color: #3aff6a; }
 
+/* ── Auto-roll settings bar ── */
+#auto-roll-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 7px 14px;
+  border: 1px solid #1e1e1e;
+  border-radius: 4px;
+  background: #0a0a0a;
+  flex-wrap: wrap;
+}
+.ar-label {
+  font-size: 6px; letter-spacing: 2px; color: #3a3a3a;
+  text-transform: uppercase; margin-right: 2px; white-space: nowrap;
+}
+.ar-rar-group { display: flex; gap: 3px; }
+.ar-rar-btn {
+  font-size: 6px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 2px;
+  border: 1px solid #222; background: transparent; color: #3a3a3a;
+  cursor: pointer; transition: color 0.12s, border-color 0.12s, background 0.12s;
+  white-space: nowrap;
+}
+.ar-rar-btn:hover { color: #888; border-color: #444; }
+.ar-rar-btn.active[data-rar="rare"]      { color: var(--rar-rare-fg);      border-color: var(--rar-rare-fg);      background: rgba(74,169,255,0.07); }
+.ar-rar-btn.active[data-rar="epic"]      { color: var(--rar-epic-fg);      border-color: var(--rar-epic-fg);      background: rgba(201,139,255,0.07); }
+.ar-rar-btn.active[data-rar="legendary"] { color: var(--rar-legendary-fg); border-color: var(--rar-legendary-fg); background: rgba(255,225,74,0.07); }
+.ar-rar-btn.active[data-rar="mythic"]    { color: var(--rar-mythic-fg);    border-color: var(--rar-mythic-fg);    background: rgba(255,216,106,0.07); }
+.ar-divider { width: 1px; height: 14px; background: #222; margin: 0 4px; }
+.ar-shimmy-btn {
+  font-size: 6px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 2px;
+  border: 1px solid #222; background: transparent; color: #3a3a3a;
+  cursor: pointer; transition: color 0.12s, border-color 0.12s, background 0.12s;
+  white-space: nowrap;
+}
+.ar-shimmy-btn:hover { color: #888; border-color: #444; }
+.ar-shimmy-btn.active { color: #50ff8c; border-color: #3acc6e; background: rgba(80,255,140,0.06); }
+
 /* Auto-roll new-trait highlight */
 .hand-card.auto-roll-new {
   box-shadow: 0 0 0 2px #000, 0 0 0 4px #ffe040, 0 0 18px 4px rgba(255,220,40,0.45) !important;
@@ -3804,15 +3845,6 @@ input[type=number] { -moz-appearance: textfield; }
   from { box-shadow: 0 0 0 2px #000, 0 0 0 4px #ffe040, 0 0 14px 2px rgba(255,220,40,0.3); }
   to   { box-shadow: 0 0 0 2px #000, 0 0 0 4px #ffe040, 0 0 24px 8px rgba(255,220,40,0.6); }
 }
-
-/* Auto-roll status label */
-#auto-roll-status {
-  font-size: 7px; letter-spacing: 2px; text-align: center;
-  margin-top: 4px; padding: 3px 10px; border-radius: 2px;
-  display: none;
-}
-#auto-roll-status.dupes { color: #666; }
-#auto-roll-status.new-found { color: #ffe040; display: block; }
 
 /* ============================================================
    CULTIVATION MODAL

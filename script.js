@@ -6228,18 +6228,40 @@ function closeTraitCodex() {
 // ============================================================
 let currentHand = null;
 let _autoRollMode = false;
+let _autoRollStopRarity = 'legendary'; // rare | epic | legendary | mythic
+let _autoRollStopShimmy = true;
+
+const _AR_RARITY_RANK = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4, hexxed: 99 };
+
+function _arIsStop(handItem) {
+  const rar = TRAITS[handItem.key]?.rarity;
+  if (rar === 'hexxed') return true; // always stop — hexxed is never skippable
+  if (handItem.shimmyful && _autoRollStopShimmy) return true;
+  return (_AR_RARITY_RANK[rar] ?? 0) >= (_AR_RARITY_RANK[_autoRollStopRarity] ?? 3);
+}
 
 function toggleAutoRoll() {
   _autoRollMode = !_autoRollMode;
   const btn = document.getElementById('auto-roll-btn');
   if (btn) {
     btn.textContent = _autoRollMode ? 'AUTO: ON' : 'AUTO: OFF';
-    if (_autoRollMode) btn.classList.add('accent');
-    else btn.classList.remove('accent');
+    btn.classList.toggle('accent', _autoRollMode);
   }
-  // Clear status label when toggled
-  const statusEl = document.getElementById('auto-roll-status');
-  if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; statusEl.style.display = 'none'; }
+  const settings = document.getElementById('auto-roll-settings');
+  if (settings) settings.style.display = _autoRollMode ? 'flex' : 'none';
+}
+
+function setAutoRollRarity(rar) {
+  _autoRollStopRarity = rar;
+  document.querySelectorAll('.ar-rar-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.rar === rar);
+  });
+}
+
+function toggleAutoRollShimmy() {
+  _autoRollStopShimmy = !_autoRollStopShimmy;
+  const btn = document.getElementById('ar-shimmy-btn');
+  if (btn) btn.classList.toggle('active', _autoRollStopShimmy);
 }
 
 function rollTraits() {
@@ -6264,11 +6286,6 @@ function rollTraits() {
     sub.innerHTML = '&nbsp;';
   }
   actions.style.display = 'none';
-  // Reset auto-roll UI state for fresh roll
-  const _arBtn = document.getElementById('reroll-hand-btn');
-  if (_arBtn) { _arBtn.textContent = 'REROLL HAND'; _arBtn.style.display = ''; }
-  const _arStatus = document.getElementById('auto-roll-status');
-  if (_arStatus) { _arStatus.textContent = ''; _arStatus.style.display = 'none'; }
   overlay.classList.add('open');
   updatePityDisplay();
   playSound('dicealt', { rate: 0.9 + Math.random() * 0.15, volume: 0.75 });
@@ -6406,48 +6423,24 @@ function rollTraits() {
             c.onclick = () => pickTraitFromHand(currentHand[ci]);
           });
           actions.style.display = '';
+          const arSettings = document.getElementById('auto-roll-settings');
+          if (arSettings) arSettings.style.display = _autoRollMode ? 'flex' : 'none';
 
           // ── Auto-roll check ──
-          const statusEl = document.getElementById('auto-roll-status');
-          const rerollBtn = document.getElementById('reroll-hand-btn');
           if (_autoRollMode) {
-            const ch = characters.find(x => x.id === currentId);
-            const ownedKeys = ch ? (ch.traits || []) : [];
-            const ownedShimmy = ch ? (ch.shimmyfulTraits || []) : [];
-            // A card is "new" if the character doesn't own that trait (shimmyful status must match)
-            const newCards = currentHand.map((h, ci) => {
-              const isNew = h.shimmyful ? !ownedShimmy.includes(h.key) : !ownedKeys.includes(h.key);
-              return { h, ci, isNew };
-            });
-            const anyNew = newCards.some(x => x.isNew);
-            if (!anyNew) {
-              // All duplicates — let user know, keep REROLL visible
-              title.textContent = 'ALL DUPLICATES';
-              sub.textContent = 'AUTO-ROLL: tap REROLL to keep searching.';
-              if (statusEl) {
-                statusEl.textContent = 'ALREADY OWNED — REROLL TO CONTINUE';
-                statusEl.className = 'dupes';
-                statusEl.style.display = 'block';
-              }
-              if (rerollBtn) rerollBtn.textContent = '⟳ REROLL (ALL DUPES)';
-            } else {
-              // New trait found — hide REROLL, highlight new cards
-              title.textContent = '★ NEW TRAIT FOUND';
-              sub.textContent = 'AUTO-ROLL stopped. Pick your trait below.';
-              if (statusEl) {
-                statusEl.textContent = 'NEW TRAIT DETECTED — AUTO-ROLL STOPPED';
-                statusEl.className = 'new-found';
-                statusEl.style.display = 'block';
-              }
-              if (rerollBtn) rerollBtn.style.display = 'none';
-              newCards.forEach(({ ci, isNew }) => {
-                if (isNew) cardEls[ci].classList.add('auto-roll-new');
+            const stopCards = currentHand.map((h, ci) => ({ h, ci, isStop: _arIsStop(h) }));
+            const anyStop = stopCards.some(x => x.isStop);
+            if (anyStop) {
+              title.textContent = '★ NOTABLE ROLL';
+              sub.textContent = 'Pick a card, or REROLL to skip.';
+              stopCards.forEach(({ ci, isStop }) => {
+                if (isStop) cardEls[ci].classList.add('auto-roll-new');
               });
+            } else {
+              title.textContent = 'AUTO-ROLLING...';
+              sub.textContent = 'Nothing notable. Rolling again...';
+              setTimeout(() => { if (_autoRollMode) rollTraits(); }, 320);
             }
-          } else {
-            // Auto-roll off — reset any leftover state
-            if (statusEl) { statusEl.textContent = ''; statusEl.style.display = 'none'; }
-            if (rerollBtn) { rerollBtn.textContent = 'REROLL HAND'; rerollBtn.style.display = ''; }
           }
         }, interactDelay);
       }
@@ -6705,11 +6698,6 @@ function closeTraitRoll(cancelled = false) {
   if (cancelled) playSound('cancel', { volume: 0.75 });
   document.getElementById('trait-roll-overlay').classList.remove('open');
   currentHand = null;
-  // Reset reroll button in case auto-roll hid it
-  const _arBtn = document.getElementById('reroll-hand-btn');
-  if (_arBtn) { _arBtn.textContent = 'REROLL HAND'; _arBtn.style.display = ''; }
-  const _arStatus = document.getElementById('auto-roll-status');
-  if (_arStatus) { _arStatus.textContent = ''; _arStatus.style.display = 'none'; }
 }
 
 // ============================================================
