@@ -7600,13 +7600,15 @@ function renderHeightChart() {
     anchor.appendChild(nameTag);
 
     // Aura atmospheric layer (behind sprite)
+    const _HC_AURA_DUR = { blaze:1.4, shadow:2.8, void:2.2, ghost:3.4, crimson:2.2, haze:6.0, static:0.18, neon:1.5, reaper:4.0 };
+    const _auraDel = entry.aura ? `-${(_hcHash(entry.id, 97) * (_HC_AURA_DUR[entry.aura] || 2.0)).toFixed(2)}s` : '0s';
     if (entry.aura) {
       wrap.dataset.aura = entry.aura;
       const auraEl = document.createElement('div');
       auraEl.className = `hc-aura-el hc-aura-${entry.aura}`;
       const aW = charHeightPx * 0.8;
       const aH = charHeightPx * 1.25;
-      auraEl.style.cssText = `width:${aW}px;height:${aH}px;`;
+      auraEl.style.cssText = `width:${aW}px;height:${aH}px;animation-delay:${_auraDel};`;
       anchor.appendChild(auraEl);
       // Particles: blaze rises, crimson drips down
       if (entry.aura === 'blaze' || entry.aura === 'crimson') {
@@ -7644,6 +7646,7 @@ function renderHeightChart() {
       img.className = 'hc-char-sprite';
       img.style.height = fullH + 'px';
       img.style.bottom = (-bottomOffset) + 'px';
+      img.style.animationDelay = _auraDel;
       img.draggable = false;
       anchor.appendChild(img);
     } else {
@@ -7653,6 +7656,7 @@ function renderHeightChart() {
       svg.setAttribute('class', 'hc-char-svg');
       svg.style.height = charHeightPx + 'px';
       svg.style.color = entry.color || '#888';
+      svg.style.animationDelay = _auraDel;
       anchor.appendChild(svg);
     }
 

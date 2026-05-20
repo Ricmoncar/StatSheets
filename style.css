@@ -5148,15 +5148,14 @@ input[type=number] { -moz-appearance: textfield; }
   100% { filter: hue-rotate(360deg) drop-shadow(0 0 7px rgba(255,80,80,.70)); }
 }
 
-/* STATIC — broken signal; grayscale flicker at TV-frame cadence (fixed colors — intentional) */
+/* STATIC — broken signal; grayscale flicker at monitor-interference cadence */
 .hc-aura-el.hc-aura-static { background: none; }
 .hc-char-wrap[data-aura="static"] .hc-char-sprite,
-.hc-char-wrap[data-aura="static"] .hc-char-svg { animation: hc-glow-static 0.11s steps(4, start) infinite; }
+.hc-char-wrap[data-aura="static"] .hc-char-svg { animation: hc-glow-static 0.18s steps(3, start) infinite; }
 @keyframes hc-glow-static {
-  0%   { filter: grayscale(.85) contrast(2.0) brightness(1.5) drop-shadow(0 0 3px rgba(220,220,220,.5)); opacity: .95; }
-  25%  { filter: grayscale(1)   contrast(3.0) brightness(.55) drop-shadow(0 0 1px rgba(255,255,255,.8)); opacity: .72; }
-  50%  { filter: grayscale(.75) contrast(1.5) brightness(1.2) drop-shadow(0 0 4px rgba(200,200,200,.4)); opacity: .90; }
-  75%  { filter: grayscale(1)   contrast(4.0) brightness(1.9) drop-shadow(0 0 7px rgba(255,255,255,.9)); opacity: .65; }
+  0%   { filter: grayscale(.85) contrast(1.8) brightness(1.4) drop-shadow(0 0 3px rgba(210,210,210,.5)); }
+  33%  { filter: grayscale(1)   contrast(3.2) brightness(.65) drop-shadow(0 0 1px rgba(255,255,255,.7)); }
+  66%  { filter: grayscale(.7)  contrast(1.4) brightness(1.6) drop-shadow(0 0 6px rgba(230,230,230,.8)); }
 }
 
 /* NEON — crisp char-color edge glow, no atmospheric, tight pulsing */
