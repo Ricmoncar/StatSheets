@@ -6227,6 +6227,21 @@ function closeTraitCodex() {
 // TRAIT ROLL (gambling)
 // ============================================================
 let currentHand = null;
+let _autoRollMode = false;
+
+function toggleAutoRoll() {
+  _autoRollMode = !_autoRollMode;
+  const btn = document.getElementById('auto-roll-btn');
+  if (btn) {
+    btn.textContent = _autoRollMode ? 'AUTO: ON' : 'AUTO: OFF';
+    if (_autoRollMode) btn.classList.add('accent');
+    else btn.classList.remove('accent');
+  }
+  // Clear status label when toggled
+  const statusEl = document.getElementById('auto-roll-status');
+  if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; statusEl.style.display = 'none'; }
+}
+
 function rollTraits() {
   if (!currentId) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
 
@@ -6249,6 +6264,11 @@ function rollTraits() {
     sub.innerHTML = '&nbsp;';
   }
   actions.style.display = 'none';
+  // Reset auto-roll UI state for fresh roll
+  const _arBtn = document.getElementById('reroll-hand-btn');
+  if (_arBtn) { _arBtn.textContent = 'REROLL HAND'; _arBtn.style.display = ''; }
+  const _arStatus = document.getElementById('auto-roll-status');
+  if (_arStatus) { _arStatus.textContent = ''; _arStatus.style.display = 'none'; }
   overlay.classList.add('open');
   updatePityDisplay();
   playSound('dicealt', { rate: 0.9 + Math.random() * 0.15, volume: 0.75 });
@@ -6386,6 +6406,49 @@ function rollTraits() {
             c.onclick = () => pickTraitFromHand(currentHand[ci]);
           });
           actions.style.display = '';
+
+          // ── Auto-roll check ──
+          const statusEl = document.getElementById('auto-roll-status');
+          const rerollBtn = document.getElementById('reroll-hand-btn');
+          if (_autoRollMode) {
+            const ch = characters.find(x => x.id === currentId);
+            const ownedKeys = ch ? (ch.traits || []) : [];
+            const ownedShimmy = ch ? (ch.shimmyfulTraits || []) : [];
+            // A card is "new" if the character doesn't own that trait (shimmyful status must match)
+            const newCards = currentHand.map((h, ci) => {
+              const isNew = h.shimmyful ? !ownedShimmy.includes(h.key) : !ownedKeys.includes(h.key);
+              return { h, ci, isNew };
+            });
+            const anyNew = newCards.some(x => x.isNew);
+            if (!anyNew) {
+              // All duplicates — let user know, keep REROLL visible
+              title.textContent = 'ALL DUPLICATES';
+              sub.textContent = 'AUTO-ROLL: tap REROLL to keep searching.';
+              if (statusEl) {
+                statusEl.textContent = 'ALREADY OWNED — REROLL TO CONTINUE';
+                statusEl.className = 'dupes';
+                statusEl.style.display = 'block';
+              }
+              if (rerollBtn) rerollBtn.textContent = '⟳ REROLL (ALL DUPES)';
+            } else {
+              // New trait found — hide REROLL, highlight new cards
+              title.textContent = '★ NEW TRAIT FOUND';
+              sub.textContent = 'AUTO-ROLL stopped. Pick your trait below.';
+              if (statusEl) {
+                statusEl.textContent = 'NEW TRAIT DETECTED — AUTO-ROLL STOPPED';
+                statusEl.className = 'new-found';
+                statusEl.style.display = 'block';
+              }
+              if (rerollBtn) rerollBtn.style.display = 'none';
+              newCards.forEach(({ ci, isNew }) => {
+                if (isNew) cardEls[ci].classList.add('auto-roll-new');
+              });
+            }
+          } else {
+            // Auto-roll off — reset any leftover state
+            if (statusEl) { statusEl.textContent = ''; statusEl.style.display = 'none'; }
+            if (rerollBtn) { rerollBtn.textContent = 'REROLL HAND'; rerollBtn.style.display = ''; }
+          }
         }, interactDelay);
       }
     }, delay);
@@ -6642,6 +6705,11 @@ function closeTraitRoll(cancelled = false) {
   if (cancelled) playSound('cancel', { volume: 0.75 });
   document.getElementById('trait-roll-overlay').classList.remove('open');
   currentHand = null;
+  // Reset reroll button in case auto-roll hid it
+  const _arBtn = document.getElementById('reroll-hand-btn');
+  if (_arBtn) { _arBtn.textContent = 'REROLL HAND'; _arBtn.style.display = ''; }
+  const _arStatus = document.getElementById('auto-roll-status');
+  if (_arStatus) { _arStatus.textContent = ''; _arStatus.style.display = 'none'; }
 }
 
 // ============================================================
@@ -7333,53 +7401,76 @@ let _hcUnsub = null;
 let _hcDrag = null;
 let _hcDragged = false;
 let _hcSaveT = null;
+let _hcZoom = 1.0;
+let _hcPanX = 0;
+let _hcPanDrag = null;
+let _hcListenersAdded = false;
 
-const HC_SILHOUETTE = `<svg viewBox="0 0 28 72" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;">
-  <rect x="9" y="1" width="10" height="11" rx="4" fill="currentColor"/>
-  <rect x="7" y="13" width="14" height="18" fill="currentColor"/>
-  <rect x="1" y="13" width="7" height="14" rx="2" fill="currentColor"/>
-  <rect x="20" y="13" width="7" height="14" rx="2" fill="currentColor"/>
-  <rect x="7" y="31" width="6" height="22" fill="currentColor"/>
-  <rect x="15" y="31" width="6" height="22" fill="currentColor"/>
-  <rect x="4" y="51" width="9" height="5" rx="1" fill="currentColor"/>
-  <rect x="15" y="51" width="9" height="5" rx="1" fill="currentColor"/>
+const HC_SILHOUETTE = `<svg viewBox="0 0 24 60" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="5" r="4.5" fill="currentColor"/>
+  <rect x="7" y="10" width="10" height="22" rx="3" fill="currentColor"/>
+  <rect x="3.5" y="12" width="3" height="19" rx="1.5" fill="currentColor"/>
+  <rect x="17.5" y="12" width="3" height="19" rx="1.5" fill="currentColor"/>
+  <rect x="7.5" y="32" width="3.5" height="22" rx="0.5" fill="currentColor"/>
+  <rect x="13" y="32" width="3.5" height="22" rx="0.5" fill="currentColor"/>
+  <ellipse cx="9.25" cy="57" rx="4" ry="3" fill="currentColor"/>
+  <ellipse cx="14.75" cy="57" rx="4" ry="3" fill="currentColor"/>
 </svg>`;
 
-// Global drag/drop listeners (attached once)
+// Global pan listeners (attached once)
 document.addEventListener('mousemove', function (e) {
-  if (!_hcDrag) return;
-  const stage = document.getElementById('hc-stage');
-  if (!stage) return;
-  const rect = stage.getBoundingClientRect();
-  const newXPct = Math.max(0.02, Math.min(0.98, (e.clientX - rect.left) / rect.width));
-  _hcDrag.entry.xPct = newXPct;
-  _hcDrag.el.style.left = (newXPct * 100) + '%';
-  _hcDragged = true;
+  if (_hcPanDrag) {
+    const dx = e.clientX - _hcPanDrag.startX;
+    _hcPanX = _hcPanDrag.startPanX - dx;
+    const canvas = document.getElementById('hc-canvas');
+    if (canvas) canvas.style.transform = `translateX(${-_hcPanX}px)`;
+  }
 });
 document.addEventListener('mouseup', function () {
-  if (_hcDrag) { _hcDebounceSave(); _hcDrag = null; }
+  if (_hcPanDrag) {
+    _hcPanDrag = null;
+    const s = document.getElementById('hc-stage');
+    if (s) s.classList.remove('panning');
+  }
 });
-document.addEventListener('touchmove', function (e) {
-  if (!_hcDrag) return;
+
+function _hcSetupListeners() {
+  if (_hcListenersAdded) return;
+  _hcListenersAdded = true;
   const stage = document.getElementById('hc-stage');
   if (!stage) return;
-  const rect = stage.getBoundingClientRect();
-  const touch = e.touches[0];
-  const newXPct = Math.max(0.02, Math.min(0.98, (touch.clientX - rect.left) / rect.width));
-  _hcDrag.entry.xPct = newXPct;
-  _hcDrag.el.style.left = (newXPct * 100) + '%';
-  _hcDragged = true;
-  e.preventDefault();
-}, { passive: false });
-document.addEventListener('touchend', function () {
-  if (_hcDrag) { _hcDebounceSave(); _hcDrag = null; }
-});
+
+  stage.addEventListener('wheel', function (e) {
+    if (document.getElementById('hc-modal').style.display !== 'flex') return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    _hcZoom = Math.max(0.2, Math.min(3.0, _hcZoom * factor));
+    const lbl = document.getElementById('hc-zoom-label');
+    if (lbl) lbl.textContent = Math.round(_hcZoom * 100) + '%';
+    renderHeightChart();
+  }, { passive: false });
+
+  stage.addEventListener('mousedown', function (e) {
+    if (_hcDrag) return;
+    _hcPanDrag = { startX: e.clientX, startPanX: _hcPanX };
+    stage.classList.add('panning');
+    e.preventDefault();
+  });
+}
+
+function hcAdjustZoom(delta) {
+  _hcZoom = Math.max(0.2, Math.min(3.0, _hcZoom + delta));
+  const lbl = document.getElementById('hc-zoom-label');
+  if (lbl) lbl.textContent = Math.round(_hcZoom * 100) + '%';
+  renderHeightChart();
+}
 
 function openHeightChart() {
   document.getElementById('hc-overlay').style.display = 'block';
   document.getElementById('hc-modal').style.display = 'flex';
   document.getElementById('hc-btn-cm').classList.toggle('active', _hcUnit === 'cm');
   document.getElementById('hc-btn-in').classList.toggle('active', _hcUnit === 'in');
+  _hcSetupListeners();
   _hcSubscribe();
 }
 
@@ -7434,13 +7525,19 @@ function _hcMaxCm() {
 
 function renderHeightChart() {
   const stage = document.getElementById('hc-stage');
+  const canvas = document.getElementById('hc-canvas');
   const ruler = document.getElementById('hc-ruler');
   const charsEl = document.getElementById('hc-chars');
-  if (!stage || !ruler || !charsEl) return;
+  if (!stage || !ruler || !charsEl || !canvas) return;
 
   const stageH = stage.clientHeight || 440;
+  const FLOOR_H = 36; // matches CSS #hc-floor height
+  const chartH = Math.max(60, stageH - FLOOR_H);
   const maxCm = _hcMaxCm();
-  const pxPerCm = stageH / maxCm;
+  const pxPerCm = (chartH / maxCm) * _hcZoom;
+
+  // Apply pan offset to canvas
+  canvas.style.transform = `translateX(${-_hcPanX}px)`;
 
   // ── Ruler & grid lines ──
   ruler.innerHTML = '';
@@ -7448,9 +7545,12 @@ function renderHeightChart() {
   ruler.style.position = 'relative';
   ruler.style.height = stageH + 'px';
 
-  const interval = maxCm > 600 ? 100 : maxCm > 300 ? 50 : maxCm > 150 ? 25 : 10;
-  for (let h = 0; h <= maxCm; h += interval) {
-    const yPx = stageH - h * pxPerCm;
+  const shownMaxCm = chartH / pxPerCm;
+  const interval = shownMaxCm > 600 ? 100 : shownMaxCm > 300 ? 50 : shownMaxCm > 150 ? 25 : 10;
+  for (let h = 0; h <= shownMaxCm + interval; h += interval) {
+    const yPx = stageH - FLOOR_H - h * pxPerCm;
+    if (yPx > stageH - FLOOR_H + 2) continue;
+    if (yPx < -2) break;
     const isMajor = h % (interval * 2) === 0;
 
     // Ruler tick
@@ -7463,44 +7563,33 @@ function renderHeightChart() {
     tick.appendChild(lbl);
     ruler.appendChild(tick);
 
-    // Grid line across stage
+    // Grid line across stage (above the floor)
     const gl = document.createElement('div');
     gl.className = 'hc-grid-line' + (isMajor ? ' major' : '');
-    gl.style.cssText = `bottom:${h * pxPerCm}px;`;
+    gl.style.cssText = `bottom:${FLOOR_H + h * pxPerCm}px;`;
     stage.appendChild(gl);
   }
 
   // ── Character sprites ──
   charsEl.innerHTML = '';
 
-  _hcData.entries.forEach(entry => {
+  const n = _hcData.entries.length;
+  _hcData.entries.forEach((entry, idx) => {
     const cm = entry.heightCm || 170;
     const charHeightPx = cm * pxPerCm;
-    const xPct = (entry.xPct != null ? entry.xPct : 0.5) * 100;
+    const xPct = n > 1 ? ((idx + 1) / (n + 1)) * 100 : 50;
     const isSelected = entry.id === _hcSelectedId;
 
     const wrap = document.createElement('div');
     wrap.className = 'hc-char-wrap' + (isSelected ? ' selected' : '');
     wrap.style.left = xPct + '%';
+    wrap.style.height = charHeightPx + 'px';
     wrap.dataset.id = entry.id;
     wrap.style.setProperty('--hc-char-color', entry.color || '#555');
 
-    // Drag start
-    wrap.addEventListener('mousedown', function (e) {
-      e.stopPropagation();
-      _hcDragged = false;
-      _hcDrag = { entry, el: wrap, startX: e.clientX, startXPct: entry.xPct != null ? entry.xPct : 0.5 };
-    });
-    wrap.addEventListener('touchstart', function (e) {
-      _hcDragged = false;
-      _hcDrag = { entry, el: wrap };
-    }, { passive: true });
-    wrap.addEventListener('click', function () {
-      if (_hcDragged) { _hcDragged = false; return; }
-      hcSelectEntry(entry.id);
-    });
+    wrap.addEventListener('mousedown', e => e.stopPropagation()); // prevent pan
+    wrap.addEventListener('click', () => hcSelectEntry(entry.id));
 
-    // Anchor (height: 0, overflow: visible)
     const anchor = document.createElement('div');
     anchor.className = 'hc-anchor';
 
@@ -7513,10 +7602,13 @@ function renderHeightChart() {
 
     // Sprite or silhouette
     if (entry.spriteBase64) {
+      // Kick off background bounds re-detection for legacy sprites (no-op if already detected)
+      _hcMaybeRedetectBounds(entry);
       const topF = entry.spriteTopFrac != null ? entry.spriteTopFrac : 0;
       const botF = entry.spriteBotFrac != null ? entry.spriteBotFrac : 1;
       const fracH = Math.max(0.01, botF - topF);
       const fullH = charHeightPx / fracH;
+      // shift image down so its visible feet (at botF of image) sit on ground
       const bottomOffset = (1 - botF) * fullH;
 
       const img = document.createElement('img');
@@ -7542,6 +7634,24 @@ function renderHeightChart() {
     htTag.textContent = _hcFmtHeight(cm);
     anchor.appendChild(htTag);
 
+    // Order arrows (only on selected character)
+    if (isSelected) {
+      if (idx > 0) {
+        const lb = document.createElement('button');
+        lb.className = 'hc-order-btn hc-order-left';
+        lb.textContent = '←';
+        lb.addEventListener('click', e => { e.stopPropagation(); hcMoveEntry(entry.id, -1); });
+        anchor.appendChild(lb);
+      }
+      if (idx < n - 1) {
+        const rb = document.createElement('button');
+        rb.className = 'hc-order-btn hc-order-right';
+        rb.textContent = '→';
+        rb.addEventListener('click', e => { e.stopPropagation(); hcMoveEntry(entry.id, 1); });
+        anchor.appendChild(rb);
+      }
+    }
+
     wrap.appendChild(anchor);
     charsEl.appendChild(wrap);
   });
@@ -7549,18 +7659,30 @@ function renderHeightChart() {
 
 function hcAddEntry() {
   const id = (typeof genId === 'function') ? genId() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
-  // Spread new entries across the chart
-  const usedX = _hcData.entries.map(e => e.xPct || 0.5);
-  let xPct = 0.1;
-  for (let attempt = 0; attempt < 20; attempt++) {
-    xPct = 0.08 + Math.random() * 0.84;
-    if (usedX.every(x => Math.abs(x - xPct) > 0.07)) break;
-  }
-  const entry = { id, name: 'CHARACTER', heightCm: 170, color: '#aaaaaa', xPct, spriteBase64: null, spriteTopFrac: 0, spriteBotFrac: 1 };
+  const entry = { id, name: 'CHARACTER', heightCm: 170, color: '#aaaaaa', spriteBase64: null, spriteTopFrac: 0, spriteBotFrac: 1 };
   _hcData.entries.push(entry);
   _hcSelectedId = id;
   _hcSave();
+  renderHeightChart();
   _hcPopulateEditPanel(id);
+}
+
+function hcMoveEntry(id, dir) {
+  const idx = _hcData.entries.findIndex(e => e.id === id);
+  if (idx < 0) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= _hcData.entries.length) return;
+  const tmp = _hcData.entries[idx];
+  _hcData.entries[idx] = _hcData.entries[newIdx];
+  _hcData.entries[newIdx] = tmp;
+  _hcDebounceSave();
+  renderHeightChart();
+}
+
+function hcSortByHeight() {
+  _hcData.entries.sort((a, b) => (a.heightCm || 0) - (b.heightCm || 0));
+  _hcSave();
+  renderHeightChart();
 }
 
 function hcSelectEntry(id) {
@@ -7595,11 +7717,8 @@ function _hcPopulateEditPanel(id) {
     cropSec.style.display = entry.spriteBase64 ? 'flex' : 'none';
     if (entry.spriteBase64) {
       const topPct = Math.round((entry.spriteTopFrac || 0) * 100);
-      const botPct = Math.round((entry.spriteBotFrac != null ? entry.spriteBotFrac : 1) * 100);
       document.getElementById('hc-crop-top').value = topPct;
-      document.getElementById('hc-crop-bot').value = botPct;
       document.getElementById('hc-crop-top-val').textContent = topPct + '%';
-      document.getElementById('hc-crop-bot-val').textContent = botPct + '%';
     }
   }
 }
@@ -7611,9 +7730,6 @@ function hcUpdateCrop(field, val) {
   if (field === 'top') {
     entry.spriteTopFrac = Math.min(frac, (entry.spriteBotFrac != null ? entry.spriteBotFrac : 1) - 0.01);
     document.getElementById('hc-crop-top-val').textContent = val + '%';
-  } else {
-    entry.spriteBotFrac = Math.max(frac, (entry.spriteTopFrac || 0) + 0.01);
-    document.getElementById('hc-crop-bot-val').textContent = val + '%';
   }
   renderHeightChart();
   _hcDebounceSave();
@@ -7666,18 +7782,11 @@ function hcImportChar(rosterId) {
     return;
   }
   const id = (typeof genId === 'function') ? genId() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
-  const usedX = _hcData.entries.map(e => e.xPct != null ? e.xPct : 0.5);
-  let xPct = 0.5;
-  for (let attempt = 0; attempt < 20; attempt++) {
-    xPct = 0.08 + Math.random() * 0.84;
-    if (usedX.every(x => Math.abs(x - xPct) > 0.06)) break;
-  }
   const entry = {
     id, rosterId,
     name: c.name || 'CHARACTER',
     heightCm: 170,
     color: c.color || '#aaaaaa',
-    xPct,
     spriteBase64: null, spriteTopFrac: 0, spriteBotFrac: 1
   };
   _hcData.entries.push(entry);
@@ -7778,13 +7887,62 @@ function hcHandleSprite(ev) {
       entry.spriteBase64 = base64;
       entry.spriteTopFrac = topFrac;
       entry.spriteBotFrac = botFrac;
-      document.getElementById('hc-clear-btn').style.display = 'inline-block';
       _hcSave();
+      renderHeightChart();
+      if (_hcSelectedId === entry.id) _hcPopulateEditPanel(entry.id);
       if (typeof notify === 'function') notify('SPRITE UPLOADED', 'ok');
     };
     img.src = re.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+// Auto-detects sprite bounds for legacy entries (uploaded before auto-detection existed).
+// Only runs on entries where spriteBotFrac is exactly 1 (the default).
+function _hcMaybeRedetectBounds(entry) {
+  if (!entry || !entry.spriteBase64) return;
+  // Only re-scan if the bottom fraction is still the default (1), meaning it was
+  // never properly auto-detected. Entries uploaded after the detection was added
+  // will have a botFrac < 1 already and don't need this.
+  if (entry.spriteBotFrac !== 1 && entry.spriteTopFrac !== 0) return;
+  if (entry._hcBoundsChecked) return; // avoid repeat scans per session
+  entry._hcBoundsChecked = true;
+
+  const img = new Image();
+  img.onload = function () {
+    const analyseW = Math.min(img.naturalWidth, 300);
+    const analyseH = Math.round(img.naturalHeight * (analyseW / img.naturalWidth));
+    const ac = document.createElement('canvas');
+    ac.width = analyseW; ac.height = analyseH;
+    ac.getContext('2d').drawImage(img, 0, 0, analyseW, analyseH);
+    const px = ac.getContext('2d').getImageData(0, 0, analyseW, analyseH).data;
+
+    let topRow = analyseH, botRow = -1;
+    for (let y = 0; y < analyseH; y++) {
+      for (let x = 0; x < analyseW; x++) {
+        if (px[(y * analyseW + x) * 4 + 3] > 16) {
+          if (y < topRow) topRow = y;
+          if (y > botRow) botRow = y;
+        }
+      }
+    }
+    if (botRow < 0) return; // fully opaque or can't detect — leave as-is
+
+    const topFrac = topRow / analyseH;
+    const botFrac = (botRow + 1) / analyseH;
+
+    // Only update if there's a meaningful difference
+    const changed =
+      Math.abs(botFrac - (entry.spriteBotFrac || 1)) > 0.005 ||
+      Math.abs(topFrac - (entry.spriteTopFrac || 0)) > 0.005;
+    if (changed) {
+      entry.spriteTopFrac = topFrac;
+      entry.spriteBotFrac = botFrac;
+      _hcDebounceSave();
+      renderHeightChart();
+    }
+  };
+  img.src = entry.spriteBase64;
 }
 
 // One-time helper: run giveJukoShimmyfulMissingNo() from the browser console to patch Juko's data in Firestore.

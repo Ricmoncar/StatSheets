@@ -230,6 +230,12 @@
       </div>
       <button class="btn sm accent" onclick="hcAddEntry()">+ ADD</button>
       <button class="btn sm" onclick="hcOpenImportPicker()">IMPORT</button>
+      <button class="btn sm" onclick="hcSortByHeight()">SORT ↑</button>
+      <div id="hc-zoom-controls">
+        <button class="btn sm" onclick="hcAdjustZoom(-0.25)">−</button>
+        <span id="hc-zoom-label">100%</span>
+        <button class="btn sm" onclick="hcAdjustZoom(0.25)">+</button>
+      </div>
       <button id="hc-close-btn" onclick="closeHeightChart()">✕</button>
     </div>
   </div>
@@ -237,8 +243,10 @@
     <div id="hc-chart-wrap">
       <div id="hc-ruler"></div>
       <div id="hc-stage">
-        <div id="hc-chars"></div>
-        <div id="hc-ground-line"></div>
+        <div id="hc-canvas">
+          <div id="hc-chars"></div>
+        </div>
+        <div id="hc-floor"></div>
       </div>
     </div>
     <div id="hc-sidebar">
@@ -276,13 +284,6 @@
               <div class="hc-crop-row">
                 <input type="range" class="hc-crop-slider" id="hc-crop-top" min="0" max="99" value="0" oninput="hcUpdateCrop('top',+this.value)"/>
                 <span class="hc-crop-val" id="hc-crop-top-val">0%</span>
-              </div>
-            </div>
-            <div class="hc-edit-field">
-              <div class="hc-edit-label">FEET CROP</div>
-              <div class="hc-crop-row">
-                <input type="range" class="hc-crop-slider" id="hc-crop-bot" min="1" max="100" value="100" oninput="hcUpdateCrop('bot',+this.value)"/>
-                <span class="hc-crop-val" id="hc-crop-bot-val">100%</span>
               </div>
             </div>
           </div>

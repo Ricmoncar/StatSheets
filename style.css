@@ -3787,7 +3787,32 @@ input[type=number] { -moz-appearance: textfield; }
   justify-content: center;
   gap: 14px;
   margin-top: 8px;
+  flex-wrap: wrap;
+  align-items: center;
 }
+
+/* Auto-roll toggle */
+#auto-roll-btn { min-width: 94px; letter-spacing: 1px; }
+#auto-roll-btn.accent { background: #1a2e1a; color: #4eff7a; border-color: #3aff6a; }
+
+/* Auto-roll new-trait highlight */
+.hand-card.auto-roll-new {
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px #ffe040, 0 0 18px 4px rgba(255,220,40,0.45) !important;
+  animation: auto-roll-pulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes auto-roll-pulse {
+  from { box-shadow: 0 0 0 2px #000, 0 0 0 4px #ffe040, 0 0 14px 2px rgba(255,220,40,0.3); }
+  to   { box-shadow: 0 0 0 2px #000, 0 0 0 4px #ffe040, 0 0 24px 8px rgba(255,220,40,0.6); }
+}
+
+/* Auto-roll status label */
+#auto-roll-status {
+  font-size: 7px; letter-spacing: 2px; text-align: center;
+  margin-top: 4px; padding: 3px 10px; border-radius: 2px;
+  display: none;
+}
+#auto-roll-status.dupes { color: #666; }
+#auto-roll-status.new-found { color: #ffe040; display: block; }
 
 /* ============================================================
    CULTIVATION MODAL
@@ -4898,6 +4923,8 @@ input[type=number] { -moz-appearance: textfield; }
   font-size: 9px; letter-spacing: 3px; color: var(--accent); flex: 1;
 }
 #hc-header-actions { display: flex; align-items: center; gap: 8px; }
+#hc-zoom-controls { display: flex; align-items: center; gap: 4px; }
+#hc-zoom-label { font-size: 7px; color: #555; min-width: 34px; text-align: center; letter-spacing: 0; }
 #hc-unit-toggle { display: flex; gap: 4px; }
 #hc-unit-toggle .btn.active { background: var(--accent-cyan); color: #000; border-color: var(--accent-cyan); }
 #hc-close-btn {
@@ -4919,18 +4946,36 @@ input[type=number] { -moz-appearance: textfield; }
 }
 #hc-stage {
   flex: 1; position: relative; overflow: hidden;
-  background: #080808;
+  background: #080808; cursor: grab;
 }
-#hc-ground-line {
+#hc-stage.panning { cursor: grabbing; }
+#hc-canvas { position: absolute; inset: 0; overflow: visible; z-index: 4; }
+#hc-floor {
   position: absolute; bottom: 0; left: 0; right: 0;
-  height: 1px; background: #252525; z-index: 2;
+  height: 36px; z-index: 2; pointer-events: none;
+  background:
+    linear-gradient(to bottom,
+      rgba(50,50,50,0.35) 0%,
+      rgba(15,15,15,0.85) 40%,
+      #020202 100%);
+  border-top: 2px solid #4a4a4a;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.06),
+    inset 0 4px 16px rgba(255,255,255,0.025),
+    0 -10px 24px rgba(0,0,0,0.55);
 }
-#hc-ground-line::before {
-  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
-  background: linear-gradient(to top, rgba(255,255,255,0.02) 0%, transparent 100%);
+#hc-floor::before {
+  content: ''; position: absolute; top: -1px; left: 0; right: 0; height: 1px;
+  background: linear-gradient(to right,
+    transparent 0%, rgba(255,255,255,0.18) 20%,
+    rgba(255,255,255,0.18) 80%, transparent 100%);
+}
+#hc-floor::after {
+  content: ''; position: absolute; bottom: 100%; left: 0; right: 0; height: 90px;
+  background: linear-gradient(to top, rgba(255,255,255,0.04) 0%, transparent 100%);
   pointer-events: none;
 }
-#hc-chars { position: absolute; inset: 0; bottom: 1px; }
+#hc-chars { position: absolute; top: 0; left: 0; right: 0; bottom: 36px; }
 
 /* ── Ruler ticks ── */
 .hc-tick {
@@ -4939,18 +4984,18 @@ input[type=number] { -moz-appearance: textfield; }
   padding-right: 10px; pointer-events: none;
 }
 .hc-tick::after {
-  content: ''; position: absolute; right: 0; width: 4px; height: 1px; background: #1c1c1c;
+  content: ''; position: absolute; right: 0; width: 5px; height: 1px; background: #3a3a3a;
 }
-.hc-tick.major::after { width: 10px; background: #2a2a2a; }
-.hc-tick-label { font-size: 5px; color: #282828; letter-spacing: 0; line-height: 1; }
-.hc-tick.major .hc-tick-label { color: #505050; font-size: 6px; }
+.hc-tick.major::after { width: 12px; background: #5a5a5a; }
+.hc-tick-label { font-size: 6px; color: #4a4a4a; letter-spacing: 0; line-height: 1; }
+.hc-tick.major .hc-tick-label { color: #888; font-size: 7px; }
 
 /* ── Grid lines ── */
 .hc-grid-line {
   position: absolute; left: 0; right: 0; height: 1px;
-  background: #0c0c0c; pointer-events: none;
+  background: #161616; pointer-events: none; z-index: 1;
 }
-.hc-grid-line.major { background: #121212; }
+.hc-grid-line.major { background: #242424; }
 
 /* ── Character entries ── */
 .hc-char-wrap {
@@ -4964,7 +5009,7 @@ input[type=number] { -moz-appearance: textfield; }
   filter: brightness(1.5) drop-shadow(0 0 10px var(--hc-char-color, #aaa));
 }
 .hc-anchor {
-  position: relative; height: 0; overflow: visible;
+  position: absolute; bottom: 0; height: 0; overflow: visible;
   display: flex; justify-content: center;
 }
 .hc-char-name-tag {
@@ -4977,9 +5022,11 @@ input[type=number] { -moz-appearance: textfield; }
 .hc-char-wrap.selected .hc-char-name-tag { color: #fff; }
 .hc-char-ht-tag {
   position: absolute; left: 50%; transform: translateX(-50%);
-  top: 7px; font-size: 5.5px; color: #333; white-space: nowrap; pointer-events: none;
+  top: 10px; font-size: 6.5px; color: #666; white-space: nowrap; pointer-events: none;
+  letter-spacing: 1px; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  z-index: 6;
 }
-.hc-char-wrap.selected .hc-char-ht-tag { color: #555; }
+.hc-char-wrap.selected .hc-char-ht-tag { color: var(--hc-char-color, #ccc); }
 .hc-char-sprite {
   position: absolute; left: 50%; transform: translateX(-50%);
   display: block; width: auto; image-rendering: pixelated;
@@ -4988,6 +5035,21 @@ input[type=number] { -moz-appearance: textfield; }
   position: absolute; bottom: 0; left: 50%;
   transform: translateX(-50%); display: block; width: auto;
 }
+
+/* ── Order arrows ── */
+.hc-order-btn {
+  position: absolute; bottom: 8px;
+  width: 26px; height: 20px;
+  background: rgba(28,28,28,0.97); border: 1px solid #666; color: #ddd;
+  font-size: 11px; font-family: sans-serif; padding: 0;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  z-index: 20; border-radius: 3px;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+.hc-order-btn:hover { color: #fff; border-color: #bbb; background: rgba(55,55,55,0.98); }
+.hc-order-left { right: calc(50% + 6px); }
+.hc-order-right { left: calc(50% + 6px); }
 
 /* ── Sidebar ── */
 #hc-sidebar {

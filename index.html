@@ -967,9 +967,11 @@
       <div class="hand-title" id="roll-phase-title">DRAWING YOUR HAND...</div>
       <div class="hand-sub" id="roll-phase-sub">&nbsp;</div>
       <div id="trait-hand-cards" class="hand-cards"></div>
+      <div id="auto-roll-status"></div>
       <div class="hand-actions" id="roll-phase-actions" style="display:none;">
         <button class="btn" onclick="closeTraitRoll(true)">CANCEL</button>
-        <button class="btn accent" onclick="rerollHand()">REROLL HAND</button>
+        <button class="btn accent" id="reroll-hand-btn" onclick="rerollHand()">REROLL HAND</button>
+        <button class="btn" id="auto-roll-btn" onclick="toggleAutoRoll()" title="When ON: stops rolling automatically when a new trait appears. You still must tap REROLL each time.">AUTO: OFF</button>
       </div>
     </div>
   </div>
