@@ -6439,7 +6439,7 @@ function rollTraits() {
             } else {
               title.textContent = 'AUTO-ROLLING...';
               sub.textContent = 'Nothing notable. Rolling again...';
-              setTimeout(() => { if (_autoRollMode) rollTraits(); }, 320);
+              setTimeout(() => { if (_autoRollMode && !document.hidden) rollTraits(); }, 320);
             }
           }
         }, interactDelay);
