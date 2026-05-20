@@ -287,6 +287,19 @@
               </div>
             </div>
           </div>
+          <div class="hc-edit-field">
+            <div class="hc-edit-label">AURA</div>
+            <div class="hc-aura-picker">
+              <button class="hc-aura-pick active" data-aura="" onclick="hcSetAura(null)">NONE</button>
+              <button class="hc-aura-pick hc-ap-blaze"    data-aura="blaze"    onclick="hcSetAura('blaze')">BLAZE</button>
+              <button class="hc-aura-pick hc-ap-frost"    data-aura="frost"    onclick="hcSetAura('frost')">FROST</button>
+              <button class="hc-aura-pick hc-ap-radiance" data-aura="radiance" onclick="hcSetAura('radiance')">RADIANCE</button>
+              <button class="hc-aura-pick hc-ap-shadow"   data-aura="shadow"   onclick="hcSetAura('shadow')">SHADOW</button>
+              <button class="hc-aura-pick hc-ap-void"     data-aura="void"     onclick="hcSetAura('void')">VOID</button>
+              <button class="hc-aura-pick hc-ap-electric" data-aura="electric" onclick="hcSetAura('electric')">ELECTRIC</button>
+              <button class="hc-aura-pick hc-ap-bloom"    data-aura="bloom"    onclick="hcSetAura('bloom')">BLOOM</button>
+            </div>
+          </div>
           <div class="hc-edit-divider"></div>
           <button class="btn danger" style="width:100%;justify-content:center;" onclick="hcDeleteEntry()">DELETE</button>
         </div>

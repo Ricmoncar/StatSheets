@@ -7405,11 +7405,14 @@ const HC_SILHOUETTE = `<svg viewBox="0 0 24 60" xmlns="http://www.w3.org/2000/sv
   <ellipse cx="14.75" cy="57" rx="4" ry="3" fill="currentColor"/>
 </svg>`;
 
+let _hcCanvasW = 0; // actual rendered canvas width, set by renderHeightChart
+
 // Global pan listeners (attached once)
 document.addEventListener('mousemove', function (e) {
   if (_hcPanDrag) {
     const dx = e.clientX - _hcPanDrag.startX;
-    _hcPanX = _hcPanDrag.startPanX - dx;
+    const maxPan = Math.max(0, _hcCanvasW - _hcPanDrag.stageW);
+    _hcPanX = Math.max(0, Math.min(maxPan, _hcPanDrag.startPanX - dx));
     const canvas = document.getElementById('hc-canvas');
     if (canvas) canvas.style.transform = `translateX(${-_hcPanX}px)`;
   }
@@ -7440,7 +7443,7 @@ function _hcSetupListeners() {
 
   stage.addEventListener('mousedown', function (e) {
     if (_hcDrag) return;
-    _hcPanDrag = { startX: e.clientX, startPanX: _hcPanX };
+    _hcPanDrag = { startX: e.clientX, startPanX: _hcPanX, stageW: stage.clientWidth };
     stage.classList.add('panning');
     e.preventDefault();
   });
@@ -7519,12 +7522,20 @@ function renderHeightChart() {
   if (!stage || !ruler || !charsEl || !canvas) return;
 
   const stageH = stage.clientHeight || 440;
+  const stageW = stage.clientWidth || 900;
   const FLOOR_H = 36; // matches CSS #hc-floor height
   const chartH = Math.max(60, stageH - FLOOR_H);
   const maxCm = _hcMaxCm();
   const pxPerCm = (chartH / maxCm) * _hcZoom;
 
-  // Apply pan offset to canvas
+  // Expand canvas width with zoom so sprites never overlap
+  const n0 = _hcData.entries.length;
+  const maxHeightPx = n0 ? Math.max(..._hcData.entries.map(e => (e.heightCm || 170) * pxPerCm)) : 200;
+  const minSlot = Math.max(80, maxHeightPx * 0.52);
+  const canvasW = Math.max(stageW, n0 > 1 ? (n0 + 1) * minSlot : stageW);
+  _hcCanvasW = canvasW;
+  canvas.style.width = canvasW + 'px';
+  canvas.style.right = 'auto';
   canvas.style.transform = `translateX(${-_hcPanX}px)`;
 
   // ── Ruler & grid lines ──
@@ -7565,12 +7576,12 @@ function renderHeightChart() {
   _hcData.entries.forEach((entry, idx) => {
     const cm = entry.heightCm || 170;
     const charHeightPx = cm * pxPerCm;
-    const xPct = n > 1 ? ((idx + 1) / (n + 1)) * 100 : 50;
+    const xPx = n > 1 ? ((idx + 1) / (n + 1)) * canvasW : canvasW / 2;
     const isSelected = entry.id === _hcSelectedId;
 
     const wrap = document.createElement('div');
     wrap.className = 'hc-char-wrap' + (isSelected ? ' selected' : '');
-    wrap.style.left = xPct + '%';
+    wrap.style.left = xPx + 'px';
     wrap.style.height = charHeightPx + 'px';
     wrap.dataset.id = entry.id;
     wrap.style.setProperty('--hc-char-color', entry.color || '#555');
@@ -7587,6 +7598,31 @@ function renderHeightChart() {
     nameTag.style.bottom = (charHeightPx + 8) + 'px';
     nameTag.textContent = entry.name || '???';
     anchor.appendChild(nameTag);
+
+    // Aura atmospheric layer (behind sprite)
+    if (entry.aura) {
+      wrap.dataset.aura = entry.aura;
+      const auraEl = document.createElement('div');
+      auraEl.className = `hc-aura-el hc-aura-${entry.aura}`;
+      const aW = charHeightPx * 0.8;
+      const aH = charHeightPx * 1.25;
+      auraEl.style.cssText = `width:${aW}px;height:${aH}px;`;
+      anchor.appendChild(auraEl);
+      // Floating particles for select auras
+      if (entry.aura === 'blaze' || entry.aura === 'bloom' || entry.aura === 'electric') {
+        for (let p = 0; p < 4; p++) {
+          const pt = document.createElement('div');
+          pt.className = `hc-aura-particle hc-ap-${entry.aura}`;
+          const lPct = 15 + _hcHash(entry.id, p * 3) * 70;
+          const dur  = (1.2 + _hcHash(entry.id, p * 3 + 1) * 1.8).toFixed(2);
+          const del  = (_hcHash(entry.id, p * 3 + 2) * 2.2).toFixed(2);
+          pt.style.cssText = `left:${lPct}%;bottom:${5 + _hcHash(entry.id, p + 12) * 20}%;animation-duration:${dur}s;animation-delay:-${del}s;`;
+          auraEl.appendChild(pt);
+        }
+      }
+    } else {
+      delete wrap.dataset.aura;
+    }
 
     // Sprite or silhouette
     if (entry.spriteBase64) {
@@ -7645,9 +7681,27 @@ function renderHeightChart() {
   });
 }
 
+// Deterministic hash for stable particle positions (seed = entry id + index)
+function _hcHash(str, n) {
+  let h = (n + 1) * 2654435769;
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 2654435769);
+  return ((h >>> 0) % 10000) / 10000;
+}
+
+function hcSetAura(aura) {
+  const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
+  if (!entry) return;
+  entry.aura = aura || null;
+  document.querySelectorAll('.hc-aura-pick').forEach(b => {
+    b.classList.toggle('active', (b.dataset.aura || null) === entry.aura);
+  });
+  renderHeightChart();
+  _hcDebounceSave();
+}
+
 function hcAddEntry() {
   const id = (typeof genId === 'function') ? genId() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
-  const entry = { id, name: 'CHARACTER', heightCm: 170, color: '#aaaaaa', spriteBase64: null, spriteTopFrac: 0, spriteBotFrac: 1 };
+  const entry = { id, name: 'CHARACTER', heightCm: 170, color: '#aaaaaa', spriteBase64: null, spriteTopFrac: 0, spriteBotFrac: 1, aura: null };
   _hcData.entries.push(entry);
   _hcSelectedId = id;
   _hcSave();
@@ -7699,6 +7753,10 @@ function _hcPopulateEditPanel(id) {
   const hexEl = document.getElementById('hc-color-hex');
   if (hexEl) hexEl.textContent = col;
   document.getElementById('hc-clear-btn').style.display = entry.spriteBase64 ? 'inline-block' : 'none';
+  // Aura picker active state
+  document.querySelectorAll('.hc-aura-pick').forEach(b => {
+    b.classList.toggle('active', (b.dataset.aura || null) === (entry.aura || null));
+  });
   // Crop sliders (only when sprite is set)
   const cropSec = document.getElementById('hc-crop-section');
   if (cropSec) {
