@@ -7692,9 +7692,9 @@ function _hcHash(str, n) {
   return ((h >>> 0) % 10000) / 10000;
 }
 
-const HC_AURAS = [null, 'blaze', 'shadow', 'void', 'corrupt', 'ghost', 'crimson', 'haze', 'static', 'neon', 'pulse', 'reaper'];
+const HC_AURAS = [null, 'blaze', 'shadow', 'void', 'ghost', 'crimson', 'haze', 'static', 'neon', 'reaper'];
 // dot color shown on the AURA button when an aura is active
-const HC_AURA_DOT = { blaze:'#ff6020', shadow:'#9030d0', void:'#5010a0', corrupt:'#00ff80', ghost:'#b0d0ff', crimson:'#cc0015', haze:'#ff80ff', static:'#aaa', neon:'#f0f0f0', pulse:'#b0c8e8', reaper:'#220000' };
+const HC_AURA_DOT = { blaze:'#ff6020', shadow:'#9030d0', void:'#5010a0', ghost:'#b0d0ff', crimson:'#cc0015', haze:'#ff80ff', static:'#aaa', neon:'#f0f0f0', reaper:'#220000' };
 
 function hcCycleAura() {
   const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
