@@ -7608,15 +7608,19 @@ function renderHeightChart() {
       const aH = charHeightPx * 1.25;
       auraEl.style.cssText = `width:${aW}px;height:${aH}px;`;
       anchor.appendChild(auraEl);
-      // Floating particles for select auras
-      if (entry.aura === 'blaze' || entry.aura === 'bloom' || entry.aura === 'electric') {
+      // Particles: blaze rises, crimson drips down
+      if (entry.aura === 'blaze' || entry.aura === 'crimson') {
         for (let p = 0; p < 4; p++) {
           const pt = document.createElement('div');
           pt.className = `hc-aura-particle hc-ap-${entry.aura}`;
           const lPct = 15 + _hcHash(entry.id, p * 3) * 70;
-          const dur  = (1.2 + _hcHash(entry.id, p * 3 + 1) * 1.8).toFixed(2);
-          const del  = (_hcHash(entry.id, p * 3 + 2) * 2.2).toFixed(2);
-          pt.style.cssText = `left:${lPct}%;bottom:${5 + _hcHash(entry.id, p + 12) * 20}%;animation-duration:${dur}s;animation-delay:-${del}s;`;
+          const dur  = (1.1 + _hcHash(entry.id, p * 3 + 1) * 1.6).toFixed(2);
+          const del  = (_hcHash(entry.id, p * 3 + 2) * 2.0).toFixed(2);
+          // crimson starts near top of character and drips down; blaze starts at feet
+          const botPct = entry.aura === 'crimson'
+            ? 60 + _hcHash(entry.id, p + 20) * 30
+            : 5  + _hcHash(entry.id, p + 12) * 18;
+          pt.style.cssText = `left:${lPct}%;bottom:${botPct}%;animation-duration:${dur}s;animation-delay:-${del}s;`;
           auraEl.appendChild(pt);
         }
       }
@@ -7688,15 +7692,28 @@ function _hcHash(str, n) {
   return ((h >>> 0) % 10000) / 10000;
 }
 
-function hcSetAura(aura) {
+const HC_AURAS = [null, 'blaze', 'shadow', 'void', 'corrupt', 'ghost', 'crimson', 'haze', 'static'];
+// dot color shown on the AURA button when an aura is active
+const HC_AURA_DOT = { blaze:'#ff6020', shadow:'#9030d0', void:'#5010a0', corrupt:'#00ff80', ghost:'#b0d0ff', crimson:'#cc0015', haze:'#ff80ff', static:'#aaa' };
+
+function hcCycleAura() {
   const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
   if (!entry) return;
-  entry.aura = aura || null;
-  document.querySelectorAll('.hc-aura-pick').forEach(b => {
-    b.classList.toggle('active', (b.dataset.aura || null) === entry.aura);
-  });
+  const idx = HC_AURAS.indexOf(entry.aura);
+  entry.aura = HC_AURAS[(idx + 1) % HC_AURAS.length];
+  _hcSyncAuraBtn(entry);
   renderHeightChart();
   _hcDebounceSave();
+}
+
+function _hcSyncAuraBtn(entry) {
+  const btn = document.getElementById('hc-aura-cycle-btn');
+  if (!btn) return;
+  const dot = entry.aura ? HC_AURA_DOT[entry.aura] : null;
+  btn.innerHTML = dot
+    ? `AURA <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${dot};vertical-align:middle;margin-left:3px;box-shadow:0 0 4px ${dot};"></span>`
+    : 'AURA';
+  btn.classList.toggle('active', !!entry.aura);
 }
 
 function hcAddEntry() {
@@ -7753,10 +7770,7 @@ function _hcPopulateEditPanel(id) {
   const hexEl = document.getElementById('hc-color-hex');
   if (hexEl) hexEl.textContent = col;
   document.getElementById('hc-clear-btn').style.display = entry.spriteBase64 ? 'inline-block' : 'none';
-  // Aura picker active state
-  document.querySelectorAll('.hc-aura-pick').forEach(b => {
-    b.classList.toggle('active', (b.dataset.aura || null) === (entry.aura || null));
-  });
+  _hcSyncAuraBtn(entry);
   // Crop sliders (only when sprite is set)
   const cropSec = document.getElementById('hc-crop-section');
   if (cropSec) {
