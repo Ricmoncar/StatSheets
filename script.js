@@ -3230,36 +3230,42 @@ function _drawRadarFrame(svg, c, effVals) {
 const ITEM_ICONS = {
   // WEAPONS
   sword: '🗡️', greatsword: '⚔️', dagger: '🔪', bow: '🏹', axe: '🪓', spear: '🔱', staff: '🦯', wand: '🪄',
-  gun: '🔫', bomb: '💣', boomerang: '🪃', hammer: '⚒️',
+  gun: '🔫', bomb: '💣', boomerang: '🪃', hammer: '⚒️', mace: '🔨', club: '🏏', flail: '⛓️', trident: '🔱',
+  crossbow: '🎯', slingshot: '🏹', katana: '⚔️', rapier: '🗡️', saber: '🗡️', pickaxe: '⛏️', mattock: '⛏️', scythe: '⚱️',
 
   // ARMOR
   shield: '🛡️', helmet: '🪖', chestplate: '👕', boots: '👢', gloves: '🧤', ring: '💍', necklace: '📿', cape: '🧣',
   coat: '🥼', tie: '👔', dress: '👗', shorts: '🩳', socks: '🧦', shoes: '🥾', hat: '🧢', tophat: '🎩', crown: '👑',
-  pants: '👖', kimono: '👘', sari: '🥻', vest: '🦺',
+  pants: '👖', kimono: '👘', sari: '🥻', vest: '🦺', armor: '⛓️', breastplate: '🛡️', gauntlets: '🤐', leggings: '👖',
+  pauldrons: '🪖', greaves: '🦵', sabatons: '👢', vambraces: '💪', gorget: '👔', cuirass: '🛡️',
   wintercoat: '🧥', ballet: '🩰', sandals: '🩴', heels: '👠', flats: '👡', loafers: '👞', sneakers: '👟',
-  backpack: '🎒', luggage: '🧳', glasses: '👓', sunglasses: '🕶️', goggles: '🥽',
+  backpack: '🎒', luggage: '🧳', glasses: '👓', sunglasses: '🕶️', goggles: '🥽', mask: '😷', visor: '👀',
 
   // MAGIC
-  book: '📖', scroll: '📜', orb: '🔮', gem: '💎', crystal: '💠', talisman: '🧿',
-  urn: '🏺', hourglass: '⏳', candle: '🕯️', lamp: '🪔', blood: '🩸', dna: '🧬',
+  book: '📖', scroll: '📜', orb: '🔮', gem: '💎', crystal: '💠', talisman: '🧿', grimoire: '📚', rune: '⚡',
+  amulet: '💎', charm: '🪬', hex: '✨', totem: '🪵', urn: '🏺', hourglass: '⏳', candle: '🕯️', lamp: '🪔',
+  blood: '🩸', dna: '🧬', star: '⭐', moon: '🌙', sun: '☀️', lightning: '⚡', flame: '🔥', frost: '❄️',
 
   // CONSUMABLES
-  potion: '🧪', elixir: '🍷', apple: '🍎', meat: '🍖', herb: '🌿', bread: '🍞', cheese: '🧀',
-  mushroom: '🍄', fish: '🐟', sushi: '🍣', riceball: '🍙', dumpling: '🥟', chicken: '🍗',
-  burger: '🍔', pizza: '🍕', fries: '🍟', beer: '🍺', tea: '🍵', coffee: '☕',
+  potion: '🧪', elixir: '🍷', apple: '🍎', meat: '🍖', herb: '🌿', bread: '🍞', cheese: '🧀', mana_potion: '🟦',
+  health_potion: '🟥', mushroom: '🍄', fish: '🐟', sushi: '🍣', riceball: '🍙', dumpling: '🥟', chicken: '🍗',
+  burger: '🍔', pizza: '🍕', fries: '🍟', beer: '🍺', tea: '🍵', coffee: '☕', juice: '🧃', wine: '🍇',
+  soup: '🍲', salad: '🥗', egg: '🥚', bacon: '🥓', donut: '🍩', cake: '🍰', candy: '🍬', chocolate: '🍫',
 
   // MISC
-  skull: '💀', key: '🗝️', coin: '🪙', map: '🗺️', bone: '🦴', compass: '🧭', gear: '⚙️',
-  brick: '🧱', wood: '🪵', bell: '🔔', magnet: '🧲', eye: '👁️', brain: '🧠', tooth: '🦷',
-  feather: '🪶', shell: '🐚', ticket: '🎫'
+  skull: '💀', key: '🗝️', coin: '🪙', map: '🗺️', bone: '🦴', compass: '🧭', gear: '⚙️', cog: '⚙️',
+  brick: '🧱', wood: '🪵', bell: '🔔', magnet: '🧲', eye: '👁️', brain: '🧠', tooth: '🦷', trophy: '🏆',
+  medal: '🥇', badge: '🏅', flask: '🧴', lantern: '🏮', trap: '🪤', net: '🥅', cage: '🪤', chain: '⛓️',
+  lock: '🔒', padlock: '🔐', chest: '📦', box: '📫', barrel: '🛢️', urn: '🏺', vial: '🧪', feather: '🪶',
+  shell: '🐚', ticket: '🎫', dice: '🎲', card: '🎴', rose: '🌹', star: '✨', pearl: '💠'
 };
 
 const ICON_CATEGORIES = [
-  { label: 'WEAPONS', keys: ['sword', 'greatsword', 'dagger', 'bow', 'axe', 'spear', 'staff', 'wand', 'gun', 'bomb', 'boomerang', 'hammer'] },
-  { label: 'ARMOR', keys: ['shield', 'helmet', 'chestplate', 'boots', 'gloves', 'ring', 'necklace', 'cape', 'coat', 'tie', 'dress', 'shorts', 'socks', 'shoes', 'hat', 'tophat', 'crown', 'pants', 'kimono', 'sari', 'vest', 'wintercoat', 'ballet', 'sandals', 'heels', 'flats', 'loafers', 'sneakers', 'backpack', 'luggage', 'glasses', 'sunglasses', 'goggles'] },
-  { label: 'MAGIC', keys: ['book', 'scroll', 'orb', 'gem', 'crystal', 'talisman', 'urn', 'hourglass', 'candle', 'lamp', 'blood', 'dna'] },
-  { label: 'CONSUMABLES', keys: ['potion', 'elixir', 'apple', 'meat', 'herb', 'bread', 'cheese', 'mushroom', 'fish', 'sushi', 'riceball', 'dumpling', 'chicken', 'burger', 'pizza', 'fries', 'beer', 'tea', 'coffee'] },
-  { label: 'MISC', keys: ['skull', 'key', 'coin', 'map', 'bone', 'compass', 'gear', 'brick', 'wood', 'bell', 'magnet', 'eye', 'brain', 'tooth', 'feather', 'shell', 'ticket'] }
+  { label: 'WEAPONS', keys: ['sword', 'greatsword', 'dagger', 'bow', 'axe', 'spear', 'staff', 'wand', 'gun', 'bomb', 'boomerang', 'hammer', 'mace', 'club', 'flail', 'trident', 'crossbow', 'slingshot', 'katana', 'rapier', 'saber', 'pickaxe', 'mattock', 'scythe'] },
+  { label: 'ARMOR', keys: ['shield', 'helmet', 'chestplate', 'boots', 'gloves', 'ring', 'necklace', 'cape', 'coat', 'tie', 'dress', 'shorts', 'socks', 'shoes', 'hat', 'tophat', 'crown', 'pants', 'kimono', 'sari', 'vest', 'armor', 'breastplate', 'gauntlets', 'leggings', 'pauldrons', 'greaves', 'sabatons', 'vambraces', 'gorget', 'cuirass', 'wintercoat', 'ballet', 'sandals', 'heels', 'flats', 'loafers', 'sneakers', 'backpack', 'luggage', 'glasses', 'sunglasses', 'goggles', 'mask', 'visor'] },
+  { label: 'MAGIC', keys: ['book', 'scroll', 'orb', 'gem', 'crystal', 'talisman', 'grimoire', 'rune', 'amulet', 'charm', 'hex', 'totem', 'urn', 'hourglass', 'candle', 'lamp', 'blood', 'dna', 'star', 'moon', 'sun', 'lightning', 'flame', 'frost'] },
+  { label: 'CONSUMABLES', keys: ['potion', 'elixir', 'apple', 'meat', 'herb', 'bread', 'cheese', 'mana_potion', 'health_potion', 'mushroom', 'fish', 'sushi', 'riceball', 'dumpling', 'chicken', 'burger', 'pizza', 'fries', 'beer', 'tea', 'coffee', 'juice', 'wine', 'soup', 'salad', 'egg', 'bacon', 'donut', 'cake', 'candy', 'chocolate'] },
+  { label: 'MISC', keys: ['skull', 'key', 'coin', 'map', 'bone', 'compass', 'gear', 'cog', 'brick', 'wood', 'bell', 'magnet', 'eye', 'brain', 'tooth', 'trophy', 'medal', 'badge', 'flask', 'lantern', 'trap', 'net', 'cage', 'chain', 'lock', 'padlock', 'chest', 'box', 'barrel', 'urn', 'vial', 'feather', 'shell', 'ticket', 'dice', 'card', 'rose', 'star', 'pearl'] }
 ];
 
 let currentItemIcon = null;
@@ -3331,6 +3337,37 @@ function getEffectiveStats(c) {
   let effCooldownRed = (cappedBaseCooldownRed + adds.cooldown_red) * muls.cooldown_red;
 
   effResilience = Math.min(effResilience, 50);
+
+  // Handle Paradox trait: swap highest and lowest main stats
+  const hasPaRadox = c.traits && c.traits.includes('paradox');
+  if (hasPaRadox) {
+    const mainStats = [
+      { name: 'hp', val: effHp },
+      { name: 'atk', val: effAtk },
+      { name: 'def', val: effDef },
+      { name: 'mag', val: effMag },
+      { name: 'spd', val: effSpd }
+    ];
+    const sorted = [...mainStats].sort((a, b) => a.val - b.val);
+    const lowest = sorted[0].name;
+    const highest = sorted[4].name;
+    
+    // Swap the values
+    const tempVal = { hp: effHp, atk: effAtk, def: effDef, mag: effMag, spd: effSpd }[lowest];
+    const swapVal = { hp: effHp, atk: effAtk, def: effDef, mag: effMag, spd: effSpd }[highest];
+    
+    if (lowest === 'hp') effHp = swapVal;
+    else if (lowest === 'atk') effAtk = swapVal;
+    else if (lowest === 'def') effDef = swapVal;
+    else if (lowest === 'mag') effMag = swapVal;
+    else if (lowest === 'spd') effSpd = swapVal;
+    
+    if (highest === 'hp') effHp = tempVal;
+    else if (highest === 'atk') effAtk = tempVal;
+    else if (highest === 'def') effDef = tempVal;
+    else if (highest === 'mag') effMag = tempVal;
+    else if (highest === 'spd') effSpd = tempVal;
+  }
 
   return {
     hp: effHp, atk: effAtk, def: effDef, mag: effMag, spd: effSpd,
@@ -4209,8 +4246,8 @@ const TRAITS = {
   honored_one: { name: 'The Honored One', rarity: 'mythic', desc: 'If you are the last surviving ally: ATK x5 and MAG x5.', passive: [], situational: [{ id: 'ho-last', label: 'Last ally standing (ATK x5, MAG x5)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }] }], notes: 'Triggers only when all other allies are eliminated.' },
   transcendence: { name: 'Transcendence', rarity: 'mythic', desc: 'Once per session: for one fight, all damage dealt x2 and all damage received is halved.', passive: [], notes: 'One-time activation per session. No permanent stat change.' },
   world_ender: { name: 'World Ender', rarity: 'mythic', desc: '+40% ATK, +40% True DMG. Your single strongest attack each fight bypasses all defenses.', passive: [{ stat: 'atk', op: 'pct', value: 40 }, { stat: 'true_dmg', op: 'add', value: 40 }], notes: 'The highest-damage attack per fight ignores all DEF and resistances.' },
-  paradox: { name: 'Paradox', rarity: 'mythic', desc: 'At the start of each fight, all your stats are inverted: your highest stat becomes your lowest, and vice versa.', passive: [], notes: 'Stat inversion applied at fight start each time. No fixed stat modifier.' },
-  usurper: { name: 'Usurper', rarity: 'mythic', desc: 'At the start of each fight, steal the enemy\'s highest passive stat buff. They lose it; you gain it for the fight.', passive: [], notes: 'Passive buff theft at fight start. Effect scales with what the enemy has.' },
+  paradox: { name: 'Paradox', rarity: 'mythic', desc: 'At the start of each fight, all your stats are inverted: your highest stat becomes your lowest, and vice versa. x2 stats', passive: [{ stat: 'all_main', op: 'mul', value: 2 }], situational: [{ id: 'par-invert', label: 'Stats Inverted (highest ↔ lowest)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }], notes: 'At fight start: identify your highest and lowest stats and swap them (and all in-between). All stats are then multiplied by x2. Toggle situational button to show the inverted state is active.' },
+  usurper: { name: 'Usurper', rarity: 'mythic', desc: 'At the start of each fight, steal the enemy\'s highest passive stat buff. They lose it; you gain it for the fight.', passive: [], situational: [{ id: 'usr-stolen', label: 'Stolen Buff Active (toggle to match enemy\'s highest buff)', passive: [] }], notes: 'At fight start: identify the enemy\'s single highest passive stat buff, remove it from them, and gain an identical buff yourself for the fight. Toggle the situational button and manually set the stat value to match what was stolen.' },
   sovereign: { name: 'Sovereign', rarity: 'mythic', desc: 'Immune to all debuffs and status effects. +30% all main stats.', passive: [{ stat: 'all_main', op: 'pct', value: 30 }, { stat: 'status_res', op: 'add', value: 100 }], notes: 'Full debuff immunity. Status Res shown as 100% (capped).' },
   void_emperor: { name: 'Void Emperor', rarity: 'mythic', desc: 'Once per fight, permanently set one enemy stat to 0 for the rest of the fight. Cannot target HP.', passive: [], notes: 'Valid targets: ATK, DEF, MAG, SPD. Effect is irreversible for that fight.' },
   plague_bearer: { name: 'Plague Bearer', rarity: 'mythic', desc: 'Every hit applies an unstackable plague to the enemy: -4% to all their stats until end of fight.', passive: [], notes: 'Plague is unstackable but refreshes on each hit. Applies to the target only.' },
@@ -4488,7 +4525,7 @@ const TRAITS = {
   cozycampfire: { name: 'Cozy Campfire', rarity: 'epic', desc: 'Deploy a healing zone for 3 turns. Allies inside heal 8% HP per turn and gain +10% to all healing received.', passive: [] },
   mantra: { name: 'Mantra', rarity: 'epic', desc: 'Every 4th ability you cast is Mantra-empowered, doubling its effect: shields are larger, heals restore more, and debuffs last an extra turn.', passive: [] },
   equinox: { name: 'Equinox', rarity: 'epic', desc: 'Create a zone of silence for 2 turns. Enemies inside cannot use abilities.', passive: [] },
-  wildgrowth: { name: 'Wild Growth', rarity: 'legendary', desc: 'Once per battle: instantly enlarge one ally. They gain +300 HP, knock back all nearby enemies, and gain +15% ATK for 2 turns.', passive: [] },
+  wildgrowth: { name: 'Wild Growth', rarity: 'legendary', desc: 'Once per battle: instantly enlarge one ally. They gain +300 HP, knock back all nearby enemies, and gain +50% ATK for 2 rounds.', passive: [] },
   wish: { name: 'Wish', rarity: 'legendary', desc: 'Once per battle: heal ALL allies for 80% max HP and remove one debuff from each.', passive: [] },
   crescendo: { name: 'Crescendo', rarity: 'legendary', desc: 'Once per battle: stun all enemies for 1 turn and restore 15% HP to all allies simultaneously.', passive: [] },
   monsoon: { name: 'Monsoon', rarity: 'legendary', desc: 'Once per battle: knock back all enemies and heal all allies for 20% HP per turn for 3 turns.', passive: [] },
@@ -4856,7 +4893,7 @@ const SHIMMYFUL_MYTHIC_TRAITS = {
   honored_one: { name: 'SHIMMYFUL The Honored One', desc: 'If you are the last surviving ally: ATK x7, MAG x7, SPD x3.', passive: [], situational: [{ id: 'ho-last', label: 'Last ally standing', passive: [{ stat: 'atk', op: 'mul', value: 7 }, { stat: 'mag', op: 'mul', value: 7 }, { stat: 'spd', op: 'mul', value: 3 }] }] },
   transcendence: { name: 'SHIMMYFUL Transcendence', desc: 'Twice per session: for one fight, all damage dealt x3 and all damage received is quartered.', passive: [], notes: 'Two activations per session. No permanent stat change.' },
   world_ender: { name: 'SHIMMYFUL World Ender', desc: '+70% ATK, +70% True DMG. Your top 2 strongest attacks each fight bypass all defenses.', passive: [{ stat: 'atk', op: 'pct', value: 70 }, { stat: 'true_dmg', op: 'add', value: 70 }] },
-  paradox: { name: 'SHIMMYFUL Paradox', desc: 'At fight start, all stats are inverted AND doubled. Your former highest becomes your new highest.', passive: [], notes: 'Stat inversion + x2 applied at fight start. Former top stat retains its advantage.' },
+  paradox: { name: 'SHIMMYFUL Paradox', desc: 'At fight start, all stats are inverted AND tripled. Your former highest becomes your new highest.', passive: [{ stat: 'all_main', op: 'mul', value: 3 }], situational: [{ id: 'shim-par-invert', label: 'Stats Inverted (highest ↔ lowest, x3)', passive: [{ stat: 'all_main', op: 'mul', value: 3 }] }], notes: 'At fight start: identify your highest and lowest stats and swap them (and all in-between). All stats are then multiplied by x3. Toggle situational button to show the inverted state is active.' },
   usurper: { name: 'SHIMMYFUL Usurper', desc: 'Steal the enemy\'s top TWO passive stat buffs at fight start. They also take 10% of each stolen stat as True Damage per round.', passive: [], notes: 'Steal top two passive buffs. Enemy bleeds 10% of each stolen value per round as True Damage.' },
   sovereign: { name: 'SHIMMYFUL Sovereign', desc: 'Immune to ALL debuffs, status effects, and damage-over-time. +55% all main stats.', passive: [{ stat: 'all_main', op: 'pct', value: 55 }, { stat: 'status_res', op: 'add', value: 100 }] },
   void_emperor: { name: 'SHIMMYFUL Void Emperor', desc: 'Twice per fight: permanently set any enemy stat to 0 for that fight. Can target HP (minimum 1 HP).', passive: [], notes: 'Valid targets: ATK, DEF, MAG, SPD, or HP (floored at 1 HP). Effect is irreversible for that fight.' },
@@ -5140,7 +5177,7 @@ const SHIMMYFUL_LEGENDARY_TRAITS = {
   life_support: { name: 'SHIMMYFUL Life Support', desc: 'Revive allies at cost of 30% current HP (cannot kill you). Each revive grants +40% DEF and +40% SPD.', passive: [], cultivation: { label: 'Allies Revived', perStack: [{ stat: 'def', op: 'pct', value: 40 }, { stat: 'spd', op: 'pct', value: 40 }], defaultStacks: 0, maxStacks: 10 } },
   schism: { name: 'SHIMMYFUL Schism', desc: '+3 ATK per 1% Heal Power you have.', passive: [{ op: 'derived', stat: 'atk', from: 'heal_pow', per: 1, perValue: 3 }] },
   find_your_spark: { name: 'SHIMMYFUL Find Your Spark', desc: '+2 DEF per 1 SPD. +4 HP per 1 Dexterity.', passive: [{ op: 'derived', stat: 'def', from: 'spd', per: 1, perValue: 2 }, { op: 'derived', stat: 'hp', from: 'dexterity', per: 1, perValue: 4 }] },
-  wildgrowth: { name: 'SHIMMYFUL Wild Growth', desc: 'Usable twice per battle: instantly enlarge one ally. They gain +500 HP, knock back all nearby enemies, and gain +30% ATK for 2 turns.', passive: [] },
+  wildgrowth: { name: 'SHIMMYFUL Wild Growth', desc: 'Usable twice per battle: instantly enlarge one ally. They gain +1000 HP, knock back all nearby enemies, and gain +150% ATK for 3 rounds.', passive: [] },
   wish: { name: 'SHIMMYFUL Wish', desc: 'Once per battle: heal ALL allies to full HP, remove all debuffs from each, and grant them +20% all main stats for 2 turns.', passive: [], situational: [{ id: 'wish-shimmy', label: 'SHIMMYFUL Wish buff active (+20% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 20 }] }] },
   crescendo: { name: 'SHIMMYFUL Crescendo', desc: 'Once per battle: stun all enemies for 2 turns, restore 30% HP to all allies, then grant all allies +20% ATK for 2 turns after the stun.', passive: [] },
   monsoon: { name: 'SHIMMYFUL Monsoon', desc: 'Once per battle: knock back all enemies and heal all allies for 30% HP per turn for 4 turns. Also grants all allies +20% DEF for the duration.', passive: [] },
