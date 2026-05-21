@@ -3997,149 +3997,934 @@ if (document.getElementById('stat-checker-rows')) {
 }
 
 // ============================================================
-// TRAITS SYSTEM
+// ============================================================
+// HOW TO ADD A NEW TRAIT
+// ============================================================
+//
+// Quick template — paste inside the TRAITS object and fill in the fields:
+//
+//   traitKey: {
+//     name: 'Display Name',    // text shown on the trait chip in the UI
+//     rarity: 'common',        // controls chip color — see RARITIES below
+//     desc: 'What it does.',   // short description shown on the chip / hover
+//     passive: [],             // stat modifiers — always include, even if empty
+//
+//     // ── optional fields ──
+//     notes: 'DM note.',       // extra note shown in the stat panel (no UI chip)
+//     situational: [...],      // in-fight toggle buttons — see SITUATIONAL below
+//     cultivation: {...},      // permanent stackable counter — see CULTIVATION
+//     heavenly:   {...},       // duality traits only — heavenly form data
+//     hellforged: {...},       // duality traits only — hellforged form data
+//   },
+//
+// ── RARITIES ─────────────────────────────────────────────────────────────────
+//   'common'     gray chip
+//   'rare'       blue chip
+//   'epic'       light purple chip
+//   'legendary'  yellow / gold chip
+//   'mythic'     orange / red gradient chip
+//   'hexxed'     dark purple / black chip  (almost never rolled normally)
+//   'duality'    split chip — requires both heavenly:{} and hellforged:{} blocks
+//   'determined' special evolving heartbeat chip
+//
+// ── PASSIVE FORMAT ────────────────────────────────────────────────────────────
+//   passive: [{ stat: 'atk', op: 'pct', value: 20 }]
+//
+//   op:
+//     'add'  flat addition     (use for substats and flat HP/ATK/etc. numbers)
+//     'pct'  % boost on a main stat   (+20% ATK → op:'pct', value:20)
+//     'mul'  total multiplier         (x2 ATK → op:'mul', value:2)
+//
+//   main stat keys:
+//     'hp'  'atk'  'def'  'mag'  'spd'
+//     'all_main'   (targets HP + ATK + DEF + MAG + SPD together)
+//
+//   substat keys  (always use op:'add' for these):
+//     'crit_rate'    'crit_dmg'     'lifesteal'    'heal_pow'
+//     'true_dmg'     'cooldown_red' 'dexterity'    'resilience'
+//     'status_res'   'all_sub'      (targets every substat at once)
+//
+//   derived passive — scales from another stat:
+//     { op:'derived', stat:'atk', from:'hp', per:50, perValue:1, cap:200 }
+//     → +1 ATK for every 50 HP, capped at +200 ATK.
+//     Use perPct instead of perValue for percentage scaling.
+//     cap is optional.
+//
+// ── SITUATIONAL (in-fight toggle buttons) ─────────────────────────────────────
+//   situational: [
+//     {
+//       id:      'unique-key',           // MUST be unique across ALL traits
+//       label:   'Button label',         // text on the toggle button
+//       desc:    'Optional tooltip.',    // optional — shows on hover
+//       passive: [{ stat:'atk', op:'pct', value:20 }],
+//     },
+//   ]
+//   Multiple situational entries = multiple independent toggle buttons.
+//
+// ── CULTIVATION (permanent stackable counter) ─────────────────────────────────
+//   cultivation: {
+//     label:         'Kills',            // shown next to the +/- counter
+//     perStack:      [{ stat:'crit_rate', op:'add', value:1 }],
+//                    // passive array applied PER STACK (or a single object)
+//     defaultStacks: 0,                  // stacks shown in UI on load
+//     maxStacks:     500,                // UI enforces this cap
+//   }
+//
+// ── DUALITY FORMAT ────────────────────────────────────────────────────────────
+//   rarity: 'duality',
+//   name: 'Default Name',  desc: 'Pre-choice description.',  passive: [...],
+//   heavenly:   { name: 'Heavenly Name',   desc: '...', passive: [...] },
+//   hellforged: { name: 'Hellforged Name', desc: '...', passive: [...] },
+//   // situational: [...] is optional and shared between both sides
+//
+// ── NOTES ─────────────────────────────────────────────────────────────────────
+//   notes:  shown in small text below the stat panel — use for DM rulings,
+//           per-hit or per-kill mechanics, things that don't have a direct
+//           stat value, or anything that needs a longer explanation.
+//
 // ============================================================
 
-// op: 'add' = additive (flat for main stats, percentage points for substats)
-//     'pct' = +value% multiplicative on a main stat   (e.g. +15% ATK -> pct 15)
-//     'mul' = total multiplier (x2 stats -> mul 2)
-// stat: 'all_main' targets HP/ATK/DEF/MAG/SPD together.
-// 'derived' passives are scaled (atk per hp, etc.)
 const TRAITS = {
   // ============ COMMON (gray) ============
-  favored: { name: 'Favored', rarity: 'common', desc: '+10% Crit Chance', passive: [{ stat: 'crit_rate', op: 'add', value: 10 }] },
-  spicy: { name: 'Spicy', rarity: 'common', desc: '+5% Resilience', passive: [{ stat: 'resilience', op: 'add', value: 5 }] },
-  sonic: { name: 'Sonic', rarity: 'common', desc: '+5% SPD, +5% Dexterity', passive: [{ stat: 'spd', op: 'pct', value: 5 }, { stat: 'dexterity', op: 'add', value: 5 }] },
-  flaming: { name: 'Flaming', rarity: 'common', desc: '50% chance to BURN enemies on hit.', passive: [], notes: 'Status effect. No direct stat impact.' },
-  enchanted: { name: 'Enchanted', rarity: 'common', desc: '+5% MAG, +5% Heal Power', passive: [{ stat: 'mag', op: 'pct', value: 5 }, { stat: 'heal_pow', op: 'add', value: 5 }] },
-  steadfast: { name: 'Steadfast', rarity: 'common', desc: '+5% True Damage. Deal extra damage if enemy is blocking.', passive: [{ stat: 'true_dmg', op: 'add', value: 5 }], situational: [{ id: 'block', label: 'Enemy is BLOCKING', desc: 'Bonus damage vs blocking targets.', passive: [] }] },
-  bombastic: { name: 'Bombastic', rarity: 'common', desc: 'Explosions caused by user are x2 bigger.', passive: [], notes: 'Cosmetic / scaling. No direct stat impact.' },
-  counterfeit: { name: 'Counterfeit', rarity: 'common', desc: 'Shops are 10% cheaper.', passive: [], notes: 'Economy effect. No combat stat impact.' },
-  sticky: { name: 'Sticky', rarity: 'common', desc: 'your fingers are sticky :)', passive: [], notes: 'Flavor trait.' },
-  tough: { name: 'Tough', rarity: 'common', desc: '+5% DEF', passive: [{ stat: 'def', op: 'pct', value: 5 }] },
-  hearty: { name: 'Hearty', rarity: 'common', desc: '+8% HP', passive: [{ stat: 'hp', op: 'pct', value: 8 }] },
-  keen: { name: 'Keen', rarity: 'common', desc: '+5% ATK, +3% Crit Chance', passive: [{ stat: 'atk', op: 'pct', value: 5 }, { stat: 'crit_rate', op: 'add', value: 3 }] },
-  scholarly: { name: 'Scholarly', rarity: 'common', desc: '+5% MAG, +5% Cooldown Reduction', passive: [{ stat: 'mag', op: 'pct', value: 5 }, { stat: 'cooldown_red', op: 'add', value: 5 }] },
-  lightfooted: { name: 'Light-Footed', rarity: 'common', desc: '+8% SPD', passive: [{ stat: 'spd', op: 'pct', value: 8 }] },
-  regenerative: { name: 'Regenerative', rarity: 'common', desc: '+8% Heal Power, +3% HP', passive: [{ stat: 'heal_pow', op: 'add', value: 8 }, { stat: 'hp', op: 'pct', value: 3 }] },
-  reckless: { name: 'Reckless', rarity: 'common', desc: '+10% ATK, -5% DEF', passive: [{ stat: 'atk', op: 'pct', value: 10 }, { stat: 'def', op: 'pct', value: -5 }] },
-  ironclad: { name: 'Ironclad', rarity: 'common', desc: '+8% DEF, -5% SPD', passive: [{ stat: 'def', op: 'pct', value: 8 }, { stat: 'spd', op: 'pct', value: -5 }] },
-  precise: { name: 'Precise', rarity: 'common', desc: '+8% Crit Chance, -5% Crit Damage', passive: [{ stat: 'crit_rate', op: 'add', value: 8 }, { stat: 'crit_dmg', op: 'add', value: -5 }] },
-  glassjaw: { name: 'Glass Jaw', rarity: 'common', desc: '+8% ATK, -5% Resilience', passive: [{ stat: 'atk', op: 'pct', value: 8 }, { stat: 'resilience', op: 'add', value: -5 }] },
-  shocking: { name: 'Shocking', rarity: 'common', desc: 'Chance to SHOCK/STUN enemies on hit.', passive: [], notes: 'Status effect. No direct stat impact.' },
-  wellfed: { name: 'Well-Fed', rarity: 'common', desc: '+5% HP, +3% Lifesteal', passive: [{ stat: 'hp', op: 'pct', value: 5 }, { stat: 'lifesteal', op: 'add', value: 3 }] },
-  caffeinated: { name: 'Caffeinated', rarity: 'common', desc: '+5% SPD, +5% Cooldown Reduction', passive: [{ stat: 'spd', op: 'pct', value: 5 }, { stat: 'cooldown_red', op: 'add', value: 5 }] },
-  stubborn: { name: 'Stubborn', rarity: 'common', desc: 'Extremely resistant to crowd control and intimidation.', passive: [], notes: 'Flavor trait.' },
-  nightowl: { name: 'Night Owl', rarity: 'common', desc: '+5% ATK, +5% SPD in the dark or at night.', passive: [], situational: [{ id: 'nightowl-dark', label: 'It is dark / nighttime', passive: [{ stat: 'atk', op: 'pct', value: 5 }, { stat: 'spd', op: 'pct', value: 5 }] }] },
-  headstrong: { name: 'Headstrong', rarity: 'common', desc: '+8% Status Resistance', passive: [{ stat: 'status_res', op: 'add', value: 8 }] },
-  resolute: { name: 'Resolute', rarity: 'common', desc: '+5% Resilience. At ≤30% HP, gain +5% ATK.', passive: [{ stat: 'resilience', op: 'add', value: 5 }], situational: [{ id: 'res-low', label: 'Currently at ≤30% HP', passive: [{ stat: 'atk', op: 'pct', value: 5 }] }] },
-  grounded: { name: 'Grounded', rarity: 'common', desc: '+5% DEF. Immune to knockback effects.', passive: [{ stat: 'def', op: 'pct', value: 5 }], notes: 'Knockback immunity is flavor. +5% DEF is the stat impact.' },
+  favored: {
+    name: 'Favored', rarity: 'common',
+    desc: '+10% Crit Chance',
+    passive: [{ stat: 'crit_rate', op: 'add', value: 10 }],
+  },
+
+  spicy: {
+    name: 'Spicy', rarity: 'common',
+    desc: '+5% Resilience',
+    passive: [{ stat: 'resilience', op: 'add', value: 5 }],
+  },
+
+  sonic: {
+    name: 'Sonic', rarity: 'common',
+    desc: '+5% SPD, +5% Dexterity',
+    passive: [{ stat: 'spd', op: 'pct', value: 5 }, { stat: 'dexterity', op: 'add', value: 5 }],
+  },
+
+  flaming: {
+    name: 'Flaming', rarity: 'common',
+    desc: '50% chance to BURN enemies on hit.',
+    passive: [],
+    notes: 'Status effect. No direct stat impact.',
+  },
+
+  enchanted: {
+    name: 'Enchanted', rarity: 'common',
+    desc: '+5% MAG, +5% Heal Power',
+    passive: [{ stat: 'mag', op: 'pct', value: 5 }, { stat: 'heal_pow', op: 'add', value: 5 }],
+  },
+
+  steadfast: {
+    name: 'Steadfast', rarity: 'common',
+    desc: '+5% True Damage. Deal extra damage if enemy is blocking.',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 5 }],
+    situational: [{ id: 'block', label: 'Enemy is BLOCKING', desc: 'Bonus damage vs blocking targets.', passive: [] }],
+  },
+
+  bombastic: {
+    name: 'Bombastic', rarity: 'common',
+    desc: 'Explosions caused by user are x2 bigger.',
+    passive: [],
+    notes: 'Cosmetic / scaling. No direct stat impact.',
+  },
+
+  counterfeit: {
+    name: 'Counterfeit', rarity: 'common',
+    desc: 'Shops are 10% cheaper.',
+    passive: [],
+    notes: 'Economy effect. No combat stat impact.',
+  },
+
+  sticky: {
+    name: 'Sticky', rarity: 'common',
+    desc: 'your fingers are sticky :)',
+    passive: [],
+    notes: 'Flavor trait.',
+  },
+
+  tough: {
+    name: 'Tough', rarity: 'common',
+    desc: '+5% DEF',
+    passive: [{ stat: 'def', op: 'pct', value: 5 }],
+  },
+
+  hearty: {
+    name: 'Hearty', rarity: 'common',
+    desc: '+8% HP',
+    passive: [{ stat: 'hp', op: 'pct', value: 8 }],
+  },
+
+  keen: {
+    name: 'Keen', rarity: 'common',
+    desc: '+5% ATK, +3% Crit Chance',
+    passive: [{ stat: 'atk', op: 'pct', value: 5 }, { stat: 'crit_rate', op: 'add', value: 3 }],
+  },
+
+  scholarly: {
+    name: 'Scholarly', rarity: 'common',
+    desc: '+5% MAG, +5% Cooldown Reduction',
+    passive: [{ stat: 'mag', op: 'pct', value: 5 }, { stat: 'cooldown_red', op: 'add', value: 5 }],
+  },
+
+  lightfooted: {
+    name: 'Light-Footed', rarity: 'common',
+    desc: '+8% SPD',
+    passive: [{ stat: 'spd', op: 'pct', value: 8 }],
+  },
+
+  regenerative: {
+    name: 'Regenerative', rarity: 'common',
+    desc: '+8% Heal Power, +3% HP',
+    passive: [{ stat: 'heal_pow', op: 'add', value: 8 }, { stat: 'hp', op: 'pct', value: 3 }],
+  },
+
+  reckless: {
+    name: 'Reckless', rarity: 'common',
+    desc: '+10% ATK, -5% DEF',
+    passive: [{ stat: 'atk', op: 'pct', value: 10 }, { stat: 'def', op: 'pct', value: -5 }],
+  },
+
+  ironclad: {
+    name: 'Ironclad', rarity: 'common',
+    desc: '+8% DEF, -5% SPD',
+    passive: [{ stat: 'def', op: 'pct', value: 8 }, { stat: 'spd', op: 'pct', value: -5 }],
+  },
+
+  precise: {
+    name: 'Precise', rarity: 'common',
+    desc: '+8% Crit Chance, -5% Crit Damage',
+    passive: [{ stat: 'crit_rate', op: 'add', value: 8 }, { stat: 'crit_dmg', op: 'add', value: -5 }],
+  },
+
+  glassjaw: {
+    name: 'Glass Jaw', rarity: 'common',
+    desc: '+8% ATK, -5% Resilience',
+    passive: [{ stat: 'atk', op: 'pct', value: 8 }, { stat: 'resilience', op: 'add', value: -5 }],
+  },
+
+  shocking: {
+    name: 'Shocking', rarity: 'common',
+    desc: 'Chance to SHOCK/STUN enemies on hit.',
+    passive: [],
+    notes: 'Status effect. No direct stat impact.',
+  },
+
+  wellfed: {
+    name: 'Well-Fed', rarity: 'common',
+    desc: '+5% HP, +3% Lifesteal',
+    passive: [{ stat: 'hp', op: 'pct', value: 5 }, { stat: 'lifesteal', op: 'add', value: 3 }],
+  },
+
+  caffeinated: {
+    name: 'Caffeinated', rarity: 'common',
+    desc: '+5% SPD, +5% Cooldown Reduction',
+    passive: [{ stat: 'spd', op: 'pct', value: 5 }, { stat: 'cooldown_red', op: 'add', value: 5 }],
+  },
+
+  stubborn: {
+    name: 'Stubborn', rarity: 'common',
+    desc: 'Extremely resistant to crowd control and intimidation.',
+    passive: [],
+    notes: 'Flavor trait.',
+  },
+
+  nightowl: {
+    name: 'Night Owl', rarity: 'common',
+    desc: '+5% ATK, +5% SPD in the dark or at night.',
+    passive: [],
+    situational: [{ id: 'nightowl-dark', label: 'It is dark / nighttime', passive: [{ stat: 'atk', op: 'pct', value: 5 }, { stat: 'spd', op: 'pct', value: 5 }] }],
+  },
+
+  headstrong: {
+    name: 'Headstrong', rarity: 'common',
+    desc: '+8% Status Resistance',
+    passive: [{ stat: 'status_res', op: 'add', value: 8 }],
+  },
+
+  resolute: {
+    name: 'Resolute', rarity: 'common',
+    desc: '+5% Resilience. At ≤30% HP, gain +5% ATK.',
+    passive: [{ stat: 'resilience', op: 'add', value: 5 }],
+    situational: [{ id: 'res-low', label: 'Currently at ≤30% HP', passive: [{ stat: 'atk', op: 'pct', value: 5 }] }],
+  },
+
+  grounded: {
+    name: 'Grounded', rarity: 'common',
+    desc: '+5% DEF. Immune to knockback effects.',
+    passive: [{ stat: 'def', op: 'pct', value: 5 }],
+    notes: 'Knockback immunity is flavor. +5% DEF is the stat impact.',
+  },
 
   // ============ RARE (blue) ============
-  assassin: { name: 'Assassin', rarity: 'rare', desc: 'The higher enemy HP, the greater your damage (0%–30%).', passive: [], situational: [{ id: 'asn-max', label: 'Enemy at MAX HP', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }, { id: 'asn-half', label: 'Enemy at 50% HP', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }] },
-  executioner: { name: 'Executioner', rarity: 'rare', desc: 'The lower the enemy HP, the greater your damage (0%–30%).', passive: [], situational: [{ id: 'exe-low', label: 'Enemy at 0% HP threshold', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }, { id: 'exe-half', label: 'Enemy at 50% HP', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }] },
-  lethal: { name: 'Lethal', rarity: 'rare', desc: '+15% True Damage.', passive: [{ stat: 'true_dmg', op: 'add', value: 15 }] },
-  toxic: { name: 'Toxic', rarity: 'rare', desc: 'Attacks POISON enemies.', passive: [], notes: 'Status effect. No direct stat impact.' },
-  frostbite: { name: 'Frostbite', rarity: 'rare', desc: 'Attacks FREEZE enemies.', passive: [], notes: 'Status effect. No direct stat impact.' },
-  buff: { name: 'Buff', rarity: 'rare', desc: '+15% ATK', passive: [{ stat: 'atk', op: 'pct', value: 15 }] },
-  armored: { name: 'Armored', rarity: 'rare', desc: '+15% DEF', passive: [{ stat: 'def', op: 'pct', value: 15 }] },
-  workhorse: { name: 'Workhorse', rarity: 'rare', desc: '+15% Cooldown Reduction', passive: [{ stat: 'cooldown_red', op: 'add', value: 15 }] },
-  shielding: { name: 'Shielding', rarity: 'rare', desc: 'Start of fight: shield for 5% of HP. If a round passes at MAX HP, gain another. Stacks infinitely.', passive: [], situational: [{ id: 'shield-stack', label: 'Per shield stack (vs HP)', desc: 'Each stack = 5% HP as shield. Stat impact varies.', passive: [] }] },
-  saving: { name: 'Saving Habits', rarity: 'rare', desc: 'Shops are 20% cheaper.', passive: [], notes: 'Economy effect. No combat stat impact.' },
-  voided: { name: 'Voided', rarity: 'rare', desc: 'Attacks have a 5% chance to spawn black holes that pull and damage.', passive: [], notes: 'Proc effect. No direct stat impact.' },
-  legday: { name: 'Leg Day', rarity: 'rare', desc: 'Big thighs. +15% SPD, +15% Dexterity', passive: [{ stat: 'spd', op: 'pct', value: 15 }, { stat: 'dexterity', op: 'add', value: 15 }] },
-  shrinkray: { name: 'Shrink Ray', rarity: 'rare', desc: 'Damage shrinks enemies by 50% and reduces their DEF by 5%.', passive: [], notes: 'Affects enemy stats. No self stat impact.' },
-  vital: { name: 'Vital', rarity: 'rare', desc: '+15% HP', passive: [{ stat: 'hp', op: 'pct', value: 15 }] },
-  swiftstrike: { name: 'Swiftstrike', rarity: 'rare', desc: '+15% SPD, +10% Crit Chance', passive: [{ stat: 'spd', op: 'pct', value: 15 }, { stat: 'crit_rate', op: 'add', value: 10 }] },
-  spellweaver: { name: 'Spellweaver', rarity: 'rare', desc: '+15% MAG, +10% Cooldown Reduction', passive: [{ stat: 'mag', op: 'pct', value: 15 }, { stat: 'cooldown_red', op: 'add', value: 10 }] },
-  lifeline: { name: 'Lifeline', rarity: 'rare', desc: '+10% Lifesteal, +10% Heal Power', passive: [{ stat: 'lifesteal', op: 'add', value: 10 }, { stat: 'heal_pow', op: 'add', value: 10 }] },
-  weakpoint: { name: 'Weakpoint', rarity: 'rare', desc: '+10% True Damage, +10% Crit Chance', passive: [{ stat: 'true_dmg', op: 'add', value: 10 }, { stat: 'crit_rate', op: 'add', value: 10 }] },
-  berserker: { name: 'Berserker', rarity: 'rare', desc: '+25% ATK, -15% DEF', passive: [{ stat: 'atk', op: 'pct', value: 25 }, { stat: 'def', op: 'pct', value: -15 }] },
-  bulwark: { name: 'Bulwark', rarity: 'rare', desc: '+20% DEF, -15% ATK', passive: [{ stat: 'def', op: 'pct', value: 20 }, { stat: 'atk', op: 'pct', value: -15 }] },
-  overdrive: { name: 'Overdrive', rarity: 'rare', desc: '+20% ATK, -10% HP', passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'hp', op: 'pct', value: -10 }] },
-  solo: { name: 'Solo', rarity: 'rare', desc: '+20% all stats when fighting without allies.', passive: [], situational: [{ id: 'solo-alone', label: 'Fighting alone (no allies)', passive: [{ stat: 'all_main', op: 'pct', value: 20 }] }] },
-  packhunter: { name: 'Pack Hunter', rarity: 'rare', desc: '+8% ATK per ally in the fight (up to +24%).', passive: [], situational: [{ id: 'pack-1', label: '1 ally in fight (+8% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 8 }] }, { id: 'pack-2', label: '2 allies in fight (+16% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 16 }] }, { id: 'pack-3', label: '3+ allies in fight (+24% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 24 }] }] },
-  laststand: { name: 'Last Stand', rarity: 'rare', desc: 'At ≤25% HP: +20% ATK, +20% DEF.', passive: [], situational: [{ id: 'ls-low', label: 'Currently at ≤25% HP', passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'def', op: 'pct', value: 20 }] }] },
-  opportunist: { name: 'Opportunist', rarity: 'rare', desc: '+20% ATK vs enemies that are stunned, slowed, or poisoned.', passive: [], situational: [{ id: 'opp-cc', label: 'Enemy is stunned, slowed, or poisoned', passive: [{ stat: 'atk', op: 'pct', value: 20 }] }] },
-  momentum: { name: 'Momentum', rarity: 'rare', desc: 'Each consecutive hit without taking damage: +5% ATK. Stacks up to 3x.', passive: [], situational: [{ id: 'mom-1', label: '1 hit streak (+5% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 5 }] }, { id: 'mom-2', label: '2 hit streak (+10% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 10 }] }, { id: 'mom-3', label: '3+ hit streak (+15% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }] },
-  adrenaline: { name: 'Adrenaline', rarity: 'rare', desc: 'Taking damage grants +10% ATK for 2 turns.', passive: [], situational: [{ id: 'adren-hit', label: 'Just took damage (+10% ATK for 2 turns)', passive: [{ stat: 'atk', op: 'pct', value: 10 }] }] },
-  secondwind: { name: 'Second Wind', rarity: 'rare', desc: 'Once per fight, survive a killing blow at 1 HP.', passive: [], notes: 'Once-per-fight effect. No direct stat impact.' },
-  mending: { name: 'Mending', rarity: 'rare', desc: '+15% Heal Power. Your heals restore 3% HP to yourself.', passive: [{ stat: 'heal_pow', op: 'add', value: 15 }], notes: 'Self-heal on cast is flavor/mechanic. Heal Power is the stat impact.' },
-  fortify: { name: 'Fortify', rarity: 'rare', desc: 'After taking 3 hits in a row, gain +15% DEF.', passive: [], situational: [{ id: 'fort-3hit', label: 'Took 3 hits in a row (+15% DEF)', passive: [{ stat: 'def', op: 'pct', value: 15 }] }] },
-  evasion: { name: 'Evasion', rarity: 'rare', desc: '+20% Dexterity', passive: [{ stat: 'dexterity', op: 'add', value: 20 }] },
-  warcry: { name: 'Warcry', rarity: 'rare', desc: 'Once per fight, give all allies +15% ATK for 2 turns.', passive: [], notes: 'Support effect. No self stat impact.' },
-  bubbly: { name: 'Bubbly', rarity: 'rare', desc: '50% chance on hit to encase enemy in a bubble, stunning them for 1 turn but making them untouchable.', passive: [], notes: 'Proc effect. Stuns but grants enemy temporary damage immunity.' },
+  assassin: {
+    name: 'Assassin', rarity: 'rare',
+    desc: 'The higher enemy HP, the greater your damage (0%–30%).',
+    passive: [],
+    situational: [{ id: 'asn-max', label: 'Enemy at MAX HP', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }, { id: 'asn-half', label: 'Enemy at 50% HP', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }],
+  },
+
+  executioner: {
+    name: 'Executioner', rarity: 'rare',
+    desc: 'The lower the enemy HP, the greater your damage (0%–30%).',
+    passive: [],
+    situational: [{ id: 'exe-low', label: 'Enemy at 0% HP threshold', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }, { id: 'exe-half', label: 'Enemy at 50% HP', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }],
+  },
+
+  lethal: {
+    name: 'Lethal', rarity: 'rare',
+    desc: '+15% True Damage.',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 15 }],
+  },
+
+  toxic: {
+    name: 'Toxic', rarity: 'rare',
+    desc: 'Attacks POISON enemies.',
+    passive: [],
+    notes: 'Status effect. No direct stat impact.',
+  },
+
+  frostbite: {
+    name: 'Frostbite', rarity: 'rare',
+    desc: 'Attacks FREEZE enemies.',
+    passive: [],
+    notes: 'Status effect. No direct stat impact.',
+  },
+
+  buff: {
+    name: 'Buff', rarity: 'rare',
+    desc: '+15% ATK',
+    passive: [{ stat: 'atk', op: 'pct', value: 15 }],
+  },
+
+  armored: {
+    name: 'Armored', rarity: 'rare',
+    desc: '+15% DEF',
+    passive: [{ stat: 'def', op: 'pct', value: 15 }],
+  },
+
+  workhorse: {
+    name: 'Workhorse', rarity: 'rare',
+    desc: '+15% Cooldown Reduction',
+    passive: [{ stat: 'cooldown_red', op: 'add', value: 15 }],
+  },
+
+  shielding: {
+    name: 'Shielding', rarity: 'rare',
+    desc: 'Start of fight: shield for 5% of HP. If a round passes at MAX HP, gain another. Stacks infinitely.',
+    passive: [],
+    situational: [{ id: 'shield-stack', label: 'Per shield stack (vs HP)', desc: 'Each stack = 5% HP as shield. Stat impact varies.', passive: [] }],
+  },
+
+  saving: {
+    name: 'Saving Habits', rarity: 'rare',
+    desc: 'Shops are 20% cheaper.',
+    passive: [],
+    notes: 'Economy effect. No combat stat impact.',
+  },
+
+  voided: {
+    name: 'Voided', rarity: 'rare',
+    desc: 'Attacks have a 5% chance to spawn black holes that pull and damage.',
+    passive: [],
+    notes: 'Proc effect. No direct stat impact.',
+  },
+
+  legday: {
+    name: 'Leg Day', rarity: 'rare',
+    desc: 'Big thighs. +15% SPD, +15% Dexterity',
+    passive: [{ stat: 'spd', op: 'pct', value: 15 }, { stat: 'dexterity', op: 'add', value: 15 }],
+  },
+
+  shrinkray: {
+    name: 'Shrink Ray', rarity: 'rare',
+    desc: 'Damage shrinks enemies by 50% and reduces their DEF by 5%.',
+    passive: [],
+    notes: 'Affects enemy stats. No self stat impact.',
+  },
+
+  vital: {
+    name: 'Vital', rarity: 'rare',
+    desc: '+15% HP',
+    passive: [{ stat: 'hp', op: 'pct', value: 15 }],
+  },
+
+  swiftstrike: {
+    name: 'Swiftstrike', rarity: 'rare',
+    desc: '+15% SPD, +10% Crit Chance',
+    passive: [{ stat: 'spd', op: 'pct', value: 15 }, { stat: 'crit_rate', op: 'add', value: 10 }],
+  },
+
+  spellweaver: {
+    name: 'Spellweaver', rarity: 'rare',
+    desc: '+15% MAG, +10% Cooldown Reduction',
+    passive: [{ stat: 'mag', op: 'pct', value: 15 }, { stat: 'cooldown_red', op: 'add', value: 10 }],
+  },
+
+  lifeline: {
+    name: 'Lifeline', rarity: 'rare',
+    desc: '+10% Lifesteal, +10% Heal Power',
+    passive: [{ stat: 'lifesteal', op: 'add', value: 10 }, { stat: 'heal_pow', op: 'add', value: 10 }],
+  },
+
+  weakpoint: {
+    name: 'Weakpoint', rarity: 'rare',
+    desc: '+10% True Damage, +10% Crit Chance',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 10 }, { stat: 'crit_rate', op: 'add', value: 10 }],
+  },
+
+  berserker: {
+    name: 'Berserker', rarity: 'rare',
+    desc: '+25% ATK, -15% DEF',
+    passive: [{ stat: 'atk', op: 'pct', value: 25 }, { stat: 'def', op: 'pct', value: -15 }],
+  },
+
+  bulwark: {
+    name: 'Bulwark', rarity: 'rare',
+    desc: '+20% DEF, -15% ATK',
+    passive: [{ stat: 'def', op: 'pct', value: 20 }, { stat: 'atk', op: 'pct', value: -15 }],
+  },
+
+  overdrive: {
+    name: 'Overdrive', rarity: 'rare',
+    desc: '+20% ATK, -10% HP',
+    passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'hp', op: 'pct', value: -10 }],
+  },
+
+  solo: {
+    name: 'Solo', rarity: 'rare',
+    desc: '+20% all stats when fighting without allies.',
+    passive: [],
+    situational: [{ id: 'solo-alone', label: 'Fighting alone (no allies)', passive: [{ stat: 'all_main', op: 'pct', value: 20 }] }],
+  },
+
+  packhunter: {
+    name: 'Pack Hunter', rarity: 'rare',
+    desc: '+8% ATK per ally in the fight (up to +24%).',
+    passive: [],
+    situational: [{ id: 'pack-1', label: '1 ally in fight (+8% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 8 }] }, { id: 'pack-2', label: '2 allies in fight (+16% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 16 }] }, { id: 'pack-3', label: '3+ allies in fight (+24% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 24 }] }],
+  },
+
+  laststand: {
+    name: 'Last Stand', rarity: 'rare',
+    desc: 'At ≤25% HP: +20% ATK, +20% DEF.',
+    passive: [],
+    situational: [{ id: 'ls-low', label: 'Currently at ≤25% HP', passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'def', op: 'pct', value: 20 }] }],
+  },
+
+  opportunist: {
+    name: 'Opportunist', rarity: 'rare',
+    desc: '+20% ATK vs enemies that are stunned, slowed, or poisoned.',
+    passive: [],
+    situational: [{ id: 'opp-cc', label: 'Enemy is stunned, slowed, or poisoned', passive: [{ stat: 'atk', op: 'pct', value: 20 }] }],
+  },
+
+  momentum: {
+    name: 'Momentum', rarity: 'rare',
+    desc: 'Each consecutive hit without taking damage: +5% ATK. Stacks up to 3x.',
+    passive: [],
+    situational: [{ id: 'mom-1', label: '1 hit streak (+5% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 5 }] }, { id: 'mom-2', label: '2 hit streak (+10% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 10 }] }, { id: 'mom-3', label: '3+ hit streak (+15% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }],
+  },
+
+  adrenaline: {
+    name: 'Adrenaline', rarity: 'rare',
+    desc: 'Taking damage grants +10% ATK for 2 turns.',
+    passive: [],
+    situational: [{ id: 'adren-hit', label: 'Just took damage (+10% ATK for 2 turns)', passive: [{ stat: 'atk', op: 'pct', value: 10 }] }],
+  },
+
+  secondwind: {
+    name: 'Second Wind', rarity: 'rare',
+    desc: 'Once per fight, survive a killing blow at 1 HP.',
+    passive: [],
+    notes: 'Once-per-fight effect. No direct stat impact.',
+  },
+
+  mending: {
+    name: 'Mending', rarity: 'rare',
+    desc: '+15% Heal Power. Your heals restore 3% HP to yourself.',
+    passive: [{ stat: 'heal_pow', op: 'add', value: 15 }],
+    notes: 'Self-heal on cast is flavor/mechanic. Heal Power is the stat impact.',
+  },
+
+  fortify: {
+    name: 'Fortify', rarity: 'rare',
+    desc: 'After taking 3 hits in a row, gain +15% DEF.',
+    passive: [],
+    situational: [{ id: 'fort-3hit', label: 'Took 3 hits in a row (+15% DEF)', passive: [{ stat: 'def', op: 'pct', value: 15 }] }],
+  },
+
+  evasion: {
+    name: 'Evasion', rarity: 'rare',
+    desc: '+20% Dexterity',
+    passive: [{ stat: 'dexterity', op: 'add', value: 20 }],
+  },
+
+  warcry: {
+    name: 'Warcry', rarity: 'rare',
+    desc: 'Once per fight, give all allies +15% ATK for 2 turns.',
+    passive: [],
+    notes: 'Support effect. No self stat impact.',
+  },
+
+  bubbly: {
+    name: 'Bubbly', rarity: 'rare',
+    desc: '50% chance on hit to encase enemy in a bubble, stunning them for 1 turn but making them untouchable.',
+    passive: [],
+    notes: 'Proc effect. Stuns but grants enemy temporary damage immunity.',
+  },
 
   // ============ EPIC (light purple, pulse) ============
-  economic: { name: 'Economic', rarity: 'epic', desc: 'Shops are 50% cheaper.', passive: [], notes: 'Economy effect. No combat stat impact.' },
-  pyromaniac: { name: 'Pyromaniac', rarity: 'epic', desc: 'Explosions x4 bigger. Explosions BURN nearby enemies. Heal 5% HP per turn per BURNING enemy.', passive: [], situational: [{ id: 'pyro-3', label: '3 burning enemies (heal preview)', desc: 'Heal scales with HP.', passive: [] }] },
-  prime: { name: 'Prime', rarity: 'epic', desc: '+20% ATK, +20% DEF', passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'def', op: 'pct', value: 20 }] },
-  overflowing: { name: 'Overflowing', rarity: 'epic', desc: '+30% Cooldown Reduction', passive: [{ stat: 'cooldown_red', op: 'add', value: 30 }] },
-  vampiric: { name: 'Vampiric', rarity: 'epic', desc: '+25% Lifesteal', passive: [{ stat: 'lifesteal', op: 'add', value: 25 }] },
-  solar: { name: 'Solar', rarity: 'epic', desc: '+35% SPD, +30% Dexterity', passive: [{ stat: 'spd', op: 'pct', value: 35 }, { stat: 'dexterity', op: 'add', value: 30 }] },
-  gambler: { name: 'Gambler', rarity: 'epic', desc: '+30% Crit Chance, +15% Crit Damage', passive: [{ stat: 'crit_rate', op: 'add', value: 30 }, { stat: 'crit_dmg', op: 'add', value: 15 }] },
-  deferred: { name: 'Deferred', rarity: 'epic', desc: '+45% ATK. Damage delivered over 3 turns.', passive: [{ stat: 'atk', op: 'pct', value: 45 }] },
-  trueT: { name: 'True', rarity: 'epic', desc: '+40% True Damage', passive: [{ stat: 'true_dmg', op: 'add', value: 40 }] },
-  heavyhitter: { name: 'Heavy Hitter', rarity: 'epic', desc: '+5 ATK per 50 HP. Capped at +300 ATK.', passive: [{ op: 'derived', stat: 'atk', from: 'hp', per: 50, perValue: 5, cap: 300 }] },
-  clothesline: { name: 'Clothesline', rarity: 'epic', desc: 'Tether to an ally each fight. Laser scales with ATK, slows enemies by 10%.', passive: [], notes: 'Ally-tether effect. No self stat impact.' },
-  dawn: { name: "Dawnbringer's Resolve", rarity: 'epic', desc: 'At ≤50% HP, recover 10% HP every turn until full.', passive: [], situational: [{ id: 'dawn-low', label: 'Currently at ≤50% HP', desc: 'Sustained healing.', passive: [] }] },
-  warmup: { name: 'Warmup Routine', rarity: 'epic', desc: 'Spend first round exercising (cancels if hit). After: +20% all main stats. Can keep exercising indefinitely.', passive: [], situational: [{ id: 'warmup-done', label: 'Warmup completed', passive: [{ stat: 'all_main', op: 'pct', value: 20 }] }] },
-  colossus: { name: 'Colossus', rarity: 'epic', desc: '+30% HP, +30% DEF', passive: [{ stat: 'hp', op: 'pct', value: 30 }, { stat: 'def', op: 'pct', value: 30 }] },
-  archmage: { name: 'Archmage', rarity: 'epic', desc: '+35% MAG, +20% CDR, +20% Heal Power', passive: [{ stat: 'mag', op: 'pct', value: 35 }, { stat: 'cooldown_red', op: 'add', value: 20 }, { stat: 'heal_pow', op: 'add', value: 20 }] },
-  phantom: { name: 'Phantom', rarity: 'epic', desc: '+30% SPD, +20% Dexterity, +20% Crit Chance', passive: [{ stat: 'spd', op: 'pct', value: 30 }, { stat: 'dexterity', op: 'add', value: 20 }, { stat: 'crit_rate', op: 'add', value: 20 }] },
-  juggernaut: { name: 'Juggernaut', rarity: 'epic', desc: '+30% ATK, +20% HP, -15% SPD', passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'hp', op: 'pct', value: 20 }, { stat: 'spd', op: 'pct', value: -15 }] },
-  irongiant: { name: 'Iron Giant', rarity: 'epic', desc: '+8 DEF per 100 HP. The more HP you have, the tougher you get.', passive: [{ op: 'derived', stat: 'def', from: 'hp', per: 100, perValue: 8 }] },
-  spellblade: { name: 'Spellblade', rarity: 'epic', desc: '+1 ATK per 3 MAG. Magic fuels your physical hits.', passive: [{ op: 'derived', stat: 'atk', from: 'mag', per: 3, perValue: 1 }] },
-  reaper: { name: 'Reaper', rarity: 'epic', desc: 'Killing an enemy restores 25% HP.', passive: [], notes: 'Kill-trigger heal. No passive stat impact.' },
-  onslaught: { name: 'Onslaught', rarity: 'epic', desc: 'Each consecutive attack turn without being hit: +5% ATK. Stacks up to 3x. Resets if you take damage.', passive: [], situational: [{ id: 'ons-1', label: '1 turn streak (+5% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 5 }] }, { id: 'ons-2', label: '2 turn streak (+10% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 10 }] }, { id: 'ons-3', label: '3+ turn streak (+15% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }] },
-  absorbent: { name: 'Absorbent', rarity: 'epic', desc: 'Each hit you take: +2% DEF for the rest of the fight. Resets between fights.', passive: [], situational: [{ id: 'abs-5', label: 'After 5 hits taken (+10% DEF)', passive: [{ stat: 'def', op: 'pct', value: 10 }] }, { id: 'abs-10', label: 'After 10 hits taken (+20% DEF)', passive: [{ stat: 'def', op: 'pct', value: 20 }] }] },
-  mirror: { name: 'Mirror', rarity: 'epic', desc: 'Reflect 15% of all damage taken back at the attacker.', passive: [], notes: 'Damage reflection. No direct self stat impact.' },
-  echo: { name: 'Echo', rarity: 'epic', desc: 'Every 3rd attack fires twice, hitting the same target again for full damage.', passive: [], notes: 'Attack multiplier. No direct stat impact.' },
-  timebomb: { name: 'Time Bomb', rarity: 'epic', desc: 'Once per fight, mark an enemy. They take double damage on their next hit received.', passive: [], notes: 'One-shot debuff. No self stat impact.' },
-  overdose: { name: 'Overdose', rarity: 'epic', desc: 'Being healed above max HP converts the excess into bonus ATK temporarily.', passive: [], situational: [{ id: 'od-active', label: 'Overhealed (bonus ATK active)', passive: [{ stat: 'atk', op: 'pct', value: 20 }] }] },
-  shieldbreak: { name: 'Shield Breaker', rarity: 'epic', desc: '+30% ATK vs any enemy that has a shield or barrier active.', passive: [], situational: [{ id: 'sb-shielded', label: 'Enemy has a shield or barrier', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }] },
-  warden: { name: 'Warden', rarity: 'epic', desc: 'When any ally drops below 30% HP, instantly shield them for 15% of your HP.', passive: [], notes: 'Ally-shield proc. No self stat impact.' },
-  empower: { name: 'Empower', rarity: 'epic', desc: 'Buffs and heals you give allies are 50% stronger.', passive: [], notes: 'Support multiplier. No self stat impact.' },
-  commander: { name: 'Commander', rarity: 'epic', desc: 'All allies gain +15% ATK while you are above 50% HP.', passive: [], situational: [{ id: 'cmd-up', label: 'You are above 50% HP (allies +15% ATK)', desc: 'Ally buff. No self stat impact.', passive: [] }] },
-  second_skin: { name: 'Second Skin', rarity: 'epic', desc: '+20% DEF. The first hit you take each fight deals 0 damage.', passive: [{ stat: 'def', op: 'pct', value: 20 }], notes: 'First hit each fight is negated entirely.' },
-  blitz: { name: 'Blitz', rarity: 'epic', desc: '+35% ATK, +25% Crit Chance, -25% DEF. Cannot use defensive abilities or skills.', passive: [{ stat: 'atk', op: 'pct', value: 35 }, { stat: 'crit_rate', op: 'add', value: 25 }, { stat: 'def', op: 'pct', value: -25 }], notes: 'Defensive abilities and skills are locked out.' },
-  siphon: { name: 'Siphon', rarity: 'epic', desc: 'At the end of each round, drain 5% of the target\'s current HP as healing.', passive: [], situational: [{ id: 'sp-1', label: '1 round of drain (5% target HP healed)', desc: 'Calculate from target\'s current HP each round.', passive: [] }, { id: 'sp-3', label: '3 rounds of drain', desc: 'Applies every round.', passive: [] }] },
-  double_tap: { name: 'Double Tap', rarity: 'epic', desc: 'After landing a kill, immediately make a bonus attack on the nearest enemy at +50% ATK.', passive: [], notes: 'Kill-triggered bonus hit. Does not chain on a second kill.' },
-  sentinel: { name: 'Sentinel', rarity: 'epic', desc: '25% of all damage dealt to nearby allies is redirected to you instead. +15% DEF.', passive: [{ stat: 'def', op: 'pct', value: 15 }], notes: '25% of all incoming ally damage is redirected to you.' },
-  pressure_pt: { name: 'Pressure Point', rarity: 'epic', desc: 'Every 3rd consecutive hit on the same target deals double damage and stuns them for 1 round.', passive: [], notes: 'Count hits per target. Every 3rd = x2 damage + 1 round stun. Counter resets on target switch.' },
-  deadweight: { name: 'Deadweight', rarity: 'epic', desc: '+6% ATK per item currently equipped. More gear, more force.', passive: [], situational: [{ id: 'dw-2', label: '2 items equipped (+12% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 12 }] }, { id: 'dw-4', label: '4 items equipped (+24% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 24 }] }, { id: 'dw-6', label: '6 items equipped (+36% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 36 }] }, { id: 'dw-8', label: '8 items equipped (+48% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 48 }] }] },
-  chain: { name: 'Chain', rarity: 'epic', desc: 'Every crit arcs to a second nearby enemy for 45% of the damage.', passive: [], notes: 'Crits bounce to the nearest other enemy for 45% of the original damage.' },
-  war_drum: { name: 'War Drum', rarity: 'epic', desc: 'All allies passively gain +10% ATK. You gain an additional +5% ATK per ally that currently has any buff active.', passive: [], situational: [{ id: 'wd-1', label: '1 buffed ally (+5% ATK to you)', passive: [{ stat: 'atk', op: 'pct', value: 5 }] }, { id: 'wd-2', label: '2 buffed allies (+10% ATK to you)', passive: [{ stat: 'atk', op: 'pct', value: 10 }] }, { id: 'wd-3', label: '3 buffed allies (+15% ATK to you)', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }] },
-  overclock: { name: 'Overclock', rarity: 'epic', desc: '+35% Cooldown Reduction. You take +20% more damage from all sources.', passive: [{ stat: 'cooldown_red', op: 'add', value: 35 }], notes: 'Trade-off: major CDR boost at the cost of increased damage taken.' },
-  shadowstrike: { name: 'Shadowstrike', rarity: 'epic', desc: 'The first attack you make each fight ignores DEF entirely and deals True Damage equal to 25% of the target\'s current HP.', passive: [], notes: 'First attack each fight only. Bypasses all DEF and shields.' },
-  grounded: { name: 'Grounded', rarity: 'epic', desc: 'Immune to knockback, displacement, and aerial effects. +20% DEF vs magic. +15% Status Resistance.', passive: [{ stat: 'status_res', op: 'add', value: 15 }], notes: 'Immune to all movement/displacement effects. +20% DEF specifically against magic damage.' },
-  piles_of_bones: { name: 'Piles of Bones', rarity: 'epic', desc: '+1% Crit Chance and +1% Crit Damage per kill. Permanent.', passive: [], cultivation: { label: 'Kills', perStack: [{ stat: 'crit_rate', op: 'add', value: 1 }, { stat: 'crit_dmg', op: 'add', value: 1 }], defaultStacks: 0, maxStacks: 500 } },
-  spite: { name: 'Spite', rarity: 'epic', desc: '+15% ATK per debuff or status effect currently active on you. The more they pile on, the worse an idea that was.', passive: [], situational: [{ id: 'sp-1', label: '1 debuff active (+15% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }, { id: 'sp-2', label: '2 debuffs active (+30% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }, { id: 'sp-3', label: '3 debuffs active (+45% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 45 }] }, { id: 'sp-4', label: '4+ debuffs active (+60% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 60 }] }] },
-  exposed: { name: 'Exposed', rarity: 'epic', desc: 'Your DEF is permanently 0. But on every attack turn you take, the target\'s DEF is also reduced to 0 for that hit. Mutually assured vulnerability.', passive: [{ stat: 'def', op: 'pct', value: -100 }], notes: 'DEF is set to 0. Strip all DEF items and buffs. On your attack turns, also zero the target\'s DEF for that hit.' },
-  vitalsiphon: { name: 'Vital Siphon', rarity: 'epic', desc: '+1% Lifesteal per 40 DEF.', passive: [{ op: 'derived', stat: 'lifesteal', from: 'def', per: 40, perValue: 1 }] },
-  corepiercer: { name: 'Core Piercer', rarity: 'epic', desc: '+1% True Damage per 20 ATK.', passive: [{ op: 'derived', stat: 'true_dmg', from: 'atk', per: 20, perValue: 1 }] },
-  desperate: { name: 'Desperate Measures', rarity: 'epic', desc: 'At ≤40% HP: +40% MAG and +40% Cooldown Reduction.', passive: [], situational: [{ id: 'desperate-crisis', label: 'Currently at ≤40% HP', passive: [{ stat: 'mag', op: 'pct', value: 40 }, { stat: 'cooldown_red', op: 'add', value: 40 }] }] },
-  rampage: { name: 'Rampage', rarity: 'epic', desc: 'Each enemy defeated in combat grants +15% ATK and +10% SPD for the rest of the fight (max 4x).', passive: [], situational: [{ id: 'rampage-1', label: '1 enemy defeated (+15% ATK, +10% SPD)', passive: [{ stat: 'atk', op: 'pct', value: 15 }, { stat: 'spd', op: 'pct', value: 10 }] }, { id: 'rampage-4', label: '4+ enemies defeated (+60% ATK, +40% SPD)', passive: [{ stat: 'atk', op: 'pct', value: 60 }, { stat: 'spd', op: 'pct', value: 40 }] }] },
-  bounty: { name: 'Bounty Hunter', rarity: 'epic', desc: 'Each enemy defeated permanently grants +1 Dexterity (max 100 stacks).', passive: [], cultivation: { label: 'Enemies Defeated', perStack: [{ stat: 'dexterity', op: 'add', value: 1 }], defaultStacks: 0, maxStacks: 100 } },
-  kinetic: { name: 'Kinetic Shielding', rarity: 'epic', desc: 'Taking damage grants +10% SPD and +10 Dexterity for 2 turns (max 3 stacks).', passive: [], situational: [{ id: 'kin-1', label: '1 stack active (+10% SPD, +10 Dexterity)', passive: [{ stat: 'spd', op: 'pct', value: 10 }, { stat: 'dexterity', op: 'add', value: 10 }] }, { id: 'kin-3', label: '3 stacks active (+30% SPD, +30 Dexterity)', passive: [{ stat: 'spd', op: 'pct', value: 30 }, { stat: 'dexterity', op: 'add', value: 30 }] }] },
+  economic: {
+    name: 'Economic', rarity: 'epic',
+    desc: 'Shops are 50% cheaper.',
+    passive: [],
+    notes: 'Economy effect. No combat stat impact.',
+  },
+
+  pyromaniac: {
+    name: 'Pyromaniac', rarity: 'epic',
+    desc: 'Explosions x4 bigger. Explosions BURN nearby enemies. Heal 5% HP per turn per BURNING enemy.',
+    passive: [],
+    situational: [{ id: 'pyro-3', label: '3 burning enemies (heal preview)', desc: 'Heal scales with HP.', passive: [] }],
+  },
+
+  prime: {
+    name: 'Prime', rarity: 'epic',
+    desc: '+20% ATK, +20% DEF',
+    passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'def', op: 'pct', value: 20 }],
+  },
+
+  overflowing: {
+    name: 'Overflowing', rarity: 'epic',
+    desc: '+30% Cooldown Reduction',
+    passive: [{ stat: 'cooldown_red', op: 'add', value: 30 }],
+  },
+
+  vampiric: {
+    name: 'Vampiric', rarity: 'epic',
+    desc: '+25% Lifesteal',
+    passive: [{ stat: 'lifesteal', op: 'add', value: 25 }],
+  },
+
+  solar: {
+    name: 'Solar', rarity: 'epic',
+    desc: '+35% SPD, +30% Dexterity',
+    passive: [{ stat: 'spd', op: 'pct', value: 35 }, { stat: 'dexterity', op: 'add', value: 30 }],
+  },
+
+  gambler: {
+    name: 'Gambler', rarity: 'epic',
+    desc: '+30% Crit Chance, +15% Crit Damage',
+    passive: [{ stat: 'crit_rate', op: 'add', value: 30 }, { stat: 'crit_dmg', op: 'add', value: 15 }],
+  },
+
+  deferred: {
+    name: 'Deferred', rarity: 'epic',
+    desc: '+45% ATK. Damage delivered over 3 turns.',
+    passive: [{ stat: 'atk', op: 'pct', value: 45 }],
+  },
+
+  trueT: {
+    name: 'True', rarity: 'epic',
+    desc: '+40% True Damage',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 40 }],
+  },
+
+  heavyhitter: {
+    name: 'Heavy Hitter', rarity: 'epic',
+    desc: '+5 ATK per 50 HP. Capped at +300 ATK.',
+    passive: [{ op: 'derived', stat: 'atk', from: 'hp', per: 50, perValue: 5, cap: 300 }],
+  },
+
+  clothesline: {
+    name: 'Clothesline', rarity: 'epic',
+    desc: 'Tether to an ally each fight. Laser scales with ATK, slows enemies by 10%.',
+    passive: [],
+    notes: 'Ally-tether effect. No self stat impact.',
+  },
+
+  dawn: {
+    name: "Dawnbringer's Resolve", rarity: 'epic',
+    desc: 'At ≤50% HP, recover 10% HP every turn until full.',
+    passive: [],
+    situational: [{ id: 'dawn-low', label: 'Currently at ≤50% HP', desc: 'Sustained healing.', passive: [] }],
+  },
+
+  warmup: {
+    name: 'Warmup Routine', rarity: 'epic',
+    desc: 'Spend first round exercising (cancels if hit). After: +20% all main stats. Can keep exercising indefinitely.',
+    passive: [],
+    situational: [{ id: 'warmup-done', label: 'Warmup completed', passive: [{ stat: 'all_main', op: 'pct', value: 20 }] }],
+  },
+
+  colossus: {
+    name: 'Colossus', rarity: 'epic',
+    desc: '+30% HP, +30% DEF',
+    passive: [{ stat: 'hp', op: 'pct', value: 30 }, { stat: 'def', op: 'pct', value: 30 }],
+  },
+
+  archmage: {
+    name: 'Archmage', rarity: 'epic',
+    desc: '+35% MAG, +20% CDR, +20% Heal Power',
+    passive: [{ stat: 'mag', op: 'pct', value: 35 }, { stat: 'cooldown_red', op: 'add', value: 20 }, { stat: 'heal_pow', op: 'add', value: 20 }],
+  },
+
+  phantom: {
+    name: 'Phantom', rarity: 'epic',
+    desc: '+30% SPD, +20% Dexterity, +20% Crit Chance',
+    passive: [{ stat: 'spd', op: 'pct', value: 30 }, { stat: 'dexterity', op: 'add', value: 20 }, { stat: 'crit_rate', op: 'add', value: 20 }],
+  },
+
+  juggernaut: {
+    name: 'Juggernaut', rarity: 'epic',
+    desc: '+30% ATK, +20% HP, -15% SPD',
+    passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'hp', op: 'pct', value: 20 }, { stat: 'spd', op: 'pct', value: -15 }],
+  },
+
+  irongiant: {
+    name: 'Iron Giant', rarity: 'epic',
+    desc: '+8 DEF per 100 HP. The more HP you have, the tougher you get.',
+    passive: [{ op: 'derived', stat: 'def', from: 'hp', per: 100, perValue: 8 }],
+  },
+
+  spellblade: {
+    name: 'Spellblade', rarity: 'epic',
+    desc: '+1 ATK per 3 MAG. Magic fuels your physical hits.',
+    passive: [{ op: 'derived', stat: 'atk', from: 'mag', per: 3, perValue: 1 }],
+  },
+
+  reaper: {
+    name: 'Reaper', rarity: 'epic',
+    desc: 'Killing an enemy restores 25% HP.',
+    passive: [],
+    notes: 'Kill-trigger heal. No passive stat impact.',
+  },
+
+  onslaught: {
+    name: 'Onslaught', rarity: 'epic',
+    desc: 'Each consecutive attack turn without being hit: +5% ATK. Stacks up to 3x. Resets if you take damage.',
+    passive: [],
+    situational: [{ id: 'ons-1', label: '1 turn streak (+5% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 5 }] }, { id: 'ons-2', label: '2 turn streak (+10% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 10 }] }, { id: 'ons-3', label: '3+ turn streak (+15% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }],
+  },
+
+  absorbent: {
+    name: 'Absorbent', rarity: 'epic',
+    desc: 'Each hit you take: +2% DEF for the rest of the fight. Resets between fights.',
+    passive: [],
+    situational: [{ id: 'abs-5', label: 'After 5 hits taken (+10% DEF)', passive: [{ stat: 'def', op: 'pct', value: 10 }] }, { id: 'abs-10', label: 'After 10 hits taken (+20% DEF)', passive: [{ stat: 'def', op: 'pct', value: 20 }] }],
+  },
+
+  mirror: {
+    name: 'Mirror', rarity: 'epic',
+    desc: 'Reflect 15% of all damage taken back at the attacker.',
+    passive: [],
+    notes: 'Damage reflection. No direct self stat impact.',
+  },
+
+  echo: {
+    name: 'Echo', rarity: 'epic',
+    desc: 'Every 3rd attack fires twice, hitting the same target again for full damage.',
+    passive: [],
+    notes: 'Attack multiplier. No direct stat impact.',
+  },
+
+  timebomb: {
+    name: 'Time Bomb', rarity: 'epic',
+    desc: 'Once per fight, mark an enemy. They take double damage on their next hit received.',
+    passive: [],
+    notes: 'One-shot debuff. No self stat impact.',
+  },
+
+  overdose: {
+    name: 'Overdose', rarity: 'epic',
+    desc: 'Being healed above max HP converts the excess into bonus ATK temporarily.',
+    passive: [],
+    situational: [{ id: 'od-active', label: 'Overhealed (bonus ATK active)', passive: [{ stat: 'atk', op: 'pct', value: 20 }] }],
+  },
+
+  shieldbreak: {
+    name: 'Shield Breaker', rarity: 'epic',
+    desc: '+30% ATK vs any enemy that has a shield or barrier active.',
+    passive: [],
+    situational: [{ id: 'sb-shielded', label: 'Enemy has a shield or barrier', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }],
+  },
+
+  warden: {
+    name: 'Warden', rarity: 'epic',
+    desc: 'When any ally drops below 30% HP, instantly shield them for 15% of your HP.',
+    passive: [],
+    notes: 'Ally-shield proc. No self stat impact.',
+  },
+
+  empower: {
+    name: 'Empower', rarity: 'epic',
+    desc: 'Buffs and heals you give allies are 50% stronger.',
+    passive: [],
+    notes: 'Support multiplier. No self stat impact.',
+  },
+
+  commander: {
+    name: 'Commander', rarity: 'epic',
+    desc: 'All allies gain +15% ATK while you are above 50% HP.',
+    passive: [],
+    situational: [{ id: 'cmd-up', label: 'You are above 50% HP (allies +15% ATK)', desc: 'Ally buff. No self stat impact.', passive: [] }],
+  },
+
+  second_skin: {
+    name: 'Second Skin', rarity: 'epic',
+    desc: '+20% DEF. The first hit you take each fight deals 0 damage.',
+    passive: [{ stat: 'def', op: 'pct', value: 20 }],
+    notes: 'First hit each fight is negated entirely.',
+  },
+
+  blitz: {
+    name: 'Blitz', rarity: 'epic',
+    desc: '+35% ATK, +25% Crit Chance, -25% DEF. Cannot use defensive abilities or skills.',
+    passive: [{ stat: 'atk', op: 'pct', value: 35 }, { stat: 'crit_rate', op: 'add', value: 25 }, { stat: 'def', op: 'pct', value: -25 }],
+    notes: 'Defensive abilities and skills are locked out.',
+  },
+
+  siphon: {
+    name: 'Siphon', rarity: 'epic',
+    desc: 'At the end of each round, drain 5% of the target\'s current HP as healing.',
+    passive: [],
+    situational: [{ id: 'sp-1', label: '1 round of drain (5% target HP healed)', desc: 'Calculate from target\'s current HP each round.', passive: [] }, { id: 'sp-3', label: '3 rounds of drain', desc: 'Applies every round.', passive: [] }],
+  },
+
+  double_tap: {
+    name: 'Double Tap', rarity: 'epic',
+    desc: 'After landing a kill, immediately make a bonus attack on the nearest enemy at +50% ATK.',
+    passive: [],
+    notes: 'Kill-triggered bonus hit. Does not chain on a second kill.',
+  },
+
+  sentinel: {
+    name: 'Sentinel', rarity: 'epic',
+    desc: '25% of all damage dealt to nearby allies is redirected to you instead. +15% DEF.',
+    passive: [{ stat: 'def', op: 'pct', value: 15 }],
+    notes: '25% of all incoming ally damage is redirected to you.',
+  },
+
+  pressure_pt: {
+    name: 'Pressure Point', rarity: 'epic',
+    desc: 'Every 3rd consecutive hit on the same target deals double damage and stuns them for 1 round.',
+    passive: [],
+    notes: 'Count hits per target. Every 3rd = x2 damage + 1 round stun. Counter resets on target switch.',
+  },
+
+  deadweight: {
+    name: 'Deadweight', rarity: 'epic',
+    desc: '+6% ATK per item currently equipped. More gear, more force.',
+    passive: [],
+    situational: [{ id: 'dw-2', label: '2 items equipped (+12% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 12 }] }, { id: 'dw-4', label: '4 items equipped (+24% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 24 }] }, { id: 'dw-6', label: '6 items equipped (+36% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 36 }] }, { id: 'dw-8', label: '8 items equipped (+48% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 48 }] }],
+  },
+
+  chain: {
+    name: 'Chain', rarity: 'epic',
+    desc: 'Every crit arcs to a second nearby enemy for 45% of the damage.',
+    passive: [],
+    notes: 'Crits bounce to the nearest other enemy for 45% of the original damage.',
+  },
+
+  war_drum: {
+    name: 'War Drum', rarity: 'epic',
+    desc: 'All allies passively gain +10% ATK. You gain an additional +5% ATK per ally that currently has any buff active.',
+    passive: [],
+    situational: [{ id: 'wd-1', label: '1 buffed ally (+5% ATK to you)', passive: [{ stat: 'atk', op: 'pct', value: 5 }] }, { id: 'wd-2', label: '2 buffed allies (+10% ATK to you)', passive: [{ stat: 'atk', op: 'pct', value: 10 }] }, { id: 'wd-3', label: '3 buffed allies (+15% ATK to you)', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }],
+  },
+
+  overclock: {
+    name: 'Overclock', rarity: 'epic',
+    desc: '+35% Cooldown Reduction. You take +20% more damage from all sources.',
+    passive: [{ stat: 'cooldown_red', op: 'add', value: 35 }],
+    notes: 'Trade-off: major CDR boost at the cost of increased damage taken.',
+  },
+
+  shadowstrike: {
+    name: 'Shadowstrike', rarity: 'epic',
+    desc: 'The first attack you make each fight ignores DEF entirely and deals True Damage equal to 25% of the target\'s current HP.',
+    passive: [],
+    notes: 'First attack each fight only. Bypasses all DEF and shields.',
+  },
+
+  grounded: {
+    name: 'Grounded', rarity: 'epic',
+    desc: 'Immune to knockback, displacement, and aerial effects. +20% DEF vs magic. +15% Status Resistance.',
+    passive: [{ stat: 'status_res', op: 'add', value: 15 }],
+    notes: 'Immune to all movement/displacement effects. +20% DEF specifically against magic damage.',
+  },
+
+  piles_of_bones: {
+    name: 'Piles of Bones', rarity: 'epic',
+    desc: '+1% Crit Chance and +1% Crit Damage per kill. Permanent.',
+    passive: [],
+    cultivation: { label: 'Kills', perStack: [{ stat: 'crit_rate', op: 'add', value: 1 }, { stat: 'crit_dmg', op: 'add', value: 1 }], defaultStacks: 0, maxStacks: 500 },
+  },
+
+  spite: {
+    name: 'Spite', rarity: 'epic',
+    desc: '+15% ATK per debuff or status effect currently active on you. The more they pile on, the worse an idea that was.',
+    passive: [],
+    situational: [{ id: 'sp-1', label: '1 debuff active (+15% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 15 }] }, { id: 'sp-2', label: '2 debuffs active (+30% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }, { id: 'sp-3', label: '3 debuffs active (+45% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 45 }] }, { id: 'sp-4', label: '4+ debuffs active (+60% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 60 }] }],
+  },
+
+  exposed: {
+    name: 'Exposed', rarity: 'epic',
+    desc: 'Your DEF is permanently 0. But on every attack turn you take, the target\'s DEF is also reduced to 0 for that hit. Mutually assured vulnerability.',
+    passive: [{ stat: 'def', op: 'pct', value: -100 }],
+    notes: 'DEF is set to 0. Strip all DEF items and buffs. On your attack turns, also zero the target\'s DEF for that hit.',
+  },
+
+  vitalsiphon: {
+    name: 'Vital Siphon', rarity: 'epic',
+    desc: '+1% Lifesteal per 40 DEF.',
+    passive: [{ op: 'derived', stat: 'lifesteal', from: 'def', per: 40, perValue: 1 }],
+  },
+
+  corepiercer: {
+    name: 'Core Piercer', rarity: 'epic',
+    desc: '+1% True Damage per 20 ATK.',
+    passive: [{ op: 'derived', stat: 'true_dmg', from: 'atk', per: 20, perValue: 1 }],
+  },
+
+  desperate: {
+    name: 'Desperate Measures', rarity: 'epic',
+    desc: 'At ≤40% HP: +40% MAG and +40% Cooldown Reduction.',
+    passive: [],
+    situational: [{ id: 'desperate-crisis', label: 'Currently at ≤40% HP', passive: [{ stat: 'mag', op: 'pct', value: 40 }, { stat: 'cooldown_red', op: 'add', value: 40 }] }],
+  },
+
+  rampage: {
+    name: 'Rampage', rarity: 'epic',
+    desc: 'Each enemy defeated in combat grants +15% ATK and +10% SPD for the rest of the fight (max 4x).',
+    passive: [],
+    situational: [{ id: 'rampage-1', label: '1 enemy defeated (+15% ATK, +10% SPD)', passive: [{ stat: 'atk', op: 'pct', value: 15 }, { stat: 'spd', op: 'pct', value: 10 }] }, { id: 'rampage-4', label: '4+ enemies defeated (+60% ATK, +40% SPD)', passive: [{ stat: 'atk', op: 'pct', value: 60 }, { stat: 'spd', op: 'pct', value: 40 }] }],
+  },
+
+  bounty: {
+    name: 'Bounty Hunter', rarity: 'epic',
+    desc: 'Each enemy defeated permanently grants +1 Dexterity (max 100 stacks).',
+    passive: [],
+    cultivation: { label: 'Enemies Defeated', perStack: [{ stat: 'dexterity', op: 'add', value: 1 }], defaultStacks: 0, maxStacks: 100 },
+  },
+
+  kinetic: {
+    name: 'Kinetic Shielding', rarity: 'epic',
+    desc: 'Taking damage grants +10% SPD and +10 Dexterity for 2 turns (max 3 stacks).',
+    passive: [],
+    situational: [{ id: 'kin-1', label: '1 stack active (+10% SPD, +10 Dexterity)', passive: [{ stat: 'spd', op: 'pct', value: 10 }, { stat: 'dexterity', op: 'add', value: 10 }] }, { id: 'kin-3', label: '3 stacks active (+30% SPD, +30 Dexterity)', passive: [{ stat: 'spd', op: 'pct', value: 30 }, { stat: 'dexterity', op: 'add', value: 30 }] }],
+  },
 
   // ============ LEGENDARY (yellow, glow) ============
-  godly: { name: 'Godly', rarity: 'legendary', desc: '+40% ATK, +40% DEF', passive: [{ stat: 'atk', op: 'pct', value: 40 }, { stat: 'def', op: 'pct', value: 40 }] },
-  rct: { name: 'RCT', rarity: 'legendary', desc: '-15% HP. Each turn, heal 1% HP per 5 MAG (cap 20%).', passive: [{ stat: 'hp', op: 'pct', value: -15 }], situational: [{ id: 'rct-tick', label: 'Per-turn regen tick', desc: 'Healing scales with MAG.', passive: [] }] },
-  gluttonous: { name: 'Gluttonous', rarity: 'legendary', desc: '+20% CDR. +5% ATK & +5% DEF per 10% CDR.', passive: [{ stat: 'cooldown_red', op: 'add', value: 20 }, { op: 'derived', stat: 'atk', from: 'cooldown_red', per: 10, perPct: 5 }, { op: 'derived', stat: 'def', from: 'cooldown_red', per: 10, perPct: 5 }] },
-  cultivation: { name: 'Cultivation', rarity: 'legendary', desc: 'Every fight, +2% in every main stat. Permanent scaling.', passive: [], cultivation: { label: 'Fights Cultivated', perStack: { stat: 'all_main', op: 'pct', value: 2 }, defaultStacks: 10, maxStacks: 500 } },
-  cursed: { name: 'Cursed', rarity: 'legendary', desc: 'Lower HP → higher damage (0%→+80%). Gain 10% Lifesteal at 20% HP.', passive: [], situational: [{ id: 'cursed-low', label: 'Currently at 20% HP', passive: [{ stat: 'atk', op: 'pct', value: 64 }, { stat: 'lifesteal', op: 'add', value: 10 }] }, { id: 'cursed-half', label: 'Currently at 50% HP', passive: [{ stat: 'atk', op: 'pct', value: 40 }] }] },
-  angelic: { name: 'Angelic', rarity: 'legendary', desc: '+100% Heal Power. Healing an ally heals you for 5% of the amount.', passive: [{ stat: 'heal_pow', op: 'add', value: 100 }] },
-  ryoiki: { name: 'Ryoiki', rarity: 'legendary', desc: 'Start of fight: shield for 20% HP. If a round passes at MAX HP, +20% HP shield. Stacks infinitely.', passive: [], situational: [{ id: 'ryoiki-1', label: 'Per shield stack (vs HP)', desc: 'Each stack = 20% HP as shield.', passive: [] }] },
-  celestial: { name: 'Celestial Body', rarity: 'legendary', desc: '+50% HP, +50% DEF. Converts vitality to offense: +1 ATK per 50 HP (cap +200 ATK).', passive: [{ stat: 'hp', op: 'pct', value: 50 }, { stat: 'def', op: 'pct', value: 50 }, { op: 'derived', stat: 'atk', from: 'hp', per: 50, perValue: 1, cap: 200 }] },
-  temporal: { name: 'Temporal', rarity: 'legendary', desc: 'You get 2 turns per round.', passive: [], notes: 'Action economy. No direct stat impact.' },
-  spiritual: { name: 'Spiritual', rarity: 'legendary', desc: '+50% Cooldown Reduction', passive: [{ stat: 'cooldown_red', op: 'add', value: 50 }] },
-  circle: { name: 'Circle of Death', rarity: 'legendary', desc: 'Damage enemies when you heal. +5% Heal Power per 65 ATK.', passive: [{ op: 'derived', stat: 'heal_pow', from: 'atk', per: 65, perValue: 5 }] },
-  bigbrain: { name: 'Big Brain', rarity: 'legendary', desc: 'Start of fight: shield worth 50% of MAG.', passive: [], notes: 'One-time shield. No passive stat impact.' },
-  giant: { name: 'Giant Slayer', rarity: 'legendary', desc: 'Become tiny. Deal more damage the bigger your target is.', passive: [], situational: [{ id: 'gs-big', label: 'Target is HUGE', passive: [{ stat: 'atk', op: 'pct', value: 50 }] }] },
-  goliath: { name: 'Goliath', rarity: 'legendary', desc: 'Become big. Deal more damage the smaller your target is.', passive: [], situational: [{ id: 'go-small', label: 'Target is TINY', passive: [{ stat: 'atk', op: 'pct', value: 50 }] }] },
-  allin: { name: 'All In', rarity: 'legendary', desc: 'ATK x2, MAG x2. DEF is permanently set to 1.', passive: [{ stat: 'atk', op: 'pct', value: 100 }, { stat: 'mag', op: 'pct', value: 100 }], notes: 'DEF set to 1 -- remove all DEF items and buffs.' },
-  thornwall: { name: 'Thornwall', rarity: 'legendary', desc: 'Reflect 35% of all damage taken back at the attacker as True Damage.', passive: [], notes: '35% of every hit you receive returns to the attacker as True Damage. Does not reduce damage received.' },
+  godly: {
+    name: 'Godly', rarity: 'legendary',
+    desc: '+40% ATK, +40% DEF',
+    passive: [{ stat: 'atk', op: 'pct', value: 40 }, { stat: 'def', op: 'pct', value: 40 }],
+  },
+
+  rct: {
+    name: 'RCT', rarity: 'legendary',
+    desc: '-15% HP. Each turn, heal 1% HP per 5 MAG (cap 20%).',
+    passive: [{ stat: 'hp', op: 'pct', value: -15 }],
+    situational: [{ id: 'rct-tick', label: 'Per-turn regen tick', desc: 'Healing scales with MAG.', passive: [] }],
+  },
+
+  gluttonous: {
+    name: 'Gluttonous', rarity: 'legendary',
+    desc: '+20% CDR. +5% ATK & +5% DEF per 10% CDR.',
+    passive: [{ stat: 'cooldown_red', op: 'add', value: 20 }, { op: 'derived', stat: 'atk', from: 'cooldown_red', per: 10, perPct: 5 }, { op: 'derived', stat: 'def', from: 'cooldown_red', per: 10, perPct: 5 }],
+  },
+
+  cultivation: {
+    name: 'Cultivation', rarity: 'legendary',
+    desc: 'Every fight, +2% in every main stat. Permanent scaling.',
+    passive: [],
+    cultivation: { label: 'Fights Cultivated', perStack: { stat: 'all_main', op: 'pct', value: 2 }, defaultStacks: 10, maxStacks: 500 },
+  },
+
+  cursed: {
+    name: 'Cursed', rarity: 'legendary',
+    desc: 'Lower HP → higher damage (0%→+80%). Gain 10% Lifesteal at 20% HP.',
+    passive: [],
+    situational: [{ id: 'cursed-low', label: 'Currently at 20% HP', passive: [{ stat: 'atk', op: 'pct', value: 64 }, { stat: 'lifesteal', op: 'add', value: 10 }] }, { id: 'cursed-half', label: 'Currently at 50% HP', passive: [{ stat: 'atk', op: 'pct', value: 40 }] }],
+  },
+
+  angelic: {
+    name: 'Angelic', rarity: 'legendary',
+    desc: '+100% Heal Power. Healing an ally heals you for 5% of the amount.',
+    passive: [{ stat: 'heal_pow', op: 'add', value: 100 }],
+  },
+
+  ryoiki: {
+    name: 'Ryoiki', rarity: 'legendary',
+    desc: 'Start of fight: shield for 20% HP. If a round passes at MAX HP, +20% HP shield. Stacks infinitely.',
+    passive: [],
+    situational: [{ id: 'ryoiki-1', label: 'Per shield stack (vs HP)', desc: 'Each stack = 20% HP as shield.', passive: [] }],
+  },
+
+  celestial: {
+    name: 'Celestial Body', rarity: 'legendary',
+    desc: '+50% HP, +50% DEF. Converts vitality to offense: +1 ATK per 50 HP (cap +200 ATK).',
+    passive: [{ stat: 'hp', op: 'pct', value: 50 }, { stat: 'def', op: 'pct', value: 50 }, { op: 'derived', stat: 'atk', from: 'hp', per: 50, perValue: 1, cap: 200 }],
+  },
+
+  temporal: {
+    name: 'Temporal', rarity: 'legendary',
+    desc: 'You get 2 turns per round.',
+    passive: [],
+    notes: 'Action economy. No direct stat impact.',
+  },
+
+  spiritual: {
+    name: 'Spiritual', rarity: 'legendary',
+    desc: '+50% Cooldown Reduction',
+    passive: [{ stat: 'cooldown_red', op: 'add', value: 50 }],
+  },
+
+  circle: {
+    name: 'Circle of Death', rarity: 'legendary',
+    desc: 'Damage enemies when you heal. +5% Heal Power per 65 ATK.',
+    passive: [{ op: 'derived', stat: 'heal_pow', from: 'atk', per: 65, perValue: 5 }],
+  },
+
+  bigbrain: {
+    name: 'Big Brain', rarity: 'legendary',
+    desc: 'Start of fight: shield worth 50% of MAG.',
+    passive: [],
+    notes: 'One-time shield. No passive stat impact.',
+  },
+
+  giant: {
+    name: 'Giant Slayer', rarity: 'legendary',
+    desc: 'Become tiny. Deal more damage the bigger your target is.',
+    passive: [],
+    situational: [{ id: 'gs-big', label: 'Target is HUGE', passive: [{ stat: 'atk', op: 'pct', value: 50 }] }],
+  },
+
+  goliath: {
+    name: 'Goliath', rarity: 'legendary',
+    desc: 'Become big. Deal more damage the smaller your target is.',
+    passive: [],
+    situational: [{ id: 'go-small', label: 'Target is TINY', passive: [{ stat: 'atk', op: 'pct', value: 50 }] }],
+  },
+
+  allin: {
+    name: 'All In', rarity: 'legendary',
+    desc: 'ATK x2, MAG x2. DEF is permanently set to 1.',
+    passive: [{ stat: 'atk', op: 'pct', value: 100 }, { stat: 'mag', op: 'pct', value: 100 }],
+    notes: 'DEF set to 1 -- remove all DEF items and buffs.',
+  },
+
+  thornwall: {
+    name: 'Thornwall', rarity: 'legendary',
+    desc: 'Reflect 35% of all damage taken back at the attacker as True Damage.',
+    passive: [],
+    notes: '35% of every hit you receive returns to the attacker as True Damage. Does not reduce damage received.',
+  },
+
   apex_pred: {
     name: 'Apex Predator', rarity: 'legendary', desc: '+15% ATK and +10% True DMG per enemy in the fight. -10% DEF per ally.', passive: [], situational: [
       { id: 'ap-1e0a', label: '1 enemy, no allies', passive: [{ stat: 'atk', op: 'pct', value: 15 }, { stat: 'true_dmg', op: 'add', value: 10 }] },
@@ -4152,6 +4937,7 @@ const TRAITS = {
       { id: 'ap-2e2a', label: '2 enemies, 2 allies', passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'true_dmg', op: 'add', value: 20 }, { stat: 'def', op: 'pct', value: -20 }] },
     ]
   },
+
   ironvow: {
     name: 'Iron Vow', rarity: 'legendary', desc: 'Sacrifice one main stat permanently (set to 1). All other main stats gain +40%.', passive: [], situational: [
       { id: 'iv-hp', label: 'Vow: Sacrifice HP', passive: [{ stat: 'hp', op: 'pct', value: -99 }, { stat: 'atk', op: 'pct', value: 40 }, { stat: 'def', op: 'pct', value: 40 }, { stat: 'mag', op: 'pct', value: 40 }, { stat: 'spd', op: 'pct', value: 40 }] },
@@ -4161,14 +4947,65 @@ const TRAITS = {
       { id: 'iv-spd', label: 'Vow: Sacrifice SPD', passive: [{ stat: 'spd', op: 'pct', value: -99 }, { stat: 'hp', op: 'pct', value: 40 }, { stat: 'atk', op: 'pct', value: 40 }, { stat: 'def', op: 'pct', value: 40 }, { stat: 'mag', op: 'pct', value: 40 }] },
     ]
   },
-  soulforge: { name: 'Soul Forge', rarity: 'legendary', desc: 'Sacrifice 200 HP (floor: 1 HP) to permanently gain +60% MAG. Stackable.', passive: [], cultivation: { label: 'HP Sacrifices Made', perStack: { stat: 'mag', op: 'pct', value: 60 }, defaultStacks: 0, maxStacks: 20 }, notes: 'Each stack costs 200 HP from your stat sheet.' },
-  final_stand: { name: 'Final Stand', rarity: 'legendary', desc: 'When HP drops below 15%, all stats triple. Once per fight.', passive: [], situational: [{ id: 'fs-active', label: 'Below 15% HP -- Final Stand active', passive: [{ stat: 'atk', op: 'pct', value: 200 }, { stat: 'def', op: 'pct', value: 200 }, { stat: 'mag', op: 'pct', value: 200 }, { stat: 'spd', op: 'pct', value: 200 }] }] },
-  thousandcuts: { name: 'Thousand Cuts', rarity: 'legendary', desc: 'Every attack hits 5 times for 1/5 damage each. Crit, lifesteal, and on-hit effects apply per hit.', passive: [], notes: 'Each attack becomes 5 micro-hits. All per-hit effects trigger on each one.' },
-  eternal_flame: { name: 'Eternal Flame', rarity: 'legendary', desc: 'On death, revive once at 1 HP with all stats doubled for one round.', passive: [], notes: 'One-time revival per combat. Doubled stats last exactly one round.' },
-  entropy: { name: 'Entropy', rarity: 'legendary', desc: 'Each hit deals bonus True Damage equal to 3% of the target\'s current HP.', passive: [], notes: 'True Damage per hit = 3% of target\'s current HP. Bypasses DEF. Scales with their health.' },
-  phantom_step: { name: 'Phantom Step', rarity: 'legendary', desc: '+40% SPD, +30% Dexterity. Once per round, automatically negate one incoming attack.', passive: [{ stat: 'spd', op: 'pct', value: 40 }, { stat: 'dexterity', op: 'add', value: 30 }], notes: 'One free dodge per round. Declared after the attack is announced.' },
-  apex_hunger: { name: 'Apex Hunger', rarity: 'legendary', desc: 'Every kill permanently grants +3% ATK for the campaign. Stacks forever.', passive: [], cultivation: { label: 'Enemies Slain', perStack: { stat: 'atk', op: 'pct', value: 3 }, defaultStacks: 0, maxStacks: 999 }, notes: 'Also grants +1% True DMG per kill. Track separately.' },
-  reapers_mark: { name: "Reaper's Mark", rarity: 'legendary', desc: 'Every 4th attack automatically crits. That crit\'s damage is doubled on top of your normal crit multiplier.', passive: [], notes: 'Count hits. Every 4th is a guaranteed double-power crit.' },
+
+  soulforge: {
+    name: 'Soul Forge', rarity: 'legendary',
+    desc: 'Sacrifice 200 HP (floor: 1 HP) to permanently gain +60% MAG. Stackable.',
+    passive: [],
+    cultivation: { label: 'HP Sacrifices Made', perStack: { stat: 'mag', op: 'pct', value: 60 }, defaultStacks: 0, maxStacks: 20 },
+    notes: 'Each stack costs 200 HP from your stat sheet.',
+  },
+
+  final_stand: {
+    name: 'Final Stand', rarity: 'legendary',
+    desc: 'When HP drops below 15%, all stats triple. Once per fight.',
+    passive: [],
+    situational: [{ id: 'fs-active', label: 'Below 15% HP -- Final Stand active', passive: [{ stat: 'atk', op: 'pct', value: 200 }, { stat: 'def', op: 'pct', value: 200 }, { stat: 'mag', op: 'pct', value: 200 }, { stat: 'spd', op: 'pct', value: 200 }] }],
+  },
+
+  thousandcuts: {
+    name: 'Thousand Cuts', rarity: 'legendary',
+    desc: 'Every attack hits 5 times for 1/5 damage each. Crit, lifesteal, and on-hit effects apply per hit.',
+    passive: [],
+    notes: 'Each attack becomes 5 micro-hits. All per-hit effects trigger on each one.',
+  },
+
+  eternal_flame: {
+    name: 'Eternal Flame', rarity: 'legendary',
+    desc: 'On death, revive once at 1 HP with all stats doubled for one round.',
+    passive: [],
+    notes: 'One-time revival per combat. Doubled stats last exactly one round.',
+  },
+
+  entropy: {
+    name: 'Entropy', rarity: 'legendary',
+    desc: 'Each hit deals bonus True Damage equal to 3% of the target\'s current HP.',
+    passive: [],
+    notes: 'True Damage per hit = 3% of target\'s current HP. Bypasses DEF. Scales with their health.',
+  },
+
+  phantom_step: {
+    name: 'Phantom Step', rarity: 'legendary',
+    desc: '+40% SPD, +30% Dexterity. Once per round, automatically negate one incoming attack.',
+    passive: [{ stat: 'spd', op: 'pct', value: 40 }, { stat: 'dexterity', op: 'add', value: 30 }],
+    notes: 'One free dodge per round. Declared after the attack is announced.',
+  },
+
+  apex_hunger: {
+    name: 'Apex Hunger', rarity: 'legendary',
+    desc: 'Every kill permanently grants +3% ATK for the campaign. Stacks forever.',
+    passive: [],
+    cultivation: { label: 'Enemies Slain', perStack: { stat: 'atk', op: 'pct', value: 3 }, defaultStacks: 0, maxStacks: 999 },
+    notes: 'Also grants +1% True DMG per kill. Track separately.',
+  },
+
+  reapers_mark: {
+    name: "Reaper's Mark", rarity: 'legendary',
+    desc: 'Every 4th attack automatically crits. That crit\'s damage is doubled on top of your normal crit multiplier.',
+    passive: [],
+    notes: 'Count hits. Every 4th is a guaranteed double-power crit.',
+  },
+
   parasite: {
     name: 'Parasite', rarity: 'legendary', desc: 'Each round, drain 15% of the target\'s ATK and MAG, adding it to yours until combat ends.', passive: [], situational: [
       { id: 'par-1', label: '1 round drained (+15% of target ATK and MAG)', desc: 'Calculate from the target\'s current stats.', passive: [] },
@@ -4176,9 +5013,28 @@ const TRAITS = {
       { id: 'par-5', label: '5 rounds drained (+75% of target ATK and MAG)', desc: 'Calculate from the target\'s current stats.', passive: [] },
     ]
   },
-  forsaken: { name: 'Forsaken', rarity: 'legendary', desc: 'Cannot receive healing from allies. All self-healing is tripled. +30% Lifesteal.', passive: [{ stat: 'lifesteal', op: 'add', value: 30 }], notes: 'Ally heals have no effect. Self-heals and lifesteal-based recovery are tripled.' },
-  twin_fangs: { name: 'Twin Fangs', rarity: 'legendary', desc: 'Every attack strikes twice. The second hit deals 65% of the first.', passive: [], notes: 'Each attack = 165% total damage across two hits. Both hits can crit and apply on-hit effects.' },
-  condemned: { name: 'Condemned', rarity: 'legendary', desc: 'At the start of every fight, you have 5 rounds before you die. Until then, +60% to all stats.', passive: [], situational: [{ id: 'cond-active', label: 'Condemned -- rounds 1 through 5', passive: [{ stat: 'atk', op: 'pct', value: 60 }, { stat: 'def', op: 'pct', value: 60 }, { stat: 'mag', op: 'pct', value: 60 }, { stat: 'spd', op: 'pct', value: 60 }, { stat: 'hp', op: 'pct', value: 60 }] }] },
+
+  forsaken: {
+    name: 'Forsaken', rarity: 'legendary',
+    desc: 'Cannot receive healing from allies. All self-healing is tripled. +30% Lifesteal.',
+    passive: [{ stat: 'lifesteal', op: 'add', value: 30 }],
+    notes: 'Ally heals have no effect. Self-heals and lifesteal-based recovery are tripled.',
+  },
+
+  twin_fangs: {
+    name: 'Twin Fangs', rarity: 'legendary',
+    desc: 'Every attack strikes twice. The second hit deals 65% of the first.',
+    passive: [],
+    notes: 'Each attack = 165% total damage across two hits. Both hits can crit and apply on-hit effects.',
+  },
+
+  condemned: {
+    name: 'Condemned', rarity: 'legendary',
+    desc: 'At the start of every fight, you have 5 rounds before you die. Until then, +60% to all stats.',
+    passive: [],
+    situational: [{ id: 'cond-active', label: 'Condemned -- rounds 1 through 5', passive: [{ stat: 'atk', op: 'pct', value: 60 }, { stat: 'def', op: 'pct', value: 60 }, { stat: 'mag', op: 'pct', value: 60 }, { stat: 'spd', op: 'pct', value: 60 }, { stat: 'hp', op: 'pct', value: 60 }] }],
+  },
+
   warpath: {
     name: 'Warpath', rarity: 'legendary', desc: 'Each round that passes, gain +6% ATK and +6% SPD permanently for the rest of that fight.', passive: [], situational: [
       { id: 'wp-1', label: 'After round 1 (+6% ATK, +6% SPD)', passive: [{ stat: 'atk', op: 'pct', value: 6 }, { stat: 'spd', op: 'pct', value: 6 }] },
@@ -4187,6 +5043,7 @@ const TRAITS = {
       { id: 'wp-8', label: 'After round 8 (+48% ATK, +48% SPD)', passive: [{ stat: 'atk', op: 'pct', value: 48 }, { stat: 'spd', op: 'pct', value: 48 }] },
     ]
   },
+
   blood_frenzy: {
     name: 'Blood Frenzy', rarity: 'legendary', desc: 'Each kill restores 25% HP and permanently stacks +8% ATK for the rest of the fight.', passive: [], situational: [
       { id: 'bf-1', label: '1 kill (+8% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 8 }] },
@@ -4195,104 +5052,654 @@ const TRAITS = {
       { id: 'bf-8', label: '8 kills (+64% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 64 }] },
     ]
   },
-  voidborn: { name: 'Voidborn', rarity: 'legendary', desc: '-20% HP. Immune to all status effects. Attacks ignore 25% of enemy DEF.', passive: [{ stat: 'hp', op: 'pct', value: -20 }, { stat: 'status_res', op: 'add', value: 100 }, { stat: 'true_dmg', op: 'add', value: 25 }] },
-  martyr: { name: 'Martyr', rarity: 'legendary', desc: 'Once per fight, intercept a lethal hit aimed at an ally. Survive at 1 HP. Gain +50% ATK and +50% DEF until combat ends.', passive: [], situational: [{ id: 'mart-active', label: 'Martyrdom triggered (post-intercept)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'def', op: 'pct', value: 50 }] }] },
-  hex_eater: { name: 'Hex Eater', rarity: 'legendary', desc: 'Every debuff applied to you is converted into an equivalent buff instead.', passive: [], notes: 'Attribute debuffs flip to self-buffs of equal magnitude.' },
-  phantom_pain: { name: 'Phantom Pain', rarity: 'legendary', desc: 'Whenever you take damage, instantly deal 50% of that damage split across all enemies.', passive: [], notes: 'Does not reduce damage received. Triggers on every hit you take.' },
-  ironclad: { name: 'Ironclad', rarity: 'legendary', desc: 'Immune to displacement and movement effects. Every point of DEF also adds 0.3% ATK.', passive: [{ op: 'derived', stat: 'atk', from: 'def', per: 1, perPct: 0.3 }], notes: 'Unstoppable. DEF directly synergizes with ATK.' },
-  guillotine: { name: 'Guillotine', rarity: 'legendary', desc: 'If an enemy is at or below 20% HP when you attack, the hit is automatically lethal regardless of remaining HP.', passive: [], notes: 'Instant kill threshold: 20% HP. Works on any attack.' },
-  doppelganger: { name: 'Doppelganger', rarity: 'legendary', desc: 'At the start of every fight, a copy of you appears with 50% of your stats. It fights for 3 rounds, then collapses.', passive: [], notes: 'Copy has 50% of all your stats. Lasts 3 rounds per fight.' },
-  sundering: { name: 'Sundering', rarity: 'legendary', desc: 'Each hit permanently reduces the target\'s DEF by 4% for the rest of that fight. No cap.', passive: [], situational: [{ id: 'sun-3', label: '3 hits landed (-12% target DEF)', desc: 'Track hits on the same target.', passive: [] }, { id: 'sun-6', label: '6 hits landed (-24% target DEF)', desc: '', passive: [] }, { id: 'sun-10', label: '10 hits landed (-40% target DEF)', desc: '', passive: [] }] },
-  necromancer: { name: 'Necromancer', rarity: 'legendary', desc: 'The first enemy you kill each fight rises as a thrall with 50% of their original stats, fighting for you.', passive: [], notes: 'One thrall per fight. Persists until end of combat or death.' },
-  debt_collector: { name: 'Debt Collector', rarity: 'legendary', desc: 'All damage you take is stored silently. Once per fight, release it all as a single True Damage hit on any target.', passive: [], notes: 'Track all damage received. Release as one True Damage burst.' },
-  black_hole: { name: 'Black Hole', rarity: 'legendary', desc: 'Each round, all enemies lose 5% to all stats. You gain 5% to all stats. Both stack per round.', passive: [], situational: [{ id: 'bh-1', label: 'After round 1 (you +5% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 5 }] }, { id: 'bh-3', label: 'After round 3 (you +15% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 15 }] }, { id: 'bh-5', label: 'After round 5 (you +25% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 25 }] }] },
-  thundergod: { name: 'Thundergod', rarity: 'legendary', desc: 'At the start of every round, automatically deal True Damage equal to 30% of your ATK to all enemies simultaneously.', passive: [], notes: 'Round-start True Damage burst to all enemies. Scales with ATK.' },
-  conqueror: { name: 'Conqueror', rarity: 'legendary', desc: 'Every combat encounter you survive permanently increases all main stats by 1% and all substats by +1. Stacks up to 100 victories.', passive: [], cultivation: { label: 'Victories', perStack: [{ stat: 'all_main', op: 'pct', value: 1 }, { stat: 'all_sub', op: 'add', value: 1 }], defaultStacks: 0, maxStacks: 100 } },
-  soul_link: { name: 'Soul Link', rarity: 'legendary', desc: 'Bond to one ally. You share 50% of all buffs either of you receives, and split 30% of all damage either of you takes.', passive: [], notes: 'Choose one ally to bond with. Buff sharing and damage splitting apply both ways.' },
-  bloodrage: { name: 'Bloodrage', rarity: 'legendary', desc: 'For every 10% of max HP lost, gain +6% ATK. At 10% HP remaining: +54% ATK.', passive: [], situational: [{ id: 'br-10', label: 'Lost 10% HP (+6% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 6 }] }, { id: 'br-30', label: 'Lost 30% HP (+18% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 18 }] }, { id: 'br-50', label: 'Lost 50% HP (+30% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }, { id: 'br-70', label: 'Lost 70% HP (+42% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 42 }] }, { id: 'br-90', label: 'Lost 90% HP (+54% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 54 }] }] },
-  chrono_break: { name: 'Chrono Break', rarity: 'legendary', desc: 'Once per fight, completely undo the last round. HP, positions, and actions revert as if it never happened.', passive: [], notes: 'One use per fight. Declared immediately after a round ends.' },
-  cannibal: { name: 'Cannibal', rarity: 'legendary', desc: 'Upon killing an enemy, permanently gain 20% of their highest stat for the rest of that fight. Stacks per kill.', passive: [], situational: [{ id: 'can-1', label: '1 kill (+20% of that target\'s top stat)', desc: 'Calculate from the defeated enemy\'s highest stat.', passive: [] }, { id: 'can-3', label: '3 kills (20% per kill, stacking)', desc: 'Each kill uses that enemy\'s own highest stat.', passive: [] }] },
-  bulwark_aura: { name: 'Bulwark Aura', rarity: 'legendary', desc: 'All allies passively gain +20% DEF and +15% Status Res. You receive no personal bonus.', passive: [], notes: '+20% DEF and +15% Status Res apply to your allies only, not yourself.' },
-  war_priest: { name: 'War Priest', rarity: 'legendary', desc: 'Whenever you heal an ally, they also gain +10% ATK for the rest of that fight. Stacks per heal.', passive: [], notes: '+10% ATK applied to the healed ally per heal instance. Stacks with each additional heal.' },
-  vanguard: { name: 'Vanguard', rarity: 'legendary', desc: '+30% DEF. 15% of all damage dealt to any ally is redirected to you instead.', passive: [{ stat: 'def', op: 'pct', value: 30 }], notes: '15% of all incoming ally damage is redirected to you.' },
-  last_rites: { name: 'Last Rites', rarity: 'legendary', desc: 'When any ally is knocked out, they immediately revive at 40% HP. Once per ally per fight.', passive: [], notes: 'Revive triggers automatically on knockout. One use per ally per fight.' },
-  resonance: { name: 'Resonance', rarity: 'legendary', desc: 'Your highest stat is mirrored to every ally at 30% of its value as a flat bonus.', passive: [], notes: 'Identify your highest stat and add 30% of its value as a flat bonus to every ally.' },
-  mentor: { name: 'Mentor', rarity: 'legendary', desc: 'Each fight your party wins, choose one ally to permanently gain +2% in their highest stat.', passive: [], notes: 'Track wins separately. +2% to the chosen ally\'s highest stat per win -- applied to their sheet, not yours.' },
-  self_sacrifice: { name: 'Sacrifice', rarity: 'legendary', desc: 'Voluntarily sacrifice yourself to fully restore one ally\'s HP and grant them +50% all stats for the rest of the fight.', passive: [], notes: 'You are knocked out upon activation. One use, voluntary, declared on your turn.' },
-  bodyguard: { name: 'Bodyguard', rarity: 'legendary', desc: 'While you are alive, allies cannot be one-shot -- any lethal hit on an ally leaves them at 1 HP instead. Also choose one ally to grant +50% DEF to.', passive: [], notes: 'One-shot prevention is always active. +50% DEF applies to your designated ally.' },
-  rallying_cry: { name: 'Rallying Cry', rarity: 'legendary', desc: 'When you take damage exceeding 30% of your max HP in a single hit, all allies gain +25% ATK for that round.', passive: [], notes: 'Triggers automatically on a qualifying hit. ATK buff lasts only the round it activates.' },
-  hexbinder: { name: 'Hexbinder', rarity: 'legendary', desc: 'On hit, apply a random debuff to the enemy: -20% ATK, DEF, MAG, or SPD. Only one debuff active at a time.', passive: [], notes: 'Debuff is random each hit. Applying a new one replaces the previous.' },
-  disruptor: { name: 'Disruptor', rarity: 'legendary', desc: 'Enemies targeting your allies have their ATK reduced by 25%.', passive: [], notes: '-25% ATK applied to any enemy whose declared target is one of your allies.' },
-  nemesis: { name: 'Nemesis', rarity: 'legendary', desc: 'Designate one named character as your Nemesis. You deal x2 damage to them. Defeating your Nemesis permanently grants x1-x2 to all stats based on their power. The bond persists outside of fights.', passive: [], notes: 'Name your Nemesis on your sheet. x2 damage applies to them only. Stat multiplier on defeat is decided by the GM based on enemy strength (x1 minimum, x2 maximum).' },
-  lonewolf: { name: 'Lone Wolf', rarity: 'legendary', desc: 'While fighting alone (no allies): x1.75 to ATK, DEF, MAG, and SPD. While in a party: all stats drop to x0.5.', passive: [], situational: [{ id: 'lw-solo', label: 'Fighting alone (x1.75 ATK/DEF/MAG/SPD)', passive: [{ stat: 'atk', op: 'mul', value: 1.75 }, { stat: 'def', op: 'mul', value: 1.75 }, { stat: 'mag', op: 'mul', value: 1.75 }, { stat: 'spd', op: 'mul', value: 1.75 }] }, { id: 'lw-party', label: 'In a party (x0.5 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 0.5 }] }] },
-  catastrophe: { name: 'Catastrophe', rarity: 'legendary', desc: 'Every round, all combatants (allies, enemies, and yourself) take damage equal to your full ATK stat. Cannot be mitigated or reduced.', passive: [], notes: 'AoE True Damage pulse every round equal to your full ATK. Affects everyone in the fight, including allies and yourself.' },
-  life_support: { name: 'Life Support', rarity: 'legendary', desc: 'Revive a knocked-out ally at the cost of 45% of your current HP (cannot drop you below 1 HP). Each ally revived permanently grants you +25% DEF and +25% SPD.', passive: [], cultivation: { label: 'Allies Revived', perStack: [{ stat: 'def', op: 'pct', value: 25 }, { stat: 'spd', op: 'pct', value: 25 }], defaultStacks: 0, maxStacks: 10 }, notes: 'HP cost is 45% of your current HP at time of use. Cannot kill you.' },
-  schism: { name: 'Schism', rarity: 'legendary', desc: '+2 ATK per 1% Heal Power you have.', passive: [{ op: 'derived', stat: 'atk', from: 'heal_pow', per: 1, perValue: 2 }] },
-  find_your_spark: { name: 'Find Your Spark', rarity: 'legendary', desc: '+1 DEF per 1 SPD. +2 HP per 1 Dexterity.', passive: [{ op: 'derived', stat: 'def', from: 'spd', per: 1, perValue: 1 }, { op: 'derived', stat: 'hp', from: 'dexterity', per: 1, perValue: 2 }] },
+
+  voidborn: {
+    name: 'Voidborn', rarity: 'legendary',
+    desc: '-20% HP. Immune to all status effects. Attacks ignore 25% of enemy DEF.',
+    passive: [{ stat: 'hp', op: 'pct', value: -20 }, { stat: 'status_res', op: 'add', value: 100 }, { stat: 'true_dmg', op: 'add', value: 25 }],
+  },
+
+  martyr: {
+    name: 'Martyr', rarity: 'legendary',
+    desc: 'Once per fight, intercept a lethal hit aimed at an ally. Survive at 1 HP. Gain +50% ATK and +50% DEF until combat ends.',
+    passive: [],
+    situational: [{ id: 'mart-active', label: 'Martyrdom triggered (post-intercept)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'def', op: 'pct', value: 50 }] }],
+  },
+
+  hex_eater: {
+    name: 'Hex Eater', rarity: 'legendary',
+    desc: 'Every debuff applied to you is converted into an equivalent buff instead.',
+    passive: [],
+    notes: 'Attribute debuffs flip to self-buffs of equal magnitude.',
+  },
+
+  phantom_pain: {
+    name: 'Phantom Pain', rarity: 'legendary',
+    desc: 'Whenever you take damage, instantly deal 50% of that damage split across all enemies.',
+    passive: [],
+    notes: 'Does not reduce damage received. Triggers on every hit you take.',
+  },
+
+  ironclad: {
+    name: 'Ironclad', rarity: 'legendary',
+    desc: 'Immune to displacement and movement effects. Every point of DEF also adds 0.3% ATK.',
+    passive: [{ op: 'derived', stat: 'atk', from: 'def', per: 1, perPct: 0.3 }],
+    notes: 'Unstoppable. DEF directly synergizes with ATK.',
+  },
+
+  guillotine: {
+    name: 'Guillotine', rarity: 'legendary',
+    desc: 'If an enemy is at or below 20% HP when you attack, the hit is automatically lethal regardless of remaining HP.',
+    passive: [],
+    notes: 'Instant kill threshold: 20% HP. Works on any attack.',
+  },
+
+  doppelganger: {
+    name: 'Doppelganger', rarity: 'legendary',
+    desc: 'At the start of every fight, a copy of you appears with 50% of your stats. It fights for 3 rounds, then collapses.',
+    passive: [],
+    notes: 'Copy has 50% of all your stats. Lasts 3 rounds per fight.',
+  },
+
+  sundering: {
+    name: 'Sundering', rarity: 'legendary',
+    desc: 'Each hit permanently reduces the target\'s DEF by 4% for the rest of that fight. No cap.',
+    passive: [],
+    situational: [{ id: 'sun-3', label: '3 hits landed (-12% target DEF)', desc: 'Track hits on the same target.', passive: [] }, { id: 'sun-6', label: '6 hits landed (-24% target DEF)', desc: '', passive: [] }, { id: 'sun-10', label: '10 hits landed (-40% target DEF)', desc: '', passive: [] }],
+  },
+
+  necromancer: {
+    name: 'Necromancer', rarity: 'legendary',
+    desc: 'The first enemy you kill each fight rises as a thrall with 50% of their original stats, fighting for you.',
+    passive: [],
+    notes: 'One thrall per fight. Persists until end of combat or death.',
+  },
+
+  debt_collector: {
+    name: 'Debt Collector', rarity: 'legendary',
+    desc: 'All damage you take is stored silently. Once per fight, release it all as a single True Damage hit on any target.',
+    passive: [],
+    notes: 'Track all damage received. Release as one True Damage burst.',
+  },
+
+  black_hole: {
+    name: 'Black Hole', rarity: 'legendary',
+    desc: 'Each round, all enemies lose 5% to all stats. You gain 5% to all stats. Both stack per round.',
+    passive: [],
+    situational: [{ id: 'bh-1', label: 'After round 1 (you +5% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 5 }] }, { id: 'bh-3', label: 'After round 3 (you +15% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 15 }] }, { id: 'bh-5', label: 'After round 5 (you +25% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 25 }] }],
+  },
+
+  thundergod: {
+    name: 'Thundergod', rarity: 'legendary',
+    desc: 'At the start of every round, automatically deal True Damage equal to 30% of your ATK to all enemies simultaneously.',
+    passive: [],
+    notes: 'Round-start True Damage burst to all enemies. Scales with ATK.',
+  },
+
+  conqueror: {
+    name: 'Conqueror', rarity: 'legendary',
+    desc: 'Every combat encounter you survive permanently increases all main stats by 1% and all substats by +1. Stacks up to 100 victories.',
+    passive: [],
+    cultivation: { label: 'Victories', perStack: [{ stat: 'all_main', op: 'pct', value: 1 }, { stat: 'all_sub', op: 'add', value: 1 }], defaultStacks: 0, maxStacks: 100 },
+  },
+
+  soul_link: {
+    name: 'Soul Link', rarity: 'legendary',
+    desc: 'Bond to one ally. You share 50% of all buffs either of you receives, and split 30% of all damage either of you takes.',
+    passive: [],
+    notes: 'Choose one ally to bond with. Buff sharing and damage splitting apply both ways.',
+  },
+
+  bloodrage: {
+    name: 'Bloodrage', rarity: 'legendary',
+    desc: 'For every 10% of max HP lost, gain +6% ATK. At 10% HP remaining: +54% ATK.',
+    passive: [],
+    situational: [{ id: 'br-10', label: 'Lost 10% HP (+6% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 6 }] }, { id: 'br-30', label: 'Lost 30% HP (+18% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 18 }] }, { id: 'br-50', label: 'Lost 50% HP (+30% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }, { id: 'br-70', label: 'Lost 70% HP (+42% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 42 }] }, { id: 'br-90', label: 'Lost 90% HP (+54% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 54 }] }],
+  },
+
+  chrono_break: {
+    name: 'Chrono Break', rarity: 'legendary',
+    desc: 'Once per fight, completely undo the last round. HP, positions, and actions revert as if it never happened.',
+    passive: [],
+    notes: 'One use per fight. Declared immediately after a round ends.',
+  },
+
+  cannibal: {
+    name: 'Cannibal', rarity: 'legendary',
+    desc: 'Upon killing an enemy, permanently gain 20% of their highest stat for the rest of that fight. Stacks per kill.',
+    passive: [],
+    situational: [{ id: 'can-1', label: '1 kill (+20% of that target\'s top stat)', desc: 'Calculate from the defeated enemy\'s highest stat.', passive: [] }, { id: 'can-3', label: '3 kills (20% per kill, stacking)', desc: 'Each kill uses that enemy\'s own highest stat.', passive: [] }],
+  },
+
+  bulwark_aura: {
+    name: 'Bulwark Aura', rarity: 'legendary',
+    desc: 'All allies passively gain +20% DEF and +15% Status Res. You receive no personal bonus.',
+    passive: [],
+    notes: '+20% DEF and +15% Status Res apply to your allies only, not yourself.',
+  },
+
+  war_priest: {
+    name: 'War Priest', rarity: 'legendary',
+    desc: 'Whenever you heal an ally, they also gain +10% ATK for the rest of that fight. Stacks per heal.',
+    passive: [],
+    notes: '+10% ATK applied to the healed ally per heal instance. Stacks with each additional heal.',
+  },
+
+  vanguard: {
+    name: 'Vanguard', rarity: 'legendary',
+    desc: '+30% DEF. 15% of all damage dealt to any ally is redirected to you instead.',
+    passive: [{ stat: 'def', op: 'pct', value: 30 }],
+    notes: '15% of all incoming ally damage is redirected to you.',
+  },
+
+  last_rites: {
+    name: 'Last Rites', rarity: 'legendary',
+    desc: 'When any ally is knocked out, they immediately revive at 40% HP. Once per ally per fight.',
+    passive: [],
+    notes: 'Revive triggers automatically on knockout. One use per ally per fight.',
+  },
+
+  resonance: {
+    name: 'Resonance', rarity: 'legendary',
+    desc: 'Your highest stat is mirrored to every ally at 30% of its value as a flat bonus.',
+    passive: [],
+    notes: 'Identify your highest stat and add 30% of its value as a flat bonus to every ally.',
+  },
+
+  mentor: {
+    name: 'Mentor', rarity: 'legendary',
+    desc: 'Each fight your party wins, choose one ally to permanently gain +2% in their highest stat.',
+    passive: [],
+    notes: 'Track wins separately. +2% to the chosen ally\'s highest stat per win -- applied to their sheet, not yours.',
+  },
+
+  self_sacrifice: {
+    name: 'Sacrifice', rarity: 'legendary',
+    desc: 'Voluntarily sacrifice yourself to fully restore one ally\'s HP and grant them +50% all stats for the rest of the fight.',
+    passive: [],
+    notes: 'You are knocked out upon activation. One use, voluntary, declared on your turn.',
+  },
+
+  bodyguard: {
+    name: 'Bodyguard', rarity: 'legendary',
+    desc: 'While you are alive, allies cannot be one-shot -- any lethal hit on an ally leaves them at 1 HP instead. Also choose one ally to grant +50% DEF to.',
+    passive: [],
+    notes: 'One-shot prevention is always active. +50% DEF applies to your designated ally.',
+  },
+
+  rallying_cry: {
+    name: 'Rallying Cry', rarity: 'legendary',
+    desc: 'When you take damage exceeding 30% of your max HP in a single hit, all allies gain +25% ATK for that round.',
+    passive: [],
+    notes: 'Triggers automatically on a qualifying hit. ATK buff lasts only the round it activates.',
+  },
+
+  hexbinder: {
+    name: 'Hexbinder', rarity: 'legendary',
+    desc: 'On hit, apply a random debuff to the enemy: -20% ATK, DEF, MAG, or SPD. Only one debuff active at a time.',
+    passive: [],
+    notes: 'Debuff is random each hit. Applying a new one replaces the previous.',
+  },
+
+  disruptor: {
+    name: 'Disruptor', rarity: 'legendary',
+    desc: 'Enemies targeting your allies have their ATK reduced by 25%.',
+    passive: [],
+    notes: '-25% ATK applied to any enemy whose declared target is one of your allies.',
+  },
+
+  nemesis: {
+    name: 'Nemesis', rarity: 'legendary',
+    desc: 'Designate one named character as your Nemesis. You deal x2 damage to them. Defeating your Nemesis permanently grants x1-x2 to all stats based on their power. The bond persists outside of fights.',
+    passive: [],
+    notes: 'Name your Nemesis on your sheet. x2 damage applies to them only. Stat multiplier on defeat is decided by the GM based on enemy strength (x1 minimum, x2 maximum).',
+  },
+
+  lonewolf: {
+    name: 'Lone Wolf', rarity: 'legendary',
+    desc: 'While fighting alone (no allies): x1.75 to ATK, DEF, MAG, and SPD. While in a party: all stats drop to x0.5.',
+    passive: [],
+    situational: [{ id: 'lw-solo', label: 'Fighting alone (x1.75 ATK/DEF/MAG/SPD)', passive: [{ stat: 'atk', op: 'mul', value: 1.75 }, { stat: 'def', op: 'mul', value: 1.75 }, { stat: 'mag', op: 'mul', value: 1.75 }, { stat: 'spd', op: 'mul', value: 1.75 }] }, { id: 'lw-party', label: 'In a party (x0.5 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 0.5 }] }],
+  },
+
+  catastrophe: {
+    name: 'Catastrophe', rarity: 'legendary',
+    desc: 'Every round, all combatants (allies, enemies, and yourself) take damage equal to your full ATK stat. Cannot be mitigated or reduced.',
+    passive: [],
+    notes: 'AoE True Damage pulse every round equal to your full ATK. Affects everyone in the fight, including allies and yourself.',
+  },
+
+  life_support: {
+    name: 'Life Support', rarity: 'legendary',
+    desc: 'Revive a knocked-out ally at the cost of 45% of your current HP (cannot drop you below 1 HP). Each ally revived permanently grants you +25% DEF and +25% SPD.',
+    passive: [],
+    cultivation: { label: 'Allies Revived', perStack: [{ stat: 'def', op: 'pct', value: 25 }, { stat: 'spd', op: 'pct', value: 25 }], defaultStacks: 0, maxStacks: 10 },
+    notes: 'HP cost is 45% of your current HP at time of use. Cannot kill you.',
+  },
+
+  schism: {
+    name: 'Schism', rarity: 'legendary',
+    desc: '+2 ATK per 1% Heal Power you have.',
+    passive: [{ op: 'derived', stat: 'atk', from: 'heal_pow', per: 1, perValue: 2 }],
+  },
+
+  find_your_spark: {
+    name: 'Find Your Spark', rarity: 'legendary',
+    desc: '+1 DEF per 1 SPD. +2 HP per 1 Dexterity.',
+    passive: [{ op: 'derived', stat: 'def', from: 'spd', per: 1, perValue: 1 }, { op: 'derived', stat: 'hp', from: 'dexterity', per: 1, perValue: 2 }],
+  },
 
   // ============ MYTHIC (gradient orange/yellow, sun) ============
-  adaptation: { name: 'Adaptation', rarity: 'mythic', desc: 'Every hit from an enemy → +15% DEF vs that enemy. Stacks infinitely.', passive: [], situational: [{ id: 'adp-stk', label: 'Per stack vs an enemy', passive: [{ stat: 'def', op: 'pct', value: 15 }] }] },
-  acclrsorc: { name: 'Accelerating Sorcery', rarity: 'mythic', desc: 'Each turn, +10% Cooldown Reduction.', passive: [], situational: [{ id: 'as-1', label: 'After 1 turn', passive: [{ stat: 'cooldown_red', op: 'add', value: 10 }] }, { id: 'as-3', label: 'After 3 turns', passive: [{ stat: 'cooldown_red', op: 'add', value: 30 }] }] },
-  brave: { name: 'Bravest of the Brave', rarity: 'mythic', desc: 'On pick, guaranteed 2 additional rare/epic traits. You can hold 2 traits at once.', passive: [], notes: 'Meta. Grants 2 bonus rare/epic traits on pick.' },
-  bloodlust: { name: 'Bloodlust', rarity: 'mythic', desc: '-5% HP per round, +100% Lifesteal. Each hit costs +2% HP but gains +5% Lifesteal.', passive: [{ stat: 'lifesteal', op: 'add', value: 100 }] },
-  allforyou: { name: 'All for You!', rarity: 'mythic', desc: 'Heals & buffs given to allies are x2.5. Cannot heal/buff yourself.', passive: [], notes: 'Support multiplier. No self stat impact.' },
-  glasscannon: { name: 'Glass Cannon', rarity: 'mythic', desc: '+200% ATK, -90% DEF, -80% HP', passive: [{ stat: 'atk', op: 'pct', value: 200 }, { stat: 'def', op: 'pct', value: -90 }, { stat: 'hp', op: 'pct', value: -80 }] },
-  magical: { name: 'Magical Girl', rarity: 'mythic', desc: 'Transform on fight start: +15% all stats, +90% MAG.', passive: [{ stat: 'all_main', op: 'pct', value: 15 }, { stat: 'mag', op: 'pct', value: 90 }] },
-  nesting: { name: 'Nesting Doll', rarity: 'mythic', desc: '3 revives. Lose -25% HP and -25% ATK per revive.', passive: [], situational: [{ id: 'nd-1', label: 'After 1 revive', passive: [{ stat: 'hp', op: 'pct', value: -25 }, { stat: 'atk', op: 'pct', value: -25 }] }, { id: 'nd-3', label: 'After 3 revives', passive: [{ stat: 'hp', op: 'pct', value: -75 }, { stat: 'atk', op: 'pct', value: -75 }] }] },
-  lucifer: { name: "Lucifer's Champion", rarity: 'mythic', desc: "+20% all stats, +50% SPD, +50% Dex. Every attack stacks 3.5% HP/turn BURN. Kill Zoe's champion to obtain.", passive: [{ stat: 'all_main', op: 'pct', value: 20 }, { stat: 'spd', op: 'pct', value: 50 }, { stat: 'dexterity', op: 'add', value: 50 }] },
-  zoe: { name: "Zoe's Champion", rarity: 'mythic', desc: "+20% all stats, +50% HP, +50% Heal Power. Heal mirror to self. Kill Lucifer's champion to obtain.", passive: [{ stat: 'all_main', op: 'pct', value: 20 }, { stat: 'hp', op: 'pct', value: 50 }, { stat: 'heal_pow', op: 'add', value: 50 }] },
-  vengeance: { name: 'Vengeance', rarity: 'mythic', desc: 'Per ally dead: x2 stats. All allies dead: -80% DEF but x4 stats & +25% Lifesteal.', passive: [], situational: [{ id: 'vg-1', label: '1 ally down (x2 stats)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }, { id: 'vg-all', label: 'All allies down', passive: [{ stat: 'all_main', op: 'mul', value: 4 }, { stat: 'def', op: 'pct', value: -80 }, { stat: 'lifesteal', op: 'add', value: 25 }] }] },
-  raidboss: { name: 'Raid Boss', rarity: 'mythic', desc: 'Skip first turn (chained, +90% DEF). After: x2 all stats.', passive: [], situational: [{ id: 'rb-t1', label: 'Turn 1 (chained)', passive: [{ stat: 'def', op: 'pct', value: 90 }] }, { id: 'rb-loose', label: 'After turn 1 (released)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }] },
-  honored_one: { name: 'The Honored One', rarity: 'mythic', desc: 'If you are the last surviving ally: ATK x5 and MAG x5.', passive: [], situational: [{ id: 'ho-last', label: 'Last ally standing (ATK x5, MAG x5)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }] }], notes: 'Triggers only when all other allies are eliminated.' },
-  transcendence: { name: 'Transcendence', rarity: 'mythic', desc: 'Once per session: for one fight, all damage dealt x2 and all damage received is halved.', passive: [], notes: 'One-time activation per session. No permanent stat change.' },
-  world_ender: { name: 'World Ender', rarity: 'mythic', desc: '+40% ATK, +40% True DMG. Your single strongest attack each fight bypasses all defenses.', passive: [{ stat: 'atk', op: 'pct', value: 40 }, { stat: 'true_dmg', op: 'add', value: 40 }], notes: 'The highest-damage attack per fight ignores all DEF and resistances.' },
-  paradox: { name: 'Paradox', rarity: 'mythic', desc: 'At the start of each fight, all your stats are inverted: your highest stat becomes your lowest, and vice versa. x2 stats', passive: [{ stat: 'all_main', op: 'mul', value: 2 }], situational: [{ id: 'par-invert', label: 'Stats Inverted (highest ↔ lowest)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }], notes: 'At fight start: identify your highest and lowest stats and swap them (and all in-between). All stats are then multiplied by x2. Toggle situational button to show the inverted state is active.' },
-  usurper: { name: 'Usurper', rarity: 'mythic', desc: 'At the start of each fight, steal the enemy\'s highest passive stat buff. They lose it; you gain it for the fight.', passive: [], situational: [{ id: 'usr-stolen', label: 'Stolen Buff Active (toggle to match enemy\'s highest buff)', passive: [] }], notes: 'At fight start: identify the enemy\'s single highest passive stat buff, remove it from them, and gain an identical buff yourself for the fight. Toggle the situational button and manually set the stat value to match what was stolen.' },
-  sovereign: { name: 'Sovereign', rarity: 'mythic', desc: 'Immune to all debuffs and status effects. +30% all main stats.', passive: [{ stat: 'all_main', op: 'pct', value: 30 }, { stat: 'status_res', op: 'add', value: 100 }], notes: 'Full debuff immunity. Status Res shown as 100% (capped).' },
-  void_emperor: { name: 'Void Emperor', rarity: 'mythic', desc: 'Once per fight, permanently set one enemy stat to 0 for the rest of the fight. Cannot target HP.', passive: [], notes: 'Valid targets: ATK, DEF, MAG, SPD. Effect is irreversible for that fight.' },
-  plague_bearer: { name: 'Plague Bearer', rarity: 'mythic', desc: 'Every hit applies an unstackable plague to the enemy: -4% to all their stats until end of fight.', passive: [], notes: 'Plague is unstackable but refreshes on each hit. Applies to the target only.' },
-  abyss_walker: { name: 'Abyss Walker', rarity: 'mythic', desc: '40% chance to phase through any incoming attack (take 0 damage). +25% all main stats.', passive: [{ stat: 'all_main', op: 'pct', value: 25 }], notes: '40% phase/dodge chance applies per incoming attack.' },
-  mythbreaker: { name: 'Mythbreaker', rarity: 'mythic', desc: 'Nullify all legendary and mythic trait effects on enemies for the duration of the fight.', passive: [], notes: 'Suppresses enemy legendary and mythic traits. Does not affect hexxed traits.' },
-  legacy: { name: 'Legacy', rarity: 'mythic', desc: 'Upon being knocked out in a fight, transfer 100% of your 3 highest stats to one chosen ally for the rest of that fight.', passive: [], notes: 'Activates on knockout only. Chosen ally receives your top 3 stat values as flat bonuses for that fight.' },
-  ultrakill: { name: 'Ultrakill', rarity: 'mythic', desc: 'x3 ATK and x3 SPD. Both stats drop by 5% each turn. Killing an enemy immediately resets ATK and SPD to full and grants you an extra turn.', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }], situational: [{ id: 'uk-t1', label: 'After turn 1 (-5% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -5 }, { stat: 'spd', op: 'pct', value: -5 }] }, { id: 'uk-t2', label: 'After turn 2 (-10% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -10 }, { stat: 'spd', op: 'pct', value: -10 }] }, { id: 'uk-t3', label: 'After turn 3 (-15% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -15 }, { stat: 'spd', op: 'pct', value: -15 }] }, { id: 'uk-t4', label: 'After turn 4 (-20% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -20 }, { stat: 'spd', op: 'pct', value: -20 }] }, { id: 'uk-t5', label: 'Turn 5+ (-25% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -25 }, { stat: 'spd', op: 'pct', value: -25 }] }], notes: 'Kill = ATK and SPD decay fully reset + gain an extra action immediately.' },
-  disturbing_peace: { name: 'Disturbing The Peace', rarity: 'mythic', desc: 'x1.2 to ATK, MAG, and SPD per round (compounding). Each spare adds +x0.5 to the multiplier. With 3+ spares in a fight and 1 enemy left: buff locks at x3, +100% Heal Power, +100% True DMG.', passive: [], situational: [{ id: 'dp-r1', label: 'Round 1 (x1.2 ATK/MAG/SPD)', passive: [{ stat: 'atk', op: 'mul', value: 1.2 }, { stat: 'mag', op: 'mul', value: 1.2 }, { stat: 'spd', op: 'mul', value: 1.2 }] }, { id: 'dp-r2', label: 'Round 2 (x1.44)', passive: [{ stat: 'atk', op: 'mul', value: 1.44 }, { stat: 'mag', op: 'mul', value: 1.44 }, { stat: 'spd', op: 'mul', value: 1.44 }] }, { id: 'dp-r3', label: 'Round 3 (x1.73)', passive: [{ stat: 'atk', op: 'mul', value: 1.73 }, { stat: 'mag', op: 'mul', value: 1.73 }, { stat: 'spd', op: 'mul', value: 1.73 }] }, { id: 'dp-r6', label: 'Round 6 (x2.99)', passive: [{ stat: 'atk', op: 'mul', value: 2.99 }, { stat: 'mag', op: 'mul', value: 2.99 }, { stat: 'spd', op: 'mul', value: 2.99 }] }, { id: 'dp-spare1', label: '+1 spare stacked (+x0.5)', passive: [{ stat: 'atk', op: 'mul', value: 1.5 }, { stat: 'mag', op: 'mul', value: 1.5 }, { stat: 'spd', op: 'mul', value: 1.5 }] }, { id: 'dp-spare2', label: '+2 spares stacked (+x1.0)', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'mag', op: 'mul', value: 2 }, { stat: 'spd', op: 'mul', value: 2 }] }, { id: 'dp-mercy', label: 'MERCY JUDGMENT (3+ spares, 1 enemy left)', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }, { stat: 'heal_pow', op: 'add', value: 100 }, { stat: 'true_dmg', op: 'add', value: 100 }] }], notes: 'Round multiplier and spare multiplier combine. Mercy Judgment requires both conditions at once.' },
-  soul_eater: { name: 'Soul Eater', rarity: 'mythic', desc: 'Each enemy you kill permanently transfers 5% of their highest stat to you. Track kills as stacks.', passive: [], cultivation: { label: 'Souls Devoured', perStack: [{ stat: 'all_main', op: 'add', value: 3 }], defaultStacks: 0, maxStacks: 999 }, notes: 'On each kill, identify the enemy\'s highest stat and transfer 5% of that value to your matching stat permanently. The +3/stack here is an approximation for the simulator — adjust stacks to reflect actual absorbed values.' },
-  unrelentless_hunger: { name: 'Unrelentless Hunger', rarity: 'mythic', desc: 'x2 ATK per bleeding enemy. All your attacks inflict bleed for 3 turns. With 2+ bleeding enemies: x2 SPD.', passive: [], situational: [{ id: 'uh-1b', label: '1 enemy bleeding (x2 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 2 }] }, { id: 'uh-2b', label: '2 enemies bleeding (x4 ATK + x2 SPD)', passive: [{ stat: 'atk', op: 'mul', value: 4 }, { stat: 'spd', op: 'mul', value: 2 }] }, { id: 'uh-3b', label: '3 enemies bleeding (x6 ATK + x2 SPD)', passive: [{ stat: 'atk', op: 'mul', value: 6 }, { stat: 'spd', op: 'mul', value: 2 }] }, { id: 'uh-4b', label: '4+ enemies bleeding (x8 ATK + x2 SPD)', passive: [{ stat: 'atk', op: 'mul', value: 8 }, { stat: 'spd', op: 'mul', value: 2 }] }], notes: 'Every attack you make inflicts bleed on the target for 3 turns. Track active bleed counts.' },
+  adaptation: {
+    name: 'Adaptation', rarity: 'mythic',
+    desc: 'Every hit from an enemy → +15% DEF vs that enemy. Stacks infinitely.',
+    passive: [],
+    situational: [{ id: 'adp-stk', label: 'Per stack vs an enemy', passive: [{ stat: 'def', op: 'pct', value: 15 }] }],
+  },
+
+  acclrsorc: {
+    name: 'Accelerating Sorcery', rarity: 'mythic',
+    desc: 'Each turn, +10% Cooldown Reduction.',
+    passive: [],
+    situational: [{ id: 'as-1', label: 'After 1 turn', passive: [{ stat: 'cooldown_red', op: 'add', value: 10 }] }, { id: 'as-3', label: 'After 3 turns', passive: [{ stat: 'cooldown_red', op: 'add', value: 30 }] }],
+  },
+
+  brave: {
+    name: 'Bravest of the Brave', rarity: 'mythic',
+    desc: 'On pick, guaranteed 2 additional rare/epic traits. You can hold 2 traits at once.',
+    passive: [],
+    notes: 'Meta. Grants 2 bonus rare/epic traits on pick.',
+  },
+
+  bloodlust: {
+    name: 'Bloodlust', rarity: 'mythic',
+    desc: '-5% HP per round, +100% Lifesteal. Each hit costs +2% HP but gains +5% Lifesteal.',
+    passive: [{ stat: 'lifesteal', op: 'add', value: 100 }],
+  },
+
+  allforyou: {
+    name: 'All for You!', rarity: 'mythic',
+    desc: 'Heals & buffs given to allies are x2.5. Cannot heal/buff yourself.',
+    passive: [],
+    notes: 'Support multiplier. No self stat impact.',
+  },
+
+  glasscannon: {
+    name: 'Glass Cannon', rarity: 'mythic',
+    desc: '+200% ATK, -90% DEF, -80% HP',
+    passive: [{ stat: 'atk', op: 'pct', value: 200 }, { stat: 'def', op: 'pct', value: -90 }, { stat: 'hp', op: 'pct', value: -80 }],
+  },
+
+  magical: {
+    name: 'Magical Girl', rarity: 'mythic',
+    desc: 'Transform on fight start: +15% all stats, +90% MAG.',
+    passive: [{ stat: 'all_main', op: 'pct', value: 15 }, { stat: 'mag', op: 'pct', value: 90 }],
+  },
+
+  nesting: {
+    name: 'Nesting Doll', rarity: 'mythic',
+    desc: '3 revives. Lose -25% HP and -25% ATK per revive.',
+    passive: [],
+    situational: [{ id: 'nd-1', label: 'After 1 revive', passive: [{ stat: 'hp', op: 'pct', value: -25 }, { stat: 'atk', op: 'pct', value: -25 }] }, { id: 'nd-3', label: 'After 3 revives', passive: [{ stat: 'hp', op: 'pct', value: -75 }, { stat: 'atk', op: 'pct', value: -75 }] }],
+  },
+
+  lucifer: {
+    name: "Lucifer's Champion", rarity: 'mythic',
+    desc: "+20% all stats, +50% SPD, +50% Dex. Every attack stacks 3.5% HP/turn BURN. Kill Zoe's champion to obtain.",
+    passive: [{ stat: 'all_main', op: 'pct', value: 20 }, { stat: 'spd', op: 'pct', value: 50 }, { stat: 'dexterity', op: 'add', value: 50 }],
+  },
+
+  zoe: {
+    name: "Zoe's Champion", rarity: 'mythic',
+    desc: "+20% all stats, +50% HP, +50% Heal Power. Heal mirror to self. Kill Lucifer's champion to obtain.",
+    passive: [{ stat: 'all_main', op: 'pct', value: 20 }, { stat: 'hp', op: 'pct', value: 50 }, { stat: 'heal_pow', op: 'add', value: 50 }],
+  },
+
+  vengeance: {
+    name: 'Vengeance', rarity: 'mythic',
+    desc: 'Per ally dead: x2 stats. All allies dead: -80% DEF but x4 stats & +25% Lifesteal.',
+    passive: [],
+    situational: [{ id: 'vg-1', label: '1 ally down (x2 stats)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }, { id: 'vg-all', label: 'All allies down', passive: [{ stat: 'all_main', op: 'mul', value: 4 }, { stat: 'def', op: 'pct', value: -80 }, { stat: 'lifesteal', op: 'add', value: 25 }] }],
+  },
+
+  raidboss: {
+    name: 'Raid Boss', rarity: 'mythic',
+    desc: 'Skip first turn (chained, +90% DEF). After: x2 all stats.',
+    passive: [],
+    situational: [{ id: 'rb-t1', label: 'Turn 1 (chained)', passive: [{ stat: 'def', op: 'pct', value: 90 }] }, { id: 'rb-loose', label: 'After turn 1 (released)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }],
+  },
+
+  honored_one: {
+    name: 'The Honored One', rarity: 'mythic',
+    desc: 'If you are the last surviving ally: ATK x5 and MAG x5.',
+    passive: [],
+    situational: [{ id: 'ho-last', label: 'Last ally standing (ATK x5, MAG x5)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }] }],
+    notes: 'Triggers only when all other allies are eliminated.',
+  },
+
+  transcendence: {
+    name: 'Transcendence', rarity: 'mythic',
+    desc: 'Once per session: for one fight, all damage dealt x2 and all damage received is halved.',
+    passive: [],
+    notes: 'One-time activation per session. No permanent stat change.',
+  },
+
+  world_ender: {
+    name: 'World Ender', rarity: 'mythic',
+    desc: '+40% ATK, +40% True DMG. Your single strongest attack each fight bypasses all defenses.',
+    passive: [{ stat: 'atk', op: 'pct', value: 40 }, { stat: 'true_dmg', op: 'add', value: 40 }],
+    notes: 'The highest-damage attack per fight ignores all DEF and resistances.',
+  },
+
+  paradox: {
+    name: 'Paradox', rarity: 'mythic',
+    desc: 'At the start of each fight, all your stats are inverted: your highest stat becomes your lowest, and vice versa. x2 stats',
+    passive: [{ stat: 'all_main', op: 'mul', value: 2 }],
+    situational: [{ id: 'par-invert', label: 'Stats Inverted (highest ↔ lowest)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }],
+    notes: 'At fight start: identify your highest and lowest stats and swap them (and all in-between). All stats are then multiplied by x2. Toggle situational button to show the inverted state is active.',
+  },
+
+  usurper: {
+    name: 'Usurper', rarity: 'mythic',
+    desc: 'At the start of each fight, steal the enemy\'s highest passive stat buff. They lose it; you gain it for the fight.',
+    passive: [],
+    situational: [{ id: 'usr-stolen', label: 'Stolen Buff Active (toggle to match enemy\'s highest buff)', passive: [] }],
+    notes: 'At fight start: identify the enemy\'s single highest passive stat buff, remove it from them, and gain an identical buff yourself for the fight. Toggle the situational button and manually set the stat value to match what was stolen.',
+  },
+
+  sovereign: {
+    name: 'Sovereign', rarity: 'mythic',
+    desc: 'Immune to all debuffs and status effects. +30% all main stats.',
+    passive: [{ stat: 'all_main', op: 'pct', value: 30 }, { stat: 'status_res', op: 'add', value: 100 }],
+    notes: 'Full debuff immunity. Status Res shown as 100% (capped).',
+  },
+
+  void_emperor: {
+    name: 'Void Emperor', rarity: 'mythic',
+    desc: 'Once per fight, permanently set one enemy stat to 0 for the rest of the fight. Cannot target HP.',
+    passive: [],
+    notes: 'Valid targets: ATK, DEF, MAG, SPD. Effect is irreversible for that fight.',
+  },
+
+  plague_bearer: {
+    name: 'Plague Bearer', rarity: 'mythic',
+    desc: 'Every hit applies an unstackable plague to the enemy: -4% to all their stats until end of fight.',
+    passive: [],
+    notes: 'Plague is unstackable but refreshes on each hit. Applies to the target only.',
+  },
+
+  abyss_walker: {
+    name: 'Abyss Walker', rarity: 'mythic',
+    desc: '40% chance to phase through any incoming attack (take 0 damage). +25% all main stats.',
+    passive: [{ stat: 'all_main', op: 'pct', value: 25 }],
+    notes: '40% phase/dodge chance applies per incoming attack.',
+  },
+
+  mythbreaker: {
+    name: 'Mythbreaker', rarity: 'mythic',
+    desc: 'Nullify all legendary and mythic trait effects on enemies for the duration of the fight.',
+    passive: [],
+    notes: 'Suppresses enemy legendary and mythic traits. Does not affect hexxed traits.',
+  },
+
+  legacy: {
+    name: 'Legacy', rarity: 'mythic',
+    desc: 'Upon being knocked out in a fight, transfer 100% of your 3 highest stats to one chosen ally for the rest of that fight.',
+    passive: [],
+    notes: 'Activates on knockout only. Chosen ally receives your top 3 stat values as flat bonuses for that fight.',
+  },
+
+  ultrakill: {
+    name: 'Ultrakill', rarity: 'mythic',
+    desc: 'x3 ATK and x3 SPD. Both stats drop by 5% each turn. Killing an enemy immediately resets ATK and SPD to full and grants you an extra turn.',
+    passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }],
+    situational: [{ id: 'uk-t1', label: 'After turn 1 (-5% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -5 }, { stat: 'spd', op: 'pct', value: -5 }] }, { id: 'uk-t2', label: 'After turn 2 (-10% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -10 }, { stat: 'spd', op: 'pct', value: -10 }] }, { id: 'uk-t3', label: 'After turn 3 (-15% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -15 }, { stat: 'spd', op: 'pct', value: -15 }] }, { id: 'uk-t4', label: 'After turn 4 (-20% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -20 }, { stat: 'spd', op: 'pct', value: -20 }] }, { id: 'uk-t5', label: 'Turn 5+ (-25% ATK & SPD)', passive: [{ stat: 'atk', op: 'pct', value: -25 }, { stat: 'spd', op: 'pct', value: -25 }] }],
+    notes: 'Kill = ATK and SPD decay fully reset + gain an extra action immediately.',
+  },
+
+  disturbing_peace: {
+    name: 'Disturbing The Peace', rarity: 'mythic',
+    desc: 'x1.2 to ATK, MAG, and SPD per round (compounding). Each spare adds +x0.5 to the multiplier. With 3+ spares in a fight and 1 enemy left: buff locks at x3, +100% Heal Power, +100% True DMG.',
+    passive: [],
+    situational: [{ id: 'dp-r1', label: 'Round 1 (x1.2 ATK/MAG/SPD)', passive: [{ stat: 'atk', op: 'mul', value: 1.2 }, { stat: 'mag', op: 'mul', value: 1.2 }, { stat: 'spd', op: 'mul', value: 1.2 }] }, { id: 'dp-r2', label: 'Round 2 (x1.44)', passive: [{ stat: 'atk', op: 'mul', value: 1.44 }, { stat: 'mag', op: 'mul', value: 1.44 }, { stat: 'spd', op: 'mul', value: 1.44 }] }, { id: 'dp-r3', label: 'Round 3 (x1.73)', passive: [{ stat: 'atk', op: 'mul', value: 1.73 }, { stat: 'mag', op: 'mul', value: 1.73 }, { stat: 'spd', op: 'mul', value: 1.73 }] }, { id: 'dp-r6', label: 'Round 6 (x2.99)', passive: [{ stat: 'atk', op: 'mul', value: 2.99 }, { stat: 'mag', op: 'mul', value: 2.99 }, { stat: 'spd', op: 'mul', value: 2.99 }] }, { id: 'dp-spare1', label: '+1 spare stacked (+x0.5)', passive: [{ stat: 'atk', op: 'mul', value: 1.5 }, { stat: 'mag', op: 'mul', value: 1.5 }, { stat: 'spd', op: 'mul', value: 1.5 }] }, { id: 'dp-spare2', label: '+2 spares stacked (+x1.0)', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'mag', op: 'mul', value: 2 }, { stat: 'spd', op: 'mul', value: 2 }] }, { id: 'dp-mercy', label: 'MERCY JUDGMENT (3+ spares, 1 enemy left)', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }, { stat: 'heal_pow', op: 'add', value: 100 }, { stat: 'true_dmg', op: 'add', value: 100 }] }],
+    notes: 'Round multiplier and spare multiplier combine. Mercy Judgment requires both conditions at once.',
+  },
+
+  soul_eater: {
+    name: 'Soul Eater', rarity: 'mythic',
+    desc: 'Each enemy you kill permanently transfers 5% of their highest stat to you. Track kills as stacks.',
+    passive: [],
+    cultivation: { label: 'Souls Devoured', perStack: [{ stat: 'all_main', op: 'add', value: 3 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'On each kill, identify the enemy\'s highest stat and transfer 5% of that value to your matching stat permanently. The +3/stack here is an approximation for the simulator — adjust stacks to reflect actual absorbed values.',
+  },
+
+  unrelentless_hunger: {
+    name: 'Unrelentless Hunger', rarity: 'mythic',
+    desc: 'x2 ATK per bleeding enemy. All your attacks inflict bleed for 3 turns. With 2+ bleeding enemies: x2 SPD.',
+    passive: [],
+    situational: [{ id: 'uh-1b', label: '1 enemy bleeding (x2 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 2 }] }, { id: 'uh-2b', label: '2 enemies bleeding (x4 ATK + x2 SPD)', passive: [{ stat: 'atk', op: 'mul', value: 4 }, { stat: 'spd', op: 'mul', value: 2 }] }, { id: 'uh-3b', label: '3 enemies bleeding (x6 ATK + x2 SPD)', passive: [{ stat: 'atk', op: 'mul', value: 6 }, { stat: 'spd', op: 'mul', value: 2 }] }, { id: 'uh-4b', label: '4+ enemies bleeding (x8 ATK + x2 SPD)', passive: [{ stat: 'atk', op: 'mul', value: 8 }, { stat: 'spd', op: 'mul', value: 2 }] }],
+    notes: 'Every attack you make inflicts bleed on the target for 3 turns. Track active bleed counts.',
+  },
 
   // ============ HEXXED (gradient dark purple/black, void) ============
-  hx_shadow: { name: 'Shadow Assassin', rarity: 'hexxed', desc: 'Enemy at high HP → up to +200% damage. x1.75 when enemy doesn\'t see you.', passive: [], situational: [{ id: 'hxsa-max', label: 'Enemy at MAX HP', passive: [{ stat: 'atk', op: 'pct', value: 200 }] }, { id: 'hxsa-unseen', label: 'Enemy doesn\'t see you (x1.75)', passive: [{ stat: 'atk', op: 'mul', value: 1.75 }] }] },
-  hx_royal: { name: 'Royal Executioner', rarity: 'hexxed', desc: 'Enemy at low HP → up to +200% damage. Execute enemies below 40% HP.', passive: [], situational: [{ id: 'hxre-low', label: 'Enemy at 0% threshold', passive: [{ stat: 'atk', op: 'pct', value: 200 }] }, { id: 'hxre-exec', label: 'Execute threshold (40% HP)', desc: 'Instant kill. No stat change.', passive: [] }] },
-  hx_shrink: { name: 'Sci-Fi Shrink Ray', rarity: 'hexxed', desc: 'Damage shrinks enemies by 200% and reduces their DEF by 50%.', passive: [], notes: 'Affects enemy stats. No self stat impact.' },
-  hx_void: { name: 'Abyssal Voided', rarity: 'hexxed', desc: '50% chance attacks spawn black holes. Trapped enemies lose their turn.', passive: [], notes: 'Proc effect. No direct stat impact.' },
-  hx_econ: { name: 'Greedy Economic', rarity: 'hexxed', desc: 'Shops are 85% cheaper.', passive: [], notes: 'Economy effect. No combat stat impact.' },
-  hx_pyro: { name: 'Manic Pyromaniac', rarity: 'hexxed', desc: 'Explosions x10 bigger. Apply BURN/POISON/BLEED/SLOW. Heal 20% HP/turn per BURNING enemy.', passive: [] },
-  hx_vamp: { name: 'Ancient Vampiric', rarity: 'hexxed', desc: '+100% Lifesteal. Getting hit -10%. Hitting +10%.', passive: [{ stat: 'lifesteal', op: 'add', value: 100 }] },
-  hx_solar: { name: 'Icarus Solar', rarity: 'hexxed', desc: '+80% SPD, +80% Dexterity. Nearby enemies slowed 30%.', passive: [{ stat: 'spd', op: 'pct', value: 80 }, { stat: 'dexterity', op: 'add', value: 80 }] },
-  hx_gamble: { name: 'Idle Death Gambler', rarity: 'hexxed', desc: '+80% Crit Chance, +70% Crit Damage. Crits permanently increase ATK by +1%.', passive: [{ stat: 'crit_rate', op: 'add', value: 80 }, { stat: 'crit_dmg', op: 'add', value: 70 }], cultivation: { label: 'Permanent Crit Stacks', perStack: { stat: 'atk', op: 'pct', value: 1 }, defaultStacks: 0, maxStacks: 500 } },
-  hx_defer: { name: 'Fractured Deferred', rarity: 'hexxed', desc: '+120% ATK. Damage in 2 turns. Targets lose 70% DEF.', passive: [{ stat: 'atk', op: 'pct', value: 120 }] },
-  hx_true: { name: 'Vitriolic True', rarity: 'hexxed', desc: 'Completely ignore defense (100% True Damage).', passive: [{ stat: 'true_dmg', op: 'add', value: 100 }] },
-  hx_heavy: { name: 'Heaviest of Heavy Hitter', rarity: 'hexxed', desc: '+1 ATK per 1 HP. No cap.', passive: [{ op: 'derived', stat: 'atk', from: 'hp', per: 1, perValue: 1 }] },
-  hx_dusk: { name: "Duskbringer's Resolve", rarity: 'hexxed', desc: 'At ≤20% HP: instantly heal to full + x4 HP as shield.', passive: [], situational: [{ id: 'hxd-trig', label: 'Triggered (full heal + x4 HP shield)', passive: [] }] },
-  hx_gymbro: { name: "Gymbro's Warmup Routine", rarity: 'hexxed', desc: 'Heavy exercise first round (cancels only if all enemies hit). After: +50% all stats. Restack each round.', passive: [], situational: [{ id: 'hxg-done', label: 'Warmup completed (+50% all)', passive: [{ stat: 'all_main', op: 'pct', value: 50 }] }, { id: 'hxg-2', label: 'Stacked twice (+100% all)', passive: [{ stat: 'all_main', op: 'pct', value: 100 }] }] },
-  hx_godly: { name: 'Egotistic Godly', rarity: 'hexxed', desc: 'x2 ATK, x2 DEF. x4 all stats vs SPIRITS.', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'def', op: 'mul', value: 2 }], situational: [{ id: 'hxgd-spirit', label: 'Fighting a SPIRIT (x4 all)', passive: [{ stat: 'all_main', op: 'mul', value: 4 }] }] },
-  hx_cult: { name: 'Soul Reaping Cultivation', rarity: 'hexxed', desc: 'Every fight, +5% in every main stat. Permanent scaling.', passive: [], cultivation: { label: 'Souls Reaped', perStack: { stat: 'all_main', op: 'pct', value: 5 }, defaultStacks: 10, maxStacks: 500 } },
-  hx_cursed: { name: 'Undying Cursed', rarity: 'hexxed', desc: 'Lower HP → up to +200% damage. At 20% HP: 50% Lifesteal & 100% Resilience.', passive: [], situational: [{ id: 'hxc-20', label: 'At 20% HP', passive: [{ stat: 'atk', op: 'pct', value: 160 }, { stat: 'lifesteal', op: 'add', value: 50 }, { stat: 'resilience', op: 'add', value: 100 }] }, { id: 'hxc-50', label: 'At 50% HP', passive: [{ stat: 'atk', op: 'pct', value: 100 }] }] },
-  hx_angel: { name: 'Fallen Angelic', rarity: 'hexxed', desc: '+400% Heal Power. Healing mirrors fully. -20% Heal Power per hit taken.', passive: [{ stat: 'heal_pow', op: 'add', value: 400 }] },
-  hx_ryoiki: { name: 'Overcharged Ryoiki', rarity: 'hexxed', desc: 'Start: shield = 100% HP. MAX HP round → +50% HP shield. +5% HP shield per attack.', passive: [], situational: [{ id: 'hxr-base', label: 'Base shield (100% HP)', desc: 'Shield only. No stat change.', passive: [] }] },
-  hx_temp: { name: 'FTL Temporal', rarity: 'hexxed', desc: 'You get 3 turns per round.', passive: [], notes: 'Action economy. No direct stat impact.' },
-  hx_spirit: { name: 'Mastered Spiritual', rarity: 'hexxed', desc: '+90% Cooldown Reduction. Repeated moves get x1.5 effectiveness.', passive: [{ stat: 'cooldown_red', op: 'add', value: 90 }] },
-  hx_giant: { name: 'Colossus Slayer', rarity: 'hexxed', desc: 'Become microscopic. More damage the bigger your target.', passive: [], situational: [{ id: 'hxcs-huge', label: 'Target is COLOSSAL', passive: [{ stat: 'atk', op: 'pct', value: 200 }] }] },
-  hx_goliath: { name: "Cappy's Goliath", rarity: 'hexxed', desc: 'Size x20. Makes you EXTREMELY fat. More damage the smaller your target, specially kids.', passive: [], situational: [{ id: 'hxcg-tiny', label: 'Target is a kid/small', passive: [{ stat: 'atk', op: 'pct', value: 1000 }] }] },
-  hx_adapt: { name: 'Unbound Adaptation', rarity: 'hexxed', desc: 'Hit by enemy → +50% DEF vs them. 4 hits → permanent immunity to that enemy.', passive: [], situational: [{ id: 'hxua-stk', label: 'Per stack vs an enemy', passive: [{ stat: 'def', op: 'pct', value: 50 }] }] },
-  hx_blood: { name: 'Monstrous Bloodlust', rarity: 'hexxed', desc: '-10% HP/round. x3 Lifesteal. Hits +10% HP cost, lifesteal doubles. +5% Resilience.', passive: [{ stat: 'lifesteal', op: 'mul', value: 3 }, { stat: 'resilience', op: 'add', value: 5 }] },
-  hx_glass: { name: 'Crystalized Glass Cannon', rarity: 'hexxed', desc: '+400% ATK, -100% DEF, -99% HP.', passive: [{ stat: 'atk', op: 'pct', value: 400 }, { stat: 'def', op: 'pct', value: -100 }, { stat: 'hp', op: 'pct', value: -99 }] },
-  hx_magic: { name: 'Magical Girlypops', rarity: 'hexxed', desc: 'Whole party transforms into magical girls!: +25% all stats, x2 MAG.', passive: [{ stat: 'all_main', op: 'pct', value: 25 }, { stat: 'mag', op: 'mul', value: 2 }] },
-  hx_nest: { name: 'Death-Defying Nesting Doll', rarity: 'hexxed', desc: '5 revives. -20% HP and -20% ATK per revive.', passive: [], situational: [{ id: 'hxnd-1', label: 'After 1 revive', passive: [{ stat: 'hp', op: 'pct', value: -20 }, { stat: 'atk', op: 'pct', value: -20 }] }, { id: 'hxnd-5', label: 'After 5 revives', passive: [{ stat: 'hp', op: 'pct', value: -100 }, { stat: 'atk', op: 'pct', value: -100 }] }] },
-  hx_veng: { name: "Warlord's Vengeance", rarity: 'hexxed', desc: 'Per ally dead: x5 stats. All dead: lose all DEF, x10 all stats, +80% Lifesteal.', passive: [], situational: [{ id: 'hxv-1', label: '1 ally down (x5 stats)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }] }, { id: 'hxv-all', label: 'All allies down', passive: [{ stat: 'all_main', op: 'mul', value: 10 }, { stat: 'def', op: 'mul', value: 0 }, { stat: 'lifesteal', op: 'add', value: 80 }] }] },
-  hx_raid: { name: 'Final Raid Boss', rarity: 'hexxed', desc: 'Skip turn 1, immune to damage. After: x4 stats. Healing/buffs/shields on you x1.5. +50% Status Res.', passive: [], situational: [{ id: 'hxrb-loose', label: 'After turn 1 (released)', passive: [{ stat: 'all_main', op: 'mul', value: 4 }, { stat: 'status_res', op: 'add', value: 50 }] }] },
-  hx_sticky: { name: 'Fingering Sticky', rarity: 'hexxed', desc: 'your fingers are very sticky :) also u get the sticky fingers stand.', passive: [], notes: 'Flavor / reference trait.' },
-  hx_spicy: { name: 'Determined Spicy', rarity: 'hexxed', desc: '+90% Resilience (capped). Surviving on 1HP → x2 all stats infinitely.', passive: [{ stat: 'resilience', op: 'add', value: 90 }], situational: [{ id: 'hxds-1', label: 'Survived once on 1HP (x2 all)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }, { id: 'hxds-2', label: 'Survived twice on 1HP (x4 all)', passive: [{ stat: 'all_main', op: 'mul', value: 4 }] }] },
-  hx_armor: { name: 'Full-Plate Armored', rarity: 'hexxed', desc: 'x10 DEF', passive: [{ stat: 'def', op: 'mul', value: 10 }] },
+  hx_shadow: {
+    name: 'Shadow Assassin', rarity: 'hexxed',
+    desc: 'Enemy at high HP → up to +200% damage. x1.75 when enemy doesn\'t see you.',
+    passive: [],
+    situational: [{ id: 'hxsa-max', label: 'Enemy at MAX HP', passive: [{ stat: 'atk', op: 'pct', value: 200 }] }, { id: 'hxsa-unseen', label: 'Enemy doesn\'t see you (x1.75)', passive: [{ stat: 'atk', op: 'mul', value: 1.75 }] }],
+  },
+
+  hx_royal: {
+    name: 'Royal Executioner', rarity: 'hexxed',
+    desc: 'Enemy at low HP → up to +200% damage. Execute enemies below 40% HP.',
+    passive: [],
+    situational: [{ id: 'hxre-low', label: 'Enemy at 0% threshold', passive: [{ stat: 'atk', op: 'pct', value: 200 }] }, { id: 'hxre-exec', label: 'Execute threshold (40% HP)', desc: 'Instant kill. No stat change.', passive: [] }],
+  },
+
+  hx_shrink: {
+    name: 'Sci-Fi Shrink Ray', rarity: 'hexxed',
+    desc: 'Damage shrinks enemies by 200% and reduces their DEF by 50%.',
+    passive: [],
+    notes: 'Affects enemy stats. No self stat impact.',
+  },
+
+  hx_void: {
+    name: 'Abyssal Voided', rarity: 'hexxed',
+    desc: '50% chance attacks spawn black holes. Trapped enemies lose their turn.',
+    passive: [],
+    notes: 'Proc effect. No direct stat impact.',
+  },
+
+  hx_econ: {
+    name: 'Greedy Economic', rarity: 'hexxed',
+    desc: 'Shops are 85% cheaper.',
+    passive: [],
+    notes: 'Economy effect. No combat stat impact.',
+  },
+
+  hx_pyro: {
+    name: 'Manic Pyromaniac', rarity: 'hexxed',
+    desc: 'Explosions x10 bigger. Apply BURN/POISON/BLEED/SLOW. Heal 20% HP/turn per BURNING enemy.',
+    passive: [],
+  },
+
+  hx_vamp: {
+    name: 'Ancient Vampiric', rarity: 'hexxed',
+    desc: '+100% Lifesteal. Getting hit -10%. Hitting +10%.',
+    passive: [{ stat: 'lifesteal', op: 'add', value: 100 }],
+  },
+
+  hx_solar: {
+    name: 'Icarus Solar', rarity: 'hexxed',
+    desc: '+80% SPD, +80% Dexterity. Nearby enemies slowed 30%.',
+    passive: [{ stat: 'spd', op: 'pct', value: 80 }, { stat: 'dexterity', op: 'add', value: 80 }],
+  },
+
+  hx_gamble: {
+    name: 'Idle Death Gambler', rarity: 'hexxed',
+    desc: '+80% Crit Chance, +70% Crit Damage. Crits permanently increase ATK by +1%.',
+    passive: [{ stat: 'crit_rate', op: 'add', value: 80 }, { stat: 'crit_dmg', op: 'add', value: 70 }],
+    cultivation: { label: 'Permanent Crit Stacks', perStack: { stat: 'atk', op: 'pct', value: 1 }, defaultStacks: 0, maxStacks: 500 },
+  },
+
+  hx_defer: {
+    name: 'Fractured Deferred', rarity: 'hexxed',
+    desc: '+120% ATK. Damage in 2 turns. Targets lose 70% DEF.',
+    passive: [{ stat: 'atk', op: 'pct', value: 120 }],
+  },
+
+  hx_true: {
+    name: 'Vitriolic True', rarity: 'hexxed',
+    desc: 'Completely ignore defense (100% True Damage).',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 100 }],
+  },
+
+  hx_heavy: {
+    name: 'Heaviest of Heavy Hitter', rarity: 'hexxed',
+    desc: '+1 ATK per 1 HP. No cap.',
+    passive: [{ op: 'derived', stat: 'atk', from: 'hp', per: 1, perValue: 1 }],
+  },
+
+  hx_dusk: {
+    name: "Duskbringer's Resolve", rarity: 'hexxed',
+    desc: 'At ≤20% HP: instantly heal to full + x4 HP as shield.',
+    passive: [],
+    situational: [{ id: 'hxd-trig', label: 'Triggered (full heal + x4 HP shield)', passive: [] }],
+  },
+
+  hx_gymbro: {
+    name: "Gymbro's Warmup Routine", rarity: 'hexxed',
+    desc: 'Heavy exercise first round (cancels only if all enemies hit). After: +50% all stats. Restack each round.',
+    passive: [],
+    situational: [{ id: 'hxg-done', label: 'Warmup completed (+50% all)', passive: [{ stat: 'all_main', op: 'pct', value: 50 }] }, { id: 'hxg-2', label: 'Stacked twice (+100% all)', passive: [{ stat: 'all_main', op: 'pct', value: 100 }] }],
+  },
+
+  hx_godly: {
+    name: 'Egotistic Godly', rarity: 'hexxed',
+    desc: 'x2 ATK, x2 DEF. x4 all stats vs SPIRITS.',
+    passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'def', op: 'mul', value: 2 }],
+    situational: [{ id: 'hxgd-spirit', label: 'Fighting a SPIRIT (x4 all)', passive: [{ stat: 'all_main', op: 'mul', value: 4 }] }],
+  },
+
+  hx_cult: {
+    name: 'Soul Reaping Cultivation', rarity: 'hexxed',
+    desc: 'Every fight, +5% in every main stat. Permanent scaling.',
+    passive: [],
+    cultivation: { label: 'Souls Reaped', perStack: { stat: 'all_main', op: 'pct', value: 5 }, defaultStacks: 10, maxStacks: 500 },
+  },
+
+  hx_cursed: {
+    name: 'Undying Cursed', rarity: 'hexxed',
+    desc: 'Lower HP → up to +200% damage. At 20% HP: 50% Lifesteal & 100% Resilience.',
+    passive: [],
+    situational: [{ id: 'hxc-20', label: 'At 20% HP', passive: [{ stat: 'atk', op: 'pct', value: 160 }, { stat: 'lifesteal', op: 'add', value: 50 }, { stat: 'resilience', op: 'add', value: 100 }] }, { id: 'hxc-50', label: 'At 50% HP', passive: [{ stat: 'atk', op: 'pct', value: 100 }] }],
+  },
+
+  hx_angel: {
+    name: 'Fallen Angelic', rarity: 'hexxed',
+    desc: '+400% Heal Power. Healing mirrors fully. -20% Heal Power per hit taken.',
+    passive: [{ stat: 'heal_pow', op: 'add', value: 400 }],
+  },
+
+  hx_ryoiki: {
+    name: 'Overcharged Ryoiki', rarity: 'hexxed',
+    desc: 'Start: shield = 100% HP. MAX HP round → +50% HP shield. +5% HP shield per attack.',
+    passive: [],
+    situational: [{ id: 'hxr-base', label: 'Base shield (100% HP)', desc: 'Shield only. No stat change.', passive: [] }],
+  },
+
+  hx_temp: {
+    name: 'FTL Temporal', rarity: 'hexxed',
+    desc: 'You get 3 turns per round.',
+    passive: [],
+    notes: 'Action economy. No direct stat impact.',
+  },
+
+  hx_spirit: {
+    name: 'Mastered Spiritual', rarity: 'hexxed',
+    desc: '+90% Cooldown Reduction. Repeated moves get x1.5 effectiveness.',
+    passive: [{ stat: 'cooldown_red', op: 'add', value: 90 }],
+  },
+
+  hx_giant: {
+    name: 'Colossus Slayer', rarity: 'hexxed',
+    desc: 'Become microscopic. More damage the bigger your target.',
+    passive: [],
+    situational: [{ id: 'hxcs-huge', label: 'Target is COLOSSAL', passive: [{ stat: 'atk', op: 'pct', value: 200 }] }],
+  },
+
+  hx_goliath: {
+    name: "Cappy's Goliath", rarity: 'hexxed',
+    desc: 'Size x20. Makes you EXTREMELY fat. More damage the smaller your target, specially kids.',
+    passive: [],
+    situational: [{ id: 'hxcg-tiny', label: 'Target is a kid/small', passive: [{ stat: 'atk', op: 'pct', value: 1000 }] }],
+  },
+
+  hx_adapt: {
+    name: 'Unbound Adaptation', rarity: 'hexxed',
+    desc: 'Hit by enemy → +50% DEF vs them. 4 hits → permanent immunity to that enemy.',
+    passive: [],
+    situational: [{ id: 'hxua-stk', label: 'Per stack vs an enemy', passive: [{ stat: 'def', op: 'pct', value: 50 }] }],
+  },
+
+  hx_blood: {
+    name: 'Monstrous Bloodlust', rarity: 'hexxed',
+    desc: '-10% HP/round. x3 Lifesteal. Hits +10% HP cost, lifesteal doubles. +5% Resilience.',
+    passive: [{ stat: 'lifesteal', op: 'mul', value: 3 }, { stat: 'resilience', op: 'add', value: 5 }],
+  },
+
+  hx_glass: {
+    name: 'Crystalized Glass Cannon', rarity: 'hexxed',
+    desc: '+400% ATK, -100% DEF, -99% HP.',
+    passive: [{ stat: 'atk', op: 'pct', value: 400 }, { stat: 'def', op: 'pct', value: -100 }, { stat: 'hp', op: 'pct', value: -99 }],
+  },
+
+  hx_magic: {
+    name: 'Magical Girlypops', rarity: 'hexxed',
+    desc: 'Whole party transforms into magical girls!: +25% all stats, x2 MAG.',
+    passive: [{ stat: 'all_main', op: 'pct', value: 25 }, { stat: 'mag', op: 'mul', value: 2 }],
+  },
+
+  hx_nest: {
+    name: 'Death-Defying Nesting Doll', rarity: 'hexxed',
+    desc: '5 revives. -20% HP and -20% ATK per revive.',
+    passive: [],
+    situational: [{ id: 'hxnd-1', label: 'After 1 revive', passive: [{ stat: 'hp', op: 'pct', value: -20 }, { stat: 'atk', op: 'pct', value: -20 }] }, { id: 'hxnd-5', label: 'After 5 revives', passive: [{ stat: 'hp', op: 'pct', value: -100 }, { stat: 'atk', op: 'pct', value: -100 }] }],
+  },
+
+  hx_veng: {
+    name: "Warlord's Vengeance", rarity: 'hexxed',
+    desc: 'Per ally dead: x5 stats. All dead: lose all DEF, x10 all stats, +80% Lifesteal.',
+    passive: [],
+    situational: [{ id: 'hxv-1', label: '1 ally down (x5 stats)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }] }, { id: 'hxv-all', label: 'All allies down', passive: [{ stat: 'all_main', op: 'mul', value: 10 }, { stat: 'def', op: 'mul', value: 0 }, { stat: 'lifesteal', op: 'add', value: 80 }] }],
+  },
+
+  hx_raid: {
+    name: 'Final Raid Boss', rarity: 'hexxed',
+    desc: 'Skip turn 1, immune to damage. After: x4 stats. Healing/buffs/shields on you x1.5. +50% Status Res.',
+    passive: [],
+    situational: [{ id: 'hxrb-loose', label: 'After turn 1 (released)', passive: [{ stat: 'all_main', op: 'mul', value: 4 }, { stat: 'status_res', op: 'add', value: 50 }] }],
+  },
+
+  hx_sticky: {
+    name: 'Fingering Sticky', rarity: 'hexxed',
+    desc: 'your fingers are very sticky :) also u get the sticky fingers stand.',
+    passive: [],
+    notes: 'Flavor / reference trait.',
+  },
+
+  hx_spicy: {
+    name: 'Determined Spicy', rarity: 'hexxed',
+    desc: '+90% Resilience (capped). Surviving on 1HP → x2 all stats infinitely.',
+    passive: [{ stat: 'resilience', op: 'add', value: 90 }],
+    situational: [{ id: 'hxds-1', label: 'Survived once on 1HP (x2 all)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }, { id: 'hxds-2', label: 'Survived twice on 1HP (x4 all)', passive: [{ stat: 'all_main', op: 'mul', value: 4 }] }],
+  },
+
+  hx_armor: {
+    name: 'Full-Plate Armored', rarity: 'hexxed',
+    desc: 'x10 DEF',
+    passive: [{ stat: 'def', op: 'mul', value: 10 }],
+  },
 
   // ============ DUALITY (heavenly/hellforged toggle) ============
   du_tank: {
@@ -4302,6 +5709,7 @@ const TRAITS = {
     heavenly: { name: 'Divine Bulwark', desc: 'Absorb all incoming party damage. Each hit heals you for 5% of the damage. +250% DEF.', passive: [{ stat: 'def', op: 'pct', value: 250 }] },
     hellforged: { name: 'Infernal Bastion', desc: 'Every hit you take permanently stacks +5% DEF for that fight. No cap. +250% HP.', passive: [{ stat: 'hp', op: 'pct', value: 250 }] },
   },
+
   du_atk: {
     name: 'Radiant Strike', rarity: 'duality',
     desc: 'Every attack radiates to all adjacent enemies for 40% of the hit. Crits blind. +100% Crit Chance, +250% Crit Damage.',
@@ -4309,6 +5717,7 @@ const TRAITS = {
     heavenly: { name: 'Radiant Strike', desc: 'Every attack radiates to all adjacent enemies for 40% of the hit. Crits blind. +100% Crit Chance, +250% Crit Damage.', passive: [{ stat: 'crit_rate', op: 'add', value: 100 }, { stat: 'crit_dmg', op: 'add', value: 250 }] },
     hellforged: { name: 'Soulreap', desc: "Every kill permanently grants +10% ATK for the campaign. Crits steal 20% of the target's remaining HP as True Damage. +250% ATK.", passive: [{ stat: 'atk', op: 'pct', value: 250 }] },
   },
+
   du_mag: {
     name: 'Celestial Surge', rarity: 'duality',
     desc: '+250% MAG. Your spells leave lingering auras that heal allies for 5% HP per round.',
@@ -4316,6 +5725,7 @@ const TRAITS = {
     heavenly: { name: 'Celestial Surge', desc: '+250% MAG. Your spells leave lingering auras that heal allies for 5% HP per round.', passive: [{ stat: 'mag', op: 'pct', value: 250 }] },
     hellforged: { name: 'Infernal Grimoire', desc: "+250% MAG. Each spell permanently shreds 15% of the target's MAG for that fight.", passive: [{ stat: 'mag', op: 'pct', value: 250 }] },
   },
+
   du_heal: {
     name: 'Absolution', rarity: 'duality',
     desc: 'Overheals convert to shields. Healed allies become immune to the next debuff. +300% Heal Power.',
@@ -4323,6 +5733,7 @@ const TRAITS = {
     heavenly: { name: 'Absolution', desc: 'Overheals convert to shields. Healed allies become immune to the next debuff applied to them. +300% Heal Power.', passive: [{ stat: 'heal_pow', op: 'add', value: 300 }] },
     hellforged: { name: 'Blood Tithe', desc: 'Sacrifice 10% of your HP to deal it as True Damage, then heal an ally for triple the sacrificed amount. +200% HP.', passive: [{ stat: 'hp', op: 'pct', value: 200 }] },
   },
+
   du_spd: {
     name: 'Ascent', rarity: 'duality',
     desc: '+250% SPD. You act twice every round. Auto-dodge the first attack each round. Attacks can never be blocked, parried, or evaded.',
@@ -4330,6 +5741,7 @@ const TRAITS = {
     heavenly: { name: 'Ascent', desc: '+250% SPD. You act twice every round. Auto-dodge the first attack each round. Attacks can never be blocked, parried, or evaded.', passive: [{ stat: 'spd', op: 'pct', value: 250 }] },
     hellforged: { name: 'Death Sprint', desc: "+250% SPD. If your SPD exceeds the target's, the difference is dealt as bonus True Damage on every hit. Each enemy defeated permanently multiplies your SPD and DEX by 5 for the rest of that fight.", passive: [{ stat: 'spd', op: 'pct', value: 250 }] },
   },
+
   du_hybrid: {
     name: 'Covenant', rarity: 'duality',
     desc: 'Bond with one ally: share 75% of all stats between both of you. If either is defeated, the survivor gains x2 to all stats.',
@@ -4337,6 +5749,7 @@ const TRAITS = {
     heavenly: { name: 'Covenant', desc: 'Bond with one ally: share 75% of all stats between both of you. If either is defeated, the survivor gains x2 to all stats.', passive: [] },
     hellforged: { name: 'Devour', desc: 'Copy the trait of every enemy you kill and add it to yourself for the rest of that fight. Stacks infinitely.', passive: [] },
   },
+
   du_ruler: {
     name: 'Saviour', rarity: 'duality',
     desc: 'Grants ×2 HP and ×2 DEF to all party members. Each fallen ally increases everyone\'s DEF by +50% of your DEF. Party-wide +30 Resilience. If knocked out first: all allies gain +100% Heal Power. If last standing: HP fully regens and gain +20 Resilience.',
@@ -4362,109 +5775,660 @@ const TRAITS = {
   },
 
   // ============ LOL-INSPIRED: COMMON ============
-  killingedge: { name: 'Killing Edge', rarity: 'common', desc: 'Deal +8% bonus damage to enemies below 30% HP.', passive: [], notes: 'Execute threshold bonus. +8% damage when target is below 30% HP.' },
-  ironskin: { name: 'Iron Skin', rarity: 'common', desc: '+5 DEF. Passively reduce all physical damage taken by 5.', passive: [{ stat: 'def', op: 'add', value: 5 }] },
-  carnivore: { name: 'Carnivore', rarity: 'common', desc: 'Restore 8 HP on every kill.', passive: [], notes: 'Restore 8 HP on each kill.' },
-  happyhour: { name: 'Happy Hour', rarity: 'common', desc: '+5% Heal Power. Using a skill restores 3% of max HP.', passive: [{ stat: 'heal_pow', op: 'add', value: 5 }] },
-  energized: { name: 'Energized', rarity: 'common', desc: 'Every 8th attack deals +50% ATK damage.', passive: [], notes: 'Attack counter passive. Every 8th hit is empowered.' },
-  manasurge: { name: 'Mana Surge', rarity: 'common', desc: 'Every 5th attack restores a burst of energy.', passive: [], notes: 'Energy/mana restore on every 5th attack.' },
-  armorshred: { name: 'Armor Shred', rarity: 'common', desc: 'Attacks reduce target DEF by 3% for 1 turn. Stacks up to 3x (max -9% DEF).', passive: [], notes: 'DEF debuff on target. Stacks up to 3x.' },
-  gatheringspeed: { name: 'Gathering Speed', rarity: 'common', desc: 'Each attack adds a stack of speed (+2 SPD per stack, max 5). Stacks decay when not attacking.', passive: [{ stat: 'spd', op: 'add', value: 6 }], notes: 'SPD shown as average stack value.' },
-  poisontrail: { name: 'Poison Trail', rarity: 'common', desc: 'Leave a toxic trail dealing 4 damage per turn to enemies who pass through it.', passive: [], notes: 'Environmental hazard. No direct stat bonus.' },
-  toughitout: { name: 'Tough It Out', rarity: 'common', desc: 'After taking 3 hits, generate a shield equal to 8% max HP.', passive: [], notes: 'Shield triggered every 3 incoming hits.' },
-  boneplating: { name: 'Bone Plating', rarity: 'common', desc: 'The first 3 hits received each combat deal 6 less damage.', passive: [], notes: 'Damage reduction on first 3 hits per combat.' },
-  quickdraw: { name: 'Quick Draw', rarity: 'common', desc: 'Gain +10% ATK speed after skipping an action.', passive: [], notes: 'ATK speed bonus triggered by a turn with no attack.' },
-  battlescar: { name: 'Battle Scar', rarity: 'common', desc: 'Gain +1 DEF permanently each time you are hit (max +10 per combat).', passive: [{ stat: 'def', op: 'add', value: 5 }], notes: 'DEF shown as average stack value (5).' },
-  nimble: { name: 'Nimble', rarity: 'common', desc: 'Ignore unit collision. Take 4 less damage from all basic attacks.', passive: [{ stat: 'def', op: 'add', value: 4 }] },
-  arcaneedge: { name: 'Arcane Edge', rarity: 'common', desc: 'After using any skill, the next attack deals bonus magic damage equal to 15% of MAG.', passive: [{ stat: 'mag', op: 'pct', value: 8 }], notes: 'Bonus magic hit after every skill use.' },
-  triumph: { name: 'Triumph', rarity: 'common', desc: 'On kill, restore 12% of missing HP.', passive: [], notes: 'HP restore on kill. Scales with missing HP.' },
-  perseverance: { name: 'Perseverance', rarity: 'common', desc: '+8% Heal Power. Begin regenerating HP rapidly after 2 turns out of combat.', passive: [{ stat: 'heal_pow', op: 'add', value: 8 }] },
+  killingedge: {
+    name: 'Killing Edge', rarity: 'common',
+    desc: 'Deal +8% bonus damage to enemies below 30% HP.',
+    passive: [],
+    notes: 'Execute threshold bonus. +8% damage when target is below 30% HP.',
+  },
+
+  ironskin: {
+    name: 'Iron Skin', rarity: 'common',
+    desc: '+5 DEF. Passively reduce all physical damage taken by 5.',
+    passive: [{ stat: 'def', op: 'add', value: 5 }],
+  },
+
+  carnivore: {
+    name: 'Carnivore', rarity: 'common',
+    desc: 'Restore 8 HP on every kill.',
+    passive: [],
+    notes: 'Restore 8 HP on each kill.',
+  },
+
+  happyhour: {
+    name: 'Happy Hour', rarity: 'common',
+    desc: '+5% Heal Power. Using a skill restores 3% of max HP.',
+    passive: [{ stat: 'heal_pow', op: 'add', value: 5 }],
+  },
+
+  energized: {
+    name: 'Energized', rarity: 'common',
+    desc: 'Every 8th attack deals +50% ATK damage.',
+    passive: [],
+    notes: 'Attack counter passive. Every 8th hit is empowered.',
+  },
+
+  manasurge: {
+    name: 'Mana Surge', rarity: 'common',
+    desc: 'Every 5th attack restores a burst of energy.',
+    passive: [],
+    notes: 'Energy/mana restore on every 5th attack.',
+  },
+
+  armorshred: {
+    name: 'Armor Shred', rarity: 'common',
+    desc: 'Attacks reduce target DEF by 3% for 1 turn. Stacks up to 3x (max -9% DEF).',
+    passive: [],
+    notes: 'DEF debuff on target. Stacks up to 3x.',
+  },
+
+  gatheringspeed: {
+    name: 'Gathering Speed', rarity: 'common',
+    desc: 'Each attack adds a stack of speed (+2 SPD per stack, max 5). Stacks decay when not attacking.',
+    passive: [{ stat: 'spd', op: 'add', value: 6 }],
+    notes: 'SPD shown as average stack value.',
+  },
+
+  poisontrail: {
+    name: 'Poison Trail', rarity: 'common',
+    desc: 'Leave a toxic trail dealing 4 damage per turn to enemies who pass through it.',
+    passive: [],
+    notes: 'Environmental hazard. No direct stat bonus.',
+  },
+
+  toughitout: {
+    name: 'Tough It Out', rarity: 'common',
+    desc: 'After taking 3 hits, generate a shield equal to 8% max HP.',
+    passive: [],
+    notes: 'Shield triggered every 3 incoming hits.',
+  },
+
+  boneplating: {
+    name: 'Bone Plating', rarity: 'common',
+    desc: 'The first 3 hits received each combat deal 6 less damage.',
+    passive: [],
+    notes: 'Damage reduction on first 3 hits per combat.',
+  },
+
+  quickdraw: {
+    name: 'Quick Draw', rarity: 'common',
+    desc: 'Gain +10% ATK speed after skipping an action.',
+    passive: [],
+    notes: 'ATK speed bonus triggered by a turn with no attack.',
+  },
+
+  battlescar: {
+    name: 'Battle Scar', rarity: 'common',
+    desc: 'Gain +1 DEF permanently each time you are hit (max +10 per combat).',
+    passive: [{ stat: 'def', op: 'add', value: 5 }],
+    notes: 'DEF shown as average stack value (5).',
+  },
+
+  nimble: {
+    name: 'Nimble', rarity: 'common',
+    desc: 'Ignore unit collision. Take 4 less damage from all basic attacks.',
+    passive: [{ stat: 'def', op: 'add', value: 4 }],
+  },
+
+  arcaneedge: {
+    name: 'Arcane Edge', rarity: 'common',
+    desc: 'After using any skill, the next attack deals bonus magic damage equal to 15% of MAG.',
+    passive: [{ stat: 'mag', op: 'pct', value: 8 }],
+    notes: 'Bonus magic hit after every skill use.',
+  },
+
+  triumph: {
+    name: 'Triumph', rarity: 'common',
+    desc: 'On kill, restore 12% of missing HP.',
+    passive: [],
+    notes: 'HP restore on kill. Scales with missing HP.',
+  },
+
+  perseverance: {
+    name: 'Perseverance', rarity: 'common',
+    desc: '+8% Heal Power. Begin regenerating HP rapidly after 2 turns out of combat.',
+    passive: [{ stat: 'heal_pow', op: 'add', value: 8 }],
+  },
 
   // ============ LOL-INSPIRED: RARE ============
-  voracity: { name: 'Voracity', rarity: 'rare', desc: 'On kill or assist, reduce all cooldowns by 2 turns.', passive: [{ stat: 'cooldown_red', op: 'add', value: 8 }], notes: 'CDR burst on kill/assist.' },
-  hemorrhage: { name: 'Hemorrhage', rarity: 'rare', desc: 'Attacks deal bleeding damage, stacking with every hit up to 5 stacks. Each stack adds +4 ATK as bleeding damage. At 5 stacks, the target is slowed for 1 turn.', passive: [], notes: 'Bleed stacks to 5. Slow at full stacks.' },
-  nighthunter: { name: 'Night Hunter', rarity: 'rare', desc: 'Gain +15 SPD when moving directly toward a visible enemy.', passive: [{ stat: 'spd', op: 'add', value: 10 }], notes: '+15 SPD bonus when actively pursuing an enemy.' },
-  doublestrike: { name: 'Double Strike', rarity: 'rare', desc: 'Every 7th attack on the same target strikes twice instantly.', passive: [], notes: 'Every 7th consecutive hit on same target = double hit.' },
-  flurry: { name: 'Flurry', rarity: 'rare', desc: 'After casting a skill, the next 2 attacks deal +20% damage and cost no cooldown.', passive: [], notes: '+20% bonus on the 2 attacks immediately after a skill.' },
-  martialcadence: { name: 'Martial Cadence', rarity: 'rare', desc: 'First attack on any new target deals bonus damage equal to 8% of their current HP.', passive: [], notes: '% current HP bonus on first hit per new target.' },
-  spikedshell: { name: 'Spiked Shell', rarity: 'rare', desc: '15% of total DEF is added to ATK.', passive: [{ stat: 'atk', op: 'pct', value: 10 }], notes: 'DEF-to-ATK conversion. Passive shown as approximate bonus.' },
-  eternalhunger: { name: 'Eternal Hunger', rarity: 'rare', desc: 'Lifesteal scales with missing HP. At 50% HP: +10% lifesteal. At 10% HP: +30% lifesteal.', passive: [{ stat: 'lifesteal', op: 'add', value: 10 }], situational: [{ id: 'eh-half', label: 'At 50% HP missing', passive: [{ stat: 'lifesteal', op: 'add', value: 10 }] }, { id: 'eh-low', label: 'At 10% HP missing', passive: [{ stat: 'lifesteal', op: 'add', value: 30 }] }] },
-  fleetoffoot: { name: 'Fleet of Foot', rarity: 'rare', desc: 'Gain +12 SPD for 1 turn after a skill hits a target.', passive: [{ stat: 'spd', op: 'add', value: 8 }] },
-  livingvengeance: { name: 'Living Vengeance', rarity: 'rare', desc: 'On kill: +20 ATK for 2 turns. On elite kill: +35 ATK for 2 turns.', passive: [], situational: [{ id: 'lv-kill', label: 'On kill (+20 ATK, 2 turns)', passive: [{ stat: 'atk', op: 'add', value: 20 }] }, { id: 'lv-elite', label: 'On elite kill (+35 ATK, 2 turns)', passive: [{ stat: 'atk', op: 'add', value: 35 }] }] },
-  lovetap: { name: 'Love Tap', rarity: 'rare', desc: 'Attacks against a target not hit last turn deal +20% bonus damage.', passive: [], notes: '+20% damage on first contact with a target each turn cycle.' },
-  clockworkwindup: { name: 'Clockwork Windup', rarity: 'rare', desc: 'Consecutive attacks on the same target deal increasing damage (+5% per hit, max +25%).', passive: [], situational: [{ id: 'cw-max', label: 'At 5 consecutive hits (+25% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 25 }] }] },
-  voidstone: { name: 'Void Stone', rarity: 'rare', desc: 'Reduce all magic damage taken by 20%. Absorbed magic damage partially charges your next magical hit.', passive: [{ stat: 'status_res', op: 'add', value: 15 }], notes: '-20% magic damage taken. Charge mechanic on magic hits.' },
-  guerrillawarfare: { name: 'Guerrilla Warfare', rarity: 'rare', desc: 'Standing still for 1 turn renders you invisible. First attack from stealth deals +40% damage.', passive: [], notes: 'Stealth on idle turn. +40% on break-stealth attack.' },
-  mortalwill: { name: 'Mortal Will', rarity: 'rare', desc: 'Build charges from attacks and skills (max 5). At 5 charges, the next ability gains +30% damage and a bonus effect.', passive: [], notes: '5-charge stack system. Empowered next ability at full stacks.' },
-  triumphantroar: { name: 'Triumphant Roar', rarity: 'rare', desc: 'When any nearby unit dies, restore 6% of max HP.', passive: [{ stat: 'heal_pow', op: 'add', value: 8 }], notes: 'HP regen triggered by any nearby death.' },
-  deadlyvenom: { name: 'Deadly Venom', rarity: 'rare', desc: 'Attacks apply stacking poison (max 5 stacks). Each stack deals 2 true damage per turn.', passive: [{ stat: 'true_dmg', op: 'add', value: 5 }], notes: 'Stacking poison: 2 true damage per turn per stack.' },
-  salvation: { name: 'Salvation', rarity: 'rare', desc: 'Gain +20 SPD when moving toward an ally below 30% HP.', passive: [{ stat: 'spd', op: 'add', value: 8 }], notes: '+20 SPD when rushing toward a low-HP ally.' },
-  blaze: { name: 'Blaze', rarity: 'rare', desc: 'Skills ignite targets: deal 4% of their max HP as magic damage over 2 turns. Three ignite stacks on one target cause an explosion dealing 12% of their max HP.', passive: [], notes: 'DoT on skill hit. Triple-stack explosion.' },
-  hailofblades: { name: 'Hail of Blades', rarity: 'rare', desc: 'Gain +60% ATK speed on the first 3 attacks of any combat encounter.', passive: [], notes: 'Burst ATK speed boost limited to first 3 attacks per combat.' },
+  voracity: {
+    name: 'Voracity', rarity: 'rare',
+    desc: 'On kill or assist, reduce all cooldowns by 2 turns.',
+    passive: [{ stat: 'cooldown_red', op: 'add', value: 8 }],
+    notes: 'CDR burst on kill/assist.',
+  },
+
+  hemorrhage: {
+    name: 'Hemorrhage', rarity: 'rare',
+    desc: 'Attacks deal bleeding damage, stacking with every hit up to 5 stacks. Each stack adds +4 ATK as bleeding damage. At 5 stacks, the target is slowed for 1 turn.',
+    passive: [],
+    notes: 'Bleed stacks to 5. Slow at full stacks.',
+  },
+
+  nighthunter: {
+    name: 'Night Hunter', rarity: 'rare',
+    desc: 'Gain +15 SPD when moving directly toward a visible enemy.',
+    passive: [{ stat: 'spd', op: 'add', value: 10 }],
+    notes: '+15 SPD bonus when actively pursuing an enemy.',
+  },
+
+  doublestrike: {
+    name: 'Double Strike', rarity: 'rare',
+    desc: 'Every 7th attack on the same target strikes twice instantly.',
+    passive: [],
+    notes: 'Every 7th consecutive hit on same target = double hit.',
+  },
+
+  flurry: {
+    name: 'Flurry', rarity: 'rare',
+    desc: 'After casting a skill, the next 2 attacks deal +20% damage and cost no cooldown.',
+    passive: [],
+    notes: '+20% bonus on the 2 attacks immediately after a skill.',
+  },
+
+  martialcadence: {
+    name: 'Martial Cadence', rarity: 'rare',
+    desc: 'First attack on any new target deals bonus damage equal to 8% of their current HP.',
+    passive: [],
+    notes: '% current HP bonus on first hit per new target.',
+  },
+
+  spikedshell: {
+    name: 'Spiked Shell', rarity: 'rare',
+    desc: '15% of total DEF is added to ATK.',
+    passive: [{ stat: 'atk', op: 'pct', value: 10 }],
+    notes: 'DEF-to-ATK conversion. Passive shown as approximate bonus.',
+  },
+
+  eternalhunger: {
+    name: 'Eternal Hunger', rarity: 'rare',
+    desc: 'Lifesteal scales with missing HP. At 50% HP: +10% lifesteal. At 10% HP: +30% lifesteal.',
+    passive: [{ stat: 'lifesteal', op: 'add', value: 10 }],
+    situational: [{ id: 'eh-half', label: 'At 50% HP missing', passive: [{ stat: 'lifesteal', op: 'add', value: 10 }] }, { id: 'eh-low', label: 'At 10% HP missing', passive: [{ stat: 'lifesteal', op: 'add', value: 30 }] }],
+  },
+
+  fleetoffoot: {
+    name: 'Fleet of Foot', rarity: 'rare',
+    desc: 'Gain +12 SPD for 1 turn after a skill hits a target.',
+    passive: [{ stat: 'spd', op: 'add', value: 8 }],
+  },
+
+  livingvengeance: {
+    name: 'Living Vengeance', rarity: 'rare',
+    desc: 'On kill: +20 ATK for 2 turns. On elite kill: +35 ATK for 2 turns.',
+    passive: [],
+    situational: [{ id: 'lv-kill', label: 'On kill (+20 ATK, 2 turns)', passive: [{ stat: 'atk', op: 'add', value: 20 }] }, { id: 'lv-elite', label: 'On elite kill (+35 ATK, 2 turns)', passive: [{ stat: 'atk', op: 'add', value: 35 }] }],
+  },
+
+  lovetap: {
+    name: 'Love Tap', rarity: 'rare',
+    desc: 'Attacks against a target not hit last turn deal +20% bonus damage.',
+    passive: [],
+    notes: '+20% damage on first contact with a target each turn cycle.',
+  },
+
+  clockworkwindup: {
+    name: 'Clockwork Windup', rarity: 'rare',
+    desc: 'Consecutive attacks on the same target deal increasing damage (+5% per hit, max +25%).',
+    passive: [],
+    situational: [{ id: 'cw-max', label: 'At 5 consecutive hits (+25% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 25 }] }],
+  },
+
+  voidstone: {
+    name: 'Void Stone', rarity: 'rare',
+    desc: 'Reduce all magic damage taken by 20%. Absorbed magic damage partially charges your next magical hit.',
+    passive: [{ stat: 'status_res', op: 'add', value: 15 }],
+    notes: '-20% magic damage taken. Charge mechanic on magic hits.',
+  },
+
+  guerrillawarfare: {
+    name: 'Guerrilla Warfare', rarity: 'rare',
+    desc: 'Standing still for 1 turn renders you invisible. First attack from stealth deals +40% damage.',
+    passive: [],
+    notes: 'Stealth on idle turn. +40% on break-stealth attack.',
+  },
+
+  mortalwill: {
+    name: 'Mortal Will', rarity: 'rare',
+    desc: 'Build charges from attacks and skills (max 5). At 5 charges, the next ability gains +30% damage and a bonus effect.',
+    passive: [],
+    notes: '5-charge stack system. Empowered next ability at full stacks.',
+  },
+
+  triumphantroar: {
+    name: 'Triumphant Roar', rarity: 'rare',
+    desc: 'When any nearby unit dies, restore 6% of max HP.',
+    passive: [{ stat: 'heal_pow', op: 'add', value: 8 }],
+    notes: 'HP regen triggered by any nearby death.',
+  },
+
+  deadlyvenom: {
+    name: 'Deadly Venom', rarity: 'rare',
+    desc: 'Attacks apply stacking poison (max 5 stacks). Each stack deals 2 true damage per turn.',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 5 }],
+    notes: 'Stacking poison: 2 true damage per turn per stack.',
+  },
+
+  salvation: {
+    name: 'Salvation', rarity: 'rare',
+    desc: 'Gain +20 SPD when moving toward an ally below 30% HP.',
+    passive: [{ stat: 'spd', op: 'add', value: 8 }],
+    notes: '+20 SPD when rushing toward a low-HP ally.',
+  },
+
+  blaze: {
+    name: 'Blaze', rarity: 'rare',
+    desc: 'Skills ignite targets: deal 4% of their max HP as magic damage over 2 turns. Three ignite stacks on one target cause an explosion dealing 12% of their max HP.',
+    passive: [],
+    notes: 'DoT on skill hit. Triple-stack explosion.',
+  },
+
+  hailofblades: {
+    name: 'Hail of Blades', rarity: 'rare',
+    desc: 'Gain +60% ATK speed on the first 3 attacks of any combat encounter.',
+    passive: [],
+    notes: 'Burst ATK speed boost limited to first 3 attacks per combat.',
+  },
 
   // ============ LOL-INSPIRED: EPIC ============
-  noxianmight: { name: 'Noxian Might', rarity: 'epic', desc: 'When your Hemorrhage bleeding reaches 5 stacks on a target, gain +50% ATK for 2 turns.', passive: [], situational: [{ id: 'nm-active', label: 'Hemorrhage at 5 stacks (2 turns)', passive: [{ stat: 'atk', op: 'pct', value: 50 }] }] },
-  divineascent: { name: 'Divine Ascent', rarity: 'epic', desc: 'Attacks build Zeal stacks (max 4). At 4 stacks, become Exalted for 1 turn: all attacks deal +25% damage and have 100% crit chance. Then stacks reset.', passive: [], situational: [{ id: 'da-exalted', label: 'While Exalted (1 turn, +25% ATK, 100% crit)', passive: [{ stat: 'atk', op: 'pct', value: 25 }, { stat: 'crit_rate', op: 'add', value: 100 }] }] },
-  pitgrit: { name: 'Pit Grit', rarity: 'epic', desc: 'Track all damage taken over 2 turns. Store 40% of that total as a shield that deploys when the damage stops.', passive: [], notes: 'Damage absorption shield. Scales with incoming damage.' },
-  reignofanger: { name: 'Reign of Anger', rarity: 'epic', desc: 'Build Fury when hit. Above 50 Fury: gain +20% ATK and +10% lifesteal. Fury decays out of combat.', passive: [], situational: [{ id: 'roa-fury', label: 'Above 50 Fury (+20% ATK, +10% lifesteal)', passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'lifesteal', op: 'add', value: 10 }] }] },
-  deathbringstance: { name: 'Deathbringer Stance', rarity: 'epic', desc: 'Every 4th attack deals 8% of the target\'s max HP as bonus damage and heals you for the same amount.', passive: [], notes: 'Every 4th hit: % max HP bonus damage + self heal.' },
-  arcaneburstcharge: { name: 'Arcane Burst', rarity: 'epic', desc: 'Between skill casts, attacks charge a burst counter. At 3 charges, the next skill deals +40% extra damage.', passive: [], notes: '3-attack charge counter between skill casts.' },
-  brittleapply: { name: 'Brittle', rarity: 'epic', desc: 'Skills apply Brittle to targets. Attacks against Brittle targets deal +12% damage and briefly reduce their DEF.', passive: [], notes: 'Brittle mark applied by skills. Consumed by attacks for bonus damage.' },
-  fervorofbattle: { name: 'Fervor of Battle', rarity: 'epic', desc: 'Hitting an enemy with a skill grants a Fervor stack (+3% ATK, max 8 stacks). Stacks decay out of combat.', passive: [], situational: [{ id: 'fob-max', label: 'At max Fervor (8 stacks, +24% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 24 }] }] },
-  shepherdofsouls: { name: 'Shepherd of Souls', rarity: 'epic', desc: 'Every time a nearby enemy dies, a Spectral Ghoul spawns and fights alongside you for 3 turns.', passive: [], notes: 'Summons a ghoul ally on each nearby death. Lasts 3 turns.' },
-  petricite: { name: 'Petricite Burst', rarity: 'epic', desc: 'Casting skills charges your weapon (max 2 charges). Charged attacks deal +25% magic damage in a small arc.', passive: [{ stat: 'mag', op: 'pct', value: 10 }], notes: 'Skill charges weapon. Charged AAs deal AoE magic damage.' },
-  berserkerrage: { name: 'Berserker Rage', rarity: 'epic', desc: 'ATK speed scales inversely with HP. At full HP: normal. At 50% HP: +25% ATK speed. At 10% HP: +50% ATK speed.', passive: [], situational: [{ id: 'br-half', label: 'At 50% HP (+25% ATK speed)', passive: [{ stat: 'spd', op: 'pct', value: 15 }] }, { id: 'br-low', label: 'At 10% HP (+50% ATK speed)', passive: [{ stat: 'spd', op: 'pct', value: 35 }] }] },
-  markofthestorm: { name: 'Mark of the Storm', rarity: 'epic', desc: 'Skills apply Storm Marks. At 3 marks on one target: they are stunned for 1 turn and marks are consumed.', passive: [], notes: '3 marks = stun for 1 turn. Marks applied by skills.' },
-  runicblade: { name: 'Runic Blade', rarity: 'epic', desc: 'Each skill cast loads an empowered charge onto your weapon (max 3). Attacks spend charges for +15% ATK each.', passive: [], notes: 'Skill charges weapon with up to 3 empowered attacks.' },
-  organicdeconstruct: { name: 'Organic Deconstruction', rarity: 'epic', desc: 'Hitting the same target with 3 different attack types (physical, magical, true) triggers a true damage explosion equal to 10% of their max HP.', passive: [{ stat: 'true_dmg', op: 'add', value: 8 }], notes: '3-type combo triggers a % max HP true damage explosion.' },
-  sunlightmark: { name: 'Sunlight', rarity: 'epic', desc: 'Skills apply a Sunlight mark. The next ally attack on a marked target deals bonus light damage equal to 15% of your MAG.', passive: [{ stat: 'mag', op: 'pct', value: 8 }], notes: 'Support: ally attacks on your Sunlight-marked targets deal bonus damage.' },
-  presstheattack: { name: 'Press the Attack', rarity: 'epic', desc: 'Hit an enemy 3 times in a row to expose them: they take +12% increased damage from all sources for 2 turns.', passive: [], notes: '3 consecutive hits = expose debuff on target for 2 turns.' },
-  whiplash: { name: 'Whiplash', rarity: 'epic', desc: 'After dashing or being forcibly displaced, the next attack deals +35% damage.', passive: [], notes: '+35% damage on first attack after any displacement.' },
-  phaserush: { name: 'Phase Rush', rarity: 'epic', desc: 'Hitting an enemy 3 times within the same turn grants +30 SPD and 75% slow resistance for 1 turn.', passive: [{ stat: 'spd', op: 'add', value: 10 }], situational: [{ id: 'pr-active', label: 'Phase Rush active (+30 SPD, 1 turn)', passive: [{ stat: 'spd', op: 'add', value: 30 }] }] },
-  graspundying: { name: 'Grasp of the Undying', rarity: 'epic', desc: 'Every 2 turns, the next attack heals 6% of the target\'s max HP and permanently increases your max HP by 5.', passive: [{ stat: 'heal_pow', op: 'add', value: 12 }], notes: 'HP heal + permanent max HP growth every 2 turns.' },
-  electrocute: { name: 'Electrocute', rarity: 'epic', desc: 'Hit an enemy with 3 separate attacks within the same turn to trigger a lightning strike dealing 40 + 30% ATK as magic damage.', passive: [], notes: '3-hit lightning trigger within one turn.' },
-  darkharvestlol: { name: 'Dark Harvest', rarity: 'epic', desc: 'Killing low-HP enemies absorbs their essence. Permanently gain +2 true damage per stack. Stacks persist across fights.', passive: [{ stat: 'true_dmg', op: 'add', value: 5 }], notes: 'Stacking true damage on low-HP kills. Permanent stacks.' },
+  noxianmight: {
+    name: 'Noxian Might', rarity: 'epic',
+    desc: 'When your Hemorrhage bleeding reaches 5 stacks on a target, gain +50% ATK for 2 turns.',
+    passive: [],
+    situational: [{ id: 'nm-active', label: 'Hemorrhage at 5 stacks (2 turns)', passive: [{ stat: 'atk', op: 'pct', value: 50 }] }],
+  },
+
+  divineascent: {
+    name: 'Divine Ascent', rarity: 'epic',
+    desc: 'Attacks build Zeal stacks (max 4). At 4 stacks, become Exalted for 1 turn: all attacks deal +25% damage and have 100% crit chance. Then stacks reset.',
+    passive: [],
+    situational: [{ id: 'da-exalted', label: 'While Exalted (1 turn, +25% ATK, 100% crit)', passive: [{ stat: 'atk', op: 'pct', value: 25 }, { stat: 'crit_rate', op: 'add', value: 100 }] }],
+  },
+
+  pitgrit: {
+    name: 'Pit Grit', rarity: 'epic',
+    desc: 'Track all damage taken over 2 turns. Store 40% of that total as a shield that deploys when the damage stops.',
+    passive: [],
+    notes: 'Damage absorption shield. Scales with incoming damage.',
+  },
+
+  reignofanger: {
+    name: 'Reign of Anger', rarity: 'epic',
+    desc: 'Build Fury when hit. Above 50 Fury: gain +20% ATK and +10% lifesteal. Fury decays out of combat.',
+    passive: [],
+    situational: [{ id: 'roa-fury', label: 'Above 50 Fury (+20% ATK, +10% lifesteal)', passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'lifesteal', op: 'add', value: 10 }] }],
+  },
+
+  deathbringstance: {
+    name: 'Deathbringer Stance', rarity: 'epic',
+    desc: 'Every 4th attack deals 8% of the target\'s max HP as bonus damage and heals you for the same amount.',
+    passive: [],
+    notes: 'Every 4th hit: % max HP bonus damage + self heal.',
+  },
+
+  arcaneburstcharge: {
+    name: 'Arcane Burst', rarity: 'epic',
+    desc: 'Between skill casts, attacks charge a burst counter. At 3 charges, the next skill deals +40% extra damage.',
+    passive: [],
+    notes: '3-attack charge counter between skill casts.',
+  },
+
+  brittleapply: {
+    name: 'Brittle', rarity: 'epic',
+    desc: 'Skills apply Brittle to targets. Attacks against Brittle targets deal +12% damage and briefly reduce their DEF.',
+    passive: [],
+    notes: 'Brittle mark applied by skills. Consumed by attacks for bonus damage.',
+  },
+
+  fervorofbattle: {
+    name: 'Fervor of Battle', rarity: 'epic',
+    desc: 'Hitting an enemy with a skill grants a Fervor stack (+3% ATK, max 8 stacks). Stacks decay out of combat.',
+    passive: [],
+    situational: [{ id: 'fob-max', label: 'At max Fervor (8 stacks, +24% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 24 }] }],
+  },
+
+  shepherdofsouls: {
+    name: 'Shepherd of Souls', rarity: 'epic',
+    desc: 'Every time a nearby enemy dies, a Spectral Ghoul spawns and fights alongside you for 3 turns.',
+    passive: [],
+    notes: 'Summons a ghoul ally on each nearby death. Lasts 3 turns.',
+  },
+
+  petricite: {
+    name: 'Petricite Burst', rarity: 'epic',
+    desc: 'Casting skills charges your weapon (max 2 charges). Charged attacks deal +25% magic damage in a small arc.',
+    passive: [{ stat: 'mag', op: 'pct', value: 10 }],
+    notes: 'Skill charges weapon. Charged AAs deal AoE magic damage.',
+  },
+
+  berserkerrage: {
+    name: 'Berserker Rage', rarity: 'epic',
+    desc: 'ATK speed scales inversely with HP. At full HP: normal. At 50% HP: +25% ATK speed. At 10% HP: +50% ATK speed.',
+    passive: [],
+    situational: [{ id: 'br-half', label: 'At 50% HP (+25% ATK speed)', passive: [{ stat: 'spd', op: 'pct', value: 15 }] }, { id: 'br-low', label: 'At 10% HP (+50% ATK speed)', passive: [{ stat: 'spd', op: 'pct', value: 35 }] }],
+  },
+
+  markofthestorm: {
+    name: 'Mark of the Storm', rarity: 'epic',
+    desc: 'Skills apply Storm Marks. At 3 marks on one target: they are stunned for 1 turn and marks are consumed.',
+    passive: [],
+    notes: '3 marks = stun for 1 turn. Marks applied by skills.',
+  },
+
+  runicblade: {
+    name: 'Runic Blade', rarity: 'epic',
+    desc: 'Each skill cast loads an empowered charge onto your weapon (max 3). Attacks spend charges for +15% ATK each.',
+    passive: [],
+    notes: 'Skill charges weapon with up to 3 empowered attacks.',
+  },
+
+  organicdeconstruct: {
+    name: 'Organic Deconstruction', rarity: 'epic',
+    desc: 'Hitting the same target with 3 different attack types (physical, magical, true) triggers a true damage explosion equal to 10% of their max HP.',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 8 }],
+    notes: '3-type combo triggers a % max HP true damage explosion.',
+  },
+
+  sunlightmark: {
+    name: 'Sunlight', rarity: 'epic',
+    desc: 'Skills apply a Sunlight mark. The next ally attack on a marked target deals bonus light damage equal to 15% of your MAG.',
+    passive: [{ stat: 'mag', op: 'pct', value: 8 }],
+    notes: 'Support: ally attacks on your Sunlight-marked targets deal bonus damage.',
+  },
+
+  presstheattack: {
+    name: 'Press the Attack', rarity: 'epic',
+    desc: 'Hit an enemy 3 times in a row to expose them: they take +12% increased damage from all sources for 2 turns.',
+    passive: [],
+    notes: '3 consecutive hits = expose debuff on target for 2 turns.',
+  },
+
+  whiplash: {
+    name: 'Whiplash', rarity: 'epic',
+    desc: 'After dashing or being forcibly displaced, the next attack deals +35% damage.',
+    passive: [],
+    notes: '+35% damage on first attack after any displacement.',
+  },
+
+  phaserush: {
+    name: 'Phase Rush', rarity: 'epic',
+    desc: 'Hitting an enemy 3 times within the same turn grants +30 SPD and 75% slow resistance for 1 turn.',
+    passive: [{ stat: 'spd', op: 'add', value: 10 }],
+    situational: [{ id: 'pr-active', label: 'Phase Rush active (+30 SPD, 1 turn)', passive: [{ stat: 'spd', op: 'add', value: 30 }] }],
+  },
+
+  graspundying: {
+    name: 'Grasp of the Undying', rarity: 'epic',
+    desc: 'Every 2 turns, the next attack heals 6% of the target\'s max HP and permanently increases your max HP by 5.',
+    passive: [{ stat: 'heal_pow', op: 'add', value: 12 }],
+    notes: 'HP heal + permanent max HP growth every 2 turns.',
+  },
+
+  electrocute: {
+    name: 'Electrocute', rarity: 'epic',
+    desc: 'Hit an enemy with 3 separate attacks within the same turn to trigger a lightning strike dealing 40 + 30% ATK as magic damage.',
+    passive: [],
+    notes: '3-hit lightning trigger within one turn.',
+  },
+
+  darkharvestlol: {
+    name: 'Dark Harvest', rarity: 'epic',
+    desc: 'Killing low-HP enemies absorbs their essence. Permanently gain +2 true damage per stack. Stacks persist across fights.',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 5 }],
+    notes: 'Stacking true damage on low-HP kills. Permanent stacks.',
+  },
 
   // ============ LOL-INSPIRED: LEGENDARY ============
-  duelistsdance: { name: "Duelist's Dance", rarity: 'legendary', desc: 'Four Vital Points appear on enemies. Striking one heals 5% max HP, grants +20 SPD for 1 turn, and deals +50% damage. All 4 Vitals refresh after they\'ve all been hit.', passive: [], notes: 'Vital cycle system. 5% heal + SPD + bonus damage per Vital hit.' },
-  damnation: { name: 'Damnation', rarity: 'legendary', desc: 'Every enemy killed drops a Soul. Collect souls for permanent +3 ATK and +3 DEF each. No cap.', passive: [], cultivation: { label: 'Souls Collected', perStack: [{ stat: 'atk', op: 'add', value: 3 }, { stat: 'def', op: 'add', value: 3 }], defaultStacks: 0, maxStacks: 999 }, notes: 'Permanent soul-stack +3 ATK and +3 DEF per kill.' },
-  kindredmark: { name: 'Mark of the Kindred', rarity: 'legendary', desc: 'Designate a Hunt target. Each hunted enemy defeated permanently grants +15 to all stats. Marks renew each combat.', passive: [], cultivation: { label: 'Hunted Kills', perStack: [{ stat: 'all_main', op: 'add', value: 15 }], defaultStacks: 0, maxStacks: 999 }, notes: 'Hunt target system. +15 all stats per marked kill. Permanent.' },
-  crimsonpact: { name: 'Crimson Pact', rarity: 'legendary', desc: 'Every 30 HP = +1 MAG. Every 10 MAG = +15 HP. Both stats scale off each other dynamically.', passive: [{ op: 'derived', stat: 'mag', from: 'hp', per: 30, perValue: 1 }, { op: 'derived', stat: 'hp', from: 'mag', per: 10, perValue: 15 }], notes: 'HP/MAG dynamic conversion. Stats update whenever either is gained.' },
-  mirageform: { name: 'Mirage Form', rarity: 'legendary', desc: 'When dropping below 25% HP, spawn a combat-capable decoy with 50% of your stats for 3 turns. It draws enemy attention and attacks.', passive: [], notes: 'Low-HP decoy summon. Decoy fights and taunts for 3 turns.' },
-  wayofwanderer: { name: 'Way of the Wanderer', rarity: 'legendary', desc: 'Cannot critically strike normally. Instead, build Flow as you move. At full Flow, gain a shield equal to 15% max HP. All your crits deal 200% damage regardless of source.', passive: [{ stat: 'crit_dmg', op: 'add', value: 100 }], notes: 'No normal crits. Flow builds on movement. 200% crit damage.' },
-  ionianfervor: { name: 'Ionian Fervor', rarity: 'legendary', desc: 'Hitting multiple enemies at once: +6% damage reduction per enemy hit (max 18%). Against a single target: attacks stack +4% ATK per hit (max 6 stacks).', passive: [], situational: [{ id: 'if-multi', label: 'Hitting 3+ enemies (-18% damage taken)', passive: [{ stat: 'def', op: 'pct', value: 18 }] }, { id: 'if-single', label: 'At 6 single-target stacks (+24% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 24 }] }] },
-  unseenpredator: { name: 'Unseen Predator', rarity: 'legendary', desc: 'Striking from stealth or behind grants a Trophy stack (+5 ATK, +3 SPD). Stacks are permanent. Max 10.', passive: [], situational: [{ id: 'up-max', label: 'At max Trophies (10 stacks)', passive: [{ stat: 'atk', op: 'add', value: 50 }, { stat: 'spd', op: 'add', value: 30 }] }] },
-  contemptweak: { name: 'Contempt for the Weak', rarity: 'legendary', desc: 'Attacks against enemies below 50% HP deal bonus true damage equal to 6% of their max HP.', passive: [{ stat: 'true_dmg', op: 'add', value: 6 }], notes: '% max HP true damage bonus on sub-50% enemies.' },
-  deathbydegrees: { name: 'Death by Degrees', rarity: 'legendary', desc: 'Attacks deal bonus damage equal to 1.5% of the target\'s max HP. Heals you for half that amount.', passive: [{ stat: 'lifesteal', op: 'add', value: 5 }, { stat: 'true_dmg', op: 'add', value: 5 }], notes: '% max HP damage per hit + 50% lifesteal from it.' },
-  wayofhunter: { name: 'Way of the Hunter', rarity: 'legendary', desc: 'Every other attack deals bonus magic damage equal to 60% of ATK. Physical and magical damage alternate with each hit.', passive: [{ stat: 'mag', op: 'pct', value: 30 }], notes: 'Alternating physical/magic on every other attack.' },
-  darkinrebirth: { name: 'Darkin Rebirth', rarity: 'legendary', desc: 'On death, channel briefly then revive at 40% HP with +50% ATK for 3 turns. Once per encounter.', passive: [], situational: [{ id: 'dr-revive', label: 'Post-revive (+50% ATK for 3 turns)', passive: [{ stat: 'atk', op: 'pct', value: 50 }] }] },
-  shatteredtime: { name: 'Shattered Time', rarity: 'legendary', desc: 'Each skill use reduces all cooldowns by 2 turns and grants a burst of +15 SPD.', passive: [{ stat: 'cooldown_red', op: 'add', value: 15 }, { stat: 'spd', op: 'add', value: 8 }] },
-  livingforge: { name: 'Living Forge', rarity: 'legendary', desc: 'Can upgrade one item mid-combat. All attacks also apply Brittle to enemies. Brittle targets take +30% crit damage.', passive: [], notes: 'Item upgrade mid-fight + persistent Brittle on all attacks.' },
-  undyinggrasp: { name: 'Undying Grasp', rarity: 'legendary', desc: 'When you would be killed, instantly enter Stasis: untargetable and immune for 1 turn. After Stasis, revive at 20% HP. Once per combat.', passive: [], notes: 'Once-per-combat death prevention. 1-turn Stasis + revive at 20% HP.' },
+  duelistsdance: {
+    name: "Duelist's Dance", rarity: 'legendary',
+    desc: 'Four Vital Points appear on enemies. Striking one heals 5% max HP, grants +20 SPD for 1 turn, and deals +50% damage. All 4 Vitals refresh after they\'ve all been hit.',
+    passive: [],
+    notes: 'Vital cycle system. 5% heal + SPD + bonus damage per Vital hit.',
+  },
+
+  damnation: {
+    name: 'Damnation', rarity: 'legendary',
+    desc: 'Every enemy killed drops a Soul. Collect souls for permanent +3 ATK and +3 DEF each. No cap.',
+    passive: [],
+    cultivation: { label: 'Souls Collected', perStack: [{ stat: 'atk', op: 'add', value: 3 }, { stat: 'def', op: 'add', value: 3 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Permanent soul-stack +3 ATK and +3 DEF per kill.',
+  },
+
+  kindredmark: {
+    name: 'Mark of the Kindred', rarity: 'legendary',
+    desc: 'Designate a Hunt target. Each hunted enemy defeated permanently grants +15 to all stats. Marks renew each combat.',
+    passive: [],
+    cultivation: { label: 'Hunted Kills', perStack: [{ stat: 'all_main', op: 'add', value: 15 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Hunt target system. +15 all stats per marked kill. Permanent.',
+  },
+
+  crimsonpact: {
+    name: 'Crimson Pact', rarity: 'legendary',
+    desc: 'Every 30 HP = +1 MAG. Every 10 MAG = +15 HP. Both stats scale off each other dynamically.',
+    passive: [{ op: 'derived', stat: 'mag', from: 'hp', per: 30, perValue: 1 }, { op: 'derived', stat: 'hp', from: 'mag', per: 10, perValue: 15 }],
+    notes: 'HP/MAG dynamic conversion. Stats update whenever either is gained.',
+  },
+
+  mirageform: {
+    name: 'Mirage Form', rarity: 'legendary',
+    desc: 'When dropping below 25% HP, spawn a combat-capable decoy with 50% of your stats for 3 turns. It draws enemy attention and attacks.',
+    passive: [],
+    notes: 'Low-HP decoy summon. Decoy fights and taunts for 3 turns.',
+  },
+
+  wayofwanderer: {
+    name: 'Way of the Wanderer', rarity: 'legendary',
+    desc: 'Cannot critically strike normally. Instead, build Flow as you move. At full Flow, gain a shield equal to 15% max HP. All your crits deal 200% damage regardless of source.',
+    passive: [{ stat: 'crit_dmg', op: 'add', value: 100 }],
+    notes: 'No normal crits. Flow builds on movement. 200% crit damage.',
+  },
+
+  ionianfervor: {
+    name: 'Ionian Fervor', rarity: 'legendary',
+    desc: 'Hitting multiple enemies at once: +6% damage reduction per enemy hit (max 18%). Against a single target: attacks stack +4% ATK per hit (max 6 stacks).',
+    passive: [],
+    situational: [{ id: 'if-multi', label: 'Hitting 3+ enemies (-18% damage taken)', passive: [{ stat: 'def', op: 'pct', value: 18 }] }, { id: 'if-single', label: 'At 6 single-target stacks (+24% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 24 }] }],
+  },
+
+  unseenpredator: {
+    name: 'Unseen Predator', rarity: 'legendary',
+    desc: 'Striking from stealth or behind grants a Trophy stack (+5 ATK, +3 SPD). Stacks are permanent. Max 10.',
+    passive: [],
+    situational: [{ id: 'up-max', label: 'At max Trophies (10 stacks)', passive: [{ stat: 'atk', op: 'add', value: 50 }, { stat: 'spd', op: 'add', value: 30 }] }],
+  },
+
+  contemptweak: {
+    name: 'Contempt for the Weak', rarity: 'legendary',
+    desc: 'Attacks against enemies below 50% HP deal bonus true damage equal to 6% of their max HP.',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 6 }],
+    notes: '% max HP true damage bonus on sub-50% enemies.',
+  },
+
+  deathbydegrees: {
+    name: 'Death by Degrees', rarity: 'legendary',
+    desc: 'Attacks deal bonus damage equal to 1.5% of the target\'s max HP. Heals you for half that amount.',
+    passive: [{ stat: 'lifesteal', op: 'add', value: 5 }, { stat: 'true_dmg', op: 'add', value: 5 }],
+    notes: '% max HP damage per hit + 50% lifesteal from it.',
+  },
+
+  wayofhunter: {
+    name: 'Way of the Hunter', rarity: 'legendary',
+    desc: 'Every other attack deals bonus magic damage equal to 60% of ATK. Physical and magical damage alternate with each hit.',
+    passive: [{ stat: 'mag', op: 'pct', value: 30 }],
+    notes: 'Alternating physical/magic on every other attack.',
+  },
+
+  darkinrebirth: {
+    name: 'Darkin Rebirth', rarity: 'legendary',
+    desc: 'On death, channel briefly then revive at 40% HP with +50% ATK for 3 turns. Once per encounter.',
+    passive: [],
+    situational: [{ id: 'dr-revive', label: 'Post-revive (+50% ATK for 3 turns)', passive: [{ stat: 'atk', op: 'pct', value: 50 }] }],
+  },
+
+  shatteredtime: {
+    name: 'Shattered Time', rarity: 'legendary',
+    desc: 'Each skill use reduces all cooldowns by 2 turns and grants a burst of +15 SPD.',
+    passive: [{ stat: 'cooldown_red', op: 'add', value: 15 }, { stat: 'spd', op: 'add', value: 8 }],
+  },
+
+  livingforge: {
+    name: 'Living Forge', rarity: 'legendary',
+    desc: 'Can upgrade one item mid-combat. All attacks also apply Brittle to enemies. Brittle targets take +30% crit damage.',
+    passive: [],
+    notes: 'Item upgrade mid-fight + persistent Brittle on all attacks.',
+  },
+
+  undyinggrasp: {
+    name: 'Undying Grasp', rarity: 'legendary',
+    desc: 'When you would be killed, instantly enter Stasis: untargetable and immune for 1 turn. After Stasis, revive at 20% HP. Once per combat.',
+    passive: [],
+    notes: 'Once-per-combat death prevention. 1-turn Stasis + revive at 20% HP.',
+  },
 
   // ============ LOL-INSPIRED: MYTHIC ============
-  lastingspoils: { name: 'Lasting Spoils', rarity: 'mythic', desc: 'Every enemy defeated drops an essence. Permanently gain +6 ATK and +6 DEF per soul collected. No cap.', passive: [], cultivation: { label: 'Souls Collected', perStack: [{ stat: 'atk', op: 'add', value: 6 }, { stat: 'def', op: 'add', value: 6 }], defaultStacks: 0, maxStacks: 999 }, notes: 'Permanent soul-stacking: +6 ATK and +6 DEF per kill.' },
-  icathiansurprise: { name: 'Icathian Surprise', rarity: 'mythic', desc: 'On death, go dormant for an instant, then explode: deal true damage equal to 50% of your max HP to all nearby enemies.', passive: [], notes: 'Death explosion. AoE true damage equal to 50% max HP.' },
-  gloryindeath: { name: 'Glory in Death', rarity: 'mythic', desc: 'On death, enter an undead rage for 3 turns: unlimited energy, deal 200% of normal damage, heal from all damage dealt. Cannot die until the 3 turns expire.', passive: [], situational: [{ id: 'gid-undead', label: 'While in undead rage (3 turns)', passive: [{ stat: 'atk', op: 'pct', value: 200 }, { stat: 'lifesteal', op: 'add', value: 100 }] }] },
-  feast: { name: 'Feast', rarity: 'mythic', desc: 'On kill: permanently grow. Gain +20 HP, +5 ATK, +3 DEF, +3 MAG. No cap. You are what you eat.', passive: [], cultivation: { label: 'Kills', perStack: [{ stat: 'hp', op: 'add', value: 20 }, { stat: 'atk', op: 'add', value: 5 }, { stat: 'def', op: 'add', value: 3 }, { stat: 'mag', op: 'add', value: 3 }], defaultStacks: 0, maxStacks: 999 }, notes: 'Permanent stat growth per kill. No max stacks.' },
-  ravonoushunger: { name: 'Ravenous Hunger', rarity: 'mythic', desc: 'For every 10% HP missing: gain +5% ATK, +5% lifesteal, and +3% true damage. Scales continuously.', passive: [], situational: [{ id: 'rh-50', label: 'At 50% HP missing', passive: [{ stat: 'atk', op: 'pct', value: 25 }, { stat: 'lifesteal', op: 'add', value: 25 }, { stat: 'true_dmg', op: 'add', value: 15 }] }, { id: 'rh-90', label: 'At 90% HP missing', passive: [{ stat: 'atk', op: 'pct', value: 45 }, { stat: 'lifesteal', op: 'add', value: 45 }, { stat: 'true_dmg', op: 'add', value: 27 }] }] },
-  bloodfeud: { name: 'Blood Feud', rarity: 'mythic', desc: 'Passively track the enemy dealing the most damage to you. Deal +25% damage to them and take -15% damage from them.', passive: [], notes: 'Auto-tracks highest-damage enemy. Bonus applies only vs that target.' },
-  eclipsecycle: { name: 'Eclipse Cycle', rarity: 'mythic', desc: 'After being struck 3 times, become untargetable for 1 turn and reappear behind your attacker. 8-turn cooldown.', passive: [], notes: '3-hit trigger: 1-turn untargetable + reposition. 8-turn cooldown.' },
-  voidrift: { name: 'Void Rift', rarity: 'mythic', desc: 'Every 4th skill tears a Void Rift: AoE magic damage equal to 15% of nearby enemies\' max HP, and silences them for 1 turn.', passive: [], notes: 'Every 4th skill cast: AoE % max HP damage + 1-turn silence.' },
-  chronorift: { name: 'Chronorift', rarity: 'mythic', desc: 'When you would take lethal damage, rewind to your position and HP from 1 turn ago. Once per combat.', passive: [], notes: 'Once-per-combat lethal rewind to previous turn\'s HP state.' },
-  celestialopp: { name: 'Celestial Opposition', rarity: 'mythic', desc: 'Passively alternate between SOLAR (+30% ATK, +30% SPD) and LUNAR (+30% DEF, +30% MAG) stances after each action. Switching is instant.', passive: [], situational: [{ id: 'co-solar', label: 'SOLAR stance (+30% ATK, +30% SPD)', passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'spd', op: 'pct', value: 30 }] }, { id: 'co-lunar', label: 'LUNAR stance (+30% DEF, +30% MAG)', passive: [{ stat: 'def', op: 'pct', value: 30 }, { stat: 'mag', op: 'pct', value: 30 }] }] },
-  deathmarklol: { name: 'Deathmark', rarity: 'mythic', desc: 'Passively mark the highest-HP enemy. After 1 turn, they take true damage equal to 20% of all damage dealt to them during that turn. Refreshes on new targets.', passive: [], notes: 'Marks highest-HP enemy. Burst-back as true damage after 1 turn.' },
-  infiniteduress: { name: 'Infinite Duress', rarity: 'mythic', desc: 'Lock onto the target you\'ve hit most this combat. They take +30% increased damage from you and your DEF bypass cannot be reduced.', passive: [], notes: 'Auto-tracks most-hit target. +30% damage and DEF bypass vs that target.' },
+  lastingspoils: {
+    name: 'Lasting Spoils', rarity: 'mythic',
+    desc: 'Every enemy defeated drops an essence. Permanently gain +6 ATK and +6 DEF per soul collected. No cap.',
+    passive: [],
+    cultivation: { label: 'Souls Collected', perStack: [{ stat: 'atk', op: 'add', value: 6 }, { stat: 'def', op: 'add', value: 6 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Permanent soul-stacking: +6 ATK and +6 DEF per kill.',
+  },
+
+  icathiansurprise: {
+    name: 'Icathian Surprise', rarity: 'mythic',
+    desc: 'On death, go dormant for an instant, then explode: deal true damage equal to 50% of your max HP to all nearby enemies.',
+    passive: [],
+    notes: 'Death explosion. AoE true damage equal to 50% max HP.',
+  },
+
+  gloryindeath: {
+    name: 'Glory in Death', rarity: 'mythic',
+    desc: 'On death, enter an undead rage for 3 turns: unlimited energy, deal 200% of normal damage, heal from all damage dealt. Cannot die until the 3 turns expire.',
+    passive: [],
+    situational: [{ id: 'gid-undead', label: 'While in undead rage (3 turns)', passive: [{ stat: 'atk', op: 'pct', value: 200 }, { stat: 'lifesteal', op: 'add', value: 100 }] }],
+  },
+
+  feast: {
+    name: 'Feast', rarity: 'mythic',
+    desc: 'On kill: permanently grow. Gain +20 HP, +5 ATK, +3 DEF, +3 MAG. No cap. You are what you eat.',
+    passive: [],
+    cultivation: { label: 'Kills', perStack: [{ stat: 'hp', op: 'add', value: 20 }, { stat: 'atk', op: 'add', value: 5 }, { stat: 'def', op: 'add', value: 3 }, { stat: 'mag', op: 'add', value: 3 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Permanent stat growth per kill. No max stacks.',
+  },
+
+  ravonoushunger: {
+    name: 'Ravenous Hunger', rarity: 'mythic',
+    desc: 'For every 10% HP missing: gain +5% ATK, +5% lifesteal, and +3% true damage. Scales continuously.',
+    passive: [],
+    situational: [{ id: 'rh-50', label: 'At 50% HP missing', passive: [{ stat: 'atk', op: 'pct', value: 25 }, { stat: 'lifesteal', op: 'add', value: 25 }, { stat: 'true_dmg', op: 'add', value: 15 }] }, { id: 'rh-90', label: 'At 90% HP missing', passive: [{ stat: 'atk', op: 'pct', value: 45 }, { stat: 'lifesteal', op: 'add', value: 45 }, { stat: 'true_dmg', op: 'add', value: 27 }] }],
+  },
+
+  bloodfeud: {
+    name: 'Blood Feud', rarity: 'mythic',
+    desc: 'Passively track the enemy dealing the most damage to you. Deal +25% damage to them and take -15% damage from them.',
+    passive: [],
+    notes: 'Auto-tracks highest-damage enemy. Bonus applies only vs that target.',
+  },
+
+  eclipsecycle: {
+    name: 'Eclipse Cycle', rarity: 'mythic',
+    desc: 'After being struck 3 times, become untargetable for 1 turn and reappear behind your attacker. 8-turn cooldown.',
+    passive: [],
+    notes: '3-hit trigger: 1-turn untargetable + reposition. 8-turn cooldown.',
+  },
+
+  voidrift: {
+    name: 'Void Rift', rarity: 'mythic',
+    desc: 'Every 4th skill tears a Void Rift: AoE magic damage equal to 15% of nearby enemies\' max HP, and silences them for 1 turn.',
+    passive: [],
+    notes: 'Every 4th skill cast: AoE % max HP damage + 1-turn silence.',
+  },
+
+  chronorift: {
+    name: 'Chronorift', rarity: 'mythic',
+    desc: 'When you would take lethal damage, rewind to your position and HP from 1 turn ago. Once per combat.',
+    passive: [],
+    notes: 'Once-per-combat lethal rewind to previous turn\'s HP state.',
+  },
+
+  celestialopp: {
+    name: 'Celestial Opposition', rarity: 'mythic',
+    desc: 'Passively alternate between SOLAR (+30% ATK, +30% SPD) and LUNAR (+30% DEF, +30% MAG) stances after each action. Switching is instant.',
+    passive: [],
+    situational: [{ id: 'co-solar', label: 'SOLAR stance (+30% ATK, +30% SPD)', passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'spd', op: 'pct', value: 30 }] }, { id: 'co-lunar', label: 'LUNAR stance (+30% DEF, +30% MAG)', passive: [{ stat: 'def', op: 'pct', value: 30 }, { stat: 'mag', op: 'pct', value: 30 }] }],
+  },
+
+  deathmarklol: {
+    name: 'Deathmark', rarity: 'mythic',
+    desc: 'Passively mark the highest-HP enemy. After 1 turn, they take true damage equal to 20% of all damage dealt to them during that turn. Refreshes on new targets.',
+    passive: [],
+    notes: 'Marks highest-HP enemy. Burst-back as true damage after 1 turn.',
+  },
+
+  infiniteduress: {
+    name: 'Infinite Duress', rarity: 'mythic',
+    desc: 'Lock onto the target you\'ve hit most this combat. They take +30% increased damage from you and your DEF bypass cannot be reduced.',
+    passive: [],
+    notes: 'Auto-tracks most-hit target. +30% damage and DEF bypass vs that target.',
+  },
 
   // ============ LOL-INSPIRED: HEXXED ============
-  blightedquill: { name: 'Blighted Quill', rarity: 'hexxed', desc: 'Attacks apply Blight (max 5 stacks). At 5 stacks: trigger true damage equal to 15% of the target\'s max HP. Side effect: 1 self-Blight stack per 8 of your own hits.', passive: [{ stat: 'true_dmg', op: 'add', value: 5 }], notes: 'Blight stacking vs target + self-blight side effect every 8 hits.' },
-  feastofflesh: { name: 'Feast of Flesh', rarity: 'hexxed', desc: 'On kill, permanently devour the fallen: gain HP equal to 12% of their max HP (min +25), +12 ATK, +8 DEF, and +6 MAG. Every 5th kill, all future growth bonuses double permanently. No cap. You become unstoppable.', passive: [], cultivation: { label: 'Kills', perStack: [{ stat: 'hp', op: 'add', value: 25 }, { stat: 'atk', op: 'add', value: 12 }, { stat: 'def', op: 'add', value: 8 }, { stat: 'mag', op: 'add', value: 6 }], defaultStacks: 0, maxStacks: 999 }, notes: 'Permanent scaling per kill. Every 5th kill: all growth doubles. No cap. HP gain uses minimum value (+25); actual gain is 12% of enemy max HP.' },
-  fracturelol: { name: 'Fracture', rarity: 'hexxed', desc: 'Your attacks ignore all DEF. So do attacks made against you. DEF is nullified for both sides. In exchange, gain +40% ATK and +30% SPD.', passive: [{ stat: 'atk', op: 'pct', value: 40 }, { stat: 'spd', op: 'pct', value: 30 }], notes: 'DEF nullified on both sides. ATK/SPD granted as compensation.' },
-  palecascade: { name: 'Pale Cascade', rarity: 'hexxed', desc: 'Passively orbit up to 5 protective orbs (start with 3). While at least 1 orb is active: +30% MAG and +30% ATK, plus an additional +5% per extra orb (max +50% MAG and +50% ATK at 5 orbs). Each orb absorbs 1 hit and heals 10% HP when broken. New orbs regenerate every 3 turns.', passive: [], situational: [{ id: 'pc-1orb', label: '1 orb active (+30% ATK, +30% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'mag', op: 'pct', value: 30 }] }, { id: 'pc-5orb', label: '5 orbs active (+50% ATK, +50% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }] }] },
-  corruptedfervor: { name: 'Corrupted Fervor', rarity: 'hexxed', desc: 'Attacks stack Fervor (+5% ATK, +3% SPD per stack, max 10). At 10 stacks, CORRUPTION takes hold for 2 turns: +150% ATK, +20% lifesteal, all attacks deal true damage, but you attack the nearest unit regardless of alignment. After corruption ends: collapse. All stats drop 30% for 1 turn, then stacks reset.', passive: [], situational: [{ id: 'cf-building', label: 'At max Fervor (10 stacks, pre-corruption)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'spd', op: 'pct', value: 30 }] }, { id: 'cf-corrupt', label: 'CORRUPTION active (2 turns)', passive: [{ stat: 'atk', op: 'pct', value: 150 }, { stat: 'lifesteal', op: 'add', value: 20 }, { stat: 'true_dmg', op: 'add', value: 100 }] }, { id: 'cf-collapse', label: 'Post-corruption collapse (1 turn)', passive: [{ stat: 'atk', op: 'pct', value: -30 }, { stat: 'def', op: 'pct', value: -30 }, { stat: 'spd', op: 'pct', value: -30 }] }] },
-  crimsontide: { name: 'Crimson Tide', rarity: 'hexxed', desc: 'While you have 5 Hemorrhage bleeding stacks active on at least one enemy: gain +250% ATK. Hemorrhage also executes targets below 20% HP, but each execution costs 10% of your own max HP.', passive: [], situational: [{ id: 'ct-active', label: 'While 5 Hemorrhage stacks active (+250% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 250 }] }, { id: 'ct-execute', label: 'On execute (costs 10% own max HP)', passive: [] }] },
-  darkres: { name: 'Dark Resonance', rarity: 'hexxed', desc: 'Your Blaze DoT burns you too. You and the ignited target both burn. Your burning state grants +15% ATK but constantly drains HP each turn.', passive: [{ stat: 'atk', op: 'pct', value: 15 }], notes: 'Mutual burning. ATK bonus while burning. Self HP drain per turn.' },
-  deathscaress: { name: "Death's Caress", rarity: 'hexxed', desc: 'Build a massive shield over time while not attacking. When the shield is released or broken, it deals damage equal to its value to all nearby enemies. Cannot attack while building the shield.', passive: [], notes: 'Idle shield builder. Release or break = AoE burst equal to shield value.' },
+  blightedquill: {
+    name: 'Blighted Quill', rarity: 'hexxed',
+    desc: 'Attacks apply Blight (max 5 stacks). At 5 stacks: trigger true damage equal to 15% of the target\'s max HP. Side effect: 1 self-Blight stack per 8 of your own hits.',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 5 }],
+    notes: 'Blight stacking vs target + self-blight side effect every 8 hits.',
+  },
+
+  feastofflesh: {
+    name: 'Feast of Flesh', rarity: 'hexxed',
+    desc: 'On kill, permanently devour the fallen: gain HP equal to 12% of their max HP (min +25), +12 ATK, +8 DEF, and +6 MAG. Every 5th kill, all future growth bonuses double permanently. No cap. You become unstoppable.',
+    passive: [],
+    cultivation: { label: 'Kills', perStack: [{ stat: 'hp', op: 'add', value: 25 }, { stat: 'atk', op: 'add', value: 12 }, { stat: 'def', op: 'add', value: 8 }, { stat: 'mag', op: 'add', value: 6 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Permanent scaling per kill. Every 5th kill: all growth doubles. No cap. HP gain uses minimum value (+25); actual gain is 12% of enemy max HP.',
+  },
+
+  fracturelol: {
+    name: 'Fracture', rarity: 'hexxed',
+    desc: 'Your attacks ignore all DEF. So do attacks made against you. DEF is nullified for both sides. In exchange, gain +40% ATK and +30% SPD.',
+    passive: [{ stat: 'atk', op: 'pct', value: 40 }, { stat: 'spd', op: 'pct', value: 30 }],
+    notes: 'DEF nullified on both sides. ATK/SPD granted as compensation.',
+  },
+
+  palecascade: {
+    name: 'Pale Cascade', rarity: 'hexxed',
+    desc: 'Passively orbit up to 5 protective orbs (start with 3). While at least 1 orb is active: +30% MAG and +30% ATK, plus an additional +5% per extra orb (max +50% MAG and +50% ATK at 5 orbs). Each orb absorbs 1 hit and heals 10% HP when broken. New orbs regenerate every 3 turns.',
+    passive: [],
+    situational: [{ id: 'pc-1orb', label: '1 orb active (+30% ATK, +30% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'mag', op: 'pct', value: 30 }] }, { id: 'pc-5orb', label: '5 orbs active (+50% ATK, +50% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }] }],
+  },
+
+  corruptedfervor: {
+    name: 'Corrupted Fervor', rarity: 'hexxed',
+    desc: 'Attacks stack Fervor (+5% ATK, +3% SPD per stack, max 10). At 10 stacks, CORRUPTION takes hold for 2 turns: +150% ATK, +20% lifesteal, all attacks deal true damage, but you attack the nearest unit regardless of alignment. After corruption ends: collapse. All stats drop 30% for 1 turn, then stacks reset.',
+    passive: [],
+    situational: [{ id: 'cf-building', label: 'At max Fervor (10 stacks, pre-corruption)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'spd', op: 'pct', value: 30 }] }, { id: 'cf-corrupt', label: 'CORRUPTION active (2 turns)', passive: [{ stat: 'atk', op: 'pct', value: 150 }, { stat: 'lifesteal', op: 'add', value: 20 }, { stat: 'true_dmg', op: 'add', value: 100 }] }, { id: 'cf-collapse', label: 'Post-corruption collapse (1 turn)', passive: [{ stat: 'atk', op: 'pct', value: -30 }, { stat: 'def', op: 'pct', value: -30 }, { stat: 'spd', op: 'pct', value: -30 }] }],
+  },
+
+  crimsontide: {
+    name: 'Crimson Tide', rarity: 'hexxed',
+    desc: 'While you have 5 Hemorrhage bleeding stacks active on at least one enemy: gain +250% ATK. Hemorrhage also executes targets below 20% HP, but each execution costs 10% of your own max HP.',
+    passive: [],
+    situational: [{ id: 'ct-active', label: 'While 5 Hemorrhage stacks active (+250% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 250 }] }, { id: 'ct-execute', label: 'On execute (costs 10% own max HP)', passive: [] }],
+  },
+
+  darkres: {
+    name: 'Dark Resonance', rarity: 'hexxed',
+    desc: 'Your Blaze DoT burns you too. You and the ignited target both burn. Your burning state grants +15% ATK but constantly drains HP each turn.',
+    passive: [{ stat: 'atk', op: 'pct', value: 15 }],
+    notes: 'Mutual burning. ATK bonus while burning. Self HP drain per turn.',
+  },
+
+  deathscaress: {
+    name: "Death's Caress", rarity: 'hexxed',
+    desc: 'Build a massive shield over time while not attacking. When the shield is released or broken, it deals damage equal to its value to all nearby enemies. Cannot attack while building the shield.',
+    passive: [],
+    notes: 'Idle shield builder. Release or break = AoE burst equal to shield value.',
+  },
 
   // ============ LOL-INSPIRED: DUALITY ============
   hunterhunted: {
@@ -4491,6 +6455,7 @@ const TRAITS = {
       { id: 'hh-hunter10', label: 'HELLFORGED: While attacking, 10 attacks (+125 ATK)', passive: [{ stat: 'atk', op: 'add', value: 125 }] }
     ],
   },
+
   daybreaknight: {
     name: 'Daybreak / Nightfall', rarity: 'duality',
     desc: 'Skills deal +30% damage in the first half of combat. ATK gradually fades as time passes.',
@@ -4507,132 +6472,758 @@ const TRAITS = {
     },
     situational: [{ id: 'dn-day', label: 'HEAVENLY: Early combat (+30% skill damage)', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }, { id: 'dn-night3', label: 'HELLFORGED: After 3 turns (+10% all damage)', passive: [{ stat: 'atk', op: 'pct', value: 10 }] }, { id: 'dn-night9', label: 'HELLFORGED: After 9 turns (+30% all damage)', passive: [{ stat: 'atk', op: 'pct', value: 30 }] }],
   },
+
   // ============ LOL-INSPIRED: SUPPORT / UTILITY ============
-  moonstonemending: { name: 'Moonstone Mending', rarity: 'rare', desc: 'Passively heals the most-injured ally for 5% max HP whenever any ally takes damage. Can trigger once per turn.', passive: [] },
-  eyeofthestorm: { name: 'Eye of the Storm', rarity: 'rare', desc: 'Shield one ally for 20% max HP. While the shield holds, they gain +20% ATK.', passive: [] },
-  warmhugs: { name: 'Warm Hugs', rarity: 'rare', desc: 'At the start of each turn, the ally with the lowest HP% receives a small shield worth 8% of their max HP.', passive: [] },
-  ardentcenser: { name: 'Ardent Censer', rarity: 'rare', desc: 'Whenever you heal or shield an ally, they gain +20% ATK and +15% SPD for 2 turns.', passive: [], situational: [{ id: 'ac-active', label: 'Ally buffed by Ardent Censer (+20% ATK, +15% SPD)', passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'spd', op: 'pct', value: 15 }] }] },
-  pixswatch: { name: "Pix's Watch", rarity: 'rare', desc: 'Shield one ally. Your companion Pix follows them, dealing minor magic damage (3% MAG) to every enemy that hits them.', passive: [] },
-  rewind: { name: 'Rewind', rarity: 'rare', desc: 'Every 3 turns, reduce all your ability cooldowns by 1 turn.', passive: [] },
-  timewarp: { name: 'Time Warp', rarity: 'rare', desc: 'Grant one ally +50% SPD for 2 turns, OR slow one enemy by 50% SPD for 2 turns. Choose each use.', passive: [] },
-  tidecallersblessing: { name: "Tidecaller's Blessing", rarity: 'rare', desc: 'Empower one ally: their next 3 attacks each slow the target by 25% SPD and deal bonus magic damage (+15% MAG).', passive: [] },
-  focusedresolve: { name: 'Focused Resolve', rarity: 'rare', desc: 'Tether to one enemy for 2 turns. They cannot flee. If the tether holds the full duration: root them for 1 turn and heal yourself for 20% HP.', passive: [] },
-  mikaelscleanse: { name: "Mikael's Cleanse", rarity: 'rare', desc: 'Once per battle: remove all crowd control and status effects from one ally and heal them for 20% HP.', passive: [] },
-  zekesconvergence: { name: "Zeke's Convergence", rarity: 'rare', desc: 'Bind to one ally. Enemies who attack them are slowed 30% SPD and take +15% increased damage from all sources.', passive: [] },
-  whimsy: { name: 'Whimsy', rarity: 'epic', desc: 'Choose a mode before battle.\n\nPOLYMORPH: Transform one enemy into a harmless critter for 1 turn; they cannot act.\nEMPOWER: Grant one ally +50% SPD and +25% ATK for 2 turns.', passive: [] },
-  powerchord: { name: 'Power Chord', rarity: 'epic', desc: 'Every 3rd ability activates a rotating Power Chord:\n♪ Hymn: +25% ATK to all allies for 2 turns.\n♪ Aria: Heal the most-hurt ally for 20% HP.\n♪ Celerity: +30% SPD to all allies for 1 turn.\nCycles endlessly.', passive: [] },
-  starcall: { name: 'Starcall', rarity: 'epic', desc: 'Passively heal all allies for 5% max HP each turn. If any enemy is silenced, this healing doubles to 10% HP.', passive: [] },
-  cozycampfire: { name: 'Cozy Campfire', rarity: 'epic', desc: 'Deploy a healing zone for 3 turns. Allies inside heal 8% HP per turn and gain +10% to all healing received.', passive: [] },
-  mantra: { name: 'Mantra', rarity: 'epic', desc: 'Every 4th ability you cast is Mantra-empowered, doubling its effect: shields are larger, heals restore more, and debuffs last an extra turn.', passive: [] },
-  equinox: { name: 'Equinox', rarity: 'epic', desc: 'Create a zone of silence for 2 turns. Enemies inside cannot use abilities.', passive: [] },
-  wildgrowth: { name: 'Wild Growth', rarity: 'legendary', desc: 'Once per battle: instantly enlarge one ally. They gain +300 HP, knock back all nearby enemies, and gain +50% ATK for 2 rounds.', passive: [] },
-  wish: { name: 'Wish', rarity: 'legendary', desc: 'Once per battle: heal ALL allies for 80% max HP and remove one debuff from each.', passive: [] },
-  crescendo: { name: 'Crescendo', rarity: 'legendary', desc: 'Once per battle: stun all enemies for 1 turn and restore 15% HP to all allies simultaneously.', passive: [] },
-  monsoon: { name: 'Monsoon', rarity: 'legendary', desc: 'Once per battle: knock back all enemies and heal all allies for 20% HP per turn for 3 turns.', passive: [] },
-  bailout: { name: 'Bailout', rarity: 'legendary', desc: 'Once per battle: grant an ally a second chance. If they die within the next 3 turns, they revive at 50% HP and go berserk (+75% ATK) for 2 turns before collapsing.', passive: [] },
-  hostiletakeover: { name: 'Hostile Takeover', rarity: 'legendary', desc: 'Once per battle: one enemy goes berserk for 2 turns, forced to attack their own allies instead of yours.', passive: [] },
-  tidalwave: { name: 'Tidal Wave', rarity: 'legendary', desc: 'Once per battle: knock up all enemies for 1 turn. Upon landing, they are slowed by 60% SPD and lose 50% DEX for 2 turns.', passive: [] },
-  chronoshift: { name: 'Chronoshift', rarity: 'mythic', desc: 'When any ally (including yourself) would die, they instead survive at 50% HP and become invulnerable for 2 turns. This effect can trigger once per ally per battle. Every member of your team gets one second chance.', passive: [] },
-  cosmicradiance: { name: 'Cosmic Radiance', rarity: 'mythic', desc: 'Once per battle: after a 1-turn channel, all allies become fully invulnerable for 3 turns. They cannot be hurt, debuffed, or displaced.', passive: [] },
-  temperedfate: { name: 'Tempered Fate', rarity: 'mythic', desc: 'Once per battle: freeze every unit except yourself in stasis for 2 turns. Allies and enemies alike cannot act or take damage. Only you may move and act freely.', passive: [] },
-  attached: { name: 'Attached', rarity: 'mythic', desc: 'At battle start, tether to the nearest ally. While attached: you cannot be targeted, and you passively grant them 75% of all your stats as bonus stats. You may still act and use abilities freely.\n\nIf your tether ally dies, you detach. Your DEF drops by 50% for 2 turns while you are vulnerable.', passive: [], situational: [{ id: 'att-vulnerable', label: 'Detached / Vulnerable (-50% DEF)', passive: [{ stat: 'def', op: 'pct', value: -50 }] }] },
+  moonstonemending: {
+    name: 'Moonstone Mending', rarity: 'rare',
+    desc: 'Passively heals the most-injured ally for 5% max HP whenever any ally takes damage. Can trigger once per turn.',
+    passive: [],
+  },
+
+  eyeofthestorm: {
+    name: 'Eye of the Storm', rarity: 'rare',
+    desc: 'Shield one ally for 20% max HP. While the shield holds, they gain +20% ATK.',
+    passive: [],
+  },
+
+  warmhugs: {
+    name: 'Warm Hugs', rarity: 'rare',
+    desc: 'At the start of each turn, the ally with the lowest HP% receives a small shield worth 8% of their max HP.',
+    passive: [],
+  },
+
+  ardentcenser: {
+    name: 'Ardent Censer', rarity: 'rare',
+    desc: 'Whenever you heal or shield an ally, they gain +20% ATK and +15% SPD for 2 turns.',
+    passive: [],
+    situational: [{ id: 'ac-active', label: 'Ally buffed by Ardent Censer (+20% ATK, +15% SPD)', passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'spd', op: 'pct', value: 15 }] }],
+  },
+
+  pixswatch: {
+    name: "Pix's Watch", rarity: 'rare',
+    desc: 'Shield one ally. Your companion Pix follows them, dealing minor magic damage (3% MAG) to every enemy that hits them.',
+    passive: [],
+  },
+
+  rewind: {
+    name: 'Rewind', rarity: 'rare',
+    desc: 'Every 3 turns, reduce all your ability cooldowns by 1 turn.',
+    passive: [],
+  },
+
+  timewarp: {
+    name: 'Time Warp', rarity: 'rare',
+    desc: 'Grant one ally +50% SPD for 2 turns, OR slow one enemy by 50% SPD for 2 turns. Choose each use.',
+    passive: [],
+  },
+
+  tidecallersblessing: {
+    name: "Tidecaller's Blessing", rarity: 'rare',
+    desc: 'Empower one ally: their next 3 attacks each slow the target by 25% SPD and deal bonus magic damage (+15% MAG).',
+    passive: [],
+  },
+
+  focusedresolve: {
+    name: 'Focused Resolve', rarity: 'rare',
+    desc: 'Tether to one enemy for 2 turns. They cannot flee. If the tether holds the full duration: root them for 1 turn and heal yourself for 20% HP.',
+    passive: [],
+  },
+
+  mikaelscleanse: {
+    name: "Mikael's Cleanse", rarity: 'rare',
+    desc: 'Once per battle: remove all crowd control and status effects from one ally and heal them for 20% HP.',
+    passive: [],
+  },
+
+  zekesconvergence: {
+    name: "Zeke's Convergence", rarity: 'rare',
+    desc: 'Bind to one ally. Enemies who attack them are slowed 30% SPD and take +15% increased damage from all sources.',
+    passive: [],
+  },
+
+  whimsy: {
+    name: 'Whimsy', rarity: 'epic',
+    desc: 'Choose a mode before battle.\n\nPOLYMORPH: Transform one enemy into a harmless critter for 1 turn; they cannot act.\nEMPOWER: Grant one ally +50% SPD and +25% ATK for 2 turns.',
+    passive: [],
+  },
+
+  powerchord: {
+    name: 'Power Chord', rarity: 'epic',
+    desc: 'Every 3rd ability activates a rotating Power Chord:\n♪ Hymn: +25% ATK to all allies for 2 turns.\n♪ Aria: Heal the most-hurt ally for 20% HP.\n♪ Celerity: +30% SPD to all allies for 1 turn.\nCycles endlessly.',
+    passive: [],
+  },
+
+  starcall: {
+    name: 'Starcall', rarity: 'epic',
+    desc: 'Passively heal all allies for 5% max HP each turn. If any enemy is silenced, this healing doubles to 10% HP.',
+    passive: [],
+  },
+
+  cozycampfire: {
+    name: 'Cozy Campfire', rarity: 'epic',
+    desc: 'Deploy a healing zone for 3 turns. Allies inside heal 8% HP per turn and gain +10% to all healing received.',
+    passive: [],
+  },
+
+  mantra: {
+    name: 'Mantra', rarity: 'epic',
+    desc: 'Every 4th ability you cast is Mantra-empowered, doubling its effect: shields are larger, heals restore more, and debuffs last an extra turn.',
+    passive: [],
+  },
+
+  equinox: {
+    name: 'Equinox', rarity: 'epic',
+    desc: 'Create a zone of silence for 2 turns. Enemies inside cannot use abilities.',
+    passive: [],
+  },
+
+  wildgrowth: {
+    name: 'Wild Growth', rarity: 'legendary',
+    desc: 'Once per battle: instantly enlarge one ally. They gain +300 HP, knock back all nearby enemies, and gain +50% ATK for 2 rounds.',
+    passive: [],
+  },
+
+  wish: {
+    name: 'Wish', rarity: 'legendary',
+    desc: 'Once per battle: heal ALL allies for 80% max HP and remove one debuff from each.',
+    passive: [],
+  },
+
+  crescendo: {
+    name: 'Crescendo', rarity: 'legendary',
+    desc: 'Once per battle: stun all enemies for 1 turn and restore 15% HP to all allies simultaneously.',
+    passive: [],
+  },
+
+  monsoon: {
+    name: 'Monsoon', rarity: 'legendary',
+    desc: 'Once per battle: knock back all enemies and heal all allies for 20% HP per turn for 3 turns.',
+    passive: [],
+  },
+
+  bailout: {
+    name: 'Bailout', rarity: 'legendary',
+    desc: 'Once per battle: grant an ally a second chance. If they die within the next 3 turns, they revive at 50% HP and go berserk (+75% ATK) for 2 turns before collapsing.',
+    passive: [],
+  },
+
+  hostiletakeover: {
+    name: 'Hostile Takeover', rarity: 'legendary',
+    desc: 'Once per battle: one enemy goes berserk for 2 turns, forced to attack their own allies instead of yours.',
+    passive: [],
+  },
+
+  tidalwave: {
+    name: 'Tidal Wave', rarity: 'legendary',
+    desc: 'Once per battle: knock up all enemies for 1 turn. Upon landing, they are slowed by 60% SPD and lose 50% DEX for 2 turns.',
+    passive: [],
+  },
+
+  chronoshift: {
+    name: 'Chronoshift', rarity: 'mythic',
+    desc: 'When any ally (including yourself) would die, they instead survive at 50% HP and become invulnerable for 2 turns. This effect can trigger once per ally per battle. Every member of your team gets one second chance.',
+    passive: [],
+  },
+
+  cosmicradiance: {
+    name: 'Cosmic Radiance', rarity: 'mythic',
+    desc: 'Once per battle: after a 1-turn channel, all allies become fully invulnerable for 3 turns. They cannot be hurt, debuffed, or displaced.',
+    passive: [],
+  },
+
+  temperedfate: {
+    name: 'Tempered Fate', rarity: 'mythic',
+    desc: 'Once per battle: freeze every unit except yourself in stasis for 2 turns. Allies and enemies alike cannot act or take damage. Only you may move and act freely.',
+    passive: [],
+  },
+
+  attached: {
+    name: 'Attached', rarity: 'mythic',
+    desc: 'At battle start, tether to the nearest ally. While attached: you cannot be targeted, and you passively grant them 75% of all your stats as bonus stats. You may still act and use abilities freely.\n\nIf your tether ally dies, you detach. Your DEF drops by 50% for 2 turns while you are vulnerable.',
+    passive: [],
+    situational: [{ id: 'att-vulnerable', label: 'Detached / Vulnerable (-50% DEF)', passive: [{ stat: 'def', op: 'pct', value: -50 }] }],
+  },
 
   // ============ SPECIAL ============
-  girlyopscurse: { name: "Girlypop's Curse", rarity: 'legendary', desc: "MAG is doubled (x2). Upon receiving this curse, gain 2 random common traits and 1 random rare trait. Those bonus traits each have a 25% chance of being shimmyful. Your character's gender is permanently reversed.", passive: [{ stat: 'mag', op: 'mul', value: 2 }], notes: "On pickup: roll 2 commons + 1 rare, each with 25% shimmy chance. Gender reversal is a permanent RP/flavor mechanic." },
+  girlyopscurse: {
+    name: "Girlypop's Curse", rarity: 'legendary',
+    desc: "MAG is doubled (x2). Upon receiving this curse, gain 2 random common traits and 1 random rare trait. Those bonus traits each have a 25% chance of being shimmyful. Your character's gender is permanently reversed.",
+    passive: [{ stat: 'mag', op: 'mul', value: 2 }],
+    notes: "On pickup: roll 2 commons + 1 rare, each with 25% shimmy chance. Gender reversal is a permanent RP/flavor mechanic.",
+  },
 
   // ============ COMPLEX TRAITS ============
-  gamblersruin:  { name: "Gambler's Ruin", rarity: 'rare', desc: 'Before each action, secretly roll a die. On an even result: +50% ATK and MAG for that action. On an odd result: +50% damage taken for that action.', passive: [], situational: [{ id: 'gr-lucky', label: 'Lucky Roll (even) — +50% ATK & MAG', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }] }, { id: 'gr-unlucky', label: 'Unlucky Roll (odd) — +50% damage taken (−50% DEF)', passive: [{ stat: 'def', op: 'pct', value: -50 }] }] },
-  envy:          { name: 'Envy', rarity: 'epic', desc: 'Track the last stat buff any enemy used. You gain an identical bonus until they use a different one.', passive: [], notes: 'Mirrors the last stat buff used by any enemy. The copied bonus exactly matches their buff value and persists until they use a different one. Track manually.' },
-  deadmanshand:  { name: "Dead Man's Hand", rarity: 'legendary', desc: 'Start each battle with 5 cards (random stat modifiers, positive and negative). Reveal one per turn in order.', passive: [], notes: 'At battle start, draw 5 cards. Each is a random stat modifier (positive or negative). Reveal one per turn in the order drawn.' },
-  symbiote:      { name: 'Symbiote', rarity: 'legendary', desc: 'Bond with one ally at battle start. You both gain +30% HP and share a single HP pool. Any healing or damage either of you takes applies to the shared pool.', passive: [{ stat: 'hp', op: 'pct', value: 30 }], notes: 'Shared HP pool is RP-tracked. Both characters gain +30% HP at battle start.' },
-  ouroboros:     { name: 'Ouroboros', rarity: 'epic', desc: 'On death, fully revive at 100% HP. Your ATK and DEF swap values. Your MAG and SPD swap values. This inverted state lasts for the rest of the battle.', passive: [], situational: [{ id: 'ouro-phase', label: 'Ouroboros Phase (revived — ATK/DEF and MAG/SPD swapped)', passive: [] }], notes: 'On death: revive at 100% HP, ATK swaps with DEF, MAG swaps with SPD. Swap is permanent for that battle.' },
+  gamblersruin: {
+    name: "Gambler's Ruin", rarity: 'rare',
+    desc: 'Before each action, secretly roll a die. On an even result: +50% ATK and MAG for that action. On an odd result: +50% damage taken for that action.',
+    passive: [],
+    situational: [{ id: 'gr-lucky', label: 'Lucky Roll (even) — +50% ATK & MAG', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }] }, { id: 'gr-unlucky', label: 'Unlucky Roll (odd) — +50% damage taken (−50% DEF)', passive: [{ stat: 'def', op: 'pct', value: -50 }] }],
+  },
+
+  envy: {
+    name: 'Envy', rarity: 'epic',
+    desc: 'Track the last stat buff any enemy used. You gain an identical bonus until they use a different one.',
+    passive: [],
+    notes: 'Mirrors the last stat buff used by any enemy. The copied bonus exactly matches their buff value and persists until they use a different one. Track manually.',
+  },
+
+  deadmanshand: {
+    name: "Dead Man's Hand", rarity: 'legendary',
+    desc: 'Start each battle with 5 cards (random stat modifiers, positive and negative). Reveal one per turn in order.',
+    passive: [],
+    notes: 'At battle start, draw 5 cards. Each is a random stat modifier (positive or negative). Reveal one per turn in the order drawn.',
+  },
+
+  symbiote: {
+    name: 'Symbiote', rarity: 'legendary',
+    desc: 'Bond with one ally at battle start. You both gain +30% HP and share a single HP pool. Any healing or damage either of you takes applies to the shared pool.',
+    passive: [{ stat: 'hp', op: 'pct', value: 30 }],
+    notes: 'Shared HP pool is RP-tracked. Both characters gain +30% HP at battle start.',
+  },
+
+  ouroboros: {
+    name: 'Ouroboros', rarity: 'epic',
+    desc: 'On death, fully revive at 100% HP. Your ATK and DEF swap values. Your MAG and SPD swap values. This inverted state lasts for the rest of the battle.',
+    passive: [],
+    situational: [{ id: 'ouro-phase', label: 'Ouroboros Phase (revived — ATK/DEF and MAG/SPD swapped)', passive: [] }],
+    notes: 'On death: revive at 100% HP, ATK swaps with DEF, MAG swaps with SPD. Swap is permanent for that battle.',
+  },
 
   // ============ TBOI-INSPIRED ============
-  oddmushroom:   { name: 'Odd Mushroom', rarity: 'common', desc: '+20% ATK but -15% SPD. You hit harder but move slower.', passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'spd', op: 'pct', value: -15 }] },
-  spoonbender:   { name: 'Spoon Bender', rarity: 'common', desc: 'Attacks home toward the enemy. +10% MAG and +15 Dexterity.', passive: [{ stat: 'mag', op: 'pct', value: 10 }, { stat: 'dexterity', op: 'add', value: 15 }] },
-  bloodylust:    { name: 'Bloody Lust', rarity: 'rare', desc: 'Each hit you land permanently stacks +5 ATK for the rest of that battle. Resets on a new battle.', passive: [], situational: [{ id: 'bl-5', label: '5 hits landed (+25 ATK)', passive: [{ stat: 'atk', op: 'add', value: 25 }] }, { id: 'bl-10', label: '10 hits landed (+50 ATK)', passive: [{ stat: 'atk', op: 'add', value: 50 }] }, { id: 'bl-20', label: '20 hits landed (+100 ATK)', passive: [{ stat: 'atk', op: 'add', value: 100 }] }] },
-  holymantle:    { name: 'Holy Mantle', rarity: 'rare', desc: 'Once per battle, the first hit that would damage you is completely nullified.', passive: [], situational: [{ id: 'hm-active', label: 'Holy Mantle active (shield up)', passive: [] }, { id: 'hm-broken', label: 'Holy Mantle consumed (shield gone)', passive: [] }] },
-  whoreofbabylon:{ name: 'Whore of Babylon', rarity: 'epic', desc: 'When below 33% HP: automatically gain +50% ATK, +40% SPD, and -30% DEF. Activates and deactivates based on your HP.', passive: [], situational: [{ id: 'wob-active', label: 'Whore of Babylon active (below 33% HP)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'spd', op: 'pct', value: 40 }, { stat: 'def', op: 'pct', value: -30 }] }] },
-  missingno:     { name: 'Missing No.', rarity: 'epic', desc: 'At the start of each battle, all your stats are independently randomized between x0.5 and x3 of their base values. Your total power is unpredictable.', passive: [], notes: 'Each main stat (HP, ATK, DEF, MAG, SPD) is independently rolled between 0.5x and 3x base value at battle start. Reroll every battle.' },
-  goathead:      { name: 'Goat Head', rarity: 'legendary', desc: 'At battle start: sacrifice 33% of your max HP to access a Devil Deal. Choose one revealed legendary or mythic trait that applies for this fight only.', passive: [], notes: 'Devil Deal: -33% HP to borrow one legendary or mythic trait for that battle. The borrowed trait is lost at battle end.' },
-  sacredheart:   { name: 'Sacred Heart', rarity: 'mythic', desc: '+100% ATK and MAG. +50% HP. +35 Heal Power. All your attacks home and pierce through enemies.', passive: [{ stat: 'atk', op: 'pct', value: 100 }, { stat: 'mag', op: 'pct', value: 100 }, { stat: 'hp', op: 'pct', value: 50 }, { stat: 'heal_pow', op: 'add', value: 35 }] },
+  oddmushroom: {
+    name: 'Odd Mushroom', rarity: 'common',
+    desc: '+20% ATK but -15% SPD. You hit harder but move slower.',
+    passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'spd', op: 'pct', value: -15 }],
+  },
+
+  spoonbender: {
+    name: 'Spoon Bender', rarity: 'common',
+    desc: 'Attacks home toward the enemy. +10% MAG and +15 Dexterity.',
+    passive: [{ stat: 'mag', op: 'pct', value: 10 }, { stat: 'dexterity', op: 'add', value: 15 }],
+  },
+
+  bloodylust: {
+    name: 'Bloody Lust', rarity: 'rare',
+    desc: 'Each hit you land permanently stacks +5 ATK for the rest of that battle. Resets on a new battle.',
+    passive: [],
+    situational: [{ id: 'bl-5', label: '5 hits landed (+25 ATK)', passive: [{ stat: 'atk', op: 'add', value: 25 }] }, { id: 'bl-10', label: '10 hits landed (+50 ATK)', passive: [{ stat: 'atk', op: 'add', value: 50 }] }, { id: 'bl-20', label: '20 hits landed (+100 ATK)', passive: [{ stat: 'atk', op: 'add', value: 100 }] }],
+  },
+
+  holymantle: {
+    name: 'Holy Mantle', rarity: 'rare',
+    desc: 'Once per battle, the first hit that would damage you is completely nullified.',
+    passive: [],
+    situational: [{ id: 'hm-active', label: 'Holy Mantle active (shield up)', passive: [] }, { id: 'hm-broken', label: 'Holy Mantle consumed (shield gone)', passive: [] }],
+  },
+
+  whoreofbabylon: {
+    name: 'Whore of Babylon', rarity: 'epic',
+    desc: 'When below 33% HP: automatically gain +50% ATK, +40% SPD, and -30% DEF. Activates and deactivates based on your HP.',
+    passive: [],
+    situational: [{ id: 'wob-active', label: 'Whore of Babylon active (below 33% HP)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'spd', op: 'pct', value: 40 }, { stat: 'def', op: 'pct', value: -30 }] }],
+  },
+
+  missingno: {
+    name: 'Missing No.', rarity: 'epic',
+    desc: 'At the start of each battle, all your stats are independently randomized between x0.5 and x3 of their base values. Your total power is unpredictable.',
+    passive: [],
+    notes: 'Each main stat (HP, ATK, DEF, MAG, SPD) is independently rolled between 0.5x and 3x base value at battle start. Reroll every battle.',
+  },
+
+  goathead: {
+    name: 'Goat Head', rarity: 'legendary',
+    desc: 'At battle start: sacrifice 33% of your max HP to access a Devil Deal. Choose one revealed legendary or mythic trait that applies for this fight only.',
+    passive: [],
+    notes: 'Devil Deal: -33% HP to borrow one legendary or mythic trait for that battle. The borrowed trait is lost at battle end.',
+  },
+
+  sacredheart: {
+    name: 'Sacred Heart', rarity: 'mythic',
+    desc: '+100% ATK and MAG. +50% HP. +35 Heal Power. All your attacks home and pierce through enemies.',
+    passive: [{ stat: 'atk', op: 'pct', value: 100 }, { stat: 'mag', op: 'pct', value: 100 }, { stat: 'hp', op: 'pct', value: 50 }, { stat: 'heal_pow', op: 'add', value: 35 }],
+  },
 
   // ============ GAMBLING TRAITS ============
-  luckypenny:    { name: 'Lucky Penny', rarity: 'common', desc: 'Start each battle with a coin flip. Heads: +15% to all main stats. Tails: -10% to all main stats.', passive: [], situational: [{ id: 'lp-heads', label: 'Heads — +15% all main stats', passive: [{ stat: 'all_main', op: 'pct', value: 15 }] }, { id: 'lp-tails', label: 'Tails — -10% all main stats', passive: [{ stat: 'all_main', op: 'pct', value: -10 }] }], notes: 'Flip a coin at battle start. Toggle the matching button.' },
-  bust:          { name: 'Bust', rarity: 'rare', desc: 'Every time you hit, roll a d6. On a 1: your ATK drops to 0 for that turn. On a 6: deal the hit twice.', passive: [], situational: [{ id: 'bust-1', label: 'Rolled a 1 — ATK is 0 this turn', passive: [{ stat: 'atk', op: 'mul', value: 0 }] }], notes: 'Roll d6 on each hit. 1 = ATK zeroed for 1 turn. 6 = hit twice. Toggle when you roll a 1, untoggle next turn.' },
-  snakeeyes:     { name: 'Snake Eyes', rarity: 'rare', desc: '+30% ATK. Each attack, roll a d6. Rolling a 1 triggers a fumble: you miss and take 5% max HP damage.', passive: [{ stat: 'atk', op: 'pct', value: 30 }], notes: 'Roll d6 on each attack. 1 = fumble (miss + 5% max HP self-damage). +30% ATK always active.' },
-  jackpot:       { name: 'Jackpot', rarity: 'epic', desc: 'On kill: roll 1d3. 1 = +20 ATK permanently. 2 = +20 DEF permanently. 3 = restore 30% HP.', passive: [], situational: [{ id: 'jp-atk1', label: '1x rolled 1 — +20 ATK', passive: [{ stat: 'atk', op: 'add', value: 20 }] }, { id: 'jp-atk2', label: '2x rolled 1 — +40 ATK', passive: [{ stat: 'atk', op: 'add', value: 40 }] }, { id: 'jp-atk3', label: '3x rolled 1 — +60 ATK', passive: [{ stat: 'atk', op: 'add', value: 60 }] }, { id: 'jp-def1', label: '1x rolled 2 — +20 DEF', passive: [{ stat: 'def', op: 'add', value: 20 }] }, { id: 'jp-def2', label: '2x rolled 2 — +40 DEF', passive: [{ stat: 'def', op: 'add', value: 40 }] }, { id: 'jp-def3', label: '3x rolled 2 — +60 DEF', passive: [{ stat: 'def', op: 'add', value: 60 }] }], notes: 'On kill, roll 1d3. Toggle the closest stack count for accumulated ATK/DEF rolls. Roll 3 = 30% HP restore (no button).' },
-  devilsbargain: { name: "Devil's Bargain", rarity: 'legendary', desc: 'Triple your ATK and MAG (x3). At the end of each battle, one random stat (not ATK or MAG) is permanently cut by 10%.', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }], notes: 'After each battle: one of HP/DEF/SPD/etc. is cut by -10% permanently. Track manually.' },
-  russianroulette:{ name: 'Russian Roulette', rarity: 'legendary', desc: 'All your main stats are +65%. At the start of each turn, there is a 1-in-6 chance you take 50% of your max HP as true damage.', passive: [{ stat: 'all_main', op: 'pct', value: 65 }], notes: 'Start of each turn: roll d6. On a 1, take 50% max HP as true damage. +65% all main stats is always active.' },
+  luckypenny: {
+    name: 'Lucky Penny', rarity: 'common',
+    desc: 'Start each battle with a coin flip. Heads: +15% to all main stats. Tails: -10% to all main stats.',
+    passive: [],
+    situational: [{ id: 'lp-heads', label: 'Heads — +15% all main stats', passive: [{ stat: 'all_main', op: 'pct', value: 15 }] }, { id: 'lp-tails', label: 'Tails — -10% all main stats', passive: [{ stat: 'all_main', op: 'pct', value: -10 }] }],
+    notes: 'Flip a coin at battle start. Toggle the matching button.',
+  },
+
+  bust: {
+    name: 'Bust', rarity: 'rare',
+    desc: 'Every time you hit, roll a d6. On a 1: your ATK drops to 0 for that turn. On a 6: deal the hit twice.',
+    passive: [],
+    situational: [{ id: 'bust-1', label: 'Rolled a 1 — ATK is 0 this turn', passive: [{ stat: 'atk', op: 'mul', value: 0 }] }],
+    notes: 'Roll d6 on each hit. 1 = ATK zeroed for 1 turn. 6 = hit twice. Toggle when you roll a 1, untoggle next turn.',
+  },
+
+  snakeeyes: {
+    name: 'Snake Eyes', rarity: 'rare',
+    desc: '+30% ATK. Each attack, roll a d6. Rolling a 1 triggers a fumble: you miss and take 5% max HP damage.',
+    passive: [{ stat: 'atk', op: 'pct', value: 30 }],
+    notes: 'Roll d6 on each attack. 1 = fumble (miss + 5% max HP self-damage). +30% ATK always active.',
+  },
+
+  jackpot: {
+    name: 'Jackpot', rarity: 'epic',
+    desc: 'On kill: roll 1d3. 1 = +20 ATK permanently. 2 = +20 DEF permanently. 3 = restore 30% HP.',
+    passive: [],
+    situational: [{ id: 'jp-atk1', label: '1x rolled 1 — +20 ATK', passive: [{ stat: 'atk', op: 'add', value: 20 }] }, { id: 'jp-atk2', label: '2x rolled 1 — +40 ATK', passive: [{ stat: 'atk', op: 'add', value: 40 }] }, { id: 'jp-atk3', label: '3x rolled 1 — +60 ATK', passive: [{ stat: 'atk', op: 'add', value: 60 }] }, { id: 'jp-def1', label: '1x rolled 2 — +20 DEF', passive: [{ stat: 'def', op: 'add', value: 20 }] }, { id: 'jp-def2', label: '2x rolled 2 — +40 DEF', passive: [{ stat: 'def', op: 'add', value: 40 }] }, { id: 'jp-def3', label: '3x rolled 2 — +60 DEF', passive: [{ stat: 'def', op: 'add', value: 60 }] }],
+    notes: 'On kill, roll 1d3. Toggle the closest stack count for accumulated ATK/DEF rolls. Roll 3 = 30% HP restore (no button).',
+  },
+
+  devilsbargain: {
+    name: "Devil's Bargain", rarity: 'legendary',
+    desc: 'Triple your ATK and MAG (x3). At the end of each battle, one random stat (not ATK or MAG) is permanently cut by 10%.',
+    passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }],
+    notes: 'After each battle: one of HP/DEF/SPD/etc. is cut by -10% permanently. Track manually.',
+  },
+
+  russianroulette: {
+    name: 'Russian Roulette', rarity: 'legendary',
+    desc: 'All your main stats are +65%. At the start of each turn, there is a 1-in-6 chance you take 50% of your max HP as true damage.',
+    passive: [{ stat: 'all_main', op: 'pct', value: 65 }],
+    notes: 'Start of each turn: roll d6. On a 1, take 50% max HP as true damage. +65% all main stats is always active.',
+  },
 
   // ============ STORY / THEMATIC TRAITS ============
   // MYTHIC
-  thousanddoors:   { name: 'At Thousand Doors, A Thousand Questions', rarity: 'mythic', desc: 'For every encounter, permanently increase or decrease a random stat by a random multiplier between x0.75 and x1.75. Effects compound and never reset.', passive: [], notes: 'Click ROLL ENCOUNTER after each fight. Results are permanent and compound.' },
-  anotherandanother:{ name: 'Another, and another.', rarity: 'mythic', desc: 'Every hit you deal or receive counts as a drink. ATK and MAG are fully randomized (biased toward lower values, max ~1000) each time you hit. DEF and HP are fully randomized each time you get hit. At 15 drinks: -50% SPD, -50% DEX, +100% Crit Chance, +30% Resilience.', passive: [], situational: [{ id: 'aaa-15', label: '15 drinks (max) — -50% SPD, -50% DEX, +100% Crit, +30% Resil', passive: [{ stat: 'spd', op: 'pct', value: -50 }, { stat: 'dexterity', op: 'pct', value: -50 }, { stat: 'crit_rate', op: 'pct', value: 100 }, { stat: 'resilience', op: 'pct', value: 30 }] }], notes: 'Use the REROLL buttons to randomize stats on hit or when hit.' },
-  lovesick:        { name: 'LOVESICK', rarity: 'mythic', desc: 'If you have a lover or partner, all healing toward them is multiplied by x50. You can no longer heal anyone else, including yourself.', passive: [], notes: 'x50 healing to designated partner only. Cannot heal self or any other ally.' },
-  godslayer:       { name: 'God Slayer', rarity: 'mythic', desc: 'If fighting an enemy stronger than you, copy their 3 highest stats and add those values to your own matching stats for the fight.', passive: [], notes: 'When facing a stronger enemy: manually add their 3 highest stat values to your base stats for that fight.' },
-  sentafteryou:    { name: 'If they sent me after you, then you must be forsaken.', rarity: 'mythic', desc: 'In a 1v1, the enemy\'s stats are permanently decreased by 75% for the duration of the fight.', passive: [], situational: [{ id: 'say-1v1', label: '1v1 active (enemy -75% all stats)', passive: [] }], notes: 'RP: in a 1v1, opponent suffers -75% all stats. No self stat impact.' },
-  steelwillfix:    { name: 'Steel will fix all your flaws.', rarity: 'mythic', desc: 'Become metallic. x3 DEF, ATK and MAG. You can replace any character\'s current trait with this one. Gain x1.25 all stats per metallic alive. Upon creating 7 metallics, use the EVOLVE button to upgrade to the hexxed form.', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'def', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }], situational: [{ id: 'swf-1m', label: '1 metallic alive (x1.25 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 25 }] }, { id: 'swf-2m', label: '2 metallics (x1.56 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 56 }] }, { id: 'swf-3m', label: '3 metallics (x1.95 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 95 }] }, { id: 'swf-4m', label: '4 metallics (x2.44 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 144 }] }, { id: 'swf-5m', label: '5 metallics (x3.05 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 205 }] }, { id: 'swf-6m', label: '6 metallics (x3.81 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 281 }] }] },
-  replaceallemotions:{ name: 'Replace all your petty emotions.', rarity: 'hexxed', desc: 'Evolved metallic form. x5 DEF, ATK and MAG. Gain the ability to turn anyone metallic. Gain x2 all stats per metallic alive.', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }], situational: [{ id: 'rae-1m', label: '1 metallic alive (x2 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 100 }] }, { id: 'rae-2m', label: '2 metallics (x4 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 300 }] }, { id: 'rae-3m', label: '3 metallics (x8 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 700 }] }, { id: 'rae-4m', label: '4 metallics (x16 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 1500 }] }, { id: 'rae-5m', label: '5 metallics (x32 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 3100 }] }, { id: 'rae-6m', label: '6 metallics (x64 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 6300 }] }, { id: 'rae-7m', label: '7 metallics (x128 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 12700 }] }] },
-  letthestage:     { name: 'Let the stage see who\'s greater!', rarity: 'mythic', desc: 'In a 1v1, both you and the enemy\'s stats are multiplied by x5. The winner permanently absorbs the loser\'s stats after the fight.', passive: [], situational: [{ id: 'lts-1v1', label: '1v1 active (x5 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }] }] },
-  wontexist:       { name: 'You won\'t exist anymore!', rarity: 'mythic', desc: 'Defeated enemies are permanently erased from existence. You gain dormant erasure powers.', passive: [], notes: 'RP mechanic. Defeated enemies cease to exist. Erasure abilities are DM-determined.' },
-  iamgonnawin:     { name: 'I\'m gonna win.', rarity: 'mythic', desc: 'Upon receiving an attack that would knock you out, instead heal to 100% HP and drain all stats from your party members to yourself.', passive: [], notes: 'One-time per fight: survive a lethal hit at 100% HP and absorb all ally stats.' },
-  unbroken:        { name: 'Unbroken', rarity: 'mythic', desc: 'You cannot take physical damage. Magical, true, and status damage still apply.', passive: [], notes: 'Physical damage immunity only.' },
-  themoss:         { name: 'The Moss', rarity: 'mythic', desc: 'On-hit, apply MOSS to enemies. Affected enemies are slowly consumed, losing -5% HP and -10% DEF per turn. MOSS is only removed by water.', passive: [], notes: 'MOSS: -5% HP and -10% DEF per turn. Removed only by water. Stacks on each hit.' },
-  harbingerruin:   { name: 'Harbinger of Ruin', rarity: 'mythic', desc: 'When hit, the attacker permanently loses 5% all non-HP stats. On-hit, apply RUIN: target loses 3% all non-HP stats per turn for 2 rounds (stacks up to 5). Upon defeating an enemy, they permanently lose 5% all stats.', passive: [], notes: 'Hit-reaction: permanent -5% all non-HP stats on attacker. RUIN: 3% per turn for 2 rounds, 5 stacks max.' },
-  revived:         { name: 'REVIVED', rarity: 'mythic', desc: 'Once per campaign: upon fully dying, revive at 100% HP and permanently gain x2 all stats. After reviving, gain one random legendary trait.', passive: [], situational: [{ id: 'rev-active', label: 'REVIVED (x2 all stats, permanent)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }], notes: 'One-time per campaign. On death: 100% HP + x2 all stats permanently + random legendary trait.' },
+  thousanddoors: {
+    name: 'At Thousand Doors, A Thousand Questions', rarity: 'mythic',
+    desc: 'For every encounter, permanently increase or decrease a random stat by a random multiplier between x0.75 and x1.75. Effects compound and never reset.',
+    passive: [],
+    notes: 'Click ROLL ENCOUNTER after each fight. Results are permanent and compound.',
+  },
+
+  anotherandanother: {
+    name: 'Another, and another.', rarity: 'mythic',
+    desc: 'Every hit you deal or receive counts as a drink. ATK and MAG are fully randomized (biased toward lower values, max ~1000) each time you hit. DEF and HP are fully randomized each time you get hit. At 15 drinks: -50% SPD, -50% DEX, +100% Crit Chance, +30% Resilience.',
+    passive: [],
+    situational: [{ id: 'aaa-15', label: '15 drinks (max) — -50% SPD, -50% DEX, +100% Crit, +30% Resil', passive: [{ stat: 'spd', op: 'pct', value: -50 }, { stat: 'dexterity', op: 'pct', value: -50 }, { stat: 'crit_rate', op: 'pct', value: 100 }, { stat: 'resilience', op: 'pct', value: 30 }] }],
+    notes: 'Use the REROLL buttons to randomize stats on hit or when hit.',
+  },
+
+  lovesick: {
+    name: 'LOVESICK', rarity: 'mythic',
+    desc: 'If you have a lover or partner, all healing toward them is multiplied by x50. You can no longer heal anyone else, including yourself.',
+    passive: [],
+    notes: 'x50 healing to designated partner only. Cannot heal self or any other ally.',
+  },
+
+  godslayer: {
+    name: 'God Slayer', rarity: 'mythic',
+    desc: 'If fighting an enemy stronger than you, copy their 3 highest stats and add those values to your own matching stats for the fight.',
+    passive: [],
+    notes: 'When facing a stronger enemy: manually add their 3 highest stat values to your base stats for that fight.',
+  },
+
+  sentafteryou: {
+    name: 'If they sent me after you, then you must be forsaken.', rarity: 'mythic',
+    desc: 'In a 1v1, the enemy\'s stats are permanently decreased by 75% for the duration of the fight.',
+    passive: [],
+    situational: [{ id: 'say-1v1', label: '1v1 active (enemy -75% all stats)', passive: [] }],
+    notes: 'RP: in a 1v1, opponent suffers -75% all stats. No self stat impact.',
+  },
+
+  steelwillfix: {
+    name: 'Steel will fix all your flaws.', rarity: 'mythic',
+    desc: 'Become metallic. x3 DEF, ATK and MAG. You can replace any character\'s current trait with this one. Gain x1.25 all stats per metallic alive. Upon creating 7 metallics, use the EVOLVE button to upgrade to the hexxed form.',
+    passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'def', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }],
+    situational: [{ id: 'swf-1m', label: '1 metallic alive (x1.25 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 25 }] }, { id: 'swf-2m', label: '2 metallics (x1.56 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 56 }] }, { id: 'swf-3m', label: '3 metallics (x1.95 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 95 }] }, { id: 'swf-4m', label: '4 metallics (x2.44 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 144 }] }, { id: 'swf-5m', label: '5 metallics (x3.05 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 205 }] }, { id: 'swf-6m', label: '6 metallics (x3.81 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 281 }] }],
+  },
+
+  replaceallemotions: {
+    name: 'Replace all your petty emotions.', rarity: 'hexxed',
+    desc: 'Evolved metallic form. x5 DEF, ATK and MAG. Gain the ability to turn anyone metallic. Gain x2 all stats per metallic alive.',
+    passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }],
+    situational: [{ id: 'rae-1m', label: '1 metallic alive (x2 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 100 }] }, { id: 'rae-2m', label: '2 metallics (x4 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 300 }] }, { id: 'rae-3m', label: '3 metallics (x8 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 700 }] }, { id: 'rae-4m', label: '4 metallics (x16 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 1500 }] }, { id: 'rae-5m', label: '5 metallics (x32 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 3100 }] }, { id: 'rae-6m', label: '6 metallics (x64 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 6300 }] }, { id: 'rae-7m', label: '7 metallics (x128 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 12700 }] }],
+  },
+
+  letthestage: {
+    name: 'Let the stage see who\'s greater!', rarity: 'mythic',
+    desc: 'In a 1v1, both you and the enemy\'s stats are multiplied by x5. The winner permanently absorbs the loser\'s stats after the fight.',
+    passive: [],
+    situational: [{ id: 'lts-1v1', label: '1v1 active (x5 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }] }],
+  },
+
+  wontexist: {
+    name: 'You won\'t exist anymore!', rarity: 'mythic',
+    desc: 'Defeated enemies are permanently erased from existence. You gain dormant erasure powers.',
+    passive: [],
+    notes: 'RP mechanic. Defeated enemies cease to exist. Erasure abilities are DM-determined.',
+  },
+
+  iamgonnawin: {
+    name: 'I\'m gonna win.', rarity: 'mythic',
+    desc: 'Upon receiving an attack that would knock you out, instead heal to 100% HP and drain all stats from your party members to yourself.',
+    passive: [],
+    notes: 'One-time per fight: survive a lethal hit at 100% HP and absorb all ally stats.',
+  },
+
+  unbroken: {
+    name: 'Unbroken', rarity: 'mythic',
+    desc: 'You cannot take physical damage. Magical, true, and status damage still apply.',
+    passive: [],
+    notes: 'Physical damage immunity only.',
+  },
+
+  themoss: {
+    name: 'The Moss', rarity: 'mythic',
+    desc: 'On-hit, apply MOSS to enemies. Affected enemies are slowly consumed, losing -5% HP and -10% DEF per turn. MOSS is only removed by water.',
+    passive: [],
+    notes: 'MOSS: -5% HP and -10% DEF per turn. Removed only by water. Stacks on each hit.',
+  },
+
+  harbingerruin: {
+    name: 'Harbinger of Ruin', rarity: 'mythic',
+    desc: 'When hit, the attacker permanently loses 5% all non-HP stats. On-hit, apply RUIN: target loses 3% all non-HP stats per turn for 2 rounds (stacks up to 5). Upon defeating an enemy, they permanently lose 5% all stats.',
+    passive: [],
+    notes: 'Hit-reaction: permanent -5% all non-HP stats on attacker. RUIN: 3% per turn for 2 rounds, 5 stacks max.',
+  },
+
+  revived: {
+    name: 'REVIVED', rarity: 'mythic',
+    desc: 'Once per campaign: upon fully dying, revive at 100% HP and permanently gain x2 all stats. After reviving, gain one random legendary trait.',
+    passive: [],
+    situational: [{ id: 'rev-active', label: 'REVIVED (x2 all stats, permanent)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }],
+    notes: 'One-time per campaign. On death: 100% HP + x2 all stats permanently + random legendary trait.',
+  },
 
   // DUALITY
-  redemptionretribution: { name: 'Redemption / Retribution', rarity: 'duality', desc: 'HEAVENLY (Redemption): for every enemy spared, gain +10% Heal Power and +10% MAG. HELLFORGED (Retribution): for every enemy killed, gain +10% ATK and +10% Crit Damage.', passive: [], heavenly: { name: 'Redemption', desc: 'For every enemy spared, gain +10% Heal Power and +10% MAG.', passive: [] }, hellforged: { name: 'Retribution', desc: 'For every enemy killed, gain +10% ATK and +10% Crit Damage.', passive: [] }, situational: [{ id: 'rdr-spa1', label: 'HEAVENLY: 1 enemy spared (+10% Heal, +10% MAG)', passive: [{ stat: 'heal_pow', op: 'add', value: 10 }, { stat: 'mag', op: 'pct', value: 10 }] }, { id: 'rdr-spa3', label: 'HEAVENLY: 3 enemies spared (+30% Heal, +30% MAG)', passive: [{ stat: 'heal_pow', op: 'add', value: 30 }, { stat: 'mag', op: 'pct', value: 30 }] }, { id: 'rdr-spa5', label: 'HEAVENLY: 5 enemies spared (+50% Heal, +50% MAG)', passive: [{ stat: 'heal_pow', op: 'add', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }] }, { id: 'rdr-spa10', label: 'HEAVENLY: 10 enemies spared (+100% Heal, +100% MAG)', passive: [{ stat: 'heal_pow', op: 'add', value: 100 }, { stat: 'mag', op: 'pct', value: 100 }] }, { id: 'rdr-kll1', label: 'HELLFORGED: 1 enemy killed (+10% ATK, +10% Crit DMG)', passive: [{ stat: 'atk', op: 'pct', value: 10 }, { stat: 'crit_dmg', op: 'pct', value: 10 }] }, { id: 'rdr-kll3', label: 'HELLFORGED: 3 enemies killed (+30% ATK, +30% Crit DMG)', passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'crit_dmg', op: 'pct', value: 30 }] }, { id: 'rdr-kll5', label: 'HELLFORGED: 5 enemies killed (+50% ATK, +50% Crit DMG)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'crit_dmg', op: 'pct', value: 50 }] }, { id: 'rdr-kll10', label: 'HELLFORGED: 10 enemies killed (+100% ATK, +100% Crit DMG)', passive: [{ stat: 'atk', op: 'pct', value: 100 }, { stat: 'crit_dmg', op: 'pct', value: 100 }] }] },
-  warandglory:     { name: 'War and Glory / Bold, Precise', rarity: 'duality', desc: 'HELLFORGED (War and Glory, Reinvention): 1 ATK = 1 True Damage, 1 True Damage = 1 Lifesteal, 1 Lifesteal = 1 Heal Power. HEAVENLY (Bold, Precise, Experimental): 1 DEF = +1 ATK, 2 ATK = +1 Resilience.', passive: [], heavenly: { name: 'Bold, Precise, Experimental', desc: '1 DEF = +1 ATK. 2 ATK = +1 Resilience.', passive: [{ op: 'derived', stat: 'atk', from: 'def', per: 1, perValue: 1 }, { op: 'derived', stat: 'resilience', from: 'atk', per: 2, perValue: 1 }] }, hellforged: { name: 'War and Glory, Reinvention', desc: '1 ATK = 1 True Damage. 1 True Damage = 1 Lifesteal. 1 Lifesteal = 1 Heal Power.', passive: [{ op: 'derived', stat: 'true_dmg', from: 'atk', per: 1, perValue: 1 }, { op: 'derived', stat: 'lifesteal', from: 'true_dmg', per: 1, perValue: 1 }, { op: 'derived', stat: 'heal_pow', from: 'lifesteal', per: 1, perValue: 1 }] }, situational: [] },
+  redemptionretribution: {
+    name: 'Redemption / Retribution', rarity: 'duality',
+    desc: 'HEAVENLY (Redemption): for every enemy spared, gain +10% Heal Power and +10% MAG. HELLFORGED (Retribution): for every enemy killed, gain +10% ATK and +10% Crit Damage.',
+    passive: [],
+    heavenly: { name: 'Redemption', desc: 'For every enemy spared, gain +10% Heal Power and +10% MAG.', passive: [] },
+    hellforged: { name: 'Retribution', desc: 'For every enemy killed, gain +10% ATK and +10% Crit Damage.', passive: [] },
+    situational: [{ id: 'rdr-spa1', label: 'HEAVENLY: 1 enemy spared (+10% Heal, +10% MAG)', passive: [{ stat: 'heal_pow', op: 'add', value: 10 }, { stat: 'mag', op: 'pct', value: 10 }] }, { id: 'rdr-spa3', label: 'HEAVENLY: 3 enemies spared (+30% Heal, +30% MAG)', passive: [{ stat: 'heal_pow', op: 'add', value: 30 }, { stat: 'mag', op: 'pct', value: 30 }] }, { id: 'rdr-spa5', label: 'HEAVENLY: 5 enemies spared (+50% Heal, +50% MAG)', passive: [{ stat: 'heal_pow', op: 'add', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }] }, { id: 'rdr-spa10', label: 'HEAVENLY: 10 enemies spared (+100% Heal, +100% MAG)', passive: [{ stat: 'heal_pow', op: 'add', value: 100 }, { stat: 'mag', op: 'pct', value: 100 }] }, { id: 'rdr-kll1', label: 'HELLFORGED: 1 enemy killed (+10% ATK, +10% Crit DMG)', passive: [{ stat: 'atk', op: 'pct', value: 10 }, { stat: 'crit_dmg', op: 'pct', value: 10 }] }, { id: 'rdr-kll3', label: 'HELLFORGED: 3 enemies killed (+30% ATK, +30% Crit DMG)', passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'crit_dmg', op: 'pct', value: 30 }] }, { id: 'rdr-kll5', label: 'HELLFORGED: 5 enemies killed (+50% ATK, +50% Crit DMG)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'crit_dmg', op: 'pct', value: 50 }] }, { id: 'rdr-kll10', label: 'HELLFORGED: 10 enemies killed (+100% ATK, +100% Crit DMG)', passive: [{ stat: 'atk', op: 'pct', value: 100 }, { stat: 'crit_dmg', op: 'pct', value: 100 }] }],
+  },
+
+  warandglory: {
+    name: 'War and Glory / Bold, Precise', rarity: 'duality',
+    desc: 'HELLFORGED (War and Glory, Reinvention): 1 ATK = 1 True Damage, 1 True Damage = 1 Lifesteal, 1 Lifesteal = 1 Heal Power. HEAVENLY (Bold, Precise, Experimental): 1 DEF = +1 ATK, 2 ATK = +1 Resilience.',
+    passive: [],
+    heavenly: { name: 'Bold, Precise, Experimental', desc: '1 DEF = +1 ATK. 2 ATK = +1 Resilience.', passive: [{ op: 'derived', stat: 'atk', from: 'def', per: 1, perValue: 1 }, { op: 'derived', stat: 'resilience', from: 'atk', per: 2, perValue: 1 }] },
+    hellforged: { name: 'War and Glory, Reinvention', desc: '1 ATK = 1 True Damage. 1 True Damage = 1 Lifesteal. 1 Lifesteal = 1 Heal Power.', passive: [{ op: 'derived', stat: 'true_dmg', from: 'atk', per: 1, perValue: 1 }, { op: 'derived', stat: 'lifesteal', from: 'true_dmg', per: 1, perValue: 1 }, { op: 'derived', stat: 'heal_pow', from: 'lifesteal', per: 1, perValue: 1 }] },
+    situational: [],
+  },
 
   // LEGENDARY
-  emotionless:     { name: 'Emotionless', rarity: 'legendary', desc: 'Your character loses the capability of having emotions, but all substats are doubled (x2).', passive: [{ stat: 'heal_pow', op: 'pct', value: 100 }, { stat: 'crit_rate', op: 'pct', value: 100 }, { stat: 'crit_dmg', op: 'pct', value: 100 }, { stat: 'status_res', op: 'pct', value: 100 }, { stat: 'dexterity', op: 'pct', value: 100 }, { stat: 'resilience', op: 'pct', value: 100 }, { stat: 'true_dmg', op: 'pct', value: 100 }, { stat: 'lifesteal', op: 'pct', value: 100 }, { stat: 'cooldown_red', op: 'pct', value: 100 }] },
-  reinforcecrew:   { name: 'What better time to reinforce our crew?', rarity: 'legendary', desc: 'When any ally drops to 50% HP, everyone in the party gains +50% DEF and an extra turn for one round.', passive: [], situational: [{ id: 'rc-trigger', label: 'Ally at 50% HP triggered (+50% DEF, extra turn)', passive: [{ stat: 'def', op: 'pct', value: 50 }] }], notes: 'Toggle when triggered. Untoggle after the round ends.' },
-  goodluckboys:    { name: 'Good luck out there, boys', rarity: 'legendary', desc: 'When you drop below 50% HP, leave the fight. In return, the rest of your party has their turn count doubled for the remainder of the battle.', passive: [], notes: 'RP: below 50% HP, exit combat. Party receives doubled turns.' },
-  holywar:         { name: 'Holy War', rarity: 'legendary', desc: 'Triple your party\'s turn count when fighting a spirit. Double them when fighting someone significantly stronger than you.', passive: [], situational: [{ id: 'hw-spirit', label: 'Fighting a spirit (party x3 turns)', passive: [] }, { id: 'hw-stronger', label: 'Fighting someone way stronger (party x2 turns)', passive: [] }], notes: 'RP: multiplied party turns. No self stat impact.' },
-  wegotthenumbers: { name: 'We got the numbers!', rarity: 'legendary', desc: 'If your party outnumbers the enemies, all your substats are tripled. If outnumbered, all substats drop by 50%.', passive: [], situational: [{ id: 'wgn-more', label: 'Outnumbering enemies (substats x3)', passive: [{ stat: 'heal_pow', op: 'pct', value: 200 }, { stat: 'crit_rate', op: 'pct', value: 200 }, { stat: 'crit_dmg', op: 'pct', value: 200 }, { stat: 'status_res', op: 'pct', value: 200 }, { stat: 'dexterity', op: 'pct', value: 200 }, { stat: 'resilience', op: 'pct', value: 200 }, { stat: 'true_dmg', op: 'pct', value: 200 }, { stat: 'lifesteal', op: 'pct', value: 200 }, { stat: 'cooldown_red', op: 'pct', value: 200 }] }, { id: 'wgn-less', label: 'Outnumbered by enemies (substats -50%)', passive: [{ stat: 'heal_pow', op: 'pct', value: -50 }, { stat: 'crit_rate', op: 'pct', value: -50 }, { stat: 'crit_dmg', op: 'pct', value: -50 }, { stat: 'status_res', op: 'pct', value: -50 }, { stat: 'dexterity', op: 'pct', value: -50 }, { stat: 'resilience', op: 'pct', value: -50 }, { stat: 'true_dmg', op: 'pct', value: -50 }, { stat: 'lifesteal', op: 'pct', value: -50 }, { stat: 'cooldown_red', op: 'pct', value: -50 }] }] },
-  hailname:        { name: 'Hail [NAME]', rarity: 'legendary', desc: 'Every time you defeat an enemy, you can recruit them by brainwashing them. Recruited characters fight for you but are permanently gone if defeated. [NAME] is replaced by your character\'s name.', passive: [], notes: 'RP mechanic. Recruited enemies fight for you. Lost forever on defeat.' },
-  onlyatraitor:    { name: 'Only a Traitor could consider making Peace', rarity: 'legendary', desc: 'You can no longer spare anyone. You may only kill. Upon receiving this trait, immediately roll 2 random extra legendary traits.', passive: [], notes: 'On pickup: auto-grants 2 random legendary traits. No sparing allowed (RP restriction).' },
-  partypooper:     { name: 'Party Pooper', rarity: 'legendary', desc: 'On-hit, apply FRACTURED to enemies. FRACTURED nullifies all healing and does not expire until battle ends. Gain +10% Lifesteal and +10% Crit Chance per Fractured enemy on the field.', passive: [], situational: [{ id: 'pp-1', label: '1 Fractured enemy (+10% Lifesteal, +10% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 10 }, { stat: 'crit_rate', op: 'add', value: 10 }] }, { id: 'pp-2', label: '2 Fractured enemies (+20% Lifesteal, +20% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 20 }, { stat: 'crit_rate', op: 'add', value: 20 }] }, { id: 'pp-3', label: '3 Fractured enemies (+30% Lifesteal, +30% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 30 }, { stat: 'crit_rate', op: 'add', value: 30 }] }, { id: 'pp-4', label: '4+ Fractured enemies (+40% Lifesteal, +40% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 40 }, { stat: 'crit_rate', op: 'add', value: 40 }] }] },
-  turningpoint:    { name: 'Turning Point', rarity: 'legendary', desc: 'When dropping below 40% HP, gain x10 SPD and x10 DEX. This decreases by 20% each round (minimum x0.25). Gain an extra turn while the multiplier is above x4.', passive: [], situational: [{ id: 'tp-t1', label: 'Turn 1: x10 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 10 }, { stat: 'dexterity', op: 'mul', value: 10 }] }, { id: 'tp-t2', label: 'Turn 2: x8 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 8 }, { stat: 'dexterity', op: 'mul', value: 8 }] }, { id: 'tp-t3', label: 'Turn 3: x6.4 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 6.4 }, { stat: 'dexterity', op: 'mul', value: 6.4 }] }, { id: 'tp-t4', label: 'Turn 4: x5.1 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 5.1 }, { stat: 'dexterity', op: 'mul', value: 5.1 }] }, { id: 'tp-t5', label: 'Turn 5: x4.1 SPD and DEX', passive: [{ stat: 'spd', op: 'mul', value: 4.1 }, { stat: 'dexterity', op: 'mul', value: 4.1 }] }, { id: 'tp-fade', label: 'Faded (x0.25 SPD and DEX floor)', passive: [{ stat: 'spd', op: 'mul', value: 0.25 }, { stat: 'dexterity', op: 'mul', value: 0.25 }] }] },
-  keepup:          { name: 'KEEP UP', rarity: 'legendary', desc: 'Start with x2 SPD and x2 DEX. Every turn your SPD and DEX increase by x1.5. Enemies\' SPD and DEX increase by x1.4 (your party is unaffected). +1 ATK per 20 SPD, +1 MAG per 5 DEX.', passive: [{ op: 'derived', stat: 'atk', from: 'spd', per: 20, perValue: 1 }, { op: 'derived', stat: 'mag', from: 'dexterity', per: 5, perValue: 1 }], situational: [{ id: 'ku-t1', label: 'Turn 1 (x2 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 2 }, { stat: 'dexterity', op: 'mul', value: 2 }] }, { id: 'ku-t2', label: 'Turn 2 (x3 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 3 }, { stat: 'dexterity', op: 'mul', value: 3 }] }, { id: 'ku-t3', label: 'Turn 3 (x4.5 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 4.5 }, { stat: 'dexterity', op: 'mul', value: 4.5 }] }, { id: 'ku-t4', label: 'Turn 4 (x6.75 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 6.75 }, { stat: 'dexterity', op: 'mul', value: 6.75 }] }, { id: 'ku-t5', label: 'Turn 5 (x10 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 10 }, { stat: 'dexterity', op: 'mul', value: 10 }] }, { id: 'ku-t6', label: 'Turn 6 (x15 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 15 }, { stat: 'dexterity', op: 'mul', value: 15 }] }], notes: 'Toggle exactly one turn button at a time. ATK and MAG bonuses from SPD/DEX are derived automatically.' },
-  wartrivial:      { name: 'War, What a Trivial thing.', rarity: 'legendary', desc: 'Permanently gain +10 to all stats for every fight you leave early.', passive: [], situational: [{ id: 'wt-1', label: '1 fight left early (+10 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 10 }] }, { id: 'wt-3', label: '3 fights left (+30 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 30 }] }, { id: 'wt-5', label: '5 fights left (+50 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 50 }] }, { id: 'wt-10', label: '10 fights left (+100 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 100 }] }, { id: 'wt-20', label: '20 fights left (+200 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 200 }] }] },
-  perfectsoul:     { name: 'I want a perfect soul.', rarity: 'legendary', desc: 'Absorb enemies\' souls if they are below 20% HP, gaining a portion of their stats. Each soul absorbed reduces your sanity.', passive: [], notes: 'Select a character and click ABSORB SOUL to permanently gain 40-80% of their stats.' },
-  lotuswaters:     { name: 'Lotus Waters', rarity: 'legendary', desc: 'Your water abilities turn pink, or you gain water manipulation. Your water heals enemies for +5% HP per turn and damages them for -5% HP per turn while in it. Once per battle: flood the arena for 2 rounds.', passive: [], notes: 'No shimmyful. Has a Hexxed variant: Lavender Waters.' },
-  lavenderwaters:  { name: 'Lavender Waters', rarity: 'hexxed', desc: 'Your water abilities turn lavender, or you gain water manipulation. Your water heals enemies for +15% HP per turn and damages them for -15% HP per turn while in it. Once per battle: flood the arena for 3 rounds.', passive: [], notes: 'Hexxed version of Lotus Waters. No shimmyful.' },
-  reekofdisease:   { name: 'You reek of disease.', rarity: 'legendary', desc: 'If an enemy is below 40% HP, immediately apply 5 stacks of POISON on them, dealing -20% HP per turn until they are defeated.', passive: [], notes: 'Auto-apply 5 poison stacks to enemies below 40% HP. -20% HP per turn total.' },
-  megalostrikeback:{ name: 'Megalo Strike Back', rarity: 'legendary', desc: 'If fighting the same enemy for the second time, gain +200% Crit Chance and +200% Crit Damage. Defeating that enemy permanently adds these bonuses to your stats.', passive: [], situational: [{ id: 'msb-2nd', label: 'Second fight vs this enemy (+200% Crit, +200% Crit DMG)', passive: [{ stat: 'crit_rate', op: 'pct', value: 200 }, { stat: 'crit_dmg', op: 'pct', value: 200 }] }, { id: 'msb-perm', label: 'Enemy defeated (permanent +200% Crit, +200% Crit DMG)', passive: [{ stat: 'crit_rate', op: 'pct', value: 200 }, { stat: 'crit_dmg', op: 'pct', value: 200 }] }] },
-  engarde:         { name: 'En garde!', rarity: 'legendary', desc: 'Pick one enemy and force them into a separate 1v1 arena. Neither can interact with other units. The arena lasts 3 rounds or until one is knocked out. The winner gains x1.5 ATK and SPD for the rest of the fight.', passive: [], situational: [{ id: 'eg-arena', label: 'In the arena (1v1 active)', passive: [] }, { id: 'eg-win', label: 'Won the arena (x1.5 ATK and SPD)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'spd', op: 'pct', value: 50 }] }] },
-  killingspree:    { name: 'Killing Spree', rarity: 'legendary', desc: 'For every enemy killed this fight, permanently gain +5% SPD and +5% ATK. Losing a fight resets all stacks.', passive: [], situational: [{ id: 'ks-1', label: '1 kill (+5% SPD, +5% ATK)', passive: [{ stat: 'spd', op: 'pct', value: 5 }, { stat: 'atk', op: 'pct', value: 5 }] }, { id: 'ks-3', label: '3 kills (+15% SPD, +15% ATK)', passive: [{ stat: 'spd', op: 'pct', value: 15 }, { stat: 'atk', op: 'pct', value: 15 }] }, { id: 'ks-5', label: '5 kills (+25% SPD, +25% ATK)', passive: [{ stat: 'spd', op: 'pct', value: 25 }, { stat: 'atk', op: 'pct', value: 25 }] }, { id: 'ks-10', label: '10 kills (+50% SPD, +50% ATK)', passive: [{ stat: 'spd', op: 'pct', value: 50 }, { stat: 'atk', op: 'pct', value: 50 }] }, { id: 'ks-20', label: '20 kills (+100% SPD, +100% ATK)', passive: [{ stat: 'spd', op: 'pct', value: 100 }, { stat: 'atk', op: 'pct', value: 100 }] }] },
-  armyofshurima:   { name: 'The army of Shurima never dies', rarity: 'legendary', desc: 'At the start of every fight, summon 3 sand soldiers with 70 HP, 50 ATK, 10 DEF, 30 SPD and 30 MAG each.', passive: [], notes: 'Summons 3 sand soldiers at battle start. They fight alongside and can be targeted.' },
-  ialwayscomeback: { name: 'I always come back', rarity: 'legendary', desc: 'Every time you are defeated, permanently gain +25% to all base stats. The battle immediately after being defeated, all attacks deal 100% True Damage.', passive: [], situational: [{ id: 'iac-true', label: 'Battle after defeat (100% True Damage)', passive: [{ stat: 'true_dmg', op: 'add', value: 100 }] }, { id: 'iac-1', label: '1 defeat (+25% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 25 }] }, { id: 'iac-2', label: '2 defeats (+50% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 50 }] }, { id: 'iac-3', label: '3 defeats (+75% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 75 }] }, { id: 'iac-5', label: '5 defeats (+125% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 125 }] }] },
-  thefinalact:     { name: 'The final act', rarity: 'legendary', desc: 'If anyone drops below 5% HP, everyone is healed, all DEF drops to 0, and your ATK and MAG increase by x1.35 per unit currently in the battle.', passive: [], situational: [{ id: 'tfa-2u', label: 'Triggered, 2 units in battle (x1.82 ATK/MAG)', passive: [{ stat: 'atk', op: 'mul', value: 1.82 }, { stat: 'mag', op: 'mul', value: 1.82 }] }, { id: 'tfa-4u', label: 'Triggered, 4 units in battle (x3.32 ATK/MAG)', passive: [{ stat: 'atk', op: 'mul', value: 3.32 }, { stat: 'mag', op: 'mul', value: 3.32 }] }, { id: 'tfa-6u', label: 'Triggered, 6 units in battle (x6.05 ATK/MAG)', passive: [{ stat: 'atk', op: 'mul', value: 6.05 }, { stat: 'mag', op: 'mul', value: 6.05 }] }, { id: 'tfa-8u', label: 'Triggered, 8 units in battle (x11 ATK/MAG)', passive: [{ stat: 'atk', op: 'mul', value: 11 }, { stat: 'mag', op: 'mul', value: 11 }] }] },
-  truehero:        { name: 'True Hero', rarity: 'legendary', desc: 'The more kills the enemy has, the higher your stats. Gain x1.05 to all main stats for every kill the target has to their name.', passive: [], situational: [{ id: 'th-5k', label: 'Enemy has 5 kills (x1.28 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 28 }] }, { id: 'th-10k', label: 'Enemy has 10 kills (x1.63 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 63 }] }, { id: 'th-20k', label: 'Enemy has 20 kills (x2.65 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 165 }] }, { id: 'th-50k', label: 'Enemy has 50 kills (x11.5 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 1050 }] }] },
-  breakunbreakable:{ name: 'Break the Unbreakable', rarity: 'legendary', desc: 'Ignore all enemy DEF. Deal additional damage proportional to how much DEF the enemy has. The more armored they are, the harder you hit.', passive: [], notes: 'Enemy DEF completely ignored. Bonus damage = enemy DEF value (RP-adjudicated by DM).' },
-  itwasutile:      { name: 'It was Futile', rarity: 'legendary', desc: 'If hit by an enemy whose ATK is lower than yours, you take zero damage. The attack simply does not land.', passive: [], notes: 'Immune to attacks from enemies with lower ATK. RP-adjudicated.' },
-  absoluteterritory:{ name: 'Absolute Territory', rarity: 'legendary', desc: 'You are forced to wear thigh highs and a miniskirt. In exchange: x3.5 ATK, x3.5 DEF, x3.5 MAG and x3.5 Crit Chance.', passive: [{ stat: 'atk', op: 'mul', value: 3.5 }, { stat: 'def', op: 'mul', value: 3.5 }, { stat: 'mag', op: 'mul', value: 3.5 }, { stat: 'crit_rate', op: 'pct', value: 250 }] },
-  ifeelmonster:    { name: 'I feel like a Monster', rarity: 'legendary', desc: 'You can harm allies. For every ally you attack, gain +50% ATK and +50% MAG. Stacks per ally attacked.', passive: [], situational: [{ id: 'ifm-1a', label: '1 ally attacked (+50% ATK, +50% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }] }, { id: 'ifm-2a', label: '2 allies attacked (+100% ATK, +100% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 100 }, { stat: 'mag', op: 'pct', value: 100 }] }, { id: 'ifm-3a', label: '3 allies attacked (+150% ATK, +150% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 150 }, { stat: 'mag', op: 'pct', value: 150 }] }, { id: 'ifm-4a', label: '4+ allies attacked (+200% ATK, +200% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 200 }, { stat: 'mag', op: 'pct', value: 200 }] }] },
-  nothereyou:      { name: 'I\'m not here for you', rarity: 'legendary', desc: 'Choose one ally. You can only heal them and yourself. Every time you heal that ally, gain +50% to all non-HP stats for 1 round.', passive: [], situational: [{ id: 'nhy-heal', label: 'Just healed chosen ally (+50% ATK/DEF/MAG/SPD)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'def', op: 'pct', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }, { stat: 'spd', op: 'pct', value: 50 }] }] },
-  woetothee:       { name: 'Woe to Thee', rarity: 'legendary', desc: 'Every 2 ATK converts to 1% True Damage, capped at 90%. Upon receiving this trait, immediately roll one random shimmyful legendary trait on top of it.', passive: [{ op: 'derived', stat: 'true_dmg', from: 'atk', per: 2, perValue: 1, cap: 90 }], notes: 'On pickup: auto-grants 1 random shimmyful legendary. True Damage scales with ATK automatically.' },
-  paralyzer:       { name: 'Paralyzer', rarity: 'legendary', desc: 'On-hit, apply PARALYZED to enemies. Paralyzed enemies skip a turn and lose all SPD and DEX. Gain +5% DEF per Paralyzed enemy on the field.', passive: [], situational: [{ id: 'par-1', label: '1 Paralyzed enemy (+5% DEF)', passive: [{ stat: 'def', op: 'pct', value: 5 }] }, { id: 'par-2', label: '2 Paralyzed enemies (+10% DEF)', passive: [{ stat: 'def', op: 'pct', value: 10 }] }, { id: 'par-3', label: '3 Paralyzed enemies (+15% DEF)', passive: [{ stat: 'def', op: 'pct', value: 15 }] }, { id: 'par-4', label: '4+ Paralyzed enemies (+20% DEF)', passive: [{ stat: 'def', op: 'pct', value: 20 }] }] },
-  stillstanding:   { name: 'Still Standing', rarity: 'legendary', desc: 'Upon reaching 25% HP, immediately heal back to 50% HP and gain FOCUS for 3 turns. FOCUS: attacks cannot miss and dodge chance is increased. Kills extend FOCUS with extra turns.', passive: [], situational: [{ id: 'ss-focus', label: 'FOCUS active (no misses, bonus dodge, 3 turns)', passive: [] }, { id: 'ss-kill', label: 'Kill extended FOCUS (extra turn granted)', passive: [] }], notes: 'At 25% HP: auto-heal to 50% + FOCUS. Kills while in FOCUS grant extra turns.' },
-  willsurvive:     { name: 'I will Survive!', rarity: 'legendary', desc: 'If your life is threatened, you instinctively teleport far away. You can still be knocked out.', passive: [], notes: 'RP: on life-threatening situations, teleport away. Does not prevent knockouts entirely.' },
-  banquet:         { name: 'Banquet', rarity: 'legendary', desc: 'Various foods appear on the battlefield, invisible to enemies. You and your allies heal 10% HP per food eaten without wasting a turn, but lose -25% SPD for that turn.', passive: [], situational: [{ id: 'ban-eating', label: 'Eating food this turn (-25% SPD)', passive: [{ stat: 'spd', op: 'pct', value: -25 }] }] },
-  raciallymotivated:{ name: 'Racially Motivated', rarity: 'legendary', desc: 'Deal x2 damage to enemies of a different species. Deal x0.5 damage to enemies of the same species.', passive: [], situational: [{ id: 'rm-diff', label: 'Targeting different species (x2 damage)', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'mag', op: 'mul', value: 2 }] }, { id: 'rm-same', label: 'Targeting same species (x0.5 damage)', passive: [{ stat: 'atk', op: 'mul', value: 0.5 }, { stat: 'mag', op: 'mul', value: 0.5 }] }] },
-  jolly:           { name: 'Jolly', rarity: 'legendary', desc: 'During Christmas, get x5 all stats.', passive: [], situational: [{ id: 'jolly-xmas', label: 'It\'s Christmas (x5 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }] }] },
-  spooky:          { name: 'Spooky', rarity: 'legendary', desc: 'During Halloween, get x5 all stats.', passive: [], situational: [{ id: 'spooky-hw', label: 'It\'s Halloween (x5 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }] }] },
-  anarchy:         { name: 'Anarchy', rarity: 'legendary', desc: 'All enemies can hit each other and all allies can hit each other. Hitting a teammate grants them +5% all stats; same with enemies. You accumulate everyone\'s anarchy bonuses.', passive: [], notes: 'RP: friendly fire enabled. Each friendly-fire hit grants target +5% stats. You gain all such accumulated bonuses.' },
-  yourearly:       { name: 'You\'re early', rarity: 'legendary', desc: 'Apply BLEEDING, POISON and BURNING to the first enemy who attacks in the battle, lasting 2 rounds.', passive: [], notes: 'Reactive trigger on the first enemy attack of the battle. All three status effects for 2 rounds.' },
+  emotionless: {
+    name: 'Emotionless', rarity: 'legendary',
+    desc: 'Your character loses the capability of having emotions, but all substats are doubled (x2).',
+    passive: [{ stat: 'heal_pow', op: 'pct', value: 100 }, { stat: 'crit_rate', op: 'pct', value: 100 }, { stat: 'crit_dmg', op: 'pct', value: 100 }, { stat: 'status_res', op: 'pct', value: 100 }, { stat: 'dexterity', op: 'pct', value: 100 }, { stat: 'resilience', op: 'pct', value: 100 }, { stat: 'true_dmg', op: 'pct', value: 100 }, { stat: 'lifesteal', op: 'pct', value: 100 }, { stat: 'cooldown_red', op: 'pct', value: 100 }],
+  },
+
+  reinforcecrew: {
+    name: 'What better time to reinforce our crew?', rarity: 'legendary',
+    desc: 'When any ally drops to 50% HP, everyone in the party gains +50% DEF and an extra turn for one round.',
+    passive: [],
+    situational: [{ id: 'rc-trigger', label: 'Ally at 50% HP triggered (+50% DEF, extra turn)', passive: [{ stat: 'def', op: 'pct', value: 50 }] }],
+    notes: 'Toggle when triggered. Untoggle after the round ends.',
+  },
+
+  goodluckboys: {
+    name: 'Good luck out there, boys', rarity: 'legendary',
+    desc: 'When you drop below 50% HP, leave the fight. In return, the rest of your party has their turn count doubled for the remainder of the battle.',
+    passive: [],
+    notes: 'RP: below 50% HP, exit combat. Party receives doubled turns.',
+  },
+
+  holywar: {
+    name: 'Holy War', rarity: 'legendary',
+    desc: 'Triple your party\'s turn count when fighting a spirit. Double them when fighting someone significantly stronger than you.',
+    passive: [],
+    situational: [{ id: 'hw-spirit', label: 'Fighting a spirit (party x3 turns)', passive: [] }, { id: 'hw-stronger', label: 'Fighting someone way stronger (party x2 turns)', passive: [] }],
+    notes: 'RP: multiplied party turns. No self stat impact.',
+  },
+
+  wegotthenumbers: {
+    name: 'We got the numbers!', rarity: 'legendary',
+    desc: 'If your party outnumbers the enemies, all your substats are tripled. If outnumbered, all substats drop by 50%.',
+    passive: [],
+    situational: [{ id: 'wgn-more', label: 'Outnumbering enemies (substats x3)', passive: [{ stat: 'heal_pow', op: 'pct', value: 200 }, { stat: 'crit_rate', op: 'pct', value: 200 }, { stat: 'crit_dmg', op: 'pct', value: 200 }, { stat: 'status_res', op: 'pct', value: 200 }, { stat: 'dexterity', op: 'pct', value: 200 }, { stat: 'resilience', op: 'pct', value: 200 }, { stat: 'true_dmg', op: 'pct', value: 200 }, { stat: 'lifesteal', op: 'pct', value: 200 }, { stat: 'cooldown_red', op: 'pct', value: 200 }] }, { id: 'wgn-less', label: 'Outnumbered by enemies (substats -50%)', passive: [{ stat: 'heal_pow', op: 'pct', value: -50 }, { stat: 'crit_rate', op: 'pct', value: -50 }, { stat: 'crit_dmg', op: 'pct', value: -50 }, { stat: 'status_res', op: 'pct', value: -50 }, { stat: 'dexterity', op: 'pct', value: -50 }, { stat: 'resilience', op: 'pct', value: -50 }, { stat: 'true_dmg', op: 'pct', value: -50 }, { stat: 'lifesteal', op: 'pct', value: -50 }, { stat: 'cooldown_red', op: 'pct', value: -50 }] }],
+  },
+
+  hailname: {
+    name: 'Hail [NAME]', rarity: 'legendary',
+    desc: 'Every time you defeat an enemy, you can recruit them by brainwashing them. Recruited characters fight for you but are permanently gone if defeated. [NAME] is replaced by your character\'s name.',
+    passive: [],
+    notes: 'RP mechanic. Recruited enemies fight for you. Lost forever on defeat.',
+  },
+
+  onlyatraitor: {
+    name: 'Only a Traitor could consider making Peace', rarity: 'legendary',
+    desc: 'You can no longer spare anyone. You may only kill. Upon receiving this trait, immediately roll 2 random extra legendary traits.',
+    passive: [],
+    notes: 'On pickup: auto-grants 2 random legendary traits. No sparing allowed (RP restriction).',
+  },
+
+  partypooper: {
+    name: 'Party Pooper', rarity: 'legendary',
+    desc: 'On-hit, apply FRACTURED to enemies. FRACTURED nullifies all healing and does not expire until battle ends. Gain +10% Lifesteal and +10% Crit Chance per Fractured enemy on the field.',
+    passive: [],
+    situational: [{ id: 'pp-1', label: '1 Fractured enemy (+10% Lifesteal, +10% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 10 }, { stat: 'crit_rate', op: 'add', value: 10 }] }, { id: 'pp-2', label: '2 Fractured enemies (+20% Lifesteal, +20% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 20 }, { stat: 'crit_rate', op: 'add', value: 20 }] }, { id: 'pp-3', label: '3 Fractured enemies (+30% Lifesteal, +30% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 30 }, { stat: 'crit_rate', op: 'add', value: 30 }] }, { id: 'pp-4', label: '4+ Fractured enemies (+40% Lifesteal, +40% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 40 }, { stat: 'crit_rate', op: 'add', value: 40 }] }],
+  },
+
+  turningpoint: {
+    name: 'Turning Point', rarity: 'legendary',
+    desc: 'When dropping below 40% HP, gain x10 SPD and x10 DEX. This decreases by 20% each round (minimum x0.25). Gain an extra turn while the multiplier is above x4.',
+    passive: [],
+    situational: [{ id: 'tp-t1', label: 'Turn 1: x10 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 10 }, { stat: 'dexterity', op: 'mul', value: 10 }] }, { id: 'tp-t2', label: 'Turn 2: x8 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 8 }, { stat: 'dexterity', op: 'mul', value: 8 }] }, { id: 'tp-t3', label: 'Turn 3: x6.4 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 6.4 }, { stat: 'dexterity', op: 'mul', value: 6.4 }] }, { id: 'tp-t4', label: 'Turn 4: x5.1 SPD and DEX (+ extra turn)', passive: [{ stat: 'spd', op: 'mul', value: 5.1 }, { stat: 'dexterity', op: 'mul', value: 5.1 }] }, { id: 'tp-t5', label: 'Turn 5: x4.1 SPD and DEX', passive: [{ stat: 'spd', op: 'mul', value: 4.1 }, { stat: 'dexterity', op: 'mul', value: 4.1 }] }, { id: 'tp-fade', label: 'Faded (x0.25 SPD and DEX floor)', passive: [{ stat: 'spd', op: 'mul', value: 0.25 }, { stat: 'dexterity', op: 'mul', value: 0.25 }] }],
+  },
+
+  keepup: {
+    name: 'KEEP UP', rarity: 'legendary',
+    desc: 'Start with x2 SPD and x2 DEX. Every turn your SPD and DEX increase by x1.5. Enemies\' SPD and DEX increase by x1.4 (your party is unaffected). +1 ATK per 20 SPD, +1 MAG per 5 DEX.',
+    passive: [{ op: 'derived', stat: 'atk', from: 'spd', per: 20, perValue: 1 }, { op: 'derived', stat: 'mag', from: 'dexterity', per: 5, perValue: 1 }],
+    situational: [{ id: 'ku-t1', label: 'Turn 1 (x2 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 2 }, { stat: 'dexterity', op: 'mul', value: 2 }] }, { id: 'ku-t2', label: 'Turn 2 (x3 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 3 }, { stat: 'dexterity', op: 'mul', value: 3 }] }, { id: 'ku-t3', label: 'Turn 3 (x4.5 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 4.5 }, { stat: 'dexterity', op: 'mul', value: 4.5 }] }, { id: 'ku-t4', label: 'Turn 4 (x6.75 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 6.75 }, { stat: 'dexterity', op: 'mul', value: 6.75 }] }, { id: 'ku-t5', label: 'Turn 5 (x10 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 10 }, { stat: 'dexterity', op: 'mul', value: 10 }] }, { id: 'ku-t6', label: 'Turn 6 (x15 SPD/DEX)', passive: [{ stat: 'spd', op: 'mul', value: 15 }, { stat: 'dexterity', op: 'mul', value: 15 }] }],
+    notes: 'Toggle exactly one turn button at a time. ATK and MAG bonuses from SPD/DEX are derived automatically.',
+  },
+
+  wartrivial: {
+    name: 'War, What a Trivial thing.', rarity: 'legendary',
+    desc: 'Permanently gain +10 to all stats for every fight you leave early.',
+    passive: [],
+    situational: [{ id: 'wt-1', label: '1 fight left early (+10 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 10 }] }, { id: 'wt-3', label: '3 fights left (+30 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 30 }] }, { id: 'wt-5', label: '5 fights left (+50 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 50 }] }, { id: 'wt-10', label: '10 fights left (+100 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 100 }] }, { id: 'wt-20', label: '20 fights left (+200 all stats)', passive: [{ stat: 'all_main', op: 'add', value: 200 }] }],
+  },
+
+  perfectsoul: {
+    name: 'I want a perfect soul.', rarity: 'legendary',
+    desc: 'Absorb enemies\' souls if they are below 20% HP, gaining a portion of their stats. Each soul absorbed reduces your sanity.',
+    passive: [],
+    notes: 'Select a character and click ABSORB SOUL to permanently gain 40-80% of their stats.',
+  },
+
+  lotuswaters: {
+    name: 'Lotus Waters', rarity: 'legendary',
+    desc: 'Your water abilities turn pink, or you gain water manipulation. Your water heals enemies for +5% HP per turn and damages them for -5% HP per turn while in it. Once per battle: flood the arena for 2 rounds.',
+    passive: [],
+    notes: 'No shimmyful. Has a Hexxed variant: Lavender Waters.',
+  },
+
+  lavenderwaters: {
+    name: 'Lavender Waters', rarity: 'hexxed',
+    desc: 'Your water abilities turn lavender, or you gain water manipulation. Your water heals enemies for +15% HP per turn and damages them for -15% HP per turn while in it. Once per battle: flood the arena for 3 rounds.',
+    passive: [],
+    notes: 'Hexxed version of Lotus Waters. No shimmyful.',
+  },
+
+  reekofdisease: {
+    name: 'You reek of disease.', rarity: 'legendary',
+    desc: 'If an enemy is below 40% HP, immediately apply 5 stacks of POISON on them, dealing -20% HP per turn until they are defeated.',
+    passive: [],
+    notes: 'Auto-apply 5 poison stacks to enemies below 40% HP. -20% HP per turn total.',
+  },
+
+  megalostrikeback: {
+    name: 'Megalo Strike Back', rarity: 'legendary',
+    desc: 'If fighting the same enemy for the second time, gain +200% Crit Chance and +200% Crit Damage. Defeating that enemy permanently adds these bonuses to your stats.',
+    passive: [],
+    situational: [{ id: 'msb-2nd', label: 'Second fight vs this enemy (+200% Crit, +200% Crit DMG)', passive: [{ stat: 'crit_rate', op: 'pct', value: 200 }, { stat: 'crit_dmg', op: 'pct', value: 200 }] }, { id: 'msb-perm', label: 'Enemy defeated (permanent +200% Crit, +200% Crit DMG)', passive: [{ stat: 'crit_rate', op: 'pct', value: 200 }, { stat: 'crit_dmg', op: 'pct', value: 200 }] }],
+  },
+
+  engarde: {
+    name: 'En garde!', rarity: 'legendary',
+    desc: 'Pick one enemy and force them into a separate 1v1 arena. Neither can interact with other units. The arena lasts 3 rounds or until one is knocked out. The winner gains x1.5 ATK and SPD for the rest of the fight.',
+    passive: [],
+    situational: [{ id: 'eg-arena', label: 'In the arena (1v1 active)', passive: [] }, { id: 'eg-win', label: 'Won the arena (x1.5 ATK and SPD)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'spd', op: 'pct', value: 50 }] }],
+  },
+
+  killingspree: {
+    name: 'Killing Spree', rarity: 'legendary',
+    desc: 'For every enemy killed this fight, permanently gain +5% SPD and +5% ATK. Losing a fight resets all stacks.',
+    passive: [],
+    situational: [{ id: 'ks-1', label: '1 kill (+5% SPD, +5% ATK)', passive: [{ stat: 'spd', op: 'pct', value: 5 }, { stat: 'atk', op: 'pct', value: 5 }] }, { id: 'ks-3', label: '3 kills (+15% SPD, +15% ATK)', passive: [{ stat: 'spd', op: 'pct', value: 15 }, { stat: 'atk', op: 'pct', value: 15 }] }, { id: 'ks-5', label: '5 kills (+25% SPD, +25% ATK)', passive: [{ stat: 'spd', op: 'pct', value: 25 }, { stat: 'atk', op: 'pct', value: 25 }] }, { id: 'ks-10', label: '10 kills (+50% SPD, +50% ATK)', passive: [{ stat: 'spd', op: 'pct', value: 50 }, { stat: 'atk', op: 'pct', value: 50 }] }, { id: 'ks-20', label: '20 kills (+100% SPD, +100% ATK)', passive: [{ stat: 'spd', op: 'pct', value: 100 }, { stat: 'atk', op: 'pct', value: 100 }] }],
+  },
+
+  armyofshurima: {
+    name: 'The army of Shurima never dies', rarity: 'legendary',
+    desc: 'At the start of every fight, summon 3 sand soldiers with 70 HP, 50 ATK, 10 DEF, 30 SPD and 30 MAG each.',
+    passive: [],
+    notes: 'Summons 3 sand soldiers at battle start. They fight alongside and can be targeted.',
+  },
+
+  ialwayscomeback: {
+    name: 'I always come back', rarity: 'legendary',
+    desc: 'Every time you are defeated, permanently gain +25% to all base stats. The battle immediately after being defeated, all attacks deal 100% True Damage.',
+    passive: [],
+    situational: [{ id: 'iac-true', label: 'Battle after defeat (100% True Damage)', passive: [{ stat: 'true_dmg', op: 'add', value: 100 }] }, { id: 'iac-1', label: '1 defeat (+25% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 25 }] }, { id: 'iac-2', label: '2 defeats (+50% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 50 }] }, { id: 'iac-3', label: '3 defeats (+75% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 75 }] }, { id: 'iac-5', label: '5 defeats (+125% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 125 }] }],
+  },
+
+  thefinalact: {
+    name: 'The final act', rarity: 'legendary',
+    desc: 'If anyone drops below 5% HP, everyone is healed, all DEF drops to 0, and your ATK and MAG increase by x1.35 per unit currently in the battle.',
+    passive: [],
+    situational: [{ id: 'tfa-2u', label: 'Triggered, 2 units in battle (x1.82 ATK/MAG)', passive: [{ stat: 'atk', op: 'mul', value: 1.82 }, { stat: 'mag', op: 'mul', value: 1.82 }] }, { id: 'tfa-4u', label: 'Triggered, 4 units in battle (x3.32 ATK/MAG)', passive: [{ stat: 'atk', op: 'mul', value: 3.32 }, { stat: 'mag', op: 'mul', value: 3.32 }] }, { id: 'tfa-6u', label: 'Triggered, 6 units in battle (x6.05 ATK/MAG)', passive: [{ stat: 'atk', op: 'mul', value: 6.05 }, { stat: 'mag', op: 'mul', value: 6.05 }] }, { id: 'tfa-8u', label: 'Triggered, 8 units in battle (x11 ATK/MAG)', passive: [{ stat: 'atk', op: 'mul', value: 11 }, { stat: 'mag', op: 'mul', value: 11 }] }],
+  },
+
+  truehero: {
+    name: 'True Hero', rarity: 'legendary',
+    desc: 'The more kills the enemy has, the higher your stats. Gain x1.05 to all main stats for every kill the target has to their name.',
+    passive: [],
+    situational: [{ id: 'th-5k', label: 'Enemy has 5 kills (x1.28 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 28 }] }, { id: 'th-10k', label: 'Enemy has 10 kills (x1.63 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 63 }] }, { id: 'th-20k', label: 'Enemy has 20 kills (x2.65 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 165 }] }, { id: 'th-50k', label: 'Enemy has 50 kills (x11.5 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 1050 }] }],
+  },
+
+  breakunbreakable: {
+    name: 'Break the Unbreakable', rarity: 'legendary',
+    desc: 'Ignore all enemy DEF. Deal additional damage proportional to how much DEF the enemy has. The more armored they are, the harder you hit.',
+    passive: [],
+    notes: 'Enemy DEF completely ignored. Bonus damage = enemy DEF value (RP-adjudicated by DM).',
+  },
+
+  itwasutile: {
+    name: 'It was Futile', rarity: 'legendary',
+    desc: 'If hit by an enemy whose ATK is lower than yours, you take zero damage. The attack simply does not land.',
+    passive: [],
+    notes: 'Immune to attacks from enemies with lower ATK. RP-adjudicated.',
+  },
+
+  absoluteterritory: {
+    name: 'Absolute Territory', rarity: 'legendary',
+    desc: 'You are forced to wear thigh highs and a miniskirt. In exchange: x3.5 ATK, x3.5 DEF, x3.5 MAG and x3.5 Crit Chance.',
+    passive: [{ stat: 'atk', op: 'mul', value: 3.5 }, { stat: 'def', op: 'mul', value: 3.5 }, { stat: 'mag', op: 'mul', value: 3.5 }, { stat: 'crit_rate', op: 'pct', value: 250 }],
+  },
+
+  ifeelmonster: {
+    name: 'I feel like a Monster', rarity: 'legendary',
+    desc: 'You can harm allies. For every ally you attack, gain +50% ATK and +50% MAG. Stacks per ally attacked.',
+    passive: [],
+    situational: [{ id: 'ifm-1a', label: '1 ally attacked (+50% ATK, +50% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }] }, { id: 'ifm-2a', label: '2 allies attacked (+100% ATK, +100% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 100 }, { stat: 'mag', op: 'pct', value: 100 }] }, { id: 'ifm-3a', label: '3 allies attacked (+150% ATK, +150% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 150 }, { stat: 'mag', op: 'pct', value: 150 }] }, { id: 'ifm-4a', label: '4+ allies attacked (+200% ATK, +200% MAG)', passive: [{ stat: 'atk', op: 'pct', value: 200 }, { stat: 'mag', op: 'pct', value: 200 }] }],
+  },
+
+  nothereyou: {
+    name: 'I\'m not here for you', rarity: 'legendary',
+    desc: 'Choose one ally. You can only heal them and yourself. Every time you heal that ally, gain +50% to all non-HP stats for 1 round.',
+    passive: [],
+    situational: [{ id: 'nhy-heal', label: 'Just healed chosen ally (+50% ATK/DEF/MAG/SPD)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'def', op: 'pct', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }, { stat: 'spd', op: 'pct', value: 50 }] }],
+  },
+
+  woetothee: {
+    name: 'Woe to Thee', rarity: 'legendary',
+    desc: 'Every 2 ATK converts to 1% True Damage, capped at 90%. Upon receiving this trait, immediately roll one random shimmyful legendary trait on top of it.',
+    passive: [{ op: 'derived', stat: 'true_dmg', from: 'atk', per: 2, perValue: 1, cap: 90 }],
+    notes: 'On pickup: auto-grants 1 random shimmyful legendary. True Damage scales with ATK automatically.',
+  },
+
+  paralyzer: {
+    name: 'Paralyzer', rarity: 'legendary',
+    desc: 'On-hit, apply PARALYZED to enemies. Paralyzed enemies skip a turn and lose all SPD and DEX. Gain +5% DEF per Paralyzed enemy on the field.',
+    passive: [],
+    situational: [{ id: 'par-1', label: '1 Paralyzed enemy (+5% DEF)', passive: [{ stat: 'def', op: 'pct', value: 5 }] }, { id: 'par-2', label: '2 Paralyzed enemies (+10% DEF)', passive: [{ stat: 'def', op: 'pct', value: 10 }] }, { id: 'par-3', label: '3 Paralyzed enemies (+15% DEF)', passive: [{ stat: 'def', op: 'pct', value: 15 }] }, { id: 'par-4', label: '4+ Paralyzed enemies (+20% DEF)', passive: [{ stat: 'def', op: 'pct', value: 20 }] }],
+  },
+
+  stillstanding: {
+    name: 'Still Standing', rarity: 'legendary',
+    desc: 'Upon reaching 25% HP, immediately heal back to 50% HP and gain FOCUS for 3 turns. FOCUS: attacks cannot miss and dodge chance is increased. Kills extend FOCUS with extra turns.',
+    passive: [],
+    situational: [{ id: 'ss-focus', label: 'FOCUS active (no misses, bonus dodge, 3 turns)', passive: [] }, { id: 'ss-kill', label: 'Kill extended FOCUS (extra turn granted)', passive: [] }],
+    notes: 'At 25% HP: auto-heal to 50% + FOCUS. Kills while in FOCUS grant extra turns.',
+  },
+
+  willsurvive: {
+    name: 'I will Survive!', rarity: 'legendary',
+    desc: 'If your life is threatened, you instinctively teleport far away. You can still be knocked out.',
+    passive: [],
+    notes: 'RP: on life-threatening situations, teleport away. Does not prevent knockouts entirely.',
+  },
+
+  banquet: {
+    name: 'Banquet', rarity: 'legendary',
+    desc: 'Various foods appear on the battlefield, invisible to enemies. You and your allies heal 10% HP per food eaten without wasting a turn, but lose -25% SPD for that turn.',
+    passive: [],
+    situational: [{ id: 'ban-eating', label: 'Eating food this turn (-25% SPD)', passive: [{ stat: 'spd', op: 'pct', value: -25 }] }],
+  },
+
+  raciallymotivated: {
+    name: 'Racially Motivated', rarity: 'legendary',
+    desc: 'Deal x2 damage to enemies of a different species. Deal x0.5 damage to enemies of the same species.',
+    passive: [],
+    situational: [{ id: 'rm-diff', label: 'Targeting different species (x2 damage)', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'mag', op: 'mul', value: 2 }] }, { id: 'rm-same', label: 'Targeting same species (x0.5 damage)', passive: [{ stat: 'atk', op: 'mul', value: 0.5 }, { stat: 'mag', op: 'mul', value: 0.5 }] }],
+  },
+
+  jolly: {
+    name: 'Jolly', rarity: 'legendary',
+    desc: 'During Christmas, get x5 all stats.',
+    passive: [],
+    situational: [{ id: 'jolly-xmas', label: 'It\'s Christmas (x5 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }] }],
+  },
+
+  spooky: {
+    name: 'Spooky', rarity: 'legendary',
+    desc: 'During Halloween, get x5 all stats.',
+    passive: [],
+    situational: [{ id: 'spooky-hw', label: 'It\'s Halloween (x5 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }] }],
+  },
+
+  anarchy: {
+    name: 'Anarchy', rarity: 'legendary',
+    desc: 'All enemies can hit each other and all allies can hit each other. Hitting a teammate grants them +5% all stats; same with enemies. You accumulate everyone\'s anarchy bonuses.',
+    passive: [],
+    notes: 'RP: friendly fire enabled. Each friendly-fire hit grants target +5% stats. You gain all such accumulated bonuses.',
+  },
+
+  yourearly: {
+    name: 'You\'re early', rarity: 'legendary',
+    desc: 'Apply BLEEDING, POISON and BURNING to the first enemy who attacks in the battle, lasting 2 rounds.',
+    passive: [],
+    notes: 'Reactive trigger on the first enemy attack of the battle. All three status effects for 2 rounds.',
+  },
+
   // HEXXED
-  killthesun:      { name: 'Kill The Sun', rarity: 'hexxed', desc: 'Deal x50 damage to Spirits.', passive: [], situational: [{ id: 'kts-spirit', label: 'Fighting a Spirit (x50 ATK and MAG)', passive: [{ stat: 'atk', op: 'mul', value: 50 }, { stat: 'mag', op: 'mul', value: 50 }] }] },
-  shimmyfuloverlord:{ name: 'SHIMMYFUL OVERLORD', rarity: 'hexxed', desc: 'Upon dropping below 60% HP, push all enemies back and transform into a semi-cosmic being. All attacks become shimmies and apply SHIMMYFIED stacks. SHIMMYFIED: target glows and has 30% DEF pierce per stack. Gain x15 MAG in shimmyful state.', passive: [], situational: [{ id: 'sfo-active', label: 'SHIMMYFUL OVERLORD active (below 60% HP)', passive: [{ stat: 'mag', op: 'mul', value: 15 }] }] },
+  killthesun: {
+    name: 'Kill The Sun', rarity: 'hexxed',
+    desc: 'Deal x50 damage to Spirits.',
+    passive: [],
+    situational: [{ id: 'kts-spirit', label: 'Fighting a Spirit (x50 ATK and MAG)', passive: [{ stat: 'atk', op: 'mul', value: 50 }, { stat: 'mag', op: 'mul', value: 50 }] }],
+  },
+
+  shimmyfuloverlord: {
+    name: 'SHIMMYFUL OVERLORD', rarity: 'hexxed',
+    desc: 'Upon dropping below 60% HP, push all enemies back and transform into a semi-cosmic being. All attacks become shimmies and apply SHIMMYFIED stacks. SHIMMYFIED: target glows and has 30% DEF pierce per stack. Gain x15 MAG in shimmyful state.',
+    passive: [],
+    situational: [{ id: 'sfo-active', label: 'SHIMMYFUL OVERLORD active (below 60% HP)', passive: [{ stat: 'mag', op: 'mul', value: 15 }] }],
+  },
+
   // EPIC
-  ascendedtogether:{ name: 'Ascended Together.', rarity: 'epic', desc: 'If an ally transforms or ascends, you automatically transform into a similar version of their form.', passive: [], notes: 'RP: mirrors ally transformation. Form is DM-determined based on the ally\'s ascension.' },
-  overlooked:      { name: 'Overlooked', rarity: 'epic', desc: 'If your stats are lower than every other unit in the fight, gain x10 Crit Chance and x10 Crit Damage.', passive: [], situational: [{ id: 'ovk-active', label: 'Overlooked active (lowest stats in fight)', passive: [{ stat: 'crit_rate', op: 'pct', value: 900 }, { stat: 'crit_dmg', op: 'pct', value: 900 }] }] },
-  soreloser:       { name: 'Sore Loser', rarity: 'epic', desc: 'Upon being defeated, the enemy who dealt the killing blow permanently loses 25% of their highest stat.', passive: [], notes: 'On-defeat trigger: attacker loses 25% of their highest stat permanently.' },
-  toottoo:         { name: 'Too Too', rarity: 'epic', desc: 'You are equipped with a tutu. Gain +50% SPD every time you are hit (stacking). 1 SPD = +1 ATK.', passive: [{ op: 'derived', stat: 'atk', from: 'spd', per: 1, perValue: 1 }], situational: [{ id: 'tt-1', label: '1 hit taken (+50% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 50 }] }, { id: 'tt-2', label: '2 hits taken (+100% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 100 }] }, { id: 'tt-4', label: '4 hits taken (+200% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 200 }] }, { id: 'tt-6', label: '6 hits taken (+300% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 300 }] }, { id: 'tt-10', label: '10 hits taken (+500% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 500 }] }], notes: 'SPD stacks on each hit. ATK bonus from SPD is derived automatically.' },
-  tillicollapse:   { name: 'Till i Collapse', rarity: 'epic', desc: 'Push the knockout threshold, effectively gaining +50% HP. Your stats are x1.45 at full health, scaling down to x0.8 near the threshold.', passive: [{ stat: 'hp', op: 'pct', value: 50 }], situational: [{ id: 'tic-full', label: 'Full HP (x1.45 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 45 }] }, { id: 'tic-75', label: 'Below 75% HP (x1.3 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 30 }] }, { id: 'tic-50', label: 'Below 50% HP (x1.1 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 10 }] }, { id: 'tic-25', label: 'Below 25% HP (x0.9 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: -10 }] }, { id: 'tic-low', label: 'Near knockout (x0.8 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: -20 }] }] },
+  ascendedtogether: {
+    name: 'Ascended Together.', rarity: 'epic',
+    desc: 'If an ally transforms or ascends, you automatically transform into a similar version of their form.',
+    passive: [],
+    notes: 'RP: mirrors ally transformation. Form is DM-determined based on the ally\'s ascension.',
+  },
+
+  overlooked: {
+    name: 'Overlooked', rarity: 'epic',
+    desc: 'If your stats are lower than every other unit in the fight, gain x10 Crit Chance and x10 Crit Damage.',
+    passive: [],
+    situational: [{ id: 'ovk-active', label: 'Overlooked active (lowest stats in fight)', passive: [{ stat: 'crit_rate', op: 'pct', value: 900 }, { stat: 'crit_dmg', op: 'pct', value: 900 }] }],
+  },
+
+  soreloser: {
+    name: 'Sore Loser', rarity: 'epic',
+    desc: 'Upon being defeated, the enemy who dealt the killing blow permanently loses 25% of their highest stat.',
+    passive: [],
+    notes: 'On-defeat trigger: attacker loses 25% of their highest stat permanently.',
+  },
+
+  toottoo: {
+    name: 'Too Too', rarity: 'epic',
+    desc: 'You are equipped with a tutu. Gain +50% SPD every time you are hit (stacking). 1 SPD = +1 ATK.',
+    passive: [{ op: 'derived', stat: 'atk', from: 'spd', per: 1, perValue: 1 }],
+    situational: [{ id: 'tt-1', label: '1 hit taken (+50% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 50 }] }, { id: 'tt-2', label: '2 hits taken (+100% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 100 }] }, { id: 'tt-4', label: '4 hits taken (+200% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 200 }] }, { id: 'tt-6', label: '6 hits taken (+300% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 300 }] }, { id: 'tt-10', label: '10 hits taken (+500% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 500 }] }],
+    notes: 'SPD stacks on each hit. ATK bonus from SPD is derived automatically.',
+  },
+
+  tillicollapse: {
+    name: 'Till i Collapse', rarity: 'epic',
+    desc: 'Push the knockout threshold, effectively gaining +50% HP. Your stats are x1.45 at full health, scaling down to x0.8 near the threshold.',
+    passive: [{ stat: 'hp', op: 'pct', value: 50 }],
+    situational: [{ id: 'tic-full', label: 'Full HP (x1.45 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 45 }] }, { id: 'tic-75', label: 'Below 75% HP (x1.3 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 30 }] }, { id: 'tic-50', label: 'Below 50% HP (x1.1 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 10 }] }, { id: 'tic-25', label: 'Below 25% HP (x0.9 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: -10 }] }, { id: 'tic-low', label: 'Near knockout (x0.8 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: -20 }] }],
+  },
 };
 
 // ============================================================
