@@ -5292,9 +5292,10 @@ const TRAITS = {
   // ============ MYTHIC (gradient orange/yellow, sun) ============
   adaptation: {
     name: 'Adaptation', rarity: 'mythic',
-    desc: 'Every hit from an enemy → +15% DEF vs that enemy. Stacks infinitely.',
+    desc: 'Every hit from an enemy grants +30% DEF. Stacks infinitely per hit.',
     passive: [],
-    situational: [{ id: 'adp-stk', label: 'Per stack vs an enemy', passive: [{ stat: 'def', op: 'pct', value: 15 }] }],
+    cultivation: { label: 'Enemy Hits', perStack: { stat: 'def', op: 'pct', value: 30 }, defaultStacks: 0, maxStacks: 999 },
+    notes: 'Each stack represents one enemy hit. Use the SCALING window to adjust hit stacks.',
   },
 
   acclrsorc: {
@@ -7479,6 +7480,7 @@ const SHIMMYFUL_MYTHIC_TRAITS = {
   acclrsorc: { name: 'SHIMMYFUL Accelerating Sorcery', desc: 'Each turn, +15% Cooldown Reduction and +5% MAG.', passive: [], situational: [{ id: 'as-1', label: 'After 1 turn (+15% CDR, +5% MAG)', passive: [{ stat: 'cooldown_red', op: 'add', value: 15 }, { stat: 'mag', op: 'pct', value: 5 }] }, { id: 'as-3', label: 'After 3 turns (+45% CDR, +15% MAG)', passive: [{ stat: 'cooldown_red', op: 'add', value: 45 }, { stat: 'mag', op: 'pct', value: 15 }] }] },
   brave: { name: 'SHIMMYFUL Bravest of the Brave', desc: 'On pick, guaranteed 3 additional rare/epic traits. One is guaranteed epic.', passive: [], notes: 'Meta. Grants 3 bonus rare/epic traits on pick; at least one must be epic.' },
   allforyou: { name: 'SHIMMYFUL All for You!', desc: 'Heals & buffs you give allies are x4. You also receive 25% of whatever you give.', passive: [], notes: 'Support multiplier. You receive 25% of buff/heal value as a bonus to yourself.' },
+  adaptation: { name: 'SHIMMYFUL Adaptation', desc: 'Every hit from an enemy grants +30% DEF. Stacks infinitely per hit.', passive: [], cultivation: { label: 'Enemy Hits', perStack: { stat: 'def', op: 'pct', value: 30 }, defaultStacks: 0, maxStacks: 999 }, notes: 'Shimmyful version of Adaptation. Each stack represents one enemy hit.' },
   lucifer: { name: "SHIMMYFUL Lucifer's Champion", desc: '+35% all stats, +90% SPD, +90% Dex. BURN stacks deal double damage.', passive: [{ stat: 'all_main', op: 'pct', value: 35 }, { stat: 'spd', op: 'pct', value: 90 }, { stat: 'dexterity', op: 'add', value: 90 }] },
   zoe: { name: "SHIMMYFUL Zoe's Champion", desc: '+35% all stats, +90% HP, +90% Heal Power. Heal mirror to self is doubled.', passive: [{ stat: 'all_main', op: 'pct', value: 35 }, { stat: 'hp', op: 'pct', value: 90 }, { stat: 'heal_pow', op: 'add', value: 90 }] },
   honored_one: { name: 'SHIMMYFUL The Honored One', desc: 'If you are the last surviving ally: ATK x7, MAG x7, SPD x3.', passive: [], situational: [{ id: 'ho-last', label: 'Last ally standing', passive: [{ stat: 'atk', op: 'mul', value: 7 }, { stat: 'mag', op: 'mul', value: 7 }, { stat: 'spd', op: 'mul', value: 3 }] }] },
