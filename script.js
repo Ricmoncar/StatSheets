@@ -220,36 +220,50 @@ function _themeFadeIn() {
   }, 50);
 }
 
+// ── Form theme helpers ────────────────────────────────────────
+// Returns the theme song for a specific form index (0 = base)
+function _getFormTheme(c, formIdx) {
+  if (!c) return null;
+  if (formIdx === 0) return (c.info && c.info.themeSong) || null;
+  const af = (c.altForms || [])[formIdx - 1];
+  return (af && af.themeSong) || null;
+}
+
+// Returns a unique timestamp key for charId + formIdx
+function _tsKey(charId, formIdx) { return charId + ':' + (formIdx || 0); }
+
 // ── Core API ─────────────────────────────────────────────────
 function playThemeForCharacter(charId) {
   const c = characters.find(x => x.id === charId);
-  const song = c && c.info && c.info.themeSong; // { url, name }
+  const formIdx = c ? (c.activeFormIdx || 0) : 0;
+  const song = _getFormTheme(c, formIdx);
+  const key = _tsKey(charId, formIdx);
 
   if (!song || !song.url) {
-    // No theme — fade out current if switching from a different character
-    if (_themeCurrentCharId && _themeCurrentCharId !== charId) {
+    // No theme for this form — fade out if we were playing something else
+    if (_themeCurrentCharId) {
       _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
       _themeFadeOut(() => { _themeAudio.pause(); _themeCurrentCharId = null; _hideThemeBar(); });
     }
     return;
   }
 
-  // Same character, already playing — nothing to do
-  if (_themeCurrentCharId === charId && !_themeAudio.paused && !_themePaused) return;
+  // Same track already playing — nothing to do
+  if (_themeCurrentCharId === key && !_themeAudio.paused && !_themePaused) return;
 
-  // Save old position when switching characters
-  if (_themeCurrentCharId && _themeCurrentCharId !== charId) {
+  // Save old position
+  if (_themeCurrentCharId && _themeCurrentCharId !== key) {
     _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
   }
 
-  const startAt = _themeTimestamps.get(charId) || 0;
-  _themeCurrentCharId = charId;
+  const startAt = _themeTimestamps.get(key) || 0;
+  _themeCurrentCharId = key;
   _themePaused = false;
 
   const doLoad = () => {
-    if (_themeAudio.dataset.charId !== charId) {
+    if (_themeAudio.dataset.trackKey !== key) {
       _themeAudio.src = song.url;
-      _themeAudio.dataset.charId = charId;
+      _themeAudio.dataset.trackKey = key;
     }
     _themeAudio.currentTime = startAt;
     _themeAudio.play().catch(() => {});
@@ -259,7 +273,8 @@ function playThemeForCharacter(charId) {
   if (!_themeAudio.paused) _themeFadeOut(doLoad);
   else doLoad();
 
-  _showThemeBar(song.name || 'UNTITLED', c.name, c.color);
+  const formLabel = formIdx === 0 ? '' : ` · ${(c.altForms[formIdx - 1].name || 'FORM ' + formIdx).toUpperCase()}`;
+  _showThemeBar(song.name || 'UNTITLED', (c.name || '') + formLabel, c.color);
 }
 
 function toggleThemePlayback() {
@@ -282,42 +297,65 @@ function setThemeVolume(vol) {
 }
 
 // ── Render the MUSIC tab content ─────────────────────────────
+let _themeUploadFormIdx = 0; // which form the next file pick targets
+
+function _themeFormCard(c, formIdx) {
+  const label = formIdx === 0 ? 'BASE' : ((c.altForms[formIdx - 1].name || 'FORM ' + formIdx).toUpperCase());
+  const song  = _getFormTheme(c, formIdx);
+  const key   = _tsKey(c.id, formIdx);
+  const playing = (_themeCurrentCharId === key && !_themeAudio.paused && !_themePaused);
+
+  if (song && song.url) {
+    return (
+      `<div class="theme-tab-form-row">` +
+        `<span class="theme-tab-form-label">${_esc(label)}</span>` +
+        `<div class="theme-tab-song">` +
+          `<div class="theme-tab-song-icon">♫</div>` +
+          `<div class="theme-tab-song-details">` +
+            `<div class="theme-tab-song-name">${_esc(song.name || 'UNTITLED')}</div>` +
+            `<div class="theme-tab-song-meta">max ${THEME_MAX_MB} MB</div>` +
+          `</div>` +
+          `<div class="theme-tab-song-controls">` +
+            `<button class="btn sm" onclick="toggleThemePlayback();renderThemeTab();">${playing ? '⏸ PAUSE' : '▶ PLAY'}</button>` +
+            `<button class="btn sm" onclick="openThemeFilePicker(${formIdx})">✎ CHANGE</button>` +
+            `<button class="btn sm danger" onclick="clearThemeSong(${formIdx})">✕ REMOVE</button>` +
+          `</div>` +
+        `</div>` +
+      `</div>`
+    );
+  } else {
+    return (
+      `<div class="theme-tab-form-row">` +
+        `<span class="theme-tab-form-label">${_esc(label)}</span>` +
+        `<div class="theme-tab-form-empty">` +
+          `<span class="theme-tab-form-none">♪ no theme</span>` +
+          `<button class="btn sm accent" onclick="openThemeFilePicker(${formIdx})">+ UPLOAD MP3</button>` +
+        `</div>` +
+      `</div>`
+    );
+  }
+}
+
 function renderThemeTab() {
   const container = document.getElementById('theme-tab-content');
   if (!container) return;
   const c = characters.find(x => x.id === currentId);
-  const song = c && c.info && c.info.themeSong;
+  if (!c) return;
 
-  if (song && song.url) {
-    const playing = (_themeCurrentCharId === c.id && !_themeAudio.paused && !_themePaused);
-    container.innerHTML =
-      `<div class="theme-tab-song">` +
-        `<div class="theme-tab-song-icon">♫</div>` +
-        `<div class="theme-tab-song-details">` +
-          `<div class="theme-tab-song-name">${_esc(song.name || 'UNTITLED')}</div>` +
-          `<div class="theme-tab-song-meta">auto-plays on character select · max ${THEME_MAX_MB} MB</div>` +
-        `</div>` +
-        `<div class="theme-tab-song-controls">` +
-          `<button class="btn sm" onclick="toggleThemePlayback();renderThemeTab();">${playing ? '⏸ PAUSE' : '▶ PLAY'}</button>` +
-          `<button class="btn sm" onclick="openThemeFilePicker()">✎ CHANGE</button>` +
-          `<button class="btn sm danger" onclick="clearThemeSong()">✕ REMOVE</button>` +
-        `</div>` +
-      `</div>`;
-  } else {
-    container.innerHTML =
-      `<div class="theme-tab-empty">` +
-        `<div class="theme-tab-empty-icon">♪</div>` +
-        `<div class="theme-tab-empty-text">No theme set</div>` +
-        `<div class="theme-tab-empty-sub">Upload an MP3. It will auto-play whenever<br>this character is selected, and fade between characters.</div>` +
-        `<button class="btn accent theme-tab-upload-btn" onclick="openThemeFilePicker()">+ UPLOAD MP3</button>` +
-        `<div class="theme-tab-limit">Max ${THEME_MAX_MB} MB per file</div>` +
-      `</div>`;
-  }
+  const forms = c.altForms || [];
+  const allIdx = [0, ...forms.map((_, i) => i + 1)];
+
+  container.innerHTML =
+    `<div class="theme-tab-forms">` +
+      allIdx.map(i => _themeFormCard(c, i)).join('') +
+    `</div>` +
+    `<div class="theme-tab-limit" style="padding:8px 18px;">Max ${THEME_MAX_MB} MB per file · auto-plays on character/form switch</div>`;
 }
 
 // ── Upload / clear ───────────────────────────────────────────
-function openThemeFilePicker() {
+function openThemeFilePicker(formIdx) {
   if (!currentId) return;
+  _themeUploadFormIdx = formIdx || 0;
   document.getElementById('theme-file-input').click();
 }
 
@@ -333,14 +371,16 @@ async function onThemeFileSelected(input) {
 
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
+  const formIdx = _themeUploadFormIdx;
+  const publicId = formIdx === 0 ? `themes/${c.id}` : `themes/${c.id}_${formIdx}`;
 
   notify('Uploading theme...', 'ok');
   try {
     const form = new FormData();
     form.append('file', file);
     form.append('upload_preset', CLOUDINARY_PRESET);
-    form.append('resource_type', 'video'); // Cloudinary uses 'video' for audio files
-    form.append('public_id', 'themes/' + c.id); // overwrite same slot each time
+    form.append('resource_type', 'video');
+    form.append('public_id', publicId);
 
     const res = await fetch(
       `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`,
@@ -348,12 +388,21 @@ async function onThemeFileSelected(input) {
     );
     if (!res.ok) throw new Error('Upload failed: ' + res.status);
     const data = await res.json();
+    const songData = { url: data.secure_url, name: file.name.replace(/\.[^/.]+$/, '') };
 
-    c.info = c.info || {};
-    c.info.themeSong = { url: data.secure_url, name: file.name.replace(/\.[^/.]+$/, '') };
+    if (formIdx === 0) {
+      c.info = c.info || {};
+      c.info.themeSong = songData;
+    } else {
+      c.altForms = c.altForms || [];
+      c.altForms[formIdx - 1] = c.altForms[formIdx - 1] || {};
+      c.altForms[formIdx - 1].themeSong = songData;
+    }
+
+    _themeTimestamps.delete(_tsKey(c.id, formIdx));
     saveData(c);
-    _themeTimestamps.delete(c.id);
-    playThemeForCharacter(c.id);
+    // Play immediately if this is the active form
+    if ((c.activeFormIdx || 0) === formIdx) playThemeForCharacter(c.id);
     renderThemeTab();
     notify('Theme set!', 'ok');
   } catch (e) {
@@ -361,21 +410,26 @@ async function onThemeFileSelected(input) {
   }
 }
 
-function clearThemeSong() {
+function clearThemeSong(formIdx) {
+  formIdx = formIdx || 0;
   const c = characters.find(x => x.id === currentId);
-  if (!c || !c.info || !c.info.themeSong) return;
+  if (!c) return;
 
-  // Fade out and stop if this character is playing
-  if (_themeCurrentCharId === c.id) {
+  const key = _tsKey(c.id, formIdx);
+  if (_themeCurrentCharId === key) {
     _themeFadeOut(() => { _themeAudio.pause(); _themeAudio.src = ''; });
     _themeCurrentCharId = null;
     _themePaused = false;
     _hideThemeBar();
   }
 
-  // Note: Cloudinary files are kept (deletion requires API secret, which is server-side only)
-  delete c.info.themeSong;
-  _themeTimestamps.delete(c.id);
+  if (formIdx === 0) {
+    if (c.info) delete c.info.themeSong;
+  } else {
+    if (c.altForms && c.altForms[formIdx - 1]) delete c.altForms[formIdx - 1].themeSong;
+  }
+
+  _themeTimestamps.delete(key);
   saveData(c);
   renderThemeTab();
 }
@@ -402,6 +456,7 @@ function stopThemeMini() {
   if (_themeCurrentCharId) _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
   _themeAudio.pause();
   _themePaused = true;
+  _themeCurrentCharId = null;
   _hideThemeBar();
 }
 
