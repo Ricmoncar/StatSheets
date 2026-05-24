@@ -4055,7 +4055,7 @@ function renderInventory(c) {
     }).join('');
 
     const passivesHtml = (i.passives || []).filter(Boolean).map(p =>
-      `<div class="inv-passive-tag">◆ ${p}</div>`
+      `<div class="inv-passive-tag">${p}</div>`
     ).join('');
 
     return `<div class="inv-card ${i.equipped ? 'equipped' : ''}" style="--char-color: ${c.color}; --hc: ${hc}">

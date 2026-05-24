@@ -1566,42 +1566,82 @@ input[type=number] { -moz-appearance: textfield; }
 }
 .mod-row select:focus, .mod-row input:focus { border-color: var(--accent-cyan); outline: none; }
 
-/* Passive Rows (item editor) */
+/* ── Passive Rows (item editor) ─────────────────────────────── */
 .passive-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
   align-items: center;
+  position: relative;
+}
+/* Diamond bullet to the left of each input */
+.passive-row::before {
+  content: '◆';
+  font-size: 7px;
+  color: var(--accent-cyan);
+  opacity: 0.6;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 1px;
 }
 .passive-input {
   flex: 1;
   min-width: 0;
-  background: #000;
-  border: 1px solid #333;
-  color: #ccc;
+  background: #020d0d;
+  border: 1px solid #0e3030;
+  border-left: 2px solid #00888866;
+  color: #8dd4d4;
   font-family: var(--font-main);
   font-size: 8px;
-  padding: 8px 10px;
+  padding: 7px 10px;
   letter-spacing: 0.5px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
-.passive-input::placeholder { color: #333; }
-.passive-input:focus { border-color: var(--accent-cyan); }
+.passive-input::placeholder { color: #1a3535; }
+.passive-input:focus {
+  border-color: var(--accent-cyan);
+  border-left-color: var(--accent-cyan);
+  background: #040f0f;
+  box-shadow: inset 0 0 0 1px rgba(0,255,255,0.05);
+}
 
-/* Passive tags on inventory cards */
+/* ── Passive tags on inventory cards ────────────────────────── */
 .inv-passive-tags {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 2px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid #1a1a1a;
+}
+/* Tiny section label */
+.inv-passive-tags::before {
+  content: 'PASSIVES';
+  display: block;
+  font-size: 6px;
+  letter-spacing: 2px;
+  color: #2a5555;
+  margin-bottom: 2px;
 }
 .inv-passive-tag {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   font-size: 7px;
-  color: #666;
+  color: #7bbfbf;
   letter-spacing: 0.5px;
-  line-height: 1.5;
+  line-height: 1.6;
   word-break: break-word;
+}
+/* Coloured diamond bullet */
+.inv-passive-tag::before {
+  content: '◆';
+  font-size: 6px;
+  color: var(--accent-cyan);
+  opacity: 0.5;
+  flex-shrink: 0;
+  line-height: 1.8;
 }
 
 .eff-stat-diff {
