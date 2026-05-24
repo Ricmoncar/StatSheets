@@ -10049,12 +10049,12 @@ let _abilityEditorImageDataURL = null; // base64 image for current editor sessio
 
 /* Type palette — bg/border/text + icon displayed on card and picker */
 const AB_TYPE_COLORS = {
-  ACTIVE:   { bg: 'rgba(0,255,255,0.06)',   border: 'rgba(0,255,255,0.3)',    text: '#00ffff', icon: '⚡' },
-  PASSIVE:  { bg: 'rgba(160,80,255,0.07)',  border: 'rgba(160,80,255,0.35)',  text: '#cc99ff', icon: '◈'  },
-  REACTION: { bg: 'rgba(255,255,0,0.05)',   border: 'rgba(255,255,0,0.3)',    text: '#ffff44', icon: '↺'  },
-  TOGGLE:   { bg: 'rgba(0,255,128,0.05)',   border: 'rgba(0,255,128,0.3)',    text: '#00ff80', icon: '⇌'  },
-  AURA:     { bg: 'rgba(40,120,255,0.06)',  border: 'rgba(40,120,255,0.32)',  text: '#5599ff', icon: '◎'  },
-  ULTIMATE: { bg: 'rgba(255,80,0,0.08)',    border: 'rgba(255,100,0,0.4)',    text: '#ff8844', icon: '★'  },
+  ACTIVE:   { bg: 'rgba(0,255,255,0.06)',   border: 'rgba(0,255,255,0.3)',    text: '#00ffff', icon: '⚡', iconColor: '#ffffff' },
+  PASSIVE:  { bg: 'rgba(160,80,255,0.07)',  border: 'rgba(160,80,255,0.35)',  text: '#cc99ff', icon: '◈',  iconColor: '#cc99ff' },
+  REACTION: { bg: 'rgba(255,255,0,0.05)',   border: 'rgba(255,255,0,0.3)',    text: '#ffff44', icon: '↺',  iconColor: '#ffff44' },
+  TOGGLE:   { bg: 'rgba(0,255,128,0.05)',   border: 'rgba(0,255,128,0.3)',    text: '#00ff80', icon: '⇌',  iconColor: '#00ff80' },
+  AURA:     { bg: 'rgba(40,120,255,0.06)',  border: 'rgba(40,120,255,0.32)',  text: '#5599ff', icon: '◎',  iconColor: '#5599ff' },
+  ULTIMATE: { bg: 'rgba(255,80,0,0.08)',    border: 'rgba(255,100,0,0.4)',    text: '#ff8844', icon: '★',  iconColor: '#ffcc88' },
 };
 
 /* Render the whole abilities tab for the current character */
@@ -10082,12 +10082,12 @@ function renderAbilityCards(c) {
     const tc = AB_TYPE_COLORS[ab.type] || AB_TYPE_COLORS.ACTIVE;
 
     const metaItems = [
-      ab.cost     && `<span class="ab-meta-item"><span class="ab-meta-label">COST</span>${ab.cost}</span>`,
-      ab.cd       && `<span class="ab-meta-item"><span class="ab-meta-label">CD</span>${ab.cd}</span>`,
-      ab.range    && `<span class="ab-meta-item"><span class="ab-meta-label">RANGE</span>${ab.range}</span>`,
-      ab.cast     && `<span class="ab-meta-item"><span class="ab-meta-label">CAST</span>${ab.cast}</span>`,
-      ab.dmg      && `<span class="ab-meta-item"><span class="ab-meta-label">DMG</span>${ab.dmg}</span>`,
-      ab.duration && `<span class="ab-meta-item"><span class="ab-meta-label">DUR</span>${ab.duration}</span>`,
+      ab.cost     && `<span class="ab-meta-item"><span class="ab-meta-label">COST</span><span class="ab-meta-value">${ab.cost}</span></span>`,
+      ab.cd       && `<span class="ab-meta-item"><span class="ab-meta-label">CD</span><span class="ab-meta-value">${ab.cd}</span></span>`,
+      ab.range    && `<span class="ab-meta-item"><span class="ab-meta-label">RANGE</span><span class="ab-meta-value">${ab.range}</span></span>`,
+      ab.cast     && `<span class="ab-meta-item"><span class="ab-meta-label">CAST</span><span class="ab-meta-value">${ab.cast}</span></span>`,
+      ab.dmg      && `<span class="ab-meta-item"><span class="ab-meta-label">DMG</span><span class="ab-meta-value">${ab.dmg}</span></span>`,
+      ab.duration && `<span class="ab-meta-item"><span class="ab-meta-label">DUR</span><span class="ab-meta-value">${ab.duration}</span></span>`,
     ].filter(Boolean).join('');
 
     const tags = (ab.tags || '').split(',').map(t => t.trim()).filter(Boolean);
@@ -10097,7 +10097,7 @@ function renderAbilityCards(c) {
     const visualHtml = ab.image
       ? `<div class="ab-card-visual"><img class="ab-card-img" src="${ab.image}" alt=""></div>`
       : `<div class="ab-card-visual ab-card-visual-icon" style="--ab-text:${tc.text};--ab-border:${tc.border};">
-           <span class="ab-type-icon-lg">${tc.icon}</span>
+           <span class="ab-type-icon-lg" style="color:${tc.iconColor || tc.text}">${tc.icon}</span>
          </div>`;
 
     return `<div class="ab-card" style="--ab-bg:${tc.bg};--ab-border:${tc.border};--ab-text:${tc.text};animation-delay:${idx * 0.065}s">
