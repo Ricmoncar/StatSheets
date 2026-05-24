@@ -309,7 +309,7 @@ function renderThemeTab() {
       `<div class="theme-tab-empty">` +
         `<div class="theme-tab-empty-icon">♪</div>` +
         `<div class="theme-tab-empty-text">No theme set</div>` +
-        `<div class="theme-tab-empty-sub">Upload an MP3 — it will auto-play whenever<br>this character is selected, and fade between characters.</div>` +
+        `<div class="theme-tab-empty-sub">Upload an MP3. It will auto-play whenever<br>this character is selected, and fade between characters.</div>` +
         `<button class="btn accent theme-tab-upload-btn" onclick="openThemeFilePicker()">+ UPLOAD MP3</button>` +
         `<div class="theme-tab-limit">Max ${THEME_MAX_MB} MB per file</div>` +
       `</div>`;
