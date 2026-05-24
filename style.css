@@ -1566,6 +1566,44 @@ input[type=number] { -moz-appearance: textfield; }
 }
 .mod-row select:focus, .mod-row input:focus { border-color: var(--accent-cyan); outline: none; }
 
+/* Passive Rows (item editor) */
+.passive-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.passive-input {
+  flex: 1;
+  min-width: 0;
+  background: #000;
+  border: 1px solid #333;
+  color: #ccc;
+  font-family: var(--font-main);
+  font-size: 8px;
+  padding: 8px 10px;
+  letter-spacing: 0.5px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.passive-input::placeholder { color: #333; }
+.passive-input:focus { border-color: var(--accent-cyan); }
+
+/* Passive tags on inventory cards */
+.inv-passive-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+.inv-passive-tag {
+  font-size: 7px;
+  color: #666;
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
 .eff-stat-diff {
   font-size: 8px;
   padding: 8px 12px;

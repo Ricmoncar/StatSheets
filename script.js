@@ -4054,12 +4054,17 @@ function renderInventory(c) {
       return `<div class="inv-mod-tag ${m.op}">${m.stat.toUpperCase()} ${sign}${m.value}</div>`;
     }).join('');
 
+    const passivesHtml = (i.passives || []).filter(Boolean).map(p =>
+      `<div class="inv-passive-tag">◆ ${p}</div>`
+    ).join('');
+
     return `<div class="inv-card ${i.equipped ? 'equipped' : ''}" style="--char-color: ${c.color}; --hc: ${hc}">
       <div class="inv-card-icon">${iconHtml}</div>
       <div class="inv-card-info">
         <div class="inv-card-name" style="color: ${i.equipped ? c.color : 'var(--fg)'}">${i.name || 'Unnamed Item'}</div>
         <div class="inv-card-desc">${i.desc || ''}</div>
         <div class="inv-mod-tags">${modsHtml}</div>
+        ${passivesHtml ? `<div class="inv-passive-tags">${passivesHtml}</div>` : ''}
       </div>
       <button class="btn sm ${i.equipped ? 'accent' : ''} equip-btn-abs" onclick="toggleEquip('${i.id}')">${i.equipped ? 'UNEQUIP' : 'EQUIP'}</button>
       <div class="inv-card-actions-abs">
@@ -4266,6 +4271,41 @@ function removeModRow(idx) {
   renderModRows(mods);
 }
 
+// ── Passives ─────────────────────────────────────────────────
+function renderPassiveRows(passives) {
+  const list  = document.getElementById('ie-passives-list');
+  const empty = document.getElementById('ie-passives-empty');
+  if (!list) return;
+  list.innerHTML = passives.map((p, idx) => {
+    const safe = p.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return `<div class="passive-row">
+      <input type="text" class="passive-input" value="${safe}"
+             placeholder="e.g. This sword makes u very big" maxlength="140">
+      <button class="btn sm danger" onclick="removePassiveRow(${idx})">✕</button>
+    </div>`;
+  }).join('');
+  if (empty) empty.style.display = passives.length === 0 ? '' : 'none';
+}
+
+function getPassivesFromUI() {
+  return Array.from(document.querySelectorAll('#ie-passives-list .passive-input'))
+    .map(i => i.value.trim()).filter(Boolean);
+}
+
+function addPassiveRow() {
+  const passives = getPassivesFromUI();
+  passives.push('');
+  renderPassiveRows(passives);
+  const inputs = document.querySelectorAll('#ie-passives-list .passive-input');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function removePassiveRow(idx) {
+  const passives = getPassivesFromUI();
+  passives.splice(idx, 1);
+  renderPassiveRows(passives);
+}
+
 function openItemEditor(charId, itemId) {
   if (!charId) return;
   const c = characters.find(x => x.id === charId);
@@ -4286,6 +4326,7 @@ function openItemEditor(charId, itemId) {
 
   buildIconPicker();
   renderModRows(item ? (item.mods || []) : []);
+  renderPassiveRows(item ? (item.passives || []) : []);
 
   document.getElementById('item-editor-overlay').classList.add('open');
 }
@@ -4309,6 +4350,7 @@ function saveItem() {
     icon: currentItemIcon,
     iconImage: currentItemIconImage,
     mods: getModsFromUI(),
+    passives: getPassivesFromUI(),
     equipped: false
   };
 
