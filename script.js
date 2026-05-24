@@ -532,12 +532,14 @@ function _showThemeBar(title, charName, charColor) {
   bar.classList.remove('peeked');
   bar.classList.add('visible');
   clearTimeout(_themeBarAutoHideTimer);
-  _themeBarAutoHideTimer = setTimeout(() => {
-    if (!bar.matches(':hover')) {
-      bar.classList.remove('visible');
-      bar.classList.add('peeked');
-    }
-  }, 1500);
+  if (!window.matchMedia('(max-width: 700px)').matches) {
+    _themeBarAutoHideTimer = setTimeout(() => {
+      if (!bar.matches(':hover')) {
+        bar.classList.remove('visible');
+        bar.classList.add('peeked');
+      }
+    }, 1500);
+  }
 }
 
 function _hideThemeBar() {
@@ -561,12 +563,25 @@ function _hideThemeBar() {
     bar.classList.remove('peeked');
   });
   bar.addEventListener('mouseleave', () => {
+    if (window.matchMedia('(max-width: 700px)').matches) return;
     _themeBarLeaveTimer = setTimeout(() => {
       if (bar.classList.contains('visible')) {
         bar.classList.remove('visible');
         bar.classList.add('peeked');
       }
     }, 700);
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (window.matchMedia('(max-width: 700px)').matches) return;
+    if (!bar.classList.contains('peeked')) return;
+    const bottomDistance = window.innerHeight - e.clientY;
+    if (bottomDistance <= 40) {
+      clearTimeout(_themeBarLeaveTimer);
+      clearTimeout(_themeBarAutoHideTimer);
+      bar.classList.add('visible');
+      bar.classList.remove('peeked');
+    }
   });
 }());
 
