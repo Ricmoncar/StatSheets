@@ -905,25 +905,51 @@
           </div>
           <div class="field">
             <label>TYPE</label>
-            <select id="ae-type">
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="PASSIVE">PASSIVE</option>
-              <option value="REACTION">REACTION</option>
-              <option value="TOGGLE">TOGGLE</option>
-              <option value="AURA">AURA</option>
-              <option value="ULTIMATE">ULTIMATE</option>
-            </select>
+            <div class="ae-type-picker" id="ae-type-picker">
+              <button class="ae-type-btn" data-type="ACTIVE"   type="button" onclick="pickAbilityType('ACTIVE')">
+                <span class="ae-type-btn-icon">⚡</span><span class="ae-type-btn-label">ACTIVE</span>
+              </button>
+              <button class="ae-type-btn" data-type="PASSIVE"  type="button" onclick="pickAbilityType('PASSIVE')">
+                <span class="ae-type-btn-icon">◈</span><span class="ae-type-btn-label">PASSIVE</span>
+              </button>
+              <button class="ae-type-btn" data-type="REACTION" type="button" onclick="pickAbilityType('REACTION')">
+                <span class="ae-type-btn-icon">↺</span><span class="ae-type-btn-label">REACTION</span>
+              </button>
+              <button class="ae-type-btn" data-type="TOGGLE"   type="button" onclick="pickAbilityType('TOGGLE')">
+                <span class="ae-type-btn-icon">⇌</span><span class="ae-type-btn-label">TOGGLE</span>
+              </button>
+              <button class="ae-type-btn" data-type="AURA"     type="button" onclick="pickAbilityType('AURA')">
+                <span class="ae-type-btn-icon">◎</span><span class="ae-type-btn-label">AURA</span>
+              </button>
+              <button class="ae-type-btn" data-type="ULTIMATE" type="button" onclick="pickAbilityType('ULTIMATE')">
+                <span class="ae-type-btn-icon">★</span><span class="ae-type-btn-label">ULTIMATE</span>
+              </button>
+            </div>
+            <input type="hidden" id="ae-type" value="ACTIVE">
+          </div>
+          <div class="field">
+            <label style="display:flex; justify-content:space-between; align-items:center;">
+              ABILITY IMAGE <span style="opacity:0.4; font-size:6px; letter-spacing:1px;">(optional)</span>
+              <span style="cursor:pointer; color:var(--char-color, var(--accent-yellow));"
+                    onclick="document.getElementById('ae-img-upload').click()">[UPLOAD]</span>
+              <input type="file" id="ae-img-upload" accept="image/*" style="display:none;"
+                     onchange="handleAbilityImageUpload(event)">
+            </label>
+            <div id="ae-img-preview" class="ae-img-preview">
+              <span class="ae-img-preview-empty">NO IMAGE</span>
+            </div>
+            <button class="btn sm" id="ae-img-clear" style="margin-top:5px;display:none;" type="button" onclick="clearAbilityImage()">✕ CLEAR IMAGE</button>
           </div>
           <div class="field">
             <label>DESCRIPTION</label>
-            <textarea id="ae-desc" rows="5" placeholder="What does this ability do? Include mechanics, conditions, effects..."></textarea>
+            <textarea id="ae-desc" rows="4" placeholder="What does this ability do? Include mechanics, conditions, effects..."></textarea>
           </div>
           <div class="field">
-            <label>FLAVOR / LORE NOTES</label>
-            <textarea id="ae-notes" rows="2" placeholder="Background lore, flavor text, extra context..."></textarea>
+            <label>FLAVOR / LORE</label>
+            <textarea id="ae-notes" rows="2" placeholder="Background lore, flavor text..."></textarea>
           </div>
           <div class="field">
-            <label>REQUIREMENT / UNLOCK CONDITION</label>
+            <label>REQUIREMENT / UNLOCK</label>
             <input type="text" id="ae-req" placeholder="e.g. Level 5, must be bloodied" maxlength="80">
           </div>
         </div>

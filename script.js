@@ -10044,16 +10044,17 @@ updateLiveStats = function (c) {
 // ABILITIES TAB
 // ============================================================
 
-let _abilityEditorIdx = null; // null = new ability, number = editing existing
+let _abilityEditorIdx = null;        // null = new ability, number = editing existing
+let _abilityEditorImageDataURL = null; // base64 image for current editor session
 
-/* Type colour palette */
+/* Type palette — bg/border/text + icon displayed on card and picker */
 const AB_TYPE_COLORS = {
-  ACTIVE:   { bg: 'rgba(0,255,255,0.07)',   border: 'rgba(0,255,255,0.28)',   text: '#00ffff' },
-  PASSIVE:  { bg: 'rgba(160,80,255,0.07)',  border: 'rgba(160,80,255,0.32)',  text: '#cc99ff' },
-  REACTION: { bg: 'rgba(255,255,0,0.05)',   border: 'rgba(255,255,0,0.28)',   text: '#ffff44' },
-  TOGGLE:   { bg: 'rgba(0,255,128,0.05)',   border: 'rgba(0,255,128,0.28)',   text: '#00ff80' },
-  AURA:     { bg: 'rgba(40,120,255,0.07)',  border: 'rgba(40,120,255,0.32)',  text: '#5599ff' },
-  ULTIMATE: { bg: 'rgba(255,80,0,0.08)',    border: 'rgba(255,100,0,0.38)',   text: '#ff8844' },
+  ACTIVE:   { bg: 'rgba(0,255,255,0.06)',   border: 'rgba(0,255,255,0.3)',    text: '#00ffff', icon: '⚡' },
+  PASSIVE:  { bg: 'rgba(160,80,255,0.07)',  border: 'rgba(160,80,255,0.35)',  text: '#cc99ff', icon: '◈'  },
+  REACTION: { bg: 'rgba(255,255,0,0.05)',   border: 'rgba(255,255,0,0.3)',    text: '#ffff44', icon: '↺'  },
+  TOGGLE:   { bg: 'rgba(0,255,128,0.05)',   border: 'rgba(0,255,128,0.3)',    text: '#00ff80', icon: '⇌'  },
+  AURA:     { bg: 'rgba(40,120,255,0.06)',  border: 'rgba(40,120,255,0.32)',  text: '#5599ff', icon: '◎'  },
+  ULTIMATE: { bg: 'rgba(255,80,0,0.08)',    border: 'rgba(255,100,0,0.4)',    text: '#ff8844', icon: '★'  },
 };
 
 /* Render the whole abilities tab for the current character */
@@ -10080,7 +10081,6 @@ function renderAbilityCards(c) {
   list.innerHTML = abilities.map((ab, idx) => {
     const tc = AB_TYPE_COLORS[ab.type] || AB_TYPE_COLORS.ACTIVE;
 
-    // Meta badges: cost / cd / range / cast / dmg / duration
     const metaItems = [
       ab.cost     && `<span class="ab-meta-item"><span class="ab-meta-label">COST</span>${ab.cost}</span>`,
       ab.cd       && `<span class="ab-meta-item"><span class="ab-meta-label">CD</span>${ab.cd}</span>`,
@@ -10093,22 +10093,84 @@ function renderAbilityCards(c) {
     const tags = (ab.tags || '').split(',').map(t => t.trim()).filter(Boolean);
     const tagsHtml = tags.map(t => `<span class="ab-tag">${t}</span>`).join('');
 
-    return `<div class="ab-card" style="--ab-bg:${tc.bg};--ab-border:${tc.border};--ab-text:${tc.text};">
-      <div class="ab-card-top">
-        <div class="ab-card-name">${ab.name || 'Unnamed'}</div>
-        <span class="ab-type-badge">${ab.type || 'ACTIVE'}</span>
+    // Left visual: image if set, otherwise large type icon
+    const visualHtml = ab.image
+      ? `<div class="ab-card-visual"><img class="ab-card-img" src="${ab.image}" alt=""></div>`
+      : `<div class="ab-card-visual ab-card-visual-icon" style="--ab-text:${tc.text};--ab-border:${tc.border};">
+           <span class="ab-type-icon-lg">${tc.icon}</span>
+         </div>`;
+
+    return `<div class="ab-card" style="--ab-bg:${tc.bg};--ab-border:${tc.border};--ab-text:${tc.text};animation-delay:${idx * 0.065}s">
+      <div class="ab-card-main">
+        ${visualHtml}
+        <div class="ab-card-content">
+          <div class="ab-card-top">
+            <div class="ab-card-name">${ab.name || 'Unnamed'}</div>
+            <span class="ab-type-badge">${tc.icon} ${ab.type || 'ACTIVE'}</span>
+          </div>
+          ${ab.desc     ? `<div class="ab-card-desc">${ab.desc}</div>` : ''}
+          ${metaItems   ? `<div class="ab-meta-row">${metaItems}</div>` : ''}
+          ${tagsHtml    ? `<div class="ab-tags-row">${tagsHtml}</div>` : ''}
+          ${ab.notes    ? `<div class="ab-card-notes">✦ ${ab.notes}</div>` : ''}
+          ${ab.req      ? `<div class="ab-card-req">⚠ <span class="ab-meta-label">REQ</span> ${ab.req}</div>` : ''}
+        </div>
       </div>
-      ${ab.desc     ? `<div class="ab-card-desc">${ab.desc}</div>` : ''}
-      ${metaItems   ? `<div class="ab-meta-row">${metaItems}</div>` : ''}
-      ${tagsHtml    ? `<div class="ab-tags-row">${tagsHtml}</div>` : ''}
-      ${ab.notes    ? `<div class="ab-card-notes">${ab.notes}</div>` : ''}
-      ${ab.req      ? `<div class="ab-card-req"><span class="ab-meta-label">REQ</span>&nbsp;${ab.req}</div>` : ''}
-      <div class="ab-card-actions">
+      <div class="ab-card-footer">
         <button class="btn sm" onclick="openAbilityEditor(${idx})">EDIT</button>
-        <button class="btn sm danger" onclick="deleteAbility(${idx})">DELETE</button>
+        <button class="btn sm danger" onclick="deleteAbility(${idx})">✕ DELETE</button>
       </div>
     </div>`;
   }).join('');
+}
+
+/* ── Type picker ────────────────────────────────────────────── */
+function pickAbilityType(type) {
+  document.getElementById('ae-type').value = type;
+  const selected = AB_TYPE_COLORS[type] || AB_TYPE_COLORS.ACTIVE;
+  document.querySelectorAll('.ae-type-btn').forEach(btn => {
+    const t    = btn.dataset.type;
+    const tc   = AB_TYPE_COLORS[t] || AB_TYPE_COLORS.ACTIVE;
+    const isSel = t === type;
+    btn.classList.toggle('selected', isSel);
+    btn.style.color        = tc.text;
+    btn.style.borderColor  = isSel ? tc.text        : tc.text + '33';
+    btn.style.background   = isSel ? tc.text + '18' : 'transparent';
+    btn.style.boxShadow    = isSel ? `0 0 14px ${tc.text}55, inset 0 0 8px ${tc.text}11` : '';
+  });
+}
+
+/* ── Ability image ──────────────────────────────────────────── */
+function handleAbilityImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { notify('NOT AN IMAGE', 'err'); return; }
+  if (file.size > 5 * 1024 * 1024) { notify('IMAGE TOO LARGE (MAX 5 MB)', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    _abilityEditorImageDataURL = e.target.result;
+    _renderAbilityImagePreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function _renderAbilityImagePreview() {
+  const preview  = document.getElementById('ae-img-preview');
+  const clearBtn = document.getElementById('ae-img-clear');
+  if (!preview) return;
+  if (_abilityEditorImageDataURL) {
+    preview.innerHTML = `<img src="${_abilityEditorImageDataURL}" alt="Ability image">`;
+    if (clearBtn) clearBtn.style.display = '';
+  } else {
+    preview.innerHTML = '<span class="ae-img-preview-empty">NO IMAGE</span>';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+}
+
+function clearAbilityImage() {
+  _abilityEditorImageDataURL = null;
+  _renderAbilityImagePreview();
+  const up = document.getElementById('ae-img-upload');
+  if (up) up.value = '';
 }
 
 /* ── Ability Editor open / close / save / delete ─────────────── */
@@ -10116,33 +10178,47 @@ function openAbilityEditor(idx) {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
   _abilityEditorIdx = idx;
-  const ab = (idx !== null && idx !== undefined) ? ((c.abilities || [])[idx] || {}) : {};
+  const isEdit = (idx !== null && idx !== undefined);
+  const ab     = isEdit ? ((c.abilities || [])[idx] || {}) : {};
 
-  document.getElementById('ae-title').textContent    = (idx !== null && idx !== undefined) ? 'EDIT ABILITY' : 'NEW ABILITY';
-  document.getElementById('ae-name').value           = ab.name     || '';
-  document.getElementById('ae-type').value           = ab.type     || 'ACTIVE';
-  document.getElementById('ae-desc').value           = ab.desc     || '';
-  document.getElementById('ae-notes').value          = ab.notes    || '';
-  document.getElementById('ae-cost').value           = ab.cost     || '';
-  document.getElementById('ae-cd').value             = ab.cd       || '';
-  document.getElementById('ae-range').value          = ab.range    || '';
-  document.getElementById('ae-cast').value           = ab.cast     || '';
-  document.getElementById('ae-tags').value           = ab.tags     || '';
-  document.getElementById('ae-dmg').value            = ab.dmg      || '';
-  document.getElementById('ae-duration').value       = ab.duration || '';
-  document.getElementById('ae-req').value            = ab.req      || '';
+  document.getElementById('ae-title').textContent = isEdit ? 'EDIT ABILITY' : 'NEW ABILITY';
+  document.getElementById('ae-name').value         = ab.name     || '';
+  document.getElementById('ae-desc').value         = ab.desc     || '';
+  document.getElementById('ae-notes').value        = ab.notes    || '';
+  document.getElementById('ae-cost').value         = ab.cost     || '';
+  document.getElementById('ae-cd').value           = ab.cd       || '';
+  document.getElementById('ae-range').value        = ab.range    || '';
+  document.getElementById('ae-cast').value         = ab.cast     || '';
+  document.getElementById('ae-tags').value         = ab.tags     || '';
+  document.getElementById('ae-dmg').value          = ab.dmg      || '';
+  document.getElementById('ae-duration').value     = ab.duration || '';
+  document.getElementById('ae-req').value          = ab.req      || '';
 
-  // Propagate character colour into the fixed-position modal
+  // Type picker
+  pickAbilityType(ab.type || 'ACTIVE');
+
+  // Image
+  _abilityEditorImageDataURL = ab.image || null;
+  _renderAbilityImagePreview();
+
+  // Propagate char colour into the fixed-position modal
   const aeModal = document.getElementById('ability-editor-modal');
   if (aeModal && c.color) aeModal.style.setProperty('--char-color', c.color);
 
-  document.getElementById('ability-editor-overlay').style.display = 'flex';
-  setTimeout(() => document.getElementById('ae-name').focus(), 60);
+  const overlay = document.getElementById('ability-editor-overlay');
+  overlay.style.display = 'flex';
+  // Animate modal in
+  const modal = document.getElementById('ability-editor-modal');
+  if (modal) { modal.style.animation = 'none'; void modal.offsetWidth; modal.style.animation = ''; }
+  setTimeout(() => document.getElementById('ae-name').focus(), 80);
 }
 
 function closeAbilityEditor() {
   document.getElementById('ability-editor-overlay').style.display = 'none';
   _abilityEditorIdx = null;
+  _abilityEditorImageDataURL = null;
+  const up = document.getElementById('ae-img-upload');
+  if (up) up.value = '';
 }
 
 function saveAbility() {
@@ -10170,6 +10246,7 @@ function saveAbility() {
     dmg:      document.getElementById('ae-dmg').value.trim(),
     duration: document.getElementById('ae-duration').value.trim(),
     req:      document.getElementById('ae-req').value.trim(),
+    image:    _abilityEditorImageDataURL || null,
   };
 
   if (_abilityEditorIdx !== null && _abilityEditorIdx !== undefined) {
@@ -10203,11 +10280,12 @@ function renderCharPassivesUI(c) {
 
   list.innerHTML = passives.map((p, idx) => {
     const safe = p.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    return `<div class="char-passive-row">
+    return `<div class="char-passive-entry" style="animation-delay:${idx * 0.055}s">
+      <div class="char-passive-gem">◆</div>
       <input type="text" class="char-passive-input" value="${safe}"
-             placeholder="e.g. Never takes fall damage" maxlength="160"
+             placeholder="DESCRIBE PASSIVE TRAIT..." maxlength="200"
              onchange="saveCharPassives()">
-      <button class="btn sm danger" onclick="removeCharPassiveRow(${idx})">&#x2715;</button>
+      <button class="char-passive-del" onclick="removeCharPassiveRow(${idx})" title="Remove">✕</button>
     </div>`;
   }).join('');
 
@@ -10237,7 +10315,7 @@ function saveCharPassives() {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
   c.charPassives = Array.from(document.querySelectorAll('#char-passives-list .char-passive-input'))
-    .map(i => i.value.trim());
+    .map(i => i.value);
   saveData(c);
 }
 

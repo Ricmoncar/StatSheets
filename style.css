@@ -5939,42 +5939,16 @@ input[type=number] { -moz-appearance: textfield; }
   border: 1px dashed #1e1e1e;
 }
 
-/* ── Character passive rows in abilities tab ── */
-.char-passive-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 7px;
-  align-items: stretch;
-}
-.char-passive-input {
-  flex: 1;
-  min-width: 0;
-  background: #060606;
-  border: 1px solid #1e1e1e;
-  border-left: 3px solid var(--char-color, var(--accent-yellow));
-  color: var(--char-color, var(--accent-yellow));
-  font-family: var(--font-main);
-  font-size: 8px;
-  padding: 9px 12px;
-  letter-spacing: 0.5px;
-  line-height: 1.6;
-  outline: none;
-  opacity: 0.85;
-}
-.char-passive-input::placeholder { color: #2a2a2a; }
-.char-passive-input:focus {
-  background: #0a0a0a;
-  border-left-color: var(--char-color, var(--accent-yellow));
-  opacity: 1;
-}
+/* ── Character passive rows (legacy stub — replaced by .char-passive-entry below) ── */
+.char-passive-row { display: flex; gap: 8px; margin-bottom: 7px; align-items: stretch; }
 
 /* ── Ability Cards ── */
 .ab-card {
   background: var(--ab-bg, rgba(0,255,255,0.05));
   border: 1px solid var(--ab-border, rgba(0,255,255,0.2));
   border-left: 3px solid var(--ab-border, rgba(0,255,255,0.4));
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
   position: relative;
 }
 .ab-card-top {
@@ -6056,13 +6030,7 @@ input[type=number] { -moz-appearance: textfield; }
   color: #555;
   margin-bottom: 6px;
 }
-.ab-card-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #131313;
-}
+/* .ab-card-actions replaced by .ab-card-footer (defined below) */
 
 /* ── Ability Editor Modal ── */
 #ability-editor-overlay {
@@ -6153,5 +6121,205 @@ input[type=number] { -moz-appearance: textfield; }
   border-top: 1px solid #1a1a1a;
   background: #050505;
   flex-shrink: 0;
+}
+
+/* ── Ability type picker ── */
+.ae-type-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.ae-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: transparent;
+  border: 1px solid #222;
+  cursor: pointer;
+  font-family: var(--font-main);
+  letter-spacing: 1px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.2s;
+  user-select: none;
+}
+.ae-type-btn-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+.ae-type-btn-label {
+  font-size: 6px;
+  letter-spacing: 2px;
+}
+.ae-type-btn:hover {
+  filter: brightness(1.2);
+}
+
+/* ── Ability image preview ── */
+.ae-img-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #050505;
+  border: 1px dashed #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.ae-img-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ae-img-preview-empty {
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: #2a2a2a;
+}
+
+/* ── Ability card layout (new) ── */
+@keyframes ab-card-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Merge animation + hover into the base .ab-card rule above by extending it here */
+.ab-card {
+  animation: ab-card-in 0.28s cubic-bezier(0.22,1,0.36,1) both;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.ab-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.55), 0 0 0 1px var(--ab-border, rgba(0,255,255,0.25));
+}
+.ab-card-main {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.ab-card-visual {
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #060606;
+}
+.ab-card-visual-icon {
+  border-color: var(--ab-border, rgba(0,255,255,0.2));
+  background: var(--ab-bg, rgba(0,255,255,0.04));
+}
+.ab-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ab-type-icon-lg {
+  font-size: 22px;
+  color: var(--ab-text, #00ffff);
+  opacity: 0.8;
+  line-height: 1;
+}
+.ab-card-content {
+  flex: 1;
+  min-width: 0;
+}
+.ab-card-footer {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #111;
+  justify-content: flex-end;
+}
+
+/* ── Character passive entries (new design) ── */
+@keyframes passive-entry-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.char-passive-entry {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: 6px;
+  position: relative;
+  animation: passive-entry-in 0.25s ease both;
+}
+.char-passive-gem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  min-width: 30px;
+  font-size: 8px;
+  color: var(--char-color, var(--accent-yellow));
+  background: #060606;
+  border: 1px solid #1a1a1a;
+  border-right: none;
+  flex-shrink: 0;
+  opacity: 0.7;
+  letter-spacing: 0;
+}
+.char-passive-entry .char-passive-input {
+  flex: 1;
+  min-width: 0;
+  background: #060606;
+  border: 1px solid #1a1a1a;
+  border-left: none;
+  border-right: none;
+  color: #ccc;
+  font-family: var(--font-main);
+  font-size: 8px;
+  padding: 10px 12px;
+  letter-spacing: 0.4px;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.char-passive-entry .char-passive-input::placeholder {
+  color: #222;
+}
+.char-passive-entry .char-passive-input:focus {
+  background: #090909;
+  border-top-color: var(--char-color, var(--accent-yellow));
+  border-bottom-color: var(--char-color, var(--accent-yellow));
+}
+.char-passive-entry:focus-within .char-passive-gem {
+  opacity: 1;
+  color: var(--char-color, var(--accent-yellow));
+  border-color: #1a1a1a;
+}
+.char-passive-del {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  font-size: 7px;
+  color: #333;
+  background: #060606;
+  border: 1px solid #1a1a1a;
+  border-left: none;
+  cursor: pointer;
+  font-family: var(--font-main);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.char-passive-entry:hover .char-passive-del {
+  opacity: 1;
+}
+.char-passive-del:hover {
+  color: #ff4444;
+  border-color: rgba(255,68,68,0.3);
+  background: rgba(255,0,0,0.05);
 }
 
