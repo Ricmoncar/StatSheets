@@ -240,6 +240,7 @@ const _themeReloadKeys = new Set();
 let _themeFadeTimer = null;
 let _themeBarAutoHideTimer = null; // slides bar to peeked after 1.5 s
 let _themeBarLeaveTimer    = null; // hides bar again after mouse leaves
+let _themePendingKey       = null; // set when play() is blocked by autoplay policy
 const _themeTimestamps = new Map(); // charId -> seconds (session-only)
 const THEME_MAX_MB = 20;
 
@@ -334,29 +335,29 @@ function playThemeForCharacter(charId, overrideSong = null) {
   const forceReload = _themeReloadKeys.has(key);
 
   const doLoad = () => {
-    // ALWAYS force reload if forced OR if URL changed
-    const shouldForceReload = _themeReloadKeys.has(key) || (_themeAudio.dataset.trackUrl !== song.url);
-    
+    // Only cache-bust after a fresh upload — otherwise let the browser cache the file
+    // so repeat visits to the same character start playing instantly.
+    const isFreshUpload = _themeReloadKeys.has(key);
+    if (isFreshUpload) _themeReloadKeys.delete(key);
+
     _themeAudio.pause();
     _themeAudio.currentTime = 0;
-    _themeAudio.src = '';  // Explicitly clear
-    
-    // Use aggressive cache busting: always add a fresh param
-    const bustParam = '_=' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-    const newUrl = song.url + (song.url.includes('?') ? '&' : '?') + bustParam;
+    _themeAudio.src = '';
+
+    const newUrl = isFreshUpload
+      ? song.url + (song.url.includes('?') ? '&' : '?') + '_v=' + Date.now()
+      : song.url;
+
     _themeAudio.src = newUrl;
-    
-    console.log('[THEME] Loading:', newUrl, 'Original:', song.url, 'ForceReload:', shouldForceReload);
-    
     _themeAudio.dataset.trackKey = key;
     _themeAudio.dataset.trackUrl = song.url;
     _themeAudio.load();
-    
-    // Clean up reload flag
-    if (_themeReloadKeys.has(key)) _themeReloadKeys.delete(key);
-    
     _themeAudio.currentTime = startAt;
-    _themeAudio.play().catch(() => {});
+    _themeAudio.play().catch(err => {
+      // Browser autoplay policy blocks play before any user interaction.
+      // Store the key so the first click/keydown retries it.
+      if (err && err.name === 'NotAllowedError') _themePendingKey = key;
+    });
     _themeFadeIn();
   };
 
@@ -652,6 +653,35 @@ function _initThemeBarHover() {
     }
   });
 }
+
+// ── Autoplay unlock: retry the blocked track on first user interaction ───────
+function _unlockAutoplay() {
+  if (!_themePendingKey) return;
+  if (_themeCurrentCharId === _themePendingKey) {
+    _themePendingKey = null;
+    _themeAudio.play().catch(() => {});
+    const eq = document.getElementById('theme-bar-eq');
+    if (eq) eq.classList.remove('paused');
+  } else {
+    _themePendingKey = null; // user already switched chars — no longer relevant
+  }
+}
+['click', 'keydown', 'touchstart', 'mousedown'].forEach(type => {
+  document.addEventListener(type, _unlockAutoplay, { capture: true, passive: true });
+});
+
+// ── Pause when the user switches to another tab / minimises ──────────────────
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && _themeCurrentCharId && !_themeAudio.paused) {
+    _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
+    _themeAudio.pause();
+    _themePaused = true;
+    const pp = document.getElementById('theme-bar-playpause');
+    if (pp) pp.innerHTML = '&#9654;';
+    const eq = document.getElementById('theme-bar-eq');
+    if (eq) eq.classList.add('paused');
+  }
+});
 
 // Dismiss the mini-player without removing the theme assignment
 function stopThemeMini() {

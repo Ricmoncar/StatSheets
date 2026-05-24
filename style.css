@@ -5349,47 +5349,108 @@ input[type=number] { -moz-appearance: textfield; }
    THEME MUSIC BAR
    ============================================================ */
 #theme-bar {
+  --bar-accent: var(--accent-yellow);
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 0; left: 0; right: 0;
   z-index: 500;
-  background: #0a0a0a;
-  border-top: 2px solid #1a1a1a;
-  padding: 6px 16px;
+  height: 46px;
+  background: linear-gradient(to bottom, #111 0%, #070707 100%);
+  border-top: 2px solid var(--bar-accent);
+  box-shadow: 0 -4px 28px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.03);
+  padding: 0 18px;
   font-family: var(--font-main);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   transform: translateY(100%);
-  transition: transform 0.35s cubic-bezier(.22,.68,0,1);
+  transition: transform 0.35s cubic-bezier(.22,.68,0,1.1),
+              border-color 0.55s ease;
   pointer-events: none;
 }
 #theme-bar.visible {
   transform: translateY(0);
   pointer-events: auto;
 }
+/* Peeked: only the coloured top-border + a tiny sliver visible.
+   Hovering near the bottom of the screen brings it back up. */
 #theme-bar.peeked {
-  transform: translateY(calc(100% - 10px));
+  transform: translateY(calc(100% - 4px));
   pointer-events: auto;
+  transition: transform 0.5s cubic-bezier(.22,.68,0,1.1),
+              border-color 0.55s ease;
+}
+/* Small pill indicator so users can see there's something to hover */
+#theme-bar.peeked::after {
+  content: '';
+  position: absolute;
+  top: -10px;                  /* floats just above the peeked strip */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px; height: 3px;
+  background: var(--bar-accent);
+  border-radius: 2px;
+  opacity: 0.55;
+  animation: theme-pill-pulse 2s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes theme-pill-pulse {
+  from { opacity: 0.35; }
+  to   { opacity: 0.7; }
 }
 
-#theme-bar-playpause {
-  background: transparent;
-  border: 1px solid #282828;
-  color: var(--accent-yellow);
-  font-size: 10px;
-  padding: 4px 8px;
-  cursor: pointer;
-  font-family: var(--font-main);
-  transition: background 0.15s, color 0.15s;
+/* ── Equalizer bars ─────────────────────────────────────────── */
+#theme-bar-eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 20px;
   flex-shrink: 0;
 }
-#theme-bar-playpause:hover {
-  background: var(--accent-yellow);
-  color: #000;
+#theme-bar-eq span {
+  display: block;
+  width: 3px;
+  background: var(--bar-accent);
+  border-radius: 1px 1px 0 0;
+  transform-origin: bottom center;
+  animation: eq-bounce 0.65s ease-in-out infinite alternate;
+}
+#theme-bar-eq span:nth-child(1) { animation-duration: 0.5s;  }
+#theme-bar-eq span:nth-child(2) { animation-duration: 0.72s; animation-delay: 0.1s; }
+#theme-bar-eq span:nth-child(3) { animation-duration: 0.44s; animation-delay: 0.22s; }
+#theme-bar-eq span:nth-child(4) { animation-duration: 0.82s; animation-delay: 0.07s; }
+@keyframes eq-bounce {
+  from { height: 4px;  opacity: 0.45; }
+  to   { height: 18px; opacity: 1;    }
+}
+#theme-bar-eq.paused span {
+  animation-play-state: paused;
+  height: 5px;
+  opacity: 0.2;
 }
 
+/* ── Play / Pause button ─────────────────────────────────────── */
+#theme-bar-playpause {
+  background: transparent;
+  border: 1px solid var(--bar-accent);
+  color: var(--bar-accent);
+  font-size: 9px;
+  width: 28px; height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: none;
+  padding: 0;
+  flex-shrink: 0;
+  font-family: var(--font-main);
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+}
+#theme-bar-playpause:hover {
+  background: var(--bar-accent);
+  color: #000;
+  box-shadow: 0 0 10px var(--bar-accent);
+}
+
+/* ── Song info (clickable — opens MUSIC tab) ─────────────────── */
 #theme-bar-info {
   flex: 1;
   min-width: 0;
@@ -5398,36 +5459,94 @@ input[type=number] { -moz-appearance: textfield; }
 #theme-bar-title {
   font-size: 8px;
   letter-spacing: 1px;
-  color: #bbb;
+  color: #ccc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
+  transition: color 0.12s;
 }
 #theme-bar-char {
-  font-size: 7px;
-  letter-spacing: 1px;
-  color: #444;
+  font-size: 6.5px;
+  letter-spacing: 1.5px;
+  color: #424242;
   display: block;
-  margin-top: 1px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
 }
+#theme-bar-info:hover #theme-bar-title { color: var(--bar-accent); }
 
-#theme-bar-volume {
-  width: 72px;
-  accent-color: var(--accent-yellow);
-  cursor: pointer;
+/* ── Volume label ───────────────────────────────────────────── */
+#theme-bar-vol-label {
+  font-size: 6.5px;
+  letter-spacing: 0;
+  color: #3a3a3a;
+  width: 22px;
+  text-align: right;
   flex-shrink: 0;
 }
 
+/* ── Custom volume slider ────────────────────────────────────── */
+#theme-bar-volume {
+  --val: 70%;
+  -webkit-appearance: none;
+  width: 86px;
+  height: 4px;
+  padding: 0;
+  background: linear-gradient(
+    to right,
+    var(--bar-accent) var(--val),
+    #242424 var(--val)
+  );
+  border: 1px solid #2e2e2e;
+  outline: none;
+  cursor: none;
+  flex-shrink: 0;
+  transition: border-color 0.12s;
+}
+#theme-bar-volume:hover {
+  border-color: #555;
+}
+#theme-bar-volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 22px;
+  background: #ffffff;
+  border: 2px solid #000;
+  cursor: none;
+  box-shadow: 0 0 0 1px #333, 0 2px 6px rgba(0,0,0,0.9);
+  transition: background 0.1s, box-shadow 0.1s;
+}
+#theme-bar-volume:hover::-webkit-slider-thumb {
+  background: var(--bar-accent);
+  box-shadow: 0 0 8px var(--bar-accent), 0 0 0 1px #000;
+}
+#theme-bar-volume::-moz-range-thumb {
+  width: 10px; height: 22px;
+  background: #ffffff;
+  border: 2px solid #000;
+  border-radius: 0;
+  cursor: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.9);
+}
+
+/* ── Close button ───────────────────────────────────────────── */
 #theme-bar-stop {
   background: transparent;
-  border: 1px solid #1a1a1a;
-  color: #444;
+  border: 1px solid #1c1c1c;
+  color: #333;
   font-size: 9px;
-  padding: 3px 6px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  width: 22px; height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: none;
+  padding: 0;
   flex-shrink: 0;
+  transition: color 0.12s, border-color 0.12s;
 }
 #theme-bar-stop:hover {
   color: #e04040;
@@ -5556,8 +5675,10 @@ input[type=number] { -moz-appearance: textfield; }
 
 /* Mobile */
 @media (max-width: 700px) {
-  #theme-bar { padding: 5px 10px; gap: 7px; }
+  #theme-bar { padding: 0 10px; gap: 7px; }
   #theme-bar-volume { width: 46px; }
+  #theme-bar-vol-label { display: none; }
+  #theme-bar-eq { display: none; }
   #theme-bar-title { font-size: 7px; }
   #theme-bar-char { font-size: 6px; }
   .theme-tab-song-controls { flex-direction: column; }
