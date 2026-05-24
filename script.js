@@ -9448,8 +9448,13 @@ function rollTraits() {
     title.textContent = 'DRAWING YOUR HAND...';
     sub.innerHTML = '&nbsp;';
   }
-  actions.style.display = 'none';
   overlay.classList.add('open');
+  // Disable REROLL while cards are spinning — AUTO and CANCEL stay live
+  const rerollBtn = document.getElementById('reroll-hand-btn');
+  if (rerollBtn) rerollBtn.disabled = true;
+  // If autoroll is already on, keep the settings strip visible right away
+  const arSettingsEl = document.getElementById('auto-roll-settings');
+  if (arSettingsEl) arSettingsEl.style.display = _autoRollMode ? 'flex' : 'none';
   updatePityDisplay();
   playSound('dicealt', { rate: 0.9 + Math.random() * 0.15, volume: 0.75 });
 
@@ -9586,6 +9591,7 @@ function rollTraits() {
             c.onclick = () => pickTraitFromHand(currentHand[ci]);
           });
           actions.style.display = '';
+          if (rerollBtn) rerollBtn.disabled = false;
           const arSettings = document.getElementById('auto-roll-settings');
           if (arSettings) arSettings.style.display = _autoRollMode ? 'flex' : 'none';
 
