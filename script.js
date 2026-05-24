@@ -10049,7 +10049,7 @@ let _abilityEditorImageDataURL = null; // base64 image for current editor sessio
 
 /* Type palette — bg/border/text + icon displayed on card and picker */
 const AB_TYPE_COLORS = {
-  ACTIVE:   { bg: 'rgba(0,255,255,0.06)',   border: 'rgba(0,255,255,0.3)',    text: '#00ffff', icon: '⚡', iconColor: '#ffffff' },
+  ACTIVE:   { bg: 'rgba(0,255,255,0.06)',   border: 'rgba(0,255,255,0.3)',    text: '#00ffff', icon: '⚡︎', iconColor: '#ffffff' },
   PASSIVE:  { bg: 'rgba(160,80,255,0.07)',  border: 'rgba(160,80,255,0.35)',  text: '#cc99ff', icon: '◈',  iconColor: '#cc99ff' },
   REACTION: { bg: 'rgba(255,255,0,0.05)',   border: 'rgba(255,255,0,0.3)',    text: '#ffff44', icon: '↺',  iconColor: '#ffff44' },
   TOGGLE:   { bg: 'rgba(0,255,128,0.05)',   border: 'rgba(0,255,128,0.3)',    text: '#00ff80', icon: '⇌',  iconColor: '#00ff80' },
