@@ -9449,6 +9449,9 @@ function rollTraits() {
     sub.innerHTML = '&nbsp;';
   }
   overlay.classList.add('open');
+  // Disable REROLL during animation so you can't stack rolls; AUTO + CANCEL stay live
+  const rerollBtn = document.getElementById('reroll-hand-btn');
+  if (rerollBtn) rerollBtn.disabled = true;
   // Keep the settings strip in sync with autoroll state
   const arSettingsEl = document.getElementById('auto-roll-settings');
   if (arSettingsEl) arSettingsEl.style.display = _autoRollMode ? 'flex' : 'none';
@@ -9588,6 +9591,7 @@ function rollTraits() {
             c.onclick = () => pickTraitFromHand(currentHand[ci]);
           });
           actions.style.display = '';
+          if (rerollBtn) rerollBtn.disabled = false;
           const arSettings = document.getElementById('auto-roll-settings');
           if (arSettings) arSettings.style.display = _autoRollMode ? 'flex' : 'none';
 
