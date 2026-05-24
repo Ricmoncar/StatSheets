@@ -233,6 +233,8 @@ let _themeCurrentCharId = null;   // whose theme is playing right now
 let _themeVolume = 70;            // 0-100
 let _themePaused = false;
 let _themeFadeTimer = null;
+let _themeBarAutoHideTimer = null; // slides bar to peeked after 1.5 s
+let _themeBarLeaveTimer    = null; // hides bar again after mouse leaves
 const _themeTimestamps = new Map(); // charId -> seconds (session-only)
 const THEME_MAX_MB = 20;
 
@@ -303,7 +305,8 @@ function playThemeForCharacter(charId) {
   }
 
   // Same track already playing — nothing to do
-  if (_themeCurrentCharId === key && !_themeAudio.paused && !_themePaused) return;
+  const sameTrackPlaying = (_themeCurrentCharId === key && !_themeAudio.paused && !_themePaused);
+  if (sameTrackPlaying && _themeAudio.dataset.trackUrl === song.url) return;
 
   // Save old position
   if (_themeCurrentCharId && _themeCurrentCharId !== key) {
@@ -315,9 +318,10 @@ function playThemeForCharacter(charId) {
   _themePaused = false;
 
   const doLoad = () => {
-    if (_themeAudio.dataset.trackKey !== key) {
+    if (_themeAudio.dataset.trackKey !== key || _themeAudio.dataset.trackUrl !== song.url) {
       _themeAudio.src = song.url;
       _themeAudio.dataset.trackKey = key;
+      _themeAudio.dataset.trackUrl = song.url;
     }
     _themeAudio.currentTime = startAt;
     _themeAudio.play().catch(() => {});
@@ -333,21 +337,28 @@ function playThemeForCharacter(charId) {
 
 function toggleThemePlayback() {
   if (!_themeCurrentCharId) return;
+  const eq = document.getElementById('theme-bar-eq');
   if (!_themeAudio.paused) {
     _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
     _themeAudio.pause();
     _themePaused = true;
     document.getElementById('theme-bar-playpause').innerHTML = '&#9654;';
+    if (eq) eq.classList.add('paused');
   } else {
     _themeAudio.play().catch(() => {});
     _themePaused = false;
     document.getElementById('theme-bar-playpause').innerHTML = '⏸';
+    if (eq) eq.classList.remove('paused');
   }
 }
 
 function setThemeVolume(vol) {
   _themeVolume = Math.max(0, Math.min(100, vol));
   _themeAudio.volume = _themeVolume / 100;
+  const slider = document.getElementById('theme-bar-volume');
+  if (slider) slider.style.setProperty('--val', _themeVolume + '%');
+  const lbl = document.getElementById('theme-bar-vol-label');
+  if (lbl) lbl.textContent = Math.round(_themeVolume);
 }
 
 // ── Render the MUSIC tab content ─────────────────────────────
@@ -495,14 +506,61 @@ function _showThemeBar(title, charName, charColor) {
   charEl.textContent = charName;
   charEl.style.color = charColor || '#888';
   document.getElementById('theme-bar-playpause').innerHTML = '⏸';
-  document.getElementById('theme-bar-volume').value = _themeVolume;
-  document.getElementById('theme-bar').classList.add('visible');
+  // Sync slider + vol label
+  const slider = document.getElementById('theme-bar-volume');
+  if (slider) {
+    slider.value = _themeVolume;
+    slider.style.setProperty('--val', _themeVolume + '%');
+  }
+  const lbl = document.getElementById('theme-bar-vol-label');
+  if (lbl) lbl.textContent = Math.round(_themeVolume);
+  // Accent colour from character
+  const bar = document.getElementById('theme-bar');
+  bar.style.setProperty('--bar-accent', charColor || 'var(--accent-yellow)');
+  // Equalizer running
+  const eq = document.getElementById('theme-bar-eq');
+  if (eq) eq.classList.remove('paused');
+  // Show bar, then auto-slide to peek after 1.5 s
+  bar.classList.remove('peeked');
+  bar.classList.add('visible');
+  clearTimeout(_themeBarAutoHideTimer);
+  _themeBarAutoHideTimer = setTimeout(() => {
+    if (!bar.matches(':hover')) {
+      bar.classList.remove('visible');
+      bar.classList.add('peeked');
+    }
+  }, 1500);
 }
 
 function _hideThemeBar() {
-  document.getElementById('theme-bar').classList.remove('visible');
+  clearTimeout(_themeBarAutoHideTimer);
+  clearTimeout(_themeBarLeaveTimer);
+  const bar = document.getElementById('theme-bar');
+  bar.classList.remove('visible', 'peeked');
   document.getElementById('theme-bar-playpause').innerHTML = '&#9654;';
+  const eq = document.getElementById('theme-bar-eq');
+  if (eq) eq.classList.add('paused');
 }
+
+// Hover-to-reveal: mouse over the peek strip slides the bar back up
+(function _initThemeBarHover() {
+  const bar = document.getElementById('theme-bar');
+  if (!bar) return;
+  bar.addEventListener('mouseenter', () => {
+    clearTimeout(_themeBarLeaveTimer);
+    clearTimeout(_themeBarAutoHideTimer);
+    bar.classList.add('visible');
+    bar.classList.remove('peeked');
+  });
+  bar.addEventListener('mouseleave', () => {
+    _themeBarLeaveTimer = setTimeout(() => {
+      if (bar.classList.contains('visible')) {
+        bar.classList.remove('visible');
+        bar.classList.add('peeked');
+      }
+    }, 700);
+  });
+}());
 
 // Dismiss the mini-player without removing the theme assignment
 function stopThemeMini() {

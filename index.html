@@ -1085,10 +1085,12 @@
   <!-- Theme music mini-player bar (bottom of screen, only visible when playing) -->
   <div id="theme-bar">
     <button id="theme-bar-playpause" onclick="toggleThemePlayback()" title="Play / Pause">&#9654;</button>
+    <div id="theme-bar-eq"><span></span><span></span><span></span><span></span></div>
     <div id="theme-bar-info" onclick="switchTabById('music')" title="Open Music tab" style="cursor:pointer;">
       <span id="theme-bar-title"></span>
       <span id="theme-bar-char"></span>
     </div>
+    <span id="theme-bar-vol-label">70</span>
     <input type="range" id="theme-bar-volume" min="0" max="100" value="70"
            oninput="setThemeVolume(+this.value)" title="Volume" />
     <button id="theme-bar-stop" onclick="stopThemeMini()" title="Hide player (theme stays assigned)">&#x2715;</button>
