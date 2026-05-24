@@ -172,188 +172,198 @@ function playHover() {
 }
 
 // ============================================================
-// THEME MUSIC PLAYER (per-character YouTube themes)
+// THEME MUSIC PLAYER (per-character MP3 themes via Firebase Storage)
 // ============================================================
-let _themePlayer = null;          // YT.Player instance
-let _themePlayerReady = false;
+const _themeAudio = document.getElementById('theme-audio');
 let _themeCurrentCharId = null;   // whose theme is playing right now
-let _themeVolume = 70;            // user-controlled volume (0-100)
+let _themeVolume = 70;            // 0-100
 let _themePaused = false;
 let _themeFadeTimer = null;
 const _themeTimestamps = new Map(); // charId -> seconds (session-only)
+const THEME_MAX_MB = 20;
 
-// Called automatically by the YouTube IFrame API once it has loaded.
-function onYouTubeIframeAPIReady() {
-  _themePlayer = new YT.Player('theme-yt-player', {
-    height: '0', width: '0',
-    playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, rel: 0 },
-    events: {
-      onReady: () => { _themePlayerReady = true; },
-      onStateChange: _onThemeState,
-    },
-  });
-}
-
-function _onThemeState(e) {
-  // Loop when the video ends
-  if (e.data === YT.PlayerState.ENDED && _themeCurrentCharId) {
-    try { _themePlayer.seekTo(0); _themePlayer.playVideo(); } catch (_) {}
-  }
-}
+// ── Firebase Storage init ─────────────────────────────────────
+let storage = null;
+try { storage = firebase.storage(); } catch (_) {}
 
 // ── Crossfade helpers ────────────────────────────────────────
 function _themeFadeOut(onDone) {
   clearInterval(_themeFadeTimer);
-  let vol;
-  try { vol = _themePlayer.getVolume(); } catch (_) { vol = 0; }
+  let vol = _themeAudio.volume;
   if (vol <= 0) { if (onDone) onDone(); return; }
-  const step = Math.max(2, Math.ceil(vol / 16)); // ~16 steps → 800ms
+  const step = vol / 16; // ~16 steps × 50ms = 800ms
   _themeFadeTimer = setInterval(() => {
     vol -= step;
     if (vol <= 0) {
       clearInterval(_themeFadeTimer);
-      try { _themePlayer.setVolume(0); } catch (_) {}
+      _themeAudio.volume = 0;
       if (onDone) onDone();
     } else {
-      try { _themePlayer.setVolume(vol); } catch (_) {}
+      _themeAudio.volume = vol;
     }
   }, 50);
 }
 
 function _themeFadeIn() {
   clearInterval(_themeFadeTimer);
-  try { _themePlayer.setVolume(0); } catch (_) {}
+  _themeAudio.volume = 0;
+  const target = _themeVolume / 100;
   let vol = 0;
-  const step = Math.max(2, Math.ceil(_themeVolume / 16));
+  const step = target / 16;
   _themeFadeTimer = setInterval(() => {
     vol += step;
-    if (vol >= _themeVolume) {
+    if (vol >= target) {
       clearInterval(_themeFadeTimer);
-      try { _themePlayer.setVolume(_themeVolume); } catch (_) {}
+      _themeAudio.volume = target;
     } else {
-      try { _themePlayer.setVolume(vol); } catch (_) {}
+      _themeAudio.volume = vol;
     }
   }, 50);
 }
 
 // ── Core API ─────────────────────────────────────────────────
 function playThemeForCharacter(charId) {
-  if (!_themePlayerReady) return;
   const c = characters.find(x => x.id === charId);
-  const idx = c && c.info && c.info.themeSongIdx;
+  const song = c && c.info && c.info.themeSong; // { url, name }
 
-  // No theme set on this character
-  if (idx == null || !c.info.soundtrack || !c.info.soundtrack[idx]) {
-    if (_themeCurrentCharId) {
-      // Save old timestamp, fade out, hide bar
-      try { _themeTimestamps.set(_themeCurrentCharId, _themePlayer.getCurrentTime()); } catch (_) {}
-      _themeFadeOut(() => {
-        try { _themePlayer.stopVideo(); } catch (_) {}
-        _themeCurrentCharId = null;
-        _hideThemeBar();
-      });
+  // Update bar to show correct character context even when no theme
+  _updateThemeBarChar(c);
+
+  if (!song || !song.url) {
+    // No theme — fade out current if from a different character, show empty state
+    if (_themeCurrentCharId && _themeCurrentCharId !== charId) {
+      _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
+      _themeFadeOut(() => { _themeAudio.pause(); _themeCurrentCharId = null; });
     }
+    _showThemeBarEmpty();
     return;
   }
 
-  // Already playing this character's theme — no action
-  if (_themeCurrentCharId === charId && !_themePaused) return;
-
-  const song = c.info.soundtrack[idx];
-  const vid = getYouTubeId(song.url);
-  if (!vid) return;
+  // Same character, already playing — nothing to do
+  if (_themeCurrentCharId === charId && !_themeAudio.paused && !_themePaused) return;
 
   // Save old position
   if (_themeCurrentCharId && _themeCurrentCharId !== charId) {
-    try { _themeTimestamps.set(_themeCurrentCharId, _themePlayer.getCurrentTime()); } catch (_) {}
+    _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
   }
 
   const startAt = _themeTimestamps.get(charId) || 0;
   _themeCurrentCharId = charId;
   _themePaused = false;
 
-  // Crossfade: fade old out → load new → fade in
   const doLoad = () => {
-    try {
-      _themePlayer.loadVideoById({ videoId: vid, startSeconds: startAt });
-    } catch (_) {}
+    // Only reload src if it actually changed
+    if (_themeAudio.dataset.charId !== charId) {
+      _themeAudio.src = song.url;
+      _themeAudio.dataset.charId = charId;
+    }
+    _themeAudio.currentTime = startAt;
+    _themeAudio.play().catch(() => {});
     _themeFadeIn();
   };
 
-  let wasPlaying = false;
-  try { wasPlaying = (_themePlayer.getPlayerState() === YT.PlayerState.PLAYING); } catch (_) {}
-  if (wasPlaying) _themeFadeOut(doLoad);
+  if (!_themeAudio.paused) _themeFadeOut(doLoad);
   else doLoad();
 
-  _updateThemeBar(song.title || 'UNTITLED', c.name, c.color);
+  _showThemeBarPlaying(song.name || 'UNTITLED', c.name, c.color);
 }
 
 function toggleThemePlayback() {
-  if (!_themePlayerReady || !_themeCurrentCharId) return;
-  try {
-    const st = _themePlayer.getPlayerState();
-    if (st === YT.PlayerState.PLAYING) {
-      _themeTimestamps.set(_themeCurrentCharId, _themePlayer.getCurrentTime());
-      _themePlayer.pauseVideo();
-      _themePaused = true;
-      document.getElementById('theme-bar-playpause').innerHTML = '&#9654;';
-    } else {
-      _themePlayer.playVideo();
-      _themePaused = false;
-      document.getElementById('theme-bar-playpause').innerHTML = '&#9646;&#9646;';
-    }
-  } catch (_) {}
-}
-
-function stopTheme() {
-  clearInterval(_themeFadeTimer);
-  if (_themeCurrentCharId) {
-    try { _themeTimestamps.set(_themeCurrentCharId, _themePlayer.getCurrentTime()); } catch (_) {}
+  if (!_themeCurrentCharId) return;
+  if (!_themeAudio.paused) {
+    _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
+    _themeAudio.pause();
+    _themePaused = true;
+    document.getElementById('theme-bar-playpause').innerHTML = '&#9654;';
+  } else {
+    _themeAudio.play().catch(() => {});
+    _themePaused = false;
+    document.getElementById('theme-bar-playpause').innerHTML = '&#9646;&#9646;';
   }
-  try { _themePlayer.stopVideo(); } catch (_) {}
-  _themeCurrentCharId = null;
-  _themePaused = false;
-  _hideThemeBar();
 }
 
 function setThemeVolume(vol) {
   _themeVolume = Math.max(0, Math.min(100, vol));
-  try { _themePlayer.setVolume(_themeVolume); } catch (_) {}
+  _themeAudio.volume = _themeVolume / 100;
 }
 
-function toggleCharacterTheme(idx) {
+// ── Upload / clear ───────────────────────────────────────────
+function openThemeFilePicker() {
+  if (!currentId) return;
+  document.getElementById('theme-file-input').click();
+}
+
+async function onThemeFileSelected(input) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+
+  if (file.size > THEME_MAX_MB * 1024 * 1024) {
+    notify(`File too large — max ${THEME_MAX_MB} MB`, 'err');
+    return;
+  }
+  if (!storage) { notify('Storage not available', 'err'); return; }
+
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
-  c.info = c.info || {};
-  if (c.info.themeSongIdx === idx) {
-    // Unset
-    delete c.info.themeSongIdx;
-    if (_themeCurrentCharId === c.id) stopTheme();
-  } else {
-    // Set
-    c.info.themeSongIdx = idx;
-    _themeTimestamps.delete(c.id); // reset timestamp for fresh start
+
+  notify('Uploading theme...', 'ok');
+  try {
+    const ref = storage.ref(`themes/${c.id}`);
+    await ref.put(file);
+    const url = await ref.getDownloadURL();
+    c.info = c.info || {};
+    c.info.themeSong = { url, name: file.name.replace(/\.[^/.]+$/, '') };
+    saveData(c);
+    _themeTimestamps.delete(c.id); // fresh start
     playThemeForCharacter(c.id);
+    notify('Theme set!', 'ok');
+  } catch (e) {
+    notify('Upload failed: ' + (e.message || e), 'err');
   }
-  renderInfoLinks('soundtrack');
+}
+
+async function clearThemeSong() {
+  const c = characters.find(x => x.id === currentId);
+  if (!c || !c.info || !c.info.themeSong) return;
+
+  // Fade out and stop if this character is playing
+  if (_themeCurrentCharId === c.id) {
+    _themeFadeOut(() => { _themeAudio.pause(); _themeAudio.src = ''; });
+    _themeCurrentCharId = null;
+    _themePaused = false;
+  }
+
+  // Delete from Storage (best-effort)
+  try { await storage.ref(`themes/${c.id}`).delete(); } catch (_) {}
+
+  delete c.info.themeSong;
+  _themeTimestamps.delete(c.id);
   saveData(c);
+  _showThemeBarEmpty();
 }
 
 // ── Theme bar UI ─────────────────────────────────────────────
-function _updateThemeBar(title, charName, charColor) {
-  const bar = document.getElementById('theme-bar');
+function _updateThemeBarChar(c) {
+  // Keep the bar visible whenever a character is selected
+  document.getElementById('theme-bar').classList.add('visible');
+}
+
+function _showThemeBarEmpty() {
+  document.getElementById('theme-bar-empty').style.display = '';
+  document.getElementById('theme-bar-playing').style.display = 'none';
+}
+
+function _showThemeBarPlaying(title, charName, charColor) {
+  document.getElementById('theme-bar-empty').style.display = 'none';
+  const playing = document.getElementById('theme-bar-playing');
+  playing.style.display = '';
   document.getElementById('theme-bar-title').textContent = title;
   const charEl = document.getElementById('theme-bar-char');
   charEl.textContent = charName;
-  charEl.style.color = charColor || '#444';
+  charEl.style.color = charColor || '#888';
   document.getElementById('theme-bar-playpause').innerHTML = '&#9646;&#9646;';
   document.getElementById('theme-bar-volume').value = _themeVolume;
-  bar.classList.add('visible');
-}
-
-function _hideThemeBar() {
-  document.getElementById('theme-bar').classList.remove('visible');
-  document.getElementById('theme-bar-playpause').innerHTML = '&#9654;';
 }
 
 // ============================================================
@@ -2049,11 +2059,6 @@ function renderInfoLinks(key) {
     entry.className = 'info-link-entry';
     const hasUrl = !!link.url;
     const vid = getYouTubeId(link.url);
-    const isTheme = (key === 'soundtrack' && c && c.info && c.info.themeSongIdx === idx);
-    if (isTheme) entry.classList.add('theme-active');
-    const themeBtn = (key === 'soundtrack' && vid)
-      ? `<button class="info-link-theme-btn${isTheme ? ' active' : ''}" onclick="toggleCharacterTheme(${idx})">${isTheme ? '♫ THEME' : '♪ SET THEME'}</button>`
-      : '';
     const row = document.createElement('div');
     row.className = 'info-link-row';
     row.innerHTML =
@@ -2062,7 +2067,6 @@ function renderInfoLinks(key) {
       `<input type="text" class="info-link-url" placeholder="YouTube or Spotify URL..." value="${_esc(link.url)}" oninput="updateInfoLink('${key}',${idx},'url',this.value)">` +
       `<input type="text" class="info-link-note" placeholder="add a note..." value="${_esc(link.note)}" oninput="updateInfoLink('${key}',${idx},'note',this.value)">` +
       (vid ? `<button class="info-link-play" onclick="playInfoLink('${key}',${idx})">▶ PLAY</button>` : '') +
-      themeBtn +
       `<a class="info-link-open" href="${_esc(link.url) || '#'}" target="_blank" rel="noopener" style="opacity:${hasUrl ? '0.55' : '0.15'};pointer-events:${hasUrl ? 'auto' : 'none'}" title="Open in new tab">↗</a>` +
       `<button class="info-link-remove" onclick="removeInfoLink('${key}',${idx})" title="Remove">×</button>`;
     const player = document.createElement('div');
@@ -2116,17 +2120,6 @@ function removeInfoLink(key, idx) {
   const c = characters.find(x => x.id === currentId);
   if (!c || !c.info || !c.info[key]) return;
   c.info[key].splice(idx, 1);
-  // Adjust themeSongIdx when a soundtrack entry is removed
-  if (key === 'soundtrack' && c.info.themeSongIdx != null) {
-    if (idx === c.info.themeSongIdx) {
-      // Removed the theme entry — clear it and stop playback
-      delete c.info.themeSongIdx;
-      if (c.id === _themeCurrentCharId) stopTheme();
-    } else if (idx < c.info.themeSongIdx) {
-      // Removed an entry before the theme — shift index down
-      c.info.themeSongIdx--;
-    }
-  }
   renderInfoLinks(key);
   saveData(c);
 }
@@ -2164,27 +2157,6 @@ function updateInfoLink(key, idx, field, val) {
           const player = entry.querySelector('.info-link-player');
           if (player) { player.innerHTML = ''; player.style.display = 'none'; player.dataset.active = '0'; }
           playBtn.remove();
-        }
-        // Add/remove theme button for soundtrack entries
-        if (key === 'soundtrack') {
-          let themeBtn = row.querySelector('.info-link-theme-btn');
-          const isTheme = (c.info && c.info.themeSongIdx === idx);
-          if (vid && !themeBtn) {
-            themeBtn = document.createElement('button');
-            themeBtn.className = 'info-link-theme-btn' + (isTheme ? ' active' : '');
-            themeBtn.textContent = isTheme ? '♫ THEME' : '♪ SET THEME';
-            themeBtn.onclick = () => toggleCharacterTheme(idx);
-            const oBtn = row.querySelector('.info-link-open');
-            if (oBtn) oBtn.before(themeBtn);
-          } else if (!vid && themeBtn) {
-            themeBtn.remove();
-            // URL became invalid — clear theme if this was the theme entry
-            if (isTheme) {
-              delete c.info.themeSongIdx;
-              entry.classList.remove('theme-active');
-              if (c.id === _themeCurrentCharId) stopTheme();
-            }
-          }
         }
       }
     }

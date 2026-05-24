@@ -1038,27 +1038,35 @@
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  <!-- YouTube IFrame Player API (for per-character theme music) -->
-  <script src="https://www.youtube.com/iframe_api"></script>
-  <script src="script.js?v=3"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script src="script.js?v=4"></script>
   <!-- Hidden file input for per-form avatar uploads — kept outside any click zones -->
   <input type="file" id="form-avatar-file" accept="image/*" onchange="handleFormAvatarUpload(event)" style="display:none;">
 
-  <!-- Hidden YouTube player for theme music -->
-  <div id="theme-player-container" style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;">
-    <div id="theme-yt-player"></div>
-  </div>
+  <!-- Hidden audio element for theme music -->
+  <audio id="theme-audio" preload="auto" loop style="display:none;"></audio>
+  <!-- Hidden file input for theme song uploads -->
+  <input type="file" id="theme-file-input" accept="audio/*" style="display:none;" onchange="onThemeFileSelected(this)">
 
   <!-- Theme music bar (bottom of screen) -->
   <div id="theme-bar">
-    <button id="theme-bar-playpause" onclick="toggleThemePlayback()" title="Play / Pause">&#9654;</button>
-    <div id="theme-bar-info">
-      <span id="theme-bar-title">NO THEME</span>
-      <span id="theme-bar-char"></span>
+    <!-- "no theme" state -->
+    <div id="theme-bar-empty">
+      <span id="theme-bar-empty-label">♪ NO THEME</span>
+      <button id="theme-bar-upload-btn" onclick="openThemeFilePicker()" title="Upload an MP3 as this character's theme song">+ SET THEME</button>
     </div>
-    <input type="range" id="theme-bar-volume" min="0" max="100" value="70"
-           oninput="setThemeVolume(+this.value)" title="Volume" />
-    <button id="theme-bar-stop" onclick="stopTheme()" title="Stop theme music">&#x2715;</button>
+    <!-- "playing/paused" state -->
+    <div id="theme-bar-playing" style="display:none;">
+      <button id="theme-bar-playpause" onclick="toggleThemePlayback()" title="Play / Pause">&#9654;</button>
+      <div id="theme-bar-info">
+        <span id="theme-bar-title"></span>
+        <span id="theme-bar-char"></span>
+      </div>
+      <input type="range" id="theme-bar-volume" min="0" max="100" value="70"
+             oninput="setThemeVolume(+this.value)" title="Volume" />
+      <button id="theme-bar-change" onclick="openThemeFilePicker()" title="Replace theme song">✎</button>
+      <button id="theme-bar-stop" onclick="clearThemeSong()" title="Remove theme song">&#x2715;</button>
+    </div>
   </div>
 
 </body>

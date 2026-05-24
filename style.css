@@ -5430,48 +5430,57 @@ input[type=number] { -moz-appearance: textfield; }
   border-color: #e04040;
 }
 
-/* Theme toggle button inside soundtrack rows */
-.info-link-theme-btn {
+/* Theme bar — empty state (no theme set) */
+#theme-bar-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+#theme-bar-empty-label {
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: #333;
+}
+#theme-bar-upload-btn {
   font-family: var(--font-main);
-  font-size: 6px;
-  letter-spacing: 1px;
-  padding: 3px 6px;
-  cursor: pointer;
-  border: 1px solid #1e1e1e;
+  font-size: 6.5px;
+  letter-spacing: 1.5px;
+  padding: 3px 8px;
   background: transparent;
-  color: #383838;
-  transition: all 0.15s;
+  border: 1px solid #2a2a2a;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
-.info-link-theme-btn:hover {
+#theme-bar-upload-btn:hover {
   color: var(--accent-yellow);
   border-color: var(--accent-yellow);
-}
-.info-link-theme-btn.active {
-  color: var(--accent-yellow);
-  border-color: var(--accent-yellow);
-  background: rgba(255, 255, 0, 0.06);
 }
 
-/* Pulsing dot on the active theme row */
-.info-link-entry.theme-active {
-  position: relative;
+/* Theme bar — playing state */
+#theme-bar-playing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
 }
-.info-link-entry.theme-active::before {
-  content: '';
-  position: absolute;
-  left: -6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  background: var(--accent-yellow);
-  border-radius: 50%;
-  animation: theme-dot-pulse 1.6s ease-in-out infinite alternate;
+
+/* Change-theme button (✎) */
+#theme-bar-change {
+  background: transparent;
+  border: 1px solid #1a1a1a;
+  color: #444;
+  font-size: 9px;
+  padding: 3px 6px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
 }
-@keyframes theme-dot-pulse {
-  from { opacity: 1; }
-  to   { opacity: 0.2; }
+#theme-bar-change:hover {
+  color: #aaa;
+  border-color: #aaa;
 }
 
 /* Mobile */
@@ -5480,5 +5489,6 @@ input[type=number] { -moz-appearance: textfield; }
   #theme-bar-volume { width: 46px; }
   #theme-bar-title { font-size: 7px; }
   #theme-bar-char { font-size: 6px; }
+  #theme-bar-upload-btn { font-size: 6px; padding: 3px 6px; }
 }
 
