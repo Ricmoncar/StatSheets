@@ -172,7 +172,7 @@ function playHover() {
 }
 
 // ============================================================
-// THEME MUSIC PLAYER (per-character MP3 themes via Firebase Storage)
+// THEME MUSIC PLAYER (per-character MP3 themes via Cloudinary)
 // ============================================================
 const _themeAudio = document.getElementById('theme-audio');
 let _themeCurrentCharId = null;   // whose theme is playing right now
@@ -182,9 +182,8 @@ let _themeFadeTimer = null;
 const _themeTimestamps = new Map(); // charId -> seconds (session-only)
 const THEME_MAX_MB = 20;
 
-// ── Firebase Storage init ─────────────────────────────────────
-let storage = null;
-try { storage = firebase.storage(); } catch (_) {}
+const CLOUDINARY_CLOUD = 'dhlik6lkn';
+const CLOUDINARY_PRESET = 'statsheets';
 
 // ── Crossfade helpers ────────────────────────────────────────
 function _themeFadeOut(onDone) {
@@ -331,20 +330,29 @@ async function onThemeFileSelected(input) {
     notify(`File too large — max ${THEME_MAX_MB} MB`, 'err');
     return;
   }
-  if (!storage) { notify('Storage not available', 'err'); return; }
 
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
 
   notify('Uploading theme...', 'ok');
   try {
-    const ref = storage.ref(`themes/${c.id}`);
-    await ref.put(file);
-    const url = await ref.getDownloadURL();
+    const form = new FormData();
+    form.append('file', file);
+    form.append('upload_preset', CLOUDINARY_PRESET);
+    form.append('resource_type', 'video'); // Cloudinary uses 'video' for audio files
+    form.append('public_id', 'themes/' + c.id); // overwrite same slot each time
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`,
+      { method: 'POST', body: form }
+    );
+    if (!res.ok) throw new Error('Upload failed: ' + res.status);
+    const data = await res.json();
+
     c.info = c.info || {};
-    c.info.themeSong = { url, name: file.name.replace(/\.[^/.]+$/, '') };
+    c.info.themeSong = { url: data.secure_url, name: file.name.replace(/\.[^/.]+$/, '') };
     saveData(c);
-    _themeTimestamps.delete(c.id); // fresh start
+    _themeTimestamps.delete(c.id);
     playThemeForCharacter(c.id);
     renderThemeTab();
     notify('Theme set!', 'ok');
@@ -353,7 +361,7 @@ async function onThemeFileSelected(input) {
   }
 }
 
-async function clearThemeSong() {
+function clearThemeSong() {
   const c = characters.find(x => x.id === currentId);
   if (!c || !c.info || !c.info.themeSong) return;
 
@@ -365,9 +373,7 @@ async function clearThemeSong() {
     _hideThemeBar();
   }
 
-  // Delete from Storage (best-effort)
-  try { await storage.ref(`themes/${c.id}`).delete(); } catch (_) {}
-
+  // Note: Cloudinary files are kept (deletion requires API secret, which is server-side only)
   delete c.info.themeSong;
   _themeTimestamps.delete(c.id);
   saveData(c);
