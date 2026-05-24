@@ -9449,10 +9449,7 @@ function rollTraits() {
     sub.innerHTML = '&nbsp;';
   }
   overlay.classList.add('open');
-  // Disable REROLL while cards are spinning — AUTO and CANCEL stay live
-  const rerollBtn = document.getElementById('reroll-hand-btn');
-  if (rerollBtn) rerollBtn.disabled = true;
-  // If autoroll is already on, keep the settings strip visible right away
+  // Keep the settings strip in sync with autoroll state
   const arSettingsEl = document.getElementById('auto-roll-settings');
   if (arSettingsEl) arSettingsEl.style.display = _autoRollMode ? 'flex' : 'none';
   updatePityDisplay();
@@ -9591,7 +9588,6 @@ function rollTraits() {
             c.onclick = () => pickTraitFromHand(currentHand[ci]);
           });
           actions.style.display = '';
-          if (rerollBtn) rerollBtn.disabled = false;
           const arSettings = document.getElementById('auto-roll-settings');
           if (arSettings) arSettings.style.display = _autoRollMode ? 'flex' : 'none';
 
