@@ -287,7 +287,7 @@ function toggleThemePlayback() {
   } else {
     _themeAudio.play().catch(() => {});
     _themePaused = false;
-    document.getElementById('theme-bar-playpause').innerHTML = '&#9646;&#9646;';
+    document.getElementById('theme-bar-playpause').innerHTML = '⏸';
   }
 }
 
@@ -440,7 +440,7 @@ function _showThemeBar(title, charName, charColor) {
   const charEl = document.getElementById('theme-bar-char');
   charEl.textContent = charName;
   charEl.style.color = charColor || '#888';
-  document.getElementById('theme-bar-playpause').innerHTML = '&#9646;&#9646;';
+  document.getElementById('theme-bar-playpause').innerHTML = '⏸';
   document.getElementById('theme-bar-volume').value = _themeVolume;
   document.getElementById('theme-bar').classList.add('visible');
 }
