@@ -322,14 +322,14 @@ function playThemeForCharacter(charId) {
   const doLoad = () => {
     const forceReload = _themeReloadKeys.has(key);
     if (_themeAudio.dataset.trackKey !== key || _themeAudio.dataset.trackUrl !== song.url || forceReload) {
-      _themeAudio.src = forceReload ? `${song.url}?_=${Date.now()}` : song.url;
+      _themeAudio.pause();
+      _themeAudio.src = forceReload ? `${song.url}${song.url.includes('?') ? '&' : '?'}_=${Date.now()}` : song.url;
       _themeAudio.dataset.trackKey = key;
       _themeAudio.dataset.trackUrl = song.url;
+      _themeAudio.load();
       if (forceReload) _themeReloadKeys.delete(key);
     }
     _themeAudio.currentTime = startAt;
-    _themeAudio.pause();
-    _themeAudio.load();
     _themeAudio.play().catch(() => {});
     _themeFadeIn();
   };
@@ -459,7 +459,8 @@ async function onThemeFileSelected(input) {
     );
     if (!res.ok) throw new Error('Upload failed: ' + res.status);
     const data = await res.json();
-    const songData = { url: data.secure_url, name: file.name.replace(/\.[^/.]+$/, '') };
+    const url = data.secure_url + (data.secure_url.includes('?') ? '&' : '?') + 'v=' + Date.now();
+    const songData = { url, name: file.name.replace(/\.[^/.]+$/, '') };
 
     if (formIdx === 0) {
       c.info = c.info || {};
