@@ -212,6 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
   _sfxUpdateIcon();
   const lbl = document.getElementById('sfx-vol-label');
   if (lbl) lbl.textContent = Math.round(_sfxVolume * 100);
+
+  _themeAudio = document.getElementById('theme-audio');
+  _initThemeBarHover();
 });
 
 function playClick() {
@@ -228,8 +231,9 @@ function playHover() {
 // ============================================================
 // THEME MUSIC PLAYER (per-character MP3 themes via Cloudinary)
 // ============================================================
-const _themeAudio = document.getElementById('theme-audio');
+let _themeAudio = null;
 let _themeCurrentCharId = null;   // whose theme is playing right now
+let _themeCurrentSong = null;     // cache of the song object currently being played
 let _themeVolume = 70;            // 0-100
 let _themePaused = false;
 const _themeReloadKeys = new Set();
@@ -290,25 +294,33 @@ function _getFormTheme(c, formIdx) {
 function _tsKey(charId, formIdx) { return charId + ':' + (formIdx || 0); }
 
 // ── Core API ─────────────────────────────────────────────────
-function playThemeForCharacter(charId) {
+function playThemeForCharacter(charId, overrideSong = null) {
   const c = characters.find(x => x.id === charId);
   const formIdx = c ? (c.activeFormIdx || 0) : 0;
-  const song = _getFormTheme(c, formIdx);
   const key = _tsKey(charId, formIdx);
+
+  // If no override and we're playing this same track, use the cached song to avoid stale data from Firestore
+  let song = overrideSong;
+  if (!song) {
+    // Check if this is the currently playing track
+    if (_themeCurrentCharId === key && _themeCurrentSong) {
+      console.log('[THEME] Using cached song for currently playing track');
+      song = _themeCurrentSong;
+    } else {
+      song = _getFormTheme(c, formIdx);
+    }
+  }
+
+  console.log('[THEME] playThemeForCharacter called:', { charId, formIdx, overrideSong, usingCached: (!overrideSong && _themeCurrentCharId === key), songFromChar: _getFormTheme(c, formIdx) });
 
   if (!song || !song.url) {
     // No theme for this form — fade out if we were playing something else
     if (_themeCurrentCharId) {
       _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
-      _themeFadeOut(() => { _themeAudio.pause(); _themeCurrentCharId = null; _hideThemeBar(); });
+      _themeFadeOut(() => { _themeAudio.pause(); _themeCurrentCharId = null; _themeCurrentSong = null; _hideThemeBar(); });
     }
     return;
   }
-
-  const forceReload = _themeReloadKeys.has(key);
-  // Same track already playing — nothing to do unless we've flagged a reload.
-  const sameTrackPlaying = (_themeCurrentCharId === key && !_themeAudio.paused && !_themePaused);
-  if (sameTrackPlaying && _themeAudio.dataset.trackUrl === song.url && !forceReload) return;
 
   // Save old position
   if (_themeCurrentCharId && _themeCurrentCharId !== key) {
@@ -317,18 +329,32 @@ function playThemeForCharacter(charId) {
 
   const startAt = _themeTimestamps.get(key) || 0;
   _themeCurrentCharId = key;
+  _themeCurrentSong = song;  // Cache the song being played
   _themePaused = false;
+  const forceReload = _themeReloadKeys.has(key);
 
   const doLoad = () => {
-    const forceReload = _themeReloadKeys.has(key);
-    if (_themeAudio.dataset.trackKey !== key || _themeAudio.dataset.trackUrl !== song.url || forceReload) {
-      _themeAudio.pause();
-      _themeAudio.src = forceReload ? `${song.url}${song.url.includes('?') ? '&' : '?'}_=${Date.now()}` : song.url;
-      _themeAudio.dataset.trackKey = key;
-      _themeAudio.dataset.trackUrl = song.url;
-      _themeAudio.load();
-      if (forceReload) _themeReloadKeys.delete(key);
-    }
+    // ALWAYS force reload if forced OR if URL changed
+    const shouldForceReload = _themeReloadKeys.has(key) || (_themeAudio.dataset.trackUrl !== song.url);
+    
+    _themeAudio.pause();
+    _themeAudio.currentTime = 0;
+    _themeAudio.src = '';  // Explicitly clear
+    
+    // Use aggressive cache busting: always add a fresh param
+    const bustParam = '_=' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    const newUrl = song.url + (song.url.includes('?') ? '&' : '?') + bustParam;
+    _themeAudio.src = newUrl;
+    
+    console.log('[THEME] Loading:', newUrl, 'Original:', song.url, 'ForceReload:', shouldForceReload);
+    
+    _themeAudio.dataset.trackKey = key;
+    _themeAudio.dataset.trackUrl = song.url;
+    _themeAudio.load();
+    
+    // Clean up reload flag
+    if (_themeReloadKeys.has(key)) _themeReloadKeys.delete(key);
+    
     _themeAudio.currentTime = startAt;
     _themeAudio.play().catch(() => {});
     _themeFadeIn();
@@ -443,7 +469,9 @@ async function onThemeFileSelected(input) {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
   const formIdx = _themeUploadFormIdx;
-  const publicId = formIdx === 0 ? `themes/${c.id}` : `themes/${c.id}_${formIdx}`;
+  // Make public_id unique per upload to avoid CDN/resource caching serving older bytes.
+  const publicIdBase = formIdx === 0 ? `themes/${c.id}` : `themes/${c.id}_${formIdx}`;
+  const publicId = publicIdBase + '_' + Date.now();
 
   notify('Uploading theme...', 'ok');
   try {
@@ -462,6 +490,11 @@ async function onThemeFileSelected(input) {
     const url = data.secure_url + (data.secure_url.includes('?') ? '&' : '?') + 'v=' + Date.now();
     const songData = { url, name: file.name.replace(/\.[^/.]+$/, '') };
 
+    // Capture previous song (if any) before overwriting — useful for verification
+    const prevSong = _getFormTheme(c, formIdx);
+
+    console.log('[UPLOAD] New theme uploaded:', { url: data.secure_url, cachebustedUrl: url, songData, prevSong });
+
     if (formIdx === 0) {
       c.info = c.info || {};
       c.info.themeSong = songData;
@@ -472,13 +505,45 @@ async function onThemeFileSelected(input) {
     }
 
     _themeTimestamps.delete(_tsKey(c.id, formIdx));
-    saveData(c);
     // Force a reload when this form's theme is replaced.
     _themeReloadKeys.add(_tsKey(c.id, formIdx));
-    // Play immediately if this is the active form
-    if ((c.activeFormIdx || 0) === formIdx) playThemeForCharacter(c.id);
+    // Save immediately
+    saveData(c);
+    // Play immediately if this is the active form, passing the new song directly
+    if ((c.activeFormIdx || 0) === formIdx) {
+      console.log('[UPLOAD] Playing new theme immediately:', songData);
+      playThemeForCharacter(c.id, songData);
+    }
     renderThemeTab();
     notify('Theme set!', 'ok');
+
+    // --- Diagnostic verification: fetch uploaded URL (and previous URL) and log SHA-256 hashes ---
+    try {
+      async function fetchHash(u) {
+        try {
+          const probeUrl = u + (u.includes('?') ? '&' : '?') + '_dbg=' + Date.now();
+          const r = await fetch(probeUrl, { cache: 'no-store' });
+          const ab = await r.arrayBuffer();
+          const hashBuf = await crypto.subtle.digest('SHA-256', ab);
+          const hex = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
+          console.log('[VERIFY] Fetch', probeUrl, 'status', r.status, 'size', ab.byteLength, 'sha256', hex);
+          return { status: r.status, size: ab.byteLength, hash: hex };
+        } catch (e) {
+          console.error('[VERIFY] fetch failed for', u, e);
+          return null;
+        }
+      }
+
+      const newInfo = await fetchHash(songData.url);
+      if (prevSong && prevSong.url) {
+        const prevInfo = await fetchHash(prevSong.url);
+        if (newInfo && prevInfo && newInfo.hash === prevInfo.hash) {
+          console.warn('[VERIFY] Uploaded file bytes equal to previous file — CDN or upload may not have updated resource.');
+        }
+      }
+    } catch (e) {
+      console.error('[VERIFY] Verification failed', e);
+    }
   } catch (e) {
     notify('Upload failed: ' + (e.message || e), 'err');
   }
@@ -493,6 +558,7 @@ function clearThemeSong(formIdx) {
   if (_themeCurrentCharId === key) {
     _themeFadeOut(() => { _themeAudio.pause(); _themeAudio.src = ''; });
     _themeCurrentCharId = null;
+    _themeCurrentSong = null;
     _themePaused = false;
     _hideThemeBar();
   }
@@ -547,14 +613,15 @@ function _hideThemeBar() {
   clearTimeout(_themeBarAutoHideTimer);
   clearTimeout(_themeBarLeaveTimer);
   const bar = document.getElementById('theme-bar');
+  if (!bar) return;
   bar.classList.remove('visible', 'peeked');
-  document.getElementById('theme-bar-playpause').innerHTML = '&#9654;';
+  const playpause = document.getElementById('theme-bar-playpause');
+  if (playpause) playpause.innerHTML = '&#9654;';
   const eq = document.getElementById('theme-bar-eq');
   if (eq) eq.classList.add('paused');
 }
 
-// Hover-to-reveal: mouse over the peek strip slides the bar back up
-(function _initThemeBarHover() {
+function _initThemeBarHover() {
   const bar = document.getElementById('theme-bar');
   if (!bar) return;
   bar.addEventListener('mouseenter', () => {
@@ -577,14 +644,14 @@ function _hideThemeBar() {
     if (window.matchMedia('(max-width: 700px)').matches) return;
     if (!bar.classList.contains('peeked')) return;
     const bottomDistance = window.innerHeight - e.clientY;
-    if (bottomDistance <= 40) {
+    if (bottomDistance <= 80) {
       clearTimeout(_themeBarLeaveTimer);
       clearTimeout(_themeBarAutoHideTimer);
       bar.classList.add('visible');
       bar.classList.remove('peeked');
     }
   });
-}());
+}
 
 // Dismiss the mini-player without removing the theme assignment
 function stopThemeMini() {
@@ -593,6 +660,7 @@ function stopThemeMini() {
   _themeAudio.pause();
   _themePaused = true;
   _themeCurrentCharId = null;
+  _themeCurrentSong = null;
   _hideThemeBar();
 }
 
@@ -7434,14 +7502,14 @@ const TRAITS = {
 
   lotuswaters: {
     name: 'Lotus Waters', rarity: 'legendary',
-    desc: 'Your water abilities turn pink, or you gain water manipulation. Your water heals enemies for +5% HP per turn and damages them for -5% HP per turn while in it. Once per battle: flood the arena for 2 rounds.',
+    desc: 'Your water abilities turn pink, or you gain water manipulation. Your water heals allies for +5% HP per turn and damages them for -5% HP per turn while in it. Once per battle: flood the arena for 2 rounds.',
     passive: [],
     notes: 'No shimmyful. Has a Hexxed variant: Lavender Waters.',
   },
 
   lavenderwaters: {
     name: 'Lavender Waters', rarity: 'hexxed',
-    desc: 'Your water abilities turn lavender, or you gain water manipulation. Your water heals enemies for +15% HP per turn and damages them for -15% HP per turn while in it. Once per battle: flood the arena for 3 rounds.',
+    desc: 'Your water abilities turn lavender, or you gain water manipulation. Your water heals allies for +15% HP per turn and damages them for -15% HP per turn while in it. Once per battle: flood the arena for 3 rounds.',
     passive: [],
     notes: 'Hexxed version of Lotus Waters. No shimmyful.',
   },
@@ -9927,6 +9995,7 @@ if (sidebarList && db) {
       if (c) {
         if (!isSelf) {
           // Remote update — refresh the viewed character
+          console.log('[FIRESTORE] Listener update (remote):', c.id, 'Theme:', c.info?.themeSong);
           updateGoldDisplay(c);
           updateLiveStats(c);
           renderTraitsDisplay(c);
@@ -9935,6 +10004,8 @@ if (sidebarList && db) {
           // Keep form switcher + avatar in sync (another user may have switched forms)
           renderFormSwitcher(c);
           _syncAvatarEl(c);
+        } else {
+          console.log('[FIRESTORE] Listener update (self-write):', c.id, 'Theme:', c.info?.themeSong);
         }
       } else {
         // Character missing from snapshot — only treat as a real deletion

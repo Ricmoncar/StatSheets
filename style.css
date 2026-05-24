@@ -5370,7 +5370,7 @@ input[type=number] { -moz-appearance: textfield; }
   pointer-events: auto;
 }
 #theme-bar.peeked {
-  transform: translateY(calc(100% - 18px));
+  transform: translateY(calc(100% - 10px));
   pointer-events: auto;
 }
 
