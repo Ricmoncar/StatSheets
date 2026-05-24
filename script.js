@@ -2284,11 +2284,13 @@ function renderRollHistory(c) {
 function switchTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tab-stats').style.display  = tab === 'stats'  ? '' : 'none';
-  document.getElementById('tab-style').style.display  = tab === 'style'  ? '' : 'none';
-  document.getElementById('tab-info').style.display   = tab === 'info'   ? '' : 'none';
-  document.getElementById('tab-music').style.display  = tab === 'music'  ? '' : 'none';
-  if (tab === 'music') renderThemeTab();
+  document.getElementById('tab-stats').style.display      = tab === 'stats'     ? '' : 'none';
+  document.getElementById('tab-style').style.display      = tab === 'style'     ? '' : 'none';
+  document.getElementById('tab-info').style.display       = tab === 'info'      ? '' : 'none';
+  document.getElementById('tab-music').style.display      = tab === 'music'     ? '' : 'none';
+  document.getElementById('tab-abilities').style.display  = tab === 'abilities' ? '' : 'none';
+  if (tab === 'music')     renderThemeTab();
+  if (tab === 'abilities') renderAbilitiesTab();
 }
 
 // Jump to a tab by name — used by the mini-player bar click
@@ -10027,11 +10029,227 @@ viewChar = function (id) {
       document.getElementById('tab-music').style.display !== 'none') {
     renderThemeTab();
   }
+  // Refresh abilities tab content if it's currently open
+  if (document.getElementById('tab-abilities') &&
+      document.getElementById('tab-abilities').style.display !== 'none') {
+    renderAbilitiesTab();
+  }
 };
 const _origUpdateLiveStats = updateLiveStats;
 updateLiveStats = function (c) {
   _origUpdateLiveStats(c);
 };
+
+// ============================================================
+// ABILITIES TAB
+// ============================================================
+
+let _abilityEditorIdx = null; // null = new ability, number = editing existing
+
+/* Type colour palette */
+const AB_TYPE_COLORS = {
+  ACTIVE:   { bg: 'rgba(0,255,255,0.07)',   border: 'rgba(0,255,255,0.28)',   text: '#00ffff' },
+  PASSIVE:  { bg: 'rgba(160,80,255,0.07)',  border: 'rgba(160,80,255,0.32)',  text: '#cc99ff' },
+  REACTION: { bg: 'rgba(255,255,0,0.05)',   border: 'rgba(255,255,0,0.28)',   text: '#ffff44' },
+  TOGGLE:   { bg: 'rgba(0,255,128,0.05)',   border: 'rgba(0,255,128,0.28)',   text: '#00ff80' },
+  AURA:     { bg: 'rgba(40,120,255,0.07)',  border: 'rgba(40,120,255,0.32)',  text: '#5599ff' },
+  ULTIMATE: { bg: 'rgba(255,80,0,0.08)',    border: 'rgba(255,100,0,0.38)',   text: '#ff8844' },
+};
+
+/* Render the whole abilities tab for the current character */
+function renderAbilitiesTab() {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  renderAbilityCards(c);
+  renderCharPassivesUI(c);
+}
+
+/* ── Ability Cards ─────────────────────────────────────────── */
+function renderAbilityCards(c) {
+  const list  = document.getElementById('abilities-list');
+  const empty = document.getElementById('abilities-empty');
+  if (!list) return;
+  const abilities = c.abilities || [];
+  if (abilities.length === 0) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  list.innerHTML = abilities.map((ab, idx) => {
+    const tc = AB_TYPE_COLORS[ab.type] || AB_TYPE_COLORS.ACTIVE;
+
+    // Meta badges: cost / cd / range / cast / dmg / duration
+    const metaItems = [
+      ab.cost     && `<span class="ab-meta-item"><span class="ab-meta-label">COST</span>${ab.cost}</span>`,
+      ab.cd       && `<span class="ab-meta-item"><span class="ab-meta-label">CD</span>${ab.cd}</span>`,
+      ab.range    && `<span class="ab-meta-item"><span class="ab-meta-label">RANGE</span>${ab.range}</span>`,
+      ab.cast     && `<span class="ab-meta-item"><span class="ab-meta-label">CAST</span>${ab.cast}</span>`,
+      ab.dmg      && `<span class="ab-meta-item"><span class="ab-meta-label">DMG</span>${ab.dmg}</span>`,
+      ab.duration && `<span class="ab-meta-item"><span class="ab-meta-label">DUR</span>${ab.duration}</span>`,
+    ].filter(Boolean).join('');
+
+    const tags = (ab.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+    const tagsHtml = tags.map(t => `<span class="ab-tag">${t}</span>`).join('');
+
+    return `<div class="ab-card" style="--ab-bg:${tc.bg};--ab-border:${tc.border};--ab-text:${tc.text};">
+      <div class="ab-card-top">
+        <div class="ab-card-name">${ab.name || 'Unnamed'}</div>
+        <span class="ab-type-badge">${ab.type || 'ACTIVE'}</span>
+      </div>
+      ${ab.desc     ? `<div class="ab-card-desc">${ab.desc}</div>` : ''}
+      ${metaItems   ? `<div class="ab-meta-row">${metaItems}</div>` : ''}
+      ${tagsHtml    ? `<div class="ab-tags-row">${tagsHtml}</div>` : ''}
+      ${ab.notes    ? `<div class="ab-card-notes">${ab.notes}</div>` : ''}
+      ${ab.req      ? `<div class="ab-card-req"><span class="ab-meta-label">REQ</span>&nbsp;${ab.req}</div>` : ''}
+      <div class="ab-card-actions">
+        <button class="btn sm" onclick="openAbilityEditor(${idx})">EDIT</button>
+        <button class="btn sm danger" onclick="deleteAbility(${idx})">DELETE</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Ability Editor open / close / save / delete ─────────────── */
+function openAbilityEditor(idx) {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  _abilityEditorIdx = idx;
+  const ab = (idx !== null && idx !== undefined) ? ((c.abilities || [])[idx] || {}) : {};
+
+  document.getElementById('ae-title').textContent    = (idx !== null && idx !== undefined) ? 'EDIT ABILITY' : 'NEW ABILITY';
+  document.getElementById('ae-name').value           = ab.name     || '';
+  document.getElementById('ae-type').value           = ab.type     || 'ACTIVE';
+  document.getElementById('ae-desc').value           = ab.desc     || '';
+  document.getElementById('ae-notes').value          = ab.notes    || '';
+  document.getElementById('ae-cost').value           = ab.cost     || '';
+  document.getElementById('ae-cd').value             = ab.cd       || '';
+  document.getElementById('ae-range').value          = ab.range    || '';
+  document.getElementById('ae-cast').value           = ab.cast     || '';
+  document.getElementById('ae-tags').value           = ab.tags     || '';
+  document.getElementById('ae-dmg').value            = ab.dmg      || '';
+  document.getElementById('ae-duration').value       = ab.duration || '';
+  document.getElementById('ae-req').value            = ab.req      || '';
+
+  // Propagate character colour into the fixed-position modal
+  const aeModal = document.getElementById('ability-editor-modal');
+  if (aeModal && c.color) aeModal.style.setProperty('--char-color', c.color);
+
+  document.getElementById('ability-editor-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('ae-name').focus(), 60);
+}
+
+function closeAbilityEditor() {
+  document.getElementById('ability-editor-overlay').style.display = 'none';
+  _abilityEditorIdx = null;
+}
+
+function saveAbility() {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  const name = document.getElementById('ae-name').value.trim();
+  if (!name) { notify('ABILITY NEEDS A NAME', 'err'); return; }
+
+  if (!c.abilities) c.abilities = [];
+  const existingId = (_abilityEditorIdx !== null && _abilityEditorIdx !== undefined)
+    ? ((c.abilities[_abilityEditorIdx] || {}).id || null)
+    : null;
+
+  const ab = {
+    id:       existingId || Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    name,
+    type:     document.getElementById('ae-type').value,
+    desc:     document.getElementById('ae-desc').value.trim(),
+    notes:    document.getElementById('ae-notes').value.trim(),
+    cost:     document.getElementById('ae-cost').value.trim(),
+    cd:       document.getElementById('ae-cd').value.trim(),
+    range:    document.getElementById('ae-range').value.trim(),
+    cast:     document.getElementById('ae-cast').value.trim(),
+    tags:     document.getElementById('ae-tags').value.trim(),
+    dmg:      document.getElementById('ae-dmg').value.trim(),
+    duration: document.getElementById('ae-duration').value.trim(),
+    req:      document.getElementById('ae-req').value.trim(),
+  };
+
+  if (_abilityEditorIdx !== null && _abilityEditorIdx !== undefined) {
+    c.abilities[_abilityEditorIdx] = ab;
+  } else {
+    c.abilities.push(ab);
+  }
+
+  const wasEditing = (_abilityEditorIdx !== null && _abilityEditorIdx !== undefined);
+  saveData(c);
+  closeAbilityEditor();
+  renderAbilityCards(c);
+  notify(wasEditing ? 'ABILITY UPDATED' : 'ABILITY ADDED', 'ok');
+}
+
+function deleteAbility(idx) {
+  const c = characters.find(x => x.id === currentId);
+  if (!c || !c.abilities) return;
+  c.abilities.splice(idx, 1);
+  saveData(c);
+  renderAbilityCards(c);
+  notify('ABILITY REMOVED', 'ok');
+}
+
+/* ── Character Passives ───────────────────────────────────────── */
+function renderCharPassivesUI(c) {
+  const list  = document.getElementById('char-passives-list');
+  const empty = document.getElementById('char-passives-empty');
+  if (!list) return;
+  const passives = c.charPassives || [];
+
+  list.innerHTML = passives.map((p, idx) => {
+    const safe = p.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return `<div class="char-passive-row">
+      <input type="text" class="char-passive-input" value="${safe}"
+             placeholder="e.g. Never takes fall damage" maxlength="160"
+             onchange="saveCharPassives()">
+      <button class="btn sm danger" onclick="removeCharPassiveRow(${idx})">&#x2715;</button>
+    </div>`;
+  }).join('');
+
+  if (empty) empty.style.display = passives.length === 0 ? '' : 'none';
+}
+
+function addCharPassiveRow() {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  if (!c.charPassives) c.charPassives = [];
+  c.charPassives.push('');
+  saveData(c);
+  renderCharPassivesUI(c);
+  const inputs = document.querySelectorAll('#char-passives-list .char-passive-input');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function removeCharPassiveRow(idx) {
+  const c = characters.find(x => x.id === currentId);
+  if (!c || !c.charPassives) return;
+  c.charPassives.splice(idx, 1);
+  saveData(c);
+  renderCharPassivesUI(c);
+}
+
+function saveCharPassives() {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  c.charPassives = Array.from(document.querySelectorAll('#char-passives-list .char-passive-input'))
+    .map(i => i.value.trim());
+  saveData(c);
+}
+
+// Close ability editor on overlay background click
+document.addEventListener('DOMContentLoaded', () => {
+  const aeOverlay = document.getElementById('ability-editor-overlay');
+  if (aeOverlay) {
+    aeOverlay.addEventListener('click', e => {
+      if (e.target === aeOverlay) closeAbilityEditor();
+    });
+  }
+});
 
 // ============================================================
 // INIT

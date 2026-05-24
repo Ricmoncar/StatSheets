@@ -264,6 +264,12 @@
               </svg>
               MUSIC
             </button>
+            <button class="tab-btn" id="tab-btn-abilities" onclick="switchTab('abilities',this)">
+              <svg width="10" height="10" viewBox="0 0 10 10" style="margin-right:5px;vertical-align:middle;">
+                <polygon points="5,0.5 6.2,3.8 9.8,3.8 6.9,5.9 8,9.2 5,7.2 2,9.2 3.1,5.9 0.2,3.8 3.8,3.8" fill="currentColor"/>
+              </svg>
+              ABILITIES
+            </button>
           </div>
 
 
@@ -534,6 +540,28 @@
               <div id="theme-tab-content">
                 <!-- Rendered by renderThemeTab() -->
               </div>
+            </div>
+          </div>
+
+          <div id="tab-abilities" style="display:none">
+            <div class="panel abilities-tab-panel">
+              <!-- Character Passives -->
+              <div class="abilities-section-header">
+                <span>CHARACTER PASSIVES</span>
+                <button class="btn sm" onclick="addCharPassiveRow()">+ ADD</button>
+              </div>
+              <div id="char-passives-list"></div>
+              <div id="char-passives-empty" class="abilities-empty-state">NO PASSIVES DEFINED</div>
+
+              <div class="abilities-divider"></div>
+
+              <!-- Abilities -->
+              <div class="abilities-section-header">
+                <span>ABILITIES</span>
+                <button class="btn sm accent" onclick="openAbilityEditor(null)">+ NEW</button>
+              </div>
+              <div id="abilities-list"></div>
+              <div id="abilities-empty" class="abilities-empty-state">NO ABILITIES DEFINED</div>
             </div>
           </div>
 
@@ -860,6 +888,85 @@
     </div>
   </div>
 
+
+  <!-- ABILITY EDITOR MODAL -->
+  <div id="ability-editor-overlay">
+    <div id="ability-editor-modal">
+      <div id="ability-editor-header">
+        <span id="ae-title">NEW ABILITY</span>
+        <button class="btn-info" onclick="closeAbilityEditor()">✕</button>
+      </div>
+      <div id="ability-editor-body">
+        <!-- Left column: identity & description -->
+        <div>
+          <div class="field">
+            <label>ABILITY NAME</label>
+            <input type="text" id="ae-name" placeholder="e.g. Fireball" maxlength="40">
+          </div>
+          <div class="field">
+            <label>TYPE</label>
+            <select id="ae-type">
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="PASSIVE">PASSIVE</option>
+              <option value="REACTION">REACTION</option>
+              <option value="TOGGLE">TOGGLE</option>
+              <option value="AURA">AURA</option>
+              <option value="ULTIMATE">ULTIMATE</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>DESCRIPTION</label>
+            <textarea id="ae-desc" rows="5" placeholder="What does this ability do? Include mechanics, conditions, effects..."></textarea>
+          </div>
+          <div class="field">
+            <label>FLAVOR / LORE NOTES</label>
+            <textarea id="ae-notes" rows="2" placeholder="Background lore, flavor text, extra context..."></textarea>
+          </div>
+          <div class="field">
+            <label>REQUIREMENT / UNLOCK CONDITION</label>
+            <input type="text" id="ae-req" placeholder="e.g. Level 5, must be bloodied" maxlength="80">
+          </div>
+        </div>
+        <!-- Right column: mechanics -->
+        <div>
+          <div class="ae-stats-grid">
+            <div class="field">
+              <label>COST / RESOURCE</label>
+              <input type="text" id="ae-cost" placeholder="e.g. 3 MP / 1 Soul" maxlength="30">
+            </div>
+            <div class="field">
+              <label>COOLDOWN</label>
+              <input type="text" id="ae-cd" placeholder="e.g. 2 turns / once/day" maxlength="30">
+            </div>
+            <div class="field">
+              <label>RANGE</label>
+              <input type="text" id="ae-range" placeholder="e.g. Melee / 30ft" maxlength="30">
+            </div>
+            <div class="field">
+              <label>CAST TIME</label>
+              <input type="text" id="ae-cast" placeholder="e.g. 1 action / instant" maxlength="30">
+            </div>
+            <div class="field">
+              <label>DAMAGE / HEALING</label>
+              <input type="text" id="ae-dmg" placeholder="e.g. 2d6 + ATK" maxlength="40">
+            </div>
+            <div class="field">
+              <label>DURATION</label>
+              <input type="text" id="ae-duration" placeholder="e.g. 3 turns / permanent" maxlength="30">
+            </div>
+          </div>
+          <div class="field" style="margin-top:4px;">
+            <label>TAGS</label>
+            <input type="text" id="ae-tags" placeholder="fire, projectile, aoe  (comma separated)" maxlength="100">
+          </div>
+        </div>
+      </div>
+      <div id="ability-editor-footer">
+        <button class="btn" onclick="closeAbilityEditor()">CANCEL</button>
+        <button class="btn success" onclick="saveAbility()">SAVE ABILITY</button>
+      </div>
+    </div>
+  </div>
 
   <!-- POWER LEVEL MODAL -->
   <div id="power-modal-overlay" onclick="closePowerModal()"></div>

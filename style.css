@@ -1462,9 +1462,9 @@ input[type=number] { -moz-appearance: textfield; }
   padding: 10px 4px;
   align-items: start; /* Prevent cards from stretching to match tallest in row */
 }
-.inv-card { 
-  background: var(--panel-bg); border: 2px solid #333; padding: 12px; 
-  padding-bottom: 36px; /* Tightened space for absolute buttons */
+.inv-card {
+  background: var(--panel-bg); border: 2px solid #333; padding: 12px;
+  padding-bottom: 54px; /* Space for absolute buttons below passives */
   display: flex; gap: 12px; transition: all 0.2s, border-color 0.2s, box-shadow 0.2s; position: relative;
 }
 .inv-card:hover { transform: translateY(-2px); border-color: var(--hc, #555); box-shadow: 0 0 12px var(--hc, transparent); }
@@ -1610,20 +1610,22 @@ input[type=number] { -moz-appearance: textfield; }
   display: block;
   font-size: 6px;
   letter-spacing: 3px;
-  color: #1e4444;
+  color: var(--hc, #444);
+  opacity: 0.5;
   margin-bottom: 3px;
 }
 .inv-passive-tag {
   position: relative;
   padding: 5px 8px 5px 11px;
   font-size: 7px;
-  color: #7ec8c8;
+  color: var(--hc, #7ec8c8);
   letter-spacing: 0.4px;
   line-height: 1.7;
   word-break: break-word;
-  background: linear-gradient(90deg, rgba(0,180,180,0.07) 0%, rgba(0,180,180,0.02) 60%, transparent 100%);
-  border: 1px solid #0c2828;
+  background: transparent;
+  border: 1px solid var(--hc, #0c2828);
   border-left: none;
+  opacity: 0.85;
 }
 /* Left accent stripe */
 .inv-passive-tag::before {
@@ -1631,7 +1633,8 @@ input[type=number] { -moz-appearance: textfield; }
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: 3px;
-  background: linear-gradient(to bottom, rgba(0,210,210,0.55), rgba(0,140,140,0.2));
+  background: var(--hc, rgba(0,210,210,0.55));
+  opacity: 0.5;
 }
 
 .eff-stat-diff {
@@ -5898,5 +5901,257 @@ input[type=number] { -moz-appearance: textfield; }
   text-align: right;
   flex-shrink: 0;
   font-family: var(--font-main);
+}
+
+/* ============================================================
+   ABILITIES TAB
+   ============================================================ */
+
+.abilities-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.abilities-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--char-color, var(--accent-yellow));
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1e1e1e;
+  margin-bottom: 12px;
+}
+
+.abilities-divider {
+  border-top: 1px solid #141414;
+  margin: 20px 0;
+}
+
+.abilities-empty-state {
+  font-size: 8px;
+  color: #333;
+  letter-spacing: 2px;
+  text-align: center;
+  padding: 20px;
+  border: 1px dashed #1e1e1e;
+}
+
+/* ── Character passive rows in abilities tab ── */
+.char-passive-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 7px;
+  align-items: stretch;
+}
+.char-passive-input {
+  flex: 1;
+  min-width: 0;
+  background: #060606;
+  border: 1px solid #1e1e1e;
+  border-left: 3px solid var(--char-color, var(--accent-yellow));
+  color: var(--char-color, var(--accent-yellow));
+  font-family: var(--font-main);
+  font-size: 8px;
+  padding: 9px 12px;
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+  outline: none;
+  opacity: 0.85;
+}
+.char-passive-input::placeholder { color: #2a2a2a; }
+.char-passive-input:focus {
+  background: #0a0a0a;
+  border-left-color: var(--char-color, var(--accent-yellow));
+  opacity: 1;
+}
+
+/* ── Ability Cards ── */
+.ab-card {
+  background: var(--ab-bg, rgba(0,255,255,0.05));
+  border: 1px solid var(--ab-border, rgba(0,255,255,0.2));
+  border-left: 3px solid var(--ab-border, rgba(0,255,255,0.4));
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  position: relative;
+}
+.ab-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ab-card-name {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--ab-text, #00ffff);
+}
+.ab-type-badge {
+  font-size: 6px;
+  letter-spacing: 2px;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+  color: var(--ab-text, #00ffff);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.ab-card-desc {
+  font-size: 7px;
+  color: #aaa;
+  line-height: 1.7;
+  letter-spacing: 0.3px;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+.ab-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+.ab-meta-item {
+  font-size: 6px;
+  letter-spacing: 0.5px;
+  color: #888;
+  background: #0a0a0a;
+  border: 1px solid #222;
+  padding: 3px 7px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.ab-meta-label {
+  color: #444;
+  letter-spacing: 1px;
+}
+.ab-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 7px;
+}
+.ab-tag {
+  font-size: 6px;
+  letter-spacing: 1px;
+  color: var(--ab-text, #00ffff);
+  border: 1px solid var(--ab-border, rgba(0,255,255,0.2));
+  padding: 2px 6px;
+  opacity: 0.6;
+}
+.ab-card-notes {
+  font-size: 7px;
+  color: #555;
+  font-style: italic;
+  letter-spacing: 0.3px;
+  line-height: 1.6;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+.ab-card-req {
+  font-size: 6px;
+  letter-spacing: 0.5px;
+  color: #555;
+  margin-bottom: 6px;
+}
+.ab-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #131313;
+}
+
+/* ── Ability Editor Modal ── */
+#ability-editor-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 10001;
+  align-items: center;
+  justify-content: center;
+}
+#ability-editor-modal {
+  background: #0a0a0a;
+  border: 2px solid #333;
+  width: min(780px, 96vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 40px rgba(0,0,0,0.9), 4px 4px 0 #222;
+}
+#ability-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #222;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--char-color, var(--accent-yellow));
+  background: #070707;
+  flex-shrink: 0;
+}
+#ability-editor-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 18px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+#ability-editor-body .field {
+  margin-bottom: 12px;
+}
+#ability-editor-body .field label {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: #555;
+  margin-bottom: 5px;
+}
+#ability-editor-body input,
+#ability-editor-body select,
+#ability-editor-body textarea {
+  width: 100%;
+  background: #050505;
+  border: 1px solid #222;
+  color: var(--fg);
+  font-family: var(--font-main);
+  font-size: 8px;
+  padding: 8px 10px;
+  outline: none;
+  line-height: 1.5;
+}
+#ability-editor-body select {
+  cursor: none;
+  appearance: none;
+}
+#ability-editor-body input:focus,
+#ability-editor-body select:focus,
+#ability-editor-body textarea:focus {
+  border-color: var(--char-color, var(--accent-yellow));
+  background: #080808;
+}
+#ability-editor-body textarea {
+  resize: none;
+}
+.ae-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+#ability-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid #1a1a1a;
+  background: #050505;
+  flex-shrink: 0;
 }
 
