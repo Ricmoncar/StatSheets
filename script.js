@@ -150,15 +150,69 @@ function closeDrawer() { document.body.classList.remove('drawer-open'); }
 const SOUNDS_PATH = 'sounds/';
 let _hoverCooldown = false;
 
+// ── Global SFX volume (persisted to localStorage) ────────────
+let _sfxVolume = parseFloat(localStorage.getItem('sfx_volume') ?? '1');
+let _sfxMuted  = localStorage.getItem('sfx_muted') === '1';
+
 function playSound(name, { rate = 1, volume = 1 } = {}) {
   try {
+    if (_sfxMuted) return;
     const audio = new Audio(SOUNDS_PATH + name + '.mp3');
-    audio.volume = Math.max(0, Math.min(1, volume));
+    audio.volume = Math.max(0, Math.min(1, volume * _sfxVolume));
     audio.playbackRate = Math.max(0.1, Math.min(4, rate));
     audio.play().catch(() => { });
     return audio;
   } catch (e) { }
 }
+
+function setSfxVolume(val) {
+  _sfxVolume = Math.max(0, Math.min(100, val)) / 100;
+  localStorage.setItem('sfx_volume', _sfxVolume);
+  const lbl = document.getElementById('sfx-vol-label');
+  if (lbl) lbl.textContent = Math.round(_sfxVolume * 100);
+  _sfxUpdateIcon();
+}
+
+function toggleSfxMute() {
+  _sfxMuted = !_sfxMuted;
+  localStorage.setItem('sfx_muted', _sfxMuted ? '1' : '0');
+  _sfxUpdateIcon();
+}
+
+function _sfxUpdateIcon() {
+  const btn  = document.getElementById('sfx-mute-btn');
+  const svg  = document.getElementById('sfx-icon');
+  const w1   = document.getElementById('sfx-wave1');
+  const w2   = document.getElementById('sfx-wave2');
+  if (!btn) return;
+  const vol = _sfxMuted ? 0 : _sfxVolume;
+  btn.textContent = _sfxMuted ? '🔇' : (vol < 0.4 ? '🔉' : '🔊');
+  if (w1) w1.style.display = vol === 0 ? 'none' : '';
+  if (w2) w2.style.display = vol < 0.4 ? 'none' : '';
+}
+
+function toggleSfxPanel() {
+  const panel = document.getElementById('sfx-panel');
+  if (!panel) return;
+  panel.classList.toggle('open');
+}
+
+// Close panel when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('sfx-ctrl-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('sfx-panel')?.classList.remove('open');
+  }
+});
+
+// Apply persisted values to UI on load
+document.addEventListener('DOMContentLoaded', () => {
+  const slider = document.getElementById('sfx-vol-slider');
+  if (slider) slider.value = Math.round(_sfxVolume * 100);
+  _sfxUpdateIcon();
+  const lbl = document.getElementById('sfx-vol-label');
+  if (lbl) lbl.textContent = Math.round(_sfxVolume * 100);
+});
 
 function playClick() {
   playSound('click', { rate: 0.9 + Math.random() * 0.3, volume: 0.4 });

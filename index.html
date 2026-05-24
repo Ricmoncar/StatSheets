@@ -135,6 +135,25 @@
         <button class="btn accent" onclick="location.href='utilities.html'">UTILITIES</button>
         <button class="btn accent" onclick="location.href='gallery.html'">GALLERY</button>
         <button class="btn accent" onclick="showEditor(null)">+ NEW CHARACTER</button>
+        <!-- Sound controls -->
+        <div id="sfx-ctrl-wrap">
+          <button id="sfx-ctrl-btn" onclick="toggleSfxPanel()" title="Sound effects">
+            <svg id="sfx-icon" width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="1,4 4,4 7,1 7,12 4,9 1,9" fill="currentColor"/>
+              <path id="sfx-wave1" d="M8.5 4.5 C9.5 5.2 9.5 7.8 8.5 8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+              <path id="sfx-wave2" d="M10 3 C12 4.5 12 8.5 10 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+            </svg>
+          </button>
+          <div id="sfx-panel">
+            <div class="sfx-panel-label">SOUND EFFECTS</div>
+            <div class="sfx-row">
+              <button id="sfx-mute-btn" onclick="toggleSfxMute()" title="Mute / Unmute">🔊</button>
+              <input type="range" id="sfx-vol-slider" min="0" max="100" value="100"
+                     oninput="setSfxVolume(+this.value)" title="Volume" />
+              <span id="sfx-vol-label">100</span>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
