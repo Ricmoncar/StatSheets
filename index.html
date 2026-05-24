@@ -237,6 +237,14 @@
               </svg>
               INFO
             </button>
+            <button class="tab-btn" id="tab-btn-music" onclick="switchTab('music',this)">
+              <svg width="10" height="10" viewBox="0 0 10 10" style="margin-right:5px;vertical-align:middle;">
+                <path d="M3.5 8.5V2.5L8.5 1.5V7.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <circle cx="2.5" cy="8.5" r="1.2" fill="currentColor"/>
+                <circle cx="7.5" cy="7.5" r="1.2" fill="currentColor"/>
+              </svg>
+              MUSIC
+            </button>
           </div>
 
 
@@ -498,6 +506,15 @@
                 </div>
               </div>
 
+            </div>
+          </div>
+
+          <div id="tab-music" style="display:none">
+            <div class="panel theme-tab-panel">
+              <div class="panel-title">THEME SONG</div>
+              <div id="theme-tab-content">
+                <!-- Rendered by renderThemeTab() -->
+              </div>
             </div>
           </div>
 
@@ -1048,25 +1065,16 @@
   <!-- Hidden file input for theme song uploads -->
   <input type="file" id="theme-file-input" accept="audio/*" style="display:none;" onchange="onThemeFileSelected(this)">
 
-  <!-- Theme music bar (bottom of screen) -->
+  <!-- Theme music mini-player bar (bottom of screen, only visible when playing) -->
   <div id="theme-bar">
-    <!-- "no theme" state -->
-    <div id="theme-bar-empty">
-      <span id="theme-bar-empty-label">♪ NO THEME</span>
-      <button id="theme-bar-upload-btn" onclick="openThemeFilePicker()" title="Upload an MP3 as this character's theme song">+ SET THEME</button>
+    <button id="theme-bar-playpause" onclick="toggleThemePlayback()" title="Play / Pause">&#9654;</button>
+    <div id="theme-bar-info" onclick="switchTabById('music')" title="Open Music tab" style="cursor:pointer;">
+      <span id="theme-bar-title"></span>
+      <span id="theme-bar-char"></span>
     </div>
-    <!-- "playing/paused" state -->
-    <div id="theme-bar-playing" style="display:none;">
-      <button id="theme-bar-playpause" onclick="toggleThemePlayback()" title="Play / Pause">&#9654;</button>
-      <div id="theme-bar-info">
-        <span id="theme-bar-title"></span>
-        <span id="theme-bar-char"></span>
-      </div>
-      <input type="range" id="theme-bar-volume" min="0" max="100" value="70"
-             oninput="setThemeVolume(+this.value)" title="Volume" />
-      <button id="theme-bar-change" onclick="openThemeFilePicker()" title="Replace theme song">✎</button>
-      <button id="theme-bar-stop" onclick="clearThemeSong()" title="Remove theme song">&#x2715;</button>
-    </div>
+    <input type="range" id="theme-bar-volume" min="0" max="100" value="70"
+           oninput="setThemeVolume(+this.value)" title="Volume" />
+    <button id="theme-bar-stop" onclick="stopThemeMini()" title="Hide player (theme stays assigned)">&#x2715;</button>
   </div>
 
 </body>

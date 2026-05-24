@@ -5430,58 +5430,93 @@ input[type=number] { -moz-appearance: textfield; }
   border-color: #e04040;
 }
 
-/* Theme bar — empty state (no theme set) */
-#theme-bar-empty {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-}
-#theme-bar-empty-label {
-  font-size: 7px;
-  letter-spacing: 2px;
-  color: #333;
-}
-#theme-bar-upload-btn {
-  font-family: var(--font-main);
-  font-size: 6.5px;
-  letter-spacing: 1.5px;
-  padding: 3px 8px;
-  background: transparent;
-  border: 1px solid #2a2a2a;
-  color: #555;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-#theme-bar-upload-btn:hover {
-  color: var(--accent-yellow);
-  border-color: var(--accent-yellow);
-}
+/* ── MUSIC TAB ──────────────────────────────────────────────── */
+.theme-tab-panel { min-height: 180px; }
 
-/* Theme bar — playing state */
-#theme-bar-playing {
+/* Empty state */
+.theme-tab-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  flex: 1;
+  padding: 40px 20px;
+  text-align: center;
 }
-
-/* Change-theme button (✎) */
-#theme-bar-change {
-  background: transparent;
-  border: 1px solid #1a1a1a;
-  color: #444;
+.theme-tab-empty-icon {
+  font-size: 28px;
+  color: #2a2a2a;
+  line-height: 1;
+}
+.theme-tab-empty-text {
   font-size: 9px;
-  padding: 3px 6px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  letter-spacing: 2px;
+  color: #555;
+}
+.theme-tab-empty-sub {
+  font-size: 7.5px;
+  color: #333;
+  letter-spacing: 0.5px;
+  line-height: 1.8;
+}
+.theme-tab-upload-btn {
+  margin-top: 6px;
+  font-size: 7px;
+  letter-spacing: 1.5px;
+  padding: 6px 14px;
+}
+.theme-tab-limit {
+  font-size: 6.5px;
+  color: #2a2a2a;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* Song card */
+.theme-tab-song {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 18px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid #1c1c1c;
+}
+.theme-tab-song-icon {
+  font-size: 20px;
+  color: var(--accent-yellow);
   flex-shrink: 0;
+  animation: theme-dot-pulse 2s ease-in-out infinite alternate;
 }
-#theme-bar-change:hover {
-  color: #aaa;
-  border-color: #aaa;
+@keyframes theme-dot-pulse {
+  from { opacity: 1; }
+  to   { opacity: 0.35; }
 }
+.theme-tab-song-details {
+  flex: 1;
+  min-width: 0;
+}
+.theme-tab-song-name {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #ddd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.theme-tab-song-meta {
+  font-size: 6.5px;
+  color: #383838;
+  letter-spacing: 0.5px;
+}
+.theme-tab-song-controls {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+#theme-bar-info:hover #theme-bar-title { color: var(--accent-yellow); }
 
 /* Mobile */
 @media (max-width: 700px) {
@@ -5489,6 +5524,6 @@ input[type=number] { -moz-appearance: textfield; }
   #theme-bar-volume { width: 46px; }
   #theme-bar-title { font-size: 7px; }
   #theme-bar-char { font-size: 6px; }
-  #theme-bar-upload-btn { font-size: 6px; padding: 3px 6px; }
+  .theme-tab-song-controls { flex-direction: column; }
 }
 

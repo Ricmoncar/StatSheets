@@ -226,23 +226,19 @@ function playThemeForCharacter(charId) {
   const c = characters.find(x => x.id === charId);
   const song = c && c.info && c.info.themeSong; // { url, name }
 
-  // Update bar to show correct character context even when no theme
-  _updateThemeBarChar(c);
-
   if (!song || !song.url) {
-    // No theme — fade out current if from a different character, show empty state
+    // No theme — fade out current if switching from a different character
     if (_themeCurrentCharId && _themeCurrentCharId !== charId) {
       _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
-      _themeFadeOut(() => { _themeAudio.pause(); _themeCurrentCharId = null; });
+      _themeFadeOut(() => { _themeAudio.pause(); _themeCurrentCharId = null; _hideThemeBar(); });
     }
-    _showThemeBarEmpty();
     return;
   }
 
   // Same character, already playing — nothing to do
   if (_themeCurrentCharId === charId && !_themeAudio.paused && !_themePaused) return;
 
-  // Save old position
+  // Save old position when switching characters
   if (_themeCurrentCharId && _themeCurrentCharId !== charId) {
     _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
   }
@@ -252,7 +248,6 @@ function playThemeForCharacter(charId) {
   _themePaused = false;
 
   const doLoad = () => {
-    // Only reload src if it actually changed
     if (_themeAudio.dataset.charId !== charId) {
       _themeAudio.src = song.url;
       _themeAudio.dataset.charId = charId;
@@ -265,7 +260,7 @@ function playThemeForCharacter(charId) {
   if (!_themeAudio.paused) _themeFadeOut(doLoad);
   else doLoad();
 
-  _showThemeBarPlaying(song.name || 'UNTITLED', c.name, c.color);
+  _showThemeBar(song.name || 'UNTITLED', c.name, c.color);
 }
 
 function toggleThemePlayback() {
@@ -285,6 +280,40 @@ function toggleThemePlayback() {
 function setThemeVolume(vol) {
   _themeVolume = Math.max(0, Math.min(100, vol));
   _themeAudio.volume = _themeVolume / 100;
+}
+
+// ── Render the MUSIC tab content ─────────────────────────────
+function renderThemeTab() {
+  const container = document.getElementById('theme-tab-content');
+  if (!container) return;
+  const c = characters.find(x => x.id === currentId);
+  const song = c && c.info && c.info.themeSong;
+
+  if (song && song.url) {
+    const playing = (_themeCurrentCharId === c.id && !_themeAudio.paused && !_themePaused);
+    container.innerHTML =
+      `<div class="theme-tab-song">` +
+        `<div class="theme-tab-song-icon">♫</div>` +
+        `<div class="theme-tab-song-details">` +
+          `<div class="theme-tab-song-name">${_esc(song.name || 'UNTITLED')}</div>` +
+          `<div class="theme-tab-song-meta">auto-plays on character select · max ${THEME_MAX_MB} MB</div>` +
+        `</div>` +
+        `<div class="theme-tab-song-controls">` +
+          `<button class="btn sm" onclick="toggleThemePlayback();renderThemeTab();">${playing ? '⏸ PAUSE' : '▶ PLAY'}</button>` +
+          `<button class="btn sm" onclick="openThemeFilePicker()">✎ CHANGE</button>` +
+          `<button class="btn sm danger" onclick="clearThemeSong()">✕ REMOVE</button>` +
+        `</div>` +
+      `</div>`;
+  } else {
+    container.innerHTML =
+      `<div class="theme-tab-empty">` +
+        `<div class="theme-tab-empty-icon">♪</div>` +
+        `<div class="theme-tab-empty-text">No theme set</div>` +
+        `<div class="theme-tab-empty-sub">Upload an MP3 — it will auto-play whenever<br>this character is selected, and fade between characters.</div>` +
+        `<button class="btn accent theme-tab-upload-btn" onclick="openThemeFilePicker()">+ UPLOAD MP3</button>` +
+        `<div class="theme-tab-limit">Max ${THEME_MAX_MB} MB per file</div>` +
+      `</div>`;
+  }
 }
 
 // ── Upload / clear ───────────────────────────────────────────
@@ -317,6 +346,7 @@ async function onThemeFileSelected(input) {
     saveData(c);
     _themeTimestamps.delete(c.id); // fresh start
     playThemeForCharacter(c.id);
+    renderThemeTab();
     notify('Theme set!', 'ok');
   } catch (e) {
     notify('Upload failed: ' + (e.message || e), 'err');
@@ -332,6 +362,7 @@ async function clearThemeSong() {
     _themeFadeOut(() => { _themeAudio.pause(); _themeAudio.src = ''; });
     _themeCurrentCharId = null;
     _themePaused = false;
+    _hideThemeBar();
   }
 
   // Delete from Storage (best-effort)
@@ -340,30 +371,32 @@ async function clearThemeSong() {
   delete c.info.themeSong;
   _themeTimestamps.delete(c.id);
   saveData(c);
-  _showThemeBarEmpty();
+  renderThemeTab();
 }
 
-// ── Theme bar UI ─────────────────────────────────────────────
-function _updateThemeBarChar(c) {
-  // Keep the bar visible whenever a character is selected
-  document.getElementById('theme-bar').classList.add('visible');
-}
-
-function _showThemeBarEmpty() {
-  document.getElementById('theme-bar-empty').style.display = '';
-  document.getElementById('theme-bar-playing').style.display = 'none';
-}
-
-function _showThemeBarPlaying(title, charName, charColor) {
-  document.getElementById('theme-bar-empty').style.display = 'none';
-  const playing = document.getElementById('theme-bar-playing');
-  playing.style.display = '';
+// ── Theme bar UI (mini-player — only visible while something is playing) ──────
+function _showThemeBar(title, charName, charColor) {
   document.getElementById('theme-bar-title').textContent = title;
   const charEl = document.getElementById('theme-bar-char');
   charEl.textContent = charName;
   charEl.style.color = charColor || '#888';
   document.getElementById('theme-bar-playpause').innerHTML = '&#9646;&#9646;';
   document.getElementById('theme-bar-volume').value = _themeVolume;
+  document.getElementById('theme-bar').classList.add('visible');
+}
+
+function _hideThemeBar() {
+  document.getElementById('theme-bar').classList.remove('visible');
+  document.getElementById('theme-bar-playpause').innerHTML = '&#9654;';
+}
+
+// Dismiss the mini-player without removing the theme assignment
+function stopThemeMini() {
+  clearInterval(_themeFadeTimer);
+  if (_themeCurrentCharId) _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
+  _themeAudio.pause();
+  _themePaused = true;
+  _hideThemeBar();
 }
 
 // ============================================================
@@ -1956,9 +1989,17 @@ function renderRollHistory(c) {
 function switchTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tab-stats').style.display = tab === 'stats' ? '' : 'none';
-  document.getElementById('tab-style').style.display = tab === 'style' ? '' : 'none';
-  document.getElementById('tab-info').style.display = tab === 'info' ? '' : 'none';
+  document.getElementById('tab-stats').style.display  = tab === 'stats'  ? '' : 'none';
+  document.getElementById('tab-style').style.display  = tab === 'style'  ? '' : 'none';
+  document.getElementById('tab-info').style.display   = tab === 'info'   ? '' : 'none';
+  document.getElementById('tab-music').style.display  = tab === 'music'  ? '' : 'none';
+  if (tab === 'music') renderThemeTab();
+}
+
+// Jump to a tab by name — used by the mini-player bar click
+function switchTabById(tab) {
+  const btn = document.getElementById('tab-btn-' + tab);
+  if (btn) switchTab(tab, btn);
 }
 
 let _infoSaveTimer = null;
@@ -9638,6 +9679,11 @@ viewChar = function (id) {
   const c = characters.find(x => x.id === id);
   if (c) renderTraitsDisplay(c);
   playThemeForCharacter(id);
+  // Refresh music tab content if it's currently open
+  if (document.getElementById('tab-music') &&
+      document.getElementById('tab-music').style.display !== 'none') {
+    renderThemeTab();
+  }
 };
 const _origUpdateLiveStats = updateLiveStats;
 updateLiveStats = function (c) {
