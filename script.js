@@ -232,6 +232,7 @@ const _themeAudio = document.getElementById('theme-audio');
 let _themeCurrentCharId = null;   // whose theme is playing right now
 let _themeVolume = 70;            // 0-100
 let _themePaused = false;
+let _themeForceReload = false;
 let _themeFadeTimer = null;
 let _themeBarAutoHideTimer = null; // slides bar to peeked after 1.5 s
 let _themeBarLeaveTimer    = null; // hides bar again after mouse leaves
@@ -304,9 +305,10 @@ function playThemeForCharacter(charId) {
     return;
   }
 
-  // Same track already playing — nothing to do
+  const forceReload = _themeForceReload && _themeCurrentCharId === key;
+  // Same track already playing — nothing to do unless we've flagged a reload.
   const sameTrackPlaying = (_themeCurrentCharId === key && !_themeAudio.paused && !_themePaused);
-  if (sameTrackPlaying && _themeAudio.dataset.trackUrl === song.url) return;
+  if (sameTrackPlaying && _themeAudio.dataset.trackUrl === song.url && !forceReload) return;
 
   // Save old position
   if (_themeCurrentCharId && _themeCurrentCharId !== key) {
@@ -318,10 +320,12 @@ function playThemeForCharacter(charId) {
   _themePaused = false;
 
   const doLoad = () => {
-    if (_themeAudio.dataset.trackKey !== key || _themeAudio.dataset.trackUrl !== song.url) {
-      _themeAudio.src = song.url;
+    const forceReload = _themeForceReload && _themeCurrentCharId === key;
+    if (_themeAudio.dataset.trackKey !== key || _themeAudio.dataset.trackUrl !== song.url || forceReload) {
+      _themeAudio.src = forceReload ? `${song.url}?_=${Date.now()}` : song.url;
       _themeAudio.dataset.trackKey = key;
       _themeAudio.dataset.trackUrl = song.url;
+      _themeForceReload = false;
     }
     _themeAudio.currentTime = startAt;
     _themeAudio.play().catch(() => {});
@@ -466,6 +470,10 @@ async function onThemeFileSelected(input) {
 
     _themeTimestamps.delete(_tsKey(c.id, formIdx));
     saveData(c);
+    // Force a reload when the active form's theme is replaced.
+    if (_themeCurrentCharId === _tsKey(c.id, formIdx)) {
+      _themeForceReload = true;
+    }
     // Play immediately if this is the active form
     if ((c.activeFormIdx || 0) === formIdx) playThemeForCharacter(c.id);
     renderThemeTab();
