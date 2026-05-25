@@ -218,45 +218,67 @@ body {
   background: rgba(255,255,255,0.02);
   transform: translateX(2px);
 }
-.enc-toc-item.active { background: rgba(255,255,255,0.03); }
+.enc-toc-item.active { background: rgba(255,255,255,0.04); }
 .enc-toc-item.active::before {
   content: '';
   position: absolute;
   left: 0; top: 0; bottom: 0; width: 3px;
-  background: var(--enc-col);
-  box-shadow: 0 0 8px var(--enc-col);
-}
-.enc-toc-n {
-  font-family: 'Cinzel', serif;
-  font-size: 8px;
-  color: #2c1e08;
   width: 22px;
-  text-align: right;
-  flex-shrink: 0;
-}
-.enc-toc-txt {
-  font-size: 9px;
-  color: #5a4428;
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  letter-spacing: 0.5px;
-  transition: color 0.2s;
-}
-.enc-toc-item:hover .enc-toc-txt { color: #8a7050; }
-.enc-toc-item.active .enc-toc-txt { color: var(--enc-col); }
-.enc-toc-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.2s, box-shadow 0.2s;
 }
 .enc-toc-item.active .enc-toc-dot {
   opacity: 1;
   box-shadow: 0 0 6px currentColor;
+}
+.enc-toc-group {
+  margin-bottom: 16px;
+}
+.enc-toc-group-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #bfa76e;
+  margin: 10px 18px 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(191,167,110,0.2);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+  text-transform: uppercase;
+  opacity: 0.9;
+  cursor: pointer;
+}
+.enc-toc-group-title span {
+  display: inline-flex;
+  align-items: center;
+}
+.enc-toc-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 40px;
+  padding: 6px 10px 10px;
+  border-radius: 0 0 14px 14px;
+}
+.enc-toc-group-body.collapsed {
+  display: none;
+}
+.enc-toc-empty {
+  padding: 10px 18px;
+  color: #7b6a4f;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.enc-toc-item.drag-over,
+.enc-toc-group-body.drag-over,
+.enc-toc-group-title.drag-over {
+  background: rgba(255,255,255,0.08);
+}
+.enc-toc-item.dragging {
+  opacity: 0.5;
 }
 
 #enc-left-ft {
@@ -884,6 +906,22 @@ body {
 .enc-status-preview .enc-status-orb { width:44px; height:44px; }
 .enc-status-preview .enc-stars-display { margin:0; }
 
+/* inner elements inside each orb for matched sheen and inset */
+.enc-status-orb .orb-sheen,
+.enc-status-orb .orb-inner {
+  position: absolute; inset: 6px; display:block; pointer-events: none; left:6px; right:6px; top:6px; bottom:6px;
+}
+.enc-status-orb .orb-glow { position:absolute; left:-6px; right:-6px; top:-6px; bottom:-6px; pointer-events:none; filter: blur(6px); opacity:0.8; }
+.enc-status-orb .orb-sheen { border-radius: 6px; mix-blend-mode: screen; opacity: 0.95; }
+.enc-status-orb .orb-inner { transform-origin: center; transform: translateZ(0); mix-blend-mode: normal; box-shadow: inset 0 3px 6px rgba(0,0,0,0.6); }
+.enc-status-orb.orb-circle .orb-sheen,
+.enc-status-orb.orb-circle .orb-inner { border-radius:50%; }
+
+/* Default inner sizes (scale applied per-shape where necessary) */
+.enc-status-orb .orb-inner { background: transparent; transform: scale(0.75); }
+.enc-status-orb .orb-sheen { background: transparent; }
+.enc-status-orb .orb-glow { background: var(--status-col, #88844); }
+
 /* Orb shape variants */
 .enc-status-orb.orb-rounded-square { border-radius: 12px; background: linear-gradient(180deg, rgba(0,0,0,0.12), rgba(255,255,255,0.02)); }
 .enc-status-orb.orb-square { border-radius: 6px; background: linear-gradient(180deg, rgba(0,0,0,0.18), rgba(255,255,255,0.02)); }
@@ -898,50 +936,90 @@ body {
 }
 .enc-status-orb.orb-star { clip-path: polygon(50% 3%, 61% 38%, 98% 38%, 68% 59%, 79% 95%, 50% 73%, 21% 95%, 32% 59%, 2% 38%, 39% 38%); background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(0,0,0,0.3)); }
 
-/* Per-shape inner styling — different "brown"/accent treatments so each feels distinct */
+/* Per-shape inner styling — use shape-matching clip-paths and add per-shape sheen */
 .enc-status-orb.orb-rounded-square::after { content:''; position:absolute; inset:6px; border-radius:10px; background: radial-gradient(circle at 30% 30%, rgba(255,240,210,0.28), rgba(160,120,60,0.08)); mix-blend-mode: overlay; }
 .enc-status-orb.orb-square::after { content:''; position:absolute; inset:6px; border-radius:4px; background: repeating-linear-gradient(45deg, rgba(255,240,210,0.09) 0 6px, rgba(0,0,0,0) 6px 12px); mix-blend-mode: overlay; }
-.enc-status-orb.orb-diamond::after { content:''; position:absolute; inset:6px; transform: rotate(45deg); background: linear-gradient(180deg, rgba(255,230,180,0.14), rgba(0,0,0,0)); mix-blend-mode: overlay; }
+
+/* Diamond */
+.enc-status-orb.orb-diamond::before,
+.enc-status-orb.orb-diamond::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  -webkit-clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  transform-origin: center;
+  pointer-events: none;
+}
+.enc-status-orb.orb-diamond::before { background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.22), transparent 60%); mix-blend-mode: screen; z-index:3; }
+.enc-status-orb.orb-diamond::after { transform: scale(0.7); background: linear-gradient(180deg, rgba(75,45,20,0.9), rgba(55,35,18,0.72)); box-shadow: inset 0 3px 6px rgba(0,0,0,0.6); mix-blend-mode: normal; z-index:4; }
+
+/* Hexagon */
+.enc-status-orb.orb-hexagon::before,
 .enc-status-orb.orb-hexagon::after {
   content: '';
   position: absolute;
-  inset: 0;
-  transform: scale(0.86);
+  inset: 6px;
+  -webkit-clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
   transform-origin: center;
-  background: conic-gradient(from 200deg, rgba(255,240,210,0.14), rgba(180,120,60,0.06), rgba(255,240,210,0.08));
-  mix-blend-mode: overlay;
   pointer-events: none;
 }
+.enc-status-orb.orb-hexagon::before { background: radial-gradient(circle at 30% 28%, rgba(255,255,255,0.18), transparent 60%); mix-blend-mode: screen; z-index:3; }
+.enc-status-orb.orb-hexagon::after { transform: scale(0.7); background: radial-gradient(circle at 50% 45%, rgba(75,45,20,0.85), rgba(55,35,18,0.6)); box-shadow: inset 0 3px 6px rgba(0,0,0,0.6); mix-blend-mode: normal; z-index:4; }
+
+/* Triangle */
+.enc-status-orb.orb-triangle::before,
 .enc-status-orb.orb-triangle::after {
   content: '';
   position: absolute;
-  inset: 0;
-  transform: scale(0.82);
+  inset: 6px;
+  -webkit-clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
   transform-origin: center;
-  background: linear-gradient(120deg, rgba(255,240,210,0.12), rgba(140,90,40,0.06));
-  mix-blend-mode: overlay;
   pointer-events: none;
 }
+.enc-status-orb.orb-triangle::before { background: radial-gradient(circle at 40% 25%, rgba(255,255,255,0.18), transparent 60%); mix-blend-mode: screen; z-index:3; }
+.enc-status-orb.orb-triangle::after { transform: scale(0.72); background: radial-gradient(circle at 50% 45%, rgba(75,45,20,0.85), rgba(55,35,18,0.6)); box-shadow: inset 0 3px 6px rgba(0,0,0,0.6); mix-blend-mode: normal; z-index:4; }
+
+/* Teardrop (SVG clipPath) */
+.enc-status-orb.orb-teardrop::before,
 .enc-status-orb.orb-teardrop::after {
   content: '';
   position: absolute;
-  inset: 0;
-  transform: scale(0.84);
+  inset: 6px;
+  -webkit-clip-path: url(#teardropClip);
+  clip-path: url(#teardropClip);
   transform-origin: center;
-  background: linear-gradient(180deg, rgba(255,240,210,0.16), rgba(150,90,40,0.06));
-  mix-blend-mode: overlay;
   pointer-events: none;
 }
+.enc-status-orb.orb-teardrop::before { background: radial-gradient(circle at 40% 25%, rgba(255,255,255,0.18), transparent 60%); mix-blend-mode: screen; z-index:3; }
+.enc-status-orb.orb-teardrop::after { transform: scale(0.72); background: radial-gradient(circle at 50% 45%, rgba(75,45,20,0.85), rgba(55,35,18,0.6)); box-shadow: inset 0 3px 6px rgba(0,0,0,0.6); mix-blend-mode: normal; z-index:4; }
+
+/* Star */
+.enc-status-orb.orb-star::before,
 .enc-status-orb.orb-star::after {
   content: '';
   position: absolute;
-  inset: 0;
-  transform: scale(0.82);
+  inset: 6px;
+  -webkit-clip-path: polygon(50% 3%, 61% 38%, 98% 38%, 68% 59%, 79% 95%, 50% 73%, 21% 95%, 32% 59%, 2% 38%, 39% 38%);
+  clip-path: polygon(50% 3%, 61% 38%, 98% 38%, 68% 59%, 79% 95%, 50% 73%, 21% 95%, 32% 59%, 2% 38%, 39% 38%);
   transform-origin: center;
-  background: radial-gradient(circle at 50% 40%, rgba(255,245,180,0.16), rgba(120,80,40,0.05));
-  mix-blend-mode: overlay;
   pointer-events: none;
 }
+.enc-status-orb.orb-star::before { background: radial-gradient(circle at 40% 28%, rgba(255,255,255,0.18), transparent 60%); mix-blend-mode: screen; z-index:3; }
+.enc-status-orb.orb-star::after { transform: scale(0.72); background: radial-gradient(circle at 50% 45%, rgba(75,45,20,0.85), rgba(55,35,18,0.6)); box-shadow: inset 0 3px 6px rgba(0,0,0,0.6); mix-blend-mode: normal; z-index:4; }
+
+/* Shape-matched glow for orb-glow span */
+.enc-status-orb.orb-circle .orb-glow { border-radius:50%; transform: scale(1.05); }
+.enc-status-orb.orb-diamond .orb-glow { -webkit-clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); transform: scale(1.05); }
+.enc-status-orb.orb-hexagon .orb-glow { -webkit-clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); transform: scale(1.05); }
+.enc-status-orb.orb-triangle .orb-glow { -webkit-clip-path: polygon(50% 0%, 100% 100%, 0% 100%); clip-path: polygon(50% 0%, 100% 100%, 0% 100%); transform: scale(1.05); }
+.enc-status-orb.orb-teardrop .orb-glow { -webkit-clip-path: url(#teardropClip); clip-path: url(#teardropClip); transform: scale(1.05); }
+.enc-status-orb.orb-star .orb-glow { -webkit-clip-path: polygon(50% 3%, 61% 38%, 98% 38%, 68% 59%, 79% 95%, 50% 73%, 21% 95%, 32% 59%, 2% 38%, 39% 38%); clip-path: polygon(50% 3%, 61% 38%, 98% 38%, 68% 59%, 79% 95%, 50% 73%, 21% 95%, 32% 59%, 2% 38%, 39% 38%); transform: scale(1.05); }
+.enc-status-orb .orb-glow { z-index:1; }
+.enc-status-orb .orb-sheen { z-index:3; }
+.enc-status-orb .orb-inner { z-index:2; }
 
 /* Ensure inner sheen respects clip-path shapes */
 /* removed global circular sheen so per-shape overlays show correctly */
@@ -1547,7 +1625,11 @@ body {
       <div class="enc-field">
         <label>PREVIEW</label>
         <div id="es-preview" class="enc-status-preview">
-          <div class="enc-status-orb orb-circle" id="es-preview-orb" style="--status-col:#aaaaaa; border:2px solid #aaaaaa66"></div>
+          <div class="enc-status-orb orb-circle" id="es-preview-orb" style="--status-col:#aaaaaa; border:2px solid #aaaaaa66">
+            <span class="orb-glow"></span>
+            <span class="orb-sheen"></span>
+            <span class="orb-inner"></span>
+          </div>
           <div id="es-preview-stars" class="enc-stars-display"></div>
         </div>
       </div>

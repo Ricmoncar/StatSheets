@@ -35,6 +35,8 @@ let _memoryImgData   = null;
 let _statusStars     = 1;
 let _sceneEditing    = null; // { memId, sceneIdx } or null
 let _pendingConfirm  = null;
+let _statusDragId    = null;
+let _statusFolderExpanded = { GOOD:true, BAD:true, NEUTRAL:true };
 
 // ── Section config ────────────────────────────────────────
 const SECTION_CFG = {
@@ -101,6 +103,19 @@ function getList() {
   }
 }
 
+function getStatusFolder(status) {
+  const folder = (status && status.folder) ? String(status.folder).toUpperCase() : null;
+  if (folder === 'GOOD' || folder === 'BAD' || folder === 'NEUTRAL') return folder;
+  const type = status && String(status.type || '').toUpperCase();
+  if (type === 'BUFF') return 'GOOD';
+  if (type === 'DEBUFF') return 'BAD';
+  return 'NEUTRAL';
+}
+
+function getStatusFolderLabel(key) {
+  return key === 'GOOD' ? 'POSITIVE STATUS EFFECTS' : key === 'BAD' ? 'NEGATIVE STATUS EFFECTS' : 'NEUTRAL STATUS EFFECTS';
+}
+
 // ── Firebase I/O ──────────────────────────────────────────
 function saveEncData() {
   if (!db) return;
@@ -128,7 +143,7 @@ function initFirestore() {
   db.collection('enc').doc('data').onSnapshot(snap => {
     const d = snap.data() || {};
     encPlaces   = d.places   || [];
-    encStatuses = d.statuses || [];
+    encStatuses = (d.statuses || []).map(s => ({ ...s, folder: getStatusFolder(s) }));
     encMemories = d.memories || [];
     if (encSection !== 'characters') { renderLeft(); renderRight(); }
   }, () => {});
@@ -171,9 +186,95 @@ function encGoTo(idx) {
 }
 
 function updateToC() {
-  document.querySelectorAll('.enc-toc-item').forEach((el, i) => {
-    el.classList.toggle('active', i === encIdx);
+  document.querySelectorAll('.enc-toc-item').forEach(el => {
+    const targetIndex = Number(el.getAttribute('data-index') || el.dataset.index || -1);
+    if (targetIndex >= 0) {
+      el.classList.toggle('active', targetIndex === encIdx);
+    }
   });
+}
+
+function statusDragStart(e) {
+  _statusDragId = e.currentTarget.dataset.id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', _statusDragId); } catch (err) {}
+  e.currentTarget.classList.add('dragging');
+}
+
+function statusDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const target = e.currentTarget;
+  if (target.dataset.id !== _statusDragId) {
+    target.classList.add('drag-over');
+  }
+}
+
+function statusDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function statusDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.enc-toc-item.drag-over, .enc-toc-group-body.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+function statusDragDrop(e) {
+  e.preventDefault();
+  const target = e.currentTarget;
+  target.classList.remove('drag-over');
+  if (!_statusDragId) return;
+
+  const targetId = target.dataset.id;
+  const targetGroup = target.dataset.group;
+  if (targetId && targetId !== _statusDragId) {
+    reorderStatusById(_statusDragId, targetId);
+  } else if (targetGroup) {
+    moveStatusToGroupEnd(_statusDragId, targetGroup);
+  }
+  _statusDragId = null;
+}
+
+function toggleStatusFolder(folderKey) {
+  _statusFolderExpanded[folderKey] = !_statusFolderExpanded[folderKey];
+  renderLeft();
+}
+
+function reorderStatusById(sourceId, targetId) {
+  const fromIndex = encStatuses.findIndex(x => x.id === sourceId);
+  const toIndex = encStatuses.findIndex(x => x.id === targetId);
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+  const [moved] = encStatuses.splice(fromIndex, 1);
+  const insertIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
+  encStatuses.splice(insertIndex, 0, moved);
+  adjustEncIdxAfterReorder(fromIndex, insertIndex);
+  saveEncData();
+  renderLeft(); renderRight();
+  encNotify('STATUS ORDER UPDATED', 'ok');
+}
+
+function moveStatusToGroupEnd(sourceId, groupKey) {
+  const fromIndex = encStatuses.findIndex(x => x.id === sourceId);
+  if (fromIndex < 0) return;
+  const [moved] = encStatuses.splice(fromIndex, 1);
+  moved.folder = groupKey;
+  const insertIndex = encStatuses.map((s, i) => ({ s, i })).filter(item => getStatusFolder(item.s) === groupKey).map(item => item.i).pop();
+  const targetIndex = insertIndex === undefined ? encStatuses.length : insertIndex + 1;
+  encStatuses.splice(targetIndex, 0, moved);
+  adjustEncIdxAfterReorder(fromIndex, targetIndex);
+  saveEncData();
+  renderLeft(); renderRight();
+  encNotify('STATUS ORDER UPDATED', 'ok');
+}
+
+function adjustEncIdxAfterReorder(fromIndex, toIndex) {
+  if (encIdx === fromIndex) {
+    encIdx = toIndex;
+  } else if (fromIndex < encIdx && toIndex >= encIdx) {
+    encIdx -= 1;
+  } else if (fromIndex > encIdx && toIndex <= encIdx) {
+    encIdx += 1;
+  }
 }
 
 function updateNav() {
@@ -196,15 +297,49 @@ function renderLeft() {
   const ft   = document.getElementById('enc-left-ft-content');
   const list = getList();
 
-  toc.innerHTML = list.map((item, i) => {
-    const name = item.name || item.title || 'UNNAMED';
-    const dotColor = item.color || SECTION_CFG[encSection].col;
-    return `<div class="enc-toc-item${i === encIdx ? ' active' : ''}" onclick="encGoTo(${i})">
-      <span class="enc-toc-n">${toRoman(i + 1)}</span>
-      <span class="enc-toc-txt">${esc(name)}</span>
-      <span class="enc-toc-dot" style="background:${dotColor}"></span>
-    </div>`;
-  }).join('') || `<div style="padding:20px;font-size:9px;color:#2a1808;text-align:center;letter-spacing:2px;">NOTHING YET</div>`;
+  if (encSection === 'statuses') {
+    const groups = { GOOD: { label: 'GOOD', items: [] }, BAD: { label: 'BAD', items: [] }, NEUTRAL: { label: 'NEUTRAL', items: [] } };
+    list.forEach((item, i) => {
+      const bucket = getStatusFolder(item);
+      groups[bucket].items.push({ item, index: i });
+    });
+
+    const renderStatusItem = ({ item, index }) => {
+      const name = item.name || 'UNNAMED';
+      const dotColor = item.color || SECTION_CFG.statuses.col;
+      return `<div class="enc-toc-item${index === encIdx ? ' active' : ''}" onclick="encGoTo(${index})" draggable="true" data-id="${esc(item.id)}" data-index="${index}" data-folder="${getStatusFolder(item)}" ondragstart="statusDragStart(event)" ondragover="statusDragOver(event)" ondragleave="statusDragLeave(event)" ondrop="statusDragDrop(event)" ondragend="statusDragEnd(event)">
+        <span class="enc-toc-n">${toRoman(index + 1)}</span>
+        <span class="enc-toc-txt">${esc(name)}</span>
+        <span class="enc-toc-dot" style="background:${dotColor}"></span>
+      </div>`;
+    };
+
+    const renderStatusGroup = (groupKey) => {
+      const group = groups[groupKey];
+      const expanded = _statusFolderExpanded[groupKey];
+      return `<div class="enc-toc-group">
+        <button type="button" class="enc-toc-group-title" onclick="toggleStatusFolder('${groupKey}')" ondragover="statusDragOver(event)" ondragleave="statusDragLeave(event)" ondrop="statusDragDrop(event)" data-group="${groupKey}">
+          <span>${_statusFolderExpanded[groupKey] ? '▾' : '▸'}</span>
+          <span>${getStatusFolderLabel(groupKey)}</span>
+        </button>
+        <div class="enc-toc-group-body${expanded ? '' : ' collapsed'}" data-group="${groupKey}" ondragenter="statusDragOver(event)" ondragover="statusDragOver(event)" ondragleave="statusDragLeave(event)" ondrop="statusDragDrop(event)">
+          ${group.items.length ? group.items.map(renderStatusItem).join('') : `<div class="enc-toc-empty">NO ${group.label} YET</div>`}
+        </div>
+      </div>`;
+    };
+
+    toc.innerHTML = renderStatusGroup('GOOD') + renderStatusGroup('BAD') + renderStatusGroup('NEUTRAL');
+  } else {
+    toc.innerHTML = list.map((item, i) => {
+      const name = item.name || item.title || 'UNNAMED';
+      const dotColor = item.color || SECTION_CFG[encSection].col;
+      return `<div class="enc-toc-item${i === encIdx ? ' active' : ''}" onclick="encGoTo(${i})" data-index="${i}">
+        <span class="enc-toc-n">${toRoman(i + 1)}</span>
+        <span class="enc-toc-txt">${esc(name)}</span>
+        <span class="enc-toc-dot" style="background:${dotColor}"></span>
+      </div>`;
+    }).join('') || `<div style="padding:20px;font-size:9px;color:#2a1808;text-align:center;letter-spacing:2px;">NOTHING YET</div>`;
+  }
 
   // Footer action
   if (encSection === 'characters') {
@@ -466,7 +601,11 @@ function renderStatusEntry(s) {
 
   return `
     <div class="enc-status-top enc-anim-fade" style="animation-delay:0s">
-      <div class="enc-status-orb orb-${esc(s.shape||'circle')}" style="--status-col:${col};border:2px solid ${col}66" onmouseenter="(typeof playSound==='function')&&playSound('hover',{rate:0.95+Math.random()*0.1,volume:0.45})" onclick="(typeof playSound==='function')&&playSound('click',{rate:0.95,volume:0.5})"></div>
+      <div class="enc-status-orb orb-${esc(s.shape||'circle')}" style="--status-col:${col};border:2px solid ${col}66" onmouseenter="(typeof playSound==='function')&&playSound('hover',{rate:0.95+Math.random()*0.1,volume:0.45})" onclick="(typeof playSound==='function')&&playSound('click',{rate:0.95,volume:0.5})">
+        <span class="orb-glow"></span>
+        <span class="orb-sheen"></span>
+        <span class="orb-inner"></span>
+      </div>
       <div>
         <div class="enc-entry-name" style="color:${col};text-shadow:0 0 30px ${col}44">${esc(s.name || 'UNNAMED')}</div>
         <span class="enc-badge" style="color:${tc};border-color:${tc}44">${type}</span>
@@ -711,10 +850,13 @@ function closeStatusModal() {
 function saveStatusModal() {
   const name = document.getElementById('es-name').value.trim();
   if (!name) { encNotify('STATUS NEEDS A NAME', 'err'); return; }
+  const existing = _statusEditing ? encStatuses.find(x => x.id === _statusEditing) : null;
+  const typeValue = document.getElementById('es-type').value;
   const status = {
     id:       _statusEditing || genId(),
     name,
-    type:     document.getElementById('es-type').value,
+    type:     typeValue,
+    folder:   existing ? existing.folder : getStatusFolder({ type: typeValue }),
     color:    document.getElementById('es-color').value,
     desc:     document.getElementById('es-desc').value.trim(),
     duration: document.getElementById('es-duration').value.trim(),
