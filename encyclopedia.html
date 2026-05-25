@@ -605,6 +605,35 @@ body {
   margin: 0 auto;
 }
 
+/* === STAT BARS (replacement for radar) === */
+.enc-stat-bars {
+  width: 100%;
+  max-width: 420px;
+  margin: 8px 0 18px;
+  padding: 8px 6px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.12), rgba(255,255,255,0.01));
+  border: 1px solid rgba(42,24,8,0.6);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02), 0 6px 18px rgba(0,0,0,0.6);
+}
+.enc-stat-bar-row { display: flex; gap: 10px; align-items: center; padding: 6px 4px; }
+.enc-stat-bar-meta { width: 80px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.enc-stat-bar-label { font-size: 9px; color: #bfa86a; letter-spacing: 2px; font-family: 'Cinzel', serif; }
+.enc-stat-bar-value { font-family: 'Press Start 2P', monospace; font-size: 11px; color: #fff; text-shadow: 0 0 8px rgba(0,0,0,0.6); }
+.enc-stat-bar-track { flex: 1; height: 12px; background: #0b0806; border: 1px solid #1a1005; border-radius: 6px; overflow: hidden; position: relative; }
+.enc-stat-bar-fill {
+  height: 100%; width: 0%; border-radius: 6px; transition: width 0.7s cubic-bezier(0.22,0.61,0.36,1), box-shadow 0.3s;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2) inset;
+}
+.enc-stat-bar-row:hover .enc-stat-bar-fill { filter: brightness(1.05); box-shadow: 0 0 14px rgba(255,255,255,0.06); }
+.enc-stat-bar-fill::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)); mix-blend-mode: overlay; pointer-events:none; }
+
+/* Small screens */
+@media (max-width:700px) {
+  .enc-stat-bars { max-width: 100%; }
+  .enc-stat-bar-meta { width: 72px; }
+}
+
 /* ── Stat bars (kept for legacy) ── */
 .enc-stats-col {
   display: flex;
@@ -1155,6 +1184,81 @@ body {
   .enc-char-hero { flex-direction: column; align-items: center; text-align: center; }
   .enc-char-quick-tags { justify-content: center; }
   .enc-char-info-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   ENCYCLOPÆDIA BRIGHTNESS + HOVER GLOW
+   ============================================================ */
+:root {
+  --enc-text-bright: #f5edd6;
+  --enc-text-normal: #d6c39a;
+  --enc-text-muted: #9a7f57;
+  --enc-glow: rgba(201,162,39,0.95);
+}
+#enc-book { --enc-text-bright: #fff6df; --enc-text-normal: #e1cea0; --enc-text-muted: #a78b60; }
+
+/* Make regular encyclopedia text brighter and easier to read */
+.enc-body-text,
+.enc-toc-txt,
+.enc-info-val,
+.enc-char-passive-row,
+.enc-char-tag,
+.enc-char-quick-tag,
+.enc-stat-bar-val,
+.enc-stat-val,
+.enc-idx-sub,
+.enc-toc-n,
+.enc-page-info,
+.enc-main-sub,
+.enc-idx-label,
+.enc-entry-name,
+.enc-char-name-big,
+.enc-char-ability-name,
+.enc-empty-title,
+.enc-empty-sub,
+.enc-badge,
+.enc-char-ability-type,
+.enc-stat-lbl,
+.enc-stat-box,
+.enc-info-lbl {
+  color: var(--enc-text-normal) !important;
+  transition: color 0.18s ease, text-shadow 0.22s ease, transform 0.12s ease;
+}
+
+/* Subtle darker tone for less prominent text */
+.enc-body-text { color: var(--enc-text-muted) !important; }
+
+/* Hover light-up animation for most text elements */
+.enc-body-text:hover,
+.enc-toc-txt:hover,
+.enc-info-val:hover,
+.enc-char-passive-row:hover,
+.enc-char-tag:hover,
+.enc-char-quick-tag:hover,
+.enc-stat-bar-val:hover,
+.enc-stat-val:hover,
+.enc-idx-sub:hover,
+.enc-toc-n:hover,
+.enc-page-info:hover,
+.enc-main-sub:hover,
+.enc-idx-label:hover,
+.enc-entry-name:hover,
+.enc-char-name-big:hover,
+.enc-char-ability-name:hover,
+.enc-empty-title:hover,
+.enc-badge:hover,
+.enc-info-lbl:hover {
+  color: var(--enc-text-bright) !important;
+  text-shadow: 0 0 8px var(--enc-glow), 0 0 24px rgba(201,162,39,0.18);
+  transform: translateY(-1px);
+}
+
+/* Also enable focus-visible for keyboard users */
+.enc-body-text:focus-visible,
+.enc-toc-txt:focus-visible,
+.enc-info-val:focus-visible {
+  outline: 2px solid rgba(201,162,39,0.14);
+  outline-offset: 2px;
 }
 
 </style>
