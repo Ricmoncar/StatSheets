@@ -356,7 +356,16 @@ function playThemeForCharacter(charId, overrideSong = null) {
     _themeAudio.play().catch(err => {
       // Browser autoplay policy blocks play before any user interaction.
       // Store the key so the first click/keydown retries it.
-      if (err && err.name === 'NotAllowedError') _themePendingKey = key;
+      if (err && err.name === 'NotAllowedError') {
+        _themePendingKey = key;
+        // Show ▶ + pulse so the user knows music is waiting for interaction
+        const pp = document.getElementById('theme-bar-playpause');
+        if (pp) pp.innerHTML = '▶';
+        const eq = document.getElementById('theme-bar-eq');
+        if (eq) eq.classList.add('paused');
+        const bar = document.getElementById('theme-bar');
+        if (bar) { bar.classList.add('autoplay-blocked'); bar.title = 'Click anywhere to start music'; }
+      }
     });
     _themeFadeIn();
   };
@@ -369,14 +378,15 @@ function playThemeForCharacter(charId, overrideSong = null) {
 }
 
 // ── Background preloader ──────────────────────────────────────
-// Quietly buffers theme URLs so they're in the browser cache before playback.
-// Uses a staggered queue so it doesn't flood the network on first load.
-const _themePreloadCache = new Set(); // tracks URLs already preloaded this session
-let _themePreloadQueue  = [];
-let _themePreloadTimer  = null;
+// Creates real Audio objects with preload='metadata' so the browser actually
+// fills its audio buffer — far more effective than a fetch for reducing playback lag.
+// We keep the objects alive in a Map so GC doesn't drop them before they finish.
+const _themePreloadCache = new Set();   // URLs already preloaded this session
+const _themePreloadAudios = new Map();  // url → Audio — keep-alive references
+let _themePreloadQueue = [];
+let _themePreloadTimer = null;
 
 function _preloadThemes(charList) {
-  // Collect all unique theme URLs that haven't been preloaded yet
   const urls = [];
   charList.forEach(c => {
     const base = c.info && c.info.themeSong && c.info.themeSong.url;
@@ -387,26 +397,25 @@ function _preloadThemes(charList) {
     });
   });
   if (!urls.length) return;
-
-  // Prepend new URLs (newly-seen characters go first)
+  // Put new URLs at the front of the queue
   _themePreloadQueue = [...new Set([...urls, ..._themePreloadQueue])];
   _kickPreloadQueue();
 }
 
 function _kickPreloadQueue() {
   if (_themePreloadTimer || !_themePreloadQueue.length) return;
-  // Stagger preloads: one file every 1.5 s so we don't hammer the connection
   _themePreloadTimer = setTimeout(() => {
     _themePreloadTimer = null;
     const url = _themePreloadQueue.shift();
-    if (!url) return;
+    if (!url || _themePreloadCache.has(url)) { _kickPreloadQueue(); return; }
     _themePreloadCache.add(url);
-    // Fetch just enough of the file to prime the CDN/browser cache.
-    // Range request: first 256 KB — enough to start playback without downloading the whole file.
-    fetch(url, { method: 'GET', headers: { Range: 'bytes=0-262143' }, mode: 'cors', credentials: 'omit' })
-      .catch(() => {}); // silently ignore errors (offline, CORS restriction etc.)
+    // Real Audio element — browser primes its audio pipeline, not just HTTP cache
+    const a = new Audio();
+    a.preload = 'metadata'; // downloads header + usually first few seconds
+    a.src = url;
+    _themePreloadAudios.set(url, a); // prevent GC
     _kickPreloadQueue();
-  }, 1500);
+  }, 500); // 500 ms stagger — fast enough to preload all chars in ~10 s
 }
 
 function toggleThemePlayback() {
@@ -698,14 +707,17 @@ function _initThemeBarHover() {
 // ── Autoplay unlock: retry the blocked track on first user interaction ───────
 function _unlockAutoplay() {
   if (!_themePendingKey) return;
-  if (_themeCurrentCharId === _themePendingKey) {
-    _themePendingKey = null;
-    _themeAudio.play().catch(() => {});
-    const eq = document.getElementById('theme-bar-eq');
-    if (eq) eq.classList.remove('paused');
-  } else {
-    _themePendingKey = null; // user already switched chars — no longer relevant
-  }
+  _themePendingKey = null;
+  // Just resume whatever is loaded — if the user clicked a different character,
+  // viewChar → playThemeForCharacter will fire in the same gesture's bubble phase
+  // and handle switching cleanly. We only need to unlock the audio context here.
+  _themeAudio.play().catch(() => {});
+  const eq = document.getElementById('theme-bar-eq');
+  if (eq) eq.classList.remove('paused');
+  const pp = document.getElementById('theme-bar-playpause');
+  if (pp) pp.innerHTML = '⏸';
+  const bar = document.getElementById('theme-bar');
+  if (bar) { bar.classList.remove('autoplay-blocked'); bar.title = ''; }
 }
 ['click', 'keydown', 'touchstart', 'mousedown'].forEach(type => {
   document.addEventListener(type, _unlockAutoplay, { capture: true, passive: true });

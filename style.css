@@ -5499,6 +5499,16 @@ input[type=number] { -moz-appearance: textfield; }
   opacity: 0.2;
 }
 
+/* ── Autoplay blocked: pulse the play button ──────────────────── */
+@keyframes theme-unlock-pulse {
+  0%,100% { opacity: 1;    text-shadow: none; }
+  50%      { opacity: 0.5; text-shadow: 0 0 8px var(--bar-accent, #c9a227); }
+}
+#theme-bar.autoplay-blocked #theme-bar-playpause {
+  animation: theme-unlock-pulse 1.4s ease-in-out infinite;
+  color: var(--bar-accent, #c9a227);
+}
+
 /* ── Play / Pause button ─────────────────────────────────────── */
 #theme-bar-playpause {
   background: transparent;
