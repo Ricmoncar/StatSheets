@@ -11,6 +11,53 @@
 <style>
   body { padding: 40px; }
   .back-btn { margin-bottom: 30px; }
+
+  /* ── Status Roller ── */
+  .sr-type-btn { transition: color 0.2s, border-color 0.2s, background 0.2s; }
+  .sr-type-active { background: #1a1408 !important; outline: 1px solid #c9a22788; }
+
+  /* Orb base */
+  .sr-orb-inner {
+    --status-col: #aaa;
+    background: radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--status-col) 30%, #000), #000 80%);
+    border: 2px solid var(--status-col);
+    box-shadow: 0 0 18px var(--status-col), inset 0 0 10px rgba(0,0,0,0.7);
+    transition: --status-col 0.5s, box-shadow 0.5s, background 0.5s;
+    animation: sr-orb-pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes sr-orb-pulse {
+    0%,100% { box-shadow: 0 0 12px var(--status-col); }
+    50%      { box-shadow: 0 0 28px var(--status-col), 0 0 48px color-mix(in srgb, var(--status-col) 40%, transparent); }
+  }
+
+  /* Shapes */
+  .sr-shape-circle   { border-radius: 50%; }
+  .sr-shape-diamond  { border-radius: 4px; transform: rotate(45deg); width: 42px !important; height: 42px !important; }
+  .sr-shape-hexagon  { clip-path: polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%); border-radius: 0; border: none !important;
+                       box-shadow: none !important; filter: drop-shadow(0 0 8px var(--status-col)); }
+  .sr-shape-triangle { clip-path: polygon(50% 0%,100% 100%,0% 100%); border-radius: 0; border: none !important;
+                       box-shadow: none !important; filter: drop-shadow(0 0 8px var(--status-col)); }
+  .sr-shape-star     { clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+                       border-radius: 0; border: none !important; box-shadow: none !important;
+                       filter: drop-shadow(0 0 8px var(--status-col)); }
+  .sr-shape-teardrop { border-radius: 50% 50% 50% 0; transform: rotate(-45deg); }
+  .sr-shape-rounded-square { border-radius: 10px; }
+  .sr-shape-square   { border-radius: 3px; }
+
+  /* Roll scramble animation */
+  @keyframes sr-scramble-flash {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.3; }
+  }
+  .sr-scrambling #sr-name { animation: sr-scramble-flash 0.12s linear infinite; }
+
+  /* Result reveal */
+  @keyframes sr-reveal {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  #sr-result { animation: sr-reveal 0.35s ease forwards; }
+  #sr-result.sr-landing { animation: sr-reveal 0.35s ease forwards; }
 </style>
 </head>
 <body>
@@ -146,6 +193,47 @@
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('cooldown_red',this)">CDR</button>
     </div>
     <div id="leaderboard-wrap"></div>
+  </div>
+
+  <!-- STATUS EFFECT ROLLER -->
+  <div class="panel" style="margin-top:24px;" id="status-roller-panel">
+    <div class="panel-title">STATUS EFFECT ROLLER</div>
+    <p style="font-size:8px;color:#555;letter-spacing:1px;margin:0 0 18px;">Roll a random status effect from your encyclopedia. Filter by type to narrow the pool.</p>
+
+    <!-- Type filter -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;" id="sr-type-filters">
+      <button class="btn sm sr-type-btn sr-type-active" data-type="ALL"     onclick="srSetType('ALL')">ALL</button>
+      <button class="btn sm sr-type-btn" data-type="BUFF"    onclick="srSetType('BUFF')"    style="color:#44ff88;border-color:#44ff8844;">BUFF</button>
+      <button class="btn sm sr-type-btn" data-type="DEBUFF"  onclick="srSetType('DEBUFF')"  style="color:#ff4444;border-color:#ff444444;">DEBUFF</button>
+      <button class="btn sm sr-type-btn" data-type="UNIQUE"  onclick="srSetType('UNIQUE')"  style="color:#ffcc44;border-color:#ffcc4444;">UNIQUE</button>
+      <button class="btn sm sr-type-btn" data-type="PASSIVE" onclick="srSetType('PASSIVE')" style="color:#cc99ff;border-color:#cc99ff44;">PASSIVE</button>
+      <button class="btn sm sr-type-btn" data-type="NEUTRAL" onclick="srSetType('NEUTRAL')" style="color:#aaaaaa;border-color:#aaaaaa44;">NEUTRAL</button>
+    </div>
+
+    <!-- Pool count -->
+    <div id="sr-pool-label" style="font-size:8px;color:#3a3a3a;letter-spacing:2px;margin-bottom:14px;">LOADING...</div>
+
+    <!-- Roll button -->
+    <button class="btn accent" id="sr-roll-btn" onclick="rollStatusEffect()" style="margin-bottom:24px;">⚄ ROLL STATUS EFFECT</button>
+
+    <!-- Result display -->
+    <div id="sr-result" style="display:none;">
+      <div id="sr-result-inner" style="display:flex;align-items:center;gap:20px;padding:18px 20px;border:1px solid #1e1208;background:#06040200;border-radius:2px;transition:border-color 0.4s,background 0.4s;">
+        <!-- Orb -->
+        <div id="sr-orb-wrap" style="flex-shrink:0;width:56px;height:56px;position:relative;display:flex;align-items:center;justify-content:center;">
+          <div id="sr-orb" class="sr-orb-inner" style="width:56px;height:56px;"></div>
+        </div>
+        <!-- Info -->
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div id="sr-name" style="font-family:'Press Start 2P',monospace;font-size:11px;color:#ccc;"></div>
+            <span id="sr-badge" style="font-size:7px;letter-spacing:2px;padding:3px 8px;border:1px solid;border-radius:1px;"></span>
+          </div>
+          <div id="sr-desc" style="font-size:8px;color:#888;letter-spacing:1px;line-height:1.8;"></div>
+        </div>
+      </div>
+      <button class="btn sm" onclick="rollStatusEffect()" style="margin-top:12px;">↺ REROLL</button>
+    </div>
   </div>
 
   <!-- SUGGESTION BOX -->
@@ -319,6 +407,7 @@
     if (document.getElementById('suggestion-list')) { pickSuggRarity('common'); loadSuggestions(); }
     if (document.getElementById('gen-suggestion-list')) loadGeneralSuggestions();
     initTierList();
+    srInit();
   });
 </script>
 </body>

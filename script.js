@@ -3457,6 +3457,127 @@ function rollCrit() {
 }
 
 // ============================================================
+// STATUS EFFECT ROLLER
+// ============================================================
+let _srType     = 'ALL';
+let _srStatuses = [];   // loaded from Firestore
+let _srRolling  = false;
+
+const SR_TYPE_COLORS = { BUFF:'#44ff88', DEBUFF:'#ff4444', NEUTRAL:'#aaaaaa', PASSIVE:'#cc99ff', UNIQUE:'#ffcc44' };
+const SR_SHAPES = ['circle','diamond','hexagon','triangle','star','teardrop','rounded-square','square'];
+
+function srInit() {
+  if (!db) return;
+  db.collection('enc').doc('data').onSnapshot(snap => {
+    const d = snap.data() || {};
+    _srStatuses = d.statuses || [];
+    srUpdatePoolLabel();
+  }, () => {});
+}
+
+function srSetType(type) {
+  _srType = type;
+  document.querySelectorAll('.sr-type-btn').forEach(b => {
+    b.classList.toggle('sr-type-active', b.dataset.type === type);
+  });
+  srUpdatePoolLabel();
+}
+
+function srPool() {
+  if (_srType === 'ALL') return _srStatuses;
+  return _srStatuses.filter(s => (s.type || 'NEUTRAL') === _srType);
+}
+
+function srUpdatePoolLabel() {
+  const lbl = document.getElementById('sr-pool-label');
+  if (!lbl) return;
+  const pool = srPool();
+  lbl.textContent = `${pool.length} STATUS EFFECT${pool.length !== 1 ? 'S' : ''} IN POOL`;
+}
+
+function rollStatusEffect() {
+  if (_srRolling) return;
+  const pool = srPool();
+  if (!pool.length) { notify('No status effects in pool!', 'err'); return; }
+
+  _srRolling = true;
+  const btn = document.getElementById('sr-roll-btn');
+  if (btn) btn.disabled = true;
+
+  const resultEl = document.getElementById('sr-result');
+  const innerEl  = document.getElementById('sr-result-inner');
+  const nameEl   = document.getElementById('sr-name');
+  const badgeEl  = document.getElementById('sr-badge');
+  const descEl   = document.getElementById('sr-desc');
+  const orbEl    = document.getElementById('sr-orb');
+
+  resultEl.style.display = 'block';
+  descEl.textContent = '';
+  innerEl.classList.add('sr-scrambling');
+
+  if (typeof playSound === 'function') playSound('diceroll', { rate: 0.9 + Math.random() * 0.2, volume: 0.7 });
+
+  // Fixed 55ms interval, 40 ticks (~2.2s) — identical pattern to rollCrit
+  let ticks = 0;
+  let skipNext = 0; // how many ticks to hold the current preview (slows apparent speed)
+
+  const interval = setInterval(() => {
+    ticks++;
+
+    if (ticks > 40) {
+      clearInterval(interval);
+      innerEl.classList.remove('sr-scrambling');
+
+      const final = pool[Math.floor(Math.random() * pool.length)];
+      const ftc = SR_TYPE_COLORS[final.type || 'NEUTRAL'] || '#aaa';
+      nameEl.textContent = final.name || '???';
+      nameEl.style.color = final.color || '#ccc';
+      badgeEl.textContent = final.type || 'NEUTRAL';
+      badgeEl.style.color = ftc;
+      badgeEl.style.borderColor = ftc + '66';
+      descEl.textContent = final.desc || '';
+      orbEl.style.setProperty('--status-col', final.color || '#aaa');
+      srSetOrbShape(orbEl, final.shape || 'circle');
+      innerEl.style.borderColor = (final.color || '#aaa') + '66';
+      innerEl.style.background  = (final.color || '#aaa') + '10';
+
+      if (typeof playSound === 'function') playSound('rolldone', { rate: 0.8, volume: 0.8 });
+      notify('STATUS EFFECT: ' + (final.name || '???'));
+      if (btn) btn.disabled = false;
+      _srRolling = false;
+      return;
+    }
+
+    // Slow down the visible scramble near the end (hold same entry for extra ticks)
+    const progress = ticks / 40;
+    const holdChance = Math.pow(progress, 2); // 0→1 as ticks increase
+    if (Math.random() < holdChance) return;  // skip visual update → feels slower
+
+    const preview = pool[Math.floor(Math.random() * pool.length)];
+    const tc = SR_TYPE_COLORS[preview.type || 'NEUTRAL'] || '#aaa';
+    nameEl.textContent = preview.name || '???';
+    nameEl.style.color = preview.color || '#ccc';
+    badgeEl.textContent = preview.type || 'NEUTRAL';
+    badgeEl.style.color = tc;
+    badgeEl.style.borderColor = tc + '66';
+    orbEl.style.setProperty('--status-col', preview.color || '#aaa');
+    srSetOrbShape(orbEl, preview.shape || 'circle');
+    innerEl.style.borderColor = (preview.color || '#aaa') + '44';
+    innerEl.style.background  = (preview.color || '#aaa') + '06';
+  }, 55);
+}
+
+function srSetOrbShape(orbEl, shape) {
+  SR_SHAPES.forEach(s => orbEl.classList.remove('sr-shape-' + s));
+  orbEl.classList.add('sr-shape-' + (shape || 'circle'));
+  // Diamond/teardrop need the wrapper to not clip; reset transform on orb-wrap
+  const wrap = document.getElementById('sr-orb-wrap');
+  if (wrap) {
+    wrap.style.overflow = (shape === 'diamond' || shape === 'teardrop') ? 'visible' : 'hidden';
+  }
+}
+
+// ============================================================
 // SUGGESTION BOX
 // ============================================================
 let _selectedSuggRarity = 'common';
