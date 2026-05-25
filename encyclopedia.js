@@ -440,7 +440,7 @@ function renderLeft() {
         <span class="enc-toc-txt">${esc(name)}</span>
         <span class="enc-toc-dot" style="background:${dotColor}"></span>
       </div>`;
-    }).join('') || `<div style="padding:20px;font-size:9px;color:#2a1808;text-align:center;letter-spacing:2px;">NOTHING YET</div>`;
+    }).join('') || `<div style="padding:20px;font-size:9px;color:#5a4020;text-align:center;letter-spacing:2px;">NOTHING YET</div>`;
   }
 
   // Footer action
@@ -677,7 +677,7 @@ function renderPlaceEntry(p) {
     <div class="enc-entry-divider enc-anim-fade" style="background:${col};animation-delay:0.08s"></div>
     <div class="enc-meta-row enc-anim-fade" style="animation-delay:0.12s">
       ${p.type   ? `<span class="enc-badge" style="color:${col};border-color:${col}44">${esc(p.type)}</span>` : ''}
-      ${p.region ? `<span class="enc-badge" style="color:#6a5438;border-color:#2a1808">${esc(p.region)}</span>` : ''}
+      ${p.region ? `<span class="enc-badge" style="color:#a08050;border-color:#3a2810">${esc(p.region)}</span>` : ''}
     </div>
     ${p.desc ? `<div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.16s">⬥ DESCRIPTION</div>
                 <div class="enc-body-text enc-anim-fade" style="animation-delay:0.19s">${esc(p.desc)}</div>` : ''}
@@ -721,8 +721,8 @@ function renderStatusEntry(s) {
     ${s.desc ? `<div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.18s">⬥ EFFECT</div>
                 <div class="enc-body-text enc-anim-fade" style="animation-delay:0.22s">${esc(s.desc)}</div>` : ''}
     ${s.duration ? `<div class="enc-anim-fade" style="display:flex;align-items:center;gap:14px;padding:10px 14px;background:#090703;border:1px solid #1e1208;margin-top:14px;animation-delay:0.26s">
-      <span style="font-size:8px;color:#3a2810;letter-spacing:3px;">DURATION</span>
-      <span style="font-size:11px;color:#6a5438;font-family:'Cinzel',serif;">${esc(s.duration)}</span>
+      <span style="font-size:8px;color:#6a4a28;letter-spacing:3px;">DURATION</span>
+      <span style="font-size:11px;color:#a88a5c;font-family:'Cinzel',serif;">${esc(s.duration)}</span>
     </div>` : ''}
     <div class="enc-entry-actions enc-anim-fade" style="animation-delay:0.3s">
       <button class="btn sm" onclick="openStatusModal('${s.id}')">EDIT</button>
@@ -832,7 +832,7 @@ function renderMemoryEntry(m) {
     <div class="enc-chapter-label enc-anim-fade" style="animation-delay:0.04s">${esc(m.arc || 'CHAPTER')}</div>
     <div class="enc-entry-name enc-anim-fade" style="color:${col};text-shadow:0 0 30px ${col}44;animation-delay:0.07s">${esc(m.title || 'UNTITLED')}</div>
     <div class="enc-entry-divider enc-anim-fade" style="background:${col};animation-delay:0.1s"></div>
-    ${m.date ? `<div class="enc-meta-row enc-anim-fade" style="animation-delay:0.13s"><span class="enc-badge" style="color:#6a5438;border-color:#2a1808">${esc(m.date)}</span></div>` : ''}
+    ${m.date ? `<div class="enc-meta-row enc-anim-fade" style="animation-delay:0.13s"><span class="enc-badge" style="color:#a08050;border-color:#3a2810">${esc(m.date)}</span></div>` : ''}
     <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.16s">⬥ SCENES</div>
     <div class="enc-scenes" id="enc-scenes-${m.id}">${scenesHtml}</div>
     <div class="enc-add-scene-bar enc-anim-fade" style="animation-delay:${0.25 + scenes.length * 0.08}s">
