@@ -271,6 +271,98 @@ function emptyState() {
   </div>`;
 }
 
+// ── STAT RADAR CHART ──────────────────────────────────────
+function renderStatRadar(st, col) {
+  const HP_MAX = 500, STAT_MAX = 100;
+  const stats = [
+    { label: 'HP',  val: st.hp  || 0, max: HP_MAX  },
+    { label: 'ATK', val: st.atk || 0, max: STAT_MAX },
+    { label: 'DEF', val: st.def || 0, max: STAT_MAX },
+    { label: 'MAG', val: st.mag || 0, max: STAT_MAX },
+    { label: 'SPD', val: st.spd || 0, max: STAT_MAX },
+  ];
+  const W = 280, H = 260;
+  const cx = W / 2, cy = H / 2 + 8;
+  const maxR = 86;
+  const n = stats.length;
+  const uid = Math.random().toString(36).slice(2, 7);
+
+  function pt(i, r) {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  }
+  function pStr(i, r) { return pt(i, r).join(','); }
+
+  // Grid rings
+  const rings = [0.25, 0.5, 0.75, 1.0].map(f => {
+    const pts = Array.from({length: n}, (_, i) => pStr(i, maxR * f)).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="${col}"
+      stroke-width="${f === 1 ? 1 : 0.5}" opacity="${f === 1 ? 0.28 : 0.1}"/>`;
+  }).join('');
+
+  // Axis lines
+  const axes = Array.from({length: n}, (_, i) => {
+    const [x, y] = pt(i, maxR);
+    return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${col}" stroke-width="0.5" opacity="0.2"/>`;
+  }).join('');
+
+  // Stat polygon
+  const statPts = stats.map((s, i) => pStr(i, maxR * (statPercent(s.val, s.max) / 100))).join(' ');
+
+  // Vertex dots
+  const dots = stats.map((s, i) => {
+    const [x, y] = pt(i, maxR * (statPercent(s.val, s.max) / 100));
+    const sc = statColor(s.val, s.max);
+    return `<circle cx="${x}" cy="${y}" r="4.5" fill="${sc}" filter="url(#rg-${uid})" opacity="0.95"/>`;
+  }).join('');
+
+  // Labels + values outside ring
+  const labels = stats.map((s, i) => {
+    const [lx, ly] = pt(i, maxR + 28);
+    const sc = statColor(s.val, s.max);
+    const anchor = lx < cx - 6 ? 'end' : lx > cx + 6 ? 'start' : 'middle';
+    const isTop = i === 0;
+    return `
+      <text x="${lx}" y="${isTop ? ly - 12 : ly - 1}" text-anchor="${anchor}"
+        font-size="7" fill="${col}" opacity="0.6" letter-spacing="2.5"
+        font-family="Cinzel, serif">${s.label}</text>
+      <text x="${lx}" y="${isTop ? ly + 4 : ly + 14}" text-anchor="${anchor}"
+        font-size="11" fill="${sc}" font-family="'Press Start 2P', monospace"
+        filter="url(#rg-${uid})">${s.val}</text>`;
+  }).join('');
+
+  return `
+    <div class="enc-stat-radar enc-anim-fade" style="animation-delay:0.1s">
+      <svg viewBox="0 0 ${W} ${H}" class="enc-radar-svg">
+        <defs>
+          <radialGradient id="rf-${uid}" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stop-color="${col}" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="${col}" stop-opacity="0.05"/>
+          </radialGradient>
+          <filter id="rg-${uid}" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="rpg-${uid}" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <circle cx="${cx}" cy="${cy}" r="${maxR + 4}" fill="${col}" fill-opacity="0.03"/>
+        ${rings}
+        ${axes}
+        <polygon points="${statPts}" fill="url(#rf-${uid})"
+          stroke="${col}" stroke-width="1.5" stroke-opacity="0.85"
+          filter="url(#rpg-${uid})"/>
+        <polygon points="${statPts}" fill="none"
+          stroke="${col}" stroke-width="1.5" stroke-opacity="0.85"/>
+        ${dots}
+        ${labels}
+        <circle cx="${cx}" cy="${cy}" r="3" fill="${col}" opacity="0.35"/>
+      </svg>
+    </div>`;
+}
+
 // ── CHARACTER ENTRY ───────────────────────────────────────
 function renderCharEntry(c) {
   if (!c) return '';
@@ -278,28 +370,8 @@ function renderCharEntry(c) {
   const col  = c.color || '#c9a227';
   const st   = c.stats || {};
 
-  // ── Stat bars with red→green gradient ──
-  const HP_MAX = 500, STAT_MAX = 100;
-  const statDefs = [
-    { key:'hp',  label:'HP',  val: st.hp  || 0, max: HP_MAX },
-    { key:'atk', label:'ATK', val: st.atk || 0, max: STAT_MAX },
-    { key:'def', label:'DEF', val: st.def || 0, max: STAT_MAX },
-    { key:'mag', label:'MAG', val: st.mag || 0, max: STAT_MAX },
-    { key:'spd', label:'SPD', val: st.spd || 0, max: STAT_MAX },
-  ];
-  const statsHtml = statDefs.map((s, i) => {
-    const sc = statColor(s.val, s.max);
-    const pct = statPercent(s.val, s.max);
-    return `<div class="enc-stat-bar-wrap enc-anim-fade" style="animation-delay:${0.12 + i * 0.07}s">
-      <div class="enc-stat-bar-top">
-        <span class="enc-stat-bar-label">${s.label}</span>
-        <span class="enc-stat-bar-val" style="color:${sc}">${s.val}</span>
-      </div>
-      <div class="enc-stat-bar-track">
-        <div class="enc-stat-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${sc}cc,${sc});box-shadow:0 0 8px ${sc}55"></div>
-      </div>
-    </div>`;
-  }).join('');
+  // ── Radar chart ──
+  const statsHtml = renderStatRadar(st, col);
 
   // ── Portrait ──
   const avatar = c.avatar
@@ -356,7 +428,7 @@ function renderCharEntry(c) {
       </div>
     </div>
     <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.08s">⬥ COMBAT STATS</div>
-    <div class="enc-stats-col">${statsHtml}</div>
+    ${statsHtml}
     ${traitsHtml ? `
       <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.28s">⬥ TRAITS</div>
       <div class="enc-char-tags-row">${traitsHtml}</div>` : ''}
@@ -833,6 +905,13 @@ function toggleSoundtrack(hd) {
 
 // ── INIT ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Custom cursor tracking
+  const _cur = document.getElementById('cursor');
+  if (_cur) document.addEventListener('mousemove', e => {
+    _cur.style.left = e.clientX + 'px';
+    _cur.style.top  = e.clientY + 'px';
+  });
+
   applySectionColor();
   initFirestore();
 
