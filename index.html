@@ -889,6 +889,28 @@
   </div>
 
 
+  <!-- TEXT COLOR TOOLBAR (floating, appears on text selection) -->
+  <div id="text-color-toolbar">
+    <div class="tct-swatches">
+      <button class="tct-swatch" style="--sc:#ffffff" onclick="applyTextColor('#ffffff')" title="White"></button>
+      <button class="tct-swatch" style="--sc:#00ffff" onclick="applyTextColor('#00ffff')" title="Cyan"></button>
+      <button class="tct-swatch" style="--sc:#cc99ff" onclick="applyTextColor('#cc99ff')" title="Purple"></button>
+      <button class="tct-swatch" style="--sc:#ffff55" onclick="applyTextColor('#ffff55')" title="Yellow"></button>
+      <button class="tct-swatch" style="--sc:#00ff80" onclick="applyTextColor('#00ff80')" title="Green"></button>
+      <button class="tct-swatch" style="--sc:#5599ff" onclick="applyTextColor('#5599ff')" title="Blue"></button>
+      <button class="tct-swatch" style="--sc:#ff8844" onclick="applyTextColor('#ff8844')" title="Orange"></button>
+      <button class="tct-swatch" style="--sc:#ff4466" onclick="applyTextColor('#ff4466')" title="Red"></button>
+      <button class="tct-swatch" style="--sc:#888888" onclick="applyTextColor('#888888')" title="Gray"></button>
+    </div>
+    <div class="tct-divider"></div>
+    <div class="tct-bottom-row">
+      <input type="text" id="tct-hex" class="tct-hex-input" placeholder="#hex" maxlength="7"
+             onkeydown="if(event.key==='Enter')applyTextColorCustom()">
+      <button class="tct-apply-btn" onclick="applyTextColorCustom()">APPLY</button>
+      <button class="tct-clear-btn" onclick="applyTextColor(null)" title="Remove color">✕</button>
+    </div>
+  </div>
+
   <!-- ABILITY EDITOR MODAL -->
   <div id="ability-editor-overlay">
     <div id="ability-editor-modal">

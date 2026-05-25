@@ -10108,11 +10108,11 @@ function renderAbilityCards(c) {
             <div class="ab-card-name">${ab.name || 'Unnamed'}</div>
             <span class="ab-type-badge">${tc.icon} ${ab.type || 'ACTIVE'}</span>
           </div>
-          ${ab.desc     ? `<div class="ab-card-desc">${ab.desc}</div>` : ''}
+          ${ab.desc     ? `<div class="ab-card-desc">${renderColorText(ab.desc)}</div>` : ''}
           ${metaItems   ? `<div class="ab-meta-row">${metaItems}</div>` : ''}
           ${tagsHtml    ? `<div class="ab-tags-row">${tagsHtml}</div>` : ''}
-          ${ab.notes    ? `<div class="ab-card-notes">✦ ${ab.notes}</div>` : ''}
-          ${ab.req      ? `<div class="ab-card-req">⚠ <span class="ab-meta-label">REQ</span> ${ab.req}</div>` : ''}
+          ${ab.notes    ? `<div class="ab-card-notes">✦ ${renderColorText(ab.notes)}</div>` : ''}
+          ${ab.req      ? `<div class="ab-card-req">⚠ <span class="ab-meta-label">REQ</span> ${renderColorText(ab.req)}</div>` : ''}
         </div>
       </div>
       <div class="ab-card-footer">
@@ -10327,7 +10327,120 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target === aeOverlay) closeAbilityEditor();
     });
   }
+  initTextColorToolbar();
 });
+
+// ============================================================
+// TEXT COLOR TOOLBAR
+// ============================================================
+
+let _tctTarget   = null;  // the textarea the selection came from
+let _tctSelStart = 0;
+let _tctSelEnd   = 0;
+
+/* Parse [c=#hex]...[/c] markup into colored <span>s for rendering */
+function renderColorText(raw) {
+  if (!raw) return '';
+  return String(raw).replace(
+    /\[c=(#[0-9a-fA-F]{3,8})\]([\s\S]*?)\[\/c\]/g,
+    (_, color, text) => `<span style="color:${color}">${text}</span>`
+  );
+}
+
+function initTextColorToolbar() {
+  // Show toolbar when text is selected inside textareas in the ability editor or passives list
+  document.addEventListener('mouseup', e => {
+    const tb = document.getElementById('text-color-toolbar');
+    if (!tb) return;
+    // If click was inside the toolbar itself, don't close it
+    if (tb.contains(e.target)) return;
+
+    const ta = e.target.closest('textarea');
+    const editorBody  = document.getElementById('ability-editor-body');
+    const passiveList = document.getElementById('char-passives-list');
+    const inEditor  = editorBody  && editorBody.contains(ta);
+    const inPassive = passiveList && passiveList.contains(ta);
+
+    if (!ta || (!inEditor && !inPassive)) {
+      hideTextColorToolbar();
+      return;
+    }
+
+    const selLen = ta.selectionEnd - ta.selectionStart;
+    if (selLen < 1) { hideTextColorToolbar(); return; }
+
+    _tctTarget   = ta;
+    _tctSelStart = ta.selectionStart;
+    _tctSelEnd   = ta.selectionEnd;
+    showTextColorToolbar(e.clientX, e.clientY);
+  });
+
+  // Also close on Escape or click outside
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') hideTextColorToolbar();
+  });
+  document.addEventListener('mousedown', e => {
+    const tb = document.getElementById('text-color-toolbar');
+    if (tb && !tb.contains(e.target)) hideTextColorToolbar();
+  });
+}
+
+function showTextColorToolbar(x, y) {
+  const tb = document.getElementById('text-color-toolbar');
+  if (!tb) return;
+  tb.style.display = 'flex';
+  // Position above the cursor; clamp to viewport
+  const w = tb.offsetWidth  || 220;
+  const h = tb.offsetHeight || 80;
+  let left = x - 8;
+  let top  = y - h - 14;
+  if (top  < 8) top  = y + 18;
+  if (left + w > window.innerWidth  - 8) left = window.innerWidth  - w - 8;
+  if (left < 8) left = 8;
+  tb.style.left = left + 'px';
+  tb.style.top  = top  + 'px';
+}
+
+function hideTextColorToolbar() {
+  const tb = document.getElementById('text-color-toolbar');
+  if (tb) tb.style.display = 'none';
+  _tctTarget = null;
+}
+
+function applyTextColor(color) {
+  if (!_tctTarget) return;
+  const ta    = _tctTarget;
+  const start = _tctSelStart;
+  const end   = _tctSelEnd;
+  const val   = ta.value;
+  const sel   = val.substring(start, end);
+
+  let replacement;
+  if (color === null) {
+    // Strip color markup from selection
+    replacement = sel.replace(/\[c=#[0-9a-fA-F]{3,8}\]([\s\S]*?)\[\/c\]/g, '$1');
+  } else {
+    replacement = `[c=${color}]${sel}[/c]`;
+  }
+
+  ta.value = val.substring(0, start) + replacement + val.substring(end);
+  ta.selectionStart = start;
+  ta.selectionEnd   = start + replacement.length;
+  // Fire change so saves pick up the edit
+  ta.dispatchEvent(new Event('input',  { bubbles: true }));
+  ta.dispatchEvent(new Event('change', { bubbles: true }));
+  hideTextColorToolbar();
+  ta.focus();
+}
+
+function applyTextColorCustom() {
+  const inp = document.getElementById('tct-hex');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!/^#[0-9a-fA-F]{3,8}$/.test(val)) { notify('INVALID HEX COLOR', 'err'); return; }
+  applyTextColor(val);
+  inp.value = '';
+}
 
 // ============================================================
 // INIT

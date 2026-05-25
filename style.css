@@ -6335,3 +6335,124 @@ input[type=number] { -moz-appearance: textfield; }
   background: rgba(255,0,0,0.05);
 }
 
+/* ============================================================
+   TEXT COLOR TOOLBAR
+   ============================================================ */
+
+#text-color-toolbar {
+  position: fixed;
+  z-index: 99999;
+  display: none;
+  flex-direction: column;
+  gap: 7px;
+  background: #0c0c0c;
+  border: 1px solid #2e2e2e;
+  padding: 9px 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.85), 0 0 0 1px #111;
+  min-width: 210px;
+  pointer-events: all;
+}
+
+/* tiny arrow pointing down toward the selection */
+#text-color-toolbar::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 14px;
+  width: 8px;
+  height: 8px;
+  background: #0c0c0c;
+  border-right: 1px solid #2e2e2e;
+  border-bottom: 1px solid #2e2e2e;
+  transform: rotate(45deg);
+}
+
+.tct-swatches {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+}
+
+.tct-swatch {
+  width: 18px;
+  height: 18px;
+  background: var(--sc, #fff);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s ease, box-shadow 0.12s ease;
+  flex-shrink: 0;
+}
+.tct-swatch:hover {
+  transform: scale(1.25);
+  box-shadow: 0 0 8px var(--sc, #fff);
+  border-color: var(--sc, #fff);
+  z-index: 1;
+}
+
+.tct-divider {
+  height: 1px;
+  background: #1c1c1c;
+  margin: 0 -10px;
+}
+
+.tct-bottom-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.tct-hex-input {
+  flex: 1;
+  min-width: 0;
+  background: #080808;
+  border: 1px solid #252525;
+  color: #ccc;
+  font-family: var(--font-main);
+  font-size: 7px;
+  padding: 5px 8px;
+  letter-spacing: 1.5px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.tct-hex-input:focus {
+  border-color: #555;
+}
+.tct-hex-input::placeholder {
+  color: #333;
+}
+
+.tct-apply-btn {
+  font-size: 6px;
+  letter-spacing: 1.5px;
+  color: #888;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  cursor: pointer;
+  font-family: var(--font-main);
+  padding: 5px 9px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tct-apply-btn:hover {
+  color: #ccc;
+  border-color: #555;
+}
+
+.tct-clear-btn {
+  font-size: 8px;
+  color: #444;
+  background: transparent;
+  border: 1px solid #1e1e1e;
+  cursor: pointer;
+  font-family: var(--font-main);
+  padding: 4px 8px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.tct-clear-btn:hover {
+  color: #ff4444;
+  border-color: rgba(255,68,68,0.35);
+  background: rgba(255,0,0,0.05);
+}
+
