@@ -36,6 +36,8 @@ let _statusStars     = 1;
 let _sceneEditing    = null; // { memId, sceneIdx } or null
 let _pendingConfirm  = null;
 let _statusDragId    = null;
+let _statusAutoScrollInterval = null;
+let _statusAutoScrollDirection = 0; // -1 up, 1 down, 0 none
 let _statusFolderExpanded = { GOOD:true, BAD:true, NEUTRAL:true };
 
 // ── Section config ────────────────────────────────────────
@@ -44,6 +46,36 @@ const SECTION_CFG = {
   places:     { label: 'PLACES',        sub: 'LOCATIONS & REALMS',  col: '#2a9d8f' },
   statuses:   { label: 'STATUS EFFECTS',sub: 'BUFFS, DEBUFFS & FX', col: '#8b5cf6' },
   memories:   { label: 'MEMORIES',      sub: 'CHAPTERS & SCENES',   col: '#e76f51' },
+  items:      { label: 'ITEMS',         sub: 'EQUIPMENT & BAG',     col: '#00ccaa' },
+};
+
+const ENC_ITEM_ICONS = {
+  // WEAPONS
+  sword: '🗡️', greatsword: '⚔️', dagger: '🔪', bow: '🏹', axe: '🪓', spear: '🔱', staff: '🦯', wand: '🪄',
+  gun: '🔫', bomb: '💣', boomerang: '🪃', hammer: '⚒️', mace: '🔨', club: '🏏', flail: '⛓️', trident: '🔱',
+  crossbow: '🎯', slingshot: '🏹', katana: '⚔️', rapier: '🗡️', saber: '🗡️', pickaxe: '⛏️', mattock: '⛏️', scythe: '⚱️',
+  // ARMOR
+  shield: '🛡️', helmet: '🪖', chestplate: '👕', boots: '👢', gloves: '🧤', ring: '💍', necklace: '📿', cape: '🧣',
+  coat: '🥼', tie: '👔', dress: '👗', shorts: '🩳', socks: '🧦', shoes: '🥾', hat: '🧢', tophat: '🎩', crown: '👑',
+  pants: '👖', kimono: '👘', sari: '🥻', vest: '🦺', armor: '⛓️', breastplate: '🛡️', gauntlets: '🤐', leggings: '👖',
+  pauldrons: '🪖', greaves: '🦵', sabatons: '👢', vambraces: '💪', gorget: '👔', cuirass: '🛡️',
+  wintercoat: '🧥', ballet: '🩰', sandals: '🩴', heels: '👠', flats: '👡', loafers: '👞', sneakers: '👟',
+  backpack: '🎒', luggage: '🧳', glasses: '👓', sunglasses: '🕶️', goggles: '🥽', mask: '😷', visor: '👀',
+  // MAGIC
+  book: '📖', scroll: '📜', orb: '🔮', gem: '💎', crystal: '💠', talisman: '🧿', grimoire: '📚', rune: '⚡',
+  amulet: '💎', charm: '🪬', hex: '✨', totem: '🪵', urn: '🏺', hourglass: '⏳', candle: '🕯️', lamp: '🪔',
+  blood: '🩸', dna: '🧬', star: '⭐', moon: '🌙', sun: '☀️', lightning: '⚡', flame: '🔥', frost: '❄️',
+  // CONSUMABLES
+  potion: '🧪', elixir: '🍷', apple: '🍎', meat: '🍖', herb: '🌿', bread: '🍞', cheese: '🧀', mana_potion: '🟦',
+  health_potion: '🟥', mushroom: '🍄', fish: '🐟', sushi: '🍣', riceball: '🍙', dumpling: '🥟', chicken: '🍗',
+  burger: '🍔', pizza: '🍕', fries: '🍟', beer: '🍺', tea: '🍵', coffee: '☕', juice: '🧃', wine: '🍇',
+  soup: '🍲', salad: '🥗', egg: '🥚', bacon: '🥓', donut: '🍩', cake: '🍰', candy: '🍬', chocolate: '🍫',
+  // MISC
+  skull: '💀', key: '🗝️', coin: '🪙', map: '🗺️', bone: '🦴', compass: '🧭', gear: '⚙️', cog: '⚙️',
+  brick: '🧱', wood: '🪵', bell: '🔔', magnet: '🧲', eye: '👁️', brain: '🧠', tooth: '🦷', trophy: '🏆',
+  medal: '🥇', badge: '🏅', flask: '🧴', lantern: '🏮', trap: '🪤', net: '🥅', cage: '🪤', chain: '⛓️',
+  lock: '🔒', padlock: '🔐', chest: '📦', box: '📫', barrel: '🛢️', urn: '🏺', vial: '🧪', feather: '🪶',
+  shell: '🐚', ticket: '🎫', dice: '🎲', card: '🎴', rose: '🌹', star: '✨', pearl: '💠'
 };
 
 // AB_TYPE_COLORS mirror for ability icons (no dependency on script.js)
@@ -93,12 +125,30 @@ function stripUndef(obj) {
 
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
 
+function getAllItems() {
+  const items = [];
+  encCharacters.forEach(c => {
+    const inv = c.inventory || [];
+    inv.forEach(i => {
+      items.push({
+        ...i,
+        characterId: c.id,
+        characterName: c.name,
+        characterColor: c.color,
+        characterAvatar: c.avatar
+      });
+    });
+  });
+  return items;
+}
+
 function getList() {
   switch(encSection) {
     case 'characters': return encCharacters;
     case 'places':     return encPlaces;
     case 'statuses':   return encStatuses;
     case 'memories':   return encMemories;
+    case 'items':      return getAllItems();
     default:           return [];
   }
 }
@@ -113,7 +163,7 @@ function getStatusFolder(status) {
 }
 
 function getStatusFolderLabel(key) {
-  return key === 'GOOD' ? 'POSITIVE STATUS EFFECTS' : key === 'BAD' ? 'NEGATIVE STATUS EFFECTS' : 'NEUTRAL STATUS EFFECTS';
+  return key === 'GOOD' ? 'POSITIVE' : key === 'BAD' ? 'NEGATIVE' : 'NEUTRAL';
 }
 
 // ── Firebase I/O ──────────────────────────────────────────
@@ -149,6 +199,24 @@ function initFirestore() {
   }, () => {});
 }
 
+// ── Mobile ToC Helpers ─────────────────────────────────────
+function toggleMobileToC() {
+  const left = document.getElementById('enc-left');
+  const backdrop = document.getElementById('enc-mobile-backdrop');
+  if (left && backdrop) {
+    const isOpen = left.classList.toggle('open');
+    backdrop.classList.toggle('open', isOpen);
+  }
+}
+function closeMobileToC() {
+  const left = document.getElementById('enc-left');
+  const backdrop = document.getElementById('enc-mobile-backdrop');
+  if (left && backdrop) {
+    left.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+}
+
 // ── Section switching ─────────────────────────────────────
 function switchSection(section) {
   encSection = section;
@@ -156,6 +224,7 @@ function switchSection(section) {
   applySectionColor();
   renderLeft();
   renderRight('next');
+  closeMobileToC();
 }
 
 function applySectionColor() {
@@ -183,6 +252,7 @@ function encGoTo(idx) {
   encIdx = idx;
   renderRight(dir);
   updateToC();
+  closeMobileToC();
 }
 
 function updateToC() {
@@ -208,15 +278,28 @@ function statusDragOver(e) {
   if (target.dataset.id !== _statusDragId) {
     target.classList.add('drag-over');
   }
+  // Auto-scroll the left ToC when dragging near the top/bottom edges
+  try {
+    const toc = document.getElementById('enc-toc');
+    if (toc) {
+      const rect = toc.getBoundingClientRect();
+      const margin = 48; // px from top/bottom to start scrolling
+      if (e.clientY - rect.top < margin) startStatusAutoScroll(-1);
+      else if (rect.bottom - e.clientY < margin) startStatusAutoScroll(1);
+      else stopStatusAutoScroll();
+    }
+  } catch (err) {}
 }
 
 function statusDragLeave(e) {
   e.currentTarget.classList.remove('drag-over');
+  stopStatusAutoScroll();
 }
 
 function statusDragEnd(e) {
   e.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.enc-toc-item.drag-over, .enc-toc-group-body.drag-over').forEach(el => el.classList.remove('drag-over'));
+  stopStatusAutoScroll();
 }
 
 function statusDragDrop(e) {
@@ -233,6 +316,25 @@ function statusDragDrop(e) {
     moveStatusToGroupEnd(_statusDragId, targetGroup);
   }
   _statusDragId = null;
+  stopStatusAutoScroll();
+}
+
+function startStatusAutoScroll(dir) {
+  if (_statusAutoScrollDirection === dir) return;
+  stopStatusAutoScroll();
+  _statusAutoScrollDirection = dir;
+  const toc = document.getElementById('enc-toc');
+  if (!toc) return;
+  _statusAutoScrollInterval = setInterval(() => {
+    try {
+      toc.scrollTop += dir * 12; // scroll speed
+    } catch (e) {}
+  }, 40);
+}
+
+function stopStatusAutoScroll() {
+  _statusAutoScrollDirection = 0;
+  if (_statusAutoScrollInterval) { clearInterval(_statusAutoScrollInterval); _statusAutoScrollInterval = null; }
 }
 
 function toggleStatusFolder(folderKey) {
@@ -332,7 +434,7 @@ function renderLeft() {
   } else {
     toc.innerHTML = list.map((item, i) => {
       const name = item.name || item.title || 'UNNAMED';
-      const dotColor = item.color || SECTION_CFG[encSection].col;
+      const dotColor = (encSection === 'items') ? (item.characterColor || '#00ccaa') : (item.color || SECTION_CFG[encSection].col);
       return `<div class="enc-toc-item${i === encIdx ? ' active' : ''}" onclick="encGoTo(${i})" data-index="${i}">
         <span class="enc-toc-n">${toRoman(i + 1)}</span>
         <span class="enc-toc-txt">${esc(name)}</span>
@@ -342,7 +444,7 @@ function renderLeft() {
   }
 
   // Footer action
-  if (encSection === 'characters') {
+  if (encSection === 'characters' || encSection === 'items') {
     ft.innerHTML = `<button class="btn sm" style="width:100%;font-size:8px;" onclick="location.href='index.html'">GO TO MAIN APP ↗</button>`;
   } else {
     const label = encSection === 'places' ? 'NEW PLACE' :
@@ -376,6 +478,7 @@ function renderRight(dir) {
         case 'places':     content.innerHTML = renderPlaceEntry(item);  break;
         case 'statuses':   content.innerHTML = renderStatusEntry(item); break;
         case 'memories':   content.innerHTML = renderMemoryEntry(item); break;
+        case 'items':      content.innerHTML = renderItemEntry(item);   break;
       }
     }
     updateNav();
@@ -567,7 +670,9 @@ function renderPlaceEntry(p) {
   }).join('');
 
   return `
-    ${p.image ? `<img class="enc-place-img enc-anim-fade" style="animation-delay:0s" src="${p.image}" alt="">` : ''}
+    ${p.image ? `<div class="enc-parallax-wrapper enc-anim-fade" style="animation-delay:0s" onmousemove="parallaxImage(event, this)" onmouseleave="resetParallax(this)" onclick="openFullscreenImage('${p.image}')">
+                   <img class="enc-place-img" src="${p.image}" alt="">
+                 </div>` : ''}
     <div class="enc-entry-name enc-anim-fade" style="color:${col};text-shadow:0 0 30px ${col}44;animation-delay:0.05s">${esc(p.name || 'UNNAMED')}</div>
     <div class="enc-entry-divider enc-anim-fade" style="background:${col};animation-delay:0.08s"></div>
     <div class="enc-meta-row enc-anim-fade" style="animation-delay:0.12s">
@@ -626,6 +731,84 @@ function renderStatusEntry(s) {
   `;
 }
 
+// ── ITEM ENTRY ─────────────────────────────────────────────
+function renderItemEntry(i) {
+  if (!i) return '';
+  const col = i.characterColor || '#00ccaa';
+  
+  // Icon resolution
+  let iconHtml = '';
+  if (i.iconImage) {
+    iconHtml = `<img src="${i.iconImage}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"/>`;
+  } else {
+    const emoji = ENC_ITEM_ICONS[i.icon || 'sword'] || '🎒';
+    iconHtml = `<span class="enc-item-large-emoji" style="font-size:36px;">${emoji}</span>`;
+  }
+
+  // Modifiers tags
+  const modsHtml = (i.mods || []).map(m => {
+    let sign = '';
+    if (m.op === 'add') sign = '+';
+    if (m.op === 'sub') sign = '-';
+    if (m.op === 'mul') sign = 'x';
+    if (m.op === 'div') sign = '/';
+    return `<span class="enc-item-mod-tag ${m.op}">${esc(m.stat.toUpperCase())} ${sign}${m.value}</span>`;
+  }).join('') || '';
+
+  // Passives display
+  const passivesHtml = (i.passives || []).filter(Boolean).map(p =>
+    `<div class="enc-item-passive-row">${esc(p)}</div>`
+  ).join('') || '';
+
+  // Owner portrait display
+  const ownerAvatarHtml = i.characterAvatar 
+    ? `<img src="${i.characterAvatar}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid ${col}44;"/>`
+    : `<div class="enc-char-portrait-ph" style="width:40px;height:40px;border-radius:4px;border:1px solid ${col}22;background:#050302;display:flex;align-items:center;justify-content:center;color:${col}44;font-size:16px;">◈</div>`;
+
+  return `
+    <div class="enc-item-detail-hero enc-anim-fade" style="animation-delay:0s">
+      <div class="enc-item-large-frame ${i.equipped ? 'equipped' : ''}" style="--item-col:${col}">
+        ${iconHtml}
+      </div>
+      <div>
+        <div class="enc-entry-name" style="color:${col};text-shadow:0 0 30px ${col}33">${esc(i.name || 'UNNAMED ITEM')}</div>
+        <div class="enc-item-status-badge ${i.equipped ? 'equipped' : ''}" style="color:${col}">
+          ${i.equipped ? '⚡ EQUIPPED' : '💼 IN INVENTORY'}
+        </div>
+      </div>
+    </div>
+    <div class="enc-entry-divider enc-anim-fade" style="background:${col};animation-delay:0.06s"></div>
+    
+    ${i.desc ? `
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.12s">⬥ DESCRIPTION</div>
+      <div class="enc-body-text enc-anim-fade" style="animation-delay:0.15s">${esc(i.desc)}</div>
+    ` : ''}
+
+    ${modsHtml ? `
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.18s">⬥ STAT MODIFIERS</div>
+      <div class="enc-item-mods-grid enc-anim-fade" style="animation-delay:0.22s">
+        ${modsHtml}
+      </div>
+    ` : ''}
+
+    ${passivesHtml ? `
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.26s">⬥ PASSIVES &amp; ABILITIES</div>
+      <div class="enc-item-passives enc-anim-fade" style="animation-delay:0.3s">
+        ${passivesHtml}
+      </div>
+    ` : ''}
+
+    <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.34s">⬥ OWNER PROFILE</div>
+    <div class="enc-item-owner-card enc-anim-fade" style="animation-delay:0.38s;--char-col:${col}">
+      ${ownerAvatarHtml}
+      <div class="enc-item-owner-info">
+        <div class="enc-item-owner-title" style="font-size:7px;letter-spacing:1px;opacity:0.4;font-family:'Press Start 2P',monospace;">CARRIED BY</div>
+        <div class="enc-item-owner-name" style="color:${col};font-family:'Cinzel Decorative',serif;font-size:14px;letter-spacing:1.5px;margin-top:2px;">${esc(i.characterName || 'UNKNOWN')}</div>
+      </div>
+    </div>
+  `;
+}
+
 // ── MEMORY ENTRY ──────────────────────────────────────────
 function renderMemoryEntry(m) {
   if (!m) return '';
@@ -643,7 +826,9 @@ function renderMemoryEntry(m) {
     </div>`).join('');
 
   return `
-    ${m.image ? `<img class="enc-memory-cover enc-anim-fade" style="animation-delay:0s" src="${m.image}" alt="">` : ''}
+    ${m.image ? `<div class="enc-parallax-wrapper enc-anim-fade" style="animation-delay:0s" onmousemove="parallaxImage(event, this)" onmouseleave="resetParallax(this)" onclick="openFullscreenImage('${m.image}')">
+                   <img class="enc-memory-cover" src="${m.image}" alt="">
+                 </div>` : ''}
     <div class="enc-chapter-label enc-anim-fade" style="animation-delay:0.04s">${esc(m.arc || 'CHAPTER')}</div>
     <div class="enc-entry-name enc-anim-fade" style="color:${col};text-shadow:0 0 30px ${col}44;animation-delay:0.07s">${esc(m.title || 'UNTITLED')}</div>
     <div class="enc-entry-divider enc-anim-fade" style="background:${col};animation-delay:0.1s"></div>
@@ -1031,8 +1216,44 @@ function toggleSoundtrack(hd) {
   if (tog) tog.textContent = embed.classList.contains('open') ? '▲' : '▼';
 }
 
+// ── PARALLAX & FULLSCREEN ──────────────────────────────────
+function parallaxImage(e, el) {
+  const rect = el.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const xPct = (x / rect.width - 0.5) * 10; // max 5px shift
+  const yPct = (y / rect.height - 0.5) * 10;
+  const img = el.querySelector('img');
+  if(img) {
+    img.style.transform = `scale(1.05) translate(${-xPct}px, ${-yPct}px)`;
+  }
+}
+function resetParallax(el) {
+  const img = el.querySelector('img');
+  if(img) {
+    img.style.transform = `scale(1.05) translate(0,0)`;
+  }
+}
+function openFullscreenImage(src) {
+  const overlay = document.getElementById('enc-fullscreen-overlay');
+  const img = document.getElementById('enc-fullscreen-img');
+  if (overlay && img) {
+    img.src = src;
+    overlay.classList.add('show');
+  }
+}
+function closeFullscreenImage(e) {
+  if (e && e.target.id === 'enc-fullscreen-img') return; // don't close if clicking the image itself
+  const overlay = document.getElementById('enc-fullscreen-overlay');
+  if(overlay) overlay.classList.remove('show');
+}
+
 // ── INIT ──────────────────────────────────────────────────
+// Wait for DOM
 document.addEventListener('DOMContentLoaded', () => {
+  // If stats/roster script loaded first, wait. We'll init by global script.
+  // Actually, we export initializeEncyclopedia so script.js calls it.
+
   // Custom cursor tracking
   const _cur = document.getElementById('cursor');
   if (_cur) document.addEventListener('mousemove', e => {
