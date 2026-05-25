@@ -880,18 +880,25 @@ body {
 .enc-star.empty { opacity: 0.12; }
 
 /* Orb shape variants */
-.enc-status-orb.orb-square { border-radius: 8px; }
-.enc-status-orb.orb-diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
-.enc-status-orb.orb-hexagon { clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
-.enc-status-orb.orb-ring {
-  background: transparent !important;
-  border-width: 4px !important;
-  box-shadow: 0 0 20px var(--status-col, #888);
-}
-.enc-status-orb.orb-triangle { clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }
+.enc-status-orb.orb-rounded-square { border-radius: 12px; background: linear-gradient(180deg, rgba(0,0,0,0.12), rgba(255,255,255,0.02)); }
+.enc-status-orb.orb-square { border-radius: 6px; background: linear-gradient(180deg, rgba(0,0,0,0.18), rgba(255,255,255,0.02)); }
+.enc-status-orb.orb-diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(0,0,0,0.22)); }
+.enc-status-orb.orb-hexagon { clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.26)); }
+.enc-status-orb.orb-triangle { clip-path: polygon(50% 0%, 100% 100%, 0% 100%); background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.28)); }
+.enc-status-orb.orb-teardrop { clip-path: path('M27 3 C16 3, 6 14, 6 25 C6 36, 16 47, 27 51 C38 47, 48 36, 48 25 C48 14, 38 3, 27 3 Z'); transform: rotate(180deg); background: radial-gradient(circle at 40% 25%, rgba(255,255,255,0.12), rgba(0,0,0,0.28)); }
+.enc-status-orb.orb-star { clip-path: polygon(50% 3%, 61% 38%, 98% 38%, 68% 59%, 79% 95%, 50% 73%, 21% 95%, 32% 59%, 2% 38%, 39% 38%); background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(0,0,0,0.3)); }
+
+/* Per-shape inner styling — different "brown"/accent treatments so each feels distinct */
+.enc-status-orb.orb-rounded-square::after { content:''; position:absolute; inset:6px; border-radius:10px; background: radial-gradient(circle at 30% 30%, rgba(255,240,210,0.28), rgba(160,120,60,0.08)); mix-blend-mode: overlay; }
+.enc-status-orb.orb-square::after { content:''; position:absolute; inset:6px; border-radius:4px; background: repeating-linear-gradient(45deg, rgba(255,240,210,0.09) 0 6px, rgba(0,0,0,0) 6px 12px); mix-blend-mode: overlay; }
+.enc-status-orb.orb-diamond::after { content:''; position:absolute; inset:6px; transform: rotate(45deg); background: linear-gradient(180deg, rgba(255,230,180,0.14), rgba(0,0,0,0)); mix-blend-mode: overlay; }
+.enc-status-orb.orb-hexagon::after { content:''; position:absolute; inset:6px; background: conic-gradient(from 200deg, rgba(255,240,210,0.14), rgba(180,120,60,0.06), rgba(255,240,210,0.08)); mix-blend-mode: overlay; }
+.enc-status-orb.orb-triangle::after { content:''; position:absolute; inset:6px; background: linear-gradient(120deg, rgba(255,240,210,0.12), rgba(140,90,40,0.06)); mix-blend-mode: overlay; }
+.enc-status-orb.orb-teardrop::after { content:''; position:absolute; inset:6px; border-radius:50%; background: radial-gradient(circle at 40% 35%, rgba(255,240,210,0.18), rgba(150,90,40,0.05)); mix-blend-mode: overlay; }
+.enc-status-orb.orb-star::after { content:''; position:absolute; inset:6px; background: radial-gradient(circle at 50% 40%, rgba(255,245,180,0.16), rgba(120,80,40,0.05)); mix-blend-mode: overlay; }
 
 /* Ensure inner sheen respects clip-path shapes */
-.enc-status-orb::after { transition: opacity 0.15s; }
+.enc-status-orb::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.3), transparent 65%); opacity: 0.95; mix-blend-mode: screen; }
 
 /* ============================================================
    MEMORIES
@@ -1474,11 +1481,13 @@ body {
         <label>SHAPE</label>
         <select id="es-shape">
           <option value="circle">Sphere</option>
-          <option value="square">Square</option>
+          <option value="rounded-square">Rounded Square</option>
+          <option value="square">Sharp Square</option>
           <option value="diamond">Diamond</option>
           <option value="hexagon">Hexagon</option>
-          <option value="ring">Ring</option>
           <option value="triangle">Triangle</option>
+          <option value="teardrop">Teardrop</option>
+          <option value="star">Star</option>
         </select>
       </div>
       <div class="enc-field">

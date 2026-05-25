@@ -466,7 +466,7 @@ function renderStatusEntry(s) {
 
   return `
     <div class="enc-status-top enc-anim-fade" style="animation-delay:0s">
-      <div class="enc-status-orb orb-${esc(s.shape||'circle')}" style="--status-col:${col};background:${col}22;border:2px solid ${col}66"></div>
+      <div class="enc-status-orb orb-${esc(s.shape||'circle')}" style="--status-col:${col};border:2px solid ${col}66" onmouseenter="(typeof playSound==='function')&&playSound('hover',{rate:0.95+Math.random()*0.1,volume:0.45})" onclick="(typeof playSound==='function')&&playSound('click',{rate:0.95,volume:0.5})"></div>
       <div>
         <div class="enc-entry-name" style="color:${col};text-shadow:0 0 30px ${col}44">${esc(s.name || 'UNNAMED')}</div>
         <span class="enc-badge" style="color:${tc};border-color:${tc}44">${type}</span>
@@ -696,10 +696,12 @@ function openStatusModal(id) {
   _statusStars = s.stars || 0;
   renderStarPicker(_statusStars);
   document.getElementById('es-shape').value = s.shape || 'circle';
+  if (typeof playSound === 'function') playSound('click', { rate: 1, volume: 0.5 });
   document.getElementById('enc-status-overlay').classList.add('open');
 }
 
 function closeStatusModal() {
+  if (typeof playSound === 'function') playSound('click', { rate: 1.1, volume: 0.4 });
   document.getElementById('enc-status-overlay').classList.remove('open');
   _statusEditing = null;
 }
@@ -726,6 +728,7 @@ function saveStatusModal() {
   }
   saveEncData();
   closeStatusModal();
+  if (typeof playSound === 'function') playSound('save', { rate: 1, volume: 0.7 });
   if (encSection === 'statuses') { renderLeft(); renderRight(); }
   encNotify(_statusEditing ? 'STATUS UPDATED' : 'STATUS ADDED', 'ok');
 }
@@ -734,6 +737,7 @@ function pickStar(n) {
   _statusStars = n;
   renderStarPicker(n);
   document.getElementById('es-stars').value = n;
+  if (typeof playSound === 'function') playSound('click', { rate: 0.95 + Math.random() * 0.1, volume: 0.45 });
 }
 function renderStarPicker(n) {
   document.querySelectorAll('.enc-star-pick').forEach(b => {
