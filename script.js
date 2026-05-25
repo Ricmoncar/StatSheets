@@ -368,6 +368,47 @@ function playThemeForCharacter(charId, overrideSong = null) {
   _showThemeBar(song.name || 'UNTITLED', (c.name || '') + formLabel, c.color);
 }
 
+// ── Background preloader ──────────────────────────────────────
+// Quietly buffers theme URLs so they're in the browser cache before playback.
+// Uses a staggered queue so it doesn't flood the network on first load.
+const _themePreloadCache = new Set(); // tracks URLs already preloaded this session
+let _themePreloadQueue  = [];
+let _themePreloadTimer  = null;
+
+function _preloadThemes(charList) {
+  // Collect all unique theme URLs that haven't been preloaded yet
+  const urls = [];
+  charList.forEach(c => {
+    const base = c.info && c.info.themeSong && c.info.themeSong.url;
+    if (base && !_themePreloadCache.has(base)) urls.push(base);
+    (c.altForms || []).forEach(f => {
+      const alt = f && f.themeSong && f.themeSong.url;
+      if (alt && !_themePreloadCache.has(alt)) urls.push(alt);
+    });
+  });
+  if (!urls.length) return;
+
+  // Prepend new URLs (newly-seen characters go first)
+  _themePreloadQueue = [...new Set([...urls, ..._themePreloadQueue])];
+  _kickPreloadQueue();
+}
+
+function _kickPreloadQueue() {
+  if (_themePreloadTimer || !_themePreloadQueue.length) return;
+  // Stagger preloads: one file every 1.5 s so we don't hammer the connection
+  _themePreloadTimer = setTimeout(() => {
+    _themePreloadTimer = null;
+    const url = _themePreloadQueue.shift();
+    if (!url) return;
+    _themePreloadCache.add(url);
+    // Fetch just enough of the file to prime the CDN/browser cache.
+    // Range request: first 256 KB — enough to start playback without downloading the whole file.
+    fetch(url, { method: 'GET', headers: { Range: 'bytes=0-262143' }, mode: 'cors', credentials: 'omit' })
+      .catch(() => {}); // silently ignore errors (offline, CORS restriction etc.)
+    _kickPreloadQueue();
+  }, 1500);
+}
+
 function toggleThemePlayback() {
   if (!_themeCurrentCharId) return;
   const eq = document.getElementById('theme-bar-eq');
@@ -7041,6 +7082,7 @@ if (sidebarList && db) {
     if (updatedSeen) saveSeenTraits();
 
     renderSidebar();
+    _preloadThemes(characters);
 
     const isSelf = (currentId === _lastSaveId && (Date.now() - _lastSaveTime < SELF_WRITE_WINDOW));
 
