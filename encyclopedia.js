@@ -461,13 +461,12 @@ function renderStatusEntry(s) {
   const type = s.type  || 'NEUTRAL';
   const TYPE_COLORS = { BUFF:'#44ff88', DEBUFF:'#ff4444', NEUTRAL:'#aaaaaa', PASSIVE:'#cc99ff', UNIQUE:'#ffcc44' };
   const tc = TYPE_COLORS[type] || '#888';
-  const starsHtml = Array.from({length:5}, (_,i) =>
-    `<span class="enc-star${i < (s.stars||1) ? '' : ' empty'}" style="color:${col}">★</span>`
-  ).join('');
+  const starCount = Math.max(0, Math.min(5, Number(s.stars) || 0));
+  const starsHtml = Array.from({length:starCount}, () => `<span class="enc-star" style="color:${col}">★</span>`).join('');
 
   return `
     <div class="enc-status-top enc-anim-fade" style="animation-delay:0s">
-      <div class="enc-status-orb" style="--status-col:${col};background:${col}22;border:2px solid ${col}66"></div>
+      <div class="enc-status-orb orb-${esc(s.shape||'circle')}" style="--status-col:${col};background:${col}22;border:2px solid ${col}66"></div>
       <div>
         <div class="enc-entry-name" style="color:${col};text-shadow:0 0 30px ${col}44">${esc(s.name || 'UNNAMED')}</div>
         <span class="enc-badge" style="color:${tc};border-color:${tc}44">${type}</span>
@@ -694,8 +693,9 @@ function openStatusModal(id) {
   document.getElementById('es-color').value    = s.color    || '#ff4444';
   document.getElementById('es-desc').value     = s.desc     || '';
   document.getElementById('es-duration').value = s.duration || '';
-  _statusStars = s.stars || 1;
+  _statusStars = s.stars || 0;
   renderStarPicker(_statusStars);
+  document.getElementById('es-shape').value = s.shape || 'circle';
   document.getElementById('enc-status-overlay').classList.add('open');
 }
 
@@ -715,6 +715,7 @@ function saveStatusModal() {
     desc:     document.getElementById('es-desc').value.trim(),
     duration: document.getElementById('es-duration').value.trim(),
     stars:    _statusStars,
+    shape:    document.getElementById('es-shape').value || 'circle',
   };
   if (_statusEditing) {
     const i = encStatuses.findIndex(x => x.id === _statusEditing);

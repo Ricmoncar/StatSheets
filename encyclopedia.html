@@ -879,6 +879,20 @@ body {
 .enc-star:nth-child(5) { animation-delay: 0.24s; }
 .enc-star.empty { opacity: 0.12; }
 
+/* Orb shape variants */
+.enc-status-orb.orb-square { border-radius: 8px; }
+.enc-status-orb.orb-diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+.enc-status-orb.orb-hexagon { clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
+.enc-status-orb.orb-ring {
+  background: transparent !important;
+  border-width: 4px !important;
+  box-shadow: 0 0 20px var(--status-col, #888);
+}
+.enc-status-orb.orb-triangle { clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }
+
+/* Ensure inner sheen respects clip-path shapes */
+.enc-status-orb::after { transition: opacity 0.15s; }
+
 /* ============================================================
    MEMORIES
    ============================================================ */
@@ -1455,6 +1469,17 @@ body {
           <button class="enc-star-pick" data-v="5" type="button" onclick="pickStar(5)">★</button>
         </div>
         <input type="hidden" id="es-stars" value="1"/>
+      </div>
+      <div class="enc-field">
+        <label>SHAPE</label>
+        <select id="es-shape">
+          <option value="circle">Sphere</option>
+          <option value="square">Square</option>
+          <option value="diamond">Diamond</option>
+          <option value="hexagon">Hexagon</option>
+          <option value="ring">Ring</option>
+          <option value="triangle">Triangle</option>
+        </select>
       </div>
       <div class="enc-field">
         <label>EFFECT DESCRIPTION</label>
