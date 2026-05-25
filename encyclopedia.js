@@ -695,8 +695,10 @@ function openStatusModal(id) {
   document.getElementById('es-duration').value = s.duration || '';
   _statusStars = s.stars || 0;
   renderStarPicker(_statusStars);
+  document.getElementById('es-stars').value = _statusStars;
   document.getElementById('es-shape').value = s.shape || 'circle';
   if (typeof playSound === 'function') playSound('click', { rate: 1, volume: 0.5 });
+  try { updateStatusPreview(); } catch (e) {}
   document.getElementById('enc-status-overlay').classList.add('open');
 }
 
@@ -738,11 +740,35 @@ function pickStar(n) {
   renderStarPicker(n);
   document.getElementById('es-stars').value = n;
   if (typeof playSound === 'function') playSound('click', { rate: 0.95 + Math.random() * 0.1, volume: 0.45 });
+  try { updateStatusPreview(); } catch (e) {}
 }
 function renderStarPicker(n) {
   document.querySelectorAll('.enc-star-pick').forEach(b => {
     b.classList.toggle('lit', Number(b.dataset.v) <= n);
   });
+}
+
+function updateStatusPreview() {
+  const orb = document.getElementById('es-preview-orb');
+  const starsDiv = document.getElementById('es-preview-stars');
+  if (!orb || !starsDiv) return;
+  const col = (document.getElementById('es-color') || {}).value || '#aaaaaa';
+  const shape = (document.getElementById('es-shape') || {}).value || 'circle';
+  const stars = Number((document.getElementById('es-stars') || {}).value) || 0;
+  // set class
+  orb.className = 'enc-status-orb orb-' + shape;
+  // set css var and border (append alpha if hex)
+  try {
+    orb.style.setProperty('--status-col', col);
+    if (typeof col === 'string' && col[0] === '#' && col.length === 7) orb.style.border = '2px solid ' + col + '66';
+    else orb.style.border = '2px solid ' + col;
+  } catch (e) {}
+  // render stars
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    html += '<span class="enc-star' + (i <= stars ? '' : ' empty') + '">★</span>';
+  }
+  starsDiv.innerHTML = html;
 }
 
 // ── MEMORY MODAL ──────────────────────────────────────────
