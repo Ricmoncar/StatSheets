@@ -778,6 +778,133 @@ body {
   text-shadow: 0 0 10px rgba(200,168,100,0.2);
 }
 
+/* ── Trait chips (rarity-colored) ── */
+.enc-trait-chip {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 6px 14px;
+  border-radius: 2px;
+  border: 1px solid;
+  text-transform: uppercase;
+  transition: color 0.25s, background 0.25s, border-color 0.25s, transform 0.18s, text-shadow 0.25s, box-shadow 0.25s;
+  cursor: default;
+  position: relative;
+}
+.enc-trait-chip:hover {
+  transform: translateY(-2px);
+}
+.enc-trait-common {
+  color: #c0c0c0;
+  border-color: #4a4a4a;
+  background: #0c0c0c;
+}
+.enc-trait-common:hover {
+  color: #e0e0e0;
+  border-color: #6a6a6a;
+  text-shadow: 0 0 10px rgba(192,192,192,0.3);
+  box-shadow: 0 0 8px rgba(192,192,192,0.08);
+}
+.enc-trait-rare {
+  color: #4aa9ff;
+  border-color: #1f5590;
+  background: #04090f;
+}
+.enc-trait-rare:hover {
+  color: #7cc4ff;
+  border-color: #3388cc;
+  text-shadow: 0 0 12px rgba(74,169,255,0.35);
+  box-shadow: 0 0 10px rgba(74,169,255,0.1);
+}
+.enc-trait-epic {
+  color: #c98bff;
+  border-color: #6a2eb8;
+  background: #0a0510;
+}
+.enc-trait-epic:hover {
+  color: #ddb3ff;
+  border-color: #8a4adf;
+  text-shadow: 0 0 14px rgba(201,139,255,0.4);
+  box-shadow: 0 0 12px rgba(201,139,255,0.12);
+}
+.enc-trait-legendary {
+  color: #ffe14a;
+  border-color: #9a7200;
+  background: #0e0a02;
+}
+.enc-trait-legendary:hover {
+  color: #ffec80;
+  border-color: #c49500;
+  text-shadow: 0 0 16px rgba(255,225,74,0.45);
+  box-shadow: 0 0 14px rgba(255,174,0,0.15);
+}
+.enc-trait-mythic {
+  color: #ffd86a;
+  border-color: #b04e00;
+  background: #0f0600;
+}
+.enc-trait-mythic:hover {
+  color: #ffe599;
+  border-color: #e06800;
+  text-shadow: 0 0 18px rgba(255,106,0,0.5);
+  box-shadow: 0 0 16px rgba(255,106,0,0.18);
+}
+.enc-trait-hexxed {
+  color: #c46aff;
+  border-color: #5400a0;
+  background: #06000c;
+}
+.enc-trait-hexxed:hover {
+  color: #d994ff;
+  border-color: #7a20cc;
+  text-shadow: 0 0 18px rgba(196,106,255,0.5);
+  box-shadow: 0 0 14px rgba(84,0,160,0.2);
+}
+.enc-trait-duality {
+  color: #88c8ff;
+  border-color: #1a3080;
+  background: #020308;
+}
+.enc-trait-duality:hover {
+  color: #b0ddff;
+  border-color: #3050b0;
+  text-shadow: 0 0 16px rgba(136,200,255,0.45);
+  box-shadow: 0 0 12px rgba(26,48,128,0.2);
+}
+.enc-trait-determined {
+  color: #ff3333;
+  border-color: #880000;
+  background: #060000;
+}
+.enc-trait-determined:hover {
+  color: #ff6666;
+  border-color: #bb0000;
+  text-shadow: 0 0 18px rgba(255,51,51,0.55);
+  box-shadow: 0 0 16px rgba(136,0,0,0.25);
+}
+/* Shimmyful star & shimmer */
+.enc-trait-shimmy {
+  position: relative;
+  overflow: hidden;
+}
+.enc-trait-shimmy::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%);
+  animation: enc-shimmy-sweep 3s ease-in-out infinite;
+}
+.enc-shimmy-star {
+  font-size: 10px;
+  animation: enc-star-pop 1.5s ease-in-out infinite;
+}
+@keyframes enc-shimmy-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 /* ── Character abilities ── */
 .enc-char-ability-row {
   display: flex;
@@ -2045,6 +2172,7 @@ body {
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="traits.js?v=1"></script>
 <script src="encyclopedia.js?v=1"></script>
 </body>
 </html>
