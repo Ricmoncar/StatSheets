@@ -1930,6 +1930,7 @@ body {
         <button class="enc-tab-btn" data-section="statuses"   onclick="switchSection('statuses')">✦ STATUS FX</button>
         <button class="enc-tab-btn" data-section="memories"   onclick="switchSection('memories')">✦ MEMORIES</button>
         <button class="enc-tab-btn" data-section="items"      onclick="switchSection('items')">ITEMS</button>
+        <button class="enc-tab-btn" data-section="npcs"       onclick="switchSection('npcs')">◉ NPCS</button>
       </div>
     </div>
 
@@ -2169,10 +2170,91 @@ body {
   </div>
 </div>
 
+<!-- NPC EDITOR MODAL -->
+<div class="enc-overlay" id="enc-npc-overlay">
+  <div class="enc-modal">
+    <div class="enc-modal-hd">
+      <span class="enc-modal-title" id="enc-npc-modal-title">NEW NPC</span>
+      <button class="btn icon-btn" onclick="closeNpcModal()">&times;</button>
+    </div>
+    <div class="enc-modal-body">
+      <div class="enc-two-col">
+        <div class="enc-field">
+          <label>NAME *</label>
+          <input type="text" id="en-name" placeholder="e.g. The Archivist" maxlength="80"/>
+        </div>
+        <div class="enc-field">
+          <label>ROLE / TITLE</label>
+          <input type="text" id="en-role" placeholder="e.g. Merchant, Guard Captain" maxlength="60"/>
+        </div>
+      </div>
+      <div class="enc-two-col">
+        <div class="enc-field">
+          <label>AFFILIATION</label>
+          <input type="text" id="en-affiliation" placeholder="e.g. The Silver Guild" maxlength="80"/>
+        </div>
+        <div class="enc-field">
+          <label>ALIGNMENT</label>
+          <select id="en-alignment">
+            <option value="NEUTRAL">NEUTRAL</option>
+            <option value="FRIENDLY">FRIENDLY</option>
+            <option value="HOSTILE">HOSTILE</option>
+            <option value="ALLY">ALLY</option>
+            <option value="ENEMY">ENEMY</option>
+            <option value="UNKNOWN">UNKNOWN</option>
+          </select>
+        </div>
+      </div>
+      <div class="enc-field">
+        <label>ACCENT COLOR</label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="color" id="en-color" value="#e05a9a" style="width:48px;height:28px;border:1px solid #2a1808;background:#0a0703;cursor:pointer;padding:2px;"/>
+          <div class="enc-color-presets">
+            <div class="enc-color-swatch" style="background:#e05a9a" onclick="document.getElementById('en-color').value='#e05a9a'"></div>
+            <div class="enc-color-swatch" style="background:#e05a5a" onclick="document.getElementById('en-color').value='#e05a5a'"></div>
+            <div class="enc-color-swatch" style="background:#e09a5a" onclick="document.getElementById('en-color').value='#e09a5a'"></div>
+            <div class="enc-color-swatch" style="background:#c9a227" onclick="document.getElementById('en-color').value='#c9a227'"></div>
+            <div class="enc-color-swatch" style="background:#5ae0a0" onclick="document.getElementById('en-color').value='#5ae0a0'"></div>
+            <div class="enc-color-swatch" style="background:#5aaae0" onclick="document.getElementById('en-color').value='#5aaae0'"></div>
+            <div class="enc-color-swatch" style="background:#a05ae0" onclick="document.getElementById('en-color').value='#a05ae0'"></div>
+            <div class="enc-color-swatch" style="background:#aaaaaa" onclick="document.getElementById('en-color').value='#aaaaaa'"></div>
+          </div>
+        </div>
+      </div>
+      <div class="enc-field">
+        <label>DESCRIPTION</label>
+        <textarea id="en-desc" rows="3" placeholder="Who is this NPC? What do they look like?"></textarea>
+      </div>
+      <div class="enc-field">
+        <label>PERSONALITY</label>
+        <textarea id="en-personality" rows="2" placeholder="How do they behave? What drives them?"></textarea>
+      </div>
+      <div class="enc-field">
+        <label>NOTES</label>
+        <textarea id="en-notes" rows="2" placeholder="DM notes, quest hooks, secrets..."></textarea>
+      </div>
+      <div class="enc-field">
+        <label style="display:flex;justify-content:space-between;align-items:center;">
+          IMAGE <span style="cursor:pointer;color:var(--enc-col)" onclick="document.getElementById('en-img-file').click()">[UPLOAD]</span>
+          <input type="file" id="en-img-file" accept="image/*" style="display:none" onchange="handleNpcImgUpload(event)"/>
+        </label>
+        <div class="enc-img-preview" id="en-img-preview">
+          <span class="enc-img-no-label">NO IMAGE</span>
+        </div>
+        <button class="btn sm" id="en-img-clear" style="margin-top:5px;display:none" type="button" onclick="clearNpcImg()">✕ CLEAR</button>
+      </div>
+    </div>
+    <div class="enc-modal-ft">
+      <button class="btn" onclick="closeNpcModal()">CANCEL</button>
+      <button class="btn accent" onclick="saveNpcModal()">SAVE NPC</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="traits.js?v=1"></script>
-<script src="encyclopedia.js?v=1"></script>
+<script src="encyclopedia.js?v=2"></script>
 </body>
 </html>

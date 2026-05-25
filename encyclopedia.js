@@ -25,13 +25,16 @@ let encCharacters = [];
 let encPlaces     = [];
 let encStatuses   = [];
 let encMemories   = [];
+let encNpcs       = [];
 
 // editing state
 let _placeEditing    = null;
 let _statusEditing   = null;
 let _memoryEditing   = null;
+let _npcEditing      = null;
 let _placeImgData    = null;
 let _memoryImgData   = null;
+let _npcImgData      = null;
 let _statusStars     = 1;
 let _sceneEditing    = null; // { memId, sceneIdx } or null
 let _pendingConfirm  = null;
@@ -47,6 +50,7 @@ const SECTION_CFG = {
   statuses:   { label: 'STATUS EFFECTS',sub: 'BUFFS, DEBUFFS & FX', col: '#8b5cf6' },
   memories:   { label: 'MEMORIES',      sub: 'CHAPTERS & SCENES',   col: '#e76f51' },
   items:      { label: 'ITEMS',         sub: 'EQUIPMENT & BAG',     col: '#00ccaa' },
+  npcs:       { label: 'NPCS',          sub: 'NON-PLAYER CHARACTERS',col: '#e05a9a' },
 };
 
 const ENC_ITEM_ICONS = {
@@ -149,6 +153,7 @@ function getList() {
     case 'statuses':   return encStatuses;
     case 'memories':   return encMemories;
     case 'items':      return getAllItems();
+    case 'npcs':       return encNpcs;
     default:           return [];
   }
 }
@@ -173,6 +178,7 @@ function saveEncData() {
     places:   encPlaces,
     statuses: encStatuses,
     memories: encMemories,
+    npcs:     encNpcs,
   }), { merge: false }).catch(e => console.error('Enc save failed:', e));
 }
 
@@ -195,6 +201,7 @@ function initFirestore() {
     encPlaces   = d.places   || [];
     encStatuses = (d.statuses || []).map(s => ({ ...s, folder: getStatusFolder(s) }));
     encMemories = d.memories || [];
+    encNpcs     = d.npcs     || [];
     if (encSection !== 'characters') { renderLeft(); renderRight(); }
   }, () => {});
 }
@@ -447,10 +454,12 @@ function renderLeft() {
   if (encSection === 'characters' || encSection === 'items') {
     ft.innerHTML = `<button class="btn sm" style="width:100%;font-size:8px;" onclick="location.href='index.html'">GO TO MAIN APP ↗</button>`;
   } else {
-    const label = encSection === 'places' ? 'NEW PLACE' :
-                  encSection === 'statuses' ? 'NEW STATUS' : 'NEW CHAPTER';
-    const fn    = encSection === 'places' ? 'openPlaceModal(null)' :
-                  encSection === 'statuses' ? 'openStatusModal(null)' : 'openMemoryModal(null)';
+    const label = encSection === 'places'   ? 'NEW PLACE'   :
+                  encSection === 'statuses' ? 'NEW STATUS'  :
+                  encSection === 'npcs'     ? 'NEW NPC'     : 'NEW CHAPTER';
+    const fn    = encSection === 'places'   ? 'openPlaceModal(null)'  :
+                  encSection === 'statuses' ? 'openStatusModal(null)' :
+                  encSection === 'npcs'     ? 'openNpcModal(null)'    : 'openMemoryModal(null)';
     ft.innerHTML = `<button class="btn sm accent" style="width:100%;font-size:8px;" onclick="${fn}">+ ${label}</button>`;
   }
 }
@@ -479,6 +488,7 @@ function renderRight(dir) {
         case 'statuses':   content.innerHTML = renderStatusEntry(item); break;
         case 'memories':   content.innerHTML = renderMemoryEntry(item); break;
         case 'items':      content.innerHTML = renderItemEntry(item);   break;
+        case 'npcs':       content.innerHTML = renderNpcEntry(item);    break;
       }
     }
     updateNav();
@@ -498,12 +508,14 @@ function renderRight(dir) {
 function emptyState() {
   const cfg = SECTION_CFG[encSection];
   const msgs = {
-    characters: { icon:'⚔', title:'NO CHARACTERS', sub:'CREATE CHARACTERS IN THE MAIN APP' },
-    places:     { icon:'◈', title:'NO PLACES YET',  sub:'ADD YOUR FIRST LOCATION ENTRY' },
-    statuses:   { icon:'✦', title:'NO STATUS EFFECTS', sub:'DOCUMENT YOUR BUFFS & DEBUFFS' },
-    memories:   { icon:'✦', title:'NO CHAPTERS YET', sub:'BEGIN WRITING YOUR STORY' },
+    characters: { icon:'⚔', title:'NO CHARACTERS',      sub:'CREATE CHARACTERS IN THE MAIN APP' },
+    places:     { icon:'◈', title:'NO PLACES YET',       sub:'ADD YOUR FIRST LOCATION ENTRY' },
+    statuses:   { icon:'✦', title:'NO STATUS EFFECTS',   sub:'DOCUMENT YOUR BUFFS & DEBUFFS' },
+    memories:   { icon:'✦', title:'NO CHAPTERS YET',     sub:'BEGIN WRITING YOUR STORY' },
+    items:      { icon:'⚒', title:'NO ITEMS',            sub:'ITEMS ARE ADDED FROM CHARACTER INVENTORIES' },
+    npcs:       { icon:'◉', title:'NO NPCS YET',         sub:'ADD YOUR FIRST NON-PLAYER CHARACTER' },
   };
-  const m = msgs[encSection];
+  const m = msgs[encSection] || { icon:'?', title:'NOTHING HERE', sub:'' };
   return `<div class="enc-empty">
     <div class="enc-empty-icon">${m.icon}</div>
     <div class="enc-empty-title">${m.title}</div>
@@ -652,6 +664,47 @@ function renderCharEntry(c) {
     ${info.notes ? `
       <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.6s">⬥ NOTES</div>
       <div class="enc-body-text enc-anim-fade" style="animation-delay:0.62s">${esc(info.notes)}</div>` : ''}
+  `;
+}
+
+// ── NPC ENTRY ─────────────────────────────────────────────
+function renderNpcEntry(n) {
+  if (!n) return '';
+  const col = n.color || SECTION_CFG.npcs.col;
+
+  const portrait = n.image
+    ? `<div class="enc-char-portrait-frame" style="border-color:${col}44"><img src="${n.image}" style="width:100%;height:100%;object-fit:cover;display:block;"></div>`
+    : `<div class="enc-char-portrait-frame" style="border-color:${col}22"><span class="enc-char-portrait-ph" style="color:${col}33">◈</span></div>`;
+
+  const roleBadge      = n.role        ? `<span class="enc-badge enc-anim-fade" style="color:${col};border-color:${col}44;animation-delay:0.14s">${esc(n.role)}</span>` : '';
+  const affBadge       = n.affiliation ? `<span class="enc-badge enc-anim-fade" style="color:#a08050;border-color:#3a281044;animation-delay:0.17s">${esc(n.affiliation)}</span>` : '';
+  const alignBadge     = n.alignment   ? `<span class="enc-badge enc-anim-fade" style="color:#888;border-color:#33333344;animation-delay:0.2s">${esc(n.alignment)}</span>` : '';
+
+  return `
+    <div class="enc-char-hero enc-anim-fade" style="animation-delay:0s">
+      ${portrait}
+      <div class="enc-char-hero-info">
+        <div class="enc-entry-name enc-char-name-big" style="color:${col};text-shadow:0 0 30px ${col}44">${esc(n.name || 'UNNAMED')}</div>
+        <div class="enc-char-color-band" style="background:linear-gradient(90deg,${col},transparent)"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+          ${roleBadge}${affBadge}${alignBadge}
+        </div>
+      </div>
+    </div>
+    <div class="enc-entry-divider enc-anim-fade" style="background:${col};animation-delay:0.08s"></div>
+    ${n.desc ? `
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.12s">⬥ DESCRIPTION</div>
+      <div class="enc-body-text enc-anim-fade" style="animation-delay:0.16s">${esc(n.desc)}</div>` : ''}
+    ${n.personality ? `
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.2s">⬥ PERSONALITY</div>
+      <div class="enc-body-text enc-anim-fade" style="animation-delay:0.23s">${esc(n.personality)}</div>` : ''}
+    ${n.notes ? `
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.27s">⬥ NOTES</div>
+      <div class="enc-body-text enc-anim-fade" style="animation-delay:0.3s">${esc(n.notes)}</div>` : ''}
+    <div class="enc-entry-actions enc-anim-fade" style="animation-delay:0.35s">
+      <button class="btn sm" onclick="openNpcModal('${n.id}')">EDIT</button>
+      <button class="btn sm danger" onclick="encConfirmDelete('npc','${n.id}')">✕ DELETE</button>
+    </div>
   `;
 }
 
@@ -1011,6 +1064,86 @@ function collectSoundtracks() {
   }).filter(st => st.url);
 }
 
+// ── NPC MODAL ─────────────────────────────────────────────
+function openNpcModal(id) {
+  _npcEditing = id;
+  _npcImgData = null;
+  const n = id ? encNpcs.find(x => x.id === id) || {} : {};
+  document.getElementById('enc-npc-modal-title').textContent = id ? 'EDIT NPC' : 'NEW NPC';
+  document.getElementById('en-name').value        = n.name        || '';
+  document.getElementById('en-role').value        = n.role        || '';
+  document.getElementById('en-affiliation').value = n.affiliation || '';
+  document.getElementById('en-alignment').value   = n.alignment   || 'NEUTRAL';
+  document.getElementById('en-color').value       = n.color       || '#e05a9a';
+  document.getElementById('en-desc').value        = n.desc        || '';
+  document.getElementById('en-personality').value = n.personality || '';
+  document.getElementById('en-notes').value       = n.notes       || '';
+  _npcImgData = n.image || null;
+  renderNpcImgPreview();
+  document.getElementById('enc-npc-overlay').classList.add('open');
+}
+
+function closeNpcModal() {
+  document.getElementById('enc-npc-overlay').classList.remove('open');
+  _npcEditing = null; _npcImgData = null;
+  document.getElementById('en-img-file').value = '';
+}
+
+function saveNpcModal() {
+  const name = document.getElementById('en-name').value.trim();
+  if (!name) { encNotify('NPC NEEDS A NAME', 'err'); return; }
+  const npc = {
+    id:          _npcEditing || genId(),
+    name,
+    role:        document.getElementById('en-role').value.trim(),
+    affiliation: document.getElementById('en-affiliation').value.trim(),
+    alignment:   document.getElementById('en-alignment').value,
+    color:       document.getElementById('en-color').value,
+    desc:        document.getElementById('en-desc').value.trim(),
+    personality: document.getElementById('en-personality').value.trim(),
+    notes:       document.getElementById('en-notes').value.trim(),
+    image:       _npcImgData || null,
+  };
+  if (_npcEditing) {
+    const i = encNpcs.findIndex(x => x.id === _npcEditing);
+    if (i >= 0) { encNpcs[i] = npc; } else { encNpcs.push(npc); }
+  } else {
+    encNpcs.push(npc);
+    encIdx = encNpcs.length - 1;
+  }
+  saveEncData();
+  closeNpcModal();
+  if (encSection === 'npcs') { renderLeft(); renderRight(); }
+  encNotify(_npcEditing ? 'NPC UPDATED' : 'NPC ADDED', 'ok');
+}
+
+function handleNpcImgUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => { _npcImgData = ev.target.result; renderNpcImgPreview(); };
+  reader.readAsDataURL(file);
+}
+
+function renderNpcImgPreview() {
+  const preview  = document.getElementById('en-img-preview');
+  const clearBtn = document.getElementById('en-img-clear');
+  if (!preview) return;
+  if (_npcImgData) {
+    preview.innerHTML = `<img src="${_npcImgData}" alt="">`;
+    if (clearBtn) clearBtn.style.display = '';
+  } else {
+    preview.innerHTML = '<span class="enc-img-no-label">NO IMAGE</span>';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+}
+
+function clearNpcImg() {
+  _npcImgData = null;
+  document.getElementById('en-img-file').value = '';
+  renderNpcImgPreview();
+}
+
 // ── STATUS MODAL ──────────────────────────────────────────
 function openStatusModal(id) {
   _statusEditing = id;
@@ -1194,8 +1327,9 @@ function encConfirmYes() {
   if (type === 'place')  { encPlaces   = encPlaces.filter(x => x.id !== id); encIdx = Math.max(0, encIdx - 1); }
   if (type === 'status') { encStatuses = encStatuses.filter(x => x.id !== id); encIdx = Math.max(0, encIdx - 1); }
   if (type === 'memory') { encMemories = encMemories.filter(x => x.id !== id); encIdx = Math.max(0, encIdx - 1); }
+  if (type === 'npc')    { encNpcs     = encNpcs.filter(x => x.id !== id);     encIdx = Math.max(0, encIdx - 1); }
   saveEncData();
-  const section = type === 'place' ? 'places' : type === 'status' ? 'statuses' : 'memories';
+  const section = type === 'place' ? 'places' : type === 'status' ? 'statuses' : type === 'npc' ? 'npcs' : 'memories';
   if (encSection === section) { renderLeft(); renderRight(); }
   encConfirmNo();
   encNotify('ENTRY DELETED', 'ok');
