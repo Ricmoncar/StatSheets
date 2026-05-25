@@ -902,10 +902,46 @@ body {
 .enc-status-orb.orb-rounded-square::after { content:''; position:absolute; inset:6px; border-radius:10px; background: radial-gradient(circle at 30% 30%, rgba(255,240,210,0.28), rgba(160,120,60,0.08)); mix-blend-mode: overlay; }
 .enc-status-orb.orb-square::after { content:''; position:absolute; inset:6px; border-radius:4px; background: repeating-linear-gradient(45deg, rgba(255,240,210,0.09) 0 6px, rgba(0,0,0,0) 6px 12px); mix-blend-mode: overlay; }
 .enc-status-orb.orb-diamond::after { content:''; position:absolute; inset:6px; transform: rotate(45deg); background: linear-gradient(180deg, rgba(255,230,180,0.14), rgba(0,0,0,0)); mix-blend-mode: overlay; }
-.enc-status-orb.orb-hexagon::after { content:''; position:absolute; inset:6px; background: conic-gradient(from 200deg, rgba(255,240,210,0.14), rgba(180,120,60,0.06), rgba(255,240,210,0.08)); mix-blend-mode: overlay; }
-.enc-status-orb.orb-triangle::after { content:''; position:absolute; inset:6px; background: linear-gradient(120deg, rgba(255,240,210,0.12), rgba(140,90,40,0.06)); mix-blend-mode: overlay; }
-.enc-status-orb.orb-teardrop::after { content:''; position:absolute; inset:6px; background: radial-gradient(circle at 45% 35%, rgba(255,240,210,0.18), rgba(150,90,40,0.05)); mix-blend-mode: overlay; }
-.enc-status-orb.orb-star::after { content:''; position:absolute; inset:6px; background: radial-gradient(circle at 50% 40%, rgba(255,245,180,0.16), rgba(120,80,40,0.05)); mix-blend-mode: overlay; }
+.enc-status-orb.orb-hexagon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: scale(0.86);
+  transform-origin: center;
+  background: conic-gradient(from 200deg, rgba(255,240,210,0.14), rgba(180,120,60,0.06), rgba(255,240,210,0.08));
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.enc-status-orb.orb-triangle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: scale(0.82);
+  transform-origin: center;
+  background: linear-gradient(120deg, rgba(255,240,210,0.12), rgba(140,90,40,0.06));
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.enc-status-orb.orb-teardrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: scale(0.84);
+  transform-origin: center;
+  background: linear-gradient(180deg, rgba(255,240,210,0.16), rgba(150,90,40,0.06));
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.enc-status-orb.orb-star::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: scale(0.82);
+  transform-origin: center;
+  background: radial-gradient(circle at 50% 40%, rgba(255,245,180,0.16), rgba(120,80,40,0.05));
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
 
 /* Ensure inner sheen respects clip-path shapes */
 /* removed global circular sheen so per-shape overlays show correctly */
