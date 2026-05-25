@@ -54,6 +54,18 @@ const ENC_AB_COLORS = {
   ULTIMATE: { text:'#ff8844', icon:'★' },
 };
 
+// Stat gradient: red(low) → yellow(mid) → green(high)
+function statColor(val, max) {
+  const r = Math.min(Math.max(val / max, 0), 1);
+  if (r < 0.5) {
+    const t = r * 2;
+    return `rgb(${255},${Math.round(80 + 175 * t)},${Math.round(40 + 30 * t)})`;
+  }
+  const t = (r - 0.5) * 2;
+  return `rgb(${Math.round(255 - 210 * t)},${Math.round(255)},${Math.round(70 + 60 * t)})`;
+}
+function statPercent(val, max) { return Math.min(Math.max(val / max, 0), 1) * 100; }
+
 // ── Helpers ───────────────────────────────────────────────
 function encNotify(msg, type) {
   const el = document.getElementById('notif');
@@ -192,17 +204,17 @@ function renderLeft() {
       <span class="enc-toc-txt">${esc(name)}</span>
       <span class="enc-toc-dot" style="background:${dotColor}"></span>
     </div>`;
-  }).join('') || `<div style="padding:16px;font-size:6px;color:#2a1808;text-align:center;letter-spacing:1.5px;">NOTHING YET</div>`;
+  }).join('') || `<div style="padding:20px;font-size:9px;color:#2a1808;text-align:center;letter-spacing:2px;">NOTHING YET</div>`;
 
   // Footer action
   if (encSection === 'characters') {
-    ft.innerHTML = `<button class="btn sm" style="width:100%;font-size:5.5px;" onclick="location.href='index.html'">GO TO MAIN APP ↗</button>`;
+    ft.innerHTML = `<button class="btn sm" style="width:100%;font-size:8px;" onclick="location.href='index.html'">GO TO MAIN APP ↗</button>`;
   } else {
     const label = encSection === 'places' ? 'NEW PLACE' :
                   encSection === 'statuses' ? 'NEW STATUS' : 'NEW CHAPTER';
     const fn    = encSection === 'places' ? 'openPlaceModal(null)' :
                   encSection === 'statuses' ? 'openStatusModal(null)' : 'openMemoryModal(null)';
-    ft.innerHTML = `<button class="btn sm accent" style="width:100%;font-size:5.5px;" onclick="${fn}">+ ${label}</button>`;
+    ft.innerHTML = `<button class="btn sm accent" style="width:100%;font-size:8px;" onclick="${fn}">+ ${label}</button>`;
   }
 }
 
@@ -262,38 +274,59 @@ function emptyState() {
 // ── CHARACTER ENTRY ───────────────────────────────────────
 function renderCharEntry(c) {
   if (!c) return '';
-  const info     = c.info || {};
-  const col      = c.color || '#c9a227';
-  const stats    = ['hp','atk','def','mag','spd'];
-  const statLabels = { hp:'HP', atk:'ATK', def:'DEF', mag:'MAG', spd:'SPD' };
+  const info = c.info || {};
+  const col  = c.color || '#c9a227';
+  const st   = c.stats || {};
 
-  const statsHtml = stats.map(s => `
-    <div class="enc-stat-box">
-      <div class="enc-stat-lbl">${statLabels[s]}</div>
-      <div class="enc-stat-val" style="color:${col}">${c[s] || 0}</div>
-    </div>`).join('');
-
-  const avatar = c.avatar
-    ? `<img src="${c.avatar}" class="enc-char-portrait-frame" style="object-fit:cover;width:96px;height:124px;display:block;border:1px solid ${col}30;">`
-    : `<div class="enc-char-portrait-frame"><span class="enc-char-portrait-ph">◈</span></div>`;
-
-  const traitsHtml = (c.traits || []).slice(0, 12).map(t =>
-    `<span class="enc-char-tag">${esc(t.replace(/_/g,' '))}</span>`
-  ).join('');
-
-  const abilitiesHtml = (c.abilities || []).slice(0,6).map(ab => {
-    const tc = ENC_AB_COLORS[ab.type] || ENC_AB_COLORS.ACTIVE;
-    return `<div class="enc-char-ability-row">
-      <span class="enc-char-ability-icon" style="color:${tc.text}">${tc.icon}</span>
-      <span class="enc-char-ability-name">${esc(ab.name || 'UNNAMED')}</span>
-      <span class="enc-char-ability-type" style="color:${tc.text}88">${ab.type || 'ACTIVE'}</span>
+  // ── Stat bars with red→green gradient ──
+  const HP_MAX = 500, STAT_MAX = 100;
+  const statDefs = [
+    { key:'hp',  label:'HP',  val: st.hp  || 0, max: HP_MAX },
+    { key:'atk', label:'ATK', val: st.atk || 0, max: STAT_MAX },
+    { key:'def', label:'DEF', val: st.def || 0, max: STAT_MAX },
+    { key:'mag', label:'MAG', val: st.mag || 0, max: STAT_MAX },
+    { key:'spd', label:'SPD', val: st.spd || 0, max: STAT_MAX },
+  ];
+  const statsHtml = statDefs.map((s, i) => {
+    const sc = statColor(s.val, s.max);
+    const pct = statPercent(s.val, s.max);
+    return `<div class="enc-stat-bar-wrap enc-anim-fade" style="animation-delay:${0.12 + i * 0.07}s">
+      <div class="enc-stat-bar-top">
+        <span class="enc-stat-bar-label">${s.label}</span>
+        <span class="enc-stat-bar-val" style="color:${sc}">${s.val}</span>
+      </div>
+      <div class="enc-stat-bar-track">
+        <div class="enc-stat-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${sc}cc,${sc});box-shadow:0 0 8px ${sc}55"></div>
+      </div>
     </div>`;
   }).join('');
 
-  const passivesHtml = (c.charPassives || []).map(p =>
-    `<div class="enc-char-passive-row">${esc(p)}</div>`
+  // ── Portrait ──
+  const avatar = c.avatar
+    ? `<div class="enc-char-portrait-frame" style="border-color:${col}44"><img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover;display:block;"></div>`
+    : `<div class="enc-char-portrait-frame" style="border-color:${col}22"><span class="enc-char-portrait-ph" style="color:${col}33">◈</span></div>`;
+
+  // ── Traits ──
+  const traitsHtml = (c.traits || []).slice(0, 14).map((t, i) =>
+    `<span class="enc-char-tag enc-anim-fade" style="animation-delay:${0.3 + i * 0.04}s">${esc(t.replace(/_/g,' '))}</span>`
   ).join('');
 
+  // ── Abilities ──
+  const abilitiesHtml = (c.abilities || []).map((ab, i) => {
+    const tc = ENC_AB_COLORS[ab.type] || ENC_AB_COLORS.ACTIVE;
+    return `<div class="enc-char-ability-row enc-anim-fade" style="animation-delay:${0.25 + i * 0.06}s">
+      <span class="enc-char-ability-icon" style="color:${tc.text}">${tc.icon}</span>
+      <span class="enc-char-ability-name">${esc(ab.name || 'UNNAMED')}</span>
+      <span class="enc-char-ability-type" style="color:${tc.text}">${ab.type || 'ACTIVE'}</span>
+    </div>`;
+  }).join('');
+
+  // ── Passives ──
+  const passivesHtml = (c.charPassives || []).filter(p => p).map((p, i) =>
+    `<div class="enc-char-passive-row enc-anim-fade" style="animation-delay:${0.2 + i * 0.05}s">${esc(p)}</div>`
+  ).join('');
+
+  // ── Info fields ──
   const infoFields = [
     ['RACE',        info.race],
     ['AGE',         info.age],
@@ -305,48 +338,51 @@ function renderCharEntry(c) {
     ['OWNER',       info.owner],
   ].filter(([,v]) => v);
 
-  const infoGridHtml = infoFields.map(([l,v]) => `
-    <div class="enc-info-field">
+  const infoGridHtml = infoFields.map(([l,v], i) => `
+    <div class="enc-info-field enc-anim-fade" style="animation-delay:${0.15 + i * 0.05}s">
       <div class="enc-info-lbl">${l}</div>
       <div class="enc-info-val">${esc(v)}</div>
     </div>`).join('');
 
   return `
-    <div class="enc-char-layout">
-      <div class="enc-char-portrait-col">
-        ${avatar}
-        <div class="enc-char-color-band" style="background:${col}"></div>
-      </div>
-      <div class="enc-char-info-col">
-        <div class="enc-entry-name" style="color:${col}">${esc(c.name || 'UNNAMED')}</div>
-        <div class="enc-entry-divider" style="background:${col}"></div>
-        <div class="enc-char-stats-grid">${statsHtml}</div>
-        ${traitsHtml ? `<div class="enc-char-tags-row">${traitsHtml}</div>` : ''}
+    <div class="enc-char-hero enc-anim-fade" style="animation-delay:0s">
+      ${avatar}
+      <div class="enc-char-hero-info">
+        <div class="enc-entry-name enc-char-name-big" style="color:${col};text-shadow:0 0 30px ${col}44">${esc(c.name || 'UNNAMED')}</div>
+        <div class="enc-char-color-band" style="background:linear-gradient(90deg,${col},transparent)"></div>
+        ${infoFields.length ? `<div class="enc-char-quick-tags">
+          ${infoFields.slice(0,4).map(([l,v]) => `<span class="enc-char-quick-tag">${esc(v)}</span>`).join('<span class="enc-char-quick-sep">·</span>')}
+        </div>` : ''}
       </div>
     </div>
+    <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.08s">⬥ COMBAT STATS</div>
+    <div class="enc-stats-col">${statsHtml}</div>
+    ${traitsHtml ? `
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.28s">⬥ TRAITS</div>
+      <div class="enc-char-tags-row">${traitsHtml}</div>` : ''}
     ${infoGridHtml ? `
-      <div class="enc-section-label" style="color:${col}">IDENTITY</div>
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.35s">⬥ IDENTITY</div>
       <div class="enc-char-info-grid">${infoGridHtml}</div>` : ''}
     ${info.bio ? `
-      <div class="enc-section-label" style="color:${col}">BIOGRAPHY</div>
-      <div class="enc-body-text">${esc(info.bio)}</div>` : ''}
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.4s">⬥ BIOGRAPHY</div>
+      <div class="enc-body-text enc-anim-fade" style="animation-delay:0.42s">${esc(info.bio)}</div>` : ''}
     ${info.personality ? `
-      <div class="enc-section-label" style="color:${col}">PERSONALITY</div>
-      <div class="enc-body-text">${esc(info.personality)}</div>` : ''}
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.45s">⬥ PERSONALITY</div>
+      <div class="enc-body-text enc-anim-fade" style="animation-delay:0.47s">${esc(info.personality)}</div>` : ''}
     ${(info.goals || info.fears) ? `
-      <div class="enc-char-info-grid" style="margin-top:8px">
-        ${info.goals ? `<div><div class="enc-info-lbl">GOALS</div><div class="enc-body-text" style="font-size:6.5px">${esc(info.goals)}</div></div>` : ''}
-        ${info.fears ? `<div><div class="enc-info-lbl">FEARS</div><div class="enc-body-text" style="font-size:6.5px">${esc(info.fears)}</div></div>` : ''}
+      <div class="enc-char-info-grid enc-anim-fade" style="animation-delay:0.5s;margin-top:10px">
+        ${info.goals ? `<div><div class="enc-info-lbl">GOALS</div><div class="enc-body-text">${esc(info.goals)}</div></div>` : ''}
+        ${info.fears ? `<div><div class="enc-info-lbl">FEARS</div><div class="enc-body-text">${esc(info.fears)}</div></div>` : ''}
       </div>` : ''}
     ${abilitiesHtml ? `
-      <div class="enc-section-label" style="color:${col}">ABILITIES</div>
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.5s">⬥ ABILITIES</div>
       <div>${abilitiesHtml}</div>` : ''}
     ${passivesHtml ? `
-      <div class="enc-section-label" style="color:${col}">PASSIVES</div>
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.55s">⬥ PASSIVES</div>
       <div>${passivesHtml}</div>` : ''}
     ${info.notes ? `
-      <div class="enc-section-label" style="color:${col}">NOTES</div>
-      <div class="enc-body-text">${esc(info.notes)}</div>` : ''}
+      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.6s">⬥ NOTES</div>
+      <div class="enc-body-text enc-anim-fade" style="animation-delay:0.62s">${esc(info.notes)}</div>` : ''}
   `;
 }
 
@@ -356,7 +392,7 @@ function renderPlaceEntry(p) {
   const col = SECTION_CFG.places.col;
   const soundtracksHtml = (p.soundtracks || []).map((st, i) => {
     const embedUrl = ytEmbed(st.url || '');
-    return `<div class="enc-soundtrack-item">
+    return `<div class="enc-soundtrack-item enc-anim-fade" style="animation-delay:${0.35 + i * 0.08}s">
       <div class="enc-soundtrack-hd" onclick="toggleSoundtrack(this)">
         <span class="enc-soundtrack-icon" style="color:${col}">▶</span>
         <span class="enc-soundtrack-lbl">${esc(st.label || ('TRACK ' + (i+1)))}</span>
@@ -369,22 +405,22 @@ function renderPlaceEntry(p) {
   }).join('');
 
   return `
-    ${p.image ? `<img class="enc-place-img" src="${p.image}" alt="">` : ''}
-    <div class="enc-entry-name" style="color:${col}">${esc(p.name || 'UNNAMED')}</div>
-    <div class="enc-entry-divider" style="background:${col}"></div>
-    <div class="enc-meta-row">
+    ${p.image ? `<img class="enc-place-img enc-anim-fade" style="animation-delay:0s" src="${p.image}" alt="">` : ''}
+    <div class="enc-entry-name enc-anim-fade" style="color:${col};text-shadow:0 0 30px ${col}44;animation-delay:0.05s">${esc(p.name || 'UNNAMED')}</div>
+    <div class="enc-entry-divider enc-anim-fade" style="background:${col};animation-delay:0.08s"></div>
+    <div class="enc-meta-row enc-anim-fade" style="animation-delay:0.12s">
       ${p.type   ? `<span class="enc-badge" style="color:${col};border-color:${col}44">${esc(p.type)}</span>` : ''}
-      ${p.region ? `<span class="enc-badge" style="color:#5a4428;border-color:#2a1808">${esc(p.region)}</span>` : ''}
+      ${p.region ? `<span class="enc-badge" style="color:#6a5438;border-color:#2a1808">${esc(p.region)}</span>` : ''}
     </div>
-    ${p.desc ? `<div class="enc-section-label" style="color:${col}">DESCRIPTION</div>
-                <div class="enc-body-text">${esc(p.desc)}</div>` : ''}
-    ${p.lore ? `<div class="enc-section-label" style="color:${col}">LORE &amp; HISTORY</div>
-                <div class="enc-body-text">${esc(p.lore)}</div>` : ''}
-    ${p.features ? `<div class="enc-section-label" style="color:${col}">NOTABLE FEATURES</div>
-                    <div class="enc-body-text">${esc(p.features)}</div>` : ''}
-    ${soundtracksHtml ? `<div class="enc-section-label" style="color:${col}">SOUNDTRACKS</div>
+    ${p.desc ? `<div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.16s">⬥ DESCRIPTION</div>
+                <div class="enc-body-text enc-anim-fade" style="animation-delay:0.19s">${esc(p.desc)}</div>` : ''}
+    ${p.lore ? `<div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.22s">⬥ LORE &amp; HISTORY</div>
+                <div class="enc-body-text enc-anim-fade" style="animation-delay:0.25s">${esc(p.lore)}</div>` : ''}
+    ${p.features ? `<div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.28s">⬥ NOTABLE FEATURES</div>
+                    <div class="enc-body-text enc-anim-fade" style="animation-delay:0.31s">${esc(p.features)}</div>` : ''}
+    ${soundtracksHtml ? `<div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.33s">⬥ SOUNDTRACKS</div>
                           <div>${soundtracksHtml}</div>` : ''}
-    <div class="enc-entry-actions">
+    <div class="enc-entry-actions enc-anim-fade" style="animation-delay:0.4s">
       <button class="btn sm" onclick="openPlaceModal('${p.id}')">EDIT</button>
       <button class="btn sm danger" onclick="encConfirmDelete('place','${p.id}')">✕ DELETE</button>
     </div>
@@ -403,22 +439,22 @@ function renderStatusEntry(s) {
   ).join('');
 
   return `
-    <div class="enc-status-top">
+    <div class="enc-status-top enc-anim-fade" style="animation-delay:0s">
       <div class="enc-status-orb" style="--status-col:${col};background:${col}22;border:2px solid ${col}66"></div>
       <div>
-        <div class="enc-entry-name" style="color:${col}">${esc(s.name || 'UNNAMED')}</div>
+        <div class="enc-entry-name" style="color:${col};text-shadow:0 0 30px ${col}44">${esc(s.name || 'UNNAMED')}</div>
         <span class="enc-badge" style="color:${tc};border-color:${tc}44">${type}</span>
       </div>
     </div>
-    <div class="enc-entry-divider" style="background:${col}"></div>
-    <div class="enc-stars-display">${starsHtml}</div>
-    ${s.desc ? `<div class="enc-section-label" style="color:${col}">EFFECT</div>
-                <div class="enc-body-text">${esc(s.desc)}</div>` : ''}
-    ${s.duration ? `<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:#090703;border:1px solid #1e1208;margin-top:10px;">
-      <span style="font-size:5.5px;color:#2a1808;letter-spacing:2px;">DURATION</span>
-      <span style="font-size:6.5px;color:#5a4428;">${esc(s.duration)}</span>
+    <div class="enc-entry-divider enc-anim-fade" style="background:${col};animation-delay:0.06s"></div>
+    <div class="enc-stars-display enc-anim-fade" style="animation-delay:0.1s">${starsHtml}</div>
+    ${s.desc ? `<div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.18s">⬥ EFFECT</div>
+                <div class="enc-body-text enc-anim-fade" style="animation-delay:0.22s">${esc(s.desc)}</div>` : ''}
+    ${s.duration ? `<div class="enc-anim-fade" style="display:flex;align-items:center;gap:14px;padding:10px 14px;background:#090703;border:1px solid #1e1208;margin-top:14px;animation-delay:0.26s">
+      <span style="font-size:8px;color:#3a2810;letter-spacing:3px;">DURATION</span>
+      <span style="font-size:11px;color:#6a5438;font-family:'Cinzel',serif;">${esc(s.duration)}</span>
     </div>` : ''}
-    <div class="enc-entry-actions">
+    <div class="enc-entry-actions enc-anim-fade" style="animation-delay:0.3s">
       <button class="btn sm" onclick="openStatusModal('${s.id}')">EDIT</button>
       <button class="btn sm danger" onclick="encConfirmDelete('status','${s.id}')">✕ DELETE</button>
     </div>
@@ -432,7 +468,7 @@ function renderMemoryEntry(m) {
   const scenes = m.scenes || [];
 
   const scenesHtml = scenes.map((sc, i) => `
-    <div class="enc-scene" id="enc-scene-${m.id}-${i}">
+    <div class="enc-scene enc-anim-fade" id="enc-scene-${m.id}-${i}" style="animation-delay:${0.2 + i * 0.08}s">
       ${sc.title ? `<div class="enc-scene-title">${esc(sc.title)}</div>` : ''}
       <div class="enc-scene-text">${esc(sc.text || '')}</div>
       <div class="enc-scene-btns">
@@ -442,17 +478,18 @@ function renderMemoryEntry(m) {
     </div>`).join('');
 
   return `
-    ${m.image ? `<img class="enc-memory-cover" src="${m.image}" alt="">` : ''}
-    <div class="enc-chapter-label">${esc(m.arc || 'CHAPTER')}</div>
-    <div class="enc-entry-name" style="color:${col}">${esc(m.title || 'UNTITLED')}</div>
-    <div class="enc-entry-divider" style="background:${col}"></div>
-    ${m.date ? `<div class="enc-meta-row"><span class="enc-badge" style="color:#5a4428;border-color:#2a1808">${esc(m.date)}</span></div>` : ''}
+    ${m.image ? `<img class="enc-memory-cover enc-anim-fade" style="animation-delay:0s" src="${m.image}" alt="">` : ''}
+    <div class="enc-chapter-label enc-anim-fade" style="animation-delay:0.04s">${esc(m.arc || 'CHAPTER')}</div>
+    <div class="enc-entry-name enc-anim-fade" style="color:${col};text-shadow:0 0 30px ${col}44;animation-delay:0.07s">${esc(m.title || 'UNTITLED')}</div>
+    <div class="enc-entry-divider enc-anim-fade" style="background:${col};animation-delay:0.1s"></div>
+    ${m.date ? `<div class="enc-meta-row enc-anim-fade" style="animation-delay:0.13s"><span class="enc-badge" style="color:#6a5438;border-color:#2a1808">${esc(m.date)}</span></div>` : ''}
+    <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.16s">⬥ SCENES</div>
     <div class="enc-scenes" id="enc-scenes-${m.id}">${scenesHtml}</div>
-    <div class="enc-add-scene-bar">
+    <div class="enc-add-scene-bar enc-anim-fade" style="animation-delay:${0.25 + scenes.length * 0.08}s">
       <button class="btn sm accent" onclick="openSceneForm('${m.id}', null)">+ ADD SCENE</button>
     </div>
     <div id="enc-scene-form-wrap-${m.id}"></div>
-    <div class="enc-entry-actions">
+    <div class="enc-entry-actions enc-anim-fade" style="animation-delay:${0.3 + scenes.length * 0.08}s">
       <button class="btn sm" onclick="openMemoryModal('${m.id}')">EDIT CHAPTER</button>
       <button class="btn sm danger" onclick="encConfirmDelete('memory','${m.id}')">✕ DELETE CHAPTER</button>
     </div>
