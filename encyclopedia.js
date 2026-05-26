@@ -32,6 +32,11 @@ let _placeEditing    = null;
 let _statusEditing   = null;
 let _memoryEditing   = null;
 let _npcEditing      = null;
+
+// memories view state
+let _memViewMode      = 'char';   // 'char' | 'all'
+let _memCharSearch    = '';
+const _memCharCollapsed = new Set(); // charIds that are collapsed
 let _placeImgData    = null;
 let _memoryImgData   = null;
 let _npcImgData      = null;
@@ -169,6 +174,27 @@ function getStatusFolder(status) {
 
 function getStatusFolderLabel(key) {
   return key === 'GOOD' ? 'POSITIVE' : key === 'BAD' ? 'NEGATIVE' : 'NEUTRAL';
+}
+
+// ── Memory view helpers ───────────────────────────────────
+function setMemViewMode(mode) {
+  _memViewMode = mode;
+  const ctrl = document.getElementById('enc-mem-controls');
+  if (ctrl) {
+    ctrl.querySelector('#enc-mem-search')?.setAttribute('style', mode === 'char' ? '' : 'display:none');
+  }
+  renderLeft();
+}
+
+function setMemSearch(val) {
+  _memCharSearch = val;
+  renderLeft();
+}
+
+function toggleMemChar(key) {
+  if (_memCharCollapsed.has(key)) _memCharCollapsed.delete(key);
+  else _memCharCollapsed.add(key);
+  renderLeft();
 }
 
 // ── Firebase I/O ──────────────────────────────────────────
@@ -406,6 +432,18 @@ function renderLeft() {
   const ft   = document.getElementById('enc-left-ft-content');
   const list = getList();
 
+  // Show/hide persistent memory controls + sync button states
+  const memCtrl = document.getElementById('enc-mem-controls');
+  if (memCtrl) {
+    memCtrl.style.display = encSection === 'memories' ? '' : 'none';
+    const btnChar = document.getElementById('enc-mem-btn-char');
+    const btnAll  = document.getElementById('enc-mem-btn-all');
+    const srch    = document.getElementById('enc-mem-search');
+    if (btnChar) btnChar.classList.toggle('active', _memViewMode === 'char');
+    if (btnAll)  btnAll.classList.toggle('active',  _memViewMode === 'all');
+    if (srch)    srch.style.display = _memViewMode === 'char' ? '' : 'none';
+  }
+
   if (encSection === 'statuses') {
     const groups = { GOOD: { label: 'GOOD', items: [] }, BAD: { label: 'BAD', items: [] }, NEUTRAL: { label: 'NEUTRAL', items: [] } };
     list.forEach((item, i) => {
@@ -438,6 +476,80 @@ function renderLeft() {
     };
 
     toc.innerHTML = renderStatusGroup('GOOD') + renderStatusGroup('BAD') + renderStatusGroup('NEUTRAL');
+
+  } else if (encSection === 'memories') {
+    const col = SECTION_CFG.memories.col;
+    const renderMemItem = ({ mem, idx }) => `
+      <div class="enc-toc-item${idx === encIdx ? ' active' : ''}" onclick="encGoTo(${idx})" data-index="${idx}">
+        <span class="enc-toc-n">${toRoman(idx + 1)}</span>
+        <span class="enc-toc-txt">${esc(mem.title || 'UNTITLED')}</span>
+        <span class="enc-toc-dot" style="background:${col}"></span>
+      </div>`;
+
+    if (_memViewMode === 'all') {
+      toc.innerHTML = list.map((mem, idx) => renderMemItem({ mem, idx })).join('')
+        || `<div style="padding:20px;font-size:9px;color:#5a4020;text-align:center;letter-spacing:2px;">NOTHING YET</div>`;
+    } else {
+      // Group by character
+      const charOrder = encCharacters.map(c => c.id);
+      const groups = new Map(); // charId → { char, items: [{mem,idx}] }
+      const unassigned = [];
+
+      list.forEach((mem, idx) => {
+        const ids = mem.characterIds || [];
+        if (!ids.length) { unassigned.push({ mem, idx }); return; }
+        ids.forEach(cid => {
+          if (!groups.has(cid)) {
+            const char = encCharacters.find(c => c.id === cid);
+            if (char) groups.set(cid, { char, items: [] });
+          }
+          const g = groups.get(cid);
+          if (g) g.items.push({ mem, idx });
+        });
+      });
+
+      const search = _memCharSearch.toLowerCase().trim();
+      const sortedGroups = [...groups.entries()]
+        .sort((a, b) => charOrder.indexOf(a[0]) - charOrder.indexOf(b[0]));
+
+      let html = '';
+      sortedGroups.forEach(([cid, { char, items }]) => {
+        if (search && !char.name.toLowerCase().includes(search)) return;
+        const expanded = !_memCharCollapsed.has(cid);
+        const charCol = char.color || '#888';
+        html += `
+          <div class="enc-toc-group">
+            <button class="enc-toc-group-title enc-mem-char-hd${expanded ? '' : ' collapsed'}" onclick="toggleMemChar('${cid}')">
+              <span class="enc-mem-char-dot" style="background:${charCol};box-shadow:0 0 6px ${charCol}88"></span>
+              <span class="enc-mem-char-name" style="color:${charCol}">${esc(char.name || 'UNNAMED')}</span>
+              <span class="enc-mem-char-count">${items.length}</span>
+              <span class="enc-mem-char-arrow">▾</span>
+            </button>
+            <div class="enc-toc-group-body${expanded ? '' : ' collapsed'}">
+              ${items.map(renderMemItem).join('')}
+            </div>
+          </div>`;
+      });
+
+      if (unassigned.length && !search) {
+        const expanded = !_memCharCollapsed.has('__unassigned__');
+        html += `
+          <div class="enc-toc-group">
+            <button class="enc-toc-group-title enc-mem-char-hd${expanded ? '' : ' collapsed'}" onclick="toggleMemChar('__unassigned__')">
+              <span class="enc-mem-char-dot" style="background:#444"></span>
+              <span class="enc-mem-char-name" style="color:#666">UNASSIGNED</span>
+              <span class="enc-mem-char-count">${unassigned.length}</span>
+              <span class="enc-mem-char-arrow">▾</span>
+            </button>
+            <div class="enc-toc-group-body${expanded ? '' : ' collapsed'}">
+              ${unassigned.map(renderMemItem).join('')}
+            </div>
+          </div>`;
+      }
+
+      toc.innerHTML = html || `<div style="padding:20px;font-size:9px;color:#5a4020;text-align:center;letter-spacing:2px;">${search ? 'NO MATCHES' : 'NOTHING YET'}</div>`;
+    }
+
   } else {
     toc.innerHTML = list.map((item, i) => {
       const name = item.name || item.title || 'UNNAMED';
@@ -1246,6 +1358,25 @@ function openMemoryModal(id) {
   document.getElementById('em-date').value  = m.date  || '';
   _memoryImgData = m.image || null;
   renderEncImgPreview('memory');
+
+  // Populate character picker
+  const charIds = m.characterIds || [];
+  const picker = document.getElementById('em-char-picker');
+  if (picker) {
+    picker.innerHTML = encCharacters.length
+      ? encCharacters.map(c => {
+          const checked = charIds.includes(c.id);
+          const col = c.color || '#888';
+          return `<label class="em-char-pick-item${checked ? ' checked' : ''}">
+            <input type="checkbox" value="${esc(c.id)}" ${checked ? 'checked' : ''}
+              onchange="this.closest('.em-char-pick-item').classList.toggle('checked',this.checked)"/>
+            <span class="em-char-pick-dot" style="background:${col};box-shadow:0 0 5px ${col}88"></span>
+            <span class="em-char-pick-name">${esc(c.name || 'UNNAMED')}</span>
+          </label>`;
+        }).join('')
+      : `<span style="font-size:8px;color:#444;letter-spacing:1px;">NO CHARACTERS YET</span>`;
+  }
+
   document.getElementById('enc-memory-overlay').classList.add('open');
 }
 
@@ -1259,13 +1390,15 @@ function saveMemoryModal() {
   const title = document.getElementById('em-title').value.trim();
   if (!title) { encNotify('CHAPTER NEEDS A TITLE', 'err'); return; }
   const existing = _memoryEditing ? encMemories.find(x => x.id === _memoryEditing) : null;
+  const charChecks = document.querySelectorAll('#em-char-picker input[type="checkbox"]:checked');
   const memory = {
-    id:     _memoryEditing || genId(),
+    id:           _memoryEditing || genId(),
     title,
-    arc:    document.getElementById('em-arc').value.trim(),
-    date:   document.getElementById('em-date').value.trim(),
-    image:  _memoryImgData || null,
-    scenes: existing ? (existing.scenes || []) : [],
+    arc:          document.getElementById('em-arc').value.trim(),
+    date:         document.getElementById('em-date').value.trim(),
+    image:        _memoryImgData || null,
+    scenes:       existing ? (existing.scenes || []) : [],
+    characterIds: Array.from(charChecks).map(cb => cb.value),
   };
   if (_memoryEditing) {
     const i = encMemories.findIndex(x => x.id === _memoryEditing);

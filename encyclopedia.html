@@ -1305,9 +1305,177 @@ body {
 /* ============================================================
    MEMORIES
    ============================================================ */
+
+/* — mode toggle + search controls — */
+#enc-mem-controls {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+.enc-mem-view-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.enc-mem-mode-btn {
+  flex: 1;
+  padding: 5px 0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.4);
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.enc-mem-mode-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+}
+.enc-mem-mode-btn.active {
+  background: rgba(231,111,81,0.18);
+  border-color: rgba(231,111,81,0.45);
+  color: #e76f51;
+}
+.enc-mem-search-wrap {
+  position: relative;
+}
+.enc-mem-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.75);
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.enc-mem-search:focus {
+  border-color: rgba(231,111,81,0.4);
+  background: rgba(255,255,255,0.07);
+}
+.enc-mem-search::placeholder {
+  color: rgba(255,255,255,0.22);
+}
+
+/* — character group headers in TOC — */
+.enc-mem-char-hd {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 8px 12px 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.enc-mem-char-hd:hover {
+  background: rgba(255,255,255,0.04);
+}
+.enc-mem-char-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.enc-mem-char-name {
+  flex: 1;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.enc-mem-char-count {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+.enc-mem-char-arrow {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.enc-mem-char-hd.collapsed .enc-mem-char-arrow {
+  transform: rotate(-90deg);
+}
+.enc-mem-char-entries {
+  padding: 0 0 4px 0;
+}
+
+/* — character picker in memory modal — */
+.em-char-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  margin-bottom: 14px;
+  min-height: 42px;
+}
+.em-char-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px 4px 7px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.04);
+  transition: background 0.15s, border-color 0.15s;
+  user-select: none;
+}
+.em-char-pick-item input[type="checkbox"] {
+  display: none;
+}
+.em-char-pick-item:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+}
+.em-char-pick-item.checked {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.35);
+}
+.em-char-pick-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.em-char-pick-name {
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.em-char-pick-item.checked .em-char-pick-name {
+  color: rgba(255,255,255,0.9);
+}
+
 .enc-memory-cover {
   width: 100%;
-  max-height: 200px;
+  max-height: 360px;
   object-fit: cover;
   display: block;
   border: 1px solid #2a1808;
@@ -1900,6 +2068,17 @@ body {
         <div class="enc-idx-label" id="enc-idx-label">CHARACTERS</div>
         <div class="enc-idx-sub" id="enc-idx-sub">INDEX &amp; TABLE OF CONTENTS</div>
       </div>
+      <!-- Memory-only controls: persistent so search input keeps focus -->
+      <div id="enc-mem-controls" style="display:none">
+        <div class="enc-mem-view-row">
+          <button class="enc-mem-mode-btn active" id="enc-mem-btn-char" onclick="setMemViewMode('char')">BY CHARACTER</button>
+          <button class="enc-mem-mode-btn"        id="enc-mem-btn-all"  onclick="setMemViewMode('all')">ALL</button>
+        </div>
+        <div class="enc-mem-search-wrap">
+          <input id="enc-mem-search" class="enc-mem-search" type="text" placeholder="&#128269; SEARCH CHARACTERS..."
+            oninput="setMemSearch(this.value)" autocomplete="off"/>
+        </div>
+      </div>
       <div id="enc-toc"></div>
       <div id="enc-left-ft">
         <div id="enc-left-ft-content"></div>
@@ -2141,6 +2320,10 @@ body {
         </div>
       </div>
       <div class="enc-field">
+        <label>CHARACTERS <span style="opacity:0.4;font-size:5.5px">(OPTIONAL — link this chapter to characters)</span></label>
+        <div id="em-char-picker" class="em-char-picker"></div>
+      </div>
+      <div class="enc-field">
         <label style="display:flex;justify-content:space-between;align-items:center;">
           COVER IMAGE <span style="opacity:0.4;font-size:5.5px">(optional)</span>
           <span style="cursor:pointer;color:var(--enc-col)" onclick="document.getElementById('em-img-file').click()">[UPLOAD]</span>
@@ -2255,6 +2438,6 @@ body {
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="traits.js?v=1"></script>
-<script src="encyclopedia.js?v=2"></script>
+<script src="encyclopedia.js?v=3"></script>
 </body>
 </html>
