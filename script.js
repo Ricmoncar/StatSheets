@@ -1835,7 +1835,8 @@ function buildCharEntry(c, contextFolderId) {
     <div class="char-entry-info">
       <div class="char-entry-name">${nameHtml}</div>
       ${tagsHtml}
-    </div>`;
+    </div>
+    ${isDraft ? '' : `<button class="char-chat-btn" title="Open chat" onclick="event.stopPropagation();openCharChat('${c.id}')">💬</button>`}`;
 
   el.addEventListener('contextmenu', e => openCharContextMenu(e, c.id));
 
@@ -7325,6 +7326,7 @@ function initTierList() {
         });
         renderTierList();
         renderLeaderboard();
+        if (typeof compatInit === 'function') compatInit();
       });
     }
     // Multi-list: listen to the whole tierlists collection
@@ -8272,3 +8274,176 @@ window.giveJukoShimmyfulMissingNo = async function () {
   }
   console.log('Done. Refresh the page to see changes.');
 };
+
+// ============================================================
+// CHARACTER CHAT
+// ============================================================
+let _chatRecipId  = null;   // character whose inbox we're viewing
+let _chatFilterId = null;   // sender filter (null = show all)
+let _chatUnsub    = null;   // Firestore realtime listener
+
+function openCharChat(charId) {
+  _chatRecipId  = charId;
+  _chatFilterId = null;
+  const recip = characters.find(c => c.id === charId);
+  if (!recip) return;
+
+  const modal   = document.getElementById('char-chat-modal');
+  const overlay = document.getElementById('char-chat-overlay');
+  if (!modal) return;
+
+  // Header
+  const dot  = document.getElementById('chat-recip-dot');
+  const name = document.getElementById('chat-recip-name');
+  if (dot)  { dot.style.background = recip.color || '#888'; dot.style.boxShadow = `0 0 8px ${recip.color || '#888'}88`; }
+  if (name) { name.textContent = recip.name || 'UNNAMED'; name.style.color = recip.color || '#fff'; }
+
+  // Populate sender selector
+  const sel    = document.getElementById('chat-sender-sel');
+  const others = characters.filter(c => c.id !== charId && !c.isPlaceholder);
+  if (sel) {
+    sel.innerHTML = `<option value="">-- WHO IS TYPING? --</option>` +
+      others.map(c => `<option value="${c.id}">${c.name || 'UNNAMED'}</option>`).join('');
+  }
+
+  overlay.classList.add('open');
+  modal.classList.add('open');
+
+  // Set up realtime listener on this character's document
+  if (_chatUnsub) { _chatUnsub(); _chatUnsub = null; }
+  if (db) {
+    _chatUnsub = db.collection('characters').doc(charId).onSnapshot(snap => {
+      const data = snap.data() || {};
+      _renderChatConvList(data.chats || {});
+      _renderChatMessages(data.chats || {});
+    }, () => {});
+  } else {
+    const c = characters.find(x => x.id === charId);
+    _renderChatConvList(c?.chats || {});
+    _renderChatMessages(c?.chats || {});
+  }
+}
+
+function closeCharChat() {
+  _chatRecipId  = null;
+  _chatFilterId = null;
+  if (_chatUnsub) { _chatUnsub(); _chatUnsub = null; }
+  document.getElementById('char-chat-overlay')?.classList.remove('open');
+  document.getElementById('char-chat-modal')?.classList.remove('open');
+}
+
+function setChatSender(val) { /* select is read on send */ }
+
+function setChatFilter(senderId) {
+  _chatFilterId = senderId || null;
+  // Update active state in sidebar
+  document.querySelectorAll('.chat-conv-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.sid === (_chatFilterId || ''));
+  });
+  // Re-render with new filter using latest data from DB
+  if (!_chatRecipId) return;
+  if (db) {
+    db.collection('characters').doc(_chatRecipId).get()
+      .then(snap => _renderChatMessages((snap.data() || {}).chats || {}))
+      .catch(() => {
+        const c = characters.find(x => x.id === _chatRecipId);
+        _renderChatMessages(c?.chats || {});
+      });
+  } else {
+    const c = characters.find(x => x.id === _chatRecipId);
+    _renderChatMessages(c?.chats || {});
+  }
+}
+
+function _renderChatConvList(chats) {
+  const list = document.getElementById('chat-conv-list');
+  if (!list) return;
+
+  const totalCount = Object.values(chats).reduce((s, arr) => s + (arr?.length || 0), 0);
+
+  let html = `<button class="chat-conv-item${!_chatFilterId ? ' active' : ''}" data-sid="" onclick="setChatFilter(null)">
+    <span class="chat-conv-dot" style="background:#555"></span>
+    <span class="chat-conv-name">ALL</span>
+    <span class="chat-conv-count">${totalCount}</span>
+  </button>`;
+
+  Object.entries(chats).forEach(([sid, msgs]) => {
+    if (!msgs?.length) return;
+    const sender = characters.find(c => c.id === sid);
+    const col = sender?.color || '#888';
+    const nm  = sender?.name  || 'UNKNOWN';
+    html += `<button class="chat-conv-item${_chatFilterId === sid ? ' active' : ''}" data-sid="${sid}" onclick="setChatFilter('${sid}')">
+      <span class="chat-conv-dot" style="background:${col};box-shadow:0 0 4px ${col}88"></span>
+      <span class="chat-conv-name" style="color:${col}">${nm}</span>
+      <span class="chat-conv-count">${msgs.length}</span>
+    </button>`;
+  });
+
+  list.innerHTML = html;
+}
+
+function _renderChatMessages(chats) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+
+  // Build flat sorted list, respecting filter
+  const all = [];
+  Object.entries(chats).forEach(([sid, msgs]) => {
+    if (_chatFilterId && sid !== _chatFilterId) return;
+    const sender = characters.find(c => c.id === sid);
+    (msgs || []).forEach(m => all.push({ ...m, senderId: sid, sender }));
+  });
+  all.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+
+  if (!all.length) {
+    container.innerHTML = `<div class="chat-empty">NO MESSAGES YET<span>SELECT A CHARACTER BELOW AND START TYPING</span></div>`;
+    return;
+  }
+
+  container.innerHTML = all.map(m => {
+    const nm  = m.sender?.name  || 'UNKNOWN';
+    const col = m.sender?.color || '#888';
+    const d   = new Date(m.ts || 0);
+    const time = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
+                 d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const txt = (m.text || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+    return `<div class="chat-msg">
+      <div class="chat-msg-header">
+        <span class="chat-msg-dot" style="background:${col};box-shadow:0 0 5px ${col}66"></span>
+        <span class="chat-msg-sender" style="color:${col}">${nm}</span>
+        <span class="chat-msg-time">${time}</span>
+      </div>
+      <div class="chat-msg-text">${txt}</div>
+    </div>`;
+  }).join('');
+
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendChatMsg() {
+  const senderId = (document.getElementById('chat-sender-sel')?.value || '').trim();
+  const input    = document.getElementById('chat-msg-input');
+  const text     = (input?.value || '').trim();
+
+  if (!senderId) { notify('SELECT WHO IS TYPING FIRST', 'err'); return; }
+  if (!text)     { return; }
+  if (!_chatRecipId || !db) return;
+
+  const msg = { text, ts: Date.now() };
+
+  // Use arrayUnion for atomic append — won't clobber other senders' messages
+  db.collection('characters').doc(_chatRecipId).update({
+    [`chats.${senderId}`]: firebase.firestore.FieldValue.arrayUnion(msg)
+  }).catch(() => {
+    // Field doesn't exist yet — fall back to merge update
+    const recip    = characters.find(c => c.id === _chatRecipId);
+    const existing = recip?.chats?.[senderId] || [];
+    db.collection('characters').doc(_chatRecipId).update({
+      chats: { ...(recip?.chats || {}), [senderId]: [...existing, msg] }
+    });
+  });
+
+  if (input) { input.value = ''; input.focus(); }
+}

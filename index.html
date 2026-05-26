@@ -1250,7 +1250,41 @@
   <input type="file" id="theme-file-input" accept="audio/*" style="display:none;" onchange="onThemeFileSelected(this)">
 
   <script src="traits.js?v=1"></script>
-  <script src="script.js?v=5"></script>
+  <script src="script.js?v=6"></script>
+
+  <!-- ── Character Chat Modal ────────────────────────────── -->
+  <div id="char-chat-overlay" onclick="closeCharChat()"></div>
+  <div id="char-chat-modal">
+    <div id="chat-hd">
+      <div id="chat-hd-info">
+        <div id="chat-recip-dot"></div>
+        <div>
+          <div id="chat-recip-label">MESSAGES FOR</div>
+          <div id="chat-recip-name">CHARACTER</div>
+        </div>
+      </div>
+      <button class="chat-close-btn" onclick="closeCharChat()">✕</button>
+    </div>
+    <div id="chat-body">
+      <div id="chat-sidebar">
+        <div id="chat-sidebar-hd">CONVERSATIONS</div>
+        <div id="chat-conv-list"></div>
+      </div>
+      <div id="chat-main">
+        <div id="chat-messages"></div>
+        <div id="chat-input-row">
+          <span class="chat-as-label">AS</span>
+          <select id="chat-sender-sel" onchange="setChatSender(this.value)">
+            <option value="">-- SELECT --</option>
+          </select>
+          <input id="chat-msg-input" type="text" maxlength="500"
+            placeholder="TYPE A MESSAGE..."
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg();}"/>
+          <button class="btn accent" id="chat-send-btn" onclick="sendChatMsg()">SEND</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Theme music mini-player bar (bottom of screen, only visible when playing) -->
   <div id="theme-bar">

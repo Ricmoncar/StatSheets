@@ -58,6 +58,152 @@
   }
   #sr-result { animation: sr-reveal 0.35s ease forwards; }
   #sr-result.sr-landing { animation: sr-reveal 0.35s ease forwards; }
+
+  /* ── COMPATIBILITY TESTER ─────────────────────────── */
+  .compat-mode-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+  .compat-mode-btn {
+    flex: 1;
+    padding: 8px 0;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    color: rgba(255,255,255,0.4);
+    font-family: inherit;
+    font-size: 9px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .compat-mode-btn:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.7); }
+  .compat-mode-btn.active { background: rgba(255,180,100,0.12); border-color: rgba(255,180,100,0.4); color: #ffb464; }
+
+  .compat-chars-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+  }
+  .compat-char-side {
+    flex: 1;
+    min-width: 0;
+  }
+  .compat-char-label {
+    font-size: 7px;
+    letter-spacing: 3px;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  .compat-sel {
+    width: 100%;
+    background: #080604;
+    border: 1px solid #2a1808;
+    color: rgba(255,255,255,0.7);
+    font-family: inherit;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 8px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .compat-vs {
+    font-size: 18px;
+    color: #3a2a18;
+    padding-bottom: 8px;
+    flex-shrink: 0;
+    transition: color 0.3s, text-shadow 0.3s;
+  }
+  .compat-vs.lit {
+    color: #ffb464;
+    text-shadow: 0 0 12px #ffb46488;
+  }
+
+  /* result */
+  #compat-result { margin-top: 22px; }
+  .compat-result-box {
+    padding: 22px 24px;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 4px;
+    background: rgba(0,0,0,0.25);
+    animation: sr-reveal 0.4s ease forwards;
+  }
+  .compat-chars-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .compat-char-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    padding: 4px 10px 4px 7px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    background: rgba(255,255,255,0.05);
+  }
+  .compat-char-chip-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .compat-x-sign {
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 0;
+  }
+  .compat-score-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .compat-score-num {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 28px;
+    line-height: 1;
+  }
+  .compat-tier-lbl {
+    font-size: 9px;
+    letter-spacing: 3px;
+    font-weight: bold;
+  }
+  .compat-meter-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .compat-meter-fill {
+    height: 100%;
+    border-radius: 3px;
+    width: 0%;
+    transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .compat-msg {
+    font-size: 8px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1.5px;
+    line-height: 1.8;
+  }
+  .compat-flavor {
+    margin-top: 10px;
+    font-size: 8px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 1px;
+    font-style: italic;
+    line-height: 1.7;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 10px;
+  }
 </style>
 </head>
 <body>
@@ -236,6 +382,36 @@
     </div>
   </div>
 
+  <!-- COMPATIBILITY TESTER -->
+  <div class="panel" style="margin-top:24px;" id="compat-panel">
+    <div class="panel-title">COMPATIBILITY TESTER ✦</div>
+    <p style="font-size:8px;color:#555;letter-spacing:1px;margin:0 0 20px;">HOW WELL DO TWO CHARACTERS CLICK? RESULTS ARE UNIQUE TO YOU AND STAY CONSISTENT.</p>
+
+    <!-- Mode toggle -->
+    <div class="compat-mode-row">
+      <button class="compat-mode-btn active" data-mode="relationship" onclick="setCompatMode('relationship')">💕 RELATIONSHIP</button>
+      <button class="compat-mode-btn" data-mode="friendship" onclick="setCompatMode('friendship')">✨ FRIENDSHIP</button>
+    </div>
+
+    <!-- Character pickers -->
+    <div class="compat-chars-row">
+      <div class="compat-char-side">
+        <div class="compat-char-label">CHARACTER A</div>
+        <select id="compat-char-a" class="compat-sel" onchange="compatClear()"></select>
+      </div>
+      <div class="compat-vs" id="compat-vs-icon">✦</div>
+      <div class="compat-char-side">
+        <div class="compat-char-label">CHARACTER B</div>
+        <select id="compat-char-b" class="compat-sel" onchange="compatClear()"></select>
+      </div>
+    </div>
+
+    <button class="btn accent" id="compat-btn" onclick="testCompat()" style="margin-top:18px;min-width:200px;">TEST COMPATIBILITY</button>
+
+    <!-- Result -->
+    <div id="compat-result"></div>
+  </div>
+
   <!-- SUGGESTION BOX -->
   <div class="panel" style="margin-top:24px;">
     <div class="panel-title">TRAIT SUGGESTION BOX</div>
@@ -402,7 +578,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="traits.js?v=1"></script>
-<script src="script.js?v=3"></script>
+<script src="script.js?v=4"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('suggestion-list')) { pickSuggRarity('common'); loadSuggestions(); }
@@ -410,6 +586,187 @@
     initTierList();
     srInit();
   });
+</script>
+<script>
+// ── COMPATIBILITY TESTER ─────────────────────────────────────
+let _compatMode = 'relationship';
+
+function compatInit() {
+  const chars = (typeof characters !== 'undefined' ? characters : []).filter(c => !c.isPlaceholder);
+  if (!chars.length) return;
+  const opts = chars.map(c => `<option value="${c.id}">${c.name || 'UNNAMED'}</option>`).join('');
+  const selA = document.getElementById('compat-char-a');
+  const selB = document.getElementById('compat-char-b');
+  if (!selA || !selB) return;
+  // Preserve any existing selection
+  const prevA = selA.value, prevB = selB.value;
+  selA.innerHTML = opts;
+  selB.innerHTML = opts;
+  if (prevA && chars.some(c => c.id === prevA)) selA.value = prevA;
+  if (prevB && chars.some(c => c.id === prevB)) selB.value = prevB;
+  // Default: pick second character for B so they differ
+  if (!selB.value || selB.value === selA.value) {
+    const other = chars.find(c => c.id !== selA.value);
+    if (other) selB.value = other.id;
+  }
+}
+
+function setCompatMode(mode) {
+  _compatMode = mode;
+  document.querySelectorAll('.compat-mode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('compat-result').innerHTML = '';
+  const vsIcon = document.getElementById('compat-vs-icon');
+  if (vsIcon) vsIcon.textContent = mode === 'relationship' ? '💕' : '✨';
+}
+
+function compatClear() {
+  document.getElementById('compat-result').innerHTML = '';
+  const vsIcon = document.getElementById('compat-vs-icon');
+  if (vsIcon) { vsIcon.classList.remove('lit'); vsIcon.textContent = _compatMode === 'relationship' ? '💕' : '✨'; }
+}
+
+function _compatHash(str) {
+  // FNV-1a 32-bit hash — deterministic, well-distributed
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+    h = h >>> 0;
+  }
+  return h;
+}
+
+function testCompat() {
+  const selA = document.getElementById('compat-char-a');
+  const selB = document.getElementById('compat-char-b');
+  const idA  = selA?.value;
+  const idB  = selB?.value;
+  if (!idA || !idB) { return; }
+  if (idA === idB) {
+    document.getElementById('compat-result').innerHTML =
+      `<div class="compat-result-box"><div class="compat-msg">THAT'S THE SAME CHARACTER. COMPATIBILITY WITH YOURSELF IS... COMPLICATED.</div></div>`;
+    return;
+  }
+
+  // Sorted key so order doesn't matter, then mode
+  const pairKey = [idA, idB].sort().join('::');
+  const lsKey   = `compat_${pairKey}_${_compatMode}`;
+
+  let score = localStorage.getItem(lsKey);
+  if (score === null) {
+    score = (_compatHash(lsKey) % 96) + 3;  // 3–98 range
+    localStorage.setItem(lsKey, score);
+  } else {
+    score = parseInt(score);
+  }
+
+  const chars = typeof characters !== 'undefined' ? characters : [];
+  const charA = chars.find(c => c.id === idA);
+  const charB = chars.find(c => c.id === idB);
+
+  _showCompatResult(charA, charB, score);
+}
+
+function _showCompatResult(charA, charB, score) {
+  const tier = _getCompatTier(score, _compatMode);
+  const colA  = charA?.color || '#888';
+  const colB  = charB?.color || '#888';
+  const nameA = charA?.name  || 'CHARACTER A';
+  const nameB = charB?.name  || 'CHARACTER B';
+
+  const result = document.getElementById('compat-result');
+  result.innerHTML = `
+    <div class="compat-result-box">
+      <div class="compat-chars-display">
+        <div class="compat-char-chip">
+          <span class="compat-char-chip-dot" style="background:${colA};box-shadow:0 0 5px ${colA}88"></span>
+          <span style="color:${colA}">${nameA}</span>
+        </div>
+        <span class="compat-x-sign">${_compatMode === 'relationship' ? '&hearts;' : '&amp;'}</span>
+        <div class="compat-char-chip">
+          <span class="compat-char-chip-dot" style="background:${colB};box-shadow:0 0 5px ${colB}88"></span>
+          <span style="color:${colB}">${nameB}</span>
+        </div>
+      </div>
+      <div class="compat-score-row">
+        <div class="compat-score-num" id="compat-score-num" style="color:${tier.color}">0%</div>
+        <div class="compat-tier-lbl" style="color:${tier.color}">${tier.label}</div>
+      </div>
+      <div class="compat-meter-track">
+        <div class="compat-meter-fill" id="compat-fill" style="background:${tier.color};box-shadow:0 0 8px ${tier.color}88"></div>
+      </div>
+      <div class="compat-msg">${tier.msg}</div>
+      <div class="compat-flavor">${tier.flavor}</div>
+    </div>`;
+
+  // Animate bar + counter
+  const vsIcon = document.getElementById('compat-vs-icon');
+  if (vsIcon) { vsIcon.classList.add('lit'); }
+
+  let current = 0;
+  const target = score;
+  const step   = Math.ceil(target / 40);
+  const fill   = document.getElementById('compat-fill');
+  const numEl  = document.getElementById('compat-score-num');
+
+  setTimeout(() => {
+    if (fill) fill.style.width = target + '%';
+    const ticker = setInterval(() => {
+      current = Math.min(current + step, target);
+      if (numEl) numEl.textContent = current + '%';
+      if (current >= target) clearInterval(ticker);
+    }, 25);
+  }, 60);
+}
+
+function _getCompatTier(score, mode) {
+  if (mode === 'relationship') {
+    const tiers = [
+      { min: 92, label: 'SOULMATES',       color: '#ff6eb4',
+        msg: 'LITERALLY MADE FOR EACH OTHER.',
+        flavor: '"against all odds, it just works."' },
+      { min: 78, label: 'VERY COMPATIBLE', color: '#ff9ec4',
+        msg: 'STRONG CHEMISTRY. THIS WOULD ABSOLUTELY WORK.',
+        flavor: '"the kind of love that writes itself."' },
+      { min: 62, label: 'COMPATIBLE',      color: '#ffc44a',
+        msg: 'THERE\'S REAL SOMETHING HERE. JUST NEEDS SOME WORK.',
+        flavor: '"a slow burn that\'s worth it in the end."' },
+      { min: 46, label: 'COMPLICATED',     color: '#ff8c00',
+        msg: 'THEY\'D DRIVE EACH OTHER CRAZY. BUT MAYBE IN A GOOD WAY?',
+        flavor: '"chaotic, messy, oddly compelling."' },
+      { min: 28, label: 'ROCKY',           color: '#e06050',
+        msg: 'MORE CONFLICT THAN CHEMISTRY. A LOT OF WORK.',
+        flavor: '"this would not end well for either of them."' },
+      { min: 0,  label: 'DISASTER',        color: '#cc2222',
+        msg: 'ABSOLUTELY NOT. CATASTROPHIC IN EVERY DIRECTION.',
+        flavor: '"do not do this to these two."' },
+    ];
+    return tiers.find(t => score >= t.min) || tiers[tiers.length - 1];
+  } else {
+    const tiers = [
+      { min: 92, label: 'BESTIES',         color: '#7ed7ff',
+        msg: 'COMPLETELY INSEPARABLE. RIDE OR DIE.',
+        flavor: '"they finish each other\'s sentences."' },
+      { min: 78, label: 'GREAT FRIENDS',   color: '#44ccff',
+        msg: 'THEY\'D GET ALONG EFFORTLESSLY. A STRONG BOND.',
+        flavor: '"always there for each other no matter what."' },
+      { min: 62, label: 'GOOD FRIENDS',    color: '#44ff99',
+        msg: 'THEY\'D DEFINITELY HANG OUT. GOOD VIBES.',
+        flavor: '"the kind of friendship that just clicks."' },
+      { min: 46, label: 'FRIENDLY',        color: '#aaff99',
+        msg: 'THEY\'D BE NICE TO EACH OTHER. NOTHING DEEPER.',
+        flavor: '"pleasant company, not much more."' },
+      { min: 28, label: 'ACQUAINTANCES',   color: '#aaaaaa',
+        msg: 'THEY PROBABLY WOULDN\'T CLICK. AWKWARD SILENCES.',
+        flavor: '"they\'d nod at each other in the hallway."' },
+      { min: 0,  label: 'STRANGERS',       color: '#555555',
+        msg: 'COMPLETE OPPOSITES. THEY\'D AVOID EACH OTHER.',
+        flavor: '"better for everyone if they never meet."' },
+    ];
+    return tiers.find(t => score >= t.min) || tiers[tiers.length - 1];
+  }
+}
 </script>
 </body>
 </html>
