@@ -1836,7 +1836,7 @@ function buildCharEntry(c, contextFolderId) {
       <div class="char-entry-name">${nameHtml}</div>
       ${tagsHtml}
     </div>
-    ${isDraft ? '' : `<button class="char-chat-btn" title="Open chat" onclick="event.stopPropagation();openCharChat('${c.id}')">💬</button>`}`;
+    ${isDraft ? '' : `<button class="char-chat-btn" title="Open chat" onclick="event.stopPropagation();openCharChat('${c.id}')"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path d="M2 2h12v9H9l-3 3v-3H2V2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>`}`;
 
   el.addEventListener('contextmenu', e => openCharContextMenu(e, c.id));
 
