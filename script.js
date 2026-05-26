@@ -6053,6 +6053,7 @@ function closeTraitCodex() {
 // TRAIT ROLL (gambling)
 // ============================================================
 let currentHand = null;
+let _rollInProgress = false;  // prevents stacking multiple concurrent rolls
 let _autoRollMode = false;
 let _autoRollStopRarity = 'legendary'; // rare | epic | legendary | mythic
 let _autoRollStopShimmy = true;
@@ -6094,6 +6095,8 @@ function toggleAutoRollShimmy() {
 
 function rollTraits() {
   if (!currentId) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
+  if (_rollInProgress) return;
+  _rollInProgress = true;
 
   // Pity: increment, cap at 100, check if this is the pity roll
   traitPity = Math.min(traitPity + 1, 100);
@@ -6257,6 +6260,7 @@ function rollTraits() {
           });
           actions.style.display = '';
           if (rerollBtn) rerollBtn.disabled = false;
+          _rollInProgress = false;
           const arSettings = document.getElementById('auto-roll-settings');
           if (arSettings) arSettings.style.display = _autoRollMode ? 'flex' : 'none';
 
@@ -6532,6 +6536,7 @@ function closeTraitRoll(cancelled = false) {
   if (cancelled) playSound('cancel', { volume: 0.75 });
   document.getElementById('trait-roll-overlay').classList.remove('open');
   currentHand = null;
+  _rollInProgress = false;
 }
 
 // ============================================================
