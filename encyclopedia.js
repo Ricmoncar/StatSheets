@@ -5,9 +5,10 @@
 // ── Cloudinary ────────────────────────────────────────────
 const CLOUDINARY_CLOUD  = 'dhlik6lkn';
 const CLOUDINARY_PRESET = 'statsheets';
-// Base64 data URLs larger than this go to Cloudinary instead of Firestore.
-// Firestore docs cap at 1 MB; leaving ~300 KB headroom for the rest of the doc.
-const ENC_IMG_INLINE_LIMIT = 716800; // 700 KB
+// Firestore hard cap is 1,048,576 bytes per document.
+// We route an image to Cloudinary if storing it inline would push the
+// enc/data doc over this safe limit (leaving ~150 KB headroom).
+const ENC_DOC_SAFE_LIMIT = 900000; // 900 KB
 
 // ── Firebase ──────────────────────────────────────────────
 const ENC_FB_CONFIG = {
@@ -1251,22 +1252,17 @@ async function handleNpcImgUpload(e) {
     reader.readAsDataURL(file);
   });
 
+  // Reuse the same doc-size check — NPC images live in the same enc/data doc
+  const oldImg    = _npcEditing ? (encNpcs.find(x => x.id === _npcEditing)?.image || '') : '';
+  const docJson   = JSON.stringify({ places: encPlaces, statuses: encStatuses, memories: encMemories, npcs: encNpcs });
+  const estimated = docJson.length - oldImg.length + dataUrl.length;
+
   let imageData = dataUrl;
 
-  if (dataUrl.length > ENC_IMG_INLINE_LIMIT) {
+  if (estimated > ENC_DOC_SAFE_LIMIT) {
     encNotify('UPLOADING IMAGE...', 'ok');
     try {
-      const form = new FormData();
-      form.append('file', dataUrl);
-      form.append('upload_preset', CLOUDINARY_PRESET);
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
-        { method: 'POST', body: form }
-      );
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
-      if (!json.secure_url) throw new Error(json.error?.message || 'No URL returned');
-      imageData = json.secure_url;
+      imageData = await _uploadToCloudinary(dataUrl);
       encNotify('IMAGE UPLOADED ✓', 'ok');
     } catch (err) {
       console.error('[Cloudinary] upload error:', err);
@@ -1457,13 +1453,43 @@ function saveMemoryModal() {
 }
 
 // ── IMAGE HANDLING ────────────────────────────────────────
+
+// Returns the current image stored for the item being edited (to subtract
+// from the doc-size estimate when the user is replacing an existing image).
+function _currentEditingImg(type) {
+  if (type === 'place')  return _placeEditing  ? (encPlaces.find(x => x.id === _placeEditing)?.image   || '') : '';
+  if (type === 'memory') return _memoryEditing ? (encMemories.find(x => x.id === _memoryEditing)?.image || '') : '';
+  return '';
+}
+
+// Returns true if storing `dataUrl` inline would push enc/data over Firestore's limit.
+function _wouldExceedFirestore(type, dataUrl) {
+  const docJson  = JSON.stringify({ places: encPlaces, statuses: encStatuses, memories: encMemories, npcs: encNpcs });
+  const oldImg   = _currentEditingImg(type);
+  const estimated = docJson.length - oldImg.length + dataUrl.length;
+  return estimated > ENC_DOC_SAFE_LIMIT;
+}
+
+async function _uploadToCloudinary(dataUrl) {
+  const form = new FormData();
+  form.append('file', dataUrl);
+  form.append('upload_preset', CLOUDINARY_PRESET);
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+    { method: 'POST', body: form }
+  );
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (!json.secure_url) throw new Error(json.error?.message || 'No URL returned');
+  return json.secure_url;
+}
+
 async function handleEncImgUpload(type, event) {
   const file = event.target.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) { encNotify('NOT AN IMAGE', 'err'); return; }
   if (file.size > 20 * 1024 * 1024) { encNotify('IMAGE TOO LARGE (MAX 20MB)', 'err'); return; }
 
-  // Read as base64 data URL
   const dataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload  = e => resolve(e.target.result);
@@ -1473,21 +1499,10 @@ async function handleEncImgUpload(type, event) {
 
   let imageData = dataUrl;
 
-  if (dataUrl.length > ENC_IMG_INLINE_LIMIT) {
-    // Too large for Firestore — upload to Cloudinary and store the URL instead
+  if (_wouldExceedFirestore(type, dataUrl)) {
     encNotify('UPLOADING IMAGE...', 'ok');
     try {
-      const form = new FormData();
-      form.append('file', dataUrl);
-      form.append('upload_preset', CLOUDINARY_PRESET);
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
-        { method: 'POST', body: form }
-      );
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
-      if (!json.secure_url) throw new Error(json.error?.message || 'No URL returned');
-      imageData = json.secure_url;
+      imageData = await _uploadToCloudinary(dataUrl);
       encNotify('IMAGE UPLOADED ✓', 'ok');
     } catch (err) {
       console.error('[Cloudinary] upload error:', err);
