@@ -1114,6 +1114,7 @@ function deleteScene(memId, sceneIdx) {
 function openPlaceModal(id) {
   _placeEditing = id;
   _placeImgData = null;
+  document.getElementById('ep-img-file').value = '';
   const p = id ? encPlaces.find(x => x.id === id) || {} : {};
   document.getElementById('enc-place-modal-title').textContent = id ? 'EDIT PLACE' : 'NEW PLACE';
   document.getElementById('ep-name').value    = p.name     || '';
@@ -1187,6 +1188,7 @@ function collectSoundtracks() {
 function openNpcModal(id) {
   _npcEditing = id;
   _npcImgData = null;
+  document.getElementById('en-img-file').value = '';
   const n = id ? encNpcs.find(x => x.id === id) || {} : {};
   document.getElementById('enc-npc-modal-title').textContent = id ? 'EDIT NPC' : 'NEW NPC';
   document.getElementById('en-name').value        = n.name        || '';
@@ -1391,6 +1393,7 @@ function updateStatusPreview() {
 function openMemoryModal(id) {
   _memoryEditing = id;
   _memoryImgData = null;
+  document.getElementById('em-img-file').value = '';
   const m = id ? encMemories.find(x => x.id === id) || {} : {};
   document.getElementById('enc-memory-modal-title').textContent = id ? 'EDIT CHAPTER' : 'NEW CHAPTER';
   document.getElementById('em-title').value = m.title || '';

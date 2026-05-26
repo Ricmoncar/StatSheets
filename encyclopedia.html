@@ -2170,7 +2170,7 @@ body {
       <div class="enc-field">
         <label style="display:flex;justify-content:space-between;align-items:center;">
           IMAGE <span style="cursor:pointer;color:var(--enc-col)" onclick="document.getElementById('ep-img-file').click()">[UPLOAD]</span>
-          <input type="file" id="ep-img-file" accept="image/*" style="display:none" onchange="handleEncImgUpload('place',event)"/>
+          <input type="file" id="ep-img-file" accept="image/*" style="display:none" onchange="handleEncImgUpload('place',event);this.value=''"/>
         </label>
         <div class="enc-img-preview" id="ep-img-preview">
           <span class="enc-img-no-label">NO IMAGE</span>
@@ -2325,7 +2325,7 @@ body {
         <label style="display:flex;justify-content:space-between;align-items:center;">
           COVER IMAGE <span style="opacity:0.4;font-size:5.5px">(optional)</span>
           <span style="cursor:pointer;color:var(--enc-col)" onclick="document.getElementById('em-img-file').click()">[UPLOAD]</span>
-          <input type="file" id="em-img-file" accept="image/*" style="display:none" onchange="handleEncImgUpload('memory',event)"/>
+          <input type="file" id="em-img-file" accept="image/*" style="display:none" onchange="handleEncImgUpload('memory',event);this.value=''"/>
         </label>
         <div class="enc-img-preview" id="em-img-preview">
           <span class="enc-img-no-label">NO IMAGE</span>
@@ -2417,7 +2417,7 @@ body {
       <div class="enc-field">
         <label style="display:flex;justify-content:space-between;align-items:center;">
           IMAGE <span style="cursor:pointer;color:var(--enc-col)" onclick="document.getElementById('en-img-file').click()">[UPLOAD]</span>
-          <input type="file" id="en-img-file" accept="image/*" style="display:none" onchange="handleNpcImgUpload(event)"/>
+          <input type="file" id="en-img-file" accept="image/*" style="display:none" onchange="handleNpcImgUpload(event);this.value=''"/>
         </label>
         <div class="enc-img-preview" id="en-img-preview">
           <span class="enc-img-no-label">NO IMAGE</span>
@@ -2436,6 +2436,6 @@ body {
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="traits.js?v=1"></script>
-<script src="encyclopedia.js?v=4"></script>
+<script src="encyclopedia.js?v=5"></script>
 </body>
 </html>
