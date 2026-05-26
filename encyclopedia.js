@@ -2,6 +2,13 @@
 // ENCYCLOPÆDIA — encyclopedia.js
 // ============================================================
 
+// ── Cloudinary ────────────────────────────────────────────
+const CLOUDINARY_CLOUD  = 'dhlik6lkn';
+const CLOUDINARY_PRESET = 'statsheets';
+// Base64 data URLs larger than this go to Cloudinary instead of Firestore.
+// Firestore docs cap at 1 MB; leaving ~300 KB headroom for the rest of the doc.
+const ENC_IMG_INLINE_LIMIT = 716800; // 700 KB
+
 // ── Firebase ──────────────────────────────────────────────
 const ENC_FB_CONFIG = {
   apiKey:            "AIzaSyBRtoLzS--wz_6sD4rWMgzcwZnHVHUBNdg",
@@ -1229,12 +1236,45 @@ function saveNpcModal() {
   encNotify(_npcEditing ? 'NPC UPDATED' : 'NPC ADDED', 'ok');
 }
 
-function handleNpcImgUpload(e) {
+async function handleNpcImgUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => { _npcImgData = ev.target.result; renderNpcImgPreview(); };
-  reader.readAsDataURL(file);
+  if (!file.type.startsWith('image/')) { encNotify('NOT AN IMAGE', 'err'); return; }
+  if (file.size > 20 * 1024 * 1024) { encNotify('IMAGE TOO LARGE (MAX 20MB)', 'err'); return; }
+
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = ev => resolve(ev.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  let imageData = dataUrl;
+
+  if (dataUrl.length > ENC_IMG_INLINE_LIMIT) {
+    encNotify('UPLOADING IMAGE...', 'ok');
+    try {
+      const form = new FormData();
+      form.append('file', dataUrl);
+      form.append('upload_preset', CLOUDINARY_PRESET);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+        { method: 'POST', body: form }
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (!json.secure_url) throw new Error(json.error?.message || 'No URL returned');
+      imageData = json.secure_url;
+      encNotify('IMAGE UPLOADED ✓', 'ok');
+    } catch (err) {
+      console.error('[Cloudinary] upload error:', err);
+      encNotify('UPLOAD FAILED — TRY A SMALLER IMAGE', 'err');
+      return;
+    }
+  }
+
+  _npcImgData = imageData;
+  renderNpcImgPreview();
 }
 
 function renderNpcImgPreview() {
@@ -1414,17 +1454,47 @@ function saveMemoryModal() {
 }
 
 // ── IMAGE HANDLING ────────────────────────────────────────
-function handleEncImgUpload(type, event) {
+async function handleEncImgUpload(type, event) {
   const file = event.target.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) { encNotify('NOT AN IMAGE', 'err'); return; }
-  if (file.size > 8 * 1024 * 1024) { encNotify('IMAGE TOO LARGE (MAX 8MB)', 'err'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    if (type === 'place')  { _placeImgData  = e.target.result; renderEncImgPreview('place'); }
-    if (type === 'memory') { _memoryImgData = e.target.result; renderEncImgPreview('memory'); }
-  };
-  reader.readAsDataURL(file);
+  if (file.size > 20 * 1024 * 1024) { encNotify('IMAGE TOO LARGE (MAX 20MB)', 'err'); return; }
+
+  // Read as base64 data URL
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  let imageData = dataUrl;
+
+  if (dataUrl.length > ENC_IMG_INLINE_LIMIT) {
+    // Too large for Firestore — upload to Cloudinary and store the URL instead
+    encNotify('UPLOADING IMAGE...', 'ok');
+    try {
+      const form = new FormData();
+      form.append('file', dataUrl);
+      form.append('upload_preset', CLOUDINARY_PRESET);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+        { method: 'POST', body: form }
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (!json.secure_url) throw new Error(json.error?.message || 'No URL returned');
+      imageData = json.secure_url;
+      encNotify('IMAGE UPLOADED ✓', 'ok');
+    } catch (err) {
+      console.error('[Cloudinary] upload error:', err);
+      encNotify('UPLOAD FAILED — TRY A SMALLER IMAGE', 'err');
+      return;
+    }
+  }
+
+  if (type === 'place')  { _placeImgData  = imageData; renderEncImgPreview('place'); }
+  if (type === 'memory') { _memoryImgData = imageData; renderEncImgPreview('memory'); }
 }
 
 function renderEncImgPreview(type) {
