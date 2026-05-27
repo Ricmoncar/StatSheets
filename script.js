@@ -34,16 +34,19 @@ function _injectNaraStyles() {
   const kfText   = stops.map(([p,c])=>`${p}%{color:${c}}`).join(' ');
   const kfBorder = stops.map(([p,c])=>`${p}%{border-color:${c}}`).join(' ');
   const kfBg     = stops.map(([p,c])=>`${p}%{background-color:${c}}`).join(' ');
+  const kfAll    = stops.map(([p,c])=>`${p}%{color:${c};border-color:${c}}`).join(' ');
   const s = document.createElement('style');
   s.id = 'nara-styles';
   s.textContent = `
 @keyframes naraRbwText{${kfText}}
 @keyframes naraRbwBorder{${kfBorder}}
 @keyframes naraRbwBg{${kfBg}}
-.nara-rainbow{animation:naraRbwText 3s linear infinite!important;color:unset!important;}
-.nara-rainbow-border{animation:naraRbwBorder 3s linear infinite!important;}
-.nara-rainbow-band{animation:naraRbwBg 3s linear infinite!important;-webkit-mask-image:linear-gradient(90deg,black 60%,transparent 100%);mask-image:linear-gradient(90deg,black 60%,transparent 100%);}
-.nara-rainbow-dot{animation:naraRbwBg 3s linear infinite!important;}
+@keyframes naraRbwAll{${kfAll}}
+.nara-rainbow{animation:naraRbwText 2.5s linear infinite!important;color:unset!important;}
+.nara-rainbow-border{animation:naraRbwBorder 2.5s linear infinite!important;}
+.nara-rainbow-band{animation:naraRbwBg 2.5s linear infinite!important;-webkit-mask-image:linear-gradient(90deg,black 60%,transparent 100%);mask-image:linear-gradient(90deg,black 60%,transparent 100%);}
+.nara-rainbow-dot{animation:naraRbwBg 2.5s linear infinite!important;}
+.nara-rainbow-all{animation:naraRbwAll 2.5s linear infinite!important;}
 `;
   document.head.appendChild(s);
 }
@@ -1898,10 +1901,15 @@ function buildCharEntry(c, contextFolderId) {
   if (isDraft) el.style.cssText = 'border-left:2px dashed #444;opacity:0.6;';
 
   const _naraChar = !isDraft && _isNara(c);
+  if (_naraChar) {
+    _injectNaraStyles();
+    el.style.borderLeft = '3px solid';
+    el.classList.add('nara-rainbow-border');
+  }
   const avatarHTML = c.avatar
-    ? `<div class="char-avatar-small"><img src="${c.avatar}"/></div>`
+    ? `<div class="char-avatar-small${_naraChar ? ' nara-rainbow-border' : ''}"><img src="${c.avatar}"/></div>`
     : _naraChar
-      ? `<div class="char-avatar-small nara-rainbow"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:18px;height:18px;"><rect x="12" y="2" width="8" height="8" fill="currentColor"/><rect x="10" y="10" width="12" height="10" fill="currentColor"/><rect x="8" y="20" width="6" height="8" fill="currentColor"/><rect x="18" y="20" width="6" height="8" fill="currentColor"/></svg></div>`
+      ? `<div class="char-avatar-small nara-rainbow-all"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:18px;height:18px;"><rect x="12" y="2" width="8" height="8" fill="currentColor"/><rect x="10" y="10" width="12" height="10" fill="currentColor"/><rect x="8" y="20" width="6" height="8" fill="currentColor"/><rect x="18" y="20" width="6" height="8" fill="currentColor"/></svg></div>`
       : `<div class="char-avatar-small" style="color:${isDraft ? '#555' : c.color};"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:18px;height:18px;"><rect x="12" y="2" width="8" height="8" fill="currentColor"/><rect x="10" y="10" width="12" height="10" fill="currentColor"/><rect x="8" y="20" width="6" height="8" fill="currentColor"/><rect x="18" y="20" width="6" height="8" fill="currentColor"/></svg></div>`;
 
   const nameHtml = isDraft

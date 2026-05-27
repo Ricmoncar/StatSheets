@@ -702,16 +702,19 @@ function _encInjectNaraStyles() {
   const kfText   = stops.map(([p,c])=>`${p}%{color:${c}}`).join(' ');
   const kfBorder = stops.map(([p,c])=>`${p}%{border-color:${c}}`).join(' ');
   const kfBg     = stops.map(([p,c])=>`${p}%{background-color:${c}}`).join(' ');
+  const kfAll    = stops.map(([p,c])=>`${p}%{color:${c};border-color:${c}}`).join(' ');
   const s = document.createElement('style');
   s.id = 'nara-styles';
   s.textContent = `
 @keyframes naraRbwText{${kfText}}
 @keyframes naraRbwBorder{${kfBorder}}
 @keyframes naraRbwBg{${kfBg}}
-.nara-rainbow{animation:naraRbwText 3s linear infinite!important;color:unset!important;}
-.nara-rainbow-border{animation:naraRbwBorder 3s linear infinite!important;}
-.nara-rainbow-band{animation:naraRbwBg 3s linear infinite!important;-webkit-mask-image:linear-gradient(90deg,black 60%,transparent 100%);mask-image:linear-gradient(90deg,black 60%,transparent 100%);}
-.nara-rainbow-dot{animation:naraRbwBg 3s linear infinite!important;}
+@keyframes naraRbwAll{${kfAll}}
+.nara-rainbow{animation:naraRbwText 2.5s linear infinite!important;color:unset!important;}
+.nara-rainbow-border{animation:naraRbwBorder 2.5s linear infinite!important;}
+.nara-rainbow-band{animation:naraRbwBg 2.5s linear infinite!important;-webkit-mask-image:linear-gradient(90deg,black 60%,transparent 100%);mask-image:linear-gradient(90deg,black 60%,transparent 100%);}
+.nara-rainbow-dot{animation:naraRbwBg 2.5s linear infinite!important;}
+.nara-rainbow-all{animation:naraRbwAll 2.5s linear infinite!important;}
 `;
   document.head.appendChild(s);
 }
