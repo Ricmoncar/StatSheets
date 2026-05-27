@@ -3721,6 +3721,116 @@ const TRAITS = {
     ],
     notes: 'One-time revive. On revive: x5 non-HP stats + BLEEDING/SLOWED/WEIGHTED on-hit (infinite stacks). Defeat killer: upgrades to x10 + adds DOOM/SHATTERED on-hit.',
   },
+
+  // ── Status-synergy traits ──────────────────────────────────
+
+  shatter_seeker: {
+    name: 'Shatter Seeker', rarity: 'epic',
+    desc: 'Your critical hits apply BRITTLE to the target. Hitting a BRITTLE target always critically strikes.',
+    passive: [],
+    notes: 'Crits apply BRITTLE. Any hit on a BRITTLE target is a guaranteed crit. Self-sustaining crit loop.',
+  },
+
+  demolitions_expert: {
+    name: 'Demolitions Expert', rarity: 'legendary',
+    desc: 'Every 3rd hit applies VOLATILE to the target. When a VOLATILE explosion triggers, permanently gain +30 ATK.',
+    passive: [],
+    cultivation: { label: 'VOLATILE Explosions Triggered (+30 ATK each)', perStack: [{ stat: 'atk', op: 'add', value: 30 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Every 3rd hit applies VOLATILE. Each VOLATILE explosion = +30 permanent ATK.',
+  },
+
+  glass_coffin: {
+    name: 'Glass Coffin', rarity: 'legendary',
+    desc: 'When you would be knocked out, instead become PETRIFIED for 2 turns and revive with 40% HP. Can only trigger once per fight. When PETRIFIED ends, gain SURGE.',
+    passive: [],
+    notes: 'Once per fight: death → PETRIFIED (2 turns) + revive at 40% HP. On PETRIFIED expiry: gain SURGE.',
+  },
+
+  phantom_dance: {
+    name: 'Phantom Dance', rarity: 'legendary',
+    desc: 'Each successful dodge grants a stack of PHANTOM. When you are hit, all PHANTOM stacks are consumed and you heal for 5% HP per stack.',
+    passive: [],
+    notes: 'Each dodge = +1 PHANTOM stack. On hit: consume all stacks, heal 5% HP per stack.',
+  },
+
+  war_echo: {
+    name: 'War Echo', rarity: 'legendary',
+    desc: 'Your killing blow on an enemy triggers ECHO — the hit replays against the next enemy at 50% power. Chains up to 3 times per fight.',
+    passive: [],
+    notes: 'On kill: killing hit ECHO-replays onto next enemy at 50% power. Max 3 chains per fight.',
+  },
+
+  anchored_titan: {
+    name: 'Anchored Titan', rarity: 'legendary',
+    desc: 'Become permanently ANCHORED. Gain +20 DEF every turn, stacking infinitely. Voluntarily releasing ANCHORED converts all accumulated DEF stacks into a single devastating hit.',
+    passive: [],
+    cultivation: { label: 'Turns Spent ANCHORED (+20 DEF each)', perStack: [{ stat: 'def', op: 'add', value: 20 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Permanently ANCHORED. +20 DEF per turn (infinite stacks). Releasing ANCHORED converts all DEF stacks to one hit.',
+  },
+
+  counterstrike_protocol: {
+    name: 'Counterstrike Protocol', rarity: 'legendary',
+    desc: 'Gain MIRRORED at the start of every fight. Each time you reflect damage through MIRRORED, that reflected amount is permanently added to your ATK.',
+    passive: [],
+    notes: 'Fight start: MIRRORED. Every reflected damage instance permanently adds to ATK.',
+  },
+
+  jinxmaster: {
+    name: 'Jinxmaster', rarity: 'legendary',
+    desc: 'Attacks apply JINXED to enemies. You are permanently JINXED yourself, but deal +100% damage to JINXED targets.',
+    passive: [],
+    situational: [{ id: 'jm-jinxed', label: 'Attacking a JINXED target (+100% damage)', passive: [{ stat: 'atk', op: 'pct', value: 100 }] }],
+    notes: 'On-hit: apply JINXED. Self is permanently JINXED. +100% ATK vs any JINXED target.',
+  },
+
+  the_crumbling: {
+    name: 'The Crumbling', rarity: 'mythic',
+    desc: 'At the start of every fight, apply DECAY to all enemies. For each turn an enemy survives under DECAY, permanently gain +15% ATK.',
+    passive: [],
+    cultivation: { label: 'Enemy-Turns Under DECAY (+15% ATK each)', perStack: [{ stat: 'atk', op: 'pct', value: 15 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Fight start: DECAY on all enemies. +15% ATK per enemy-turn survived under DECAY (tracks as stacks).',
+  },
+
+  fractured_reality: {
+    name: 'Fractured Reality', rarity: 'mythic',
+    desc: 'Your attacks apply FRACTURED to targets. Each FRACTURED echo that deals damage heals you for 10% of the echo\'s damage. FRACTURED stacks infinitely.',
+    passive: [],
+    notes: 'On-hit: apply FRACTURED (infinite stacks). Heal 10% of each FRACTURED echo\'s damage.',
+  },
+
+  resonance_cascade: {
+    name: 'Resonance Cascade', rarity: 'mythic',
+    desc: 'Gain RESONANT at the start of every fight. Each ability used adds another RESONANT stack. At 5 stacks, all abilities trigger twice simultaneously for the rest of the fight.',
+    passive: [],
+    situational: [{ id: 'rc-cascade', label: 'At 5 RESONANT stacks (all abilities fire twice)', passive: [] }],
+    notes: 'Fight start: 1 RESONANT. Each ability use = +1 RESONANT. At 5 stacks: all abilities fire twice for the rest of the fight.',
+  },
+
+  the_contradiction: {
+    name: 'The Contradiction', rarity: 'mythic',
+    desc: 'Healing deals damage to you instead. Taking damage heals you instead. You are permanently MIRRORED. All status effects applied to you are inverted — debuffs become buffs and buffs become debuffs.',
+    passive: [],
+    notes: 'Healing ↔ damage inverted. Permanently MIRRORED. All incoming statuses are inverted (debuffs ↔ buffs).',
+  },
+
+  redline: {
+    name: 'Redline', rarity: 'hexxed',
+    desc: 'Permanently OVERLOADED. The lower your HP, the more self-damage OVERLOADED inflicts — but the more ATK you gain. Below 25% HP: x3 ATK. Below 10% HP: x7 ATK.',
+    passive: [],
+    situational: [
+      { id: 'rl-low',  label: 'Below 25% HP (OVERLOADED: x3 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 3 }] },
+      { id: 'rl-crit', label: 'Below 10% HP (OVERLOADED: x7 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 7 }] },
+    ],
+    notes: 'Permanently OVERLOADED. OVERLOADED self-damage scales with missing HP. Below 25% → x3 ATK. Below 10% → x7 ATK.',
+  },
+
+  voidwalker: {
+    name: 'Voidwalker', rarity: 'hexxed',
+    desc: 'You are permanently EXPOSED and BRITTLE. For every debuff currently on yourself, gain +50% ATK.',
+    passive: [],
+    cultivation: { label: 'Debuffs On Self (+50% ATK each)', perStack: [{ stat: 'atk', op: 'pct', value: 50 }], defaultStacks: 2, maxStacks: 999 },
+    notes: 'Permanently EXPOSED + BRITTLE (2 base debuffs). Each debuff on self = +50% ATK. Stack more debuffs onto yourself to power up.',
+  },
 };
 
 // ============================================================
@@ -4213,7 +4323,7 @@ const SHIMMYFUL_LEGENDARY_TRAITS = {
 
   soul_fighter:       { name: 'SHIMMYFUL Soul Fighter', desc: 'Your body can\'t take damage, instead your soul does. Losing a fight will kill you, but you gain x7 MAG, increased to x15 when below 15% HP.', passive: [{ stat: 'mag', op: 'mul', value: 7 }], situational: [{ id: 'sf-s-low', label: 'Below 15% HP (MAG x15 instead)', passive: [{ stat: 'mag', op: 'mul', value: 15 }] }] },
 
-  triple_threat:      { name: 'SHIMMYFUL Triple The Threat', desc: 'While in a TRIO, the entire TRIO gains x5 all non-hp stats, and apply ENVIGORATED to every ally for 5 rounds at the start of a fight. If someone in the trio is knocked out, your next attack will deal 5 stacks of BLEED for 5 turns, but you and your ally\'s stats will be dropped to x0.5 for the rest of the fight, unless the knocked out ally is revived.', passive: [], situational: [{ id: 'tt-s-trio', label: 'In a TRIO (x5 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }] }, { id: 'tt-s-koed', label: 'Trio member KO\'d (x0.5 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 0.5 }, { stat: 'def', op: 'mul', value: 0.5 }, { stat: 'mag', op: 'mul', value: 0.5 }, { stat: 'spd', op: 'mul', value: 0.5 }] }] },
+  triple_threat:      { name: 'SHIMMYFUL Triple The Threat', desc: 'While in a TRIO, the entire TRIO gains x5 all non-hp stats, and apply ENVIGORATED to every ally for 5 rounds at the start of a fight. If someone in the trio is knocked out, your next attack will deal 5 stacks of BLEEDING for 5 turns, but you and your ally\'s stats will be dropped to x0.5 for the rest of the fight, unless the knocked out ally is revived.', passive: [], situational: [{ id: 'tt-s-trio', label: 'In a TRIO (x5 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }] }, { id: 'tt-s-koed', label: 'Trio member KO\'d (x0.5 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 0.5 }, { stat: 'def', op: 'mul', value: 0.5 }, { stat: 'mag', op: 'mul', value: 0.5 }, { stat: 'spd', op: 'mul', value: 0.5 }] }] },
 
   but_you_refused:    { name: 'SHIMMYFUL But You Refused', desc: 'upon dropping below 1% HP, revive on 75% HP and apply DETERMINED to yourself for the rest of the fight. ACT is more likely to succeed after.', passive: [], situational: [{ id: 'byr-s-active', label: 'Revived via SHIMMYFUL But You Refused (DETERMINED)', passive: [] }] },
 
@@ -4262,4 +4372,32 @@ const SHIMMYFUL_LEGENDARY_TRAITS = {
   one_hit_ko:         { name: 'SHIMMYFUL 1 Hit-KO', desc: 'Every fight, you have a chance to deal a punch that either has a 60% chance to knock you out or the enemy.', passive: [], notes: 'Once per fight: special punch — 60% chance to KO you, 40% to KO the enemy.' },
 
   shotgun_trait:      { name: 'SHIMMYFUL Shotgun', desc: 'You always skip the second turn. x6 ATK, attacks apply SOFTENED on-hit', passive: [{ stat: 'atk', op: 'mul', value: 6 }] },
+
+  shatter_seeker:     { name: 'SHIMMYFUL Shatter Seeker', desc: 'Your critical hits apply BRITTLE to the target. Hitting a BRITTLE target always crits AND deals +50% True Damage. BRITTLE stacks are doubled on crit.', passive: [{ stat: 'true_dmg', op: 'add', value: 50 }] },
+
+  demolitions_expert: { name: 'SHIMMYFUL Demolitions Expert', desc: 'Every 2nd hit applies VOLATILE to the target. When a VOLATILE explosion triggers, permanently gain +50 ATK and the explosion deals area damage to all enemies.', passive: [], cultivation: { label: 'VOLATILE Explosions Triggered (+50 ATK each)', perStack: [{ stat: 'atk', op: 'add', value: 50 }], defaultStacks: 0, maxStacks: 999 } },
+
+  glass_coffin:       { name: 'SHIMMYFUL Glass Coffin', desc: 'When you would be knocked out, instead become PETRIFIED for 3 turns and revive with 60% HP. Triggers up to twice per fight. When PETRIFIED ends, gain SURGE and RECKLESS.', passive: [] },
+
+  phantom_dance:      { name: 'SHIMMYFUL Phantom Dance', desc: 'Each successful dodge grants a stack of PHANTOM. When you are hit, all PHANTOM stacks are consumed — heal 8% HP per stack and gain +10% ATK per stack for the rest of the fight.', passive: [], cultivation: { label: 'ATK stacks from Phantom Dance', perStack: [{ stat: 'atk', op: 'pct', value: 10 }], defaultStacks: 0, maxStacks: 999 } },
+
+  war_echo:           { name: 'SHIMMYFUL War Echo', desc: 'Your killing blow on an enemy triggers ECHO — the hit replays against the next enemy at 75% power. Chains up to 5 times per fight. Each echo that kills also chains.', passive: [] },
+
+  anchored_titan:     { name: 'SHIMMYFUL Anchored Titan', desc: 'Become permanently ANCHORED. Gain +35 DEF every turn, stacking infinitely. Releasing ANCHORED converts all DEF stacks to one devastating hit and additionally applies VOLATILE and EXPOSED to the target.', passive: [], cultivation: { label: 'Turns Spent ANCHORED (+35 DEF each)', perStack: [{ stat: 'def', op: 'add', value: 35 }], defaultStacks: 0, maxStacks: 999 } },
+
+  counterstrike_protocol: { name: 'SHIMMYFUL Counterstrike Protocol', desc: 'Gain MIRRORED at the start of every fight. Each reflected damage instance permanently adds to your ATK. When you reflect a killing blow, revive with 50% HP.', passive: [] },
+
+  jinxmaster:         { name: 'SHIMMYFUL Jinxmaster', desc: 'Attacks apply JINXED to enemies. You are permanently JINXED. Deal +150% damage to JINXED targets and apply DECAY to JINXED enemies on-hit.', passive: [], situational: [{ id: 'jm-s-jinxed', label: 'Attacking a JINXED target (+150% damage)', passive: [{ stat: 'atk', op: 'pct', value: 150 }] }] },
+
+  the_crumbling:      { name: 'SHIMMYFUL The Crumbling', desc: 'At the start of every fight, apply DECAY and FRACTURED to all enemies. For each turn an enemy survives under DECAY, permanently gain +25% ATK.', passive: [], cultivation: { label: 'Enemy-Turns Under DECAY (+25% ATK each)', perStack: [{ stat: 'atk', op: 'pct', value: 25 }], defaultStacks: 0, maxStacks: 999 } },
+
+  fractured_reality:  { name: 'SHIMMYFUL Fractured Reality', desc: 'Your attacks apply FRACTURED to targets. Each FRACTURED echo heals you for 15% of the echo\'s damage and applies another stack of FRACTURED. FRACTURED stacks infinitely and each stack increases echo damage by 5%.', passive: [] },
+
+  resonance_cascade:  { name: 'SHIMMYFUL Resonance Cascade', desc: 'Gain 2 RESONANT at the start of every fight. Each ability used adds another RESONANT stack. At 4 stacks, all abilities trigger twice. At 8 stacks, all abilities trigger three times.', passive: [], situational: [{ id: 'rc-s-4', label: 'At 4 RESONANT stacks (abilities fire twice)', passive: [] }, { id: 'rc-s-8', label: 'At 8 RESONANT stacks (abilities fire three times)', passive: [] }] },
+
+  the_contradiction:  { name: 'SHIMMYFUL The Contradiction', desc: 'Healing deals damage to you instead. Taking damage heals you instead. You are permanently MIRRORED. All incoming status effects are inverted. Additionally, you reflect 50% of all magical damage as True Damage.', passive: [{ stat: 'true_dmg', op: 'add', value: 50 }] },
+
+  redline:            { name: 'SHIMMYFUL Redline', desc: 'Permanently OVERLOADED. Below 25% HP: x5 ATK. Below 10% HP: x12 ATK. Additionally, OVERLOADED self-damage is halved.', passive: [], situational: [{ id: 'rl-s-low', label: 'Below 25% HP (OVERLOADED: x5 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 5 }] }, { id: 'rl-s-crit', label: 'Below 10% HP (OVERLOADED: x12 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 12 }] }] },
+
+  voidwalker:         { name: 'SHIMMYFUL Voidwalker', desc: 'Permanently EXPOSED and BRITTLE. For every debuff on yourself, gain +75% ATK. Debuffs applied to you by enemies are added to the enemy instead (mirrored), and still count for your stack.', passive: [], cultivation: { label: 'Debuffs On Self (+75% ATK each)', perStack: [{ stat: 'atk', op: 'pct', value: 75 }], defaultStacks: 2, maxStacks: 999 } },
 };
