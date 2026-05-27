@@ -8287,8 +8287,9 @@ function _hcPopulateEditPanel(id) {
   // Crop sliders (only when sprite is set)
   const cropSec = document.getElementById('hc-crop-section');
   if (cropSec) {
-    cropSec.style.display = entry.spriteBase64 ? 'flex' : 'none';
-    if (entry.spriteBase64) {
+    const hasSprite = !!(entry.spriteBase64 || entry.spriteUrl);
+    cropSec.style.display = hasSprite ? 'flex' : 'none';
+    if (hasSprite) {
       const topPct = Math.round((entry.spriteTopFrac || 0) * 100);
       document.getElementById('hc-crop-top').value = topPct;
       document.getElementById('hc-crop-top-val').textContent = topPct + '%';
@@ -8427,6 +8428,41 @@ async function hcHandleSprite(ev) {
   if (file.type === 'image/gif') {
     if (typeof notify === 'function') notify('UPLOADING GIF...', 'ok');
     try {
+      // 1. Read the file locally so we can detect bounds from frame 0 via canvas
+      const dataUrl = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = e => resolve(e.target.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+
+      // 2. Detect bounds from first frame drawn to canvas
+      const bounds = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function () {
+          const analyseW = Math.min(img.naturalWidth, 600);
+          const analyseH = Math.round(img.naturalHeight * (analyseW / img.naturalWidth));
+          const ac = document.createElement('canvas');
+          ac.width = analyseW; ac.height = analyseH;
+          ac.getContext('2d').drawImage(img, 0, 0, analyseW, analyseH);
+          const px = ac.getContext('2d').getImageData(0, 0, analyseW, analyseH).data;
+          let topRow = analyseH, botRow = -1;
+          for (let y = 0; y < analyseH; y++) {
+            for (let x = 0; x < analyseW; x++) {
+              if (px[(y * analyseW + x) * 4 + 3] > 16) {
+                if (y < topRow) topRow = y;
+                if (y > botRow) botRow = y;
+              }
+            }
+          }
+          if (botRow < 0) { topRow = 0; botRow = analyseH - 1; }
+          resolve({ topFrac: topRow / analyseH, botFrac: (botRow + 1) / analyseH });
+        };
+        img.onerror = () => resolve({ topFrac: 0, botFrac: 1 });
+        img.src = dataUrl;
+      });
+
+      // 3. Upload the original file to Cloudinary
       const form = new FormData();
       form.append('file', file);
       form.append('upload_preset', CLOUDINARY_PRESET);
@@ -8437,10 +8473,11 @@ async function hcHandleSprite(ev) {
       if (!res.ok) throw new Error('Upload failed: ' + res.status);
       const data = await res.json();
       if (!data.secure_url) throw new Error((data.error && data.error.message) || 'No URL returned');
+
       entry.spriteBase64 = null;
       entry.spriteUrl = data.secure_url;
-      entry.spriteTopFrac = 0;
-      entry.spriteBotFrac = 1;
+      entry.spriteTopFrac = bounds.topFrac;
+      entry.spriteBotFrac = bounds.botFrac;
       _hcSave();
       renderHeightChart();
       if (_hcSelectedId === entry.id) _hcPopulateEditPanel(entry.id);
