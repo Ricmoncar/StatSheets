@@ -8028,7 +8028,7 @@ function renderHeightChart() {
   // Expand canvas width with zoom so sprites never overlap
   const n0 = _hcData.entries.length;
   const maxHeightPx = n0 ? Math.max(..._hcData.entries.map(e => (e.heightCm || 170) * pxPerCm)) : 200;
-  const minSlot = Math.max(80, maxHeightPx * 0.52);
+  const minSlot = Math.max(70, maxHeightPx * 0.38);
   const canvasW = Math.max(stageW, n0 > 1 ? (n0 + 1) * minSlot : stageW);
   _hcCanvasW = canvasW;
   canvas.style.width = canvasW + 'px';

@@ -3783,6 +3783,112 @@ const TRAITS = {
     notes: 'On-hit: apply JINXED. Self is permanently JINXED. +100% ATK vs any JINXED target.',
   },
 
+  switcheroo: {
+    name: 'Switcheroo', rarity: 'legendary',
+    desc: 'Once per fight, when you drop below 25% HP, swap your current HP percentage with the opponent who has the highest HP.',
+    passive: [],
+    notes: 'Once per fight: when HP drops below 25%, swap HP% with highest-HP opponent.',
+  },
+
+  copycat: {
+    name: 'Copycat', rarity: 'legendary',
+    desc: 'Each time you eliminate an opponent, permanently copy the SHIMMYFUL version of one of their traits (or regular if no shimmyful exists).',
+    passive: [],
+    notes: 'On kill: copy SHIMMYFUL version of target\'s trait (regular if no shimmyful exists). Permanent.',
+  },
+
+  loaded_dice: {
+    name: 'Loaded Dice', rarity: 'legendary',
+    desc: 'All chance-based effects (crits, dodges, on-hit procs, etc.) have their trigger rates doubled — yours and everyone else\'s.',
+    passive: [],
+    notes: 'All % chances (crit, dodge, proc) doubled for everyone in the fight.',
+  },
+
+  haunted: {
+    name: 'Haunted', rarity: 'legendary',
+    desc: 'Every round, your trait is swapped out for a random one from the full trait pool.',
+    passive: [],
+    notes: 'Every round: active trait swapped for a random one from the full pool.',
+  },
+
+  paper_crown: {
+    name: 'Paper Crown', rarity: 'legendary',
+    desc: 'You passively mirror the highest single stat bonus among all other fighters currently alive.',
+    passive: [],
+    notes: 'Mirror the highest single stat bonus from any living fighter. Updates each round.',
+  },
+
+  wildcard_trait: {
+    name: 'Wildcard', rarity: 'legendary',
+    desc: 'On pick, gain 4 random common traits. You can now hold 4 traits at once.',
+    passive: [],
+    notes: 'On pickup: grants 4 random common traits. Trait capacity increases to 4.',
+  },
+
+  big_spender: {
+    name: 'Big Spender', rarity: 'legendary',
+    desc: 'Once per fight, spend 10% HP to gain a random buff to any stat (x0.8–x1.75) for the whole fight.',
+    passive: [],
+    notes: 'Spend 10% HP: one random stat multiplied by x0.8–x1.75 for the fight.',
+  },
+
+  double_down: {
+    name: 'Double Down', rarity: 'legendary',
+    desc: 'Each fight, flip a coin. Heads: +40% ATK, DEF and MAG, x2.5 SPD. Tails: trait does nothing that fight.',
+    passive: [],
+    situational: [
+      { id: 'dd-heads', label: 'HEADS (+40% ATK/DEF/MAG, x2.5 SPD)', passive: [{ stat: 'atk', op: 'pct', value: 40 }, { stat: 'def', op: 'pct', value: 40 }, { stat: 'mag', op: 'pct', value: 40 }, { stat: 'spd', op: 'mul', value: 2.5 }] },
+      { id: 'dd-tails', label: 'TAILS — no effect this fight', passive: [] },
+    ],
+  },
+
+  sore_loser: {
+    name: 'Sore Loser', rarity: 'legendary',
+    desc: 'Every time you take damage, a random opponent also takes 25% of that damage.',
+    passive: [],
+    notes: 'On-hit (received): 25% of damage dealt to you is also applied to a random opponent.',
+  },
+
+  comfort_food: {
+    name: 'Comfort Food', rarity: 'legendary',
+    desc: 'Each time you take damage, gain ATK equal to 50% of the HP lost. Stacks for the fight.',
+    passive: [],
+    cultivation: { label: 'HP Lost ÷10 (+5 ATK per stack)', perStack: [{ stat: 'atk', op: 'add', value: 5 }], defaultStacks: 0, maxStacks: 9999 },
+    notes: 'Every 10 HP lost = +5 ATK. Track manually as stacks.',
+  },
+
+  training_arc: {
+    name: 'Training Arc', rarity: 'legendary',
+    desc: 'Your stats are halved for your first fight of the game. From then on, your SPD is permanently x5.',
+    passive: [{ stat: 'spd', op: 'mul', value: 5 }],
+    situational: [
+      { id: 'ta-first', label: 'First fight of the game (all stats ÷2)', passive: [{ stat: 'all_main', op: 'pct', value: -50 }] },
+    ],
+  },
+
+  anime_protagonist: {
+    name: 'Anime Protagonist', rarity: 'legendary',
+    desc: 'Every fight you lose this game, permanently gain +20% all stats.',
+    passive: [],
+    cultivation: { label: 'Fights Lost (+20% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 20 }], defaultStacks: 0, maxStacks: 100 },
+  },
+
+  tiki_tiki: {
+    name: 'Tiki Tiki', rarity: 'legendary',
+    desc: 'You gain x3 all non-HP stats while singing.',
+    passive: [],
+    situational: [
+      { id: 'tt-singing', label: 'Currently singing (x3 ATK/DEF/MAG/SPD)', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'def', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }] },
+    ],
+  },
+
+  plot_convenience: {
+    name: 'Plot Convenience', rarity: 'legendary',
+    desc: 'Once per game, a random opponent in your current fight randomly loses 40% of their current HP for absolutely no reason.',
+    passive: [],
+    notes: 'Once per game: one random opponent loses 40% of their current HP for no reason.',
+  },
+
   the_crumbling: {
     name: 'The Crumbling', rarity: 'mythic',
     desc: 'At the start of every fight, apply DECAY to all enemies. For each turn an enemy survives under DECAY, permanently gain +15% ATK.',
@@ -4400,4 +4506,32 @@ const SHIMMYFUL_LEGENDARY_TRAITS = {
   redline:            { name: 'SHIMMYFUL Redline', desc: 'Permanently OVERLOADED. Below 25% HP: x5 ATK. Below 10% HP: x12 ATK. Additionally, OVERLOADED self-damage is halved.', passive: [], situational: [{ id: 'rl-s-low', label: 'Below 25% HP (OVERLOADED: x5 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 5 }] }, { id: 'rl-s-crit', label: 'Below 10% HP (OVERLOADED: x12 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 12 }] }] },
 
   voidwalker:         { name: 'SHIMMYFUL Voidwalker', desc: 'Permanently EXPOSED and BRITTLE. For every debuff on yourself, gain +75% ATK. Debuffs applied to you by enemies are added to the enemy instead (mirrored), and still count for your stack.', passive: [], cultivation: { label: 'Debuffs On Self (+75% ATK each)', perStack: [{ stat: 'atk', op: 'pct', value: 75 }], defaultStacks: 2, maxStacks: 999 } },
+
+  switcheroo:         { name: 'SHIMMYFUL Switcheroo', desc: 'Twice per fight, when you drop below 40% HP, swap your current HP percentage with any opponent of your choice.', passive: [], notes: 'Twice per fight: at below 40% HP, choose any opponent to swap HP% with.' },
+
+  copycat:            { name: 'SHIMMYFUL Copycat', desc: 'Each time you eliminate an opponent, permanently copy the SHIMMYFUL version of one of their traits and gain +30% all stats for that fight.', passive: [], situational: [{ id: 'cc-s-1', label: '1 kill (+30% all stats this fight)', passive: [{ stat: 'all_main', op: 'pct', value: 30 }] }, { id: 'cc-s-2', label: '2 kills (+60% all stats this fight)', passive: [{ stat: 'all_main', op: 'pct', value: 60 }] }, { id: 'cc-s-3', label: '3 kills (+90% all stats this fight)', passive: [{ stat: 'all_main', op: 'pct', value: 90 }] }] },
+
+  loaded_dice:        { name: 'SHIMMYFUL Loaded Dice', desc: 'All chance-based effects (crits, dodges, procs) have their trigger rates tripled for everyone in the fight. The swings are enormous.', passive: [], notes: 'All % chances tripled for everyone in the fight.' },
+
+  haunted:            { name: 'SHIMMYFUL Haunted', desc: 'Every round, your trait is swapped for a random one from the full pool and you gain +15% all stats (stacking).', passive: [], cultivation: { label: 'Rounds Passed (+15% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 15 }], defaultStacks: 0, maxStacks: 999 } },
+
+  paper_crown:        { name: 'SHIMMYFUL Paper Crown', desc: 'You passively mirror the top TWO highest stat bonuses among all other fighters currently alive.', passive: [], notes: 'Mirror the two highest stat bonuses from any living fighter. Updates each round.' },
+
+  wildcard_trait:     { name: 'SHIMMYFUL Wildcard', desc: 'On pick, gain 5 random common traits and 1 guaranteed rare trait. You can hold 5 traits at once.', passive: [], notes: 'On pickup: grants 5 random common + 1 random rare trait. Capacity increases to 5.' },
+
+  big_spender:        { name: 'SHIMMYFUL Big Spender', desc: 'Once per fight, spend 5% HP to gain a random buff to any stat (x1.5–x3.0) for the whole fight. Always a positive roll.', passive: [], notes: 'Spend 5% HP: one random stat multiplied by x1.5–x3.0 for the fight.' },
+
+  double_down:        { name: 'SHIMMYFUL Double Down', desc: 'Each fight, flip a coin. Heads: +80% ATK, DEF and MAG, x3.5 SPD. Tails: only -5% all stats.', passive: [], situational: [{ id: 'dd-s-heads', label: 'HEADS (+80% ATK/DEF/MAG, x3.5 SPD)', passive: [{ stat: 'atk', op: 'pct', value: 80 }, { stat: 'def', op: 'pct', value: 80 }, { stat: 'mag', op: 'pct', value: 80 }, { stat: 'spd', op: 'mul', value: 3.5 }] }, { id: 'dd-s-tails', label: 'TAILS (-5% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: -5 }] }] },
+
+  sore_loser:         { name: 'SHIMMYFUL Sore Loser (Legendary)', desc: 'Every time you take damage, a random opponent also takes 40% of that damage.', passive: [], notes: 'On-hit (received): 40% of damage dealt to you is also applied to a random opponent.' },
+
+  comfort_food:       { name: 'SHIMMYFUL Comfort Food', desc: 'Each time you take damage, gain ATK equal to 100% of the HP lost. Stacks for the fight.', passive: [], cultivation: { label: 'HP Lost ÷10 (+10 ATK per stack)', perStack: [{ stat: 'atk', op: 'add', value: 10 }], defaultStacks: 0, maxStacks: 9999 } },
+
+  training_arc:       { name: 'SHIMMYFUL Training Arc', desc: 'Your ATK, DEF, and MAG are halved for your first fight of the game. From then on, your SPD is permanently x8.', passive: [{ stat: 'spd', op: 'mul', value: 8 }], situational: [{ id: 'ta-s-first', label: 'First fight (ATK, DEF, MAG ÷2)', passive: [{ stat: 'atk', op: 'pct', value: -50 }, { stat: 'def', op: 'pct', value: -50 }, { stat: 'mag', op: 'pct', value: -50 }] }] },
+
+  anime_protagonist:  { name: 'SHIMMYFUL Anime Protagonist', desc: 'Every fight you lose, permanently gain +30% all stats and +5% max HP.', passive: [], cultivation: { label: 'Fights Lost (+30% all stats, +5% HP each)', perStack: [{ stat: 'all_main', op: 'pct', value: 30 }, { stat: 'hp', op: 'pct', value: 5 }], defaultStacks: 0, maxStacks: 100 } },
+
+  tiki_tiki:          { name: 'SHIMMYFUL Tiki Tiki', desc: 'You gain x5 all non-HP stats while singing. Opponents must listen, losing 20% all stats while the song continues.', passive: [], situational: [{ id: 'tt-s-singing', label: 'Currently singing (x5 ATK/DEF/MAG/SPD)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }] }] },
+
+  plot_convenience:   { name: 'SHIMMYFUL Plot Convenience', desc: 'Twice per game, a random opponent in your current fight randomly loses 60% of their current HP and gains EXPOSED for absolutely no reason.', passive: [], notes: 'Twice per game: one random opponent loses 60% current HP and gains EXPOSED for no reason.' },
 };
