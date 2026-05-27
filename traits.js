@@ -3139,6 +3139,588 @@ const TRAITS = {
     passive: [{ stat: 'hp', op: 'pct', value: 50 }],
     situational: [{ id: 'tic-full', label: 'Full HP (x1.45 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 45 }] }, { id: 'tic-75', label: 'Below 75% HP (x1.3 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 30 }] }, { id: 'tic-50', label: 'Below 50% HP (x1.1 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 10 }] }, { id: 'tic-25', label: 'Below 25% HP (x0.9 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: -10 }] }, { id: 'tic-low', label: 'Near knockout (x0.8 all stats)', passive: [{ stat: 'all_main', op: 'pct', value: -20 }] }],
   },
+
+  // ── NEW LEGENDARIES ──────────────────────────────────────────
+  blind_monk: {
+    name: 'Blind Monk', rarity: 'legendary',
+    desc: 'apply blinded-onhit and to yourself. +80% accuracy while above 60% HP. Apply CONFUSED on-hit with a 20% chance.',
+    passive: [],
+    situational: [{ id: 'bm-above60', label: 'Above 60% HP (+80% accuracy)', passive: [{ stat: 'dexterity', op: 'add', value: 80 }] }],
+    notes: 'Applies BLINDED to self and on-hit. 20% chance to apply CONFUSED on-hit.',
+  },
+
+  warden_ally: {
+    name: 'Warden', rarity: 'legendary',
+    desc: '+50% DEF per ally.',
+    passive: [],
+    situational: [
+      { id: 'wa-1', label: '1 ally (+50% DEF)', passive: [{ stat: 'def', op: 'pct', value: 50 }] },
+      { id: 'wa-2', label: '2 allies (+100% DEF)', passive: [{ stat: 'def', op: 'pct', value: 100 }] },
+      { id: 'wa-3', label: '3 allies (+150% DEF)', passive: [{ stat: 'def', op: 'pct', value: 150 }] },
+      { id: 'wa-4', label: '4 allies (+200% DEF)', passive: [{ stat: 'def', op: 'pct', value: 200 }] },
+      { id: 'wa-5', label: '5 allies (+250% DEF)', passive: [{ stat: 'def', op: 'pct', value: 250 }] },
+    ],
+  },
+
+  funky_battle: {
+    name: 'Funky Battle', rarity: 'legendary',
+    desc: 'All units on the battle turn FUNKY. +30% to all non-hp stats. Gain +5% crit chance per hit during a fight. Gain +5% DEX per attack dodged during a fight.',
+    passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'def', op: 'pct', value: 30 }, { stat: 'mag', op: 'pct', value: 30 }, { stat: 'spd', op: 'pct', value: 30 }],
+    situational: [
+      { id: 'fb-5h', label: '5 hits landed (+25% crit chance)', passive: [{ stat: 'crit_rate', op: 'add', value: 25 }] },
+      { id: 'fb-10h', label: '10 hits landed (+50% crit chance)', passive: [{ stat: 'crit_rate', op: 'add', value: 50 }] },
+      { id: 'fb-5d', label: '5 attacks dodged (+25% DEX)', passive: [{ stat: 'dexterity', op: 'add', value: 25 }] },
+      { id: 'fb-10d', label: '10 attacks dodged (+50% DEX)', passive: [{ stat: 'dexterity', op: 'add', value: 50 }] },
+    ],
+    notes: 'Applies FUNKY to all units at fight start. +5% crit per hit, +5% DEX per dodge, track in situational.',
+  },
+
+  fear_aura: {
+    name: 'FEAR', rarity: 'legendary',
+    desc: 'Once a battle, let out a terrifying cry, applying FEAR to all units on the field for 1-2 rounds except you, including allies. +50% Lifesteal and crit chance per FEARED unit.',
+    passive: [],
+    situational: [
+      { id: 'fear-1u', label: '1 FEARED unit (+50% Lifesteal, +50% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 50 }, { stat: 'crit_rate', op: 'add', value: 50 }] },
+      { id: 'fear-2u', label: '2 FEARED units (+100% Lifesteal, +100% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 100 }, { stat: 'crit_rate', op: 'add', value: 100 }] },
+      { id: 'fear-3u', label: '3 FEARED units (+150% Lifesteal, +150% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 150 }, { stat: 'crit_rate', op: 'add', value: 150 }] },
+      { id: 'fear-4u', label: '4 FEARED units (+200% Lifesteal, +200% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 200 }, { stat: 'crit_rate', op: 'add', value: 200 }] },
+    ],
+    notes: 'Once per battle: apply FEAR to all units except self for 1-2 rounds.',
+  },
+
+  trinity_trait: {
+    name: 'Trinity', rarity: 'legendary',
+    desc: '+1 ATK per 1 DEF. +1 DEF per 1 SPE. +1 SPE per 2 ATK. +33% DEX, +33% Resilience, +33% Crit Chance',
+    passive: [
+      { op: 'derived', stat: 'atk', from: 'def', per: 1, perValue: 1 },
+      { op: 'derived', stat: 'def', from: 'spd', per: 1, perValue: 1 },
+      { op: 'derived', stat: 'spd', from: 'atk', per: 2, perValue: 1 },
+      { stat: 'dexterity', op: 'add', value: 33 },
+      { stat: 'resilience', op: 'add', value: 33 },
+      { stat: 'crit_rate', op: 'add', value: 33 },
+    ],
+  },
+
+  retribution: {
+    name: 'Retribution', rarity: 'legendary',
+    desc: 'for every time you\'re hit, gain x5 ATK for your next attack.',
+    passive: [],
+    situational: [{ id: 'ret-active', label: 'Just been hit (x5 ATK for next attack)', passive: [{ stat: 'atk', op: 'mul', value: 5 }] }],
+    notes: 'Toggle when hit; untoggle after your next attack lands.',
+  },
+
+  beyond_edge: {
+    name: 'Beyond the Edge', rarity: 'legendary',
+    desc: 'When dropping below 0% HP, gain a new HP bar worth 100% of your max HP. DEF drops to 0',
+    passive: [],
+    situational: [{ id: 'bte-active', label: 'Second HP bar active (DEF → 0)', passive: [{ stat: 'def', op: 'mul', value: 0 }] }],
+    notes: 'On reaching 0 HP: spawn second HP bar equal to max HP. DEF becomes 0.',
+  },
+
+  my_true_form: {
+    name: 'MY TRUE FORM!', rarity: 'legendary',
+    desc: 'Activate your EX form at any point, doubling the size of your legs and increasing your SPD, ATK and MAG x3, but lowering your defense by 50%',
+    passive: [],
+    situational: [{ id: 'mtf-active', label: 'EX Form active (x3 SPD/ATK/MAG, -50% DEF)', passive: [{ stat: 'spd', op: 'mul', value: 3 }, { stat: 'atk', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'def', op: 'pct', value: -50 }] }],
+    notes: 'Toggle to activate EX form manually.',
+  },
+
+  drama_romance: {
+    name: 'Drama, Romance, Bloodshed!', rarity: 'legendary',
+    desc: 'For every unit (ally or enemy) knocked out, gain +10% all substats to the whole team and apply 1 stack of ENVIGORATED to all allies for 3 rounds',
+    passive: [],
+    situational: [
+      { id: 'drb-1ko', label: '1 KO (+10% all substats)', passive: [{ stat: 'all_sub', op: 'add', value: 10 }] },
+      { id: 'drb-3ko', label: '3 KOs (+30% all substats)', passive: [{ stat: 'all_sub', op: 'add', value: 30 }] },
+      { id: 'drb-5ko', label: '5 KOs (+50% all substats)', passive: [{ stat: 'all_sub', op: 'add', value: 50 }] },
+    ],
+    notes: 'Each KO applies ENVIGORATED to all allies for 3 rounds.',
+  },
+
+  imperial_march: {
+    name: 'Imperial March', rarity: 'legendary',
+    desc: 'Every unit defeated (not killed) has a chance to join your party permanently, turning into your subject. Gain a crown that increases your non-hp stats by +20% per subject.',
+    passive: [],
+    situational: [
+      { id: 'im-1s', label: '1 subject (+20% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 20 }, { stat: 'def', op: 'pct', value: 20 }, { stat: 'mag', op: 'pct', value: 20 }, { stat: 'spd', op: 'pct', value: 20 }] },
+      { id: 'im-3s', label: '3 subjects (+60% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 60 }, { stat: 'def', op: 'pct', value: 60 }, { stat: 'mag', op: 'pct', value: 60 }, { stat: 'spd', op: 'pct', value: 60 }] },
+      { id: 'im-5s', label: '5 subjects (+100% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 100 }, { stat: 'def', op: 'pct', value: 100 }, { stat: 'mag', op: 'pct', value: 100 }, { stat: 'spd', op: 'pct', value: 100 }] },
+    ],
+    notes: 'Spared enemies have a chance to become subjects. +20% non-HP stats per subject (crown).',
+  },
+
+  violent_crusade: {
+    name: 'Violent Crusade', rarity: 'legendary',
+    desc: 'Permanently apply ADRENALINE status effect during every fight. Attacks deal NULLIFIED status effect. Killing an enemy grants HELLFIRE BURN for your next 3 attacks, carries over through fights. At 100 kills, gain permanent HELLFIRE BURN on your attacks and x10 ATK.',
+    passive: [],
+    cultivation: { label: 'Total Kills', perStack: [], defaultStacks: 0, maxStacks: 999 },
+    situational: [
+      { id: 'vc-100k', label: 'At 100 kills (permanent HELLFIRE BURN + x10 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 10 }] },
+    ],
+    notes: 'Always ADRENALINE in fight. NULLIFIED on-hit. 3 HELLFIRE BURN attacks per kill (carry over). At 100 kills: x10 ATK + permanent HELLFIRE BURN.',
+  },
+
+  brute_trait: {
+    name: 'Brute', rarity: 'legendary',
+    desc: 'can\'t use magic, MAG is set to 0. Gain +25% ATK per punch during a fight. Being physically hit increases DEF by +25%, stacking. Become slightly bigger and buffer per hit taken/dealt',
+    passive: [{ stat: 'mag', op: 'mul', value: 0 }],
+    situational: [
+      { id: 'brute-5p', label: '5 punches landed (+125% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 125 }] },
+      { id: 'brute-5h', label: '5 physical hits taken (+125% DEF)', passive: [{ stat: 'def', op: 'pct', value: 125 }] },
+      { id: 'brute-10p', label: '10 punches (+250% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 250 }] },
+      { id: 'brute-10h', label: '10 hits taken (+250% DEF)', passive: [{ stat: 'def', op: 'pct', value: 250 }] },
+    ],
+    notes: 'MAG set to 0. +25% ATK per punch, +25% DEF per physical hit. Track with situational.',
+  },
+
+  demon_pact: {
+    name: 'Demon Pact', rarity: 'legendary',
+    desc: 'Turn into a half-demon. +100% Lifesteal, -100% true damage. With every hit, apply CURSED for 2 turns (-60% stats to enemies). Being hit applies PIERCED to you.',
+    passive: [{ stat: 'lifesteal', op: 'add', value: 100 }, { stat: 'true_dmg', op: 'add', value: -100 }],
+    notes: 'On-hit: CURSED (2 turns). When hit: PIERCED applied to self.',
+  },
+
+  god_complex: {
+    name: 'God Complex', rarity: 'legendary',
+    desc: 'Apply BAIT to yourself. Get +100% DEX and SPD. Apply FLOWING to yourself every turn, non-stacking. Apply PATIENT and SHIELDED to yourself for the first time you\'re hit during a fight. Gain +10% all non-hp stats per enemy or ally you\'ve insulted or taunted in a fight, one stack per unit. Get 1 stack of Empowered every turn, stacking.',
+    passive: [{ stat: 'dexterity', op: 'add', value: 100 }, { stat: 'spd', op: 'pct', value: 100 }],
+    situational: [
+      { id: 'gc-1t', label: '1 unit taunted/insulted (+10% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 10 }, { stat: 'def', op: 'pct', value: 10 }, { stat: 'mag', op: 'pct', value: 10 }, { stat: 'spd', op: 'pct', value: 10 }] },
+      { id: 'gc-3t', label: '3 units taunted (+30% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'def', op: 'pct', value: 30 }, { stat: 'mag', op: 'pct', value: 30 }, { stat: 'spd', op: 'pct', value: 30 }] },
+      { id: 'gc-5t', label: '5 units taunted (+50% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'def', op: 'pct', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }, { stat: 'spd', op: 'pct', value: 50 }] },
+    ],
+    notes: 'Apply BAIT to self. Apply FLOWING each turn (non-stacking). First hit: PATIENT + SHIELDED. 1 Empowered stack/turn.',
+  },
+
+  facade_trait: {
+    name: 'Façade', rarity: 'legendary',
+    desc: 'First time you\'re hit during a fight, nullify all damage and increase your DEF and HP by the amount of ATK and SPD you have.',
+    passive: [],
+    situational: [{ id: 'fac-triggered', label: 'Façade triggered (first hit nullified, DEF+HP boosted)', passive: [] }],
+    notes: 'First hit per fight: nullify damage. Gain flat DEF equal to your ATK value, flat HP equal to your SPD value.',
+  },
+
+  vortex_trait: {
+    name: 'Vortex', rarity: 'legendary',
+    desc: 'Apply DEFERRED status effect to the first enemy you hit. Apply Weighted to every enemy you hit afterwards. Enemies that hit you have a 25% chance of being applied with CONFUSED',
+    passive: [],
+    notes: 'First hit: DEFERRED. Subsequent hits: WEIGHTED. 25% chance enemies apply CONFUSED when they hit you.',
+  },
+
+  hypno: {
+    name: 'Hypno', rarity: 'legendary',
+    desc: 'Apply TIRED on-hit. Apply EXHAUSTED on-hit if hitting TIRED enemies. Apply ASLEEP on-hit if target is EXHAUSTED. Apply HAUNTED to all enemies the first turn',
+    passive: [],
+    notes: 'Chain: TIRED → EXHAUSTED (on TIRED) → ASLEEP (on EXHAUSTED). Apply HAUNTED to all enemies on turn 1.',
+  },
+
+  charmer: {
+    name: 'Charmer', rarity: 'legendary',
+    desc: 'Apply CHARMED on-hit with a 40% chance for 1 round,  and BRAINWASHED on-hit with a 5% chance for 2 rounds.  5% chance to apply BERSERK instead of BRAINWASHED, for 2 rounds.',
+    passive: [],
+    notes: '40% CHARMED (1 round). 5% BRAINWASHED (2 rounds). 5% BERSERK instead of BRAINWASHED (2 rounds).',
+  },
+
+  mero_mero: {
+    name: 'Mero, mero!', rarity: 'legendary',
+    desc: 'Apply PETRIFIED on-hit with a 5% chance, for 1 round. Gain +50% SPD and increase the effectivity of your range attacks by +50%',
+    passive: [{ stat: 'spd', op: 'pct', value: 50 }],
+    notes: '5% PETRIFIED on-hit for 1 round. Range attack effectiveness +50%.',
+  },
+
+  high_roller: {
+    name: 'High-roller', rarity: 'legendary',
+    desc: 'Apply ANTE UP to yourself every turn. Hitting an ANTE UP increases your next ANTE UP\'s buff by an extra 1 (so x4 turns into x5), resets upon missing or hitting an ally.',
+    passive: [],
+    notes: 'Apply ANTE UP to self each turn. Consecutive hits vs ANTE UP enemy escalate multiplier by 1. Miss/ally hit resets.',
+  },
+
+  energy_drain: {
+    name: 'Energy Drain', rarity: 'legendary',
+    desc: 'Apply TIRED for 3 turns to all enemies who attack you physically. Applies NULLIFIED for 3 turns to enemies who attack you with magic. Apply OVERHEATED for 3 rounds on-hit with a 40% chance. +5% all non-HP stats per OVERHEATED enemy.',
+    passive: [],
+    situational: [
+      { id: 'ed-1ov', label: '1 OVERHEATED enemy (+5% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 5 }, { stat: 'def', op: 'pct', value: 5 }, { stat: 'mag', op: 'pct', value: 5 }, { stat: 'spd', op: 'pct', value: 5 }] },
+      { id: 'ed-3ov', label: '3 OVERHEATED enemies (+15% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 15 }, { stat: 'def', op: 'pct', value: 15 }, { stat: 'mag', op: 'pct', value: 15 }, { stat: 'spd', op: 'pct', value: 15 }] },
+      { id: 'ed-5ov', label: '5 OVERHEATED enemies (+25% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 25 }, { stat: 'def', op: 'pct', value: 25 }, { stat: 'mag', op: 'pct', value: 25 }, { stat: 'spd', op: 'pct', value: 25 }] },
+    ],
+    notes: 'Physical attackers get TIRED (3 turns). Magic attackers get NULLIFIED (3 turns). 40% OVERHEATED on-hit.',
+  },
+
+  frostfire_trait: {
+    name: 'Frostfire', rarity: 'legendary',
+    desc: 'Apply FROZEN on-hit for 1 round with a 50% chance. Apply BURN on-hit for 1 round with a 50% chance. Applying both in one turn applies HELLFIRE BURN for 2 rounds and gives you +100% True Damage on your next hit. Can\'t be knocked out while an enemy is either frozen or burning.',
+    passive: [],
+    situational: [{ id: 'ff-bonus', label: 'Applied both FROZEN & BURN this turn (+100% True Damage next hit)', passive: [{ stat: 'true_dmg', op: 'add', value: 100 }] }],
+    notes: '50% FROZEN on-hit, 50% BURN on-hit. Both in same turn → HELLFIRE BURN (2 rounds) + +100% True Dmg next hit. Cannot KO while enemy is FROZEN or BURN.',
+  },
+
+  karmic_retribution: {
+    name: 'Karmic Retribution', rarity: 'legendary',
+    desc: 'Your attacks deal x7 damage, applied in the span of 3 turns, to enemies who have more than 20 kills.',
+    passive: [],
+    situational: [{ id: 'kr-active', label: 'Targeting enemy with 20+ kills (x7 dmg over 3 turns)', passive: [{ stat: 'atk', op: 'mul', value: 7 }] }],
+    notes: 'x7 damage vs 20+ kill enemies, delivered over 3 turns.',
+  },
+
+  soul_fighter: {
+    name: 'Soul Fighter', rarity: 'legendary',
+    desc: 'Your body can\'t take damage, instead your soul does. Losing a fight will kill you, but you gain x5 MAG, increased to x10 when below 15% HP.',
+    passive: [{ stat: 'mag', op: 'mul', value: 5 }],
+    situational: [{ id: 'sf-low', label: 'Below 15% HP (MAG x10 instead)', passive: [{ stat: 'mag', op: 'mul', value: 10 }] }],
+    notes: 'Soul takes damage instead of body. Losing = death. x5 MAG normally, x10 below 15% HP.',
+  },
+
+  triple_threat: {
+    name: 'Triple The Threat', rarity: 'legendary',
+    desc: 'While in a TRIO, the entire TRIO gains x3.33 all non-hp stats, and apply ENVIGORATED to every ally for 3 rounds at the start of a fight. If someone in the trio is knocked out, your next attack will deal 3 stacks of BLEED for 3 turns, but you and your ally\'s stats will be dropped to x0.33 for the rest of the fight, unless the knocked out ally is revived.',
+    passive: [],
+    situational: [
+      { id: 'tt-trio', label: 'In a TRIO (x3.33 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 3.33 }, { stat: 'def', op: 'mul', value: 3.33 }, { stat: 'mag', op: 'mul', value: 3.33 }, { stat: 'spd', op: 'mul', value: 3.33 }] },
+      { id: 'tt-koed', label: 'Trio member KO\'d (x0.33 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 0.33 }, { stat: 'def', op: 'mul', value: 0.33 }, { stat: 'mag', op: 'mul', value: 0.33 }, { stat: 'spd', op: 'mul', value: 0.33 }] },
+    ],
+    notes: 'ENVIGORATED to all allies at fight start. Trio KO: next attack applies 3 BLEED stacks; stats drop to x0.33 unless revived.',
+  },
+
+  but_you_refused: {
+    name: 'But You Refused', rarity: 'legendary',
+    desc: 'upon dropping below 1% HP, revive on 50% HP and apply DETERMINED to yourself for the rest of the fight. ACT is more likely to succeed after.',
+    passive: [],
+    situational: [{ id: 'byr-active', label: 'Revived via But You Refused (DETERMINED active)', passive: [] }],
+    notes: 'One-time per fight: survive below 1% HP, revive at 50% HP + DETERMINED status.',
+  },
+
+  i_am_perfect: {
+    name: 'I am Perfect', rarity: 'legendary',
+    desc: 'Become cocky, increasingly so as a fight goes on. For every dodged attack, gain +50% all non-HP stats for the rest of the fight. Landing an attack grants the same buff. Gain REFRESHED for 1 round upon being knocked below 20% HP',
+    passive: [],
+    situational: [
+      { id: 'iap-1s', label: '1 dodge/hit (+50% all non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'def', op: 'pct', value: 50 }, { stat: 'mag', op: 'pct', value: 50 }, { stat: 'spd', op: 'pct', value: 50 }] },
+      { id: 'iap-3s', label: '3 dodges/hits (+150% all non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 150 }, { stat: 'def', op: 'pct', value: 150 }, { stat: 'mag', op: 'pct', value: 150 }, { stat: 'spd', op: 'pct', value: 150 }] },
+      { id: 'iap-5s', label: '5 dodges/hits (+250% all non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 250 }, { stat: 'def', op: 'pct', value: 250 }, { stat: 'mag', op: 'pct', value: 250 }, { stat: 'spd', op: 'pct', value: 250 }] },
+    ],
+    notes: '+50% non-HP stats per dodge or landed attack, stacking. REFRESHED on drop below 20% HP.',
+  },
+
+  stoner: {
+    name: 'Stoner', rarity: 'legendary',
+    desc: 'Apply DRUGGED to yourself every turn, stacking.',
+    passive: [],
+    notes: 'Apply 1 stack of DRUGGED to self each turn, infinitely stacking.',
+  },
+
+  drunkard: {
+    name: 'Drunkard', rarity: 'legendary',
+    desc: 'Apply DRUNK to yourself every turn, stacking.',
+    passive: [],
+    notes: 'Apply 1 stack of DRUNK to self each turn, infinitely stacking.',
+  },
+
+  rasta_fire: {
+    name: 'Rasta Fire', rarity: 'legendary',
+    desc: 'Apply BURNED and DRUGGED on-hit with a 80% chance. x20 DEF towards DRUGGED enemies.',
+    passive: [],
+    situational: [{ id: 'rf-drugged', label: 'Hitting DRUGGED enemy (x20 DEF)', passive: [{ stat: 'def', op: 'mul', value: 20 }] }],
+    notes: '80% chance to apply BURNED and DRUGGED on-hit. x20 effective DEF vs DRUGGED targets.',
+  },
+
+  chemicals: {
+    name: 'CHEMICALS', rarity: 'legendary',
+    desc: 'Apply a random NEGATIVE status effect to all enemies at the beginning of a fight. Apply a random POSITIVE status effect to all enemies at the beginning of a fight',
+    passive: [],
+    notes: 'At fight start: apply 1 random negative AND 1 random positive status to all enemies.',
+  },
+
+  chem_warrior: {
+    name: 'Chem-warrior', rarity: 'legendary',
+    desc: 'Apply a random NEUTRAL or NEGATIVE status effect to enemies on-hit. Gain +10% ATK and DEF per stack of any status effect on enemies.',
+    passive: [],
+    situational: [
+      { id: 'cw-1s', label: '1 status stack on enemies (+10% ATK, +10% DEF)', passive: [{ stat: 'atk', op: 'pct', value: 10 }, { stat: 'def', op: 'pct', value: 10 }] },
+      { id: 'cw-5s', label: '5 status stacks (+50% ATK, +50% DEF)', passive: [{ stat: 'atk', op: 'pct', value: 50 }, { stat: 'def', op: 'pct', value: 50 }] },
+      { id: 'cw-10s', label: '10 status stacks (+100% ATK, +100% DEF)', passive: [{ stat: 'atk', op: 'pct', value: 100 }, { stat: 'def', op: 'pct', value: 100 }] },
+    ],
+    notes: 'Random neutral/negative status on-hit. +10% ATK+DEF per total status stack on all enemies.',
+  },
+
+  aoe_all: {
+    name: 'AOE', rarity: 'legendary',
+    desc: 'All of your attacks turn AOE. Get +5% ATK per enemy hit in a fight, infinitely stacking. Apply ',
+    passive: [],
+    cultivation: { label: 'Enemies Hit', perStack: [{ stat: 'atk', op: 'pct', value: 5 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'All attacks become AOE. +5% ATK per enemy hit in a fight (use cultivation to track).',
+  },
+
+  hornet: {
+    name: 'Hornet', rarity: 'legendary',
+    desc: 'Apply POISON on-hit. Hitting a target that\'s poisoned doubles the poison stacks (x1 - x2 - x4 - x8 ...)',
+    passive: [],
+    notes: 'POISON on-hit. Each hit on a poisoned target doubles its current poison stack count.',
+  },
+
+  chaotic: {
+    name: 'Chaotic', rarity: 'legendary',
+    desc: 'Everyone\'s stats are shuffled in a fight.',
+    passive: [],
+    notes: 'At fight start: randomize/shuffle all stats for every unit including self.',
+  },
+
+  oh_brother: {
+    name: 'Oh Brother, where art thou?', rarity: 'legendary',
+    desc: 'Gain x4 all stats when fighting a sibling or with a sibling in your team.',
+    passive: [],
+    situational: [{ id: 'ob-active', label: 'Fighting/with a sibling (x4 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 4 }] }],
+  },
+
+  mimic_trait: {
+    name: 'Mimic', rarity: 'legendary',
+    desc: 'Choose an enemy, and steal all of their abilities, weapons, and add 50% of their stats to yours.',
+    passive: [],
+    notes: 'RP: choose one enemy, copy their abilities/weapons. Add 50% of each of their stats to yours.',
+  },
+
+  regicide: {
+    name: 'Regicide', rarity: 'legendary',
+    desc: 'Fighting someone with royal blood grants x3 all non-hp stats. Killing them grants 100 MAG and ATK permanently.',
+    passive: [],
+    situational: [{ id: 'reg-active', label: 'Fighting royalty (x3 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'def', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }] }, { id: 'reg-killed', label: 'Killed royalty (+100 ATK, +100 MAG, permanent)', passive: [{ stat: 'atk', op: 'add', value: 100 }, { stat: 'mag', op: 'add', value: 100 }] }],
+  },
+
+  supernova: {
+    name: 'Supernova', rarity: 'legendary',
+    desc: 'Defeating an enemy causes a cosmic explosion, dealing 20% of that enemy\'s max hp as true damage to every unit except yourself in the field. Everyone except you is applied DEFERRED and CORRODED for 3 rounds.',
+    passive: [],
+    notes: 'On kill: 20% max HP true damage AoE to all other units + DEFERRED + CORRODED (3 rounds).',
+  },
+
+  chilling_elegy: {
+    name: 'Chilling Elegy', rarity: 'legendary',
+    desc: 'Apply FROZEN on-hit with a 50% chance for 2 rounds. Hitting a FROZEN enemy applies DOOM to them.',
+    passive: [],
+    notes: '50% FROZEN on-hit (2 rounds). Hitting FROZEN enemy → DOOM.',
+  },
+
+  defiant: {
+    name: 'Defiant', rarity: 'legendary',
+    desc: 'Being hit grants ANGRY and ENVIGORATED, infinitely stacking.',
+    passive: [],
+    notes: 'Each hit received: apply 1 stack of ANGRY and ENVIGORATED to self. Infinite stacking.',
+  },
+
+  the_brutalizer: {
+    name: 'The Brutalizer', rarity: 'legendary',
+    desc: '+85 ATK, +50 DEF, +150 HP, +25% Crit chance, +25% Crit Damage',
+    passive: [
+      { stat: 'atk', op: 'add', value: 85 },
+      { stat: 'def', op: 'add', value: 50 },
+      { stat: 'hp', op: 'add', value: 150 },
+      { stat: 'crit_rate', op: 'add', value: 25 },
+      { stat: 'crit_dmg', op: 'add', value: 25 },
+    ],
+  },
+
+  evils_bane: {
+    name: 'Evil\'s Bane', rarity: 'legendary',
+    desc: 'Apply DEFERRED for 3 rounds on-hit to enemies with more than 20 kills.',
+    passive: [],
+    notes: 'On-hit: apply DEFERRED (3 rounds) if target has 20+ kills.',
+  },
+
+  cheerleader: {
+    name: 'Cheerleader', rarity: 'legendary',
+    desc: 'Apply RALLIED to all allies when a fight starts, and JOYFUL to yourself',
+    passive: [],
+    notes: 'At fight start: RALLIED to all allies, JOYFUL to self.',
+  },
+
+  stand_til_end: {
+    name: 'Stand Until The End', rarity: 'legendary',
+    desc: 'Units in the field can no longer be knocked out, only killed. Get +10% Crit chance and crit damage per kill permanently.',
+    passive: [],
+    cultivation: { label: 'Kills', perStack: [{ stat: 'crit_rate', op: 'add', value: 10 }, { stat: 'crit_dmg', op: 'add', value: 10 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'No knockouts allowed — only kills. +10% crit chance & crit damage per kill, permanent.',
+  },
+
+  trial_justice: {
+    name: 'Trial by Justice', rarity: 'legendary',
+    desc: 'At the start of a fight, Check the enemy\'s total KILLS and SPARES. If the KILLS exceed the SPARES, deal 50% max hp true damage to them with an energy revolver. Doesn\'t consume a turn',
+    passive: [],
+    notes: 'At fight start: if enemy KILLS > SPARES, deal 50% max HP true damage instantly (no turn cost).',
+  },
+
+  eve_draws_close: {
+    name: 'Your eve draws to a close', rarity: 'legendary',
+    desc: 'When an enemy\'s HP drops below 25%, apply EXHAUSTED and SHATTERED to them for the rest of the fight. Gain +50% SPD for every EXHAUSTED or TIRED enemy on the field.',
+    passive: [],
+    situational: [
+      { id: 'edc-1e', label: '1 EXHAUSTED/TIRED enemy (+50% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 50 }] },
+      { id: 'edc-2e', label: '2 EXHAUSTED/TIRED enemies (+100% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 100 }] },
+      { id: 'edc-3e', label: '3 EXHAUSTED/TIRED enemies (+150% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 150 }] },
+    ],
+    notes: 'Enemy below 25% HP: apply EXHAUSTED + SHATTERED for rest of fight. +50% SPD per EXHAUSTED/TIRED unit.',
+  },
+
+  one_hit_ko: {
+    name: '1 Hit-KO', rarity: 'legendary',
+    desc: 'Every fight, you have a chance to deal a punch that either has a 50% chance to knock you out or the enemy.',
+    passive: [],
+    notes: 'Once per fight: special punch — 50% chance to KO you, 50% to KO the enemy.',
+  },
+
+  shotgun_trait: {
+    name: 'Shotgun', rarity: 'legendary',
+    desc: 'You always skip the second turn. x4 ATK, attacks apply SOFTENED on-hit',
+    passive: [{ stat: 'atk', op: 'mul', value: 4 }],
+    notes: 'Always skip your second turn each round. x4 ATK. Attacks apply SOFTENED on-hit.',
+  },
+
+  // ── NEW MYTHICS ───────────────────────────────────────────────
+  mathematical: {
+    name: 'Mathematical', rarity: 'mythic',
+    desc: 'Calculate the difference between your highest and lowest non-HP stat. Gain that difference as a flat bonus to all non-HP stats. Additionally, gain +5% to all non-HP stats at the start of each turn in a fight, permanently stacking.',
+    passive: [],
+    cultivation: { label: 'Fight Turns Elapsed', perStack: [{ stat: 'atk', op: 'pct', value: 5 }, { stat: 'def', op: 'pct', value: 5 }, { stat: 'mag', op: 'pct', value: 5 }, { stat: 'spd', op: 'pct', value: 5 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Flat bonus to non-HP stats = (highest non-HP stat − lowest non-HP stat). Use cultivation for fight-turn stacks.',
+  },
+
+  vampiric_gambler: {
+    name: 'Vampiric Gambler', rarity: 'mythic',
+    desc: 'Apply VAMPMARK to all enemies at the start of the fight, for 3 rounds. Hitting an enemy applies ANTE UP to yourself. Every time you\'re hit, roll 1d6. D3-D6 = you gain +50% ATK for 2 rounds. D1-D2: You take x3 damage in this hit.',
+    passive: [],
+    situational: [
+      { id: 'vg-d3d6', label: 'Rolled D3-D6 (+50% ATK for 2 rounds)', passive: [{ stat: 'atk', op: 'pct', value: 50 }] },
+      { id: 'vg-d1d2', label: 'Rolled D1-D2 (x3 damage this hit)', passive: [] },
+    ],
+    notes: 'At fight start: VAMPMARK all enemies (3 rounds). ANTE UP on self when hitting. Roll 1d6 when hit: 3-6 = +50% ATK (2 rounds), 1-2 = x3 damage.',
+  },
+
+  intoxicator: {
+    name: 'Intoxicator', rarity: 'mythic',
+    desc: 'Apply DRUNK on-hit with a 70% chance. Apply DRUGGED on-hit with a 25% chance. If a target is DRUNK and DRUGGED, apply 1 stack of CORRODED on-hit, infinitely stacking. Gain +25% all non-hp stats per drunk, drugged or corroded enemy, all stacking with eachother. x10 DEF towards DRUGGED enemies.',
+    passive: [],
+    situational: [
+      { id: 'int-1d', label: '1 DRUNK/DRUGGED/CORRODED enemy (+25% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 25 }, { stat: 'def', op: 'pct', value: 25 }, { stat: 'mag', op: 'pct', value: 25 }, { stat: 'spd', op: 'pct', value: 25 }] },
+      { id: 'int-3d', label: '3 such enemies (+75% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 75 }, { stat: 'def', op: 'pct', value: 75 }, { stat: 'mag', op: 'pct', value: 75 }, { stat: 'spd', op: 'pct', value: 75 }] },
+      { id: 'int-drugged', label: 'Hitting DRUGGED enemy (x10 DEF)', passive: [{ stat: 'def', op: 'mul', value: 10 }] },
+    ],
+    notes: '70% DRUNK, 25% DRUGGED on-hit. DRUNK+DRUGGED → CORRODED (infinite stacks). +25% non-HP per affected enemy. x10 DEF vs DRUGGED.',
+  },
+
+  hand_of_desecration: {
+    name: 'The Hand of Desecration', rarity: 'mythic',
+    desc: 'When an enemy drops below 60% HP, apply DEFERRED, CONFUSED, DOOM, PARALYZED, CURSED, BLEEDING, EXHAUSTED, PIERCED, VAMPMARK, OVERHEAT, FEAR and CORRODED to them.',
+    passive: [],
+    notes: 'Trigger: enemy falls below 60% HP — apply all 12 listed status effects simultaneously.',
+  },
+
+  the_shooter: {
+    name: 'THE SHOOTER', rarity: 'mythic',
+    desc: 'If you don\'t have a firearm, gain an energy one based on your soul. Deal x5 damage, x3 attack speed, x2 true damage when using a firearm, as well as infinite ammo.',
+    passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'true_dmg', op: 'add', value: 100 }],
+    notes: 'If no firearm: gain energy firearm. x5 damage, x3 attack speed, x2 true damage, infinite ammo with firearms.',
+  },
+
+  forged_destiny: {
+    name: 'Forged Destiny', rarity: 'mythic',
+    desc: 'For every knockout, get +20 ATK. For every spare, get +20 DEF. At the start of a fight, grant flowing and critical. If HP drops below 50%, grant Adrenaline. If an enemy is spared, grant RALLIED for 3 rounds. If an enemy is knocked out, apply BLEEDING to all enemies on the field for 3 rounds.',
+    passive: [],
+    cultivation: { label: 'KOs (ATK) / Spares (DEF)', perStack: [], defaultStacks: 0, maxStacks: 999 },
+    situational: [
+      { id: 'fd-ko5', label: '5 KOs (+100 ATK)', passive: [{ stat: 'atk', op: 'add', value: 100 }] },
+      { id: 'fd-sp5', label: '5 Spares (+100 DEF)', passive: [{ stat: 'def', op: 'add', value: 100 }] },
+      { id: 'fd-low', label: 'Below 50% HP (ADRENALINE active)', passive: [] },
+    ],
+    notes: '+20 ATK per KO, +20 DEF per spare. Fight start: FLOWING + CRITICAL. Below 50%: ADRENALINE. Spare: RALLIED (3 rounds). KO: BLEEDING to all enemies (3 rounds).',
+  },
+
+  shinigami: {
+    name: 'Shinigami', rarity: 'mythic',
+    desc: 'Ability to bring back characters that the enemy has killed to fight alongside you. Two per fight, consumes a turn. Apply CURSED on-hit with a 30% chance. Apply HOLLOW on-hit with a 40% chance. Hitting CURSED enemies applies DOOM. +100% Lifesteal. Hitting HOLLOW enemies applies BRITTLE.',
+    passive: [{ stat: 'lifesteal', op: 'add', value: 100 }],
+    notes: '2 revivals per fight (uses a turn). 30% CURSED, 40% HOLLOW on-hit. CURSED → DOOM. HOLLOW → BRITTLE.',
+  },
+
+  sunrise_trait: {
+    name: 'SUNRISE', rarity: 'mythic',
+    desc: 'every 2 turns, your non-hp stats are multiplied by the Fibonacci formula. (x0, x1, x1, x2, x3, x5, x8...)',
+    passive: [],
+    situational: [
+      { id: 'sun-t2', label: 'Turn 2 (x1 non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 1 }, { stat: 'def', op: 'mul', value: 1 }, { stat: 'mag', op: 'mul', value: 1 }, { stat: 'spd', op: 'mul', value: 1 }] },
+      { id: 'sun-t4', label: 'Turn 4 (x1)', passive: [{ stat: 'atk', op: 'mul', value: 1 }, { stat: 'def', op: 'mul', value: 1 }, { stat: 'mag', op: 'mul', value: 1 }, { stat: 'spd', op: 'mul', value: 1 }] },
+      { id: 'sun-t6', label: 'Turn 6 (x2)', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'def', op: 'mul', value: 2 }, { stat: 'mag', op: 'mul', value: 2 }, { stat: 'spd', op: 'mul', value: 2 }] },
+      { id: 'sun-t8', label: 'Turn 8 (x3)', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'def', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }] },
+      { id: 'sun-t10', label: 'Turn 10 (x5)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }] },
+      { id: 'sun-t12', label: 'Turn 12 (x8)', passive: [{ stat: 'atk', op: 'mul', value: 8 }, { stat: 'def', op: 'mul', value: 8 }, { stat: 'mag', op: 'mul', value: 8 }, { stat: 'spd', op: 'mul', value: 8 }] },
+    ],
+    notes: 'Every 2 turns: non-HP stats × next Fibonacci number (0,1,1,2,3,5,8...).',
+  },
+
+  thick_of_it: {
+    name: 'Im in the Thick of It', rarity: 'mythic',
+    desc: 'apply BAIT and MARKED to yourself, but gain x20 DEF and x2 ATK.',
+    passive: [{ stat: 'def', op: 'mul', value: 20 }, { stat: 'atk', op: 'mul', value: 2 }],
+    notes: 'Apply BAIT and MARKED to self at fight start. x20 DEF, x2 ATK.',
+  },
+
+  womanizer: {
+    name: 'Womanizer', rarity: 'mythic',
+    desc: 'changes people\'s genders on-hit with a 50% chance. +100% status effect resistance',
+    passive: [{ stat: 'status_res', op: 'add', value: 100 }],
+    notes: '50% chance on-hit: target\'s gender changes (RP). +100% status resistance.',
+  },
+
+  blood_blood_god: {
+    name: 'Blood for the Blood God', rarity: 'mythic',
+    desc: '+50 ATK for every 3% lifesteal. Applies BLEEDING on-hit, gain +20 atk for every stack of bleeding in a fight.',
+    passive: [{ op: 'derived', stat: 'atk', from: 'lifesteal', per: 3, perValue: 50 }],
+    cultivation: { label: 'BLEEDING stacks in fight', perStack: [{ stat: 'atk', op: 'add', value: 20 }], defaultStacks: 0, maxStacks: 999 },
+    notes: '+50 ATK per 3% lifesteal (auto-derived). BLEEDING on-hit. +20 ATK per bleeding stack in fight.',
+  },
+
+  // ── NEW HEXXED ────────────────────────────────────────────────
+  capitalist: {
+    name: 'Capitalist', rarity: 'hexxed',
+    desc: '1 gold = 1 all non-hp stats. Gain x2 gold from all sources, lose 50% gold on defeat, shops are 90% cheaper.',
+    passive: [],
+    notes: 'Non-HP stats = current gold total. x2 gold income. Lose 50% gold on defeat. 90% shop discount.',
+  },
+
+  communist: {
+    name: 'Communist', rarity: 'hexxed',
+    desc: 'get 35% of everyone\'s stats added to yours in a fight. Buying an item in a shop doubles that item. Gain x0.5 gold from all sources.',
+    passive: [],
+    notes: 'In fight: gain 35% of every other unit\'s stats as flat bonus. Shop items doubled. x0.5 gold income.',
+  },
+
+  alone_trait: {
+    name: 'Alone', rarity: 'hexxed',
+    desc: 'x11 all non-hp stats when alone. x0.25 stats when in a party. Applies SAD on-hit',
+    passive: [],
+    situational: [
+      { id: 'aln-solo', label: 'Fighting alone (x11 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 11 }, { stat: 'def', op: 'mul', value: 11 }, { stat: 'mag', op: 'mul', value: 11 }, { stat: 'spd', op: 'mul', value: 11 }] },
+      { id: 'aln-party', label: 'In a party (x0.25 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 0.25 }] },
+    ],
+    notes: 'Applies SAD on-hit.',
+  },
+
+  maybe_not_meant: {
+    name: 'Maybe It wasn\'t meant to be', rarity: 'hexxed',
+    desc: 'when a close ally is killed, permanently gain x5 all non-hp stats, infinitely stacking. Applies HOLLOW on-hit',
+    passive: [],
+    cultivation: { label: 'Close Allies Lost', perStack: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Each close ally killed: x5 all non-HP stats, permanent. HOLLOW on-hit.',
+  },
+
+  outlaw_revived: {
+    name: 'OUTLAW REVIVED', rarity: 'hexxed',
+    desc: 'Revive once when killed, giving you a white streak of hair and teleporting somewhere random. When revived, permanently gain x5 all non-hp stats. The buff increases to x10 if you defeat the enemy who killed u, turning the white streak to glow in your soul color. When revived also Apply BLEEDING on-hit, infinitely stacking. Apply SLOWED on-hit, infinitely stacking, apply WEIGHTED on-hit, infinitely stacking. When defeated the enemy who killed you, also apply DOOM and SHATTERED on-hit.',
+    passive: [],
+    situational: [
+      { id: 'or-revived', label: 'Revived (x5 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }] },
+      { id: 'or-avenged', label: 'Defeated killer (x10 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 10 }, { stat: 'def', op: 'mul', value: 10 }, { stat: 'mag', op: 'mul', value: 10 }, { stat: 'spd', op: 'mul', value: 10 }] },
+    ],
+    notes: 'One-time revive. On revive: x5 non-HP stats + BLEEDING/SLOWED/WEIGHTED on-hit (infinite stacks). Defeat killer: upgrades to x10 + adds DOOM/SHATTERED on-hit.',
+  },
 };
 
 // ============================================================
@@ -3255,6 +3837,29 @@ const SHIMMYFUL_MYTHIC_TRAITS = {
   themoss:          { name: 'SHIMMYFUL The Moss', desc: 'On-hit, apply SHIMMYFUL MOSS to enemies. Affected enemies lose -10% HP and -20% DEF per turn. SHIMMYFUL MOSS spreads to adjacent enemies on each tick and is only removed by fire.', passive: [], notes: 'SHIMMYFUL MOSS: -10% HP and -20% DEF per turn. Spreads to adjacent enemies. Removed only by fire.' },
   harbingerruin:    { name: 'SHIMMYFUL Harbinger of Ruin', desc: 'When hit, the attacker permanently loses 10% all non-HP stats. On-hit, apply RUIN: target loses 6% all non-HP stats per turn for 3 rounds (stacks up to 7). Upon defeating an enemy, they permanently lose 10% all stats.', passive: [], notes: 'Hit-reaction: permanent -10% all non-HP stats on attacker. RUIN: 6% per turn for 3 rounds, 7 stacks max.' },
   revived:          { name: 'SHIMMYFUL REVIVED', desc: 'Once per campaign: upon fully dying, revive at 100% HP and permanently gain x3 all stats. After reviving, gain two random legendary traits.', passive: [], situational: [{ id: 'rev-active-s', label: 'SHIMMYFUL REVIVED (x3 all stats, permanent)', passive: [{ stat: 'all_main', op: 'mul', value: 3 }] }], notes: 'One-time per campaign. On death: 100% HP + x3 all stats permanently + two random legendary traits.' },
+
+  // ── NEW MYTHIC SHIMMYFULS ────────────────────────────────────
+  mathematical:        { name: 'SHIMMYFUL Mathematical', desc: 'Calculate the difference between your highest and lowest non-HP stat. Gain DOUBLE that difference as a flat bonus to all non-HP stats. Additionally, gain +8% to all non-HP stats at the start of each turn in a fight, permanently stacking.', passive: [], cultivation: { label: 'Fight Turns Elapsed', perStack: [{ stat: 'atk', op: 'pct', value: 8 }, { stat: 'def', op: 'pct', value: 8 }, { stat: 'mag', op: 'pct', value: 8 }, { stat: 'spd', op: 'pct', value: 8 }], defaultStacks: 0, maxStacks: 999 }, notes: 'Flat bonus = 2×(highest − lowest non-HP stat). +8%/turn in fight stacking.' },
+
+  vampiric_gambler:    { name: 'SHIMMYFUL Vampiric Gambler', desc: 'Apply VAMPMARK to all enemies at the start of the fight, for 5 rounds. Hitting an enemy applies ANTE UP to yourself. Every time you\'re hit, roll 1d6. D2-D6 = you gain +75% ATK for 2 rounds. D1: You take x3 damage in this hit.', passive: [], situational: [{ id: 'vg-s-d2d6', label: 'Rolled D2-D6 (+75% ATK for 2 rounds)', passive: [{ stat: 'atk', op: 'pct', value: 75 }] }, { id: 'vg-s-d1', label: 'Rolled D1 (x3 damage this hit)', passive: [] }], notes: 'VAMPMARK all enemies (5 rounds). ANTE UP on self when hitting. D1 = x3 damage. D2-D6 = +75% ATK (2 rounds).' },
+
+  intoxicator:         { name: 'SHIMMYFUL Intoxicator', desc: 'Apply DRUNK on-hit with a 85% chance. Apply DRUGGED on-hit with a 50% chance. If a target is DRUNK and DRUGGED, apply 2 stacks of CORRODED on-hit, infinitely stacking. Gain +35% all non-hp stats per drunk, drugged or corroded enemy, all stacking with eachother. x15 DEF towards DRUGGED enemies.', passive: [], situational: [{ id: 'int-s-1d', label: '1 DRUNK/DRUGGED/CORRODED enemy (+35% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 35 }, { stat: 'def', op: 'pct', value: 35 }, { stat: 'mag', op: 'pct', value: 35 }, { stat: 'spd', op: 'pct', value: 35 }] }, { id: 'int-s-3d', label: '3 such enemies (+105% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 105 }, { stat: 'def', op: 'pct', value: 105 }, { stat: 'mag', op: 'pct', value: 105 }, { stat: 'spd', op: 'pct', value: 105 }] }, { id: 'int-s-drugged', label: 'Hitting DRUGGED enemy (x15 DEF)', passive: [{ stat: 'def', op: 'mul', value: 15 }] }] },
+
+  hand_of_desecration: { name: 'SHIMMYFUL The Hand of Desecration', desc: 'When an enemy drops below 70% HP, apply DEFERRED, CONFUSED, DOOM, PARALYZED, CURSED, BLEEDING, EXHAUSTED, PIERCED, VAMPMARK, OVERHEAT, FEAR and CORRODED to them. The threshold resets each time they are cleansed.', passive: [], notes: 'Trigger at 70% HP (instead of 60%). Reapplies if statuses are cleansed.' },
+
+  the_shooter:         { name: 'SHIMMYFUL THE SHOOTER', desc: 'If you don\'t have a firearm, gain an energy one based on your soul. Deal x8 damage, x5 attack speed, x3 true damage when using a firearm, as well as infinite ammo.', passive: [{ stat: 'atk', op: 'mul', value: 8 }, { stat: 'true_dmg', op: 'add', value: 150 }], notes: 'x8 damage, x5 attack speed, x3 true damage, infinite ammo with firearms.' },
+
+  forged_destiny:      { name: 'SHIMMYFUL Forged Destiny', desc: 'For every knockout, get +30 ATK. For every spare, get +30 DEF. At the start of a fight, grant flowing and critical. If HP drops below 50%, grant Adrenaline. If an enemy is spared, grant RALLIED for 5 rounds. If an enemy is knocked out, apply BLEEDING to all enemies on the field for 5 rounds.', passive: [], cultivation: { label: 'KOs (ATK) / Spares (DEF)', perStack: [], defaultStacks: 0, maxStacks: 999 }, situational: [{ id: 'fd-s-ko5', label: '5 KOs (+150 ATK)', passive: [{ stat: 'atk', op: 'add', value: 150 }] }, { id: 'fd-s-sp5', label: '5 Spares (+150 DEF)', passive: [{ stat: 'def', op: 'add', value: 150 }] }] },
+
+  shinigami:           { name: 'SHIMMYFUL Shinigami', desc: 'Ability to bring back characters that the enemy has killed to fight alongside you. Three per fight, consumes a turn. Apply CURSED on-hit with a 50% chance. Apply HOLLOW on-hit with a 60% chance. Hitting CURSED enemies applies DOOM. +150% Lifesteal. Hitting HOLLOW enemies applies BRITTLE.', passive: [{ stat: 'lifesteal', op: 'add', value: 150 }], notes: '3 revivals per fight. 50% CURSED, 60% HOLLOW on-hit. CURSED → DOOM. HOLLOW → BRITTLE.' },
+
+  sunrise_trait:       { name: 'SHIMMYFUL SUNRISE', desc: 'every turn, your non-hp stats are multiplied by the Fibonacci formula. (x0, x1, x1, x2, x3, x5, x8...)', passive: [], situational: [{ id: 'sun-s-t1', label: 'Turn 1 (x1 non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 1 }, { stat: 'def', op: 'mul', value: 1 }, { stat: 'mag', op: 'mul', value: 1 }, { stat: 'spd', op: 'mul', value: 1 }] }, { id: 'sun-s-t2', label: 'Turn 2 (x1)', passive: [{ stat: 'atk', op: 'mul', value: 1 }, { stat: 'def', op: 'mul', value: 1 }, { stat: 'mag', op: 'mul', value: 1 }, { stat: 'spd', op: 'mul', value: 1 }] }, { id: 'sun-s-t3', label: 'Turn 3 (x2)', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'def', op: 'mul', value: 2 }, { stat: 'mag', op: 'mul', value: 2 }, { stat: 'spd', op: 'mul', value: 2 }] }, { id: 'sun-s-t4', label: 'Turn 4 (x3)', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'def', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }] }, { id: 'sun-s-t5', label: 'Turn 5 (x5)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }] }, { id: 'sun-s-t6', label: 'Turn 6 (x8)', passive: [{ stat: 'atk', op: 'mul', value: 8 }, { stat: 'def', op: 'mul', value: 8 }, { stat: 'mag', op: 'mul', value: 8 }, { stat: 'spd', op: 'mul', value: 8 }] }], notes: 'Shimmyful: Fibonacci scales every turn instead of every 2.' },
+
+  thick_of_it:         { name: 'SHIMMYFUL Im in the Thick of It', desc: 'apply BAIT and MARKED to yourself, but gain x30 DEF and x3 ATK.', passive: [{ stat: 'def', op: 'mul', value: 30 }, { stat: 'atk', op: 'mul', value: 3 }], notes: 'BAIT + MARKED on self. x30 DEF, x3 ATK.' },
+
+  womanizer:           { name: 'SHIMMYFUL Womanizer', desc: 'changes people\'s genders on-hit with a 75% chance. +150% status effect resistance', passive: [{ stat: 'status_res', op: 'add', value: 150 }] },
+
+  blood_blood_god:     { name: 'SHIMMYFUL Blood for the Blood God', desc: '+75 ATK for every 3% lifesteal. Applies BLEEDING on-hit, gain +30 atk for every stack of bleeding in a fight.', passive: [{ op: 'derived', stat: 'atk', from: 'lifesteal', per: 3, perValue: 75 }], cultivation: { label: 'BLEEDING stacks in fight', perStack: [{ stat: 'atk', op: 'add', value: 30 }], defaultStacks: 0, maxStacks: 999 } },
 };
 
 // ============================================================
@@ -3558,4 +4163,103 @@ const SHIMMYFUL_LEGENDARY_TRAITS = {
   spooky:           { name: 'SHIMMYFUL Spooky', desc: 'During Halloween, get x8 all stats. Also, during the week leading up to Halloween, get x2 all stats.', passive: [], situational: [{ id: 'spooky-s-hw', label: 'It\'s Halloween (x8 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 8 }] }, { id: 'spooky-s-pre', label: 'Week before Halloween (x2 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 2 }] }] },
   anarchy:          { name: 'SHIMMYFUL Anarchy', desc: 'All enemies can hit each other and all allies can hit each other. Hitting a teammate grants them +8% all stats; same with enemies. You accumulate everyone\'s anarchy bonuses.', passive: [], notes: 'RP: friendly fire enabled. Each friendly-fire hit grants target +8% stats. You gain all such accumulated bonuses.' },
   yourearly:        { name: 'SHIMMYFUL You\'re early', desc: 'Apply BLEEDING, POISON, BURNING, and FROZEN to the first enemy who attacks in the battle, lasting 3 rounds.', passive: [], notes: 'Reactive trigger on the first enemy attack of the battle. All four status effects for 3 rounds.' },
+
+  // ── NEW LEGENDARY SHIMMYFULS ─────────────────────────────────
+  blind_monk:         { name: 'SHIMMYFUL Blind Monk', desc: 'apply blinded-onhit and to yourself. +100% accuracy while above 60% HP. Apply CONFUSED on-hit with a 40% chance.', passive: [], situational: [{ id: 'bm-s-above60', label: 'Above 60% HP (+100% accuracy)', passive: [{ stat: 'dexterity', op: 'add', value: 100 }] }] },
+
+  warden_ally:        { name: 'SHIMMYFUL Warden', desc: '+65% DEF per ally.', passive: [], situational: [{ id: 'wa-s-1', label: '1 ally (+65% DEF)', passive: [{ stat: 'def', op: 'pct', value: 65 }] }, { id: 'wa-s-2', label: '2 allies (+130% DEF)', passive: [{ stat: 'def', op: 'pct', value: 130 }] }, { id: 'wa-s-3', label: '3 allies (+195% DEF)', passive: [{ stat: 'def', op: 'pct', value: 195 }] }, { id: 'wa-s-4', label: '4 allies (+260% DEF)', passive: [{ stat: 'def', op: 'pct', value: 260 }] }, { id: 'wa-s-5', label: '5 allies (+325% DEF)', passive: [{ stat: 'def', op: 'pct', value: 325 }] }] },
+
+  funky_battle:       { name: 'SHIMMYFUL Funky Battle', desc: 'All units on the battle turn FUNKY. +45% to all non-hp stats. Gain +8% crit chance per hit during a fight. Gain +8% DEX per attack dodged during a fight.', passive: [{ stat: 'atk', op: 'pct', value: 45 }, { stat: 'def', op: 'pct', value: 45 }, { stat: 'mag', op: 'pct', value: 45 }, { stat: 'spd', op: 'pct', value: 45 }], situational: [{ id: 'fb-s-5h', label: '5 hits (+40% crit)', passive: [{ stat: 'crit_rate', op: 'add', value: 40 }] }, { id: 'fb-s-10h', label: '10 hits (+80% crit)', passive: [{ stat: 'crit_rate', op: 'add', value: 80 }] }, { id: 'fb-s-5d', label: '5 dodges (+40% DEX)', passive: [{ stat: 'dexterity', op: 'add', value: 40 }] }, { id: 'fb-s-10d', label: '10 dodges (+80% DEX)', passive: [{ stat: 'dexterity', op: 'add', value: 80 }] }] },
+
+  fear_aura:          { name: 'SHIMMYFUL FEAR', desc: 'Twice a battle, let out a terrifying cry, applying FEAR to all units on the field for 2-3 rounds except you, including allies. +75% Lifesteal and crit chance per FEARED unit.', passive: [], situational: [{ id: 'fear-s-1u', label: '1 FEARED unit (+75% Lifesteal, +75% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 75 }, { stat: 'crit_rate', op: 'add', value: 75 }] }, { id: 'fear-s-2u', label: '2 FEARED units (+150% Lifesteal, +150% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 150 }, { stat: 'crit_rate', op: 'add', value: 150 }] }, { id: 'fear-s-3u', label: '3 FEARED units (+225% Lifesteal, +225% Crit)', passive: [{ stat: 'lifesteal', op: 'add', value: 225 }, { stat: 'crit_rate', op: 'add', value: 225 }] }] },
+
+  trinity_trait:      { name: 'SHIMMYFUL Trinity', desc: '+1 ATK per 1 DEF. +1 DEF per 1 SPE. +1 SPE per 2 ATK. +50% DEX, +50% Resilience, +50% Crit Chance', passive: [{ op: 'derived', stat: 'atk', from: 'def', per: 1, perValue: 1 }, { op: 'derived', stat: 'def', from: 'spd', per: 1, perValue: 1 }, { op: 'derived', stat: 'spd', from: 'atk', per: 2, perValue: 1 }, { stat: 'dexterity', op: 'add', value: 50 }, { stat: 'resilience', op: 'add', value: 50 }, { stat: 'crit_rate', op: 'add', value: 50 }] },
+
+  retribution:        { name: 'SHIMMYFUL Retribution', desc: 'for every time you\'re hit, gain x8 ATK for your next attack.', passive: [], situational: [{ id: 'ret-s-active', label: 'Just been hit (x8 ATK for next attack)', passive: [{ stat: 'atk', op: 'mul', value: 8 }] }] },
+
+  beyond_edge:        { name: 'SHIMMYFUL Beyond the Edge', desc: 'When dropping below 0% HP, gain a new HP bar worth 150% of your max HP. DEF drops to 0', passive: [], situational: [{ id: 'bte-s-active', label: 'Second HP bar active (DEF → 0)', passive: [{ stat: 'def', op: 'mul', value: 0 }] }] },
+
+  my_true_form:       { name: 'SHIMMYFUL MY TRUE FORM!', desc: 'Activate your EX form at any point, doubling the size of your legs and increasing your SPD, ATK and MAG x4, but lowering your defense by 30%', passive: [], situational: [{ id: 'mtf-s-active', label: 'EX Form active (x4 SPD/ATK/MAG, -30% DEF)', passive: [{ stat: 'spd', op: 'mul', value: 4 }, { stat: 'atk', op: 'mul', value: 4 }, { stat: 'mag', op: 'mul', value: 4 }, { stat: 'def', op: 'pct', value: -30 }] }] },
+
+  drama_romance:      { name: 'SHIMMYFUL Drama, Romance, Bloodshed!', desc: 'For every unit (ally or enemy) knocked out, gain +15% all substats to the whole team and apply 2 stacks of ENVIGORATED to all allies for 3 rounds', passive: [], situational: [{ id: 'drb-s-1ko', label: '1 KO (+15% all substats)', passive: [{ stat: 'all_sub', op: 'add', value: 15 }] }, { id: 'drb-s-3ko', label: '3 KOs (+45% all substats)', passive: [{ stat: 'all_sub', op: 'add', value: 45 }] }, { id: 'drb-s-5ko', label: '5 KOs (+75% all substats)', passive: [{ stat: 'all_sub', op: 'add', value: 75 }] }] },
+
+  imperial_march:     { name: 'SHIMMYFUL Imperial March', desc: 'Every unit defeated (not killed) has a chance to join your party permanently, turning into your subject. Gain a crown that increases your non-hp stats by +30% per subject.', passive: [], situational: [{ id: 'im-s-1s', label: '1 subject (+30% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 30 }, { stat: 'def', op: 'pct', value: 30 }, { stat: 'mag', op: 'pct', value: 30 }, { stat: 'spd', op: 'pct', value: 30 }] }, { id: 'im-s-3s', label: '3 subjects (+90% non-HP stats)', passive: [{ stat: 'atk', op: 'pct', value: 90 }, { stat: 'def', op: 'pct', value: 90 }, { stat: 'mag', op: 'pct', value: 90 }, { stat: 'spd', op: 'pct', value: 90 }] }] },
+
+  violent_crusade:    { name: 'SHIMMYFUL Violent Crusade', desc: 'Permanently apply ADRENALINE status effect during every fight. Attacks deal NULLIFIED status effect. Killing an enemy grants HELLFIRE BURN for your next 5 attacks, carries over through fights. At 50 kills, gain permanent HELLFIRE BURN on your attacks and x10 ATK.', passive: [], situational: [{ id: 'vc-s-50k', label: 'At 50 kills (permanent HELLFIRE BURN + x10 ATK)', passive: [{ stat: 'atk', op: 'mul', value: 10 }] }], cultivation: { label: 'Total Kills', perStack: [], defaultStacks: 0, maxStacks: 999 } },
+
+  brute_trait:        { name: 'SHIMMYFUL Brute', desc: 'can\'t use magic, MAG is set to 0. Gain +35% ATK per punch during a fight. Being physically hit increases DEF by +35%, stacking. Become slightly bigger and buffer per hit taken/dealt', passive: [{ stat: 'mag', op: 'mul', value: 0 }], situational: [{ id: 'brute-s-5p', label: '5 punches (+175% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 175 }] }, { id: 'brute-s-10p', label: '10 punches (+350% ATK)', passive: [{ stat: 'atk', op: 'pct', value: 350 }] }, { id: 'brute-s-5h', label: '5 hits taken (+175% DEF)', passive: [{ stat: 'def', op: 'pct', value: 175 }] }, { id: 'brute-s-10h', label: '10 hits taken (+350% DEF)', passive: [{ stat: 'def', op: 'pct', value: 350 }] }] },
+
+  demon_pact:         { name: 'SHIMMYFUL Demon Pact', desc: 'Turn into a half-demon. +150% Lifesteal, -75% true damage. With every hit, apply CURSED for 3 turns (-60% stats to enemies). Being hit applies PIERCED to you.', passive: [{ stat: 'lifesteal', op: 'add', value: 150 }, { stat: 'true_dmg', op: 'add', value: -75 }] },
+
+  god_complex:        { name: 'SHIMMYFUL God Complex', desc: 'Apply BAIT to yourself. Get +150% DEX and SPD. Apply FLOWING to yourself every turn, non-stacking. Apply PATIENT and SHIELDED to yourself for the first time you\'re hit during a fight. Gain +15% all non-hp stats per enemy or ally you\'ve insulted or taunted in a fight, one stack per unit. Get 1 stack of Empowered every turn, stacking.', passive: [{ stat: 'dexterity', op: 'add', value: 150 }, { stat: 'spd', op: 'pct', value: 150 }], situational: [{ id: 'gc-s-1t', label: '1 unit taunted (+15% non-HP)', passive: [{ stat: 'atk', op: 'pct', value: 15 }, { stat: 'def', op: 'pct', value: 15 }, { stat: 'mag', op: 'pct', value: 15 }, { stat: 'spd', op: 'pct', value: 15 }] }, { id: 'gc-s-3t', label: '3 units taunted (+45% non-HP)', passive: [{ stat: 'atk', op: 'pct', value: 45 }, { stat: 'def', op: 'pct', value: 45 }, { stat: 'mag', op: 'pct', value: 45 }, { stat: 'spd', op: 'pct', value: 45 }] }] },
+
+  facade_trait:       { name: 'SHIMMYFUL Façade', desc: 'First time you\'re hit during a fight, nullify all damage and increase your DEF and HP by 1.5x the amount of ATK and SPD you have.', passive: [], situational: [{ id: 'fac-s-triggered', label: 'Façade triggered (first hit nullified, DEF+HP boosted)', passive: [] }] },
+
+  vortex_trait:       { name: 'SHIMMYFUL Vortex', desc: 'Apply DEFERRED status effect to the first enemy you hit. Apply Weighted to every enemy you hit afterwards. Enemies that hit you have a 50% chance of being applied with CONFUSED', passive: [], notes: 'First hit: DEFERRED. Subsequent hits: WEIGHTED. 50% CONFUSED when enemies hit you.' },
+
+  hypno:              { name: 'SHIMMYFUL Hypno', desc: 'Apply TIRED on-hit. Apply EXHAUSTED on-hit if hitting TIRED enemies. Apply ASLEEP on-hit if target is EXHAUSTED. Apply HAUNTED to all enemies the first two turns', passive: [], notes: 'Chain: TIRED → EXHAUSTED → ASLEEP. HAUNTED to all enemies on turns 1 and 2.' },
+
+  charmer:            { name: 'SHIMMYFUL Charmer', desc: 'Apply CHARMED on-hit with a 60% chance for 2 rounds,  and BRAINWASHED on-hit with a 15% chance for 3 rounds.  15% chance to apply BERSERK instead of BRAINWASHED, for 3 rounds.', passive: [] },
+
+  mero_mero:          { name: 'SHIMMYFUL Mero, mero!', desc: 'Apply PETRIFIED on-hit with a 15% chance, for 2 rounds. Gain +75% SPD and increase the effectivity of your range attacks by +75%', passive: [{ stat: 'spd', op: 'pct', value: 75 }] },
+
+  high_roller:        { name: 'SHIMMYFUL High-roller', desc: 'Apply ANTE UP to yourself every turn. Hitting an ANTE UP increases your next ANTE UP\'s buff by an extra 2 (so x4 turns into x6), resets upon missing or hitting an ally.', passive: [] },
+
+  energy_drain:       { name: 'SHIMMYFUL Energy Drain', desc: 'Apply TIRED for 5 turns to all enemies who attack you physically. Applies NULLIFIED for 5 turns to enemies who attack you with magic. Apply OVERHEATED for 5 rounds on-hit with a 60% chance. +8% all non-HP stats per OVERHEATED enemy.', passive: [], situational: [{ id: 'ed-s-1ov', label: '1 OVERHEATED enemy (+8% non-HP)', passive: [{ stat: 'atk', op: 'pct', value: 8 }, { stat: 'def', op: 'pct', value: 8 }, { stat: 'mag', op: 'pct', value: 8 }, { stat: 'spd', op: 'pct', value: 8 }] }, { id: 'ed-s-3ov', label: '3 OVERHEATED enemies (+24% non-HP)', passive: [{ stat: 'atk', op: 'pct', value: 24 }, { stat: 'def', op: 'pct', value: 24 }, { stat: 'mag', op: 'pct', value: 24 }, { stat: 'spd', op: 'pct', value: 24 }] }, { id: 'ed-s-5ov', label: '5 OVERHEATED enemies (+40% non-HP)', passive: [{ stat: 'atk', op: 'pct', value: 40 }, { stat: 'def', op: 'pct', value: 40 }, { stat: 'mag', op: 'pct', value: 40 }, { stat: 'spd', op: 'pct', value: 40 }] }] },
+
+  frostfire_trait:    { name: 'SHIMMYFUL Frostfire', desc: 'Apply FROZEN on-hit for 2 rounds with a 65% chance. Apply BURN on-hit for 2 rounds with a 65% chance. Applying both in one turn applies HELLFIRE BURN for 3 rounds and gives you +150% True Damage on your next hit. Can\'t be knocked out while an enemy is either frozen or burning.', passive: [], situational: [{ id: 'ff-s-bonus', label: 'Applied both FROZEN & BURN this turn (+150% True Damage next hit)', passive: [{ stat: 'true_dmg', op: 'add', value: 150 }] }] },
+
+  karmic_retribution: { name: 'SHIMMYFUL Karmic Retribution', desc: 'Your attacks deal x10 damage, applied in the span of 3 turns, to enemies who have more than 15 kills.', passive: [], situational: [{ id: 'kr-s-active', label: 'Targeting enemy with 15+ kills (x10 dmg over 3 turns)', passive: [{ stat: 'atk', op: 'mul', value: 10 }] }] },
+
+  soul_fighter:       { name: 'SHIMMYFUL Soul Fighter', desc: 'Your body can\'t take damage, instead your soul does. Losing a fight will kill you, but you gain x7 MAG, increased to x15 when below 15% HP.', passive: [{ stat: 'mag', op: 'mul', value: 7 }], situational: [{ id: 'sf-s-low', label: 'Below 15% HP (MAG x15 instead)', passive: [{ stat: 'mag', op: 'mul', value: 15 }] }] },
+
+  triple_threat:      { name: 'SHIMMYFUL Triple The Threat', desc: 'While in a TRIO, the entire TRIO gains x5 all non-hp stats, and apply ENVIGORATED to every ally for 5 rounds at the start of a fight. If someone in the trio is knocked out, your next attack will deal 5 stacks of BLEED for 5 turns, but you and your ally\'s stats will be dropped to x0.5 for the rest of the fight, unless the knocked out ally is revived.', passive: [], situational: [{ id: 'tt-s-trio', label: 'In a TRIO (x5 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }] }, { id: 'tt-s-koed', label: 'Trio member KO\'d (x0.5 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 0.5 }, { stat: 'def', op: 'mul', value: 0.5 }, { stat: 'mag', op: 'mul', value: 0.5 }, { stat: 'spd', op: 'mul', value: 0.5 }] }] },
+
+  but_you_refused:    { name: 'SHIMMYFUL But You Refused', desc: 'upon dropping below 1% HP, revive on 75% HP and apply DETERMINED to yourself for the rest of the fight. ACT is more likely to succeed after.', passive: [], situational: [{ id: 'byr-s-active', label: 'Revived via SHIMMYFUL But You Refused (DETERMINED)', passive: [] }] },
+
+  i_am_perfect:       { name: 'SHIMMYFUL I am Perfect', desc: 'Become cocky, increasingly so as a fight goes on. For every dodged attack, gain +75% all non-HP stats for the rest of the fight. Landing an attack grants the same buff. Gain REFRESHED for 2 rounds upon being knocked below 20% HP', passive: [], situational: [{ id: 'iap-s-1s', label: '1 dodge/hit (+75% all non-HP)', passive: [{ stat: 'atk', op: 'pct', value: 75 }, { stat: 'def', op: 'pct', value: 75 }, { stat: 'mag', op: 'pct', value: 75 }, { stat: 'spd', op: 'pct', value: 75 }] }, { id: 'iap-s-3s', label: '3 dodges/hits (+225% all non-HP)', passive: [{ stat: 'atk', op: 'pct', value: 225 }, { stat: 'def', op: 'pct', value: 225 }, { stat: 'mag', op: 'pct', value: 225 }, { stat: 'spd', op: 'pct', value: 225 }] }] },
+
+  stoner:             { name: 'SHIMMYFUL Stoner', desc: 'Apply 2 stacks of DRUGGED to yourself every turn, stacking.', passive: [] },
+
+  drunkard:           { name: 'SHIMMYFUL Drunkard', desc: 'Apply 2 stacks of DRUNK to yourself every turn, stacking.', passive: [] },
+
+  rasta_fire:         { name: 'SHIMMYFUL Rasta Fire', desc: 'Apply BURNED and DRUGGED on-hit with a 95% chance. x30 DEF towards DRUGGED enemies.', passive: [], situational: [{ id: 'rf-s-drugged', label: 'Hitting DRUGGED enemy (x30 DEF)', passive: [{ stat: 'def', op: 'mul', value: 30 }] }] },
+
+  chemicals:          { name: 'SHIMMYFUL CHEMICALS', desc: 'Apply two random NEGATIVE status effects to all enemies at the beginning of a fight. Apply two random POSITIVE status effects to all enemies at the beginning of a fight', passive: [] },
+
+  chem_warrior:       { name: 'SHIMMYFUL Chem-warrior', desc: 'Apply a random NEUTRAL or NEGATIVE status effect to enemies on-hit. Gain +15% ATK and DEF per stack of any status effect on enemies.', passive: [], situational: [{ id: 'cw-s-1s', label: '1 status stack (+15% ATK, +15% DEF)', passive: [{ stat: 'atk', op: 'pct', value: 15 }, { stat: 'def', op: 'pct', value: 15 }] }, { id: 'cw-s-5s', label: '5 stacks (+75% ATK, +75% DEF)', passive: [{ stat: 'atk', op: 'pct', value: 75 }, { stat: 'def', op: 'pct', value: 75 }] }, { id: 'cw-s-10s', label: '10 stacks (+150% ATK, +150% DEF)', passive: [{ stat: 'atk', op: 'pct', value: 150 }, { stat: 'def', op: 'pct', value: 150 }] }] },
+
+  aoe_all:            { name: 'SHIMMYFUL AOE', desc: 'All of your attacks turn AOE. Get +8% ATK per enemy hit in a fight, infinitely stacking. Apply ', passive: [], cultivation: { label: 'Enemies Hit', perStack: [{ stat: 'atk', op: 'pct', value: 8 }], defaultStacks: 0, maxStacks: 999 } },
+
+  hornet:             { name: 'SHIMMYFUL Hornet', desc: 'Apply POISON on-hit. Hitting a target that\'s poisoned triples the poison stacks (x1 - x3 - x9 - x27 ...)', passive: [] },
+
+  chaotic:            { name: 'SHIMMYFUL Chaotic', desc: 'Everyone\'s stats are shuffled in a fight. Additionally, every 3 turns stats are reshuffled.', passive: [] },
+
+  oh_brother:         { name: 'SHIMMYFUL Oh Brother, where art thou?', desc: 'Gain x6 all stats when fighting a sibling or with a sibling in your team.', passive: [], situational: [{ id: 'ob-s-active', label: 'Fighting/with a sibling (x6 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 6 }] }] },
+
+  mimic_trait:        { name: 'SHIMMYFUL Mimic', desc: 'Choose an enemy, and steal all of their abilities, weapons, and add 75% of their stats to yours.', passive: [] },
+
+  regicide:           { name: 'SHIMMYFUL Regicide', desc: 'Fighting someone with royal blood grants x5 all non-hp stats. Killing them grants 150 MAG and ATK permanently.', passive: [], situational: [{ id: 'reg-s-active', label: 'Fighting royalty (x5 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }] }, { id: 'reg-s-killed', label: 'Killed royalty (+150 ATK, +150 MAG, permanent)', passive: [{ stat: 'atk', op: 'add', value: 150 }, { stat: 'mag', op: 'add', value: 150 }] }] },
+
+  supernova:          { name: 'SHIMMYFUL Supernova', desc: 'Defeating an enemy causes a cosmic explosion, dealing 30% of that enemy\'s max hp as true damage to every unit except yourself in the field. Everyone except you is applied DEFERRED and CORRODED for 5 rounds.', passive: [] },
+
+  chilling_elegy:     { name: 'SHIMMYFUL Chilling Elegy', desc: 'Apply FROZEN on-hit with a 70% chance for 3 rounds. Hitting a FROZEN enemy applies DOOM to them.', passive: [] },
+
+  defiant:            { name: 'SHIMMYFUL Defiant', desc: 'Being hit grants ANGRY, ENVIGORATED, and EMPOWERED, infinitely stacking.', passive: [] },
+
+  the_brutalizer:     { name: 'SHIMMYFUL The Brutalizer', desc: '+120 ATK, +80 DEF, +250 HP, +40% Crit chance, +40% Crit Damage', passive: [{ stat: 'atk', op: 'add', value: 120 }, { stat: 'def', op: 'add', value: 80 }, { stat: 'hp', op: 'add', value: 250 }, { stat: 'crit_rate', op: 'add', value: 40 }, { stat: 'crit_dmg', op: 'add', value: 40 }] },
+
+  evils_bane:         { name: 'SHIMMYFUL Evil\'s Bane', desc: 'Apply DEFERRED and DOOM for 3 rounds on-hit to enemies with more than 15 kills.', passive: [] },
+
+  cheerleader:        { name: 'SHIMMYFUL Cheerleader', desc: 'Apply RALLIED and EMPOWERED to all allies when a fight starts, and JOYFUL and REFRESHED to yourself', passive: [] },
+
+  stand_til_end:      { name: 'SHIMMYFUL Stand Until The End', desc: 'Units in the field can no longer be knocked out, only killed. Get +15% Crit chance and crit damage per kill permanently.', passive: [], cultivation: { label: 'Kills', perStack: [{ stat: 'crit_rate', op: 'add', value: 15 }, { stat: 'crit_dmg', op: 'add', value: 15 }], defaultStacks: 0, maxStacks: 999 } },
+
+  trial_justice:      { name: 'SHIMMYFUL Trial by Justice', desc: 'At the start of a fight, Check the enemy\'s total KILLS and SPARES. If the KILLS exceed the SPARES, deal 75% max hp true damage to them with an energy revolver. Doesn\'t consume a turn', passive: [] },
+
+  eve_draws_close:    { name: 'SHIMMYFUL Your eve draws to a close', desc: 'When an enemy\'s HP drops below 35%, apply EXHAUSTED and SHATTERED to them for the rest of the fight. Gain +75% SPD for every EXHAUSTED or TIRED enemy on the field.', passive: [], situational: [{ id: 'edc-s-1e', label: '1 EXHAUSTED/TIRED enemy (+75% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 75 }] }, { id: 'edc-s-2e', label: '2 such enemies (+150% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 150 }] }, { id: 'edc-s-3e', label: '3 such enemies (+225% SPD)', passive: [{ stat: 'spd', op: 'pct', value: 225 }] }] },
+
+  one_hit_ko:         { name: 'SHIMMYFUL 1 Hit-KO', desc: 'Every fight, you have a chance to deal a punch that either has a 60% chance to knock you out or the enemy.', passive: [], notes: 'Once per fight: special punch — 60% chance to KO you, 40% to KO the enemy.' },
+
+  shotgun_trait:      { name: 'SHIMMYFUL Shotgun', desc: 'You always skip the second turn. x6 ATK, attacks apply SOFTENED on-hit', passive: [{ stat: 'atk', op: 'mul', value: 6 }] },
 };

@@ -11,6 +11,7 @@ function filterSidebar(val) {
   renderSidebar();
 }
 let seenTraits = [];
+let _encStatusMap = {}; // keyed by UPPERCASE status name → { color, desc }
 let currentId = null;
 let editingId = null;
 let previewAnim = null;
@@ -3526,6 +3527,11 @@ function srInit() {
     const d = snap.data() || {};
     _srStatuses = d.statuses || [];
     srUpdatePoolLabel();
+    // Populate status map for trait description coloring
+    _encStatusMap = {};
+    (_srStatuses || []).forEach(s => {
+      if (s.name) _encStatusMap[s.name.toUpperCase()] = { color: s.color || '#ffdd00', desc: s.desc || '', name: s.name };
+    });
   }, () => {});
 }
 
@@ -5066,11 +5072,57 @@ function rollRarity(weights) {
   return Object.keys(w).find(k => w[k] > 0) || 'common';
 }
 
+// ── Status-effect colouring helpers ────────────────────────────
+function _escHtml(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function _applyCharName(text, c) {
+  return (text || '').replace(/\[NAME\]/g, (c && c.name) ? c.name : '?');
+}
+function _renderDescWithStatuses(rawDesc) {
+  if (!rawDesc) return '';
+  const statusNames = Object.keys(_encStatusMap).sort((a, b) => b.length - a.length);
+  if (!statusNames.length) return _escHtml(rawDesc);
+  const parts = statusNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const combined = new RegExp('(' + parts.join('|') + ')', 'gi');
+  let result = '', lastIndex = 0, match;
+  combined.lastIndex = 0;
+  while ((match = combined.exec(rawDesc)) !== null) {
+    result += _escHtml(rawDesc.slice(lastIndex, match.index));
+    const nameKey = Object.keys(_encStatusMap).find(k => k === match[0].toUpperCase());
+    if (nameKey) {
+      const info = _encStatusMap[nameKey];
+      const color = info.color || '#ffdd00';
+      const tipDesc = _escHtml(info.desc || '');
+      result += `<span class="status-pill" style="color:${color};cursor:pointer;text-decoration:underline dotted;" data-sdesc="${tipDesc}">${_escHtml(match[0])}</span>`;
+    } else {
+      result += _escHtml(match[0]);
+    }
+    lastIndex = match.index + match[0].length;
+  }
+  result += _escHtml(rawDesc.slice(lastIndex));
+  return result;
+}
+// ───────────────────────────────────────────────────────────────
+
 function rollOneTrait(rarityOverride, weights) {
   const rarity = rarityOverride || rollRarity(weights);
   const pool = Object.entries(TRAITS).filter(([k, t]) => t.rarity === rarity);
   if (!pool.length) return rollOneTrait('common');
-  return pool[Math.floor(Math.random() * pool.length)][0];
+  // Small unseen bias: unseen traits get ~1.5x weight
+  const UNSEEN_MULT = 1.5;
+  const weighted = [];
+  pool.forEach(([k]) => {
+    const w = seenTraits.includes(k) ? 1 : UNSEEN_MULT;
+    weighted.push({ key: k, w });
+  });
+  const total = weighted.reduce((s, x) => s + x.w, 0);
+  let r = Math.random() * total;
+  for (const { key, w } of weighted) {
+    if (r < w) return key;
+    r -= w;
+  }
+  return weighted[weighted.length - 1].key;
 }
 
 function rollHand(isPityRoll) {
@@ -5433,8 +5485,8 @@ function renderTraitsDisplay(c) {
       return `
         <div class="trait-chip rar-duality duality-${duState}" data-trait="${key}">
           <div class="trait-chip-rarity">${duLabel}</div>
-          <div class="trait-chip-name">${duDef.name}</div>
-          <div class="trait-chip-desc">${duDef.desc}</div>
+          <div class="trait-chip-name">${_escHtml(_applyCharName(duDef.name, c))}</div>
+          <div class="trait-chip-desc">${_renderDescWithStatuses(_applyCharName(duDef.desc, c))}</div>
           ${sitButtons}
           <div class="duality-toggle-row">
             <button class="duality-toggle" onclick="toggleDuality('${key}',event)" title="Switch between HEAVENLY and HELLFORGED">☯</button>
@@ -5465,8 +5517,8 @@ function renderTraitsDisplay(c) {
       return `
         <div class="trait-chip ${chipClass}" data-trait="${key}">
           <div class="trait-chip-rarity">${rarLabel}</div>
-          <div class="trait-chip-name">${dispName}</div>
-          <div class="trait-chip-desc">${dispDesc}</div>
+          <div class="trait-chip-name">${_escHtml(dispName)}</div>
+          <div class="trait-chip-desc">${_renderDescWithStatuses(dispDesc)}</div>
           <div class="det-state-btns">
             <button class="btn sm det-state-btn${state === 'hatred' ? ' det-state-active' : ''}" onclick="setDeterminationState('${key}','hatred',event)">⚔ HATRED</button>
             <button class="btn sm det-state-btn${state === 'determined' ? ' det-state-active' : ''}" onclick="setDeterminationState('${key}','determined',event)">♥ RESET</button>
@@ -5503,8 +5555,8 @@ function renderTraitsDisplay(c) {
       <div class="trait-chip rar-${rarity}${shimmyDef ? ' shimmyful' : ''}${isLegShimmy ? ' shimmy-leg' : ''}${isMythicShimmy ? ' shimmy-mythic' : ''}${isEpicShimmy ? ' shimmy-epic' : ''}${isRareShimmy ? ' shimmy-rare' : ''}" data-trait="${key}">
         ${shimmyDef ? `<div class="shimmy-star${isLegShimmy ? ' shimmy-leg-star' : ''}${isMythicShimmy ? ' shimmy-mythic-star' : ''}${isEpicShimmy ? ' shimmy-epic-star' : ''}${isRareShimmy ? ' shimmy-rare-star' : ''}">` + (isLegShimmy ? '★' : '✦') + '</div>' : ''}
         <div class="trait-chip-rarity">${RARITY_LABEL[rarity]}</div>
-        <div class="trait-chip-name">${displayDef.name}</div>
-        <div class="trait-chip-desc">${displayDef.desc}</div>
+        <div class="trait-chip-name">${_escHtml(_applyCharName(displayDef.name, c))}</div>
+        <div class="trait-chip-desc">${_renderDescWithStatuses(_applyCharName(displayDef.desc, c))}</div>
         ${sitButtons}
         <button class="trait-chip-remove" onclick="removeTrait('${key}', event)" title="Remove trait">✕</button>
       </div>`;
@@ -6168,7 +6220,7 @@ function rollTraits() {
       const t = TRAITS[k];
       card.querySelector('.hand-card-rarity').textContent = RARITY_LABEL[t.rarity];
       card.querySelector('.hand-card-name').textContent = t.name;
-      card.querySelector('.hand-card-desc').textContent = t.desc;
+      card.querySelector('.hand-card-desc').innerHTML = _renderDescWithStatuses(t.desc);
       if (!_popCooldown) {
         _popCooldown = true;
         playSound('pop', { rate: 0.85 + Math.random() * 0.35, volume: 0.12 });
@@ -6187,11 +6239,12 @@ function rollTraits() {
       const card = cardEls[i];
 
       // Flash then reveal rarity (deal animation fires on class change)
+      const _rollC = characters.find(x => x.id === currentId);
       card.style.filter = 'brightness(3)';
       card.className = `hand-card rar-${t.rarity}`;
       card.querySelector('.hand-card-rarity').textContent = RARITY_LABEL[t.rarity];
-      card.querySelector('.hand-card-name').textContent = t.name;
-      card.querySelector('.hand-card-desc').textContent = t.desc;
+      card.querySelector('.hand-card-name').textContent = _applyCharName(t.name, _rollC);
+      card.querySelector('.hand-card-desc').innerHTML = _renderDescWithStatuses(_applyCharName(t.desc, _rollC));
       card.querySelector('.hand-card-cta').style.visibility = 'hidden';
 
       // Pop on card lock-in, then rarity reveal sound
@@ -6214,8 +6267,9 @@ function rollTraits() {
           if (isMythicShimmy) card.classList.add('shimmy-mythic');
           if (isEpicShimmy) card.classList.add('shimmy-epic');
           if (isRareShimmy) card.classList.add('shimmy-rare');
-          card.querySelector('.hand-card-name').textContent = sd.name;
-          card.querySelector('.hand-card-desc').textContent = sd.desc;
+          const _shimC = characters.find(x => x.id === currentId);
+          card.querySelector('.hand-card-name').textContent = _applyCharName(sd.name, _shimC);
+          card.querySelector('.hand-card-desc').innerHTML = _renderDescWithStatuses(_applyCharName(sd.desc, _shimC));
           // Update rarity label suffix
           const rarEl = card.querySelector('.hand-card-rarity');
           if (rarEl) rarEl.innerHTML = rarEl.textContent + (isLegShimmy ? ' <span style="color:#ffd84a">★</span>' : isMythicShimmy ? ' <span style="color:#ff8c00">✦</span>' : isEpicShimmy ? ' <span style="color:#c98bff">✦</span>' : isRareShimmy ? ' <span style="color:#4aa9ff">✦</span>' : ' <span style="color:#50ff8c">✦</span>');
@@ -6954,7 +7008,65 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   initTextColorToolbar();
+  _initStatusTooltip();
 });
+
+// ── Status-effect tooltip ──────────────────────────────────────
+function _initStatusTooltip() {
+  // Inject tooltip element + styles once
+  if (document.getElementById('_status-tip')) return;
+  const tip = document.createElement('div');
+  tip.id = '_status-tip';
+  tip.style.cssText = [
+    'position:fixed',
+    'display:none',
+    'z-index:99999',
+    'max-width:260px',
+    'padding:7px 10px',
+    'background:#1a1a2e',
+    'border:1px solid #444',
+    'border-radius:6px',
+    'color:#ddd',
+    'font-size:11px',
+    'line-height:1.45',
+    'pointer-events:none',
+    'box-shadow:0 4px 18px rgba(0,0,0,0.7)',
+    'white-space:pre-wrap',
+    'word-break:break-word',
+  ].join(';');
+  document.body.appendChild(tip);
+
+  document.addEventListener('mouseover', e => {
+    const pill = e.target.closest?.('.status-pill');
+    if (!pill) return;
+    const desc = pill.dataset.sdesc || '';
+    if (!desc) return;
+    tip.textContent = desc;
+    tip.style.display = 'block';
+    _positionStatusTip(e, tip);
+  });
+  document.addEventListener('mousemove', e => {
+    if (tip.style.display === 'none') return;
+    if (!e.target.closest?.('.status-pill')) return;
+    _positionStatusTip(e, tip);
+  });
+  document.addEventListener('mouseout', e => {
+    const pill = e.target.closest?.('.status-pill');
+    if (pill) tip.style.display = 'none';
+  });
+}
+function _positionStatusTip(e, tip) {
+  const margin = 12;
+  let x = e.clientX + margin;
+  let y = e.clientY + margin;
+  const tw = tip.offsetWidth || 260;
+  const th = tip.offsetHeight || 60;
+  if (x + tw > window.innerWidth - 8) x = e.clientX - tw - margin;
+  if (y + th > window.innerHeight - 8) y = e.clientY - th - margin;
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+}
+// ──────────────────────────────────────────────────────────────
 
 // ============================================================
 // TEXT COLOR TOOLBAR

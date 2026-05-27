@@ -706,7 +706,8 @@ function renderCharEntry(c) {
   // ── Traits ──
   const traitsHtml = (c.traits || []).slice(0, 14).map((t, i) => {
     const def = (typeof TRAITS !== 'undefined' && TRAITS[t]) || null;
-    const name = def ? def.name : t.replace(/_/g, ' ');
+    const rawName = def ? def.name : t.replace(/_/g, ' ');
+    const name = rawName.replace(/\[NAME\]/g, (c.name || '?'));
     const rar  = def ? def.rarity : 'common';
     const isShimmy = c.shimmyfulTraits && c.shimmyfulTraits.includes(t);
     return `<span class="enc-trait-chip enc-trait-${esc(rar)}${isShimmy ? ' enc-trait-shimmy' : ''} enc-anim-fade" style="animation-delay:${0.3 + i * 0.04}s">${isShimmy ? '<span class="enc-shimmy-star">✦</span> ' : ''}${esc(name)}</span>`;
