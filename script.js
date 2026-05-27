@@ -8128,9 +8128,10 @@ function renderHeightChart() {
     }
 
     // Sprite or silhouette
-    if (entry.spriteBase64) {
-      // Kick off background bounds re-detection for legacy sprites (no-op if already detected)
-      _hcMaybeRedetectBounds(entry);
+    const _spriteUrl = entry.spriteUrl || entry.spriteBase64 || null;
+    if (_spriteUrl) {
+      // Kick off background bounds re-detection for legacy base64 sprites only (GIF URLs skip this)
+      if (entry.spriteBase64) _hcMaybeRedetectBounds(entry);
       const topF = entry.spriteTopFrac != null ? entry.spriteTopFrac : 0;
       const botF = entry.spriteBotFrac != null ? entry.spriteBotFrac : 1;
       const fracH = Math.max(0.01, botF - topF);
@@ -8139,7 +8140,7 @@ function renderHeightChart() {
       const bottomOffset = (1 - botF) * fullH;
 
       const img = document.createElement('img');
-      img.src = entry.spriteBase64;
+      img.src = _spriteUrl;
       img.className = 'hc-char-sprite';
       img.style.height = fullH + 'px';
       img.style.bottom = (-bottomOffset) + 'px';
@@ -8215,11 +8216,22 @@ function _hcSyncAuraBtn(entry) {
     ? `AURA <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${dot};vertical-align:middle;margin-left:3px;box-shadow:0 0 4px ${dot};"></span>`
     : 'AURA';
   btn.classList.toggle('active', !!entry.aura);
+  const clearBtn = document.getElementById('hc-aura-clear-btn');
+  if (clearBtn) clearBtn.style.display = entry.aura ? 'inline-flex' : 'none';
+}
+
+function hcClearAura() {
+  const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
+  if (!entry) return;
+  entry.aura = null;
+  _hcSyncAuraBtn(entry);
+  renderHeightChart();
+  _hcDebounceSave();
 }
 
 function hcAddEntry() {
   const id = (typeof genId === 'function') ? genId() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
-  const entry = { id, name: 'CHARACTER', heightCm: 170, color: '#aaaaaa', spriteBase64: null, spriteTopFrac: 0, spriteBotFrac: 1, aura: null };
+  const entry = { id, name: 'CHARACTER', heightCm: 170, color: '#aaaaaa', spriteBase64: null, spriteUrl: null, spriteTopFrac: 0, spriteBotFrac: 1, aura: null };
   _hcData.entries.push(entry);
   _hcSelectedId = id;
   _hcSave();
@@ -8270,7 +8282,7 @@ function _hcPopulateEditPanel(id) {
   document.getElementById('hc-edit-color').value = col;
   const hexEl = document.getElementById('hc-color-hex');
   if (hexEl) hexEl.textContent = col;
-  document.getElementById('hc-clear-btn').style.display = entry.spriteBase64 ? 'inline-block' : 'none';
+  document.getElementById('hc-clear-btn').style.display = (entry.spriteBase64 || entry.spriteUrl) ? 'inline-block' : 'none';
   _hcSyncAuraBtn(entry);
   // Crop sliders (only when sprite is set)
   const cropSec = document.getElementById('hc-crop-section');
@@ -8348,7 +8360,7 @@ function hcImportChar(rosterId) {
     name: c.name || 'CHARACTER',
     heightCm: 170,
     color: c.color || '#aaaaaa',
-    spriteBase64: null, spriteTopFrac: 0, spriteBotFrac: 1
+    spriteBase64: null, spriteUrl: null, spriteTopFrac: 0, spriteBotFrac: 1
   };
   _hcData.entries.push(entry);
   _hcSelectedId = id;
@@ -8398,18 +8410,49 @@ function hcClearSprite() {
   const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
   if (!entry) return;
   entry.spriteBase64 = null;
+  entry.spriteUrl = null;
   entry.spriteTopFrac = 0;
   entry.spriteBotFrac = 1;
   document.getElementById('hc-clear-btn').style.display = 'none';
   _hcSave();
 }
 
-function hcHandleSprite(ev) {
+async function hcHandleSprite(ev) {
   const file = ev.target.files[0];
   if (!file || !_hcSelectedId) return;
   const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
   if (!entry) return;
 
+  // GIFs: upload directly to Cloudinary to preserve animation (canvas would destroy it)
+  if (file.type === 'image/gif') {
+    if (typeof notify === 'function') notify('UPLOADING GIF...', 'ok');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('upload_preset', CLOUDINARY_PRESET);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+        { method: 'POST', body: form }
+      );
+      if (!res.ok) throw new Error('Upload failed: ' + res.status);
+      const data = await res.json();
+      if (!data.secure_url) throw new Error((data.error && data.error.message) || 'No URL returned');
+      entry.spriteBase64 = null;
+      entry.spriteUrl = data.secure_url;
+      entry.spriteTopFrac = 0;
+      entry.spriteBotFrac = 1;
+      _hcSave();
+      renderHeightChart();
+      if (_hcSelectedId === entry.id) _hcPopulateEditPanel(entry.id);
+      if (typeof notify === 'function') notify('GIF UPLOADED', 'ok');
+    } catch (err) {
+      console.error('[hcHandleSprite GIF]', err);
+      if (typeof notify === 'function') notify('GIF UPLOAD FAILED', 'err');
+    }
+    return;
+  }
+
+  // Non-GIF: canvas compress + auto-detect bounds
   const reader = new FileReader();
   reader.onload = function (re) {
     const img = new Image();
@@ -8446,6 +8489,7 @@ function hcHandleSprite(ev) {
       const base64 = rc.toDataURL('image/png');
 
       entry.spriteBase64 = base64;
+      entry.spriteUrl = null;
       entry.spriteTopFrac = topFrac;
       entry.spriteBotFrac = botFrac;
       _hcSave();
