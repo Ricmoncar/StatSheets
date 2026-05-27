@@ -3919,6 +3919,255 @@ const TRAITS = {
     notes: 'Healing ↔ damage inverted. Permanently MIRRORED. All incoming statuses are inverted (debuffs ↔ buffs).',
   },
 
+  puppet_master: {
+    name: 'Puppet Master', rarity: 'mythic',
+    desc: 'Once per fight, take control of an enemy for 3 rounds. They fight on your side and cannot be targeted by allies.',
+    passive: [],
+    situational: [
+      { id: 'pm-active', label: 'Enemy Puppeteered (3 rounds, fights for you)', passive: [] },
+    ],
+    notes: 'Once per fight: chosen enemy fights for you for 3 rounds and cannot be targeted by your allies.',
+  },
+
+  tyrant: {
+    name: 'Tyrant', rarity: 'mythic',
+    desc: 'Fighters without a mythic-or-higher rarity trait deal 60% less damage to you and take 60% more damage from you.',
+    passive: [],
+    situational: [
+      { id: 'tyr-active', label: 'vs. non-mythic+ opponent (-60% dmg in, +60% dmg out)', passive: [{ stat: 'def', op: 'pct', value: 60 }, { stat: 'atk', op: 'pct', value: 60 }] },
+    ],
+    notes: 'Applies against all fighters whose rarity is common, rare, epic, or legendary.',
+  },
+
+  armageddon: {
+    name: 'Armageddon', rarity: 'mythic',
+    desc: "At the start of every fight, instantly deal 20% of each enemy's max HP as True Damage.",
+    passive: [],
+    notes: "Fight start: deal 20% max HP as True Damage to ALL enemies simultaneously. Bypasses defenses.",
+  },
+
+  zenith: {
+    name: 'Zenith', rarity: 'mythic',
+    desc: 'Once per fight, survive a killing blow at 1 HP. After surviving, gain 3 consecutive free turns.',
+    passive: [],
+    situational: [
+      { id: 'zen-triggered', label: 'Zenith Triggered (survived killing blow, 3 free turns)', passive: [] },
+    ],
+    notes: 'Once per fight. After surviving the blow: take 3 uncontested turns during which you cannot be targeted.',
+  },
+
+  the_final_boss: {
+    name: 'The Final Boss', rarity: 'mythic',
+    desc: 'You have 3 phases. Each defeat triggers the next: full HP restore and +100% all stats (stacking per phase).',
+    passive: [],
+    situational: [
+      { id: 'tfb-p2', label: 'Phase 2 (1st defeat — full HP restore, +100% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 100 }] },
+      { id: 'tfb-p3', label: 'Phase 3 (2nd defeat — full HP restore, +200% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 200 }] },
+    ],
+    notes: '3 phases total. Each defeat: full HP restore + cumulative +100% all stats per phase.',
+  },
+
+  primordial: {
+    name: 'Primordial', rarity: 'mythic',
+    desc: 'Start every fight with 2 free rounds where you cannot be targeted or damaged.',
+    passive: [],
+    situational: [
+      { id: 'prim-active', label: 'Round 1-2 (untargetable and immune to all damage)', passive: [] },
+    ],
+    notes: 'Rounds 1 and 2 of every fight: fully untargetable and immune to all damage.',
+  },
+
+  martyrs_flame: {
+    name: "Martyr's Flame", rarity: 'mythic',
+    desc: 'When any ally dies, instantly deal their full ATK + MAG as True Damage to all enemies.',
+    passive: [],
+    notes: "On any ally death: deal that ally's ATK + MAG as True Damage to ALL enemies simultaneously.",
+  },
+
+  the_abyss: {
+    name: 'The Abyss', rarity: 'mythic',
+    desc: 'At the end of each round n, all your stats are multiplied by 1.15^n. Round 1: x1.15, Round 3: x1.52, Round 5: x2.01, Round 7: x2.66, Round 10: x4.05.',
+    passive: [],
+    situational: [
+      { id: 'abyss-r1',  label: 'Round 1  (x1.15 all stats)',  passive: [{ stat: 'all_main', op: 'mul', value: 1.15 }] },
+      { id: 'abyss-r3',  label: 'Round 3  (x1.52 all stats)',  passive: [{ stat: 'all_main', op: 'mul', value: 1.52 }] },
+      { id: 'abyss-r5',  label: 'Round 5  (x2.01 all stats)',  passive: [{ stat: 'all_main', op: 'mul', value: 2.01 }] },
+      { id: 'abyss-r7',  label: 'Round 7  (x2.66 all stats)',  passive: [{ stat: 'all_main', op: 'mul', value: 2.66 }] },
+      { id: 'abyss-r10', label: 'Round 10 (x4.05 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 4.05 }] },
+    ],
+    notes: 'Formula: 1.15^n where n is the round number. Use the matching situational button.',
+  },
+
+  gravity_well: {
+    name: 'Gravity Well', rarity: 'mythic',
+    desc: 'Redirect all damage intended for allies to yourself. All redirected damage is reduced by 60%.',
+    passive: [],
+    situational: [
+      { id: 'gw-active', label: 'Gravity Well Active (all ally-targeted damage redirected to you, -60%)', passive: [{ stat: 'def', op: 'pct', value: 60 }] },
+    ],
+    notes: 'All damage targeting allies is redirected to you at 40% of its original value.',
+  },
+
+  consumed: {
+    name: 'Consumed', rarity: 'mythic',
+    desc: 'DEF is permanently set to 0. ATK and MAG are x5. You cannot be healed by anyone but yourself.',
+    passive: [
+      { stat: 'atk', op: 'mul', value: 5 },
+      { stat: 'mag', op: 'mul', value: 5 },
+    ],
+    notes: 'DEF locked at 0. External healing (allies, items) is nullified. Self-healing still functions.',
+  },
+
+  blood_moon: {
+    name: 'Blood Moon', rarity: 'mythic',
+    desc: 'During night or full moon fights, x3 all stats. Permanently gain +2% all stats per fight survived.',
+    passive: [],
+    situational: [
+      { id: 'bm-night', label: 'Night / full moon fight (x3 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 3 }] },
+    ],
+    cultivation: { label: 'Fights Survived (+2% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 2 }], defaultStacks: 0, maxStacks: 999 },
+  },
+
+  star_eater: {
+    name: 'Star Eater', rarity: 'mythic',
+    desc: "Attacks permanently reduce the target's max HP by 5%. After 10 reductions on the same target, they shatter instantly.",
+    passive: [],
+    notes: 'Each hit: -5% permanent max HP on target. At 10 stacks on the same target: instant defeat regardless of HP.',
+  },
+
+  time_freeze: {
+    name: 'Time Freeze', rarity: 'mythic',
+    desc: 'Once per game, freeze time for everyone but yourself. Take 3 free uncontested turns.',
+    passive: [],
+    situational: [
+      { id: 'tf-active', label: 'Time Frozen (3 free uncontested turns, all others frozen)', passive: [] },
+    ],
+    notes: 'One use per game only. All other fighters are frozen while you take 3 free turns.',
+  },
+
+  forsaken_god: {
+    name: 'Forsaken God', rarity: 'mythic',
+    desc: 'Allies cannot heal you. Your self-healing is x10. You gain +100% all stats.',
+    passive: [
+      { stat: 'all_main', op: 'pct', value: 100 },
+      { stat: 'heal_pow', op: 'add', value: 900 },
+    ],
+    notes: 'External healing nullified. Self-healing is x10 (+900 heal power). +100% all stats always active.',
+  },
+
+  void_stares_back: {
+    name: 'The Void Stares Back', rarity: 'mythic',
+    desc: 'Every status effect that would be applied to you instead permanently adds +10% to a random stat. Fully immune to all statuses.',
+    passive: [{ stat: 'status_res', op: 'add', value: 100 }],
+    cultivation: { label: 'Status Effects Deflected (+10% random stat each)', perStack: [{ stat: 'all_main', op: 'pct', value: 10 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'Full status immunity. Each blocked status permanently adds +10% to one random stat.',
+  },
+
+  warlord: {
+    name: 'Warlord', rarity: 'mythic',
+    desc: "Your stats are equal to the combined sum of all your allies' stats.",
+    passive: [],
+    notes: "HP, ATK, DEF, MAG, SPD become the total sum of all living allies' matching stats. Updates each round.",
+  },
+
+  glitch: {
+    name: 'Glitch', rarity: 'mythic',
+    desc: 'At the start of each round, all your stats multiply by a random value between x0.01 and x20.',
+    passive: [],
+    notes: 'New multipliers are rolled each round. Use the REROLL button to simulate a round-start roll.',
+  },
+
+  the_long_game: {
+    name: 'The Long Game', rarity: 'mythic',
+    desc: 'You gain nothing during fights. After each fight you win, permanently gain +25% all stats.',
+    passive: [],
+    cultivation: { label: 'Fights Won (+25% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 25 }], defaultStacks: 0, maxStacks: 999 },
+    notes: 'No in-fight bonuses, buffs, or items apply at all. Only post-win stacks count.',
+  },
+
+  phoenix: {
+    name: 'Phoenix', rarity: 'mythic',
+    desc: 'Revive with no limit. Each revive halves your max HP but permanently doubles your ATK and MAG for that fight.',
+    passive: [],
+    cultivation: { label: 'Revives This Fight (ATK/MAG x2 per revive; max HP ÷2 per revive)', perStack: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'mag', op: 'mul', value: 2 }], defaultStacks: 0, maxStacks: 20 },
+    notes: 'Unlimited revives per fight. Each revive: max HP halved (cumulative), ATK and MAG doubled (cumulative for that fight).',
+  },
+
+  no_u: {
+    name: 'No U', rarity: 'mythic',
+    desc: 'Every point of damage you take is immediately reflected back to the attacker as True Damage.',
+    passive: [{ stat: 'true_dmg', op: 'add', value: 100 }],
+    notes: 'All received damage is reflected 1:1 as True Damage to the attacker. You still take the original damage.',
+  },
+
+  hunger_strike: {
+    name: 'Hunger Strike', rarity: 'mythic',
+    desc: 'Cannot receive any external buffs, heals, or boosts from any source. x8 all stats.',
+    passive: [{ stat: 'all_main', op: 'mul', value: 8 }],
+    notes: 'No external buffs, heals, or power-ups of any kind apply. Only self-generated changes are allowed.',
+  },
+
+  pacifist_run: {
+    name: 'Pacifist Run', rarity: 'mythic',
+    desc: 'Cannot deal any damage. Take 90% less damage from all sources. All healing you perform is x20.',
+    passive: [{ stat: 'heal_pow', op: 'add', value: 1900 }],
+    notes: 'Zero damage output from all sources. Incoming damage reduced by 90%. All healing output is x20.',
+  },
+
+  burden: {
+    name: 'Burden', rarity: 'mythic',
+    desc: 'Each living ally halves your ATK and MAG. Each dead ally triples all your stats.',
+    passive: [],
+    situational: [
+      { id: 'bur-1a', label: '1 living ally (ATK/MAG ÷2)',   passive: [{ stat: 'atk', op: 'pct', value: -50 }, { stat: 'mag', op: 'pct', value: -50 }] },
+      { id: 'bur-2a', label: '2 living allies (ATK/MAG ÷4)',  passive: [{ stat: 'atk', op: 'pct', value: -75 }, { stat: 'mag', op: 'pct', value: -75 }] },
+      { id: 'bur-3a', label: '3 living allies (ATK/MAG ÷8)',  passive: [{ stat: 'atk', op: 'pct', value: -87 }, { stat: 'mag', op: 'pct', value: -87 }] },
+      { id: 'bur-1d', label: '1 dead ally (x3 all stats)',    passive: [{ stat: 'all_main', op: 'mul', value: 3 }] },
+      { id: 'bur-2d', label: '2 dead allies (x9 all stats)',  passive: [{ stat: 'all_main', op: 'mul', value: 9 }] },
+      { id: 'bur-3d', label: '3 dead allies (x27 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 27 }] },
+    ],
+    notes: 'Each living ally: ATK and MAG halved (compounding). Each dead ally: all stats tripled (compounding).',
+  },
+
+  mall_cop: {
+    name: 'Mall Cop', rarity: 'mythic',
+    desc: 'SPD is permanently set to 1. DEF is x50. Cannot be knocked back or displaced.',
+    passive: [{ stat: 'def', op: 'mul', value: 50 }],
+    notes: 'SPD locked at 1. DEF x50. Immune to knockback, displacement, and repositioning effects.',
+  },
+
+  permafrost: {
+    name: 'Permafrost', rarity: 'mythic',
+    desc: 'Permanently FROZEN (cannot move or use abilities). All damage taken reduced by 80%. Passively deal 15% of your max HP as True Damage to all enemies at the start of each round.',
+    passive: [],
+    notes: 'Cannot move or use abilities ever. 80% damage reduction. Each round start: 15% max HP True Damage AoE to all enemies.',
+  },
+
+  berserker_god: {
+    name: 'Berserker God', rarity: 'mythic',
+    desc: 'Permanently BERSERK. Cannot choose targets. x6 ATK and MAG. Every hit inflicts BLEEDING for 5 turns.',
+    passive: [{ stat: 'atk', op: 'mul', value: 6 }, { stat: 'mag', op: 'mul', value: 6 }],
+    notes: 'BERSERK: attacks random targets only. On-hit: apply BLEEDING (5 turns). x6 ATK and MAG always.',
+  },
+
+  poisoned_chalice: {
+    name: 'Poisoned Chalice', rarity: 'mythic',
+    desc: 'Permanently POISONED at 10 stacks. Instead of losing HP, gain +10% ATK per stack. Attacks apply 5 stacks of POISON to enemies.',
+    passive: [],
+    cultivation: { label: 'POISON Stacks on Self (+10% ATK each)', perStack: [{ stat: 'atk', op: 'pct', value: 10 }], defaultStacks: 10, maxStacks: 999 },
+    notes: 'Start with 10 POISON stacks. POISON deals no HP damage to you — each stack grants +10% ATK permanently.',
+  },
+
+  doomsday_clock: {
+    name: 'Doomsday Clock', rarity: 'mythic',
+    desc: 'At the start of every fight, apply DOOM to all enemies with a 5-round timer. Each round an enemy remains DOOMED, steal 10% of their current HP as True Damage.',
+    passive: [],
+    situational: [
+      { id: 'ddc-doom', label: 'DOOM Active (steal 10% current HP per round per enemy)', passive: [] },
+    ],
+    notes: "Fight start: all enemies receive DOOM (5-round timer). Per round: deal 10% of each DOOMED enemy's current HP as True Damage.",
+  },
+
   redline: {
     name: 'Redline', rarity: 'hexxed',
     desc: 'Permanently OVERLOADED. The lower your HP, the more self-damage OVERLOADED inflicts — but the more ATK you gain. Below 25% HP: x3 ATK. Below 10% HP: x7 ATK.',
@@ -4076,6 +4325,63 @@ const SHIMMYFUL_MYTHIC_TRAITS = {
   womanizer:           { name: 'SHIMMYFUL Womanizer', desc: 'changes people\'s genders on-hit with a 75% chance. +150% status effect resistance', passive: [{ stat: 'status_res', op: 'add', value: 150 }] },
 
   blood_blood_god:     { name: 'SHIMMYFUL Blood for the Blood God', desc: '+75 ATK for every 3% lifesteal. Applies BLEEDING on-hit, gain +30 atk for every stack of bleeding in a fight.', passive: [{ op: 'derived', stat: 'atk', from: 'lifesteal', per: 3, perValue: 75 }], cultivation: { label: 'BLEEDING stacks in fight', perStack: [{ stat: 'atk', op: 'add', value: 30 }], defaultStacks: 0, maxStacks: 999 } },
+
+  // ── 28 NEW MYTHIC SHIMMYFULS ────────────────────────────────────
+  puppet_master:    { name: 'SHIMMYFUL Puppet Master', desc: 'Twice per fight, take control of up to 2 enemies simultaneously for 4 rounds. Puppeteered enemies fight on your side and cannot be targeted by allies.', passive: [], situational: [{ id: 'pm-s-active', label: 'Puppeteering (up to 2 enemies, 4 rounds)', passive: [] }], notes: 'Twice per fight: control 2 enemies for 4 rounds. They cannot be targeted by your allies.' },
+
+  tyrant:           { name: 'SHIMMYFUL Tyrant', desc: 'Fighters without a mythic-or-higher rarity trait deal 80% less damage to you and take 80% more damage from you. Additionally, +30% all stats at all times.', passive: [{ stat: 'all_main', op: 'pct', value: 30 }], situational: [{ id: 'tyr-s-active', label: 'vs. non-mythic+ opponent (-80% dmg in, +80% dmg out)', passive: [{ stat: 'def', op: 'pct', value: 80 }, { stat: 'atk', op: 'pct', value: 80 }] }] },
+
+  armageddon:       { name: 'SHIMMYFUL Armageddon', desc: "At the start of every fight, instantly deal 30% of each enemy's max HP as True Damage and apply BURNING to all of them.", passive: [], notes: 'Fight start: 30% max HP True Damage AoE + BURNING on all enemies.' },
+
+  zenith:           { name: 'SHIMMYFUL Zenith', desc: 'Survive a killing blow twice per fight. After each survival, gain 3 free turns AND permanently gain +50% all stats for that fight.', passive: [], situational: [{ id: 'zen-s-1', label: 'Zenith 1 triggered (+50% all stats, 3 free turns)', passive: [{ stat: 'all_main', op: 'pct', value: 50 }] }, { id: 'zen-s-2', label: 'Zenith 2 triggered (+100% all stats total, 3 free turns)', passive: [{ stat: 'all_main', op: 'pct', value: 100 }] }] },
+
+  the_final_boss:   { name: 'SHIMMYFUL The Final Boss', desc: 'You have 4 phases. Each defeat triggers the next: full HP restore and +150% all stats (stacking per phase).', passive: [], situational: [{ id: 'tfb-s-p2', label: 'Phase 2 (full HP, +150% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 150 }] }, { id: 'tfb-s-p3', label: 'Phase 3 (full HP, +300% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 300 }] }, { id: 'tfb-s-p4', label: 'Phase 4 (full HP, +450% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 450 }] }], notes: '4 phases. Each defeat: full HP restore + cumulative +150% all stats per phase.' },
+
+  primordial:       { name: 'SHIMMYFUL Primordial', desc: 'Start every fight with 3 free rounds of full untargetability. After the untargetable phase, permanently gain +30% all stats for the rest of that fight.', passive: [], situational: [{ id: 'prim-s-active', label: 'Round 1-3 (untargetable)', passive: [] }, { id: 'prim-s-after', label: 'After untargetable phase (+30% all stats)', passive: [{ stat: 'all_main', op: 'pct', value: 30 }] }] },
+
+  martyrs_flame:    { name: "SHIMMYFUL Martyr's Flame", desc: "When any ally dies, deal 200% of their ATK + MAG as True Damage to all enemies and permanently absorb 15% of all their stats.", passive: [], notes: "On ally death: 200% of their ATK + MAG as True Damage AoE + permanently absorb 15% of all their stats." },
+
+  the_abyss:        { name: 'SHIMMYFUL The Abyss', desc: 'At the end of each round n, all your stats are multiplied by 1.25^n. Round 1: x1.25, Round 3: x1.95, Round 5: x3.05, Round 7: x4.77, Round 10: x9.31.', passive: [], situational: [{ id: 'abyss-s-r1', label: 'Round 1  (x1.25 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 1.25 }] }, { id: 'abyss-s-r3', label: 'Round 3  (x1.95 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 1.95 }] }, { id: 'abyss-s-r5', label: 'Round 5  (x3.05 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 3.05 }] }, { id: 'abyss-s-r7', label: 'Round 7  (x4.77 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 4.77 }] }, { id: 'abyss-s-r10', label: 'Round 10 (x9.31 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 9.31 }] }], notes: 'Formula: 1.25^n per round n.' },
+
+  gravity_well:     { name: 'SHIMMYFUL Gravity Well', desc: 'Redirect all damage intended for allies to yourself at only 20% of its value. Reflect 20% of all redirected damage back to the attacker as True Damage.', passive: [], situational: [{ id: 'gw-s-active', label: 'Gravity Well Active (ally damage at 20%, 20% reflected as True Dmg)', passive: [{ stat: 'def', op: 'pct', value: 80 }] }], notes: 'Redirected damage reduced to 20%. 20% of redirected damage reflected as True Damage to attacker.' },
+
+  consumed:         { name: 'SHIMMYFUL Consumed', desc: 'DEF is permanently set to 0. ATK and MAG are x8. You cannot be healed by anyone but yourself. Gain +5% to all non-DEF stats per fight turn (permanent).', passive: [{ stat: 'atk', op: 'mul', value: 8 }, { stat: 'mag', op: 'mul', value: 8 }], cultivation: { label: 'Fight Turns Elapsed (+5% ATK/MAG/SPD/HP each)', perStack: [{ stat: 'atk', op: 'pct', value: 5 }, { stat: 'mag', op: 'pct', value: 5 }, { stat: 'spd', op: 'pct', value: 5 }, { stat: 'hp', op: 'pct', value: 5 }], defaultStacks: 0, maxStacks: 999 }, notes: 'DEF locked at 0. x8 ATK and MAG. +5% non-DEF stats per fight turn (permanent).' },
+
+  blood_moon:       { name: 'SHIMMYFUL Blood Moon', desc: 'During night or full moon fights, x5 all stats. Permanently gain +4% all stats per fight survived.', passive: [], situational: [{ id: 'bm-s-night', label: 'Night / full moon fight (x5 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }] }], cultivation: { label: 'Fights Survived (+4% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 4 }], defaultStacks: 0, maxStacks: 999 } },
+
+  star_eater:       { name: 'SHIMMYFUL Star Eater', desc: "Attacks permanently reduce the target's max HP by 8%. After 7 reductions on the same target, they shatter instantly.", passive: [], notes: 'Each hit: -8% permanent max HP on target. At 7 stacks on the same target: instant defeat.' },
+
+  time_freeze:      { name: 'SHIMMYFUL Time Freeze', desc: 'Twice per game, freeze time for everyone but yourself and take 4 free uncontested turns. During the freeze, you are also invisible.', passive: [], situational: [{ id: 'tf-s-active', label: 'Time Frozen (4 free turns, all frozen, you invisible)', passive: [] }], notes: 'Two uses per game. 4 free uncontested turns each. You are invisible during the freeze.' },
+
+  forsaken_god:     { name: 'SHIMMYFUL Forsaken God', desc: 'Allies cannot heal you. Your self-healing is x20. You gain +200% all stats.', passive: [{ stat: 'all_main', op: 'pct', value: 200 }, { stat: 'heal_pow', op: 'add', value: 1900 }], notes: 'External healing nullified. Self-healing is x20 (+1900 heal power). +200% all stats always active.' },
+
+  void_stares_back: { name: 'SHIMMYFUL The Void Stares Back', desc: 'Every status effect that would be applied to you instead permanently adds +20% to a random stat. Fully immune to all statuses.', passive: [{ stat: 'status_res', op: 'add', value: 100 }], cultivation: { label: 'Status Effects Deflected (+20% random stat each)', perStack: [{ stat: 'all_main', op: 'pct', value: 20 }], defaultStacks: 0, maxStacks: 999 }, notes: 'Full status immunity. Each blocked status permanently adds +20% to one random stat.' },
+
+  warlord:          { name: 'SHIMMYFUL Warlord', desc: "Your stats are equal to 150% of the combined sum of all your allies' stats. Additionally, gain +10% all stats per living ally.", passive: [], notes: "Stats = 150% of combined ally stats. +10% all stats per living ally on top." },
+
+  glitch:           { name: 'SHIMMYFUL Glitch', desc: 'At the start of each round, all your stats multiply by a random value between x0.01 and x30. One random stat always rolls the maximum (x30).', passive: [], notes: 'Wider chaos range than base. One random stat is guaranteed to roll x30 each round.' },
+
+  the_long_game:    { name: 'SHIMMYFUL The Long Game', desc: 'You gain nothing during fights. After each fight you win, permanently gain +40% all stats. Also gain +10% all stats for each fight survived (win or lose).', passive: [], cultivation: { label: 'Fights Won (+40% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 40 }], defaultStacks: 0, maxStacks: 999 }, notes: 'No in-fight bonuses. +40% all stats per win. +10% all stats per any fight survived (track separately).' },
+
+  phoenix:          { name: 'SHIMMYFUL Phoenix', desc: 'Revive with no limit. Each revive only reduces max HP by 25% but permanently triples your ATK, MAG, and SPD for that fight.', passive: [], cultivation: { label: 'Revives This Fight (ATK/MAG/SPD x3 per revive; max HP -25%)', perStack: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }], defaultStacks: 0, maxStacks: 20 }, notes: 'Each revive: max HP -25% (cumulative); ATK, MAG, and SPD tripled (cumulative for that fight).' },
+
+  no_u:             { name: 'SHIMMYFUL No U', desc: 'Every point of damage you take is reflected back to the attacker as 150% True Damage.', passive: [{ stat: 'true_dmg', op: 'add', value: 150 }], notes: 'All received damage is reflected at 150% as True Damage to the attacker. You still take the original damage.' },
+
+  hunger_strike:    { name: 'SHIMMYFUL Hunger Strike', desc: 'Cannot receive any external buffs, heals, or boosts. x12 all stats.', passive: [{ stat: 'all_main', op: 'mul', value: 12 }], notes: 'No external buffs, heals, or power-ups of any kind. x12 all stats always active.' },
+
+  pacifist_run:     { name: 'SHIMMYFUL Pacifist Run', desc: 'Cannot deal any damage. Take 95% less damage from all sources. All healing you perform is x40.', passive: [{ stat: 'heal_pow', op: 'add', value: 3900 }], notes: 'Zero damage output. Incoming damage reduced by 95%. All healing output is x40.' },
+
+  burden:           { name: 'SHIMMYFUL Burden', desc: 'Each living ally halves your ATK and MAG. Each dead ally quintuples all your stats.', passive: [], situational: [{ id: 'bur-s-1a', label: '1 living ally (ATK/MAG ÷2)', passive: [{ stat: 'atk', op: 'pct', value: -50 }, { stat: 'mag', op: 'pct', value: -50 }] }, { id: 'bur-s-2a', label: '2 living allies (ATK/MAG ÷4)', passive: [{ stat: 'atk', op: 'pct', value: -75 }, { stat: 'mag', op: 'pct', value: -75 }] }, { id: 'bur-s-1d', label: '1 dead ally (x5 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 5 }] }, { id: 'bur-s-2d', label: '2 dead allies (x25 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 25 }] }, { id: 'bur-s-3d', label: '3 dead allies (x125 all stats)', passive: [{ stat: 'all_main', op: 'mul', value: 125 }] }], notes: 'Dead allies quintuple all stats (compounding). Living allies still halve ATK/MAG (compounding).' },
+
+  mall_cop:         { name: 'SHIMMYFUL Mall Cop', desc: 'SPD permanently set to 1. DEF is x100. Cannot be knocked back, displaced, or have DEF reduced.', passive: [{ stat: 'def', op: 'mul', value: 100 }], notes: 'SPD locked at 1. DEF x100. Immune to knockback, displacement, and all DEF reduction effects.' },
+
+  permafrost:       { name: 'SHIMMYFUL Permafrost', desc: 'Permanently FROZEN. All damage taken reduced by 90%. Passively deal 25% of your max HP as True Damage to all enemies at the start of each round.', passive: [], notes: 'Cannot move or use abilities. 90% damage reduction. Each round start: 25% max HP True Damage AoE to all enemies.' },
+
+  berserker_god:    { name: 'SHIMMYFUL Berserker God', desc: 'Permanently BERSERK. x10 ATK and MAG. Every hit inflicts BLEEDING for 10 turns and applies MARKED to the target.', passive: [{ stat: 'atk', op: 'mul', value: 10 }, { stat: 'mag', op: 'mul', value: 10 }], notes: 'BERSERK: random targets only. On-hit: BLEEDING (10 turns) + MARKED. x10 ATK and MAG.' },
+
+  poisoned_chalice: { name: 'SHIMMYFUL Poisoned Chalice', desc: 'Permanently POISONED at 20 stacks. Each stack grants +15% ATK and +10% MAG. Attacks apply 10 stacks of POISON to enemies.', passive: [], cultivation: { label: 'POISON Stacks on Self (+15% ATK, +10% MAG each)', perStack: [{ stat: 'atk', op: 'pct', value: 15 }, { stat: 'mag', op: 'pct', value: 10 }], defaultStacks: 20, maxStacks: 999 }, notes: 'Start with 20 POISON stacks. Each stack: +15% ATK, +10% MAG. On-hit: 10 stacks of POISON to enemy.' },
+
+  doomsday_clock:   { name: 'SHIMMYFUL Doomsday Clock', desc: "At the start of every fight, apply DOOM to all enemies with a 10-round timer. Each round, steal 20% of each DOOMED enemy's current HP as True Damage.", passive: [], situational: [{ id: 'ddc-s-doom', label: 'DOOM Active (steal 20% current HP per round per enemy)', passive: [] }], notes: "Fight start: all enemies receive DOOM (10-round timer). Per round: 20% of each DOOMED enemy's current HP as True Damage." },
 };
 
 // ============================================================

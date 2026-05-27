@@ -5701,6 +5701,18 @@ function renderTraitSituationals(c, key) {
     }
     return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollMissingNo(event)" data-tooltip="Randomize all stats between x0.5–x3 (x0.25–x5.5 for SHIMMYFUL). Simulates the start-of-battle chaos roll.">&#9889; REROLL STATS</button></div>`;
   }
+  // GLITCH — custom reroll button
+  if (key === 'glitch') {
+    const rolls = c.glitchRolls;
+    const shimmy = isShimmyful(c, key);
+    const maxVal = shimmy ? 30 : 20;
+    let rollDisplay = '';
+    if (rolls) {
+      const parts = ['hp', 'atk', 'def', 'mag', 'spd'].map(s => `${s.toUpperCase()} x${rolls[s].toFixed(2)}`).join(' &nbsp; ');
+      rollDisplay = `<div style="font-size:7px;color:#aaa;letter-spacing:1px;margin-bottom:4px;">${parts}</div>`;
+    }
+    return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollGlitch(event)" data-tooltip="Randomize all stats between x0.01–x${maxVal}${shimmy ? ' (one stat always rolls max)' : ''}. Simulates a round-start Glitch roll.">&#9889; REROLL STATS</button></div>`;
+  }
   // AT THOUSAND DOORS — custom ROLL ENCOUNTER button
   if (key === 'thousanddoors') {
     const accum = c.thousandDoorsAccum || {};
@@ -5883,6 +5895,24 @@ function rollMissingNo(ev) {
     STATS.forEach(s => { rolls[s] = Math.round((0.5 + Math.random() * (3.0 - 0.5)) * 100) / 100; });
   }
   c.missingNoRolls = rolls;
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+}
+
+function rollGlitch(ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  const shimmy = isShimmyful(c, 'glitch');
+  const maxVal = shimmy ? 30 : 20;
+  const STATS = ['hp', 'atk', 'def', 'mag', 'spd'];
+  const rolls = {};
+  STATS.forEach(s => { rolls[s] = Math.round((0.01 + Math.random() * (maxVal - 0.01)) * 100) / 100; });
+  if (shimmy) {
+    rolls[STATS[Math.floor(Math.random() * STATS.length)]] = maxVal;
+  }
+  c.glitchRolls = rolls;
   saveData(c);
   updateLiveStats(c);
   renderTraitsDisplay(c);
@@ -6093,6 +6123,7 @@ function removeTrait(key, ev) {
   c.shimmyfulTraits = (c.shimmyfulTraits || []).filter(k => k !== key);
   if (c.dualityState) delete c.dualityState[key];
   if (key === 'missingno') delete c.missingNoRolls;
+  if (key === 'glitch') delete c.glitchRolls;
   if (key === 'thousanddoors') { delete c.thousandDoorsAccum; delete c.thousandDoorsHistory; }
   if (key === 'perfectsoul') delete c.perfectSoulData;
   if (key === 'anotherandanother') { delete c.drunkStats; delete c.drunkCount; }
