@@ -7312,6 +7312,7 @@ function applyTextColorCustom() {
 // ============================================================
 loadSeenTraits();
 migrateLocalStorage();
+srInit(); // populate _encStatusMap so status-pill coloring works on trait cards
 
 const sidebarList = document.getElementById('char-list');
 if (sidebarList && db) {
