@@ -1434,7 +1434,7 @@ const TRAITS = {
 
   hx_pyro: {
     name: 'Manic Pyromaniac', rarity: 'hexxed',
-    desc: 'Explosions x10 bigger. Apply BURN/POISON/BLEED/SLOW. Heal 20% HP/turn per BURNING enemy.',
+    desc: 'Explosions x10 bigger. Apply BURN/POISON/BLEEDING/SLOW. Heal 20% HP/turn per BURNING enemy.',
     passive: [],
   },
 
@@ -3373,7 +3373,7 @@ const TRAITS = {
 
   triple_threat: {
     name: 'Triple The Threat', rarity: 'legendary',
-    desc: 'While in a TRIO, the entire TRIO gains x3.33 all non-hp stats, and apply ENVIGORATED to every ally for 3 rounds at the start of a fight. If someone in the trio is knocked out, your next attack will deal 3 stacks of BLEED for 3 turns, but you and your ally\'s stats will be dropped to x0.33 for the rest of the fight, unless the knocked out ally is revived.',
+    desc: 'While in a TRIO, the entire TRIO gains x3.33 all non-hp stats, and apply ENVIGORATED to every ally for 3 rounds at the start of a fight. If someone in the trio is knocked out, your next attack will deal 3 stacks of BLEEDING for 3 turns, but you and your ally\'s stats will be dropped to x0.33 for the rest of the fight, unless the knocked out ally is revived.',
     passive: [],
     situational: [
       { id: 'tt-trio', label: 'In a TRIO (x3.33 all non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 3.33 }, { stat: 'def', op: 'mul', value: 3.33 }, { stat: 'mag', op: 'mul', value: 3.33 }, { stat: 'spd', op: 'mul', value: 3.33 }] },

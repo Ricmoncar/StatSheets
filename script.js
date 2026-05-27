@@ -5210,7 +5210,7 @@ function _renderDescWithStatuses(rawDesc) {
   if (!rawDesc) return '';
   const statusNames = Object.keys(_encStatusMap).sort((a, b) => b.length - a.length);
   if (!statusNames.length) return _escHtml(rawDesc);
-  const parts = statusNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const parts = statusNames.map(n => '\\b' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
   const combined = new RegExp('(' + parts.join('|') + ')', 'gi');
   let result = '', lastIndex = 0, match;
   combined.lastIndex = 0;
