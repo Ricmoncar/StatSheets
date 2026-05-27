@@ -674,19 +674,22 @@ function _showCompatResult(charA, charB, score) {
   const colB  = charB?.color || '#888';
   const nameA = charA?.name  || 'CHARACTER A';
   const nameB = charB?.name  || 'CHARACTER B';
+  const _naraA = _isNara(charA);
+  const _naraB = _isNara(charB);
+  if (_naraA || _naraB) _injectNaraStyles();
 
   const result = document.getElementById('compat-result');
   result.innerHTML = `
     <div class="compat-result-box">
       <div class="compat-chars-display">
         <div class="compat-char-chip">
-          <span class="compat-char-chip-dot" style="background:${colA};box-shadow:0 0 5px ${colA}88"></span>
-          <span style="color:${colA}">${nameA}</span>
+          <span class="compat-char-chip-dot${_naraA ? ' nara-rainbow-dot' : ''}"${_naraA ? '' : ` style="background:${colA};box-shadow:0 0 5px ${colA}88"`}></span>
+          <span ${_naraA ? 'class="nara-rainbow"' : `style="color:${colA}"`}>${nameA}</span>
         </div>
         <span class="compat-x-sign">${_compatMode === 'relationship' ? '&hearts;' : '&amp;'}</span>
         <div class="compat-char-chip">
-          <span class="compat-char-chip-dot" style="background:${colB};box-shadow:0 0 5px ${colB}88"></span>
-          <span style="color:${colB}">${nameB}</span>
+          <span class="compat-char-chip-dot${_naraB ? ' nara-rainbow-dot' : ''}"${_naraB ? '' : ` style="background:${colB};box-shadow:0 0 5px ${colB}88"`}></span>
+          <span ${_naraB ? 'class="nara-rainbow"' : `style="color:${colB}"`}>${nameB}</span>
         </div>
       </div>
       <div class="compat-score-row">

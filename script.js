@@ -12,6 +12,77 @@ function filterSidebar(val) {
 }
 let seenTraits = [];
 let _encStatusMap = {}; // keyed by UPPERCASE status name → { color, desc }
+
+// ── NARA rainbow ─────────────────────────────────────────────
+const _NARA_RE = /^NARA!+$/;
+function _isNara(c) { return !!(c && c.name && _NARA_RE.test(c.name)); }
+let _naraCurrentColor = '#ffb3ba';
+let _naraRafId = null, _naraRafT = 0, _naraRafPrevTs = 0;
+
+function _naraHsl(t) {
+  const hue = ((t * 50) % 360 + 360) % 360; // 50°/s → ~7.2 s per full cycle
+  return `hsl(${hue.toFixed(1)},80%,78%)`;
+}
+
+function _injectNaraStyles() {
+  if (document.getElementById('nara-styles')) return;
+  const stops = [
+    [0,'#ffb3ba'],[14,'#ffd4a8'],[28,'#feffa8'],
+    [42,'#b8ffc9'],[57,'#a8d8ff'],[71,'#d4b3ff'],
+    [85,'#ffb3f0'],[100,'#ffb3ba'],
+  ];
+  const kfText   = stops.map(([p,c])=>`${p}%{color:${c}}`).join(' ');
+  const kfBorder = stops.map(([p,c])=>`${p}%{border-color:${c}}`).join(' ');
+  const kfBg     = stops.map(([p,c])=>`${p}%{background-color:${c}}`).join(' ');
+  const s = document.createElement('style');
+  s.id = 'nara-styles';
+  s.textContent = `
+@keyframes naraRbwText{${kfText}}
+@keyframes naraRbwBorder{${kfBorder}}
+@keyframes naraRbwBg{${kfBg}}
+.nara-rainbow{animation:naraRbwText 3s linear infinite!important;color:unset!important;}
+.nara-rainbow-border{animation:naraRbwBorder 3s linear infinite!important;}
+.nara-rainbow-band{animation:naraRbwBg 3s linear infinite!important;-webkit-mask-image:linear-gradient(90deg,black 60%,transparent 100%);mask-image:linear-gradient(90deg,black 60%,transparent 100%);}
+.nara-rainbow-dot{animation:naraRbwBg 3s linear infinite!important;}
+`;
+  document.head.appendChild(s);
+}
+
+function _naraRafTick(ts) {
+  if (!_naraRafPrevTs) _naraRafPrevTs = ts;
+  _naraRafT += (ts - _naraRafPrevTs) / 1000;
+  _naraRafPrevTs = ts;
+  const col = _naraHsl(_naraRafT);
+  _naraCurrentColor = col;
+
+  const cv = document.getElementById('char-view');
+  if (cv) cv.style.setProperty('--char-color', col);
+
+  document.querySelectorAll('[data-nara-color]').forEach(el => { el.style.color = col; });
+  document.querySelectorAll('[data-nara-border]').forEach(el => { el.style.borderColor = col; });
+  document.querySelectorAll('[data-nara-fill]').forEach(el => { el.setAttribute('fill', col); });
+
+  const bar = document.getElementById('theme-bar');
+  if (bar && bar.dataset.naraBar) bar.style.setProperty('--bar-accent', col);
+  const barChar = document.getElementById('theme-bar-char');
+  if (barChar && barChar.dataset.naraColor) barChar.style.color = col;
+
+  _naraRafId = requestAnimationFrame(_naraRafTick);
+}
+
+function _startNaraRaf() {
+  _injectNaraStyles();
+  _naraRafPrevTs = 0;
+  if (!_naraRafId) _naraRafId = requestAnimationFrame(_naraRafTick);
+}
+
+function _stopNaraRaf() {
+  if (_naraRafId) { cancelAnimationFrame(_naraRafId); _naraRafId = null; }
+  const cv = document.getElementById('char-view');
+  if (cv) cv.style.removeProperty('--char-color');
+}
+// ─────────────────────────────────────────────────────────────
+
 let currentId = null;
 let editingId = null;
 let previewAnim = null;
@@ -631,7 +702,9 @@ function _showThemeBar(title, charName, charColor) {
   document.getElementById('theme-bar-title').textContent = title;
   const charEl = document.getElementById('theme-bar-char');
   charEl.textContent = charName;
-  charEl.style.color = charColor || '#888';
+  const _isNaraBar = _NARA_RE.test(charName || '');
+  if (_isNaraBar) { charEl.dataset.naraColor = '1'; charEl.style.color = ''; }
+  else { delete charEl.dataset.naraColor; charEl.style.color = charColor || '#888'; }
   document.getElementById('theme-bar-playpause').innerHTML = '⏸';
   // Sync slider + vol label
   const slider = document.getElementById('theme-bar-volume');
@@ -643,7 +716,8 @@ function _showThemeBar(title, charName, charColor) {
   if (lbl) lbl.textContent = Math.round(_themeVolume);
   // Accent colour from character
   const bar = document.getElementById('theme-bar');
-  bar.style.setProperty('--bar-accent', charColor || 'var(--accent-yellow)');
+  if (_isNaraBar) { bar.dataset.naraBar = '1'; }
+  else { delete bar.dataset.naraBar; bar.style.setProperty('--bar-accent', charColor || 'var(--accent-yellow)'); }
   // Equalizer running
   const eq = document.getElementById('theme-bar-eq');
   if (eq) eq.classList.remove('paused');
@@ -1522,12 +1596,18 @@ function drawPattern(canvas, type, params, t) {
   }
   else if (type === 'static_noise') { /* handled above */ }
   else if (type === 'falling_pixels') {
-    if (!canvas._pixels) canvas._pixels = Array.from({ length: 200 }, () => ({ x: Math.random() * W, y: Math.random() * H, vy: 0.5 + Math.random() * 1.5, size: 0 }));
+    if (!canvas._pixels) canvas._pixels = Array.from({ length: 200 }, () => ({ x: Math.random() * W, y: Math.random() * H, vy: 0.5 + Math.random() * 1.5, size: 0, hueOff: Math.random() * 360 }));
     const count = params.count || 60, size = params.size || 6, spd = params.speed || 2, color = params.color || '#ffffff';
-    ctx.globalAlpha = alpha; ctx.fillStyle = color;
+    const _naraPixels = _isNara(characters.find(x => x.id === currentId));
+    ctx.globalAlpha = alpha;
+    if (!_naraPixels) ctx.fillStyle = color;
     canvas._pixels.slice(0, count).forEach(p => {
       p.y += p.vy * spd;
       if (p.y > H + size) { p.y = -size; p.x = Math.random() * W; }
+      if (_naraPixels) {
+        const hue = ((_naraRafT * 50 + p.hueOff) % 360 + 360) % 360;
+        ctx.fillStyle = `hsl(${hue.toFixed(1)},80%,78%)`;
+      }
       ctx.fillRect(Math.floor(p.x), Math.floor(p.y), size, size);
     });
     ctx.globalAlpha = 1;
@@ -1817,15 +1897,18 @@ function buildCharEntry(c, contextFolderId) {
   el.className = 'char-entry' + (c.id === currentId ? ' active' : '');
   if (isDraft) el.style.cssText = 'border-left:2px dashed #444;opacity:0.6;';
 
+  const _naraChar = !isDraft && _isNara(c);
   const avatarHTML = c.avatar
     ? `<div class="char-avatar-small"><img src="${c.avatar}"/></div>`
-    : `<div class="char-avatar-small" style="color:${isDraft ? '#555' : c.color};">
-        <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:18px;height:18px;"><rect x="12" y="2" width="8" height="8" fill="currentColor"/><rect x="10" y="10" width="12" height="10" fill="currentColor"/><rect x="8" y="20" width="6" height="8" fill="currentColor"/><rect x="18" y="20" width="6" height="8" fill="currentColor"/></svg>
-      </div>`;
+    : _naraChar
+      ? `<div class="char-avatar-small nara-rainbow"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:18px;height:18px;"><rect x="12" y="2" width="8" height="8" fill="currentColor"/><rect x="10" y="10" width="12" height="10" fill="currentColor"/><rect x="8" y="20" width="6" height="8" fill="currentColor"/><rect x="18" y="20" width="6" height="8" fill="currentColor"/></svg></div>`
+      : `<div class="char-avatar-small" style="color:${isDraft ? '#555' : c.color};"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:18px;height:18px;"><rect x="12" y="2" width="8" height="8" fill="currentColor"/><rect x="10" y="10" width="12" height="10" fill="currentColor"/><rect x="8" y="20" width="6" height="8" fill="currentColor"/><rect x="18" y="20" width="6" height="8" fill="currentColor"/></svg></div>`;
 
   const nameHtml = isDraft
     ? `<span style="color:#555;">${c.name}</span>&nbsp;<span style="font-size:6px;color:#444;">[DRAFT]</span>`
-    : `<span style="color:${c.color}">${c.name || 'UNNAMED'}</span>`;
+    : _naraChar
+      ? `<span class="nara-rainbow">${c.name || 'UNNAMED'}</span>`
+      : `<span style="color:${c.color}">${c.name || 'UNNAMED'}</span>`;
 
   const tagsHtml = (c.tags && c.tags.length)
     ? `<div class="char-entry-tags">${c.tags.map(t => `<span class="char-tag">${t}</span>`).join('')}</div>`
@@ -2169,8 +2252,16 @@ function viewChar(id) {
   const _cvAvatar = (_cvAltForm && _cvAltForm.avatar) ? _cvAltForm.avatar : c.avatar;
 
   const avatarEl = document.getElementById('cv-avatar');
+  const _naraMode = _isNara(c);
   if (_cvAvatar) {
     avatarEl.innerHTML = `<img src="${_cvAvatar}"/>`;
+  } else if (_naraMode) {
+    avatarEl.innerHTML = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:56px;height:56px;">
+      <rect x="12" y="2" width="8" height="8" data-nara-fill="1"/>
+      <rect x="10" y="10" width="12" height="10" data-nara-fill="1"/>
+      <rect x="8" y="20" width="6" height="8" data-nara-fill="1"/>
+      <rect x="18" y="20" width="6" height="8" data-nara-fill="1"/>
+    </svg>`;
   } else {
     avatarEl.innerHTML = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:56px;height:56px;">
       <rect x="12" y="2" width="8" height="8" fill="${c.color}"/>
@@ -2179,15 +2270,32 @@ function viewChar(id) {
       <rect x="18" y="20" width="6" height="8" fill="${c.color}"/>
     </svg>`;
   }
-  avatarEl.style.borderColor = c.color;
+  if (_naraMode) {
+    avatarEl.dataset.naraBorder = '1';
+    avatarEl.style.borderColor = '';
+  } else {
+    delete avatarEl.dataset.naraBorder;
+    avatarEl.style.borderColor = c.color;
+  }
 
-  document.getElementById('cv-name').textContent = c.name || 'UNNAMED';
-  document.getElementById('cv-name').style.color = c.color;
+  const cvNameEl = document.getElementById('cv-name');
+  cvNameEl.textContent = c.name || 'UNNAMED';
+  if (_naraMode) {
+    cvNameEl.dataset.naraColor = '1';
+    cvNameEl.style.color = '';
+  } else {
+    delete cvNameEl.dataset.naraColor;
+    cvNameEl.style.color = c.color;
+  }
   renderFormSwitcher(c);
   updateCharPLBadge(c);
   renderRadarChart(c);
   const mbn = document.getElementById('mobile-char-name');
-  if (mbn) { mbn.textContent = c.name || 'UNNAMED'; mbn.style.color = c.color || '#fff'; }
+  if (mbn) {
+    mbn.textContent = c.name || 'UNNAMED';
+    if (_naraMode) { mbn.dataset.naraColor = '1'; mbn.style.color = ''; }
+    else { delete mbn.dataset.naraColor; mbn.style.color = c.color || '#fff'; }
+  }
   updateGoldDisplay(c);
 
   const bioText = document.getElementById('cv-bio-text');
@@ -2248,7 +2356,8 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  document.getElementById('char-view').style.setProperty('--char-color', c.color);
+  if (_naraMode) { _startNaraRaf(); }
+  else { _stopNaraRaf(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -2568,9 +2677,18 @@ function _syncAvatarEl(c) {
   const src = (af && af.avatar) ? af.avatar : c.avatar;
   const el = document.getElementById('cv-avatar');
   if (!el) return;
-  el.style.borderColor = c.color;
+  const _saeNara = _isNara(c);
+  if (_saeNara) { el.dataset.naraBorder = '1'; el.style.borderColor = ''; }
+  else { delete el.dataset.naraBorder; el.style.borderColor = c.color; }
   if (src) {
     el.innerHTML = `<img src="${src}"/>`;
+  } else if (_saeNara) {
+    el.innerHTML = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:56px;height:56px;">
+      <rect x="12" y="2" width="8" height="8" data-nara-fill="1"/>
+      <rect x="10" y="10" width="12" height="10" data-nara-fill="1"/>
+      <rect x="8"  y="20" width="6" height="8"  data-nara-fill="1"/>
+      <rect x="18" y="20" width="6" height="8"  data-nara-fill="1"/>
+    </svg>`;
   } else {
     el.innerHTML = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:56px;height:56px;">
       <rect x="12" y="2" width="8" height="8" fill="${c.color}"/>
@@ -4241,10 +4359,11 @@ function renderInventory(c) {
       `<div class="inv-passive-tag">${p}</div>`
     ).join('');
 
-    return `<div class="inv-card ${i.equipped ? 'equipped' : ''}" style="--char-color: ${c.color}; --hc: ${hc}">
+    const _invNaraCol = _isNara(c) ? _naraCurrentColor : c.color;
+    return `<div class="inv-card ${i.equipped ? 'equipped' : ''}" style="--char-color: ${_invNaraCol}; --hc: ${hc}">
       <div class="inv-card-icon">${iconHtml}</div>
       <div class="inv-card-info">
-        <div class="inv-card-name" style="color: ${i.equipped ? c.color : 'var(--fg)'}">${i.name || 'Unnamed Item'}</div>
+        <div class="inv-card-name"${i.equipped ? (_isNara(c) ? ' class="nara-rainbow"' : ` style="color:${c.color}"`) : ''}>${i.name || 'Unnamed Item'}</div>
         <div class="inv-card-desc">${i.desc || ''}</div>
         <div class="inv-mod-tags">${modsHtml}</div>
         ${passivesHtml ? `<div class="inv-passive-tags">${passivesHtml}</div>` : ''}
@@ -6883,7 +7002,7 @@ function openAbilityEditor(idx) {
 
   // Propagate char colour into the fixed-position modal
   const aeModal = document.getElementById('ability-editor-modal');
-  if (aeModal && c.color) aeModal.style.setProperty('--char-color', c.color);
+  if (aeModal) aeModal.style.setProperty('--char-color', _isNara(c) ? _naraCurrentColor : (c.color || '#888'));
 
   const overlay = document.getElementById('ability-editor-overlay');
   overlay.style.display = 'flex';
@@ -7337,8 +7456,8 @@ function renderCompare() {
     const pctA = Math.round((va / globalMax) * 100);
     const pctB = Math.round((vb / globalMax) * 100);
     const winA = va > vb, winB = vb > va;
-    const barColorA = winA ? (a.color || '#4aff9e') : '#333';
-    const barColorB = winB ? (b.color || '#4aff9e') : '#333';
+    const barColorA = winA ? (_isNara(a) ? _naraCurrentColor : (a.color || '#4aff9e')) : '#333';
+    const barColorB = winB ? (_isNara(b) ? _naraCurrentColor : (b.color || '#4aff9e')) : '#333';
     return `<div class="cmp-row">
       <div class="cmp-side-a">
         <span class="cmp-val ${winA ? 'cmp-win' : va < vb ? 'cmp-lose' : ''}">${va}</span>
@@ -7353,9 +7472,9 @@ function renderCompare() {
   }).join('');
   out.innerHTML = `
     <div class="cmp-names">
-      <span style="color:${a.color}">${a.name}</span>
+      <span ${_isNara(a) ? 'class="nara-rainbow"' : `style="color:${a.color}"`}>${a.name}</span>
       <span class="cmp-vs">VS</span>
-      <span style="color:${b.color}">${b.name}</span>
+      <span ${_isNara(b) ? 'class="nara-rainbow"' : `style="color:${b.color}"`}>${b.name}</span>
     </div>
     <div class="cmp-rows">${rows}</div>`;
 }

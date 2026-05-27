@@ -688,20 +688,53 @@ function animateStatBars() {
   });
 }
 
+// ── NARA Rainbow (encyclopedia) ────────────────────────────
+const _NARA_RE_ENC = /^NARA!+$/;
+function _isNara(c) { return !!(c && c.name && _NARA_RE_ENC.test(c.name)); }
+
+function _encInjectNaraStyles() {
+  if (document.getElementById('nara-styles')) return;
+  const stops = [
+    [0,'#ffb3ba'],[14,'#ffd4a8'],[28,'#feffa8'],
+    [42,'#b8ffc9'],[57,'#a8d8ff'],[71,'#d4b3ff'],
+    [85,'#ffb3f0'],[100,'#ffb3ba'],
+  ];
+  const kfText   = stops.map(([p,c])=>`${p}%{color:${c}}`).join(' ');
+  const kfBorder = stops.map(([p,c])=>`${p}%{border-color:${c}}`).join(' ');
+  const kfBg     = stops.map(([p,c])=>`${p}%{background-color:${c}}`).join(' ');
+  const s = document.createElement('style');
+  s.id = 'nara-styles';
+  s.textContent = `
+@keyframes naraRbwText{${kfText}}
+@keyframes naraRbwBorder{${kfBorder}}
+@keyframes naraRbwBg{${kfBg}}
+.nara-rainbow{animation:naraRbwText 3s linear infinite!important;color:unset!important;}
+.nara-rainbow-border{animation:naraRbwBorder 3s linear infinite!important;}
+.nara-rainbow-band{animation:naraRbwBg 3s linear infinite!important;-webkit-mask-image:linear-gradient(90deg,black 60%,transparent 100%);mask-image:linear-gradient(90deg,black 60%,transparent 100%);}
+.nara-rainbow-dot{animation:naraRbwBg 3s linear infinite!important;}
+`;
+  document.head.appendChild(s);
+}
+
 // ── CHARACTER ENTRY ───────────────────────────────────────
 function renderCharEntry(c) {
   if (!c) return '';
   const info = c.info || {};
   const col  = c.color || '#c9a227';
   const st   = c.stats || {};
+  const _nara = _isNara(c);
+  if (_nara) _encInjectNaraStyles();
+  const sLabel = (text, delay) => _nara
+    ? `<div class="enc-section-label enc-anim-fade" style="animation-delay:${delay}s"><span class="nara-rainbow">${text}</span></div>`
+    : `<div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:${delay}s">${text}</div>`;
 
   // ── Radar chart ──
-  const statsHtml = renderStatRadar(st, col);
+  const statsHtml = renderStatRadar(st, _nara ? '#c8a0d8' : col);
 
   // ── Portrait ──
   const avatar = c.avatar
-    ? `<div class="enc-char-portrait-frame" style="border-color:${col}44"><img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover;display:block;"></div>`
-    : `<div class="enc-char-portrait-frame" style="border-color:${col}22"><span class="enc-char-portrait-ph" style="color:${col}33">◈</span></div>`;
+    ? `<div class="enc-char-portrait-frame${_nara ? ' nara-rainbow-border' : ''}"${_nara ? '' : ` style="border-color:${col}44"`}><img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover;display:block;"></div>`
+    : `<div class="enc-char-portrait-frame${_nara ? ' nara-rainbow-border' : ''}"${_nara ? '' : ` style="border-color:${col}22"`}><span class="enc-char-portrait-ph"${_nara ? '' : ` style="color:${col}33"`}>◈</span></div>`;
 
   // ── Traits ──
   const traitsHtml = (c.traits || []).slice(0, 14).map((t, i) => {
@@ -750,26 +783,26 @@ function renderCharEntry(c) {
     <div class="enc-char-hero enc-anim-fade" style="animation-delay:0s">
       ${avatar}
       <div class="enc-char-hero-info">
-        <div class="enc-entry-name enc-char-name-big" style="color:${col};text-shadow:0 0 30px ${col}44">${esc(c.name || 'UNNAMED')}</div>
-        <div class="enc-char-color-band" style="background:linear-gradient(90deg,${col},transparent)"></div>
+        ${_nara ? `<div class="enc-entry-name enc-char-name-big nara-rainbow">${esc(c.name || 'UNNAMED')}</div>` : `<div class="enc-entry-name enc-char-name-big" style="color:${col};text-shadow:0 0 30px ${col}44">${esc(c.name || 'UNNAMED')}</div>`}
+        ${_nara ? `<div class="enc-char-color-band nara-rainbow-band"></div>` : `<div class="enc-char-color-band" style="background:linear-gradient(90deg,${col},transparent)"></div>`}
         ${infoFields.length ? `<div class="enc-char-quick-tags">
           ${infoFields.slice(0,4).map(([l,v]) => `<span class="enc-char-quick-tag">${esc(v)}</span>`).join('<span class="enc-char-quick-sep">·</span>')}
         </div>` : ''}
       </div>
     </div>
-    <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.08s">⬥ COMBAT STATS</div>
+    ${sLabel('⬥ COMBAT STATS', 0.08)}
     ${statsHtml}
     ${traitsHtml ? `
-      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.28s">⬥ TRAITS</div>
+      ${sLabel('⬥ TRAITS', 0.28)}
       <div class="enc-char-tags-row">${traitsHtml}</div>` : ''}
     ${infoGridHtml ? `
-      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.35s">⬥ IDENTITY</div>
+      ${sLabel('⬥ IDENTITY', 0.35)}
       <div class="enc-char-info-grid">${infoGridHtml}</div>` : ''}
     ${info.bio ? `
-      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.4s">⬥ BIOGRAPHY</div>
+      ${sLabel('⬥ BIOGRAPHY', 0.4)}
       <div class="enc-body-text enc-anim-fade" style="animation-delay:0.42s">${esc(info.bio)}</div>` : ''}
     ${info.personality ? `
-      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.45s">⬥ PERSONALITY</div>
+      ${sLabel('⬥ PERSONALITY', 0.45)}
       <div class="enc-body-text enc-anim-fade" style="animation-delay:0.47s">${esc(info.personality)}</div>` : ''}
     ${(info.goals || info.fears) ? `
       <div class="enc-char-info-grid enc-anim-fade" style="animation-delay:0.5s;margin-top:10px">
@@ -777,13 +810,13 @@ function renderCharEntry(c) {
         ${info.fears ? `<div><div class="enc-info-lbl">FEARS</div><div class="enc-body-text">${esc(info.fears)}</div></div>` : ''}
       </div>` : ''}
     ${abilitiesHtml ? `
-      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.5s">⬥ ABILITIES</div>
+      ${sLabel('⬥ ABILITIES', 0.5)}
       <div>${abilitiesHtml}</div>` : ''}
     ${passivesHtml ? `
-      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.55s">⬥ PASSIVES</div>
+      ${sLabel('⬥ PASSIVES', 0.55)}
       <div>${passivesHtml}</div>` : ''}
     ${info.notes ? `
-      <div class="enc-section-label enc-anim-fade" style="color:${col};animation-delay:0.6s">⬥ NOTES</div>
+      ${sLabel('⬥ NOTES', 0.6)}
       <div class="enc-body-text enc-anim-fade" style="animation-delay:0.62s">${esc(info.notes)}</div>` : ''}
   `;
 }
@@ -1407,11 +1440,13 @@ function openMemoryModal(id) {
       ? encCharacters.map(c => {
           const checked = charIds.includes(c.id);
           const col = c.color || '#888';
+          const _nc = _isNara(c);
+          if (_nc) _encInjectNaraStyles();
           return `<label class="em-char-pick-item${checked ? ' checked' : ''}">
             <input type="checkbox" value="${esc(c.id)}" ${checked ? 'checked' : ''}
               onchange="this.closest('.em-char-pick-item').classList.toggle('checked',this.checked)"/>
-            <span class="em-char-pick-dot" style="background:${col};box-shadow:0 0 5px ${col}88"></span>
-            <span class="em-char-pick-name">${esc(c.name || 'UNNAMED')}</span>
+            <span class="em-char-pick-dot${_nc ? ' nara-rainbow-dot' : ''}"${_nc ? '' : ` style="background:${col};box-shadow:0 0 5px ${col}88"`}></span>
+            <span class="${_nc ? 'em-char-pick-name nara-rainbow' : 'em-char-pick-name'}">${esc(c.name || 'UNNAMED')}</span>
           </label>`;
         }).join('')
       : `<span style="font-size:8px;color:#444;letter-spacing:1px;">NO CHARACTERS YET</span>`;
