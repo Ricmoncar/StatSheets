@@ -5262,7 +5262,7 @@ function rollHand(isPityRoll) {
     if (!seen.has(k)) {
       seen.add(k);
       const _r = TRAITS[k]?.rarity;
-      const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'mythic' && Math.random() < 0.01) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
+      const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'mythic' && Math.random() < 0.10) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
       hand.push({ key: k, shimmyful });
     }
     tries++;
