@@ -1221,9 +1221,9 @@ const TRAITS = {
 
   brave: {
     name: 'Bravest of the Brave', rarity: 'mythic',
-    desc: 'On pick, guaranteed 2 additional rare/epic traits. You can hold 2 traits at once.',
-    passive: [],
-    notes: 'Meta. Grants 2 bonus rare/epic traits on pick.',
+    desc: 'On pick, guaranteed 2 additional rare/epic traits. You can hold 2 traits at once. +25% all stats.',
+    passive: [{ stat: 'all_main', op: 'pct', value: 25 }],
+    notes: 'Meta. Grants 2 bonus rare/epic traits on pick. Also grants +25% to all stats.',
   },
 
   bloodlust: {
@@ -3894,7 +3894,7 @@ const SHIMMYFUL_TRAITS = {
 // adaptation, bloodlust, glasscannon, magical, nesting, vengeance, raidboss
 const SHIMMYFUL_MYTHIC_TRAITS = {
   acclrsorc: { name: 'SHIMMYFUL Accelerating Sorcery', desc: 'Each turn, +15% Cooldown Reduction and +5% MAG.', passive: [], situational: [{ id: 'as-1', label: 'After 1 turn (+15% CDR, +5% MAG)', passive: [{ stat: 'cooldown_red', op: 'add', value: 15 }, { stat: 'mag', op: 'pct', value: 5 }] }, { id: 'as-3', label: 'After 3 turns (+45% CDR, +15% MAG)', passive: [{ stat: 'cooldown_red', op: 'add', value: 45 }, { stat: 'mag', op: 'pct', value: 15 }] }] },
-  brave: { name: 'SHIMMYFUL Bravest of the Brave', desc: 'On pick, guaranteed 3 additional rare/epic traits. One is guaranteed epic.', passive: [], notes: 'Meta. Grants 3 bonus rare/epic traits on pick; at least one must be epic.' },
+  brave: { name: 'SHIMMYFUL Bravest of the Brave', desc: 'On pick, guaranteed 3 additional rare/epic traits. One is guaranteed epic. +25% all stats.', passive: [{ stat: 'all_main', op: 'pct', value: 25 }], notes: 'Meta. Grants 3 bonus rare/epic traits on pick; at least one must be epic. Also grants +25% to all stats.' },
   allforyou: { name: 'SHIMMYFUL All for You!', desc: 'Heals & buffs you give allies are x4. You also receive 25% of whatever you give.', passive: [], notes: 'Support multiplier. You receive 25% of buff/heal value as a bonus to yourself.' },
   adaptation: { name: 'SHIMMYFUL Adaptation', desc: 'Every hit from an enemy grants +80% DEF. Stacks infinitely per hit.', passive: [], cultivation: { label: 'Enemy Hits', perStack: { stat: 'def', op: 'pct', value: 80 }, defaultStacks: 0, maxStacks: 999 }, notes: 'Shimmyful version of Adaptation. Each stack represents one enemy hit.' },
   lucifer: { name: "SHIMMYFUL Lucifer's Champion", desc: '+35% all stats, +90% SPD, +90% Dex. BURN stacks deal double damage.', passive: [{ stat: 'all_main', op: 'pct', value: 35 }, { stat: 'spd', op: 'pct', value: 90 }, { stat: 'dexterity', op: 'add', value: 90 }] },
