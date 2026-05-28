@@ -3426,9 +3426,9 @@ const TRAITS = {
 
   chemicals: {
     name: 'CHEMICALS', rarity: 'legendary',
-    desc: 'Apply a random NEGATIVE status effect to all enemies at the beginning of a fight. Apply a random POSITIVE status effect to all enemies at the beginning of a fight',
+    desc: 'Apply a random NEGATIVE status effect to all enemies at the beginning of a fight. Apply a random POSITIVE status effect to all allies at the beginning of a fight',
     passive: [],
-    notes: 'At fight start: apply 1 random negative AND 1 random positive status to all enemies.',
+    notes: 'At fight start: apply 1 random negative to enemies AND 1 random positive status to all enemies .',
   },
 
   chem_warrior: {
@@ -4747,7 +4747,7 @@ const SHIMMYFUL_LEGENDARY_TRAITS = {
 
   rasta_fire:         { name: 'SHIMMYFUL Rasta Fire', desc: 'Apply BURNED and DRUGGED on-hit with a 95% chance. x30 DEF towards DRUGGED enemies.', passive: [], situational: [{ id: 'rf-s-drugged', label: 'Hitting DRUGGED enemy (x30 DEF)', passive: [{ stat: 'def', op: 'mul', value: 30 }] }] },
 
-  chemicals:          { name: 'SHIMMYFUL CHEMICALS', desc: 'Apply two random NEGATIVE status effects to all enemies at the beginning of a fight. Apply two random POSITIVE status effects to all enemies at the beginning of a fight', passive: [] },
+  chemicals:          { name: 'SHIMMYFUL CHEMICALS', desc: 'Apply two random NEGATIVE status effects to all enemies at the beginning of a fight. Apply two random POSITIVE status effects to all allies at the beginning of a fight', passive: [] },
 
   chem_warrior:       { name: 'SHIMMYFUL Chem-warrior', desc: 'Apply a random NEUTRAL or NEGATIVE status effect to enemies on-hit. Gain +15% ATK and DEF per stack of any status effect on enemies.', passive: [], situational: [{ id: 'cw-s-1s', label: '1 status stack (+15% ATK, +15% DEF)', passive: [{ stat: 'atk', op: 'pct', value: 15 }, { stat: 'def', op: 'pct', value: 15 }] }, { id: 'cw-s-5s', label: '5 stacks (+75% ATK, +75% DEF)', passive: [{ stat: 'atk', op: 'pct', value: 75 }, { stat: 'def', op: 'pct', value: 75 }] }, { id: 'cw-s-10s', label: '10 stacks (+150% ATK, +150% DEF)', passive: [{ stat: 'atk', op: 'pct', value: 150 }, { stat: 'def', op: 'pct', value: 150 }] }] },
 
