@@ -8030,7 +8030,7 @@ function _renderLbRadar(wrap, chars) {
   const all    = [...chars].sort((a,b) => getLeaderboardVal(b,'avg') - getLeaderboardVal(a,'avg'));
   const subset = all.slice(0, CAP);          // top-15 only for readability
   const capped = chars.length > CAP;
-  const W = 460, H = 300, cx = W/2, cy = H/2 - 2, R = 108;
+  const W = 520, H = 360, cx = W/2, cy = H/2, R = 134;
   const N = STATS.length;
   const ang = i => -Math.PI/2 + (2*Math.PI*i)/N;
   const n = subset.length;
@@ -8074,10 +8074,10 @@ function _renderLbRadar(wrap, chars) {
 
   const note = capped ? `<text x="${W/2}" y="${H-4}" text-anchor="middle" fill="#1a1a26" font-size="6" letter-spacing="1">TOP ${CAP} BY AVG · ${chars.length} TOTAL</text>` : '';
 
-  wrap.innerHTML = `<div style="max-width:460px;"><svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
     <rect width="${W}" height="${H}" fill="#050508"/>
     ${bg}${polys}${note}
-  </svg></div>`;
+  </svg>`;
 }
 
 // ── Horizontal bars ───────────────────────────────────────────
@@ -8142,9 +8142,9 @@ function _renderLbRadial(wrap, chars) {
   const stat   = _leaderboardStat;
   const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,stat) - getLeaderboardVal(a,stat));
   const maxVal = Math.max(...sorted.map(c => getLeaderboardVal(c, stat)), 1);
-  const W = 400, H = 400;
+  const W = 520, H = 420;
   const cx = W/2, cy = H/2;
-  const innerR = 42, outerR = 172;
+  const innerR = 52, outerR = 196;
   const n = sorted.length;
   const TAU = 2*Math.PI;
   const gap = Math.min(0.032, TAU/n*0.1);
@@ -8183,22 +8183,22 @@ function _renderLbRadial(wrap, chars) {
   });
 
   const sLbl = _LB_STAT_LABELS[stat] || stat;
-  wrap.innerHTML = `<div style="max-width:360px;margin:0 auto;"><svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
     ${defs}
     <rect width="${W}" height="${H}" fill="#050508"/>
     ${rings}
     ${arcs}
     <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#07070e" stroke="#131320" stroke-width="1.5"/>
     <text x="${cx}" y="${cy+3}" text-anchor="middle" fill="#1e1e2e" font-size="7" letter-spacing="1.5">${_esc(sLbl)}</text>
-  </svg></div>`;
+  </svg>`;
 }
 
 // ── Parallel coordinates ──────────────────────────────────────
 function _renderLbLines(wrap, chars) {
   const STATS = ['hp','atk','def','mag','spd'];
   const LBLS  = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
-  const W = 480, H = 255;
-  const pad = { l: 36, r: 36, t: 38, b: 34 };
+  const W = 520, H = 300;
+  const pad = { l: 38, r: 38, t: 42, b: 38 };
   const ph = H - pad.t - pad.b;
 
   const minV = {}, maxV = {};
@@ -8238,12 +8238,12 @@ function _renderLbLines(wrap, chars) {
     });
   });
 
-  wrap.innerHTML = `<div style="max-width:500px;"><svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
     <rect width="${W}" height="${H}" fill="#050508"/>
     ${lines}
     ${dots}
     ${axes}
-  </svg></div>`;
+  </svg>`;
 }
 
 // ── [kept for potential future use] ──────────────────────────
