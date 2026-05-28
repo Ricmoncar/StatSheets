@@ -8082,15 +8082,11 @@ function _renderLbRadar(wrap, chars) {
 
 // ── Horizontal bars ───────────────────────────────────────────
 function _renderLbBars(wrap, chars) {
-  // Save scroll position so re-renders don't jump to top
-  const prevScroll = wrap.querySelector('.lb-bars-scroll');
-  const savedTop   = prevScroll ? prevScroll.scrollTop : 0;
-
   const stat   = _leaderboardStat;
   const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,stat) - getLeaderboardVal(a,stat));
   const maxVal = Math.max(...sorted.map(c => getLeaderboardVal(c, stat)), 1);
-  const W = 480, rowH = 18;
-  const pad = { l: 108, r: 54, t: 14, b: 10 };
+  const W = 520, rowH = 16;
+  const pad = { l: 112, r: 56, t: 14, b: 10 };
   const H  = pad.t + sorted.length * rowH + pad.b;
   const pw = W - pad.l - pad.r;
 
@@ -8112,29 +8108,22 @@ function _renderLbBars(wrap, chars) {
     const rnk = i < 3 ? MEDALS[i] : `#${i+1}`;
     return `${stripe}<g data-lb-char="${origIdx}" style="cursor:pointer">
     <rect x="0" y="${y}" width="${W}" height="${rowH}" fill="transparent"/>
-    <text x="5" y="${y+rowH/2+2.5}" fill="#1c1c2c" font-size="${i<3?8.5:7}">${rnk}</text>
+    <text x="5" y="${y+rowH/2+2.5}" fill="#1c1c2c" font-size="${i<3?8:7}">${rnk}</text>
     <text x="${pad.l-5}" y="${y+rowH/2+2.5}" text-anchor="end" fill="${col}" font-size="7.5" opacity="0.9">${_esc((c.name||'?').substring(0,13))}</text>
-    <rect x="${pad.l}" y="${y+4}" width="${bw}" height="${rowH-8}" fill="${col}" fill-opacity="0.78" rx="2" filter="url(#lb-bar-glow)"/>
-    <line x1="${pad.l}" y1="${y+4}" x2="${pad.l+bw}" y2="${y+4}" stroke="${col}" stroke-width="1.5" stroke-opacity="0.55"/>
+    <rect x="${pad.l}" y="${y+3.5}" width="${bw}" height="${rowH-7}" fill="${col}" fill-opacity="0.78" rx="2" filter="url(#lb-bar-glow)"/>
+    <line x1="${pad.l}" y1="${y+3.5}" x2="${pad.l+bw}" y2="${y+3.5}" stroke="${col}" stroke-width="1.5" stroke-opacity="0.55"/>
     <text x="${pad.l+bw+5}" y="${y+rowH/2+2.5}" fill="${col}" font-size="7" opacity="0.7">${val.toFixed(1)}</text>
     </g>`;
   }).join('');
 
   const sLbl = _LB_STAT_LABELS[stat] || stat;
-  const svg = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg" style="display:block;width:100%;height:auto;">
+  // No inner scroll container — just extend the page naturally, scroll like everything else
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
     ${defs}
     <rect width="${W}" height="${H}" fill="#050508"/>
     <text x="${W/2}" y="${pad.t-1}" text-anchor="middle" fill="#1c1c2c" font-size="7" letter-spacing="2">${_esc(sLbl)}</text>
     ${rows}
   </svg>`;
-  wrap.innerHTML = `<div class="lb-bars-scroll" style="max-height:440px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;">${svg}</div>`;
-  // Restore scroll + stop events from bubbling out and triggering re-renders
-  const sd = wrap.querySelector('.lb-bars-scroll');
-  if (sd) {
-    if (savedTop) sd.scrollTop = savedTop;
-    sd.addEventListener('scroll', e => e.stopPropagation(), { passive: true });
-    sd.addEventListener('wheel',  e => e.stopPropagation(), { passive: true });
-  }
 }
 
 // ── Radial / Sunburst ─────────────────────────────────────────
