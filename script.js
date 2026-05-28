@@ -4272,6 +4272,16 @@ function getEffectiveStats(c) {
     else if (highest === 'spd') effSpd = tempVal;
   }
 
+  // Handle Glitch trait: apply stored random multipliers to all stats
+  const hasGlitch = c.traits && c.traits.includes('glitch');
+  if (hasGlitch && c.glitchRolls) {
+    effHp = Math.max(1, Math.round(effHp * c.glitchRolls.hp));
+    effAtk = Math.max(1, Math.round(effAtk * c.glitchRolls.atk));
+    effDef = Math.max(1, Math.round(effDef * c.glitchRolls.def));
+    effMag = Math.max(1, Math.round(effMag * c.glitchRolls.mag));
+    effSpd = Math.max(1, Math.round(effSpd * c.glitchRolls.spd));
+  }
+
   return {
     hp: effHp, atk: effAtk, def: effDef, mag: effMag, spd: effSpd,
     heal_pow: effHealPow, crit_rate: effCritRate, crit_dmg: finalCritDmg,
