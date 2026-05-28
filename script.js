@@ -2486,6 +2486,7 @@ function viewChar(id) {
   if (ptype !== 'none') startBgAnim(ptype, c.pattern?.params || {});
 
   renderInventory(c);
+  renderTraitsDisplay(c);
   renderSidebar();
 }
 
