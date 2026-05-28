@@ -4628,6 +4628,29 @@ input[type=number] { -moz-appearance: textfield; }
 /* Chart SVG */
 .lb-chart-svg { width: 100%; height: auto; display: block; }
 
+/* Hover tooltip */
+#lb-hover-tip {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  background: #08080f;
+  border: 1px solid #252535;
+  padding: 9px 11px;
+  min-width: 110px;
+  max-width: 175px;
+  font-family: var(--font-main);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+}
+.lb-tip-name {
+  font-size: 7.5px; letter-spacing: 1px;
+  margin-bottom: 6px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.lb-tip-row  { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
+.lb-tip-sl   { color: #22222e; font-size: 6px; letter-spacing: 1px; }
+.lb-tip-sv   { font-size: 7px; }
+
 /* Axis selectors (scatter/bubble) */
 .lb-axis-lbl { font-size: 7px; color: #444; letter-spacing: 1.5px; }
 .lb-axis-sel {

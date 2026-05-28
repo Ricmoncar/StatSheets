@@ -7938,10 +7938,55 @@ function getLeaderboardVal(c, stat) {
   return e[stat] || 0;
 }
 
+// ── Hover tooltip (pfp + stats) ───────────────────────────────
+let _lbCharsForTip = [];
+
+function _lbInitTooltip() {
+  const wrap = document.getElementById('leaderboard-wrap');
+  if (!wrap || wrap._lbTipInited) return;
+  wrap._lbTipInited = true;
+  wrap.addEventListener('mousemove', e => {
+    const el = e.target.closest('[data-lb-char]');
+    if (!el) { _lbHideTip(); return; }
+    const c = _lbCharsForTip[+el.getAttribute('data-lb-char')];
+    if (c) _lbShowTip(e, c);
+  });
+  wrap.addEventListener('mouseleave', _lbHideTip);
+}
+
+function _lbShowTip(e, c) {
+  let tip = document.getElementById('lb-hover-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'lb-hover-tip';
+    document.body.appendChild(tip);
+  }
+  const av = c.avatar
+    ? `<img src="${c.avatar}" style="width:52px;height:52px;object-fit:cover;border:1px solid ${c.color||'#333'};display:block;margin-bottom:8px;">`
+    : `<div style="width:52px;height:6px;background:${c.color||'#222'};margin-bottom:8px;"></div>`;
+  const statRows = ['hp','atk','def','mag','spd'].map(s => {
+    const v = getLeaderboardVal(c, s);
+    return `<div class="lb-tip-row"><span class="lb-tip-sl">${(_LB_STAT_LABELS[s]||s).toUpperCase()}</span><span class="lb-tip-sv" style="color:${c.color||'#aaa'}">${v.toFixed(0)}</span></div>`;
+  }).join('');
+  tip.innerHTML = `${av}<div class="lb-tip-name" style="color:${c.color||'#ccc'}">${_esc(c.name||'?')}</div>${statRows}`;
+  tip.style.display = 'block';
+  tip.style.borderColor = c.color || '#252535';
+  const tx = e.clientX + 16, ty = e.clientY + 10;
+  tip.style.left = Math.min(tx, window.innerWidth - 195) + 'px';
+  tip.style.top  = Math.min(ty, window.innerHeight - 230) + 'px';
+}
+
+function _lbHideTip() {
+  const tip = document.getElementById('lb-hover-tip');
+  if (tip) tip.style.display = 'none';
+}
+
 function renderLeaderboard() {
   const wrap = document.getElementById('leaderboard-wrap');
   if (!wrap) return;
   const chars = characters.filter(c => !c.isPlaceholder);
+  _lbCharsForTip = chars;
+  _lbInitTooltip();
   if (!chars.length) {
     wrap.innerHTML = `<div style="text-align:center;color:#444;font-size:8px;padding:24px;letter-spacing:1px;">NO CHARACTERS</div>`;
     return;
@@ -7977,59 +8022,59 @@ function _renderLbList(wrap, chars) {
 }
 
 // ── Radar / Spider web ────────────────────────────────────────
+// Uses percentile rank normalization so one outlier stat doesn't squash everyone
 function _renderLbRadar(wrap, chars) {
   const STATS = ['hp','atk','def','mag','spd'];
   const LBLS  = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
-  const W = 480, H = 440;
-  const cx = W/2, cy = H/2 - 6, R = 158;
+  const W = 400, H = 360;
+  const cx = W/2, cy = H/2, R = 126;
   const N = STATS.length;
   const ang = i => -Math.PI/2 + (2*Math.PI*i)/N;
+  const n = chars.length;
 
-  // Normalize per-stat so best char reaches outer ring
-  const maxV = {};
-  STATS.forEach(s => { maxV[s] = Math.max(...chars.map(c => getLeaderboardVal(c, s)), 1); });
-  const pt = (s, i, v) => {
-    const r = (v / maxV[s]) * R;
-    return [(cx + r*Math.cos(ang(i))).toFixed(1), (cy + r*Math.sin(ang(i))).toFixed(1)];
-  };
+  // Per-stat: precompute sorted order for percentile lookup
+  const rankOf = {};
+  STATS.forEach(s => {
+    const sorted = [...chars].sort((a,b) => getLeaderboardVal(a,s) - getLeaderboardVal(b,s));
+    rankOf[s] = new Map(sorted.map((c,i) => [c, n > 1 ? i/(n-1) : 0.5]));
+  });
+  const pctR = (s, c) => rankOf[s].get(c) ?? 0.5;
+  const pt = (s, i, pct) => [
+    (cx + pct*R*Math.cos(ang(i))).toFixed(1),
+    (cy + pct*R*Math.sin(ang(i))).toFixed(1)
+  ];
 
-  // Background rings
+  // Background rings + spokes
   let bg = '';
   [0.25, 0.5, 0.75, 1].forEach(t => {
     const pts = STATS.map((_, i) => `${(cx+R*t*Math.cos(ang(i))).toFixed(1)},${(cy+R*t*Math.sin(ang(i))).toFixed(1)}`);
-    bg += `<polygon points="${pts.join(' ')}" fill="${t===1?'none':'rgba(255,255,255,0.012)'}" stroke="${t===1?'#1c1c2c':'#0f0f18'}" stroke-width="${t===1?1.5:0.7}"/>`;
+    bg += `<polygon points="${pts.join(' ')}" fill="${t===1?'none':'rgba(255,255,255,0.013)'}" stroke="${t===1?'#1e1e2c':'#0e0e18'}" stroke-width="${t===1?1.5:0.7}"/>`;
   });
-  // Spokes
   STATS.forEach((_, i) => {
-    bg += `<line x1="${cx}" y1="${cy}" x2="${(cx+R*Math.cos(ang(i))).toFixed(1)}" y2="${(cy+R*Math.sin(ang(i))).toFixed(1)}" stroke="#0f0f18" stroke-width="0.8"/>`;
+    bg += `<line x1="${cx}" y1="${cy}" x2="${(cx+R*Math.cos(ang(i))).toFixed(1)}" y2="${(cy+R*Math.sin(ang(i))).toFixed(1)}" stroke="#0f0f1a" stroke-width="0.8"/>`;
   });
-  // Axis labels
+  // Axis labels + actual max value note
   LBLS.forEach((lbl, i) => {
-    const lx = cx + (R+22)*Math.cos(ang(i));
-    const ly = cy + (R+22)*Math.sin(ang(i));
-    const anchor = Math.cos(ang(i)) > 0.12 ? 'start' : Math.cos(ang(i)) < -0.12 ? 'end' : 'middle';
-    bg += `<text x="${lx.toFixed(1)}" y="${(ly+3.5).toFixed(1)}" text-anchor="${anchor}" fill="#272736" font-size="8.5" letter-spacing="2">${lbl}</text>`;
+    const lx = cx + (R+20)*Math.cos(ang(i));
+    const ly = cy + (R+20)*Math.sin(ang(i));
+    const anchor = Math.cos(ang(i)) > 0.1 ? 'start' : Math.cos(ang(i)) < -0.1 ? 'end' : 'middle';
+    const s = STATS[i];
+    const maxVal = Math.max(...chars.map(c=>getLeaderboardVal(c,s)));
+    bg += `<text x="${lx.toFixed(1)}" y="${(ly+2).toFixed(1)}" text-anchor="${anchor}" fill="#262636" font-size="8" letter-spacing="1.5">${lbl}</text>`;
+    bg += `<text x="${lx.toFixed(1)}" y="${(ly+11).toFixed(1)}" text-anchor="${anchor}" fill="#191928" font-size="6.5">${maxVal.toFixed(0)}</text>`;
   });
-  // Average polygon (roster mean)
-  const avgPts = STATS.map((s, i) => {
-    const mean = chars.reduce((a,c) => a + getLeaderboardVal(c,s), 0) / chars.length;
-    return pt(s, i, mean).join(',');
-  });
-  bg += `<polygon points="${avgPts.join(' ')}" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" stroke-dasharray="4,3"/>`;
 
   const defs = `<defs>
-    <filter id="lb-rd-glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+    <filter id="lb-rd-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.8" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>`;
 
-  // Each character as a colored polygon web
-  const polys = chars.map(c => {
-    const pts = STATS.map((s, i) => pt(s, i, getLeaderboardVal(c, s)).join(','));
+  const polys = chars.map((c, ci) => {
+    const pts = STATS.map((s, i) => pt(s, i, pctR(s, c)).join(','));
     const col = c.color || '#888';
-    const tip = `${c.name}  ${STATS.map((s,i)=>`${LBLS[i]} ${getLeaderboardVal(c,s).toFixed(0)}`).join('  ')}`;
-    return `<polygon points="${pts.join(' ')}" fill="${col}" fill-opacity="0.055" stroke="${col}" stroke-width="1.1" stroke-opacity="0.6" filter="url(#lb-rd-glow)"><title>${_esc(tip)}</title></polygon>`;
+    return `<polygon points="${pts.join(' ')}" fill="${col}" fill-opacity="0.07" stroke="${col}" stroke-width="1" stroke-opacity="0.6" filter="url(#lb-rd-glow)" data-lb-char="${ci}" style="cursor:pointer"/>`;
   }).join('');
 
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
@@ -8045,42 +8090,45 @@ function _renderLbBars(wrap, chars) {
   const stat   = _leaderboardStat;
   const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,stat) - getLeaderboardVal(a,stat));
   const maxVal = Math.max(...sorted.map(c => getLeaderboardVal(c, stat)), 1);
-  const W = 520, rowH = 22;
-  const pad = { l: 112, r: 58, t: 18, b: 10 };
+  const W = 480, rowH = 18;
+  const pad = { l: 108, r: 54, t: 14, b: 10 };
   const H  = pad.t + sorted.length * rowH + pad.b;
   const pw = W - pad.l - pad.r;
 
   const defs = `<defs>
     <filter id="lb-bar-glow" x="-5%" y="-80%" width="115%" height="260%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>`;
 
   const MEDALS = ['🥇','🥈','🥉'];
   const rows = sorted.map((c, i) => {
+    const origIdx = chars.indexOf(c);
     const val = getLeaderboardVal(c, stat);
-    const t   = val / maxVal;
-    const bw  = Math.max(t * pw, 1);
-    const y   = pad.t + i * rowH;
+    const bw  = Math.max((val/maxVal)*pw, 1);
+    const y   = pad.t + i*rowH;
     const col = c.color || '#888';
-    const stripe = i % 2 === 0 ? `<rect x="0" y="${y}" width="${W}" height="${rowH}" fill="rgba(255,255,255,0.008)"/>` : '';
+    const stripe = i%2===0 ? `<rect x="0" y="${y}" width="${W}" height="${rowH}" fill="rgba(255,255,255,0.007)"/>` : '';
     const rnk = i < 3 ? MEDALS[i] : `#${i+1}`;
-    return `${stripe}
-    <text x="6" y="${y+rowH/2+3}" fill="#1e1e2e" font-size="${i<3?9:7.5}">${rnk}</text>
-    <text x="${pad.l-6}" y="${y+rowH/2+3}" text-anchor="end" fill="${col}" font-size="8" opacity="0.9">${_esc((c.name||'?').substring(0,13))}</text>
-    <rect x="${pad.l}" y="${y+5}" width="${bw}" height="${rowH-10}" fill="${col}" fill-opacity="0.8" rx="2" filter="url(#lb-bar-glow)"/>
-    <line x1="${pad.l}" y1="${y+5}" x2="${pad.l+bw}" y2="${y+5}" stroke="${col}" stroke-width="1.5" stroke-opacity="0.6"/>
-    <text x="${pad.l+bw+6}" y="${y+rowH/2+3}" fill="${col}" font-size="7.5" opacity="0.75">${val.toFixed(1)}</text>`;
+    return `${stripe}<g data-lb-char="${origIdx}" style="cursor:pointer">
+    <rect x="0" y="${y}" width="${W}" height="${rowH}" fill="transparent"/>
+    <text x="5" y="${y+rowH/2+2.5}" fill="#1c1c2c" font-size="${i<3?8.5:7}">${rnk}</text>
+    <text x="${pad.l-5}" y="${y+rowH/2+2.5}" text-anchor="end" fill="${col}" font-size="7.5" opacity="0.9">${_esc((c.name||'?').substring(0,13))}</text>
+    <rect x="${pad.l}" y="${y+4}" width="${bw}" height="${rowH-8}" fill="${col}" fill-opacity="0.78" rx="2" filter="url(#lb-bar-glow)"/>
+    <line x1="${pad.l}" y1="${y+4}" x2="${pad.l+bw}" y2="${y+4}" stroke="${col}" stroke-width="1.5" stroke-opacity="0.55"/>
+    <text x="${pad.l+bw+5}" y="${y+rowH/2+2.5}" fill="${col}" font-size="7" opacity="0.7">${val.toFixed(1)}</text>
+    </g>`;
   }).join('');
 
   const sLbl = _LB_STAT_LABELS[stat] || stat;
-  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+  const svg = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg" style="display:block;width:100%;height:auto;">
     ${defs}
     <rect width="${W}" height="${H}" fill="#050508"/>
-    <text x="${W/2}" y="${pad.t-3}" text-anchor="middle" fill="#1e1e2e" font-size="7.5" letter-spacing="2">${_esc(sLbl)}</text>
+    <text x="${W/2}" y="${pad.t-1}" text-anchor="middle" fill="#1c1c2c" font-size="7" letter-spacing="2">${_esc(sLbl)}</text>
     ${rows}
   </svg>`;
+  wrap.innerHTML = `<div style="max-height:440px;overflow-y:auto;overflow-x:hidden;">${svg}</div>`;
 }
 
 // ── Radial / Sunburst ─────────────────────────────────────────
@@ -8088,24 +8136,25 @@ function _renderLbRadial(wrap, chars) {
   const stat   = _leaderboardStat;
   const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,stat) - getLeaderboardVal(a,stat));
   const maxVal = Math.max(...sorted.map(c => getLeaderboardVal(c, stat)), 1);
-  const W = 480, H = 480;
+  const W = 400, H = 400;
   const cx = W/2, cy = H/2;
-  const innerR = 48, outerR = 200;
+  const innerR = 42, outerR = 172;
   const n = sorted.length;
   const TAU = 2*Math.PI;
-  const gap = Math.min(0.035, TAU/n*0.12);
+  const gap = Math.min(0.032, TAU/n*0.1);
 
   const defs = `<defs>
-    <filter id="lb-rd2-glow" x="-30%" y="-30%" width="160%" height="160%">
+    <filter id="lb-rd2-glow" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>`;
 
   const arcs = sorted.map((c, i) => {
+    const origIdx = chars.indexOf(c);
     const val = getLeaderboardVal(c, stat);
-    const t   = val / maxVal;
-    const r   = innerR + t*(outerR - innerR);
+    const t   = val/maxVal;
+    const r   = innerR + t*(outerR-innerR);
     const a0  = -Math.PI/2 + (i/n)*TAU + gap/2;
     const a1  = -Math.PI/2 + ((i+1)/n)*TAU - gap/2;
     const la  = (a1-a0) > Math.PI ? 1 : 0;
@@ -8117,19 +8166,14 @@ function _renderLbRadial(wrap, chars) {
       `L ${(cx+innerR*Math.cos(a1)).toFixed(1)},${(cy+innerR*Math.sin(a1)).toFixed(1)}`,
       `A ${innerR},${innerR} 0 ${la},0 ${(cx+innerR*Math.cos(a0)).toFixed(1)},${(cy+innerR*Math.sin(a0)).toFixed(1)} Z`
     ].join(' ');
-    const tip = `${c.name}: ${val.toFixed(1)}`;
-    // Outer glow ring for top chars
-    const halo = t > 0.85
-      ? `<path d="${d}" fill="${col}" fill-opacity="0.12" filter="url(#lb-rd2-glow)"/>`
-      : '';
-    return `${halo}<path d="${d}" fill="${col}" fill-opacity="${(0.45+t*0.5).toFixed(2)}" stroke="${col}" stroke-width="0.5" stroke-opacity="0.3"><title>${_esc(tip)}</title></path>`;
+    const halo = t > 0.85 ? `<path d="${d}" fill="${col}" fill-opacity="0.1" filter="url(#lb-rd2-glow)"/>` : '';
+    return `${halo}<path d="${d}" fill="${col}" fill-opacity="${(0.4+t*0.55).toFixed(2)}" stroke="${col}" stroke-width="0.4" stroke-opacity="0.25" data-lb-char="${origIdx}" style="cursor:pointer"/>`;
   }).join('');
 
-  // Ring guides
   let rings = '';
   [0.33, 0.66, 1].forEach(t => {
     const r = innerR + t*(outerR-innerR);
-    rings += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#0d0d18" stroke-width="${t===1?1.5:0.7}"/>`;
+    rings += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#0c0c18" stroke-width="${t===1?1.2:0.6}"/>`;
   });
 
   const sLbl = _LB_STAT_LABELS[stat] || stat;
@@ -8138,8 +8182,8 @@ function _renderLbRadial(wrap, chars) {
     <rect width="${W}" height="${H}" fill="#050508"/>
     ${rings}
     ${arcs}
-    <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#080810" stroke="#141420" stroke-width="1.5"/>
-    <text x="${cx}" y="${cy+3}" text-anchor="middle" fill="#222232" font-size="7.5" letter-spacing="2">${_esc(sLbl)}</text>
+    <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#07070e" stroke="#131320" stroke-width="1.5"/>
+    <text x="${cx}" y="${cy+3}" text-anchor="middle" fill="#1e1e2e" font-size="7" letter-spacing="1.5">${_esc(sLbl)}</text>
   </svg>`;
 }
 
@@ -8147,51 +8191,44 @@ function _renderLbRadial(wrap, chars) {
 function _renderLbLines(wrap, chars) {
   const STATS = ['hp','atk','def','mag','spd'];
   const LBLS  = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
-  const W = 520, H = 340;
-  const pad = { l: 38, r: 38, t: 44, b: 44 };
+  const W = 480, H = 290;
+  const pad = { l: 36, r: 36, t: 40, b: 38 };
   const ph = H - pad.t - pad.b;
 
-  // Per-stat min/max
   const minV = {}, maxV = {};
   STATS.forEach(s => {
     const vs = chars.map(c => getLeaderboardVal(c, s));
     minV[s] = Math.min(...vs); maxV[s] = Math.max(...vs);
   });
   const axX = i => pad.l + (i/(STATS.length-1))*(W - pad.l - pad.r);
-  const toY = (s, v) => {
-    const range = maxV[s] - minV[s] || 1;
-    return pad.t + (1 - (v - minV[s]) / range) * ph;
-  };
+  const toY = (s, v) => pad.t + (1 - (v-minV[s]) / (maxV[s]-minV[s] || 1)) * ph;
 
-  // Lines (behind axes)
-  const lines = chars.map(c => {
+  // Lines drawn behind axes
+  const lines = chars.map((c, ci) => {
     const pts = STATS.map((s, i) => [axX(i), toY(s, getLeaderboardVal(c, s))]);
     let d = `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
     for (let i=1; i<pts.length; i++) d += ` L ${pts[i][0].toFixed(1)},${pts[i][1].toFixed(1)}`;
     const col = c.color || '#888';
-    const tip = `${c.name}: ${STATS.map((s,i) => `${LBLS[i]} ${getLeaderboardVal(c,s).toFixed(0)}`).join('  ')}`;
-    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="1.4" stroke-opacity="0.5"><title>${_esc(tip)}</title></path>`;
+    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="1.3" stroke-opacity="0.5" data-lb-char="${ci}" style="cursor:pointer"/>`;
   }).join('');
 
-  // Dots on each axis per character
-  const dots = chars.map(c => STATS.map((s, i) => {
+  // Dots where each line crosses each axis
+  const dots = chars.map((c, ci) => STATS.map((s, i) => {
     const col = c.color || '#888';
-    return `<circle cx="${axX(i).toFixed(1)}" cy="${toY(s, getLeaderboardVal(c,s)).toFixed(1)}" r="2" fill="${col}" fill-opacity="0.65"/>`;
+    return `<circle cx="${axX(i).toFixed(1)}" cy="${toY(s,getLeaderboardVal(c,s)).toFixed(1)}" r="2.2" fill="${col}" fill-opacity="0.7" data-lb-char="${ci}" style="cursor:pointer"/>`;
   }).join('')).join('');
 
-  // Axes (drawn on top)
+  // Axes on top
   let axes = '';
   STATS.forEach((s, i) => {
     const ax = axX(i);
-    axes += `<line x1="${ax}" y1="${pad.t}" x2="${ax}" y2="${pad.t+ph}" stroke="#252535" stroke-width="1.5"/>`;
-    // Max label
-    axes += `<text x="${ax}" y="${pad.t-14}" text-anchor="middle" fill="#303048" font-size="8" letter-spacing="2">${LBLS[i]}</text>`;
-    axes += `<text x="${ax}" y="${pad.t-4}" text-anchor="middle" fill="#1e1e2e" font-size="7">${maxV[s].toFixed(0)}</text>`;
-    axes += `<text x="${ax}" y="${pad.t+ph+13}" text-anchor="middle" fill="#1e1e2e" font-size="7">${minV[s].toFixed(0)}</text>`;
-    // Tick marks at 25/50/75%
-    [0.25, 0.5, 0.75].forEach(t => {
+    axes += `<line x1="${ax}" y1="${pad.t}" x2="${ax}" y2="${pad.t+ph}" stroke="#222232" stroke-width="1.5"/>`;
+    axes += `<text x="${ax}" y="${pad.t-16}" text-anchor="middle" fill="#252538" font-size="7.5" letter-spacing="1.5">${LBLS[i]}</text>`;
+    axes += `<text x="${ax}" y="${pad.t-5}" text-anchor="middle" fill="#181828" font-size="6.5">${maxV[s].toFixed(0)}</text>`;
+    axes += `<text x="${ax}" y="${pad.t+ph+13}" text-anchor="middle" fill="#181828" font-size="6.5">${minV[s].toFixed(0)}</text>`;
+    [0.25,0.5,0.75].forEach(t => {
       const ty = pad.t + t*ph;
-      axes += `<line x1="${ax-4}" y1="${ty}" x2="${ax+4}" y2="${ty}" stroke="#1c1c2c" stroke-width="1"/>`;
+      axes += `<line x1="${ax-3}" y1="${ty}" x2="${ax+3}" y2="${ty}" stroke="#1c1c2c" stroke-width="0.8"/>`;
     });
   });
 
