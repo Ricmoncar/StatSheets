@@ -4079,9 +4079,9 @@ const TRAITS = {
 
   the_long_game: {
     name: 'The Long Game', rarity: 'mythic',
-    desc: 'You gain nothing during fights. After each fight you win, permanently gain +25% all stats.',
+    desc: 'You gain nothing during fights. After each fight you win, permanently gain +10% all stats.',
     passive: [],
-    cultivation: { label: 'Fights Won (+25% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 25 }], defaultStacks: 0, maxStacks: 999 },
+    cultivation: { label: 'Fights Won (+10% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 10 }], defaultStacks: 0, maxStacks: 999 },
     notes: 'No in-fight bonuses, buffs, or items apply at all. Only post-win stacks count.',
   },
 
@@ -4361,7 +4361,7 @@ const SHIMMYFUL_MYTHIC_TRAITS = {
 
   glitch:           { name: 'SHIMMYFUL Glitch', desc: 'At the start of each round, all your stats multiply by a random value between x0.01 and x30. One random stat always rolls the maximum (x30).', passive: [], notes: 'Wider chaos range than base. One random stat is guaranteed to roll x30 each round.' },
 
-  the_long_game:    { name: 'SHIMMYFUL The Long Game', desc: 'You gain nothing during fights. After each fight you win, permanently gain +40% all stats. Also gain +10% all stats for each fight survived (win or lose).', passive: [], cultivation: { label: 'Fights Won (+40% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 40 }], defaultStacks: 0, maxStacks: 999 }, notes: 'No in-fight bonuses. +40% all stats per win. +10% all stats per any fight survived (track separately).' },
+  the_long_game:    { name: 'SHIMMYFUL The Long Game', desc: 'You gain nothing during fights. After each fight you win, permanently gain +12% all stats. Also gain +12% all stats for each fight survived (win or lose).', passive: [], cultivation: { label: 'Fights Won (+12% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 12 }], defaultStacks: 0, maxStacks: 999 }, notes: 'No in-fight bonuses. +12% all stats per win. +12% all stats per any fight survived (track separately).' },
 
   phoenix:          { name: 'SHIMMYFUL Phoenix', desc: 'Revive with no limit. Each revive only reduces max HP by 25% but permanently triples your ATK, MAG, and SPD for that fight.', passive: [], cultivation: { label: 'Revives This Fight (ATK/MAG/SPD x3 per revive; max HP -25%)', perStack: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }], defaultStacks: 0, maxStacks: 20 }, notes: 'Each revive: max HP -25% (cumulative); ATK, MAG, and SPD tripled (cumulative for that fight).' },
 
