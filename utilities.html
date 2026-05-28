@@ -320,8 +320,18 @@
 
   <!-- STAT LEADERBOARD -->
   <div class="panel" style="margin-top:24px;">
-    <div class="panel-title">STAT LEADERBOARD</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="panel-title" style="margin-bottom:0;">STAT LEADERBOARD</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="btn sm lb-view-btn accent" onclick="setLbView('list',this)">LIST</button>
+        <button class="btn sm lb-view-btn" onclick="setLbView('heatmap',this)">HEAT</button>
+        <button class="btn sm lb-view-btn" onclick="setLbView('scatter',this)">SCATTER</button>
+        <button class="btn sm lb-view-btn" onclick="setLbView('bubble',this)">BUBBLE</button>
+        <button class="btn sm lb-view-btn" onclick="setLbView('distribution',this)">CURVE</button>
+      </div>
+    </div>
+    <!-- Stat selector — hidden in heatmap/scatter/bubble modes -->
+    <div id="lb-stat-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
       <button class="btn sm lb-stat-btn accent" onclick="selectLeaderboardStat('avg',this)">BALANCED</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('hp',this)">HP</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('atk',this)">ATK</button>
@@ -337,6 +347,39 @@
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('true_dmg',this)">TRUE DMG</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('lifesteal',this)">LIFESTEAL</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('cooldown_red',this)">CDR</button>
+    </div>
+    <!-- Axis selectors — shown only in scatter / bubble modes -->
+    <div id="lb-axis-row" style="display:none;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;">
+      <span class="lb-axis-lbl">X</span>
+      <select id="lb-x-sel" class="lb-axis-sel" onchange="renderLeaderboard()">
+        <option value="atk" selected>ATK</option><option value="hp">HP</option><option value="def">DEF</option>
+        <option value="mag">MAG</option><option value="spd">SPD</option><option value="avg">BALANCED</option>
+        <option value="heal_pow">HEAL</option><option value="crit_rate">CRIT%</option>
+        <option value="crit_dmg">CRIT DMG</option><option value="status_res">STATUS RES</option>
+        <option value="dexterity">DEX</option><option value="resilience">RESIL</option>
+        <option value="true_dmg">TRUE DMG</option><option value="lifesteal">LIFESTEAL</option>
+        <option value="cooldown_red">CDR</option>
+      </select>
+      <span class="lb-axis-lbl">Y</span>
+      <select id="lb-y-sel" class="lb-axis-sel" onchange="renderLeaderboard()">
+        <option value="def" selected>DEF</option><option value="hp">HP</option><option value="atk">ATK</option>
+        <option value="mag">MAG</option><option value="spd">SPD</option><option value="avg">BALANCED</option>
+        <option value="heal_pow">HEAL</option><option value="crit_rate">CRIT%</option>
+        <option value="crit_dmg">CRIT DMG</option><option value="status_res">STATUS RES</option>
+        <option value="dexterity">DEX</option><option value="resilience">RESIL</option>
+        <option value="true_dmg">TRUE DMG</option><option value="lifesteal">LIFESTEAL</option>
+        <option value="cooldown_red">CDR</option>
+      </select>
+      <span class="lb-axis-lbl" id="lb-z-label" style="display:none;">SIZE</span>
+      <select id="lb-z-sel" class="lb-axis-sel" onchange="renderLeaderboard()" style="display:none;">
+        <option value="hp" selected>HP</option><option value="atk">ATK</option><option value="def">DEF</option>
+        <option value="mag">MAG</option><option value="spd">SPD</option><option value="avg">BALANCED</option>
+        <option value="heal_pow">HEAL</option><option value="crit_rate">CRIT%</option>
+        <option value="crit_dmg">CRIT DMG</option><option value="status_res">STATUS RES</option>
+        <option value="dexterity">DEX</option><option value="resilience">RESIL</option>
+        <option value="true_dmg">TRUE DMG</option><option value="lifesteal">LIFESTEAL</option>
+        <option value="cooldown_red">CDR</option>
+      </select>
     </div>
     <div id="leaderboard-wrap"></div>
   </div>

@@ -7899,6 +7899,7 @@ function dropOnTier(e, tier) {
 // STAT LEADERBOARD
 // ============================================================
 let _leaderboardStat = 'avg';
+let _lbView = 'list';
 
 function selectLeaderboardStat(stat, btn) {
   _leaderboardStat = stat;
@@ -7907,13 +7908,33 @@ function selectLeaderboardStat(stat, btn) {
   renderLeaderboard();
 }
 
+function setLbView(view, btn) {
+  _lbView = view;
+  document.querySelectorAll('.lb-view-btn').forEach(b => b.classList.remove('accent'));
+  if (btn) btn.classList.add('accent');
+  const statRow  = document.getElementById('lb-stat-row');
+  const axisRow  = document.getElementById('lb-axis-row');
+  const zLabel   = document.getElementById('lb-z-label');
+  const zSel     = document.getElementById('lb-z-sel');
+  const isAxis   = view === 'scatter' || view === 'bubble';
+  if (statRow) statRow.style.display  = (view === 'heatmap' || isAxis) ? 'none' : 'flex';
+  if (axisRow) axisRow.style.display  = isAxis ? 'flex' : 'none';
+  if (zLabel)  zLabel.style.display   = view === 'bubble' ? '' : 'none';
+  if (zSel)    zSel.style.display     = view === 'bubble' ? '' : 'none';
+  renderLeaderboard();
+}
+
 const AVG_STATS = ['hp', 'atk', 'def', 'mag', 'spd'];
+const _LB_STAT_LABELS = {
+  avg:'BALANCED', hp:'HP', atk:'ATK', def:'DEF', mag:'MAG', spd:'SPD',
+  heal_pow:'HEAL', crit_rate:'CRIT%', crit_dmg:'CRIT DMG',
+  status_res:'STATUS RES', dexterity:'DEX', resilience:'RESIL',
+  true_dmg:'TRUE DMG', lifesteal:'LIFESTEAL', cooldown_red:'CDR'
+};
 
 function getLeaderboardVal(c, stat) {
   const e = getEffectiveStats(c);
   if (stat === 'avg') {
-    // Geometric mean — punishes lopsided builds, rewards balanced stats.
-    // Floor at 1 so a zero stat doesn't wipe the score entirely.
     const vals = AVG_STATS.map(s => Math.max(e[s] || 0, 1));
     return Math.pow(vals.reduce((p, v) => p * v, 1), 1 / vals.length);
   }
@@ -7923,24 +7944,32 @@ function getLeaderboardVal(c, stat) {
 function renderLeaderboard() {
   const wrap = document.getElementById('leaderboard-wrap');
   if (!wrap) return;
-  if (!characters.length) {
+  const chars = characters.filter(c => !c.isPlaceholder);
+  if (!chars.length) {
     wrap.innerHTML = `<div style="text-align:center;color:#444;font-size:8px;padding:24px;letter-spacing:1px;">NO CHARACTERS</div>`;
     return;
   }
+  if (_lbView === 'heatmap')      { _renderLbHeatmap(wrap, chars);       return; }
+  if (_lbView === 'scatter')      { _renderLbScatterBubble(wrap, chars, false); return; }
+  if (_lbView === 'bubble')       { _renderLbScatterBubble(wrap, chars, true);  return; }
+  if (_lbView === 'distribution') { _renderLbDistribution(wrap, chars);  return; }
+  _renderLbList(wrap, chars);
+}
+
+// ── List (default) ────────────────────────────────────────────
+function _renderLbList(wrap, chars) {
   const stat = _leaderboardStat;
-  const ranked = characters
-    .filter(c => !c.isPlaceholder)
+  const ranked = chars
     .map(c => ({ c, val: +getLeaderboardVal(c, stat).toFixed(1) }))
     .sort((a, b) => b.val - a.val);
   const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
-  const isSub = ['heal_pow', 'crit_rate', 'crit_dmg', 'status_res', 'dexterity', 'resilience', 'true_dmg', 'lifesteal', 'cooldown_red'].includes(stat);
+  const isSub = ['heal_pow','crit_rate','crit_dmg','status_res','dexterity','resilience','true_dmg','lifesteal','cooldown_red'].includes(stat);
   wrap.innerHTML = ranked.map(({ c, val }, i) => {
     const av = c.avatar
       ? `<img src="${c.avatar}" style="width:28px;height:28px;object-fit:cover;border:1px solid ${c.color};flex-shrink:0;">`
       : `<svg viewBox="0 0 32 32" style="width:28px;height:28px;flex-shrink:0;"><rect x="12" y="2" width="8" height="8" fill="${c.color}"/><rect x="10" y="10" width="12" height="10" fill="${c.color}"/><rect x="8" y="20" width="6" height="8" fill="${c.color}"/><rect x="18" y="20" width="6" height="8" fill="${c.color}"/></svg>`;
     const fmtVal = (val % 1 === 0 ? val : val.toFixed(1)) + (isSub ? '%' : '');
-    const rankColor = RANK_COLORS[i] || '#2a2a2a';
-    const rowBg = i < 3 ? `background:${rankColor}11;` : '';
+    const rowBg = i < 3 ? `background:${(RANK_COLORS[i] || '#2a2a2a')}11;` : '';
     return `<div class="lb-row" style="${rowBg}">
       <span class="lb-rank" style="color:${RANK_COLORS[i] || '#333'}">#${i + 1}</span>
       ${av}
@@ -7948,6 +7977,166 @@ function renderLeaderboard() {
       <span class="lb-val">${fmtVal}</span>
     </div>`;
   }).join('');
+}
+
+// ── Heatmap ───────────────────────────────────────────────────
+function _lbHeatColor(t) {
+  const stops = [[0,[8,8,24]],[0.28,[10,48,110]],[0.55,[0,128,108]],[0.8,[210,120,0]],[1,[228,48,18]]];
+  let i = 0;
+  while (i < stops.length - 2 && t > stops[i+1][0]) i++;
+  const [t0,c0] = stops[i], [t1,c1] = stops[i+1];
+  const f = (t - t0) / (t1 - t0);
+  const ch = j => Math.round(c0[1][j] + f * (c1[1][j] - c0[1][j]));
+  return `rgb(${ch(0)},${ch(1)},${ch(2)})`;
+}
+
+function _renderLbHeatmap(wrap, chars) {
+  const stats = [...AVG_STATS, 'avg'];
+  const labels = [...AVG_STATS.map(s => _LB_STAT_LABELS[s]), 'AVG'];
+  const ranges = {};
+  stats.forEach(s => {
+    const vs = chars.map(c => getLeaderboardVal(c, s));
+    ranges[s] = { min: Math.min(...vs), max: Math.max(...vs) };
+  });
+  const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,'avg') - getLeaderboardVal(a,'avg'));
+  const header = `<div class="lb-hm-row lb-hm-header">
+    <div class="lb-hm-char-col"></div>
+    ${labels.map(l => `<div class="lb-hm-stat-hd">${l}</div>`).join('')}
+  </div>`;
+  const rows = sorted.map(c => {
+    const dot = c.avatar
+      ? `<img src="${c.avatar}" class="lb-hm-avatar" style="border-color:${c.color}">`
+      : `<span class="lb-hm-dot" style="background:${c.color}"></span>`;
+    const cells = stats.map(s => {
+      const val = getLeaderboardVal(c, s);
+      const r = ranges[s];
+      const t = r.max === r.min ? 0.5 : (val - r.min) / (r.max - r.min);
+      const bg = _lbHeatColor(t);
+      const textCol = t > 0.52 ? '#fff' : '#666';
+      return `<div class="lb-hm-cell" style="background:${bg};color:${textCol}" title="${_LB_STAT_LABELS[s]}: ${val.toFixed(1)}">${val.toFixed(0)}</div>`;
+    }).join('');
+    return `<div class="lb-hm-row">
+      <div class="lb-hm-char-col">${dot}<span class="lb-hm-name" style="color:${c.color}">${_esc((c.name||'?').substring(0,10))}</span></div>
+      ${cells}
+    </div>`;
+  }).join('');
+  wrap.innerHTML = `<div class="lb-heatmap">${header}${rows}</div>`;
+}
+
+// ── Scatter / Bubble ──────────────────────────────────────────
+function _renderLbScatterBubble(wrap, chars, isBubble) {
+  const xStat = document.getElementById('lb-x-sel')?.value || 'atk';
+  const yStat = document.getElementById('lb-y-sel')?.value || 'def';
+  const zStat = isBubble ? (document.getElementById('lb-z-sel')?.value || 'hp') : null;
+  const W = 500, H = 320;
+  const pad = { l: 52, r: 20, t: 18, b: 42 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const data = chars.map(c => ({
+    c,
+    x: getLeaderboardVal(c, xStat),
+    y: getLeaderboardVal(c, yStat),
+    z: zStat ? getLeaderboardVal(c, zStat) : 1
+  }));
+  const xs = data.map(d=>d.x), ys = data.map(d=>d.y), zs = data.map(d=>d.z);
+  const xMin=Math.min(...xs), xMax=Math.max(...xs);
+  const yMin=Math.min(...ys), yMax=Math.max(...ys);
+  const zMin=Math.min(...zs), zMax=Math.max(...zs);
+  const toX = x => pad.l + (xMax===xMin ? 0.5 : (x-xMin)/(xMax-xMin)) * pw;
+  const toY = y => pad.t + (yMax===yMin ? 0.5 : 1-(y-yMin)/(yMax-yMin)) * ph;
+  const toR = z => isBubble ? 5 + (zMax===zMin ? 0 : (z-zMin)/(zMax-zMin)) * 14 : 5;
+  // Grid
+  let grid = '';
+  for (let i=0; i<=5; i++) {
+    const gx = pad.l + (i/5)*pw, gy = pad.t + (i/5)*ph;
+    grid += `<line x1="${gx}" y1="${pad.t}" x2="${gx}" y2="${pad.t+ph}" stroke="#181818" stroke-width="1"/>`;
+    grid += `<line x1="${pad.l}" y1="${gy}" x2="${pad.l+pw}" y2="${gy}" stroke="#181818" stroke-width="1"/>`;
+    const xv = xMin + (i/5)*(xMax-xMin), yv = yMax - (i/5)*(yMax-yMin);
+    grid += `<text x="${gx}" y="${pad.t+ph+13}" text-anchor="middle" fill="#333" font-size="7">${xv.toFixed(0)}</text>`;
+    if (i>0 && i<5) grid += `<text x="${pad.l-4}" y="${gy+3}" text-anchor="end" fill="#333" font-size="7">${yv.toFixed(0)}</text>`;
+  }
+  // Dots + labels
+  const dots = data.map(({c,x,y,z}) => {
+    const cx=toX(x), cy=toY(y), r=toR(z), col=c.color||'#888';
+    const tip = `${c.name}: ${_LB_STAT_LABELS[xStat]}=${x.toFixed(1)} / ${_LB_STAT_LABELS[yStat]}=${y.toFixed(1)}${isBubble?` / ${_LB_STAT_LABELS[zStat]}=${z.toFixed(1)}`:''}`;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}" fill-opacity="0.8" stroke="${col}" stroke-width="1.5" stroke-opacity="0.4"><title>${_esc(tip)}</title></circle>
+    <text x="${cx}" y="${cy-r-3}" text-anchor="middle" fill="${col}" font-size="6" opacity="0.9">${_esc((c.name||'?').substring(0,8))}</text>`;
+  }).join('');
+  const xLbl = _LB_STAT_LABELS[xStat]||xStat, yLbl = _LB_STAT_LABELS[yStat]||yStat;
+  const zNote = isBubble ? `<text x="${W-8}" y="12" text-anchor="end" fill="#333" font-size="7">BUBBLE SIZE = ${_LB_STAT_LABELS[zStat]||zStat}</text>` : '';
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+    <rect width="${W}" height="${H}" fill="#070707"/>
+    ${grid}
+    <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${pad.t+ph}" stroke="#2a2a2a" stroke-width="1"/>
+    <line x1="${pad.l}" y1="${pad.t+ph}" x2="${pad.l+pw}" y2="${pad.t+ph}" stroke="#2a2a2a" stroke-width="1"/>
+    <text x="${pad.l+pw/2}" y="${H-3}" text-anchor="middle" fill="#555" font-size="8" letter-spacing="2">${xLbl}</text>
+    <text x="10" y="${pad.t+ph/2}" text-anchor="middle" fill="#555" font-size="8" letter-spacing="2" transform="rotate(-90,10,${pad.t+ph/2})">${yLbl}</text>
+    ${zNote}
+    ${dots}
+  </svg>`;
+}
+
+// ── Distribution curve ────────────────────────────────────────
+function _renderLbDistribution(wrap, chars) {
+  const stat = _leaderboardStat;
+  const W = 500, H = 280;
+  const pad = { l: 42, r: 20, t: 24, b: 58 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const data = chars.map(c => ({ c, v: getLeaderboardVal(c, stat) }));
+  const vs = data.map(d=>d.v);
+  const vMin=Math.min(...vs), vMax=Math.max(...vs), vRange=vMax-vMin||1;
+  const N = Math.min(10, Math.max(4, Math.ceil(chars.length / 2)));
+  const bins = Array.from({length:N}, ()=>[]);
+  data.forEach(d => {
+    const bi = Math.min(N-1, Math.floor((d.v-vMin)/vRange*N));
+    bins[bi].push(d);
+  });
+  const maxCount = Math.max(...bins.map(b=>b.length), 1);
+  const bw = pw / N;
+  const toBarH = n => (n/maxCount)*ph;
+  const toVX = v => pad.l + ((v-vMin)/vRange)*pw;
+  // Bars
+  let bars = '';
+  bins.forEach((bin, i) => {
+    const x = pad.l + i*bw + 1, h = toBarH(bin.length), y = pad.t+ph-h;
+    const t = bin.length/maxCount;
+    const r=Math.round(0+t*0), g=Math.round(140+t*90), b2=Math.round(180-t*80);
+    bars += `<rect x="${x}" y="${y}" width="${bw-2}" height="${h}" fill="rgba(${r},${g},${b2},${0.15+t*0.35})" stroke="rgba(${r},${g},${b2},0.5)" stroke-width="0.8"/>`;
+    if (bin.length>0) bars += `<text x="${x+bw/2-1}" y="${y-5}" text-anchor="middle" fill="#555" font-size="7">${bin.length}</text>`;
+    const tickV = vMin + i*(vRange/N);
+    bars += `<text x="${x+bw/2-1}" y="${pad.t+ph+13}" text-anchor="middle" fill="#333" font-size="6">${tickV.toFixed(0)}</text>`;
+  });
+  // Smooth curve through bin tops
+  const pts = bins.map((bin,i) => [pad.l + i*bw + bw/2, pad.t+ph - toBarH(bin.length)]);
+  let curve = '';
+  if (pts.length>1) {
+    let d = `M ${pts[0][0]} ${pts[0][1]}`;
+    for (let i=1; i<pts.length; i++) {
+      const cx=(pts[i-1][0]+pts[i][0])/2;
+      d += ` C ${cx} ${pts[i-1][1]},${cx} ${pts[i][1]},${pts[i][0]} ${pts[i][1]}`;
+    }
+    curve = `<path d="${d}" fill="none" stroke="rgba(0,200,200,0.55)" stroke-width="2" stroke-linecap="round"/>`;
+    // Dots on the curve
+    curve += pts.map(([px,py]) => `<circle cx="${px}" cy="${py}" r="2.5" fill="rgba(0,220,220,0.6)"/>`).join('');
+  }
+  // Character dots at base line (their actual value position)
+  const dotLineY = pad.t + ph + 30;
+  const charDots = data.map(({c,v}) => {
+    const cx = toVX(v);
+    return `<circle cx="${cx}" cy="${dotLineY}" r="4" fill="${c.color||'#888'}" fill-opacity="0.85"><title>${_esc(c.name)}: ${v.toFixed(1)}</title></circle>`;
+  }).join('');
+  const sLbl = _LB_STAT_LABELS[stat]||stat;
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+    <rect width="${W}" height="${H}" fill="#070707"/>
+    <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${pad.t+ph}" stroke="#222" stroke-width="1"/>
+    <line x1="${pad.l}" y1="${pad.t+ph}" x2="${pad.l+pw}" y2="${pad.t+ph}" stroke="#222" stroke-width="1"/>
+    ${bars}
+    ${curve}
+    <line x1="${pad.l}" y1="${dotLineY}" x2="${pad.l+pw}" y2="${dotLineY}" stroke="#1a1a1a" stroke-width="1" stroke-dasharray="3,3"/>
+    ${charDots}
+    <text x="${pad.l+pw/2}" y="${H-2}" text-anchor="middle" fill="#555" font-size="8" letter-spacing="2">${sLbl}</text>
+    <text x="8" y="${pad.t+ph/2}" text-anchor="middle" fill="#444" font-size="7" transform="rotate(-90,8,${pad.t+ph/2})">COUNT</text>
+    <text x="${pad.l-4}" y="${pad.t+4}" text-anchor="end" fill="#333" font-size="7">${maxCount}</text>
+  </svg>`;
 }
 
 // ============================================================
