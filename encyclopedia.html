@@ -1846,107 +1846,125 @@ body {
 }
 
 @media (max-width: 700px) {
-  body { overflow: auto; }
-  
-  /* Mobile masthead tweaks */
+  /* Body stays overflow:hidden — the book handles its own scroll */
+  body { overflow: hidden; }
+
+  /* ── Compact masthead ── */
+  #enc-masthead { padding: 8px 12px; gap: 8px; }
+  .enc-main-title { font-size: 15px; letter-spacing: 3px; }
+  .enc-main-sub   { display: none; }
+  .enc-masthead-deco { display: none; }
+
+  /* INDEX toggle button */
   .mobile-toc-toggle-btn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-size: 9px;
+    gap: 5px;
+    font-size: 7px;
     letter-spacing: 1.5px;
-    padding: 6px 12px;
+    padding: 6px 10px;
     border: 1px solid var(--enc-col, #c9a227);
     color: var(--enc-col, #c9a227);
     background: transparent;
     cursor: pointer;
-    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
     transition: background 0.2s, color 0.2s;
   }
-  .mobile-toc-toggle-btn:hover {
-    background: rgba(201,162,39,0.1);
-  }
-  
-  #enc-mobile-backdrop {
-    display: block;
-    pointer-events: none;
-  }
-  #enc-mobile-backdrop.open {
-    opacity: 1;
-    pointer-events: auto;
-  }
+  .mobile-toc-toggle-btn:hover { background: rgba(201,162,39,0.1); }
 
-  #enc-book { 
-    flex-direction: column; 
-    height: calc(100vh - 120px); 
-    min-height: 480px; 
+  /* Backdrop for the drawer */
+  #enc-mobile-backdrop { display: block; pointer-events: none; }
+  #enc-mobile-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  /* Book wrap: no padding, stretch book to fill all remaining height */
+  #enc-book-wrap { padding: 0; align-items: stretch; }
+
+  /* Book: column, fill the wrap, no animation (animation uses transform
+     which turns enc-book into a containing block for position:fixed children) */
+  #enc-book {
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
     border: none;
     box-shadow: none;
+    animation: none;
   }
-  
-  /* Left panel becomes the slide-out drawer */
-  #enc-left { 
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 280px;
-    max-width: 80%;
-    height: 100vh;
-    max-height: 100vh;
-    z-index: 100;
+
+  /* Left panel → slide-out drawer, off-screen by default */
+  #enc-left {
+    position: fixed !important;
+    left: 0; top: 0; bottom: 0;
+    width: min(300px, 82vw);
+    height: 100dvh;
+    z-index: 200;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.95);
+    box-shadow: 8px 0 30px rgba(0,0,0,0.95);
     background: linear-gradient(170deg, #0f0c07 0%, #0c0905 100%);
     border: none;
     border-right: 1px solid #221608;
-    flex: none;
+    flex: none !important;
+    overflow-y: auto;
   }
-  #enc-left.open {
-    transform: translateX(0);
+  #enc-left.open { transform: translateX(0); }
+  /* Hide the decorative stacked-pages pseudo-elements on mobile */
+  #enc-left::before, #enc-left::after { display: none; }
+
+  /* Spine: gone */
+  #enc-spine { display: none !important; }
+
+  /* Right panel: column so content is on top, tabs on bottom */
+  #enc-right {
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;   /* ← THE fix: was missing, causing tabs to sit beside content */
+    border: none;
+    overflow: hidden;
   }
-  
-  /* Spine is hidden on mobile for clean book reading look */
-  #enc-spine { display: none; }
-  
-  #enc-right { 
-    flex: 1; 
-    width: 100%;
+  #enc-right::before, #enc-right::after { display: none; }
+
+  /* Content area grows to fill space */
+  #enc-content-col {
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #enc-content-scroll { padding: 16px 16px 20px; }
+
+  /* Tabs: horizontal strip pinned to bottom of enc-right */
+  #enc-tabs-strip {
+    flex: 0 0 auto;
+    flex-direction: row;
     border-left: none;
-    background: linear-gradient(170deg, #110e08 0%, #0e0b06 100%);
-  }
-  
-  /* Tabs strip remains nicely accessible at the bottom */
-  #enc-tabs-strip { 
-    flex-direction: row; 
-    flex: 0 0 auto; 
-    border-left: none; 
-    border-top: 1px solid #1c1207; 
-    padding: 0 12px; 
+    border-top: 1px solid #1c1207;
+    padding: 0;
     justify-content: space-around;
+    overflow-x: auto;
+    background: #0b0905;
   }
-  .enc-tab-btn { 
-    writing-mode: horizontal-tb; 
-    transform: none; 
-    padding: 12px 10px; 
-    border-right: none; 
-    border-bottom: 2px solid transparent; 
-    font-size: 8px;
+  .enc-tab-btn {
+    writing-mode: horizontal-tb;
+    transform: none;
+    padding: 10px 6px;
+    border-right: none;
+    border-bottom: 2px solid transparent;
+    font-size: 7px;
     letter-spacing: 1px;
     text-align: center;
+    flex-shrink: 0;
   }
-  .enc-tab-btn.active { 
-    border-bottom-color: var(--enc-col); 
-    border-right-color: transparent; 
+  .enc-tab-btn.active {
+    border-bottom-color: var(--enc-col);
+    border-right-color: transparent;
   }
-  
-  #enc-content-col { flex-direction: column; }
+
+  /* Content layout adjustments */
   .enc-char-hero { flex-direction: column; align-items: center; text-align: center; }
   .enc-char-quick-tags { justify-content: center; }
   .enc-char-info-grid { grid-template-columns: 1fr; }
-  #enc-content-scroll { padding: 20px 20px 24px; }
   .enc-entry-actions { justify-content: center; flex-wrap: wrap; }
 }
 
