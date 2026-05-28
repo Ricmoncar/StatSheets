@@ -5775,7 +5775,7 @@ function renderTraitSituationals(c, key) {
     const rolls = c.missingNoRolls;
     let rollDisplay = '';
     if (rolls) {
-      const parts = ['hp', 'atk', 'def', 'mag', 'spd'].map(s => `${s.toUpperCase()} x${rolls[s].toFixed(2)}`).join(' &nbsp; ');
+      const parts = ['hp', 'atk', 'def', 'mag', 'spd'].map(s => `${s.toUpperCase()} x${(rolls[s] ?? 1).toFixed(2)}`).join(' &nbsp; ');
       rollDisplay = `<div style="font-size:7px;color:#aaa;letter-spacing:1px;margin-bottom:4px;">${parts}</div>`;
     }
     return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollMissingNo(event)" data-tooltip="Randomize all stats between x0.5–x3 (x0.25–x5.5 for SHIMMYFUL). Simulates the start-of-battle chaos roll.">&#9889; REROLL STATS</button></div>`;
@@ -5787,7 +5787,7 @@ function renderTraitSituationals(c, key) {
     const maxVal = shimmy ? 30 : 20;
     let rollDisplay = '';
     if (rolls) {
-      const parts = ['hp', 'atk', 'def', 'mag', 'spd'].map(s => `${s.toUpperCase()} x${rolls[s].toFixed(2)}`).join(' &nbsp; ');
+      const parts = ['hp', 'atk', 'def', 'mag', 'spd'].map(s => `${s.toUpperCase()} x${(rolls[s] ?? 1).toFixed(2)}`).join(' &nbsp; ');
       rollDisplay = `<div style="font-size:7px;color:#aaa;letter-spacing:1px;margin-bottom:4px;">${parts}</div>`;
     }
     return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollGlitch(event)" data-tooltip="Randomize all stats between x0.01–x${maxVal}${shimmy ? ' (one stat always rolls max)' : ''}. Simulates a round-start Glitch roll.">&#9889; REROLL STATS</button></div>`;
