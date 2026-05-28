@@ -2303,6 +2303,11 @@ function viewChar(id) {
   const c = characters.find(x => x.id === id);
   if (!c) return;
 
+  // Clear cached trait tooltips so they rebuild for the new character
+  document.querySelectorAll('.trait-chip[data-trait][data-tooltip]').forEach(chip => {
+    delete chip.dataset.tooltip;
+  });
+
   document.getElementById('empty-state').style.display = 'none';
   const cv = document.getElementById('char-view');
   if (!cv.classList.contains('active')) {
