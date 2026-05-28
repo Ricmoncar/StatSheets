@@ -709,7 +709,7 @@ function testCompat() {
 
   let score = localStorage.getItem(lsKey);
   if (score === null) {
-    score = (_compatHash(lsKey) % 96) + 3;  // 3–98 range
+    score = _compatHash(lsKey) % 101;  // 0–100 range
     localStorage.setItem(lsKey, score);
   } else {
     score = parseInt(score);
