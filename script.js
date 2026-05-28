@@ -7998,10 +7998,20 @@ const HC_SILHOUETTE = `<svg viewBox="0 0 24 60" xmlns="http://www.w3.org/2000/sv
 
 let _hcCanvasW = 0; // actual rendered canvas width, set by renderHeightChart
 
-// Global pan/drag-reorder listeners (attached once)
-document.addEventListener('mousemove', function (e) {
+// ── Touch/mouse coordinate helper ────────────────────────────
+function _hcEvtX(e) {
+  if (e.touches && e.touches.length)        return e.touches[0].clientX;
+  if (e.changedTouches && e.changedTouches.length) return e.changedTouches[0].clientX;
+  return e.clientX;
+}
+
+// Global pan/drag-reorder listeners (attached once, shared by mouse + touch)
+function _hcOnMove(e) {
+  if (!_hcPanDrag && !_hcDrag) return;
+  if (e.cancelable) e.preventDefault(); // block browser scroll/zoom while interacting
+  const cx = _hcEvtX(e);
   if (_hcPanDrag) {
-    const dx = e.clientX - _hcPanDrag.startX;
+    const dx = cx - _hcPanDrag.startX;
     const maxPan = Math.max(0, _hcCanvasW - _hcPanDrag.stageW);
     _hcPanX = Math.max(0, Math.min(maxPan, _hcPanDrag.startPanX - dx));
     const canvas = document.getElementById('hc-canvas');
@@ -8009,7 +8019,7 @@ document.addEventListener('mousemove', function (e) {
   }
   if (_hcDrag) {
     // Activate drag after 6px of movement
-    if (!_hcDrag.active && Math.abs(e.clientX - _hcDrag.startX) > 6) {
+    if (!_hcDrag.active && Math.abs(cx - _hcDrag.startX) > 6) {
       _hcDrag.active = true;
       _hcDragged = true;
       const dragWrap = document.querySelector(`.hc-char-wrap[data-id="${_hcDrag.id}"]`);
@@ -8021,7 +8031,7 @@ document.addEventListener('mousemove', function (e) {
       if (!stage) return;
       const stageRect = stage.getBoundingClientRect();
       const rulerW = ruler ? ruler.offsetWidth : 48;
-      const cursorX = (e.clientX - stageRect.left - rulerW) + _hcPanX;
+      const cursorX = (cx - stageRect.left - rulerW) + _hcPanX;
       const n = _hcData.entries.length;
       const cw = _hcCanvasW || stage.clientWidth;
       const positions = _hcData.entries.map((_, i) => n > 1 ? ((i + 1) / (n + 1)) * cw : cw / 2);
@@ -8050,8 +8060,8 @@ document.addEventListener('mousemove', function (e) {
       }
     }
   }
-});
-document.addEventListener('mouseup', function () {
+}
+function _hcOnUp() {
   if (_hcPanDrag) {
     _hcPanDrag = null;
     const s = document.getElementById('hc-stage');
@@ -8078,7 +8088,11 @@ document.addEventListener('mouseup', function () {
     }
     _hcDrag = null;
   }
-});
+}
+document.addEventListener('mousemove', _hcOnMove);
+document.addEventListener('mouseup',   _hcOnUp);
+document.addEventListener('touchmove', _hcOnMove, { passive: false });
+document.addEventListener('touchend',  _hcOnUp);
 
 function _hcSetupListeners() {
   if (_hcListenersAdded) return;
@@ -8096,19 +8110,56 @@ function _hcSetupListeners() {
     renderHeightChart();
   }, { passive: false });
 
-  stage.addEventListener('mousedown', function (e) {
+  // Pinch-to-zoom on touch
+  let _hcPinchDist0 = null;
+  let _hcPinchZoom0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      _hcPinchDist0 = Math.hypot(dx, dy);
+      _hcPinchZoom0 = _hcZoom;
+      _hcPanDrag = null; // cancel any pan in progress
+    }
+  }, { passive: true });
+  stage.addEventListener('touchmove', function (e) {
+    if (e.touches.length === 2 && _hcPinchDist0 !== null) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      _hcZoom = Math.max(0.2, Math.min(3.0, _hcPinchZoom0 * (dist / _hcPinchDist0)));
+      const lbl = document.getElementById('hc-zoom-label');
+      if (lbl) lbl.textContent = Math.round(_hcZoom * 100) + '%';
+      renderHeightChart();
+    }
+  }, { passive: false });
+  stage.addEventListener('touchend', function (e) {
+    if (e.touches.length < 2) { _hcPinchDist0 = null; _hcPinchZoom0 = null; }
+  }, { passive: true });
+
+  function _hcStartPan(clientX) {
     if (_hcDrag) {
-      // Cancel any stale drag (e.g. mouse released outside window)
+      // Cancel any stale drag (e.g. finger lifted outside window)
       document.querySelectorAll('.hc-char-wrap.hc-dragging').forEach(w => w.classList.remove('hc-dragging'));
       const ind = document.getElementById('hc-drop-indicator');
       if (ind) ind.style.display = 'none';
       _hcDrag = null;
       return;
     }
-    _hcPanDrag = { startX: e.clientX, startPanX: _hcPanX, stageW: stage.clientWidth };
+    _hcPanDrag = { startX: clientX, startPanX: _hcPanX, stageW: stage.clientWidth };
     stage.classList.add('panning');
+  }
+  stage.addEventListener('mousedown', function (e) {
+    _hcStartPan(e.clientX);
     e.preventDefault();
   });
+  stage.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 1) { // single-finger pan only
+      _hcStartPan(e.touches[0].clientX);
+      e.preventDefault();
+    }
+  }, { passive: false });
 }
 
 function hcAdjustZoom(delta) {
@@ -8253,6 +8304,13 @@ function renderHeightChart() {
       _hcDrag = { id: entry.id, startIdx: idx, startX: e.clientX, active: false, insertIdx: null };
       _hcDragged = false;
     });
+    wrap.addEventListener('touchstart', e => {
+      e.stopPropagation(); // prevent pan on stage
+      if (e.touches.length === 1) {
+        _hcDrag = { id: entry.id, startIdx: idx, startX: e.touches[0].clientX, active: false, insertIdx: null };
+        _hcDragged = false;
+      }
+    }, { passive: true });
     wrap.addEventListener('click', () => { if (!_hcDragged) hcSelectEntry(entry.id); });
 
     const anchor = document.createElement('div');
