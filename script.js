@@ -8022,67 +8022,62 @@ function _renderLbList(wrap, chars) {
 }
 
 // ── Radar / Spider web ────────────────────────────────────────
-// Uses percentile rank normalization so one outlier stat doesn't squash everyone
+// Capped at 15 chars (top by avg), percentile rank normalization, no SVG filter
 function _renderLbRadar(wrap, chars) {
-  const STATS = ['hp','atk','def','mag','spd'];
-  const LBLS  = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
-  const W = 400, H = 360;
-  const cx = W/2, cy = H/2, R = 126;
+  const STATS  = ['hp','atk','def','mag','spd'];
+  const LBLS   = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
+  const CAP    = 15;
+  const all    = [...chars].sort((a,b) => getLeaderboardVal(b,'avg') - getLeaderboardVal(a,'avg'));
+  const subset = all.slice(0, CAP);          // top-15 only for readability
+  const capped = chars.length > CAP;
+  const W = 460, H = 300, cx = W/2, cy = H/2 - 2, R = 108;
   const N = STATS.length;
   const ang = i => -Math.PI/2 + (2*Math.PI*i)/N;
-  const n = chars.length;
+  const n = subset.length;
 
-  // Per-stat: precompute sorted order for percentile lookup
+  // Percentile rank within the shown subset
   const rankOf = {};
   STATS.forEach(s => {
-    const sorted = [...chars].sort((a,b) => getLeaderboardVal(a,s) - getLeaderboardVal(b,s));
+    const sorted = [...subset].sort((a,b) => getLeaderboardVal(a,s) - getLeaderboardVal(b,s));
     rankOf[s] = new Map(sorted.map((c,i) => [c, n > 1 ? i/(n-1) : 0.5]));
   });
-  const pctR = (s, c) => rankOf[s].get(c) ?? 0.5;
-  const pt = (s, i, pct) => [
-    (cx + pct*R*Math.cos(ang(i))).toFixed(1),
-    (cy + pct*R*Math.sin(ang(i))).toFixed(1)
-  ];
+  const pct = (s, c) => rankOf[s].get(c) ?? 0.5;
 
-  // Background rings + spokes
+  // Rings + spokes
   let bg = '';
   [0.25, 0.5, 0.75, 1].forEach(t => {
-    const pts = STATS.map((_, i) => `${(cx+R*t*Math.cos(ang(i))).toFixed(1)},${(cy+R*t*Math.sin(ang(i))).toFixed(1)}`);
-    bg += `<polygon points="${pts.join(' ')}" fill="${t===1?'none':'rgba(255,255,255,0.013)'}" stroke="${t===1?'#1e1e2c':'#0e0e18'}" stroke-width="${t===1?1.5:0.7}"/>`;
+    const pts = STATS.map((_,i) => `${(cx+R*t*Math.cos(ang(i))).toFixed(1)},${(cy+R*t*Math.sin(ang(i))).toFixed(1)}`);
+    bg += `<polygon points="${pts.join(' ')}" fill="${t===1?'none':'rgba(255,255,255,0.01)'}" stroke="${t===1?'#1c1c2a':'#0d0d18'}" stroke-width="${t===1?1.2:0.6}"/>`;
   });
-  STATS.forEach((_, i) => {
-    bg += `<line x1="${cx}" y1="${cy}" x2="${(cx+R*Math.cos(ang(i))).toFixed(1)}" y2="${(cy+R*Math.sin(ang(i))).toFixed(1)}" stroke="#0f0f1a" stroke-width="0.8"/>`;
+  STATS.forEach((_,i) => {
+    bg += `<line x1="${cx}" y1="${cy}" x2="${(cx+R*Math.cos(ang(i))).toFixed(1)}" y2="${(cy+R*Math.sin(ang(i))).toFixed(1)}" stroke="#0e0e18" stroke-width="0.7"/>`;
   });
-  // Axis labels + actual max value note
   LBLS.forEach((lbl, i) => {
-    const lx = cx + (R+20)*Math.cos(ang(i));
-    const ly = cy + (R+20)*Math.sin(ang(i));
+    const lx = cx + (R+18)*Math.cos(ang(i));
+    const ly = cy + (R+18)*Math.sin(ang(i));
     const anchor = Math.cos(ang(i)) > 0.1 ? 'start' : Math.cos(ang(i)) < -0.1 ? 'end' : 'middle';
-    const s = STATS[i];
-    const maxVal = Math.max(...chars.map(c=>getLeaderboardVal(c,s)));
-    bg += `<text x="${lx.toFixed(1)}" y="${(ly+2).toFixed(1)}" text-anchor="${anchor}" fill="#262636" font-size="8" letter-spacing="1.5">${lbl}</text>`;
-    bg += `<text x="${lx.toFixed(1)}" y="${(ly+11).toFixed(1)}" text-anchor="${anchor}" fill="#191928" font-size="6.5">${maxVal.toFixed(0)}</text>`;
+    const maxVal = Math.max(...subset.map(c => getLeaderboardVal(c, STATS[i])));
+    bg += `<text x="${lx.toFixed(1)}" y="${(ly+2).toFixed(1)}" text-anchor="${anchor}" fill="#252535" font-size="7.5" letter-spacing="1.5">${lbl}</text>`;
+    bg += `<text x="${lx.toFixed(1)}" y="${(ly+11).toFixed(1)}" text-anchor="${anchor}" fill="#181826" font-size="6">${maxVal.toFixed(0)}</text>`;
   });
 
-  const defs = `<defs>
-    <filter id="lb-rd-glow" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.8" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>`;
-
-  const polys = chars.map((c, ci) => {
-    const pts = STATS.map((s, i) => pt(s, i, pctR(s, c)).join(','));
+  // No SVG filter — too slow with many elements
+  const polys = subset.map(c => {
+    const origIdx = chars.indexOf(c);
+    const pts = STATS.map((s, i) => {
+      const r = pct(s, c) * R;
+      return `${(cx + r*Math.cos(ang(i))).toFixed(1)},${(cy + r*Math.sin(ang(i))).toFixed(1)}`;
+    });
     const col = c.color || '#888';
-    return `<polygon points="${pts.join(' ')}" fill="${col}" fill-opacity="0.07" stroke="${col}" stroke-width="1" stroke-opacity="0.6" filter="url(#lb-rd-glow)" data-lb-char="${ci}" style="cursor:pointer"/>`;
+    return `<polygon points="${pts.join(' ')}" fill="${col}" fill-opacity="0.08" stroke="${col}" stroke-width="1.1" stroke-opacity="0.65" data-lb-char="${origIdx}" style="cursor:pointer"/>`;
   }).join('');
 
-  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
-    ${defs}
+  const note = capped ? `<text x="${W/2}" y="${H-4}" text-anchor="middle" fill="#1a1a26" font-size="6" letter-spacing="1">TOP ${CAP} BY AVG · ${chars.length} TOTAL</text>` : '';
+
+  wrap.innerHTML = `<div style="max-width:460px;"><svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
     <rect width="${W}" height="${H}" fill="#050508"/>
-    ${bg}
-    ${polys}
-  </svg>`;
+    ${bg}${polys}${note}
+  </svg></div>`;
 }
 
 // ── Horizontal bars ───────────────────────────────────────────
@@ -8177,22 +8172,22 @@ function _renderLbRadial(wrap, chars) {
   });
 
   const sLbl = _LB_STAT_LABELS[stat] || stat;
-  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+  wrap.innerHTML = `<div style="max-width:360px;margin:0 auto;"><svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
     ${defs}
     <rect width="${W}" height="${H}" fill="#050508"/>
     ${rings}
     ${arcs}
     <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#07070e" stroke="#131320" stroke-width="1.5"/>
     <text x="${cx}" y="${cy+3}" text-anchor="middle" fill="#1e1e2e" font-size="7" letter-spacing="1.5">${_esc(sLbl)}</text>
-  </svg>`;
+  </svg></div>`;
 }
 
 // ── Parallel coordinates ──────────────────────────────────────
 function _renderLbLines(wrap, chars) {
   const STATS = ['hp','atk','def','mag','spd'];
   const LBLS  = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
-  const W = 480, H = 290;
-  const pad = { l: 36, r: 36, t: 40, b: 38 };
+  const W = 480, H = 255;
+  const pad = { l: 36, r: 36, t: 38, b: 34 };
   const ph = H - pad.t - pad.b;
 
   const minV = {}, maxV = {};
@@ -8232,12 +8227,12 @@ function _renderLbLines(wrap, chars) {
     });
   });
 
-  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+  wrap.innerHTML = `<div style="max-width:500px;"><svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
     <rect width="${W}" height="${H}" fill="#050508"/>
     ${lines}
     ${dots}
     ${axes}
-  </svg>`;
+  </svg></div>`;
 }
 
 // ── [kept for potential future use] ──────────────────────────
