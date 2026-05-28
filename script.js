@@ -7912,15 +7912,12 @@ function setLbView(view, btn) {
   _lbView = view;
   document.querySelectorAll('.lb-view-btn').forEach(b => b.classList.remove('accent'));
   if (btn) btn.classList.add('accent');
-  const statRow  = document.getElementById('lb-stat-row');
-  const axisRow  = document.getElementById('lb-axis-row');
-  const zLabel   = document.getElementById('lb-z-label');
-  const zSel     = document.getElementById('lb-z-sel');
-  const isAxis   = view === 'scatter' || view === 'bubble';
-  if (statRow) statRow.style.display  = (view === 'heatmap' || isAxis) ? 'none' : 'flex';
-  if (axisRow) axisRow.style.display  = isAxis ? 'flex' : 'none';
-  if (zLabel)  zLabel.style.display   = view === 'bubble' ? '' : 'none';
-  if (zSel)    zSel.style.display     = view === 'bubble' ? '' : 'none';
+  const statRow = document.getElementById('lb-stat-row');
+  const axisRow = document.getElementById('lb-axis-row');
+  // Show stat selector only when a single-stat chart is active
+  const showStat = view === 'list' || view === 'bars' || view === 'radial';
+  if (statRow) statRow.style.display = showStat ? 'flex' : 'none';
+  if (axisRow) axisRow.style.display = 'none';
   renderLeaderboard();
 }
 
@@ -7949,10 +7946,10 @@ function renderLeaderboard() {
     wrap.innerHTML = `<div style="text-align:center;color:#444;font-size:8px;padding:24px;letter-spacing:1px;">NO CHARACTERS</div>`;
     return;
   }
-  if (_lbView === 'heatmap')      { _renderLbHeatmap(wrap, chars);       return; }
-  if (_lbView === 'scatter')      { _renderLbScatterBubble(wrap, chars, false); return; }
-  if (_lbView === 'bubble')       { _renderLbScatterBubble(wrap, chars, true);  return; }
-  if (_lbView === 'distribution') { _renderLbDistribution(wrap, chars);  return; }
+  if (_lbView === 'radar')  { _renderLbRadar(wrap, chars);  return; }
+  if (_lbView === 'bars')   { _renderLbBars(wrap, chars);   return; }
+  if (_lbView === 'radial') { _renderLbRadial(wrap, chars); return; }
+  if (_lbView === 'lines')  { _renderLbLines(wrap, chars);  return; }
   _renderLbList(wrap, chars);
 }
 
@@ -7979,8 +7976,235 @@ function _renderLbList(wrap, chars) {
   }).join('');
 }
 
-// ── Heatmap ───────────────────────────────────────────────────
-// Returns [r,g,b] array — 7-stop vivid scale: near-black → indigo → electric blue → teal → lime → amber → hot red
+// ── Radar / Spider web ────────────────────────────────────────
+function _renderLbRadar(wrap, chars) {
+  const STATS = ['hp','atk','def','mag','spd'];
+  const LBLS  = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
+  const W = 480, H = 440;
+  const cx = W/2, cy = H/2 - 6, R = 158;
+  const N = STATS.length;
+  const ang = i => -Math.PI/2 + (2*Math.PI*i)/N;
+
+  // Normalize per-stat so best char reaches outer ring
+  const maxV = {};
+  STATS.forEach(s => { maxV[s] = Math.max(...chars.map(c => getLeaderboardVal(c, s)), 1); });
+  const pt = (s, i, v) => {
+    const r = (v / maxV[s]) * R;
+    return [(cx + r*Math.cos(ang(i))).toFixed(1), (cy + r*Math.sin(ang(i))).toFixed(1)];
+  };
+
+  // Background rings
+  let bg = '';
+  [0.25, 0.5, 0.75, 1].forEach(t => {
+    const pts = STATS.map((_, i) => `${(cx+R*t*Math.cos(ang(i))).toFixed(1)},${(cy+R*t*Math.sin(ang(i))).toFixed(1)}`);
+    bg += `<polygon points="${pts.join(' ')}" fill="${t===1?'none':'rgba(255,255,255,0.012)'}" stroke="${t===1?'#1c1c2c':'#0f0f18'}" stroke-width="${t===1?1.5:0.7}"/>`;
+  });
+  // Spokes
+  STATS.forEach((_, i) => {
+    bg += `<line x1="${cx}" y1="${cy}" x2="${(cx+R*Math.cos(ang(i))).toFixed(1)}" y2="${(cy+R*Math.sin(ang(i))).toFixed(1)}" stroke="#0f0f18" stroke-width="0.8"/>`;
+  });
+  // Axis labels
+  LBLS.forEach((lbl, i) => {
+    const lx = cx + (R+22)*Math.cos(ang(i));
+    const ly = cy + (R+22)*Math.sin(ang(i));
+    const anchor = Math.cos(ang(i)) > 0.12 ? 'start' : Math.cos(ang(i)) < -0.12 ? 'end' : 'middle';
+    bg += `<text x="${lx.toFixed(1)}" y="${(ly+3.5).toFixed(1)}" text-anchor="${anchor}" fill="#272736" font-size="8.5" letter-spacing="2">${lbl}</text>`;
+  });
+  // Average polygon (roster mean)
+  const avgPts = STATS.map((s, i) => {
+    const mean = chars.reduce((a,c) => a + getLeaderboardVal(c,s), 0) / chars.length;
+    return pt(s, i, mean).join(',');
+  });
+  bg += `<polygon points="${avgPts.join(' ')}" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+
+  const defs = `<defs>
+    <filter id="lb-rd-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+
+  // Each character as a colored polygon web
+  const polys = chars.map(c => {
+    const pts = STATS.map((s, i) => pt(s, i, getLeaderboardVal(c, s)).join(','));
+    const col = c.color || '#888';
+    const tip = `${c.name}  ${STATS.map((s,i)=>`${LBLS[i]} ${getLeaderboardVal(c,s).toFixed(0)}`).join('  ')}`;
+    return `<polygon points="${pts.join(' ')}" fill="${col}" fill-opacity="0.055" stroke="${col}" stroke-width="1.1" stroke-opacity="0.6" filter="url(#lb-rd-glow)"><title>${_esc(tip)}</title></polygon>`;
+  }).join('');
+
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+    ${defs}
+    <rect width="${W}" height="${H}" fill="#050508"/>
+    ${bg}
+    ${polys}
+  </svg>`;
+}
+
+// ── Horizontal bars ───────────────────────────────────────────
+function _renderLbBars(wrap, chars) {
+  const stat   = _leaderboardStat;
+  const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,stat) - getLeaderboardVal(a,stat));
+  const maxVal = Math.max(...sorted.map(c => getLeaderboardVal(c, stat)), 1);
+  const W = 520, rowH = 22;
+  const pad = { l: 112, r: 58, t: 18, b: 10 };
+  const H  = pad.t + sorted.length * rowH + pad.b;
+  const pw = W - pad.l - pad.r;
+
+  const defs = `<defs>
+    <filter id="lb-bar-glow" x="-5%" y="-80%" width="115%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+
+  const MEDALS = ['🥇','🥈','🥉'];
+  const rows = sorted.map((c, i) => {
+    const val = getLeaderboardVal(c, stat);
+    const t   = val / maxVal;
+    const bw  = Math.max(t * pw, 1);
+    const y   = pad.t + i * rowH;
+    const col = c.color || '#888';
+    const stripe = i % 2 === 0 ? `<rect x="0" y="${y}" width="${W}" height="${rowH}" fill="rgba(255,255,255,0.008)"/>` : '';
+    const rnk = i < 3 ? MEDALS[i] : `#${i+1}`;
+    return `${stripe}
+    <text x="6" y="${y+rowH/2+3}" fill="#1e1e2e" font-size="${i<3?9:7.5}">${rnk}</text>
+    <text x="${pad.l-6}" y="${y+rowH/2+3}" text-anchor="end" fill="${col}" font-size="8" opacity="0.9">${_esc((c.name||'?').substring(0,13))}</text>
+    <rect x="${pad.l}" y="${y+5}" width="${bw}" height="${rowH-10}" fill="${col}" fill-opacity="0.8" rx="2" filter="url(#lb-bar-glow)"/>
+    <line x1="${pad.l}" y1="${y+5}" x2="${pad.l+bw}" y2="${y+5}" stroke="${col}" stroke-width="1.5" stroke-opacity="0.6"/>
+    <text x="${pad.l+bw+6}" y="${y+rowH/2+3}" fill="${col}" font-size="7.5" opacity="0.75">${val.toFixed(1)}</text>`;
+  }).join('');
+
+  const sLbl = _LB_STAT_LABELS[stat] || stat;
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+    ${defs}
+    <rect width="${W}" height="${H}" fill="#050508"/>
+    <text x="${W/2}" y="${pad.t-3}" text-anchor="middle" fill="#1e1e2e" font-size="7.5" letter-spacing="2">${_esc(sLbl)}</text>
+    ${rows}
+  </svg>`;
+}
+
+// ── Radial / Sunburst ─────────────────────────────────────────
+function _renderLbRadial(wrap, chars) {
+  const stat   = _leaderboardStat;
+  const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,stat) - getLeaderboardVal(a,stat));
+  const maxVal = Math.max(...sorted.map(c => getLeaderboardVal(c, stat)), 1);
+  const W = 480, H = 480;
+  const cx = W/2, cy = H/2;
+  const innerR = 48, outerR = 200;
+  const n = sorted.length;
+  const TAU = 2*Math.PI;
+  const gap = Math.min(0.035, TAU/n*0.12);
+
+  const defs = `<defs>
+    <filter id="lb-rd2-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+
+  const arcs = sorted.map((c, i) => {
+    const val = getLeaderboardVal(c, stat);
+    const t   = val / maxVal;
+    const r   = innerR + t*(outerR - innerR);
+    const a0  = -Math.PI/2 + (i/n)*TAU + gap/2;
+    const a1  = -Math.PI/2 + ((i+1)/n)*TAU - gap/2;
+    const la  = (a1-a0) > Math.PI ? 1 : 0;
+    const col = c.color || '#888';
+    const d = [
+      `M ${(cx+innerR*Math.cos(a0)).toFixed(1)},${(cy+innerR*Math.sin(a0)).toFixed(1)}`,
+      `L ${(cx+r*Math.cos(a0)).toFixed(1)},${(cy+r*Math.sin(a0)).toFixed(1)}`,
+      `A ${r.toFixed(1)},${r.toFixed(1)} 0 ${la},1 ${(cx+r*Math.cos(a1)).toFixed(1)},${(cy+r*Math.sin(a1)).toFixed(1)}`,
+      `L ${(cx+innerR*Math.cos(a1)).toFixed(1)},${(cy+innerR*Math.sin(a1)).toFixed(1)}`,
+      `A ${innerR},${innerR} 0 ${la},0 ${(cx+innerR*Math.cos(a0)).toFixed(1)},${(cy+innerR*Math.sin(a0)).toFixed(1)} Z`
+    ].join(' ');
+    const tip = `${c.name}: ${val.toFixed(1)}`;
+    // Outer glow ring for top chars
+    const halo = t > 0.85
+      ? `<path d="${d}" fill="${col}" fill-opacity="0.12" filter="url(#lb-rd2-glow)"/>`
+      : '';
+    return `${halo}<path d="${d}" fill="${col}" fill-opacity="${(0.45+t*0.5).toFixed(2)}" stroke="${col}" stroke-width="0.5" stroke-opacity="0.3"><title>${_esc(tip)}</title></path>`;
+  }).join('');
+
+  // Ring guides
+  let rings = '';
+  [0.33, 0.66, 1].forEach(t => {
+    const r = innerR + t*(outerR-innerR);
+    rings += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#0d0d18" stroke-width="${t===1?1.5:0.7}"/>`;
+  });
+
+  const sLbl = _LB_STAT_LABELS[stat] || stat;
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+    ${defs}
+    <rect width="${W}" height="${H}" fill="#050508"/>
+    ${rings}
+    ${arcs}
+    <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#080810" stroke="#141420" stroke-width="1.5"/>
+    <text x="${cx}" y="${cy+3}" text-anchor="middle" fill="#222232" font-size="7.5" letter-spacing="2">${_esc(sLbl)}</text>
+  </svg>`;
+}
+
+// ── Parallel coordinates ──────────────────────────────────────
+function _renderLbLines(wrap, chars) {
+  const STATS = ['hp','atk','def','mag','spd'];
+  const LBLS  = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
+  const W = 520, H = 340;
+  const pad = { l: 38, r: 38, t: 44, b: 44 };
+  const ph = H - pad.t - pad.b;
+
+  // Per-stat min/max
+  const minV = {}, maxV = {};
+  STATS.forEach(s => {
+    const vs = chars.map(c => getLeaderboardVal(c, s));
+    minV[s] = Math.min(...vs); maxV[s] = Math.max(...vs);
+  });
+  const axX = i => pad.l + (i/(STATS.length-1))*(W - pad.l - pad.r);
+  const toY = (s, v) => {
+    const range = maxV[s] - minV[s] || 1;
+    return pad.t + (1 - (v - minV[s]) / range) * ph;
+  };
+
+  // Lines (behind axes)
+  const lines = chars.map(c => {
+    const pts = STATS.map((s, i) => [axX(i), toY(s, getLeaderboardVal(c, s))]);
+    let d = `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    for (let i=1; i<pts.length; i++) d += ` L ${pts[i][0].toFixed(1)},${pts[i][1].toFixed(1)}`;
+    const col = c.color || '#888';
+    const tip = `${c.name}: ${STATS.map((s,i) => `${LBLS[i]} ${getLeaderboardVal(c,s).toFixed(0)}`).join('  ')}`;
+    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="1.4" stroke-opacity="0.5"><title>${_esc(tip)}</title></path>`;
+  }).join('');
+
+  // Dots on each axis per character
+  const dots = chars.map(c => STATS.map((s, i) => {
+    const col = c.color || '#888';
+    return `<circle cx="${axX(i).toFixed(1)}" cy="${toY(s, getLeaderboardVal(c,s)).toFixed(1)}" r="2" fill="${col}" fill-opacity="0.65"/>`;
+  }).join('')).join('');
+
+  // Axes (drawn on top)
+  let axes = '';
+  STATS.forEach((s, i) => {
+    const ax = axX(i);
+    axes += `<line x1="${ax}" y1="${pad.t}" x2="${ax}" y2="${pad.t+ph}" stroke="#252535" stroke-width="1.5"/>`;
+    // Max label
+    axes += `<text x="${ax}" y="${pad.t-14}" text-anchor="middle" fill="#303048" font-size="8" letter-spacing="2">${LBLS[i]}</text>`;
+    axes += `<text x="${ax}" y="${pad.t-4}" text-anchor="middle" fill="#1e1e2e" font-size="7">${maxV[s].toFixed(0)}</text>`;
+    axes += `<text x="${ax}" y="${pad.t+ph+13}" text-anchor="middle" fill="#1e1e2e" font-size="7">${minV[s].toFixed(0)}</text>`;
+    // Tick marks at 25/50/75%
+    [0.25, 0.5, 0.75].forEach(t => {
+      const ty = pad.t + t*ph;
+      axes += `<line x1="${ax-4}" y1="${ty}" x2="${ax+4}" y2="${ty}" stroke="#1c1c2c" stroke-width="1"/>`;
+    });
+  });
+
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
+    <rect width="${W}" height="${H}" fill="#050508"/>
+    ${lines}
+    ${dots}
+    ${axes}
+  </svg>`;
+}
+
+// ── [kept for potential future use] ──────────────────────────
+// Returns [r,g,b] array — 7-stop vivid scale
 function _lbHeatColor(t) {
   const stops = [
     [0,    [4,   4,  18]],
