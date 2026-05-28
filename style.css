@@ -5251,13 +5251,13 @@ input[type=number] { -moz-appearance: textfield; }
   90%            { filter: brightness(.05) drop-shadow(0 0 16px var(--hc-char-color, #ff4040)) drop-shadow(0 0 28px var(--hc-char-color, #ff0000)); opacity: .85; }
 }
 
-/* SOFT — barely-moving personal glow in the character's own color */
+/* SOFT — gentle breathe around the exact selection glow */
 .hc-aura-el.hc-aura-soft { background: none; }
 .hc-char-wrap[data-aura="soft"] .hc-char-sprite,
 .hc-char-wrap[data-aura="soft"] .hc-char-svg { animation: hc-glow-soft 4.0s ease-in-out infinite alternate; }
 @keyframes hc-glow-soft {
-  from { filter: drop-shadow(0 0 3px var(--hc-char-color, #aaa)); }
-  to   { filter: drop-shadow(0 0 9px var(--hc-char-color, #aaa)) drop-shadow(0 0 18px var(--hc-char-color, #aaa)); }
+  from { filter: brightness(1.3) drop-shadow(0 0 5px var(--hc-char-color, #aaa)); }
+  to   { filter: brightness(1.5) drop-shadow(0 0 10px var(--hc-char-color, #aaa)); }
 }
 
 /* ── Aura particles ── */
