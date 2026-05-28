@@ -4214,11 +4214,11 @@ function getEffectiveStats(c) {
     });
   });
 
-  const effHp = Math.max(1, Math.round((base.hp + adds.hp) * muls.hp));
-  const effAtk = Math.max(1, Math.round((base.atk + adds.atk) * muls.atk));
-  const effDef = Math.max(1, Math.round((base.def + adds.def) * muls.def));
-  const effMag = Math.max(1, Math.round((base.mag + adds.mag) * muls.mag));
-  const effSpd = Math.max(1, Math.round((base.spd + adds.spd) * muls.spd));
+  let effHp = Math.max(1, Math.round((base.hp + adds.hp) * muls.hp));
+  let effAtk = Math.max(1, Math.round((base.atk + adds.atk) * muls.atk));
+  let effDef = Math.max(1, Math.round((base.def + adds.def) * muls.def));
+  let effMag = Math.max(1, Math.round((base.mag + adds.mag) * muls.mag));
+  let effSpd = Math.max(1, Math.round((base.spd + adds.spd) * muls.spd));
 
   let rawCritRate = subBase.crit_rate + ((effAtk / 20) * 0.3);
   let cappedBaseCritRate = Math.min(rawCritRate, 80);
