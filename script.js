@@ -5790,7 +5790,7 @@ function renderTraitSituationals(c, key) {
       const parts = ['hp', 'atk', 'def', 'mag', 'spd'].map(s => `${s.toUpperCase()} x${(rolls[s] ?? 1).toFixed(2)}`).join(' &nbsp; ');
       rollDisplay = `<div style="font-size:7px;color:#aaa;letter-spacing:1px;margin-bottom:4px;">${parts}</div>`;
     }
-    return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollGlitch(event)" data-tooltip="Randomize all stats between x0.01–x${maxVal}${shimmy ? ' (one stat always rolls max)' : ''}. Simulates a round-start Glitch roll.">&#9889; REROLL STATS</button></div>`;
+    return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollGlitch(event)" data-tooltip="Randomize all stats between x0.01–x${maxVal}. Simulates a round-start Glitch roll.">&#9889; REROLL STATS</button></div>`;
   }
   // AT THOUSAND DOORS — custom ROLL ENCOUNTER button
   if (key === 'thousanddoors') {
@@ -5988,9 +5988,6 @@ function rollGlitch(ev) {
   const STATS = ['hp', 'atk', 'def', 'mag', 'spd'];
   const rolls = {};
   STATS.forEach(s => { rolls[s] = Math.round((0.01 + Math.random() * (maxVal - 0.01)) * 100) / 100; });
-  if (shimmy) {
-    rolls[STATS[Math.floor(Math.random() * STATS.length)]] = maxVal;
-  }
   c.glitchRolls = rolls;
   saveData(c);
   updateLiveStats(c);

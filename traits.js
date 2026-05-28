@@ -4359,7 +4359,7 @@ const SHIMMYFUL_MYTHIC_TRAITS = {
 
   warlord:          { name: 'SHIMMYFUL Warlord', desc: "Your stats are equal to 150% of the combined sum of all your allies' stats. Additionally, gain +10% all stats per living ally.", passive: [], notes: "Stats = 150% of combined ally stats. +10% all stats per living ally on top." },
 
-  glitch:           { name: 'SHIMMYFUL Glitch', desc: 'At the start of each round, all your stats multiply by a random value between x0.01 and x30. One random stat always rolls the maximum (x30).', passive: [], notes: 'Wider chaos range than base. One random stat is guaranteed to roll x30 each round.' },
+  glitch:           { name: 'SHIMMYFUL Glitch', desc: 'At the start of each round, all your stats multiply by a random value between x0.01 and x30.', passive: [], notes: 'Wider chaos range than base.' },
 
   the_long_game:    { name: 'SHIMMYFUL The Long Game', desc: 'You gain nothing during fights. After each fight you win, permanently gain +12% all stats. Also gain +12% all stats for each fight survived (win or lose).', passive: [], cultivation: { label: 'Fights Won (+12% all stats each)', perStack: [{ stat: 'all_main', op: 'pct', value: 12 }], defaultStacks: 0, maxStacks: 999 }, notes: 'No in-fight bonuses. +12% all stats per win. +12% all stats per any fight survived (track separately).' },
 
