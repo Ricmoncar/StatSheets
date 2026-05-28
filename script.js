@@ -8082,6 +8082,10 @@ function _renderLbRadar(wrap, chars) {
 
 // ── Horizontal bars ───────────────────────────────────────────
 function _renderLbBars(wrap, chars) {
+  // Save scroll position so re-renders don't jump to top
+  const prevScroll = wrap.querySelector('.lb-bars-scroll');
+  const savedTop   = prevScroll ? prevScroll.scrollTop : 0;
+
   const stat   = _leaderboardStat;
   const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,stat) - getLeaderboardVal(a,stat));
   const maxVal = Math.max(...sorted.map(c => getLeaderboardVal(c, stat)), 1);
@@ -8123,7 +8127,14 @@ function _renderLbBars(wrap, chars) {
     <text x="${W/2}" y="${pad.t-1}" text-anchor="middle" fill="#1c1c2c" font-size="7" letter-spacing="2">${_esc(sLbl)}</text>
     ${rows}
   </svg>`;
-  wrap.innerHTML = `<div style="max-height:440px;overflow-y:auto;overflow-x:hidden;">${svg}</div>`;
+  wrap.innerHTML = `<div class="lb-bars-scroll" style="max-height:440px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;">${svg}</div>`;
+  // Restore scroll + stop events from bubbling out and triggering re-renders
+  const sd = wrap.querySelector('.lb-bars-scroll');
+  if (sd) {
+    if (savedTop) sd.scrollTop = savedTop;
+    sd.addEventListener('scroll', e => e.stopPropagation(), { passive: true });
+    sd.addEventListener('wheel',  e => e.stopPropagation(), { passive: true });
+  }
 }
 
 // ── Radial / Sunburst ─────────────────────────────────────────
