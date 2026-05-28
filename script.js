@@ -7980,47 +7980,81 @@ function _renderLbList(wrap, chars) {
 }
 
 // ── Heatmap ───────────────────────────────────────────────────
+// Returns [r,g,b] array — 7-stop vivid scale: near-black → indigo → electric blue → teal → lime → amber → hot red
 function _lbHeatColor(t) {
-  const stops = [[0,[8,8,24]],[0.28,[10,48,110]],[0.55,[0,128,108]],[0.8,[210,120,0]],[1,[228,48,18]]];
+  const stops = [
+    [0,    [4,   4,  18]],
+    [0.14, [20,  8,  95]],
+    [0.3,  [0,  55, 210]],
+    [0.48, [0,  178, 158]],
+    [0.65, [25, 200,  30]],
+    [0.82, [228,148,   0]],
+    [1,    [238, 36,  10]]
+  ];
   let i = 0;
   while (i < stops.length - 2 && t > stops[i+1][0]) i++;
   const [t0,c0] = stops[i], [t1,c1] = stops[i+1];
-  const f = (t - t0) / (t1 - t0);
-  const ch = j => Math.round(c0[1][j] + f * (c1[1][j] - c0[1][j]));
-  return `rgb(${ch(0)},${ch(1)},${ch(2)})`;
+  const f = Math.max(0, Math.min(1, (t - t0) / (t1 - t0)));
+  return [
+    Math.round(c0[1][0] + f*(c1[1][0]-c0[1][0])),
+    Math.round(c0[1][1] + f*(c1[1][1]-c0[1][1])),
+    Math.round(c0[1][2] + f*(c1[1][2]-c0[1][2]))
+  ];
 }
 
 function _renderLbHeatmap(wrap, chars) {
-  const stats = [...AVG_STATS, 'avg'];
-  const labels = [...AVG_STATS.map(s => _LB_STAT_LABELS[s]), 'AVG'];
+  const stats  = [...AVG_STATS, 'avg'];
+  const labels = [...AVG_STATS.map(s => _LB_STAT_LABELS[s]||s), 'AVG'];
   const ranges = {};
   stats.forEach(s => {
     const vs = chars.map(c => getLeaderboardVal(c, s));
     ranges[s] = { min: Math.min(...vs), max: Math.max(...vs) };
   });
   const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,'avg') - getLeaderboardVal(a,'avg'));
+  const MEDALS = ['🥇','🥈','🥉'];
+  const ncols = stats.length;
+
   const header = `<div class="lb-hm-row lb-hm-header">
     <div class="lb-hm-char-col"></div>
     ${labels.map(l => `<div class="lb-hm-stat-hd">${l}</div>`).join('')}
   </div>`;
-  const rows = sorted.map(c => {
+
+  const rows = sorted.map((c, ri) => {
     const dot = c.avatar
       ? `<img src="${c.avatar}" class="lb-hm-avatar" style="border-color:${c.color}">`
       : `<span class="lb-hm-dot" style="background:${c.color}"></span>`;
-    const cells = stats.map(s => {
+    const badge = ri < 3
+      ? `<span class="lb-hm-medal">${MEDALS[ri]}</span>`
+      : `<span class="lb-hm-rank">#${ri+1}</span>`;
+    const cells = stats.map((s, ci) => {
       const val = getLeaderboardVal(c, s);
-      const r = ranges[s];
-      const t = r.max === r.min ? 0.5 : (val - r.min) / (r.max - r.min);
-      const bg = _lbHeatColor(t);
-      const textCol = t > 0.52 ? '#fff' : '#666';
-      return `<div class="lb-hm-cell" style="background:${bg};color:${textCol}" title="${_LB_STAT_LABELS[s]}: ${val.toFixed(1)}">${val.toFixed(0)}</div>`;
+      const rg  = ranges[s];
+      const t   = rg.max === rg.min ? 0.5 : (val - rg.min) / (rg.max - rg.min);
+      const [cr,cg,cb] = _lbHeatColor(t);
+      const bg   = `rgb(${cr},${cg},${cb})`;
+      const glow = `inset 0 0 18px rgba(${cr},${cg},${cb},0.4), 0 0 6px rgba(${cr},${cg},${cb},0.25)`;
+      const tc   = t > 0.4 ? `rgba(255,255,255,${0.65+t*0.35})` : `rgba(140,140,165,0.7)`;
+      const delay = (ri * ncols + ci) * 15;
+      return `<div class="lb-hm-cell" style="background:${bg};color:${tc};box-shadow:${glow};animation-delay:${delay}ms" title="${_LB_STAT_LABELS[s]||s}: ${val.toFixed(1)}">${val.toFixed(0)}</div>`;
     }).join('');
-    return `<div class="lb-hm-row">
-      <div class="lb-hm-char-col">${dot}<span class="lb-hm-name" style="color:${c.color}">${_esc((c.name||'?').substring(0,10))}</span></div>
+    return `<div class="lb-hm-row" style="border-left:2.5px solid ${c.color||'#222'}">
+      <div class="lb-hm-char-col">${badge}${dot}<span class="lb-hm-name" style="color:${c.color||'#888'}">${_esc((c.name||'?').substring(0,10))}</span></div>
       ${cells}
     </div>`;
   }).join('');
-  wrap.innerHTML = `<div class="lb-heatmap">${header}${rows}</div>`;
+
+  // Gradient legend bar
+  const gradStops = Array.from({length:7}, (_,i) => {
+    const t = i/6; const [r,g,b] = _lbHeatColor(t);
+    return `rgb(${r},${g},${b}) ${(t*100).toFixed(0)}%`;
+  }).join(',');
+  const legend = `<div class="lb-hm-legend">
+    <span class="lb-hm-legend-lbl">LOW</span>
+    <div class="lb-hm-legend-bar" style="background:linear-gradient(to right,${gradStops})"></div>
+    <span class="lb-hm-legend-lbl">HIGH</span>
+  </div>`;
+
+  wrap.innerHTML = `<div class="lb-heatmap">${header}${rows}${legend}</div>`;
 }
 
 // ── Scatter / Bubble ──────────────────────────────────────────
@@ -8028,9 +8062,10 @@ function _renderLbScatterBubble(wrap, chars, isBubble) {
   const xStat = document.getElementById('lb-x-sel')?.value || 'atk';
   const yStat = document.getElementById('lb-y-sel')?.value || 'def';
   const zStat = isBubble ? (document.getElementById('lb-z-sel')?.value || 'hp') : null;
-  const W = 500, H = 320;
-  const pad = { l: 52, r: 20, t: 18, b: 42 };
+  const W = 520, H = 350;
+  const pad = { l: 56, r: 28, t: 34, b: 54 };
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+
   const data = chars.map(c => ({
     c,
     x: getLeaderboardVal(c, xStat),
@@ -8041,35 +8076,78 @@ function _renderLbScatterBubble(wrap, chars, isBubble) {
   const xMin=Math.min(...xs), xMax=Math.max(...xs);
   const yMin=Math.min(...ys), yMax=Math.max(...ys);
   const zMin=Math.min(...zs), zMax=Math.max(...zs);
-  const toX = x => pad.l + (xMax===xMin ? 0.5 : (x-xMin)/(xMax-xMin)) * pw;
-  const toY = y => pad.t + (yMax===yMin ? 0.5 : 1-(y-yMin)/(yMax-yMin)) * ph;
-  const toR = z => isBubble ? 5 + (zMax===zMin ? 0 : (z-zMin)/(zMax-zMin)) * 14 : 5;
-  // Grid
+  // Edge padding so dots don't clip
+  const xPd = (xMax-xMin)*0.1||8, yPd = (yMax-yMin)*0.1||8;
+  const x0=xMin-xPd, x1=xMax+xPd, y0=yMin-yPd, y1=yMax+yPd;
+  const toX = v => pad.l + ((v-x0)/(x1-x0))*pw;
+  const toY = v => pad.t + (1-(v-y0)/(y1-y0))*ph;
+  const toR = z => isBubble ? 9+(zMax===zMin?0:(z-zMin)/(zMax-zMin))*22 : 7;
+
+  // Median divider positions
+  const medX = [...xs].sort((a,b)=>a-b)[Math.floor(xs.length/2)];
+  const medY = [...ys].sort((a,b)=>a-b)[Math.floor(ys.length/2)];
+  const qx = toX(medX), qy = toY(medY);
+
+  // Subtle grid lines
   let grid = '';
-  for (let i=0; i<=5; i++) {
-    const gx = pad.l + (i/5)*pw, gy = pad.t + (i/5)*ph;
-    grid += `<line x1="${gx}" y1="${pad.t}" x2="${gx}" y2="${pad.t+ph}" stroke="#181818" stroke-width="1"/>`;
-    grid += `<line x1="${pad.l}" y1="${gy}" x2="${pad.l+pw}" y2="${gy}" stroke="#181818" stroke-width="1"/>`;
-    const xv = xMin + (i/5)*(xMax-xMin), yv = yMax - (i/5)*(yMax-yMin);
-    grid += `<text x="${gx}" y="${pad.t+ph+13}" text-anchor="middle" fill="#333" font-size="7">${xv.toFixed(0)}</text>`;
-    if (i>0 && i<5) grid += `<text x="${pad.l-4}" y="${gy+3}" text-anchor="end" fill="#333" font-size="7">${yv.toFixed(0)}</text>`;
+  const NT = 5;
+  for (let i=0; i<=NT; i++) {
+    const t = i/NT;
+    const gx = pad.l + t*pw, gy = pad.t + t*ph;
+    const xv = x0+t*(x1-x0), yv = y1-t*(y1-y0);
+    grid += `<line x1="${gx}" y1="${pad.t}" x2="${gx}" y2="${pad.t+ph}" stroke="#0d0d14" stroke-width="1"/>`;
+    grid += `<line x1="${pad.l}" y1="${gy}" x2="${pad.l+pw}" y2="${gy}" stroke="#0d0d14" stroke-width="1"/>`;
+    grid += `<text x="${gx}" y="${pad.t+ph+17}" text-anchor="middle" fill="#2d2d42" font-size="8">${xv.toFixed(0)}</text>`;
+    grid += `<text x="${pad.l-7}" y="${gy+3}" text-anchor="end" fill="#2d2d42" font-size="8">${yv.toFixed(0)}</text>`;
   }
-  // Dots + labels
+
+  // SVG filters
+  const defs = `<defs>
+    <filter id="lb-sc-glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="lb-sc-halo" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur"/>
+      <feMergeNode in="blur"/>
+    </filter>
+  </defs>`;
+
+  // Quadrant label helper
+  const xLbl = _LB_STAT_LABELS[xStat]||xStat, yLbl = _LB_STAT_LABELS[yStat]||yStat;
+  const qLabels = `
+    <text x="${pad.l+4}" y="${pad.t+11}" fill="#1c1c2c" font-size="6.5" letter-spacing="0.5">↙ LOW ${xLbl} · HIGH ${yLbl}</text>
+    <text x="${pad.l+pw-4}" y="${pad.t+11}" text-anchor="end" fill="#1c1c2c" font-size="6.5" letter-spacing="0.5">HIGH ${xLbl} · HIGH ${yLbl} ↘</text>
+    <text x="${pad.l+4}" y="${pad.t+ph-5}" fill="#1c1c2c" font-size="6.5" letter-spacing="0.5">↖ LOW ${xLbl} · LOW ${yLbl}</text>
+    <text x="${pad.l+pw-4}" y="${pad.t+ph-5}" text-anchor="end" fill="#1c1c2c" font-size="6.5" letter-spacing="0.5">HIGH ${xLbl} · LOW ${yLbl} ↗</text>`;
+
+  // Dots
   const dots = data.map(({c,x,y,z}) => {
     const cx=toX(x), cy=toY(y), r=toR(z), col=c.color||'#888';
-    const tip = `${c.name}: ${_LB_STAT_LABELS[xStat]}=${x.toFixed(1)} / ${_LB_STAT_LABELS[yStat]}=${y.toFixed(1)}${isBubble?` / ${_LB_STAT_LABELS[zStat]}=${z.toFixed(1)}`:''}`;
-    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}" fill-opacity="0.8" stroke="${col}" stroke-width="1.5" stroke-opacity="0.4"><title>${_esc(tip)}</title></circle>
-    <text x="${cx}" y="${cy-r-3}" text-anchor="middle" fill="${col}" font-size="6" opacity="0.9">${_esc((c.name||'?').substring(0,8))}</text>`;
+    const tip = `${_esc(c.name)}: ${_LB_STAT_LABELS[xStat]}=${x.toFixed(1)} / ${_LB_STAT_LABELS[yStat]}=${y.toFixed(1)}${isBubble?` / ${_LB_STAT_LABELS[zStat]}=${z.toFixed(1)}`:''}`;
+    const lbl = `<text x="${cx}" y="${cy-r-5}" text-anchor="middle" fill="${col}" font-size="7.5" opacity="0.88">${_esc((c.name||'').substring(0,8))}</text>`;
+    if (isBubble) {
+      return `<circle cx="${cx}" cy="${cy}" r="${r+6}" fill="${col}" fill-opacity="0.06" filter="url(#lb-sc-halo)"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="1.5" stroke-opacity="0.65" filter="url(#lb-sc-glow)"><title>${tip}</title></circle>
+      ${lbl}`;
+    }
+    return `<circle cx="${cx}" cy="${cy}" r="${r+3}" fill="${col}" fill-opacity="0.12" filter="url(#lb-sc-halo)"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}" fill-opacity="0.92" filter="url(#lb-sc-glow)"><title>${tip}</title></circle>
+    ${lbl}`;
   }).join('');
-  const xLbl = _LB_STAT_LABELS[xStat]||xStat, yLbl = _LB_STAT_LABELS[yStat]||yStat;
-  const zNote = isBubble ? `<text x="${W-8}" y="12" text-anchor="end" fill="#333" font-size="7">BUBBLE SIZE = ${_LB_STAT_LABELS[zStat]||zStat}</text>` : '';
+
+  const zNote = isBubble ? `<text x="${W-16}" y="18" text-anchor="end" fill="#282838" font-size="7.5" letter-spacing="1.5">⬤ SIZE = ${_LB_STAT_LABELS[zStat]||zStat}</text>` : '';
+
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
-    <rect width="${W}" height="${H}" fill="#070707"/>
+    ${defs}
+    <rect width="${W}" height="${H}" fill="#050508"/>
     ${grid}
-    <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${pad.t+ph}" stroke="#2a2a2a" stroke-width="1"/>
-    <line x1="${pad.l}" y1="${pad.t+ph}" x2="${pad.l+pw}" y2="${pad.t+ph}" stroke="#2a2a2a" stroke-width="1"/>
-    <text x="${pad.l+pw/2}" y="${H-3}" text-anchor="middle" fill="#555" font-size="8" letter-spacing="2">${xLbl}</text>
-    <text x="10" y="${pad.t+ph/2}" text-anchor="middle" fill="#555" font-size="8" letter-spacing="2" transform="rotate(-90,10,${pad.t+ph/2})">${yLbl}</text>
+    <line x1="${qx}" y1="${pad.t}" x2="${qx}" y2="${pad.t+ph}" stroke="#222232" stroke-width="1.5" stroke-dasharray="5,4"/>
+    <line x1="${pad.l}" y1="${qy}" x2="${pad.l+pw}" y2="${qy}" stroke="#222232" stroke-width="1.5" stroke-dasharray="5,4"/>
+    <rect x="${pad.l}" y="${pad.t}" width="${pw}" height="${ph}" fill="none" stroke="#18182a" stroke-width="1"/>
+    ${qLabels}
+    <text x="${pad.l+pw/2}" y="${H-7}" text-anchor="middle" fill="#404058" font-size="9" letter-spacing="2.5">${xLbl}</text>
+    <text x="11" y="${pad.t+ph/2}" text-anchor="middle" fill="#404058" font-size="9" letter-spacing="2.5" transform="rotate(-90,11,${pad.t+ph/2})">${yLbl}</text>
     ${zNote}
     ${dots}
   </svg>`;
@@ -8078,9 +8156,10 @@ function _renderLbScatterBubble(wrap, chars, isBubble) {
 // ── Distribution curve ────────────────────────────────────────
 function _renderLbDistribution(wrap, chars) {
   const stat = _leaderboardStat;
-  const W = 500, H = 280;
-  const pad = { l: 42, r: 20, t: 24, b: 58 };
+  const W = 520, H = 308;
+  const pad = { l: 46, r: 24, t: 28, b: 66 };
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+
   const data = chars.map(c => ({ c, v: getLeaderboardVal(c, stat) }));
   const vs = data.map(d=>d.v);
   const vMin=Math.min(...vs), vMax=Math.max(...vs), vRange=vMax-vMin||1;
@@ -8092,50 +8171,100 @@ function _renderLbDistribution(wrap, chars) {
   });
   const maxCount = Math.max(...bins.map(b=>b.length), 1);
   const bw = pw / N;
-  const toBarH = n => (n/maxCount)*ph;
-  const toVX = v => pad.l + ((v-vMin)/vRange)*pw;
-  // Bars
+  const toH  = n  => (n/maxCount)*ph;
+  const toVX = v  => pad.l + ((v-vMin)/vRange)*pw;
+
+  // Per-bar gradient defs
+  let defs = '<defs>\n';
   let bars = '';
   bins.forEach((bin, i) => {
-    const x = pad.l + i*bw + 1, h = toBarH(bin.length), y = pad.t+ph-h;
-    const t = bin.length/maxCount;
-    const r=Math.round(0+t*0), g=Math.round(140+t*90), b2=Math.round(180-t*80);
-    bars += `<rect x="${x}" y="${y}" width="${bw-2}" height="${h}" fill="rgba(${r},${g},${b2},${0.15+t*0.35})" stroke="rgba(${r},${g},${b2},0.5)" stroke-width="0.8"/>`;
-    if (bin.length>0) bars += `<text x="${x+bw/2-1}" y="${y-5}" text-anchor="middle" fill="#555" font-size="7">${bin.length}</text>`;
-    const tickV = vMin + i*(vRange/N);
-    bars += `<text x="${x+bw/2-1}" y="${pad.t+ph+13}" text-anchor="middle" fill="#333" font-size="6">${tickV.toFixed(0)}</text>`;
-  });
-  // Smooth curve through bin tops
-  const pts = bins.map((bin,i) => [pad.l + i*bw + bw/2, pad.t+ph - toBarH(bin.length)]);
-  let curve = '';
-  if (pts.length>1) {
-    let d = `M ${pts[0][0]} ${pts[0][1]}`;
-    for (let i=1; i<pts.length; i++) {
-      const cx=(pts[i-1][0]+pts[i][0])/2;
-      d += ` C ${cx} ${pts[i-1][1]},${cx} ${pts[i][1]},${pts[i][0]} ${pts[i][1]}`;
+    const t  = bin.length/maxCount;
+    const bx = pad.l + i*bw + bw/2;
+    const x  = pad.l + i*bw + 1.5;
+    const h  = toH(bin.length), y = pad.t+ph-h;
+    const g  = Math.round(170 + t*80), b2 = Math.round(155 + t*90);
+    const topCol = `rgb(0,${g},${b2})`;
+    defs += `<linearGradient id="lb-bg${i}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${topCol}" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="${topCol}" stop-opacity="0.08"/>
+    </linearGradient>\n`;
+    if (h > 0) {
+      bars += `<rect x="${x}" y="${y}" width="${bw-3}" height="${h}" fill="url(#lb-bg${i})" rx="2"/>`;
+      // Bright cap line at top
+      bars += `<line x1="${x}" y1="${y}" x2="${x+bw-3}" y2="${y}" stroke="${topCol}" stroke-width="2" stroke-opacity="0.95" stroke-linecap="round"/>`;
+      bars += `<text x="${bx}" y="${y-6}" text-anchor="middle" fill="${topCol}" font-size="8" opacity="0.7">${bin.length}</text>`;
     }
-    curve = `<path d="${d}" fill="none" stroke="rgba(0,200,200,0.55)" stroke-width="2" stroke-linecap="round"/>`;
-    // Dots on the curve
-    curve += pts.map(([px,py]) => `<circle cx="${px}" cy="${py}" r="2.5" fill="rgba(0,220,220,0.6)"/>`).join('');
+    const tickV = vMin + i*(vRange/N);
+    bars += `<text x="${bx}" y="${pad.t+ph+15}" text-anchor="middle" fill="#2c2c42" font-size="7.5">${tickV.toFixed(0)}</text>`;
+  });
+
+  // Horizontal guide lines
+  let guides = '';
+  for (let gi=1; gi<=Math.min(maxCount,5); gi++) {
+    const gy = pad.t + ph - (gi/maxCount)*ph;
+    guides += `<line x1="${pad.l}" y1="${gy}" x2="${pad.l+pw}" y2="${gy}" stroke="#0e0e18" stroke-width="0.8"/>`;
+    guides += `<text x="${pad.l-5}" y="${gy+3}" text-anchor="end" fill="#252535" font-size="7">${gi}</text>`;
   }
-  // Character dots at base line (their actual value position)
-  const dotLineY = pad.t + ph + 30;
+
+  // Catmull-Rom → cubic bezier smooth curve
+  const pts = bins.map((bin,i) => [pad.l + i*bw + bw/2, pad.t+ph - toH(bin.length)]);
+  let curvePath = '';
+  if (pts.length > 1) {
+    const ext = [[pts[0][0]*2-pts[1][0], pts[0][1]], ...pts, [pts[pts.length-1][0]*2-pts[pts.length-2][0], pts[pts.length-1][1]]];
+    let pd = `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    let ad = `M ${pts[0][0].toFixed(1)},${(pad.t+ph).toFixed(1)} L ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    for (let i=0; i<pts.length-1; i++) {
+      const [p0,p1,p2,p3] = [ext[i],ext[i+1],ext[i+2],ext[i+3]];
+      const cp1x = p1[0]+(p2[0]-p0[0])/6, cp1y = p1[1]+(p2[1]-p0[1])/6;
+      const cp2x = p2[0]-(p3[0]-p1[0])/6, cp2y = p2[1]-(p3[1]-p1[1])/6;
+      const seg = ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+      pd += seg; ad += seg;
+    }
+    ad += ` L ${pts[pts.length-1][0].toFixed(1)},${(pad.t+ph).toFixed(1)} Z`;
+
+    defs += `<linearGradient id="lb-cfill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(0,210,195,0.22)"/>
+      <stop offset="100%" stop-color="rgba(0,210,195,0)"/>
+    </linearGradient>
+    <filter id="lb-cglow" x="-25%" y="-100%" width="150%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="lb-ddot" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>`;
+
+    curvePath = `<path d="${ad}" fill="url(#lb-cfill)"/>
+    <path d="${pd}" fill="none" stroke="rgba(0,205,188,0.8)" stroke-width="2.5" stroke-linecap="round" filter="url(#lb-cglow)"/>`;
+    curvePath += pts.map(([px,py]) =>
+      `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3.5" fill="rgba(0,225,205,0.9)" filter="url(#lb-cglow)"/>`
+    ).join('');
+  }
+  defs += '</defs>';
+
+  // Character dot timeline at bottom
+  const dotLineY = pad.t + ph + 44;
   const charDots = data.map(({c,v}) => {
     const cx = toVX(v);
-    return `<circle cx="${cx}" cy="${dotLineY}" r="4" fill="${c.color||'#888'}" fill-opacity="0.85"><title>${_esc(c.name)}: ${v.toFixed(1)}</title></circle>`;
+    return `<circle cx="${cx.toFixed(1)}" cy="${dotLineY}" r="4.5" fill="${c.color||'#888'}" fill-opacity="0.9" filter="url(#lb-ddot)"><title>${_esc(c.name)}: ${v.toFixed(1)}</title></circle>`;
   }).join('');
+
   const sLbl = _LB_STAT_LABELS[stat]||stat;
+
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
-    <rect width="${W}" height="${H}" fill="#070707"/>
-    <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${pad.t+ph}" stroke="#222" stroke-width="1"/>
-    <line x1="${pad.l}" y1="${pad.t+ph}" x2="${pad.l+pw}" y2="${pad.t+ph}" stroke="#222" stroke-width="1"/>
+    ${defs}
+    <rect width="${W}" height="${H}" fill="#050508"/>
+    ${guides}
     ${bars}
-    ${curve}
-    <line x1="${pad.l}" y1="${dotLineY}" x2="${pad.l+pw}" y2="${dotLineY}" stroke="#1a1a1a" stroke-width="1" stroke-dasharray="3,3"/>
+    ${curvePath}
+    <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${pad.t+ph}" stroke="#18182a" stroke-width="1"/>
+    <line x1="${pad.l}" y1="${pad.t+ph}" x2="${pad.l+pw}" y2="${pad.t+ph}" stroke="#18182a" stroke-width="1"/>
+    <line x1="${pad.l}" y1="${dotLineY}" x2="${pad.l+pw}" y2="${dotLineY}" stroke="#12121e" stroke-width="1"/>
     ${charDots}
-    <text x="${pad.l+pw/2}" y="${H-2}" text-anchor="middle" fill="#555" font-size="8" letter-spacing="2">${sLbl}</text>
-    <text x="8" y="${pad.t+ph/2}" text-anchor="middle" fill="#444" font-size="7" transform="rotate(-90,8,${pad.t+ph/2})">COUNT</text>
-    <text x="${pad.l-4}" y="${pad.t+4}" text-anchor="end" fill="#333" font-size="7">${maxCount}</text>
+    <text x="${pad.l+pw/2}" y="${H-4}" text-anchor="middle" fill="#404058" font-size="9" letter-spacing="2.5">${_esc(sLbl)}</text>
+    <text x="10" y="${pad.t+ph/2}" text-anchor="middle" fill="#353550" font-size="8" transform="rotate(-90,10,${pad.t+ph/2})">COUNT</text>
+    <text x="${pad.l-5}" y="${pad.t+5}" text-anchor="end" fill="#252535" font-size="7.5">${maxCount}</text>
   </svg>`;
 }
 
