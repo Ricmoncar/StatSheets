@@ -7935,7 +7935,7 @@ const HC_SILHOUETTE = `<svg viewBox="0 0 24 60" xmlns="http://www.w3.org/2000/sv
 
 let _hcCanvasW = 0; // actual rendered canvas width, set by renderHeightChart
 
-// Global pan listeners (attached once)
+// Global pan/drag-reorder listeners (attached once)
 document.addEventListener('mousemove', function (e) {
   if (_hcPanDrag) {
     const dx = e.clientX - _hcPanDrag.startX;
@@ -7944,12 +7944,76 @@ document.addEventListener('mousemove', function (e) {
     const canvas = document.getElementById('hc-canvas');
     if (canvas) canvas.style.transform = `translateX(${-_hcPanX}px)`;
   }
+  if (_hcDrag) {
+    // Activate drag after 6px of movement
+    if (!_hcDrag.active && Math.abs(e.clientX - _hcDrag.startX) > 6) {
+      _hcDrag.active = true;
+      _hcDragged = true;
+      const dragWrap = document.querySelector(`.hc-char-wrap[data-id="${_hcDrag.id}"]`);
+      if (dragWrap) dragWrap.classList.add('hc-dragging');
+    }
+    if (_hcDrag.active) {
+      const stage = document.getElementById('hc-stage');
+      const ruler = document.getElementById('hc-ruler');
+      if (!stage) return;
+      const stageRect = stage.getBoundingClientRect();
+      const rulerW = ruler ? ruler.offsetWidth : 48;
+      const cursorX = (e.clientX - stageRect.left - rulerW) + _hcPanX;
+      const n = _hcData.entries.length;
+      const cw = _hcCanvasW || stage.clientWidth;
+      const positions = _hcData.entries.map((_, i) => n > 1 ? ((i + 1) / (n + 1)) * cw : cw / 2);
+      // Determine insert index: how many positions is cursor to the right of
+      let insertIdx = 0;
+      for (let i = 0; i < positions.length; i++) {
+        if (cursorX > positions[i]) insertIdx = i + 1;
+      }
+      _hcDrag.insertIdx = insertIdx;
+      // Show drop indicator between slots
+      let ind = document.getElementById('hc-drop-indicator');
+      const canvas = document.getElementById('hc-canvas');
+      if (!ind && canvas) {
+        ind = document.createElement('div');
+        ind.id = 'hc-drop-indicator';
+        canvas.appendChild(ind);
+      }
+      if (ind) {
+        let xPx;
+        if (positions.length === 0) { xPx = cw / 2; }
+        else if (insertIdx === 0) { xPx = positions[0] * 0.5; }
+        else if (insertIdx >= positions.length) { xPx = (positions[positions.length - 1] + cw) * 0.5; }
+        else { xPx = (positions[insertIdx - 1] + positions[insertIdx]) * 0.5; }
+        ind.style.left = xPx + 'px';
+        ind.style.display = 'block';
+      }
+    }
+  }
 });
 document.addEventListener('mouseup', function () {
   if (_hcPanDrag) {
     _hcPanDrag = null;
     const s = document.getElementById('hc-stage');
     if (s) s.classList.remove('panning');
+  }
+  if (_hcDrag) {
+    if (_hcDrag.active) {
+      // Clean up drag visuals
+      document.querySelectorAll('.hc-char-wrap.hc-dragging').forEach(w => w.classList.remove('hc-dragging'));
+      const ind = document.getElementById('hc-drop-indicator');
+      if (ind) ind.style.display = 'none';
+      // Reorder if dropped in a new position
+      const entries = _hcData.entries;
+      const fromIdx = entries.findIndex(e => e.id === _hcDrag.id);
+      const toIdx = _hcDrag.insertIdx;
+      if (fromIdx >= 0 && toIdx !== null && toIdx !== fromIdx && toIdx !== fromIdx + 1) {
+        const [moved] = entries.splice(fromIdx, 1);
+        const adjusted = toIdx > fromIdx ? toIdx - 1 : toIdx;
+        entries.splice(adjusted, 0, moved);
+        _hcPanToIdx(adjusted);
+        _hcDebounceSave();
+      }
+      renderHeightChart();
+    }
+    _hcDrag = null;
   }
 });
 
@@ -7970,7 +8034,14 @@ function _hcSetupListeners() {
   }, { passive: false });
 
   stage.addEventListener('mousedown', function (e) {
-    if (_hcDrag) return;
+    if (_hcDrag) {
+      // Cancel any stale drag (e.g. mouse released outside window)
+      document.querySelectorAll('.hc-char-wrap.hc-dragging').forEach(w => w.classList.remove('hc-dragging'));
+      const ind = document.getElementById('hc-drop-indicator');
+      if (ind) ind.style.display = 'none';
+      _hcDrag = null;
+      return;
+    }
     _hcPanDrag = { startX: e.clientX, startPanX: _hcPanX, stageW: stage.clientWidth };
     stage.classList.add('panning');
     e.preventDefault();
@@ -8114,8 +8185,12 @@ function renderHeightChart() {
     wrap.dataset.id = entry.id;
     wrap.style.setProperty('--hc-char-color', entry.color || '#555');
 
-    wrap.addEventListener('mousedown', e => e.stopPropagation()); // prevent pan
-    wrap.addEventListener('click', () => hcSelectEntry(entry.id));
+    wrap.addEventListener('mousedown', e => {
+      e.stopPropagation(); // prevent pan on stage
+      _hcDrag = { id: entry.id, startIdx: idx, startX: e.clientX, active: false, insertIdx: null };
+      _hcDragged = false;
+    });
+    wrap.addEventListener('click', () => { if (!_hcDragged) hcSelectEntry(entry.id); });
 
     const anchor = document.createElement('div');
     anchor.className = 'hc-anchor';
@@ -8128,7 +8203,7 @@ function renderHeightChart() {
     anchor.appendChild(nameTag);
 
     // Aura atmospheric layer (behind sprite)
-    const _HC_AURA_DUR = { blaze:1.4, shadow:2.8, void:2.2, ghost:3.4, crimson:2.2, haze:6.0, static:0.18, neon:1.5, reaper:4.0 };
+    const _HC_AURA_DUR = { blaze:1.4, shadow:2.8, void:2.2, ghost:3.4, crimson:2.2, haze:6.0, static:0.18, neon:1.5, reaper:4.0, soft:4.0 };
     const _auraDel = entry.aura ? `-${(_hcHash(entry.id, 97) * (_HC_AURA_DUR[entry.aura] || 2.0)).toFixed(2)}s` : '0s';
     if (entry.aura) {
       wrap.dataset.aura = entry.aura;
@@ -8225,8 +8300,8 @@ function _hcHash(str, n) {
   return ((h >>> 0) % 10000) / 10000;
 }
 
-const HC_AURAS = [null, 'blaze', 'shadow', 'void', 'ghost', 'crimson', 'haze', 'static', 'neon', 'reaper'];
-// dot color shown on the AURA button when an aura is active
+const HC_AURAS = [null, 'soft', 'blaze', 'shadow', 'void', 'ghost', 'crimson', 'haze', 'static', 'neon', 'reaper'];
+// dot color shown on the AURA button when an aura is active (soft uses entry.color dynamically)
 const HC_AURA_DOT = { blaze:'#ff6020', shadow:'#9030d0', void:'#5010a0', ghost:'#b0d0ff', crimson:'#cc0015', haze:'#ff80ff', static:'#aaa', neon:'#f0f0f0', reaper:'#220000' };
 
 function hcCycleAura() {
@@ -8242,7 +8317,10 @@ function hcCycleAura() {
 function _hcSyncAuraBtn(entry) {
   const btn = document.getElementById('hc-aura-cycle-btn');
   if (!btn) return;
-  const dot = entry.aura ? HC_AURA_DOT[entry.aura] : null;
+  // 'soft' uses the character's own color for the dot
+  const dot = entry.aura
+    ? (entry.aura === 'soft' ? (entry.color || '#aaaaaa') : (HC_AURA_DOT[entry.aura] || null))
+    : null;
   btn.innerHTML = dot
     ? `AURA <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${dot};vertical-align:middle;margin-left:3px;box-shadow:0 0 4px ${dot};"></span>`
     : 'AURA';
@@ -8278,8 +8356,21 @@ function hcMoveEntry(id, dir) {
   const tmp = _hcData.entries[idx];
   _hcData.entries[idx] = _hcData.entries[newIdx];
   _hcData.entries[newIdx] = tmp;
+  _hcPanToIdx(newIdx); // camera follows
   _hcDebounceSave();
   renderHeightChart();
+}
+
+// Pan the canvas so the character at `idx` is centred in the stage viewport
+function _hcPanToIdx(idx) {
+  const stage = document.getElementById('hc-stage');
+  if (!stage) return;
+  const n = _hcData.entries.length;
+  const cw = _hcCanvasW || stage.clientWidth;
+  const stageW = stage.clientWidth;
+  const xPx = n > 1 ? ((idx + 1) / (n + 1)) * cw : cw / 2;
+  const maxPan = Math.max(0, cw - stageW);
+  _hcPanX = Math.max(0, Math.min(maxPan, xPx - stageW / 2));
 }
 
 function hcSortByHeight() {

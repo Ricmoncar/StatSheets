@@ -5251,6 +5251,15 @@ input[type=number] { -moz-appearance: textfield; }
   90%            { filter: brightness(.05) drop-shadow(0 0 16px var(--hc-char-color, #ff4040)) drop-shadow(0 0 28px var(--hc-char-color, #ff0000)); opacity: .85; }
 }
 
+/* SOFT — barely-moving personal glow in the character's own color */
+.hc-aura-el.hc-aura-soft { background: none; }
+.hc-char-wrap[data-aura="soft"] .hc-char-sprite,
+.hc-char-wrap[data-aura="soft"] .hc-char-svg { animation: hc-glow-soft 4.0s ease-in-out infinite alternate; }
+@keyframes hc-glow-soft {
+  from { filter: drop-shadow(0 0 3px var(--hc-char-color, #aaa)); }
+  to   { filter: drop-shadow(0 0 9px var(--hc-char-color, #aaa)) drop-shadow(0 0 18px var(--hc-char-color, #aaa)); }
+}
+
 /* ── Aura particles ── */
 .hc-aura-particle { position: absolute; pointer-events: none; }
 /* Rise (blaze) */
@@ -5308,17 +5317,25 @@ input[type=number] { -moz-appearance: textfield; }
 /* ── Order arrows ── */
 .hc-order-btn {
   position: absolute; bottom: 8px;
-  width: 26px; height: 20px;
+  width: 36px; height: 28px;
   background: rgba(28,28,28,0.97); border: 1px solid #666; color: #ddd;
-  font-size: 11px; font-family: sans-serif; padding: 0;
+  font-size: 18px; font-family: sans-serif; padding: 0;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  z-index: 20; border-radius: 3px;
+  z-index: 20; border-radius: 4px;
   transition: color 0.1s, border-color 0.1s, background 0.1s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.7);
 }
 .hc-order-btn:hover { color: #fff; border-color: #bbb; background: rgba(55,55,55,0.98); }
-.hc-order-left { right: calc(50% + 6px); }
-.hc-order-right { left: calc(50% + 6px); }
+.hc-order-left { right: calc(50% + 8px); }
+.hc-order-right { left: calc(50% + 8px); }
+
+/* ── Drag reorder ── */
+.hc-char-wrap.hc-dragging { opacity: 0.28; pointer-events: none; }
+#hc-drop-indicator {
+  position: absolute; bottom: 0; top: 0; width: 2px; margin-left: -1px;
+  background: rgba(255,255,255,0.8); pointer-events: none; z-index: 30;
+  display: none; border-radius: 1px; box-shadow: 0 0 10px rgba(255,255,255,0.45);
+}
 
 /* ── Sidebar ── */
 #hc-sidebar {
