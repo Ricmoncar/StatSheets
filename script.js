@@ -289,6 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (lbl) lbl.textContent = Math.round(_sfxVolume * 100);
 
   _themeAudio = document.getElementById('theme-audio');
+  _themeAudio.loop = false; // Handled manually so startAt is respected on every loop
+  _themeAudio.addEventListener('ended', _onThemeEnded);
   _initThemeBarHover();
 });
 
@@ -321,6 +323,20 @@ const THEME_MAX_MB = 20;
 
 const CLOUDINARY_CLOUD = 'dhlik6lkn';
 const CLOUDINARY_PRESET = 'statsheets';
+
+// ── Helpers ───────────────────────────────────────────────────
+function _fmtTime(s) {
+  s = Math.max(0, s || 0);
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+function _onThemeEnded() {
+  if (!_themeCurrentSong || !_themeCurrentCharId) return;
+  const startAt = _themeCurrentSong.startAt || 0;
+  _themeAudio.currentTime = startAt;
+  _themeAudio.play().catch(() => {});
+}
 
 // ── Crossfade helpers ────────────────────────────────────────
 function _themeFadeOut(onDone) {
@@ -403,7 +419,7 @@ function playThemeForCharacter(charId, overrideSong = null) {
     _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
   }
 
-  const startAt = _themeTimestamps.get(key) || 0;
+  const startAt = _themeTimestamps.has(key) ? _themeTimestamps.get(key) : (song.startAt || 0);
   _themeCurrentCharId = key;
   _themeCurrentSong = song;  // Cache the song being played
   _themePaused = false;
@@ -529,6 +545,7 @@ function _themeFormCard(c, formIdx) {
   const playing = (_themeCurrentCharId === key && !_themeAudio.paused && !_themePaused);
 
   if (song && song.url) {
+    const startFmt = _fmtTime(song.startAt || 0);
     return (
       `<div class="theme-tab-form-row">` +
         `<span class="theme-tab-form-label">${_esc(label)}</span>` +
@@ -536,7 +553,13 @@ function _themeFormCard(c, formIdx) {
           `<div class="theme-tab-song-icon">♫</div>` +
           `<div class="theme-tab-song-details">` +
             `<div class="theme-tab-song-name">${_esc(song.name || 'UNTITLED')}</div>` +
-            `<div class="theme-tab-song-meta">max ${THEME_MAX_MB} MB</div>` +
+            `<div class="theme-tab-start-row">` +
+              `<span class="theme-tab-start-lbl">START</span>` +
+              `<input class="theme-tab-start-inp" value="${startFmt}" placeholder="0:00"` +
+                ` onchange="parseAndSetThemeStart(${formIdx},this.value)"` +
+                ` onclick="this.select()" title="Type a time (M:SS or seconds)"/>` +
+              `<button class="btn sm" onclick="captureThemeStart(${formIdx})" title="Set to current playback position">⊙ NOW</button>` +
+            `</div>` +
           `</div>` +
           `<div class="theme-tab-song-controls">` +
             `<button class="btn sm" onclick="toggleThemePlayback();renderThemeTab();">${playing ? '⏸ PAUSE' : '▶ PLAY'}</button>` +
@@ -557,6 +580,46 @@ function _themeFormCard(c, formIdx) {
       `</div>`
     );
   }
+}
+
+// ── Start-time controls ───────────────────────────────────────
+function captureThemeStart(formIdx) {
+  const key = _tsKey(currentId, formIdx);
+  if (_themeCurrentCharId !== key) {
+    notify('PLAY THIS TRACK FIRST TO SET A START POINT', 'err');
+    return;
+  }
+  const t = Math.round(_themeAudio.currentTime * 10) / 10;
+  setThemeStartAt(formIdx, t);
+}
+
+function parseAndSetThemeStart(formIdx, val) {
+  let s = 0;
+  val = (val || '').trim();
+  if (val.includes(':')) {
+    const parts = val.split(':');
+    s = (parseInt(parts[0]) || 0) * 60 + (parseFloat(parts[1]) || 0);
+  } else {
+    s = parseFloat(val) || 0;
+  }
+  setThemeStartAt(formIdx, Math.max(0, s));
+}
+
+function setThemeStartAt(formIdx, seconds) {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  const song = _getFormTheme(c, formIdx);
+  if (!song) return;
+  song.startAt = seconds;
+  // Keep the cached live song in sync so the loop handler uses the new time
+  if (_themeCurrentSong && _themeCurrentSong.url === song.url) {
+    _themeCurrentSong.startAt = seconds;
+  }
+  // Clear the session timestamp so the next play starts from the new startAt
+  _themeTimestamps.delete(_tsKey(c.id, formIdx));
+  saveData(c);
+  renderThemeTab();
+  notify('START SET: ' + _fmtTime(seconds), 'ok');
 }
 
 function renderThemeTab() {
@@ -8175,7 +8238,7 @@ function renderHeightChart() {
   _hcData.entries.forEach((entry, idx) => {
     const cm = entry.heightCm || 170;
     const charHeightPx = cm * pxPerCm;
-    const xPx = n > 1 ? ((idx + 1) / (n + 1)) * canvasW : canvasW / 2;
+    const xPx = (n > 1 ? ((idx + 1) / (n + 1)) * canvasW : canvasW / 2) + (entry.xOffset || 0) * _hcZoom;
     const isSelected = entry.id === _hcSelectedId;
 
     const wrap = document.createElement('div');
@@ -8380,7 +8443,9 @@ function _hcPanToIdx(idx) {
   const n = _hcData.entries.length;
   const cw = _hcCanvasW || stage.clientWidth;
   const stageW = stage.clientWidth;
-  const xPx = n > 1 ? ((idx + 1) / (n + 1)) * cw : cw / 2;
+  const entry = _hcData.entries[idx];
+  const xOff = (entry ? (entry.xOffset || 0) : 0) * _hcZoom;
+  const xPx = (n > 1 ? ((idx + 1) / (n + 1)) * cw : cw / 2) + xOff;
   const maxPan = Math.max(0, cw - stageW);
   _hcPanX = Math.max(0, Math.min(maxPan, xPx - stageW / 2));
 }
@@ -8417,6 +8482,13 @@ function _hcPopulateEditPanel(id) {
   const hexEl = document.getElementById('hc-color-hex');
   if (hexEl) hexEl.textContent = col;
   document.getElementById('hc-clear-btn').style.display = (entry.spriteBase64 || entry.spriteUrl) ? 'inline-block' : 'none';
+  // X offset slider
+  const xOffSlider = document.getElementById('hc-edit-xoffset');
+  if (xOffSlider) {
+    xOffSlider.value = entry.xOffset || 0;
+    const xOffVal = document.getElementById('hc-xoffset-val');
+    if (xOffVal) xOffVal.textContent = (entry.xOffset || 0) > 0 ? '+' + (entry.xOffset || 0) : (entry.xOffset || 0);
+  }
   _hcSyncAuraBtn(entry);
   // Crop sliders (only when sprite is set)
   const cropSec = document.getElementById('hc-crop-section');
@@ -8906,4 +8978,16 @@ function sendChatMsg() {
   });
 
   if (input) { input.value = ''; input.focus(); }
+}
+
+// ── Encyclopedia mobile drawer ──────────────────────────────────────────────
+function toggleMobileToC() {
+  const panel    = document.getElementById('enc-left');
+  const backdrop = document.getElementById('enc-mobile-backdrop');
+  if (!panel) return;
+  const open = panel.classList.toggle('open');
+  if (backdrop) {
+    if (open) backdrop.classList.add('open');
+    else      backdrop.classList.remove('open');
+  }
 }
