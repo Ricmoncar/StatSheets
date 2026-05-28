@@ -8300,7 +8300,8 @@ function _hcHash(str, n) {
   return ((h >>> 0) % 10000) / 10000;
 }
 
-const HC_AURAS = [null, 'soft', 'blaze', 'shadow', 'void', 'ghost', 'crimson', 'haze', 'static', 'neon', 'reaper'];
+// 'soft' is excluded from the cycle — it has its own DEFAULT button
+const HC_AURAS = [null, 'blaze', 'shadow', 'void', 'ghost', 'crimson', 'haze', 'static', 'neon', 'reaper'];
 // dot color shown on the AURA button when an aura is active (soft uses entry.color dynamically)
 const HC_AURA_DOT = { blaze:'#ff6020', shadow:'#9030d0', void:'#5010a0', ghost:'#b0d0ff', crimson:'#cc0015', haze:'#ff80ff', static:'#aaa', neon:'#f0f0f0', reaper:'#220000' };
 
@@ -8317,16 +8318,27 @@ function hcCycleAura() {
 function _hcSyncAuraBtn(entry) {
   const btn = document.getElementById('hc-aura-cycle-btn');
   if (!btn) return;
-  // 'soft' uses the character's own color for the dot
-  const dot = entry.aura
-    ? (entry.aura === 'soft' ? (entry.color || '#aaaaaa') : (HC_AURA_DOT[entry.aura] || null))
-    : null;
+  const isSoft = entry.aura === 'soft';
+  // DEFAULT button: active when soft aura is on
+  const defBtn = document.getElementById('hc-aura-default-btn');
+  if (defBtn) defBtn.classList.toggle('active', isSoft);
+  // Cycle AURA button: active for any non-soft aura
+  const dot = (!isSoft && entry.aura) ? (HC_AURA_DOT[entry.aura] || null) : null;
   btn.innerHTML = dot
     ? `AURA <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${dot};vertical-align:middle;margin-left:3px;box-shadow:0 0 4px ${dot};"></span>`
     : 'AURA';
-  btn.classList.toggle('active', !!entry.aura);
+  btn.classList.toggle('active', !!(entry.aura && !isSoft));
   const clearBtn = document.getElementById('hc-aura-clear-btn');
   if (clearBtn) clearBtn.style.display = entry.aura ? 'inline-flex' : 'none';
+}
+
+function hcSetSoftAura() {
+  const entry = _hcData.entries.find(e => e.id === _hcSelectedId);
+  if (!entry) return;
+  entry.aura = entry.aura === 'soft' ? null : 'soft'; // toggle
+  _hcSyncAuraBtn(entry);
+  renderHeightChart();
+  _hcDebounceSave();
 }
 
 function hcClearAura() {
