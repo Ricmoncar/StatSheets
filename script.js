@@ -5649,9 +5649,15 @@ getEffectiveStats = function (c) {
   passives.filter(p => p.op === 'derived').forEach(p => {
     const fromVal = out[p.from] != null ? out[p.from] : 0;
     if (MAIN_STATS.includes(p.stat)) {
-      let bonus = Math.floor(fromVal / (p.per || 1)) * (p.perValue || 0);
-      if (p.cap) bonus = Math.min(bonus, p.cap);
-      out[p.stat] = Math.max(1, Math.round(out[p.stat] + bonus));
+      if (p.perPct != null) {
+        // perPct on a main stat = percentage multiplier (e.g. +0.6% ATK per 1 DEF)
+        const pctBonus = Math.floor(fromVal / (p.per || 1)) * p.perPct;
+        out[p.stat] = Math.max(1, Math.round(out[p.stat] * (1 + pctBonus / 100)));
+      } else {
+        let bonus = Math.floor(fromVal / (p.per || 1)) * (p.perValue || 0);
+        if (p.cap) bonus = Math.min(bonus, p.cap);
+        out[p.stat] = Math.max(1, Math.round(out[p.stat] + bonus));
+      }
     } else if (SUB_STATS.includes(p.stat)) {
       const pct = Math.floor(fromVal / (p.per || 1)) * (p.perPct || p.perValue || 0);
       out[p.stat] = (out[p.stat] || 0) + pct;
