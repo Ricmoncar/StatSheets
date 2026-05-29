@@ -951,9 +951,9 @@ function buildSwatches() {
 // ============================================================
 const SEG_COUNT = 20;
 // Base maximums per stat (one full bar = these values)
-const STAT_BASE_MAX = { hp: 999, atk: 99, def: 99, mag: 99, spd: 99 };
+const STAT_BASE_MAX = { hp: 999, atk: 99, def: 99, mag: 99, spd: 99, iq: 150 };
 // Hard caps matching the power level reference (Mountain Level top)
-const STAT_HARD_MAX = { hp: 1250, atk: 300, def: 300, mag: 300, spd: 300 };
+const STAT_HARD_MAX = { hp: 1250, atk: 300, def: 300, mag: 300, spd: 300, iq: 500 };
 
 const statAnimators = {};
 
@@ -1088,11 +1088,11 @@ function _renderStatSegsFrame(val, key) {
       } else {
         // Prestige tiers: stack on top of the previous tier's solid color
         if (isOn) {
-          fg.classList.add(isPeak ? 'peak' : 'on', `tier-${Math.min(tier, 15)}`);
+          fg.classList.add(isPeak ? 'peak' : 'on', `tier-${Math.min(tier, 25)}`);
         }
         // Background shows the SOLID color of the previous tier
         bg.classList.add('on');
-        if (tier > 1) bg.classList.add(`tier-${Math.min(tier - 1, 15)}`);
+        if (tier > 1) bg.classList.add(`tier-${Math.min(tier - 1, 25)}`);
       }
     }
   });
@@ -1130,6 +1130,7 @@ const PL_THRESHOLDS = {
   def: [1, 5, 15, 30, 50, 70, 125, 200, 275, 400, 600, 900, 1500, 3000, 6000, 12000, 25000],
   mag: [1, 5, 15, 30, 50, 70, 125, 200, 275, 400, 600, 900, 1500, 3000, 6000, 12000, 25000],
   spd: [1, 5, 15, 30, 50, 70, 125, 200, 275, 400, 600, 900, 1500, 3000, 6000, 12000, 25000],
+  iq:  [1, 10, 30, 50, 80, 110, 140, 175, 210, 250, 300, 350, 400, 440, 470, 490, 500],
 };
 
 function getStatPL(stat, value) {
@@ -1180,7 +1181,8 @@ function updateStatDisplay(stat) {
     atk: { disp: 'atk-val-disp', segs: 'e-atk-segs' },
     def: { disp: 'def-val-disp', segs: 'e-def-segs' },
     mag: { disp: 'mag-val-disp', segs: 'e-mag-segs' },
-    spd: { disp: 'spd-val-disp', segs: 'e-spd-segs' }
+    spd: { disp: 'spd-val-disp', segs: 'e-spd-segs' },
+    iq:  { disp: 'iq-val-disp',  segs: 'e-iq-segs' }
   };
   const m = map[stat];
   const input = document.getElementById('e-' + stat);
@@ -1393,7 +1395,7 @@ const PATTERN_DEFS = {
       { id: 'size', label: 'Cell Size', type: 'range', min: 10, max: 100, default: 40 },
       { id: 'speed', label: 'Glitch Freq', type: 'range', min: 0.1, max: 10, default: 2 },
       { id: 'color', label: 'Color', type: 'color', default: '#00ff80' },
-      { id: 'opacity', label: 'Opacity', type: 'range', min: 0.1, max: 0.8, default: 0.2 },
+      { id: 'opacity', label: 'Opacity', type: 'range', min: 0.1, max: 0.8, step: 0.05, default: 0.2 },
     ]
   },
   neural_network: {
@@ -2443,6 +2445,7 @@ function viewChar(id) {
     { key: 'def', label: 'DEF', icon: `<svg width="14" height="14" viewBox="0 0 10 10" style="margin-right:6px; flex-shrink: 0; color: var(--accent-blue);"><path d="M1 2v4c0 3 4 3.5 4 3.5s4-.5 4-3.5V2l-4-1-4 1z" fill="currentColor"/></svg>` },
     { key: 'mag', label: 'MAG', icon: `<svg width="14" height="14" viewBox="0 0 10 10" style="margin-right:6px; flex-shrink: 0; color: #ff44ff;"><path d="M5 1l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" fill="currentColor"/></svg>` },
     { key: 'spd', label: 'SPD', icon: `<svg width="14" height="14" viewBox="0 0 10 10" style="margin-right:6px; flex-shrink: 0; color: var(--accent-yellow);"><path d="M6 0L2 5H5L4 10L9 4H5Z" fill="currentColor"/></svg>` },
+    { key: 'iq',  label: 'IQ',  icon: `<svg width="14" height="14" viewBox="0 0 10 10" style="margin-right:6px; flex-shrink: 0; color: #00bbcc;"><path d="M4 2C3 2 2 3 2 4.5c0 1 .5 2 1.5 2.5C3 8.5 4 8.5 5 8.5c1 0 2 0 1.5-1.5C7.5 6.5 8 5.5 8 4.5 8 3 7 2 6 2c-.5 0-1 .2-1 .5C5 2.2 4.5 2 4 2zm1 .5V8M3.5 4C4 3.5 4.5 3.6 4.5 4.1M5.5 4C6 3.5 6.5 3.6 6.5 4.1M3.5 5.7C4 5.2 4.5 5.3 4.5 5.8M5.5 5.7C6 5.2 6.5 5.3 6.5 5.8" fill="none" stroke="currentColor" stroke-width="0.75" stroke-linecap="round"/></svg>` },
   ];
   statsEl.innerHTML = stats.map(s => {
     const baseVal = c.stats[s.key] || 0;
@@ -2823,7 +2826,7 @@ function escHtml(s) {
 }
 
 // Form stats cap at COUNTRY level (PL_THRESHOLDS index 9)
-const _FORM_STAT_MAX = { hp: 2200, atk: 400, def: 400, mag: 400, spd: 400 };
+const _FORM_STAT_MAX = { hp: 2200, atk: 400, def: 400, mag: 400, spd: 400, iq: 500 };
 
 function syncFormStat(formIdx, key, val) {
   const max = _FORM_STAT_MAX[key] || 9999;
@@ -2879,6 +2882,10 @@ const _FORM_STAT_DEFS = [
     key: 'spd', label: 'SPD', color: 'var(--accent-yellow)',
     icon: `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M6 0L2 5H5L4 10L9 4H5Z" fill="var(--accent-yellow)"/></svg>`
   },
+  {
+    key: 'iq', label: 'IQ', color: '#00bbcc',
+    icon: `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M4 2C3 2 2 3 2 4.5c0 1 .5 2 1.5 2.5C3 8.5 4 8.5 5 8.5c1 0 2 0 1.5-1.5C7.5 6.5 8 5.5 8 4.5 8 3 7 2 6 2c-.5 0-1 .2-1 .5C5 2.2 4.5 2 4 2zm1 .5V8M3.5 4C4 3.5 4.5 3.6 4.5 4.1M5.5 4C6 3.5 6.5 3.6 6.5 4.1" fill="none" stroke="#00bbcc" stroke-width="0.75" stroke-linecap="round"/></svg>`
+  },
 ];
 
 // Render a static segmented stat bar as HTML (used for form cards)
@@ -2894,7 +2901,7 @@ function _formStatBarHTML(val, key) {
     let fillPct = i < fullFilled ? 100 : (i === fullFilled ? (exactFilled - fullFilled) * 100 : 0);
     const isPeak = (i === Math.ceil(exactFilled) - 1) && exactFilled > 0;
     const isOn = fillPct > 0;
-    let fgCls = `stat-seg fill-fg ${key}${isOn ? (isPeak ? ' peak' : ' on') : ''}${tier > 0 && isOn ? ` tier-${Math.min(tier, 15)}` : ''}`;
+    let fgCls = `stat-seg fill-fg ${key}${isOn ? (isPeak ? ' peak' : ' on') : ''}${tier > 0 && isOn ? ` tier-${Math.min(tier, 25)}` : ''}`;
     let bgCls = `stat-seg ghost-bg ${key}${tier > 0 ? ' on' : ''}`;
     const clip = `polygon(0 0,${fillPct}% 0,${fillPct}% 100%,0 100%)`;
     return `<div class="stat-seg-wrap" style="--i:${i};flex:1;position:relative;"><div class="${bgCls}" style="position:absolute;inset:0;"></div><div class="${fgCls}" style="position:absolute;inset:0;z-index:1;clip-path:${clip};"></div></div>`;
@@ -3025,7 +3032,7 @@ function addEditorForm() {
   _editorForms.push({
     name: '',
     avatar: null,
-    stats: { hp: 50, atk: 10, def: 10, mag: 10, spd: 10 },
+    stats: { hp: 50, atk: 10, def: 10, mag: 10, spd: 10, iq: 50 },
     substats: _fullSubstats()
   });
   renderEditorForms();
@@ -3120,6 +3127,7 @@ function showEditor(id) {
     document.getElementById('e-def').value = c.stats.def;
     document.getElementById('e-mag').value = c.stats.mag;
     document.getElementById('e-spd').value = c.stats.spd;
+    document.getElementById('e-iq').value = c.stats.iq || 50;
 
     document.getElementById('e-heal_pow').value = c.substats?.heal_pow || 0;
     document.getElementById('e-crit_rate').value = c.substats?.crit_rate || 0;
@@ -3132,6 +3140,7 @@ function showEditor(id) {
     document.getElementById('e-cooldown_red').value = c.substats?.cooldown_red || 0;
 
     syncStat('hp', c.stats.hp);
+    syncStat('iq', c.stats.iq || 50);
     document.getElementById('e-spd').value = c.stats.spd;
     currentAvatarDataURL = c.avatar || null;
     _editorTags = [...(c.tags || [])];
@@ -3139,7 +3148,7 @@ function showEditor(id) {
     _editorForms = (c.altForms || []).map(f => ({
       name: f.name || '',
       avatar: f.avatar || null,
-      stats: { hp: f.stats?.hp || 50, atk: f.stats?.atk || 10, def: f.stats?.def || 10, mag: f.stats?.mag || 10, spd: f.stats?.spd || 10 },
+      stats: { hp: f.stats?.hp || 50, atk: f.stats?.atk || 10, def: f.stats?.def || 10, mag: f.stats?.mag || 10, spd: f.stats?.spd || 10, iq: f.stats?.iq || 50 },
       substats: _fullSubstats(f.substats)
     }));
     renderEditorForms();
@@ -3153,9 +3162,9 @@ function showEditor(id) {
     document.getElementById('e-name').value = '';
     document.getElementById('e-color').value = '#ffff00';
     updateColorWheel('#ffff00');
-    ['e-hp', 'e-atk', 'e-def', 'e-mag', 'e-spd'].forEach((id, i) => {
+    ['e-hp', 'e-atk', 'e-def', 'e-mag', 'e-spd', 'e-iq'].forEach((id, i) => {
       const el = document.getElementById(id);
-      if (el) el.value = [50, 10, 10, 10, 10][i];
+      if (el) el.value = [50, 10, 10, 10, 10, 50][i];
     });
 
     document.getElementById('e-heal_pow').value = 0;
@@ -3177,7 +3186,7 @@ function showEditor(id) {
     buildPatternParams('none');
   }
   renderAvatarZone();
-  ['hp', 'atk', 'def', 'mag', 'spd'].forEach(updateStatDisplay);
+  ['hp', 'atk', 'def', 'mag', 'spd', 'iq'].forEach(updateStatDisplay);
   stopBgAnim();
 
   const edCanvas = document.getElementById('editor-pattern-canvas');
@@ -3293,6 +3302,7 @@ function saveAsPlaceholder() {
       def: +document.getElementById('e-def').value,
       mag: +document.getElementById('e-mag').value,
       spd: +document.getElementById('e-spd').value,
+      iq: +document.getElementById('e-iq').value,
     },
     substats: {
       heal_pow: parseFloat(document.getElementById('e-heal_pow').value) || 0,
@@ -3371,6 +3381,7 @@ function saveCharacter() {
       def: +document.getElementById('e-def').value,
       mag: +document.getElementById('e-mag').value,
       spd: +document.getElementById('e-spd').value,
+      iq: +document.getElementById('e-iq').value,
     },
     substats: {
       heal_pow: parseFloat(document.getElementById('e-heal_pow').value) || 0,
@@ -3400,7 +3411,7 @@ function saveCharacter() {
     altForms: _editorForms.map(f => ({
       name: f.name || '',
       avatar: f.avatar || null,
-      stats: { hp: +f.stats.hp || 1, atk: +f.stats.atk || 1, def: +f.stats.def || 1, mag: +f.stats.mag || 1, spd: +f.stats.spd || 1 },
+      stats: { hp: +f.stats.hp || 1, atk: +f.stats.atk || 1, def: +f.stats.def || 1, mag: +f.stats.mag || 1, spd: +f.stats.spd || 1, iq: +f.stats.iq || 50 },
       substats: _fullSubstats(f.substats, true)
     })),
     activeFormIdx: existing.activeFormIdx || 0,
@@ -4018,7 +4029,7 @@ function toggleRadarChart() {
 
 // Animated radar state — tracks interpolated effective stat values per character
 const _radarAnim = { charId: null, current: null, target: null, frame: null };
-const RADAR_KEYS = ['hp', 'atk', 'def', 'mag', 'spd'];
+const RADAR_KEYS = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'];
 
 function renderRadarChart(c) {
   const svg = document.getElementById('cv-radar-svg');
@@ -4060,8 +4071,8 @@ function renderRadarChart(c) {
 }
 
 function _drawRadarFrame(svg, c, effVals) {
-  const LBLS = ['HP', 'ATK', 'DEF', 'MAG', 'SPD'];
-  const COLS = { hp: '#44dd77', atk: '#ff4444', def: '#4499ff', mag: '#ff44ff', spd: '#ffcc00' };
+  const LBLS = ['HP', 'ATK', 'DEF', 'MAG', 'SPD', 'IQ'];
+  const COLS = { hp: '#44dd77', atk: '#ff4444', def: '#4499ff', mag: '#ff44ff', spd: '#ffcc00', iq: '#00bbcc' };
   const HMAX = STAT_HARD_MAX;
 
   // cy=155 gives headroom above the chart for stats that overflow the outer ring
@@ -4201,8 +4212,8 @@ function getEffectiveStats(c) {
 
   const items = (c.inventory || []).filter(i => i.equipped);
 
-  const adds = { hp: 0, atk: 0, def: 0, mag: 0, spd: 0, heal_pow: 0, crit_rate: 0, crit_dmg: 0, status_res: 0, dexterity: 0, resilience: 0, true_dmg: 0, lifesteal: 0, cooldown_red: 0 };
-  const muls = { hp: 1, atk: 1, def: 1, mag: 1, spd: 1, heal_pow: 1, crit_rate: 1, crit_dmg: 1, status_res: 1, dexterity: 1, resilience: 1, true_dmg: 1, lifesteal: 1, cooldown_red: 1 };
+  const adds = { hp: 0, atk: 0, def: 0, mag: 0, spd: 0, iq: 0, heal_pow: 0, crit_rate: 0, crit_dmg: 0, status_res: 0, dexterity: 0, resilience: 0, true_dmg: 0, lifesteal: 0, cooldown_red: 0 };
+  const muls = { hp: 1, atk: 1, def: 1, mag: 1, spd: 1, iq: 1, heal_pow: 1, crit_rate: 1, crit_dmg: 1, status_res: 1, dexterity: 1, resilience: 1, true_dmg: 1, lifesteal: 1, cooldown_red: 1 };
 
   items.forEach(item => {
     (item.mods || []).forEach(m => {
@@ -4219,6 +4230,7 @@ function getEffectiveStats(c) {
   let effDef = Math.max(1, Math.round((base.def + adds.def) * muls.def));
   let effMag = Math.max(1, Math.round((base.mag + adds.mag) * muls.mag));
   let effSpd = Math.max(1, Math.round((base.spd + adds.spd) * muls.spd));
+  let effIq  = Math.max(1, Math.round(((base.iq || 50) + adds.iq) * muls.iq));
 
   let rawCritRate = subBase.crit_rate + ((effAtk / 20) * 0.3);
   let cappedBaseCritRate = Math.min(rawCritRate, 80);
@@ -4289,7 +4301,7 @@ function getEffectiveStats(c) {
   }
 
   return {
-    hp: effHp, atk: effAtk, def: effDef, mag: effMag, spd: effSpd,
+    hp: effHp, atk: effAtk, def: effDef, mag: effMag, spd: effSpd, iq: effIq,
     heal_pow: effHealPow, crit_rate: effCritRate, crit_dmg: finalCritDmg,
     status_res: effStatusRes, dexterity: effDex, resilience: effResilience,
     true_dmg: effTrueDmg, lifesteal: effLifesteal, cooldown_red: effCooldownRed
@@ -4494,7 +4506,7 @@ function updateLiveStats(c) {
   const _afIdx = c.activeFormIdx || 0;
   const _af = _afIdx > 0 ? (c.altForms || [])[_afIdx - 1] : null;
   const _baseStats = _af ? _af.stats : c.stats;
-  const stats = ['hp', 'atk', 'def', 'mag', 'spd'];
+  const stats = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'];
   stats.forEach(key => {
     const baseVal = _baseStats[key] || 0;
     const effVal = effStats[key];
@@ -4616,6 +4628,7 @@ function renderModRows(mods) {
         <option value="def" ${m.stat === 'def' ? 'selected' : ''}>DEF</option>
         <option value="mag" ${m.stat === 'mag' ? 'selected' : ''}>MAG</option>
         <option value="spd" ${m.stat === 'spd' ? 'selected' : ''}>SPD</option>
+        <option value="iq" ${m.stat === 'iq' ? 'selected' : ''}>IQ</option>
         <option value="heal_pow" ${m.stat === 'heal_pow' ? 'selected' : ''}>HEALING POW (%)</option>
         <option value="crit_rate" ${m.stat === 'crit_rate' ? 'selected' : ''}>CRIT CHANCE (%)</option>
         <option value="crit_dmg" ${m.stat === 'crit_dmg' ? 'selected' : ''}>CRIT DMG (%)</option>
@@ -4941,12 +4954,12 @@ function renderCheckerSegment(key, val, containerId, isBase) {
       if (isOn) seg.classList.add(isPeak ? 'peak' : 'on');
     } else {
       if (isOn) {
-        seg.classList.add(isPeak ? 'peak' : 'on', `tier-${Math.min(tier, 15)}`);
+        seg.classList.add(isPeak ? 'peak' : 'on', `tier-${Math.min(tier, 25)}`);
       } else {
         seg.classList.add('on');
         if (tier > 0) {
           seg.classList.add('ghost');
-          if (tier > 1) seg.classList.add(`tier-${Math.min(tier - 1, 15)}`);
+          if (tier > 1) seg.classList.add(`tier-${Math.min(tier - 1, 25)}`);
         }
       }
     }
@@ -5594,7 +5607,7 @@ function applyMainStatPassive(stat, p, addMap, pctMap, mulMap, baseSnapshot, der
 // Patch existing getEffectiveStats: inject trait passives as synthetic item
 // mods so derived substat scaling (e.g. heal_pow from MAG) inherits trait boosts.
 const _origGetEffectiveStats = getEffectiveStats;
-const MAIN_STATS = ['hp', 'atk', 'def', 'mag', 'spd'];
+const MAIN_STATS = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'];
 const SUB_STATS = ['heal_pow', 'crit_rate', 'crit_dmg', 'status_res', 'dexterity', 'resilience', 'true_dmg', 'lifesteal', 'cooldown_red'];
 
 function _traitPassivesToMods(passives) {
@@ -6921,7 +6934,7 @@ function refreshCultivationPreviews() {
       return `<div class='cult-stat-row'><span>${label}</span><span class='${diff > 0 ? "tt-pos" : "tt-neg"}'>${sign}${diff.toFixed(suffix ? 1 : 0)}${suffix}</span></div>`;
     };
     const subLabels = { heal_pow: 'HEAL PWR', crit_rate: 'CRIT RATE', crit_dmg: 'CRIT DMG', status_res: 'STATUS RES', dexterity: 'DEXTERITY', resilience: 'RESILIENCE', true_dmg: 'TRUE DMG', lifesteal: 'LIFESTEAL', cooldown_red: 'CDR' };
-    const mainHtml = ['hp', 'atk', 'def', 'mag', 'spd'].map(k => stat(k, k.toUpperCase())).join('');
+    const mainHtml = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'].map(k => stat(k, k.toUpperCase())).join('');
     const subHtml = Object.keys(subLabels).map(k => stat(k, subLabels[k])).join('');
     const html = mainHtml + subHtml;
     const el = document.getElementById('cult-preview-' + key);
@@ -7548,14 +7561,15 @@ function renderCompare() {
   const b = characters.find(x => x.id === bId);
   if (!a || !b) return;
   const ea = getEffectiveStats(a), eb = getEffectiveStats(b);
-  const KEYS = ['hp', 'atk', 'def', 'mag', 'spd', 'heal_pow', 'crit_rate', 'crit_dmg', 'status_res', 'dexterity', 'resilience', 'true_dmg', 'lifesteal', 'cooldown_red'];
-  const LABELS = { hp: 'HP', atk: 'ATK', def: 'DEF', mag: 'MAG', spd: 'SPD', heal_pow: 'HEAL POW', crit_rate: 'CRIT%', crit_dmg: 'CRIT DMG', status_res: 'STATUS RES', dexterity: 'DEX', resilience: 'RESIL', true_dmg: 'TRUE DMG', lifesteal: 'LIFESTEAL', cooldown_red: 'CDR' };
+  const KEYS = ['hp', 'atk', 'def', 'mag', 'spd', 'iq', 'heal_pow', 'crit_rate', 'crit_dmg', 'status_res', 'dexterity', 'resilience', 'true_dmg', 'lifesteal', 'cooldown_red'];
+  const LABELS = { hp: 'HP', atk: 'ATK', def: 'DEF', mag: 'MAG', spd: 'SPD', iq: 'IQ', heal_pow: 'HEAL POW', crit_rate: 'CRIT%', crit_dmg: 'CRIT DMG', status_res: 'STATUS RES', dexterity: 'DEX', resilience: 'RESIL', true_dmg: 'TRUE DMG', lifesteal: 'LIFESTEAL', cooldown_red: 'CDR' };
   const ICONS = {
     hp: `<svg width="12" height="12" viewBox="0 0 10 10" style="color:var(--accent-green);flex-shrink:0"><path d="M5 9L1 5A2.5 2.5 0 0 1 5 2 2.5 2.5 0 0 1 9 5Z" fill="currentColor"/></svg>`,
     atk: `<svg width="12" height="12" viewBox="0 0 10 10" style="color:var(--accent-red);flex-shrink:0"><path d="M2 8l1 1 6-6-1-1-6 6zM1 9l2-1-1-1-1 2z" fill="currentColor"/></svg>`,
     def: `<svg width="12" height="12" viewBox="0 0 10 10" style="color:var(--accent-blue);flex-shrink:0"><path d="M1 2v4c0 3 4 3.5 4 3.5s4-.5 4-3.5V2l-4-1-4 1z" fill="currentColor"/></svg>`,
     mag: `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#ff44ff;flex-shrink:0"><path d="M5 1l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" fill="currentColor"/></svg>`,
     spd: `<svg width="12" height="12" viewBox="0 0 10 10" style="color:var(--accent-yellow);flex-shrink:0"><path d="M6 0L2 5H5L4 10L9 4H5Z" fill="currentColor"/></svg>`,
+    iq:  `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#00bbcc;flex-shrink:0"><path d="M4 2C3 2 2 3 2 4.5c0 1 .5 2 1.5 2.5C3 8.5 4 8.5 5 8.5c1 0 2 0 1.5-1.5C7.5 6.5 8 5.5 8 4.5 8 3 7 2 6 2c-.5 0-1 .2-1 .5C5 2.2 4.5 2 4 2zm1 .5V8M3.5 4C4 3.5 4.5 3.6 4.5 4.1M5.5 4C6 3.5 6.5 3.6 6.5 4.1M3.5 5.7C4 5.2 4.5 5.3 4.5 5.8M5.5 5.7C6 5.2 6.5 5.3 6.5 5.8" fill="none" stroke="currentColor" stroke-width="0.75" stroke-linecap="round"/></svg>`,
     heal_pow: `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#88ff88;flex-shrink:0"><path d="M4 1h2v3h3v2H6v3H4V6H1V4h3z" fill="currentColor"/></svg>`,
     crit_rate: `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#ff8888;flex-shrink:0"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="1.5" fill="currentColor"/></svg>`,
     crit_dmg: `<svg width="12" height="12" viewBox="0 0 10 10" style="color:#cc0000;flex-shrink:0"><path d="M5 0l1.5 3.5L10 5l-3.5 1.5L5 10l-1.5-3.5L0 5l3.5-1.5z" fill="currentColor"/></svg>`,
@@ -7936,7 +7950,7 @@ function setLbView(view, btn) {
 
 const AVG_STATS = ['hp', 'atk', 'def', 'mag', 'spd'];
 const _LB_STAT_LABELS = {
-  avg:'BALANCED', hp:'HP', atk:'ATK', def:'DEF', mag:'MAG', spd:'SPD',
+  avg:'BALANCED', hp:'HP', atk:'ATK', def:'DEF', mag:'MAG', spd:'SPD', iq:'IQ',
   heal_pow:'HEAL', crit_rate:'CRIT%', crit_dmg:'CRIT DMG',
   status_res:'STATUS RES', dexterity:'DEX', resilience:'RESIL',
   true_dmg:'TRUE DMG', lifesteal:'LIFESTEAL', cooldown_red:'CDR'
@@ -7946,7 +7960,9 @@ function getLeaderboardVal(c, stat) {
   const e = getEffectiveStats(c);
   if (stat === 'avg') {
     const vals = AVG_STATS.map(s => Math.max(e[s] || 0, 1));
-    return Math.pow(vals.reduce((p, v) => p * v, 1), 1 / vals.length);
+    const geo = Math.pow(vals.reduce((p, v) => p * v, 1), 1 / vals.length);
+    const iqBonus = Math.pow(Math.max(e.iq || 1, 1), 0.01);
+    return geo * iqBonus;
   }
   return e[stat] || 0;
 }
@@ -7977,7 +7993,7 @@ function _lbShowTip(e, c) {
   const av = c.avatar
     ? `<img src="${c.avatar}" style="width:52px;height:52px;object-fit:cover;border:1px solid ${c.color||'#333'};display:block;margin-bottom:8px;">`
     : `<div style="width:52px;height:6px;background:${c.color||'#222'};margin-bottom:8px;"></div>`;
-  const statRows = ['hp','atk','def','mag','spd'].map(s => {
+  const statRows = ['hp','atk','def','mag','spd','iq'].map(s => {
     const v = getLeaderboardVal(c, s);
     return `<div class="lb-tip-row"><span class="lb-tip-sl">${(_LB_STAT_LABELS[s]||s).toUpperCase()}</span><span class="lb-tip-sv" style="color:${c.color||'#aaa'}">${v.toFixed(0)}</span></div>`;
   }).join('');
@@ -8037,7 +8053,7 @@ function _renderLbList(wrap, chars) {
 // ── Radar / Spider web ────────────────────────────────────────
 // Capped at 15 chars (top by avg), percentile rank normalization, no SVG filter
 function _renderLbRadar(wrap, chars) {
-  const STATS  = ['hp','atk','def','mag','spd'];
+  const STATS  = ['hp','atk','def','mag','spd','iq'];
   const LBLS   = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
   const CAP    = 15;
   const all    = [...chars].sort((a,b) => getLeaderboardVal(b,'avg') - getLeaderboardVal(a,'avg'));
@@ -8197,7 +8213,7 @@ function _renderLbRadial(wrap, chars) {
 
 // ── Parallel coordinates ──────────────────────────────────────
 function _renderLbLines(wrap, chars) {
-  const STATS = ['hp','atk','def','mag','spd'];
+  const STATS = ['hp','atk','def','mag','spd','iq'];
   const LBLS  = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
   const W = 520, H = 300;
   const pad = { l: 38, r: 38, t: 42, b: 38 };

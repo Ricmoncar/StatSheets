@@ -519,12 +519,15 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def  { background: #1155cc; border-color: #0044aa; }
 .stat-seg.on.mag  { background: #aa11aa; border-color: #880088; }
 .stat-seg.on.spd  { background: #bbbb00; border-color: #999900; }
+.stat-seg.on.iq   { background: #00cc99; border-color: #00aa77; }
 /* Peak tip — Tier 0 */
 .stat-seg.peak.hp   { background: #00ff88; border-color: #00ffaa; box-shadow: 0 0 6px #00ff8899; }
 .stat-seg.peak.atk  { background: #ff4444; border-color: #ff7777; box-shadow: 0 0 6px #ff333399; }
 .stat-seg.peak.def  { background: #3377ff; border-color: #66aaff; box-shadow: 0 0 6px #3377ff99; }
 .stat-seg.peak.mag  { background: #ff44ff; border-color: #ff88ff; box-shadow: 0 0 6px #ff44ff99; }
 .stat-seg.peak.spd  { background: #ffff33; border-color: #ffff88; box-shadow: 0 0 6px #ffff3399; }
+.stat-seg.peak.iq   { background: #00ffcc; border-color: #aaffee; box-shadow: 0 0 6px #00ffcc99; }
+.stat-seg.ghost.iq  { background: transparent; border-color: #00cc9933; }
 
 /* === TIER 1 — hue-shifted: green→lime, red→orange, blue→sky, purple→violet, yellow→amber === */
 .stat-seg.on.hp.tier-1   { background: #66ee00; border-color: #55cc00; }
@@ -532,11 +535,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-1  { background: #00aaee; border-color: #0088cc; }
 .stat-seg.on.mag.tier-1  { background: #7722ff; border-color: #5500ee; }
 .stat-seg.on.spd.tier-1  { background: #ffaa00; border-color: #dd8800; }
+.stat-seg.on.iq.tier-1   { background: #00ddaa; border-color: #00bb88; }
 .stat-seg.peak.hp.tier-1  { background: #99ff22; border-color: #bbff55; box-shadow: 0 0 8px #88ff0099; }
 .stat-seg.peak.atk.tier-1 { background: #ff9933; border-color: #ffbb66; box-shadow: 0 0 8px #ff660099; }
 .stat-seg.peak.def.tier-1 { background: #22ddff; border-color: #66eeff; box-shadow: 0 0 8px #00ccff99; }
 .stat-seg.peak.mag.tier-1 { background: #aa55ff; border-color: #cc88ff; box-shadow: 0 0 8px #8833ff99; }
 .stat-seg.peak.spd.tier-1 { background: #ffcc33; border-color: #ffee77; box-shadow: 0 0 8px #ffaa0099; }
+.stat-seg.peak.iq.tier-1  { background: #55ffcc; border-color: #aaffee; box-shadow: 0 0 8px #00ffaa99; }
 /* Ghost: unfilled segments show a faint tint of previous tier's hue */
 .stat-seg.ghost.hp    { background: #002211; border-color: #003318; }
 .stat-seg.ghost.atk   { background: #220500; border-color: #330700; }
@@ -556,11 +561,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-2  { background: #00eeff; border-color: #00ccdd; }
 .stat-seg.on.mag.tier-2  { background: #ff33bb; border-color: #dd1199; }
 .stat-seg.on.spd.tier-2  { background: #eecc00; border-color: #ccaa00; }
+.stat-seg.on.iq.tier-2   { background: #00eeff; border-color: #00ccdd; }
 .stat-seg.peak.hp.tier-2  { background: #44ffee; border-color: #88ffee; box-shadow: 0 0 12px #00ddcc; }
 .stat-seg.peak.atk.tier-2 { background: #ff55aa; border-color: #ff88cc; box-shadow: 0 0 12px #ff1177; }
 .stat-seg.peak.def.tier-2 { background: #44ffff; border-color: #88ffff; box-shadow: 0 0 12px #00eeff; }
 .stat-seg.peak.mag.tier-2 { background: #ff77dd; border-color: #ffaaee; box-shadow: 0 0 12px #ff33bb; }
 .stat-seg.peak.spd.tier-2 { background: #ffee44; border-color: #ffee88; box-shadow: 0 0 12px #eecc00; }
+.stat-seg.peak.iq.tier-2  { background: #66ffff; border-color: #aaffff; box-shadow: 0 0 12px #00eeff; }
 /* Ghost: unfilled shows faint tint of tier-1's hue */
 .stat-seg.ghost.hp.tier-2    { background: #001a15; border-color: #002a22; }
 .stat-seg.ghost.atk.tier-2   { background: #220010; border-color: #330018; }
@@ -574,11 +581,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-3  { background: #4444ff; border-color: #3333cc; }
 .stat-seg.on.mag.tier-3  { background: #cc00cc; border-color: #aa00aa; }
 .stat-seg.on.spd.tier-3  { background: #ffaa00; border-color: #cc8800; }
+.stat-seg.on.iq.tier-3   { background: #00bbff; border-color: #0099dd; }
 .stat-seg.peak.hp.tier-3  { background: #66eeff; border-color: #aaffff; box-shadow: 0 0 12px #00ccff; }
 .stat-seg.peak.atk.tier-3 { background: #b00030; border-color: #d00040; box-shadow: 0 0 12px #800020; }
 .stat-seg.peak.def.tier-3 { background: #6666ff; border-color: #aaaaff; box-shadow: 0 0 12px #4444ff; }
 .stat-seg.peak.mag.tier-3 { background: #ff44ff; border-color: #ff88ff; box-shadow: 0 0 12px #cc00cc; }
 .stat-seg.peak.spd.tier-3 { background: #ffcc33; border-color: #ffee77; box-shadow: 0 0 12px #ffaa00; }
+.stat-seg.peak.iq.tier-3  { background: #44ddff; border-color: #aaeeff; box-shadow: 0 0 12px #00bbff; }
 
 /* === TIER 4 — REFINED (Deeper, richer base colors with warmth) === */
 .stat-seg.on.hp.tier-4   { background: #007744; border-color: #00bb66; }
@@ -586,11 +595,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-4  { background: #113388; border-color: #2255bb; }
 .stat-seg.on.mag.tier-4  { background: #881199; border-color: #aa22cc; }
 .stat-seg.on.spd.tier-4  { background: #886600; border-color: #bb9900; }
+.stat-seg.on.iq.tier-4   { background: #008899; border-color: #00aabb; }
 .stat-seg.peak.hp.tier-4  { background: #00aa55; border-color: #55ddaa; box-shadow: 0 0 8px rgba(0,187,102,0.6); }
 .stat-seg.peak.atk.tier-4 { background: #cc2233; border-color: #ff7788; box-shadow: 0 0 8px rgba(204,34,51,0.6); }
 .stat-seg.peak.def.tier-4 { background: #2255bb; border-color: #88aaee; box-shadow: 0 0 8px rgba(34,85,187,0.6); }
 .stat-seg.peak.mag.tier-4 { background: #aa22cc; border-color: #dd88ff; box-shadow: 0 0 8px rgba(170,34,204,0.6); }
 .stat-seg.peak.spd.tier-4 { background: #bb9900; border-color: #eecc44; box-shadow: 0 0 8px rgba(187,153,0,0.6); }
+.stat-seg.peak.iq.tier-4  { background: #00ccee; border-color: #66eeff; box-shadow: 0 0 8px rgba(0,187,204,0.6); }
 .stat-seg.ghost.hp.tier-4    { background: #001a0e; border-color: #002a18; }
 .stat-seg.ghost.atk.tier-4   { background: #1a0205; border-color: #2a0308; }
 .stat-seg.ghost.def.tier-4   { background: #010a22; border-color: #021133; }
@@ -603,11 +614,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-5  { background: #1155cc; border-color: #3388ff; }
 .stat-seg.on.mag.tier-5  { background: #9911cc; border-color: #cc44ee; }
 .stat-seg.on.spd.tier-5  { background: #ccaa00; border-color: #ffcc22; }
+.stat-seg.on.iq.tier-5   { background: #00ddee; border-color: #00bbcc; }
 .stat-seg.peak.hp.tier-5  { background: #33ee88; border-color: #aaffcc; box-shadow: 0 0 10px rgba(0,238,119,0.5); }
 .stat-seg.peak.atk.tier-5 { background: #ff3355; border-color: #ffaaaa; box-shadow: 0 0 10px rgba(255,51,85,0.5); }
 .stat-seg.peak.def.tier-5 { background: #3388ff; border-color: #aaccff; box-shadow: 0 0 10px rgba(51,136,255,0.5); }
 .stat-seg.peak.mag.tier-5 { background: #cc44ee; border-color: #ee99ff; box-shadow: 0 0 10px rgba(204,68,238,0.5); }
 .stat-seg.peak.spd.tier-5 { background: #ffcc22; border-color: #ffee88; box-shadow: 0 0 10px rgba(255,204,34,0.5); }
+.stat-seg.peak.iq.tier-5  { background: #55ffff; border-color: #aaffff; box-shadow: 0 0 10px rgba(0,221,238,0.5); }
 .stat-seg.ghost.hp.tier-5    { background: #002211; border-color: #003319; }
 .stat-seg.ghost.atk.tier-5   { background: #220005; border-color: #330008; }
 .stat-seg.ghost.def.tier-5   { background: #001133; border-color: #001a44; }
@@ -620,11 +633,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-6  { background: #2266ee; border-color: #66aaff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
 .stat-seg.on.mag.tier-6  { background: #aa22ee; border-color: #cc77ff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
 .stat-seg.on.spd.tier-6  { background: #ddbb00; border-color: #ffdd44; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
+.stat-seg.on.iq.tier-6   { background: #00aabb; border-color: #44ddee; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
 .stat-seg.peak.hp.tier-6  { background: #55ffaa; border-color: #ccffee; box-shadow: 0 0 12px #00cc66, 0 0 20px rgba(0,204,102,0.4); }
 .stat-seg.peak.atk.tier-6 { background: #ff4466; border-color: #ffcccc; box-shadow: 0 0 12px #ee1144, 0 0 20px rgba(238,17,68,0.4); }
 .stat-seg.peak.def.tier-6 { background: #55aaff; border-color: #ccddff; box-shadow: 0 0 12px #2266ee, 0 0 20px rgba(34,102,238,0.4); }
 .stat-seg.peak.mag.tier-6 { background: #cc66ff; border-color: #eeccff; box-shadow: 0 0 12px #aa22ee, 0 0 20px rgba(170,34,238,0.4); }
 .stat-seg.peak.spd.tier-6 { background: #ffee44; border-color: #ffffcc; box-shadow: 0 0 12px #ddbb00, 0 0 20px rgba(221,187,0,0.4); }
+.stat-seg.peak.iq.tier-6  { background: #44eeff; border-color: #ccffff; box-shadow: 0 0 12px #00aabb, 0 0 20px rgba(0,170,187,0.4); }
 .stat-seg.ghost.hp.tier-6    { background: #002a15; border-color: #003d20; }
 .stat-seg.ghost.atk.tier-6   { background: #2a0008; border-color: #3d000c; }
 .stat-seg.ghost.def.tier-6   { background: #001533; border-color: #002050; }
@@ -637,11 +652,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-7  { background: #000033; border-color: #00aaff; }
 .stat-seg.on.mag.tier-7  { background: #1a0033; border-color: #cc44ff; }
 .stat-seg.on.spd.tier-7  { background: #332200; border-color: #ffcc00; }
+.stat-seg.on.iq.tier-7   { background: #003344; border-color: #00eeff; }
 .stat-seg.peak.hp.tier-7  { background: #003300; border-color: #88ffaa; box-shadow: 0 0 12px #00ff41, 0 0 24px rgba(0,255,65,0.5); }
 .stat-seg.peak.atk.tier-7 { background: #330000; border-color: #ff8899; box-shadow: 0 0 12px #ff2244, 0 0 24px rgba(255,34,68,0.5); }
 .stat-seg.peak.def.tier-7 { background: #000033; border-color: #66ddff; box-shadow: 0 0 12px #00aaff, 0 0 24px rgba(0,170,255,0.5); }
 .stat-seg.peak.mag.tier-7 { background: #1a0033; border-color: #ee99ff; box-shadow: 0 0 12px #cc44ff, 0 0 24px rgba(204,68,255,0.5); }
 .stat-seg.peak.spd.tier-7 { background: #332200; border-color: #ffee77; box-shadow: 0 0 12px #ffcc00, 0 0 24px rgba(255,204,0,0.5); }
+.stat-seg.peak.iq.tier-7  { background: #003344; border-color: #66ffff; box-shadow: 0 0 12px #00eeff, 0 0 24px rgba(0,238,255,0.5); }
 
 /* === TIER 5 — PLASMA === */
 .stat-seg.on.hp.tier-8   { background: #ff00aa; border-color: #cc0088; }
@@ -649,11 +666,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-8  { background: #00ffcc; border-color: #00ddaa; }
 .stat-seg.on.mag.tier-8  { background: #ff00ff; border-color: #cc00cc; }
 .stat-seg.on.spd.tier-8  { background: #ffdd00; border-color: #ddbb00; }
+.stat-seg.on.iq.tier-8   { background: #00ddff; border-color: #00bbee; }
 .stat-seg.peak.hp.tier-8  { background: #ff55cc; border-color: #ff88dd; box-shadow: 0 0 14px #ff00aa, 0 0 28px rgba(255,0,170,0.4); }
 .stat-seg.peak.atk.tier-8 { background: #ff8833; border-color: #ffaa66; box-shadow: 0 0 14px #ff6600, 0 0 28px rgba(255,102,0,0.4); }
 .stat-seg.peak.def.tier-8 { background: #55ffee; border-color: #aaffee; box-shadow: 0 0 14px #00ffcc, 0 0 28px rgba(0,255,204,0.4); }
 .stat-seg.peak.mag.tier-8 { background: #ff55ff; border-color: #ffaaff; box-shadow: 0 0 14px #ff00ff, 0 0 28px rgba(255,0,255,0.4); }
 .stat-seg.peak.spd.tier-8 { background: #ffee44; border-color: #ffee99; box-shadow: 0 0 14px #ffdd00, 0 0 28px rgba(255,221,0,0.4); }
+.stat-seg.peak.iq.tier-8  { background: #55ffff; border-color: #aaffff; box-shadow: 0 0 14px #00ddff, 0 0 28px rgba(0,221,255,0.4); }
 .stat-seg.ghost.hp.tier-8    { background: #220012; border-color: #330018; }
 .stat-seg.ghost.atk.tier-8   { background: #221000; border-color: #331800; }
 .stat-seg.ghost.def.tier-8   { background: #002211; border-color: #003319; }
@@ -666,11 +685,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-9  { background: #001133; border-color: #0088ff; box-shadow: inset 0 0 8px #0088ff; }
 .stat-seg.on.mag.tier-9  { background: #330044; border-color: #cc00ff; box-shadow: inset 0 0 8px #cc00ff; }
 .stat-seg.on.spd.tier-9  { background: #333300; border-color: #ffff00; box-shadow: inset 0 0 8px #ffff00; }
+.stat-seg.on.iq.tier-9   { background: #001a33; border-color: #00bbdd; box-shadow: inset 0 0 8px #00bbdd; }
 .stat-seg.peak.hp.tier-9  { background: #003344; border-color: #aaffff; box-shadow: 0 0 20px #00ccff, 0 0 40px rgba(0,204,255,0.5); }
 .stat-seg.peak.atk.tier-9 { background: #440000; border-color: #ff8888; box-shadow: 0 0 20px #ff0000, 0 0 40px rgba(255,0,0,0.5); }
 .stat-seg.peak.def.tier-9 { background: #001133; border-color: #aaccff; box-shadow: 0 0 20px #0088ff, 0 0 40px rgba(0,136,255,0.5); }
 .stat-seg.peak.mag.tier-9 { background: #330044; border-color: #ee88ff; box-shadow: 0 0 20px #cc00ff, 0 0 40px rgba(204,0,255,0.5); }
 .stat-seg.peak.spd.tier-9 { background: #333300; border-color: #ffffaa; box-shadow: 0 0 20px #ffff00, 0 0 40px rgba(255,255,0,0.5); }
+.stat-seg.peak.iq.tier-9  { background: #001a33; border-color: #88eeff; box-shadow: 0 0 20px #00bbdd, 0 0 40px rgba(0,187,221,0.5); }
 .stat-seg.ghost.hp.tier-9    { background: #001122; border-color: #002233; }
 .stat-seg.ghost.atk.tier-9   { background: #220000; border-color: #330000; }
 .stat-seg.ghost.def.tier-9   { background: #000a22; border-color: #001133; }
@@ -683,11 +704,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-10  { background: linear-gradient(135deg, #0088ff, #cc00ff); border-color: #6644ff; }
 .stat-seg.on.mag.tier-10  { background: linear-gradient(135deg, #ff00ff, #ff8800); border-color: #ff44aa; }
 .stat-seg.on.spd.tier-10  { background: linear-gradient(135deg, #ffff00, #00ff88); border-color: #aaff44; }
+.stat-seg.on.iq.tier-10   { background: linear-gradient(135deg, #00bbcc, #0055ff); border-color: #0099ee; }
 .stat-seg.peak.hp.tier-10  { background: linear-gradient(135deg,#88ffcc,#aaffff); border-color:#fff; box-shadow:0 0 16px #00ffcc,0 0 30px #00ff88; }
 .stat-seg.peak.atk.tier-10 { background: linear-gradient(135deg,#ff6666,#ffaa44); border-color:#fff; box-shadow:0 0 16px #ff4400,0 0 30px #ff0000; }
 .stat-seg.peak.def.tier-10 { background: linear-gradient(135deg,#aaccff,#ddaaff); border-color:#fff; box-shadow:0 0 16px #6644ff,0 0 30px #cc00ff; }
 .stat-seg.peak.mag.tier-10 { background: linear-gradient(135deg,#ff88ff,#ffccaa); border-color:#fff; box-shadow:0 0 16px #ff44aa,0 0 30px #ff00ff; }
 .stat-seg.peak.spd.tier-10 { background: linear-gradient(135deg,#ffff88,#aaffaa); border-color:#fff; box-shadow:0 0 16px #aaff44,0 0 30px #ffff00; }
+.stat-seg.peak.iq.tier-10  { background: linear-gradient(135deg,#88eeff,#aaddff); border-color:#fff; box-shadow:0 0 16px #0099ee,0 0 30px #00bbcc; }
 .stat-seg.ghost.hp.tier-10    { background: #001a11; border-color: #002a1a; }
 .stat-seg.ghost.atk.tier-10   { background: #1a0500; border-color: #2a0800; }
 .stat-seg.ghost.def.tier-10   { background: #00051a; border-color: #000a2a; }
@@ -700,16 +723,19 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-11  { background: #ffffff; border-color: #aaccff; box-shadow: 0 0 8px #0088ff; }
 .stat-seg.on.mag.tier-11  { background: #ffffff; border-color: #ffaaff; box-shadow: 0 0 8px #ff00ff; }
 .stat-seg.on.spd.tier-11  { background: #ffffff; border-color: #ffffaa; box-shadow: 0 0 8px #ffff00; }
+.stat-seg.on.iq.tier-11   { background: #ffffff; border-color: #aaffff; box-shadow: 0 0 8px #00bbcc; }
 .stat-seg.peak.hp.tier-11  { background:#fff; border-color:#fff; animation: seg-pulse-hp  1.6s ease-in-out infinite alternate; }
 .stat-seg.peak.atk.tier-11 { background:#fff; border-color:#fff; animation: seg-pulse-atk 1.6s ease-in-out infinite alternate; }
 .stat-seg.peak.def.tier-11 { background:#fff; border-color:#fff; animation: seg-pulse-def 1.6s ease-in-out infinite alternate; }
 .stat-seg.peak.mag.tier-11 { background:#fff; border-color:#fff; animation: seg-pulse-mag 1.6s ease-in-out infinite alternate; }
 .stat-seg.peak.spd.tier-11 { background:#fff; border-color:#fff; animation: seg-pulse-spd 1.6s ease-in-out infinite alternate; }
+.stat-seg.peak.iq.tier-11  { background:#fff; border-color:#fff; animation: seg-pulse-iq  1.6s ease-in-out infinite alternate; }
 @keyframes seg-pulse-hp  { from{box-shadow:0 0 20px #fff,0 0 40px #00ff88;} to{box-shadow:0 0 35px #fff,0 0 70px #00ff88,0 0 100px rgba(0,255,136,0.6);} }
 @keyframes seg-pulse-atk { from{box-shadow:0 0 20px #fff,0 0 40px #ff4400;} to{box-shadow:0 0 35px #fff,0 0 70px #ff4400,0 0 100px rgba(255,68,0,0.6);} }
 @keyframes seg-pulse-def { from{box-shadow:0 0 20px #fff,0 0 40px #0088ff;} to{box-shadow:0 0 35px #fff,0 0 70px #0088ff,0 0 100px rgba(0,136,255,0.6);} }
 @keyframes seg-pulse-mag { from{box-shadow:0 0 20px #fff,0 0 40px #ff00ff;} to{box-shadow:0 0 35px #fff,0 0 70px #ff00ff,0 0 100px rgba(255,0,255,0.6);} }
 @keyframes seg-pulse-spd { from{box-shadow:0 0 20px #fff,0 0 40px #ffff00;} to{box-shadow:0 0 35px #fff,0 0 70px #ffff00,0 0 100px rgba(255,255,0,0.6);} }
+@keyframes seg-pulse-iq  { from{box-shadow:0 0 20px #fff,0 0 40px #00bbcc;} to{box-shadow:0 0 35px #fff,0 0 70px #00bbcc,0 0 100px rgba(0,187,204,0.6);} }
 
 /* === TIER 9 — INFERNAL (Lava / Magma / Embers) === */
 .stat-seg.on.hp.tier-12   { background: #ff2200; border-color: #ff5500; box-shadow: inset 0 0 10px #aa1100; }
@@ -717,11 +743,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-12  { background: #ffaa00; border-color: #ffcc00; box-shadow: inset 0 0 10px #aa6600; }
 .stat-seg.on.mag.tier-12  { background: #cc0055; border-color: #ff0088; box-shadow: inset 0 0 10px #880033; }
 .stat-seg.on.spd.tier-12  { background: #ffdd00; border-color: #ffff00; box-shadow: inset 0 0 10px #aaaa00; }
+.stat-seg.on.iq.tier-12   { background: #005566; border-color: #00ddff; box-shadow: inset 0 0 10px #00aacc; }
 .stat-seg.peak.hp.tier-12  { background: #ffaa88; border-color: #ffffff; box-shadow: 0 0 15px #ff2200, 0 0 30px #ff5500; }
 .stat-seg.peak.atk.tier-12 { background: #ff8888; border-color: #ffffff; box-shadow: 0 0 15px #dd0000, 0 0 30px #ff1100; }
 .stat-seg.peak.def.tier-12 { background: #ffeeaa; border-color: #ffffff; box-shadow: 0 0 15px #ffaa00, 0 0 30px #ffcc00; }
 .stat-seg.peak.mag.tier-12 { background: #ff88aa; border-color: #ffffff; box-shadow: 0 0 15px #cc0055, 0 0 30px #ff0088; }
 .stat-seg.peak.spd.tier-12 { background: #ffffaa; border-color: #ffffff; box-shadow: 0 0 15px #ffdd00, 0 0 30px #ffff00; }
+.stat-seg.peak.iq.tier-12  { background: #aaffff; border-color: #ffffff; box-shadow: 0 0 15px #00ddff, 0 0 30px #00bbcc; }
 .stat-seg.ghost.hp.tier-12    { background: #330500; border-color: #440a00; }
 .stat-seg.ghost.atk.tier-12   { background: #330000; border-color: #440000; }
 .stat-seg.ghost.def.tier-12   { background: #332200; border-color: #442d00; }
@@ -734,11 +762,13 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-13  { background: #001144; border-color: #0044bb; box-shadow: 0 0 10px #0044bb; }
 .stat-seg.on.mag.tier-13  { background: #1a0033; border-color: #660099; box-shadow: 0 0 10px #660099; }
 .stat-seg.on.spd.tier-13  { background: #222244; border-color: #6666cc; box-shadow: 0 0 10px #6666cc; }
+.stat-seg.on.iq.tier-13   { background: #002244; border-color: #0088bb; box-shadow: 0 0 10px #0088bb; }
 .stat-seg.peak.hp.tier-13  { background: #88aaff; border-color: #ffffff; box-shadow: 0 0 20px #4400aa, 0 0 40px #aa88ff; }
 .stat-seg.peak.atk.tier-13 { background: #ff88ff; border-color: #ffffff; box-shadow: 0 0 20px #770088, 0 0 40px #ff88ff; }
 .stat-seg.peak.def.tier-13 { background: #88ccff; border-color: #ffffff; box-shadow: 0 0 20px #0044bb, 0 0 40px #88ccff; }
 .stat-seg.peak.mag.tier-13 { background: #dd88ff; border-color: #ffffff; box-shadow: 0 0 20px #660099, 0 0 40px #dd88ff; }
 .stat-seg.peak.spd.tier-13 { background: #ccccff; border-color: #ffffff; box-shadow: 0 0 20px #6666cc, 0 0 40px #ccccff; }
+.stat-seg.peak.iq.tier-13  { background: #88ddff; border-color: #ffffff; box-shadow: 0 0 20px #0088bb, 0 0 40px #88ddff; }
 .stat-seg.ghost.hp.tier-13    { background: #05001a; border-color: #0a0033; }
 .stat-seg.ghost.atk.tier-13   { background: #11001a; border-color: #1a002a; }
 .stat-seg.ghost.def.tier-13   { background: #00051a; border-color: #000a33; }
@@ -751,33 +781,239 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.def.tier-14  { background: linear-gradient(180deg, #22aaff, #003366); border-color: #22aaff; border-top-color: #ffffff; }
 .stat-seg.on.mag.tier-14  { background: linear-gradient(180deg, #ff00cc, #550044); border-color: #ff00cc; border-top-color: #ffffff; }
 .stat-seg.on.spd.tier-14  { background: linear-gradient(180deg, #ffea00, #665500); border-color: #ffea00; border-top-color: #ffffff; }
+.stat-seg.on.iq.tier-14   { background: linear-gradient(180deg, #00eeff, #004466); border-color: #00eeff; border-top-color: #ffffff; }
 .stat-seg.peak.hp.tier-14  { background: #ffffff; border-color: #00ffa0; box-shadow: 0 0 20px #00ffa0; }
 .stat-seg.peak.atk.tier-14 { background: #ffffff; border-color: #ff2255; box-shadow: 0 0 20px #ff2255; }
 .stat-seg.peak.def.tier-14 { background: #ffffff; border-color: #22aaff; box-shadow: 0 0 20px #22aaff; }
 .stat-seg.peak.mag.tier-14 { background: #ffffff; border-color: #ff00cc; box-shadow: 0 0 20px #ff00cc; }
 .stat-seg.peak.spd.tier-14 { background: #ffffff; border-color: #ffea00; box-shadow: 0 0 20px #ffea00; }
+.stat-seg.peak.iq.tier-14  { background: #ffffff; border-color: #00eeff; box-shadow: 0 0 20px #00eeff; }
 .stat-seg.ghost.hp.tier-14    { background: #002210; border-color: #004420; }
 .stat-seg.ghost.atk.tier-14   { background: #220005; border-color: #440010; }
 .stat-seg.ghost.def.tier-14   { background: #001122; border-color: #002244; }
 .stat-seg.ghost.mag.tier-14   { background: #22001a; border-color: #440033; }
 .stat-seg.ghost.spd.tier-14   { background: #221a00; border-color: #443300; }
 
-/* === TIER 12 — NULL (Reality-breaking pure void with sharp outlines) === */
-.stat-seg.on.hp.tier-15   { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
-.stat-seg.on.atk.tier-15  { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
-.stat-seg.on.def.tier-15  { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
-.stat-seg.on.mag.tier-15  { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
-.stat-seg.on.spd.tier-15  { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
-.stat-seg.peak.hp.tier-15  { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
-.stat-seg.peak.atk.tier-15 { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
-.stat-seg.peak.def.tier-15 { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
-.stat-seg.peak.mag.tier-15 { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
-.stat-seg.peak.spd.tier-15 { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
-.stat-seg.ghost.hp.tier-15    { background: transparent; border: 1px dashed #444444; }
-.stat-seg.ghost.atk.tier-15   { background: transparent; border: 1px dashed #444444; }
-.stat-seg.ghost.def.tier-15   { background: transparent; border: 1px dashed #444444; }
-.stat-seg.ghost.mag.tier-15   { background: transparent; border: 1px dashed #444444; }
-.stat-seg.ghost.spd.tier-15   { background: transparent; border: 1px dashed #444444; }
+/* === TIER 15 — IRIDESCENT (Animated oil-slick color sweep — hues shift across the bar) === */
+@keyframes irid-sweep { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+.stat-seg.on.hp.tier-15   { background:linear-gradient(90deg,#00ff88,#00ffcc,#0088ff,#aa00ff,#00ff88); background-size:400% 100%; animation:irid-sweep 3s linear infinite; border-color:#aaffee; }
+.stat-seg.on.atk.tier-15  { background:linear-gradient(90deg,#ff2244,#ff8800,#ffff00,#ff00aa,#ff2244); background-size:400% 100%; animation:irid-sweep 3s linear infinite; border-color:#ffaacc; }
+.stat-seg.on.def.tier-15  { background:linear-gradient(90deg,#0044ff,#00ccff,#00ff88,#aa00ff,#0044ff); background-size:400% 100%; animation:irid-sweep 3s linear infinite; border-color:#aaddff; }
+.stat-seg.on.mag.tier-15  { background:linear-gradient(90deg,#aa00ff,#ff00cc,#ff8800,#ff00aa,#aa00ff); background-size:400% 100%; animation:irid-sweep 3s linear infinite; border-color:#ffaaee; }
+.stat-seg.on.spd.tier-15  { background:linear-gradient(90deg,#ffcc00,#88ff00,#00ffcc,#ff8800,#ffcc00); background-size:400% 100%; animation:irid-sweep 3s linear infinite; border-color:#ddff88; }
+.stat-seg.on.iq.tier-15   { background:linear-gradient(90deg,#00bbcc,#0088ff,#00ffcc,#00ccff,#00bbcc); background-size:400% 100%; animation:irid-sweep 3s linear infinite; border-color:#aaeeff; }
+.stat-seg.peak.hp.tier-15  { background:linear-gradient(90deg,#aaffcc,#aaffff,#aaccff,#ffaaff,#aaffcc); background-size:400% 100%; animation:irid-sweep 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #00ffcc,0 0 35px rgba(0,255,204,0.4); }
+.stat-seg.peak.atk.tier-15 { background:linear-gradient(90deg,#ffaacc,#ffcc88,#ffff88,#ffaacc); background-size:400% 100%; animation:irid-sweep 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #ff8800,0 0 35px rgba(255,136,0,0.4); }
+.stat-seg.peak.def.tier-15 { background:linear-gradient(90deg,#aaccff,#aaffcc,#ccaaff,#aaccff); background-size:400% 100%; animation:irid-sweep 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #0088ff,0 0 35px rgba(0,136,255,0.4); }
+.stat-seg.peak.mag.tier-15 { background:linear-gradient(90deg,#ee88ff,#ffaacc,#ffcc88,#ee88ff); background-size:400% 100%; animation:irid-sweep 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #ff00cc,0 0 35px rgba(255,0,204,0.4); }
+.stat-seg.peak.spd.tier-15 { background:linear-gradient(90deg,#ffee88,#aaffcc,#ffee88); background-size:400% 100%; animation:irid-sweep 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #88ff00,0 0 35px rgba(136,255,0,0.4); }
+.stat-seg.peak.iq.tier-15  { background:linear-gradient(90deg,#aaffff,#88ddff,#aaffee,#aaffff); background-size:400% 100%; animation:irid-sweep 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #00ccff,0 0 35px rgba(0,204,255,0.4); }
+.stat-seg.ghost.hp.tier-15    { background:#001a11; border-color:#003322; }
+.stat-seg.ghost.atk.tier-15   { background:#1a0500; border-color:#2a0800; }
+.stat-seg.ghost.def.tier-15   { background:#000a22; border-color:#00102a; }
+.stat-seg.ghost.mag.tier-15   { background:#180018; border-color:#280028; }
+.stat-seg.ghost.spd.tier-15   { background:#1a1800; border-color:#2a2500; }
+
+/* === TIER 16 — CIRCUIT TRACE (Diagonal PCB-style stripe pattern — like circuit board traces) === */
+.stat-seg.on.hp.tier-16   { background:repeating-linear-gradient(45deg,#001a08 0px,#001a08 4px,#00cc55 4px,#00cc55 6px); border-color:#00cc55; }
+.stat-seg.on.atk.tier-16  { background:repeating-linear-gradient(45deg,#1a0500 0px,#1a0500 4px,#cc3300 4px,#cc3300 6px); border-color:#cc3300; }
+.stat-seg.on.def.tier-16  { background:repeating-linear-gradient(45deg,#000d22 0px,#000d22 4px,#0077dd 4px,#0077dd 6px); border-color:#0077dd; }
+.stat-seg.on.mag.tier-16  { background:repeating-linear-gradient(45deg,#0d0022 0px,#0d0022 4px,#bb00ee 4px,#bb00ee 6px); border-color:#bb00ee; }
+.stat-seg.on.spd.tier-16  { background:repeating-linear-gradient(45deg,#1a1400 0px,#1a1400 4px,#ddaa00 4px,#ddaa00 6px); border-color:#ddaa00; }
+.stat-seg.on.iq.tier-16   { background:repeating-linear-gradient(45deg,#001a1a 0px,#001a1a 4px,#00bbcc 4px,#00bbcc 6px); border-color:#00bbcc; }
+.stat-seg.peak.hp.tier-16  { background:repeating-linear-gradient(45deg,#003311 0px,#003311 4px,#00ff88 4px,#00ff88 6px); border-color:#aaffcc; box-shadow:0 0 14px #00cc55,0 0 28px rgba(0,204,85,0.4); }
+.stat-seg.peak.atk.tier-16 { background:repeating-linear-gradient(45deg,#330800 0px,#330800 4px,#ff5500 4px,#ff5500 6px); border-color:#ffbb99; box-shadow:0 0 14px #cc3300,0 0 28px rgba(204,51,0,0.4); }
+.stat-seg.peak.def.tier-16 { background:repeating-linear-gradient(45deg,#001433 0px,#001433 4px,#1199ff 4px,#1199ff 6px); border-color:#aaccff; box-shadow:0 0 14px #0077dd,0 0 28px rgba(0,119,221,0.4); }
+.stat-seg.peak.mag.tier-16 { background:repeating-linear-gradient(45deg,#1a0033 0px,#1a0033 4px,#dd22ff 4px,#dd22ff 6px); border-color:#ddaaff; box-shadow:0 0 14px #bb00ee,0 0 28px rgba(187,0,238,0.4); }
+.stat-seg.peak.spd.tier-16 { background:repeating-linear-gradient(45deg,#332200 0px,#332200 4px,#ffdd00 4px,#ffdd00 6px); border-color:#ffeeaa; box-shadow:0 0 14px #ddaa00,0 0 28px rgba(221,170,0,0.4); }
+.stat-seg.peak.iq.tier-16  { background:repeating-linear-gradient(45deg,#003333 0px,#003333 4px,#00ffee 4px,#00ffee 6px); border-color:#aaffff; box-shadow:0 0 14px #00bbcc,0 0 28px rgba(0,187,204,0.4); }
+.stat-seg.ghost.hp.tier-16    { background:#001508; border-color:#002a11; }
+.stat-seg.ghost.atk.tier-16   { background:#150400; border-color:#2a0800; }
+.stat-seg.ghost.def.tier-16   { background:#000b1a; border-color:#001122; }
+.stat-seg.ghost.mag.tier-16   { background:#0b001a; border-color:#150022; }
+.stat-seg.ghost.spd.tier-16   { background:#151100; border-color:#2a2200; }
+
+/* === TIER 17 — MOLTEN (Dark body, pulsing inner fire glow — like hot lava from below) === */
+@keyframes molten-hp  { 0%,100%{box-shadow:inset 0 0 6px #ff4400,0 0 8px #cc2200;}  50%{box-shadow:inset 0 0 14px #ff6600,0 0 20px #ff4400,0 0 32px rgba(255,68,0,0.4);} }
+@keyframes molten-atk { 0%,100%{box-shadow:inset 0 0 6px #ff0000,0 0 8px #aa0000;}  50%{box-shadow:inset 0 0 14px #ff3300,0 0 20px #ff0000,0 0 32px rgba(255,0,0,0.4);} }
+@keyframes molten-def { 0%,100%{box-shadow:inset 0 0 6px #ffaa00,0 0 8px #bb7700;}  50%{box-shadow:inset 0 0 14px #ffcc00,0 0 20px #ffaa00,0 0 32px rgba(255,170,0,0.4);} }
+@keyframes molten-mag { 0%,100%{box-shadow:inset 0 0 6px #ff2266,0 0 8px #cc0044;}  50%{box-shadow:inset 0 0 14px #ff4488,0 0 20px #ff2266,0 0 32px rgba(255,34,102,0.4);} }
+@keyframes molten-spd { 0%,100%{box-shadow:inset 0 0 6px #ffee00,0 0 8px #aaaa00;}  50%{box-shadow:inset 0 0 14px #ffff22,0 0 20px #ffee00,0 0 32px rgba(255,238,0,0.4);} }
+.stat-seg.on.hp.tier-17   { background:linear-gradient(180deg,#0d0000,#2a0800,#0d0000); border-color:#ff4400; animation:molten-hp 2.2s ease-in-out infinite; }
+.stat-seg.on.atk.tier-17  { background:linear-gradient(180deg,#0d0000,#2a0000,#0d0000); border-color:#ff0000; animation:molten-atk 2.2s ease-in-out infinite; }
+.stat-seg.on.def.tier-17  { background:linear-gradient(180deg,#100800,#2a1800,#100800); border-color:#ffaa00; animation:molten-def 2.2s ease-in-out infinite; }
+.stat-seg.on.mag.tier-17  { background:linear-gradient(180deg,#0d0005,#2a0011,#0d0005); border-color:#ff2266; animation:molten-mag 2.2s ease-in-out infinite; }
+.stat-seg.on.spd.tier-17  { background:linear-gradient(180deg,#0d0d00,#2a2a00,#0d0d00); border-color:#ffee00; animation:molten-spd 2.2s ease-in-out infinite; }
+.stat-seg.on.iq.tier-17   { background:linear-gradient(180deg,#000d0d,#002a2a,#000d0d); border-color:#00bbcc; animation:molten-iq 2.2s ease-in-out infinite; }
+@keyframes molten-iq  { 0%,100%{box-shadow:inset 0 0 6px #00bbcc,0 0 8px #007788;}  50%{box-shadow:inset 0 0 14px #00eeff,0 0 20px #00bbcc,0 0 32px rgba(0,187,204,0.4);} }
+.stat-seg.peak.hp.tier-17  { background:#441100; border-color:#ff8866; box-shadow:inset 0 0 14px #ff4400,0 0 24px #ff4400,0 0 45px rgba(255,68,0,0.5); }
+.stat-seg.peak.atk.tier-17 { background:#440000; border-color:#ff8888; box-shadow:inset 0 0 14px #ff0000,0 0 24px #ff0000,0 0 45px rgba(255,0,0,0.5); }
+.stat-seg.peak.def.tier-17 { background:#442200; border-color:#ffeeaa; box-shadow:inset 0 0 14px #ffaa00,0 0 24px #ffaa00,0 0 45px rgba(255,170,0,0.5); }
+.stat-seg.peak.mag.tier-17 { background:#440011; border-color:#ff99bb; box-shadow:inset 0 0 14px #ff2266,0 0 24px #ff2266,0 0 45px rgba(255,34,102,0.5); }
+.stat-seg.peak.spd.tier-17 { background:#444400; border-color:#ffffaa; box-shadow:inset 0 0 14px #ffee00,0 0 24px #ffee00,0 0 45px rgba(255,238,0,0.5); }
+.stat-seg.peak.iq.tier-17  { background:#004444; border-color:#aaffff; box-shadow:inset 0 0 14px #00bbcc,0 0 24px #00bbcc,0 0 45px rgba(0,187,204,0.5); }
+.stat-seg.ghost.hp.tier-17    { background:#0d0000; border-color:#220500; }
+.stat-seg.ghost.atk.tier-17   { background:#0d0000; border-color:#220000; }
+.stat-seg.ghost.def.tier-17   { background:#100800; border-color:#221500; }
+.stat-seg.ghost.mag.tier-17   { background:#0d0005; border-color:#220011; }
+.stat-seg.ghost.spd.tier-17   { background:#0d0d00; border-color:#222200; }
+
+/* === TIER 18 — HOLOGRAPHIC (All stats become an animated full-spectrum rainbow foil) === */
+@keyframes holo-shift { 0%{background-position:0% 50%} 100%{background-position:300% 50%} }
+.stat-seg.on.hp.tier-18   { background:linear-gradient(45deg,#ff0000,#ff8800,#ffff00,#00ff88,#0088ff,#aa00ff,#ff0088,#ff0000); background-size:400% 100%; animation:holo-shift 3s linear infinite; border-color:rgba(255,255,255,0.5); }
+.stat-seg.on.atk.tier-18  { background:linear-gradient(55deg,#ff0088,#ff0000,#ff8800,#ffff00,#00ff88,#0088ff,#aa00ff,#ff0088); background-size:400% 100%; animation:holo-shift 3s linear infinite; border-color:rgba(255,255,255,0.5); }
+.stat-seg.on.def.tier-18  { background:linear-gradient(35deg,#0088ff,#aa00ff,#ff0088,#ff0000,#ff8800,#ffff00,#00ff88,#0088ff); background-size:400% 100%; animation:holo-shift 3s linear infinite; border-color:rgba(255,255,255,0.5); }
+.stat-seg.on.mag.tier-18  { background:linear-gradient(50deg,#aa00ff,#ff0088,#ff0000,#ff8800,#ffff00,#00ff88,#0088ff,#aa00ff); background-size:400% 100%; animation:holo-shift 3s linear infinite; border-color:rgba(255,255,255,0.5); }
+.stat-seg.on.spd.tier-18  { background:linear-gradient(40deg,#ffff00,#00ff88,#0088ff,#aa00ff,#ff0088,#ff0000,#ff8800,#ffff00); background-size:400% 100%; animation:holo-shift 3s linear infinite; border-color:rgba(255,255,255,0.5); }
+.stat-seg.on.iq.tier-18   { background:linear-gradient(45deg,#00bbcc,#0044ff,#00ffcc,#00aaff,#00bbcc); background-size:400% 100%; animation:holo-shift 3s linear infinite; border-color:rgba(255,255,255,0.5); }
+.stat-seg.peak.hp.tier-18  { background:linear-gradient(45deg,#ffaacc,#ffccaa,#ffffaa,#aaffcc,#aaccff,#ccaaff,#ffaacc); background-size:400% 100%; animation:holo-shift 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #fff,0 0 35px rgba(255,255,255,0.4); }
+.stat-seg.peak.atk.tier-18 { background:linear-gradient(55deg,#ffaaee,#ffaacc,#ffccaa,#ffffaa,#aaffcc,#aaccff,#ccaaff,#ffaaee); background-size:400% 100%; animation:holo-shift 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #fff,0 0 35px rgba(255,255,255,0.4); }
+.stat-seg.peak.def.tier-18 { background:linear-gradient(35deg,#aaccff,#ccaaff,#ffaaee,#ffaacc,#ffccaa,#ffffaa,#aaffcc,#aaccff); background-size:400% 100%; animation:holo-shift 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #fff,0 0 35px rgba(255,255,255,0.4); }
+.stat-seg.peak.mag.tier-18 { background:linear-gradient(50deg,#ccaaff,#ffaaee,#ffaacc,#ffccaa,#ffffaa,#aaffcc,#aaccff,#ccaaff); background-size:400% 100%; animation:holo-shift 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #fff,0 0 35px rgba(255,255,255,0.4); }
+.stat-seg.peak.spd.tier-18 { background:linear-gradient(40deg,#ffffaa,#aaffcc,#aaccff,#ccaaff,#ffaaee,#ffaacc,#ffccaa,#ffffaa); background-size:400% 100%; animation:holo-shift 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #fff,0 0 35px rgba(255,255,255,0.4); }
+.stat-seg.peak.iq.tier-18  { background:linear-gradient(45deg,#aaffff,#aaeeff,#aaffcc,#aaddff,#aaffff); background-size:400% 100%; animation:holo-shift 1.5s linear infinite; border-color:#fff; box-shadow:0 0 18px #fff,0 0 35px rgba(255,255,255,0.4); }
+.stat-seg.ghost.hp.tier-18    { background:#111111; border-color:#222222; }
+.stat-seg.ghost.atk.tier-18   { background:#111111; border-color:#222222; }
+.stat-seg.ghost.def.tier-18   { background:#111111; border-color:#222222; }
+.stat-seg.ghost.mag.tier-18   { background:#111111; border-color:#222222; }
+.stat-seg.ghost.spd.tier-18   { background:#111111; border-color:#222222; }
+
+/* === TIER 19 — PHANTOM (Near-transparent aura — bars feel immaterial, made of light) === */
+.stat-seg.on.hp.tier-19   { background:rgba(0,255,136,0.08); border-color:#00ff88; box-shadow:0 0 10px #00ff88,0 0 20px rgba(0,255,136,0.3); }
+.stat-seg.on.atk.tier-19  { background:rgba(255,34,68,0.08); border-color:#ff2244; box-shadow:0 0 10px #ff2244,0 0 20px rgba(255,34,68,0.3); }
+.stat-seg.on.def.tier-19  { background:rgba(0,136,255,0.08); border-color:#0088ff; box-shadow:0 0 10px #0088ff,0 0 20px rgba(0,136,255,0.3); }
+.stat-seg.on.mag.tier-19  { background:rgba(204,0,255,0.08); border-color:#cc00ff; box-shadow:0 0 10px #cc00ff,0 0 20px rgba(204,0,255,0.3); }
+.stat-seg.on.spd.tier-19  { background:rgba(255,204,0,0.08); border-color:#ffcc00; box-shadow:0 0 10px #ffcc00,0 0 20px rgba(255,204,0,0.3); }
+.stat-seg.on.iq.tier-19   { background:rgba(0,187,204,0.08); border-color:#00bbcc; box-shadow:0 0 10px #00bbcc,0 0 20px rgba(0,187,204,0.3); }
+.stat-seg.peak.hp.tier-19  { background:rgba(0,255,136,0.12); border-color:#aaffdd; box-shadow:0 0 20px #00ff88,0 0 40px #00ff88,0 0 60px rgba(0,255,136,0.4); }
+.stat-seg.peak.atk.tier-19 { background:rgba(255,34,68,0.12); border-color:#ffaabb; box-shadow:0 0 20px #ff2244,0 0 40px #ff2244,0 0 60px rgba(255,34,68,0.4); }
+.stat-seg.peak.def.tier-19 { background:rgba(0,136,255,0.12); border-color:#aaccff; box-shadow:0 0 20px #0088ff,0 0 40px #0088ff,0 0 60px rgba(0,136,255,0.4); }
+.stat-seg.peak.mag.tier-19 { background:rgba(204,0,255,0.12); border-color:#ddaaff; box-shadow:0 0 20px #cc00ff,0 0 40px #cc00ff,0 0 60px rgba(204,0,255,0.4); }
+.stat-seg.peak.spd.tier-19 { background:rgba(255,204,0,0.12); border-color:#ffeeaa; box-shadow:0 0 20px #ffcc00,0 0 40px #ffcc00,0 0 60px rgba(255,204,0,0.4); }
+.stat-seg.peak.iq.tier-19  { background:rgba(0,187,204,0.12); border-color:#aaffff; box-shadow:0 0 20px #00bbcc,0 0 40px #00bbcc,0 0 60px rgba(0,187,204,0.4); }
+.stat-seg.ghost.hp.tier-19    { background:rgba(0,255,136,0.03); border-color:rgba(0,255,136,0.15); }
+.stat-seg.ghost.atk.tier-19   { background:rgba(255,34,68,0.03); border-color:rgba(255,34,68,0.15); }
+.stat-seg.ghost.def.tier-19   { background:rgba(0,136,255,0.03); border-color:rgba(0,136,255,0.15); }
+.stat-seg.ghost.mag.tier-19   { background:rgba(204,0,255,0.03); border-color:rgba(204,0,255,0.15); }
+.stat-seg.ghost.spd.tier-19   { background:rgba(255,204,0,0.03); border-color:rgba(255,204,0,0.15); }
+
+/* === TIER 20 — GILDED (Metallic sheen — animated highlight sweeps across a deep metallic base) === */
+@keyframes gild-sweep { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+.stat-seg.on.hp.tier-20   { background:linear-gradient(90deg,#004422,#00aa44,#eeffcc,#00aa44,#004422); background-size:300% 100%; border-color:#aaffbb; animation:gild-sweep 3s ease-in-out infinite; }
+.stat-seg.on.atk.tier-20  { background:linear-gradient(90deg,#441100,#bb3300,#ffddbb,#bb3300,#441100); background-size:300% 100%; border-color:#ffccaa; animation:gild-sweep 3s ease-in-out infinite; }
+.stat-seg.on.def.tier-20  { background:linear-gradient(90deg,#001144,#0055bb,#ccddff,#0055bb,#001144); background-size:300% 100%; border-color:#aaccff; animation:gild-sweep 3s ease-in-out infinite; }
+.stat-seg.on.mag.tier-20  { background:linear-gradient(90deg,#330044,#9900cc,#ffccff,#9900cc,#330044); background-size:300% 100%; border-color:#ddaaff; animation:gild-sweep 3s ease-in-out infinite; }
+.stat-seg.on.spd.tier-20  { background:linear-gradient(90deg,#332200,#aa8800,#ffffbb,#aa8800,#332200); background-size:300% 100%; border-color:#ffee88; animation:gild-sweep 3s ease-in-out infinite; }
+.stat-seg.on.iq.tier-20   { background:linear-gradient(90deg,#003344,#0088aa,#ccffff,#0088aa,#003344); background-size:300% 100%; border-color:#aaeeff; animation:gild-sweep 3s ease-in-out infinite; }
+.stat-seg.peak.hp.tier-20  { background:linear-gradient(90deg,#006633,#00dd55,#ffffff,#00dd55,#006633); background-size:300% 100%; animation:gild-sweep 1.5s ease-in-out infinite; border-color:#fff; box-shadow:0 0 16px #00dd55,0 0 30px rgba(0,221,85,0.4); }
+.stat-seg.peak.atk.tier-20 { background:linear-gradient(90deg,#661100,#ee4400,#ffffff,#ee4400,#661100); background-size:300% 100%; animation:gild-sweep 1.5s ease-in-out infinite; border-color:#fff; box-shadow:0 0 16px #ee4400,0 0 30px rgba(238,68,0,0.4); }
+.stat-seg.peak.def.tier-20 { background:linear-gradient(90deg,#001166,#0066ee,#ffffff,#0066ee,#001166); background-size:300% 100%; animation:gild-sweep 1.5s ease-in-out infinite; border-color:#fff; box-shadow:0 0 16px #0066ee,0 0 30px rgba(0,102,238,0.4); }
+.stat-seg.peak.mag.tier-20 { background:linear-gradient(90deg,#440055,#bb00ee,#ffffff,#bb00ee,#440055); background-size:300% 100%; animation:gild-sweep 1.5s ease-in-out infinite; border-color:#fff; box-shadow:0 0 16px #bb00ee,0 0 30px rgba(187,0,238,0.4); }
+.stat-seg.peak.spd.tier-20 { background:linear-gradient(90deg,#443300,#ccaa00,#ffffff,#ccaa00,#443300); background-size:300% 100%; animation:gild-sweep 1.5s ease-in-out infinite; border-color:#fff; box-shadow:0 0 16px #ccaa00,0 0 30px rgba(204,170,0,0.4); }
+.stat-seg.peak.iq.tier-20  { background:linear-gradient(90deg,#004455,#00bbdd,#ffffff,#00bbdd,#004455); background-size:300% 100%; animation:gild-sweep 1.5s ease-in-out infinite; border-color:#fff; box-shadow:0 0 16px #00bbdd,0 0 30px rgba(0,187,221,0.4); }
+.stat-seg.ghost.hp.tier-20    { background:#002211; border-color:#003d1a; }
+.stat-seg.ghost.atk.tier-20   { background:#220800; border-color:#3d1500; }
+.stat-seg.ghost.def.tier-20   { background:#000a22; border-color:#001133; }
+.stat-seg.ghost.mag.tier-20   { background:#1a0022; border-color:#2e003d; }
+.stat-seg.ghost.spd.tier-20   { background:#221100; border-color:#3d2200; }
+
+/* === TIER 21 — TOXIC (Corrosive acid — all stats corrupted into a sickly poison green) === */
+.stat-seg.on.hp.tier-21   { background:linear-gradient(180deg,#001a00,#003300,#00aa00); border-color:#00ff22; box-shadow:inset 0 0 8px #00ff22,0 0 6px #00aa00; }
+.stat-seg.on.atk.tier-21  { background:linear-gradient(180deg,#001a00,#003300,#77cc00); border-color:#aaff00; box-shadow:inset 0 0 8px #aaff00,0 0 6px #77cc00; }
+.stat-seg.on.def.tier-21  { background:linear-gradient(180deg,#001100,#003300,#22aa44); border-color:#55ff44; box-shadow:inset 0 0 8px #55ff44,0 0 6px #22aa44; }
+.stat-seg.on.mag.tier-21  { background:linear-gradient(180deg,#001800,#003300,#88dd00); border-color:#ddff00; box-shadow:inset 0 0 8px #ddff00,0 0 6px #88dd00; }
+.stat-seg.on.spd.tier-21  { background:linear-gradient(180deg,#001500,#003800,#00cc55); border-color:#00ff77; box-shadow:inset 0 0 8px #00ff77,0 0 6px #00cc55; }
+.stat-seg.on.iq.tier-21   { background:linear-gradient(180deg,#001a1a,#003333,#00aaaa); border-color:#00eeff; box-shadow:inset 0 0 8px #00eeff,0 0 6px #00aaaa; }
+.stat-seg.peak.hp.tier-21  { background:#003300; border-color:#aaffaa; box-shadow:inset 0 0 16px #00ff22,0 0 20px #00ff22,0 0 40px rgba(0,255,34,0.4); }
+.stat-seg.peak.atk.tier-21 { background:#223300; border-color:#ddffaa; box-shadow:inset 0 0 16px #aaff00,0 0 20px #aaff00,0 0 40px rgba(170,255,0,0.4); }
+.stat-seg.peak.def.tier-21 { background:#003300; border-color:#aaffbb; box-shadow:inset 0 0 16px #55ff44,0 0 20px #55ff44,0 0 40px rgba(85,255,68,0.4); }
+.stat-seg.peak.mag.tier-21 { background:#223300; border-color:#eeffaa; box-shadow:inset 0 0 16px #ddff00,0 0 20px #ddff00,0 0 40px rgba(221,255,0,0.4); }
+.stat-seg.peak.spd.tier-21 { background:#003300; border-color:#aaffcc; box-shadow:inset 0 0 16px #00ff77,0 0 20px #00ff77,0 0 40px rgba(0,255,119,0.4); }
+.stat-seg.peak.iq.tier-21  { background:#003333; border-color:#aaffff; box-shadow:inset 0 0 16px #00eeff,0 0 20px #00eeff,0 0 40px rgba(0,238,255,0.4); }
+.stat-seg.ghost.hp.tier-21    { background:#001100; border-color:#002200; }
+.stat-seg.ghost.atk.tier-21   { background:#001100; border-color:#112200; }
+.stat-seg.ghost.def.tier-21   { background:#001100; border-color:#002200; }
+.stat-seg.ghost.mag.tier-21   { background:#111100; border-color:#222200; }
+.stat-seg.ghost.spd.tier-21   { background:#001100; border-color:#002211; }
+
+/* === TIER 22 — SCANLINES (Fine CRT horizontal banding — like looking at an old monitor) === */
+.stat-seg.on.hp.tier-22   { background:repeating-linear-gradient(0deg,#00ff88 0px,#00ff88 1px,#006633 1px,#006633 4px); border-color:#00ff88; }
+.stat-seg.on.atk.tier-22  { background:repeating-linear-gradient(0deg,#ff4400 0px,#ff4400 1px,#660000 1px,#660000 4px); border-color:#ff4400; }
+.stat-seg.on.def.tier-22  { background:repeating-linear-gradient(0deg,#0099ff 0px,#0099ff 1px,#001144 1px,#001144 4px); border-color:#0099ff; }
+.stat-seg.on.mag.tier-22  { background:repeating-linear-gradient(0deg,#dd00ff 0px,#dd00ff 1px,#330044 1px,#330044 4px); border-color:#dd00ff; }
+.stat-seg.on.spd.tier-22  { background:repeating-linear-gradient(0deg,#ffdd00 0px,#ffdd00 1px,#333300 1px,#333300 4px); border-color:#ffdd00; }
+.stat-seg.on.iq.tier-22   { background:repeating-linear-gradient(0deg,#00eeff 0px,#00eeff 1px,#003344 1px,#003344 4px); border-color:#00eeff; }
+.stat-seg.peak.hp.tier-22  { background:repeating-linear-gradient(0deg,#aaffcc 0px,#aaffcc 1px,#003322 1px,#003322 4px); border-color:#aaffcc; box-shadow:0 0 16px #00ff88,0 0 30px rgba(0,255,136,0.4); }
+.stat-seg.peak.atk.tier-22 { background:repeating-linear-gradient(0deg,#ffaa88 0px,#ffaa88 1px,#330800 1px,#330800 4px); border-color:#ffaa88; box-shadow:0 0 16px #ff4400,0 0 30px rgba(255,68,0,0.4); }
+.stat-seg.peak.def.tier-22 { background:repeating-linear-gradient(0deg,#aaccff 0px,#aaccff 1px,#001133 1px,#001133 4px); border-color:#aaccff; box-shadow:0 0 16px #0099ff,0 0 30px rgba(0,153,255,0.4); }
+.stat-seg.peak.mag.tier-22 { background:repeating-linear-gradient(0deg,#ee88ff 0px,#ee88ff 1px,#1a0033 1px,#1a0033 4px); border-color:#ee88ff; box-shadow:0 0 16px #dd00ff,0 0 30px rgba(221,0,255,0.4); }
+.stat-seg.peak.spd.tier-22 { background:repeating-linear-gradient(0deg,#ffee88 0px,#ffee88 1px,#221a00 1px,#221a00 4px); border-color:#ffee88; box-shadow:0 0 16px #ffdd00,0 0 30px rgba(255,221,0,0.4); }
+.stat-seg.peak.iq.tier-22  { background:repeating-linear-gradient(0deg,#aaffff 0px,#aaffff 1px,#002233 1px,#002233 4px); border-color:#aaffff; box-shadow:0 0 16px #00eeff,0 0 30px rgba(0,238,255,0.4); }
+.stat-seg.ghost.hp.tier-22    { background:#002211; border-color:#003319; }
+.stat-seg.ghost.atk.tier-22   { background:#1a0500; border-color:#330800; }
+.stat-seg.ghost.def.tier-22   { background:#000a22; border-color:#001133; }
+.stat-seg.ghost.mag.tier-22   { background:#1a0022; border-color:#280033; }
+.stat-seg.ghost.spd.tier-22   { background:#1a1a00; border-color:#282800; }
+
+/* === TIER 23 — PULSE SCAN (Animated moving bright stripe — like a radar or medical scanner) === */
+@keyframes pulse-scan { 0%{background-position:0 -150%,0 0} 100%{background-position:0 250%,0 0} }
+.stat-seg.on.hp.tier-23   { background:linear-gradient(0deg,transparent 35%,rgba(0,255,136,0.85) 50%,transparent 65%) no-repeat,linear-gradient(180deg,#001a0a,#003315); background-size:100% 300%,100% 100%; animation:pulse-scan 1.5s linear infinite; border-color:#00ff88; }
+.stat-seg.on.atk.tier-23  { background:linear-gradient(0deg,transparent 35%,rgba(255,68,0,0.85) 50%,transparent 65%) no-repeat,linear-gradient(180deg,#1a0500,#330a00); background-size:100% 300%,100% 100%; animation:pulse-scan 1.5s linear infinite; border-color:#ff4400; }
+.stat-seg.on.def.tier-23  { background:linear-gradient(0deg,transparent 35%,rgba(0,136,255,0.85) 50%,transparent 65%) no-repeat,linear-gradient(180deg,#000a22,#001133); background-size:100% 300%,100% 100%; animation:pulse-scan 1.5s linear infinite; border-color:#0088ff; }
+.stat-seg.on.mag.tier-23  { background:linear-gradient(0deg,transparent 35%,rgba(204,0,255,0.85) 50%,transparent 65%) no-repeat,linear-gradient(180deg,#180022,#280033); background-size:100% 300%,100% 100%; animation:pulse-scan 1.5s linear infinite; border-color:#cc00ff; }
+.stat-seg.on.spd.tier-23  { background:linear-gradient(0deg,transparent 35%,rgba(255,220,0,0.85) 50%,transparent 65%) no-repeat,linear-gradient(180deg,#1a1500,#2a2200); background-size:100% 300%,100% 100%; animation:pulse-scan 1.5s linear infinite; border-color:#ffdd00; }
+.stat-seg.on.iq.tier-23   { background:linear-gradient(0deg,transparent 35%,rgba(0,187,204,0.85) 50%,transparent 65%) no-repeat,linear-gradient(180deg,#001a1a,#002a2a); background-size:100% 300%,100% 100%; animation:pulse-scan 1.5s linear infinite; border-color:#00bbcc; }
+.stat-seg.peak.hp.tier-23  { background:#003311; border-color:#aaffdd; box-shadow:0 0 20px #00ff88,0 0 40px rgba(0,255,136,0.4); }
+.stat-seg.peak.atk.tier-23 { background:#331100; border-color:#ffbb99; box-shadow:0 0 20px #ff4400,0 0 40px rgba(255,68,0,0.4); }
+.stat-seg.peak.def.tier-23 { background:#001133; border-color:#aaccff; box-shadow:0 0 20px #0088ff,0 0 40px rgba(0,136,255,0.4); }
+.stat-seg.peak.mag.tier-23 { background:#280033; border-color:#ddaaff; box-shadow:0 0 20px #cc00ff,0 0 40px rgba(204,0,255,0.4); }
+.stat-seg.peak.spd.tier-23 { background:#2a2200; border-color:#ffeeaa; box-shadow:0 0 20px #ffdd00,0 0 40px rgba(255,221,0,0.4); }
+.stat-seg.peak.iq.tier-23  { background:#002a2a; border-color:#aaffff; box-shadow:0 0 20px #00bbcc,0 0 40px rgba(0,187,204,0.4); }
+.stat-seg.ghost.hp.tier-23    { background:#001a0a; border-color:#002a11; }
+.stat-seg.ghost.atk.tier-23   { background:#1a0500; border-color:#2a0800; }
+.stat-seg.ghost.def.tier-23   { background:#000a22; border-color:#00102a; }
+.stat-seg.ghost.mag.tier-23   { background:#150022; border-color:#22002a; }
+.stat-seg.ghost.spd.tier-23   { background:#1a1500; border-color:#2a2200; }
+
+/* === TIER 24 — OVERFLOW (Chromatic aberration — RGB channels split, reality breaking) === */
+.stat-seg.on.hp.tier-24   { background:#dfffee; border-color:#00ff88; box-shadow:-2px 0 0 #ff0000,2px 0 0 #0000ff,0 0 12px #00ff88; }
+.stat-seg.on.atk.tier-24  { background:#ffeeee; border-color:#ff4400; box-shadow:-2px 0 0 #00ff00,2px 0 0 #0000ff,0 0 12px #ff4400; }
+.stat-seg.on.def.tier-24  { background:#eeeeff; border-color:#0088ff; box-shadow:-2px 0 0 #ff0000,2px 0 0 #00ff00,0 0 12px #0088ff; }
+.stat-seg.on.mag.tier-24  { background:#ffeeff; border-color:#cc00ff; box-shadow:-2px 0 0 #ff0000,2px 0 0 #00ff88,0 0 12px #cc00ff; }
+.stat-seg.on.spd.tier-24  { background:#ffffee; border-color:#ffcc00; box-shadow:-2px 0 0 #ff0066,2px 0 0 #0066ff,0 0 12px #ffcc00; }
+.stat-seg.on.iq.tier-24   { background:#eeffff; border-color:#00bbcc; box-shadow:-2px 0 0 #ff0000,2px 0 0 #0000ff,0 0 12px #00bbcc; }
+@keyframes chroma-glitch { 0%,100%{filter:brightness(1)} 25%{filter:brightness(1.4) saturate(1.5)} 50%{filter:brightness(0.85)} 75%{filter:brightness(1.3)} }
+.stat-seg.peak.hp.tier-24  { background:#ffffff; border-color:#aaffdd; box-shadow:-3px 0 0 #ff0000,3px 0 0 #0000ff,-5px 0 0 rgba(255,0,0,0.3),5px 0 0 rgba(0,0,255,0.3),0 0 30px #00ff88,0 0 55px rgba(0,255,136,0.3); animation:chroma-glitch 1.2s steps(1) infinite; }
+.stat-seg.peak.atk.tier-24 { background:#ffffff; border-color:#ffbbaa; box-shadow:-3px 0 0 #00ff00,3px 0 0 #0000ff,-5px 0 0 rgba(0,255,0,0.3),5px 0 0 rgba(0,0,255,0.3),0 0 30px #ff4400,0 0 55px rgba(255,68,0,0.3); animation:chroma-glitch 1.2s steps(1) infinite; }
+.stat-seg.peak.def.tier-24 { background:#ffffff; border-color:#aaddff; box-shadow:-3px 0 0 #ff0000,3px 0 0 #00ff00,-5px 0 0 rgba(255,0,0,0.3),5px 0 0 rgba(0,255,0,0.3),0 0 30px #0088ff,0 0 55px rgba(0,136,255,0.3); animation:chroma-glitch 1.2s steps(1) infinite; }
+.stat-seg.peak.mag.tier-24 { background:#ffffff; border-color:#ddaaff; box-shadow:-3px 0 0 #ff0000,3px 0 0 #00ff88,-5px 0 0 rgba(255,0,0,0.3),5px 0 0 rgba(0,255,136,0.3),0 0 30px #cc00ff,0 0 55px rgba(204,0,255,0.3); animation:chroma-glitch 1.2s steps(1) infinite; }
+.stat-seg.peak.spd.tier-24 { background:#ffffff; border-color:#ffeeaa; box-shadow:-3px 0 0 #ff0066,3px 0 0 #0066ff,-5px 0 0 rgba(255,0,102,0.3),5px 0 0 rgba(0,102,255,0.3),0 0 30px #ffcc00,0 0 55px rgba(255,204,0,0.3); animation:chroma-glitch 1.2s steps(1) infinite; }
+.stat-seg.peak.iq.tier-24  { background:#ffffff; border-color:#aaffff; box-shadow:-3px 0 0 #ff0000,3px 0 0 #0000ff,-5px 0 0 rgba(255,0,0,0.3),5px 0 0 rgba(0,0,255,0.3),0 0 30px #00bbcc,0 0 55px rgba(0,187,204,0.3); animation:chroma-glitch 1.2s steps(1) infinite; }
+.stat-seg.ghost.hp.tier-24    { background:#001a0e; border-color:#002a18; }
+.stat-seg.ghost.atk.tier-24   { background:#1a0500; border-color:#2a0800; }
+.stat-seg.ghost.def.tier-24   { background:#00051a; border-color:#000a2a; }
+.stat-seg.ghost.mag.tier-24   { background:#15001a; border-color:#22002a; }
+.stat-seg.ghost.spd.tier-24   { background:#1a1500; border-color:#2a2200; }
+
+/* === TIER 25 — NULL (Reality-breaking pure void with sharp outlines) === */
+.stat-seg.on.hp.tier-25   { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
+.stat-seg.on.atk.tier-25  { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
+.stat-seg.on.def.tier-25  { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
+.stat-seg.on.mag.tier-25  { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
+.stat-seg.on.spd.tier-25  { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
+.stat-seg.on.iq.tier-25   { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
+.stat-seg.peak.hp.tier-25  { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
+.stat-seg.peak.atk.tier-25 { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
+.stat-seg.peak.def.tier-25 { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
+.stat-seg.peak.mag.tier-25 { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
+.stat-seg.peak.spd.tier-25 { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
+.stat-seg.peak.iq.tier-25  { background: #ffffff; border-color: #000000; box-shadow: 0 0 50px #ffffff, inset 0 0 10px #000000; }
+.stat-seg.ghost.hp.tier-25    { background: transparent; border: 1px dashed #444444; }
+.stat-seg.ghost.atk.tier-25   { background: transparent; border: 1px dashed #444444; }
+.stat-seg.ghost.def.tier-25   { background: transparent; border: 1px dashed #444444; }
+.stat-seg.ghost.mag.tier-25   { background: transparent; border: 1px dashed #444444; }
+.stat-seg.ghost.spd.tier-25   { background: transparent; border: 1px dashed #444444; }
+.stat-seg.ghost.iq.tier-25    { background: transparent; border: 1px dashed #444444; }
 
 .stat-val {
   font-size: 9px;

@@ -701,6 +701,19 @@
               </div>
               <div class="stat-segs mt-8" id="e-spd-segs"></div>
             </div>
+            <div class="field">
+              <label>IQ &nbsp;<span style="color:#fff" id="iq-val-disp">50</span> <span id="e-tier-disp-iq"
+                  style="margin-left:6px; font-size:10px; font-weight:bold; color:#00bbcc; letter-spacing:1px;"></span><span id="e-pl-iq" class="stat-pl-badge"></span></label>
+              <div class="flex-row">
+                <input type="range" min="1" max="500" value="50" id="e-iq" oninput="updateStatDisplay('iq')"
+                  style="flex:1" />
+                <input type="number" id="e-iq-num" value="50" min="1" max="500" oninput="syncStat('iq', this.value)"
+                  class="stat-num-input" />
+                <button class="btn sm" onclick="adjustStat('iq', 1)">+</button>
+                <button class="btn sm" onclick="adjustStat('iq', -1)">-</button>
+              </div>
+              <div class="stat-segs mt-8" id="e-iq-segs"></div>
+            </div>
 
             <div id="e-overall-pl" style="margin-top:14px; padding:8px 10px; border:1px solid #222; background:#080808; font-size:8px; letter-spacing:1px; color:#444; text-align:center;"></div>
 

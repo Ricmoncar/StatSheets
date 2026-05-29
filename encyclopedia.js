@@ -646,13 +646,14 @@ function emptyState() {
 // ── STAT BARS (replaces radar) ─────────────────────────────
 function renderStatRadar(st, col) {
   // Keep same API name to minimize code changes elsewhere.
-  const HP_MAX = 500, STAT_MAX = 100;
+  const HP_MAX = 500, STAT_MAX = 100, IQ_MAX = 500;
   const stats = [
     { key: 'hp',  label: 'HP',  val: st.hp  || 0, max: HP_MAX  },
     { key: 'atk', label: 'ATK', val: st.atk || 0, max: STAT_MAX },
     { key: 'def', label: 'DEF', val: st.def || 0, max: STAT_MAX },
     { key: 'mag', label: 'MAG', val: st.mag || 0, max: STAT_MAX },
     { key: 'spd', label: 'SPD', val: st.spd || 0, max: STAT_MAX },
+    { key: 'iq',  label: 'IQ',  val: st.iq  ?? 50, max: IQ_MAX  },
   ];
 
   const rows = stats.map(s => {

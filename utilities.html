@@ -338,6 +338,7 @@
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('def',this)">DEF</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('mag',this)">MAG</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('spd',this)">SPD</button>
+      <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('iq',this)">IQ</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('heal_pow',this)">HEAL</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('crit_rate',this)">CRIT%</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('crit_dmg',this)">CRIT DMG</button>
@@ -353,7 +354,7 @@
       <span class="lb-axis-lbl">X</span>
       <select id="lb-x-sel" class="lb-axis-sel" onchange="renderLeaderboard()">
         <option value="atk" selected>ATK</option><option value="hp">HP</option><option value="def">DEF</option>
-        <option value="mag">MAG</option><option value="spd">SPD</option><option value="avg">BALANCED</option>
+        <option value="mag">MAG</option><option value="spd">SPD</option><option value="iq">IQ</option><option value="avg">BALANCED</option>
         <option value="heal_pow">HEAL</option><option value="crit_rate">CRIT%</option>
         <option value="crit_dmg">CRIT DMG</option><option value="status_res">STATUS RES</option>
         <option value="dexterity">DEX</option><option value="resilience">RESIL</option>
@@ -363,7 +364,7 @@
       <span class="lb-axis-lbl">Y</span>
       <select id="lb-y-sel" class="lb-axis-sel" onchange="renderLeaderboard()">
         <option value="def" selected>DEF</option><option value="hp">HP</option><option value="atk">ATK</option>
-        <option value="mag">MAG</option><option value="spd">SPD</option><option value="avg">BALANCED</option>
+        <option value="mag">MAG</option><option value="spd">SPD</option><option value="iq">IQ</option><option value="avg">BALANCED</option>
         <option value="heal_pow">HEAL</option><option value="crit_rate">CRIT%</option>
         <option value="crit_dmg">CRIT DMG</option><option value="status_res">STATUS RES</option>
         <option value="dexterity">DEX</option><option value="resilience">RESIL</option>
@@ -373,7 +374,7 @@
       <span class="lb-axis-lbl" id="lb-z-label" style="display:none;">SIZE</span>
       <select id="lb-z-sel" class="lb-axis-sel" onchange="renderLeaderboard()" style="display:none;">
         <option value="hp" selected>HP</option><option value="atk">ATK</option><option value="def">DEF</option>
-        <option value="mag">MAG</option><option value="spd">SPD</option><option value="avg">BALANCED</option>
+        <option value="mag">MAG</option><option value="spd">SPD</option><option value="iq">IQ</option><option value="avg">BALANCED</option>
         <option value="heal_pow">HEAL</option><option value="crit_rate">CRIT%</option>
         <option value="crit_dmg">CRIT DMG</option><option value="status_res">STATUS RES</option>
         <option value="dexterity">DEX</option><option value="resilience">RESIL</option>
