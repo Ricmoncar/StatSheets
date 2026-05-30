@@ -1115,7 +1115,7 @@ const TRAITS = {
 
   resonance: {
     name: 'Resonance', rarity: 'legendary',
-    desc: 'Your highest stat is mirrored to every ally at 30% of its value as a flat bonus.',
+    desc: 'Your highest stat is copied to every ally at 30% of its value as a flat bonus.',
     passive: [],
     notes: 'Identify your highest stat and add 30% of its value as a flat bonus to every ally.',
   },
@@ -3418,10 +3418,10 @@ const TRAITS = {
 
   rasta_fire: {
     name: 'Rasta Fire', rarity: 'legendary',
-    desc: 'Apply BURNED and DRUGGED on-hit with a 80% chance. x20 DEF towards DRUGGED enemies.',
+    desc: 'Apply BURNING and DRUGGED on-hit with a 80% chance. x20 DEF towards DRUGGED enemies.',
     passive: [],
     situational: [{ id: 'rf-drugged', label: 'Hitting DRUGGED enemy (x20 DEF)', passive: [{ stat: 'def', op: 'mul', value: 20 }] }],
-    notes: '80% chance to apply BURNED and DRUGGED on-hit. x20 effective DEF vs DRUGGED targets.',
+    notes: '80% chance to apply BURNING and DRUGGED on-hit. x20 effective DEF vs DRUGGED targets.',
   },
 
   chemicals: {
@@ -4195,7 +4195,7 @@ const SHIMMYFUL_TRAITS = {
   favored: { name: 'SHIMMYFUL Favored', desc: '+50% Crit Chance.', passive: [{ stat: 'crit_rate', op: 'add', value: 50 }] },
   spicy: { name: 'SHIMMYFUL Spicy', desc: '+40% Resilience.', passive: [{ stat: 'resilience', op: 'add', value: 40 }] },
   sonic: { name: 'SHIMMYFUL Sonic', desc: '+40% SPD, +40% Dexterity.', passive: [{ stat: 'spd', op: 'pct', value: 40 }, { stat: 'dexterity', op: 'add', value: 40 }] },
-  flaming: { name: 'SHIMMYFUL Flaming', desc: '100% chance to BURN on hit. BURN deals triple damage.', passive: [] },
+  flaming: { name: 'SHIMMYFUL Flaming', desc: '100% chance to BURNING on hit. BURNING deals triple damage.', passive: [] },
   enchanted: { name: 'SHIMMYFUL Enchanted', desc: '+40% MAG, +40% Heal Power.', passive: [{ stat: 'mag', op: 'pct', value: 40 }, { stat: 'heal_pow', op: 'add', value: 40 }] },
   steadfast: { name: 'SHIMMYFUL Steadfast', desc: '+40% True Damage. Pierces all resistances.', passive: [{ stat: 'true_dmg', op: 'add', value: 40 }] },
   bombastic: { name: 'SHIMMYFUL Bombastic', desc: 'Explosions are x10 bigger and chain to nearby targets.', passive: [] },
@@ -4252,7 +4252,7 @@ const SHIMMYFUL_MYTHIC_TRAITS = {
   brave: { name: 'SHIMMYFUL Bravest of the Brave', desc: 'On pick, guaranteed 3 additional rare/epic traits. One is guaranteed epic. +25% all stats.', passive: [{ stat: 'all_main', op: 'pct', value: 25 }], notes: 'Meta. Grants 3 bonus rare/epic traits on pick; at least one must be epic. Also grants +25% to all stats.' },
   allforyou: { name: 'SHIMMYFUL All for You!', desc: 'Heals & buffs you give allies are x4. You also receive 25% of whatever you give.', passive: [], notes: 'Support multiplier. You receive 25% of buff/heal value as a bonus to yourself.' },
   adaptation: { name: 'SHIMMYFUL Adaptation', desc: 'Every hit from an enemy grants +80% DEF. Stacks infinitely per hit.', passive: [], cultivation: { label: 'Enemy Hits', perStack: { stat: 'def', op: 'pct', value: 80 }, defaultStacks: 0, maxStacks: 999 }, notes: 'Shimmyful version of Adaptation. Each stack represents one enemy hit.' },
-  lucifer: { name: "SHIMMYFUL Lucifer's Champion", desc: '+35% all stats, +90% SPD, +90% Dex. BURN stacks deal double damage.', passive: [{ stat: 'all_main', op: 'pct', value: 35 }, { stat: 'spd', op: 'pct', value: 90 }, { stat: 'dexterity', op: 'add', value: 90 }] },
+  lucifer: { name: "SHIMMYFUL Lucifer's Champion", desc: '+35% all stats, +90% SPD, +90% Dex. BURNING stacks deal double damage.', passive: [{ stat: 'all_main', op: 'pct', value: 35 }, { stat: 'spd', op: 'pct', value: 90 }, { stat: 'dexterity', op: 'add', value: 90 }] },
   zoe: { name: "SHIMMYFUL Zoe's Champion", desc: '+35% all stats, +90% HP, +90% Heal Power. Heal mirror to self is doubled.', passive: [{ stat: 'all_main', op: 'pct', value: 35 }, { stat: 'hp', op: 'pct', value: 90 }, { stat: 'heal_pow', op: 'add', value: 90 }] },
   honored_one: { name: 'SHIMMYFUL The Honored One', desc: 'If you are the last surviving ally: ATK x7, MAG x7, SPD x3.', passive: [], situational: [{ id: 'ho-last', label: 'Last ally standing', passive: [{ stat: 'atk', op: 'mul', value: 7 }, { stat: 'mag', op: 'mul', value: 7 }, { stat: 'spd', op: 'mul', value: 3 }] }] },
   transcendence: { name: 'SHIMMYFUL Transcendence', desc: 'Twice per session: for one fight, all damage dealt x3 and all damage received is quartered.', passive: [], notes: 'Two activations per session. No permanent stat change.' },
@@ -4608,7 +4608,7 @@ const SHIMMYFUL_LEGENDARY_TRAITS = {
   war_priest: { name: 'SHIMMYFUL War Priest', desc: 'Each ally you heal gains +20% ATK and +15% HP for that fight. Stacks per heal.', passive: [] },
   vanguard: { name: 'SHIMMYFUL Vanguard', desc: '+50% DEF. Redirect 25% of all ally damage to yourself. You take -20% of that redirected damage.', passive: [{ stat: 'def', op: 'pct', value: 50 }] },
   last_rites: { name: 'SHIMMYFUL Last Rites', desc: 'Knocked-out allies revive at 60% HP. Usable twice per ally per fight.', passive: [] },
-  resonance: { name: 'SHIMMYFUL Resonance', desc: 'Your top two stats are each mirrored to every ally at 50% of their value as a flat bonus.', passive: [] },
+  resonance: { name: 'SHIMMYFUL Resonance', desc: 'Your top two stats are each copied to every ally at 50% of their value as a flat bonus.', passive: [] },
   mentor: { name: 'SHIMMYFUL Mentor', desc: 'Each party win, choose one ally: they permanently gain +4% in their top two stats.', passive: [] },
   self_sacrifice: { name: 'SHIMMYFUL Sacrifice', desc: 'Sacrifice yourself to fully restore one ally\'s HP and grant them +80% all stats for that fight.', passive: [] },
   bodyguard: { name: 'SHIMMYFUL Bodyguard', desc: 'Allies cannot be one-shot. Designated ally gains +80% DEF AND +30% ATK.', passive: [] },
@@ -4745,7 +4745,7 @@ const SHIMMYFUL_LEGENDARY_TRAITS = {
 
   drunkard:           { name: 'SHIMMYFUL Drunkard', desc: 'Apply 2 stacks of DRUNK to yourself every turn, stacking.', passive: [] },
 
-  rasta_fire:         { name: 'SHIMMYFUL Rasta Fire', desc: 'Apply BURNED and DRUGGED on-hit with a 95% chance. x30 DEF towards DRUGGED enemies.', passive: [], situational: [{ id: 'rf-s-drugged', label: 'Hitting DRUGGED enemy (x30 DEF)', passive: [{ stat: 'def', op: 'mul', value: 30 }] }] },
+  rasta_fire:         { name: 'SHIMMYFUL Rasta Fire', desc: 'Apply BURNING and DRUGGED on-hit with a 95% chance. x30 DEF towards DRUGGED enemies.', passive: [], situational: [{ id: 'rf-s-drugged', label: 'Hitting DRUGGED enemy (x30 DEF)', passive: [{ stat: 'def', op: 'mul', value: 30 }] }] },
 
   chemicals:          { name: 'SHIMMYFUL CHEMICALS', desc: 'Apply two random NEGATIVE status effects to all enemies at the beginning of a fight. Apply two random POSITIVE status effects to all allies at the beginning of a fight', passive: [] },
 
