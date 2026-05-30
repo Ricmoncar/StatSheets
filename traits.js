@@ -1679,6 +1679,20 @@ const TRAITS = {
       desc: '×2 all stats per surviving ally. Allies gain 50% of your ATK as bonus attack and ×2 Crit Chance. Each ally knocked out: −50% all non-HP stats. All allies down: stats reset, ATK & DEF ×4. If you fall first: all remaining allies gain ×2 ATK.',
       passive: [{ stat: 'all_main', op: 'mul', value: 2 }, { stat: 'crit_rate', op: 'add', value: 100 }],
     },
+    situational: [
+      // ── SAVIOUR (HEAVENLY) ──────────────────────────────────────────────────
+      { id: 'sav-fallen1', label: 'HEAVENLY: 1 ally fallen (+50% DEF)',   passive: [{ stat: 'def', op: 'pct', value: 50  }] },
+      { id: 'sav-fallen2', label: 'HEAVENLY: 2 allies fallen (+100% DEF)', passive: [{ stat: 'def', op: 'pct', value: 100 }] },
+      { id: 'sav-fallen3', label: 'HEAVENLY: 3 allies fallen (+150% DEF)', passive: [{ stat: 'def', op: 'pct', value: 150 }] },
+      { id: 'sav-last',    label: 'HEAVENLY: Last standing (+20 Resilience)', passive: [{ stat: 'resilience', op: 'add', value: 20 }] },
+      // ── DICTATOR (HELLFORGED) ───────────────────────────────────────────────
+      // Each surviving ally multiplies all stats by ×2 (stacks with base ×2).
+      { id: 'dic-2ally',    label: 'HELLFORGED: 2 allies alive (×4 all stats)',  passive: [{ stat: 'all_main', op: 'pct', value: 100  }] },
+      { id: 'dic-3ally',    label: 'HELLFORGED: 3 allies alive (×8 all stats)',  passive: [{ stat: 'all_main', op: 'pct', value: 300  }] },
+      { id: 'dic-ko1',      label: 'HELLFORGED: 1 ally KO\'d (−50% ATK/DEF/MAG/SPD)', passive: [{ stat: 'atk', op: 'pct', value: -50 }, { stat: 'def', op: 'pct', value: -50 }, { stat: 'mag', op: 'pct', value: -50 }, { stat: 'spd', op: 'pct', value: -50 }] },
+      { id: 'dic-ko2',      label: 'HELLFORGED: 2 allies KO\'d (−100% ATK/DEF/MAG/SPD)', passive: [{ stat: 'atk', op: 'pct', value: -100 }, { stat: 'def', op: 'pct', value: -100 }, { stat: 'mag', op: 'pct', value: -100 }, { stat: 'spd', op: 'pct', value: -100 }] },
+      { id: 'dic-all-down', label: 'HELLFORGED: All allies down — ATK & DEF ×4', passive: [{ stat: 'atk', op: 'mul', value: 4 }, { stat: 'def', op: 'mul', value: 4 }] },
+    ],
   },
 
   // ============ DETERMINED (evolving heartbeat) ============
