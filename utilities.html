@@ -814,19 +814,14 @@ function nmtInit() {
   if (!_nmtListening && typeof db !== 'undefined') {
     _nmtListening = true;
     db.collection('nmt').onSnapshot(snap => {
-      let dirty = false;
       snap.docChanges().forEach(ch => {
-        if (ch.type === 'removed') { delete _nmtData[ch.doc.id]; dirty = true; }
-        else {
-          // If we're editing this character, the snapshot is just our own save echoing back.
-          // Update the in-memory data silently so it stays consistent, but don't re-render
-          // (that would destroy the focused textarea and interrupt typing).
-          _nmtData[ch.doc.id] = ch.doc.data();
-          if (_nmtMode !== 'edit' || ch.doc.id !== _nmtSel) dirty = true;
-        }
+        if (ch.type === 'removed') delete _nmtData[ch.doc.id];
+        else _nmtData[ch.doc.id] = ch.doc.data();
       });
       _nmtRenderGrid();
-      if (_nmtSel && dirty) _nmtRenderContent();
+      // Never re-render the editor from a snapshot while the user is typing.
+      // The in-memory data is already up to date; view mode can refresh safely.
+      if (_nmtSel && _nmtMode !== 'edit') _nmtRenderContent();
     }, () => {});
   }
   _nmtRenderGrid();
