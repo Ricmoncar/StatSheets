@@ -209,62 +209,83 @@
   .nmt-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
-    gap: 10px;
-    max-height: 300px;
-    overflow-y: auto;
-    padding-right: 4px;
-    margin-bottom: 4px;
+    gap: 10px; max-height: 300px; overflow-y: auto;
+    padding-right: 4px; margin-bottom: 4px;
   }
   .nmt-char-card {
     display: flex; flex-direction: column; align-items: center; gap: 7px;
     padding: 10px 6px; border: 1px solid rgba(255,255,255,0.04);
     border-radius: 4px; background: rgba(255,255,255,0.015);
-    cursor: none; transition: background 0.15s, border-color 0.2s;
-    position: relative;
+    cursor: none; transition: background 0.15s, border-color 0.2s; position: relative;
   }
   .nmt-char-card:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
-  .nmt-char-card.nmt-card-active { background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); }
-  .nmt-card-avatar {
-    width: 46px; height: 46px; border-radius: 50%; overflow: hidden;
-    border: 2px solid rgba(255,255,255,0.1); flex-shrink: 0;
+  .nmt-char-card.nmt-card-active { background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); }
+  .nmt-card-avatar { width: 46px; height: 46px; border-radius: 50%; overflow: hidden; border: 2px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+  .nmt-card-name { font-size: 6.5px; letter-spacing: 0.5px; text-align: center; line-height: 1.4; color: #666; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nmt-card-dot { width: 5px; height: 5px; border-radius: 50%; position: absolute; top: 5px; right: 5px; opacity: 0.75; }
+  .nmt-content-wrap { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 20px; margin-top: 16px; }
+
+  /* ── View card ── */
+  @keyframes nmt-glow-pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
+  .nmt-view-card {
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px; overflow: hidden; position: relative;
   }
-  .nmt-card-name {
-    font-size: 6.5px; letter-spacing: 0.5px; text-align: center; line-height: 1.4;
-    color: #666; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  .nmt-view-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--nc, #888); box-shadow: 0 0 14px var(--nc, #888);
+    animation: nmt-glow-pulse 2.8s ease-in-out infinite;
   }
-  .nmt-card-dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    position: absolute; top: 5px; right: 5px; opacity: 0.75;
+  .nmt-view-hero { display: flex; align-items: center; gap: 16px; padding: 20px 20px 14px; }
+  .nmt-view-avatar {
+    width: 76px; height: 76px; border-radius: 8px; overflow: hidden;
+    border: 2px solid var(--nc, #444);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--nc, #000) 35%, transparent);
+    flex-shrink: 0;
   }
-  .nmt-editor-wrap { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 20px; margin-top: 16px; }
-  .nmt-card-header {
-    display: flex; align-items: flex-start; gap: 14px;
-    margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05);
+  .nmt-view-name {
+    font-family: 'Press Start 2P', monospace; font-size: 11px; letter-spacing: 1.5px;
+    color: var(--nc, #ccc); line-height: 1.6;
+    text-shadow: 0 0 24px color-mix(in srgb, var(--nc, #000) 50%, transparent);
   }
-  .nmt-card-avatar-lg {
-    width: 62px; height: 62px; border-radius: 6px; overflow: hidden;
-    border: 2px solid rgba(255,255,255,0.12); flex-shrink: 0;
+  .nmt-view-rule { height: 1px; margin: 0 20px 16px; background: linear-gradient(90deg, var(--nc,#333) 0%, transparent 80%); opacity: .35; }
+  .nmt-view-sections { padding: 0 20px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .nmt-view-sec-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    font-size: 7px; letter-spacing: 3px;
   }
-  .nmt-card-info { flex: 1; min-width: 0; }
-  .nmt-char-name-big { font-family: 'Press Start 2P', monospace; font-size: 10px; letter-spacing: 1.5px; margin-bottom: 10px; line-height: 1.5; }
-  .nmt-creator-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .nmt-field-label { font-size: 7px; letter-spacing: 2px; color: #3a3a3a; flex-shrink: 0; }
-  .nmt-creator-input {
-    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.7); font-family: inherit; font-size: 8px;
-    letter-spacing: 1px; padding: 5px 9px; border-radius: 2px; flex: 1; min-width: 130px;
+  .nmt-view-sec-head::before { content:''; display:block; width:3px; height:13px; border-radius:2px; flex-shrink:0; }
+  .nmt-view-sec-head.v-passive { color: #3a7a78; }
+  .nmt-view-sec-head.v-passive::before { background: #00ccbb; box-shadow: 0 0 6px #00ccbb88; }
+  .nmt-view-sec-head.v-active  { color: #8a6a3a; }
+  .nmt-view-sec-head.v-active::before  { background: #ffaa44; box-shadow: 0 0 6px #ffaa4488; }
+  .nmt-view-ability {
+    background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 3px; padding: 9px 12px; margin-bottom: 6px;
+    display: flex; gap: 10px; align-items: flex-start;
   }
-  .nmt-creator-input:focus { outline: none; border-color: rgba(255,255,255,0.3); }
+  .nmt-view-bullet { flex-shrink: 0; font-size: 9px; padding-top: 1px; letter-spacing: 0; }
+  .nmt-view-bullet.v-passive { color: #00ccbb; }
+  .nmt-view-bullet.v-active  { color: #ffaa44; }
+  .nmt-view-ability-text { font-size: 8px; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; line-height: 1.9; }
+  .nmt-view-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .nmt-view-page-nav { display: flex; align-items: center; gap: 8px; }
+  .nmt-view-page-lbl { font-size: 7px; letter-spacing: 2px; color: #3a3a3a; }
+
+  /* ── Edit mode ── */
+  .nmt-edit-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .nmt-edit-avatar { width: 56px; height: 56px; border-radius: 6px; overflow: hidden; border: 2px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+  .nmt-edit-name { font-family: 'Press Start 2P', monospace; font-size: 9px; letter-spacing: 1.5px; line-height: 1.6; }
   .nmt-page-nav { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
   .nmt-page-label { font-size: 8px; letter-spacing: 2px; color: #555; flex: 1; text-align: center; min-width: 90px; }
   .nmt-save-status { font-size: 7px; letter-spacing: 2px; color: transparent; transition: color 0.3s; }
   .nmt-save-status.saving { color: #555; }
   .nmt-save-status.saved  { color: #44aa66; }
-  .nmt-section {
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 3px; padding: 12px 14px; margin-bottom: 10px;
-  }
-  .nmt-section-title { font-size: 8px; letter-spacing: 3px; color: #4a4a4a; margin-bottom: 10px; }
+  .nmt-section { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 3px; padding: 12px 14px; margin-bottom: 10px; }
+  .nmt-section-title { font-size: 7px; letter-spacing: 3px; color: #4a4a4a; margin-bottom: 10px; }
   .nmt-ability-row { display: flex; gap: 7px; align-items: flex-start; margin-bottom: 7px; }
   .nmt-ability-num { font-size: 7px; color: #2a2a2a; padding-top: 10px; flex-shrink: 0; width: 12px; text-align: right; letter-spacing: 0; }
   .nmt-textarea {
@@ -535,7 +556,7 @@
     </div>
     <p style="font-size:8px;color:#444;letter-spacing:1px;margin:0 0 18px;">What if your character was in No More Time? Design their passive &amp; active kit.</p>
     <div id="nmt-grid" class="nmt-grid"></div>
-    <div id="nmt-editor" class="nmt-editor-wrap" style="display:none;"></div>
+    <div id="nmt-editor" class="nmt-content-wrap" style="display:none;"></div>
   </div>
 
   <!-- SUGGESTION BOX -->
@@ -715,11 +736,12 @@
 // ══════════════════════════════════════════════════════════════
 //  NO MORE TIME — ABILITY BUILDER
 // ══════════════════════════════════════════════════════════════
-let _nmtData       = {};   // { [charId]: { creator, pages:[{passives,actives}] } }
-let _nmtSel        = null; // currently selected character id
-let _nmtPageIdx    = 0;    // current loadout-page index for selected character
-let _nmtSaveTimer  = null;
-let _nmtListening  = false;
+let _nmtData      = {};     // { [charId]: { pages:[{passives,actives}] } }
+let _nmtSel       = null;   // selected character id
+let _nmtPageIdx   = 0;      // current loadout page index
+let _nmtMode      = 'view'; // 'view' | 'edit'
+let _nmtSaveTimer = null;
+let _nmtListening = false;
 
 function nmtInit() {
   if (!_nmtListening && typeof db !== 'undefined') {
@@ -730,19 +752,19 @@ function nmtInit() {
         else _nmtData[ch.doc.id] = ch.doc.data();
       });
       _nmtRenderGrid();
-      if (_nmtSel) _nmtRenderEditor();
+      if (_nmtSel) _nmtRenderContent();
     }, () => {});
   }
   _nmtRenderGrid();
 }
 
 function _nmtEsc(s) {
-  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* ── data helper: ensure shape ──────────────────────────────── */
+/* ── data shape guard ───────────────────────────────────────── */
 function _nmtChar(id) {
-  if (!_nmtData[id]) _nmtData[id] = { creator: '', pages: [{ passives: [''], actives: [''] }] };
+  if (!_nmtData[id]) _nmtData[id] = { pages: [{ passives: [''], actives: [''] }] };
   const d = _nmtData[id];
   if (!Array.isArray(d.pages) || !d.pages.length) d.pages = [{ passives: [''], actives: [''] }];
   d.pages.forEach(p => {
@@ -764,65 +786,131 @@ function _nmtRenderGrid() {
   el.innerHTML = chars.map(c => {
     const d   = _nmtData[c.id];
     const dot = d && d.pages && d.pages.some(p =>
-      (p.passives || []).some(t => (t||'').trim()) || (p.actives || []).some(t => (t||'').trim()));
+      (p.passives||[]).some(t=>(t||'').trim()) || (p.actives||[]).some(t=>(t||'').trim()));
     const av  = c.avatar
       ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
       : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${c.color||'#333'}22;color:${c.color||'#888'};font-size:18px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
-    const active = _nmtSel === c.id;
-    return `<div class="nmt-char-card${active?' nmt-card-active':''}" style="${active?`border-color:${c.color||'#888'}55;`:''}" onclick="nmtSelect('${c.id}')">
+    const on = _nmtSel === c.id;
+    return `<div class="nmt-char-card${on?' nmt-card-active':''}" style="${on?`border-color:${c.color||'#888'}55;`:''}" onclick="nmtSelect('${c.id}')">
       <div class="nmt-card-avatar" style="border-color:${c.color||'#444'}77">${av}</div>
-      <div class="nmt-card-name" style="${active?`color:${c.color||'#aaa'};`:''}">${_nmtEsc(c.name||'UNNAMED')}</div>
+      <div class="nmt-card-name" style="${on?`color:${c.color||'#aaa'};`:''}">${_nmtEsc(c.name||'UNNAMED')}</div>
       ${dot?`<div class="nmt-card-dot" style="background:${c.color||'#888'}"></div>`:''}
     </div>`;
   }).join('');
 }
 
-/* ── select ─────────────────────────────────────────────────── */
+/* ── select / mode ──────────────────────────────────────────── */
 function nmtSelect(id) {
-  _nmtSel     = id;
-  _nmtPageIdx = 0;
+  const switching = _nmtSel !== id;
+  _nmtSel = id;
+  if (switching) { _nmtPageIdx = 0; _nmtMode = 'view'; }
   _nmtRenderGrid();
   const wrap = document.getElementById('nmt-editor');
-  if (wrap) { wrap.style.display = ''; }
-  _nmtRenderEditor();
-  setTimeout(() => wrap?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+  if (wrap) wrap.style.display = '';
+  _nmtRenderContent();
+  if (switching) setTimeout(() => wrap?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 60);
 }
 
-/* ── editor ─────────────────────────────────────────────────── */
-function _nmtRenderEditor() {
+function nmtSetMode(m) { _nmtMode = m; _nmtRenderContent(); }
+
+/* ── router ─────────────────────────────────────────────────── */
+function _nmtRenderContent() {
+  if (_nmtMode === 'view') _nmtRenderView();
+  else _nmtRenderEdit();
+}
+
+/* ── VIEW MODE ──────────────────────────────────────────────── */
+function _nmtRenderView() {
   const wrap = document.getElementById('nmt-editor');
   if (!wrap || !_nmtSel) return;
   const chars = typeof characters !== 'undefined' ? characters : [];
   const c = chars.find(x => x.id === _nmtSel);
   if (!c) return;
 
-  const d  = _nmtChar(_nmtSel);
+  const d     = _nmtChar(_nmtSel);
   _nmtPageIdx = Math.min(_nmtPageIdx, d.pages.length - 1);
   const pg    = d.pages[_nmtPageIdx];
   const total = d.pages.length;
+  const col   = c.color || '#888';
 
   const av = c.avatar
     ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
-    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${c.color||'#333'}22;color:${c.color||'#888'};font-size:28px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${col}22;color:${col};font-size:30px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+
+  const hasContent = (pg.passives||[]).some(t=>(t||'').trim()) || (pg.actives||[]).some(t=>(t||'').trim());
+
+  const mkAbilities = (type, arr) => {
+    const filled = arr.filter(t => (t||'').trim());
+    if (!filled.length) return '';
+    const bullet = type === 'passive' ? '◆' : '⚡';
+    const items  = filled.map(t =>
+      `<div class="nmt-view-ability">
+        <span class="nmt-view-bullet v-${type}">${bullet}</span>
+        <span class="nmt-view-ability-text">${_nmtEsc(t)}</span>
+      </div>`).join('');
+    return `<div>
+      <div class="nmt-view-sec-head v-${type}">${type === 'passive' ? 'PASSIVE' : 'ACTIVE'}</div>
+      ${items}
+    </div>`;
+  };
+
+  const passiveBlock = mkAbilities('passive', pg.passives || []);
+  const activeBlock  = mkAbilities('active',  pg.actives  || []);
+
+  wrap.innerHTML = `
+    <div class="nmt-view-card" style="--nc:${col}">
+      <div class="nmt-view-hero">
+        <div class="nmt-view-avatar">${av}</div>
+        <div class="nmt-view-name">${_nmtEsc(c.name||'UNNAMED')}</div>
+      </div>
+      <div class="nmt-view-rule"></div>
+      <div class="nmt-view-sections">
+        ${hasContent
+          ? passiveBlock + activeBlock
+          : `<div style="color:#2a2a2a;font-size:8px;letter-spacing:2px;text-align:center;padding:14px 0;">NO DATA — CLICK EDIT TO ADD</div>`}
+      </div>
+      <div class="nmt-view-footer">
+        <div class="nmt-view-page-nav">
+          <button class="btn sm" onclick="nmtPageStep(-1)" ${_nmtPageIdx===0?'disabled':''}>◀</button>
+          <span class="nmt-view-page-lbl">LOADOUT &nbsp;${_nmtPageIdx+1} / ${total}</span>
+          <button class="btn sm" onclick="nmtPageStep(1)" ${_nmtPageIdx>=total-1?'disabled':''}>▶</button>
+        </div>
+        <button class="btn sm" onclick="nmtSetMode('edit')">EDIT</button>
+      </div>
+    </div>`;
+}
+
+/* ── EDIT MODE ──────────────────────────────────────────────── */
+function _nmtRenderEdit() {
+  const wrap = document.getElementById('nmt-editor');
+  if (!wrap || !_nmtSel) return;
+  const chars = typeof characters !== 'undefined' ? characters : [];
+  const c = chars.find(x => x.id === _nmtSel);
+  if (!c) return;
+
+  const d     = _nmtChar(_nmtSel);
+  _nmtPageIdx = Math.min(_nmtPageIdx, d.pages.length - 1);
+  const pg    = d.pages[_nmtPageIdx];
+  const total = d.pages.length;
+  const col   = c.color || '#888';
+
+  const av = c.avatar
+    ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${col}22;color:${col};font-size:22px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
 
   const mkRows = (type, arr) => arr.map((txt, i) => `
     <div class="nmt-ability-row">
       <span class="nmt-ability-num">${i+1}.</span>
       <textarea class="nmt-textarea" rows="2" placeholder="${type==='passive'?'Passive ability...':'Active ability...'}"
         oninput="nmtEdit('${type}',${i},this.value)">${_nmtEsc(txt)}</textarea>
-      <button class="btn sm danger" onclick="nmtRemove('${type}',${i})" title="Remove">✕</button>
+      <button class="btn sm danger" onclick="nmtRemove('${type}',${i})">✕</button>
     </div>`).join('');
 
   wrap.innerHTML = `
-    <div class="nmt-card-header">
-      <div class="nmt-card-avatar-lg" style="border-color:${c.color||'#444'}99">${av}</div>
-      <div class="nmt-card-info">
-        <div class="nmt-char-name-big" style="color:${c.color||'#ccc'}">${_nmtEsc(c.name||'UNNAMED')}</div>
-        <div class="nmt-creator-row">
-          <span class="nmt-field-label">CREATED BY</span>
-          <input class="nmt-creator-input" type="text" value="${_nmtEsc(d.creator||'')}"
-            placeholder="Creator name..." maxlength="60" oninput="nmtSetCreator(this.value)"/>
-        </div>
+    <div class="nmt-edit-header">
+      <div class="nmt-edit-avatar" style="border-color:${col}88">${av}</div>
+      <div>
+        <div class="nmt-edit-name" style="color:${col}">${_nmtEsc(c.name||'UNNAMED')}</div>
       </div>
     </div>
 
@@ -833,6 +921,7 @@ function _nmtRenderEditor() {
       <button class="btn sm" onclick="nmtAddPage()">+ LOADOUT</button>
       ${total>1?`<button class="btn sm danger" onclick="nmtDeletePage()">✕ LOADOUT</button>`:''}
       <span class="nmt-save-status" id="nmt-save-status"></span>
+      <button class="btn sm accent" onclick="nmtSetMode('view')" style="margin-left:auto;">VIEW</button>
     </div>
 
     <div class="nmt-section">
@@ -849,12 +938,6 @@ function _nmtRenderEditor() {
 }
 
 /* ── mutation handlers ──────────────────────────────────────── */
-function nmtSetCreator(v) {
-  if (!_nmtSel) return;
-  _nmtChar(_nmtSel).creator = v;
-  _nmtScheduleSave();
-}
-
 function nmtEdit(type, idx, v) {
   if (!_nmtSel) return;
   const pg = _nmtChar(_nmtSel).pages[_nmtPageIdx];
@@ -867,12 +950,11 @@ function nmtAdd(type) {
   const pg = _nmtChar(_nmtSel).pages[_nmtPageIdx];
   if (!pg) return;
   (type==='passive' ? pg.passives : pg.actives).push('');
-  _nmtRenderEditor();
+  _nmtRenderEdit();
   _nmtScheduleSave();
-  // focus the new textarea
   setTimeout(() => {
-    const list = document.getElementById('nmt-' + type + 's');
-    list?.querySelector('.nmt-ability-row:last-child .nmt-textarea')?.focus();
+    document.getElementById('nmt-'+type+'s')
+      ?.querySelector('.nmt-ability-row:last-child .nmt-textarea')?.focus();
   }, 50);
 }
 
@@ -881,9 +963,9 @@ function nmtRemove(type, idx) {
   const pg  = _nmtChar(_nmtSel).pages[_nmtPageIdx];
   if (!pg) return;
   const arr = type==='passive' ? pg.passives : pg.actives;
-  if (arr.length <= 1) { arr[0] = ''; _nmtRenderEditor(); return; }
+  if (arr.length <= 1) { arr[0] = ''; _nmtRenderEdit(); return; }
   arr.splice(idx, 1);
-  _nmtRenderEditor();
+  _nmtRenderEdit();
   _nmtScheduleSave();
 }
 
@@ -891,7 +973,7 @@ function nmtPageStep(dir) {
   if (!_nmtSel) return;
   const d = _nmtChar(_nmtSel);
   _nmtPageIdx = Math.max(0, Math.min(d.pages.length - 1, _nmtPageIdx + dir));
-  _nmtRenderEditor();
+  _nmtRenderContent();
 }
 
 function nmtAddPage() {
@@ -899,7 +981,7 @@ function nmtAddPage() {
   const d = _nmtChar(_nmtSel);
   d.pages.push({ passives: [''], actives: [''] });
   _nmtPageIdx = d.pages.length - 1;
-  _nmtRenderEditor();
+  _nmtRenderEdit();
   _nmtScheduleSave();
 }
 
@@ -909,7 +991,7 @@ function nmtDeletePage() {
   if (d.pages.length <= 1) return;
   d.pages.splice(_nmtPageIdx, 1);
   _nmtPageIdx = Math.min(_nmtPageIdx, d.pages.length - 1);
-  _nmtRenderEditor();
+  _nmtRenderEdit();
   _nmtScheduleSave();
 }
 
