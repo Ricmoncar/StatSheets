@@ -7699,6 +7699,7 @@ function initTierList() {
         renderTierList();
         renderLeaderboard();
         if (typeof compatInit === 'function') compatInit();
+        if (typeof nmtInit    === 'function') nmtInit();
       });
     }
     // Multi-list: listen to the whole tierlists collection
