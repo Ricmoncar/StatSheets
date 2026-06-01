@@ -1768,7 +1768,9 @@ function _fhRenderEdit() {
       const incomingEdit = [];
       Object.keys(_fhData).forEach(oid=>{
         if(oid===_fhSel) return;
-        (_fhData[oid]?.specialLms||[]).forEach((s,i)=>{
+        const od=_fhData[oid];
+        if(!od||!Array.isArray(od.specialLms)) return;
+        od.specialLms.forEach((s,i)=>{
           if(s.charId===_fhSel) incomingEdit.push({ownerCharId:oid,idx:i,s});
         });
       });
