@@ -397,6 +397,13 @@
   .fh-power-block:hover .fh-power-name { text-shadow:0 0 14px rgba(200,30,50,.55); }
   .fh-power-desc { font-size:8px; color:rgba(255,255,255,.42); letter-spacing:.5px; line-height:1.9; }
   .fh-power-block:hover .fh-power-desc { color:rgba(255,255,255,.65); }
+  .fh-ability-block { background:rgba(20,160,90,.05); border:1px solid rgba(20,160,90,.17); border-left:3px solid #22bb77; border-radius:3px; padding:12px 14px; transition:background .2s,border-left-color .2s,box-shadow .2s; }
+  .fh-ability-block:hover { background:rgba(20,160,90,.1); border-left-color:#44dd88; box-shadow:-3px 0 16px rgba(20,160,90,.2); }
+  .fh-ability-label { font-size:6px; letter-spacing:5px; color:#116633; margin-bottom:6px; }
+  .fh-ability-name { font-size:9px; letter-spacing:2px; color:#22cc88; margin-bottom:6px; font-family:'Press Start 2P',monospace; transition:text-shadow .18s; }
+  .fh-ability-block:hover .fh-ability-name { text-shadow:0 0 14px rgba(34,204,136,.5); }
+  .fh-ability-desc { font-size:8px; color:rgba(255,255,255,.42); letter-spacing:.5px; line-height:1.9; }
+  .fh-ability-block:hover .fh-ability-desc { color:rgba(255,255,255,.65); }
   .fh-perks-label { font-size:6px; letter-spacing:5px; color:#282828; margin-bottom:8px; }
   .fh-perk-row { display:flex; gap:10px; align-items:flex-start; padding:9px 12px; border:1px solid rgba(255,255,255,.04); background:rgba(0,0,0,.3); border-left:2px solid transparent; border-radius:2px; margin-bottom:6px; transition:background .18s,transform .2s,border-left-color .18s,box-shadow .18s; }
   .fh-perk-row:hover { background:rgba(255,255,255,.04); transform:translateX(3px); }
@@ -1358,6 +1365,8 @@ function _fhChar(id) {
   }
   if (!Array.isArray(d.powers) || !d.powers.length) d.powers = [{ name:'', desc:'' }];
   d.powers = d.powers.map(p => (p && typeof p==='object') ? p : { name:'', desc: p||'' });
+  if (!Array.isArray(d.abilities) || !d.abilities.length) d.abilities = [{ name:'', desc:'' }];
+  d.abilities = d.abilities.map(p => (p && typeof p==='object') ? p : { name:'', desc: p||'' });
   if (!Array.isArray(d.perks) || !d.perks.length) d.perks = [{ name:'', desc:'' }];
   d.perks = d.perks.map(p => (p && typeof p==='object') ? p : { name:'', desc: p||'' });
   return d;
@@ -1370,7 +1379,7 @@ function _fhRenderGrid() {
   if (!chars.length) { el.innerHTML='<div style="color:#2a2a2a;font-size:8px;letter-spacing:2px;padding:24px 0;text-align:center;grid-column:1/-1;">NO CHARACTERS YET</div>'; return; }
   el.innerHTML = chars.map(c => {
     const d = _fhData[c.id];
-    const hasDot = d && ((d.powers||[]).some(p=>p.name||p.desc) || (d.perks||[]).some(p=>p.name||p.desc));
+    const hasDot = d && ((d.powers||[]).some(p=>p.name||p.desc) || (d.abilities||[]).some(p=>p.name||p.desc) || (d.perks||[]).some(p=>p.name||p.desc));
     const dotCol = d?.role==='hunter' ? '#cc1122' : d?.role==='survivor' ? '#22cc88' : (c.color||'#888');
     const av = c.avatar
       ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
@@ -1430,6 +1439,7 @@ function _fhRenderView() {
     : `<div style="color:#222;font-size:8px;letter-spacing:2px;padding:10px 0;">NO PERKS SET. CLICK EDIT.</div>`;
 
   const _ROMAN = ['I','II','III','IV'];
+
   const filledPowers = isH ? (d.powers||[]).filter(p=>p.name||p.desc) : [];
   const powerHtml = filledPowers.length ? `
     <div>
@@ -1439,6 +1449,18 @@ function _fhRenderView() {
           <div class="fh-power-label">POWER ${filledPowers.length>1?_ROMAN[i]:''}</div>
           ${p.name?`<div class="fh-power-name">${_nmtEsc(p.name)}</div>`:''}
           ${p.desc?`<div class="fh-power-desc">${_nmtEsc(p.desc)}</div>`:''}
+        </div>`).join('')}
+    </div>` : '';
+
+  const filledAbilities = !isH ? (d.abilities||[]).filter(p=>p.name||p.desc) : [];
+  const abilityHtml = filledAbilities.length ? `
+    <div>
+      <div class="fh-perks-label" style="color:#116633;margin-bottom:8px;">ABILITIES</div>
+      ${filledAbilities.map((p,i)=>`
+        <div class="fh-ability-block"${i>0?' style="margin-top:6px;"':''}>
+          <div class="fh-ability-label">ABILITY ${filledAbilities.length>1?_ROMAN[i]:''}</div>
+          ${p.name?`<div class="fh-ability-name">${_nmtEsc(p.name)}</div>`:''}
+          ${p.desc?`<div class="fh-ability-desc">${_nmtEsc(p.desc)}</div>`:''}
         </div>`).join('')}
     </div>` : '';
 
@@ -1455,7 +1477,7 @@ function _fhRenderView() {
         </div>
         <div class="fh-view-rule"></div>
         <div class="fh-view-body">
-          ${powerHtml}
+          ${powerHtml}${abilityHtml}
           <div>
             <div class="fh-perks-label">PERKS</div>
             ${perksHtml}
@@ -1526,7 +1548,21 @@ function _fhRenderEdit() {
         </div>`).join('')}
       </div>
       ${(d.powers||[]).length<4?`<button class="btn sm" onclick="fhAddPower()" style="margin-top:6px;">+ POWER</button>`:''}
-    </div>`:''}
+    </div>`:`
+    <div class="nmt-section">
+      <div class="nmt-section-title">ABILITIES</div>
+      <div id="fh-abilities">${(d.abilities||[]).map((p,i)=>`
+        <div class="nmt-ability-row">
+          <span class="nmt-ability-num">${i+1}.</span>
+          <div class="nmt-ability-fields">
+            <input class="nmt-name-input" type="text" value="${_nmtEsc(p.name||'')}" placeholder="Ability name..." maxlength="60" oninput="fhEditAbility(${i},'name',this.value)"/>
+            <textarea class="nmt-textarea" rows="2" placeholder="Describe the ability..." oninput="fhEditAbility(${i},'desc',this.value)">${_nmtEsc(p.desc||'')}</textarea>
+          </div>
+          <button class="btn sm danger" onclick="fhRemoveAbility(${i})">✕</button>
+        </div>`).join('')}
+      </div>
+      ${(d.abilities||[]).length<4?`<button class="btn sm" onclick="fhAddAbility()" style="margin-top:6px;">+ ABILITY</button>`:''}
+    </div>`}
     <div class="nmt-section">
       <div class="nmt-section-title">PERKS</div>
       <div id="fh-perks">${perksHtml}</div>
@@ -1545,6 +1581,17 @@ function fhRemovePower(idx) {
   if(!_fhSel)return; const d=_fhChar(_fhSel);
   if(d.powers.length<=1){d.powers[0]={name:'',desc:''};_fhRenderEdit();return;}
   d.powers.splice(idx,1); _fhRenderEdit(); _fhScheduleSave();
+}
+function fhEditAbility(idx,field,v) { if(!_fhSel)return; const p=_fhChar(_fhSel).abilities[idx]; if(p) p[field]=v; _fhScheduleSave(); }
+function fhAddAbility() {
+  if(!_fhSel)return; const d=_fhChar(_fhSel); if(d.abilities.length>=4)return;
+  d.abilities.push({name:'',desc:''}); _fhRenderEdit(); _fhScheduleSave();
+  setTimeout(()=>document.getElementById('fh-abilities')?.querySelector('.nmt-ability-row:last-child .nmt-name-input')?.focus(),50);
+}
+function fhRemoveAbility(idx) {
+  if(!_fhSel)return; const d=_fhChar(_fhSel);
+  if(d.abilities.length<=1){d.abilities[0]={name:'',desc:''};_fhRenderEdit();return;}
+  d.abilities.splice(idx,1); _fhRenderEdit(); _fhScheduleSave();
 }
 function fhEditPerk(idx,field,v) { if(!_fhSel)return; const p=_fhChar(_fhSel).perks[idx]; if(p) p[field]=v; _fhScheduleSave(); }
 function fhRemovePerk(idx) {
