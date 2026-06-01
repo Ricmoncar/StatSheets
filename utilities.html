@@ -1572,8 +1572,9 @@ function _fhRenderView() {
           const mkAv = (ch,clr) => ch.avatar
             ? `<div class="fh-slms-avatar"><img src="${_nmtEsc(ch.avatar)}" style="width:100%;height:100%;object-fit:cover;"></div>`
             : `<div class="fh-slms-avatar" style="background:${clr}22;display:flex;align-items:center;justify-content:center;color:${clr};font-size:14px;font-family:sans-serif;">${(ch.name||'?')[0]}</div>`;
-          const mkBlock = (leftChar,leftCol,rightChar,rightCol,s,key,ownerRole)=>{
-            const isH = ownerRole==='hunter';
+          const mkBlock = (leftChar,leftCol,rightChar,rightCol,s,key,ownerRole,oppRole)=>{
+            const isH  = ownerRole==='hunter';
+            const isOH = (oppRole||'survivor')==='hunter';
             const vs = rightChar ? `<div class="fh-slms-vs">
               <div class="fh-slms-char">${mkAv(leftChar,leftCol)}<span class="fh-slms-char-name" style="color:${leftCol}">${_nmtEsc(leftChar.name||'?')}</span></div>
               <span class="fh-slms-vs-sign">VS</span>
@@ -1586,11 +1587,19 @@ function _fhRenderView() {
                 ${sp.name?`<div style="font-size:9px;letter-spacing:2px;color:${isH?'#cc2233':'#22cc88'};margin-bottom:4px;font-family:'Press Start 2P',monospace;">${_nmtEsc(sp.name)}</div>`:''}
                 ${sp.desc?`<div style="font-size:8px;color:rgba(255,255,255,.45);letter-spacing:.5px;line-height:1.9;">${_nmtEsc(sp.desc)}</div>`:''}
               </div>` : '';
+            const sOpp = s.specialOpponent;
+            const specialOppHtml = sOpp&&(sOpp.name||sOpp.desc) ? `
+              <div style="margin-top:8px;background:rgba(${isOH?'160,20,30':'20,160,90'},.06);border:1px solid rgba(${isOH?'160,20,30':'20,160,90'},.2);border-left:3px solid ${isOH?'#aa1122':'#22bb77'};border-radius:3px;padding:10px 12px;">
+                <div style="font-size:6px;letter-spacing:4px;color:${isOH?'#661122':'#116633'};margin-bottom:5px;">SPECIAL ${isOH?'POWER':'ABILITY'}</div>
+                ${sOpp.name?`<div style="font-size:9px;letter-spacing:2px;color:${isOH?'#cc2233':'#22cc88'};margin-bottom:4px;font-family:'Press Start 2P',monospace;">${_nmtEsc(sOpp.name)}</div>`:''}
+                ${sOpp.desc?`<div style="font-size:8px;color:rgba(255,255,255,.45);letter-spacing:.5px;line-height:1.9;">${_nmtEsc(sOpp.desc)}</div>`:''}
+              </div>` : '';
             return `<div class="fh-slms-block" style="margin-bottom:8px;">
               <div class="fh-slms-label">⚡ SPECIAL LMS</div>
               ${vs}
               ${s.desc?`<div class="fh-slms-desc">${_nmtEsc(s.desc)}</div>`:''}
               ${specialHtml}
+              ${specialOppHtml}
               ${s.music?`<div class="fh-music-row" data-fhkey="${key}" onclick="fhPlayAudio('${key}','${_nmtEsc(s.music.url)}')" style="padding:7px 10px;margin-top:6px;">
                 <span class="fh-music-play-btn">▶</span><span class="fh-music-tag" style="color:#c9a600">THEME</span>
                 <span class="fh-music-name">${_nmtEsc(s.music.name||'Special LMS Theme')}</span>
@@ -1601,11 +1610,12 @@ function _fhRenderView() {
           ownEntries.forEach((s,i)=>{
             const opp = s.charId ? allC.find(x=>x.id===s.charId) : null;
             const oppCol = opp?.color||'#888';
-            parts.push(mkBlock(c,col,opp,oppCol,s,`slms_${c.id}_${i}`,d.role));
+            const oppRole = opp ? (_fhData[opp.id]?.role||'survivor') : 'survivor';
+            parts.push(mkBlock(c,col,opp,oppCol,s,`slms_${c.id}_${i}`,d.role,oppRole));
           });
           incoming.forEach(({from,s,i})=>{
             const fromCol = from.color||'#888';
-            parts.push(mkBlock(from,fromCol,c,col,s,`slms_${from.id}_${i}`,_fhData[from.id]?.role||'survivor'));
+            parts.push(mkBlock(from,fromCol,c,col,s,`slms_${from.id}_${i}`,_fhData[from.id]?.role||'survivor',d.role));
           });
           return `<div style="padding:0 22px 14px;">${parts.join('')}</div>`;
         })()}
@@ -1753,6 +1763,42 @@ function _fhRenderEdit() {
       </div>
       <button class="btn sm" onclick="fhAddSpecialLms()" style="margin-top:2px;">+ SPECIAL LMS</button>
     </div>
+    ${(()=>{
+      /* Incoming Special LMS entries — other characters who linked to _fhSel */
+      const incomingEdit = [];
+      Object.keys(_fhData).forEach(oid=>{
+        if(oid===_fhSel) return;
+        (_fhData[oid]?.specialLms||[]).forEach((s,i)=>{
+          if(s.charId===_fhSel) incomingEdit.push({ownerCharId:oid,idx:i,s});
+        });
+      });
+      if(!incomingEdit.length) return '';
+      const rows = incomingEdit.map(({ownerCharId,idx,s})=>{
+        const ownerC = chars.find(x=>x.id===ownerCharId);
+        const ownerCol = ownerC?.color||'#888';
+        const ownerName = ownerC?.name||'UNNAMED';
+        const so = s.specialOpponent;
+        return `<div style="border:1px solid rgba(${isH?'160,20,30':'20,160,90'},.15);border-radius:3px;padding:10px 12px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:6px;letter-spacing:3px;color:rgba(255,255,255,.25);">FROM</span>
+            <span style="font-size:7px;letter-spacing:2px;color:${ownerCol};font-family:'Press Start 2P',monospace;">${_nmtEsc(ownerName)}</span>
+          </div>
+          ${s.desc?`<div style="font-size:8px;color:rgba(255,255,255,.3);letter-spacing:.4px;line-height:1.8;margin-bottom:8px;font-style:italic;">${_nmtEsc(s.desc)}</div>`:''}
+          <div style="font-size:6px;letter-spacing:4px;color:${isH?'#661122':'#116633'};margin-bottom:6px;">YOUR SPECIAL ${isH?'POWER':'ABILITY'} <span style="color:#2a2a2a;">(OPTIONAL)</span></div>
+          ${so?`
+          <div style="background:rgba(${isH?'160,20,30':'20,160,90'},.05);border:1px solid rgba(${isH?'160,20,30':'20,160,90'},.15);border-radius:3px;padding:8px 10px;">
+            <input class="nmt-name-input" type="text" value="${_nmtEsc(so.name||'')}" placeholder="${isH?'Power':'Ability'} name..." maxlength="60" oninput="fhEditSlmsPerkOpp('${ownerCharId}',${idx},'name',this.value)" style="margin-bottom:4px;border-color:rgba(${isH?'160,20,30':'20,160,90'},.2);"/>
+            <textarea class="nmt-textarea" rows="2" placeholder="Description..." oninput="fhEditSlmsPerkOpp('${ownerCharId}',${idx},'desc',this.value)" style="border-color:rgba(${isH?'160,20,30':'20,160,90'},.15);">${_nmtEsc(so.desc||'')}</textarea>
+            <button class="btn sm danger" onclick="fhRemoveSlmsPerkOpp('${ownerCharId}',${idx})" style="margin-top:4px;">✕ REMOVE</button>
+          </div>`:`
+          <button class="btn sm" onclick="fhAddSlmsPerkOpp('${ownerCharId}',${idx})">+ ADD ${isH?'POWER':'ABILITY'}</button>`}
+        </div>`;
+      }).join('');
+      return `<div class="nmt-section">
+        <div class="nmt-section-title">INCOMING SPECIAL LMS</div>
+        ${rows}
+      </div>`;
+    })()}
     <div class="nmt-section">
       <div class="nmt-section-title">MUSIC</div>
       <div style="margin-bottom:12px;">
@@ -1986,6 +2032,19 @@ function fhEditSlmsPerk(idx,field,v) {
   const sl=_fhChar(_fhSel).specialLms[idx];
   if(sl&&sl.special) sl.special[field]=v; _fhScheduleSave();
 }
+/* ── Incoming Special LMS opponent specials ──────────────────── */
+function fhAddSlmsPerkOpp(ownerCharId,idx) {
+  const sl=(_fhData[ownerCharId]?.specialLms||[])[idx];
+  if(sl){ sl.specialOpponent={name:'',desc:''}; _fhRenderEdit(); _fhScheduleSaveChar(ownerCharId); }
+}
+function fhRemoveSlmsPerkOpp(ownerCharId,idx) {
+  const sl=(_fhData[ownerCharId]?.specialLms||[])[idx];
+  if(sl){ sl.specialOpponent=null; _fhRenderEdit(); _fhScheduleSaveChar(ownerCharId); }
+}
+function fhEditSlmsPerkOpp(ownerCharId,idx,field,v) {
+  const sl=(_fhData[ownerCharId]?.specialLms||[])[idx];
+  if(sl){ if(!sl.specialOpponent) sl.specialOpponent={name:'',desc:''}; sl.specialOpponent[field]=v; _fhScheduleSaveChar(ownerCharId); }
+}
 
 function _fhScheduleSave() {
   const el=document.getElementById('fh-save-status');
@@ -2002,6 +2061,15 @@ function _fhFlush() {
       if(el){el.innerHTML=_NMT_ICON_SAVED;el.className='nmt-save-status saved';}
       setTimeout(()=>{const e=document.getElementById('fh-save-status');if(e){e.innerHTML='';e.className='nmt-save-status';}},2000);
     }).catch(e=>console.error('FH save error',e));
+}
+/* Save a specific character's doc (used when opponent edits their side of incoming SLMS) */
+function _fhScheduleSaveChar(charId) {
+  clearTimeout(window['_fhSaveTimer_'+charId]);
+  window['_fhSaveTimer_'+charId]=setTimeout(()=>{
+    if(typeof db==='undefined')return;
+    const d=_fhData[charId]; if(!d)return;
+    db.collection('finalHour').doc(charId).set(d).catch(e=>console.error('FH save error',e));
+  },900);
 }
 
 // ══════════════════════════════════════════════════════════════
