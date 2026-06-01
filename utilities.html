@@ -872,7 +872,7 @@
 
     <!-- LOL -->
     <div id="gs-lol" class="gs-content" style="display:none;">
-      <p class="gs-desc">Your character joins the Rift. Define their passive, Q, W, E, and R — and pick the colors that make each ability theirs.</p>
+      <p class="gs-desc">Your character joins the Rift. Define their passive, Q, W, E, and R, and pick the colors that make each ability theirs.</p>
       <div id="lol-grid" class="nmt-grid"></div>
       <div id="lol-editor" class="nmt-content-wrap" style="display:none;"></div>
     </div>
@@ -2381,7 +2381,9 @@ function lolInit() {
 function _lolChar(id) {
   if (!_lolData[id]) _lolData[id] = {};
   const d = _lolData[id];
-  if (!d.role)     d.role     = 'mid';
+  // migrate legacy single role string → array
+  if (d.role && !Array.isArray(d.roles)) { d.roles = [d.role]; delete d.role; }
+  if (!Array.isArray(d.roles) || !d.roles.length) d.roles = ['mid'];
   if (!d.resource) d.resource = 'mana';
   for (const slot of _LOL_SLOTS) {
     if (!d[slot] || typeof d[slot] !== 'object') d[slot] = {};
@@ -2479,7 +2481,7 @@ function _lolRenderView() {
           <div style="flex:1;min-width:0;">
             <div class="lol-view-name">${_nmtEsc(c.name||'UNNAMED')}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-              <span class="lol-role-badge">${_LOL_ROLE_LBLS[d.role]||'MID'}</span>
+              ${(d.roles||['mid']).map(r=>`<span class="lol-role-badge">${_LOL_ROLE_LBLS[r]||r.toUpperCase()}</span>`).join('')}
               <span style="display:inline-block;font-size:6px;letter-spacing:3px;color:${resCol};border:1px solid ${resCol}44;padding:3px 8px;border-radius:2px;">${_LOL_RES_LBLS[d.resource]||'MANA'}</span>
             </div>
           </div>
@@ -2521,7 +2523,7 @@ function _lolRenderEdit() {
     : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${col}22;color:${col};font-size:20px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
 
   const roleBtns = _LOL_ROLES.map(r =>
-    `<button class="lol-role-btn${d.role===r?' active':''}" onclick="lolSetRole('${r}')">${_LOL_ROLE_LBLS[r]}</button>`
+    `<button class="lol-role-btn${d.roles.includes(r)?' active':''}" onclick="lolToggleRole('${r}')">${_LOL_ROLE_LBLS[r]}</button>`
   ).join('');
 
   const resBtns = _LOL_RESOURCES.map(r => {
@@ -2570,7 +2572,18 @@ function lolEditSlot(slot, field, v) {
   d[slot][field] = v;
   _lolScheduleSave();
 }
-function lolSetRole(r)     { if (!_lolSel) return; _lolChar(_lolSel).role     = r; _lolRenderEdit(); _lolScheduleSave(); }
+function lolToggleRole(r) {
+  if (!_lolSel) return;
+  const d = _lolChar(_lolSel);
+  const idx = d.roles.indexOf(r);
+  if (idx !== -1) {
+    if (d.roles.length > 1) d.roles.splice(idx, 1); // deselect only if not the last one
+  } else {
+    if (d.roles.length >= 2) d.roles.shift(); // drop oldest if already 2
+    d.roles.push(r);
+  }
+  _lolRenderEdit(); _lolScheduleSave();
+}
 function lolSetResource(r) { if (!_lolSel) return; _lolChar(_lolSel).resource = r; _lolRenderEdit(); _lolScheduleSave(); }
 
 function _lolScheduleSave() {
