@@ -1350,8 +1350,14 @@ function fhInit() {
 function _fhChar(id) {
   if (!_fhData[id]) _fhData[id] = {};
   const d = _fhData[id];
-  if (!d.role)   d.role   = 'survivor';
-  if (!d.power)  d.power  = { name:'', desc:'' };
+  if (!d.role) d.role = 'survivor';
+  // Migrate legacy single power → powers array
+  if (d.power && !Array.isArray(d.powers)) {
+    d.powers = [(d.power.name || d.power.desc) ? d.power : { name:'', desc:'' }];
+    delete d.power;
+  }
+  if (!Array.isArray(d.powers) || !d.powers.length) d.powers = [{ name:'', desc:'' }];
+  d.powers = d.powers.map(p => (p && typeof p==='object') ? p : { name:'', desc: p||'' });
   if (!Array.isArray(d.perks) || !d.perks.length) d.perks = [{ name:'', desc:'' }];
   d.perks = d.perks.map(p => (p && typeof p==='object') ? p : { name:'', desc: p||'' });
   return d;
@@ -1364,7 +1370,7 @@ function _fhRenderGrid() {
   if (!chars.length) { el.innerHTML='<div style="color:#2a2a2a;font-size:8px;letter-spacing:2px;padding:24px 0;text-align:center;grid-column:1/-1;">NO CHARACTERS YET</div>'; return; }
   el.innerHTML = chars.map(c => {
     const d = _fhData[c.id];
-    const hasDot = d && (d.power?.name || d.power?.desc || (d.perks||[]).some(p=>p.name||p.desc));
+    const hasDot = d && ((d.powers||[]).some(p=>p.name||p.desc) || (d.perks||[]).some(p=>p.name||p.desc));
     const dotCol = d?.role==='hunter' ? '#cc1122' : d?.role==='survivor' ? '#22cc88' : (c.color||'#888');
     const av = c.avatar
       ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
@@ -1423,11 +1429,17 @@ function _fhRenderView() {
     </div>`).join('')
     : `<div style="color:#222;font-size:8px;letter-spacing:2px;padding:10px 0;">NO PERKS SET. CLICK EDIT.</div>`;
 
-  const powerHtml = isH&&(d.power?.name||d.power?.desc) ? `
-    <div class="fh-power-block">
-      <div class="fh-power-label">POWER</div>
-      ${d.power.name?`<div class="fh-power-name">${_nmtEsc(d.power.name)}</div>`:''}
-      ${d.power.desc?`<div class="fh-power-desc">${_nmtEsc(d.power.desc)}</div>`:''}
+  const _ROMAN = ['I','II','III','IV'];
+  const filledPowers = isH ? (d.powers||[]).filter(p=>p.name||p.desc) : [];
+  const powerHtml = filledPowers.length ? `
+    <div>
+      <div class="fh-perks-label" style="color:#661122;margin-bottom:8px;">POWERS</div>
+      ${filledPowers.map((p,i)=>`
+        <div class="fh-power-block"${i>0?' style="margin-top:6px;"':''}>
+          <div class="fh-power-label">POWER ${filledPowers.length>1?_ROMAN[i]:''}</div>
+          ${p.name?`<div class="fh-power-name">${_nmtEsc(p.name)}</div>`:''}
+          ${p.desc?`<div class="fh-power-desc">${_nmtEsc(p.desc)}</div>`:''}
+        </div>`).join('')}
     </div>` : '';
 
   wrap.innerHTML = `
@@ -1502,11 +1514,18 @@ function _fhRenderEdit() {
     </div>
     ${isH?`
     <div class="nmt-section">
-      <div class="nmt-section-title">POWER</div>
-      <div class="nmt-ability-fields">
-        <input class="nmt-name-input" type="text" value="${_nmtEsc(d.power?.name||'')}" placeholder="Power name..." maxlength="60" oninput="fhEditPower('name',this.value)" style="margin-bottom:4px;"/>
-        <textarea class="nmt-textarea" rows="2" placeholder="Describe the power..." oninput="fhEditPower('desc',this.value)">${_nmtEsc(d.power?.desc||'')}</textarea>
+      <div class="nmt-section-title">POWERS</div>
+      <div id="fh-powers">${(d.powers||[]).map((p,i)=>`
+        <div class="nmt-ability-row">
+          <span class="nmt-ability-num">${i+1}.</span>
+          <div class="nmt-ability-fields">
+            <input class="nmt-name-input" type="text" value="${_nmtEsc(p.name||'')}" placeholder="Power name..." maxlength="60" oninput="fhEditPower(${i},'name',this.value)"/>
+            <textarea class="nmt-textarea" rows="2" placeholder="Describe the power..." oninput="fhEditPower(${i},'desc',this.value)">${_nmtEsc(p.desc||'')}</textarea>
+          </div>
+          <button class="btn sm danger" onclick="fhRemovePower(${i})">✕</button>
+        </div>`).join('')}
       </div>
+      ${(d.powers||[]).length<4?`<button class="btn sm" onclick="fhAddPower()" style="margin-top:6px;">+ POWER</button>`:''}
     </div>`:''}
     <div class="nmt-section">
       <div class="nmt-section-title">PERKS</div>
@@ -1516,7 +1535,17 @@ function _fhRenderEdit() {
 }
 
 function fhSetRole(role) { if(!_fhSel)return; _fhChar(_fhSel).role=role; _fhRenderEdit(); _fhScheduleSave(); }
-function fhEditPower(field,v) { if(!_fhSel)return; const d=_fhChar(_fhSel); if(!d.power)d.power={name:'',desc:''}; d.power[field]=v; _fhScheduleSave(); }
+function fhEditPower(idx,field,v) { if(!_fhSel)return; const p=_fhChar(_fhSel).powers[idx]; if(p) p[field]=v; _fhScheduleSave(); }
+function fhAddPower() {
+  if(!_fhSel)return; const d=_fhChar(_fhSel); if(d.powers.length>=4)return;
+  d.powers.push({name:'',desc:''}); _fhRenderEdit(); _fhScheduleSave();
+  setTimeout(()=>document.getElementById('fh-powers')?.querySelector('.nmt-ability-row:last-child .nmt-name-input')?.focus(),50);
+}
+function fhRemovePower(idx) {
+  if(!_fhSel)return; const d=_fhChar(_fhSel);
+  if(d.powers.length<=1){d.powers[0]={name:'',desc:''};_fhRenderEdit();return;}
+  d.powers.splice(idx,1); _fhRenderEdit(); _fhScheduleSave();
+}
 function fhEditPerk(idx,field,v) { if(!_fhSel)return; const p=_fhChar(_fhSel).perks[idx]; if(p) p[field]=v; _fhScheduleSave(); }
 function fhRemovePerk(idx) {
   if(!_fhSel)return; const d=_fhChar(_fhSel);
