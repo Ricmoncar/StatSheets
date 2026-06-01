@@ -3149,7 +3149,8 @@ function showEditor(id) {
       name: f.name || '',
       avatar: f.avatar || null,
       stats: { hp: f.stats?.hp || 50, atk: f.stats?.atk || 10, def: f.stats?.def || 10, mag: f.stats?.mag || 10, spd: f.stats?.spd || 10, iq: f.stats?.iq || 50 },
-      substats: _fullSubstats(f.substats)
+      substats: _fullSubstats(f.substats),
+      themeSong: f.themeSong || null,
     }));
     renderEditorForms();
     const ptype = c.pattern?.type || 'none';
@@ -3412,7 +3413,8 @@ function saveCharacter() {
       name: f.name || '',
       avatar: f.avatar || null,
       stats: { hp: +f.stats.hp || 1, atk: +f.stats.atk || 1, def: +f.stats.def || 1, mag: +f.stats.mag || 1, spd: +f.stats.spd || 1, iq: +f.stats.iq || 50 },
-      substats: _fullSubstats(f.substats, true)
+      substats: _fullSubstats(f.substats, true),
+      ...(f.themeSong ? { themeSong: f.themeSong } : {}),
     })),
     activeFormIdx: existing.activeFormIdx || 0,
     info: existing.info || {},
