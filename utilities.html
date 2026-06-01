@@ -558,7 +558,27 @@
   .gs-fg:hover:not(.active) { color:rgba(220,155,0,.55); border-color:rgba(220,155,0,.22); }
   .gs-fg.active { color:#e0961a; border-color:rgba(220,150,0,.4); background:rgba(220,150,0,.07); box-shadow:0 0 18px rgba(220,150,0,.09); }
   .gs-fg::after { background:#e0961a; box-shadow:0 0 10px rgba(220,150,0,.7); }
+  /* LoL — Runeterra blue */
+  .gs-lol:hover:not(.active) { color:rgba(0,180,220,.55); border-color:rgba(0,180,220,.22); }
+  .gs-lol.active { color:#00b4de; border-color:rgba(0,180,220,.4); background:rgba(0,180,220,.07); box-shadow:0 0 18px rgba(0,180,220,.09); }
+  .gs-lol::after { background:#00b4de; box-shadow:0 0 10px rgba(0,180,220,.7); }
   .gs-desc { font-size:8px; color:#3a3a3a; letter-spacing:1px; margin:0 0 18px; line-height:1.9; }
+
+  /* ── LoL view card ──────────────────────────────────────────── */
+  .lol-view-card { position:relative; overflow:hidden; border-radius:4px; border:1px solid rgba(var(--lolr),.18); background:linear-gradient(160deg,rgba(var(--lolr),.05) 0%,#0d0d0d 55%); }
+  .lol-view-inner { position:relative; z-index:1; padding:0 0 20px; }
+  .lol-view-hero { display:flex; align-items:center; gap:16px; padding:20px 22px 16px; }
+  .lol-view-avatar { width:64px; height:64px; border-radius:4px; overflow:hidden; border:2px solid rgba(var(--lolr),.35); flex-shrink:0; }
+  .lol-view-name { font-size:11px; letter-spacing:3px; color:var(--lolc); font-family:'Press Start 2P',monospace; margin-bottom:8px; }
+  .lol-view-rule { height:1px; background:linear-gradient(90deg,transparent,rgba(var(--lolr),.3),transparent); margin:0 22px 14px; }
+  .lol-role-badge { display:inline-block; font-size:6px; letter-spacing:3px; color:rgba(255,255,255,.45); border:1px solid rgba(255,255,255,.1); padding:3px 8px; border-radius:2px; }
+  /* LoL edit pickers */
+  .lol-role-picker,.lol-res-picker { display:flex; gap:6px; flex-wrap:wrap; }
+  .lol-role-btn,.lol-res-btn { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); color:#333; font-size:6px; letter-spacing:3px; padding:6px 12px; border-radius:2px; cursor:none; transition:all .15s; font-family:'Press Start 2P',monospace; }
+  .lol-role-btn:hover,.lol-res-btn:hover { border-color:rgba(0,180,220,.3); color:#555; }
+  .lol-role-btn.active { border-color:rgba(0,180,220,.5); color:#00b4de; background:rgba(0,180,220,.08); }
+  /* color swatch */
+  .lol-color-swatch { width:26px; height:26px; border-radius:2px; border:1px solid rgba(255,255,255,.1); padding:2px; background:#111; cursor:none; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -824,6 +844,9 @@
       <button class="gs-tab gs-fg" data-gs="fg" onclick="gsSelect('fg')">
         <span class="gs-tab-icon">⚡</span>AUT
       </button>
+      <button class="gs-tab gs-lol" data-gs="lol" onclick="gsSelect('lol')">
+        <span class="gs-tab-icon">⚔</span>LOL
+      </button>
     </div>
 
     <!-- NMT -->
@@ -845,6 +868,13 @@
       <p class="gs-desc">Your character enters the arena. Set their stand, build out their moveset, and earn their tier.</p>
       <div id="fg-grid" class="nmt-grid"></div>
       <div id="fg-editor" class="nmt-content-wrap" style="display:none;"></div>
+    </div>
+
+    <!-- LOL -->
+    <div id="gs-lol" class="gs-content" style="display:none;">
+      <p class="gs-desc">Your character joins the Rift. Define their passive, Q, W, E, and R — and pick the colors that make each ability theirs.</p>
+      <div id="lol-grid" class="nmt-grid"></div>
+      <div id="lol-editor" class="nmt-content-wrap" style="display:none;"></div>
     </div>
   </div>
 
@@ -1045,7 +1075,7 @@ let _gsActive = 'nmt';
 function gsSelect(key) {
   _gsActive = key;
   document.querySelectorAll('.gs-tab').forEach(b => b.classList.toggle('active', b.dataset.gs === key));
-  ['nmt','fh','fg'].forEach(k => {
+  ['nmt','fh','fg','lol'].forEach(k => {
     const el = document.getElementById('gs-'+k);
     if (el) el.style.display = k === key ? '' : 'none';
   });
@@ -1053,6 +1083,7 @@ function gsSelect(key) {
   if (key === 'nmt' && _nmtMode !== 'edit') _nmtRenderGrid();
   if (key === 'fh'  && typeof _fhMode  !== 'undefined' && _fhMode  !== 'edit') _fhRenderGrid();
   if (key === 'fg'  && typeof _fgMode  !== 'undefined' && _fgMode  !== 'edit') _fgRenderGrid();
+  if (key === 'lol' && typeof _lolMode !== 'undefined' && _lolMode !== 'edit') _lolRenderGrid();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1081,8 +1112,9 @@ function nmtInit() {
   }
   if (_nmtMode !== 'edit') _nmtRenderGrid();
   // Chain companion sections so they all refresh when characters load
-  if (typeof fhInit === 'function') fhInit();
-  if (typeof fgInit === 'function') fgInit();
+  if (typeof fhInit  === 'function') fhInit();
+  if (typeof fgInit  === 'function') fgInit();
+  if (typeof lolInit === 'function') lolInit();
 }
 
 function _nmtEsc(s) {
@@ -2314,6 +2346,248 @@ function _fgFlush(){
       if(el){el.innerHTML=_NMT_ICON_SAVED;el.className='nmt-save-status saved';}
       setTimeout(()=>{const e=document.getElementById('fg-save-status');if(e){e.innerHTML='';e.className='nmt-save-status';}},2000);
     }).catch(e=>console.error('FG save error',e));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LEAGUE OF LEGENDS — KIT BUILDER
+// ══════════════════════════════════════════════════════════════
+let _lolData = {}, _lolSel = null, _lolMode = 'view', _lolListening = false, _lolAnimFrame = null;
+
+const _LOL_ROLES    = ['top','jgl','mid','bot','sup'];
+const _LOL_ROLE_LBLS = {top:'TOP',jgl:'JGL',mid:'MID',bot:'BOT',sup:'SUP'};
+const _LOL_RESOURCES = ['mana','energy','fury','heat','none'];
+const _LOL_RES_LBLS  = {mana:'MANA',energy:'ENERGY',fury:'FURY',heat:'HEAT',none:'NONE'};
+const _LOL_RES_COLS  = {mana:'#4a9eff',energy:'#ffdd33',fury:'#ff4433',heat:'#ff7722',none:'#444444'};
+const _LOL_SLOTS     = ['passive','q','w','e','r'];
+const _LOL_SLOT_LBLS = {passive:'PASSIVE',q:'Q',w:'W',e:'E',r:'R — ULTIMATE'};
+const _LOL_DEFAULTS  = {passive:'#a0a0a0',q:'#4a9eff',w:'#44cc88',e:'#ffcc44',r:'#e8a030'};
+
+function lolInit() {
+  if (!_lolListening && typeof db !== 'undefined') {
+    _lolListening = true;
+    db.collection('lol').onSnapshot(snap => {
+      snap.docChanges().forEach(ch => {
+        if (ch.type === 'removed') delete _lolData[ch.doc.id];
+        else _lolData[ch.doc.id] = ch.doc.data();
+      });
+      if (_lolMode === 'edit') return;
+      _lolRenderGrid();
+      if (_lolSel) _lolRenderContent();
+    }, () => {});
+  }
+  if (_lolMode !== 'edit') _lolRenderGrid();
+}
+
+function _lolChar(id) {
+  if (!_lolData[id]) _lolData[id] = {};
+  const d = _lolData[id];
+  if (!d.role)     d.role     = 'mid';
+  if (!d.resource) d.resource = 'mana';
+  for (const slot of _LOL_SLOTS) {
+    if (!d[slot] || typeof d[slot] !== 'object') d[slot] = {};
+    if (!d[slot].name)  d[slot].name  = '';
+    if (!d[slot].desc)  d[slot].desc  = '';
+    if (!d[slot].color) d[slot].color = _LOL_DEFAULTS[slot];
+  }
+  return d;
+}
+
+function _lolRenderGrid() {
+  const el = document.getElementById('lol-grid');
+  if (!el) return;
+  const chars = (typeof characters !== 'undefined' ? characters : []).filter(c => !c.isPlaceholder);
+  if (!chars.length) {
+    el.innerHTML = '<div style="color:#2a2a2a;font-size:8px;letter-spacing:2px;padding:24px 0;text-align:center;grid-column:1/-1;">NO CHARACTERS YET</div>';
+    return;
+  }
+  el.innerHTML = chars.map(c => {
+    const d  = _lolData[c.id];
+    const hasDot = d && _LOL_SLOTS.some(s => d[s]?.name || d[s]?.desc);
+    const av = c.avatar
+      ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${c.color||'#333'}22;color:${c.color||'#888'};font-size:18px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+    const on = _lolSel === c.id;
+    return `<div class="nmt-char-card${on?' nmt-card-active':''}" style="${on?`border-color:${c.color||'#888'}55;`:''}" onclick="lolSelect('${c.id}')">
+      <div class="nmt-card-avatar" style="border-color:${c.color||'#444'}77">${av}</div>
+      <div class="nmt-card-name" style="${on?`color:${c.color||'#aaa'};`:''}">${_nmtEsc(c.name||'UNNAMED')}</div>
+      ${hasDot ? `<div class="nmt-card-dot" style="background:${c.color||'#888'}"></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function lolSelect(id) {
+  const switching = _lolSel !== id;
+  if (_lolAnimFrame) { cancelAnimationFrame(_lolAnimFrame); _lolAnimFrame = null; }
+  _lolSel = id;
+  if (switching) _lolMode = 'view';
+  _lolRenderGrid();
+  const wrap = document.getElementById('lol-editor');
+  if (wrap) wrap.style.display = '';
+  _lolRenderContent();
+  if (switching) setTimeout(() => wrap?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 60);
+}
+
+function _lolRenderContent() { _lolMode === 'view' ? _lolRenderView() : _lolRenderEdit(); }
+function lolSetMode(m) {
+  if (_lolAnimFrame) { cancelAnimationFrame(_lolAnimFrame); _lolAnimFrame = null; }
+  _lolMode = m;
+  _lolRenderContent();
+}
+
+function _lolRenderView() {
+  const wrap = document.getElementById('lol-editor');
+  if (!wrap || !_lolSel) return;
+  const chars = typeof characters !== 'undefined' ? characters : [];
+  const c = chars.find(x => x.id === _lolSel); if (!c) return;
+  const d = _lolChar(_lolSel);
+  const col = c.color || '#00b4de', rgb = _nmtRgb(col);
+  const resCol = _LOL_RES_COLS[d.resource] || '#444';
+
+  const av = c.avatar
+    ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(${rgb},.1);color:${col};font-size:32px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+
+  const mkAbilityBlock = (slot) => {
+    const ab = d[slot];
+    if (!ab.name && !ab.desc) return '';
+    const isPassive = slot === 'passive';
+    const isUlt     = slot === 'r';
+    const keyHtml = isPassive
+      ? `<div style="width:22px;height:22px;border-radius:50%;border:1.5px solid ${ab.color};background:${ab.color}20;flex-shrink:0;margin-top:1px;"></div>`
+      : `<div style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;font-size:7px;letter-spacing:1px;font-family:'Press Start 2P',monospace;flex-shrink:0;border:1.5px solid ${ab.color};color:${ab.color};background:${ab.color}18;margin-top:1px;">${slot.toUpperCase()}</div>`;
+    return `<div style="padding:${isUlt?'14px 22px 8px':'7px 22px'};">
+      ${isUlt?`<div style="height:1px;background:linear-gradient(90deg,transparent,rgba(${rgb},.22),transparent);margin-bottom:12px;"></div>`:''}
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        ${keyHtml}
+        <div style="flex:1;min-width:0;">
+          ${ab.name?`<div style="font-size:9px;letter-spacing:2px;color:${ab.color};font-family:'Press Start 2P',monospace;margin-bottom:5px;">${_nmtEsc(ab.name)}</div>`:''}
+          ${ab.desc?`<div style="font-size:8px;color:rgba(255,255,255,.38);letter-spacing:.4px;line-height:1.95;">${_nmtEsc(ab.desc)}</div>`:''}
+        </div>
+      </div>
+    </div>`;
+  };
+
+  const hasContent = _LOL_SLOTS.some(s => d[s].name || d[s].desc);
+  const abBlocks = _LOL_SLOTS.map(mkAbilityBlock).join('');
+
+  wrap.innerHTML = `
+    <div class="lol-view-card" style="--lolc:${col};--lolr:${rgb}">
+      <canvas class="nmt-pattern-bg"></canvas>
+      <div class="lol-view-inner">
+        <div class="lol-view-hero">
+          <div class="lol-view-avatar">${av}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="lol-view-name">${_nmtEsc(c.name||'UNNAMED')}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <span class="lol-role-badge">${_LOL_ROLE_LBLS[d.role]||'MID'}</span>
+              <span style="display:inline-block;font-size:6px;letter-spacing:3px;color:${resCol};border:1px solid ${resCol}44;padding:3px 8px;border-radius:2px;">${_LOL_RES_LBLS[d.resource]||'MANA'}</span>
+            </div>
+          </div>
+          <button class="btn sm" onclick="lolSetMode('edit')" style="flex-shrink:0;margin-left:8px;">EDIT</button>
+        </div>
+        <div class="lol-view-rule"></div>
+        ${hasContent
+          ? abBlocks
+          : `<div style="color:#222;font-size:8px;letter-spacing:2px;padding:10px 22px;">NO KIT SET. CLICK EDIT.</div>`}
+        <div style="height:14px;"></div>
+      </div>
+    </div>`;
+
+  if (c.pattern?.type && c.pattern.type !== 'none') {
+    requestAnimationFrame(() => {
+      const cv = wrap.querySelector('.nmt-pattern-bg'); if (!cv) return;
+      cv.width = cv.parentElement.offsetWidth || 600;
+      cv.height = cv.parentElement.offsetHeight || 300;
+      const t0 = performance.now();
+      function frame(now) {
+        if (typeof drawPattern === 'function') drawPattern(cv, c.pattern.type, c.pattern.params || {}, (now - t0) / 1000);
+        _lolAnimFrame = requestAnimationFrame(frame);
+      }
+      _lolAnimFrame = requestAnimationFrame(frame);
+    });
+  }
+}
+
+function _lolRenderEdit() {
+  const wrap = document.getElementById('lol-editor');
+  if (!wrap || !_lolSel) return;
+  const chars = typeof characters !== 'undefined' ? characters : [];
+  const c = chars.find(x => x.id === _lolSel); if (!c) return;
+  const d = _lolChar(_lolSel);
+  const col = c.color || '#00b4de';
+
+  const av = c.avatar
+    ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${col}22;color:${col};font-size:20px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+
+  const roleBtns = _LOL_ROLES.map(r =>
+    `<button class="lol-role-btn${d.role===r?' active':''}" onclick="lolSetRole('${r}')">${_LOL_ROLE_LBLS[r]}</button>`
+  ).join('');
+
+  const resBtns = _LOL_RESOURCES.map(r => {
+    const rc = _LOL_RES_COLS[r] || '#888';
+    const isActive = d.resource === r;
+    return `<button class="lol-res-btn" style="${isActive?`border-color:${rc}66;color:${rc};background:${rc}12;`:'color:#333;'}" onclick="lolSetResource('${r}')">${_LOL_RES_LBLS[r]}</button>`;
+  }).join('');
+
+  const slotSections = _LOL_SLOTS.map(slot => {
+    const ab   = d[slot];
+    const lbl  = _LOL_SLOT_LBLS[slot];
+    const phName = slot === 'passive' ? 'Passive name...' : `${lbl.split(' ')[0]} ability name...`;
+    const phDesc = slot === 'passive' ? 'What does the passive do...' : `What does ${lbl.split(' ')[0]} do...`;
+    return `<div class="nmt-section" style="border-left:2px solid ${ab.color}55;padding-left:12px;">
+      <div class="nmt-section-title" style="color:${ab.color}cc;">${lbl}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <input class="nmt-name-input" type="text" value="${_nmtEsc(ab.name||'')}" placeholder="${phName}" maxlength="60" style="flex:1;" oninput="lolEditSlot('${slot}','name',this.value)"/>
+        <input type="color" value="${_nmtEsc(ab.color)}" class="lol-color-swatch" title="Ability color" oninput="lolEditSlot('${slot}','color',this.value)"/>
+      </div>
+      <textarea class="nmt-textarea" rows="3" placeholder="${phDesc}" oninput="lolEditSlot('${slot}','desc',this.value)">${_nmtEsc(ab.desc||'')}</textarea>
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="nmt-edit-header">
+      <div class="nmt-edit-avatar" style="border-color:${col}66">${av}</div>
+      <div class="nmt-edit-name" style="color:${col}">${_nmtEsc(c.name||'UNNAMED')}</div>
+      <span class="nmt-save-status" id="lol-save-status" style="margin-left:auto;"></span>
+      <button class="btn sm accent" onclick="lolSetMode('view')" style="margin-left:8px;">VIEW</button>
+    </div>
+    <div class="nmt-section">
+      <div class="nmt-section-title">ROLE</div>
+      <div class="lol-role-picker">${roleBtns}</div>
+    </div>
+    <div class="nmt-section">
+      <div class="nmt-section-title">RESOURCE</div>
+      <div class="lol-res-picker">${resBtns}</div>
+    </div>
+    ${slotSections}`;
+}
+
+function lolEditSlot(slot, field, v) {
+  if (!_lolSel) return;
+  const d = _lolChar(_lolSel);
+  if (!d[slot]) d[slot] = {};
+  d[slot][field] = v;
+  _lolScheduleSave();
+}
+function lolSetRole(r)     { if (!_lolSel) return; _lolChar(_lolSel).role     = r; _lolRenderEdit(); _lolScheduleSave(); }
+function lolSetResource(r) { if (!_lolSel) return; _lolChar(_lolSel).resource = r; _lolRenderEdit(); _lolScheduleSave(); }
+
+function _lolScheduleSave() {
+  const el = document.getElementById('lol-save-status');
+  if (el) { el.innerHTML = _NMT_ICON_SAVING; el.className = 'nmt-save-status saving'; }
+  clearTimeout(window._lolSaveTimer);
+  window._lolSaveTimer = setTimeout(_lolFlush, 900);
+}
+function _lolFlush() {
+  if (!_lolSel || typeof db === 'undefined') return;
+  const d = _lolData[_lolSel]; if (!d) return;
+  db.collection('lol').doc(_lolSel).set(d)
+    .then(() => {
+      const el = document.getElementById('lol-save-status');
+      if (el) { el.innerHTML = _NMT_ICON_SAVED; el.className = 'nmt-save-status saved'; }
+      setTimeout(() => { const e = document.getElementById('lol-save-status'); if (e) { e.innerHTML = ''; e.className = 'nmt-save-status'; } }, 2000);
+    }).catch(e => console.error('LoL save error', e));
 }
 </script>
 <!-- Firebase -->
