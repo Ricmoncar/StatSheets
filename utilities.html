@@ -1572,17 +1572,26 @@ function _fhRenderView() {
           const mkAv = (ch,clr) => ch.avatar
             ? `<div class="fh-slms-avatar"><img src="${_nmtEsc(ch.avatar)}" style="width:100%;height:100%;object-fit:cover;"></div>`
             : `<div class="fh-slms-avatar" style="background:${clr}22;display:flex;align-items:center;justify-content:center;color:${clr};font-size:14px;font-family:sans-serif;">${(ch.name||'?')[0]}</div>`;
-          const mkBlock = (leftChar,leftCol,rightChar,rightCol,s,key)=>{
+          const mkBlock = (leftChar,leftCol,rightChar,rightCol,s,key,ownerRole)=>{
+            const isH = ownerRole==='hunter';
             const vs = rightChar ? `<div class="fh-slms-vs">
               <div class="fh-slms-char">${mkAv(leftChar,leftCol)}<span class="fh-slms-char-name" style="color:${leftCol}">${_nmtEsc(leftChar.name||'?')}</span></div>
               <span class="fh-slms-vs-sign">VS</span>
               <div class="fh-slms-char">${mkAv(rightChar,rightCol)}<span class="fh-slms-char-name" style="color:${rightCol}">${_nmtEsc(rightChar.name||'?')}</span></div>
             </div>` : '';
+            const sp = s.special;
+            const specialHtml = sp&&(sp.name||sp.desc) ? `
+              <div style="margin-top:8px;background:rgba(${isH?'160,20,30':'20,160,90'},.06);border:1px solid rgba(${isH?'160,20,30':'20,160,90'},.2);border-left:3px solid ${isH?'#aa1122':'#22bb77'};border-radius:3px;padding:10px 12px;">
+                <div style="font-size:6px;letter-spacing:4px;color:${isH?'#661122':'#116633'};margin-bottom:5px;">SPECIAL ${isH?'POWER':'ABILITY'}</div>
+                ${sp.name?`<div style="font-size:9px;letter-spacing:2px;color:${isH?'#cc2233':'#22cc88'};margin-bottom:4px;font-family:'Press Start 2P',monospace;">${_nmtEsc(sp.name)}</div>`:''}
+                ${sp.desc?`<div style="font-size:8px;color:rgba(255,255,255,.45);letter-spacing:.5px;line-height:1.9;">${_nmtEsc(sp.desc)}</div>`:''}
+              </div>` : '';
             return `<div class="fh-slms-block" style="margin-bottom:8px;">
               <div class="fh-slms-label">⚡ SPECIAL LMS</div>
               ${vs}
               ${s.desc?`<div class="fh-slms-desc">${_nmtEsc(s.desc)}</div>`:''}
-              ${s.music?`<div class="fh-music-row" data-fhkey="${key}" onclick="fhPlayAudio('${key}','${_nmtEsc(s.music.url)}')" style="padding:7px 10px;margin-top:4px;">
+              ${specialHtml}
+              ${s.music?`<div class="fh-music-row" data-fhkey="${key}" onclick="fhPlayAudio('${key}','${_nmtEsc(s.music.url)}')" style="padding:7px 10px;margin-top:6px;">
                 <span class="fh-music-play-btn">▶</span><span class="fh-music-tag" style="color:#c9a600">THEME</span>
                 <span class="fh-music-name">${_nmtEsc(s.music.name||'Special LMS Theme')}</span>
               </div>`:''}
@@ -1592,11 +1601,11 @@ function _fhRenderView() {
           ownEntries.forEach((s,i)=>{
             const opp = s.charId ? allC.find(x=>x.id===s.charId) : null;
             const oppCol = opp?.color||'#888';
-            parts.push(mkBlock(c,col,opp,oppCol,s,`slms_${c.id}_${i}`));
+            parts.push(mkBlock(c,col,opp,oppCol,s,`slms_${c.id}_${i}`,d.role));
           });
           incoming.forEach(({from,s,i})=>{
             const fromCol = from.color||'#888';
-            parts.push(mkBlock(from,fromCol,c,col,s,`slms_${from.id}_${i}`));
+            parts.push(mkBlock(from,fromCol,c,col,s,`slms_${from.id}_${i}`,_fhData[from.id]?.role||'survivor'));
           });
           return `<div style="padding:0 22px 14px;">${parts.join('')}</div>`;
         })()}
@@ -1720,6 +1729,16 @@ function _fhRenderEdit() {
             <div style="margin-bottom:8px;">
               <div style="font-size:6px;letter-spacing:3px;color:#7a6000;margin-bottom:5px;">DESCRIPTION</div>
               <textarea class="nmt-textarea" rows="2" placeholder="What makes this LMS special..." oninput="fhEditSpecialLmsDesc(${i},this.value)">${_nmtEsc(s.desc||'')}</textarea>
+            </div>
+            <div style="margin-bottom:8px;">
+              <div style="font-size:6px;letter-spacing:4px;color:${isH?'#661122':'#116633'};margin-bottom:6px;">SPECIAL ${isH?'POWER':'ABILITY'} <span style="color:#2a2a2a;">(OPTIONAL)</span></div>
+              ${s.special?`
+              <div style="background:rgba(${isH?'160,20,30':'20,160,90'},.05);border:1px solid rgba(${isH?'160,20,30':'20,160,90'},.15);border-radius:3px;padding:8px 10px;">
+                <input class="nmt-name-input" type="text" value="${_nmtEsc(s.special.name||'')}" placeholder="${isH?'Power':'Ability'} name..." maxlength="60" oninput="fhEditSlmsPerk(${i},'name',this.value)" style="margin-bottom:4px;border-color:rgba(${isH?'160,20,30':'20,160,90'},.2);"/>
+                <textarea class="nmt-textarea" rows="2" placeholder="Description..." oninput="fhEditSlmsPerk(${i},'desc',this.value)" style="border-color:rgba(${isH?'160,20,30':'20,160,90'},.15);">${_nmtEsc(s.special.desc||'')}</textarea>
+                <button class="btn sm danger" onclick="fhRemoveSlmsPerk(${i})" style="margin-top:4px;">✕ REMOVE</button>
+              </div>`:`
+              <button class="btn sm" onclick="fhAddSlmsPerk(${i})">+ ADD ${isH?'POWER':'ABILITY'}</button>`}
             </div>
             <div>
               <div style="font-size:6px;letter-spacing:4px;color:#c9a600;margin-bottom:6px;">THEME</div>
@@ -1951,6 +1970,21 @@ function fhRemoveSpecialLmsMusic(idx) {
   if(!_fhSel) return;
   if(_fhAudioKey===`slms_${_fhSel}_${idx}`) fhStopAudio();
   const sl=_fhChar(_fhSel).specialLms[idx]; if(sl) sl.music=null; _fhRenderEdit(); _fhScheduleSave();
+}
+function fhAddSlmsPerk(idx) {
+  if(!_fhSel) return;
+  const sl=_fhChar(_fhSel).specialLms[idx];
+  if(sl){ sl.special={name:'',desc:''}; _fhRenderEdit(); _fhScheduleSave(); }
+}
+function fhRemoveSlmsPerk(idx) {
+  if(!_fhSel) return;
+  const sl=_fhChar(_fhSel).specialLms[idx];
+  if(sl){ sl.special=null; _fhRenderEdit(); _fhScheduleSave(); }
+}
+function fhEditSlmsPerk(idx,field,v) {
+  if(!_fhSel) return;
+  const sl=_fhChar(_fhSel).specialLms[idx];
+  if(sl&&sl.special) sl.special[field]=v; _fhScheduleSave();
 }
 
 function _fhScheduleSave() {
