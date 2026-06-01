@@ -439,6 +439,18 @@
   .fh-music-row.fh-playing .fh-music-name { color:rgba(255,255,255,.75); animation:fh-music-pulse 1.6s ease-in-out infinite; }
   .fh-music-edit-row { display:flex; align-items:center; gap:8px; padding:7px 10px; background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.05); border-radius:2px; }
   .fh-music-edit-name { flex:1; font-size:8px; color:rgba(255,255,255,.5); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; letter-spacing:.5px; }
+  /* FH Special LMS */
+  .fh-slms-block { background:rgba(220,175,0,.04); border:1px solid rgba(220,175,0,.2); border-left:3px solid #c9a600; border-radius:3px; padding:14px 14px; margin-bottom:0; transition:background .2s,box-shadow .2s; }
+  .fh-slms-block:hover { background:rgba(220,175,0,.08); box-shadow:-3px 0 16px rgba(220,175,0,.14); }
+  .fh-slms-label { font-size:6px; letter-spacing:5px; color:#7a6000; margin-bottom:10px; }
+  .fh-slms-vs { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .fh-slms-char { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; min-width:0; }
+  .fh-slms-avatar { width:38px; height:38px; border-radius:50%; overflow:hidden; border:1px solid rgba(255,255,255,.18); flex-shrink:0; }
+  .fh-slms-char-name { font-size:7px; letter-spacing:1px; color:rgba(255,255,255,.5); text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; transition:color .18s; }
+  .fh-slms-block:hover .fh-slms-char-name { color:rgba(255,255,255,.75); }
+  .fh-slms-vs-sign { font-family:'Press Start 2P',monospace; font-size:10px; color:#c9a600; flex-shrink:0; letter-spacing:0; text-shadow:0 0 12px rgba(220,175,0,.5); }
+  .fh-slms-desc { font-size:8px; color:rgba(255,255,255,.42); letter-spacing:.5px; line-height:1.9; margin-bottom:8px; }
+  .fh-slms-block:hover .fh-slms-desc { color:rgba(255,255,255,.65); }
 
   /* ── BEYOND LIMITS ──────────────────────────────────────────── */
   @keyframes fg-top-glow    { 0%,100%{opacity:.45} 50%{opacity:1} }
@@ -1394,7 +1406,7 @@ function _fhRenderGrid() {
   if (!chars.length) { el.innerHTML='<div style="color:#2a2a2a;font-size:8px;letter-spacing:2px;padding:24px 0;text-align:center;grid-column:1/-1;">NO CHARACTERS YET</div>'; return; }
   el.innerHTML = chars.map(c => {
     const d = _fhData[c.id];
-    const hasDot = d && ((d.powers||[]).some(p=>p.name||p.desc) || (d.abilities||[]).some(p=>p.name||p.desc) || (d.perks||[]).some(p=>p.name||p.desc));
+    const hasDot = d && ((d.powers||[]).some(p=>p.name||p.desc) || (d.abilities||[]).some(p=>p.name||p.desc) || (d.perks||[]).some(p=>p.name||p.desc) || d.specialLms?.charId || d.specialLms?.desc);
     const dotCol = d?.role==='hunter' ? '#cc1122' : d?.role==='survivor' ? '#22cc88' : (c.color||'#888');
     const av = c.avatar
       ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
@@ -1499,6 +1511,36 @@ function _fhRenderView() {
             ${perksHtml}
           </div>
         </div>
+        ${(()=>{
+          const sl = d.specialLms;
+          const allC = typeof characters!=='undefined' ? characters : [];
+          const slC = sl?.charId ? allC.find(x=>x.id===sl.charId) : null;
+          if (!sl || (!sl.charId && !sl.desc && !sl.music)) return '';
+          const myAv = c.avatar
+            ? `<div class="fh-slms-avatar"><img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;"></div>`
+            : `<div class="fh-slms-avatar" style="background:${col}22;display:flex;align-items:center;justify-content:center;color:${col};font-size:14px;font-family:sans-serif;">${(c.name||'?')[0]}</div>`;
+          const vsHtml = slC ? `
+            <div class="fh-slms-vs">
+              <div class="fh-slms-char">${myAv}<span class="fh-slms-char-name" style="color:${col}">${_nmtEsc(c.name||'?')}</span></div>
+              <span class="fh-slms-vs-sign">VS</span>
+              <div class="fh-slms-char">
+                ${slC.avatar?`<div class="fh-slms-avatar"><img src="${_nmtEsc(slC.avatar)}" style="width:100%;height:100%;object-fit:cover;"></div>`:`<div class="fh-slms-avatar" style="background:${slC.color||'#444'}22;display:flex;align-items:center;justify-content:center;color:${slC.color||'#888'};font-size:14px;font-family:sans-serif;">${(slC.name||'?')[0]}</div>`}
+                <span class="fh-slms-char-name" style="color:${slC.color||'#888'}">${_nmtEsc(slC.name||'?')}</span>
+              </div>
+            </div>` : '';
+          return `<div style="padding:0 22px 14px;">
+            <div class="fh-slms-block">
+              <div class="fh-slms-label">⚡ SPECIAL LMS</div>
+              ${vsHtml}
+              ${sl.desc?`<div class="fh-slms-desc">${_nmtEsc(sl.desc)}</div>`:''}
+              ${sl.music?`<div class="fh-music-row" data-fhkey="specialLms_${c.id}" onclick="fhTogglePlay('specialLms','${_nmtEsc(sl.music.url)}')" style="padding:7px 10px;margin-top:4px;">
+                <span class="fh-music-play-btn">▶</span>
+                <span class="fh-music-tag" style="color:#c9a600">THEME</span>
+                <span class="fh-music-name">${_nmtEsc(sl.music.name||'Special LMS Theme')}</span>
+              </div>`:''}
+            </div>
+          </div>`;
+        })()}
         ${(d.chaseMusic||d.lmsMusic)?`
         <div class="fh-music-section">
           ${d.chaseMusic?`<div class="fh-music-row" data-fhkey="chase_${c.id}" onclick="fhTogglePlay('chase','${_nmtEsc(d.chaseMusic.url)}')">
@@ -1598,6 +1640,30 @@ function _fhRenderEdit() {
       <div class="nmt-section-title">PERKS</div>
       <div id="fh-perks">${perksHtml}</div>
       ${(d.perks||[]).length<4?`<button class="btn sm" onclick="fhAddPerk()" style="margin-top:6px;">+ PERK</button>`:''}
+    </div>
+    <div class="nmt-section">
+      <div class="nmt-section-title">SPECIAL LMS</div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:6px;letter-spacing:3px;color:#7a6000;margin-bottom:6px;">RELATED CHARACTER</div>
+        <select class="compat-sel" style="width:100%;" onchange="fhSetSpecialLmsChar(this.value)">
+          <option value="">— NONE —</option>
+          ${(typeof characters!=='undefined'?characters:[]).filter(x=>!x.isPlaceholder&&x.id!==_fhSel).map(x=>`<option value="${x.id}"${d.specialLms?.charId===x.id?' selected':''}>${_nmtEsc(x.name||'UNNAMED')}</option>`).join('')}
+        </select>
+      </div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:6px;letter-spacing:3px;color:#7a6000;margin-bottom:6px;">DESCRIPTION</div>
+        <textarea class="nmt-textarea" rows="3" placeholder="What makes this LMS special..." oninput="fhEditSpecialLmsDesc(this.value)">${_nmtEsc(d.specialLms?.desc||'')}</textarea>
+      </div>
+      <div>
+        <div style="font-size:6px;letter-spacing:4px;color:#c9a600;margin-bottom:7px;">THEME MUSIC</div>
+        ${d.specialLms?.music?`
+        <div class="fh-music-edit-row">
+          <button class="btn sm" data-fhkey="specialLms_${c.id}" onclick="fhTogglePlay('specialLms','${_nmtEsc(d.specialLms.music.url)}')" style="min-width:32px;justify-content:center;">▶</button>
+          <span class="fh-music-edit-name">${_nmtEsc(d.specialLms.music.name||'Special LMS Theme')}</span>
+          <button class="btn sm danger" onclick="fhRemoveSpecialLmsMusic()">✕</button>
+        </div>`:`
+        <button class="btn sm" id="fh-music-upload-specialLms" onclick="fhUploadSpecialLmsMusic()">+ UPLOAD MP3</button>`}
+      </div>
     </div>
     <div class="nmt-section">
       <div class="nmt-section-title">MUSIC</div>
@@ -1751,6 +1817,60 @@ function fhRemoveMusic(type) {
   d[type + 'Music'] = null;
   _fhRenderEdit();
   _fhScheduleSave();
+}
+
+/* ── Special LMS ─────────────────────────────────────────────── */
+function _fhSlmsEnsure() {
+  const d = _fhChar(_fhSel);
+  if (!d.specialLms) d.specialLms = { charId: null, music: null, desc: '' };
+  return d.specialLms;
+}
+function fhSetSpecialLmsChar(charId) {
+  if (!_fhSel) return;
+  _fhSlmsEnsure().charId = charId || null;
+  _fhScheduleSave();
+}
+function fhEditSpecialLmsDesc(v) {
+  if (!_fhSel) return;
+  _fhSlmsEnsure().desc = v;
+  _fhScheduleSave();
+}
+async function fhUploadSpecialLmsMusic() {
+  if (!_fhSel) return;
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'audio/mpeg,audio/mp3,.mp3';
+  input.onchange = async () => {
+    const file = input.files[0]; if (!file) return;
+    if (file.size > 20*1024*1024) { if (typeof notify==='function') notify('File too large — max 20 MB','err'); return; }
+    const btn = document.getElementById('fh-music-upload-specialLms');
+    if (btn) { btn.textContent='UPLOADING...'; btn.disabled=true; }
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('upload_preset', typeof CLOUDINARY_PRESET!=='undefined'?CLOUDINARY_PRESET:'statsheets');
+      form.append('resource_type','video');
+      form.append('public_id', `fh_music/${_fhSel}_specialLms_${Date.now()}`);
+      const cloud = typeof CLOUDINARY_CLOUD!=='undefined'?CLOUDINARY_CLOUD:'dhlik6lkn';
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/video/upload`,{method:'POST',body:form});
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      _fhSlmsEnsure().music = { url: data.secure_url, name: file.name.replace(/\.[^/.]+$/,'') };
+      _fhRenderEdit(); _fhScheduleSave();
+      if (typeof notify==='function') notify('Special LMS theme set!','ok');
+    } catch(e) {
+      console.error('FH special LMS upload error',e);
+      if (typeof notify==='function') notify('Upload failed','err');
+      const b=document.getElementById('fh-music-upload-specialLms');
+      if (b) { b.textContent='+ UPLOAD MP3'; b.disabled=false; }
+    }
+  };
+  input.click();
+}
+function fhRemoveSpecialLmsMusic() {
+  if (!_fhSel) return;
+  if (_fhAudioEl && _fhAudioKey==='specialLms_'+_fhSel) { _fhAudioEl.pause(); _fhAudioEl=null; _fhAudioKey=null; }
+  const sl = _fhSlmsEnsure(); sl.music = null;
+  _fhRenderEdit(); _fhScheduleSave();
 }
 
 function _fhScheduleSave() {
