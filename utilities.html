@@ -628,9 +628,11 @@
   .lol-stat-row:hover .lol-stat-val   { color:rgba(255,255,255,.6); }
   .lol-stat-rule { height:1px; background:rgba(255,255,255,.04); margin:8px 0 10px; }
   /* ── LoL stats edit ─────────────────────────────────────────── */
-  .lol-stats-edit-grid { display:grid; grid-template-columns:46px 1fr 1fr; gap:5px 8px; align-items:center; }
-  .lol-stat-col-hdr { font-size:6px; letter-spacing:3px; color:#2a2a2a; text-align:center; padding-bottom:2px; }
-  .lol-stat-edit-lbl { font-size:6px; letter-spacing:2px; color:#3a3a3a; }
+  .lol-stat-edit-row { display:flex; align-items:center; gap:12px; padding:9px 12px; background:rgba(255,255,255,.015); border-radius:3px; margin-bottom:4px; border:1px solid rgba(255,255,255,.04); transition:background .15s; }
+  .lol-stat-edit-row:hover { background:rgba(255,255,255,.032); }
+  .lol-stat-edit-name { flex:1; font-size:7px; letter-spacing:3px; color:#484848; }
+  .lol-stat-edit-field { display:flex; flex-direction:column; align-items:stretch; gap:4px; width:76px; flex-shrink:0; }
+  .lol-stat-field-lbl { font-size:5px; letter-spacing:3px; color:#282828; text-align:center; }
 </style>
 </head>
 <body>
@@ -2413,10 +2415,13 @@ const _LOL_RES_COLS  = {mana:'#4a9eff',energy:'#ffdd33',fury:'#ff4433',heat:'#ff
 const _LOL_SLOTS     = ['passive','q','w','e','r'];
 const _LOL_SLOT_LBLS = {passive:'PASSIVE',q:'Q',w:'W',e:'E',r:'R — ULTIMATE'};
 const _LOL_DEFAULTS  = {passive:'#a0a0a0',q:'#4a9eff',w:'#44cc88',e:'#ffcc44',r:'#e8a030'};
-const _LOL_STAT_KEYS = ['hp','hpreg','mana','manareg','ad','as','armor','mr','ms','range'];
-const _LOL_STAT_LBLS = {hp:'HP',hpreg:'HP/5',mana:'MANA',manareg:'MN/5',ad:'AD',as:'AS',armor:'ARM',mr:'MR',ms:'MS',range:'RNG'};
-const _LOL_STAT_STEP = {hp:1,hpreg:0.1,mana:1,manareg:0.1,ad:0.1,as:0.001,armor:0.1,mr:0.1,ms:1,range:1};
-const _LOL_STAT_MAX  = {hp:3000,hpreg:30,mana:1500,manareg:30,ad:150,as:2.5,armor:150,mr:150,ms:500,range:750};
+const _LOL_STAT_KEYS  = ['hp','mana','ad','as','armor','mr','ms','range'];
+// short labels for view card bars
+const _LOL_STAT_LBLS  = {hp:'HP',mana:'MANA',ad:'AD',as:'AS',armor:'ARM',mr:'MR',ms:'MS',range:'RANGE'};
+// full names for edit rows
+const _LOL_STAT_NAMES = {hp:'HEALTH',mana:'MANA',ad:'ATTACK DAMAGE',as:'ATTACK SPEED',armor:'ARMOR',mr:'MAGIC RESIST',ms:'MOVE SPEED',range:'RANGE'};
+const _LOL_STAT_STEP  = {hp:1,mana:1,ad:0.1,as:0.001,armor:0.1,mr:0.1,ms:1,range:1};
+const _LOL_STAT_MAX   = {hp:3000,mana:1500,ad:150,as:2.5,armor:150,mr:150,ms:500,range:750};
 
 function lolInit() {
   if (!_lolListening && typeof db !== 'undefined') {
@@ -2547,13 +2552,12 @@ function _lolRenderView() {
         ${(()=>{
           const hasStat = _LOL_STAT_KEYS.some(k=>d.stats[k].base||d.stats[k].growth);
           if (!hasStat) return '';
-          const resShort = (_LOL_RES_LBLS[d.resource]||'MANA').slice(0,4);
           const statRows = _LOL_STAT_KEYS.map(k=>{
             const s = d.stats[k];
             if (!s.base && !s.growth) return '';
             const max  = _LOL_STAT_MAX[k];
             const pct  = Math.min(100, (s.base/max)*100).toFixed(2);
-            const lbl  = k==='mana' ? resShort : k==='manareg' ? resShort+'/5' : _LOL_STAT_LBLS[k];
+            const lbl  = k==='mana' ? (_LOL_RES_LBLS[d.resource]||'MANA').slice(0,5) : _LOL_STAT_LBLS[k];
             const disp = Number.isInteger(s.base) ? s.base : +s.base.toFixed(3);
             return `<div class="lol-stat-row">
               <span class="lol-stat-label">${lbl}</span>
@@ -2663,20 +2667,26 @@ function _lolRenderEdit() {
     </div>
     <div class="nmt-section">
       <div class="nmt-section-title">BASE STATS</div>
-      <div class="lol-stats-edit-grid">
-        <span></span>
-        <span class="lol-stat-col-hdr">LVL 1</span>
-        <span class="lol-stat-col-hdr">+ / LVL</span>
-        ${_LOL_STAT_KEYS.map(k=>{
-          const s = d.stats[k];
-          const resShort = (_LOL_RES_LBLS[d.resource]||'MANA').slice(0,4);
-          const lbl = k==='mana' ? resShort : k==='manareg' ? resShort+'/5' : _LOL_STAT_LBLS[k];
-          const step = _LOL_STAT_STEP[k];
-          return `<span class="lol-stat-edit-lbl">${lbl}</span>
-            <input class="nmt-name-input" type="number" value="${s.base||0}" min="0" step="${step}" style="text-align:right;padding:5px 8px;" oninput="lolEditStat('${k}','base',+this.value)">
-            <input class="nmt-name-input" type="number" value="${s.growth||0}" min="0" step="${step}" style="text-align:right;padding:5px 8px;" oninput="lolEditStat('${k}','growth',+this.value)">`;
-        }).join('')}
+      <div style="display:flex;justify-content:flex-end;gap:76px;margin-bottom:5px;padding-right:12px;">
+        <span style="font-size:5px;letter-spacing:3px;color:#282828;width:76px;text-align:center;">LVL 1</span>
+        <span style="font-size:5px;letter-spacing:3px;color:#282828;width:76px;text-align:center;">+ PER LEVEL</span>
       </div>
+      ${_LOL_STAT_KEYS.map(k=>{
+        const s = d.stats[k];
+        const name = k==='mana' ? (_LOL_RES_LBLS[d.resource]||'MANA') : _LOL_STAT_NAMES[k];
+        const step = _LOL_STAT_STEP[k];
+        return `<div class="lol-stat-edit-row">
+          <span class="lol-stat-edit-name">${name}</span>
+          <div class="lol-stat-edit-field">
+            <input class="nmt-name-input" type="number" value="${s.base||0}" min="0" step="${step}"
+              style="text-align:center;padding:6px 8px;" oninput="lolEditStat('${k}','base',+this.value)">
+          </div>
+          <div class="lol-stat-edit-field">
+            <input class="nmt-name-input" type="number" value="${s.growth||0}" min="0" step="${step}"
+              style="text-align:center;padding:6px 8px;" oninput="lolEditStat('${k}','growth',+this.value)">
+          </div>
+        </div>`;
+      }).join('')}
     </div>
     ${slotSections}`;
 }
