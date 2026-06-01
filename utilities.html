@@ -424,6 +424,21 @@
   .fh-role-btn:hover { background:rgba(255,255,255,.06); color:#666; }
   .fh-role-btn.hunter.active  { background:rgba(180,20,30,.12); border-color:#aa1122; color:#cc2233; }
   .fh-role-btn.survivor.active { background:rgba(20,160,90,.1);  border-color:#22bb77; color:#22cc88; }
+  /* FH Music */
+  @keyframes fh-music-pulse { 0%,100%{opacity:.65} 50%{opacity:1} }
+  .fh-music-section { padding:0 22px 14px; display:flex; flex-direction:column; gap:6px; }
+  .fh-music-row { display:flex; align-items:center; gap:11px; padding:9px 13px; background:rgba(0,0,0,.32); border:1px solid rgba(255,255,255,.04); border-radius:3px; cursor:pointer; transition:background .18s,border-color .18s; }
+  .fh-music-row:hover { background:rgba(255,255,255,.04); border-color:rgba(255,255,255,.1); }
+  .fh-music-row.fh-playing { border-color:rgba(255,255,255,.15); }
+  .fh-music-play-btn { width:22px; height:22px; border-radius:50%; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05); display:flex; align-items:center; justify-content:center; font-size:7px; flex-shrink:0; transition:background .15s,border-color .15s; color:#aaa; letter-spacing:0; line-height:1; }
+  .fh-music-row:hover .fh-music-play-btn { background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.28); color:#eee; }
+  .fh-music-row.fh-playing .fh-music-play-btn { color:#fff; border-color:rgba(255,255,255,.35); background:rgba(255,255,255,.1); }
+  .fh-music-tag { font-size:6px; letter-spacing:4px; flex-shrink:0; width:40px; }
+  .fh-music-name { flex:1; font-size:8px; color:rgba(255,255,255,.4); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:color .18s; letter-spacing:.5px; }
+  .fh-music-row:hover .fh-music-name { color:rgba(255,255,255,.65); }
+  .fh-music-row.fh-playing .fh-music-name { color:rgba(255,255,255,.75); animation:fh-music-pulse 1.6s ease-in-out infinite; }
+  .fh-music-edit-row { display:flex; align-items:center; gap:8px; padding:7px 10px; background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.05); border-radius:2px; }
+  .fh-music-edit-name { flex:1; font-size:8px; color:rgba(255,255,255,.5); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; letter-spacing:.5px; }
 
   /* ── BEYOND LIMITS ──────────────────────────────────────────── */
   @keyframes fg-top-glow    { 0%,100%{opacity:.45} 50%{opacity:1} }
@@ -1396,6 +1411,7 @@ function _fhRenderGrid() {
 function fhSelect(id) {
   const switching = _fhSel!==id;
   if (_fhAnimFrame) { cancelAnimationFrame(_fhAnimFrame); _fhAnimFrame=null; }
+  if (switching && _fhAudioEl) { _fhAudioEl.pause(); _fhAudioEl=null; _fhAudioKey=null; }
   _fhSel = id;
   if (switching) _fhMode = 'view';
   _fhRenderGrid();
@@ -1483,11 +1499,26 @@ function _fhRenderView() {
             ${perksHtml}
           </div>
         </div>
+        ${(d.chaseMusic||d.lmsMusic)?`
+        <div class="fh-music-section">
+          ${d.chaseMusic?`<div class="fh-music-row" data-fhkey="chase_${c.id}" onclick="fhTogglePlay('chase','${_nmtEsc(d.chaseMusic.url)}')">
+            <span class="fh-music-play-btn">▶</span>
+            <span class="fh-music-tag" style="color:#ff8833">CHASE</span>
+            <span class="fh-music-name">${_nmtEsc(d.chaseMusic.name||'Chase Music')}</span>
+          </div>`:''}
+          ${d.lmsMusic?`<div class="fh-music-row" data-fhkey="lms_${c.id}" onclick="fhTogglePlay('lms','${_nmtEsc(d.lmsMusic.url)}')">
+            <span class="fh-music-play-btn">▶</span>
+            <span class="fh-music-tag" style="color:#bb99ff">LMS</span>
+            <span class="fh-music-name">${_nmtEsc(d.lmsMusic.name||'LMS Music')}</span>
+          </div>`:''}
+        </div>`:''}
         <div class="fh-view-footer">
           <button class="btn sm" onclick="fhSetMode('edit')">EDIT</button>
         </div>
       </div>
     </div>`;
+
+  _fhUpdateMusicUI();
 
   if (c.pattern?.type && c.pattern.type!=='none') {
     requestAnimationFrame(()=>{
@@ -1567,7 +1598,32 @@ function _fhRenderEdit() {
       <div class="nmt-section-title">PERKS</div>
       <div id="fh-perks">${perksHtml}</div>
       ${(d.perks||[]).length<4?`<button class="btn sm" onclick="fhAddPerk()" style="margin-top:6px;">+ PERK</button>`:''}
+    </div>
+    <div class="nmt-section">
+      <div class="nmt-section-title">MUSIC</div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:6px;letter-spacing:4px;color:#ff8833;margin-bottom:7px;">CHASE MUSIC</div>
+        ${d.chaseMusic?`
+        <div class="fh-music-edit-row">
+          <button class="btn sm" data-fhkey="chase_${c.id}" onclick="fhTogglePlay('chase','${_nmtEsc(d.chaseMusic.url)}')" style="min-width:32px;justify-content:center;">▶</button>
+          <span class="fh-music-edit-name">${_nmtEsc(d.chaseMusic.name||'Chase Music')}</span>
+          <button class="btn sm danger" onclick="fhRemoveMusic('chase')">✕</button>
+        </div>`:`
+        <button class="btn sm" id="fh-music-upload-chase" onclick="fhUploadMusic('chase')">+ UPLOAD MP3</button>`}
+      </div>
+      <div>
+        <div style="font-size:6px;letter-spacing:4px;color:#bb99ff;margin-bottom:7px;">LMS MUSIC</div>
+        ${d.lmsMusic?`
+        <div class="fh-music-edit-row">
+          <button class="btn sm" data-fhkey="lms_${c.id}" onclick="fhTogglePlay('lms','${_nmtEsc(d.lmsMusic.url)}')" style="min-width:32px;justify-content:center;">▶</button>
+          <span class="fh-music-edit-name">${_nmtEsc(d.lmsMusic.name||'LMS Music')}</span>
+          <button class="btn sm danger" onclick="fhRemoveMusic('lms')">✕</button>
+        </div>`:`
+        <button class="btn sm" id="fh-music-upload-lms" onclick="fhUploadMusic('lms')">+ UPLOAD MP3</button>`}
+      </div>
     </div>`;
+
+  _fhUpdateMusicUI();
 }
 
 function fhSetRole(role) { if(!_fhSel)return; _fhChar(_fhSel).role=role; _fhRenderEdit(); _fhScheduleSave(); }
@@ -1604,6 +1660,99 @@ function fhAddPerk() {
   d.perks.push({name:'',desc:''}); _fhRenderEdit(); _fhScheduleSave();
   setTimeout(()=>document.getElementById('fh-perks')?.querySelector('.nmt-ability-row:last-child .nmt-name-input')?.focus(),50);
 }
+/* ── FH Music ────────────────────────────────────────────────── */
+let _fhAudioEl  = null;
+let _fhAudioKey = null;  // 'chase_<charId>' | 'lms_<charId>'
+
+function fhTogglePlay(type, url) {
+  if (!url) return;
+  const key = type + '_' + _fhSel;
+  if (_fhAudioEl && _fhAudioKey === key) {
+    if (_fhAudioEl.paused) { _fhAudioEl.play(); }
+    else { _fhAudioEl.pause(); }
+  } else {
+    if (_fhAudioEl) { _fhAudioEl.pause(); }
+    _fhAudioEl  = new Audio(url);
+    _fhAudioKey = key;
+    _fhAudioEl.addEventListener('ended',  () => { _fhAudioKey=null; _fhUpdateMusicUI(); });
+    _fhAudioEl.addEventListener('pause',  () => _fhUpdateMusicUI());
+    _fhAudioEl.addEventListener('play',   () => _fhUpdateMusicUI());
+    _fhAudioEl.play().catch(()=>{});
+  }
+  _fhUpdateMusicUI();
+}
+
+function _fhUpdateMusicUI() {
+  const playing = _fhAudioEl && !_fhAudioEl.paused;
+  // View card rows
+  document.querySelectorAll('.fh-music-row').forEach(row => {
+    const active = playing && row.dataset.fhkey === _fhAudioKey;
+    row.classList.toggle('fh-playing', active);
+    const btn = row.querySelector('.fh-music-play-btn');
+    if (btn) btn.textContent = active ? '⏸' : '▶';
+  });
+  // Edit mode play buttons (data-fhkey set on <button>)
+  document.querySelectorAll('[data-fhkey]').forEach(el => {
+    if (el.tagName !== 'BUTTON') return;
+    const active = playing && el.dataset.fhkey === _fhAudioKey;
+    el.textContent = active ? '⏸' : '▶';
+  });
+}
+
+async function fhUploadMusic(type) {
+  if (!_fhSel) return;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'audio/mpeg,audio/mp3,.mp3';
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+    const MB = file.size / 1024 / 1024;
+    if (MB > 20) {
+      if (typeof notify === 'function') notify('File too large — max 20 MB', 'err');
+      return;
+    }
+    const btnId = 'fh-music-upload-' + type;
+    const btn = document.getElementById(btnId);
+    if (btn) { btn.textContent = 'UPLOADING...'; btn.disabled = true; }
+    try {
+      const publicId = `fh_music/${_fhSel}_${type}_${Date.now()}`;
+      const form = new FormData();
+      form.append('file', file);
+      form.append('upload_preset', typeof CLOUDINARY_PRESET !== 'undefined' ? CLOUDINARY_PRESET : 'statsheets');
+      form.append('resource_type', 'video');
+      form.append('public_id', publicId);
+      const cloud = typeof CLOUDINARY_CLOUD !== 'undefined' ? CLOUDINARY_CLOUD : 'dhlik6lkn';
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/video/upload`, { method:'POST', body:form });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const d = _fhChar(_fhSel);
+      d[type + 'Music'] = { url: data.secure_url, name: file.name.replace(/\.[^/.]+$/, '') };
+      _fhRenderEdit();
+      _fhScheduleSave();
+      if (typeof notify === 'function') notify(type === 'chase' ? 'Chase music set!' : 'LMS music set!', 'ok');
+    } catch(e) {
+      console.error('FH music upload error', e);
+      if (typeof notify === 'function') notify('Upload failed', 'err');
+      const b = document.getElementById(btnId);
+      if (b) { b.textContent = '+ UPLOAD MP3'; b.disabled = false; }
+    }
+  };
+  input.click();
+}
+
+function fhRemoveMusic(type) {
+  if (!_fhSel) return;
+  // Stop if this track is playing
+  if (_fhAudioEl && _fhAudioKey === type + '_' + _fhSel) {
+    _fhAudioEl.pause(); _fhAudioEl = null; _fhAudioKey = null;
+  }
+  const d = _fhChar(_fhSel);
+  d[type + 'Music'] = null;
+  _fhRenderEdit();
+  _fhScheduleSave();
+}
+
 function _fhScheduleSave() {
   const el=document.getElementById('fh-save-status');
   if(el){el.innerHTML=_NMT_ICON_SAVING;el.className='nmt-save-status saving';}
