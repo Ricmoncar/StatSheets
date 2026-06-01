@@ -611,6 +611,28 @@
   /* color swatch */
   .lol-color-swatch { width:28px; height:28px; border-radius:3px; border:1px solid rgba(255,255,255,.12); padding:2px; background:#111; cursor:none; flex-shrink:0; transition:border-color .15s; }
   .lol-color-swatch:hover { border-color:rgba(255,255,255,.28); }
+  /* ── LoL item build ─────────────────────────────────────────── */
+  .lol-item-slots { display:flex; gap:7px; flex-wrap:wrap; }
+  .lol-item-slot { width:42px; height:42px; border-radius:4px; border:1px solid rgba(255,255,255,.08); background:rgba(0,0,0,.3); cursor:none; overflow:visible; position:relative; transition:border-color .15s,box-shadow .15s; flex-shrink:0; }
+  .lol-item-slot:hover { border-color:rgba(0,180,220,.4); }
+  .lol-item-slot.active { border-color:rgba(0,180,220,.7); box-shadow:0 0 12px rgba(0,180,220,.3); }
+  .lol-item-slot img { width:100%; height:100%; display:block; border-radius:3px; }
+  .lol-slot-empty { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.08); font-size:20px; line-height:1; }
+  .lol-slot-x { position:absolute; top:-5px; right:-5px; width:15px; height:15px; border-radius:50%; background:#991122; border:1px solid #000; display:flex; align-items:center; justify-content:center; font-size:6px; color:#fff; cursor:none; opacity:0; transition:opacity .12s; letter-spacing:0; z-index:5; }
+  .lol-item-slot:hover .lol-slot-x { opacity:1; }
+  .lol-item-picker { margin-top:10px; background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.07); border-radius:4px; padding:10px 12px; }
+  .lol-item-search { width:100%; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:3px; padding:7px 11px; color:#888; font-size:8px; letter-spacing:1px; margin-bottom:10px; font-family:inherit; transition:border-color .15s; }
+  .lol-item-search:focus { outline:none; border-color:rgba(0,180,220,.4); color:#bbb; }
+  .lol-item-grid { display:grid; grid-template-columns:repeat(auto-fill,42px); gap:5px; max-height:200px; overflow-y:auto; }
+  .lol-item-opt { width:42px; height:42px; border-radius:4px; overflow:hidden; cursor:none; border:1px solid rgba(255,255,255,.06); transition:border-color .13s,transform .13s; position:relative; }
+  .lol-item-opt:hover { border-color:rgba(0,180,220,.55); transform:scale(1.06); z-index:2; }
+  .lol-item-opt img { width:100%; height:100%; display:block; }
+  .lol-item-opt-name { position:absolute; bottom:calc(100%+4px); left:50%; transform:translateX(-50%); background:#0a0a0a; border:1px solid rgba(255,255,255,.15); padding:4px 8px; border-radius:2px; font-size:6px; letter-spacing:1px; color:#ccc; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .1s; z-index:20; }
+  .lol-item-opt:hover .lol-item-opt-name { opacity:1; }
+  /* ── LoL view items row ─────────────────────────────────────── */
+  .lol-view-items { display:flex; gap:5px; flex-wrap:wrap; padding:8px 22px 4px; }
+  .lol-view-item-icon { width:34px; height:34px; border-radius:4px; border:1px solid rgba(255,255,255,.12); transition:filter .15s,border-color .15s; }
+  .lol-view-item-icon:hover { filter:brightness(1.3); border-color:rgba(255,255,255,.3); }
   /* ── LoL stats view ─────────────────────────────────────────── */
   .lol-stats-section { padding:4px 22px 16px; }
   .lol-stats-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
@@ -621,18 +643,20 @@
   .lol-level-slider { width:90px; cursor:none; }
   .lol-stat-row { display:flex; align-items:center; gap:10px; margin-bottom:7px; }
   .lol-stat-label { font-size:6px; letter-spacing:2px; color:#2a2a2a; width:42px; flex-shrink:0; }
-  .lol-stat-track { flex:1; height:5px; background:rgba(255,255,255,.04); border-radius:3px; overflow:hidden; }
-  .lol-stat-fill { height:100%; border-radius:3px; background:var(--lolc,#00b4de); box-shadow:0 0 7px rgba(var(--lolr,0,180,222),.5); width:0; transition:width .65s cubic-bezier(.22,1,.36,1); }
+  .lol-stat-track { flex:1; height:5px; background:rgba(255,255,255,.04); border-radius:3px; overflow:hidden; display:flex; }
+  .lol-stat-fill  { height:100%; background:var(--lolc,#00b4de); box-shadow:0 0 7px rgba(var(--lolr,0,180,222),.5); width:0; transition:width .65s cubic-bezier(.22,1,.36,1); flex-shrink:0; }
+  .lol-stat-bonus { height:100%; background:rgba(200,170,100,.55); width:0; transition:width .65s cubic-bezier(.22,1,.36,1); flex-shrink:0; }
   .lol-stat-val { font-size:7px; color:rgba(255,255,255,.3); width:38px; text-align:right; flex-shrink:0; letter-spacing:0; font-variant-numeric:tabular-nums; transition:color .15s; }
   .lol-stat-row:hover .lol-stat-label { color:#555; }
-  .lol-stat-row:hover .lol-stat-val   { color:rgba(255,255,255,.6); }
-  .lol-stat-rule { height:1px; background:rgba(255,255,255,.04); margin:8px 0 10px; }
+  .lol-stat-row:hover .lol-stat-val   { color:rgba(255,255,255,.65); }
   /* ── LoL stats edit ─────────────────────────────────────────── */
   .lol-stat-edit-row { display:flex; align-items:center; gap:12px; padding:9px 12px; background:rgba(255,255,255,.015); border-radius:3px; margin-bottom:4px; border:1px solid rgba(255,255,255,.04); transition:background .15s; }
   .lol-stat-edit-row:hover { background:rgba(255,255,255,.032); }
-  .lol-stat-edit-name { flex:1; font-size:7px; letter-spacing:3px; color:#484848; }
+  .lol-stat-edit-name { flex:1; min-width:0; }
+  .lol-stat-edit-name-txt { font-size:7px; letter-spacing:3px; color:#555; display:block; }
+  .lol-stat-avg-hint { font-size:5px; letter-spacing:1px; color:#303030; display:block; margin-top:3px; font-style:italic; }
   .lol-stat-edit-field { display:flex; flex-direction:column; align-items:stretch; gap:4px; width:76px; flex-shrink:0; }
-  .lol-stat-field-lbl { font-size:5px; letter-spacing:3px; color:#282828; text-align:center; }
+  .lol-stat-field-lbl { font-size:6px; letter-spacing:2px; color:#505050; text-align:center; }
 </style>
 </head>
 <body>
@@ -2422,8 +2446,29 @@ const _LOL_STAT_LBLS  = {hp:'HP',mana:'MANA',ad:'AD',as:'AS',armor:'ARM',mr:'MR'
 const _LOL_STAT_NAMES = {hp:'HEALTH',mana:'MANA',ad:'ATTACK DAMAGE',as:'ATTACK SPEED',armor:'ARMOR',mr:'MAGIC RESIST',ms:'MOVE SPEED',range:'RANGE'};
 const _LOL_STAT_STEP  = {hp:1,mana:1,ad:0.1,as:0.001,armor:0.1,mr:0.1,ms:1,range:1};
 const _LOL_STAT_MAX   = {hp:3000,mana:1500,ad:150,as:2.5,armor:150,mr:150,ms:500,range:750};
+const _LOL_STAT_HINT_BASE = {
+  hp:'avg ~580–650',mana:'varies ~300–800',ad:'avg ~48–68',as:'avg ~0.600–0.700',
+  armor:'avg ~21–38',mr:'avg ~30–40',ms:'avg ~325–355',range:'melee ~150 · ranged ~525'
+};
+const _LOL_STAT_HINT_GROW = {
+  hp:'avg ~85–100',mana:'avg ~40–55',ad:'avg ~2.5–4.5',as:'avg ~1–3.5% per lvl',
+  armor:'avg ~3.5–5.5',mr:'avg ~0.5–2.5',ms:'usually 0',range:'usually 0'
+};
+const _LOL_ITEM_STAT_MAP = {
+  FlatHPPoolMod:'hp', FlatMPPoolMod:'mana', FlatPhysicalDamageMod:'ad',
+  FlatArmorMod:'armor', FlatSpellBlockMod:'mr', FlatMovementSpeedMod:'ms',
+  PercentAttackSpeedMod:'_as_pct',  // handled separately
+};
+
+let _lolItemData    = null;   // array of {id,name,image,stats}
+let _lolItemVersion = '15.12.1';
+let _lolItemCache   = {};     // id → item
+let _lolItemsPromise= null;
+let _lolPickerSlot  = null;   // which slot index is open (null = closed)
+let _lolItemSearch  = '';
 
 function lolInit() {
+  _lolEnsureItems(); // preload in background
   if (!_lolListening && typeof db !== 'undefined') {
     _lolListening = true;
     db.collection('lol').onSnapshot(snap => {
@@ -2458,6 +2503,8 @@ function _lolChar(id) {
     if (d.stats[k].base   == null) d.stats[k].base   = 0;
     if (d.stats[k].growth == null) d.stats[k].growth = 0;
   }
+  if (!Array.isArray(d.items)) d.items = [null,null,null,null,null,null];
+  while (d.items.length < 6) d.items.push(null);
   return d;
 }
 
@@ -2488,7 +2535,7 @@ function lolSelect(id) {
   const switching = _lolSel !== id;
   if (_lolAnimFrame) { cancelAnimationFrame(_lolAnimFrame); _lolAnimFrame = null; }
   _lolSel = id;
-  if (switching) _lolMode = 'view';
+  if (switching) { _lolMode = 'view'; _lolPickerSlot = null; _lolItemSearch = ''; }
   _lolRenderGrid();
   const wrap = document.getElementById('lol-editor');
   if (wrap) wrap.style.display = '';
@@ -2562,9 +2609,10 @@ function _lolRenderView() {
             return `<div class="lol-stat-row">
               <span class="lol-stat-label">${lbl}</span>
               <div class="lol-stat-track">
-                <div class="lol-stat-fill" data-base="${s.base}" data-growth="${s.growth}" data-max="${max}" data-width="${pct}%" style="width:0;"></div>
+                <div class="lol-stat-fill" data-base="${s.base}" data-growth="${s.growth}" data-max="${max}" data-key="${k}" data-width="${pct}%" style="width:0;"></div>
+                <div class="lol-stat-bonus" data-key="${k}" data-max="${max}" style="width:0;"></div>
               </div>
-              <span class="lol-stat-val" data-base="${s.base}" data-growth="${s.growth}">${disp}</span>
+              <span class="lol-stat-val" data-base="${s.base}" data-growth="${s.growth}" data-key="${k}">${disp}</span>
             </div>`;
           }).filter(Boolean).join('');
           if (!statRows) return '';
@@ -2587,15 +2635,34 @@ function _lolRenderView() {
           ${kitRows    ? `<div class="lol-kit-label">KIT</div><div class="lol-ab-section">${kitRows}</div>` : ''}
           ${ultRow     ? `<div class="lol-ab-section ult" style="--lolr:${rgb}">${ultRow}</div>` : ''}
         ` : `<div style="color:#222;font-size:8px;letter-spacing:2px;padding:10px 22px;">NO KIT SET. CLICK EDIT.</div>`}
+        ${d.items.some(x=>x)?`
+        <div class="lol-view-items">
+          ${d.items.map(id=>{
+            const it=id?_lolItemCache[id]:null;
+            return it
+              ?`<img class="lol-view-item-icon" src="${_lolImgUrl(it.image)}" alt="${it.name}" title="${it.name}" loading="lazy">`
+              :'';
+          }).join('')}
+        </div>`:''}
         <div class="lol-view-footer">
           <button class="btn sm" onclick="lolSetMode('edit')">EDIT</button>
         </div>
       </div>
     </div>`;
 
-  // Animate stat bars in on first paint
+  // Animate stat bars in on first paint (factor in item bonuses)
   requestAnimationFrame(() => {
-    wrap.querySelectorAll('.lol-stat-fill').forEach(el => { el.style.width = el.dataset.width || '0%'; });
+    const initBonus = _lolSel ? _lolItemBonus(_lolSel) : {};
+    wrap.querySelectorAll('.lol-stat-fill').forEach(el => {
+      el.style.width = el.dataset.width || '0%';
+      const key = el.dataset.key||'', max = parseFloat(el.dataset.max)||1;
+      const itemB = initBonus[key]||0;
+      const bonusFill = el.nextElementSibling;
+      if (bonusFill?.classList.contains('lol-stat-bonus') && itemB) {
+        const baseW = parseFloat(el.dataset.width)||0;
+        bonusFill.style.width = Math.max(0, Math.min(100-baseW, (itemB/max)*100)).toFixed(2)+'%';
+      }
+    });
   });
 
   if (c.pattern?.type && c.pattern.type !== 'none') {
@@ -2666,20 +2733,45 @@ function _lolRenderEdit() {
       <div class="lol-res-picker">${resBtns}</div>
     </div>
     <div class="nmt-section">
+      <div class="nmt-section-title">BUILD</div>
+      <div class="lol-item-slots">
+        ${d.items.map((itemId,i)=>{
+          const item = itemId ? _lolItemCache[itemId] : null;
+          const isOpen = _lolPickerSlot === i;
+          return `<div class="lol-item-slot${isOpen?' active':''}" onclick="lolPickSlot(${i})" title="${item?item.name:'Empty slot'}">
+            ${item
+              ? `<img src="${_lolImgUrl(item.image)}" alt="${item.name}" loading="lazy">`
+              : `<div class="lol-slot-empty">+</div>`}
+            ${item?`<div class="lol-slot-x" onclick="event.stopPropagation();lolUnequipItem(${i})">✕</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+      ${_lolPickerSlot!==null?`
+        <div class="lol-item-picker">
+          <input class="lol-item-search" id="lol-item-search" type="text" placeholder="Search items..."
+            value="${_nmtEsc(_lolItemSearch)}" oninput="lolSearchItems(this.value)">
+          <div class="lol-item-grid" id="lol-item-grid">${_lolItemGridHtml(_lolItemSearch)}</div>
+        </div>`:''}
+    </div>
+    <div class="nmt-section">
       <div class="nmt-section-title">BASE STATS</div>
-      <div style="display:flex;justify-content:flex-end;gap:76px;margin-bottom:5px;padding-right:12px;">
-        <span style="font-size:5px;letter-spacing:3px;color:#282828;width:76px;text-align:center;">LVL 1</span>
-        <span style="font-size:5px;letter-spacing:3px;color:#282828;width:76px;text-align:center;">+ PER LEVEL</span>
+      <div style="display:flex;justify-content:flex-end;gap:12px;margin-bottom:6px;padding-right:12px;">
+        <span style="font-size:6px;letter-spacing:2px;color:#555;width:76px;text-align:center;">LVL 1</span>
+        <span style="font-size:6px;letter-spacing:2px;color:#555;width:76px;text-align:center;">+ PER LEVEL</span>
       </div>
       ${_LOL_STAT_KEYS.map(k=>{
         const s = d.stats[k];
         const name = k==='mana' ? (_LOL_RES_LBLS[d.resource]||'MANA') : _LOL_STAT_NAMES[k];
         const step = _LOL_STAT_STEP[k];
         return `<div class="lol-stat-edit-row">
-          <span class="lol-stat-edit-name">${name}</span>
+          <div class="lol-stat-edit-name">
+            <span class="lol-stat-edit-name-txt">${name}</span>
+            <span class="lol-stat-avg-hint">${_LOL_STAT_HINT_BASE[k]||''}</span>
+          </div>
           <div class="lol-stat-edit-field">
             <input class="nmt-name-input" type="number" value="${s.base||0}" min="0" step="${step}"
               style="text-align:center;padding:6px 8px;" oninput="lolEditStat('${k}','base',+this.value)">
+            <span class="lol-stat-field-lbl">${_LOL_STAT_HINT_GROW[k]||''}</span>
           </div>
           <div class="lol-stat-edit-field">
             <input class="nmt-name-input" type="number" value="${s.growth||0}" min="0" step="${step}"
@@ -2711,6 +2803,95 @@ function lolToggleRole(r) {
   _lolRenderEdit(); _lolScheduleSave();
 }
 function lolSetResource(r) { if (!_lolSel) return; _lolChar(_lolSel).resource = r; _lolRenderEdit(); _lolScheduleSave(); }
+
+/* ── Item system ────────────────────────────────────────────── */
+function _lolImgUrl(imageFile) {
+  return `https://ddragon.leagueoflegends.com/cdn/${_lolItemVersion}/img/item/${imageFile}`;
+}
+
+function _lolEnsureItems() {
+  if (_lolItemsPromise) return _lolItemsPromise;
+  _lolItemsPromise = (async () => {
+    try {
+      const versions = await fetch('https://ddragon.leagueoflegends.com/api/versions.json').then(r=>r.json());
+      _lolItemVersion = versions[0];
+      const raw = await fetch(`https://ddragon.leagueoflegends.com/cdn/${_lolItemVersion}/data/en_US/item.json`).then(r=>r.json());
+      _lolItemData = [];
+      for (const [id, item] of Object.entries(raw.data)) {
+        if (!item.gold?.purchasable || !item.maps?.['11']) continue;
+        if (item.requiredChampion || item.requiredAlly || item.specialRecipe) continue;
+        const entry = {id, name:item.name, image:item.image.full, stats:item.stats||{}, gold:item.gold?.total||0};
+        _lolItemData.push(entry);
+        _lolItemCache[id] = entry;
+      }
+      _lolItemData.sort((a,b)=>a.name.localeCompare(b.name));
+    } catch(e) {
+      console.error('LoL items load error', e);
+      _lolItemData = [];
+    }
+  })();
+  return _lolItemsPromise;
+}
+
+function _lolItemBonus(charId) {
+  const d = _lolData[charId];
+  if (!d?.items || !Object.keys(_lolItemCache).length) return {};
+  const bonus = {}, asPercent = {val:0};
+  for (const itemId of d.items) {
+    if (!itemId) continue;
+    const item = _lolItemCache[itemId];
+    if (!item?.stats) continue;
+    for (const [dKey, val] of Object.entries(item.stats)) {
+      if (dKey === 'PercentAttackSpeedMod') { asPercent.val += val; continue; }
+      const myKey = _LOL_ITEM_STAT_MAP[dKey];
+      if (myKey) bonus[myKey] = (bonus[myKey]||0) + val;
+    }
+  }
+  if (asPercent.val) {
+    const baseAS = _lolData[charId]?.stats?.as?.base || 0.625;
+    bonus.as = (bonus.as||0) + baseAS * asPercent.val;
+  }
+  return bonus;
+}
+
+function _lolItemGridHtml(query) {
+  if (!_lolItemData) return '<div style="color:#2a2a2a;font-size:7px;padding:12px;text-align:center;letter-spacing:2px;">LOADING...</div>';
+  const q = (query||'').toLowerCase().trim();
+  const list = q ? _lolItemData.filter(x=>x.name.toLowerCase().includes(q)) : _lolItemData;
+  const shown = list.slice(0, 100);
+  if (!shown.length) return '<div style="color:#2a2a2a;font-size:7px;padding:12px;letter-spacing:2px;">NO ITEMS FOUND</div>';
+  return shown.map(item =>
+    `<div class="lol-item-opt" onclick="lolEquipItem(${_lolPickerSlot},'${item.id}')" title="${item.name}">
+      <img src="${_lolImgUrl(item.image)}" alt="${item.name}" loading="lazy">
+      <div class="lol-item-opt-name">${_nmtEsc(item.name)}</div>
+    </div>`
+  ).join('');
+}
+
+function lolPickSlot(idx) {
+  _lolPickerSlot = (_lolPickerSlot === idx) ? null : idx;
+  _lolItemSearch = '';
+  _lolRenderEdit();
+  if (_lolPickerSlot !== null && !_lolItemData) {
+    _lolEnsureItems().then(() => _lolRenderEdit());
+  }
+}
+function lolSearchItems(query) {
+  _lolItemSearch = query;
+  const grid = document.getElementById('lol-item-grid');
+  if (grid) grid.innerHTML = _lolItemGridHtml(query);
+}
+function lolEquipItem(slotIdx, itemId) {
+  if (!_lolSel || slotIdx == null) return;
+  _lolChar(_lolSel).items[slotIdx] = itemId;
+  _lolPickerSlot = null; _lolItemSearch = '';
+  _lolRenderEdit(); _lolScheduleSave();
+}
+function lolUnequipItem(slotIdx) {
+  if (!_lolSel) return;
+  _lolChar(_lolSel).items[slotIdx] = null;
+  _lolRenderEdit(); _lolScheduleSave();
+}
 function lolEditStat(key, field, v) {
   if (!_lolSel) return;
   const d = _lolChar(_lolSel);
@@ -2723,16 +2904,25 @@ function lolSetViewLevel(lvl) {
   if (display) display.textContent = lvl;
   const wrap = document.getElementById('lol-editor');
   if (!wrap) return;
+  const bonus = _lolSel ? _lolItemBonus(_lolSel) : {};
   wrap.querySelectorAll('.lol-stat-fill').forEach(bar => {
     const base   = parseFloat(bar.dataset.base)   || 0;
     const growth = parseFloat(bar.dataset.growth) || 0;
     const max    = parseFloat(bar.dataset.max)    || 1;
-    const val    = base + growth * (lvl - 1);
-    bar.style.width = Math.min(100, (val / max) * 100).toFixed(2) + '%';
+    const key    = bar.dataset.key || '';
+    const itemB  = bonus[key] || 0;
+    const baseVal = base + growth * (lvl - 1);
+    const pctBase = Math.min(100, (baseVal / max) * 100);
+    bar.style.width = pctBase.toFixed(2) + '%';
+    const bonusFill = bar.nextElementSibling;
+    if (bonusFill?.classList.contains('lol-stat-bonus')) {
+      bonusFill.style.width = Math.max(0, Math.min(100 - pctBase, (itemB / max) * 100)).toFixed(2) + '%';
+    }
     const valEl = bar.parentElement?.nextElementSibling;
     if (valEl?.classList.contains('lol-stat-val')) {
-      const rounded = Math.round(val * 1000) / 1000;
-      valEl.textContent = Number.isInteger(rounded) ? rounded : rounded.toFixed(rounded < 10 ? 3 : 1);
+      const total = baseVal + itemB;
+      const r = Math.round(total * 100) / 100;
+      valEl.textContent = Number.isInteger(r) ? r : +r.toFixed(r < 10 ? 3 : 1);
     }
   });
 }
