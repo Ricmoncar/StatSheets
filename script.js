@@ -289,8 +289,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (lbl) lbl.textContent = Math.round(_sfxVolume * 100);
 
   _themeAudio = document.getElementById('theme-audio');
-  _themeAudio.loop = false; // Handled manually so startAt is respected on every loop
-  _themeAudio.addEventListener('ended', _onThemeEnded);
+  if (_themeAudio) {
+    _themeAudio.loop = false; // Handled manually so startAt is respected on every loop
+    _themeAudio.addEventListener('ended', _onThemeEnded);
+  }
   _initThemeBarHover();
 });
 
