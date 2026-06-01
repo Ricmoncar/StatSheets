@@ -362,6 +362,119 @@
   }
   .nmt-textarea:focus { outline: none; border-color: rgba(255,255,255,0.18); }
   .nmt-textarea::placeholder { color: #2a2a2a; }
+
+  /* ── FINAL HOUR ─────────────────────────────────────────────── */
+  @keyframes fh-accent-pulse { 0%,100%{opacity:.52} 50%{opacity:1} }
+  @keyframes fh-avatar-ring  { 0%,100%{box-shadow:0 0 0 3px rgba(var(--ncr,136,136,136),.22),0 0 18px rgba(var(--ncr,136,136,136),.35)} 50%{box-shadow:0 0 0 4px rgba(var(--ncr,136,136,136),.36),0 0 30px rgba(var(--ncr,136,136,136),.55)} }
+
+  .fh-view-card { position:relative; overflow:hidden; background:#030303; border:1px solid rgba(255,255,255,0.06); border-radius:8px; min-height:220px; transition:border-color .25s; }
+  .fh-view-card:hover { border-color:rgba(255,255,255,0.13); }
+  .fh-view-card:hover .nmt-pattern-bg { opacity:.2; }
+  .fh-view-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; z-index:4; animation:fh-accent-pulse 3.5s ease-in-out infinite; }
+  .fh-view-card[data-role="hunter"]::before  { background:#aa1122; box-shadow:0 0 16px #aa112288,0 0 36px #aa112233; }
+  .fh-view-card[data-role="survivor"]::before{ background:#11aa66; box-shadow:0 0 14px #11aa6677,0 0 28px #11aa6622; }
+  .fh-view-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:60%; z-index:1; background:linear-gradient(to top,#030303 30%,transparent); pointer-events:none; }
+  .fh-view-inner { position:relative; z-index:2; }
+  .fh-view-hero { display:flex; align-items:center; gap:18px; padding:22px 22px 16px; }
+  .fh-view-avatar { width:80px; height:80px; border-radius:50%; overflow:hidden; flex-shrink:0; animation:fh-avatar-ring 3.5s ease-in-out infinite; transition:filter .25s; }
+  .fh-view-card:hover .fh-view-avatar { filter:brightness(1.1); }
+  .fh-view-hero-text { flex:1; min-width:0; }
+  .fh-view-name { font-family:'Press Start 2P',monospace; font-size:11px; letter-spacing:2px; line-height:1.6; color:var(--nc,#ccc); text-shadow:0 0 28px rgba(var(--ncr,136,136,136),.5); margin-bottom:8px; transition:text-shadow .25s; }
+  .fh-view-card:hover .fh-view-name { text-shadow:0 0 40px rgba(var(--ncr,136,136,136),.85); }
+  .fh-role-badge { display:inline-block; font-size:7px; letter-spacing:4px; padding:3px 10px; border:1px solid; border-radius:2px; transition:box-shadow .25s; }
+  .fh-role-badge.hunter  { color:#cc2233; border-color:#cc223355; background:rgba(180,20,30,.08); }
+  .fh-role-badge.survivor{ color:#22bb77; border-color:#22bb7755; background:rgba(20,160,90,.07); }
+  .fh-view-card:hover .fh-role-badge.hunter  { box-shadow:0 0 12px rgba(180,20,30,.3); }
+  .fh-view-card:hover .fh-role-badge.survivor{ box-shadow:0 0 10px rgba(20,160,90,.25); }
+  .fh-view-rule { height:1px; margin:0 22px 16px; }
+  .fh-view-card[data-role="hunter"]  .fh-view-rule { background:linear-gradient(90deg,rgba(170,20,30,.45) 0%,transparent 100%); }
+  .fh-view-card[data-role="survivor"] .fh-view-rule { background:linear-gradient(90deg,rgba(20,160,90,.35) 0%,transparent 100%); }
+  .fh-view-body { padding:0 22px 18px; display:flex; flex-direction:column; gap:12px; }
+  .fh-power-block { background:rgba(160,20,30,.06); border:1px solid rgba(160,20,30,.18); border-left:3px solid #aa1122; border-radius:3px; padding:12px 14px; transition:background .2s,border-left-color .2s,box-shadow .2s; }
+  .fh-power-block:hover { background:rgba(160,20,30,.13); border-left-color:#dd1122; box-shadow:-3px 0 16px rgba(160,20,30,.22); }
+  .fh-power-label { font-size:6px; letter-spacing:5px; color:#661122; margin-bottom:6px; }
+  .fh-power-name { font-size:9px; letter-spacing:2px; color:#cc2233; margin-bottom:6px; font-family:'Press Start 2P',monospace; transition:text-shadow .18s; }
+  .fh-power-block:hover .fh-power-name { text-shadow:0 0 14px rgba(200,30,50,.55); }
+  .fh-power-desc { font-size:8px; color:rgba(255,255,255,.42); letter-spacing:.5px; line-height:1.9; }
+  .fh-power-block:hover .fh-power-desc { color:rgba(255,255,255,.65); }
+  .fh-perks-label { font-size:6px; letter-spacing:5px; color:#282828; margin-bottom:8px; }
+  .fh-perk-row { display:flex; gap:10px; align-items:flex-start; padding:9px 12px; border:1px solid rgba(255,255,255,.04); background:rgba(0,0,0,.3); border-left:2px solid transparent; border-radius:2px; margin-bottom:6px; transition:background .18s,transform .2s,border-left-color .18s,box-shadow .18s; }
+  .fh-perk-row:hover { background:rgba(255,255,255,.04); transform:translateX(3px); }
+  .fh-view-card[data-role="hunter"]  .fh-perk-row:hover { border-left-color:#aa1122; box-shadow:-2px 0 10px rgba(160,20,30,.22); }
+  .fh-view-card[data-role="survivor"] .fh-perk-row:hover { border-left-color:#22bb77; box-shadow:-2px 0 10px rgba(20,160,90,.2); }
+  .fh-perk-icon { flex-shrink:0; font-size:9px; padding-top:2px; letter-spacing:0; }
+  .fh-view-card[data-role="hunter"]  .fh-perk-icon { color:#aa1122; }
+  .fh-view-card[data-role="survivor"] .fh-perk-icon { color:#22bb77; }
+  .fh-perk-body { flex:1; min-width:0; }
+  .fh-perk-name { font-size:8px; letter-spacing:1.5px; margin-bottom:4px; }
+  .fh-view-card[data-role="hunter"]  .fh-perk-name { color:#cc2233; }
+  .fh-view-card[data-role="survivor"] .fh-perk-name { color:#22cc88; }
+  .fh-perk-desc { font-size:8px; color:rgba(255,255,255,.44); letter-spacing:.5px; line-height:1.9; }
+  .fh-perk-row:hover .fh-perk-desc { color:rgba(255,255,255,.68); }
+  .fh-view-footer { display:flex; align-items:center; justify-content:flex-end; padding:10px 22px; border-top:1px solid rgba(255,255,255,.04); }
+  .fh-role-toggle { display:flex; gap:6px; margin-bottom:14px; }
+  .fh-role-btn { flex:1; padding:8px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.07); border-radius:3px; color:#333; font-family:inherit; font-size:8px; letter-spacing:3px; cursor:pointer; transition:all .15s; }
+  .fh-role-btn:hover { background:rgba(255,255,255,.06); color:#666; }
+  .fh-role-btn.hunter.active  { background:rgba(180,20,30,.12); border-color:#aa1122; color:#cc2233; }
+  .fh-role-btn.survivor.active { background:rgba(20,160,90,.1);  border-color:#22bb77; color:#22cc88; }
+
+  /* ── BEYOND LIMITS ──────────────────────────────────────────── */
+  @keyframes fg-top-glow    { 0%,100%{opacity:.45} 50%{opacity:1} }
+  @keyframes fg-avatar-pulse{ 0%,100%{box-shadow:0 0 0 3px rgba(var(--fgr),0.18),0 0 22px rgba(var(--fgr),0.38)} 50%{box-shadow:0 0 0 5px rgba(var(--fgr),0.3),0 0 42px rgba(var(--fgr),0.6)} }
+
+  .fg-view-card { position:relative; overflow:hidden; background:#030305; border:1px solid rgba(255,255,255,.07); border-radius:8px; min-height:260px; transition:border-color .25s; }
+  .fg-view-card:hover { border-color:rgba(255,255,255,.15); }
+  .fg-view-card:hover .nmt-pattern-bg { opacity:.22; }
+  .fg-view-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; z-index:4; background:var(--fgc,#888); box-shadow:0 0 20px var(--fgc,#888),0 0 50px rgba(var(--fgr,136,136,136),.35); animation:fg-top-glow 2.5s ease-in-out infinite; }
+  .fg-view-card::after  { content:''; position:absolute; bottom:0; left:0; right:0; height:55%; z-index:1; background:linear-gradient(to top,#030305 30%,transparent); pointer-events:none; }
+  .fg-view-inner { position:relative; z-index:2; }
+  .fg-view-hero { display:flex; align-items:flex-start; gap:18px; padding:22px 22px 0; }
+  .fg-view-avatar { width:80px; height:80px; border-radius:50%; overflow:hidden; flex-shrink:0; animation:fg-avatar-pulse 2.8s ease-in-out infinite; transition:filter .25s; }
+  .fg-view-card:hover .fg-view-avatar { filter:brightness(1.15); }
+  .fg-view-hero-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+  .fg-view-name { font-family:'Press Start 2P',monospace; font-size:11px; letter-spacing:2px; line-height:1.5; color:var(--fgc,#ccc); text-shadow:0 0 28px rgba(var(--fgr,136,136,136),.55); transition:text-shadow .3s; }
+  .fg-view-card:hover .fg-view-name { text-shadow:0 0 44px rgba(var(--fgr,136,136,136),.95); }
+  .fg-stand-name { font-size:9px; letter-spacing:3px; color:rgba(255,255,255,.55); }
+  .fg-playstyle-tag { font-size:6px; letter-spacing:4px; color:rgba(255,255,255,.18); transition:color .25s; }
+  .fg-view-card:hover .fg-playstyle-tag { color:rgba(255,255,255,.32); }
+  .fg-tier-badge { font-family:'Press Start 2P',monospace; font-size:22px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; border:2px solid; border-radius:4px; flex-shrink:0; letter-spacing:0; transition:filter .25s,transform .2s; }
+  .fg-view-card:hover .fg-tier-badge { filter:brightness(1.3); transform:scale(1.07); }
+  .fg-tier-s { color:#f5c518; border-color:#f5c51866; background:rgba(245,197,24,.08); box-shadow:0 0 14px rgba(245,197,24,.22); }
+  .fg-tier-a { color:#4499ff; border-color:#4499ff55; background:rgba(68,153,255,.07); box-shadow:0 0 12px rgba(68,153,255,.18); }
+  .fg-tier-b { color:#44dd88; border-color:#44dd8855; background:rgba(68,221,136,.06); }
+  .fg-tier-c { color:#ffaa33; border-color:#ffaa3355; background:rgba(255,170,51,.06); }
+  .fg-tier-d { color:#888;    border-color:#55555555; background:rgba(80,80,80,.06); }
+  .fg-view-rule { height:1px; margin:16px 22px 14px; background:linear-gradient(90deg,rgba(var(--fgr,136,136,136),.35) 0%,transparent 100%); }
+  .fg-stats-block { padding:0 22px 14px; display:flex; flex-direction:column; gap:9px; }
+  .fg-stat-row { display:flex; align-items:center; gap:10px; }
+  .fg-stat-label { font-size:6px; letter-spacing:3px; color:#3a3a3a; width:52px; flex-shrink:0; }
+  .fg-stat-track { flex:1; height:4px; background:rgba(255,255,255,.05); border-radius:2px; overflow:hidden; }
+  .fg-stat-fill { height:100%; border-radius:2px; background:var(--fgc,#888); box-shadow:0 0 7px rgba(var(--fgr,136,136,136),.5); width:0; transition:width .8s cubic-bezier(.22,1,.36,1); }
+  .fg-stat-val { font-size:7px; color:rgba(255,255,255,.28); width:14px; text-align:right; flex-shrink:0; letter-spacing:0; }
+  .fg-moves-block { padding:0 22px 16px; }
+  .fg-moves-label { font-size:6px; letter-spacing:5px; color:#242424; margin-bottom:10px; }
+  .fg-move-row { display:flex; gap:10px; align-items:flex-start; padding:9px 12px; background:rgba(0,0,0,.38); border:1px solid rgba(255,255,255,.04); border-left:2px solid rgba(var(--fgr,136,136,136),.22); border-radius:2px; margin-bottom:5px; transition:background .18s,transform .2s,border-left-color .18s,box-shadow .18s; }
+  .fg-move-row:hover { background:rgba(var(--fgr,136,136,136),.06); transform:translateX(3px); border-left-color:var(--fgc,#888); box-shadow:-2px 0 12px rgba(var(--fgr,136,136,136),.18); }
+  .fg-move-input { flex-shrink:0; background:rgba(var(--fgr,136,136,136),.07); border:1px solid rgba(var(--fgr,136,136,136),.16); border-radius:2px; padding:2px 5px; font-family:'Press Start 2P',monospace; font-size:6px; color:rgba(var(--fgr,136,136,136),.65); text-align:center; min-width:26px; letter-spacing:0; margin-top:1px; transition:background .18s,color .18s; }
+  .fg-move-row:hover .fg-move-input { background:rgba(var(--fgr,136,136,136),.14); color:var(--fgc,#888); }
+  .fg-move-body { flex:1; min-width:0; }
+  .fg-move-name { font-size:8px; letter-spacing:2px; color:var(--fgc,#ccc); margin-bottom:3px; transition:text-shadow .18s; }
+  .fg-move-row:hover .fg-move-name { text-shadow:0 0 10px rgba(var(--fgr,136,136,136),.5); }
+  .fg-move-desc { font-size:7.5px; color:rgba(255,255,255,.4); letter-spacing:.5px; line-height:1.9; }
+  .fg-move-row:hover .fg-move-desc { color:rgba(255,255,255,.65); }
+  .fg-view-footer { display:flex; align-items:center; justify-content:flex-end; padding:10px 22px; border-top:1px solid rgba(255,255,255,.04); }
+  .fg-tier-picker { display:flex; gap:5px; margin-bottom:4px; }
+  .fg-tier-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.07); border-radius:3px; font-family:'Press Start 2P',monospace; font-size:14px; cursor:pointer; transition:all .15s; letter-spacing:0; color:#444; }
+  .fg-tier-btn:hover { background:rgba(255,255,255,.06); color:#666; }
+  .fg-tier-btn.active-s { color:#f5c518; border-color:#f5c51888; background:rgba(245,197,24,.1);  box-shadow:0 0 10px rgba(245,197,24,.2); }
+  .fg-tier-btn.active-a { color:#4499ff; border-color:#4499ff88; background:rgba(68,153,255,.08); }
+  .fg-tier-btn.active-b { color:#44dd88; border-color:#44dd8888; background:rgba(68,221,136,.07); }
+  .fg-tier-btn.active-c { color:#ffaa33; border-color:#ffaa3388; background:rgba(255,170,51,.07); }
+  .fg-tier-btn.active-d { color:#888;    border-color:#88888888; background:rgba(80,80,80,.07);  }
+  .fg-playstyle-picker { display:flex; gap:5px; flex-wrap:wrap; }
+  .fg-ps-btn { padding:5px 10px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06); border-radius:2px; color:#333; font-family:inherit; font-size:7px; letter-spacing:2px; cursor:pointer; transition:all .15s; }
+  .fg-ps-btn:hover { background:rgba(255,255,255,.06); color:#666; }
+  .fg-ps-btn.active { background:rgba(var(--fgr,136,136,136),.1); border-color:rgba(var(--fgr,136,136,136),.4); color:var(--fgc,#aaa); }
 </style>
 </head>
 <body>
@@ -625,6 +738,28 @@
     <div id="nmt-editor" class="nmt-content-wrap" style="display:none;"></div>
   </div>
 
+  <!-- FINAL HOUR -->
+  <div class="panel" style="margin-top:24px;" id="fh-panel">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px;">
+      <div class="panel-title" style="margin-bottom:0;">FINAL HOUR</div>
+      <span style="font-size:7px;color:#2a2a2a;letter-spacing:2px;">HORROR ASYMMETRICAL</span>
+    </div>
+    <p style="font-size:8px;color:#444;letter-spacing:1px;margin:0 0 18px;">If your character survived the nightmare... or became it. Pick a role, define your power &amp; perks.</p>
+    <div id="fh-grid" class="nmt-grid"></div>
+    <div id="fh-editor" class="nmt-content-wrap" style="display:none;"></div>
+  </div>
+
+  <!-- BEYOND LIMITS -->
+  <div class="panel" style="margin-top:24px;" id="fg-panel">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px;">
+      <div class="panel-title" style="margin-bottom:0;">BEYOND LIMITS</div>
+      <span style="font-size:7px;color:#2a2a2a;letter-spacing:2px;">FIGHTING GAME</span>
+    </div>
+    <p style="font-size:8px;color:#444;letter-spacing:1px;margin:0 0 18px;">Your character enters the arena. Set their stand, build out their moveset, and earn their tier.</p>
+    <div id="fg-grid" class="nmt-grid"></div>
+    <div id="fg-editor" class="nmt-content-wrap" style="display:none;"></div>
+  </div>
+
   <!-- SUGGESTION BOX -->
   <div class="panel" style="margin-top:24px;">
     <div class="panel-title">TRAIT SUGGESTION BOX</div>
@@ -818,13 +953,15 @@ function nmtInit() {
         if (ch.type === 'removed') delete _nmtData[ch.doc.id];
         else _nmtData[ch.doc.id] = ch.doc.data();
       });
+      if (_nmtMode === 'edit') return; // never interrupt typing
       _nmtRenderGrid();
-      // Never re-render the editor from a snapshot while the user is typing.
-      // The in-memory data is already up to date; view mode can refresh safely.
-      if (_nmtSel && _nmtMode !== 'edit') _nmtRenderContent();
+      if (_nmtSel) _nmtRenderContent();
     }, () => {});
   }
-  _nmtRenderGrid();
+  if (_nmtMode !== 'edit') _nmtRenderGrid();
+  // Chain companion sections so they all refresh when characters load
+  if (typeof fhInit === 'function') fhInit();
+  if (typeof fgInit === 'function') fgInit();
 }
 
 function _nmtEsc(s) {
@@ -1139,6 +1276,467 @@ function _nmtFlush() {
       }, 2000);
     })
     .catch(e => console.error('NMT save error', e));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FINAL HOUR — HORROR ASYMMETRICAL
+// ══════════════════════════════════════════════════════════════
+let _fhData = {}, _fhSel = null, _fhMode = 'view', _fhListening = false, _fhAnimFrame = null;
+
+function fhInit() {
+  if (!_fhListening && typeof db !== 'undefined') {
+    _fhListening = true;
+    db.collection('finalHour').onSnapshot(snap => {
+      snap.docChanges().forEach(ch => {
+        if (ch.type === 'removed') delete _fhData[ch.doc.id];
+        else _fhData[ch.doc.id] = ch.doc.data();
+      });
+      if (_fhMode === 'edit') return;
+      _fhRenderGrid();
+      if (_fhSel) _fhRenderContent();
+    }, () => {});
+  }
+  if (_fhMode !== 'edit') _fhRenderGrid();
+}
+
+function _fhChar(id) {
+  if (!_fhData[id]) _fhData[id] = {};
+  const d = _fhData[id];
+  if (!d.role)   d.role   = 'survivor';
+  if (!d.power)  d.power  = { name:'', desc:'' };
+  if (!Array.isArray(d.perks) || !d.perks.length) d.perks = [{ name:'', desc:'' }];
+  d.perks = d.perks.map(p => (p && typeof p==='object') ? p : { name:'', desc: p||'' });
+  return d;
+}
+
+function _fhRenderGrid() {
+  const el = document.getElementById('fh-grid');
+  if (!el) return;
+  const chars = (typeof characters!=='undefined' ? characters : []).filter(c => !c.isPlaceholder);
+  if (!chars.length) { el.innerHTML='<div style="color:#2a2a2a;font-size:8px;letter-spacing:2px;padding:24px 0;text-align:center;grid-column:1/-1;">NO CHARACTERS YET</div>'; return; }
+  el.innerHTML = chars.map(c => {
+    const d = _fhData[c.id];
+    const hasDot = d && (d.power?.name || d.power?.desc || (d.perks||[]).some(p=>p.name||p.desc));
+    const dotCol = d?.role==='hunter' ? '#cc1122' : d?.role==='survivor' ? '#22cc88' : (c.color||'#888');
+    const av = c.avatar
+      ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${c.color||'#333'}22;color:${c.color||'#888'};font-size:18px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+    const on = _fhSel===c.id;
+    return `<div class="nmt-char-card${on?' nmt-card-active':''}" style="${on?`border-color:${c.color||'#888'}55;`:''}" onclick="fhSelect('${c.id}')">
+      <div class="nmt-card-avatar" style="border-color:${c.color||'#444'}77">${av}</div>
+      <div class="nmt-card-name" style="${on?`color:${c.color||'#aaa'};`:''}">${_nmtEsc(c.name||'UNNAMED')}</div>
+      ${hasDot?`<div class="nmt-card-dot" style="background:${dotCol}"></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function fhSelect(id) {
+  const switching = _fhSel!==id;
+  if (_fhAnimFrame) { cancelAnimationFrame(_fhAnimFrame); _fhAnimFrame=null; }
+  _fhSel = id;
+  if (switching) _fhMode = 'view';
+  _fhRenderGrid();
+  const wrap = document.getElementById('fh-editor');
+  if (wrap) wrap.style.display = '';
+  _fhRenderContent();
+  if (switching) setTimeout(()=>wrap?.scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+}
+
+function _fhRenderContent() { _fhMode==='view' ? _fhRenderView() : _fhRenderEdit(); }
+function fhSetMode(m) { if (_fhAnimFrame){cancelAnimationFrame(_fhAnimFrame);_fhAnimFrame=null;} _fhMode=m; _fhRenderContent(); }
+
+const _FH_PERK_ICONS_H = ['✦','◈','⬡','▲'];
+const _FH_PERK_ICONS_S = ['◆','◇','○','□'];
+
+function _fhRenderView() {
+  const wrap = document.getElementById('fh-editor');
+  if (!wrap || !_fhSel) return;
+  const chars = typeof characters!=='undefined' ? characters : [];
+  const c = chars.find(x=>x.id===_fhSel);
+  if (!c) return;
+  const d   = _fhChar(_fhSel);
+  const col = c.color||'#888888';
+  const rgb = _nmtRgb(col);
+  const isH = d.role==='hunter';
+  const icons = isH ? _FH_PERK_ICONS_H : _FH_PERK_ICONS_S;
+
+  const av = c.avatar
+    ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(${rgb},.1);color:${col};font-size:32px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+
+  const filled = (d.perks||[]).filter(p=>p.name||p.desc);
+  const perksHtml = filled.length ? filled.map((p,i)=>`
+    <div class="fh-perk-row">
+      <span class="fh-perk-icon">${icons[i%icons.length]}</span>
+      <div class="fh-perk-body">
+        ${p.name?`<div class="fh-perk-name">${_nmtEsc(p.name)}</div>`:''}
+        ${p.desc?`<div class="fh-perk-desc">${_nmtEsc(p.desc)}</div>`:''}
+      </div>
+    </div>`).join('')
+    : `<div style="color:#222;font-size:8px;letter-spacing:2px;padding:10px 0;">NO PERKS SET. CLICK EDIT.</div>`;
+
+  const powerHtml = isH&&(d.power?.name||d.power?.desc) ? `
+    <div class="fh-power-block">
+      <div class="fh-power-label">POWER</div>
+      ${d.power.name?`<div class="fh-power-name">${_nmtEsc(d.power.name)}</div>`:''}
+      ${d.power.desc?`<div class="fh-power-desc">${_nmtEsc(d.power.desc)}</div>`:''}
+    </div>` : '';
+
+  wrap.innerHTML = `
+    <div class="fh-view-card" data-role="${d.role}" style="--nc:${col};--ncr:${rgb}">
+      <canvas class="nmt-pattern-bg"></canvas>
+      <div class="fh-view-inner">
+        <div class="fh-view-hero">
+          <div class="fh-view-avatar">${av}</div>
+          <div class="fh-view-hero-text">
+            <div class="fh-view-name">${_nmtEsc(c.name||'UNNAMED')}</div>
+            <span class="fh-role-badge ${d.role}">${isH?'☠ HUNTER':'◉ SURVIVOR'}</span>
+          </div>
+        </div>
+        <div class="fh-view-rule"></div>
+        <div class="fh-view-body">
+          ${powerHtml}
+          <div>
+            <div class="fh-perks-label">PERKS</div>
+            ${perksHtml}
+          </div>
+        </div>
+        <div class="fh-view-footer">
+          <button class="btn sm" onclick="fhSetMode('edit')">EDIT</button>
+        </div>
+      </div>
+    </div>`;
+
+  if (c.pattern?.type && c.pattern.type!=='none') {
+    requestAnimationFrame(()=>{
+      const cv = wrap.querySelector('.nmt-pattern-bg'); if (!cv) return;
+      cv.width = cv.parentElement.offsetWidth||600; cv.height = cv.parentElement.offsetHeight||300;
+      const t0 = performance.now();
+      function frame(now){ if(typeof drawPattern==='function') drawPattern(cv,c.pattern.type,c.pattern.params||{},(now-t0)/1000); _fhAnimFrame=requestAnimationFrame(frame); }
+      _fhAnimFrame = requestAnimationFrame(frame);
+    });
+  }
+}
+
+function _fhRenderEdit() {
+  const wrap = document.getElementById('fh-editor');
+  if (!wrap||!_fhSel) return;
+  const chars = typeof characters!=='undefined' ? characters : [];
+  const c = chars.find(x=>x.id===_fhSel); if (!c) return;
+  const d = _fhChar(_fhSel);
+  const col = c.color||'#888';
+  const isH = d.role==='hunter';
+
+  const av = c.avatar
+    ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${col}22;color:${col};font-size:20px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+
+  const perksHtml = (d.perks||[]).map((p,i)=>`
+    <div class="nmt-ability-row">
+      <span class="nmt-ability-num">${i+1}.</span>
+      <div class="nmt-ability-fields">
+        <input class="nmt-name-input" type="text" value="${_nmtEsc(p.name||'')}" placeholder="Perk name..." maxlength="60" oninput="fhEditPerk(${i},'name',this.value)"/>
+        <textarea class="nmt-textarea" rows="2" placeholder="Perk description..." oninput="fhEditPerk(${i},'desc',this.value)">${_nmtEsc(p.desc||'')}</textarea>
+      </div>
+      <button class="btn sm danger" onclick="fhRemovePerk(${i})">✕</button>
+    </div>`).join('');
+
+  wrap.innerHTML = `
+    <div class="nmt-edit-header">
+      <div class="nmt-edit-avatar" style="border-color:${col}66">${av}</div>
+      <div class="nmt-edit-name" style="color:${col}">${_nmtEsc(c.name||'UNNAMED')}</div>
+      <span class="nmt-save-status" id="fh-save-status" style="margin-left:auto;"></span>
+      <button class="btn sm accent" onclick="fhSetMode('view')" style="margin-left:8px;">VIEW</button>
+    </div>
+    <div class="fh-role-toggle">
+      <button class="fh-role-btn hunter${isH?' active':''}" onclick="fhSetRole('hunter')">☠ HUNTER</button>
+      <button class="fh-role-btn survivor${!isH?' active':''}" onclick="fhSetRole('survivor')">◉ SURVIVOR</button>
+    </div>
+    ${isH?`
+    <div class="nmt-section">
+      <div class="nmt-section-title">POWER</div>
+      <div class="nmt-ability-fields">
+        <input class="nmt-name-input" type="text" value="${_nmtEsc(d.power?.name||'')}" placeholder="Power name..." maxlength="60" oninput="fhEditPower('name',this.value)" style="margin-bottom:4px;"/>
+        <textarea class="nmt-textarea" rows="2" placeholder="Describe the power..." oninput="fhEditPower('desc',this.value)">${_nmtEsc(d.power?.desc||'')}</textarea>
+      </div>
+    </div>`:''}
+    <div class="nmt-section">
+      <div class="nmt-section-title">PERKS</div>
+      <div id="fh-perks">${perksHtml}</div>
+      ${(d.perks||[]).length<4?`<button class="btn sm" onclick="fhAddPerk()" style="margin-top:6px;">+ PERK</button>`:''}
+    </div>`;
+}
+
+function fhSetRole(role) { if(!_fhSel)return; _fhChar(_fhSel).role=role; _fhRenderEdit(); _fhScheduleSave(); }
+function fhEditPower(field,v) { if(!_fhSel)return; const d=_fhChar(_fhSel); if(!d.power)d.power={name:'',desc:''}; d.power[field]=v; _fhScheduleSave(); }
+function fhEditPerk(idx,field,v) { if(!_fhSel)return; const p=_fhChar(_fhSel).perks[idx]; if(p) p[field]=v; _fhScheduleSave(); }
+function fhRemovePerk(idx) {
+  if(!_fhSel)return; const d=_fhChar(_fhSel);
+  if(d.perks.length<=1){d.perks[0]={name:'',desc:''};_fhRenderEdit();return;}
+  d.perks.splice(idx,1); _fhRenderEdit(); _fhScheduleSave();
+}
+function fhAddPerk() {
+  if(!_fhSel)return; const d=_fhChar(_fhSel); if(d.perks.length>=4)return;
+  d.perks.push({name:'',desc:''}); _fhRenderEdit(); _fhScheduleSave();
+  setTimeout(()=>document.getElementById('fh-perks')?.querySelector('.nmt-ability-row:last-child .nmt-name-input')?.focus(),50);
+}
+function _fhScheduleSave() {
+  const el=document.getElementById('fh-save-status');
+  if(el){el.innerHTML=_NMT_ICON_SAVING;el.className='nmt-save-status saving';}
+  clearTimeout(window._fhSaveTimer);
+  window._fhSaveTimer=setTimeout(_fhFlush,900);
+}
+function _fhFlush() {
+  if(!_fhSel||typeof db==='undefined')return;
+  const d=_fhData[_fhSel]; if(!d)return;
+  db.collection('finalHour').doc(_fhSel).set(d)
+    .then(()=>{
+      const el=document.getElementById('fh-save-status');
+      if(el){el.innerHTML=_NMT_ICON_SAVED;el.className='nmt-save-status saved';}
+      setTimeout(()=>{const e=document.getElementById('fh-save-status');if(e){e.innerHTML='';e.className='nmt-save-status';}},2000);
+    }).catch(e=>console.error('FH save error',e));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BEYOND LIMITS — FIGHTING GAME
+// ══════════════════════════════════════════════════════════════
+let _fgData = {}, _fgSel = null, _fgMode = 'view', _fgListening = false, _fgAnimFrame = null;
+
+const _FG_TIER_CLS   = {S:'fg-tier-s',A:'fg-tier-a',B:'fg-tier-b',C:'fg-tier-c',D:'fg-tier-d'};
+const _FG_PS_LABELS  = {rushdown:'RUSHDOWN',zoner:'ZONER',defensive:'DEFENSIVE',technical:'TECHNICAL',balanced:'BALANCED'};
+const _FG_STAT_KEYS  = ['damage','speed','range','combo'];
+const _FG_STAT_LBLS  = ['DAMAGE','SPEED','RANGE','COMBO'];
+
+function fgInit() {
+  if (!_fgListening && typeof db!=='undefined') {
+    _fgListening = true;
+    db.collection('beyondLimits').onSnapshot(snap=>{
+      snap.docChanges().forEach(ch=>{
+        if(ch.type==='removed') delete _fgData[ch.doc.id];
+        else _fgData[ch.doc.id]=ch.doc.data();
+      });
+      if(_fgMode==='edit') return;
+      _fgRenderGrid();
+      if(_fgSel) _fgRenderContent();
+    },()=>{});
+  }
+  if (_fgMode!=='edit') _fgRenderGrid();
+}
+
+function _fgChar(id) {
+  if (!_fgData[id]) _fgData[id]={};
+  const d = _fgData[id];
+  if (!d.standName) d.standName='';
+  if (!d.tier)      d.tier='B';
+  if (!d.playstyle) d.playstyle='balanced';
+  if (!d.stats)     d.stats={damage:5,speed:5,range:5,combo:5};
+  if (!Array.isArray(d.moves)||!d.moves.length) d.moves=[{name:'',input:'',desc:''}];
+  d.moves = d.moves.map(m=>(m&&typeof m==='object')?m:{name:'',input:'',desc:m||''});
+  return d;
+}
+
+function _fgRenderGrid() {
+  const el = document.getElementById('fg-grid');
+  if (!el) return;
+  const chars = (typeof characters!=='undefined'?characters:[]).filter(c=>!c.isPlaceholder);
+  if (!chars.length){el.innerHTML='<div style="color:#2a2a2a;font-size:8px;letter-spacing:2px;padding:24px 0;text-align:center;grid-column:1/-1;">NO CHARACTERS YET</div>';return;}
+  el.innerHTML = chars.map(c=>{
+    const d = _fgData[c.id];
+    const hasDot = d&&(d.standName||(d.moves||[]).some(m=>m.name||m.desc));
+    const av = c.avatar
+      ?`<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+      :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${c.color||'#333'}22;color:${c.color||'#888'};font-size:18px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+    const on = _fgSel===c.id;
+    return `<div class="nmt-char-card${on?' nmt-card-active':''}" style="${on?`border-color:${c.color||'#888'}55;`:''}" onclick="fgSelect('${c.id}')">
+      <div class="nmt-card-avatar" style="border-color:${c.color||'#444'}77">${av}</div>
+      <div class="nmt-card-name" style="${on?`color:${c.color||'#aaa'};`:''}">${_nmtEsc(c.name||'UNNAMED')}</div>
+      ${hasDot?`<div class="nmt-card-dot" style="background:${c.color||'#888'}"></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function fgSelect(id) {
+  const switching = _fgSel!==id;
+  if(_fgAnimFrame){cancelAnimationFrame(_fgAnimFrame);_fgAnimFrame=null;}
+  _fgSel=id;
+  if(switching) _fgMode='view';
+  _fgRenderGrid();
+  const wrap=document.getElementById('fg-editor');
+  if(wrap) wrap.style.display='';
+  _fgRenderContent();
+  if(switching) setTimeout(()=>wrap?.scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+}
+
+function _fgRenderContent(){ _fgMode==='view'?_fgRenderView():_fgRenderEdit(); }
+function fgSetMode(m){if(_fgAnimFrame){cancelAnimationFrame(_fgAnimFrame);_fgAnimFrame=null;}_fgMode=m;_fgRenderContent();}
+
+function _fgRenderView() {
+  const wrap=document.getElementById('fg-editor');
+  if(!wrap||!_fgSel)return;
+  const chars=typeof characters!=='undefined'?characters:[];
+  const c=chars.find(x=>x.id===_fgSel);if(!c)return;
+  const d=_fgChar(_fgSel);
+  const col=c.color||'#888888', rgb=_nmtRgb(col);
+
+  const av=c.avatar
+    ?`<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+    :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(${rgb},.1);color:${col};font-size:32px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+
+  const tierCls = _FG_TIER_CLS[d.tier]||'fg-tier-b';
+  const statsHtml = _FG_STAT_KEYS.map((k,i)=>{
+    const v=Math.max(1,Math.min(10,+(d.stats[k])||5));
+    return `<div class="fg-stat-row">
+      <span class="fg-stat-label">${_FG_STAT_LBLS[i]}</span>
+      <div class="fg-stat-track"><div class="fg-stat-fill" data-width="${v*10}%"></div></div>
+      <span class="fg-stat-val">${v}</span>
+    </div>`;
+  }).join('');
+
+  const filledMoves=(d.moves||[]).filter(m=>m.name||m.desc);
+  const movesHtml=filledMoves.length?filledMoves.map((m,i)=>`
+    <div class="fg-move-row" style="--fgc:${col};--fgr:${rgb}">
+      <span class="fg-move-input">${_nmtEsc(m.input||`M${i+1}`)}</span>
+      <div class="fg-move-body">
+        ${m.name?`<div class="fg-move-name">${_nmtEsc(m.name)}</div>`:''}
+        ${m.desc?`<div class="fg-move-desc">${_nmtEsc(m.desc)}</div>`:''}
+      </div>
+    </div>`).join('')
+    :`<div style="color:#222;font-size:8px;letter-spacing:2px;padding:10px 0;">NO MOVES SET. CLICK EDIT.</div>`;
+
+  wrap.innerHTML=`
+    <div class="fg-view-card" style="--fgc:${col};--fgr:${rgb}">
+      <canvas class="nmt-pattern-bg"></canvas>
+      <div class="fg-view-inner">
+        <div class="fg-view-hero">
+          <div class="fg-view-avatar">${av}</div>
+          <div class="fg-view-hero-info">
+            <div class="fg-view-name">${_nmtEsc(c.name||'UNNAMED')}</div>
+            ${d.standName?`<div class="fg-stand-name">${_nmtEsc(d.standName)}</div>`:''}
+            <div class="fg-playstyle-tag">${_FG_PS_LABELS[d.playstyle]||'BALANCED'}</div>
+          </div>
+          <div class="fg-tier-badge ${tierCls}">${d.tier||'B'}</div>
+        </div>
+        <div class="fg-view-rule"></div>
+        <div class="fg-stats-block" style="--fgc:${col};--fgr:${rgb}">${statsHtml}</div>
+        <div class="fg-moves-block" style="--fgc:${col};--fgr:${rgb}">
+          <div class="fg-moves-label">MOVESET</div>
+          ${movesHtml}
+        </div>
+        <div class="fg-view-footer">
+          <button class="btn sm" onclick="fgSetMode('edit')">EDIT</button>
+        </div>
+      </div>
+    </div>`;
+
+  // Animate stat bars in after paint
+  requestAnimationFrame(()=>{
+    wrap.querySelectorAll('.fg-stat-fill').forEach(el=>{ el.style.width=el.dataset.width||'0%'; });
+  });
+
+  if(c.pattern?.type&&c.pattern.type!=='none'){
+    requestAnimationFrame(()=>{
+      const cv=wrap.querySelector('.nmt-pattern-bg');if(!cv)return;
+      cv.width=cv.parentElement.offsetWidth||600;cv.height=cv.parentElement.offsetHeight||300;
+      const t0=performance.now();
+      function frame(now){if(typeof drawPattern==='function')drawPattern(cv,c.pattern.type,c.pattern.params||{},(now-t0)/1000);_fgAnimFrame=requestAnimationFrame(frame);}
+      _fgAnimFrame=requestAnimationFrame(frame);
+    });
+  }
+}
+
+function _fgRenderEdit() {
+  const wrap=document.getElementById('fg-editor');
+  if(!wrap||!_fgSel)return;
+  const chars=typeof characters!=='undefined'?characters:[];
+  const c=chars.find(x=>x.id===_fgSel);if(!c)return;
+  const d=_fgChar(_fgSel);
+  const col=c.color||'#888', rgb=_nmtRgb(col);
+
+  const av=c.avatar
+    ?`<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+    :`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${col}22;color:${col};font-size:20px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+
+  const tierBtns=['S','A','B','C','D'].map(t=>`<button class="fg-tier-btn${d.tier===t?' active-'+t.toLowerCase():''}" onclick="fgSetTier('${t}')">${t}</button>`).join('');
+  const psBtns=Object.keys(_FG_PS_LABELS).map(ps=>`<button class="fg-ps-btn${d.playstyle===ps?' active':''}" style="--fgc:${col};--fgr:${rgb}" onclick="fgSetPlaystyle('${ps}')">${_FG_PS_LABELS[ps]}</button>`).join('');
+  const statSliders=_FG_STAT_KEYS.map((k,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <span style="font-size:6px;letter-spacing:3px;color:#3a3a3a;width:52px;">${_FG_STAT_LBLS[i]}</span>
+      <input type="range" class="fg-stat-slider" min="1" max="10" value="${+(d.stats[k])||5}" style="flex:1;accent-color:${col};cursor:none"
+        oninput="fgEditStat('${k}',+this.value);this.nextElementSibling.textContent=this.value"/>
+      <span style="font-size:8px;color:#555;width:14px;text-align:right;letter-spacing:0;">${+(d.stats[k])||5}</span>
+    </div>`).join('');
+  const movesHtml=(d.moves||[]).map((m,i)=>`
+    <div class="nmt-ability-row">
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;">
+        <div style="display:flex;gap:4px;">
+          <input class="nmt-name-input" type="text" value="${_nmtEsc(m.input||'')}" placeholder="Input" maxlength="8" style="width:74px;flex-shrink:0;" oninput="fgEditMove(${i},'input',this.value)"/>
+          <input class="nmt-name-input" type="text" value="${_nmtEsc(m.name||'')}" placeholder="Move name..." maxlength="60" style="flex:1;" oninput="fgEditMove(${i},'name',this.value)"/>
+        </div>
+        <textarea class="nmt-textarea" rows="2" placeholder="Description..." oninput="fgEditMove(${i},'desc',this.value)">${_nmtEsc(m.desc||'')}</textarea>
+      </div>
+      <button class="btn sm danger" onclick="fgRemoveMove(${i})">✕</button>
+    </div>`).join('');
+
+  wrap.innerHTML=`
+    <div class="nmt-edit-header">
+      <div class="nmt-edit-avatar" style="border-color:${col}66">${av}</div>
+      <div class="nmt-edit-name" style="color:${col}">${_nmtEsc(c.name||'UNNAMED')}</div>
+      <span class="nmt-save-status" id="fg-save-status" style="margin-left:auto;"></span>
+      <button class="btn sm accent" onclick="fgSetMode('view')" style="margin-left:8px;">VIEW</button>
+    </div>
+    <div class="nmt-section">
+      <div class="nmt-section-title">STAND / SPEC NAME</div>
+      <input class="nmt-name-input" type="text" value="${_nmtEsc(d.standName||'')}" placeholder="e.g. Star Platinum, Sharpshooter..." maxlength="60" style="width:100%;" oninput="fgEditField('standName',this.value)"/>
+    </div>
+    <div class="nmt-section">
+      <div class="nmt-section-title">TIER</div>
+      <div class="fg-tier-picker">${tierBtns}</div>
+    </div>
+    <div class="nmt-section">
+      <div class="nmt-section-title">PLAYSTYLE</div>
+      <div class="fg-playstyle-picker">${psBtns}</div>
+    </div>
+    <div class="nmt-section">
+      <div class="nmt-section-title">STATS</div>
+      ${statSliders}
+    </div>
+    <div class="nmt-section">
+      <div class="nmt-section-title">MOVESET</div>
+      <div id="fg-moves">${movesHtml}</div>
+      <button class="btn sm" onclick="fgAddMove()" style="margin-top:6px;">+ MOVE</button>
+    </div>`;
+}
+
+function fgEditField(field,v){ if(!_fgSel)return; _fgChar(_fgSel)[field]=v; _fgScheduleSave(); }
+function fgSetTier(t){ if(!_fgSel)return; _fgChar(_fgSel).tier=t; _fgRenderEdit(); _fgScheduleSave(); }
+function fgSetPlaystyle(ps){ if(!_fgSel)return; _fgChar(_fgSel).playstyle=ps; _fgRenderEdit(); _fgScheduleSave(); }
+function fgEditStat(k,v){ if(!_fgSel)return; const d=_fgChar(_fgSel); if(!d.stats)d.stats={}; d.stats[k]=v; _fgScheduleSave(); }
+function fgEditMove(idx,field,v){ if(!_fgSel)return; const m=_fgChar(_fgSel).moves[idx]; if(m)m[field]=v; _fgScheduleSave(); }
+function fgAddMove(){
+  if(!_fgSel)return; _fgChar(_fgSel).moves.push({name:'',input:'',desc:''});
+  _fgRenderEdit(); _fgScheduleSave();
+  setTimeout(()=>document.getElementById('fg-moves')?.querySelector('.nmt-ability-row:last-child input:nth-child(2)')?.focus(),50);
+}
+function fgRemoveMove(idx){
+  if(!_fgSel)return; const d=_fgChar(_fgSel);
+  if(d.moves.length<=1){d.moves[0]={name:'',input:'',desc:''};_fgRenderEdit();return;}
+  d.moves.splice(idx,1); _fgRenderEdit(); _fgScheduleSave();
+}
+function _fgScheduleSave(){
+  const el=document.getElementById('fg-save-status');
+  if(el){el.innerHTML=_NMT_ICON_SAVING;el.className='nmt-save-status saving';}
+  clearTimeout(window._fgSaveTimer);
+  window._fgSaveTimer=setTimeout(_fgFlush,900);
+}
+function _fgFlush(){
+  if(!_fgSel||typeof db==='undefined')return;
+  const d=_fgData[_fgSel];if(!d)return;
+  db.collection('beyondLimits').doc(_fgSel).set(d)
+    .then(()=>{
+      const el=document.getElementById('fg-save-status');
+      if(el){el.innerHTML=_NMT_ICON_SAVED;el.className='nmt-save-status saved';}
+      setTimeout(()=>{const e=document.getElementById('fg-save-status');if(e){e.innerHTML='';e.className='nmt-save-status';}},2000);
+    }).catch(e=>console.error('FG save error',e));
 }
 </script>
 <!-- Firebase -->
