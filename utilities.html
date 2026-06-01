@@ -565,20 +565,52 @@
   .gs-desc { font-size:8px; color:#3a3a3a; letter-spacing:1px; margin:0 0 18px; line-height:1.9; }
 
   /* ── LoL view card ──────────────────────────────────────────── */
-  .lol-view-card { position:relative; overflow:hidden; border-radius:4px; border:1px solid rgba(var(--lolr),.18); background:linear-gradient(160deg,rgba(var(--lolr),.05) 0%,#0d0d0d 55%); }
-  .lol-view-inner { position:relative; z-index:1; padding:0 0 20px; }
-  .lol-view-hero { display:flex; align-items:center; gap:16px; padding:20px 22px 16px; }
-  .lol-view-avatar { width:64px; height:64px; border-radius:4px; overflow:hidden; border:2px solid rgba(var(--lolr),.35); flex-shrink:0; }
-  .lol-view-name { font-size:11px; letter-spacing:3px; color:var(--lolc); font-family:'Press Start 2P',monospace; margin-bottom:8px; }
-  .lol-view-rule { height:1px; background:linear-gradient(90deg,transparent,rgba(var(--lolr),.3),transparent); margin:0 22px 14px; }
-  .lol-role-badge { display:inline-block; font-size:6px; letter-spacing:3px; color:rgba(255,255,255,.45); border:1px solid rgba(255,255,255,.1); padding:3px 8px; border-radius:2px; }
+  .lol-view-card { position:relative; overflow:hidden; background:#020305; border:1px solid rgba(255,255,255,.07); border-radius:8px; min-height:260px; transition:border-color .25s; }
+  .lol-view-card:hover { border-color:rgba(255,255,255,.15); }
+  .lol-view-card:hover .nmt-pattern-bg { opacity:.22; }
+  .lol-view-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; z-index:4; background:var(--lolc,#00b4de); box-shadow:0 0 20px var(--lolc,#00b4de),0 0 50px rgba(var(--lolr,0,180,222),.32); animation:lol-top-glow 2.8s ease-in-out infinite; }
+  .lol-view-card::after  { content:''; position:absolute; bottom:0; left:0; right:0; height:55%; z-index:1; background:linear-gradient(to top,#020305 30%,transparent); pointer-events:none; }
+  .lol-view-inner { position:relative; z-index:2; }
+  .lol-view-hero { display:flex; align-items:flex-start; gap:18px; padding:22px 22px 0; }
+  .lol-view-avatar { width:80px; height:80px; border-radius:50%; overflow:hidden; flex-shrink:0; transition:filter .25s; animation:lol-avatar-pulse 3s ease-in-out infinite; }
+  .lol-view-card:hover .lol-view-avatar { filter:brightness(1.12); }
+  .lol-view-hero-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+  .lol-view-name { font-family:'Press Start 2P',monospace; font-size:11px; letter-spacing:2px; line-height:1.5; color:var(--lolc,#ccc); text-shadow:0 0 28px rgba(var(--lolr,0,180,222),.45); transition:text-shadow .3s; }
+  .lol-view-card:hover .lol-view-name { text-shadow:0 0 44px rgba(var(--lolr,0,180,222),.9); }
+  .lol-badges { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+  .lol-role-badge { display:inline-block; font-size:6px; letter-spacing:3px; color:rgba(255,255,255,.4); border:1px solid rgba(255,255,255,.1); padding:3px 8px; border-radius:2px; transition:border-color .2s,color .2s; }
+  .lol-view-card:hover .lol-role-badge { color:rgba(255,255,255,.6); border-color:rgba(255,255,255,.18); }
+  .lol-res-badge { display:inline-block; font-size:6px; letter-spacing:3px; padding:3px 8px; border-radius:2px; border:1px solid; transition:box-shadow .2s; }
+  .lol-view-rule { height:1px; margin:16px 22px 12px; background:linear-gradient(90deg,rgba(var(--lolr,0,180,222),.35) 0%,transparent 100%); }
+  /* Ability rows */
+  .lol-ab-section { padding:0 22px; }
+  .lol-ab-row { display:flex; gap:10px; align-items:flex-start; padding:9px 12px; background:rgba(0,0,0,.32); border:1px solid rgba(255,255,255,.04); border-left:2px solid var(--abcolor,#888); border-radius:2px; margin-bottom:5px; transition:background .18s,transform .2s,border-left-color .18s,box-shadow .18s; }
+  .lol-ab-row:hover { background:rgba(255,255,255,.04); transform:translateX(3px); box-shadow:-2px 0 12px color-mix(in srgb, var(--abcolor,#888) 40%, transparent); }
+  .lol-ab-key { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; font-size:7px; letter-spacing:1px; font-family:'Press Start 2P',monospace; flex-shrink:0; border:1.5px solid var(--abcolor,#888); color:var(--abcolor,#888); background:rgba(0,0,0,.25); margin-top:1px; border-radius:3px; transition:filter .18s; }
+  .lol-ab-key.passive { border-radius:50%; }
+  .lol-ab-row:hover .lol-ab-key { filter:brightness(1.35); }
+  .lol-ab-body { flex:1; min-width:0; }
+  .lol-ab-name { font-size:9px; letter-spacing:2px; font-family:'Press Start 2P',monospace; color:var(--abcolor,#ccc); margin-bottom:4px; transition:text-shadow .18s; }
+  .lol-ab-row:hover .lol-ab-name { text-shadow:0 0 12px var(--abcolor,#888); }
+  .lol-ab-desc { font-size:8px; color:rgba(255,255,255,.38); letter-spacing:.4px; line-height:1.95; transition:color .18s; }
+  .lol-ab-row:hover .lol-ab-desc { color:rgba(255,255,255,.62); }
+  .lol-ab-section.ult { margin-top:10px; padding-top:10px; border-top:1px solid rgba(var(--lolr,0,180,222),.1); }
+  .lol-passive-label { font-size:6px; letter-spacing:5px; color:#1e1e1e; margin-bottom:7px; padding:0 22px; margin-top:14px; }
+  .lol-kit-label { font-size:6px; letter-spacing:5px; color:#1e1e1e; margin:12px 22px 7px; }
+  .lol-view-footer { display:flex; align-items:center; justify-content:flex-end; padding:12px 22px; border-top:1px solid rgba(255,255,255,.04); margin-top:6px; }
+  @keyframes lol-top-glow { 0%,100%{opacity:.7} 50%{opacity:1} }
+  @keyframes lol-avatar-pulse {
+    0%,100%{ box-shadow:0 0 0 2px rgba(var(--lolr,0,180,222),.15),0 0 22px rgba(var(--lolr,0,180,222),.1); }
+    50%    { box-shadow:0 0 0 3px rgba(var(--lolr,0,180,222),.32),0 0 38px rgba(var(--lolr,0,180,222),.22); }
+  }
   /* LoL edit pickers */
   .lol-role-picker,.lol-res-picker { display:flex; gap:6px; flex-wrap:wrap; }
-  .lol-role-btn,.lol-res-btn { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); color:#333; font-size:6px; letter-spacing:3px; padding:6px 12px; border-radius:2px; cursor:none; transition:all .15s; font-family:'Press Start 2P',monospace; }
-  .lol-role-btn:hover,.lol-res-btn:hover { border-color:rgba(0,180,220,.3); color:#555; }
-  .lol-role-btn.active { border-color:rgba(0,180,220,.5); color:#00b4de; background:rgba(0,180,220,.08); }
+  .lol-role-btn,.lol-res-btn { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); color:#333; font-size:6px; letter-spacing:3px; padding:7px 13px; border-radius:2px; cursor:none; transition:all .15s; font-family:'Press Start 2P',monospace; }
+  .lol-role-btn:hover,.lol-res-btn:hover { background:rgba(255,255,255,.06); color:#555; }
+  .lol-role-btn.active { border-color:rgba(0,180,220,.55); color:#00b4de; background:rgba(0,180,220,.09); box-shadow:0 0 10px rgba(0,180,220,.15); }
   /* color swatch */
-  .lol-color-swatch { width:26px; height:26px; border-radius:2px; border:1px solid rgba(255,255,255,.1); padding:2px; background:#111; cursor:none; flex-shrink:0; }
+  .lol-color-swatch { width:28px; height:28px; border-radius:3px; border:1px solid rgba(255,255,255,.12); padding:2px; background:#111; cursor:none; flex-shrink:0; transition:border-color .15s; }
+  .lol-color-swatch:hover { border-color:rgba(255,255,255,.28); }
 </style>
 </head>
 <body>
@@ -2447,30 +2479,25 @@ function _lolRenderView() {
 
   const av = c.avatar
     ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
-    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(${rgb},.1);color:${col};font-size:32px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(${rgb},.12);color:${col};font-size:32px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
 
-  const mkAbilityBlock = (slot) => {
+  const mkRow = (slot) => {
     const ab = d[slot];
     if (!ab.name && !ab.desc) return '';
     const isPassive = slot === 'passive';
-    const isUlt     = slot === 'r';
-    const keyHtml = isPassive
-      ? `<div style="width:22px;height:22px;border-radius:50%;border:1.5px solid ${ab.color};background:${ab.color}20;flex-shrink:0;margin-top:1px;"></div>`
-      : `<div style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;font-size:7px;letter-spacing:1px;font-family:'Press Start 2P',monospace;flex-shrink:0;border:1.5px solid ${ab.color};color:${ab.color};background:${ab.color}18;margin-top:1px;">${slot.toUpperCase()}</div>`;
-    return `<div style="padding:${isUlt?'14px 22px 8px':'7px 22px'};">
-      ${isUlt?`<div style="height:1px;background:linear-gradient(90deg,transparent,rgba(${rgb},.22),transparent);margin-bottom:12px;"></div>`:''}
-      <div style="display:flex;align-items:flex-start;gap:10px;">
-        ${keyHtml}
-        <div style="flex:1;min-width:0;">
-          ${ab.name?`<div style="font-size:9px;letter-spacing:2px;color:${ab.color};font-family:'Press Start 2P',monospace;margin-bottom:5px;">${_nmtEsc(ab.name)}</div>`:''}
-          ${ab.desc?`<div style="font-size:8px;color:rgba(255,255,255,.38);letter-spacing:.4px;line-height:1.95;">${_nmtEsc(ab.desc)}</div>`:''}
-        </div>
+    return `<div class="lol-ab-row" style="--abcolor:${ab.color}">
+      <div class="lol-ab-key${isPassive?' passive':''}">${isPassive?'':slot.toUpperCase()}</div>
+      <div class="lol-ab-body">
+        ${ab.name?`<div class="lol-ab-name">${_nmtEsc(ab.name)}</div>`:''}
+        ${ab.desc?`<div class="lol-ab-desc">${_nmtEsc(ab.desc)}</div>`:''}
       </div>
     </div>`;
   };
 
+  const passiveRow = mkRow('passive');
+  const kitRows    = ['q','w','e'].map(mkRow).join('');
+  const ultRow     = mkRow('r');
   const hasContent = _LOL_SLOTS.some(s => d[s].name || d[s].desc);
-  const abBlocks = _LOL_SLOTS.map(mkAbilityBlock).join('');
 
   wrap.innerHTML = `
     <div class="lol-view-card" style="--lolc:${col};--lolr:${rgb}">
@@ -2478,20 +2505,23 @@ function _lolRenderView() {
       <div class="lol-view-inner">
         <div class="lol-view-hero">
           <div class="lol-view-avatar">${av}</div>
-          <div style="flex:1;min-width:0;">
+          <div class="lol-view-hero-info">
             <div class="lol-view-name">${_nmtEsc(c.name||'UNNAMED')}</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <div class="lol-badges">
               ${(d.roles||['mid']).map(r=>`<span class="lol-role-badge">${_LOL_ROLE_LBLS[r]||r.toUpperCase()}</span>`).join('')}
-              <span style="display:inline-block;font-size:6px;letter-spacing:3px;color:${resCol};border:1px solid ${resCol}44;padding:3px 8px;border-radius:2px;">${_LOL_RES_LBLS[d.resource]||'MANA'}</span>
+              <span class="lol-res-badge" style="color:${resCol};border-color:${resCol}44;background:${resCol}0e;">${_LOL_RES_LBLS[d.resource]||'MANA'}</span>
             </div>
           </div>
-          <button class="btn sm" onclick="lolSetMode('edit')" style="flex-shrink:0;margin-left:8px;">EDIT</button>
         </div>
         <div class="lol-view-rule"></div>
-        ${hasContent
-          ? abBlocks
-          : `<div style="color:#222;font-size:8px;letter-spacing:2px;padding:10px 22px;">NO KIT SET. CLICK EDIT.</div>`}
-        <div style="height:14px;"></div>
+        ${hasContent ? `
+          ${passiveRow ? `<div class="lol-passive-label">PASSIVE</div><div class="lol-ab-section">${passiveRow}</div>` : ''}
+          ${kitRows    ? `<div class="lol-kit-label">KIT</div><div class="lol-ab-section">${kitRows}</div>` : ''}
+          ${ultRow     ? `<div class="lol-ab-section ult" style="--lolr:${rgb}">${ultRow}</div>` : ''}
+        ` : `<div style="color:#222;font-size:8px;letter-spacing:2px;padding:10px 22px;">NO KIT SET. CLICK EDIT.</div>`}
+        <div class="lol-view-footer">
+          <button class="btn sm" onclick="lolSetMode('edit')">EDIT</button>
+        </div>
       </div>
     </div>`;
 
