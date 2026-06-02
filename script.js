@@ -3132,6 +3132,50 @@ function _drawAdamPattern(canvas, ctx, W, H, t, params) {
     ctx.stroke();
     ctx.restore();
   }
+
+  // ── Centered Ace of Hearts ────────────────────────────────────
+  const cw = 130, ch = cw * 1.45, cr = cw * 0.07;
+  ctx.save();
+  ctx.translate(W * 0.5, H * 0.5);
+  ctx.rotate(0.07);  // slight tilt
+
+  // Drop shadow
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); _bjRRect(ctx, -cw*0.5+5, -ch*0.5+6, cw, ch, cr); ctx.fill();
+
+  ctx.globalAlpha = 0.93;
+
+  // Card body
+  ctx.beginPath(); _bjRRect(ctx, -cw*0.5, -ch*0.5, cw, ch, cr);
+  ctx.fillStyle = 'rgba(242,236,220,0.96)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(200,188,168,0.40)'; ctx.lineWidth = 0.9;
+  ctx.beginPath(); _bjRRect(ctx, -cw*0.5, -ch*0.5, cw, ch, cr); ctx.stroke();
+
+  // Large ♥ in centre
+  ctx.fillStyle = '#b02a1a';
+  ctx.font = `${Math.round(cw * 0.50)}px serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('♥', 0, ch * 0.04);
+
+  // Corner pips — top-left
+  const fSm = Math.round(cw * 0.21);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.font = `bold ${fSm}px monospace`;
+  ctx.fillText('A',  -cw*0.5 + cw*0.09, -ch*0.5 + ch*0.04);
+  ctx.font = `${fSm}px serif`;
+  ctx.fillText('♥',  -cw*0.5 + cw*0.09, -ch*0.5 + ch*0.04 + fSm + 1);
+
+  // Corner pips — bottom-right (rotated 180°)
+  ctx.save(); ctx.rotate(Math.PI);
+  ctx.font = `bold ${fSm}px monospace`;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText('A',  -cw*0.5 + cw*0.09, -ch*0.5 + ch*0.04);
+  ctx.font = `${fSm}px serif`;
+  ctx.fillText('♥',  -cw*0.5 + cw*0.09, -ch*0.5 + ch*0.04 + fSm + 1);
+  ctx.restore();
+
+  ctx.restore();
   ctx.globalAlpha = 1;
 }
 
