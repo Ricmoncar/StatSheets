@@ -95,11 +95,13 @@ function _isBlackjack(c) { return !!(c && c.name && _BJ_RE.test(c.name)); }
 
 const _KATIE_RE = /^Katie$/i;
 function _isKatie(c) { return !!(c && c.name && _KATIE_RE.test(c.name)); }
-// Frog persistent state (normalized 0-1 within canvas)
-let _katieFrogNX = 0.5, _katieFrogNY = 0.7;
-let _katieTargNX = 0.5, _katieTargNY = 0.7;
+// Frog state (pixel coords on overlay canvas)
+let _katieFrogX = 200, _katieFrogY = 200;   // current position
+let _katieFrogVX = 0,  _katieFrogVY = 0;    // velocity px/s
+let _katieTargX  = 200, _katieTargY  = 200;  // mouse target in canvas px
 let _katieFrogAng = 0;
 let _katieMoveH = null, _katieHookCv = null;
+let _katieOverlayRafId = null;
 
 let _bizzyRafId = null, _bizzyRafT = 0, _bizzyRafPrev = 0;
 let _bizzySmoothedLevel = 0;
@@ -1962,17 +1964,21 @@ function _drawBlackjackPattern(canvas, ctx, W, H, t) {
 
 /* ── KATIE — lily pond ────────────────────────────────────────── */
 function _katieHook(cv) {
-  if (_katieHookCv === cv) return;
   _katieUnhook();
   _katieHookCv = cv;
-  _katieFrogNX = 0.5; _katieFrogNY = 0.65;
-  _katieTargNX = 0.5; _katieTargNY = 0.65;
-  _katieFrogAng = 0;
+  const r0 = cv.getBoundingClientRect();
+  const sx  = r0.width  ? cv.width  / r0.width  : 1;
+  const sy  = r0.height ? cv.height / r0.height : 1;
+  _katieFrogX  = cv.width  * 0.5;
+  _katieFrogY  = cv.height * 0.6;
+  _katieTargX  = cv.width  * 0.5;
+  _katieTargY  = cv.height * 0.6;
+  _katieFrogVX = 0; _katieFrogVY = 0; _katieFrogAng = 0;
   _katieMoveH = e => {
     const r = cv.getBoundingClientRect();
     if (!r.width) return;
-    _katieTargNX = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-    _katieTargNY = Math.max(0, Math.min(1, (e.clientY - r.top)  / r.height));
+    _katieTargX = (e.clientX - r.left) * (cv.width  / r.width);
+    _katieTargY = (e.clientY - r.top)  * (cv.height / r.height);
   };
   document.addEventListener('mousemove', _katieMoveH);
 }
@@ -2036,83 +2042,194 @@ function _drawKatieFlower(ctx, cx, cy, r, t, idx) {
   ctx.restore();
 }
 
-function _drawKatieFrog(ctx, x, y, ang, t) {
-  const blink = (Math.sin(t * 1.9) > 0.93);
-  const moving = Math.hypot(_katieTargNX - _katieFrogNX, _katieTargNY - _katieFrogNY) > 0.005;
-  const hop = moving ? Math.abs(Math.sin(t * 8)) * 5 : 0;
+// Redrawn to match the chunky toy frog: dark green, cream belly,
+// big protruding blue-grey eyes with square pupils + red inner
+// corner accents, long purple tongue that wiggles and flies.
+function _drawKatieFrog(ctx, x, y, ang, spd, t) {
+  const norm   = Math.min(1, spd / 350);          // 0-1 speed factor
+  // Squash in travel direction, stretch perpendicular
+  const sqX    = 1 + norm * 0.22;
+  const sqY    = 1 - norm * 0.14;
+  const hop    = spd > 30 ? Math.abs(Math.sin(t * 13)) * Math.min(10, spd * 0.035) : 0;
+  const blink  = Math.sin(t * 1.7) > 0.94;
 
   ctx.save();
   ctx.translate(x, y - hop);
   ctx.rotate(ang);
+  ctx.scale(sqX, sqY);
 
-  const BW = 16, BH = 12;
+  const BW = 24, BH = 20;
 
-  // Back legs
-  for (const s of [-1, 1]) {
-    ctx.save(); ctx.translate(s*BW*0.65, BH*0.6); ctx.rotate(s*0.5);
-    ctx.beginPath(); ctx.ellipse(s*2.5, 5, 4.5, 8, s*0.25, 0, Math.PI*2);
-    ctx.fillStyle = '#28672a'; ctx.fill(); ctx.restore();
+  // ── Purple tongue (behind body) ──
+  const wag      = Math.sin(t * 9 + spd * 0.05) * (5 + norm * 22);
+  const tongueDy = BH * 0.3 + 14 + norm * 18 + Math.abs(Math.sin(t*3.5)) * 7;
+  ctx.save();
+  ctx.shadowBlur = 6; ctx.shadowColor = '#5520a0';
+  ctx.lineWidth  = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#7030c0';
+  ctx.beginPath();
+  ctx.moveTo(0, BH * 0.12);
+  ctx.bezierCurveTo(wag*0.3, BH*0.12 + tongueDy*0.35,
+                    wag*0.75, BH*0.12 + tongueDy*0.68,
+                    wag,      BH*0.12 + tongueDy);
+  ctx.stroke();
+  // tongue tip bulb
+  ctx.fillStyle = '#6828b0';
+  ctx.beginPath();
+  ctx.ellipse(wag, BH*0.12+tongueDy, 6, 4,
+    Math.atan2(tongueDy, wag), 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  // ── Back legs ──
+  for (const s of [-1,1]) {
+    ctx.save(); ctx.translate(s*BW*0.78, BH*0.55); ctx.rotate(s*0.4);
+    ctx.beginPath(); ctx.ellipse(s*3, 5, 8, 6, s*0.3, 0, Math.PI*2);
+    ctx.fillStyle = '#2d5225'; ctx.fill(); ctx.restore();
   }
-  // Front legs
-  for (const s of [-1, 1]) {
-    ctx.save(); ctx.translate(s*BW*0.55, -BH*0.15); ctx.rotate(s*0.55);
-    ctx.beginPath(); ctx.ellipse(s*2, 3.5, 3.5, 6, s*0.2, 0, Math.PI*2);
-    ctx.fillStyle = '#336b35'; ctx.fill(); ctx.restore();
+  // ── Front legs ──
+  for (const s of [-1,1]) {
+    ctx.save(); ctx.translate(s*BW*0.7, BH*0.05); ctx.rotate(s*0.55);
+    ctx.beginPath(); ctx.ellipse(s*2.5, 4, 6, 4.5, s*0.25, 0, Math.PI*2);
+    ctx.fillStyle = '#2d5225'; ctx.fill(); ctx.restore();
   }
 
-  // Body
-  const bg = ctx.createRadialGradient(0, -3, 1, 0, 0, BW);
-  bg.addColorStop(0, '#5dc060'); bg.addColorStop(1, '#2c6e30');
+  // ── Body ──
+  const bg = ctx.createRadialGradient(-BW*0.25, -BH*0.25, 2, 0, 0, BW*1.1);
+  bg.addColorStop(0,   '#4a7038');
+  bg.addColorStop(0.65,'#365a2a');
+  bg.addColorStop(1,   '#253d1c');
   ctx.beginPath(); ctx.ellipse(0, 0, BW, BH, 0, 0, Math.PI*2);
-  ctx.fillStyle = bg; ctx.shadowBlur = 7; ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = bg;
+  ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.fill(); ctx.shadowBlur = 0;
 
-  // Belly
-  ctx.beginPath(); ctx.ellipse(0, 2, BW*0.55, BH*0.5, 0, 0, Math.PI*2);
-  ctx.fillStyle = '#92db8e'; ctx.fill();
+  // ── Belly ──
+  ctx.beginPath(); ctx.ellipse(0, BH*0.18, BW*0.56, BH*0.56, 0, 0, Math.PI*2);
+  ctx.fillStyle = '#d4d0be'; ctx.fill();
 
-  // Eyes
-  const EY = -BH*0.62, ER = 4.5;
-  for (const s of [-1, 1]) {
-    const ex = s * BW*0.48;
-    ctx.beginPath(); ctx.ellipse(ex, EY, ER, ER*0.85, 0, 0, Math.PI*2);
-    ctx.fillStyle = '#2c6e30'; ctx.fill();
-    ctx.beginPath(); ctx.arc(ex, EY, ER*0.72, 0, Math.PI*2);
-    ctx.fillStyle = '#e0f5dc'; ctx.fill();
+  // ── Eyes ──
+  const EX = BW*0.52, EY_base = -BH*0.55, ER = 8;
+  for (const s of [-1,1]) {
+    const ex = s * EX;
+    const ey = EY_base;
+
+    // Bumpy socket (dark green mound)
+    ctx.beginPath(); ctx.ellipse(ex, ey, ER+2, ER+1.5, 0, 0, Math.PI*2);
+    ctx.fillStyle = '#2a4820'; ctx.fill();
+
+    // Blue-grey iris
+    ctx.beginPath(); ctx.ellipse(ex, ey, ER, ER*0.92, 0, 0, Math.PI*2);
+    ctx.fillStyle = '#8ab4c8'; ctx.fill();
+
+    // Square/rectangular pupil — matches the toy exactly
     if (blink) {
-      ctx.beginPath(); ctx.moveTo(ex-ER*0.65, EY); ctx.lineTo(ex+ER*0.65, EY);
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 2.2; ctx.stroke();
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(ex-ER*0.6, ey); ctx.lineTo(ex+ER*0.6, ey);
+      ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.restore();
     } else {
-      ctx.beginPath(); ctx.ellipse(ex, EY, ER*0.33, ER*0.43, 0, 0, Math.PI*2);
-      ctx.fillStyle = '#080808'; ctx.fill();
-      ctx.beginPath(); ctx.arc(ex+1.3, EY-1.3, ER*0.16, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+      const pw = ER*0.7, ph = ER*0.82;
+      ctx.fillStyle = '#0a0a0a';
+      ctx.beginPath();
+      ctx.moveTo(ex-pw*0.5+2, ey-ph*0.5);
+      ctx.lineTo(ex+pw*0.5-2, ey-ph*0.5);
+      ctx.arcTo(ex+pw*0.5, ey-ph*0.5, ex+pw*0.5, ey-ph*0.5+2, 2);
+      ctx.lineTo(ex+pw*0.5, ey+ph*0.5-2);
+      ctx.arcTo(ex+pw*0.5, ey+ph*0.5, ex+pw*0.5-2, ey+ph*0.5, 2);
+      ctx.lineTo(ex-pw*0.5+2, ey+ph*0.5);
+      ctx.arcTo(ex-pw*0.5, ey+ph*0.5, ex-pw*0.5, ey+ph*0.5-2, 2);
+      ctx.lineTo(ex-pw*0.5, ey-ph*0.5+2);
+      ctx.arcTo(ex-pw*0.5, ey-ph*0.5, ex-pw*0.5+2, ey-ph*0.5, 2);
+      ctx.closePath(); ctx.fill();
     }
-  }
 
-  // Smile
-  ctx.beginPath(); ctx.arc(0, -BH*0.08, BW*0.33, 0.28, Math.PI-0.28);
-  ctx.strokeStyle = 'rgba(18,65,18,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Red inner-corner crescent (between the eyes, lower)
+    const icx = ex - s*ER*0.42, icy = ey+ER*0.3;
+    ctx.beginPath(); ctx.ellipse(icx, icy, ER*0.42, ER*0.28, s*0.4, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(130,10,0,0.82)'; ctx.fill();
+
+    // Specular highlight
+    ctx.beginPath(); ctx.arc(ex-ER*0.32, ey-ER*0.32, ER*0.21, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.fill();
+  }
 
   ctx.restore();
 }
 
-function _drawKatiePattern(canvas, ctx, W, H, t) {
-  _katieHook(canvas);
+// ── Katie overlay: frog above all menus ───────────────────────
+function _startKatieOverlay() {
+  _stopKatieOverlay();
+  const charView = document.getElementById('char-view');
+  if (!charView) return;
 
-  // ── Frog physics (smooth lag follow) ──────────────────────
-  const lp = 0.05;
-  _katieFrogNX += (_katieTargNX - _katieFrogNX) * lp;
-  _katieFrogNY += (_katieTargNY - _katieFrogNY) * lp;
-  const fx = _katieFrogNX * W, fy = _katieFrogNY * H;
-  const ddx = _katieTargNX*W - fx, ddy = _katieTargNY*H - fy;
-  if (ddx*ddx + ddy*ddy > 4) {
-    const ta = Math.atan2(ddy, ddx) + Math.PI*0.5;
-    let da = ta - _katieFrogAng;
-    while (da >  Math.PI) da -= Math.PI*2;
-    while (da < -Math.PI) da += Math.PI*2;
-    _katieFrogAng += da * 0.09;
+  const old = document.getElementById('katie-frog-overlay');
+  if (old) old.remove();
+
+  const cv = document.createElement('canvas');
+  cv.id = 'katie-frog-overlay';
+  cv.style.cssText = `position:absolute;inset:0;width:100%;height:${charView.scrollHeight}px;z-index:50;pointer-events:none;`;
+  cv.width  = charView.offsetWidth;
+  cv.height = charView.scrollHeight || charView.offsetHeight;
+  charView.style.position = 'relative';
+  charView.appendChild(cv);
+
+  _katieHook(cv);  // sets frog to center + hooks mousemove
+
+  const t0 = performance.now();
+  let prevMs = t0;
+
+  function frame(now) {
+    const cv2 = document.getElementById('katie-frog-overlay');
+    if (!cv2) { _katieOverlayRafId = null; return; }
+
+    // Self-check: stop if no longer Katie
+    if (typeof currentId !== 'undefined' && typeof characters !== 'undefined') {
+      const c = characters.find(x => x.id === currentId);
+      if (!c || !_isKatie(c)) { _stopKatieOverlay(); return; }
+    }
+
+    const dt = Math.min((now - prevMs) / 1000, 0.05);
+    prevMs = now;
+    const t = (now - t0) / 1000;
+
+    // ── Spring physics — snappy overshoot ──
+    const SPRING = 280, DAMP = 22;
+    const ax = (_katieTargX - _katieFrogX) * SPRING - _katieFrogVX * DAMP;
+    const ay = (_katieTargY - _katieFrogY) * SPRING - _katieFrogVY * DAMP;
+    _katieFrogVX += ax * dt;
+    _katieFrogVY += ay * dt;
+    _katieFrogX  += _katieFrogVX * dt;
+    _katieFrogY  += _katieFrogVY * dt;
+
+    // ── Face direction of movement (smooth) ──
+    const spd = Math.hypot(_katieFrogVX, _katieFrogVY);
+    if (spd > 12) {
+      const ta = Math.atan2(_katieFrogVY, _katieFrogVX) + Math.PI * 0.5;
+      let da = ta - _katieFrogAng;
+      while (da >  Math.PI) da -= Math.PI * 2;
+      while (da < -Math.PI) da += Math.PI * 2;
+      _katieFrogAng += da * 0.13;
+    }
+
+    const ctx2 = cv2.getContext('2d');
+    ctx2.clearRect(0, 0, cv2.width, cv2.height);
+    _drawKatieFrog(ctx2, _katieFrogX, _katieFrogY, _katieFrogAng, spd, t);
+
+    _katieOverlayRafId = requestAnimationFrame(frame);
   }
+  _katieOverlayRafId = requestAnimationFrame(frame);
+}
 
+function _stopKatieOverlay() {
+  if (_katieOverlayRafId) { cancelAnimationFrame(_katieOverlayRafId); _katieOverlayRafId = null; }
+  const cv = document.getElementById('katie-frog-overlay');
+  if (cv) cv.remove();
+  _katieUnhook();
+}
+
+function _drawKatiePattern(canvas, ctx, W, H, t) {
+  // Background pond only — frog is on the overlay canvas
   ctx.clearRect(0, 0, W, H);
 
   // ── Water base ────────────────────────────────────────────
@@ -2182,8 +2299,6 @@ function _drawKatiePattern(canvas, ctx, W, H, t) {
     ctx.fillStyle = 'rgba(215,250,255,0.5)'; ctx.fill();
   }
 
-  // ── Frog ──────────────────────────────────────────────────
-  _drawKatieFrog(ctx, fx, fy, _katieFrogAng, t);
 }
 /* ─────────────────────────────────────────────────────────────── */
 
@@ -2652,7 +2767,7 @@ function startBgAnim(type, params) {
 function stopBgAnim() {
   if (bgAnim) cancelAnimationFrame(bgAnim);
   bgAnim = null;
-  _katieUnhook(); // clean up Katie's mouse listener if active
+  _stopKatieOverlay(); // clean up Katie's frog overlay + mouse listener
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -3137,9 +3252,10 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); }
-  else if (_isBizzy(c)) { _stopNaraRaf(); _startBizzyRaf(); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); }
+  else if (_isBizzy(c)) { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); }
+  else if (_isKatie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _startKatieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
