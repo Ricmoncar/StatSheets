@@ -102,6 +102,9 @@ function _isSnaps(c) { return !!(c && c.name && _SNAPS_RE.test(c.name)); }
 const _LEON_RE = /^Leon$/i;
 function _isLeon(c) { return !!(c && c.name && _LEON_RE.test(c.name)); }
 let _leonFireRafId = null;
+
+const _VALKYRIE_RE = /^Valkyrie$/i;
+function _isValkyrie(c) { return !!(c && c.name && _VALKYRIE_RE.test(c.name)); }
 // Frog state (pixel coords on overlay canvas)
 let _katieFrogX = 200, _katieFrogY = 200;   // current position
 let _katieFrogVX = 0,  _katieFrogVY = 0;    // velocity px/s
@@ -1356,7 +1359,8 @@ const PATTERN_DEFS = {
   blackjack_neon: { label: "Blackjack's Neon",  params: [] },
   katie_pond:     { label: "Katie's Pond",       params: [] },
   snaps_scales:   { label: "Snaps' Electric Scales", params: [] },
-  leon_swords:    { label: "Leon's Blades",          params: [] },
+  leon_swords:      { label: "Leon's Blades",          params: [] },
+  valkyrie_rain:    { label: "Valkyrie's Blood Rain",  params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -2753,6 +2757,176 @@ function _drawSnapsPattern(canvas, ctx, W, H, t) {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+// ── Valkyrie: elegant blood rain ──────────────────────────────
+function _vkNewDrop(W, H, scatter) {
+  const len = 9 + Math.random() * 24;
+  const hue = 342 + Math.random() * 22;        // deep crimson spectrum
+  const sat = 72 + Math.random() * 22;
+  const lum = 17 + Math.random() * 18;
+  return {
+    x:     Math.random() * W,
+    y:     scatter ? Math.random() * H : -(len + Math.random() * H * 0.4),
+    speed: 0.22 + Math.random() * 0.42,         // fraction of H per second
+    len,
+    w:     len * (0.17 + Math.random() * 0.1),
+    alpha: 0.38 + Math.random() * 0.5,
+    color: `hsl(${hue},${sat}%,${lum}%)`,
+  };
+}
+
+function _vkNewMote(W, H, scatter) {
+  return {
+    x:     Math.random() * W,
+    y:     scatter ? Math.random() * H : H + 5,
+    speed: 0.03 + Math.random() * 0.06,         // fraction of H per second, upward
+    size:  1.2 + Math.random() * 2.8,
+    freq:  0.4 + Math.random() * 1.8,
+    phase: Math.random() * Math.PI * 2,
+    spin:  (Math.random() - 0.5) * 2.5,
+    life:  Math.random(),
+    color: Math.random() < 0.6 ? '#d4a840' : '#b8c4ff', // gold or ice-silver
+  };
+}
+
+function _drawValkyriePattern(canvas, ctx, W, H, t) {
+  // 30fps cap
+  if (_drawValkyriePattern._lt !== undefined && t - _drawValkyriePattern._lt < 0.033) return;
+  _drawValkyriePattern._lt = t;
+
+  // ── init pools ────────────────────────────────────────────────
+  const NDROPS = 55, NMOTES = 28;
+  if (!canvas._vkDrops) {
+    canvas._vkDrops    = Array.from({ length: NDROPS }, () => _vkNewDrop(W, H, true));
+    canvas._vkMotes    = Array.from({ length: NMOTES }, () => _vkNewMote(W, H, true));
+    canvas._vkSplatters = [];
+  }
+
+  // ── invalidate size-dependent caches on resize ────────────────
+  if (canvas._vkW !== W || canvas._vkH !== H) {
+    canvas._vkW = W; canvas._vkH = H;
+    canvas._vkBgGrad = null; canvas._vkMistGrad = null;
+  }
+
+  // ── background ───────────────────────────────────────────────
+  ctx.clearRect(0, 0, W, H);
+  if (!canvas._vkBgGrad) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0,    '#08000e');
+    g.addColorStop(0.65, '#0c0005');
+    g.addColorStop(1,    '#110008');
+    canvas._vkBgGrad = g;
+  }
+  ctx.fillStyle = canvas._vkBgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── cache teardrop Path2D ─────────────────────────────────────
+  // unit teardrop: rounded top at -1, pointed tip at +1 (falls downward)
+  if (!canvas._vkDropPath) {
+    const p = new Path2D();
+    p.moveTo(0, -1);
+    p.bezierCurveTo( 0.38, -0.55,  0.38,  0.45,  0,  1);
+    p.bezierCurveTo(-0.38,  0.45, -0.38, -0.55,  0, -1);
+    p.closePath();
+    canvas._vkDropPath = p;
+  }
+
+  // ── cache mote diamond Path2D ─────────────────────────────────
+  if (!canvas._vkMotePath) {
+    const p = new Path2D();
+    p.moveTo(0, -1); p.lineTo(0.32, 0); p.lineTo(0, 1); p.lineTo(-0.32, 0);
+    p.closePath();
+    canvas._vkMotePath = p;
+  }
+
+  const dt = 0.033;
+
+  // ── drops ─────────────────────────────────────────────────────
+  const drops = canvas._vkDrops;
+  for (let i = 0; i < drops.length; i++) {
+    const d = drops[i];
+    d.y += d.speed * dt * H;
+    if (d.y > H + d.len) {
+      // micro-splatter on landing
+      const ns = 2 + Math.floor(Math.random() * 4);
+      for (let s = 0; s < ns; s++) {
+        const ang = Math.random() * Math.PI;
+        const spd = 18 + Math.random() * 44;
+        canvas._vkSplatters.push({
+          x: d.x, y: H - 1,
+          vx: Math.cos(ang) * spd * (Math.random() < 0.5 ? 1 : -1),
+          vy: -Math.sin(ang) * spd * 0.55,
+          r:  d.w * (0.5 + Math.random() * 0.7),
+          life: 1, decay: 1.2 + Math.random() * 1.0,
+          alpha: d.alpha * 0.65,
+        });
+      }
+      drops[i] = _vkNewDrop(W, H, false);
+      continue;
+    }
+    ctx.save();
+    ctx.translate(d.x, d.y);
+    ctx.scale(d.w, d.len);
+    ctx.globalAlpha = d.alpha;
+    ctx.fillStyle = d.color;
+    ctx.fill(canvas._vkDropPath);
+    // glass highlight: small bright teardrop near the top of each drop
+    ctx.save();
+    ctx.translate(0.08, -0.34);
+    ctx.scale(0.21, 0.27);
+    ctx.globalAlpha = 0.52;
+    ctx.fillStyle = 'rgba(255,175,175,0.9)';
+    ctx.fill(canvas._vkDropPath);
+    ctx.restore();
+    ctx.restore();
+  }
+
+  // ── splatters ─────────────────────────────────────────────────
+  const splt = canvas._vkSplatters;
+  for (let i = splt.length - 1; i >= 0; i--) {
+    const s = splt[i];
+    s.x  += s.vx * dt;
+    s.y  += s.vy * dt;
+    s.vy += 90 * dt;            // gravity pulls splatters back down
+    s.life -= s.decay * dt;
+    if (s.life <= 0) { splt.splice(i, 1); continue; }
+    ctx.globalAlpha = s.alpha * s.life;
+    ctx.fillStyle = '#990018';
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // ── divine motes (gold & ice-silver) ─────────────────────────
+  const motes = canvas._vkMotes;
+  for (let i = 0; i < motes.length; i++) {
+    const m = motes[i];
+    m.y -= m.speed * dt * H;
+    m.x += Math.sin(t * m.freq + m.phase) * 0.5;
+    m.life -= dt * 0.25;
+    if (m.life <= 0) { motes[i] = _vkNewMote(W, H, false); continue; }
+    const fl = Math.min(1, m.life * 5, (1 - m.life) * 4 + 0.1);
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(t * m.spin);
+    ctx.scale(m.size, m.size * 2.2);
+    ctx.globalAlpha = fl * 0.7;
+    ctx.fillStyle = m.color;
+    ctx.fill(canvas._vkMotePath);
+    ctx.restore();
+  }
+
+  ctx.globalAlpha = 1;
+
+  // ── crimson mist at the bottom ────────────────────────────────
+  if (!canvas._vkMistGrad) {
+    const g = ctx.createLinearGradient(0, H * 0.82, 0, H);
+    g.addColorStop(0, 'rgba(110,0,20,0)');
+    g.addColorStop(1, 'rgba(85,0,14,0.38)');
+    canvas._vkMistGrad = g;
+  }
+  ctx.fillStyle = canvas._vkMistGrad;
+  ctx.fillRect(0, H * 0.82, W, H * 0.18);
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -2763,6 +2937,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'katie_pond')     { _drawKatiePattern(canvas, ctx, W, H, t);          return; }
   if (type === 'snaps_scales')   { _drawSnapsPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'leon_swords')    { _drawLeonPattern(canvas, ctx, W, H, t, params);   return; }
+  if (type === 'valkyrie_rain')  { _drawValkyriePattern(canvas, ctx, W, H, t);       return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -3211,6 +3386,7 @@ function startBgAnim(type, params) {
   _drawKatiePattern._lt       = undefined;
   _drawSnapsPattern._lt       = undefined;
   _drawLeonPattern._lt        = undefined;
+  _drawValkyriePattern._lt    = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -3761,10 +3937,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -8817,7 +8993,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
