@@ -3065,51 +3065,42 @@ function _adNewShard(W, H, scatter) {
   };
 }
 
-function _adNewFlake(W, H, scatter) {
+// Frost vein: branching crystal lines pulsing down from the top edge
+function _adNewVein(W) {
+  const branches = [];
+  function grow(x, y, a, len, d) {
+    if (d <= 0 || len < 5) return;
+    const ex = x + Math.cos(a) * len, ey = y + Math.sin(a) * len;
+    branches.push([x, y, ex, ey]);
+    const nb = Math.random() < 0.55 ? 2 : 1;
+    for (let i = 0; i < nb; i++) {
+      const da = (Math.random() < 0.5 ? 1 : -1) * (0.28 + Math.random() * 0.52);
+      grow(ex, ey, a + da, len * (0.48 + Math.random() * 0.20), d - 1);
+    }
+  }
+  grow(Math.random() * W, 0, Math.PI / 2 + (Math.random() - 0.5) * 0.45, 38 + Math.random() * 65, 5);
   return {
-    x:     Math.random() * W,
-    y:     scatter ? Math.random() * H : -(12 + Math.random() * H * 0.4),
-    r:     5 + Math.random() * 16,
-    speed: 0.014 + Math.random() * 0.038,
-    ang:   Math.random() * Math.PI / 3,
-    spin:  (Math.random() - 0.5) * 0.25,
-    drift: (Math.random() - 0.5) * 6,
-    alpha: 0.42 + Math.random() * 0.50,
+    branches,
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.20 + Math.random() * 0.22,
+    alpha: 0.38 + Math.random() * 0.35,
   };
 }
 
-function _adDrawSnowflake(ctx, r) {
-  // Single beginPath/stroke for the whole flake — 1 draw call
-  ctx.lineWidth = Math.max(0.5, r * 0.07);
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const a = i * Math.PI / 3;
-    const dx = Math.cos(a), dy = Math.sin(a);
-    const px = -dy,        py =  dx;   // perpendicular
-    ctx.moveTo(0, 0);
-    ctx.lineTo(dx * r, dy * r);
-    // inner branches at 30%
-    ctx.moveTo(dx * r * 0.30, dy * r * 0.30);
-    ctx.lineTo(dx * r * 0.47 + px * r * 0.18, dy * r * 0.47 + py * r * 0.18);
-    ctx.moveTo(dx * r * 0.30, dy * r * 0.30);
-    ctx.lineTo(dx * r * 0.47 - px * r * 0.18, dy * r * 0.47 - py * r * 0.18);
-    // outer branches at 60%
-    ctx.moveTo(dx * r * 0.60, dy * r * 0.60);
-    ctx.lineTo(dx * r * 0.73 + px * r * 0.13, dy * r * 0.73 + py * r * 0.13);
-    ctx.moveTo(dx * r * 0.60, dy * r * 0.60);
-    ctx.lineTo(dx * r * 0.73 - px * r * 0.13, dy * r * 0.73 - py * r * 0.13);
-  }
-  ctx.stroke();
-}
-
-function _adNewIcicle(W) {
+// Ice plate: large floating diamond prism, two-face lighting
+function _adNewPlate(W, H, scatter) {
+  const hh = 26 + Math.random() * 44;
   return {
-    x:         20 + Math.random() * (W - 40),
-    baseW:      7 + Math.random() * 16,
-    len:       28 + Math.random() * 90,
-    alpha:     0.38 + Math.random() * 0.42,
-    drip:      null,
-    dripTimer: 1 + Math.random() * 6,
+    x:     Math.random() * W,
+    y:     scatter ? Math.random() * H : -(hh + Math.random() * H * 0.5),
+    hw:    hh * (0.38 + Math.random() * 0.28),
+    hh,
+    speed: 0.012 + Math.random() * 0.022,
+    ang:   Math.random() * Math.PI * 2,
+    spin:  (Math.random() - 0.5) * 0.10,
+    drift: (Math.random() - 0.5) * 5,
+    alpha: 0.07 + Math.random() * 0.11,
+    hue:   192 + Math.random() * 20,
   };
 }
 
@@ -3193,7 +3184,7 @@ function _drawAdamPattern(canvas, ctx, W, H, t, params) {
   ctx.globalAlpha = 1;
 }
 
-// Overlay: frost corners, aurora glow, icicles, snowflakes, sparkles
+// Overlay: frost corners, aurora glow, frost veins, ice plates, sparkles
 function _drawAdamOverlay(canvas, ctx, W, H, t) {
   if (_drawAdamOverlay._lt !== undefined && t - _drawAdamOverlay._lt < 0.033) return;
   _drawAdamOverlay._lt = t;
@@ -3204,16 +3195,15 @@ function _drawAdamOverlay(canvas, ctx, W, H, t) {
   if (canvas._adW !== W || canvas._adH !== H) {
     canvas._adW = W; canvas._adH = H;
     canvas._adamAurGrad = null;
-    canvas._adamIcicles = null; canvas._adamFlakes = null; canvas._adamFrost = null;
+    canvas._adamVeins = null; canvas._adamPlates = null; canvas._adamFrost = null;
   }
 
   // ── init pools ────────────────────────────────────────────────
-  const NICICLES = 13, NFLAKES = 14;
-  if (!canvas._adamIcicles) {
-    canvas._adamIcicles  = Array.from({ length: NICICLES }, () => _adNewIcicle(W));
-    canvas._adamFlakes   = Array.from({ length: NFLAKES },  () => _adNewFlake(W, H, true));
+  const NVEINS = 9, NPLATES = 11;
+  if (!canvas._adamVeins) {
+    canvas._adamVeins    = Array.from({ length: NVEINS },   () => _adNewVein(W));
+    canvas._adamPlates   = Array.from({ length: NPLATES },  () => _adNewPlate(W, H, true));
     canvas._adamSparkles = [];
-    // Frost branches radiating from each corner (computed once)
     canvas._adamFrost = [];
     const C = [[0, 0, Math.PI * 0.25], [W, 0, Math.PI * 0.75], [0, H, -Math.PI * 0.25], [W, H, -Math.PI * 0.75]];
     for (const [cx, cy, bAng] of C) {
@@ -3228,14 +3218,6 @@ function _drawAdamOverlay(canvas, ctx, W, H, t) {
     g.addColorStop(0.45, 'rgba(60,190,255,0.09)');
     g.addColorStop(1,    'rgba(0,170,210,0)');
     canvas._adamAurGrad = g;
-  }
-  if (!canvas._adamIciclePath) {
-    const p = new Path2D();
-    p.moveTo(-1, 0);
-    p.quadraticCurveTo(-0.25, 0.65,  0, 1);
-    p.quadraticCurveTo( 0.25, 0.65,  1, 0);
-    p.closePath();
-    canvas._adamIciclePath = p;
   }
 
   const dt = 0.033;
@@ -3258,52 +3240,56 @@ function _drawAdamOverlay(canvas, ctx, W, H, t) {
     ctx.stroke();
   }
 
-  // ── icicles ───────────────────────────────────────────────────
-  for (const ic of canvas._adamIcicles) {
-    ic.dripTimer -= dt;
-    if (ic.dripTimer <= 0 && !ic.drip) {
-      ic.drip = { y: ic.len, vy: 0, r: 2 + Math.random() * 2 };
-      ic.dripTimer = 2 + Math.random() * 5;
+  // ── frost veins pulsing from the top edge ─────────────────────
+  ctx.lineCap = 'round';
+  for (const v of canvas._adamVeins) {
+    const a = v.alpha * (0.35 + 0.65 * Math.abs(Math.sin(t * v.speed + v.phase)));
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = '#c8eeff';
+    ctx.lineWidth = 0.85;
+    ctx.beginPath();
+    for (const [x1, y1, x2, y2] of v.branches) {
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
     }
-    if (ic.drip) {
-      ic.drip.vy += 130 * dt;
-      ic.drip.y  += ic.drip.vy * dt;
-      if (ic.drip.y > H + 20) ic.drip = null;
-    }
-    ctx.save();
-    ctx.translate(ic.x, 0);
-    ctx.scale(ic.baseW * 0.5, ic.len);
-    ctx.globalAlpha = ic.alpha;
-    ctx.fillStyle = 'rgba(155,228,255,0.65)';
-    ctx.fill(canvas._adamIciclePath);
-    ctx.strokeStyle = 'rgba(220,248,255,0.85)';
-    ctx.lineWidth = 0.06;
-    ctx.stroke(canvas._adamIciclePath);
-    ctx.restore();
-    if (ic.drip) {
-      ctx.globalAlpha = ic.alpha * 0.85;
-      ctx.fillStyle = 'rgba(130,215,255,0.8)';
-      ctx.beginPath(); ctx.arc(ic.x, ic.drip.y, ic.drip.r, 0, Math.PI * 2); ctx.fill();
-    }
+    ctx.stroke();
   }
 
-  // ── snowflakes ────────────────────────────────────────────────
-  for (let i = 0; i < canvas._adamFlakes.length; i++) {
-    const f = canvas._adamFlakes[i];
-    f.y   += f.speed * dt * H;
-    f.x   += f.drift * dt;
-    f.ang += f.spin  * dt;
-    if (f.y > H + f.r) { canvas._adamFlakes[i] = _adNewFlake(W, H, false); continue; }
+  // ── floating ice plates (large translucent diamond prisms) ────
+  for (let i = 0; i < canvas._adamPlates.length; i++) {
+    const p = canvas._adamPlates[i];
+    p.y   += p.speed * dt * H;
+    p.x   += p.drift * dt;
+    p.ang += p.spin  * dt;
+    if (p.y > H + p.hh * 2) { canvas._adamPlates[i] = _adNewPlate(W, H, false); continue; }
     ctx.save();
-    ctx.translate(f.x, f.y);
-    ctx.rotate(f.ang);
-    ctx.globalAlpha = f.alpha;
-    ctx.strokeStyle = '#d8f4ff';
-    _adDrawSnowflake(ctx, f.r);
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.ang);
+    // Main fill
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = `hsl(${p.hue},85%,82%)`;
+    ctx.beginPath();
+    ctx.moveTo(0, -p.hh); ctx.lineTo(p.hw, 0); ctx.lineTo(0, p.hh); ctx.lineTo(-p.hw, 0);
+    ctx.closePath();
+    ctx.fill();
+    // Light-facing half (left face, slightly brighter)
+    ctx.globalAlpha = p.alpha * 0.55;
+    ctx.fillStyle = 'rgba(200,240,255,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(0, -p.hh); ctx.lineTo(-p.hw, 0); ctx.lineTo(0, p.hh);
+    ctx.closePath();
+    ctx.fill();
+    // Edge outline
+    ctx.globalAlpha = Math.min(1, p.alpha * 2.2);
+    ctx.strokeStyle = 'rgba(210,248,255,0.75)';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(0, -p.hh); ctx.lineTo(p.hw, 0); ctx.lineTo(0, p.hh); ctx.lineTo(-p.hw, 0);
+    ctx.closePath();
+    ctx.stroke();
     ctx.restore();
   }
 
-  // ── ice sparkle glints (random flashes) ──────────────────────
+  // ── ice sparkle glints ────────────────────────────────────────
   if (Math.random() < 0.35) {
     canvas._adamSparkles.push({ x: Math.random() * W, y: Math.random() * H, r: 2 + Math.random() * 5, life: 1, decay: 2.5 + Math.random() * 3.0 });
   }
@@ -3319,8 +3305,8 @@ function _drawAdamOverlay(canvas, ctx, W, H, t) {
     ctx.beginPath();
     ctx.moveTo(-s.r, 0); ctx.lineTo(s.r, 0);
     ctx.moveTo(0, -s.r); ctx.lineTo(0, s.r);
-    ctx.moveTo(-s.r * 0.6, -s.r * 0.6); ctx.lineTo(s.r * 0.6,  s.r * 0.6);
-    ctx.moveTo( s.r * 0.6, -s.r * 0.6); ctx.lineTo(-s.r * 0.6, s.r * 0.6);
+    ctx.moveTo(-s.r * 0.6, -s.r * 0.6); ctx.lineTo( s.r * 0.6,  s.r * 0.6);
+    ctx.moveTo( s.r * 0.6, -s.r * 0.6); ctx.lineTo(-s.r * 0.6,  s.r * 0.6);
     ctx.stroke();
     ctx.restore();
   }
