@@ -95,6 +95,9 @@ function _isBlackjack(c) { return !!(c && c.name && _BJ_RE.test(c.name)); }
 
 const _KATIE_RE = /^Katie$/i;
 function _isKatie(c) { return !!(c && c.name && _KATIE_RE.test(c.name)); }
+
+const _SNAPS_RE = /^Snaps$/i;
+function _isSnaps(c) { return !!(c && c.name && _SNAPS_RE.test(c.name)); }
 // Frog state (pixel coords on overlay canvas)
 let _katieFrogX = 200, _katieFrogY = 200;   // current position
 let _katieFrogVX = 0,  _katieFrogVY = 0;    // velocity px/s
@@ -1341,6 +1344,7 @@ const PATTERN_DEFS = {
   bizzy_bees:     { label: "Bizzy's Hive",      params: [] },
   blackjack_neon: { label: "Blackjack's Neon",  params: [] },
   katie_pond:     { label: "Katie's Pond",       params: [] },
+  snaps_scales:   { label: "Snaps' Electric Scales", params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -2339,14 +2343,128 @@ function _drawKatiePattern(canvas, ctx, W, H, t) {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+// ── Snaps: electric reptile scales ────────────────────────────
+function _snapsH(i, j, n) {
+  return Math.abs(Math.sin(i * 127.1 + j * 311.7 + n * 74.9 + 3.3));
+}
+
+function _drawSnapsPattern(canvas, ctx, W, H, t) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Deep green-black background
+  ctx.fillStyle = '#040b05';
+  ctx.fillRect(0, 0, W, H);
+
+  const R   = 24;                        // hex radius
+  const HW  = R * Math.sqrt(3);          // col spacing (pointy-top)
+  const HH  = R * 1.5;                   // row spacing
+  const cols = Math.ceil(W / HW) + 3;
+  const rows = Math.ceil(H / HH) + 3;
+
+  // Slow global pulse — feels like a held breath before a fight
+  const pulse = (Math.sin(t * 1.4) * 0.5 + 0.5) * 0.28;
+
+  for (let row = -1; row < rows; row++) {
+    for (let col = -1; col < cols; col++) {
+      const x = col * HW + (row % 2 === 1 ? HW * 0.5 : 0);
+      const y = row * HH;
+
+      const h0 = _snapsH(col, row, 0);
+      const h1 = _snapsH(col, row, 1);
+      const h2 = _snapsH(col, row, 2);
+
+      // Diagonal shimmer wave rolling top-left → bottom-right
+      const wave    = Math.sin(t * 0.9 + (x / W) * 5.5 - (y / H) * 3.5 + h0 * 1.4) * 0.5 + 0.5;
+      const shimmer = wave * 0.5 + pulse * 0.5;
+
+      // Per-scale spark: deterministic fire rate, random phase
+      const sparkRate  = 0.14 + h2 * 0.22;
+      const sparkPhase = h1 * 100;
+      const sparkCycle = (t * sparkRate + sparkPhase) % 1;
+      const spark      = sparkCycle < 0.09 ? Math.sin(sparkCycle / 0.09 * Math.PI) : 0;
+
+      const glow = shimmer + spark * 1.1;
+
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Pointy-top hexagon path (slightly inset so edges show between scales)
+      const r = R - 1.4;
+      ctx.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const a = k * Math.PI / 3;
+        k === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+                : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath();
+
+      // Scale body: dark radial gradient, lighter at highlighted crown
+      const cg = Math.round(50 + shimmer * 100 + spark * 150);
+      const rg = ctx.createRadialGradient(0, -r * 0.3, 0, 0, 0, r);
+      rg.addColorStop(0,    `rgba(12,${cg},15,1)`);
+      rg.addColorStop(0.55, `rgba(4,${Math.round(16 + shimmer * 18)},5,1)`);
+      rg.addColorStop(1,    `rgba(2,5,2,1)`);
+      ctx.fillStyle = rg;
+      ctx.fill();
+
+      // Edge ridge glow — the bright outline between scales
+      const eBright = Math.round(90 + glow * 165);
+      const eAlpha  = (0.15 + glow * 0.65).toFixed(2);
+      ctx.strokeStyle = `rgba(30,${eBright},45,${eAlpha})`;
+      ctx.lineWidth   = 0.9 + glow * 1.4;
+      if (spark > 0) { ctx.shadowBlur = 8 + spark * 14; ctx.shadowColor = '#00ff44'; }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Electric arcs on sparked scales
+      if (spark > 0.12) {
+        ctx.save();
+        ctx.globalAlpha = spark * 0.9;
+        ctx.shadowBlur  = 10; ctx.shadowColor = '#66ff55';
+        ctx.strokeStyle = `rgba(150,255,100,${(spark * 0.85).toFixed(2)})`;
+        ctx.lineWidth   = 0.8;
+        for (let a = 0; a < 4; a++) {
+          const aa  = _snapsH(col, row, a + 10) * Math.PI * 2;
+          const len = r * 0.7 * spark;
+          const mx  = Math.cos(aa) * len * 0.5 + (_snapsH(col, row, a + 14) - 0.5) * 10;
+          const my  = Math.sin(aa) * len * 0.5 + (_snapsH(col, row, a + 18) - 0.5) * 10;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(mx, my);
+          ctx.lineTo(Math.cos(aa) * len, Math.sin(aa) * len);
+          ctx.stroke();
+        }
+        // Central spark flash
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.25 * spark, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(180,255,130,${(spark * 0.55).toFixed(2)})`;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  // Edge vignette
+  const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.28,
+                                      W * 0.5, H * 0.5, Math.min(W, H) * 0.88);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.6)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
 
   // Special: Bizzy's bee pattern — always overrides stored type
-  if (type === 'bizzy_bees') { _drawBizzyPattern(canvas, ctx, W, H, t); return; }
+  if (type === 'bizzy_bees')     { _drawBizzyPattern(canvas, ctx, W, H, t);    return; }
   if (type === 'blackjack_neon') { _drawBlackjackPattern(canvas, ctx, W, H, t); return; }
   if (type === 'katie_pond')     { _drawKatiePattern(canvas, ctx, W, H, t);     return; }
+  if (type === 'snaps_scales')   { _drawSnapsPattern(canvas, ctx, W, H, t);     return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -3332,10 +3450,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -8391,7 +8509,7 @@ window.addEventListener('resize', () => {
 
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') { stopBgAnim(); startBgAnim(_rePtype, c?.pattern?.params || {}); }
   }
 });
