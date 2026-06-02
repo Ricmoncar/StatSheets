@@ -2514,46 +2514,93 @@ function _drawLeonFire(ctx, W, H, t) {
 
   ctx.clearRect(0, 0, W, H);
 
-  // Base ember glow (one cached gradient across the full width)
-  if (!_drawLeonFire._bg || _drawLeonFire._bgW !== W || _drawLeonFire._bgH !== H) {
-    const g = ctx.createLinearGradient(0, H, 0, H - 55);
-    g.addColorStop(0, 'rgba(255,80,0,0.55)');
-    g.addColorStop(0.55, 'rgba(255,45,0,0.14)');
-    g.addColorStop(1, 'rgba(255,10,0,0)');
+  // ── Hot ground base (source-over, drawn first) ───────────
+  if (!_drawLeonFire._bg || _drawLeonFire._bgW !== W) {
+    const g = ctx.createLinearGradient(0, H, 0, H - 50);
+    g.addColorStop(0,   'rgba(255,220,120,0.75)');
+    g.addColorStop(0.25,'rgba(255,100,0,0.55)');
+    g.addColorStop(0.65,'rgba(200,25,0,0.15)');
+    g.addColorStop(1,   'rgba(140,0,0,0)');
     _drawLeonFire._bg  = g;
     _drawLeonFire._bgW = W;
-    _drawLeonFire._bgH = H;
   }
   ctx.fillStyle = _drawLeonFire._bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Three flame layers — no per-flame gradients, just solid fills
-  const LAYERS = [
-    { n: 7,  off:   0, hMn: 70, hMx: 105, wd: 32, r: 175, g:  18, b: 0, a: 0.50 },
-    { n: 13, off: 100, hMn: 42, hMx:  78, wd: 22, r: 255, g:  75, b: 0, a: 0.60 },
-    { n: 20, off: 200, hMn: 18, hMx:  42, wd: 14, r: 255, g: 162, b: 0, a: 0.65 },
-  ];
+  // ── Flame tongues — additive blending ────────────────────
+  // Overlapping flames ADD colour: dense centre → bright white-orange,
+  // sparse edges → dim red.  Each flame uses low alpha; brightness
+  // comes from layering, not individual opacity.
+  ctx.globalCompositeOperation = 'lighter';
 
-  for (const L of LAYERS) {
-    for (let f = 0; f < L.n; f++) {
-      const h0  = _leonH(f + L.off, 4);
-      const h1  = _leonH(f + L.off, 5);
-      const x0  = (f / L.n) * W + (W / L.n) * 0.5;
-      const flk = Math.sin(t * (2.8 + h0 * 2) + f * 1.2 + h1 * 5) * 0.3 + 0.7;
-      const ht  = (L.hMn + h0 * (L.hMx - L.hMn)) * flk;
-      const wd  = L.wd * (0.65 + h1 * 0.65);
-      const dx  = Math.sin(t * 1.5 + f * 0.8) * wd * 0.22;
-      const x   = x0 + dx;
-      const a   = (L.a * flk).toFixed(2);
+  // helper: draw one asymmetric flame tongue
+  const flame = (x0, ht, wd, lean, col) => {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(x0 - wd * 0.5, H);
+    ctx.bezierCurveTo(x0 - wd * 0.38 + lean, H - ht * 0.52,
+                      x0 - wd * 0.10 + lean, H - ht * 0.84,
+                      x0 + lean * 1.3,        H - ht);
+    ctx.bezierCurveTo(x0 + wd * 0.10 + lean, H - ht * 0.84,
+                      x0 + wd * 0.38 + lean, H - ht * 0.52,
+                      x0 + wd * 0.5,          H);
+    ctx.closePath();
+    ctx.fill();
+  };
 
-      ctx.fillStyle = `rgba(${L.r},${L.g},${L.b},${a})`;
-      ctx.beginPath();
-      ctx.moveTo(x - wd * 0.5, H);
-      ctx.bezierCurveTo(x - wd * 0.5, H - ht * 0.55,  x - wd * 0.12, H - ht * 0.88, x, H - ht);
-      ctx.bezierCurveTo(x + wd * 0.12, H - ht * 0.88, x + wd * 0.5,  H - ht * 0.55, x + wd * 0.5, H);
-      ctx.closePath();
-      ctx.fill();
-    }
+  // Layer 1 — tall dark-red back flames
+  for (let f = 0; f < 16; f++) {
+    const h0 = _leonH(f, 0), h1 = _leonH(f, 1), h2 = _leonH(f, 2);
+    const x0  = (f + 0.5) / 16 * W;
+    const flk = Math.sin(t*(1.6+h0) + f*1.1)*0.2 + Math.sin(t*(3.1+h1*1.5) + f*2.2)*0.08 + 0.75;
+    flame(x0, (70+h0*55)*flk, 30+h1*20, (h2-0.5)*14, 'rgba(155,15,0,0.13)');
+  }
+
+  // Layer 2 — mid orange flames
+  for (let f = 0; f < 22; f++) {
+    const h0 = _leonH(f+50,0), h1 = _leonH(f+50,1), h2 = _leonH(f+50,2);
+    const x0  = (f + 0.5 + h2*0.3) / 22 * W;
+    const flk = Math.sin(t*(2.5+h0*2) + f*1.4)*0.25 + Math.sin(t*(4.8+h1) + f*3.1)*0.08 + 0.72;
+    flame(x0, (42+h0*36)*flk, 20+h1*14, (h2-0.5)*10, 'rgba(255,65,0,0.10)');
+  }
+
+  // Layer 3 — bright orange/yellow cores
+  for (let f = 0; f < 18; f++) {
+    const h0 = _leonH(f+120,0), h1 = _leonH(f+120,1), h2 = _leonH(f+120,2);
+    const x0  = (f + 0.5 + h2*0.4) / 18 * W;
+    const flk = Math.sin(t*(3.2+h0*2.5) + f*1.8 + h1*4)*0.28 + 0.72;
+    flame(x0, (24+h0*28)*flk, 13+h1*11, (h2-0.5)*7, 'rgba(255,145,0,0.13)');
+  }
+
+  // Layer 4 — hot white-yellow tips (spiky, fast)
+  for (let f = 0; f < 12; f++) {
+    const h0 = _leonH(f+200,0), h1 = _leonH(f+200,1), h2 = _leonH(f+200,2);
+    const x0  = (f + 0.5 + h2*0.5) / 12 * W;
+    const flk = Math.sin(t*(4.8+h0*3.5) + f*2.2 + h1*5)*0.22 + 0.78;
+    flame(x0, (14+h0*20)*flk, 8+h1*8, (h2-0.5)*5, 'rgba(255,230,80,0.17)');
+  }
+
+  ctx.globalCompositeOperation = 'source-over';
+
+  // ── Embers floating upward ────────────────────────────────
+  for (let e = 0; e < 20; e++) {
+    const h0 = _leonH(e+300,0), h1 = _leonH(e+300,1), h2 = _leonH(e+300,2);
+    const cyc = 2.5 + h0 * 2.2;
+    const age = (t / cyc + h2) % 1;
+    if (age > 0.88) continue;
+    const life = 1 - age / 0.88;
+    const ex = h0 * W + Math.sin(t * 1.9 + e * 1.3) * 20;
+    const ey = H - 10 - age * H * 0.9;
+    const er = 1 + h1 * 2;
+
+    ctx.globalCompositeOperation = 'lighter';
+    // Glow halo
+    ctx.fillStyle = `rgba(255,120,0,${(life * 0.28).toFixed(2)})`;
+    ctx.beginPath(); ctx.arc(ex, ey, er * 3, 0, Math.PI*2); ctx.fill();
+    // Core
+    ctx.fillStyle = `rgba(255,230,120,${(life * 0.9).toFixed(2)})`;
+    ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI*2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
   }
 }
 
@@ -2561,9 +2608,9 @@ function _startLeonOverlay() {
   _stopLeonOverlay();
   const cv = document.createElement('canvas');
   cv.id = 'leon-fire-overlay';
-  cv.style.cssText = 'position:fixed;bottom:0;left:0;width:100vw;height:120px;z-index:9999;pointer-events:none;';
+  cv.style.cssText = 'position:fixed;bottom:0;left:0;width:100vw;height:160px;z-index:9999;pointer-events:none;';
   cv.width  = window.innerWidth;
-  cv.height = 120;
+  cv.height = 160;
   document.body.appendChild(cv);
   const t0 = performance.now();
   function frame(now) {
