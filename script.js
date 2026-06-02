@@ -2160,49 +2160,49 @@ function _drawKatieFrog(ctx, x, y, ang, spd, t) {
 // ── Katie overlay: frog above all menus ───────────────────────
 function _startKatieOverlay() {
   _stopKatieOverlay();
-  const charView = document.getElementById('char-view');
-  if (!charView) return;
 
-  const old = document.getElementById('katie-frog-overlay');
-  if (old) old.remove();
-
+  // Fixed-position canvas on document.body — z-index:9999 puts it
+  // above every panel. clientX/Y map directly to canvas coordinates.
   const cv = document.createElement('canvas');
   cv.id = 'katie-frog-overlay';
-  cv.style.cssText = `position:absolute;inset:0;width:100%;height:${charView.scrollHeight}px;z-index:50;pointer-events:none;`;
-  cv.width  = charView.offsetWidth;
-  cv.height = charView.scrollHeight || charView.offsetHeight;
-  charView.style.position = 'relative';
-  charView.appendChild(cv);
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width  = window.innerWidth;
+  cv.height = window.innerHeight;
+  document.body.appendChild(cv);
 
-  _katieHook(cv);  // sets frog to center + hooks mousemove
+  // Start frog in the centre of the viewport
+  _katieFrogX  = cv.width  * 0.5;
+  _katieFrogY  = cv.height * 0.5;
+  _katieFrogVX = 0; _katieFrogVY = 0;
+  _katieTargX  = _katieFrogX;
+  _katieTargY  = _katieFrogY;
+  _katieFrogAng = 0;
+
+  // Track raw client coordinates — no getBoundingClientRect needed
+  _katieUnhook();
+  _katieHookCv = cv;
+  _katieMoveH  = e => { _katieTargX = e.clientX; _katieTargY = e.clientY; };
+  document.addEventListener('mousemove', _katieMoveH);
 
   const t0 = performance.now();
   let prevMs = t0;
 
   function frame(now) {
-    const cv2 = document.getElementById('katie-frog-overlay');
-    if (!cv2) { _katieOverlayRafId = null; return; }
-
-    // Self-check: stop if no longer Katie
-    if (typeof currentId !== 'undefined' && typeof characters !== 'undefined') {
-      const c = characters.find(x => x.id === currentId);
-      if (!c || !_isKatie(c)) { _stopKatieOverlay(); return; }
+    if (!document.getElementById('katie-frog-overlay')) {
+      _katieOverlayRafId = null; return;
     }
-
     const dt = Math.min((now - prevMs) / 1000, 0.05);
     prevMs = now;
     const t = (now - t0) / 1000;
 
-    // ── Spring physics — snappy overshoot ──
+    // Spring physics — overshoots cursor, then settles
     const SPRING = 280, DAMP = 22;
-    const ax = (_katieTargX - _katieFrogX) * SPRING - _katieFrogVX * DAMP;
-    const ay = (_katieTargY - _katieFrogY) * SPRING - _katieFrogVY * DAMP;
-    _katieFrogVX += ax * dt;
-    _katieFrogVY += ay * dt;
+    _katieFrogVX += ((_katieTargX - _katieFrogX) * SPRING - _katieFrogVX * DAMP) * dt;
+    _katieFrogVY += ((_katieTargY - _katieFrogY) * SPRING - _katieFrogVY * DAMP) * dt;
     _katieFrogX  += _katieFrogVX * dt;
     _katieFrogY  += _katieFrogVY * dt;
 
-    // ── Face direction of movement (smooth) ──
+    // Smooth rotation toward direction of travel
     const spd = Math.hypot(_katieFrogVX, _katieFrogVY);
     if (spd > 12) {
       const ta = Math.atan2(_katieFrogVY, _katieFrogVX) + Math.PI * 0.5;
@@ -2212,6 +2212,8 @@ function _startKatieOverlay() {
       _katieFrogAng += da * 0.13;
     }
 
+    const cv2 = document.getElementById('katie-frog-overlay');
+    if (!cv2) { _katieOverlayRafId = null; return; }
     const ctx2 = cv2.getContext('2d');
     ctx2.clearRect(0, 0, cv2.width, cv2.height);
     _drawKatieFrog(ctx2, _katieFrogX, _katieFrogY, _katieFrogAng, spd, t);
@@ -8347,6 +8349,10 @@ if (sidebarList && db) {
 }
 
 window.addEventListener('resize', () => {
+  // Resize Katie's fixed overlay canvas to match new viewport
+  const katieCv = document.getElementById('katie-frog-overlay');
+  if (katieCv) { katieCv.width = window.innerWidth; katieCv.height = window.innerHeight; }
+
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
     const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : c?.pattern?.type;
