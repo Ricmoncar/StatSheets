@@ -106,6 +106,10 @@ let _leonFireRafId = null;
 const _VALKYRIE_RE = /^Valkyrie$/i;
 function _isValkyrie(c) { return !!(c && c.name && _VALKYRIE_RE.test(c.name)); }
 let _valkyrieOverlayRafId = null;
+
+const _ADAM_RE = /^Adam$/i;
+function _isAdam(c) { return !!(c && c.name && _ADAM_RE.test(c.name)); }
+let _adamOverlayRafId = null;
 // Frog state (pixel coords on overlay canvas)
 let _katieFrogX = 200, _katieFrogY = 200;   // current position
 let _katieFrogVX = 0,  _katieFrogVY = 0;    // velocity px/s
@@ -1362,6 +1366,7 @@ const PATTERN_DEFS = {
   snaps_scales:   { label: "Snaps' Electric Scales", params: [] },
   leon_swords:      { label: "Leon's Blades",          params: [] },
   valkyrie_rain:    { label: "Valkyrie's Blood Rain",  params: [] },
+  adam_ice:         { label: "Adam's Frozen Domain",   params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -3037,6 +3042,322 @@ function _stopValkyrieOverlay() {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+// ── Adam: frozen domain ────────────────────────────────────────
+function _adNewShard(W, H, scatter) {
+  const n = 3 + Math.floor(Math.random() * 3);
+  const r = 9 + Math.random() * 22;
+  const verts = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.7;
+    verts.push({ x: Math.cos(a) * r * (0.5 + Math.random() * 0.5), y: Math.sin(a) * r * (0.5 + Math.random() * 0.5) });
+  }
+  return {
+    x:     Math.random() * W,
+    y:     scatter ? Math.random() * H : -(r + Math.random() * H * 0.4),
+    verts, r,
+    ang:   Math.random() * Math.PI * 2,
+    spin:  (Math.random() - 0.5) * 0.5,
+    drift: (Math.random() - 0.5) * 8,
+    speed: 0.04 + Math.random() * 0.09,
+    alpha: 0.18 + Math.random() * 0.28,
+    hue:   188 + Math.random() * 28,
+    l:     72 + Math.random() * 20,
+  };
+}
+
+function _adNewFlake(W, H, scatter) {
+  return {
+    x:     Math.random() * W,
+    y:     scatter ? Math.random() * H : -(12 + Math.random() * H * 0.4),
+    r:     5 + Math.random() * 16,
+    speed: 0.014 + Math.random() * 0.038,
+    ang:   Math.random() * Math.PI / 3,
+    spin:  (Math.random() - 0.5) * 0.25,
+    drift: (Math.random() - 0.5) * 6,
+    alpha: 0.42 + Math.random() * 0.50,
+  };
+}
+
+function _adDrawSnowflake(ctx, r) {
+  // Single beginPath/stroke for the whole flake — 1 draw call
+  ctx.lineWidth = Math.max(0.5, r * 0.07);
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3;
+    const dx = Math.cos(a), dy = Math.sin(a);
+    const px = -dy,        py =  dx;   // perpendicular
+    ctx.moveTo(0, 0);
+    ctx.lineTo(dx * r, dy * r);
+    // inner branches at 30%
+    ctx.moveTo(dx * r * 0.30, dy * r * 0.30);
+    ctx.lineTo(dx * r * 0.47 + px * r * 0.18, dy * r * 0.47 + py * r * 0.18);
+    ctx.moveTo(dx * r * 0.30, dy * r * 0.30);
+    ctx.lineTo(dx * r * 0.47 - px * r * 0.18, dy * r * 0.47 - py * r * 0.18);
+    // outer branches at 60%
+    ctx.moveTo(dx * r * 0.60, dy * r * 0.60);
+    ctx.lineTo(dx * r * 0.73 + px * r * 0.13, dy * r * 0.73 + py * r * 0.13);
+    ctx.moveTo(dx * r * 0.60, dy * r * 0.60);
+    ctx.lineTo(dx * r * 0.73 - px * r * 0.13, dy * r * 0.73 - py * r * 0.13);
+  }
+  ctx.stroke();
+}
+
+function _adNewIcicle(W) {
+  return {
+    x:         20 + Math.random() * (W - 40),
+    baseW:      7 + Math.random() * 16,
+    len:       28 + Math.random() * 90,
+    alpha:     0.38 + Math.random() * 0.42,
+    drip:      null,
+    dripTimer: 1 + Math.random() * 6,
+  };
+}
+
+function _adGrowFrost(out, x, y, ang, len, depth) {
+  if (depth <= 0 || len < 3) return;
+  const ex = x + Math.cos(ang) * len;
+  const ey = y + Math.sin(ang) * len;
+  out.push([x, y, ex, ey, depth]);
+  const nb = 2 + (Math.random() < 0.3 ? 1 : 0);
+  for (let i = 0; i < nb; i++) {
+    const da = (Math.random() - 0.5) * 1.0 + (i - (nb - 1) * 0.5) * 0.55;
+    _adGrowFrost(out, ex, ey, ang + da, len * (0.50 + Math.random() * 0.18), depth - 1);
+  }
+}
+
+// bgAnim canvas: cyan checkerboard + falling ice shards
+function _drawAdamPattern(canvas, ctx, W, H, t, params) {
+  if (_drawAdamPattern._lt !== undefined && t - _drawAdamPattern._lt < 0.033) return;
+  _drawAdamPattern._lt = t;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ── Checkerboard (Adam's stored params, same path as Leon) ────
+  const sz   = params?.size   || 32;
+  const c1   = params?.color1 || '#00cfcf';
+  const c2   = params?.color2 || '#000000';
+  const spd  = params?.speed  || 0.5;
+  const alph = params?.opacity !== undefined ? params.opacity : 1.0;
+  const dir  = params?.dir    || 'diagonal';
+
+  if (!canvas._adamPat || canvas._adamC1 !== c1 || canvas._adamC2 !== c2 || canvas._adamSz !== sz) {
+    const pc = document.createElement('canvas');
+    pc.width = sz * 2; pc.height = sz * 2;
+    const pctx = pc.getContext('2d');
+    pctx.fillStyle = c1; pctx.fillRect(0, 0, sz, sz); pctx.fillRect(sz, sz, sz, sz);
+    pctx.fillStyle = c2; pctx.fillRect(sz, 0, sz, sz); pctx.fillRect(0, sz, sz, sz);
+    canvas._adamPat = ctx.createPattern(pc, 'repeat');
+    canvas._adamC1 = c1; canvas._adamC2 = c2; canvas._adamSz = sz;
+  }
+  let ox = 0, oy = 0;
+  if      (dir === 'right')    ox =  (t * spd * 60) % (sz * 2);
+  else if (dir === 'left')     ox = -(t * spd * 60) % (sz * 2);
+  else if (dir === 'down')     oy =  (t * spd * 60) % (sz * 2);
+  else if (dir === 'up')       oy = -(t * spd * 60) % (sz * 2);
+  else if (dir === 'diagonal') { ox = (t * spd * 60) % (sz * 2); oy = (t * spd * 60) % (sz * 2); }
+  ctx.save();
+  ctx.globalAlpha = alph;
+  ctx.translate(ox, oy);
+  ctx.fillStyle = canvas._adamPat;
+  ctx.fillRect(-sz * 2, -sz * 2, W + sz * 4, H + sz * 4);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+
+  // ── Falling ice shards ────────────────────────────────────────
+  const NSHARDS = 26;
+  if (!canvas._adamShards) {
+    canvas._adamShards = Array.from({ length: NSHARDS }, () => _adNewShard(W, H, true));
+  }
+  const dt = 0.033;
+  for (let i = 0; i < canvas._adamShards.length; i++) {
+    const s = canvas._adamShards[i];
+    s.y   += s.speed * dt * H;
+    s.x   += s.drift * dt;
+    s.ang += s.spin  * dt;
+    if (s.y > H + s.r * 2) { canvas._adamShards[i] = _adNewShard(W, H, false); continue; }
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.ang);
+    ctx.globalAlpha = s.alpha;
+    ctx.fillStyle = `hsl(${s.hue},78%,${s.l}%)`;
+    ctx.beginPath();
+    ctx.moveTo(s.verts[0].x, s.verts[0].y);
+    for (let v = 1; v < s.verts.length; v++) ctx.lineTo(s.verts[v].x, s.verts[v].y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'hsla(200,100%,94%,0.6)';
+    ctx.lineWidth = 0.9;
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Overlay: frost corners, aurora glow, icicles, snowflakes, sparkles
+function _drawAdamOverlay(canvas, ctx, W, H, t) {
+  if (_drawAdamOverlay._lt !== undefined && t - _drawAdamOverlay._lt < 0.033) return;
+  _drawAdamOverlay._lt = t;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ── resize invalidation ───────────────────────────────────────
+  if (canvas._adW !== W || canvas._adH !== H) {
+    canvas._adW = W; canvas._adH = H;
+    canvas._adamAurGrad = null;
+    canvas._adamIcicles = null; canvas._adamFlakes = null; canvas._adamFrost = null;
+  }
+
+  // ── init pools ────────────────────────────────────────────────
+  const NICICLES = 13, NFLAKES = 14;
+  if (!canvas._adamIcicles) {
+    canvas._adamIcicles  = Array.from({ length: NICICLES }, () => _adNewIcicle(W));
+    canvas._adamFlakes   = Array.from({ length: NFLAKES },  () => _adNewFlake(W, H, true));
+    canvas._adamSparkles = [];
+    // Frost branches radiating from each corner (computed once)
+    canvas._adamFrost = [];
+    const C = [[0, 0, Math.PI * 0.25], [W, 0, Math.PI * 0.75], [0, H, -Math.PI * 0.25], [W, H, -Math.PI * 0.75]];
+    for (const [cx, cy, bAng] of C) {
+      for (let b = 0; b < 4; b++) {
+        _adGrowFrost(canvas._adamFrost, cx, cy, bAng + (b - 1.5) * 0.28, 38 + Math.random() * 44, 4);
+      }
+    }
+  }
+  if (!canvas._adamAurGrad) {
+    const g = ctx.createLinearGradient(0, 0, 0, H * 0.20);
+    g.addColorStop(0,    'rgba(0,215,235,0.22)');
+    g.addColorStop(0.45, 'rgba(60,190,255,0.09)');
+    g.addColorStop(1,    'rgba(0,170,210,0)');
+    canvas._adamAurGrad = g;
+  }
+  if (!canvas._adamIciclePath) {
+    const p = new Path2D();
+    p.moveTo(-1, 0);
+    p.quadraticCurveTo(-0.25, 0.65,  0, 1);
+    p.quadraticCurveTo( 0.25, 0.65,  1, 0);
+    p.closePath();
+    canvas._adamIciclePath = p;
+  }
+
+  const dt = 0.033;
+
+  // ── aurora glow at top ────────────────────────────────────────
+  ctx.fillStyle = canvas._adamAurGrad;
+  ctx.fillRect(0, 0, W, H * 0.20);
+
+  // ── frost corner branches (batched by depth level) ────────────
+  ctx.strokeStyle = '#b4eaff';
+  ctx.lineCap = 'round';
+  for (let d = 4; d >= 1; d--) {
+    ctx.globalAlpha = (d / 4) * 0.14;
+    ctx.lineWidth = d >= 3 ? 1.1 : 0.6;
+    ctx.beginPath();
+    for (const [x1, y1, x2, y2, bd] of canvas._adamFrost) {
+      if (bd !== d) continue;
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    }
+    ctx.stroke();
+  }
+
+  // ── icicles ───────────────────────────────────────────────────
+  for (const ic of canvas._adamIcicles) {
+    ic.dripTimer -= dt;
+    if (ic.dripTimer <= 0 && !ic.drip) {
+      ic.drip = { y: ic.len, vy: 0, r: 2 + Math.random() * 2 };
+      ic.dripTimer = 2 + Math.random() * 5;
+    }
+    if (ic.drip) {
+      ic.drip.vy += 130 * dt;
+      ic.drip.y  += ic.drip.vy * dt;
+      if (ic.drip.y > H + 20) ic.drip = null;
+    }
+    ctx.save();
+    ctx.translate(ic.x, 0);
+    ctx.scale(ic.baseW * 0.5, ic.len);
+    ctx.globalAlpha = ic.alpha;
+    ctx.fillStyle = 'rgba(155,228,255,0.65)';
+    ctx.fill(canvas._adamIciclePath);
+    ctx.strokeStyle = 'rgba(220,248,255,0.85)';
+    ctx.lineWidth = 0.06;
+    ctx.stroke(canvas._adamIciclePath);
+    ctx.restore();
+    if (ic.drip) {
+      ctx.globalAlpha = ic.alpha * 0.85;
+      ctx.fillStyle = 'rgba(130,215,255,0.8)';
+      ctx.beginPath(); ctx.arc(ic.x, ic.drip.y, ic.drip.r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // ── snowflakes ────────────────────────────────────────────────
+  for (let i = 0; i < canvas._adamFlakes.length; i++) {
+    const f = canvas._adamFlakes[i];
+    f.y   += f.speed * dt * H;
+    f.x   += f.drift * dt;
+    f.ang += f.spin  * dt;
+    if (f.y > H + f.r) { canvas._adamFlakes[i] = _adNewFlake(W, H, false); continue; }
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.ang);
+    ctx.globalAlpha = f.alpha;
+    ctx.strokeStyle = '#d8f4ff';
+    _adDrawSnowflake(ctx, f.r);
+    ctx.restore();
+  }
+
+  // ── ice sparkle glints (random flashes) ──────────────────────
+  if (Math.random() < 0.35) {
+    canvas._adamSparkles.push({ x: Math.random() * W, y: Math.random() * H, r: 2 + Math.random() * 5, life: 1, decay: 2.5 + Math.random() * 3.0 });
+  }
+  for (let i = canvas._adamSparkles.length - 1; i >= 0; i--) {
+    const s = canvas._adamSparkles[i];
+    s.life -= s.decay * dt;
+    if (s.life <= 0) { canvas._adamSparkles.splice(i, 1); continue; }
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.globalAlpha = s.life * 0.85;
+    ctx.strokeStyle = '#e8f8ff';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-s.r, 0); ctx.lineTo(s.r, 0);
+    ctx.moveTo(0, -s.r); ctx.lineTo(0, s.r);
+    ctx.moveTo(-s.r * 0.6, -s.r * 0.6); ctx.lineTo(s.r * 0.6,  s.r * 0.6);
+    ctx.moveTo( s.r * 0.6, -s.r * 0.6); ctx.lineTo(-s.r * 0.6, s.r * 0.6);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.globalAlpha = 1;
+}
+
+function _startAdamOverlay() {
+  _stopAdamOverlay();
+  _drawAdamOverlay._lt = undefined;
+  const cv = document.createElement('canvas');
+  cv.id = 'adam-ice-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width  = window.innerWidth;
+  cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('adam-ice-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width  = window.innerWidth;
+      cv2.height = window.innerHeight;
+    }
+    _drawAdamOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _adamOverlayRafId = requestAnimationFrame(frame);
+  }
+  _adamOverlayRafId = requestAnimationFrame(frame);
+}
+
+function _stopAdamOverlay() {
+  if (_adamOverlayRafId) { cancelAnimationFrame(_adamOverlayRafId); _adamOverlayRafId = null; }
+  const cv = document.getElementById('adam-ice-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -3047,7 +3368,8 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'katie_pond')     { _drawKatiePattern(canvas, ctx, W, H, t);          return; }
   if (type === 'snaps_scales')   { _drawSnapsPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'leon_swords')    { _drawLeonPattern(canvas, ctx, W, H, t, params);   return; }
-  if (type === 'valkyrie_rain')  { _drawValkyriePattern(canvas, ctx, W, H, t);       return; }
+  if (type === 'valkyrie_rain')  { _drawValkyriePattern(canvas, ctx, W, H, t);            return; }
+  if (type === 'adam_ice')       { _drawAdamPattern(canvas, ctx, W, H, t, params);       return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -3498,6 +3820,8 @@ function startBgAnim(type, params) {
   _drawLeonPattern._lt        = undefined;
   _drawValkyriePattern._lt    = undefined;
   _drawValkyrieOverlay._lt    = undefined;
+  _drawAdamPattern._lt        = undefined;
+  _drawAdamOverlay._lt        = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -3521,6 +3845,7 @@ function stopBgAnim() {
   _stopKatieOverlay();
   _stopLeonOverlay();
   _stopValkyrieOverlay();
+  _stopAdamOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -4005,12 +4330,13 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); }
-  else if (_isBizzy(c)) { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); }
-  else if (_isKatie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))  { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); }
+  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); }
+  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -4050,10 +4376,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -4066,6 +4392,7 @@ function viewChar(id) {
   if (_isKatie(c))    _startKatieOverlay();    // start AFTER stopBgAnim so it isn't killed
   if (_isLeon(c))     _startLeonOverlay();
   if (_isValkyrie(c)) _startValkyrieOverlay();
+  if (_isAdam(c))     _startAdamOverlay();
 
   renderInventory(c);
   renderTraitsDisplay(c);
@@ -9107,7 +9434,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -9115,6 +9442,7 @@ window.addEventListener('resize', () => {
       if (_isKatie(c))    _startKatieOverlay();
       if (_isLeon(c))     _startLeonOverlay();
       if (_isValkyrie(c)) _startValkyrieOverlay();
+      if (_isAdam(c))     _startAdamOverlay();
     }
   }
 });
