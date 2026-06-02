@@ -2349,20 +2349,36 @@ function _snapsH(i, j, n) {
 }
 
 function _drawSnapsPattern(canvas, ctx, W, H, t) {
-  ctx.clearRect(0, 0, W, H);
+  // 30fps cap — ambient background doesn't need 60fps
+  if (_drawSnapsPattern._lt !== undefined && t - _drawSnapsPattern._lt < 0.033) return;
+  _drawSnapsPattern._lt = t;
 
-  // Deep green-black background
+  ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#040b05';
   ctx.fillRect(0, 0, W, H);
 
-  const R   = 24;                        // hex radius
-  const HW  = R * Math.sqrt(3);          // col spacing (pointy-top)
-  const HH  = R * 1.5;                   // row spacing
-  const cols = Math.ceil(W / HW) + 3;
-  const rows = Math.ceil(H / HH) + 3;
+  const R  = 28;                   // slightly larger → fewer scales to draw
+  const HW = R * Math.sqrt(3);
+  const HH = R * 1.5;
+  const r  = R - 1.5;              // inset so edges show between scales
+  const cols = Math.ceil(W / HW) + 2;
+  const rows = Math.ceil(H / HH) + 2;
 
-  // Slow global pulse — feels like a held breath before a fight
-  const pulse = (Math.sin(t * 1.4) * 0.5 + 0.5) * 0.28;
+  // Cache the hex Path2D — built once, reused every frame
+  if (!_drawSnapsPattern._path || _drawSnapsPattern._pathR !== r) {
+    const p = new Path2D();
+    for (let k = 0; k < 6; k++) {
+      const a = k * Math.PI / 3;
+      k === 0 ? p.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+              : p.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    p.closePath();
+    _drawSnapsPattern._path  = p;
+    _drawSnapsPattern._pathR = r;
+  }
+  const hexPath = _drawSnapsPattern._path;
+
+  const pulse = (Math.sin(t * 1.4) * 0.5 + 0.5) * 0.25;
 
   for (let row = -1; row < rows; row++) {
     for (let col = -1; col < cols; col++) {
@@ -2373,85 +2389,68 @@ function _drawSnapsPattern(canvas, ctx, W, H, t) {
       const h1 = _snapsH(col, row, 1);
       const h2 = _snapsH(col, row, 2);
 
-      // Diagonal shimmer wave rolling top-left → bottom-right
       const wave    = Math.sin(t * 0.9 + (x / W) * 5.5 - (y / H) * 3.5 + h0 * 1.4) * 0.5 + 0.5;
       const shimmer = wave * 0.5 + pulse * 0.5;
 
-      // Per-scale spark: deterministic fire rate, random phase
-      const sparkRate  = 0.14 + h2 * 0.22;
-      const sparkPhase = h1 * 100;
-      const sparkCycle = (t * sparkRate + sparkPhase) % 1;
-      const spark      = sparkCycle < 0.09 ? Math.sin(sparkCycle / 0.09 * Math.PI) : 0;
+      // Only 18% of scales can ever spark, and rarely (3-5 active at once)
+      let spark = 0;
+      if (h0 > 0.82) {
+        const sCycle = (t * (0.055 + h2 * 0.065) + h1 * 100) % 1;
+        spark = sCycle < 0.05 ? Math.sin(sCycle / 0.05 * Math.PI) : 0;
+      }
 
       const glow = shimmer + spark * 1.1;
 
       ctx.save();
       ctx.translate(x, y);
 
-      // Pointy-top hexagon path (slightly inset so edges show between scales)
-      const r = R - 1.4;
-      ctx.beginPath();
-      for (let k = 0; k < 6; k++) {
-        const a = k * Math.PI / 3;
-        k === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
-                : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      // Flat fill — no radial gradient (eliminates ~400 gradient objects/frame)
+      const g = Math.round(10 + shimmer * 44 + spark * 95);
+      ctx.fillStyle = `rgb(4,${g},5)`;
+      ctx.fill(hexPath);
+
+      // Edge glow — wide semi-transparent halo + sharp bright edge
+      // (replaces shadowBlur which is very expensive)
+      const eBright = Math.round(75 + glow * 180);
+      if (spark > 0) {
+        ctx.strokeStyle = `rgba(0,${eBright},40,${(spark * 0.25).toFixed(2)})`;
+        ctx.lineWidth   = R * 0.45;
+        ctx.stroke(hexPath);
       }
-      ctx.closePath();
+      ctx.strokeStyle = `rgba(25,${eBright},42,${(0.13 + glow * 0.62).toFixed(2)})`;
+      ctx.lineWidth   = 1.1 + glow * 1.3;
+      ctx.stroke(hexPath);
 
-      // Scale body: dark radial gradient, lighter at highlighted crown
-      const cg = Math.round(50 + shimmer * 100 + spark * 150);
-      const rg = ctx.createRadialGradient(0, -r * 0.3, 0, 0, 0, r);
-      rg.addColorStop(0,    `rgba(12,${cg},15,1)`);
-      rg.addColorStop(0.55, `rgba(4,${Math.round(16 + shimmer * 18)},5,1)`);
-      rg.addColorStop(1,    `rgba(2,5,2,1)`);
-      ctx.fillStyle = rg;
-      ctx.fill();
-
-      // Edge ridge glow — the bright outline between scales
-      const eBright = Math.round(90 + glow * 165);
-      const eAlpha  = (0.15 + glow * 0.65).toFixed(2);
-      ctx.strokeStyle = `rgba(30,${eBright},45,${eAlpha})`;
-      ctx.lineWidth   = 0.9 + glow * 1.4;
-      if (spark > 0) { ctx.shadowBlur = 8 + spark * 14; ctx.shadowColor = '#00ff44'; }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // Electric arcs on sparked scales
-      if (spark > 0.12) {
-        ctx.save();
-        ctx.globalAlpha = spark * 0.9;
-        ctx.shadowBlur  = 10; ctx.shadowColor = '#66ff55';
-        ctx.strokeStyle = `rgba(150,255,100,${(spark * 0.85).toFixed(2)})`;
+      // Lightning arcs on sparked scales
+      if (spark > 0.18) {
+        ctx.strokeStyle = `rgba(140,255,90,${(spark * 0.65).toFixed(2)})`;
         ctx.lineWidth   = 0.8;
-        for (let a = 0; a < 4; a++) {
+        for (let a = 0; a < 3; a++) {
           const aa  = _snapsH(col, row, a + 10) * Math.PI * 2;
-          const len = r * 0.7 * spark;
-          const mx  = Math.cos(aa) * len * 0.5 + (_snapsH(col, row, a + 14) - 0.5) * 10;
-          const my  = Math.sin(aa) * len * 0.5 + (_snapsH(col, row, a + 18) - 0.5) * 10;
+          const len = r * 0.65 * spark;
+          const mx  = Math.cos(aa) * len * 0.5 + (_snapsH(col, row, a + 14) - 0.5) * 8;
+          const my  = Math.sin(aa) * len * 0.5 + (_snapsH(col, row, a + 18) - 0.5) * 8;
           ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo(mx, my);
+          ctx.moveTo(0, 0); ctx.lineTo(mx, my);
           ctx.lineTo(Math.cos(aa) * len, Math.sin(aa) * len);
           ctx.stroke();
         }
-        // Central spark flash
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.25 * spark, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(180,255,130,${(spark * 0.55).toFixed(2)})`;
-        ctx.fill();
-        ctx.restore();
       }
 
       ctx.restore();
     }
   }
 
-  // Edge vignette
-  const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.28,
-                                      W * 0.5, H * 0.5, Math.min(W, H) * 0.88);
-  vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,0.6)');
-  ctx.fillStyle = vg;
+  // Vignette — cached, only rebuilt on resize
+  if (!_drawSnapsPattern._vg || _drawSnapsPattern._vgW !== W || _drawSnapsPattern._vgH !== H) {
+    const vg = ctx.createRadialGradient(W*.5, H*.5, Math.min(W,H)*.28, W*.5, H*.5, Math.min(W,H)*.88);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.6)');
+    _drawSnapsPattern._vg  = vg;
+    _drawSnapsPattern._vgW = W;
+    _drawSnapsPattern._vgH = H;
+  }
+  ctx.fillStyle = _drawSnapsPattern._vg;
   ctx.fillRect(0, 0, W, H);
 }
 /* ─────────────────────────────────────────────────────────────── */
