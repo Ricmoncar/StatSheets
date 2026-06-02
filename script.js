@@ -110,6 +110,10 @@ let _valkyrieOverlayRafId = null;
 const _ADAM_RE = /^Adam$/i;
 function _isAdam(c) { return !!(c && c.name && _ADAM_RE.test(c.name)); }
 let _adamOverlayRafId = null;
+
+const _FURY_RE = /^Fury$/i;
+function _isFury(c) { return !!(c && c.name && _FURY_RE.test(c.name)); }
+let _furyOverlayRafId = null;
 // Frog state (pixel coords on overlay canvas)
 let _katieFrogX = 200, _katieFrogY = 200;   // current position
 let _katieFrogVX = 0,  _katieFrogVY = 0;    // velocity px/s
@@ -1367,6 +1371,7 @@ const PATTERN_DEFS = {
   leon_swords:      { label: "Leon's Blades",          params: [] },
   valkyrie_rain:    { label: "Valkyrie's Blood Rain",  params: [] },
   adam_ice:         { label: "Adam's Frozen Domain",   params: [] },
+  fury_fire:        { label: "Fury's Fire",            params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -3304,6 +3309,251 @@ function _stopAdamOverlay() {
   if (cv) cv.remove();
 }
 /* ─────────────────────────────────────────────────────────────── */
+/* ─── Fury's Fire ─────────────────────────────────────────────── */
+function _furyDrawSigil(ctx, type, r) {
+  ctx.beginPath();
+  switch (type % 5) {
+    case 0: // Star Brand — outer ring + 6 radial spokes + inner ring
+      ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        ctx.moveTo(Math.cos(a) * r * 0.35, Math.sin(a) * r * 0.35);
+        ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.stroke(); break;
+    case 1: // Spear — vertical shaft + two crossbars + diamond tip
+      ctx.moveTo(0, -r); ctx.lineTo(0, r);
+      ctx.moveTo(-r * 0.55, -r * 0.35); ctx.lineTo(r * 0.55, -r * 0.35);
+      ctx.moveTo(-r * 0.38,  r * 0.10); ctx.lineTo(r * 0.38,  r * 0.10);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -r); ctx.lineTo(r * 0.18, -r * 0.72);
+      ctx.lineTo(0, -r * 0.44); ctx.lineTo(-r * 0.18, -r * 0.72);
+      ctx.closePath(); ctx.stroke(); break;
+    case 2: // Eye of Fire — almond + pupil ring + vertical rays
+      ctx.moveTo(-r, 0); ctx.quadraticCurveTo(0, -r * 0.50, r, 0);
+      ctx.quadraticCurveTo(0,  r * 0.50, -r, 0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.28, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      for (let i = -1; i <= 1; i++) {
+        ctx.moveTo(i * r * 0.18, -r * 0.28); ctx.lineTo(i * r * 0.24, -r * 0.62);
+        ctx.moveTo(i * r * 0.18,  r * 0.28); ctx.lineTo(i * r * 0.24,  r * 0.62);
+      }
+      ctx.stroke(); break;
+    case 3: // Rune Frame — two verticals + top bar + two diagonals
+      ctx.moveTo(-r * 0.65, -r * 0.85); ctx.lineTo(-r * 0.65, r * 0.85);
+      ctx.moveTo( r * 0.65, -r * 0.85); ctx.lineTo( r * 0.65, r * 0.85);
+      ctx.moveTo(-r * 0.65, -r * 0.85); ctx.lineTo( r * 0.65, -r * 0.85);
+      ctx.moveTo(-r * 0.65,  0);         ctx.lineTo( r * 0.65, -r * 0.55);
+      ctx.moveTo(-r * 0.65,  0);         ctx.lineTo( r * 0.65,  r * 0.55);
+      ctx.stroke(); break;
+    case 4: // Triskele — outer ring + 3 curved arms
+      ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      for (let i = 0; i < 3; i++) {
+        const a = i * Math.PI * 2 / 3 - Math.PI * 0.5;
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(Math.cos(a + Math.PI / 3) * r * 0.5, Math.sin(a + Math.PI / 3) * r * 0.5,
+                             Math.cos(a) * r * 0.7, Math.sin(a) * r * 0.7);
+      }
+      ctx.stroke(); break;
+  }
+}
+
+function _furyNewColumn(W, H) {
+  return {
+    x: (0.04 + Math.random() * 0.92) * W,
+    baseW: 45 + Math.random() * 85,
+    tipH: H * (0.30 + Math.random() * 0.40),
+    speed: 0.35 + Math.random() * 0.65,
+    phase: Math.random() * Math.PI * 2,
+    swayAmt: 0.07 + Math.random() * 0.13,
+  };
+}
+
+function _furyDrawColumn(ctx, col, H, t) {
+  const { x, baseW, tipH, speed, phase, swayAmt } = col;
+  const sway  = Math.sin(t * speed + phase) * baseW * swayAmt;
+  const sway2 = Math.sin(t * speed * 1.4 + phase + 1.2) * baseW * swayAmt * 0.5;
+  const layers = [
+    { ws: 1.00, hs: 1.00, r: 140, g:   5, b:  0, a: 0.20 },
+    { ws: 0.70, hs: 0.85, r: 210, g:  25, b:  0, a: 0.17 },
+    { ws: 0.45, hs: 0.72, r: 235, g:  80, b:  0, a: 0.14 },
+    { ws: 0.25, hs: 0.55, r: 255, g: 155, b: 10, a: 0.11 },
+    { ws: 0.12, hs: 0.38, r: 255, g: 220, b: 60, a: 0.09 },
+  ];
+  for (const l of layers) {
+    const w = baseW * l.ws, tH = tipH * l.hs, tipX = x + sway * l.hs;
+    ctx.beginPath();
+    ctx.moveTo(x - baseW * 0.5, H);
+    ctx.bezierCurveTo(x - w + sway2, H - tH * 0.35, tipX - w * 0.4, H - tH * 0.7, tipX, H - tH);
+    ctx.bezierCurveTo(tipX + w * 0.4, H - tH * 0.7, x + w + sway2, H - tH * 0.35, x + baseW * 0.5, H);
+    ctx.fillStyle = `rgba(${l.r},${l.g},${l.b},${l.a})`;
+    ctx.fill();
+  }
+}
+
+function _furyNewEmber(W, H, scatter) {
+  const gold = Math.random() < 0.65;
+  return {
+    x: scatter ? Math.random() * W : (0.05 + Math.random() * 0.90) * W,
+    y: scatter ? Math.random() * H : H + 5 + Math.random() * 20,
+    vx: (Math.random() - 0.5) * 28,
+    vy: -(18 + Math.random() * 55),
+    r: 1.5 + Math.random() * 3.0,
+    life: scatter ? Math.random() * 0.9 + 0.1 : 1,
+    decay: 0.07 + Math.random() * 0.14,
+    hue: gold ? (35 + Math.random() * 25) : (10 + Math.random() * 15),
+  };
+}
+
+function _drawFuryPattern(canvas, ctx, W, H, t) {
+  if (_drawFuryPattern._lt !== undefined && t - _drawFuryPattern._lt < 0.033) return;
+  const dt = _drawFuryPattern._lt === undefined ? 0.016 : Math.min(t - _drawFuryPattern._lt, 0.05);
+  _drawFuryPattern._lt = t;
+
+  if (!canvas._furyBgGrad || canvas._furyW !== W || canvas._furyH !== H) {
+    canvas._furyW = W; canvas._furyH = H;
+    const g = ctx.createRadialGradient(W * 0.5, H * 0.6, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
+    g.addColorStop(0, '#1c0000'); g.addColorStop(0.45, '#0e0000'); g.addColorStop(1, '#040003');
+    canvas._furyBgGrad = g;
+    canvas._furySigils = null; canvas._furyColumns = null; canvas._furyEmbers = null;
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = canvas._furyBgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  if (!canvas._furySigils) {
+    canvas._furySigils = Array.from({ length: 7 }, (_, i) => ({
+      x: (0.07 + Math.random() * 0.86) * W,
+      y: (0.05 + Math.random() * 0.90) * H,
+      r: 55 + Math.random() * 80,
+      type: i % 5,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.15 + Math.random() * 0.22,
+      rot: (Math.random() - 0.5) * Math.PI * 0.45,
+    }));
+  }
+  for (const s of canvas._furySigils) {
+    const pulse = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rot);
+    ctx.strokeStyle = `rgba(210, 30, 0, ${0.10 + 0.28 * pulse})`;
+    ctx.lineWidth = 1.8;
+    ctx.shadowColor = '#ff3300';
+    ctx.shadowBlur = 6 + 22 * pulse;
+    _furyDrawSigil(ctx, s.type, s.r);
+    ctx.restore();
+  }
+  ctx.shadowBlur = 0;
+
+  if (!canvas._furyColumns) {
+    canvas._furyColumns = Array.from({ length: 10 }, () => _furyNewColumn(W, H));
+  }
+  for (const col of canvas._furyColumns) _furyDrawColumn(ctx, col, H, t);
+
+  if (!canvas._furyEmbers) {
+    canvas._furyEmbers = Array.from({ length: 75 }, (_, i) => _furyNewEmber(W, H, i < 60));
+  }
+  for (let i = canvas._furyEmbers.length - 1; i >= 0; i--) {
+    const e = canvas._furyEmbers[i];
+    e.x += e.vx * dt; e.y += e.vy * dt; e.life -= e.decay * dt;
+    if (e.life <= 0 || e.y < -15) { canvas._furyEmbers[i] = _furyNewEmber(W, H, false); continue; }
+    ctx.globalAlpha = e.life * 0.85;
+    ctx.fillStyle = `hsl(${e.hue},100%,${52 + 30 * e.life}%)`;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r * Math.max(0.3, e.life), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+const _FURY_OV_COLS = [
+  { xf: 0.12, bwf: 0.075, thf: 0.18, speed: 0.50, phase: 0.2,  swayAmt: 0.08 },
+  { xf: 0.35, bwf: 0.110, thf: 0.22, speed: 0.40, phase: 1.5,  swayAmt: 0.06 },
+  { xf: 0.58, bwf: 0.105, thf: 0.20, speed: 0.60, phase: 0.8,  swayAmt: 0.07 },
+  { xf: 0.82, bwf: 0.080, thf: 0.17, speed: 0.45, phase: 2.1,  swayAmt: 0.09 },
+];
+
+function _furyNewWisp(W, H, scatter) {
+  const gold = Math.random() < 0.55;
+  return {
+    x: scatter ? Math.random() * W : (0.05 + Math.random() * 0.90) * W,
+    y: scatter ? H * 0.82 + Math.random() * H * 0.22 : H + Math.random() * 10,
+    vx: (Math.random() - 0.5) * 18,
+    vy: -(25 + Math.random() * 70),
+    r: 2 + Math.random() * 5,
+    life: scatter ? Math.random() : 1,
+    decay: 0.10 + Math.random() * 0.18,
+    hue: gold ? (38 + Math.random() * 22) : (12 + Math.random() * 14),
+  };
+}
+
+function _drawFuryOverlay(canvas, ctx, W, H, t) {
+  if (_drawFuryOverlay._lt !== undefined && t - _drawFuryOverlay._lt < 0.033) return;
+  const dt = _drawFuryOverlay._lt === undefined ? 0.016 : Math.min(t - _drawFuryOverlay._lt, 0.05);
+  _drawFuryOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  if (canvas._furyOvW !== W || canvas._furyOvH !== H) {
+    canvas._furyOvW = W; canvas._furyOvH = H; canvas._furyWisps = null;
+  }
+
+  // Subtle corner vignettes
+  const vSize = Math.min(W, H) * 0.35;
+  for (const [cx, cy] of [[0, 0], [W, 0], [0, H], [W, H]]) {
+    const vg = ctx.createRadialGradient(cx, cy, 0, cx, cy, vSize);
+    vg.addColorStop(0, 'rgba(12,0,0,0.22)'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  }
+
+  // Overlay fire columns along the bottom
+  for (const d of _FURY_OV_COLS) {
+    _furyDrawColumn(ctx, { x: d.xf * W, baseW: d.bwf * W, tipH: d.thf * H, speed: d.speed, phase: d.phase, swayAmt: d.swayAmt }, H, t);
+  }
+
+  if (!canvas._furyWisps) {
+    canvas._furyWisps = Array.from({ length: 55 }, (_, i) => _furyNewWisp(W, H, i < 40));
+  }
+  for (let i = canvas._furyWisps.length - 1; i >= 0; i--) {
+    const e = canvas._furyWisps[i];
+    e.x += e.vx * dt; e.y += e.vy * dt; e.life -= e.decay * dt;
+    if (e.life <= 0 || e.y < -20) { canvas._furyWisps[i] = _furyNewWisp(W, H, false); continue; }
+    ctx.globalAlpha = e.life * 0.75;
+    ctx.fillStyle = `hsl(${e.hue},100%,${55 + 28 * e.life}%)`;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r * Math.max(0.3, e.life), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function _startFuryOverlay() {
+  _stopFuryOverlay();
+  _drawFuryOverlay._lt = undefined;
+  const cv = document.createElement('canvas');
+  cv.id = 'fury-fire-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('fury-fire-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawFuryOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _furyOverlayRafId = requestAnimationFrame(frame);
+  }
+  _furyOverlayRafId = requestAnimationFrame(frame);
+}
+
+function _stopFuryOverlay() {
+  if (_furyOverlayRafId) { cancelAnimationFrame(_furyOverlayRafId); _furyOverlayRafId = null; }
+  const cv = document.getElementById('fury-fire-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
 
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
@@ -3317,6 +3567,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'leon_swords')    { _drawLeonPattern(canvas, ctx, W, H, t, params);   return; }
   if (type === 'valkyrie_rain')  { _drawValkyriePattern(canvas, ctx, W, H, t);            return; }
   if (type === 'adam_ice')       { _drawAdamPattern(canvas, ctx, W, H, t, params);       return; }
+  if (type === 'fury_fire')      { _drawFuryPattern(canvas, ctx, W, H, t);               return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -3769,6 +4020,8 @@ function startBgAnim(type, params) {
   _drawValkyrieOverlay._lt    = undefined;
   _drawAdamPattern._lt        = undefined;
   _drawAdamOverlay._lt        = undefined;
+  _drawFuryPattern._lt        = undefined;
+  _drawFuryOverlay._lt        = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -3793,6 +4046,7 @@ function stopBgAnim() {
   _stopLeonOverlay();
   _stopValkyrieOverlay();
   _stopAdamOverlay();
+  _stopFuryOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -4277,13 +4531,14 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); }
-  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); }
-  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); }
+  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); }
+  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -4323,10 +4578,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -4340,6 +4595,7 @@ function viewChar(id) {
   if (_isLeon(c))     _startLeonOverlay();
   if (_isValkyrie(c)) _startValkyrieOverlay();
   if (_isAdam(c))     _startAdamOverlay();
+  if (_isFury(c))     _startFuryOverlay();
 
   renderInventory(c);
   renderTraitsDisplay(c);
@@ -9381,7 +9637,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -9390,6 +9646,7 @@ window.addEventListener('resize', () => {
       if (_isLeon(c))     _startLeonOverlay();
       if (_isValkyrie(c)) _startValkyrieOverlay();
       if (_isAdam(c))     _startAdamOverlay();
+      if (_isFury(c))     _startFuryOverlay();
     }
   }
 });
