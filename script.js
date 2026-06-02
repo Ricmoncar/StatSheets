@@ -105,6 +105,7 @@ let _leonFireRafId = null;
 
 const _VALKYRIE_RE = /^Valkyrie$/i;
 function _isValkyrie(c) { return !!(c && c.name && _VALKYRIE_RE.test(c.name)); }
+let _valkyrieOverlayRafId = null;
 // Frog state (pixel coords on overlay canvas)
 let _katieFrogX = 200, _katieFrogY = 200;   // current position
 let _katieFrogVX = 0,  _katieFrogVY = 0;    // velocity px/s
@@ -2781,11 +2782,11 @@ function _vkNewFeather(W, H, scatter) {
   return {
     x:     Math.random() * W,
     y:     scatter ? Math.random() * H : -(h + Math.random() * H * 0.5),
-    speed: 0.014 + Math.random() * 0.018,  // very slow drift
+    speed: 0.014 + Math.random() * 0.018,
     h,
     ang:   (Math.random() - 0.5) * 0.6,
-    spin:  (Math.random() - 0.5) * 0.18,   // rad/s
-    drift: (Math.random() - 0.5) * 12,     // px/s horizontal
+    spin:  (Math.random() - 0.5) * 0.18,
+    drift: (Math.random() - 0.5) * 12,
     alpha: 0.12 + Math.random() * 0.20,
     color: Math.random() < 0.65 ? '#3a0008' : '#1a0520',
   };
@@ -2805,35 +2806,16 @@ function _vkNewMote(W, H, scatter) {
   };
 }
 
+// bgAnim canvas: static dark background + pulsing rune watermarks
 function _drawValkyriePattern(canvas, ctx, W, H, t) {
-  // 30fps cap
   if (_drawValkyriePattern._lt !== undefined && t - _drawValkyriePattern._lt < 0.033) return;
   _drawValkyriePattern._lt = t;
 
-  // ── init pools ────────────────────────────────────────────────
-  const NDROPS = 95, NFEATHERS = 7, NMOTES = 28, NRUNES = 6;
-  if (!canvas._vkDrops) {
-    canvas._vkDrops    = Array.from({ length: NDROPS },    () => _vkNewDrop(W, H, true));
-    canvas._vkFeathers = Array.from({ length: NFEATHERS }, () => _vkNewFeather(W, H, true));
-    canvas._vkMotes    = Array.from({ length: NMOTES },    () => _vkNewMote(W, H, true));
-    canvas._vkSplatters = [];
-    canvas._vkRunes = Array.from({ length: NRUNES }, () => ({
-      x:     Math.random() * W,
-      y:     H * 0.1 + Math.random() * H * 0.75,
-      char:  _VK_RUNES[Math.floor(Math.random() * _VK_RUNES.length)],
-      size:  52 + Math.random() * 44,
-      phase: Math.random() * Math.PI * 2,
-      base:  0.04 + Math.random() * 0.05,
-    }));
-  }
-
-  // ── invalidate size-dependent caches on resize ────────────────
   if (canvas._vkW !== W || canvas._vkH !== H) {
     canvas._vkW = W; canvas._vkH = H;
-    canvas._vkBgGrad = null; canvas._vkMistGrad = null;
+    canvas._vkBgGrad = null; canvas._vkRunes = null;
   }
 
-  // ── background ───────────────────────────────────────────────
   ctx.clearRect(0, 0, W, H);
   if (!canvas._vkBgGrad) {
     const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -2845,6 +2827,44 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
   ctx.fillStyle = canvas._vkBgGrad;
   ctx.fillRect(0, 0, W, H);
 
+  const NRUNES = 6;
+  if (!canvas._vkRunes) {
+    canvas._vkRunes = Array.from({ length: NRUNES }, () => ({
+      x:     Math.random() * W,
+      y:     H * 0.1 + Math.random() * H * 0.75,
+      char:  _VK_RUNES[Math.floor(Math.random() * _VK_RUNES.length)],
+      size:  52 + Math.random() * 44,
+      phase: Math.random() * Math.PI * 2,
+      base:  0.04 + Math.random() * 0.05,
+    }));
+  }
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const r of canvas._vkRunes) {
+    const a = r.base + Math.sin(t * 0.4 + r.phase) * r.base * 0.65;
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.fillStyle = '#8b1020';
+    ctx.font = `${r.size}px serif`;
+    ctx.fillText(r.char, r.x, r.y);
+  }
+  ctx.restore();
+}
+
+// Overlay canvas (z-index:9999): all animated rain effects above the UI
+function _drawValkyrieOverlay(canvas, ctx, W, H, t) {
+  if (_drawValkyrieOverlay._lt !== undefined && t - _drawValkyrieOverlay._lt < 0.033) return;
+  _drawValkyrieOverlay._lt = t;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const NDROPS = 95, NFEATHERS = 7, NMOTES = 28;
+  if (!canvas._vkDrops) {
+    canvas._vkDrops    = Array.from({ length: NDROPS },    () => _vkNewDrop(W, H, true));
+    canvas._vkFeathers = Array.from({ length: NFEATHERS }, () => _vkNewFeather(W, H, true));
+    canvas._vkMotes    = Array.from({ length: NMOTES },    () => _vkNewMote(W, H, true));
+    canvas._vkSplatters = [];
+  }
+
   // ── cache Path2D shapes ───────────────────────────────────────
   if (!canvas._vkDropPath) {
     const p = new Path2D();
@@ -2855,7 +2875,6 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
     canvas._vkDropPath = p;
   }
   if (!canvas._vkFeatherPath) {
-    // Unit feather: tip at -1 (top), base at +1 (bottom), vanes ±0.38 wide
     const p = new Path2D();
     p.moveTo(0, -1);
     p.bezierCurveTo( 0.32, -0.6,  0.38,  0.05,  0.26,  0.6);
@@ -2874,18 +2893,6 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
 
   const dt = 0.033;
 
-  // ── rune watermarks ───────────────────────────────────────────
-  ctx.save();
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  for (const r of canvas._vkRunes) {
-    const a = r.base + Math.sin(t * 0.4 + r.phase) * r.base * 0.65;
-    ctx.globalAlpha = Math.max(0, a);
-    ctx.fillStyle = '#8b1020';
-    ctx.font = `${r.size}px serif`;
-    ctx.fillText(r.char, r.x, r.y);
-  }
-  ctx.restore();
-
   // ── feathers ──────────────────────────────────────────────────
   const feathers = canvas._vkFeathers;
   for (let i = 0; i < feathers.length; i++) {
@@ -2901,7 +2908,6 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
     ctx.globalAlpha = f.alpha;
     ctx.fillStyle = f.color;
     ctx.fill(canvas._vkFeatherPath);
-    // thin gold spine line
     ctx.strokeStyle = 'rgba(180,140,60,0.4)';
     ctx.lineWidth = 0.04;
     ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(0, 1); ctx.stroke();
@@ -2930,19 +2936,16 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
       drops[i] = _vkNewDrop(W, H, false);
       continue;
     }
-    // Faint motion trail above the drop (cheap flat rect, no gradient)
     const trailLen = d.len * (1.4 + d.speed);
     ctx.globalAlpha = d.alpha * 0.22;
     ctx.fillStyle = d.color;
     ctx.fillRect(d.x - d.w * 0.2, d.y - d.len * 0.5 - trailLen, d.w * 0.4, trailLen);
-    // Teardrop body
     ctx.save();
     ctx.translate(d.x, d.y);
     ctx.scale(d.w, d.len);
     ctx.globalAlpha = d.alpha;
     ctx.fillStyle = d.color;
     ctx.fill(canvas._vkDropPath);
-    // glass highlight near top
     ctx.save();
     ctx.translate(0.08, -0.34);
     ctx.scale(0.21, 0.27);
@@ -2967,7 +2970,7 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
     ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
   }
 
-  // ── divine motes (gold & ice-silver) ─────────────────────────
+  // ── divine motes ──────────────────────────────────────────────
   const motes = canvas._vkMotes;
   for (let i = 0; i < motes.length; i++) {
     const m = motes[i];
@@ -2988,8 +2991,9 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
 
   ctx.globalAlpha = 1;
 
-  // ── deep crimson mist veil at the bottom ─────────────────────
-  if (!canvas._vkMistGrad) {
+  // ── crimson mist veil ─────────────────────────────────────────
+  if (!canvas._vkMistGrad || canvas._vkW !== W || canvas._vkH !== H) {
+    canvas._vkW = W; canvas._vkH = H;
     const g = ctx.createLinearGradient(0, H * 0.78, 0, H);
     g.addColorStop(0, 'rgba(110,0,20,0)');
     g.addColorStop(1, 'rgba(90,0,14,0.50)');
@@ -2997,6 +3001,35 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
   }
   ctx.fillStyle = canvas._vkMistGrad;
   ctx.fillRect(0, H * 0.78, W, H * 0.22);
+}
+
+function _startValkyrieOverlay() {
+  _stopValkyrieOverlay();
+  _drawValkyrieOverlay._lt = undefined;
+  const cv = document.createElement('canvas');
+  cv.id = 'valkyrie-rain-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width  = window.innerWidth;
+  cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('valkyrie-rain-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width  = window.innerWidth;
+      cv2.height = window.innerHeight;
+    }
+    _drawValkyrieOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _valkyrieOverlayRafId = requestAnimationFrame(frame);
+  }
+  _valkyrieOverlayRafId = requestAnimationFrame(frame);
+}
+
+function _stopValkyrieOverlay() {
+  if (_valkyrieOverlayRafId) { cancelAnimationFrame(_valkyrieOverlayRafId); _valkyrieOverlayRafId = null; }
+  const cv = document.getElementById('valkyrie-rain-overlay');
+  if (cv) cv.remove();
 }
 /* ─────────────────────────────────────────────────────────────── */
 
@@ -3460,6 +3493,7 @@ function startBgAnim(type, params) {
   _drawSnapsPattern._lt       = undefined;
   _drawLeonPattern._lt        = undefined;
   _drawValkyriePattern._lt    = undefined;
+  _drawValkyrieOverlay._lt    = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -3482,6 +3516,7 @@ function stopBgAnim() {
   bgAnim = null;
   _stopKatieOverlay();
   _stopLeonOverlay();
+  _stopValkyrieOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -3966,11 +4001,12 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); }
-  else if (_isBizzy(c)) { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); }
-  else if (_isKatie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))  { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); }
+  else if (_isBizzy(c)) { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); }
+  else if (_isKatie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))  { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -4023,8 +4059,9 @@ function viewChar(id) {
 
   stopBgAnim();
   if (ptype !== 'none') startBgAnim(ptype, c.pattern?.params || {});
-  if (_isKatie(c)) _startKatieOverlay(); // start AFTER stopBgAnim so it isn't killed
-  if (_isLeon(c))  _startLeonOverlay();
+  if (_isKatie(c))    _startKatieOverlay();    // start AFTER stopBgAnim so it isn't killed
+  if (_isLeon(c))     _startLeonOverlay();
+  if (_isValkyrie(c)) _startValkyrieOverlay();
 
   renderInventory(c);
   renderTraitsDisplay(c);
@@ -9071,8 +9108,9 @@ window.addEventListener('resize', () => {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
       // Restart overlays that stopBgAnim just destroyed
-      if (_isKatie(c)) _startKatieOverlay();
-      if (_isLeon(c))  _startLeonOverlay();
+      if (_isKatie(c))    _startKatieOverlay();
+      if (_isLeon(c))     _startLeonOverlay();
+      if (_isValkyrie(c)) _startValkyrieOverlay();
     }
   }
 });
