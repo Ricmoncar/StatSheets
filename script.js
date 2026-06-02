@@ -114,6 +114,9 @@ let _adamOverlayRafId = null;
 const _FURY_RE = /^Fury$/i;
 function _isFury(c) { return !!(c && c.name && _FURY_RE.test(c.name)); }
 let _furyOverlayRafId = null;
+let _furyMuffinX = 0, _furyMuffinY = 0;
+let _furyMuffinTargX = 0, _furyMuffinTargY = 0;
+function _furyMuffinMouseMove(e) { _furyMuffinTargX = e.clientX; _furyMuffinTargY = e.clientY; }
 // Frog state (pixel coords on overlay canvas)
 let _katieFrogX = 200, _katieFrogY = 200;   // current position
 let _katieFrogVX = 0,  _katieFrogVY = 0;    // velocity px/s
@@ -3365,8 +3368,8 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
     canvas._furyBaseGrads = _FURY_CHAN_XF.map(xf => {
       const cx = xf * W, r = Math.min(W, H) * 0.14;
       const g = ctx.createRadialGradient(cx, H, 0, cx, H, r);
-      g.addColorStop(0, 'rgba(90,0,0,0.45)');
-      g.addColorStop(0.5, 'rgba(45,0,0,0.18)');
+      g.addColorStop(0, 'rgba(110,0,0,0.60)');
+      g.addColorStop(0.5, 'rgba(60,0,0,0.25)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
       return g;
     });
@@ -3375,7 +3378,7 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
 
   // Fire particles — additive blending creates natural crimson glow where they overlap
   if (!canvas._furyFirePtcls) {
-    canvas._furyFirePtcls = Array.from({ length: 220 }, (_, i) => _furyNewFirePtcl(W, H, i < 175));
+    canvas._furyFirePtcls = Array.from({ length: 280 }, (_, i) => _furyNewFirePtcl(W, H, i < 220));
   }
   ctx.globalCompositeOperation = 'lighter';
   for (let i = canvas._furyFirePtcls.length - 1; i >= 0; i--) {
@@ -3386,9 +3389,8 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
     e.y  += e.vy * dt;
     e.life -= e.decay * dt;
     if (e.life <= 0 || e.y < -e.r * 2) { canvas._furyFirePtcls[i] = _furyNewFirePtcl(W, H, false); continue; }
-    const life2 = e.life * e.life;
-    ctx.globalAlpha = e.life * 0.14;
-    ctx.fillStyle = `rgb(${Math.round(115 * life2)},0,0)`;
+    ctx.globalAlpha = e.life * 0.32;
+    ctx.fillStyle = `hsl(${Math.round(20 * e.life)},100%,${Math.round(12 + 25 * e.life)}%)`;
     ctx.beginPath(); ctx.arc(e.x, e.y, e.r * (0.4 + 0.6 * e.life), 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalCompositeOperation = 'source-over';
@@ -3425,6 +3427,58 @@ function _furyNewOvEmber(W, H, scatter) {
   };
 }
 
+function _furyDrawMuffin(ctx, x, y, t) {
+  const sc   = 28;
+  const domeR = sc;
+  const cupTW = sc * 1.28, cupBW = sc * 1.62, cupH = sc * 1.05;
+  const cupTopY = y + domeR * 0.62, cupBotY = cupTopY + cupH;
+
+  // Cup wrapper — trapezoid with side darkening
+  const wg = ctx.createLinearGradient(x - cupBW, 0, x + cupBW, 0);
+  wg.addColorStop(0,    '#2a1204'); wg.addColorStop(0.22, '#4a2208');
+  wg.addColorStop(0.5,  '#5c2c0c'); wg.addColorStop(0.78, '#4a2208');
+  wg.addColorStop(1,    '#2a1204');
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x - cupTW, cupTopY); ctx.lineTo(x - cupBW, cupBotY);
+  ctx.lineTo(x + cupBW, cupBotY); ctx.lineTo(x + cupTW, cupTopY);
+  ctx.closePath();
+  ctx.fillStyle = wg; ctx.fill();
+  // Vertical lines clipped to cup
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1.2;
+  for (let i = -3; i <= 3; i++) {
+    const bx = x + i * cupBW * 0.29;
+    ctx.beginPath(); ctx.moveTo(bx - i * 1.5, cupTopY); ctx.lineTo(bx, cupBotY); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Dome — chocolate brown radial gradient
+  const dg = ctx.createRadialGradient(x - domeR * 0.24, y - domeR * 0.30, domeR * 0.04, x, y, domeR * 1.08);
+  dg.addColorStop(0, '#c06838'); dg.addColorStop(0.40, '#8c4820');
+  dg.addColorStop(0.78, '#6a3010'); dg.addColorStop(1, '#381808');
+  ctx.beginPath(); ctx.arc(x, y, domeR, 0, Math.PI * 2);
+  ctx.fillStyle = dg; ctx.fill();
+
+  // Googly eyes
+  const eyeOffX = domeR * 0.37, eyeY = y - domeR * 0.06, eyeR = domeR * 0.245;
+  for (let side = -1; side <= 1; side += 2) {
+    const ex = x + side * eyeOffX;
+    // Sclera
+    ctx.beginPath(); ctx.arc(ex, eyeY, eyeR, 0, Math.PI * 2);
+    ctx.fillStyle = '#f3f1ef'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 0.8; ctx.stroke();
+    // Wandering pupil
+    const px = ex + Math.sin(t * 1.1 + side * 0.9) * eyeR * 0.30;
+    const py = eyeY + Math.cos(t * 0.85 + side * 1.3) * eyeR * 0.30;
+    ctx.beginPath(); ctx.arc(px, py, eyeR * 0.54, 0, Math.PI * 2);
+    ctx.fillStyle = '#111'; ctx.fill();
+    // Highlight
+    ctx.beginPath(); ctx.arc(px + eyeR * 0.18, py - eyeR * 0.18, eyeR * 0.16, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+  }
+}
+
 function _drawFuryOverlay(canvas, ctx, W, H, t) {
   if (_drawFuryOverlay._lt !== undefined && t - _drawFuryOverlay._lt < 0.033) return;
   const dt = _drawFuryOverlay._lt === undefined ? 0.016 : Math.min(t - _drawFuryOverlay._lt, 0.05);
@@ -3432,18 +3486,30 @@ function _drawFuryOverlay(canvas, ctx, W, H, t) {
   ctx.clearRect(0, 0, W, H);
 
   if (canvas._furyOvW !== W || canvas._furyOvH !== H) {
-    canvas._furyOvW = W; canvas._furyOvH = H; canvas._furyOvEmbers = null;
+    canvas._furyOvW = W; canvas._furyOvH = H;
+    canvas._furyOvEmbers = null; canvas._furyOvFire = null;
   }
 
-  // Subtle dark-red heat vignette at the bottom
-  const edgeG = ctx.createLinearGradient(0, H, 0, H - H * 0.16);
-  edgeG.addColorStop(0, 'rgba(18,0,0,0.28)'); edgeG.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = edgeG; ctx.fillRect(0, 0, W, H);
+  // Overlay fire streams (same channels, full-screen height, more vivid)
+  if (!canvas._furyOvFire) {
+    canvas._furyOvFire = Array.from({ length: 140 }, (_, i) => _furyNewFirePtcl(W, H, i < 110));
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = canvas._furyOvFire.length - 1; i >= 0; i--) {
+    const e = canvas._furyOvFire[i];
+    e.vx += Math.sin(t * e.turbFreq + e.phase) * e.turbAmp * dt;
+    e.vx *= (1 - 1.8 * dt);
+    e.x += e.vx * dt; e.y += e.vy * dt; e.life -= e.decay * dt;
+    if (e.life <= 0 || e.y < -e.r * 2) { canvas._furyOvFire[i] = _furyNewFirePtcl(W, H, false); continue; }
+    ctx.globalAlpha = e.life * 0.38;
+    ctx.fillStyle = `hsl(${Math.round(20 * e.life)},100%,${Math.round(12 + 25 * e.life)}%)`;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r * (0.4 + 0.6 * e.life), 0, Math.PI * 2); ctx.fill();
+  }
 
+  // Overlay embers
   if (!canvas._furyOvEmbers) {
     canvas._furyOvEmbers = Array.from({ length: 100 }, (_, i) => _furyNewOvEmber(W, H, i < 75));
   }
-  ctx.globalCompositeOperation = 'lighter';
   for (let i = canvas._furyOvEmbers.length - 1; i >= 0; i--) {
     const e = canvas._furyOvEmbers[i];
     e.x += e.vx * dt; e.y += e.vy * dt; e.life -= e.decay * dt;
@@ -3453,12 +3519,20 @@ function _drawFuryOverlay(canvas, ctx, W, H, t) {
     ctx.beginPath(); ctx.arc(e.x, e.y, e.r * Math.max(0.3, e.life), 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalCompositeOperation = 'source-over';
+
+  // Muffin cursor follower — slow lerp (floaty)
+  _furyMuffinX += (_furyMuffinTargX - _furyMuffinX) * 0.04;
+  _furyMuffinY += (_furyMuffinTargY - _furyMuffinY) * 0.04;
   ctx.globalAlpha = 1;
+  _furyDrawMuffin(ctx, _furyMuffinX, _furyMuffinY, t);
 }
 
 function _startFuryOverlay() {
   _stopFuryOverlay();
   _drawFuryOverlay._lt = undefined;
+  _furyMuffinX = _furyMuffinTargX = window.innerWidth * 0.5;
+  _furyMuffinY = _furyMuffinTargY = window.innerHeight * 0.5;
+  window.addEventListener('mousemove', _furyMuffinMouseMove);
   const cv = document.createElement('canvas');
   cv.id = 'fury-fire-overlay';
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
@@ -3479,6 +3553,7 @@ function _startFuryOverlay() {
 
 function _stopFuryOverlay() {
   if (_furyOverlayRafId) { cancelAnimationFrame(_furyOverlayRafId); _furyOverlayRafId = null; }
+  window.removeEventListener('mousemove', _furyMuffinMouseMove);
   const cv = document.getElementById('fury-fire-overlay');
   if (cv) cv.remove();
 }
