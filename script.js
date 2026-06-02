@@ -86,6 +86,11 @@ function _stopNaraRaf() {
 }
 // ─────────────────────────────────────────────────────────────
 
+// ── BIZZY bee pattern ─────────────────────────────────────────
+const _BIZZY_RE = /^Bizzy$/i;
+function _isBizzy(c) { return !!(c && c.name && _BIZZY_RE.test(c.name)); }
+// ─────────────────────────────────────────────────────────────
+
 let currentId = null;
 let editingId = null;
 let previewAnim = null;
@@ -1281,6 +1286,7 @@ function renderAvatarZone() {
 // ============================================================
 const PATTERN_DEFS = {
   none: { label: 'None', params: [] },
+  bizzy_bees: { label: "Bizzy's Hive", params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -1492,9 +1498,145 @@ function buildPatternParams(type) {
 // ============================================================
 // PATTERN RENDERERS
 // ============================================================
+/* ── Bizzy's Hive ─────────────────────────────────────────────
+   Animated bee pattern: honeycomb grid, honey drips, flying bees,
+   drifting pollen. Triggered whenever _isBizzy(currentChar) is true.
+──────────────────────────────────────────────────────────────── */
+function _drawBizzyPattern(canvas, ctx, W, H, t) {
+  ctx.clearRect(0, 0, W, H);
+
+  // ── Honeycomb (flat-top hexagons) ─────────────────────────────
+  const R   = 20;                        // center → vertex radius
+  const csx = R * 1.5;                   // column x-spacing
+  const csy = R * Math.sqrt(3);          // row y-spacing
+  for (let col = -1; col * csx < W + csx; col++) {
+    for (let row = -1; row * csy < H + csy; row++) {
+      const cx = col * csx;
+      const cy = row * csy + (col & 1 ? csy * 0.5 : 0);
+      const ph = (Math.sin(t * 0.55 + col * 0.71 + row * 1.13) + 1) * 0.5;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i;
+        i === 0
+          ? ctx.moveTo(cx + R * 0.87 * Math.cos(a), cy + R * 0.87 * Math.sin(a))
+          : ctx.lineTo(cx + R * 0.87 * Math.cos(a), cy + R * 0.87 * Math.sin(a));
+      }
+      ctx.closePath();
+      ctx.fillStyle   = `rgba(200,105,0,${(0.025 + ph * 0.085).toFixed(3)})`;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(215,130,0,${(0.07  + ph * 0.12 ).toFixed(3)})`;
+      ctx.lineWidth   = 0.8;
+      ctx.stroke();
+    }
+  }
+
+  // ── Honey drips ───────────────────────────────────────────────
+  for (let d = 0; d < 6; d++) {
+    const sd  = d * 1.618;
+    const drx = ((sd * 2.236) % 1) * W;
+    const cyc = 5 + sd % 3;
+    const ph  = ((t * (0.35 + sd % 0.3)) % cyc) / cyc;
+    const dy  = ph * (H + 48) - 48;
+    const len = 18 + (sd % 12);
+    const r   = 3.5 + (sd % 2.5);
+    const al  = 0.10 + (sd * 0.07) % 0.09;
+    if (dy > -(len + 10) && dy < H + len) {
+      ctx.beginPath();
+      ctx.moveTo(drx, dy - len);
+      ctx.bezierCurveTo(drx + r, dy - len * 0.5, drx + r, dy, drx, dy + len * 0.28);
+      ctx.bezierCurveTo(drx - r, dy, drx - r, dy - len * 0.5, drx, dy - len);
+      ctx.fillStyle = `rgba(215,145,0,${al.toFixed(3)})`;
+      ctx.fill();
+    }
+  }
+
+  // ── Flying bees ───────────────────────────────────────────────
+  for (let b = 0; b < 5; b++) {
+    const sd  = b * 2.399;
+    const cx0 = W * (0.15 + 0.7  * ((sd * 1.618) % 1));
+    const cy0 = H * (0.2  + 0.6  * ((sd * 2.399) % 1));
+    const fx1 = 0.31 + (b % 4) * 0.07, fy1 = 0.27 + (b % 3) * 0.08;
+    const fx2 = 0.17 + (b % 3) * 0.05, fy2 = 0.13 + (b % 4) * 0.04;
+    const ph1 = sd * Math.PI, ph2 = sd * 1.732;
+    const bx  = cx0 + Math.sin(t*fx1*Math.PI*2+ph1)*W*0.11 + Math.cos(t*fx2*Math.PI*2+ph2)*W*0.06;
+    const by  = cy0 + Math.cos(t*fy1*Math.PI*2+ph1)*H*0.09 + Math.sin(t*fy2*Math.PI*2+ph2)*H*0.05;
+    // Facing direction from velocity
+    const dt  = 0.06;
+    const bx2 = cx0 + Math.sin((t+dt)*fx1*Math.PI*2+ph1)*W*0.11 + Math.cos((t+dt)*fx2*Math.PI*2+ph2)*W*0.06;
+    const by2 = cy0 + Math.cos((t+dt)*fy1*Math.PI*2+ph1)*H*0.09 + Math.sin((t+dt)*fy2*Math.PI*2+ph2)*H*0.05;
+    const ang = Math.atan2(by2 - by, bx2 - bx);
+    const wf  = Math.abs(Math.sin(t * 22 + b * 1.57)); // wing flap 0..1
+    const ws  = 4.5 + wf * 3.5;                        // wing spread
+
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.rotate(ang);
+    ctx.scale(0.78 + (sd % 0.28), 0.78 + (sd % 0.28));
+
+    // Wings (drawn behind body)
+    ctx.globalAlpha = 0.28 + wf * 0.13;
+    ctx.fillStyle   = '#cce8ff';
+    ctx.beginPath(); ctx.ellipse(-2, -ws, 9.5, 4,   -0.35, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse( 4, -ws, 7,   3,    0.35, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse( 1,  ws*0.7, 6, 2.2, 0.3, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Body — clip to ellipse, paint yellow + black stripes
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI*2); ctx.clip();
+    ctx.fillStyle = '#ffcc00'; ctx.fillRect(-12, -8, 24, 16);
+    ctx.fillStyle = 'rgba(8,3,0,0.78)';
+    ctx.fillRect(-8, -8, 3.5, 16);
+    ctx.fillRect(-1, -8, 3.5, 16);
+    ctx.fillRect( 6, -8, 3.5, 16);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(90,45,0,0.38)'; ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI*2); ctx.stroke();
+
+    // Head
+    ctx.fillStyle = '#160c00';
+    ctx.beginPath(); ctx.arc(-13.5, 0, 4.5, 0, Math.PI*2); ctx.fill();
+
+    // Stinger
+    ctx.fillStyle = '#3a2000';
+    ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(14,-1.5); ctx.lineTo(14,1.5); ctx.closePath(); ctx.fill();
+
+    // Antennae
+    ctx.strokeStyle = 'rgba(12,6,0,0.82)'; ctx.lineWidth = 0.7;
+    ctx.beginPath(); ctx.moveTo(-16,-2); ctx.quadraticCurveTo(-22,-11,-19,-15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-16,-2); ctx.quadraticCurveTo(-27,-9, -24,-13);  ctx.stroke();
+    ctx.fillStyle = '#160c00';
+    ctx.beginPath(); ctx.arc(-19,-15, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-24,-13, 1.6, 0, Math.PI*2); ctx.fill();
+
+    ctx.restore();
+  }
+
+  // ── Pollen particles ─────────────────────────────────────────
+  for (let p = 0; p < 28; p++) {
+    const sd   = p * 0.618;
+    const px   = ((sd * 2.73) % 1) * W;
+    const spd  = 18 + (sd % 12);
+    const py   = ((H - (t * spd + sd * H) % (H + 16) + H + 16)) % (H + 16);
+    const drift= Math.sin(t * 0.7 + sd * 6.28) * 14;
+    const r    = 1.2 + (sd % 1) * 1.8;
+    const al   = 0.15 + (sd % 0.22);
+    ctx.fillStyle = `rgba(255,210,20,${al.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(px + drift, py, r, 0, Math.PI*2); ctx.fill();
+    const grd = ctx.createRadialGradient(px+drift, py, 0, px+drift, py, r*3.5);
+    grd.addColorStop(0, `rgba(255,220,40,${(al*0.25).toFixed(3)})`);
+    grd.addColorStop(1, 'rgba(255,200,0,0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(px+drift, py, r*3.5, 0, Math.PI*2); ctx.fill();
+  }
+}
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
+
+  // Special: Bizzy's bee pattern — always overrides stored type
+  if (type === 'bizzy_bees') { _drawBizzyPattern(canvas, ctx, W, H, t); return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -2477,9 +2619,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = c.pattern?.type || 'none', pdef = PATTERN_DEFS[ptype];
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : (c.pattern?.type || 'none');
+  const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -7530,7 +7673,8 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    if (c?.pattern?.type && c.pattern.type !== 'none') { stopBgAnim(); startBgAnim(c.pattern.type, c.pattern.params); }
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : c?.pattern?.type;
+    if (_rePtype && _rePtype !== 'none') { stopBgAnim(); startBgAnim(_rePtype, c?.pattern?.params || {}); }
   }
 });
 
