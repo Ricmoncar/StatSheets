@@ -969,7 +969,13 @@ function _plLoadAndPlay(songIdx) {
 
 function plTogglePlay() {
   if (!_AU.src || _AU.src === location.href) {
-    if (_plData?.songs?.length) plPlay(0);
+    if (_plData?.songs?.length) {
+      // When shuffle is on, start from a random song, not always 0
+      const startIdx = _plShuffle
+        ? Math.floor(Math.random() * _plData.songs.length)
+        : 0;
+      plPlay(startIdx);
+    }
     return;
   }
   if (_AU.paused) _AU.play().catch(()=>{});
@@ -978,7 +984,23 @@ function plTogglePlay() {
 
 function plNext() {
   if (!_plQueue.length) return;
-  _plQIdx = (_plQIdx + 1) % _plQueue.length;
+  const newIdx = _plQIdx + 1;
+  if (newIdx >= _plQueue.length) {
+    // End of queue — re-shuffle for a fresh order instead of repeating
+    if (_plShuffle && _plData?.songs?.length > 1) {
+      const all = _plData.songs.map((_,i) => i);
+      for (let i = all.length-1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i+1));
+        [all[i], all[j]] = [all[j], all[i]];
+      }
+      _plQueue = all;
+      _plQIdx  = 0;
+    } else {
+      _plQIdx = 0;
+    }
+  } else {
+    _plQIdx = newIdx;
+  }
   _plLoadAndPlay(_plQueue[_plQIdx]);
 }
 
@@ -1133,11 +1155,20 @@ function plDrop(e, toIdx) {
   const [moved] = songs.splice(_plDragSrc, 1);
   songs.splice(toIdx, 0, moved);
 
-  /* Rebuild sequential queue, find new position of playing song */
-  _plQueue = songs.map((_,i)=>i);
-  if (curSongId) {
-    const ni = songs.findIndex(s=>s.id===curSongId);
-    _plQIdx  = ni >= 0 ? ni : 0;
+  /* Rebuild queue respecting shuffle state */
+  const ni = curSongId ? songs.findIndex(s => s.id === curSongId) : -1;
+  const curNewIdx = ni >= 0 ? ni : 0;
+  if (_plShuffle && songs.length > 1) {
+    const rest = songs.map((_,i) => i).filter(i => i !== curNewIdx);
+    for (let k = rest.length-1; k > 0; k--) {
+      const j = Math.floor(Math.random() * (k+1));
+      [rest[k], rest[j]] = [rest[j], rest[k]];
+    }
+    _plQueue = [curNewIdx, ...rest];
+    _plQIdx  = 0;
+  } else {
+    _plQueue = songs.map((_,i) => i);
+    _plQIdx  = curNewIdx;
   }
 
   _plDragSrc = null;
