@@ -89,6 +89,10 @@ function _stopNaraRaf() {
 // ── BIZZY bee pattern ─────────────────────────────────────────
 const _BIZZY_RE = /^Bizzy$/i;
 function _isBizzy(c) { return !!(c && c.name && _BIZZY_RE.test(c.name)); }
+
+let _bizzyRafId = null, _bizzyRafT = 0, _bizzyRafPrev = 0;
+let _bizzySmoothedLevel = 0;
+let _bizzyAudioCtx = null, _bizzyAnalyser = null, _bizzyAudioBuf = null;
 // ─────────────────────────────────────────────────────────────
 
 let currentId = null;
@@ -1498,6 +1502,140 @@ function buildPatternParams(type) {
 // ============================================================
 // PATTERN RENDERERS
 // ============================================================
+/* ── Shared bee renderer ─────────────────────────────────────── */
+function _bzBeeAt(ctx, b, W, H, t) {
+  const sd  = b * 2.399, PI2 = Math.PI * 2;
+  const cx0 = W * (0.15 + 0.7 * ((sd * 1.618) % 1));
+  const cy0 = H * (0.2  + 0.6 * ((sd * 2.399) % 1));
+  const fx1 = 0.31+(b%4)*0.07, fy1 = 0.27+(b%3)*0.08;
+  const fx2 = 0.17+(b%3)*0.05, fy2 = 0.13+(b%4)*0.04;
+  const ph1 = sd*Math.PI, ph2 = sd*1.732;
+  const bx  = cx0+Math.sin(t*fx1*PI2+ph1)*W*0.11+Math.cos(t*fx2*PI2+ph2)*W*0.06;
+  const by  = cy0+Math.cos(t*fy1*PI2+ph1)*H*0.09+Math.sin(t*fy2*PI2+ph2)*H*0.05;
+  const dt  = 0.06;
+  const bx2 = cx0+Math.sin((t+dt)*fx1*PI2+ph1)*W*0.11+Math.cos((t+dt)*fx2*PI2+ph2)*W*0.06;
+  const by2 = cy0+Math.cos((t+dt)*fy1*PI2+ph1)*H*0.09+Math.sin((t+dt)*fy2*PI2+ph2)*H*0.05;
+  const ang = Math.atan2(by2-by, bx2-bx);
+  const wf  = Math.abs(Math.sin(t*22+b*1.57));
+  const ws  = 4.5+wf*3.5;
+  ctx.save();
+  ctx.translate(bx, by); ctx.rotate(ang); ctx.scale(0.78+(sd%0.28), 0.78+(sd%0.28));
+  ctx.globalAlpha = 0.28+wf*0.13; ctx.fillStyle = '#cce8ff';
+  ctx.beginPath(); ctx.ellipse(-2,-ws,9.5,4,-0.35,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 4,-ws,7,3,0.35,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 1,ws*0.7,6,2.2,0.3,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(0,0,10,6,0,0,Math.PI*2); ctx.clip();
+  ctx.fillStyle='#ffcc00'; ctx.fillRect(-12,-8,24,16);
+  ctx.fillStyle='rgba(8,3,0,0.78)';
+  ctx.fillRect(-8,-8,3.5,16); ctx.fillRect(-1,-8,3.5,16); ctx.fillRect(6,-8,3.5,16);
+  ctx.restore();
+  ctx.strokeStyle='rgba(90,45,0,0.38)'; ctx.lineWidth=0.6;
+  ctx.beginPath(); ctx.ellipse(0,0,10,6,0,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='#160c00'; ctx.beginPath(); ctx.arc(-13.5,0,4.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#3a2000'; ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(14,-1.5); ctx.lineTo(14,1.5); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(12,6,0,0.82)'; ctx.lineWidth=0.7;
+  ctx.beginPath(); ctx.moveTo(-16,-2); ctx.quadraticCurveTo(-22,-11,-19,-15); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-16,-2); ctx.quadraticCurveTo(-27,-9,-24,-13); ctx.stroke();
+  ctx.fillStyle='#160c00';
+  ctx.beginPath(); ctx.arc(-19,-15,1.6,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-24,-13,1.6,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+/* ── Bizzy overlay + audio + RAF ─────────────────────────────── */
+function _bizzyConnectAudio() {
+  if (_bizzyAudioCtx) { if (_bizzyAudioCtx.state==='suspended') _bizzyAudioCtx.resume().catch(()=>{}); return; }
+  const audio = window._themeAudio || document.getElementById('theme-audio');
+  if (!audio) return;
+  try {
+    _bizzyAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    _bizzyAnalyser = _bizzyAudioCtx.createAnalyser();
+    _bizzyAnalyser.fftSize = 64;
+    _bizzyAnalyser.smoothingTimeConstant = 0.6;
+    _bizzyAudioBuf = new Uint8Array(_bizzyAnalyser.frequencyBinCount);
+    const src = _bizzyAudioCtx.createMediaElementSource(audio);
+    src.connect(_bizzyAnalyser);
+    _bizzyAnalyser.connect(_bizzyAudioCtx.destination);
+  } catch(e) { _bizzyAudioCtx = null; }
+}
+
+function _bizzyGetLevel() {
+  if (!_bizzyAnalyser) return 0;
+  _bizzyAnalyser.getByteTimeDomainData(_bizzyAudioBuf);
+  let sq = 0;
+  for (const v of _bizzyAudioBuf) sq += ((v-128)/128)**2;
+  return Math.min(1, Math.sqrt(sq/_bizzyAudioBuf.length) * 6);
+}
+
+function _bizzyPulseColor(c) {
+  const cv = document.getElementById('char-view'); if (!cv||!c?.color) return;
+  const hex = c.color.replace('#','');
+  if (hex.length!==6) return;
+  const r=parseInt(hex.slice(0,2),16), g=parseInt(hex.slice(2,4),16), b=parseInt(hex.slice(4,6),16);
+  const isPlaying = window._themeAudio && !_themeAudio.paused;
+  let bright;
+  if (isPlaying && _bizzyAnalyser) {
+    const lvl = _bizzyGetLevel();
+    _bizzySmoothedLevel = _bizzySmoothedLevel*0.78 + lvl*0.22;
+    bright = 0.65 + _bizzySmoothedLevel * 0.75;
+  } else {
+    // Gentle breathing when no music
+    bright = 0.78 + Math.sin(_bizzyRafT * 1.8) * 0.22;
+  }
+  const pr=Math.min(255,Math.round(r*bright));
+  const pg=Math.min(255,Math.round(g*bright));
+  const pb=Math.min(255,Math.round(b*bright));
+  cv.style.setProperty('--char-color', `rgb(${pr},${pg},${pb})`);
+}
+
+function _bizzyRafTick(ts) {
+  const c = typeof characters!=='undefined' ? characters.find(x=>x.id===currentId) : null;
+  if (!_isBizzy(c)) { _stopBizzyRaf(); return; }
+  if (!_bizzyRafPrev) _bizzyRafPrev = ts;
+  _bizzyRafT += (ts - _bizzyRafPrev) / 1000;
+  _bizzyRafPrev = ts;
+  _bizzyPulseColor(c);
+  // Draw escaped bees on overlay canvas
+  const ov = document.getElementById('bizzy-bee-overlay');
+  if (ov) {
+    const cvEl = document.getElementById('char-view');
+    const nw = cvEl ? cvEl.offsetWidth : 0, nh = cvEl ? cvEl.scrollHeight : 0;
+    if (nw>0 && nh>0 && (ov.width!==nw||ov.height!==nh)) { ov.width=nw; ov.height=nh; }
+    if (ov.width>0 && ov.height>0) {
+      const ctx = ov.getContext('2d');
+      ctx.clearRect(0, 0, ov.width, ov.height);
+      _bzBeeAt(ctx, 3, ov.width, ov.height, _bizzyRafT);
+      _bzBeeAt(ctx, 4, ov.width, ov.height, _bizzyRafT);
+    }
+  }
+  _bizzyRafId = requestAnimationFrame(_bizzyRafTick);
+}
+
+function _startBizzyRaf() {
+  _bizzyConnectAudio();
+  let ov = document.getElementById('bizzy-bee-overlay');
+  if (!ov) {
+    ov = document.createElement('canvas');
+    ov.id = 'bizzy-bee-overlay';
+    ov.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;';
+    const cv = document.getElementById('char-view');
+    if (cv) { cv.style.position='relative'; cv.appendChild(ov); }
+  }
+  _bizzyRafPrev = 0;
+  if (!_bizzyRafId) _bizzyRafId = requestAnimationFrame(_bizzyRafTick);
+}
+
+function _stopBizzyRaf() {
+  if (_bizzyRafId) { cancelAnimationFrame(_bizzyRafId); _bizzyRafId = null; }
+  const ov = document.getElementById('bizzy-bee-overlay'); if (ov) ov.remove();
+  // Restore the char's actual color
+  const c = typeof characters!=='undefined' ? characters.find(x=>x.id===currentId) : null;
+  const cv = document.getElementById('char-view');
+  if (cv && c?.color) cv.style.setProperty('--char-color', c.color);
+}
+
 /* ── Bizzy's Hive ─────────────────────────────────────────────
    Animated bee pattern: honeycomb grid, honey drips, flying bees,
    drifting pollen. Triggered whenever _isBizzy(currentChar) is true.
@@ -1522,10 +1660,10 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
           : ctx.lineTo(cx + R * 0.87 * Math.cos(a), cy + R * 0.87 * Math.sin(a));
       }
       ctx.closePath();
-      ctx.fillStyle   = `rgba(200,105,0,${(0.025 + ph * 0.085).toFixed(3)})`;
+      ctx.fillStyle   = `rgba(200,105,0,${(0.05  + ph * 0.14 ).toFixed(3)})`;
       ctx.fill();
-      ctx.strokeStyle = `rgba(215,130,0,${(0.07  + ph * 0.12 ).toFixed(3)})`;
-      ctx.lineWidth   = 0.8;
+      ctx.strokeStyle = `rgba(220,140,0,${(0.12  + ph * 0.20 ).toFixed(3)})`;
+      ctx.lineWidth   = 0.9;
       ctx.stroke();
     }
   }
@@ -1550,67 +1688,8 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
     }
   }
 
-  // ── Flying bees ───────────────────────────────────────────────
-  for (let b = 0; b < 5; b++) {
-    const sd  = b * 2.399;
-    const cx0 = W * (0.15 + 0.7  * ((sd * 1.618) % 1));
-    const cy0 = H * (0.2  + 0.6  * ((sd * 2.399) % 1));
-    const fx1 = 0.31 + (b % 4) * 0.07, fy1 = 0.27 + (b % 3) * 0.08;
-    const fx2 = 0.17 + (b % 3) * 0.05, fy2 = 0.13 + (b % 4) * 0.04;
-    const ph1 = sd * Math.PI, ph2 = sd * 1.732;
-    const bx  = cx0 + Math.sin(t*fx1*Math.PI*2+ph1)*W*0.11 + Math.cos(t*fx2*Math.PI*2+ph2)*W*0.06;
-    const by  = cy0 + Math.cos(t*fy1*Math.PI*2+ph1)*H*0.09 + Math.sin(t*fy2*Math.PI*2+ph2)*H*0.05;
-    // Facing direction from velocity
-    const dt  = 0.06;
-    const bx2 = cx0 + Math.sin((t+dt)*fx1*Math.PI*2+ph1)*W*0.11 + Math.cos((t+dt)*fx2*Math.PI*2+ph2)*W*0.06;
-    const by2 = cy0 + Math.cos((t+dt)*fy1*Math.PI*2+ph1)*H*0.09 + Math.sin((t+dt)*fy2*Math.PI*2+ph2)*H*0.05;
-    const ang = Math.atan2(by2 - by, bx2 - bx);
-    const wf  = Math.abs(Math.sin(t * 22 + b * 1.57)); // wing flap 0..1
-    const ws  = 4.5 + wf * 3.5;                        // wing spread
-
-    ctx.save();
-    ctx.translate(bx, by);
-    ctx.rotate(ang);
-    ctx.scale(0.78 + (sd % 0.28), 0.78 + (sd % 0.28));
-
-    // Wings (drawn behind body)
-    ctx.globalAlpha = 0.28 + wf * 0.13;
-    ctx.fillStyle   = '#cce8ff';
-    ctx.beginPath(); ctx.ellipse(-2, -ws, 9.5, 4,   -0.35, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse( 4, -ws, 7,   3,    0.35, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse( 1,  ws*0.7, 6, 2.2, 0.3, 0, Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // Body — clip to ellipse, paint yellow + black stripes
-    ctx.save();
-    ctx.beginPath(); ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI*2); ctx.clip();
-    ctx.fillStyle = '#ffcc00'; ctx.fillRect(-12, -8, 24, 16);
-    ctx.fillStyle = 'rgba(8,3,0,0.78)';
-    ctx.fillRect(-8, -8, 3.5, 16);
-    ctx.fillRect(-1, -8, 3.5, 16);
-    ctx.fillRect( 6, -8, 3.5, 16);
-    ctx.restore();
-    ctx.strokeStyle = 'rgba(90,45,0,0.38)'; ctx.lineWidth = 0.6;
-    ctx.beginPath(); ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI*2); ctx.stroke();
-
-    // Head
-    ctx.fillStyle = '#160c00';
-    ctx.beginPath(); ctx.arc(-13.5, 0, 4.5, 0, Math.PI*2); ctx.fill();
-
-    // Stinger
-    ctx.fillStyle = '#3a2000';
-    ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(14,-1.5); ctx.lineTo(14,1.5); ctx.closePath(); ctx.fill();
-
-    // Antennae
-    ctx.strokeStyle = 'rgba(12,6,0,0.82)'; ctx.lineWidth = 0.7;
-    ctx.beginPath(); ctx.moveTo(-16,-2); ctx.quadraticCurveTo(-22,-11,-19,-15); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-16,-2); ctx.quadraticCurveTo(-27,-9, -24,-13);  ctx.stroke();
-    ctx.fillStyle = '#160c00';
-    ctx.beginPath(); ctx.arc(-19,-15, 1.6, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(-24,-13, 1.6, 0, Math.PI*2); ctx.fill();
-
-    ctx.restore();
-  }
+  // ── Flying bees (bees 0-2 stay in the pattern background) ────
+  for (let b = 0; b < 3; b++) _bzBeeAt(ctx, b, W, H, t);
 
   // ── Pollen particles ─────────────────────────────────────────
   for (let p = 0; p < 28; p++) {
@@ -2578,8 +2657,9 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); }
-  else { _stopNaraRaf(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); }
+  else if (_isBizzy(c)) { _stopNaraRaf(); _startBizzyRaf(); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
