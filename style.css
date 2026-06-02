@@ -6024,6 +6024,30 @@ input[type=number] { -moz-appearance: textfield; }
   border-color: #e04040;
 }
 
+/* ── Background-play toggle ─────────────────────────────────── */
+#theme-bar-bg {
+  background: transparent;
+  border: 1px solid #1c1c1c;
+  color: #333;
+  font-size: 7px;
+  letter-spacing: 1px;
+  width: 24px; height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: none;
+  padding: 0;
+  flex-shrink: 0;
+  font-family: var(--font-main);
+  transition: color 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+#theme-bar-bg:hover { color: #888; border-color: #555; }
+#theme-bar-bg.active {
+  color: var(--bar-accent);
+  border-color: var(--bar-accent);
+  box-shadow: 0 0 8px var(--bar-accent);
+}
+
 /* ── MUSIC TAB ──────────────────────────────────────────────── */
 .theme-tab-panel { min-height: 180px; }
 

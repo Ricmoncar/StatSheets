@@ -345,6 +345,7 @@ let _themeCurrentCharId = null;   // whose theme is playing right now
 let _themeCurrentSong = null;     // cache of the song object currently being played
 let _themeVolume = 20;            // 0-100
 let _themePaused = false;
+let _keepPlayingInBg = false;     // when true, skip the visibilitychange pause
 const _themeReloadKeys = new Set();
 let _themeFadeTimer = null;
 let _themeBarAutoHideTimer = null; // slides bar to peeked after 1.5 s
@@ -932,6 +933,7 @@ function _unlockAutoplay() {
 
 // ── Pause when the user switches to another tab / minimises ──────────────────
 document.addEventListener('visibilitychange', () => {
+  if (_keepPlayingInBg) return; // user opted in to background play
   if (document.hidden && _themeCurrentCharId && !_themeAudio.paused) {
     _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
     _themeAudio.pause();
@@ -942,6 +944,11 @@ document.addEventListener('visibilitychange', () => {
     if (eq) eq.classList.add('paused');
   }
 });
+
+function toggleKeepPlaying() {
+  _keepPlayingInBg = !_keepPlayingInBg;
+  document.getElementById('theme-bar-bg')?.classList.toggle('active', _keepPlayingInBg);
+}
 
 // Dismiss the mini-player without removing the theme assignment
 function stopThemeMini() {
