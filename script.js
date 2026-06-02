@@ -2060,24 +2060,25 @@ function _drawKatieFrog(ctx, x, y, ang, spd, t) {
 
   const BW = 24, BH = 20;
 
-  // ── Purple tongue (behind body) ──
-  const wag      = Math.sin(t * 9 + spd * 0.05) * (5 + norm * 22);
-  const tongueDy = BH * 0.3 + 14 + norm * 18 + Math.abs(Math.sin(t*3.5)) * 7;
+  // ── Purple tongue (shoots from mouth, out the front) ──
+  const wag       = Math.sin(t * 9 + spd * 0.05) * (5 + norm * 22);
+  const mouthY    = -BH * 0.28;                                   // just below the eyes
+  const tongueLen = BH * 0.45 + 10 + norm * 18 + Math.abs(Math.sin(t*3.5)) * 7;
+  const tipY      = mouthY - tongueLen;                            // extends OUTWARD (up in local space = front of frog)
   ctx.save();
   ctx.shadowBlur = 6; ctx.shadowColor = '#5520a0';
   ctx.lineWidth  = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.strokeStyle = '#7030c0';
   ctx.beginPath();
-  ctx.moveTo(0, BH * 0.12);
-  ctx.bezierCurveTo(wag*0.3, BH*0.12 + tongueDy*0.35,
-                    wag*0.75, BH*0.12 + tongueDy*0.68,
-                    wag,      BH*0.12 + tongueDy);
+  ctx.moveTo(0, mouthY);
+  ctx.bezierCurveTo(wag*0.3, mouthY - tongueLen*0.35,
+                    wag*0.75, mouthY - tongueLen*0.68,
+                    wag,      tipY);
   ctx.stroke();
   // tongue tip bulb
   ctx.fillStyle = '#6828b0';
   ctx.beginPath();
-  ctx.ellipse(wag, BH*0.12+tongueDy, 6, 4,
-    Math.atan2(tongueDy, wag), 0, Math.PI*2);
+  ctx.ellipse(wag, tipY, 6, 4, Math.atan2(-tongueLen, wag), 0, Math.PI*2);
   ctx.fill();
   ctx.shadowBlur = 0;
   ctx.restore();
@@ -2195,8 +2196,8 @@ function _startKatieOverlay() {
     prevMs = now;
     const t = (now - t0) / 1000;
 
-    // Spring physics — overshoots cursor, then settles
-    const SPRING = 280, DAMP = 22;
+    // Spring physics — lags behind cursor, chasing feel
+    const SPRING = 130, DAMP = 14;
     _katieFrogVX += ((_katieTargX - _katieFrogX) * SPRING - _katieFrogVX * DAMP) * dt;
     _katieFrogVY += ((_katieTargY - _katieFrogY) * SPRING - _katieFrogVY * DAMP) * dt;
     _katieFrogX  += _katieFrogVX * dt;
