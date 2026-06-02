@@ -93,6 +93,14 @@ function _isBizzy(c) { return !!(c && c.name && _BIZZY_RE.test(c.name)); }
 const _BJ_RE = /^BLACKJACK$/i;
 function _isBlackjack(c) { return !!(c && c.name && _BJ_RE.test(c.name)); }
 
+const _KATIE_RE = /^Katie$/i;
+function _isKatie(c) { return !!(c && c.name && _KATIE_RE.test(c.name)); }
+// Frog persistent state (normalized 0-1 within canvas)
+let _katieFrogNX = 0.5, _katieFrogNY = 0.7;
+let _katieTargNX = 0.5, _katieTargNY = 0.7;
+let _katieFrogAng = 0;
+let _katieMoveH = null, _katieHookCv = null;
+
 let _bizzyRafId = null, _bizzyRafT = 0, _bizzyRafPrev = 0;
 let _bizzySmoothedLevel = 0;
 let _bizzyIsPlaying = false;
@@ -1296,6 +1304,7 @@ const PATTERN_DEFS = {
   none: { label: 'None', params: [] },
   bizzy_bees:     { label: "Bizzy's Hive",      params: [] },
   blackjack_neon: { label: "Blackjack's Neon",  params: [] },
+  katie_pond:     { label: "Katie's Pond",       params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -1951,6 +1960,233 @@ function _drawBlackjackPattern(canvas, ctx, W, H, t) {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+/* ── KATIE — lily pond ────────────────────────────────────────── */
+function _katieHook(cv) {
+  if (_katieHookCv === cv) return;
+  _katieUnhook();
+  _katieHookCv = cv;
+  _katieFrogNX = 0.5; _katieFrogNY = 0.65;
+  _katieTargNX = 0.5; _katieTargNY = 0.65;
+  _katieFrogAng = 0;
+  _katieMoveH = e => {
+    const r = cv.getBoundingClientRect();
+    if (!r.width) return;
+    _katieTargNX = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    _katieTargNY = Math.max(0, Math.min(1, (e.clientY - r.top)  / r.height));
+  };
+  document.addEventListener('mousemove', _katieMoveH);
+}
+function _katieUnhook() {
+  if (_katieMoveH) { document.removeEventListener('mousemove', _katieMoveH); _katieMoveH = null; }
+  _katieHookCv = null;
+}
+
+function _katieH(i, n) {
+  const v = Math.sin(i * 97.3 + n * 251.9 + i * n * 13.7) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+function _drawKatiePad(ctx, cx, cy, rx, ry, rot, t, idx) {
+  const sway = Math.sin(t * 0.35 + idx * 1.7) * 0.05;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot + sway);
+
+  // Shadow
+  ctx.save();
+  ctx.translate(4, 5);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0, 0, rx, 0.35, Math.PI*2-0.35); ctx.lineTo(0,0);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fill();
+  ctx.restore();
+
+  // Pad body (ellipse with V notch)
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0, 0, rx, 0.35, Math.PI*2-0.35); ctx.lineTo(0,0);
+  const pg = ctx.createRadialGradient(-rx*0.2, -ry*0.3, 0, 0, 0, rx);
+  pg.addColorStop(0,   '#5db85d');
+  pg.addColorStop(0.6, '#3a8c3a');
+  pg.addColorStop(1,   '#1f6020');
+  ctx.fillStyle = pg; ctx.fill();
+  ctx.strokeStyle = 'rgba(70,150,50,0.45)'; ctx.lineWidth = 0.8; ctx.stroke();
+
+  // Radial veins
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0, 0, rx, 0.35, Math.PI*2-0.35); ctx.lineTo(0,0); ctx.clip();
+  ctx.strokeStyle = 'rgba(15,65,15,0.28)'; ctx.lineWidth = 0.65;
+  for (let v = 0; v < 9; v++) {
+    const va = 0.35 + (Math.PI*2 - 0.7) * (v/9);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(va)*rx, Math.sin(va)*ry); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+function _drawKatieFlower(ctx, cx, cy, r, t, idx) {
+  const bob = Math.sin(t * 0.5 + idx * 2.1) * 1.5;
+  ctx.save(); ctx.translate(cx, cy + bob);
+  for (let p = 0; p < 5; p++) {
+    ctx.save(); ctx.rotate((p/5) * Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(0, -r*0.65, r*0.3, r*0.52, 0, 0, Math.PI*2);
+    const pg = ctx.createRadialGradient(0, -r*0.5, 0, 0, -r*0.65, r*0.52);
+    pg.addColorStop(0, 'rgba(255,215,230,0.96)');
+    pg.addColorStop(1, 'rgba(255,140,168,0.80)');
+    ctx.fillStyle = pg; ctx.fill(); ctx.restore();
+  }
+  ctx.beginPath(); ctx.arc(0, 0, r*0.28, 0, Math.PI*2);
+  ctx.fillStyle = '#ffdf3a'; ctx.shadowBlur = 5; ctx.shadowColor = '#ffbb00'; ctx.fill(); ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function _drawKatieFrog(ctx, x, y, ang, t) {
+  const blink = (Math.sin(t * 1.9) > 0.93);
+  const moving = Math.hypot(_katieTargNX - _katieFrogNX, _katieTargNY - _katieFrogNY) > 0.005;
+  const hop = moving ? Math.abs(Math.sin(t * 8)) * 5 : 0;
+
+  ctx.save();
+  ctx.translate(x, y - hop);
+  ctx.rotate(ang);
+
+  const BW = 16, BH = 12;
+
+  // Back legs
+  for (const s of [-1, 1]) {
+    ctx.save(); ctx.translate(s*BW*0.65, BH*0.6); ctx.rotate(s*0.5);
+    ctx.beginPath(); ctx.ellipse(s*2.5, 5, 4.5, 8, s*0.25, 0, Math.PI*2);
+    ctx.fillStyle = '#28672a'; ctx.fill(); ctx.restore();
+  }
+  // Front legs
+  for (const s of [-1, 1]) {
+    ctx.save(); ctx.translate(s*BW*0.55, -BH*0.15); ctx.rotate(s*0.55);
+    ctx.beginPath(); ctx.ellipse(s*2, 3.5, 3.5, 6, s*0.2, 0, Math.PI*2);
+    ctx.fillStyle = '#336b35'; ctx.fill(); ctx.restore();
+  }
+
+  // Body
+  const bg = ctx.createRadialGradient(0, -3, 1, 0, 0, BW);
+  bg.addColorStop(0, '#5dc060'); bg.addColorStop(1, '#2c6e30');
+  ctx.beginPath(); ctx.ellipse(0, 0, BW, BH, 0, 0, Math.PI*2);
+  ctx.fillStyle = bg; ctx.shadowBlur = 7; ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.fill(); ctx.shadowBlur = 0;
+
+  // Belly
+  ctx.beginPath(); ctx.ellipse(0, 2, BW*0.55, BH*0.5, 0, 0, Math.PI*2);
+  ctx.fillStyle = '#92db8e'; ctx.fill();
+
+  // Eyes
+  const EY = -BH*0.62, ER = 4.5;
+  for (const s of [-1, 1]) {
+    const ex = s * BW*0.48;
+    ctx.beginPath(); ctx.ellipse(ex, EY, ER, ER*0.85, 0, 0, Math.PI*2);
+    ctx.fillStyle = '#2c6e30'; ctx.fill();
+    ctx.beginPath(); ctx.arc(ex, EY, ER*0.72, 0, Math.PI*2);
+    ctx.fillStyle = '#e0f5dc'; ctx.fill();
+    if (blink) {
+      ctx.beginPath(); ctx.moveTo(ex-ER*0.65, EY); ctx.lineTo(ex+ER*0.65, EY);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 2.2; ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.ellipse(ex, EY, ER*0.33, ER*0.43, 0, 0, Math.PI*2);
+      ctx.fillStyle = '#080808'; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex+1.3, EY-1.3, ER*0.16, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+    }
+  }
+
+  // Smile
+  ctx.beginPath(); ctx.arc(0, -BH*0.08, BW*0.33, 0.28, Math.PI-0.28);
+  ctx.strokeStyle = 'rgba(18,65,18,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  ctx.restore();
+}
+
+function _drawKatiePattern(canvas, ctx, W, H, t) {
+  _katieHook(canvas);
+
+  // ── Frog physics (smooth lag follow) ──────────────────────
+  const lp = 0.05;
+  _katieFrogNX += (_katieTargNX - _katieFrogNX) * lp;
+  _katieFrogNY += (_katieTargNY - _katieFrogNY) * lp;
+  const fx = _katieFrogNX * W, fy = _katieFrogNY * H;
+  const ddx = _katieTargNX*W - fx, ddy = _katieTargNY*H - fy;
+  if (ddx*ddx + ddy*ddy > 4) {
+    const ta = Math.atan2(ddy, ddx) + Math.PI*0.5;
+    let da = ta - _katieFrogAng;
+    while (da >  Math.PI) da -= Math.PI*2;
+    while (da < -Math.PI) da += Math.PI*2;
+    _katieFrogAng += da * 0.09;
+  }
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ── Water base ────────────────────────────────────────────
+  const wg = ctx.createLinearGradient(W*0.1, 0, W*0.9, H);
+  wg.addColorStop(0,   '#0b2d3e');
+  wg.addColorStop(0.5, '#0f3d50');
+  wg.addColorStop(1,   '#092838');
+  ctx.fillStyle = wg; ctx.fillRect(0, 0, W, H);
+
+  // Surface ripple lines (tiled across the whole canvas)
+  ctx.save();
+  for (let row = 0; row < 16; row++) {
+    const ry0 = (row / 16) * H;
+    const amp = 2 + Math.sin(row * 0.55) * 1.5;
+    const aV  = (0.05 + Math.sin(t*0.55 + row*0.5)*0.03).toFixed(3);
+    ctx.strokeStyle = `rgba(45,155,200,${aV})`; ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 8) {
+      const y = ry0 + Math.sin(x*0.042 + t*0.7 + row*0.58) * amp;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Caustic light patches (underwater shimmer)
+  for (let c = 0; c < 6; c++) {
+    const h   = n => _katieH(c+300, n);
+    const cpx = h(0)*W, cpy = h(1)*H;
+    const dft = Math.sin(t*0.28 + c*2.1) * 20;
+    const pw  = (Math.sin(t*0.85 + c*1.4) + 1)*0.5;
+    const cg  = ctx.createRadialGradient(cpx+dft, cpy, 0, cpx+dft, cpy, 35+pw*25);
+    cg.addColorStop(0, `rgba(70,180,215,${(0.06+pw*0.07).toFixed(3)})`);
+    cg.addColorStop(1, 'rgba(0,70,110,0)');
+    ctx.fillStyle = cg;
+    ctx.beginPath(); ctx.ellipse(cpx+dft, cpy, 60+pw*20, 32+pw*14, Math.sin(c*1.3)*0.35, 0, Math.PI*2); ctx.fill();
+  }
+
+  // ── Lily pads + flowers ───────────────────────────────────
+  for (let i = 0; i < 11; i++) {
+    const h   = n => _katieH(i, n);
+    const px  = h(0)*W, py = h(1)*H;
+    const rx  = 22 + h(2)*28, ry = rx*(0.55 + h(3)*0.2);
+    const rot = h(4)*Math.PI*2;
+    ctx.save();
+    ctx.globalAlpha = 0.78 + h(6)*0.22;
+    _drawKatiePad(ctx, px, py, rx, ry, rot, t, i);
+    if (h(5) > 0.52) _drawKatieFlower(ctx, px + Math.cos(rot+0.8)*rx*0.18, py + Math.sin(rot+0.8)*ry*0.18, rx*0.28, t, i);
+    ctx.restore();
+  }
+
+  // ── Bubbles ───────────────────────────────────────────────
+  for (let b = 0; b < 20; b++) {
+    const h   = n => _katieH(b+150, n);
+    const bx0 = h(0)*W, spd = 20+h(1)*30, sz = 2.5+h(2)*5;
+    const cyc = H+sz*4+40;
+    const byP = H - (t*spd + h(3)*cyc) % cyc;
+    if (byP < -sz*2 || byP > H+sz) continue;
+    const drft = Math.sin(t*0.9 + b*1.4) * 14;
+    const wave = (Math.sin(t*1.7 + b*0.8) + 1)*0.5;
+    const bxF  = bx0 + drft;
+    ctx.beginPath(); ctx.arc(bxF, byP, sz, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(100,200,230,0.06)'; ctx.fill();
+    ctx.strokeStyle = `rgba(150,230,250,${(0.18+wave*0.24).toFixed(3)})`; ctx.lineWidth = 0.9; ctx.stroke();
+    // Highlight glint
+    ctx.beginPath(); ctx.arc(bxF-sz*0.3, byP-sz*0.35, sz*0.27, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(215,250,255,0.5)'; ctx.fill();
+  }
+
+  // ── Frog ──────────────────────────────────────────────────
+  _drawKatieFrog(ctx, fx, fy, _katieFrogAng, t);
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -1958,6 +2194,7 @@ function drawPattern(canvas, type, params, t) {
   // Special: Bizzy's bee pattern — always overrides stored type
   if (type === 'bizzy_bees') { _drawBizzyPattern(canvas, ctx, W, H, t); return; }
   if (type === 'blackjack_neon') { _drawBlackjackPattern(canvas, ctx, W, H, t); return; }
+  if (type === 'katie_pond')     { _drawKatiePattern(canvas, ctx, W, H, t);     return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -2415,6 +2652,7 @@ function startBgAnim(type, params) {
 function stopBgAnim() {
   if (bgAnim) cancelAnimationFrame(bgAnim);
   bgAnim = null;
+  _katieUnhook(); // clean up Katie's mouse listener if active
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -2941,10 +3179,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -7995,7 +8233,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') { stopBgAnim(); startBgAnim(_rePtype, c?.pattern?.params || {}); }
   }
 });
