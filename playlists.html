@@ -485,6 +485,9 @@ html, body {
   height: 100%; background: #aaa; border-radius: 2px; pointer-events: none;
 }
 
+/* Mobile back button — hidden on desktop */
+#pl-mob-back { display: none; }
+
 /* ============================================================
    TOAST
    ============================================================ */
@@ -498,6 +501,107 @@ html, body {
   white-space: nowrap;
 }
 #pl-toast.pl-show { opacity: 1; }
+
+/* ============================================================
+   MOBILE  ≤ 640px
+   ============================================================ */
+@media (max-width: 640px) {
+
+  /* Player taller to fit stacked layout */
+  :root { --player-h: 140px; }
+
+  /* ── Nav ── */
+  #pl-nav { padding: 0 10px; gap: 4px; }
+  .pl-logo { font-size: 8px; letter-spacing: 2px; }
+  .pl-nav-btn { font-size: 5px; padding: 5px 7px; letter-spacing: 0; white-space: nowrap; }
+  /* Keep only ← MAIN and UTILITIES; hide the rest */
+  #pl-nav > .pl-nav-btn:nth-child(n+4) { display: none; }
+
+  /* ── Body: sidebar sits on top as full-screen overlay ── */
+  #pl-body { position: relative; }
+
+  #pl-sidebar {
+    width: 100%; min-width: 100%;
+    border-right: none;
+    position: absolute; inset: 0; z-index: 10;
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+  }
+  /* When a character is selected, sidebar slides off-screen left */
+  .pl-mob-sel #pl-sidebar {
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+  #pl-char-list { padding-bottom: 20px; }
+
+  /* ── Back button ── */
+  #pl-mob-back {
+    display: flex; align-items: center; gap: 8px;
+    background: none; border: none; cursor: pointer;
+    color: #555; font-family: 'Press Start 2P', monospace;
+    font-size: 6px; letter-spacing: 1px;
+    padding: 16px 16px 0; transition: color .15s;
+    width: 100%;
+  }
+  #pl-mob-back:hover { color: #bbb; }
+
+  /* ── Playlist header ── */
+  #pl-header { padding: 14px 16px 12px; gap: 14px; }
+  #pl-cover-img, #pl-cover-blank { width: 88px; height: 88px; }
+  #pl-title-disp, #pl-title-input { font-size: 13px; margin-bottom: 8px; }
+  .pl-info-label { font-size: 6px; letter-spacing: 2px; margin-bottom: 8px; }
+  #pl-desc-disp, #pl-desc-input { font-size: 8px; }
+  #pl-meta { font-size: 7px; }
+
+  /* ── Action bar ── */
+  #pl-actions { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+  .pl-act-btn { font-size: 6px; padding: 7px 12px; }
+
+  /* ── Song list: remove drag column ── */
+  .pl-list-head {
+    grid-template-columns: 38px 1fr auto 40px;
+    padding: 6px 8px 6px 10px; gap: 6px;
+  }
+  .pl-list-head > div:first-child { display: none; }
+
+  .pl-song-row {
+    grid-template-columns: 38px 1fr auto 40px;
+    padding: 9px 8px 9px 10px; gap: 6px; margin: 1px 4px;
+  }
+  .pl-drag { display: none; }
+  .pl-song-title { font-size: 7px; }
+  .pl-song-dur  { font-size: 7px; }
+  /* Delete button always visible on mobile (no hover) */
+  .pl-song-del  { opacity: 1; color: #3a3a4e; }
+
+  /* ── Player bar: stack into two rows ── */
+  #pl-player {
+    height: var(--player-h);
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    padding: 8px 16px 10px; gap: 4px;
+  }
+  #pl-now-info { gap: 10px; }
+  #pl-now-art  { width: 34px; height: 34px; }
+  #pl-now-title { font-size: 7px; margin-bottom: 3px; }
+  #pl-now-by   { font-size: 7px; }
+  #pl-center   { gap: 4px; }
+  #pl-ctrl-row { gap: 8px; }
+  .pl-cbtn     { padding: 3px; }
+  .pl-playbtn  { width: 32px; height: 32px; }
+  #pl-prog-row { gap: 7px; }
+  .pl-time     { font-size: 7px; min-width: 28px; }
+  /* Hide volume bar on mobile */
+  #pl-right    { display: none; }
+
+  /* ── No-selection state ── */
+  #pl-no-sel { font-size: 7px; }
+
+  /* ── Toast ── */
+  #pl-toast {
+    font-size: 6px; white-space: normal;
+    text-align: center; max-width: 88vw;
+  }
+}
 </style>
 </head>
 <body>
@@ -749,7 +853,11 @@ function _plRenderSidebar() {
    SELECT CHARACTER
    ============================================================ */
 async function plSel(id) {
-  if (_plSelId === id) return;
+  if (_plSelId === id) {
+    // On mobile, re-tapping the active character navigates into their playlist
+    _plMobEnter();
+    return;
+  }
   _plSelId = id;
   _plData  = null;
   _plRenderSidebar();
@@ -774,6 +882,16 @@ async function plSel(id) {
 
   if (!Array.isArray(_plData.songs)) _plData.songs = [];
   _plRenderMain();
+  _plMobEnter();
+}
+
+/* Mobile nav helpers */
+function _plMobEnter() {
+  if (window.innerWidth <= 640)
+    document.getElementById('pl-body')?.classList.add('pl-mob-sel');
+}
+function plMobBack() {
+  document.getElementById('pl-body')?.classList.remove('pl-mob-sel');
 }
 
 /* ============================================================
@@ -809,6 +927,12 @@ function _plRenderMain() {
     : `<div id="pl-cover-blank">♪</div>`;
 
   main.innerHTML = `
+    <button id="pl-mob-back" onclick="plMobBack()">
+      <svg width="7" height="11" viewBox="0 0 7 11" fill="currentColor">
+        <path d="M7 1.3L5.7 0 0 5.5 5.7 11 7 9.7 2.6 5.5z"/>
+      </svg>
+      CHARACTERS
+    </button>
     <div id="pl-header">
       <div id="pl-cover-wrap" title="Change cover image" onclick="document.getElementById('pl-inp-img').click()">
         ${coverHtml}
