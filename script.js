@@ -2613,6 +2613,7 @@ function _drawLeonFire(ctx, W, H, t) {
 
 function _startLeonOverlay() {
   _stopLeonOverlay();
+  _drawLeonFire._lt = undefined; // reset cap so fire draws on frame 1
   const cv = document.createElement('canvas');
   cv.id = 'leon-fire-overlay';
   cv.style.cssText = 'position:fixed;bottom:0;left:0;width:100vw;height:160px;z-index:9999;pointer-events:none;';
@@ -3200,6 +3201,17 @@ function startBgAnim(type, params) {
   canvas.width = canvas.parentElement.offsetWidth;
   canvas.height = canvas.parentElement.offsetHeight;
   canvas._matrixCols = null; canvas._matrixW = 0; canvas._diamonds = null; canvas._pixels = null; canvas._stars = null; canvas._noiseFrame = 0; canvas._noiseBuf = null;
+
+  // Reset 30fps cap timestamps — each pattern stores _lt relative to its own
+  // t0 (which resets to 0 on every startBgAnim call). Without this reset,
+  // _lt from the previous session (e.g. 3.5s) causes every frame to be skipped
+  // until t catches back up, giving a multi-second blank delay on re-entry.
+  _drawBizzyPattern._lt       = undefined;
+  _drawBlackjackPattern._lt   = undefined;
+  _drawKatiePattern._lt       = undefined;
+  _drawSnapsPattern._lt       = undefined;
+  _drawLeonPattern._lt        = undefined;
+
   if (type === 'none' || !type) return;
   const targetFps = 60;
   if (targetFps === 0) return;
@@ -8803,14 +8815,16 @@ if (sidebarList && db) {
 }
 
 window.addEventListener('resize', () => {
-  // Resize Katie's fixed overlay canvas to match new viewport
-  const katieCv = document.getElementById('katie-frog-overlay');
-  if (katieCv) { katieCv.width = window.innerWidth; katieCv.height = window.innerHeight; }
-
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
     const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : c?.pattern?.type;
-    if (_rePtype && _rePtype !== 'none') { stopBgAnim(); startBgAnim(_rePtype, c?.pattern?.params || {}); }
+    if (_rePtype && _rePtype !== 'none') {
+      stopBgAnim(); // also kills Katie/Leon overlays
+      startBgAnim(_rePtype, c?.pattern?.params || {});
+      // Restart overlays that stopBgAnim just destroyed
+      if (_isKatie(c)) _startKatieOverlay();
+      if (_isLeon(c))  _startLeonOverlay();
+    }
   }
 });
 
