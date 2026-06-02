@@ -1665,9 +1665,9 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
           : ctx.lineTo(cx + R * 0.87 * Math.cos(a), cy + R * 0.87 * Math.sin(a));
       }
       ctx.closePath();
-      ctx.fillStyle   = `rgba(200,105,0,${(0.05  + ph * 0.14 ).toFixed(3)})`;
+      ctx.fillStyle   = `rgba(210,115,0,${(0.10  + ph * 0.22 ).toFixed(3)})`;
       ctx.fill();
-      ctx.strokeStyle = `rgba(220,140,0,${(0.12  + ph * 0.20 ).toFixed(3)})`;
+      ctx.strokeStyle = `rgba(235,155,0,${(0.22  + ph * 0.32 ).toFixed(3)})`;
       ctx.lineWidth   = 0.9;
       ctx.stroke();
     }
