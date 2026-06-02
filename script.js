@@ -90,6 +90,9 @@ function _stopNaraRaf() {
 const _BIZZY_RE = /^Bizzy$/i;
 function _isBizzy(c) { return !!(c && c.name && _BIZZY_RE.test(c.name)); }
 
+const _BJ_RE = /^BLACKJACK$/i;
+function _isBlackjack(c) { return !!(c && c.name && _BJ_RE.test(c.name)); }
+
 let _bizzyRafId = null, _bizzyRafT = 0, _bizzyRafPrev = 0;
 let _bizzySmoothedLevel = 0;
 let _bizzyIsPlaying = false;
@@ -1291,7 +1294,8 @@ function renderAvatarZone() {
 // ============================================================
 const PATTERN_DEFS = {
   none: { label: 'None', params: [] },
-  bizzy_bees: { label: "Bizzy's Hive", params: [] },
+  bizzy_bees:     { label: "Bizzy's Hive",      params: [] },
+  blackjack_neon: { label: "Blackjack's Neon",  params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -1715,12 +1719,162 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
   }
 }
 
+/* ── BLACKJACK — neon bleed ──────────────────────────────────── */
+function _bjHash(i, n) {
+  const v = Math.sin(i * 127.1 + n * 311.7 + i * n * 17.3) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+function _bjDrawStreak(ctx, x, y, len, col, alpha) {
+  if (len <= 0 || alpha <= 0) return;
+  const grad = ctx.createLinearGradient(x, y, x, y + len);
+  grad.addColorStop(0,   col + '00');
+  grad.addColorStop(0.5, col + Math.round(alpha * 140).toString(16).padStart(2,'0'));
+  grad.addColorStop(1,   col + Math.round(alpha * 255).toString(16).padStart(2,'0'));
+  ctx.save();
+  ctx.shadowBlur  = 8;
+  ctx.shadowColor = col;
+  ctx.strokeStyle = grad;
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y + len);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function _bjDrawSuit(ctx, x, y, suit, col, alpha, fontSize, t, i) {
+  if (alpha <= 0) return;
+  const flk = 0.88 + Math.sin(t * 19.3 + i * 2.7) * 0.07 + Math.sin(t * 53.1 + i * 5.1) * 0.04;
+  const a = Math.max(0, Math.min(1, alpha * flk));
+  ctx.save();
+  ctx.font = `bold ${Math.round(fontSize)}px monospace`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  // wide outer glow
+  ctx.globalAlpha = a * 0.3;
+  ctx.shadowBlur  = 32;
+  ctx.shadowColor = col;
+  ctx.fillStyle   = col;
+  ctx.fillText(suit, x, y);
+  // crisp inner glow
+  ctx.globalAlpha = a;
+  ctx.shadowBlur  = 14;
+  ctx.fillText(suit, x, y);
+  ctx.restore();
+}
+
+function _bjHeartPath(ctx, cx, cy, r) {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + r);
+  ctx.bezierCurveTo(cx - r * 0.2, cy + r * 0.6,  cx - r * 1.2, cy + r * 0.2,  cx - r,       cy - r * 0.1);
+  ctx.bezierCurveTo(cx - r * 1.2, cy - r * 0.7,  cx - r * 0.5, cy - r,        cx,            cy - r * 0.5);
+  ctx.bezierCurveTo(cx + r * 0.5, cy - r,        cx + r * 1.2, cy - r * 0.7,  cx + r,        cy - r * 0.1);
+  ctx.bezierCurveTo(cx + r * 1.2, cy + r * 0.2,  cx + r * 0.2, cy + r * 0.6,  cx,            cy + r);
+  ctx.closePath();
+}
+
+function _drawBjHeart(ctx, cx, cy, r, t) {
+  const pulse   = Math.sin(t * 0.7) * 0.5 + 0.5;
+  const blinkOn = Math.sin(t * 1.1) > 0.82 && Math.sin(t * 2.3) > 0.5;
+  const flicker = 0.88 + Math.sin(t * 23.1) * 0.07 + Math.sin(t * 41.7) * 0.05;
+  const base    = blinkOn ? 0.65 : (0.08 + pulse * 0.18);
+  const alpha   = Math.max(0, base * flicker);
+  const glow    = alpha * 32;
+
+  // Left half — neon blue
+  ctx.save();
+  ctx.beginPath(); ctx.rect(cx - r * 2.5, cy - r * 2.5, r * 2.5, r * 5); ctx.clip();
+  _bjHeartPath(ctx, cx, cy, r);
+  ctx.shadowBlur  = glow;
+  ctx.shadowColor = '#00b4de';
+  ctx.fillStyle   = `rgba(0,180,222,${alpha.toFixed(3)})`;
+  ctx.fill();
+  ctx.shadowBlur  = glow * 0.5;
+  ctx.strokeStyle = `rgba(120,235,255,${(alpha * 0.75).toFixed(3)})`;
+  ctx.lineWidth   = 1.5;
+  ctx.stroke();
+  ctx.restore();
+
+  // Right half — neon orange
+  ctx.save();
+  ctx.beginPath(); ctx.rect(cx, cy - r * 2.5, r * 2.5, r * 5); ctx.clip();
+  _bjHeartPath(ctx, cx, cy, r);
+  ctx.shadowBlur  = glow;
+  ctx.shadowColor = '#ff8c00';
+  ctx.fillStyle   = `rgba(255,140,0,${alpha.toFixed(3)})`;
+  ctx.fill();
+  ctx.shadowBlur  = glow * 0.5;
+  ctx.strokeStyle = `rgba(255,210,80,${(alpha * 0.75).toFixed(3)})`;
+  ctx.lineWidth   = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function _drawBlackjackPattern(canvas, ctx, W, H, t) {
+  ctx.clearRect(0, 0, W, H);
+
+  const suits        = ['♠', '♥', '♦', '♣'];
+  const blueShades   = ['#00b4de','#0099cc','#4adde0','#29b6f6','#0278c2'];
+  const orangeShades = ['#ff8c00','#ff6d00','#ffa040','#ff7000'];
+  const N = 44;
+
+  for (let i = 0; i < N; i++) {
+    const h = n => _bjHash(i, n);
+
+    const x         = h(0) * W;
+    const speed     = 22 + h(1) * 48;            // px / s
+    const yOff      = h(2) * (H + 300);
+    const isOrange  = h(3) < 0.28;
+    const suit      = suits[Math.floor(h(4) * 4)];
+    const fontSize  = 10 + h(5) * 14;
+    const streakLen = 28 + h(6) * 70;
+    const resolveY  = H * (0.18 + h(7) * 0.64);  // y where streak resolves to symbol
+    const holdSec   = 1.2 + h(8) * 1.4;           // seconds symbol lingers
+    const colorPool = isOrange ? orangeShades : blueShades;
+    const col       = colorPool[Math.floor(h(9) * colorPool.length)];
+
+    const cycleLen = H + streakLen + 80;
+    const y = (t * speed + yOff) % cycleLen - streakLen - 20;
+    const sBottom = y + streakLen;
+
+    if (y >= resolveY) {
+      // Phase 3 — symbol shown / fading out (draw even if y is off-screen, symbol is at resolveY)
+      const secIn  = (y - resolveY) / speed;
+      const fadeIn = 0.35, fadeOut = 0.55;
+      let alpha = 0;
+      if      (secIn < fadeIn)               alpha = (secIn / fadeIn) * 0.85;
+      else if (secIn < holdSec - fadeOut)    alpha = 0.85;
+      else if (secIn < holdSec)              alpha = ((holdSec - secIn) / fadeOut) * 0.85;
+      if (alpha > 0) _bjDrawSuit(ctx, x, resolveY, suit, col, alpha, fontSize, t, i);
+
+    } else if (sBottom >= resolveY) {
+      // Phase 2 — condensing: bottom frozen at resolveY, streak shrinks upward
+      const rem = resolveY - y;
+      const t2  = 1 - rem / streakLen;            // 0 → 1
+      _bjDrawStreak(ctx, x, y, rem, col, 0.62 * (1 - t2 * 0.8));
+      _bjDrawSuit(ctx, x, resolveY, suit, col, t2 * 0.55, fontSize, t, i);
+
+    } else if (sBottom > -5 && y < H) {
+      // Phase 1 — pure falling streak
+      const fadeIn = Math.min(1, (sBottom + 30) / 30);
+      _bjDrawStreak(ctx, x, y, streakLen, col, 0.62 * fadeIn);
+    }
+  }
+
+  // Half-heart — melancholic, mostly dim with occasional blink
+  const r = Math.max(18, Math.min(W * 0.075, H * 0.15, 50));
+  _drawBjHeart(ctx, W / 2, H / 2, r, t);
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
 
   // Special: Bizzy's bee pattern — always overrides stored type
   if (type === 'bizzy_bees') { _drawBizzyPattern(canvas, ctx, W, H, t); return; }
+  if (type === 'blackjack_neon') { _drawBlackjackPattern(canvas, ctx, W, H, t); return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -2704,10 +2858,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -7758,7 +7912,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') { stopBgAnim(); startBgAnim(_rePtype, c?.pattern?.params || {}); }
   }
 });

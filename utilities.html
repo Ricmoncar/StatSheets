@@ -1223,7 +1223,7 @@ function _nmtChar(id) {
 /* ── pattern animation ──────────────────────────────────────── */
 function _nmtStartPattern(c) {
   _nmtStopPattern();
-  const _ptype = (typeof _isBizzy === 'function' && _isBizzy(c)) ? 'bizzy_bees' : (c?.pattern?.type || 'none');
+  const _ptype = (typeof _isBizzy === 'function' && _isBizzy(c)) ? 'bizzy_bees' : (typeof _isBlackjack === 'function' && _isBlackjack(c)) ? 'blackjack_neon' : (c?.pattern?.type || 'none');
   if (_ptype === 'none') return;
   // Wait one frame for the canvas to be in the DOM
   requestAnimationFrame(() => {
@@ -1749,7 +1749,7 @@ function _fhRenderView() {
 
   _fhUpdateMusicUI();
 
-  { const _pt=(typeof _isBizzy==='function'&&_isBizzy(c))?'bizzy_bees':(c?.pattern?.type||'none');
+  { const _pt=(typeof _isBizzy==='function'&&_isBizzy(c))?'bizzy_bees':(typeof _isBlackjack==='function'&&_isBlackjack(c))?'blackjack_neon':(c?.pattern?.type||'none');
     if (_pt!=='none') requestAnimationFrame(()=>{
       const cv=wrap.querySelector('.nmt-pattern-bg');if(!cv)return;
       cv.width=cv.parentElement.offsetWidth||600;cv.height=cv.parentElement.offsetHeight||300;
@@ -2320,7 +2320,7 @@ function _fgRenderView() {
     wrap.querySelectorAll('.fg-stat-fill').forEach(el=>{ el.style.width=el.dataset.width||'0%'; });
   });
 
-  { const _pt=(typeof _isBizzy==='function'&&_isBizzy(c))?'bizzy_bees':(c?.pattern?.type||'none');
+  { const _pt=(typeof _isBizzy==='function'&&_isBizzy(c))?'bizzy_bees':(typeof _isBlackjack==='function'&&_isBlackjack(c))?'blackjack_neon':(c?.pattern?.type||'none');
     if(_pt!=='none') requestAnimationFrame(()=>{
       const cv=wrap.querySelector('.nmt-pattern-bg');if(!cv)return;
       cv.width=cv.parentElement.offsetWidth||600;cv.height=cv.parentElement.offsetHeight||300;
@@ -2666,7 +2666,7 @@ function _lolRenderView() {
     });
   });
 
-  { const _pt=(typeof _isBizzy==='function'&&_isBizzy(c))?'bizzy_bees':(c?.pattern?.type||'none');
+  { const _pt=(typeof _isBizzy==='function'&&_isBizzy(c))?'bizzy_bees':(typeof _isBlackjack==='function'&&_isBlackjack(c))?'blackjack_neon':(c?.pattern?.type||'none');
     if (_pt!=='none') requestAnimationFrame(()=>{
       const cv=wrap.querySelector('.nmt-pattern-bg');if(!cv)return;
       cv.width=cv.parentElement.offsetWidth||600;cv.height=cv.parentElement.offsetHeight||300;
