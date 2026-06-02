@@ -1719,58 +1719,29 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
   }
 }
 
-/* ── BLACKJACK — neon bleed ──────────────────────────────────── */
+/* ── BLACKJACK — casino card scatter ────────────────────────── */
 function _bjHash(i, n) {
   const v = Math.sin(i * 127.1 + n * 311.7 + i * n * 17.3) * 43758.5453;
   return v - Math.floor(v);
 }
 
-function _bjDrawStreak(ctx, x, y, len, col, alpha) {
-  if (len <= 0 || alpha <= 0) return;
-  const grad = ctx.createLinearGradient(x, y, x, y + len);
-  grad.addColorStop(0,   col + '00');
-  grad.addColorStop(0.5, col + Math.round(alpha * 140).toString(16).padStart(2,'0'));
-  grad.addColorStop(1,   col + Math.round(alpha * 255).toString(16).padStart(2,'0'));
-  ctx.save();
-  ctx.shadowBlur  = 8;
-  ctx.shadowColor = col;
-  ctx.strokeStyle = grad;
-  ctx.lineWidth   = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x, y + len);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function _bjDrawSuit(ctx, x, y, suit, col, alpha, fontSize, t, i) {
-  if (alpha <= 0) return;
-  const flk = 0.88 + Math.sin(t * 19.3 + i * 2.7) * 0.07 + Math.sin(t * 53.1 + i * 5.1) * 0.04;
-  const a = Math.max(0, Math.min(1, alpha * flk));
-  ctx.save();
-  ctx.font = `bold ${Math.round(fontSize)}px monospace`;
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  // wide outer glow
-  ctx.globalAlpha = a * 0.3;
-  ctx.shadowBlur  = 32;
-  ctx.shadowColor = col;
-  ctx.fillStyle   = col;
-  ctx.fillText(suit, x, y);
-  // crisp inner glow
-  ctx.globalAlpha = a;
-  ctx.shadowBlur  = 14;
-  ctx.fillText(suit, x, y);
-  ctx.restore();
+// Rounded rect path helper (no native roundRect needed)
+function _bjRRect(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);       ctx.arcTo(x+w, y,   x+w, y+r,   r);
+  ctx.lineTo(x + w, y + h - r);   ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x + r, y + h);       ctx.arcTo(x,   y+h, x,   y+h-r, r);
+  ctx.lineTo(x, y + r);           ctx.arcTo(x,   y,   x+r, y,     r);
+  ctx.closePath();
 }
 
 function _bjHeartPath(ctx, cx, cy, r) {
   ctx.beginPath();
   ctx.moveTo(cx, cy + r);
-  ctx.bezierCurveTo(cx - r * 0.2, cy + r * 0.6,  cx - r * 1.2, cy + r * 0.2,  cx - r,       cy - r * 0.1);
-  ctx.bezierCurveTo(cx - r * 1.2, cy - r * 0.7,  cx - r * 0.5, cy - r,        cx,            cy - r * 0.5);
-  ctx.bezierCurveTo(cx + r * 0.5, cy - r,        cx + r * 1.2, cy - r * 0.7,  cx + r,        cy - r * 0.1);
-  ctx.bezierCurveTo(cx + r * 1.2, cy + r * 0.2,  cx + r * 0.2, cy + r * 0.6,  cx,            cy + r);
+  ctx.bezierCurveTo(cx-r*0.2, cy+r*0.6,  cx-r*1.2, cy+r*0.2, cx-r,  cy-r*0.1);
+  ctx.bezierCurveTo(cx-r*1.2, cy-r*0.7,  cx-r*0.5, cy-r,     cx,    cy-r*0.5);
+  ctx.bezierCurveTo(cx+r*0.5, cy-r,      cx+r*1.2, cy-r*0.7, cx+r,  cy-r*0.1);
+  ctx.bezierCurveTo(cx+r*1.2, cy+r*0.2,  cx+r*0.2, cy+r*0.6, cx,    cy+r);
   ctx.closePath();
 }
 
@@ -1778,93 +1749,205 @@ function _drawBjHeart(ctx, cx, cy, r, t) {
   const pulse   = Math.sin(t * 0.7) * 0.5 + 0.5;
   const blinkOn = Math.sin(t * 1.1) > 0.82 && Math.sin(t * 2.3) > 0.5;
   const flicker = 0.88 + Math.sin(t * 23.1) * 0.07 + Math.sin(t * 41.7) * 0.05;
-  const base    = blinkOn ? 0.65 : (0.08 + pulse * 0.18);
+  const base    = blinkOn ? 0.68 : (0.10 + pulse * 0.22);
   const alpha   = Math.max(0, base * flicker);
-  const glow    = alpha * 32;
+  const glow    = alpha * 35;
 
-  // Left half — neon blue
   ctx.save();
-  ctx.beginPath(); ctx.rect(cx - r * 2.5, cy - r * 2.5, r * 2.5, r * 5); ctx.clip();
+  ctx.beginPath(); ctx.rect(cx-r*2.5, cy-r*2.5, r*2.5, r*5); ctx.clip();
   _bjHeartPath(ctx, cx, cy, r);
-  ctx.shadowBlur  = glow;
-  ctx.shadowColor = '#00b4de';
-  ctx.fillStyle   = `rgba(0,180,222,${alpha.toFixed(3)})`;
-  ctx.fill();
-  ctx.shadowBlur  = glow * 0.5;
-  ctx.strokeStyle = `rgba(120,235,255,${(alpha * 0.75).toFixed(3)})`;
-  ctx.lineWidth   = 1.5;
-  ctx.stroke();
+  ctx.shadowBlur=glow; ctx.shadowColor='#00b4de';
+  ctx.fillStyle=`rgba(0,180,222,${alpha.toFixed(3)})`; ctx.fill();
+  ctx.shadowBlur=glow*0.5; ctx.strokeStyle=`rgba(120,235,255,${(alpha*0.75).toFixed(3)})`;
+  ctx.lineWidth=1.5; ctx.stroke();
   ctx.restore();
 
-  // Right half — neon orange
   ctx.save();
-  ctx.beginPath(); ctx.rect(cx, cy - r * 2.5, r * 2.5, r * 5); ctx.clip();
+  ctx.beginPath(); ctx.rect(cx, cy-r*2.5, r*2.5, r*5); ctx.clip();
   _bjHeartPath(ctx, cx, cy, r);
-  ctx.shadowBlur  = glow;
-  ctx.shadowColor = '#ff8c00';
-  ctx.fillStyle   = `rgba(255,140,0,${alpha.toFixed(3)})`;
-  ctx.fill();
-  ctx.shadowBlur  = glow * 0.5;
-  ctx.strokeStyle = `rgba(255,210,80,${(alpha * 0.75).toFixed(3)})`;
-  ctx.lineWidth   = 1.5;
-  ctx.stroke();
+  ctx.shadowBlur=glow; ctx.shadowColor='#ff8c00';
+  ctx.fillStyle=`rgba(255,140,0,${alpha.toFixed(3)})`; ctx.fill();
+  ctx.shadowBlur=glow*0.5; ctx.strokeStyle=`rgba(255,210,80,${(alpha*0.75).toFixed(3)})`;
+  ctx.lineWidth=1.5; ctx.stroke();
   ctx.restore();
 }
 
 function _drawBlackjackPattern(canvas, ctx, W, H, t) {
   ctx.clearRect(0, 0, W, H);
 
-  const suits        = ['♠', '♥', '♦', '♣'];
-  const blueShades   = ['#00b4de','#0099cc','#4adde0','#29b6f6','#0278c2'];
-  const orangeShades = ['#ff8c00','#ff6d00','#ffa040','#ff7000'];
-  const N = 44;
+  // ── Layer 1: Diamond argyle background grid ───────────────
+  // Tiles the entire canvas, guarantees full coverage
+  const DW = 40, DH = 30;
+  ctx.save();
+  for (let row = -1; row * DH < H + DH; row++) {
+    for (let col = -1; col * DW < W + DW; col++) {
+      const offX = (row & 1) ? DW * 0.5 : 0;
+      const cx   = col * DW + offX + DW * 0.5;
+      const cy   = row * DH + DH * 0.5;
+      const ph   = (Math.sin(t * 0.38 + col * 0.72 + row * 1.05) + 1) * 0.5;
+      const isO  = ((col * 3 + row * 2 + 7) % 7 === 0);
+      ctx.beginPath();
+      ctx.moveTo(cx,        cy - DH * 0.5);
+      ctx.lineTo(cx + DW * 0.5, cy);
+      ctx.lineTo(cx,        cy + DH * 0.5);
+      ctx.lineTo(cx - DW * 0.5, cy);
+      ctx.closePath();
+      ctx.fillStyle   = isO
+        ? `rgba(255,100,0,${(0.06+ph*0.08).toFixed(3)})`
+        : `rgba(0,100,190,${(0.06+ph*0.08).toFixed(3)})`;
+      ctx.strokeStyle = isO
+        ? `rgba(255,150,20,${(0.09+ph*0.07).toFixed(3)})`
+        : `rgba(0,160,230,${(0.09+ph*0.07).toFixed(3)})`;
+      ctx.fill(); ctx.lineWidth = 0.6; ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  // ── Layer 2: Scattered playing cards ─────────────────────
+  const SUITS  = ['♠','♥','♦','♣'];
+  const VALUES = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const N = 26;
 
   for (let i = 0; i < N; i++) {
     const h = n => _bjHash(i, n);
 
-    const x         = h(0) * W;
-    const speed     = 22 + h(1) * 48;            // px / s
-    const yOff      = h(2) * (H + 300);
-    const isOrange  = h(3) < 0.28;
-    const suit      = suits[Math.floor(h(4) * 4)];
-    const fontSize  = 10 + h(5) * 14;
-    const streakLen = 28 + h(6) * 70;
-    const resolveY  = H * (0.18 + h(7) * 0.64);  // y where streak resolves to symbol
-    const holdSec   = 1.2 + h(8) * 1.4;           // seconds symbol lingers
-    const colorPool = isOrange ? orangeShades : blueShades;
-    const col       = colorPool[Math.floor(h(9) * colorPool.length)];
+    const cw    = 44 + h(0) * 24;           // 44–68 px wide
+    const ch    = cw * 1.45;
+    const speed = 12 + h(1) * 26;           // px/s  (slow mournful drift)
+    const rotB  = (h(2) - 0.5) * 0.85;     // base tilt (≈ ±24°)
+    const rotS  = (h(3) - 0.5) * 0.22;     // slow tumble speed
+    const x0    = h(4) * (W + cw) - cw * 0.5;
+    const yOff  = h(5) * (H + ch + 80);
+    const face  = h(6) > 0.55;             // 45 % face-up
+    const sIdx  = Math.floor(h(7) * 4);
+    const suit  = SUITS[sIdx];
+    const isRed = sIdx === 1 || sIdx === 2; // ♥ ♦
+    const val   = VALUES[Math.floor(h(8) * 13)];
+    const aCard = 0.55 + h(9) * 0.30;
+    const bluBk = h(10) > 0.35;            // card back colour
 
-    const cycleLen = H + streakLen + 80;
-    const y = (t * speed + yOff) % cycleLen - streakLen - 20;
-    const sBottom = y + streakLen;
+    const cyc  = H + ch + 90;
+    const yPos = (t * speed + yOff) % cyc - ch - 30;
+    const rot  = rotB + t * rotS;
+    const cr   = cw * 0.07;
 
-    if (y >= resolveY) {
-      // Phase 3 — symbol shown / fading out (draw even if y is off-screen, symbol is at resolveY)
-      const secIn  = (y - resolveY) / speed;
-      const fadeIn = 0.35, fadeOut = 0.55;
-      let alpha = 0;
-      if      (secIn < fadeIn)               alpha = (secIn / fadeIn) * 0.85;
-      else if (secIn < holdSec - fadeOut)    alpha = 0.85;
-      else if (secIn < holdSec)              alpha = ((holdSec - secIn) / fadeOut) * 0.85;
-      if (alpha > 0) _bjDrawSuit(ctx, x, resolveY, suit, col, alpha, fontSize, t, i);
+    ctx.save();
+    ctx.translate(x0, yPos + ch * 0.5);
+    ctx.rotate(rot);
+    ctx.globalAlpha = aCard;
 
-    } else if (sBottom >= resolveY) {
-      // Phase 2 — condensing: bottom frozen at resolveY, streak shrinks upward
-      const rem = resolveY - y;
-      const t2  = 1 - rem / streakLen;            // 0 → 1
-      _bjDrawStreak(ctx, x, y, rem, col, 0.62 * (1 - t2 * 0.8));
-      _bjDrawSuit(ctx, x, resolveY, suit, col, t2 * 0.55, fontSize, t, i);
+    // Drop shadow
+    ctx.shadowBlur  = 14;
+    ctx.shadowColor = 'rgba(0,0,0,0.65)';
 
-    } else if (sBottom > -5 && y < H) {
-      // Phase 1 — pure falling streak
-      const fadeIn = Math.min(1, (sBottom + 30) / 30);
-      _bjDrawStreak(ctx, x, y, streakLen, col, 0.62 * fadeIn);
+    // Card body
+    ctx.beginPath();
+    _bjRRect(ctx, -cw*0.5, -ch*0.5, cw, ch, cr);
+    ctx.fillStyle = face
+      ? 'rgba(240,234,218,0.94)'
+      : (bluBk ? 'rgba(4,26,58,0.93)' : 'rgba(62,17,4,0.93)');
+    ctx.fill();
+
+    // Thin border
+    ctx.shadowBlur  = 0;
+    ctx.strokeStyle = face ? 'rgba(200,190,170,0.35)' : 'rgba(180,180,205,0.22)';
+    ctx.lineWidth   = 0.8;
+    ctx.beginPath(); _bjRRect(ctx, -cw*0.5, -ch*0.5, cw, ch, cr); ctx.stroke();
+
+    if (face) {
+      // Face card: large suit in centre + corner pip
+      const fc = isRed ? '#b03020' : '#111';
+      ctx.fillStyle = fc; ctx.shadowBlur = 0;
+
+      ctx.font = `${Math.round(cw*0.48)}px serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(suit, 0, ch * 0.04);
+
+      const fSm = Math.round(cw * 0.21);
+      ctx.font = `bold ${fSm}px monospace`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(val,  -cw*0.5 + cw*0.09, -ch*0.5 + ch*0.04);
+      ctx.font = `${fSm}px serif`;
+      ctx.fillText(suit, -cw*0.5 + cw*0.09, -ch*0.5 + ch*0.04 + fSm + 1);
+
+      // Rotated bottom-right corner
+      ctx.save(); ctx.rotate(Math.PI);
+      ctx.font = `bold ${fSm}px monospace`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(val,  -cw*0.5 + cw*0.09, -ch*0.5 + ch*0.04);
+      ctx.font = `${fSm}px serif`;
+      ctx.fillText(suit, -cw*0.5 + cw*0.09, -ch*0.5 + ch*0.04 + fSm + 1);
+      ctx.restore();
+
+    } else {
+      // Card back: inner frame + half-heart symbol
+      const pad = cw * 0.1;
+      ctx.strokeStyle = bluBk ? 'rgba(0,160,215,0.28)' : 'rgba(255,120,0,0.28)';
+      ctx.lineWidth = 0.7;
+      ctx.beginPath(); _bjRRect(ctx, -cw*0.5+pad, -ch*0.5+pad, cw-pad*2, ch-pad*2, cr*0.5); ctx.stroke();
+
+      const mr = cw * 0.22;
+      // Left half — blue
+      ctx.save();
+      ctx.beginPath(); ctx.rect(-cw, -ch, cw, ch*2); ctx.clip();
+      _bjHeartPath(ctx, 0, 0, mr);
+      ctx.fillStyle='rgba(0,175,218,0.80)'; ctx.shadowBlur=6; ctx.shadowColor='#00b4de'; ctx.fill();
+      ctx.restore();
+      // Right half — orange
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, -ch, cw, ch*2); ctx.clip();
+      _bjHeartPath(ctx, 0, 0, mr);
+      ctx.fillStyle='rgba(255,130,0,0.80)'; ctx.shadowBlur=6; ctx.shadowColor='#ff8c00'; ctx.fill();
+      ctx.restore();
     }
+
+    ctx.restore();
   }
 
-  // Half-heart — melancholic, mostly dim with occasional blink
-  const r = Math.max(18, Math.min(W * 0.075, H * 0.15, 50));
-  _drawBjHeart(ctx, W / 2, H / 2, r, t);
+  // ── Layer 3: Ambient suit symbols (fill gaps) ─────────────
+  ctx.save();
+  for (let s = 0; s < 18; s++) {
+    const h  = n => _bjHash(s + 60, n);
+    const sx = h(0) * W, sy = h(1) * H;
+    const sz = 11 + h(2) * 13;
+    const ss = SUITS[Math.floor(h(3) * 4)];
+    const io = h(4) < 0.3;
+    const ph = (Math.sin(t * 0.45 + s * 1.3) + 1) * 0.5;
+    const sa = (0.07 + ph * 0.07).toFixed(3);
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate((h(5) - 0.5) * 0.7);
+    ctx.font = `${sz}px serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = io ? `rgba(255,140,0,${sa})` : `rgba(0,180,222,${sa})`;
+    ctx.fillText(ss, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // ── Layer 4: Glowing chip rings ───────────────────────────
+  for (let ci = 0; ci < 7; ci++) {
+    const h  = n => _bjHash(ci + 200, n);
+    const cx = h(0) * W, cy = h(1) * H;
+    const cr = 13 + h(2) * 16;
+    const io = h(3) < 0.4;
+    const ph = (Math.sin(t * 0.65 + ci * 1.5) + 1) * 0.5;
+    const a  = (0.07 + ph * 0.07).toFixed(3);
+    const col = io ? `rgba(255,140,0,${a})` : `rgba(0,180,222,${a})`;
+    ctx.save();
+    ctx.strokeStyle = col; ctx.lineWidth = 2;
+    ctx.setLineDash([cr*0.28, cr*0.14]);
+    ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = io ? `rgba(255,140,0,${(parseFloat(a)*0.45).toFixed(3)})` : `rgba(0,180,222,${(parseFloat(a)*0.45).toFixed(3)})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, cr*0.82, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Layer 5: Centre half-heart (Blackjack's symbol) ──────
+  const r = Math.max(20, Math.min(W * 0.08, H * 0.16, 54));
+  _drawBjHeart(ctx, W * 0.5, H * 0.5, r, t);
 }
 /* ─────────────────────────────────────────────────────────────── */
 
