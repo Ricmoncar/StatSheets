@@ -3256,7 +3256,7 @@ function viewChar(id) {
   // Set color on the view root for all panels to inherit
   if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); }
   else if (_isBizzy(c)) { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); }
-  else if (_isKatie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _startKatieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isKatie(c)) { _stopNaraRaf(); _stopBizzyRaf(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
@@ -3310,6 +3310,7 @@ function viewChar(id) {
 
   stopBgAnim();
   if (ptype !== 'none') startBgAnim(ptype, c.pattern?.params || {});
+  if (_isKatie(c)) _startKatieOverlay(); // start AFTER stopBgAnim so it isn't killed
 
   renderInventory(c);
   renderTraitsDisplay(c);
