@@ -98,6 +98,10 @@ function _isKatie(c) { return !!(c && c.name && _KATIE_RE.test(c.name)); }
 
 const _SNAPS_RE = /^Snaps$/i;
 function _isSnaps(c) { return !!(c && c.name && _SNAPS_RE.test(c.name)); }
+
+const _LEON_RE = /^Leon$/i;
+function _isLeon(c) { return !!(c && c.name && _LEON_RE.test(c.name)); }
+let _leonFireRafId = null;
 // Frog state (pixel coords on overlay canvas)
 let _katieFrogX = 200, _katieFrogY = 200;   // current position
 let _katieFrogVX = 0,  _katieFrogVY = 0;    // velocity px/s
@@ -1345,6 +1349,7 @@ const PATTERN_DEFS = {
   blackjack_neon: { label: "Blackjack's Neon",  params: [] },
   katie_pond:     { label: "Katie's Pond",       params: [] },
   snaps_scales:   { label: "Snaps' Electric Scales", params: [] },
+  leon_swords:    { label: "Leon's Blades",          params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -2374,6 +2379,213 @@ function _drawKatiePattern(canvas, ctx, W, H, t) {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+// ── Leon: falling swords + fire overlay ───────────────────────
+function _leonH(i, n) {
+  return Math.abs(Math.sin(i * 213.7 + n * 147.3 + i * n * 11.1 + 5.5)) % 1;
+}
+
+function _drawLeonSword(ctx, x, yCG, ang) {
+  // yCG = crossguard y; blade points DOWN, pommel is UP
+  ctx.save();
+  ctx.translate(x, yCG);
+  ctx.rotate(ang);
+
+  // ── Blade (crossguard → tip, downward) ──────────────────
+  ctx.beginPath();
+  ctx.moveTo(-2.8, 0); ctx.lineTo(2.8, 0);
+  ctx.lineTo(0.4, 63);
+  ctx.closePath();
+  ctx.fillStyle = '#bfccd8';
+  ctx.fill();
+  // Edge reflections
+  ctx.strokeStyle = 'rgba(235,248,255,0.55)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(0.9, 6); ctx.lineTo(0.2, 53); ctx.stroke();
+  ctx.strokeStyle = 'rgba(70,100,140,0.4)';
+  ctx.beginPath(); ctx.moveTo(-1, 6); ctx.lineTo(-0.2, 50); ctx.stroke();
+
+  // ── Crossguard ────────────────────────────────────────────
+  ctx.fillStyle = '#c07800';
+  ctx.fillRect(-13, -6, 26, 6);
+  ctx.fillStyle = 'rgba(255,185,35,0.45)';
+  ctx.fillRect(-13, -6, 26, 2.5);
+  ctx.fillStyle = '#9a5e00';
+  ctx.beginPath();
+  ctx.arc(-13, -3, 3, 0, Math.PI*2); ctx.arc(13, -3, 3, 0, Math.PI*2);
+  ctx.fill();
+
+  // ── Grip ─────────────────────────────────────────────────
+  ctx.fillStyle = '#100700';
+  ctx.fillRect(-3, -22, 6, 16);
+  ctx.strokeStyle = 'rgba(200,100,0,0.82)';
+  ctx.lineWidth = 1.3;
+  for (let w = 0; w < 5; w++) {
+    const wy = -7 - w * 3;
+    ctx.beginPath(); ctx.moveTo(-3, wy); ctx.lineTo(3, wy); ctx.stroke();
+  }
+
+  // ── Pommel ───────────────────────────────────────────────
+  ctx.fillStyle = '#c07800';
+  ctx.beginPath(); ctx.arc(0, -27, 5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,200,55,0.65)';
+  ctx.beginPath(); ctx.arc(-1.5, -28.5, 2, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
+function _drawLeonPattern(canvas, ctx, W, H, t, params) {
+  // 30fps cap
+  if (_drawLeonPattern._lt !== undefined && t - _drawLeonPattern._lt < 0.033) return;
+  _drawLeonPattern._lt = t;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ── Checkerboard (uses Leon's stored params exactly) ─────
+  const sz   = params?.size   || 32;
+  const c1   = params?.color1 || '#e07000';
+  const c2   = params?.color2 || '#0a0a0a';
+  const spd  = params?.speed  || 0.5;
+  const alph = params?.opacity !== undefined ? params.opacity : 1.0;
+  const dir  = params?.dir    || 'diagonal';
+
+  if (!canvas._leonPat || canvas._leonC1 !== c1 || canvas._leonC2 !== c2 || canvas._leonSz !== sz) {
+    const pc = document.createElement('canvas');
+    pc.width = sz * 2; pc.height = sz * 2;
+    const pctx = pc.getContext('2d');
+    pctx.fillStyle = c1; pctx.fillRect(0, 0, sz, sz); pctx.fillRect(sz, sz, sz, sz);
+    pctx.fillStyle = c2; pctx.fillRect(sz, 0, sz, sz); pctx.fillRect(0, sz, sz, sz);
+    canvas._leonPat = ctx.createPattern(pc, 'repeat');
+    canvas._leonC1 = c1; canvas._leonC2 = c2; canvas._leonSz = sz;
+  }
+  let ox = 0, oy = 0;
+  if      (dir === 'right')    ox =  (t * spd * 60) % (sz * 2);
+  else if (dir === 'left')     ox = -((t * spd * 60) % (sz * 2));
+  else if (dir === 'down')     oy =  (t * spd * 60) % (sz * 2);
+  else if (dir === 'up')       oy = -((t * spd * 60) % (sz * 2));
+  else { ox = (t * spd * 60) % (sz * 2); oy = (t * spd * 60) % (sz * 2); }
+
+  ctx.save();
+  ctx.globalAlpha = alph;
+  ctx.translate(ox, oy);
+  ctx.fillStyle = canvas._leonPat;
+  ctx.fillRect(-sz * 2, -sz * 2, W + sz * 4, H + sz * 4);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+
+  // Subtle darkening so swords read clearly against the checker
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Falling swords ───────────────────────────────────────
+  const N = 10;
+  for (let i = 0; i < N; i++) {
+    const h     = n => _leonH(i, n);
+    const x     = h(0) * W;
+    const speed = 420 + h(1) * 320;       // 420–740 px/s
+    const ang   = (h(2) - 0.5) * 0.18;   // ±5°
+    const cyc   = H + 95;
+    const yCG   = (t * speed + h(3) * cyc) % cyc - 66; // blade tip enters first
+
+    // Motion trail (warm-white streak above pommel)
+    const trailLen = Math.min(68, speed * 0.11);
+    const pTop = yCG - 32;
+    ctx.save();
+    ctx.translate(x, pTop);
+    ctx.rotate(ang);
+    for (let s = 0; s < 5; s++) {
+      const ta = ((5 - s) / 5 * 0.28).toFixed(2);
+      ctx.strokeStyle = `rgba(255,225,160,${ta})`;
+      ctx.lineWidth = 2.4 - s * 0.38;
+      ctx.beginPath();
+      ctx.moveTo(0, -s * trailLen / 5);
+      ctx.lineTo(0, -(s + 1) * trailLen / 5);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    _drawLeonSword(ctx, x, yCG, ang);
+  }
+}
+
+function _drawLeonFire(ctx, W, H, t) {
+  // 30fps cap
+  if (_drawLeonFire._lt !== undefined && t - _drawLeonFire._lt < 0.033) return;
+  _drawLeonFire._lt = t;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Base ember glow (one cached gradient across the full width)
+  if (!_drawLeonFire._bg || _drawLeonFire._bgW !== W || _drawLeonFire._bgH !== H) {
+    const g = ctx.createLinearGradient(0, H, 0, H - 55);
+    g.addColorStop(0, 'rgba(255,80,0,0.55)');
+    g.addColorStop(0.55, 'rgba(255,45,0,0.14)');
+    g.addColorStop(1, 'rgba(255,10,0,0)');
+    _drawLeonFire._bg  = g;
+    _drawLeonFire._bgW = W;
+    _drawLeonFire._bgH = H;
+  }
+  ctx.fillStyle = _drawLeonFire._bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Three flame layers — no per-flame gradients, just solid fills
+  const LAYERS = [
+    { n: 7,  off:   0, hMn: 70, hMx: 105, wd: 32, r: 175, g:  18, b: 0, a: 0.50 },
+    { n: 13, off: 100, hMn: 42, hMx:  78, wd: 22, r: 255, g:  75, b: 0, a: 0.60 },
+    { n: 20, off: 200, hMn: 18, hMx:  42, wd: 14, r: 255, g: 162, b: 0, a: 0.65 },
+  ];
+
+  for (const L of LAYERS) {
+    for (let f = 0; f < L.n; f++) {
+      const h0  = _leonH(f + L.off, 4);
+      const h1  = _leonH(f + L.off, 5);
+      const x0  = (f / L.n) * W + (W / L.n) * 0.5;
+      const flk = Math.sin(t * (2.8 + h0 * 2) + f * 1.2 + h1 * 5) * 0.3 + 0.7;
+      const ht  = (L.hMn + h0 * (L.hMx - L.hMn)) * flk;
+      const wd  = L.wd * (0.65 + h1 * 0.65);
+      const dx  = Math.sin(t * 1.5 + f * 0.8) * wd * 0.22;
+      const x   = x0 + dx;
+      const a   = (L.a * flk).toFixed(2);
+
+      ctx.fillStyle = `rgba(${L.r},${L.g},${L.b},${a})`;
+      ctx.beginPath();
+      ctx.moveTo(x - wd * 0.5, H);
+      ctx.bezierCurveTo(x - wd * 0.5, H - ht * 0.55,  x - wd * 0.12, H - ht * 0.88, x, H - ht);
+      ctx.bezierCurveTo(x + wd * 0.12, H - ht * 0.88, x + wd * 0.5,  H - ht * 0.55, x + wd * 0.5, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+function _startLeonOverlay() {
+  _stopLeonOverlay();
+  const cv = document.createElement('canvas');
+  cv.id = 'leon-fire-overlay';
+  cv.style.cssText = 'position:fixed;bottom:0;left:0;width:100vw;height:120px;z-index:9999;pointer-events:none;';
+  cv.width  = window.innerWidth;
+  cv.height = 120;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('leon-fire-overlay');
+    if (!cv2) { _leonFireRafId = null; return; }
+    if (cv2.width !== window.innerWidth) {
+      cv2.width = window.innerWidth;
+      _drawLeonFire._bgW = null; // invalidate cached gradient on resize
+    }
+    _drawLeonFire(cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _leonFireRafId = requestAnimationFrame(frame);
+  }
+  _leonFireRafId = requestAnimationFrame(frame);
+}
+
+function _stopLeonOverlay() {
+  if (_leonFireRafId) { cancelAnimationFrame(_leonFireRafId); _leonFireRafId = null; }
+  const cv = document.getElementById('leon-fire-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 // ── Snaps: electric reptile scales ────────────────────────────
 function _snapsH(i, j, n) {
   return Math.abs(Math.sin(i * 127.1 + j * 311.7 + n * 74.9 + 3.3));
@@ -2491,10 +2703,11 @@ function drawPattern(canvas, type, params, t) {
   const W = canvas.width, H = canvas.height;
 
   // Special: Bizzy's bee pattern — always overrides stored type
-  if (type === 'bizzy_bees')     { _drawBizzyPattern(canvas, ctx, W, H, t);    return; }
-  if (type === 'blackjack_neon') { _drawBlackjackPattern(canvas, ctx, W, H, t); return; }
-  if (type === 'katie_pond')     { _drawKatiePattern(canvas, ctx, W, H, t);     return; }
-  if (type === 'snaps_scales')   { _drawSnapsPattern(canvas, ctx, W, H, t);     return; }
+  if (type === 'bizzy_bees')     { _drawBizzyPattern(canvas, ctx, W, H, t);         return; }
+  if (type === 'blackjack_neon') { _drawBlackjackPattern(canvas, ctx, W, H, t);      return; }
+  if (type === 'katie_pond')     { _drawKatiePattern(canvas, ctx, W, H, t);          return; }
+  if (type === 'snaps_scales')   { _drawSnapsPattern(canvas, ctx, W, H, t);          return; }
+  if (type === 'leon_swords')    { _drawLeonPattern(canvas, ctx, W, H, t, params);   return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -2952,7 +3165,8 @@ function startBgAnim(type, params) {
 function stopBgAnim() {
   if (bgAnim) cancelAnimationFrame(bgAnim);
   bgAnim = null;
-  _stopKatieOverlay(); // clean up Katie's frog overlay + mouse listener
+  _stopKatieOverlay();
+  _stopLeonOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -3437,10 +3651,11 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); }
-  else if (_isBizzy(c)) { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); }
-  else if (_isKatie(c)) { _stopNaraRaf(); _stopBizzyRaf(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); }
+  else if (_isBizzy(c)) { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); }
+  else if (_isKatie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))  { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -3480,10 +3695,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -3494,6 +3709,7 @@ function viewChar(id) {
   stopBgAnim();
   if (ptype !== 'none') startBgAnim(ptype, c.pattern?.params || {});
   if (_isKatie(c)) _startKatieOverlay(); // start AFTER stopBgAnim so it isn't killed
+  if (_isLeon(c))  _startLeonOverlay();
 
   renderInventory(c);
   renderTraitsDisplay(c);
@@ -8539,7 +8755,7 @@ window.addEventListener('resize', () => {
 
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') { stopBgAnim(); startBgAnim(_rePtype, c?.pattern?.params || {}); }
   }
 });
