@@ -623,6 +623,42 @@ html, body {
    ============================================================ */
 const _PL_CLOUD  = 'dhlik6lkn';
 const _PL_PRESET = 'statsheets';
+
+// ── Upload helper: Cloudinary first, ImageKit fallback ────────
+async function _plUpload(file, resourceType, publicId) {
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('upload_preset', _PL_PRESET);
+    form.append('resource_type', resourceType);
+    if (publicId) form.append('public_id', publicId);
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${_PL_CLOUD}/${resourceType}/upload`,
+      { method: 'POST', body: form }
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.secure_url;
+  } catch (err) {
+    console.warn('[playlists] Cloudinary failed — falling back to ImageKit:', err.message);
+  }
+  const fname = publicId
+    ? publicId.split('/').pop() + (resourceType === 'video' ? '.mp3' : '')
+    : (file.name || `upload_${Date.now()}`);
+  const folder = publicId ? '/' + publicId.split('/').slice(0,-1).join('/') : '/playlists';
+  const ik = new FormData();
+  ik.append('file',      file);
+  ik.append('fileName',  fname);
+  ik.append('publicKey', 'w5ddaqvugh');
+  ik.append('folder',    folder);
+  const res2 = await fetch('https://upload.imagekit.io/api/v1/files/upload', { method:'POST', body:ik });
+  if (!res2.ok) throw new Error('ImageKit HTTP ' + res2.status);
+  const d2 = await res2.json();
+  if (!d2.url) throw new Error(d2.message || 'ImageKit: no URL');
+  return d2.url;
+}
+// ─────────────────────────────────────────────────────────────
 const _PL_FB     = {
   apiKey:            'AIzaSyBRtoLzS--wz_6sD4rWMgzcwZnHVHUBNdg',
   authDomain:        'statsheets-3668d.firebaseapp.com',
@@ -1191,26 +1227,14 @@ async function plAudioFiles(input) {
   for (const file of files) {
     _plToast(`UPLOADING: ${file.name.slice(0,28)}...`);
     try {
-      const form = new FormData();
-      form.append('file',           file);
-      form.append('upload_preset',  _PL_PRESET);
-      form.append('resource_type',  'video');  // Cloudinary uses 'video' for audio
-      form.append('public_id',
-        `playlists/${_plSelId}/${Date.now()}_${Math.random().toString(36).slice(2,6)}`);
-
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${_PL_CLOUD}/video/upload`,
-        { method: 'POST', body: form }
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
+      const pid = `playlists/${_plSelId}/${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+      const url = await _plUpload(file, 'video', pid);
 
       const song = {
         id:       Math.random().toString(36).slice(2) + Date.now().toString(36),
         title:    file.name.replace(/\.[^/.]+$/, ''),
-        url:      data.secure_url,
-        duration: data.duration ? Math.round(data.duration) : null
+        url,
+        duration: null
       };
 
       if (!_plData) _plData = { title:'', description:'', image:null, songs:[] };
@@ -1233,24 +1257,11 @@ async function plImageFile(input) {
 
   _plToast('UPLOADING COVER...');
   try {
-    const form = new FormData();
-    form.append('file',          file);
-    form.append('upload_preset', _PL_PRESET);
-    form.append('resource_type', 'image');
-    form.append('public_id',     `playlists/covers/${_plSelId}_${Date.now()}`);
-
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${_PL_CLOUD}/image/upload`,
-      { method: 'POST', body: form }
-    );
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-
-    _plData.image = data.secure_url;
+    const coverUrl = await _plUpload(file, 'image', `playlists/covers/${_plSelId}_${Date.now()}`);
+    _plData.image = coverUrl;
     /* Update player art if this char is playing */
     const art = document.getElementById('pl-now-art');
-    if (art && !art.src.endsWith('null')) art.src = data.secure_url;
+    if (art && !art.src.endsWith('null')) art.src = coverUrl;
 
     await _plSaveNow();
     _plToast('✓ COVER UPDATED');

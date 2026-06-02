@@ -349,6 +349,51 @@ const THEME_MAX_MB = 20;
 const CLOUDINARY_CLOUD = 'dhlik6lkn';
 const CLOUDINARY_PRESET = 'statsheets';
 
+// ── Upload helper: Cloudinary first, ImageKit fallback ────────
+// NOTE: enable "Unsigned uploads" in ImageKit Security settings
+const _IK_PUBLIC_KEY = 'w5ddaqvugh';
+const _IK_UPLOAD_URL = 'https://upload.imagekit.io/api/v1/files/upload';
+
+async function _uploadMedia(file, resourceType /* 'image' | 'video' */, publicId) {
+  // 1. Cloudinary (primary)
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('upload_preset', CLOUDINARY_PRESET);
+    form.append('resource_type', resourceType);
+    if (publicId) form.append('public_id', publicId);
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`,
+      { method: 'POST', body: form }
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.secure_url;
+  } catch (err) {
+    console.warn('[Upload] Cloudinary failed — falling back to ImageKit:', err.message);
+  }
+
+  // 2. ImageKit (fallback)
+  const fname = publicId
+    ? publicId.split('/').pop() + (resourceType === 'video' ? '.mp3' : '')
+    : (file.name || `upload_${Date.now()}`);
+  const folder = publicId
+    ? '/' + publicId.split('/').slice(0, -1).join('/')
+    : '/statsheets';
+  const ik = new FormData();
+  ik.append('file',      file);
+  ik.append('fileName',  fname);
+  ik.append('publicKey', _IK_PUBLIC_KEY);
+  ik.append('folder',    folder);
+  const res2 = await fetch(_IK_UPLOAD_URL, { method: 'POST', body: ik });
+  if (!res2.ok) throw new Error('ImageKit HTTP ' + res2.status);
+  const d2 = await res2.json();
+  if (!d2.url) throw new Error(d2.message || 'ImageKit: no URL');
+  return d2.url;
+}
+// ─────────────────────────────────────────────────────────────
+
 // ── Helpers ───────────────────────────────────────────────────
 function _fmtTime(s) {
   s = Math.max(0, s || 0);
@@ -689,19 +734,8 @@ async function onThemeFileSelected(input) {
 
   notify('Uploading theme...', 'ok');
   try {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('upload_preset', CLOUDINARY_PRESET);
-    form.append('resource_type', 'video');
-    form.append('public_id', publicId);
-
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`,
-      { method: 'POST', body: form }
-    );
-    if (!res.ok) throw new Error('Upload failed: ' + res.status);
-    const data = await res.json();
-    const url = data.secure_url + (data.secure_url.includes('?') ? '&' : '?') + 'v=' + Date.now();
+    const rawUrl = await _uploadMedia(file, 'video', publicId);
+    const url = rawUrl + (rawUrl.includes('?') ? '&' : '?') + 'v=' + Date.now();
     const songData = { url, name: file.name.replace(/\.[^/.]+$/, '') };
 
     // Capture previous song (if any) before overwriting — useful for verification
@@ -10168,20 +10202,11 @@ async function hcHandleSprite(ev) {
         img.src = dataUrl;
       });
 
-      // 3. Upload the original file to Cloudinary
-      const form = new FormData();
-      form.append('file', file);
-      form.append('upload_preset', CLOUDINARY_PRESET);
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
-        { method: 'POST', body: form }
-      );
-      if (!res.ok) throw new Error('Upload failed: ' + res.status);
-      const data = await res.json();
-      if (!data.secure_url) throw new Error((data.error && data.error.message) || 'No URL returned');
+      // 3. Upload the original file (Cloudinary primary, ImageKit fallback)
+      const spriteUrl = await _uploadMedia(file, 'image', null);
 
       entry.spriteBase64 = null;
-      entry.spriteUrl = data.secure_url;
+      entry.spriteUrl = spriteUrl;
       entry.spriteTopFrac = bounds.topFrac;
       entry.spriteBotFrac = bounds.botFrac;
       _hcSave();

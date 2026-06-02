@@ -1511,17 +1511,34 @@ function _wouldExceedFirestore(type, dataUrl) {
 }
 
 async function _uploadToCloudinary(dataUrl) {
-  const form = new FormData();
-  form.append('file', dataUrl);
-  form.append('upload_preset', CLOUDINARY_PRESET);
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
-    { method: 'POST', body: form }
-  );
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const json = await res.json();
-  if (!json.secure_url) throw new Error(json.error?.message || 'No URL returned');
-  return json.secure_url;
+  // 1. Cloudinary (primary)
+  try {
+    const form = new FormData();
+    form.append('file', dataUrl);
+    form.append('upload_preset', CLOUDINARY_PRESET);
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+      { method: 'POST', body: form }
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    if (!json.secure_url) throw new Error(json.error?.message || 'No URL returned');
+    return json.secure_url;
+  } catch (err) {
+    console.warn('[encyclopedia] Cloudinary failed — falling back to ImageKit:', err.message);
+  }
+
+  // 2. ImageKit fallback
+  const ik = new FormData();
+  ik.append('file',      dataUrl);
+  ik.append('fileName',  `enc_${Date.now()}.jpg`);
+  ik.append('publicKey', 'w5ddaqvugh');
+  ik.append('folder',    '/encyclopedia');
+  const res2 = await fetch('https://upload.imagekit.io/api/v1/files/upload', { method: 'POST', body: ik });
+  if (!res2.ok) throw new Error('ImageKit HTTP ' + res2.status);
+  const json2 = await res2.json();
+  if (!json2.url) throw new Error(json2.message || 'ImageKit: no URL');
+  return json2.url;
 }
 
 async function handleEncImgUpload(type, event) {
