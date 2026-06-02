@@ -2806,7 +2806,7 @@ function _vkNewMote(W, H, scatter) {
   };
 }
 
-// bgAnim canvas: static dark background + pulsing rune watermarks
+// bgAnim canvas: dark background + rune watermarks + rain drops (behind UI)
 function _drawValkyriePattern(canvas, ctx, W, H, t) {
   if (_drawValkyriePattern._lt !== undefined && t - _drawValkyriePattern._lt < 0.033) return;
   _drawValkyriePattern._lt = t;
@@ -2848,24 +2848,13 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
     ctx.fillText(r.char, r.x, r.y);
   }
   ctx.restore();
-}
 
-// Overlay canvas (z-index:9999): all animated rain effects above the UI
-function _drawValkyrieOverlay(canvas, ctx, W, H, t) {
-  if (_drawValkyrieOverlay._lt !== undefined && t - _drawValkyrieOverlay._lt < 0.033) return;
-  _drawValkyrieOverlay._lt = t;
-
-  ctx.clearRect(0, 0, W, H);
-
-  const NDROPS = 95, NFEATHERS = 7, NMOTES = 28;
+  // ── rain drops + trails + splatters (behind UI) ───────────────
+  const NDROPS = 95;
   if (!canvas._vkDrops) {
-    canvas._vkDrops    = Array.from({ length: NDROPS },    () => _vkNewDrop(W, H, true));
-    canvas._vkFeathers = Array.from({ length: NFEATHERS }, () => _vkNewFeather(W, H, true));
-    canvas._vkMotes    = Array.from({ length: NMOTES },    () => _vkNewMote(W, H, true));
+    canvas._vkDrops    = Array.from({ length: NDROPS }, () => _vkNewDrop(W, H, true));
     canvas._vkSplatters = [];
   }
-
-  // ── cache Path2D shapes ───────────────────────────────────────
   if (!canvas._vkDropPath) {
     const p = new Path2D();
     p.moveTo(0, -1);
@@ -2874,47 +2863,8 @@ function _drawValkyrieOverlay(canvas, ctx, W, H, t) {
     p.closePath();
     canvas._vkDropPath = p;
   }
-  if (!canvas._vkFeatherPath) {
-    const p = new Path2D();
-    p.moveTo(0, -1);
-    p.bezierCurveTo( 0.32, -0.6,  0.38,  0.05,  0.26,  0.6);
-    p.bezierCurveTo( 0.16,  0.8,  0.06,  0.92,  0,     1);
-    p.bezierCurveTo(-0.06,  0.92, -0.16,  0.8, -0.26,  0.6);
-    p.bezierCurveTo(-0.38,  0.05, -0.32, -0.6,  0,    -1);
-    p.closePath();
-    canvas._vkFeatherPath = p;
-  }
-  if (!canvas._vkMotePath) {
-    const p = new Path2D();
-    p.moveTo(0, -1); p.lineTo(0.32, 0); p.lineTo(0, 1); p.lineTo(-0.32, 0);
-    p.closePath();
-    canvas._vkMotePath = p;
-  }
 
   const dt = 0.033;
-
-  // ── feathers ──────────────────────────────────────────────────
-  const feathers = canvas._vkFeathers;
-  for (let i = 0; i < feathers.length; i++) {
-    const f = feathers[i];
-    f.y   += f.speed * dt * H;
-    f.x   += f.drift * dt;
-    f.ang += f.spin  * dt;
-    if (f.y > H + f.h) { feathers[i] = _vkNewFeather(W, H, false); continue; }
-    ctx.save();
-    ctx.translate(f.x, f.y);
-    ctx.rotate(f.ang);
-    ctx.scale(f.h * 0.32, f.h * 0.5);
-    ctx.globalAlpha = f.alpha;
-    ctx.fillStyle = f.color;
-    ctx.fill(canvas._vkFeatherPath);
-    ctx.strokeStyle = 'rgba(180,140,60,0.4)';
-    ctx.lineWidth = 0.04;
-    ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(0, 1); ctx.stroke();
-    ctx.restore();
-  }
-
-  // ── drops + motion trails ─────────────────────────────────────
   const drops = canvas._vkDrops;
   for (let i = 0; i < drops.length; i++) {
     const d = drops[i];
@@ -2955,8 +2905,6 @@ function _drawValkyrieOverlay(canvas, ctx, W, H, t) {
     ctx.restore();
     ctx.restore();
   }
-
-  // ── splatters ─────────────────────────────────────────────────
   const splt = canvas._vkSplatters;
   for (let i = splt.length - 1; i >= 0; i--) {
     const s = splt[i];
@@ -2968,6 +2916,62 @@ function _drawValkyrieOverlay(canvas, ctx, W, H, t) {
     ctx.globalAlpha = s.alpha * s.life;
     ctx.fillStyle = '#990018';
     ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Overlay canvas (z-index:9999): feathers, motes, mist — above UI
+function _drawValkyrieOverlay(canvas, ctx, W, H, t) {
+  if (_drawValkyrieOverlay._lt !== undefined && t - _drawValkyrieOverlay._lt < 0.033) return;
+  _drawValkyrieOverlay._lt = t;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const NFEATHERS = 7, NMOTES = 28;
+  if (!canvas._vkFeathers) {
+    canvas._vkFeathers = Array.from({ length: NFEATHERS }, () => _vkNewFeather(W, H, true));
+    canvas._vkMotes    = Array.from({ length: NMOTES },    () => _vkNewMote(W, H, true));
+  }
+
+  // ── cache Path2D shapes ───────────────────────────────────────
+  if (!canvas._vkFeatherPath) {
+    const p = new Path2D();
+    p.moveTo(0, -1);
+    p.bezierCurveTo( 0.32, -0.6,  0.38,  0.05,  0.26,  0.6);
+    p.bezierCurveTo( 0.16,  0.8,  0.06,  0.92,  0,     1);
+    p.bezierCurveTo(-0.06,  0.92, -0.16,  0.8, -0.26,  0.6);
+    p.bezierCurveTo(-0.38,  0.05, -0.32, -0.6,  0,    -1);
+    p.closePath();
+    canvas._vkFeatherPath = p;
+  }
+  if (!canvas._vkMotePath) {
+    const p = new Path2D();
+    p.moveTo(0, -1); p.lineTo(0.32, 0); p.lineTo(0, 1); p.lineTo(-0.32, 0);
+    p.closePath();
+    canvas._vkMotePath = p;
+  }
+
+  const dt = 0.033;
+
+  // ── feathers ──────────────────────────────────────────────────
+  const feathers = canvas._vkFeathers;
+  for (let i = 0; i < feathers.length; i++) {
+    const f = feathers[i];
+    f.y   += f.speed * dt * H;
+    f.x   += f.drift * dt;
+    f.ang += f.spin  * dt;
+    if (f.y > H + f.h) { feathers[i] = _vkNewFeather(W, H, false); continue; }
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.ang);
+    ctx.scale(f.h * 0.32, f.h * 0.5);
+    ctx.globalAlpha = f.alpha;
+    ctx.fillStyle = f.color;
+    ctx.fill(canvas._vkFeatherPath);
+    ctx.strokeStyle = 'rgba(180,140,60,0.4)';
+    ctx.lineWidth = 0.04;
+    ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(0, 1); ctx.stroke();
+    ctx.restore();
   }
 
   // ── divine motes ──────────────────────────────────────────────
@@ -2991,16 +2995,16 @@ function _drawValkyrieOverlay(canvas, ctx, W, H, t) {
 
   ctx.globalAlpha = 1;
 
-  // ── crimson mist veil ─────────────────────────────────────────
+  // ── crimson mist veil (slightly lower — bottom 12%) ───────────
   if (!canvas._vkMistGrad || canvas._vkW !== W || canvas._vkH !== H) {
     canvas._vkW = W; canvas._vkH = H;
-    const g = ctx.createLinearGradient(0, H * 0.78, 0, H);
+    const g = ctx.createLinearGradient(0, H * 0.88, 0, H);
     g.addColorStop(0, 'rgba(110,0,20,0)');
     g.addColorStop(1, 'rgba(90,0,14,0.50)');
     canvas._vkMistGrad = g;
   }
   ctx.fillStyle = canvas._vkMistGrad;
-  ctx.fillRect(0, H * 0.78, W, H * 0.22);
+  ctx.fillRect(0, H * 0.88, W, H * 0.12);
 }
 
 function _startValkyrieOverlay() {
