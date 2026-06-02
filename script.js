@@ -3310,102 +3310,38 @@ function _stopAdamOverlay() {
 }
 /* ─────────────────────────────────────────────────────────────── */
 /* ─── Fury's Fire ─────────────────────────────────────────────── */
-function _furyDrawSigil(ctx, type, r) {
-  ctx.beginPath();
-  switch (type % 5) {
-    case 0: // Star Brand — outer ring + 6 radial spokes + inner ring
-      ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const a = i * Math.PI / 3;
-        ctx.moveTo(Math.cos(a) * r * 0.35, Math.sin(a) * r * 0.35);
-        ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-      }
-      ctx.stroke(); break;
-    case 1: // Spear — vertical shaft + two crossbars + diamond tip
-      ctx.moveTo(0, -r); ctx.lineTo(0, r);
-      ctx.moveTo(-r * 0.55, -r * 0.35); ctx.lineTo(r * 0.55, -r * 0.35);
-      ctx.moveTo(-r * 0.38,  r * 0.10); ctx.lineTo(r * 0.38,  r * 0.10);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(0, -r); ctx.lineTo(r * 0.18, -r * 0.72);
-      ctx.lineTo(0, -r * 0.44); ctx.lineTo(-r * 0.18, -r * 0.72);
-      ctx.closePath(); ctx.stroke(); break;
-    case 2: // Eye of Fire — almond + pupil ring + vertical rays
-      ctx.moveTo(-r, 0); ctx.quadraticCurveTo(0, -r * 0.50, r, 0);
-      ctx.quadraticCurveTo(0,  r * 0.50, -r, 0); ctx.stroke();
-      ctx.beginPath(); ctx.arc(0, 0, r * 0.28, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath();
-      for (let i = -1; i <= 1; i++) {
-        ctx.moveTo(i * r * 0.18, -r * 0.28); ctx.lineTo(i * r * 0.24, -r * 0.62);
-        ctx.moveTo(i * r * 0.18,  r * 0.28); ctx.lineTo(i * r * 0.24,  r * 0.62);
-      }
-      ctx.stroke(); break;
-    case 3: // Rune Frame — two verticals + top bar + two diagonals
-      ctx.moveTo(-r * 0.65, -r * 0.85); ctx.lineTo(-r * 0.65, r * 0.85);
-      ctx.moveTo( r * 0.65, -r * 0.85); ctx.lineTo( r * 0.65, r * 0.85);
-      ctx.moveTo(-r * 0.65, -r * 0.85); ctx.lineTo( r * 0.65, -r * 0.85);
-      ctx.moveTo(-r * 0.65,  0);         ctx.lineTo( r * 0.65, -r * 0.55);
-      ctx.moveTo(-r * 0.65,  0);         ctx.lineTo( r * 0.65,  r * 0.55);
-      ctx.stroke(); break;
-    case 4: // Triskele — outer ring + 3 curved arms
-      ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath();
-      for (let i = 0; i < 3; i++) {
-        const a = i * Math.PI * 2 / 3 - Math.PI * 0.5;
-        ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(Math.cos(a + Math.PI / 3) * r * 0.5, Math.sin(a + Math.PI / 3) * r * 0.5,
-                             Math.cos(a) * r * 0.7, Math.sin(a) * r * 0.7);
-      }
-      ctx.stroke(); break;
-  }
-}
+const _FURY_CHAN_XF = [0.10, 0.30, 0.52, 0.72, 0.90];
 
-function _furyNewColumn(W, H) {
+function _furyNewFirePtcl(W, H, scatter) {
+  const cx = _FURY_CHAN_XF[Math.floor(Math.random() * _FURY_CHAN_XF.length)] * W;
   return {
-    x: (0.04 + Math.random() * 0.92) * W,
-    baseW: 45 + Math.random() * 85,
-    tipH: H * (0.30 + Math.random() * 0.40),
-    speed: 0.35 + Math.random() * 0.65,
-    phase: Math.random() * Math.PI * 2,
-    swayAmt: 0.07 + Math.random() * 0.13,
+    cx,
+    x:  cx + (Math.random() - 0.5) * W * 0.05,
+    y:  scatter ? H - Math.random() * H * 0.72 : H + Math.random() * 10,
+    vx: (Math.random() - 0.5) * 14,
+    vy: -(42 + Math.random() * 88),
+    r:  8 + Math.random() * 18,
+    life:  scatter ? Math.random() : 1,
+    decay: 0.13 + Math.random() * 0.25,
+    phase:    Math.random() * Math.PI * 2,
+    turbFreq: 0.45 + Math.random() * 0.85,
+    turbAmp:  10 + Math.random() * 18,
   };
 }
 
-function _furyDrawColumn(ctx, col, H, t) {
-  const { x, baseW, tipH, speed, phase, swayAmt } = col;
-  const sway  = Math.sin(t * speed + phase) * baseW * swayAmt;
-  const sway2 = Math.sin(t * speed * 1.4 + phase + 1.2) * baseW * swayAmt * 0.5;
-  const layers = [
-    { ws: 1.00, hs: 1.00, r: 140, g:   5, b:  0, a: 0.20 },
-    { ws: 0.70, hs: 0.85, r: 210, g:  25, b:  0, a: 0.17 },
-    { ws: 0.45, hs: 0.72, r: 235, g:  80, b:  0, a: 0.14 },
-    { ws: 0.25, hs: 0.55, r: 255, g: 155, b: 10, a: 0.11 },
-    { ws: 0.12, hs: 0.38, r: 255, g: 220, b: 60, a: 0.09 },
-  ];
-  for (const l of layers) {
-    const w = baseW * l.ws, tH = tipH * l.hs, tipX = x + sway * l.hs;
-    ctx.beginPath();
-    ctx.moveTo(x - baseW * 0.5, H);
-    ctx.bezierCurveTo(x - w + sway2, H - tH * 0.35, tipX - w * 0.4, H - tH * 0.7, tipX, H - tH);
-    ctx.bezierCurveTo(tipX + w * 0.4, H - tH * 0.7, x + w + sway2, H - tH * 0.35, x + baseW * 0.5, H);
-    ctx.fillStyle = `rgba(${l.r},${l.g},${l.b},${l.a})`;
-    ctx.fill();
-  }
-}
-
 function _furyNewEmber(W, H, scatter) {
-  const gold = Math.random() < 0.65;
+  const cx = _FURY_CHAN_XF[Math.floor(Math.random() * _FURY_CHAN_XF.length)] * W;
+  const large = Math.random() < 0.25;
   return {
-    x: scatter ? Math.random() * W : (0.05 + Math.random() * 0.90) * W,
-    y: scatter ? Math.random() * H : H + 5 + Math.random() * 20,
-    vx: (Math.random() - 0.5) * 28,
-    vy: -(18 + Math.random() * 55),
-    r: 1.5 + Math.random() * 3.0,
-    life: scatter ? Math.random() * 0.9 + 0.1 : 1,
-    decay: 0.07 + Math.random() * 0.14,
-    hue: gold ? (35 + Math.random() * 25) : (10 + Math.random() * 15),
+    x: scatter ? Math.random() * W : cx + (Math.random() - 0.5) * W * 0.08,
+    y: scatter ? Math.random() * H : H + Math.random() * 5,
+    vx: (Math.random() - 0.5) * 25,
+    vy: -(60 + Math.random() * 130),
+    r:     large ? (3 + Math.random() * 4) : (0.8 + Math.random() * 2),
+    life:  scatter ? Math.random() : 1,
+    decay: large ? (0.06 + Math.random() * 0.08) : (0.09 + Math.random() * 0.14),
+    hue:   Math.random() < 0.7 ? 0 : 355,
+    bright: 22 + Math.random() * 18,
   };
 }
 
@@ -3414,79 +3350,78 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
   const dt = _drawFuryPattern._lt === undefined ? 0.016 : Math.min(t - _drawFuryPattern._lt, 0.05);
   _drawFuryPattern._lt = t;
 
-  if (!canvas._furyBgGrad || canvas._furyW !== W || canvas._furyH !== H) {
+  if (canvas._furyW !== W || canvas._furyH !== H) {
     canvas._furyW = W; canvas._furyH = H;
-    const g = ctx.createRadialGradient(W * 0.5, H * 0.6, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
-    g.addColorStop(0, '#1c0000'); g.addColorStop(0.45, '#0e0000'); g.addColorStop(1, '#040003');
-    canvas._furyBgGrad = g;
-    canvas._furySigils = null; canvas._furyColumns = null; canvas._furyEmbers = null;
+    canvas._furyFirePtcls = null; canvas._furyBaseGrads = null; canvas._furyBgEmbers = null;
   }
+
   ctx.globalAlpha = 1;
-  ctx.fillStyle = canvas._furyBgGrad;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
 
-  if (!canvas._furySigils) {
-    canvas._furySigils = Array.from({ length: 7 }, (_, i) => ({
-      x: (0.07 + Math.random() * 0.86) * W,
-      y: (0.05 + Math.random() * 0.90) * H,
-      r: 55 + Math.random() * 80,
-      type: i % 5,
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.15 + Math.random() * 0.22,
-      rot: (Math.random() - 0.5) * Math.PI * 0.45,
-    }));
+  // Smouldering glow at the base of each channel
+  if (!canvas._furyBaseGrads) {
+    canvas._furyBaseGrads = _FURY_CHAN_XF.map(xf => {
+      const cx = xf * W, r = Math.min(W, H) * 0.14;
+      const g = ctx.createRadialGradient(cx, H, 0, cx, H, r);
+      g.addColorStop(0, 'rgba(90,0,0,0.45)');
+      g.addColorStop(0.5, 'rgba(45,0,0,0.18)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      return g;
+    });
   }
-  for (const s of canvas._furySigils) {
-    const pulse = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate(s.rot);
-    ctx.strokeStyle = `rgba(210, 30, 0, ${0.10 + 0.28 * pulse})`;
-    ctx.lineWidth = 1.8;
-    ctx.shadowColor = '#ff3300';
-    ctx.shadowBlur = 6 + 22 * pulse;
-    _furyDrawSigil(ctx, s.type, s.r);
-    ctx.restore();
-  }
-  ctx.shadowBlur = 0;
+  for (const g of canvas._furyBaseGrads) { ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
 
-  if (!canvas._furyColumns) {
-    canvas._furyColumns = Array.from({ length: 10 }, () => _furyNewColumn(W, H));
+  // Fire particles — additive blending creates natural crimson glow where they overlap
+  if (!canvas._furyFirePtcls) {
+    canvas._furyFirePtcls = Array.from({ length: 220 }, (_, i) => _furyNewFirePtcl(W, H, i < 175));
   }
-  for (const col of canvas._furyColumns) _furyDrawColumn(ctx, col, H, t);
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = canvas._furyFirePtcls.length - 1; i >= 0; i--) {
+    const e = canvas._furyFirePtcls[i];
+    e.vx += Math.sin(t * e.turbFreq + e.phase) * e.turbAmp * dt;
+    e.vx *= (1 - 1.8 * dt);
+    e.x  += e.vx * dt;
+    e.y  += e.vy * dt;
+    e.life -= e.decay * dt;
+    if (e.life <= 0 || e.y < -e.r * 2) { canvas._furyFirePtcls[i] = _furyNewFirePtcl(W, H, false); continue; }
+    const life2 = e.life * e.life;
+    ctx.globalAlpha = e.life * 0.14;
+    ctx.fillStyle = `rgb(${Math.round(115 * life2)},0,0)`;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r * (0.4 + 0.6 * e.life), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
 
-  if (!canvas._furyEmbers) {
-    canvas._furyEmbers = Array.from({ length: 75 }, (_, i) => _furyNewEmber(W, H, i < 60));
+  if (!canvas._furyBgEmbers) {
+    canvas._furyBgEmbers = Array.from({ length: 65 }, (_, i) => _furyNewEmber(W, H, i < 50));
   }
-  for (let i = canvas._furyEmbers.length - 1; i >= 0; i--) {
-    const e = canvas._furyEmbers[i];
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = canvas._furyBgEmbers.length - 1; i >= 0; i--) {
+    const e = canvas._furyBgEmbers[i];
     e.x += e.vx * dt; e.y += e.vy * dt; e.life -= e.decay * dt;
-    if (e.life <= 0 || e.y < -15) { canvas._furyEmbers[i] = _furyNewEmber(W, H, false); continue; }
-    ctx.globalAlpha = e.life * 0.85;
-    ctx.fillStyle = `hsl(${e.hue},100%,${52 + 30 * e.life}%)`;
-    ctx.beginPath(); ctx.arc(e.x, e.y, e.r * Math.max(0.3, e.life), 0, Math.PI * 2); ctx.fill();
+    if (e.life <= 0 || e.y < -10) { canvas._furyBgEmbers[i] = _furyNewEmber(W, H, false); continue; }
+    ctx.globalAlpha = e.life * 0.9;
+    ctx.fillStyle = `hsl(${e.hue},100%,${e.bright + 8 * e.life}%)`;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill();
   }
+  ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
 }
 
-const _FURY_OV_COLS = [
-  { xf: 0.12, bwf: 0.075, thf: 0.18, speed: 0.50, phase: 0.2,  swayAmt: 0.08 },
-  { xf: 0.35, bwf: 0.110, thf: 0.22, speed: 0.40, phase: 1.5,  swayAmt: 0.06 },
-  { xf: 0.58, bwf: 0.105, thf: 0.20, speed: 0.60, phase: 0.8,  swayAmt: 0.07 },
-  { xf: 0.82, bwf: 0.080, thf: 0.17, speed: 0.45, phase: 2.1,  swayAmt: 0.09 },
-];
-
-function _furyNewWisp(W, H, scatter) {
-  const gold = Math.random() < 0.55;
+function _furyNewOvEmber(W, H, scatter) {
+  const cx = _FURY_CHAN_XF[Math.floor(Math.random() * _FURY_CHAN_XF.length)] * W;
+  const large = Math.random() < 0.20;
   return {
-    x: scatter ? Math.random() * W : (0.05 + Math.random() * 0.90) * W,
-    y: scatter ? H * 0.82 + Math.random() * H * 0.22 : H + Math.random() * 10,
-    vx: (Math.random() - 0.5) * 18,
-    vy: -(25 + Math.random() * 70),
-    r: 2 + Math.random() * 5,
-    life: scatter ? Math.random() : 1,
-    decay: 0.10 + Math.random() * 0.18,
-    hue: gold ? (38 + Math.random() * 22) : (12 + Math.random() * 14),
+    x: scatter ? Math.random() * W : cx + (Math.random() - 0.5) * W * 0.10,
+    y: scatter ? Math.random() * H : H + Math.random() * 5,
+    vx: (Math.random() - 0.5) * 30,
+    vy: -(70 + Math.random() * 150),
+    r:     large ? (3.5 + Math.random() * 4.5) : (0.8 + Math.random() * 2.5),
+    life:  scatter ? Math.random() : 1,
+    decay: large ? (0.05 + Math.random() * 0.08) : (0.09 + Math.random() * 0.15),
+    hue:   Math.random() < 0.7 ? 0 : 355,
+    bright: 25 + Math.random() * 18,
   };
 }
 
@@ -3497,33 +3432,27 @@ function _drawFuryOverlay(canvas, ctx, W, H, t) {
   ctx.clearRect(0, 0, W, H);
 
   if (canvas._furyOvW !== W || canvas._furyOvH !== H) {
-    canvas._furyOvW = W; canvas._furyOvH = H; canvas._furyWisps = null;
+    canvas._furyOvW = W; canvas._furyOvH = H; canvas._furyOvEmbers = null;
   }
 
-  // Subtle corner vignettes
-  const vSize = Math.min(W, H) * 0.35;
-  for (const [cx, cy] of [[0, 0], [W, 0], [0, H], [W, H]]) {
-    const vg = ctx.createRadialGradient(cx, cy, 0, cx, cy, vSize);
-    vg.addColorStop(0, 'rgba(12,0,0,0.22)'); vg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-  }
+  // Subtle dark-red heat vignette at the bottom
+  const edgeG = ctx.createLinearGradient(0, H, 0, H - H * 0.16);
+  edgeG.addColorStop(0, 'rgba(18,0,0,0.28)'); edgeG.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = edgeG; ctx.fillRect(0, 0, W, H);
 
-  // Overlay fire columns along the bottom
-  for (const d of _FURY_OV_COLS) {
-    _furyDrawColumn(ctx, { x: d.xf * W, baseW: d.bwf * W, tipH: d.thf * H, speed: d.speed, phase: d.phase, swayAmt: d.swayAmt }, H, t);
+  if (!canvas._furyOvEmbers) {
+    canvas._furyOvEmbers = Array.from({ length: 100 }, (_, i) => _furyNewOvEmber(W, H, i < 75));
   }
-
-  if (!canvas._furyWisps) {
-    canvas._furyWisps = Array.from({ length: 55 }, (_, i) => _furyNewWisp(W, H, i < 40));
-  }
-  for (let i = canvas._furyWisps.length - 1; i >= 0; i--) {
-    const e = canvas._furyWisps[i];
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = canvas._furyOvEmbers.length - 1; i >= 0; i--) {
+    const e = canvas._furyOvEmbers[i];
     e.x += e.vx * dt; e.y += e.vy * dt; e.life -= e.decay * dt;
-    if (e.life <= 0 || e.y < -20) { canvas._furyWisps[i] = _furyNewWisp(W, H, false); continue; }
-    ctx.globalAlpha = e.life * 0.75;
-    ctx.fillStyle = `hsl(${e.hue},100%,${55 + 28 * e.life}%)`;
+    if (e.life <= 0 || e.y < -15) { canvas._furyOvEmbers[i] = _furyNewOvEmber(W, H, false); continue; }
+    ctx.globalAlpha = e.life;
+    ctx.fillStyle = `hsl(${e.hue},100%,${e.bright + 10 * e.life}%)`;
     ctx.beginPath(); ctx.arc(e.x, e.y, e.r * Math.max(0.3, e.life), 0, Math.PI * 2); ctx.fill();
   }
+  ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
 }
 
