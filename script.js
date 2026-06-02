@@ -3065,44 +3065,6 @@ function _adNewShard(W, H, scatter) {
   };
 }
 
-// Frost vein: branching crystal lines pulsing down from the top edge
-function _adNewVein(W) {
-  const branches = [];
-  function grow(x, y, a, len, d) {
-    if (d <= 0 || len < 5) return;
-    const ex = x + Math.cos(a) * len, ey = y + Math.sin(a) * len;
-    branches.push([x, y, ex, ey]);
-    const nb = Math.random() < 0.55 ? 2 : 1;
-    for (let i = 0; i < nb; i++) {
-      const da = (Math.random() < 0.5 ? 1 : -1) * (0.28 + Math.random() * 0.52);
-      grow(ex, ey, a + da, len * (0.48 + Math.random() * 0.20), d - 1);
-    }
-  }
-  grow(Math.random() * W, 0, Math.PI / 2 + (Math.random() - 0.5) * 0.45, 38 + Math.random() * 65, 5);
-  return {
-    branches,
-    phase: Math.random() * Math.PI * 2,
-    speed: 0.20 + Math.random() * 0.22,
-    alpha: 0.38 + Math.random() * 0.35,
-  };
-}
-
-// Ice plate: large floating diamond prism, two-face lighting
-function _adNewPlate(W, H, scatter) {
-  const hh = 26 + Math.random() * 44;
-  return {
-    x:     Math.random() * W,
-    y:     scatter ? Math.random() * H : -(hh + Math.random() * H * 0.5),
-    hw:    hh * (0.38 + Math.random() * 0.28),
-    hh,
-    speed: 0.012 + Math.random() * 0.022,
-    ang:   Math.random() * Math.PI * 2,
-    spin:  (Math.random() - 0.5) * 0.10,
-    drift: (Math.random() - 0.5) * 5,
-    alpha: 0.07 + Math.random() * 0.11,
-    hue:   192 + Math.random() * 20,
-  };
-}
 
 function _adGrowFrost(out, x, y, ang, len, depth) {
   if (depth <= 0 || len < 3) return;
@@ -3184,7 +3146,7 @@ function _drawAdamPattern(canvas, ctx, W, H, t, params) {
   ctx.globalAlpha = 1;
 }
 
-// Overlay: frost corners, aurora glow, frost veins, ice plates, sparkles
+// Overlay: aurora glow, frost corner branches, icy edge glow, sparkles
 function _drawAdamOverlay(canvas, ctx, W, H, t) {
   if (_drawAdamOverlay._lt !== undefined && t - _drawAdamOverlay._lt < 0.033) return;
   _drawAdamOverlay._lt = t;
@@ -3194,17 +3156,13 @@ function _drawAdamOverlay(canvas, ctx, W, H, t) {
   // ── resize invalidation ───────────────────────────────────────
   if (canvas._adW !== W || canvas._adH !== H) {
     canvas._adW = W; canvas._adH = H;
-    canvas._adamAurGrad = null;
-    canvas._adamVeins = null; canvas._adamPlates = null; canvas._adamFrost = null;
+    canvas._adamAurGrad = null; canvas._adamEdgeGrads = null; canvas._adamFrost = null;
   }
 
-  // ── init pools ────────────────────────────────────────────────
-  const NVEINS = 9, NPLATES = 11;
-  if (!canvas._adamVeins) {
-    canvas._adamVeins    = Array.from({ length: NVEINS },   () => _adNewVein(W));
-    canvas._adamPlates   = Array.from({ length: NPLATES },  () => _adNewPlate(W, H, true));
+  // ── init ──────────────────────────────────────────────────────
+  if (!canvas._adamFrost) {
+    canvas._adamFrost    = [];
     canvas._adamSparkles = [];
-    canvas._adamFrost = [];
     const C = [[0, 0, Math.PI * 0.25], [W, 0, Math.PI * 0.75], [0, H, -Math.PI * 0.25], [W, H, -Math.PI * 0.75]];
     for (const [cx, cy, bAng] of C) {
       for (let b = 0; b < 4; b++) {
@@ -3219,14 +3177,33 @@ function _drawAdamOverlay(canvas, ctx, W, H, t) {
     g.addColorStop(1,    'rgba(0,170,210,0)');
     canvas._adamAurGrad = g;
   }
+  if (!canvas._adamEdgeGrads) {
+    const ew = Math.min(W, H) * 0.13;
+    const mk = (x0, y0, x1, y1) => {
+      const g = ctx.createLinearGradient(x0, y0, x1, y1);
+      g.addColorStop(0, 'rgba(0,205,230,0.18)');
+      g.addColorStop(1, 'rgba(0,205,230,0)');
+      return g;
+    };
+    canvas._adamEdgeGrads = {
+      ew,
+      top:    mk(0, 0,      0, ew),
+      bottom: mk(0, H,      0, H - ew),
+      left:   mk(0, 0,     ew, 0),
+      right:  mk(W, 0, W - ew, 0),
+    };
+  }
 
   const dt = 0.033;
+  // Slow global pulse shared by the edge glow
+  const pulse = 0.7 + 0.3 * Math.sin(t * 0.5);
 
   // ── aurora glow at top ────────────────────────────────────────
+  ctx.globalAlpha = 1;
   ctx.fillStyle = canvas._adamAurGrad;
   ctx.fillRect(0, 0, W, H * 0.20);
 
-  // ── frost corner branches (batched by depth level) ────────────
+  // ── frost corner branches ─────────────────────────────────────
   ctx.strokeStyle = '#b4eaff';
   ctx.lineCap = 'round';
   for (let d = 4; d >= 1; d--) {
@@ -3240,54 +3217,13 @@ function _drawAdamOverlay(canvas, ctx, W, H, t) {
     ctx.stroke();
   }
 
-  // ── frost veins pulsing from the top edge ─────────────────────
-  ctx.lineCap = 'round';
-  for (const v of canvas._adamVeins) {
-    const a = v.alpha * (0.35 + 0.65 * Math.abs(Math.sin(t * v.speed + v.phase)));
-    ctx.globalAlpha = a;
-    ctx.strokeStyle = '#c8eeff';
-    ctx.lineWidth = 0.85;
-    ctx.beginPath();
-    for (const [x1, y1, x2, y2] of v.branches) {
-      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-    }
-    ctx.stroke();
-  }
-
-  // ── floating ice plates (large translucent diamond prisms) ────
-  for (let i = 0; i < canvas._adamPlates.length; i++) {
-    const p = canvas._adamPlates[i];
-    p.y   += p.speed * dt * H;
-    p.x   += p.drift * dt;
-    p.ang += p.spin  * dt;
-    if (p.y > H + p.hh * 2) { canvas._adamPlates[i] = _adNewPlate(W, H, false); continue; }
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(p.ang);
-    // Main fill
-    ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = `hsl(${p.hue},85%,82%)`;
-    ctx.beginPath();
-    ctx.moveTo(0, -p.hh); ctx.lineTo(p.hw, 0); ctx.lineTo(0, p.hh); ctx.lineTo(-p.hw, 0);
-    ctx.closePath();
-    ctx.fill();
-    // Light-facing half (left face, slightly brighter)
-    ctx.globalAlpha = p.alpha * 0.55;
-    ctx.fillStyle = 'rgba(200,240,255,0.5)';
-    ctx.beginPath();
-    ctx.moveTo(0, -p.hh); ctx.lineTo(-p.hw, 0); ctx.lineTo(0, p.hh);
-    ctx.closePath();
-    ctx.fill();
-    // Edge outline
-    ctx.globalAlpha = Math.min(1, p.alpha * 2.2);
-    ctx.strokeStyle = 'rgba(210,248,255,0.75)';
-    ctx.lineWidth = 0.7;
-    ctx.beginPath();
-    ctx.moveTo(0, -p.hh); ctx.lineTo(p.hw, 0); ctx.lineTo(0, p.hh); ctx.lineTo(-p.hw, 0);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
-  }
+  // ── icy edge glow along all 4 sides ──────────────────────────
+  const eg = canvas._adamEdgeGrads, ew = eg.ew;
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = eg.top;    ctx.fillRect(0,      0,      W,  ew);
+  ctx.fillStyle = eg.bottom; ctx.fillRect(0,      H - ew, W,  ew);
+  ctx.fillStyle = eg.left;   ctx.fillRect(0,      0,      ew, H);
+  ctx.fillStyle = eg.right;  ctx.fillRect(W - ew, 0,      ew, H);
 
   // ── ice sparkle glints ────────────────────────────────────────
   if (Math.random() < 0.35) {
