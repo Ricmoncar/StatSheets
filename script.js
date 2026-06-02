@@ -313,7 +313,7 @@ function playHover() {
 let _themeAudio = null;
 let _themeCurrentCharId = null;   // whose theme is playing right now
 let _themeCurrentSong = null;     // cache of the song object currently being played
-let _themeVolume = 70;            // 0-100
+let _themeVolume = 20;            // 0-100
 let _themePaused = false;
 const _themeReloadKeys = new Set();
 let _themeFadeTimer = null;
