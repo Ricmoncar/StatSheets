@@ -92,7 +92,8 @@ function _isBizzy(c) { return !!(c && c.name && _BIZZY_RE.test(c.name)); }
 
 let _bizzyRafId = null, _bizzyRafT = 0, _bizzyRafPrev = 0;
 let _bizzySmoothedLevel = 0;
-let _bizzyAudioCtx = null, _bizzyAnalyser = null, _bizzyAudioBuf = null;
+let _bizzyIsPlaying = false;
+let _bizzyAudioListening = false;
 // ─────────────────────────────────────────────────────────────
 
 let currentId = null;
@@ -1546,27 +1547,32 @@ function _bzBeeAt(ctx, b, W, H, t) {
 
 /* ── Bizzy overlay + audio + RAF ─────────────────────────────── */
 function _bizzyConnectAudio() {
-  if (_bizzyAudioCtx) { if (_bizzyAudioCtx.state==='suspended') _bizzyAudioCtx.resume().catch(()=>{}); return; }
+  // IMPORTANT: We deliberately do NOT use createMediaElementSource here.
+  // That API permanently hijacks the audio element and, combined with CORS
+  // restrictions on Cloudinary URLs, causes the element to output silence
+  // forever — breaking playback for every character visited after Bizzy.
+  // Instead we track play/pause state via events and simulate the pulse.
+  if (_bizzyAudioListening) return;
+  _bizzyAudioListening = true;
   const audio = window._themeAudio || document.getElementById('theme-audio');
   if (!audio) return;
-  try {
-    _bizzyAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    _bizzyAnalyser = _bizzyAudioCtx.createAnalyser();
-    _bizzyAnalyser.fftSize = 64;
-    _bizzyAnalyser.smoothingTimeConstant = 0.6;
-    _bizzyAudioBuf = new Uint8Array(_bizzyAnalyser.frequencyBinCount);
-    const src = _bizzyAudioCtx.createMediaElementSource(audio);
-    src.connect(_bizzyAnalyser);
-    _bizzyAnalyser.connect(_bizzyAudioCtx.destination);
-  } catch(e) { _bizzyAudioCtx = null; }
+  audio.addEventListener('play',  () => { _bizzyIsPlaying = true;  });
+  audio.addEventListener('pause', () => { _bizzyIsPlaying = false; });
+  audio.addEventListener('ended', () => { _bizzyIsPlaying = false; });
+  _bizzyIsPlaying = !!(audio && !audio.paused);
 }
 
 function _bizzyGetLevel() {
-  if (!_bizzyAnalyser) return 0;
-  _bizzyAnalyser.getByteTimeDomainData(_bizzyAudioBuf);
-  let sq = 0;
-  for (const v of _bizzyAudioBuf) sq += ((v-128)/128)**2;
-  return Math.min(1, Math.sqrt(sq/_bizzyAudioBuf.length) * 6);
+  // Simulate musical energy variation using playback position.
+  // Multiple overlapping sinusoids at different rates approximate
+  // the feel of music without any audio API access.
+  if (!_bizzyIsPlaying || !window._themeAudio) return 0;
+  const t = _themeAudio.currentTime || 0;
+  return Math.max(0, Math.min(1,
+    0.50 + Math.sin(t * 6.28) * 0.24
+         + Math.sin(t * 9.42) * 0.14
+         + Math.sin(t * 3.77) * 0.18
+  ));
 }
 
 function _bizzyPulseColor(c) {
@@ -1574,9 +1580,8 @@ function _bizzyPulseColor(c) {
   const hex = c.color.replace('#','');
   if (hex.length!==6) return;
   const r=parseInt(hex.slice(0,2),16), g=parseInt(hex.slice(2,4),16), b=parseInt(hex.slice(4,6),16);
-  const isPlaying = window._themeAudio && !_themeAudio.paused;
   let bright;
-  if (isPlaying && _bizzyAnalyser) {
+  if (_bizzyIsPlaying) {
     const lvl = _bizzyGetLevel();
     _bizzySmoothedLevel = _bizzySmoothedLevel*0.78 + lvl*0.22;
     bright = 0.65 + _bizzySmoothedLevel * 0.75;
