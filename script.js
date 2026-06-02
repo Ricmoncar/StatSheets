@@ -2758,19 +2758,36 @@ function _drawSnapsPattern(canvas, ctx, W, H, t) {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ── Valkyrie: elegant blood rain ──────────────────────────────
+const _VK_RUNES = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ'];
+
 function _vkNewDrop(W, H, scatter) {
-  const len = 9 + Math.random() * 24;
-  const hue = 342 + Math.random() * 22;        // deep crimson spectrum
-  const sat = 72 + Math.random() * 22;
-  const lum = 17 + Math.random() * 18;
+  const len = 10 + Math.random() * 28;
+  const hue = 340 + Math.random() * 24;
+  const sat = 70 + Math.random() * 24;
+  const lum = 15 + Math.random() * 22;
   return {
     x:     Math.random() * W,
-    y:     scatter ? Math.random() * H : -(len + Math.random() * H * 0.4),
-    speed: 0.22 + Math.random() * 0.42,         // fraction of H per second
+    y:     scatter ? Math.random() * H : -(len + Math.random() * H * 0.3),
+    speed: 0.28 + Math.random() * 0.52,
     len,
-    w:     len * (0.17 + Math.random() * 0.1),
-    alpha: 0.38 + Math.random() * 0.5,
+    w:     len * (0.15 + Math.random() * 0.10),
+    alpha: 0.35 + Math.random() * 0.55,
     color: `hsl(${hue},${sat}%,${lum}%)`,
+  };
+}
+
+function _vkNewFeather(W, H, scatter) {
+  const h = 38 + Math.random() * 42;
+  return {
+    x:     Math.random() * W,
+    y:     scatter ? Math.random() * H : -(h + Math.random() * H * 0.5),
+    speed: 0.014 + Math.random() * 0.018,  // very slow drift
+    h,
+    ang:   (Math.random() - 0.5) * 0.6,
+    spin:  (Math.random() - 0.5) * 0.18,   // rad/s
+    drift: (Math.random() - 0.5) * 12,     // px/s horizontal
+    alpha: 0.12 + Math.random() * 0.20,
+    color: Math.random() < 0.65 ? '#3a0008' : '#1a0520',
   };
 }
 
@@ -2778,13 +2795,13 @@ function _vkNewMote(W, H, scatter) {
   return {
     x:     Math.random() * W,
     y:     scatter ? Math.random() * H : H + 5,
-    speed: 0.03 + Math.random() * 0.06,         // fraction of H per second, upward
+    speed: 0.03 + Math.random() * 0.06,
     size:  1.2 + Math.random() * 2.8,
     freq:  0.4 + Math.random() * 1.8,
     phase: Math.random() * Math.PI * 2,
     spin:  (Math.random() - 0.5) * 2.5,
     life:  Math.random(),
-    color: Math.random() < 0.6 ? '#d4a840' : '#b8c4ff', // gold or ice-silver
+    color: Math.random() < 0.6 ? '#d4a840' : '#b8c4ff',
   };
 }
 
@@ -2794,11 +2811,20 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
   _drawValkyriePattern._lt = t;
 
   // ── init pools ────────────────────────────────────────────────
-  const NDROPS = 55, NMOTES = 28;
+  const NDROPS = 95, NFEATHERS = 7, NMOTES = 28, NRUNES = 6;
   if (!canvas._vkDrops) {
-    canvas._vkDrops    = Array.from({ length: NDROPS }, () => _vkNewDrop(W, H, true));
-    canvas._vkMotes    = Array.from({ length: NMOTES }, () => _vkNewMote(W, H, true));
+    canvas._vkDrops    = Array.from({ length: NDROPS },    () => _vkNewDrop(W, H, true));
+    canvas._vkFeathers = Array.from({ length: NFEATHERS }, () => _vkNewFeather(W, H, true));
+    canvas._vkMotes    = Array.from({ length: NMOTES },    () => _vkNewMote(W, H, true));
     canvas._vkSplatters = [];
+    canvas._vkRunes = Array.from({ length: NRUNES }, () => ({
+      x:     Math.random() * W,
+      y:     H * 0.1 + Math.random() * H * 0.75,
+      char:  _VK_RUNES[Math.floor(Math.random() * _VK_RUNES.length)],
+      size:  52 + Math.random() * 44,
+      phase: Math.random() * Math.PI * 2,
+      base:  0.04 + Math.random() * 0.05,
+    }));
   }
 
   // ── invalidate size-dependent caches on resize ────────────────
@@ -2811,16 +2837,15 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
   ctx.clearRect(0, 0, W, H);
   if (!canvas._vkBgGrad) {
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0,    '#08000e');
-    g.addColorStop(0.65, '#0c0005');
-    g.addColorStop(1,    '#110008');
+    g.addColorStop(0,   '#07000c');
+    g.addColorStop(0.6, '#0c0005');
+    g.addColorStop(1,   '#120008');
     canvas._vkBgGrad = g;
   }
   ctx.fillStyle = canvas._vkBgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  // ── cache teardrop Path2D ─────────────────────────────────────
-  // unit teardrop: rounded top at -1, pointed tip at +1 (falls downward)
+  // ── cache Path2D shapes ───────────────────────────────────────
   if (!canvas._vkDropPath) {
     const p = new Path2D();
     p.moveTo(0, -1);
@@ -2829,8 +2854,17 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
     p.closePath();
     canvas._vkDropPath = p;
   }
-
-  // ── cache mote diamond Path2D ─────────────────────────────────
+  if (!canvas._vkFeatherPath) {
+    // Unit feather: tip at -1 (top), base at +1 (bottom), vanes ±0.38 wide
+    const p = new Path2D();
+    p.moveTo(0, -1);
+    p.bezierCurveTo( 0.32, -0.6,  0.38,  0.05,  0.26,  0.6);
+    p.bezierCurveTo( 0.16,  0.8,  0.06,  0.92,  0,     1);
+    p.bezierCurveTo(-0.06,  0.92, -0.16,  0.8, -0.26,  0.6);
+    p.bezierCurveTo(-0.38,  0.05, -0.32, -0.6,  0,    -1);
+    p.closePath();
+    canvas._vkFeatherPath = p;
+  }
   if (!canvas._vkMotePath) {
     const p = new Path2D();
     p.moveTo(0, -1); p.lineTo(0.32, 0); p.lineTo(0, 1); p.lineTo(-0.32, 0);
@@ -2840,13 +2874,46 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
 
   const dt = 0.033;
 
-  // ── drops ─────────────────────────────────────────────────────
+  // ── rune watermarks ───────────────────────────────────────────
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const r of canvas._vkRunes) {
+    const a = r.base + Math.sin(t * 0.4 + r.phase) * r.base * 0.65;
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.fillStyle = '#8b1020';
+    ctx.font = `${r.size}px serif`;
+    ctx.fillText(r.char, r.x, r.y);
+  }
+  ctx.restore();
+
+  // ── feathers ──────────────────────────────────────────────────
+  const feathers = canvas._vkFeathers;
+  for (let i = 0; i < feathers.length; i++) {
+    const f = feathers[i];
+    f.y   += f.speed * dt * H;
+    f.x   += f.drift * dt;
+    f.ang += f.spin  * dt;
+    if (f.y > H + f.h) { feathers[i] = _vkNewFeather(W, H, false); continue; }
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.ang);
+    ctx.scale(f.h * 0.32, f.h * 0.5);
+    ctx.globalAlpha = f.alpha;
+    ctx.fillStyle = f.color;
+    ctx.fill(canvas._vkFeatherPath);
+    // thin gold spine line
+    ctx.strokeStyle = 'rgba(180,140,60,0.4)';
+    ctx.lineWidth = 0.04;
+    ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(0, 1); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── drops + motion trails ─────────────────────────────────────
   const drops = canvas._vkDrops;
   for (let i = 0; i < drops.length; i++) {
     const d = drops[i];
     d.y += d.speed * dt * H;
     if (d.y > H + d.len) {
-      // micro-splatter on landing
       const ns = 2 + Math.floor(Math.random() * 4);
       for (let s = 0; s < ns; s++) {
         const ang = Math.random() * Math.PI;
@@ -2863,17 +2930,23 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
       drops[i] = _vkNewDrop(W, H, false);
       continue;
     }
+    // Faint motion trail above the drop (cheap flat rect, no gradient)
+    const trailLen = d.len * (1.4 + d.speed);
+    ctx.globalAlpha = d.alpha * 0.22;
+    ctx.fillStyle = d.color;
+    ctx.fillRect(d.x - d.w * 0.2, d.y - d.len * 0.5 - trailLen, d.w * 0.4, trailLen);
+    // Teardrop body
     ctx.save();
     ctx.translate(d.x, d.y);
     ctx.scale(d.w, d.len);
     ctx.globalAlpha = d.alpha;
     ctx.fillStyle = d.color;
     ctx.fill(canvas._vkDropPath);
-    // glass highlight: small bright teardrop near the top of each drop
+    // glass highlight near top
     ctx.save();
     ctx.translate(0.08, -0.34);
     ctx.scale(0.21, 0.27);
-    ctx.globalAlpha = 0.52;
+    ctx.globalAlpha = 0.5;
     ctx.fillStyle = 'rgba(255,175,175,0.9)';
     ctx.fill(canvas._vkDropPath);
     ctx.restore();
@@ -2886,7 +2959,7 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
     const s = splt[i];
     s.x  += s.vx * dt;
     s.y  += s.vy * dt;
-    s.vy += 90 * dt;            // gravity pulls splatters back down
+    s.vy += 90 * dt;
     s.life -= s.decay * dt;
     if (s.life <= 0) { splt.splice(i, 1); continue; }
     ctx.globalAlpha = s.alpha * s.life;
@@ -2915,15 +2988,15 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
 
   ctx.globalAlpha = 1;
 
-  // ── crimson mist at the bottom ────────────────────────────────
+  // ── deep crimson mist veil at the bottom ─────────────────────
   if (!canvas._vkMistGrad) {
-    const g = ctx.createLinearGradient(0, H * 0.82, 0, H);
+    const g = ctx.createLinearGradient(0, H * 0.78, 0, H);
     g.addColorStop(0, 'rgba(110,0,20,0)');
-    g.addColorStop(1, 'rgba(85,0,14,0.38)');
+    g.addColorStop(1, 'rgba(90,0,14,0.50)');
     canvas._vkMistGrad = g;
   }
   ctx.fillStyle = canvas._vkMistGrad;
-  ctx.fillRect(0, H * 0.82, W, H * 0.18);
+  ctx.fillRect(0, H * 0.78, W, H * 0.22);
 }
 /* ─────────────────────────────────────────────────────────────── */
 
