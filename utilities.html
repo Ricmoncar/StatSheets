@@ -1223,17 +1223,18 @@ function _nmtChar(id) {
 /* ── pattern animation ──────────────────────────────────────── */
 function _nmtStartPattern(c) {
   _nmtStopPattern();
-  if (!c || !c.pattern || !c.pattern.type || c.pattern.type === 'none') return;
+  const _ptype = (typeof _isBizzy === 'function' && _isBizzy(c)) ? 'bizzy_bees' : (c?.pattern?.type || 'none');
+  if (_ptype === 'none') return;
   // Wait one frame for the canvas to be in the DOM
   requestAnimationFrame(() => {
     const canvas = document.querySelector('.nmt-pattern-bg');
     if (!canvas) return;
     canvas.width  = canvas.parentElement.offsetWidth  || 600;
     canvas.height = canvas.parentElement.offsetHeight || 300;
-    const type = c.pattern.type, params = c.pattern.params || {};
+    const params = _ptype === 'bizzy_bees' ? {} : (c?.pattern?.params || {});
     const t0 = performance.now();
     function frame(now) {
-      if (typeof drawPattern === 'function') drawPattern(canvas, type, params, (now - t0) / 1000);
+      if (typeof drawPattern === 'function') drawPattern(canvas, _ptype, params, (now - t0) / 1000);
       _nmtAnimFrame = requestAnimationFrame(frame);
     }
     _nmtAnimFrame = requestAnimationFrame(frame);
@@ -1748,13 +1749,14 @@ function _fhRenderView() {
 
   _fhUpdateMusicUI();
 
-  if (c.pattern?.type && c.pattern.type!=='none') {
-    requestAnimationFrame(()=>{
-      const cv = wrap.querySelector('.nmt-pattern-bg'); if (!cv) return;
-      cv.width = cv.parentElement.offsetWidth||600; cv.height = cv.parentElement.offsetHeight||300;
-      const t0 = performance.now();
-      function frame(now){ if(typeof drawPattern==='function') drawPattern(cv,c.pattern.type,c.pattern.params||{},(now-t0)/1000); _fhAnimFrame=requestAnimationFrame(frame); }
-      _fhAnimFrame = requestAnimationFrame(frame);
+  { const _pt=(typeof _isBizzy==='function'&&_isBizzy(c))?'bizzy_bees':(c?.pattern?.type||'none');
+    if (_pt!=='none') requestAnimationFrame(()=>{
+      const cv=wrap.querySelector('.nmt-pattern-bg');if(!cv)return;
+      cv.width=cv.parentElement.offsetWidth||600;cv.height=cv.parentElement.offsetHeight||300;
+      const t0=performance.now();
+      const _pp=_pt==='bizzy_bees'?{}:(c?.pattern?.params||{});
+      function frame(now){if(typeof drawPattern==='function')drawPattern(cv,_pt,_pp,(now-t0)/1000);_fhAnimFrame=requestAnimationFrame(frame);}
+      _fhAnimFrame=requestAnimationFrame(frame);
     });
   }
 }
@@ -2318,12 +2320,13 @@ function _fgRenderView() {
     wrap.querySelectorAll('.fg-stat-fill').forEach(el=>{ el.style.width=el.dataset.width||'0%'; });
   });
 
-  if(c.pattern?.type&&c.pattern.type!=='none'){
-    requestAnimationFrame(()=>{
+  { const _pt=(typeof _isBizzy==='function'&&_isBizzy(c))?'bizzy_bees':(c?.pattern?.type||'none');
+    if(_pt!=='none') requestAnimationFrame(()=>{
       const cv=wrap.querySelector('.nmt-pattern-bg');if(!cv)return;
       cv.width=cv.parentElement.offsetWidth||600;cv.height=cv.parentElement.offsetHeight||300;
       const t0=performance.now();
-      function frame(now){if(typeof drawPattern==='function')drawPattern(cv,c.pattern.type,c.pattern.params||{},(now-t0)/1000);_fgAnimFrame=requestAnimationFrame(frame);}
+      const _pp=_pt==='bizzy_bees'?{}:(c?.pattern?.params||{});
+      function frame(now){if(typeof drawPattern==='function')drawPattern(cv,_pt,_pp,(now-t0)/1000);_fgAnimFrame=requestAnimationFrame(frame);}
       _fgAnimFrame=requestAnimationFrame(frame);
     });
   }
@@ -2663,17 +2666,14 @@ function _lolRenderView() {
     });
   });
 
-  if (c.pattern?.type && c.pattern.type !== 'none') {
-    requestAnimationFrame(() => {
-      const cv = wrap.querySelector('.nmt-pattern-bg'); if (!cv) return;
-      cv.width = cv.parentElement.offsetWidth || 600;
-      cv.height = cv.parentElement.offsetHeight || 300;
-      const t0 = performance.now();
-      function frame(now) {
-        if (typeof drawPattern === 'function') drawPattern(cv, c.pattern.type, c.pattern.params || {}, (now - t0) / 1000);
-        _lolAnimFrame = requestAnimationFrame(frame);
-      }
-      _lolAnimFrame = requestAnimationFrame(frame);
+  { const _pt=(typeof _isBizzy==='function'&&_isBizzy(c))?'bizzy_bees':(c?.pattern?.type||'none');
+    if (_pt!=='none') requestAnimationFrame(()=>{
+      const cv=wrap.querySelector('.nmt-pattern-bg');if(!cv)return;
+      cv.width=cv.parentElement.offsetWidth||600;cv.height=cv.parentElement.offsetHeight||300;
+      const t0=performance.now();
+      const _pp=_pt==='bizzy_bees'?{}:(c?.pattern?.params||{});
+      function frame(now){if(typeof drawPattern==='function')drawPattern(cv,_pt,_pp,(now-t0)/1000);_lolAnimFrame=requestAnimationFrame(frame);}
+      _lolAnimFrame=requestAnimationFrame(frame);
     });
   }
 }
