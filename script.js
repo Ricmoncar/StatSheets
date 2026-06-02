@@ -1699,30 +1699,44 @@ function _stopBizzyRaf() {
    drifting pollen. Triggered whenever _isBizzy(currentChar) is true.
 ──────────────────────────────────────────────────────────────── */
 function _drawBizzyPattern(canvas, ctx, W, H, t) {
+  // 30fps cap
+  if (_drawBizzyPattern._lt !== undefined && t - _drawBizzyPattern._lt < 0.033) return;
+  _drawBizzyPattern._lt = t;
+
   ctx.clearRect(0, 0, W, H);
 
   // ── Honeycomb (flat-top hexagons) ─────────────────────────────
-  const R   = 20;                        // center → vertex radius
-  const csx = R * 1.5;                   // column x-spacing
-  const csy = R * Math.sqrt(3);          // row y-spacing
+  const R   = 20;
+  const csx = R * 1.5;
+  const csy = R * Math.sqrt(3);
+
+  // Cache the hex Path2D — same shape every cell, translated per cell
+  if (!_drawBizzyPattern._hex) {
+    const p = new Path2D();
+    const hr = R * 0.87;
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI / 3) * i;
+      i === 0 ? p.moveTo(hr * Math.cos(a), hr * Math.sin(a))
+              : p.lineTo(hr * Math.cos(a), hr * Math.sin(a));
+    }
+    p.closePath();
+    _drawBizzyPattern._hex = p;
+  }
+  const hexPath = _drawBizzyPattern._hex;
+
   for (let col = -1; col * csx < W + csx; col++) {
     for (let row = -1; row * csy < H + csy; row++) {
       const cx = col * csx;
       const cy = row * csy + (col & 1 ? csy * 0.5 : 0);
       const ph = (Math.sin(t * 0.55 + col * 0.71 + row * 1.13) + 1) * 0.5;
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const a = (Math.PI / 3) * i;
-        i === 0
-          ? ctx.moveTo(cx + R * 0.87 * Math.cos(a), cy + R * 0.87 * Math.sin(a))
-          : ctx.lineTo(cx + R * 0.87 * Math.cos(a), cy + R * 0.87 * Math.sin(a));
-      }
-      ctx.closePath();
-      ctx.fillStyle   = `rgba(210,115,0,${(0.10  + ph * 0.22 ).toFixed(3)})`;
-      ctx.fill();
-      ctx.strokeStyle = `rgba(235,155,0,${(0.22  + ph * 0.32 ).toFixed(3)})`;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.fillStyle   = `rgba(210,115,0,${(0.10 + ph * 0.22).toFixed(3)})`;
+      ctx.fill(hexPath);
+      ctx.strokeStyle = `rgba(235,155,0,${(0.22 + ph * 0.32).toFixed(3)})`;
       ctx.lineWidth   = 0.9;
-      ctx.stroke();
+      ctx.stroke(hexPath);
+      ctx.restore();
     }
   }
 
@@ -1758,13 +1772,12 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
     const drift= Math.sin(t * 0.7 + sd * 6.28) * 14;
     const r    = 1.2 + (sd % 1) * 1.8;
     const al   = 0.15 + (sd % 0.22);
+    // Outer glow: simple large semi-transparent arc (no createRadialGradient)
+    ctx.fillStyle = `rgba(255,210,20,${(al * 0.09).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(px + drift, py, r * 3.5, 0, Math.PI*2); ctx.fill();
+    // Core dot
     ctx.fillStyle = `rgba(255,210,20,${al.toFixed(3)})`;
     ctx.beginPath(); ctx.arc(px + drift, py, r, 0, Math.PI*2); ctx.fill();
-    const grd = ctx.createRadialGradient(px+drift, py, 0, px+drift, py, r*3.5);
-    grd.addColorStop(0, `rgba(255,220,40,${(al*0.25).toFixed(3)})`);
-    grd.addColorStop(1, 'rgba(255,200,0,0)');
-    ctx.fillStyle = grd;
-    ctx.beginPath(); ctx.arc(px+drift, py, r*3.5, 0, Math.PI*2); ctx.fill();
   }
 }
 
@@ -1822,11 +1835,25 @@ function _drawBjHeart(ctx, cx, cy, r, t) {
 }
 
 function _drawBlackjackPattern(canvas, ctx, W, H, t) {
+  // 30fps cap
+  if (_drawBlackjackPattern._lt !== undefined && t - _drawBlackjackPattern._lt < 0.033) return;
+  _drawBlackjackPattern._lt = t;
+
   ctx.clearRect(0, 0, W, H);
 
   // ── Layer 1: Diamond argyle background grid ───────────────
-  // Tiles the entire canvas, guarantees full coverage
   const DW = 40, DH = 30;
+
+  // Cache diamond Path2D in local coords (translated per cell)
+  if (!_drawBlackjackPattern._diamond) {
+    const d = new Path2D();
+    d.moveTo(0, -DH * 0.5); d.lineTo(DW * 0.5, 0);
+    d.lineTo(0, DH * 0.5);  d.lineTo(-DW * 0.5, 0);
+    d.closePath();
+    _drawBlackjackPattern._diamond = d;
+  }
+  const diamond = _drawBlackjackPattern._diamond;
+
   ctx.save();
   for (let row = -1; row * DH < H + DH; row++) {
     for (let col = -1; col * DW < W + DW; col++) {
@@ -1835,19 +1862,16 @@ function _drawBlackjackPattern(canvas, ctx, W, H, t) {
       const cy   = row * DH + DH * 0.5;
       const ph   = (Math.sin(t * 0.38 + col * 0.72 + row * 1.05) + 1) * 0.5;
       const isO  = ((col * 3 + row * 2 + 7) % 7 === 0);
-      ctx.beginPath();
-      ctx.moveTo(cx,        cy - DH * 0.5);
-      ctx.lineTo(cx + DW * 0.5, cy);
-      ctx.lineTo(cx,        cy + DH * 0.5);
-      ctx.lineTo(cx - DW * 0.5, cy);
-      ctx.closePath();
+      ctx.save();
+      ctx.translate(cx, cy);
       ctx.fillStyle   = isO
         ? `rgba(255,100,0,${(0.06+ph*0.08).toFixed(3)})`
         : `rgba(0,100,190,${(0.06+ph*0.08).toFixed(3)})`;
       ctx.strokeStyle = isO
         ? `rgba(255,150,20,${(0.09+ph*0.07).toFixed(3)})`
         : `rgba(0,160,230,${(0.09+ph*0.07).toFixed(3)})`;
-      ctx.fill(); ctx.lineWidth = 0.6; ctx.stroke();
+      ctx.fill(diamond); ctx.lineWidth = 0.6; ctx.stroke(diamond);
+      ctx.restore();
     }
   }
   ctx.restore();
@@ -1885,9 +1909,11 @@ function _drawBlackjackPattern(canvas, ctx, W, H, t) {
     ctx.rotate(rot);
     ctx.globalAlpha = aCard;
 
-    // Drop shadow
-    ctx.shadowBlur  = 14;
-    ctx.shadowColor = 'rgba(0,0,0,0.65)';
+    // Drop shadow — hard offset rect (no shadowBlur, much faster)
+    ctx.globalAlpha = aCard * 0.38;
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); _bjRRect(ctx, -cw*0.5+4, -ch*0.5+5, cw, ch, cr); ctx.fill();
+    ctx.globalAlpha = aCard;
 
     // Card body
     ctx.beginPath();
@@ -1898,7 +1924,6 @@ function _drawBlackjackPattern(canvas, ctx, W, H, t) {
     ctx.fill();
 
     // Thin border
-    ctx.shadowBlur  = 0;
     ctx.strokeStyle = face ? 'rgba(200,190,170,0.35)' : 'rgba(180,180,205,0.22)';
     ctx.lineWidth   = 0.8;
     ctx.beginPath(); _bjRRect(ctx, -cw*0.5, -ch*0.5, cw, ch, cr); ctx.stroke();
@@ -1940,13 +1965,13 @@ function _drawBlackjackPattern(canvas, ctx, W, H, t) {
       ctx.save();
       ctx.beginPath(); ctx.rect(-cw, -ch, cw, ch*2); ctx.clip();
       _bjHeartPath(ctx, 0, 0, mr);
-      ctx.fillStyle='rgba(0,175,218,0.80)'; ctx.shadowBlur=6; ctx.shadowColor='#00b4de'; ctx.fill();
+      ctx.fillStyle='rgba(0,175,218,0.80)'; ctx.fill();
       ctx.restore();
       // Right half — orange
       ctx.save();
       ctx.beginPath(); ctx.rect(0, -ch, cw, ch*2); ctx.clip();
       _bjHeartPath(ctx, 0, 0, mr);
-      ctx.fillStyle='rgba(255,130,0,0.80)'; ctx.shadowBlur=6; ctx.shadowColor='#ff8c00'; ctx.fill();
+      ctx.fillStyle='rgba(255,130,0,0.80)'; ctx.fill();
       ctx.restore();
     }
 
@@ -2043,13 +2068,9 @@ function _drawKatiePad(ctx, cx, cy, rx, ry, rot, t, idx) {
   ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fill();
   ctx.restore();
 
-  // Pad body (ellipse with V notch)
+  // Pad body (ellipse with V notch) — flat fill (no createRadialGradient per pad)
   ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0, 0, rx, 0.35, Math.PI*2-0.35); ctx.lineTo(0,0);
-  const pg = ctx.createRadialGradient(-rx*0.2, -ry*0.3, 0, 0, 0, rx);
-  pg.addColorStop(0,   '#5db85d');
-  pg.addColorStop(0.6, '#3a8c3a');
-  pg.addColorStop(1,   '#1f6020');
-  ctx.fillStyle = pg; ctx.fill();
+  ctx.fillStyle = '#3a8c3a'; ctx.fill();
   ctx.strokeStyle = 'rgba(70,150,50,0.45)'; ctx.lineWidth = 0.8; ctx.stroke();
 
   // Radial veins
@@ -2067,16 +2088,17 @@ function _drawKatiePad(ctx, cx, cy, rx, ry, rot, t, idx) {
 function _drawKatieFlower(ctx, cx, cy, r, t, idx) {
   const bob = Math.sin(t * 0.5 + idx * 2.1) * 1.5;
   ctx.save(); ctx.translate(cx, cy + bob);
+  // Flat petal fill — no createRadialGradient per petal (5 × ~6 flowers = ~30 gradients saved)
   for (let p = 0; p < 5; p++) {
     ctx.save(); ctx.rotate((p/5) * Math.PI*2);
     ctx.beginPath(); ctx.ellipse(0, -r*0.65, r*0.3, r*0.52, 0, 0, Math.PI*2);
-    const pg = ctx.createRadialGradient(0, -r*0.5, 0, 0, -r*0.65, r*0.52);
-    pg.addColorStop(0, 'rgba(255,215,230,0.96)');
-    pg.addColorStop(1, 'rgba(255,140,168,0.80)');
-    ctx.fillStyle = pg; ctx.fill(); ctx.restore();
+    ctx.fillStyle = 'rgba(255,185,210,0.9)'; ctx.fill(); ctx.restore();
   }
+  // Centre — wide stroke halo instead of shadowBlur
+  ctx.beginPath(); ctx.arc(0, 0, r*0.38, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,200,50,0.18)'; ctx.fill();
   ctx.beginPath(); ctx.arc(0, 0, r*0.28, 0, Math.PI*2);
-  ctx.fillStyle = '#ffdf3a'; ctx.shadowBlur = 5; ctx.shadowColor = '#ffbb00'; ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ffdf3a'; ctx.fill();
   ctx.restore();
 }
 
@@ -2270,25 +2292,34 @@ function _stopKatieOverlay() {
 }
 
 function _drawKatiePattern(canvas, ctx, W, H, t) {
+  // 30fps cap
+  if (_drawKatiePattern._lt !== undefined && t - _drawKatiePattern._lt < 0.033) return;
+  _drawKatiePattern._lt = t;
+
   // Background pond only — frog is on the overlay canvas
   ctx.clearRect(0, 0, W, H);
 
-  // ── Water base ────────────────────────────────────────────
-  const wg = ctx.createLinearGradient(W*0.1, 0, W*0.9, H);
-  wg.addColorStop(0,   '#0b2d3e');
-  wg.addColorStop(0.5, '#0f3d50');
-  wg.addColorStop(1,   '#092838');
-  ctx.fillStyle = wg; ctx.fillRect(0, 0, W, H);
+  // ── Water base — cache gradient, only rebuild on resize ──
+  if (!_drawKatiePattern._wg || _drawKatiePattern._wgW !== W || _drawKatiePattern._wgH !== H) {
+    const wg = ctx.createLinearGradient(W*0.1, 0, W*0.9, H);
+    wg.addColorStop(0,   '#0b2d3e');
+    wg.addColorStop(0.5, '#0f3d50');
+    wg.addColorStop(1,   '#092838');
+    _drawKatiePattern._wg  = wg;
+    _drawKatiePattern._wgW = W;
+    _drawKatiePattern._wgH = H;
+  }
+  ctx.fillStyle = _drawKatiePattern._wg; ctx.fillRect(0, 0, W, H);
 
-  // Surface ripple lines (tiled across the whole canvas)
+  // Surface ripple lines — fewer rows, coarser x-step (same visual at distance)
   ctx.save();
-  for (let row = 0; row < 16; row++) {
-    const ry0 = (row / 16) * H;
+  for (let row = 0; row < 10; row++) {
+    const ry0 = (row / 10) * H;
     const amp = 2 + Math.sin(row * 0.55) * 1.5;
-    const aV  = (0.05 + Math.sin(t*0.55 + row*0.5)*0.03).toFixed(3);
+    const aV  = (0.05 + Math.sin(t*0.55 + row*0.8)*0.03).toFixed(3);
     ctx.strokeStyle = `rgba(45,155,200,${aV})`; ctx.lineWidth = 0.8;
     ctx.beginPath();
-    for (let x = 0; x <= W; x += 8) {
+    for (let x = 0; x <= W; x += 14) {
       const y = ry0 + Math.sin(x*0.042 + t*0.7 + row*0.58) * amp;
       x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
