@@ -3066,17 +3066,6 @@ function _adNewShard(W, H, scatter) {
 }
 
 
-function _adGrowFrost(out, x, y, ang, len, depth) {
-  if (depth <= 0 || len < 3) return;
-  const ex = x + Math.cos(ang) * len;
-  const ey = y + Math.sin(ang) * len;
-  out.push([x, y, ex, ey, depth]);
-  const nb = 2 + (Math.random() < 0.3 ? 1 : 0);
-  for (let i = 0; i < nb; i++) {
-    const da = (Math.random() - 0.5) * 1.0 + (i - (nb - 1) * 0.5) * 0.55;
-    _adGrowFrost(out, ex, ey, ang + da, len * (0.50 + Math.random() * 0.18), depth - 1);
-  }
-}
 
 // bgAnim canvas: cyan checkerboard + falling ice shards
 function _drawAdamPattern(canvas, ctx, W, H, t, params) {
@@ -3146,7 +3135,7 @@ function _drawAdamPattern(canvas, ctx, W, H, t, params) {
   ctx.globalAlpha = 1;
 }
 
-// Overlay: aurora glow, frost corner branches, icy edge glow, sparkles
+// Overlay: aurora glow, corner ice glow, edge glow, sparkles
 function _drawAdamOverlay(canvas, ctx, W, H, t) {
   if (_drawAdamOverlay._lt !== undefined && t - _drawAdamOverlay._lt < 0.033) return;
   _drawAdamOverlay._lt = t;
@@ -3156,20 +3145,10 @@ function _drawAdamOverlay(canvas, ctx, W, H, t) {
   // ── resize invalidation ───────────────────────────────────────
   if (canvas._adW !== W || canvas._adH !== H) {
     canvas._adW = W; canvas._adH = H;
-    canvas._adamAurGrad = null; canvas._adamEdgeGrads = null; canvas._adamFrost = null;
+    canvas._adamAurGrad = null; canvas._adamEdgeGrads = null;
   }
+  if (!canvas._adamSparkles) canvas._adamSparkles = [];
 
-  // ── init ──────────────────────────────────────────────────────
-  if (!canvas._adamFrost) {
-    canvas._adamFrost    = [];
-    canvas._adamSparkles = [];
-    const C = [[0, 0, Math.PI * 0.25], [W, 0, Math.PI * 0.75], [0, H, -Math.PI * 0.25], [W, H, -Math.PI * 0.75]];
-    for (const [cx, cy, bAng] of C) {
-      for (let b = 0; b < 4; b++) {
-        _adGrowFrost(canvas._adamFrost, cx, cy, bAng + (b - 1.5) * 0.28, 38 + Math.random() * 44, 4);
-      }
-    }
-  }
   if (!canvas._adamAurGrad) {
     const g = ctx.createLinearGradient(0, 0, 0, H * 0.20);
     g.addColorStop(0,    'rgba(0,215,235,0.22)');
@@ -3179,47 +3158,49 @@ function _drawAdamOverlay(canvas, ctx, W, H, t) {
   }
   if (!canvas._adamEdgeGrads) {
     const ew = Math.min(W, H) * 0.13;
-    const mk = (x0, y0, x1, y1) => {
+    const cr = Math.min(W, H) * 0.38;   // corner radial reach
+    const mkL = (x0, y0, x1, y1) => {
       const g = ctx.createLinearGradient(x0, y0, x1, y1);
-      g.addColorStop(0, 'rgba(0,205,230,0.18)');
+      g.addColorStop(0, 'rgba(0,205,230,0.11)');
       g.addColorStop(1, 'rgba(0,205,230,0)');
       return g;
     };
+    const mkR = (cx, cy) => {
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
+      g.addColorStop(0,   'rgba(140,225,255,0.28)');
+      g.addColorStop(0.35,'rgba(60,200,235,0.14)');
+      g.addColorStop(1,   'rgba(0,180,220,0)');
+      return g;
+    };
     canvas._adamEdgeGrads = {
-      ew,
-      top:    mk(0, 0,      0, ew),
-      bottom: mk(0, H,      0, H - ew),
-      left:   mk(0, 0,     ew, 0),
-      right:  mk(W, 0, W - ew, 0),
+      ew, cr,
+      top:    mkL(0, 0,      0, ew),
+      bottom: mkL(0, H,      0, H - ew),
+      left:   mkL(0, 0,     ew, 0),
+      right:  mkL(W, 0, W - ew, 0),
+      tl: mkR(0, 0),  tr: mkR(W, 0),
+      bl: mkR(0, H),  br: mkR(W, H),
     };
   }
 
   const dt = 0.033;
-  // Slow global pulse shared by the edge glow
-  const pulse = 0.7 + 0.3 * Math.sin(t * 0.5);
+  const pulse = 0.72 + 0.28 * Math.sin(t * 0.5);
 
   // ── aurora glow at top ────────────────────────────────────────
   ctx.globalAlpha = 1;
   ctx.fillStyle = canvas._adamAurGrad;
   ctx.fillRect(0, 0, W, H * 0.20);
 
-  // ── frost corner branches ─────────────────────────────────────
-  ctx.strokeStyle = '#b4eaff';
-  ctx.lineCap = 'round';
-  for (let d = 4; d >= 1; d--) {
-    ctx.globalAlpha = (d / 4) * 0.14;
-    ctx.lineWidth = d >= 3 ? 1.1 : 0.6;
-    ctx.beginPath();
-    for (const [x1, y1, x2, y2, bd] of canvas._adamFrost) {
-      if (bd !== d) continue;
-      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-    }
-    ctx.stroke();
-  }
-
-  // ── icy edge glow along all 4 sides ──────────────────────────
-  const eg = canvas._adamEdgeGrads, ew = eg.ew;
+  // ── corner ice glow ───────────────────────────────────────────
+  const eg = canvas._adamEdgeGrads, cr = eg.cr;
   ctx.globalAlpha = pulse;
+  ctx.fillStyle = eg.tl; ctx.fillRect(0,      0,      cr, cr);
+  ctx.fillStyle = eg.tr; ctx.fillRect(W - cr, 0,      cr, cr);
+  ctx.fillStyle = eg.bl; ctx.fillRect(0,      H - cr, cr, cr);
+  ctx.fillStyle = eg.br; ctx.fillRect(W - cr, H - cr, cr, cr);
+
+  // ── edge glow (dimmer) ────────────────────────────────────────
+  const ew = eg.ew;
   ctx.fillStyle = eg.top;    ctx.fillRect(0,      0,      W,  ew);
   ctx.fillStyle = eg.bottom; ctx.fillRect(0,      H - ew, W,  ew);
   ctx.fillStyle = eg.left;   ctx.fillRect(0,      0,      ew, H);
