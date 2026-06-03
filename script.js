@@ -116,7 +116,22 @@ function _isFury(c) { return !!(c && c.name && _FURY_RE.test(c.name)); }
 let _furyOverlayRafId = null;
 let _furyMuffinX = 0, _furyMuffinY = 0;
 let _furyMuffinTargX = 0, _furyMuffinTargY = 0;
+let _furyMuffinVX = 0, _furyMuffinVY = 0;   // spring velocity
+let _furyMuffinBounceT = 0;   // decays after click (squish anim)
+let _furyMuffinHappyT  = 0;   // decays after click (happy eyes)
+let _furyMuffinSparkles = [];  // fire sparkle particles on click
 function _furyMuffinMouseMove(e) { _furyMuffinTargX = e.clientX; _furyMuffinTargY = e.clientY; }
+function _furyMuffinClick() {
+  _furyMuffinBounceT = 1.0;
+  _furyMuffinHappyT  = 2.2;
+  for (let i = 0; i < 12; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const spd = 90 + Math.random() * 200;
+    _furyMuffinSparkles.push({ x: _furyMuffinX, y: _furyMuffinY - 8,
+      vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 80,
+      life: 1, r: 2.5 + Math.random() * 4.5, hue: Math.random() * 45 });
+  }
+}
 // Frog state (pixel coords on overlay canvas)
 let _katieFrogX = 200, _katieFrogY = 200;   // current position
 let _katieFrogVX = 0,  _katieFrogVY = 0;    // velocity px/s
@@ -3316,19 +3331,25 @@ function _stopAdamOverlay() {
 const _FURY_CHAN_XF = [0.10, 0.30, 0.52, 0.72, 0.90];
 
 function _furyNewFirePtcl(W, H, scatter) {
-  const cx = _FURY_CHAN_XF[Math.floor(Math.random() * _FURY_CHAN_XF.length)] * W;
+  // ~28% are wide "base" particles — large, slow, spread across full width
+  const isBase = Math.random() < 0.28;
+  const cx = isBase
+    ? W * (0.04 + Math.random() * 0.92)
+    : _FURY_CHAN_XF[Math.floor(Math.random() * _FURY_CHAN_XF.length)] * W;
   return {
-    cx,
-    x:  cx + (Math.random() - 0.5) * W * 0.05,
-    y:  scatter ? H - Math.random() * H * 0.72 : H + Math.random() * 10,
-    vx: (Math.random() - 0.5) * 14,
-    vy: -(42 + Math.random() * 88),
-    r:  8 + Math.random() * 18,
+    cx, isBase,
+    x:  cx + (Math.random() - 0.5) * W * (isBase ? 0.14 : 0.05),
+    y:  scatter
+          ? (isBase ? H - Math.random() * H * 0.30 : H - Math.random() * H * 0.72)
+          : H + Math.random() * 10,
+    vx: (Math.random() - 0.5) * (isBase ? 9 : 14),
+    vy: isBase ? -(14 + Math.random() * 38) : -(42 + Math.random() * 88),
+    r:  isBase ? 28 + Math.random() * 38 : 8 + Math.random() * 18,
     life:  scatter ? Math.random() : 1,
-    decay: 0.13 + Math.random() * 0.25,
+    decay: isBase ? 0.06 + Math.random() * 0.10 : 0.13 + Math.random() * 0.25,
     phase:    Math.random() * Math.PI * 2,
     turbFreq: 0.45 + Math.random() * 0.85,
-    turbAmp:  10 + Math.random() * 18,
+    turbAmp:  isBase ? 5 + Math.random() * 9 : 10 + Math.random() * 18,
   };
 }
 
@@ -3355,7 +3376,7 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
 
   if (canvas._furyW !== W || canvas._furyH !== H) {
     canvas._furyW = W; canvas._furyH = H;
-    canvas._furyFirePtcls = null; canvas._furyBaseGrads = null; canvas._furyBgEmbers = null;
+    canvas._furyFirePtcls = null; canvas._furyBaseGrads = null; canvas._furyBgEmbers = null; canvas._furyFloorGrad = null; canvas._furyTopGlow = null; canvas._furyBottomPeek = null;
   }
 
   ctx.globalAlpha = 1;
@@ -3363,18 +3384,36 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
 
-  // Smouldering glow at the base of each channel
+  // Smouldering glow — wide floor haze + per-channel radial pools
   if (!canvas._furyBaseGrads) {
     canvas._furyBaseGrads = _FURY_CHAN_XF.map(xf => {
-      const cx = xf * W, r = Math.min(W, H) * 0.14;
+      const cx = xf * W, r = Math.min(W, H) * 0.24;
       const g = ctx.createRadialGradient(cx, H, 0, cx, H, r);
-      g.addColorStop(0, 'rgba(110,0,0,0.60)');
-      g.addColorStop(0.5, 'rgba(60,0,0,0.25)');
-      g.addColorStop(1, 'rgba(0,0,0,0)');
+      g.addColorStop(0,    'rgba(155,0,0,0.72)');
+      g.addColorStop(0.42, 'rgba(70,0,0,0.38)');
+      g.addColorStop(1,    'rgba(0,0,0,0)');
       return g;
     });
+    const fg = ctx.createLinearGradient(0, H, 0, H - H * 0.58);
+    fg.addColorStop(0,    'rgba(175,0,0,0.68)');
+    fg.addColorStop(0.22, 'rgba(90,0,0,0.38)');
+    fg.addColorStop(1,    'rgba(0,0,0,0)');
+    canvas._furyFloorGrad = fg;
   }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 1; ctx.fillStyle = canvas._furyFloorGrad; ctx.fillRect(0, 0, W, H);
   for (const g of canvas._furyBaseGrads) { ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+
+  // Waving bright red peek from the very bottom — pulsing heat signal
+  if (!canvas._furyBottomPeek) {
+    const bp = ctx.createLinearGradient(0, H, 0, H - H * 0.13);
+    bp.addColorStop(0,    'rgba(255,50,0,1.0)');
+    bp.addColorStop(0.35, 'rgba(210,10,0,0.55)');
+    bp.addColorStop(1,    'rgba(0,0,0,0)');
+    canvas._furyBottomPeek = bp;
+  }
+  ctx.globalAlpha = Math.max(0.05, 0.40 + 0.28 * Math.sin(t * 2.2) + 0.12 * Math.sin(t * 5.0 + 1.4));
+  ctx.fillStyle = canvas._furyBottomPeek; ctx.fillRect(0, 0, W, H);
 
   // Fire particles — additive blending creates natural crimson glow where they overlap
   if (!canvas._furyFirePtcls) {
@@ -3389,7 +3428,7 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
     e.y  += e.vy * dt;
     e.life -= e.decay * dt;
     if (e.life <= 0 || e.y < -e.r * 2) { canvas._furyFirePtcls[i] = _furyNewFirePtcl(W, H, false); continue; }
-    ctx.globalAlpha = e.life * 0.32;
+    ctx.globalAlpha = e.life * (e.isBase ? 0.14 : 0.32);
     ctx.fillStyle = `hsl(${Math.round(20 * e.life)},100%,${Math.round(12 + 25 * e.life)}%)`;
     ctx.beginPath(); ctx.arc(e.x, e.y, e.r * (0.4 + 0.6 * e.life), 0, Math.PI * 2); ctx.fill();
   }
@@ -3407,6 +3446,16 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
     ctx.fillStyle = `hsl(${e.hue},100%,${e.bright + 8 * e.life}%)`;
     ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill();
   }
+  // Subtle golden glow at the very top edge
+  if (!canvas._furyTopGlow) {
+    const tg = ctx.createLinearGradient(0, 0, 0, H * 0.20);
+    tg.addColorStop(0,    'rgba(140,80,0,0.18)');
+    tg.addColorStop(0.45, 'rgba(70,35,0,0.07)');
+    tg.addColorStop(1,    'rgba(0,0,0,0)');
+    canvas._furyTopGlow = tg;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 1; ctx.fillStyle = canvas._furyTopGlow; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
 }
@@ -3428,55 +3477,112 @@ function _furyNewOvEmber(W, H, scatter) {
 }
 
 function _furyDrawMuffin(ctx, x, y, t) {
-  const sc   = 28;
-  const domeR = sc;
-  const cupTW = sc * 1.28, cupBW = sc * 1.62, cupH = sc * 1.05;
-  const cupTopY = y + domeR * 0.62, cupBotY = cupTopY + cupH;
+  const bT = _furyMuffinBounceT;
+  const sq = bT > 0 ? Math.sin(bT * Math.PI * 3.2) * bT * 0.42 : 0;
+  const sX = 1 + sq * 0.32;
+  const sY = 1 - sq * 0.42;
+  const bobY = Math.sin(t * 2.4) * 3.5;
+  const spd  = Math.hypot(_furyMuffinVX, _furyMuffinVY);
+  const tilt = spd > 18 ? Math.atan2(_furyMuffinVY, _furyMuffinVX) * 0.09 : 0;
+  const happy = _furyMuffinHappyT > 0 ? Math.min(1, _furyMuffinHappyT) : 0;
 
-  // Cup wrapper — trapezoid with side darkening
-  const wg = ctx.createLinearGradient(x - cupBW, 0, x + cupBW, 0);
-  wg.addColorStop(0,    '#2a1204'); wg.addColorStop(0.22, '#4a2208');
-  wg.addColorStop(0.5,  '#5c2c0c'); wg.addColorStop(0.78, '#4a2208');
-  wg.addColorStop(1,    '#2a1204');
+  ctx.save();
+  ctx.translate(x, y + bobY);
+  ctx.rotate(tilt);
+  ctx.scale(sX, sY);
+
+  // Eyes are the star; dome is the chocolate top connected to the cup
+  const eyeR = 14, eyeOX = 18, eyeY = 0;
+  const cupTW = 19, cupBW = 14, cupH = 22;
+  const cupTopY = eyeY + eyeR;      // 14 — cup rim at eye bottoms
+  const cupBotY = cupTopY + cupH;   // 36
+  const domeR   = 16;
+  const domeY   = cupTopY - domeR;  // -2 — dome bottom flush with cup top, no gap
+
+  // 1 ── Orange cup with dark vertical stripes
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(x - cupTW, cupTopY); ctx.lineTo(x - cupBW, cupBotY);
-  ctx.lineTo(x + cupBW, cupBotY); ctx.lineTo(x + cupTW, cupTopY);
+  ctx.moveTo(-cupTW, cupTopY); ctx.lineTo(-cupBW, cupBotY);
+  ctx.lineTo(cupBW, cupBotY);  ctx.lineTo(cupTW, cupTopY);
   ctx.closePath();
+  const wg = ctx.createLinearGradient(-cupTW, 0, cupTW, 0);
+  wg.addColorStop(0, '#993e04'); wg.addColorStop(0.18, '#d96c12');
+  wg.addColorStop(0.50, '#ee8c28'); wg.addColorStop(0.82, '#d96c12');
+  wg.addColorStop(1, '#993e04');
   ctx.fillStyle = wg; ctx.fill();
-  // Vertical lines clipped to cup
   ctx.clip();
-  ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1.2;
-  for (let i = -3; i <= 3; i++) {
-    const bx = x + i * cupBW * 0.29;
-    ctx.beginPath(); ctx.moveTo(bx - i * 1.5, cupTopY); ctx.lineTo(bx, cupBotY); ctx.stroke();
+  ctx.strokeStyle = 'rgba(38,10,0,0.62)'; ctx.lineWidth = 2.8;
+  for (let i = 0; i <= 6; i++) {
+    const f = i / 6;
+    ctx.beginPath();
+    ctx.moveTo(-cupTW + f * cupTW * 2, cupTopY);
+    ctx.lineTo(-cupBW + f * cupBW * 2, cupBotY);
+    ctx.stroke();
   }
   ctx.restore();
+  // Dark rim band
+  ctx.fillStyle = 'rgba(40,10,0,0.88)';
+  ctx.beginPath();
+  ctx.moveTo(-cupTW - 1, cupTopY - 1); ctx.lineTo(cupTW + 1, cupTopY - 1);
+  ctx.lineTo(cupTW + 1, cupTopY + 4);  ctx.lineTo(-cupTW - 1, cupTopY + 4);
+  ctx.closePath(); ctx.fill();
 
-  // Dome — chocolate brown radial gradient
-  const dg = ctx.createRadialGradient(x - domeR * 0.24, y - domeR * 0.30, domeR * 0.04, x, y, domeR * 1.08);
-  dg.addColorStop(0, '#c06838'); dg.addColorStop(0.40, '#8c4820');
-  dg.addColorStop(0.78, '#6a3010'); dg.addColorStop(1, '#381808');
-  ctx.beginPath(); ctx.arc(x, y, domeR, 0, Math.PI * 2);
+  // 2 ── Chocolate dome — bottom flush with cup top, top pokes above eyes
+  const dg = ctx.createRadialGradient(-domeR * 0.28, domeY - domeR * 0.28, 2, 0, domeY, domeR * 1.05);
+  dg.addColorStop(0,    '#b05425');
+  dg.addColorStop(0.40, '#7a3010');
+  dg.addColorStop(1,    '#2e0e02');
+  ctx.beginPath(); ctx.arc(0, domeY, domeR, 0, Math.PI * 2);
   ctx.fillStyle = dg; ctx.fill();
 
-  // Googly eyes
-  const eyeOffX = domeR * 0.37, eyeY = y - domeR * 0.06, eyeR = domeR * 0.245;
-  for (let side = -1; side <= 1; side += 2) {
-    const ex = x + side * eyeOffX;
-    // Sclera
-    ctx.beginPath(); ctx.arc(ex, eyeY, eyeR, 0, Math.PI * 2);
-    ctx.fillStyle = '#f3f1ef'; ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 0.8; ctx.stroke();
-    // Wandering pupil
-    const px = ex + Math.sin(t * 1.1 + side * 0.9) * eyeR * 0.30;
-    const py = eyeY + Math.cos(t * 0.85 + side * 1.3) * eyeR * 0.30;
-    ctx.beginPath(); ctx.arc(px, py, eyeR * 0.54, 0, Math.PI * 2);
+  // 3 ── White googly eyes — drawn on top of dome, comically large
+  for (let s = -1; s <= 1; s += 2) {
+    const ex = s * eyeOX;
+    const er = eyeR + happy * 1.5;
+    ctx.beginPath(); ctx.arc(ex, eyeY, er, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8e4e0'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.70)'; ctx.lineWidth = 1.8; ctx.stroke();
+    // Pupil: idle wander blended with velocity-based direction
+    const mvSpd = Math.hypot(_furyMuffinVX, _furyMuffinVY);
+    const vf = Math.min(1, mvSpd / 320);  // 0 at rest → 1 at full speed
+    let pdx, pdy;
+    if (happy > 0.05) {
+      pdx = Math.sin(t * 2.2 + s * 1.1) * er * 0.18;
+      pdy = -er * 0.26 + Math.sin(t * 1.8 + s) * er * 0.09;
+    } else {
+      // Idle wander fades out as speed increases
+      pdx = Math.sin(t * 1.1 + s * 0.9) * er * 0.35 * (1 - vf);
+      pdy = Math.cos(t * 0.85 + s * 1.3) * er * 0.35 * (1 - vf);
+    }
+    // Pull pupils toward movement direction at speed
+    if (mvSpd > 8) {
+      pdx += (_furyMuffinVX / mvSpd) * er * 0.38 * vf;
+      pdy += (_furyMuffinVY / mvSpd) * er * 0.38 * vf;
+    }
+    // Clamp inside eye
+    const pDist = Math.hypot(pdx, pdy);
+    const maxPd = er * 0.38;
+    if (pDist > maxPd) { pdx *= maxPd / pDist; pdy *= maxPd / pDist; }
+    const px = ex + pdx, py = eyeY + pdy;
+    ctx.beginPath(); ctx.arc(px, py, er * 0.58, 0, Math.PI * 2);
     ctx.fillStyle = '#111'; ctx.fill();
-    // Highlight
-    ctx.beginPath(); ctx.arc(px + eyeR * 0.18, py - eyeR * 0.18, eyeR * 0.16, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(px + er * 0.19, py - er * 0.19, er * 0.19, 0, Math.PI * 2);
     ctx.fillStyle = '#fff'; ctx.fill();
   }
+
+  // Happy blush
+  if (happy > 0) {
+    for (let s = -1; s <= 1; s += 2) {
+      const er = eyeR + happy * 1.5;
+      ctx.globalAlpha = happy * 0.50;
+      ctx.beginPath();
+      ctx.ellipse(s * (eyeOX + er * 0.55), eyeY + er * 0.80, er * 0.62, er * 0.26, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff4466'; ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
 }
 
 function _drawFuryOverlay(canvas, ctx, W, H, t) {
@@ -3487,8 +3593,19 @@ function _drawFuryOverlay(canvas, ctx, W, H, t) {
 
   if (canvas._furyOvW !== W || canvas._furyOvH !== H) {
     canvas._furyOvW = W; canvas._furyOvH = H;
-    canvas._furyOvEmbers = null; canvas._furyOvFire = null;
+    canvas._furyOvEmbers = null; canvas._furyOvFire = null; canvas._furyOvFloorGrad = null; canvas._furyOvTopGlow = null; canvas._furyOvBottomPeek = null;
   }
+
+  // Wide floor haze (overlay)
+  if (!canvas._furyOvFloorGrad) {
+    const fg = ctx.createLinearGradient(0, H, 0, H - H * 0.55);
+    fg.addColorStop(0,    'rgba(175,0,0,0.52)');
+    fg.addColorStop(0.22, 'rgba(90,0,0,0.28)');
+    fg.addColorStop(1,    'rgba(0,0,0,0)');
+    canvas._furyOvFloorGrad = fg;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 1; ctx.fillStyle = canvas._furyOvFloorGrad; ctx.fillRect(0, 0, W, H);
 
   // Overlay fire streams (same channels, full-screen height, more vivid)
   if (!canvas._furyOvFire) {
@@ -3501,7 +3618,7 @@ function _drawFuryOverlay(canvas, ctx, W, H, t) {
     e.vx *= (1 - 1.8 * dt);
     e.x += e.vx * dt; e.y += e.vy * dt; e.life -= e.decay * dt;
     if (e.life <= 0 || e.y < -e.r * 2) { canvas._furyOvFire[i] = _furyNewFirePtcl(W, H, false); continue; }
-    ctx.globalAlpha = e.life * 0.38;
+    ctx.globalAlpha = e.life * (e.isBase ? 0.16 : 0.38);
     ctx.fillStyle = `hsl(${Math.round(20 * e.life)},100%,${Math.round(12 + 25 * e.life)}%)`;
     ctx.beginPath(); ctx.arc(e.x, e.y, e.r * (0.4 + 0.6 * e.life), 0, Math.PI * 2); ctx.fill();
   }
@@ -3518,11 +3635,52 @@ function _drawFuryOverlay(canvas, ctx, W, H, t) {
     ctx.fillStyle = `hsl(${e.hue},100%,${e.bright + 10 * e.life}%)`;
     ctx.beginPath(); ctx.arc(e.x, e.y, e.r * Math.max(0.3, e.life), 0, Math.PI * 2); ctx.fill();
   }
+  // Waving bright red peek from the bottom (overlay)
+  if (!canvas._furyOvBottomPeek) {
+    const bp = ctx.createLinearGradient(0, H, 0, H - H * 0.13);
+    bp.addColorStop(0,    'rgba(255,50,0,1.0)');
+    bp.addColorStop(0.35, 'rgba(210,10,0,0.55)');
+    bp.addColorStop(1,    'rgba(0,0,0,0)');
+    canvas._furyOvBottomPeek = bp;
+  }
+  ctx.globalAlpha = Math.max(0.05, 0.40 + 0.28 * Math.sin(t * 2.2) + 0.12 * Math.sin(t * 5.0 + 1.4));
+  ctx.fillStyle = canvas._furyOvBottomPeek; ctx.fillRect(0, 0, W, H);
+  // Subtle golden glow at the very top edge (overlay)
+  if (!canvas._furyOvTopGlow) {
+    const tg = ctx.createLinearGradient(0, 0, 0, H * 0.20);
+    tg.addColorStop(0,    'rgba(140,80,0,0.15)');
+    tg.addColorStop(0.45, 'rgba(70,35,0,0.06)');
+    tg.addColorStop(1,    'rgba(0,0,0,0)');
+    canvas._furyOvTopGlow = tg;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 1; ctx.fillStyle = canvas._furyOvTopGlow; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over';
 
-  // Muffin cursor follower — slow lerp (floaty)
-  _furyMuffinX += (_furyMuffinTargX - _furyMuffinX) * 0.04;
-  _furyMuffinY += (_furyMuffinTargY - _furyMuffinY) * 0.04;
+  // Muffin — spring physics (floaty lag, slower than Katie's frog)
+  const SPRING = 75, DAMP = 9;
+  _furyMuffinVX += ((_furyMuffinTargX - _furyMuffinX) * SPRING - _furyMuffinVX * DAMP) * dt;
+  _furyMuffinVY += ((_furyMuffinTargY - _furyMuffinY) * SPRING - _furyMuffinVY * DAMP) * dt;
+  _furyMuffinX  += _furyMuffinVX * dt;
+  _furyMuffinY  += _furyMuffinVY * dt;
+
+  // Decay anim timers
+  _furyMuffinBounceT = Math.max(0, _furyMuffinBounceT - dt * 3.2);
+  _furyMuffinHappyT  = Math.max(0, _furyMuffinHappyT  - dt);
+
+  // Sparkle particles from click
+  ctx.globalCompositeOperation = 'source-over';
+  for (let i = _furyMuffinSparkles.length - 1; i >= 0; i--) {
+    const sp = _furyMuffinSparkles[i];
+    sp.x += sp.vx * dt; sp.y += sp.vy * dt;
+    sp.vy += 130 * dt;   // gravity
+    sp.life -= dt * 2.2;
+    if (sp.life <= 0) { _furyMuffinSparkles.splice(i, 1); continue; }
+    ctx.globalAlpha = sp.life * 0.95;
+    ctx.fillStyle = `hsl(${Math.round(sp.hue)},100%,${Math.round(30 + 40 * sp.life)}%)`;
+    ctx.beginPath(); ctx.arc(sp.x, sp.y, sp.r * Math.max(0.2, sp.life), 0, Math.PI * 2); ctx.fill();
+  }
+
   ctx.globalAlpha = 1;
   _furyDrawMuffin(ctx, _furyMuffinX, _furyMuffinY, t);
 }
@@ -3532,7 +3690,11 @@ function _startFuryOverlay() {
   _drawFuryOverlay._lt = undefined;
   _furyMuffinX = _furyMuffinTargX = window.innerWidth * 0.5;
   _furyMuffinY = _furyMuffinTargY = window.innerHeight * 0.5;
+  _furyMuffinVX = 0; _furyMuffinVY = 0;
+  _furyMuffinBounceT = 0; _furyMuffinHappyT = 0;
+  _furyMuffinSparkles = [];
   window.addEventListener('mousemove', _furyMuffinMouseMove);
+  window.addEventListener('click', _furyMuffinClick);
   const cv = document.createElement('canvas');
   cv.id = 'fury-fire-overlay';
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
@@ -3554,6 +3716,7 @@ function _startFuryOverlay() {
 function _stopFuryOverlay() {
   if (_furyOverlayRafId) { cancelAnimationFrame(_furyOverlayRafId); _furyOverlayRafId = null; }
   window.removeEventListener('mousemove', _furyMuffinMouseMove);
+  window.removeEventListener('click', _furyMuffinClick);
   const cv = document.getElementById('fury-fire-overlay');
   if (cv) cv.remove();
 }
