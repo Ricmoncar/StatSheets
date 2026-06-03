@@ -1385,10 +1385,10 @@ const PATTERN_DEFS = {
   bizzy_bees:     { label: "Bizzy's Hive",      params: [] },
   blackjack_neon: { label: "Blackjack's Neon",  params: [] },
   katie_pond:     { label: "Katie's Pond",       params: [] },
-  snaps_scales:   { label: "Snaps' Electric Scales", params: [] },
+  snaps_scales:   { label: "Snaps' Scales", params: [] },
   leon_swords:      { label: "Leon's Blades",          params: [] },
   valkyrie_rain:    { label: "Valkyrie's Blood Rain",  params: [] },
-  adam_ice:         { label: "Adam's Frozen Domain",   params: [] },
+  adam_ice:         { label: "Adam's ice thing",   params: [] },
   fury_fire:        { label: "Fury's Fire",            params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
@@ -11927,7 +11927,7 @@ function sendChatMsg() {
   if (input) { input.value = ''; input.focus(); }
 }
 
-// ── Encyclopedia mobile drawer ──────────────────────────────────────────────
+// Encyclopedia mobile drawer
 function toggleMobileToC() {
   const panel    = document.getElementById('enc-left');
   const backdrop = document.getElementById('enc-mobile-backdrop');
