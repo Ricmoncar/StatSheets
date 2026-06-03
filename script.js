@@ -3341,10 +3341,10 @@ function _furyNewFirePtcl(W, H, scatter) {
     x:  cx + (Math.random() - 0.5) * W * (isBase ? 0.14 : 0.05),
     y:  scatter
           ? (isBase ? H - Math.random() * H * 0.30 : H - Math.random() * H * 0.72)
-          : H + Math.random() * 10,
+          : H + Math.random() * 18,
     vx: (Math.random() - 0.5) * (isBase ? 9 : 14),
     vy: isBase ? -(14 + Math.random() * 38) : -(42 + Math.random() * 88),
-    r:  isBase ? 28 + Math.random() * 38 : 8 + Math.random() * 18,
+    r:  isBase ? 60 + Math.random() * 38 : 8 + Math.random() * 18,
     life:  scatter ? Math.random() : 1,
     decay: isBase ? 0.06 + Math.random() * 0.10 : 0.13 + Math.random() * 0.25,
     phase:    Math.random() * Math.PI * 2,
