@@ -132,6 +132,48 @@ function _furyMuffinClick() {
       life: 1, r: 2.5 + Math.random() * 4.5, hue: Math.random() * 45 });
   }
 }
+
+// ── Juko! — energetic programmer girl (green code-garden + cat-sprite cursor) ──
+const _JUKO_RE = /^Juko!?$/i;
+function _isJuko(c) { return !!(c && c.name && _JUKO_RE.test(c.name)); }
+let _jukoOverlayRafId = null;
+let _jukoX = 0, _jukoY = 0;
+let _jukoTargX = 0, _jukoTargY = 0;
+let _jukoVX = 0, _jukoVY = 0;     // spring velocity
+let _jukoBounceT = 0;             // decays after click (squish anim)
+let _jukoHappyT  = 0;             // decays after click (happy ^^ eyes + blush)
+let _jukoParticles = [];          // code-symbol burst on click
+// Single-char glyphs for the falling matrix rain (code-flavoured)
+const _JUKO_RAIN = '01{}()<>[];=+*/&|!?:.#%abcdefijklmnoprstuvwxyz01'.split('');
+// Multi-char tokens that puff out when you click the sprite
+const _JUKO_TOKENS = ['{', '}', ';', '<', '>', '/', '=', '(', ')', '[', ']', '*', '+', '&&', '=>', '!', '0', '1', 'fn', '//'];
+// Little code snippets that fade in/out across the background
+const _JUKO_SNIPPETS = [
+  'function fun(){', 'return joy;', 'while(alive){', 'let dream = 1;',
+  'console.log("hi!")', 'if(bug) fix();', 'juko.code()', '=> { play() }',
+  'for(;;) dance;', 'const win = true;', 'npm run fun', 'git push origin',
+  'sudo make coffee', '0xC0DE', '} // :3', 'await snack()', 'render(<Joy/>)',
+  'while(true) vibe;', 'let x = 42;', 'export default me;',
+];
+function _jukoMouseMove(e) { _jukoTargX = e.clientX; _jukoTargY = e.clientY; }
+function _jukoClick() {
+  _jukoBounceT = 1.0;
+  _jukoHappyT  = 1.8;
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const spd = 70 + Math.random() * 190;
+    _jukoParticles.push({
+      x: _jukoX, y: _jukoY,
+      vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 70,
+      rot: (Math.random() - 0.5) * Math.PI, vr: (Math.random() - 0.5) * 9,
+      life: 1, sz: 11 + Math.random() * 11,
+      ch:  _JUKO_TOKENS[Math.floor(Math.random() * _JUKO_TOKENS.length)],
+      // ~55% green, ~45% light-yellow — her two signature tones
+      hue: Math.random() < 0.55 ? 100 + Math.random() * 40 : 52 + Math.random() * 10,
+    });
+  }
+}
+
 // Frog state (pixel coords on overlay canvas)
 let _katieFrogX = 200, _katieFrogY = 200;   // current position
 let _katieFrogVX = 0,  _katieFrogVY = 0;    // velocity px/s
@@ -352,6 +394,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (_themeAudio) {
     _themeAudio.loop = false; // Handled manually so startAt is respected on every loop
     _themeAudio.addEventListener('ended', _onThemeEnded);
+    // Top-level `let` does NOT become a window property in a non-module script,
+    // so window._themeAudio was permanently undefined — which silently disabled
+    // every music-reactive effect that read it (Juko's, etc.). Expose it here.
+    window._themeAudio = _themeAudio;
   }
   _initThemeBarHover();
 });
@@ -485,6 +531,11 @@ function _themeFadeIn() {
 // Returns the theme song for a specific form index (0 = base)
 function _getFormTheme(c, formIdx) {
   if (!c) return null;
+  // Juko's theme is permanently hardcoded to the bundled local file — it cannot
+  // be changed via upload, and any uploaded song is ignored for playback. This
+  // also guarantees the played audio is byte-identical to the file the reactivity
+  // envelope analyses (sounds/juko.mp3), so currentTime stays perfectly aligned.
+  if (_isJuko(c)) return { url: _JUKO_THEME_SRC, name: "JUKO'S THEME", startAt: 0, _jukoLocked: true };
   if (formIdx === 0) return (c.info && c.info.themeSong) || null;
   const af = (c.altForms || [])[formIdx - 1];
   return (af && af.themeSong) || null;
@@ -735,6 +786,21 @@ function renderThemeTab() {
   if (!container) return;
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
+
+  // Juko's theme is hardcoded and cannot be changed — show a locked notice
+  // instead of the upload controls so nothing can overwrite it.
+  if (_isJuko(c)) {
+    container.innerHTML =
+      `<div class="juko-music-locked" style="padding:26px 18px;text-align:center;">
+        <div style="font-size:13px;letter-spacing:3px;color:var(--char-color,#4ade5a);text-shadow:0 0 14px var(--char-color,#4ade5a);">♪ JUKO'S THEME ♪</div>
+        <div style="font-size:9px;letter-spacing:1.5px;color:#9fd6a4;margin-top:12px;line-height:1.9;">
+          This track is built into Juko and powers her live music-reactive visuals.<br>
+          It's locked — <span style="color:#eaffb0;">it can't be changed or removed.</span>
+        </div>
+        <div style="font-size:8px;letter-spacing:2px;color:#5a7a5e;margin-top:14px;">&lt;/&gt; LOCKED &amp;&amp; LOVED</div>
+      </div>`;
+    return;
+  }
 
   const forms = c.altForms || [];
   const allIdx = [0, ...forms.map((_, i) => i + 1)];
@@ -1390,6 +1456,7 @@ const PATTERN_DEFS = {
   valkyrie_rain:    { label: "Valkyrie's Blood Rain",  params: [] },
   adam_ice:         { label: "Adam's ice thing",   params: [] },
   fury_fire:        { label: "Fury's Fire",            params: [] },
+  juko_code:        { label: "Juko's Code Garden",     params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -3722,6 +3789,882 @@ function _stopFuryOverlay() {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+// ════════════════════════════════════════════════════════════════
+//  JUKO! — Code Garden background + chibi cat-sprite cursor companion
+//  Palette: deep editor green-black, vivid greens, light-yellow accents.
+// ════════════════════════════════════════════════════════════════
+function _jukoNewBokeh(W, H, scatter) {
+  return {
+    x:  Math.random() * W,
+    y:  scatter ? Math.random() * H : H + Math.random() * 50,
+    r:  18 + Math.random() * 58,
+    vy: 8 + Math.random() * 22,         // drift up px/s
+    sw: 0.4 + Math.random() * 0.8,      // sway freq
+    sa: 5 + Math.random() * 14,         // sway amp px/s
+    pf: 0.5 + Math.random() * 1.3,      // brightness pulse freq
+    ph: Math.random() * Math.PI * 2,
+    pulse: 1,
+    yellow: Math.random() < 0.4,        // light-yellow vs green orb
+  };
+}
+
+function _jukoNewCol(x, H, scatter) {
+  return {
+    x,
+    y:    scatter ? Math.random() * H : -Math.random() * H * 0.6,  // head pixel pos
+    spd:  46 + Math.random() * 88,                                 // fall speed px/s
+    len:  10 + Math.floor(Math.random() * 22),                     // trail length (cells)
+    mut:  Math.random() * 0.35,                                    // glyph-mutation timer
+    yellow: Math.random() < 0.3,                                   // light-yellow vs green head tone
+    bright: 0.4 + Math.random() * 0.78,                            // per-column brightness (some dim, some vivid)
+    glyphs: Array.from({ length: 40 }, () => _JUKO_RAIN[Math.floor(Math.random() * _JUKO_RAIN.length)]),
+  };
+}
+
+// Horizontal code ticker behind the vertical rain
+function _jukoNewHRow(W, H) {
+  const cw = 9;
+  return {
+    y:   Math.random() * H,
+    off: Math.random() * 1200,
+    spd: 8 + Math.random() * 24,        // px/s (scrolls left)
+    cw,
+    alpha: 0.08 + Math.random() * 0.13,
+    glyphs: Array.from({ length: Math.ceil(W / cw) + 16 }, () => _JUKO_RAIN[Math.floor(Math.random() * _JUKO_RAIN.length)]),
+  };
+}
+
+// Code snippet that fades in then out at a spot in the background
+function _jukoNewSnippet(W, H, scatter) {
+  return {
+    x:   18 + Math.random() * Math.max(40, W - 150),
+    y:   24 + Math.random() * Math.max(20, H - 48),
+    txt: _JUKO_SNIPPETS[Math.floor(Math.random() * _JUKO_SNIPPETS.length)],
+    sz:  12 + Math.random() * 7,
+    yellow: Math.random() < 0.34,
+    life: 0,
+    dur:  3.4 + Math.random() * 3.6,
+    delay: scatter ? Math.random() * 5 : 0.3 + Math.random() * 3.5,
+  };
+}
+
+// ── Real music reactivity (safe: analyses a SEPARATE decoded copy of the track,
+//    never the live <audio> element, so it can't ever silence playback). Falls
+//    back to ambient motion when a track isn't CORS-fetchable. ──
+let _jukoAC = null;
+let _jukoEnv = null;          // { bps, env:Float32Array, flux:Float32Array }
+let _jukoEnvKey = null;       // track key currently loaded / loading
+let _jukoAudioReal = false;   // true once a real envelope is driving it
+let _jukoAudioLevel = 0;      // smoothed loudness 0..1
+let _jukoAudioOnset = 0;      // smoothed onset/beat strength 0..1
+let _jukoAudioBase  = 0;      // slow baseline (running average loudness)
+let _jukoAudioBeat  = 0;      // AC-coupled punch: how far ABOVE baseline we are
+
+// Hardcoded local copy of Juko's theme, used ONLY for analysis (same-origin →
+// fetch+decode always works, no CORS guessing). Drop her song here as juko.mp3.
+const _JUKO_THEME_SRC = 'sounds/juko.mp3';
+function _jukoEnsureEnvelope() {
+  if (_jukoEnvKey === _JUKO_THEME_SRC) return;        // already loaded / loading
+  _jukoEnvKey = _JUKO_THEME_SRC; _jukoEnv = null; _jukoAudioReal = false;
+  try { if (!_jukoAC) _jukoAC = new (window.AudioContext || window.webkitAudioContext)(); }
+  catch (e) { return; }
+  fetch(_JUKO_THEME_SRC)
+    .then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+    .then(buf => _jukoAC.decodeAudioData(buf))
+    .then(audioBuf => { _jukoEnv = _jukoBuildEnvelope(audioBuf); _jukoAudioReal = true; })
+    .catch(() => { /* file not present yet → ambient fallback */ });
+}
+
+function _jukoBuildEnvelope(buf) {
+  const bps = 30;                                     // envelope resolution (bins/sec)
+  const win = Math.max(1, Math.floor(buf.sampleRate / bps));
+  const ch0 = buf.getChannelData(0);
+  const ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
+  const n = Math.floor(ch0.length / win);
+  const env = new Float32Array(n);
+  let mx = 1e-6;
+  for (let i = 0; i < n; i++) {
+    let s = 0; const off = i * win;
+    for (let j = 0; j < win; j++) {
+      let v = ch0[off + j]; if (ch1) v = (v + ch1[off + j]) * 0.5;
+      s += v * v;
+    }
+    const rms = Math.sqrt(s / win);
+    env[i] = rms; if (rms > mx) mx = rms;
+  }
+  for (let i = 0; i < n; i++) env[i] /= mx;            // normalise 0..1
+  const flux = new Float32Array(n);
+  let fmx = 1e-6;
+  for (let i = 1; i < n; i++) { const d = Math.max(0, env[i] - env[i - 1]); flux[i] = d; if (d > fmx) fmx = d; }
+  for (let i = 0; i < n; i++) flux[i] = Math.min(1, flux[i] / fmx);
+  return { bps, env, flux };
+}
+
+function _jukoSampleAudio(dt) {
+  const a = _themeAudio || window._themeAudio || document.getElementById('theme-audio');
+  const playing = !!(a && !a.paused && !a.ended && a.currentTime > 0);
+  let target = 0, onset = 0;
+  if (playing && _jukoEnv && _jukoAudioReal) {
+    const idx = Math.floor(a.currentTime * _jukoEnv.bps);
+    if (idx >= 0 && idx < _jukoEnv.env.length) { target = _jukoEnv.env[idx]; onset = _jukoEnv.flux[idx]; }
+  } else if (playing) {
+    const tt = a.currentTime;                          // ambient fallback, tied to playback
+    target = Math.max(0, Math.min(1, 0.5 + 0.25 * Math.sin(tt * 6.3) + 0.15 * Math.sin(tt * 9.4) + 0.12 * Math.sin(tt * 3.1)));
+    onset  = Math.max(0, Math.sin(tt * 6.3)) * 0.3;
+  }
+  if (!playing) { target = 0; onset = 0; }
+  // Fast attack so peaks land on time, smoother release — minimises perceived lag.
+  _jukoAudioLevel += (target - _jukoAudioLevel) * Math.min(1, dt * (target > _jukoAudioLevel ? 30 : 14));
+  _jukoAudioOnset  = Math.max(_jukoAudioOnset * (1 - Math.min(1, dt * 7)), onset);  // fast attack, slow release
+
+  // ── AC-coupled "beat" — the key to VISIBLE reactivity ──────────────────
+  // Raw loudness (RMS) is too smooth: during a song it just sits at a steady
+  // bright value, so a glow tied to it looks pinned on and barely moves. We
+  // instead track a slow baseline and react to how far ABOVE it we are right
+  // now (plus onset transients). Steady passages → ~0 (dark/calm); hits,
+  // drops and swells → sharp spikes. Fast attack, quick-ish release.
+  _jukoAudioBase += (_jukoAudioLevel - _jukoAudioBase) * Math.min(1, dt * 0.7);
+  const dev  = Math.max(0, _jukoAudioLevel - _jukoAudioBase);
+  const beat = Math.min(1, dev * 3.4 + _jukoAudioOnset * 0.95);
+  if (beat > _jukoAudioBeat) _jukoAudioBeat = beat;                 // instant attack
+  else _jukoAudioBeat += (beat - _jukoAudioBeat) * Math.min(1, dt * 6); // smooth release
+
+  // Debug: inspect in console with `_jukoDbg`, or read the on-screen telemetry.
+  window._jukoDbg = { real: _jukoAudioReal, playing, level: +_jukoAudioLevel.toFixed(3),
+                      base: +_jukoAudioBase.toFixed(3), beat: +_jukoAudioBeat.toFixed(3), onset: +_jukoAudioOnset.toFixed(3) };
+}
+
+function _drawJukoPattern(canvas, ctx, W, H, t) {
+  // 30fps cap (matches the other heavy patterns)
+  if (_drawJukoPattern._lt !== undefined && t - _drawJukoPattern._lt < 0.033) return;
+  const dt = _drawJukoPattern._lt === undefined ? 0.016 : Math.min(t - _drawJukoPattern._lt, 0.05);
+  _drawJukoPattern._lt = t;
+
+  _jukoEnsureEnvelope();
+  _jukoSampleAudio(dt);
+  const aL = _jukoAudioLevel, aO = _jukoAudioOnset;   // 0..1 loudness / beat
+
+  if (canvas._jukoW !== W || canvas._jukoH !== H) {
+    canvas._jukoW = W; canvas._jukoH = H;
+    canvas._jukoCols = null; canvas._jukoBokeh = null; canvas._jukoVign = null;
+    canvas._jukoHRows = null; canvas._jukoSnips = null;
+  }
+
+  // 1 ── Editor-dark base with a faint green tint
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#08130c';
+  ctx.fillRect(0, 0, W, H);
+
+  // 2 ── Soft bokeh orbs drifting up (green + light-yellow) — warm, fun energy
+  if (!canvas._jukoBokeh) {
+    canvas._jukoBokeh = Array.from({ length: 26 }, () => _jukoNewBokeh(W, H, true));
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  const bokehBoost = 1 + aL * 0.9;
+  for (const b of canvas._jukoBokeh) {
+    b.y -= b.vy * dt * bokehBoost;
+    b.x += Math.sin(t * b.sw + b.ph) * b.sa * dt;
+    b.pulse = (0.45 + 0.55 * Math.sin(t * b.pf + b.ph)) * (1 + aL * 0.5);
+    if (b.y < -b.r) Object.assign(b, _jukoNewBokeh(W, H, false));
+    const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+    g.addColorStop(0, b.yellow
+      ? `rgba(224,236,128,${0.16 * b.pulse})`
+      : `rgba(86,214,116,${0.15 * b.pulse})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // 3 ── Horizontal code tickers, scrolling left BEHIND the vertical rain
+  if (!canvas._jukoHRows) {
+    const rn = Math.max(10, Math.round(H / 28));
+    canvas._jukoHRows = Array.from({ length: rn }, () => _jukoNewHRow(W, H));
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.font = '11px "Courier New", monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  for (const row of canvas._jukoHRows) {
+    row.off += row.spd * dt * (1 + aL * 1.1);
+    const cw = row.cw, n = row.glyphs.length;
+    const start = ((row.off % cw) + cw) % cw;
+    const baseIdx = Math.floor(row.off / cw);
+    ctx.fillStyle = `rgba(46,158,80,${row.alpha})`;
+    for (let j = 0, gx = -start; gx < W + cw; j++, gx += cw) {
+      ctx.fillText(row.glyphs[(((baseIdx + j) % n) + n) % n], gx, row.y);
+    }
+  }
+
+  // 4 ── Code snippets that fade in and out across the background
+  if (!canvas._jukoSnips) {
+    const sn = Math.max(8, Math.round((W * H) / 58000));
+    canvas._jukoSnips = Array.from({ length: sn }, () => _jukoNewSnippet(W, H, true));
+  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  for (const sp of canvas._jukoSnips) {
+    sp.life += dt;
+    const local = sp.life - sp.delay;
+    if (local < 0) continue;
+    if (local > sp.dur) { Object.assign(sp, _jukoNewSnippet(W, H, false)); continue; }
+    const a = Math.sin(Math.PI * local / sp.dur);            // 0 → 1 → 0
+    ctx.font = `${Math.round(sp.sz)}px "Courier New", monospace`;
+    ctx.fillStyle = sp.yellow ? `rgba(226,236,128,${a * 0.5})` : `rgba(96,216,120,${a * 0.5})`;
+    ctx.fillText(sp.txt, sp.x, sp.y);
+  }
+
+  // 5 ── Matrix code rain — dense green streams, glowing heads with additive
+  //      bloom, per-column brightness, scrolling light-yellow "keyword" tokens.
+  const cellH = 15, colW = 11;
+  if (!canvas._jukoCols) {
+    const n = Math.ceil(W / colW) + 1;
+    canvas._jukoCols = Array.from({ length: n }, (_, i) => _jukoNewCol(i * colW + colW * 0.5, H, true));
+  }
+  const cols = canvas._jukoCols;
+
+  // 5a — advance columns + paint additive bloom behind each falling head
+  ctx.globalCompositeOperation = 'lighter';
+  const rainBoost = 1 + aL * 1.3;                 // streams race on loud parts
+  for (const col of cols) {
+    col.y += col.spd * dt * rainBoost;
+    col.mut -= dt * (1 + aL * 1.6);               // glyphs churn faster with energy
+    if (col.mut <= 0) {
+      col.mut = 0.04 + Math.random() * 0.2;
+      col.glyphs[Math.floor(Math.random() * col.glyphs.length)] =
+        _JUKO_RAIN[Math.floor(Math.random() * _JUKO_RAIN.length)];
+    }
+    const hy = col.y;
+    if (hy > -18 && hy < H + 18) {
+      const gA = (col.yellow ? 0.55 : 0.48) * Math.min(1, 0.5 + col.bright * 0.7);
+      const gr = ctx.createRadialGradient(col.x, hy, 0, col.x, hy, 14);
+      gr.addColorStop(0, col.yellow ? `rgba(232,248,168,${gA})` : `rgba(150,246,150,${gA})`);
+      gr.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.arc(col.x, hy, 14, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // 5b — glyph streams (per-column brightness; whole field pulses with the music)
+  const cf = 0.8 + aL * 0.7;            // loudness → overall brightness
+  const headFlash = aO;                 // beat → heads flare white-hot
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.font = 'bold 13px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const col of cols) {
+    const headCell = Math.floor(col.y / cellH);
+    const gl = col.glyphs, gn = gl.length, br = col.bright;
+    for (let k = 0; k < col.len; k++) {
+      const cy = col.y - k * cellH;
+      if (cy < -cellH || cy > H + cellH) continue;
+      const idx = (((headCell - k) % gn) + gn) % gn;
+      const ch = gl[idx];
+      const f = 1 - k / col.len;                          // 1 head → 0 tail
+      if (k === 0) {
+        const ha = Math.min(1, 0.55 + br * 0.45);
+        if (headFlash > 0.35) ctx.fillStyle = `rgba(255,255,236,${Math.min(1, ha + headFlash * 0.5)})`;
+        else ctx.fillStyle = col.yellow ? `rgba(247,252,205,${ha})` : `rgba(222,255,212,${ha})`;
+      } else if (idx % 6 === 0) {
+        ctx.fillStyle = `rgba(228,238,120,${Math.min(1, (0.55 * f + 0.18) * br * cf)})`; // yellow keyword token
+      } else if (k <= 3) {
+        ctx.fillStyle = `rgba(150,238,140,${Math.min(1, (0.9 * f + 0.1) * br * cf)})`;   // fresh green near head
+      } else {
+        ctx.fillStyle = `rgba(54,194,90,${Math.min(1, 0.78 * f * br * cf)})`;           // deep green tail
+      }
+      ctx.fillText(ch, col.x, cy);
+    }
+    if (col.y - col.len * cellH > H) Object.assign(col, _jukoNewCol(col.x, H, false));
+  }
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'start';
+  ctx.textBaseline = 'alphabetic';
+
+  // 6 ── Soft gradient light bands sweeping up & down over the code
+  ctx.globalCompositeOperation = 'lighter';
+  for (let bIdx = 0; bIdx < 3; bIdx++) {
+    const dir = bIdx % 2 === 0 ? 1 : -1;
+    const speed = 0.05 + bIdx * 0.028;
+    const bandH = H * 0.55;
+    const phase = (((t * speed * dir) % 1) + 1) % 1;
+    const cy = phase * (H + bandH) - bandH / 2;
+    const rgb = bIdx === 1 ? '226,236,120' : '88,218,120';
+    const bandA = 0.05 + aL * 0.11;
+    const g = ctx.createLinearGradient(0, cy - bandH / 2, 0, cy + bandH / 2);
+    g.addColorStop(0,   `rgba(${rgb},0)`);
+    g.addColorStop(0.5, `rgba(${rgb},${bandA})`);
+    g.addColorStop(1,   `rgba(${rgb},0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, cy - bandH / 2, W, bandH);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 6.5 ── CHAOS: beat bloom + torn slices + channel-split jolts + data corruption.
+  //        Strong baseline jitter (wild even in silence); the music cranks it hard.
+  if (aO > 0.05) {
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(130,245,150,${Math.min(0.42, aO * 0.3)})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  // Torn horizontal slices, displaced sideways with a chromatic tint
+  const glitchP = 0.2 + aO * 0.7 + aL * 0.22;
+  if (Math.random() < glitchP) {
+    const slices = 1 + Math.floor(Math.random() * (3 + aO * 6));
+    for (let i = 0; i < slices; i++) {
+      const sh = 4 + Math.random() * (26 + aL * 46);
+      const sy = Math.random() * Math.max(1, H - sh);
+      const dx = (Math.random() - 0.5) * (44 + aL * 110 + aO * 130);
+      ctx.drawImage(canvas, 0, sy, W, sh, dx, sy, W, sh);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = Math.random() < 0.5 ? 'rgba(40,255,120,0.14)' : 'rgba(236,244,120,0.12)';
+      ctx.fillRect(dx, sy, W, sh);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+  // Channel-split ghost jolt on strong beats
+  if (aO > 0.42 && Math.random() < 0.6) {
+    const off = 3 + aO * 10;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.45;
+    ctx.drawImage(canvas, off, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  // Data-corruption blocks — bright garbled glyph clusters pop in
+  if (Math.random() < 0.14 + aL * 0.32) {
+    const nblk = 1 + Math.floor(Math.random() * 3);
+    ctx.font = 'bold 13px "Courier New", monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let b = 0; b < nblk; b++) {
+      const bx = Math.random() * W, by = Math.random() * H;
+      const bw = 3 + Math.floor(Math.random() * 6), bh = 1 + Math.floor(Math.random() * 4);
+      for (let yy = 0; yy < bh; yy++) for (let xx = 0; xx < bw; xx++) {
+        ctx.fillStyle = Math.random() < 0.5 ? 'rgba(184,255,172,0.92)' : 'rgba(238,246,150,0.85)';
+        ctx.fillText(_JUKO_RAIN[Math.floor(Math.random() * _JUKO_RAIN.length)], bx + xx * 11, by + yy * 13);
+      }
+    }
+    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  }
+
+  // 6.6 ── Loudness makes the whole screen breathe (very visible reactivity)
+  if (aL > 0.04) {
+    ctx.globalCompositeOperation = 'lighter';
+    const pg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.62);
+    pg.addColorStop(0, `rgba(72,212,112,${aL * 0.12})`);
+    pg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = pg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 7 ── Vignette to frame the garden
+  if (!canvas._jukoVign) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.22, W / 2, H / 2, Math.max(W, H) * 0.72);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    canvas._jukoVign = vg;
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = canvas._jukoVign;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// Chibi Juko: green cat head, gold glasses, light-yellow twintails, reactive eyes.
+function _jukoDrawSprite(ctx, x, y, t) {
+  const bT = _jukoBounceT;
+  const sq = bT > 0 ? Math.sin(bT * Math.PI * 3.0) * bT * 0.40 : 0;
+  const sX = 1 + sq * 0.30, sY = 1 - sq * 0.40;
+  const bob = Math.sin(t * 2.6) * 2.6;
+  const happy = _jukoHappyT > 0 ? Math.min(1, _jukoHappyT) : 0;
+  // Gentle lean toward horizontal motion
+  const lean = Math.max(-0.26, Math.min(0.26, _jukoVX / 900));
+  // Periodic blink (skipped while happy — eyes are ^^ then)
+  const cyc = t % 3.4;
+  const blinkClose = cyc < 0.16 ? (1 - Math.abs(cyc - 0.08) / 0.08) : 0;
+
+  ctx.save();
+  ctx.translate(x, y + bob);
+  ctx.rotate(lean);
+  ctx.scale(sX, sY);
+
+  const R = 20;
+  const eyeOX = 8.5, eyeY = -1.5, eyeR = 6.6;
+  const aL = _jukoAudioLevel, aO = _jukoAudioOnset;   // music drives glow/LEDs
+
+  // ── Tail: a glowing "code cable" (drawn first, so the head sits over its root).
+  // Unique twist — it's not fur, it's a data cable made of code glyphs tipped with
+  // a little plug + LED. It WHIPS out behind motion and curls into a spiral when
+  // idle, and its wiggle/glow swell with the music.
+  {
+    const spd  = Math.hypot(_jukoVX, _jukoVY);
+    const vf   = Math.min(1, spd / 340);
+    const bend = Math.max(-1, Math.min(1, -_jukoVX / 280));
+    const NSEG = 11, segLen = 5.6;
+    const pts = [];
+    let px = -bend * 2, py = R * 0.86;                 // root just under the head
+    let ang = Math.PI * 0.5 + bend * 0.55;             // hangs down, leans against motion
+    pts.push({ x: px, y: py, a: ang });
+    for (let i = 1; i <= NSEG; i++) {
+      const f = i / NSEG;
+      ang += 0.30 * (1 - vf) + bend * 0.18 * f          // idle→spiral, moving→straighten/trail
+           + Math.sin(t * 4.2 + i * 0.7) * (0.10 + 0.06 * f) * (0.5 + vf * 0.8 + aL * 0.7);
+      px += Math.cos(ang) * segLen;
+      py += Math.sin(ang) * segLen;
+      pts.push({ x: px, y: py, a: ang });
+    }
+    // additive glow underlay
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = `rgba(90,230,110,${0.16 + aL * 0.24})`;
+    ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.stroke();
+    ctx.restore();
+    // main cable — tapering, dark base → bright tip
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (let i = 1; i < pts.length; i++) {
+      const f = i / pts.length;
+      ctx.strokeStyle = `rgb(${30 + f * 70 | 0},${150 + f * 95 | 0},${60 + f * 60 | 0})`;
+      ctx.lineWidth = 4.6 * (1 - f * 0.62);
+      ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+    }
+    // code glyphs riding the cable
+    const tg = _jukoDrawSprite._tail || (_jukoDrawSprite._tail = { g: [], next: 0 });
+    if (!tg.g.length) for (let k = 0; k < 4; k++) tg.g.push(_JUKO_TOKENS[(Math.random() * _JUKO_TOKENS.length) | 0]);
+    if (t > tg.next) { tg.g[(Math.random() * tg.g.length) | 0] = _JUKO_TOKENS[(Math.random() * _JUKO_TOKENS.length) | 0]; tg.next = t + 0.5 + Math.random(); }
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let k = 0; k < tg.g.length; k++) {
+      const idx = Math.min(pts.length - 1, Math.floor((k + 1) / (tg.g.length + 1) * (pts.length - 1)) + 1);
+      const p = pts[idx];
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.a - Math.PI * 0.5);
+      ctx.font = `bold ${6.5 + (idx / pts.length) * 3}px "Courier New", monospace`;
+      ctx.fillStyle = `rgba(${(180 + aO * 70) | 0},255,130,${0.7 + aL * 0.3})`;
+      ctx.fillText(tg.g[k], 0, 0);
+      ctx.restore();
+    }
+    ctx.restore();
+    // tip: a little plug/connector with a music-reactive LED
+    const tip = pts[pts.length - 1], pre = pts[pts.length - 2];
+    const ta = Math.atan2(tip.y - pre.y, tip.x - pre.x);
+    ctx.save();
+    ctx.translate(tip.x, tip.y); ctx.rotate(ta);
+    ctx.fillStyle = '#2b332c'; ctx.fillRect(-1, -3.2, 6, 6.4);   // connector body
+    ctx.fillStyle = '#1c211b'; ctx.fillRect(5, -2, 3, 4);        // prongs
+    const led = Math.min(1, 0.32 + aL + aO * 0.8);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath(); ctx.arc(2, 0, 2 + led * 2.4, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(210,255,120,${0.32 + led * 0.5})`; ctx.fill();
+    ctx.restore();
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ── Cat ears (behind head) — big and perky
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(s * 4, -R * 0.80);
+    ctx.lineTo(s * 23, -R * 2.14);
+    ctx.lineTo(s * 26, -R * 0.40);
+    ctx.closePath();
+    ctx.fillStyle = '#36a64c'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s * 8, -R * 0.86);
+    ctx.lineTo(s * 20, -R * 1.80);
+    ctx.lineTo(s * 22, -R * 0.52);
+    ctx.closePath();
+    ctx.fillStyle = '#e7ec88'; ctx.fill();
+  }
+
+  // ── Head (green, soft top-light)
+  const hg = ctx.createRadialGradient(-R * 0.32, -R * 0.4, 2, 0, 0, R * 1.3);
+  hg.addColorStop(0, '#62d273'); hg.addColorStop(0.6, '#3fb257'); hg.addColorStop(1, '#2b8642');
+  ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2);
+  ctx.fillStyle = hg; ctx.fill();
+  ctx.strokeStyle = 'rgba(18,68,34,0.5)'; ctx.lineWidth = 1.4; ctx.stroke();
+
+  // ── Headphones (cat-ear-headphone vibe — her programmer music gear)
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#2b332c'; ctx.lineWidth = 5.5;                 // band over the top
+  ctx.beginPath(); ctx.arc(0, 1, R + 4, Math.PI, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(228,236,138,0.8)'; ctx.lineWidth = 1.7;   // glowing band highlight
+  ctx.beginPath(); ctx.arc(0, 1, R + 5.6, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
+  for (const s of [-1, 1]) {                                        // earcups on the sides
+    const cx = s * (R + 3.5), cy = 4;
+    ctx.beginPath(); ctx.ellipse(cx, cy, 6.6, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#23291f'; ctx.fill();
+    ctx.strokeStyle = '#3a4530'; ctx.lineWidth = 1.4; ctx.stroke();
+    // LED ring brightens & thickens with loudness; halo blooms on the beat
+    const glow = Math.min(1, aL + aO * 0.6);
+    if (glow > 0.05) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.beginPath(); ctx.ellipse(cx, cy, 5 + glow * 4, 8 + glow * 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,240,90,${glow * 0.35})`; ctx.fill();
+      ctx.restore();
+    }
+    ctx.beginPath(); ctx.ellipse(cx, cy, 3.6, 6, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(207,233,106,${0.7 + glow * 0.3})`;
+    ctx.lineWidth = 1.7 + glow * 1.3;
+    ctx.stroke();
+  }
+
+  // ── Eyes
+  for (const s of [-1, 1]) {
+    const ex = s * eyeOX;
+    if (happy > 0.1) {
+      // Happy ^^ — upward arcs
+      ctx.strokeStyle = '#12331c'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(ex, eyeY + 2, eyeR * 0.95, Math.PI * 1.18, Math.PI * 1.82);
+      ctx.stroke();
+    } else {
+      const eScaleY = 1 - blinkClose * 0.85;
+      // White
+      ctx.save();
+      ctx.translate(ex, eyeY); ctx.scale(1, eScaleY);
+      ctx.beginPath(); ctx.arc(0, 0, eyeR, 0, Math.PI * 2);
+      ctx.fillStyle = '#f4fff0'; ctx.fill();
+      ctx.restore();
+      // Reactive pupil — idle wander blended with velocity direction (like Fury's muffin)
+      const mvSpd = Math.hypot(_jukoVX, _jukoVY);
+      const vf = Math.min(1, mvSpd / 300);
+      let pdx = Math.sin(t * 1.2 + s * 0.8) * eyeR * 0.32 * (1 - vf);
+      let pdy = Math.cos(t * 0.9 + s * 1.2) * eyeR * 0.32 * (1 - vf);
+      if (mvSpd > 8) {
+        pdx += (_jukoVX / mvSpd) * eyeR * 0.42 * vf;
+        pdy += (_jukoVY / mvSpd) * eyeR * 0.42 * vf;
+      }
+      const pD = Math.hypot(pdx, pdy), mx = eyeR * 0.42;
+      if (pD > mx) { pdx *= mx / pD; pdy *= mx / pD; }
+      ctx.save();
+      ctx.translate(ex + pdx, eyeY + pdy * eScaleY); ctx.scale(1, eScaleY);
+      ctx.beginPath(); ctx.arc(0, 0, eyeR * 0.55, 0, Math.PI * 2);
+      ctx.fillStyle = '#143a20'; ctx.fill();   // dark-green pupil
+      ctx.beginPath(); ctx.arc(-eyeR * 0.18, -eyeR * 0.2, eyeR * 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff'; ctx.fill();       // catchlight
+      ctx.restore();
+    }
+  }
+
+  // ── Glasses (gold frames + faint green lens tint)
+  ctx.strokeStyle = '#d9b347'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(s * eyeOX, eyeY, eyeR + 2.4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(186,232,160,0.13)'; ctx.fill();
+    ctx.stroke();
+  }
+  ctx.beginPath();                                   // bridge
+  ctx.moveTo(-eyeOX + eyeR + 1, eyeY); ctx.lineTo(eyeOX - eyeR - 1, eyeY); ctx.stroke();
+  ctx.beginPath();                                   // temple arms
+  ctx.moveTo(-eyeOX - eyeR - 2.4, eyeY); ctx.lineTo(-R + 1, eyeY - 1); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(eyeOX + eyeR + 2.4, eyeY); ctx.lineTo(R - 1, eyeY - 1); ctx.stroke();
+
+  // ── Mouth — :3 cat smile (wider when happy)
+  const my = eyeY + eyeR + 5.5;
+  const mw = 4 + happy * 2;
+  ctx.strokeStyle = '#12331c'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-mw, my);
+  ctx.quadraticCurveTo(-mw * 0.5, my + 3 + happy * 1.5, 0, my);
+  ctx.quadraticCurveTo(mw * 0.5, my + 3 + happy * 1.5, mw, my);
+  ctx.stroke();
+
+  // ── Blush on click
+  if (happy > 0) {
+    ctx.globalAlpha = happy * 0.55;
+    ctx.fillStyle = '#ff9aa6';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * (eyeOX + 5), eyeY + 6, 4.6, 2.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+function _drawJukoOverlay(canvas, ctx, W, H, t) {
+  if (_drawJukoOverlay._lt !== undefined && t - _drawJukoOverlay._lt < 0.033) return;
+  const dt = _drawJukoOverlay._lt === undefined ? 0.016 : Math.min(t - _drawJukoOverlay._lt, 0.05);
+  _drawJukoOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  // Spring-follow (floaty lag)
+  const SPRING = 80, DAMP = 10;
+  _jukoVX += ((_jukoTargX - _jukoX) * SPRING - _jukoVX * DAMP) * dt;
+  _jukoVY += ((_jukoTargY - _jukoY) * SPRING - _jukoVY * DAMP) * dt;
+  _jukoX += _jukoVX * dt;
+  _jukoY += _jukoVY * dt;
+
+  _jukoBounceT = Math.max(0, _jukoBounceT - dt * 3.0);
+  _jukoHappyT  = Math.max(0, _jukoHappyT  - dt);
+  // Bump to the beat — strong onsets give Juko a little squish-bounce
+  if (_jukoAudioOnset > 0.5) _jukoBounceT = Math.max(_jukoBounceT, (_jukoAudioOnset - 0.5) * 1.1);
+
+  // Code-symbol burst from clicks
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = _jukoParticles.length - 1; i >= 0; i--) {
+    const p = _jukoParticles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 130 * dt; // gravity
+    p.rot += p.vr * dt; p.life -= dt * 1.6;
+    if (p.life <= 0) { _jukoParticles.splice(i, 1); continue; }
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.globalAlpha = Math.min(1, p.life * 1.25);
+    ctx.font = `bold ${p.sz}px "Courier New", monospace`;
+    ctx.fillStyle = `hsl(${p.hue},85%,62%)`;
+    ctx.fillText(p.ch, 0, 0);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+
+  _jukoDrawSprite(ctx, _jukoX, _jukoY, t);
+
+  // ── Drive Juko's pfp / name reactive chrome ──
+  // Push the live audio envelope into CSS custom props so the menus, avatar and
+  // name display pulse and glitch in time with the music. A gentle idle shimmer
+  // (sine of t) keeps everything alive even when the track is paused/stopped.
+  const _cvRoot = _drawJukoOverlay._root || (_drawJukoOverlay._root = document.getElementById('char-view'));
+  if (_cvRoot && _cvRoot.classList.contains('juko-ui')) {
+    // Rest DARK and let the BEAT do the talking. A faint idle shimmer keeps it
+    // alive when paused; the AC-coupled beat drives the bright pulses so the
+    // boxes visibly flash with the music instead of sitting pinned-bright.
+    const idle   = 0.05 + 0.03 * Math.sin(t * 2.0);
+    const glowV  = Math.min(1.0, idle + _jukoAudioLevel * 0.22 + _jukoAudioBeat * 0.92);
+    const onsetV = Math.min(1, _jukoAudioBeat);
+    const glitchV = _jukoAudioBeat > 0.5 ? 1 : (Math.sin(t * 13.0) > 0.94 ? 0.5 : 0);
+    // PERF: quantize and only write a custom property when it actually changes.
+    // Writing to #char-view invalidates the style of its whole subtree, so doing
+    // it every frame was the main source of lag. Skipping no-op writes removes it
+    // with no visible difference (idle barely writes; music writes on real change).
+    const qG = Math.round(glowV * 33) / 33;
+    const qO = Math.round(onsetV * 25) / 25;
+    const last = _drawJukoOverlay._css || (_drawJukoOverlay._css = { g: -1, o: -1, x: -1 });
+    const st = _cvRoot.style;
+    if (qG !== last.g)      { st.setProperty('--juko-glow', qG.toFixed(3));   last.g = qG; }
+    if (qO !== last.o)      { st.setProperty('--juko-onset', qO.toFixed(3));  last.o = qO; }
+    if (glitchV !== last.x) { st.setProperty('--juko-glitch', glitchV.toFixed(2)); last.x = glitchV; }
+  }
+
+}
+
+// ── Code-frame layer ──────────────────────────────────────────────────
+// Renders each Juko panel's border AS streaming code: a ring of green glyphs
+// (random shades, a few warm light-yellow) sitting just inside each box edge,
+// flickering and mutating, with a bright "comet" head travelling around the
+// perimeter. Brighter than the background matrix and reactive to the music
+// (speed ← loudness, head/whole-frame flare ← beat). One fixed full-viewport
+// canvas; panel rects are read live so it tracks scrolling and tab changes.
+function _jukoBuildFrameCells(w, h, cell) {
+  const cells = [];
+  const push = (x, y) => cells.push({
+    x, y,
+    ch: _JUKO_RAIN[(Math.random() * _JUKO_RAIN.length) | 0],
+    shade: 0.45 + Math.random() * 0.55,
+    warm: Math.random() < 0.16,
+    flick: Math.random() * Math.PI * 2,
+    mut: 0.2 + Math.random() * 1.6,
+  });
+  const stepEdge = (x0, y0, x1, y1) => {
+    const dx = x1 - x0, dy = y1 - y0;
+    const n = Math.max(1, Math.round(Math.hypot(dx, dy) / cell));
+    for (let i = 0; i < n; i++) push(x0 + dx * (i / n), y0 + dy * (i / n));
+  };
+  const m = cell * 0.62;                 // inset so glyphs ride just inside the edge
+  stepEdge(m, m, w - m, m);              // top  L→R
+  stepEdge(w - m, m, w - m, h - m);      // right T→B
+  stepEdge(w - m, h - m, m, h - m);      // bottom R→L
+  stepEdge(m, h - m, m, m);              // left  B→T
+  return cells;
+}
+
+// Bottom equalizer (own canvas, BEHIND the panels): many thin vertical bars in
+// graded green tones (dark base → light-yellow tips via one shared vertical
+// gradient). Bars snap UP instantly on beats/loudness and fall back smoothly,
+// like a VU meter, so they track the actual music rather than lagging it.
+function _drawJukoEqualizer(canvas, ctx, W, H, t) {
+  if (_drawJukoEqualizer._lt !== undefined && t - _drawJukoEqualizer._lt < 0.033) return;
+  const dt = _drawJukoEqualizer._lt === undefined ? 0.016 : Math.min(t - _drawJukoEqualizer._lt, 0.05);
+  _drawJukoEqualizer._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const lvl = _jukoAudioLevel, beat = _jukoAudioBeat;
+  const eqH = Math.min(240, H * 0.26);            // max bar height
+  const spacing = 6, barW = 2.6;
+  const n = Math.max(8, Math.floor(W / spacing));
+  let eq = _drawJukoEqualizer._eq;
+  if (!eq || eq.n !== n || eq.H !== H) {
+    eq = _drawJukoEqualizer._eq = {
+      n, H,
+      h:    new Float32Array(n),
+      rate: Float32Array.from({ length: n }, () => 2 + Math.random() * 7),
+      ph:   Float32Array.from({ length: n }, () => Math.random() * Math.PI * 2),
+      rnd:  Float32Array.from({ length: n }, () => 0.55 + Math.random() * 0.45),
+    };
+    const g = ctx.createLinearGradient(0, H, 0, H - eqH);
+    g.addColorStop(0.0, '#06301a');
+    g.addColorStop(0.4, '#1c9c3d');
+    g.addColorStop(0.72, '#5cef4a');
+    g.addColorStop(1.0, '#eaffb0');
+    eq.grad = g;
+  }
+  const kUp = Math.min(1, dt * 38), kDn = Math.min(1, dt * 9);   // fast attack, smooth release
+  // solid graded bars
+  ctx.fillStyle = eq.grad;
+  for (let i = 0; i < n; i++) {
+    const wave = 0.55 + 0.45 * Math.sin(t * eq.rate[i] + eq.ph[i]);
+    const idle = 0.018 + 0.012 * Math.sin(t * 1.4 + i * 0.4);     // a sliver of life when silent
+    const target = Math.min(1, idle + (lvl * 0.5 + beat * 0.72) * wave * eq.rnd[i]);
+    eq.h[i] += (target > eq.h[i] ? kUp : kDn) * (target - eq.h[i]);
+    const bh = eq.h[i] * eqH;
+    if (bh < 1) continue;
+    ctx.fillRect(i * spacing + (spacing - barW) * 0.5, H - bh, barW, bh);
+  }
+  // additive bright caps for a glowing top edge
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < n; i++) {
+    const bh = eq.h[i] * eqH;
+    if (bh < 6) continue;
+    ctx.fillStyle = `rgba(190,255,150,${Math.min(0.6, eq.h[i] * 0.75)})`;
+    ctx.fillRect(i * spacing + (spacing - barW) * 0.5 - 0.4, H - bh, barW + 0.8, 2.4);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
+  if (_drawJukoCodeFrame._lt !== undefined && t - _drawJukoCodeFrame._lt < 0.033) return;
+  const dt = _drawJukoCodeFrame._lt === undefined ? 0.016 : Math.min(t - _drawJukoCodeFrame._lt, 0.05);
+  _drawJukoCodeFrame._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const root = _drawJukoOverlay._root || (_drawJukoOverlay._root = document.getElementById('char-view'));
+  if (!root || !root.classList.contains('juko-ui')) return;
+
+  const beat = _jukoAudioBeat, lvl = _jukoAudioLevel;
+
+  const panels = root.querySelectorAll('.panel');
+  const cell = 19;                                  // bigger glyphs for the code border
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${cell - 3}px "Courier New", monospace`;
+  ctx.globalCompositeOperation = 'lighter';
+  _drawJukoCodeFrame._comet = (_drawJukoCodeFrame._comet || 0) + dt * (55 + lvl * 130);
+
+  for (let pi = 0; pi < panels.length; pi++) {
+    const p = panels[pi];
+    const r = p.getBoundingClientRect();
+    if (r.width < 24 || r.bottom < -40 || r.top > H + 40) continue;   // hidden / off-screen
+    let st = p._jukoFrame;
+    const rw = Math.round(r.width), rh = Math.round(r.height);
+    if (!st || st.w !== rw || st.h !== rh) {
+      st = p._jukoFrame = { w: rw, h: rh, cells: _jukoBuildFrameCells(r.width, r.height, cell) };
+    }
+    const cells = st.cells, N = cells.length;
+    const head = (_drawJukoCodeFrame._comet / cell + pi * 7) % N;     // offset per panel
+    for (let i = 0; i < N; i++) {
+      const c = cells[i];
+      c.mut -= dt;
+      if (c.mut <= 0) { c.ch = _JUKO_RAIN[(Math.random() * _JUKO_RAIN.length) | 0]; c.mut = 0.25 + Math.random() * 1.7; }
+      let d = Math.abs(i - head); if (d > N / 2) d = N - d;
+      const comet = Math.max(0, 1 - d / 7);
+      const flick = 0.8 + 0.2 * Math.sin(t * 7 + c.flick);
+      let b = c.shade * flick * (0.3 + lvl * 0.28) + comet * (0.55 + beat * 0.65) + beat * 0.12;
+      if (b < 0.045) continue;
+      b = Math.min(1.2, b);
+      const w2 = comet * (0.5 + beat * 0.45);     // head whitens toward light-yellow
+      let cr, cg, cb;
+      if (c.warm) { cr = 205; cg = 255; cb = 135; } else { cr = 58; cg = 232; cb = 92; }
+      cr = Math.min(255, cr + w2 * 175); cg = Math.min(255, cg + w2 * 22); cb = Math.min(255, cb + w2 * 120);
+      ctx.fillStyle = `rgba(${cr | 0},${cg | 0},${cb | 0},${b.toFixed(3)})`;
+      ctx.fillText(c.ch, r.left + c.x, r.top + c.y);
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function _startJukoOverlay() {
+  _stopJukoOverlay();
+  _drawJukoOverlay._lt = undefined;
+  _drawJukoCodeFrame._lt = undefined;
+  _drawJukoEqualizer._lt = undefined;
+  _drawJukoOverlay._css = null;   // force CSS-var re-sync on re-entry
+  _jukoX = _jukoTargX = window.innerWidth * 0.5;
+  _jukoY = _jukoTargY = window.innerHeight * 0.5;
+  _jukoVX = 0; _jukoVY = 0;
+  _jukoBounceT = 0; _jukoHappyT = 0;
+  _jukoAudioLevel = 0; _jukoAudioOnset = 0; _jukoAudioBase = 0; _jukoAudioBeat = 0;
+  _jukoParticles = [];
+  window.addEventListener('mousemove', _jukoMouseMove);
+  window.addEventListener('click', _jukoClick);
+  // Equalizer layer — appended inside #content (z-index:0) so it sits BEHIND
+  // #char-view (z-index:1) and its panels, peeking out only around the boxes.
+  const eqc = document.createElement('canvas');
+  eqc.id = 'juko-eq-overlay';
+  eqc.style.cssText = 'position:fixed;left:0;bottom:0;width:100vw;height:100vh;z-index:0;pointer-events:none;';
+  eqc.width = window.innerWidth; eqc.height = window.innerHeight;
+  (document.getElementById('content') || document.body).appendChild(eqc);
+  // Code-frame layer (panel borders rendered as code) — below the sprite.
+  const fr = document.createElement('canvas');
+  fr.id = 'juko-frame-overlay';
+  fr.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:30;pointer-events:none;';
+  fr.width = window.innerWidth; fr.height = window.innerHeight;
+  document.body.appendChild(fr);
+  // Cursor companion / particles layer — on top of everything.
+  const cv = document.createElement('canvas');
+  cv.id = 'juko-code-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const tt = (now - t0) / 1000;
+    const eq2 = document.getElementById('juko-eq-overlay');
+    if (eq2) {
+      if (eq2.width !== window.innerWidth || eq2.height !== window.innerHeight) {
+        eq2.width = window.innerWidth; eq2.height = window.innerHeight;
+      }
+      _drawJukoEqualizer(eq2, eq2.getContext('2d'), eq2.width, eq2.height, tt);
+    }
+    const fr2 = document.getElementById('juko-frame-overlay');
+    if (fr2) {
+      if (fr2.width !== window.innerWidth || fr2.height !== window.innerHeight) {
+        fr2.width = window.innerWidth; fr2.height = window.innerHeight;
+      }
+      _drawJukoCodeFrame(fr2, fr2.getContext('2d'), fr2.width, fr2.height, tt);
+    }
+    const cv2 = document.getElementById('juko-code-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawJukoOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, tt);
+    _jukoOverlayRafId = requestAnimationFrame(frame);
+  }
+  _jukoOverlayRafId = requestAnimationFrame(frame);
+}
+
+function _stopJukoOverlay() {
+  if (_jukoOverlayRafId) { cancelAnimationFrame(_jukoOverlayRafId); _jukoOverlayRafId = null; }
+  window.removeEventListener('mousemove', _jukoMouseMove);
+  window.removeEventListener('click', _jukoClick);
+  const cv = document.getElementById('juko-code-overlay');
+  if (cv) cv.remove();
+  const fr = document.getElementById('juko-frame-overlay');
+  if (fr) fr.remove();
+  const eqc = document.getElementById('juko-eq-overlay');
+  if (eqc) eqc.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -3735,6 +4678,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'valkyrie_rain')  { _drawValkyriePattern(canvas, ctx, W, H, t);            return; }
   if (type === 'adam_ice')       { _drawAdamPattern(canvas, ctx, W, H, t, params);       return; }
   if (type === 'fury_fire')      { _drawFuryPattern(canvas, ctx, W, H, t);               return; }
+  if (type === 'juko_code')      { _drawJukoPattern(canvas, ctx, W, H, t);               return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -4189,6 +5133,8 @@ function startBgAnim(type, params) {
   _drawAdamOverlay._lt        = undefined;
   _drawFuryPattern._lt        = undefined;
   _drawFuryOverlay._lt        = undefined;
+  _drawJukoPattern._lt        = undefined;
+  _drawJukoOverlay._lt        = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -4214,6 +5160,7 @@ function stopBgAnim() {
   _stopValkyrieOverlay();
   _stopAdamOverlay();
   _stopFuryOverlay();
+  _stopJukoOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -4698,14 +5645,45 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); }
-  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); }
-  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); }
+  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); }
+  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+
+  // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isJuko(c)) {
+      _cvRoot.classList.add('juko-ui');
+      _cvRoot.style.setProperty('--juko-glow', '0');
+      _cvRoot.style.setProperty('--juko-onset', '0');
+      _cvRoot.style.setProperty('--juko-glitch', '0');
+      if (_av) {
+        _av.classList.add('juko-pfp');
+        // Always-on (music-independent) FX layer: a holographic sheen sweep
+        // plus a blinking "</>" code tag in the corner. Re-injected each render
+        // because the avatar innerHTML (the <img>) was just rebuilt above.
+        if (!_av.querySelector('.juko-pfp-fx')) {
+          const fx = document.createElement('div');
+          fx.className = 'juko-pfp-fx';
+          fx.innerHTML = '<span class="juko-pfp-tag">&lt;/&gt;</span>';
+          _av.appendChild(fx);
+        }
+      }
+      if (_nm) { _nm.classList.add('juko-name'); _nm.setAttribute('data-text', _nm.textContent || 'JUKO!'); }
+    } else {
+      _cvRoot.classList.remove('juko-ui');
+      if (_av) { _av.classList.remove('juko-pfp'); const fx = _av.querySelector('.juko-pfp-fx'); if (fx) fx.remove(); }
+      if (_nm) { _nm.classList.remove('juko-name'); _nm.removeAttribute('data-text'); }
+    }
+  }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -4745,10 +5723,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'juko_code' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -4763,6 +5741,7 @@ function viewChar(id) {
   if (_isValkyrie(c)) _startValkyrieOverlay();
   if (_isAdam(c))     _startAdamOverlay();
   if (_isFury(c))     _startFuryOverlay();
+  if (_isJuko(c))     _startJukoOverlay();
 
   renderInventory(c);
   renderTraitsDisplay(c);
@@ -9804,7 +10783,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -9814,6 +10793,7 @@ window.addEventListener('resize', () => {
       if (_isValkyrie(c)) _startValkyrieOverlay();
       if (_isAdam(c))     _startAdamOverlay();
       if (_isFury(c))     _startFuryOverlay();
+      if (_isJuko(c))     _startJukoOverlay();
     }
   }
 });

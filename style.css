@@ -1207,6 +1207,202 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 /* ============================================================
+   JUKO! — reactive UI chrome (section headers glow + pulse to the
+   music, special pfp, glitching name). Driven by JS custom props:
+     --juko-glow   (0..1) overall loudness
+     --juko-onset  (0..1) beat transients
+     --juko-glitch (0..1) name-glitch trigger
+   --char-color is Juko's chosen main color (her greens).
+   ============================================================ */
+#char-view.juko-ui { --juko-glow: 0; --juko-onset: 0; --juko-glitch: 0; }
+
+/* Generic: hovering a panel box recolors its frame to the character's color */
+#char-view .panel:hover {
+  --p-border: var(--char-color, var(--fg));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--char-color, #fff) 55%, transparent);
+}
+
+/* Juko's panel boxes: frame is permanently her color and the glow swells with
+   the music (the corner notch inherits --p-border automatically). */
+#char-view.juko-ui .panel {
+  /* No solid frame at all — the streaming-code layer (canvas) IS the border. */
+  border-color: transparent;
+  box-shadow: none;
+}
+#char-view.juko-ui .panel::after { display: none; }   /* drop the corner notch too */
+#char-view.juko-ui .panel:hover { box-shadow: none; }
+
+/* Generic: every panel/section header glows in the character's color on hover */
+.panel-title:hover {
+  text-shadow: 0 0 12px var(--char-color, transparent);
+}
+
+/* Juko's section headers (TRAITS / STATS / INVENTORY …) auto-glow in her
+   color, brightness tracking the music, with a code-shimmer sweeping the
+   underline and a blinking terminal-cursor flourish. */
+#char-view.juko-ui .panel-title {
+  position: relative;
+  color: color-mix(in srgb, var(--char-color, #4ade5a) calc(60% + var(--juko-glow) * 40%), #8a9) !important;
+  text-shadow: 0 0 calc(3px + var(--juko-glow) * 15px)
+               color-mix(in srgb, var(--char-color, #4ade5a) 85%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--char-color, #4ade5a) 55%, #2a2a2a);
+  transition: color 0.08s, text-shadow 0.08s;
+}
+/* glowing underline whose shimmer scrolls and brightens to the beat */
+#char-view.juko-ui .panel-title::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--char-color, #4ade5a) 70%, transparent) 20%,
+    color-mix(in srgb, #eaffb0 85%, transparent) 50%,
+    color-mix(in srgb, var(--char-color, #4ade5a) 70%, transparent) 80%,
+    transparent 100%);
+  background-size: 220% 100%;
+  box-shadow: 0 0 calc(3px + var(--juko-onset) * 16px) var(--char-color, #4ade5a);
+  opacity: calc(0.45 + var(--juko-glow) * 0.55);
+  animation: juko-header-sweep 3s linear infinite;
+  pointer-events: none;
+}
+@keyframes juko-header-sweep {
+  0%   { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+#char-view.juko-ui .panel-title:hover {
+  color: #eaffb0 !important;
+  text-shadow: 0 0 calc(8px + var(--juko-glow) * 18px) var(--char-color, #4ade5a),
+               0 0 26px color-mix(in srgb, #eaffb0 55%, transparent);
+}
+
+/* PFP: animated green frame, scanlines + beat-driven RGB jitter */
+.char-avatar-large.juko-pfp {
+  border-color: var(--char-color, #4ade5a) !important;
+  box-shadow:
+    0 0 calc(6px + var(--juko-glow) * 16px) color-mix(in srgb, var(--char-color, #4ade5a) 65%, transparent),
+    inset 0 0 calc(4px + var(--juko-glow) * 10px) color-mix(in srgb, var(--char-color, #4ade5a) 38%, transparent);
+  transform: translateZ(0) scale(calc(1 + var(--juko-onset) * 0.06));
+  transition: transform 0.06s, box-shadow 0.1s;
+}
+/* scrolling code-scanlines over the portrait */
+.char-avatar-large.juko-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    color-mix(in srgb, var(--char-color, #4ade5a) 22%, transparent) 3px,
+    transparent 4px);
+  opacity: calc(0.35 + var(--juko-glow) * 0.5);
+  animation: juko-pfp-scan 4s linear infinite;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+/* corner-bracket "HUD" frame + faint color wash that flares on beats */
+.char-avatar-large.juko-pfp::after {
+  content: "";
+  position: absolute; inset: 4px;
+  border: 1px solid color-mix(in srgb, #eaffb0 70%, transparent);
+  clip-path: polygon(0 0,18px 0,18px 2px,2px 2px,2px 18px,0 18px,
+                     0 100%,18px 100%,18px calc(100% - 2px),2px calc(100% - 2px),2px calc(100% - 18px),0 calc(100% - 18px),
+                     100% 0,calc(100% - 18px) 0,calc(100% - 18px) 2px,calc(100% - 2px) 2px,calc(100% - 2px) 18px,100% 18px,
+                     100% 100%,calc(100% - 18px) 100%,calc(100% - 18px) calc(100% - 2px),calc(100% - 2px) calc(100% - 2px),calc(100% - 2px) calc(100% - 18px),100% calc(100% - 18px));
+  box-shadow: 0 0 calc(2px + var(--juko-onset) * 12px) color-mix(in srgb, #eaffb0 80%, transparent);
+  opacity: calc(0.5 + var(--juko-onset) * 0.5);
+  pointer-events: none;
+}
+@keyframes juko-pfp-scan {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 -16px; }
+}
+
+/* PFP — always-on, music-INDEPENDENT flourish: a holographic sheen that
+   sweeps diagonally across the portrait on a fixed timer, plus a blinking
+   "</>" code tag in the bottom-right corner. Runs regardless of audio. */
+.char-avatar-large.juko-pfp .juko-pfp-fx {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+.char-avatar-large.juko-pfp .juko-pfp-fx::before {
+  content: "";
+  position: absolute;
+  top: -60%; left: -60%;
+  width: 60%; height: 220%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(234, 255, 176, 0.0) 20%,
+    rgba(234, 255, 176, 0.45) 50%,
+    rgba(160, 255, 170, 0.18) 60%,
+    transparent 80%);
+  transform: rotate(22deg);
+  mix-blend-mode: screen;
+  animation: juko-pfp-sheen 3.6s ease-in-out infinite;
+}
+@keyframes juko-pfp-sheen {
+  0%        { transform: translateX(0)    rotate(22deg); opacity: 0; }
+  12%       { opacity: 1; }
+  45%, 100% { transform: translateX(320%) rotate(22deg); opacity: 0; }
+}
+.juko-pfp-tag {
+  position: absolute;
+  right: 4px; bottom: 3px;
+  font-family: "Courier New", monospace;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #eaffb0;
+  text-shadow: 0 0 6px #4ade5a, 0 0 12px rgba(74, 222, 90, 0.6);
+  animation: juko-tag-blink 1.4s steps(1, end) infinite;
+}
+@keyframes juko-tag-blink {
+  0%, 70%  { opacity: 1; }
+  71%, 85% { opacity: 0.25; }
+  86%, 100%{ opacity: 1; }
+}
+
+/* NAME: continuous chromatic glitch, intensifying on beats */
+.char-name-display.juko-name {
+  position: relative;
+  color: var(--char-color, #4ade5a) !important;
+  text-shadow: 0 0 calc(4px + var(--juko-glow) * 14px) color-mix(in srgb, var(--char-color, #4ade5a) 80%, transparent);
+}
+.char-name-display.juko-name::before,
+.char-name-display.juko-name::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: calc(0.5 + var(--juko-glitch) * 0.5);
+}
+.char-name-display.juko-name::before {
+  color: #ff3b6b;
+  transform: translate(calc(var(--juko-glitch) * -3px - 1px), 0);
+  clip-path: inset(0 0 55% 0);
+  animation: juko-name-glitch-a 2.4s steps(2, end) infinite;
+}
+.char-name-display.juko-name::after {
+  color: #2fe6ff;
+  transform: translate(calc(var(--juko-glitch) * 3px + 1px), 0);
+  clip-path: inset(55% 0 0 0);
+  animation: juko-name-glitch-b 1.9s steps(2, end) infinite;
+}
+@keyframes juko-name-glitch-a {
+  0%, 92%, 100% { clip-path: inset(0 0 55% 0); transform: translateX(-1px); }
+  93% { clip-path: inset(10% 0 60% 0); transform: translateX(-4px); }
+  96% { clip-path: inset(40% 0 20% 0); transform: translateX(3px); }
+}
+@keyframes juko-name-glitch-b {
+  0%, 90%, 100% { clip-path: inset(55% 0 0 0); transform: translateX(1px); }
+  91% { clip-path: inset(60% 0 8% 0); transform: translateX(4px); }
+  95% { clip-path: inset(20% 0 45% 0); transform: translateX(-3px); }
+}
+
+/* ============================================================
    PATTERN CANVAS
    ============================================================ */
 #pattern-canvas {
