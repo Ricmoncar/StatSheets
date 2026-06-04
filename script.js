@@ -193,6 +193,21 @@ function _isIris(c) { return !!(c && c.name && _IRIS_RE.test(c.name)); }
 let _irisOverlayRafId = null;
 let _irisX = 0, _irisY = 0, _irisTargX = 0, _irisTargY = 0, _irisVX = 0, _irisVY = 0;
 let _irisParts = [], _irisRings = [], _irisEmit = 0;
+let _irisShimmyCount = 0;   // stars popped with the cursor (shown in Iris's STYLE tab)
+function _irisUpdateShimmyDisplay() {
+  const el = document.getElementById('iris-shimmy-count');
+  if (el) el.textContent = _irisShimmyCount;
+}
+
+// ── Mouseburger — a magical BOY; tougher, serious, a touch melancholic (Iris's
+// husband). Cool indigo midnight, sharp crystalline sparkles, a lone star and a
+// slow comet — with a few stray burgers drifting by (never the main plate). ──
+const _MB_RE = /^Mouseburger$/i;
+function _isMb(c) { return !!(c && c.name && _MB_RE.test(c.name)); }
+let _mbOverlayRafId = null;
+let _mbX = 0, _mbY = 0, _mbTargX = 0, _mbTargY = 0, _mbVX = 0, _mbVY = 0;
+let _mbParts = [], _mbRings = [], _mbEmit = 0, _mbThread = [];
+let _mbSwordAng = 0, _mbSlashes = [];
 
 // ── Juko! — energetic programmer girl (green code-garden + cat-sprite cursor) ──
 const _JUKO_RE = /^Juko!?$/i;
@@ -1524,6 +1539,7 @@ const PATTERN_DEFS = {
   helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
   zoe_garden:       { label: "Zoe · Living Garden",    params: [] },
   iris_starlight:   { label: "Iris · Shimmerlight",    params: [] },
+  mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -6248,7 +6264,7 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
   const PULL = 130, POP = 30;
   for (const f of canvas._irisFalls) {
     const dx = f.x - mx, dy = f.y - my, dist = Math.hypot(dx, dy);
-    if (dist < POP) { _irisBurst(canvas, f.x, f.y); Object.assign(f, _irisNewFall(W, H, false)); continue; }
+    if (dist < POP) { _irisBurst(canvas, f.x, f.y); _irisShimmyCount++; _irisUpdateShimmyDisplay(); Object.assign(f, _irisNewFall(W, H, false)); continue; }
     if (dist < PULL) {                                  // gently drawn toward the wand
       const k = (1 - dist / PULL) / (dist + 0.001);
       f.vx -= dx * k * 620 * dt; f.vy -= dy * k * 620 * dt;
@@ -6409,6 +6425,436 @@ function _stopIrisOverlay() {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+// ════════════════════════════════════════════════════════════════
+// MOUSEBURGER — magical boy. Cool, serious, melancholic midnight; with
+// a few stray burgers drifting by (never the main plate).
+// ════════════════════════════════════════════════════════════════
+function _mbSparkleSprite() {
+  if (_mbSparkleSprite._c) return _mbSparkleSprite._c;
+  const s = document.createElement('canvas'); s.width = s.height = 32;
+  const g = s.getContext('2d'); g.translate(16, 16);
+  const rg = g.createRadialGradient(0, 0, 0, 0, 0, 9);
+  rg.addColorStop(0, 'rgba(255,244,224,1)');
+  rg.addColorStop(0.5, 'rgba(255,162,80,0.5)');
+  rg.addColorStop(1, 'rgba(214,80,40,0)');
+  g.fillStyle = rg; g.beginPath(); g.arc(0, 0, 9, 0, Math.PI * 2); g.fill();
+  g.fillStyle = 'rgba(255,236,206,0.95)';            // sharp, long 4-point glint (tougher)
+  for (let k = 0; k < 4; k++) {
+    g.beginPath(); g.moveTo(0, -15); g.lineTo(1.4, 0); g.lineTo(0, 3.2); g.lineTo(-1.4, 0); g.closePath(); g.fill();
+    g.rotate(Math.PI / 2);
+  }
+  return _mbSparkleSprite._c = s;
+}
+function _mbBurgerSprite() {
+  if (_mbBurgerSprite._c) return _mbBurgerSprite._c;
+  const s = document.createElement('canvas'); s.width = 44; s.height = 40;
+  const g = s.getContext('2d'); g.translate(22, 20);
+  g.lineJoin = 'round';
+  g.fillStyle = '#cf9450';                           // bottom bun
+  g.beginPath(); g.moveTo(-17, 8); g.lineTo(17, 8); g.quadraticCurveTo(19, 16, 11, 17); g.lineTo(-11, 17); g.quadraticCurveTo(-19, 16, -17, 8); g.closePath(); g.fill();
+  g.fillStyle = '#7a3f22'; g.fillRect(-17, 3, 34, 5);   // patty
+  g.fillStyle = '#f3c64c';                           // cheese
+  g.beginPath(); g.moveTo(-17, 2); g.lineTo(17, 2); g.lineTo(13, 7); g.lineTo(7, 3); g.lineTo(1, 7); g.lineTo(-6, 3); g.lineTo(-13, 7); g.closePath(); g.fill();
+  g.fillStyle = '#7ec24a';                           // lettuce
+  g.beginPath(); g.moveTo(-18, 0);
+  for (let x = -18; x <= 18; x += 5) { g.lineTo(x + 2.5, -3); g.lineTo(x + 5, 0); }
+  g.lineTo(18, 2); g.lineTo(-18, 2); g.closePath(); g.fill();
+  g.fillStyle = '#e0a458';                           // top bun
+  g.beginPath(); g.moveTo(-17, -1); g.quadraticCurveTo(0, -19, 17, -1); g.closePath(); g.fill();
+  g.fillStyle = '#fff2d6';                           // sesame
+  for (const p of [[-9, -7, 0.4], [-1, -10, -0.3], [7, -7, 0.2], [3, -5, 0.6], [-5, -4, -0.5]]) {
+    g.save(); g.translate(p[0], p[1]); g.rotate(p[2]); g.beginPath(); g.ellipse(0, 0, 2, 1, 0, 0, Math.PI * 2); g.fill(); g.restore();
+  }
+  return _mbBurgerSprite._c = s;
+}
+function _mbStarPath(ctx, R) {   // sharp 4-point star (compass-glint)
+  ctx.beginPath();
+  for (let i = 0; i < 4; i++) {
+    const a = -Math.PI / 2 + i * (Math.PI / 2), a2 = a + Math.PI / 4;
+    ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R);
+    ctx.lineTo(Math.cos(a2) * R * 0.32, Math.sin(a2) * R * 0.32);
+  }
+  ctx.closePath();
+}
+// A starlit knight's blade: steel sword pointing along +X, hilt at origin, with
+// a glowing edge and a 4-point star for a pommel gem.
+function _mbDrawSword(ctx, x, y, ang, alpha) {
+  const g = 7, L = 42, w = 3.2, tip = 9;
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(ang);
+  ctx.globalCompositeOperation = 'lighter';            // blade glow
+  ctx.globalAlpha = alpha * 0.5;
+  const gg = ctx.createLinearGradient(g, 0, L, 0);
+  gg.addColorStop(0, 'rgba(255,150,60,0)'); gg.addColorStop(0.5, 'rgba(255,170,80,0.55)'); gg.addColorStop(1, 'rgba(255,225,170,0)');
+  ctx.fillStyle = gg; ctx.fillRect(g, -w * 2.4, L - g, w * 4.8);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();                                     // blade
+  ctx.moveTo(g, -w); ctx.lineTo(L - tip, -w); ctx.lineTo(L, 0); ctx.lineTo(L - tip, w); ctx.lineTo(g, w); ctx.closePath();
+  const bg = ctx.createLinearGradient(0, -w, 0, w);
+  bg.addColorStop(0, '#8a4a2e'); bg.addColorStop(0.5, '#fff0e0'); bg.addColorStop(1, '#8a4a2e');
+  ctx.fillStyle = bg; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,250,235,0.55)'; ctx.lineWidth = 0.8;   // fuller
+  ctx.beginPath(); ctx.moveTo(g + 2, 0); ctx.lineTo(L - tip, 0); ctx.stroke();
+  ctx.fillStyle = '#c0824a'; ctx.fillRect(g - 1, -11, 4, 22);        // crossguard
+  ctx.fillStyle = '#ffd0a0'; ctx.beginPath(); ctx.arc(g + 1, -11, 2, 0, Math.PI * 2); ctx.arc(g + 1, 11, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#3a2014'; ctx.fillRect(-2, -2.2, g + 1, 4.4);     // grip
+  ctx.save(); ctx.translate(-4, 0); ctx.rotate(0.2);                 // pommel star gem
+  _mbStarPath(ctx, 5); ctx.fillStyle = '#ffe6c2'; ctx.fill();
+  ctx.restore();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+function _mbCrownSprite() {
+  if (_mbCrownSprite._c) return _mbCrownSprite._c;
+  const s = document.createElement('canvas'); s.width = 40; s.height = 30;
+  const g = s.getContext('2d'); g.translate(20, 16); g.lineJoin = 'round';
+  g.fillStyle = '#f0c64a';
+  g.beginPath();
+  g.moveTo(-15, 6); g.lineTo(15, 6); g.lineTo(15, -2); g.lineTo(10, 3); g.lineTo(7, -8); g.lineTo(0, 2); g.lineTo(-7, -8); g.lineTo(-10, 3); g.lineTo(-15, -2);
+  g.closePath(); g.fill();
+  g.fillStyle = '#e0b43a'; g.fillRect(-15, 5, 30, 4);
+  g.fillStyle = '#ff6b9a'; g.beginPath(); g.arc(0, 5, 2, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#6bb0ff'; g.beginPath(); g.arc(-8, 6, 1.6, 0, Math.PI * 2); g.arc(8, 6, 1.6, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#fff2c0'; for (const p of [[-7, -8], [0, 2], [7, -8]]) { g.beginPath(); g.arc(p[0], p[1] - 1, 1.4, 0, Math.PI * 2); g.fill(); }
+  return _mbCrownSprite._c = s;
+}
+function _mbNewMote(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : H + Math.random() * 30,
+    vy: 8 + Math.random() * 18, r: 1.4 + Math.random() * 3, a: 0.25 + Math.random() * 0.4,
+    sw: 0.3 + Math.random() * 0.9, sa: 5 + Math.random() * 12, ph: Math.random() * 6.28, ff: 1.5 + Math.random() * 3, flick: 1 };
+}
+function _mbNewBurger(W, H) {
+  return { x: Math.random() * W, y: H * 0.12 + Math.random() * H * 0.72,
+    vx: (Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 10), bob: Math.random() * 6.28, bs: 0.4 + Math.random() * 0.6,
+    ba: 8 + Math.random() * 14, sz: 0.55 + Math.random() * 0.4, rot: (Math.random() - 0.5) * 0.3, a: 0.2 + Math.random() * 0.18 };
+}
+
+function _drawMbPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawMbPattern._lt === undefined;
+  if (!fresh && t - _drawMbPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawMbPattern._lt, 0.05);
+  _drawMbPattern._lt = t;
+  if (fresh) canvas._mbComet = null;   // comet uses absolute time → reset on (re)entry
+
+  if (canvas._mbW !== W || canvas._mbH !== H) {
+    canvas._mbW = W; canvas._mbH = H;
+    canvas._mbBase = null; canvas._mbVign = null; canvas._mbStars = null;
+    canvas._mbCryst = null; canvas._mbMotes = null; canvas._mbBurgers = null; canvas._mbConst = null; canvas._mbSwordC = null;
+  }
+  const pulse = 0.5 + 0.5 * Math.sin(t * 0.5);
+  const spr = _mbSparkleSprite();
+
+  // 1 ── Cool midnight base
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  if (!canvas._mbBase) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1c0d08'); g.addColorStop(0.55, '#1a0b06'); g.addColorStop(1, '#0c0503');
+    canvas._mbBase = g;
+  }
+  ctx.fillStyle = canvas._mbBase; ctx.fillRect(0, 0, W, H);
+
+  // 2 ── Cool star field (dim, slow twinkle)
+  if (!canvas._mbStars) {
+    canvas._mbStars = Array.from({ length: 130 }, () => ({
+      x: Math.random() * W, y: Math.random() * H, sz: 1.4 + Math.random() * 3,
+      tw: 0.5 + Math.random() * 2, ph: Math.random() * 6.28, base: 0.3 + Math.random() * 0.55,
+    }));
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const s of canvas._mbStars) {
+    const a = s.base * (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * s.tw + s.ph)));
+    ctx.globalAlpha = a; const d = s.sz * 3.2; ctx.drawImage(spr, s.x - d / 2, s.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 2.5 ── Constellations — brighter stars linked into a quiet star-map. The
+  // signature: a structured, brooding night sky, not loose glitter like Iris.
+  if (!canvas._mbConst) {
+    const N = 22, cs = [];
+    for (let i = 0; i < N; i++) cs.push({ x: 30 + Math.random() * (W - 60), y: 30 + Math.random() * (H - 60), ph: Math.random() * 6.28, tw: 0.4 + Math.random() * 0.8 });
+    const maxD2 = Math.pow(Math.min(W, H) * 0.24, 2), links = [];
+    for (let i = 0; i < N; i++) {
+      const near = [];
+      for (let j = 0; j < N; j++) if (j !== i) { const dx = cs[i].x - cs[j].x, dy = cs[i].y - cs[j].y; near.push([dx * dx + dy * dy, j]); }
+      near.sort((a, b) => a[0] - b[0]);
+      let cnt = 0;
+      for (const [d2, j] of near) { if (cnt >= 2) break; if (d2 < maxD2) { if (i < j) links.push([i, j]); cnt++; } }
+    }
+    canvas._mbConst = { stars: cs, links };
+  }
+  const _con = canvas._mbConst;
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [i, j] of _con.links) {
+    const A = _con.stars[i], B = _con.stars[j];
+    const sh = 0.5 + 0.5 * Math.sin(t * 0.4 + i + j);
+    ctx.strokeStyle = `rgba(230,140,72,${0.05 + sh * 0.1})`; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+  }
+  for (const s of _con.stars) {
+    const a = 0.4 + 0.5 * (0.5 + 0.5 * Math.sin(t * s.tw + s.ph));
+    ctx.globalAlpha = a; const d = 9; ctx.drawImage(spr, s.x - d / 2, s.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 2.7 ── A sword spelled out in the stars — his star-sign as Iris's knight
+  if (!canvas._mbSwordC) {
+    const cx0 = W * 0.2, cy0 = H * 0.5, s0 = Math.min(W, H) * 0.34;
+    const norm = [[0, 1.0], [0, 0.84], [-0.34, 0.78], [0.34, 0.78], [0, 0.46], [0, 0.0]];
+    canvas._mbSwordC = { pts: norm.map(p => ({ x: cx0 + p[0] * s0, y: cy0 + (p[1] - 0.5) * s0, ph: Math.random() * 6.28 })),
+      links: [[0, 1], [1, 2], [1, 3], [2, 3], [1, 4], [4, 5]] };
+  }
+  const _sw = canvas._mbSwordC, swp = 0.5 + 0.5 * Math.sin(t * 0.6);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [i, j] of _sw.links) {
+    const A = _sw.pts[i], B = _sw.pts[j];
+    ctx.strokeStyle = `rgba(240,152,80,${0.1 + swp * 0.15})`; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+  }
+  for (const p of _sw.pts) {
+    const a = 0.5 + 0.4 * (0.5 + 0.5 * Math.sin(t * 0.9 + p.ph));
+    ctx.globalAlpha = a; const d = 11; ctx.drawImage(spr, p.x - d / 2, p.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 3 ── A lone melancholic star, high, slowly pulsing with a cross-glint
+  {
+    const lx = W * 0.7, ly = H * 0.2, lp = 0.5 + 0.5 * Math.sin(t * 0.8);
+    ctx.globalAlpha = 0.5 + lp * 0.45; const d = 26 + lp * 8;
+    ctx.drawImage(spr, lx - d / 2, ly - d / 2, d, d);
+    ctx.strokeStyle = `rgba(255,224,182,${0.25 + lp * 0.3})`; ctx.lineWidth = 0.8;
+    const gl = 22 + lp * 8;
+    ctx.beginPath(); ctx.moveTo(lx - gl, ly); ctx.lineTo(lx + gl, ly); ctx.moveTo(lx, ly - gl); ctx.lineTo(lx, ly + gl); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // 4 ── Sharp crystalline sparkles (slow, deliberate, tougher)
+  if (!canvas._mbCryst) {
+    canvas._mbCryst = Array.from({ length: 14 }, () => ({
+      x: Math.random() * W, y: Math.random() * H, sz: 8 + Math.random() * 11,
+      tw: 0.4 + Math.random() * 1.0, ph: Math.random() * 6.28, spin: (Math.random() - 0.5) * 0.3, rot: Math.random() * 6.28,
+    }));
+  }
+  for (const s of canvas._mbCryst) {
+    s.rot += s.spin * dt;
+    const p = 0.5 + 0.5 * Math.sin(t * s.tw + s.ph);
+    ctx.globalAlpha = 0.22 + p * 0.6;
+    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot);
+    const d = s.sz * (1.5 + p) * 2; ctx.drawImage(spr, -d / 2, -d / 2, d, d);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // 5 ── Rising cool motes
+  if (!canvas._mbMotes) canvas._mbMotes = Array.from({ length: 28 }, () => _mbNewMote(W, H, true));
+  for (const m of canvas._mbMotes) {
+    m.y -= m.vy * dt; m.x += Math.sin(t * m.sw + m.ph) * m.sa * dt;
+    m.flick = 0.5 + 0.5 * Math.sin(t * m.ff + m.ph);
+    if (m.y < -12) Object.assign(m, _mbNewMote(W, H, false));
+    ctx.globalAlpha = Math.min(1, m.flick * m.a);
+    const d = m.r * 3.4; ctx.drawImage(spr, m.x - d / 2, m.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 6 ── Stray drifting burgers (subtle easter egg — never the main plate)
+  // (one of them is Iris's crown drifting by — her knight keeps it near)
+  if (!canvas._mbBurgers) canvas._mbBurgers = Array.from({ length: 4 }, (_, i) => { const b = _mbNewBurger(W, H); b.crown = (i === 0); return b; });
+  const bspr = _mbBurgerSprite(), crspr = _mbCrownSprite();
+  ctx.globalCompositeOperation = 'source-over';
+  for (const b of canvas._mbBurgers) {
+    b.x += b.vx * dt;
+    if (b.x < -50) b.x = W + 50; if (b.x > W + 50) b.x = -50;
+    const by = b.y + Math.sin(t * b.bs + b.bob) * b.ba;
+    const sprI = b.crown ? crspr : bspr, iw = b.crown ? 40 : 44, ih = b.crown ? 30 : 40;
+    ctx.save(); ctx.globalAlpha = b.a * (0.7 + 0.3 * Math.sin(t * 0.7 + b.bob)); ctx.translate(b.x, by); ctx.rotate(b.rot);
+    ctx.drawImage(sprI, -iw * b.sz / 2, -ih * b.sz / 2, iw * b.sz, ih * b.sz);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // 7 ── Lone slow comet (occasional, melancholic, re-entry safe)
+  {
+    let sh = canvas._mbComet;
+    if (!sh || t < sh.born) canvas._mbComet = sh = { next: t + 3 + Math.random() * 5, born: -99, dur: 1.4, x0: 0, y0: 0, ang: 0, len: 0 };
+    if (t > sh.next) {
+      sh.born = t; sh.dur = 1.2 + Math.random() * 0.7; sh.next = t + 6 + Math.random() * 9;
+      sh.x0 = W * (0.1 + Math.random() * 0.6); sh.y0 = H * (0.05 + Math.random() * 0.28);
+      sh.ang = Math.PI * (0.12 + Math.random() * 0.18); sh.len = Math.min(W, H) * (0.45 + Math.random() * 0.3);
+    }
+    const age = t - sh.born;
+    if (age >= 0 && age < sh.dur) {
+      const prog = age / sh.dur;
+      const hx = sh.x0 + Math.cos(sh.ang) * sh.len * prog, hy = sh.y0 + Math.sin(sh.ang) * sh.len * prog;
+      const trail = 90, tx = hx - Math.cos(sh.ang) * trail, ty = hy - Math.sin(sh.ang) * trail;
+      const a = Math.sin(prog * Math.PI);
+      const g = ctx.createLinearGradient(tx, ty, hx, hy);
+      g.addColorStop(0, 'rgba(255,190,130,0)'); g.addColorStop(1, `rgba(255,228,186,${a * 0.8})`);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+      const d = 12; ctx.globalAlpha = a; ctx.drawImage(spr, hx - d / 2, hy - d / 2, d, d); ctx.globalAlpha = 1;
+    }
+  }
+
+  // 8 ── Cool vignette
+  if (!canvas._mbVign) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.82);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(14,5,2,0.78)');
+    canvas._mbVign = vg;
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = canvas._mbVign; ctx.fillRect(0, 0, W, H);
+}
+
+// ── Cursor: a sharp spinning star, cooler and more deliberate; trails crystal
+// sparkles. Click bursts sparkles + a cool ring (and rarely a stray burger). ──
+function _mbMouseMove(e) { _mbTargX = e.clientX; _mbTargY = e.clientY; }
+function _mbClick() {
+  _mbRings.push({ x: _mbX, y: _mbY, r: 6, life: 1 });
+  _mbSlashes.push({ x: _mbX, y: _mbY, ang: _mbSwordAng, life: 1 });   // a sword slash
+  for (let i = 0; i < 22; i++) {
+    const a = Math.random() * Math.PI * 2, s = 55 + Math.random() * 175;
+    _mbParts.push({ x: _mbX, y: _mbY, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1,
+      sz: 4 + Math.random() * 5, grav: 45, tw: 1.5 + Math.random() * 3, ph: Math.random() * 6.28, burger: false });
+  }
+  if (Math.random() < 0.5) {   // rare stray burger
+    const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 120;
+    _mbParts.push({ x: _mbX, y: _mbY, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 1.4,
+      sz: 0.5 + Math.random() * 0.3, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 5, grav: 240, burger: true });
+  }
+}
+function _drawMbOverlay(canvas, ctx, W, H, t) {
+  if (_drawMbOverlay._lt !== undefined && t - _drawMbOverlay._lt < 0.033) return;
+  const dt = _drawMbOverlay._lt === undefined ? 0.016 : Math.min(t - _drawMbOverlay._lt, 0.05);
+  _drawMbOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const SPRING = 95, DAMP = 13;   // tighter, more serious than Iris
+  _mbVX += ((_mbTargX - _mbX) * SPRING - _mbVX * DAMP) * dt;
+  _mbVY += ((_mbTargY - _mbY) * SPRING - _mbVY * DAMP) * dt;
+  _mbX += _mbVX * dt; _mbY += _mbVY * dt;
+  const spd = Math.hypot(_mbVX, _mbVY);
+
+  // orient the blade along movement (eased; holds its angle when nearly still)
+  let _ta = _mbSwordAng;
+  if (spd > 22) _ta = Math.atan2(_mbVY, _mbVX);
+  let _da = _ta - _mbSwordAng;
+  while (_da > Math.PI) _da -= Math.PI * 2;
+  while (_da < -Math.PI) _da += Math.PI * 2;
+  _mbSwordAng += _da * Math.min(1, dt * 9);
+
+  _mbEmit += dt * (8 + spd * 0.035);
+  while (_mbEmit > 1) {
+    _mbEmit -= 1;
+    if (_mbParts.length > 240) break;
+    const a = Math.random() * Math.PI * 2, s = 8 + Math.random() * 22;
+    _mbParts.push({ x: _mbX + (Math.random() - 0.5) * 10, y: _mbY + (Math.random() - 0.5) * 10,
+      vx: Math.cos(a) * s - _mbVX * 0.05, vy: Math.sin(a) * s - _mbVY * 0.05, life: 1,
+      sz: 3 + Math.random() * 4, grav: 18, tw: 1.5 + Math.random() * 3, ph: Math.random() * 6.28, burger: false });
+  }
+
+  const spr = _mbSparkleSprite(), bspr = _mbBurgerSprite();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _mbRings.length - 1; i >= 0; i--) {
+    const r = _mbRings[i];
+    r.r += 300 * dt; r.life -= dt * 1.4;
+    if (r.life <= 0) { _mbRings.splice(i, 1); continue; }
+    ctx.strokeStyle = `rgba(255,180,108,${r.life * 0.5})`; ctx.lineWidth = 2 + r.life * 3;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+  }
+  // sword slashes — a bright crescent swing afterimage
+  for (let i = _mbSlashes.length - 1; i >= 0; i--) {
+    const s = _mbSlashes[i];
+    s.life -= dt * 2.6;
+    if (s.life <= 0) { _mbSlashes.splice(i, 1); continue; }
+    const r = 30 + (1 - s.life) * 26, spread = 1.1;
+    ctx.strokeStyle = `rgba(255,228,186,${s.life * 0.85})`; ctx.lineWidth = 1 + s.life * 3.5;
+    ctx.beginPath(); ctx.arc(s.x, s.y, r, s.ang - spread, s.ang + spread); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,255,255,${s.life * 0.5})`; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(s.x, s.y, r + 5, s.ang - spread * 0.8, s.ang + spread * 0.8); ctx.stroke();
+  }
+  for (let i = _mbParts.length - 1; i >= 0; i--) {
+    const p = _mbParts[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.grav * dt; p.vx *= 0.98; p.life -= dt * (p.burger ? 0.6 : 0.75);
+    if (p.life <= 0) { _mbParts.splice(i, 1); continue; }
+    const a = Math.min(1, p.life);
+    if (p.burger) {
+      p.rot += p.vr * dt;
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      const w = 44 * p.sz, h = 40 * p.sz; ctx.drawImage(bspr, -w / 2, -h / 2, w, h); ctx.restore();
+    } else {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a * (0.55 + 0.45 * Math.sin(t * p.tw + p.ph));
+      const d = p.sz * 3.4; ctx.drawImage(spr, p.x - d / 2, p.y - d / 2, d, d);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // constellation thread — a glowing line woven through the cursor's path, with
+  // small star nodes brightening toward the head (his signature mechanic)
+  _mbThread.push({ x: _mbX, y: _mbY });
+  if (_mbThread.length > 16) _mbThread.shift();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (let i = 1; i < _mbThread.length; i++) {
+    const f = i / _mbThread.length;
+    ctx.strokeStyle = `rgba(255,178,108,${f * 0.5})`; ctx.lineWidth = f * 2.2;
+    ctx.beginPath(); ctx.moveTo(_mbThread[i - 1].x, _mbThread[i - 1].y); ctx.lineTo(_mbThread[i].x, _mbThread[i].y); ctx.stroke();
+  }
+  for (let i = 0; i < _mbThread.length; i += 2) {
+    const f = i / _mbThread.length;
+    ctx.globalAlpha = f * 0.8; const d = 4 + f * 4;
+    ctx.drawImage(spr, _mbThread[i].x - d / 2, _mbThread[i].y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // glowing orb + the starlit blade he wields (points where you move)
+  ctx.globalCompositeOperation = 'lighter';
+  const pr = 13 + Math.sin(t * 2.5) * 1.5;
+  const og = ctx.createRadialGradient(_mbX, _mbY, 0, _mbX, _mbY, pr * 2.5);
+  og.addColorStop(0, 'rgba(255,238,212,0.85)');
+  og.addColorStop(0.4, 'rgba(255,150,70,0.45)');
+  og.addColorStop(1, 'rgba(200,80,30,0)');
+  ctx.fillStyle = og; ctx.beginPath(); ctx.arc(_mbX, _mbY, pr * 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  _mbDrawSword(ctx, _mbX, _mbY, _mbSwordAng, 1);
+}
+function _startMbOverlay() {
+  _stopMbOverlay();
+  _drawMbOverlay._lt = undefined;
+  _mbX = _mbTargX = window.innerWidth * 0.5;
+  _mbY = _mbTargY = window.innerHeight * 0.5;
+  _mbVX = _mbVY = 0; _mbParts = []; _mbRings = []; _mbEmit = 0; _mbThread = []; _mbSlashes = []; _mbSwordAng = 0;
+  window.addEventListener('mousemove', _mbMouseMove);
+  window.addEventListener('click', _mbClick);
+  const cv = document.createElement('canvas');
+  cv.id = 'mb-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('mb-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawMbOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _mbOverlayRafId = requestAnimationFrame(frame);
+  }
+  _mbOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopMbOverlay() {
+  if (_mbOverlayRafId) { cancelAnimationFrame(_mbOverlayRafId); _mbOverlayRafId = null; }
+  window.removeEventListener('mousemove', _mbMouseMove);
+  window.removeEventListener('click', _mbClick);
+  const cv = document.getElementById('mb-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -6429,6 +6875,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'zoe_garden')     { _drawZoePattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'iris_starlight') { _drawIrisPattern(canvas, ctx, W, H, t);                return; }
+  if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -6897,6 +7344,8 @@ function startBgAnim(type, params) {
   _drawZoeOverlay._lt         = undefined;
   _drawIrisPattern._lt        = undefined;
   _drawIrisOverlay._lt        = undefined;
+  _drawMbPattern._lt          = undefined;
+  _drawMbOverlay._lt          = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -6929,6 +7378,7 @@ function stopBgAnim() {
   _stopHeliosOverlay();
   _stopZoeOverlay();
   _stopIrisOverlay();
+  _stopMbOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -7413,21 +7863,22 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); }
-  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); }
-  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
-  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
-  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
-  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
-  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
-  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffd633'); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); }
+  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); }
+  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
+  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
+  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
+  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
+  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
+  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffd633'); }
+  else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
   {
@@ -7578,6 +8029,26 @@ function viewChar(id) {
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c)) _pc.style.opacity = '';
     }
   }
+
+  // ── Mouseburger — cool magical-boy UI chrome (indigo panels, serious silver
+  // name, midnight portrait). Character-wide. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isMb(c)) {
+      _cvRoot.classList.add('mb-ui');
+      if (_av) _av.classList.add('mb-pfp');
+      if (_nm) { _nm.classList.add('mb-name'); _nm.setAttribute('data-text', _nm.textContent || 'MOUSEBURGER'); }
+      if (_pc) _pc.style.opacity = '0.78';
+    } else {
+      _cvRoot.classList.remove('mb-ui');
+      if (_av) _av.classList.remove('mb-pfp');
+      if (_nm) { _nm.classList.remove('mb-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c)) _pc.style.opacity = '';
+    }
+  }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -7617,15 +8088,23 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
       styleEl.innerHTML += `<div style="font-size:8px;letter-spacing:1px;margin-bottom:6px;color:#666;">${p.label}: <span style="color:#ccc;">${v}</span></div>`;
     });
+  }
+  // Iris-only "shimmy counter" — tally of falling stars popped with the cursor
+  if (_isIris(c)) {
+    styleEl.innerHTML +=
+      `<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,210,90,0.25);font-size:9px;letter-spacing:2px;line-height:1.8;color:#ffe08a;">` +
+        `&#10022; SHIMMY COUNTER: <span id="iris-shimmy-count" style="color:#fff4cf;font-weight:bold;text-shadow:0 0 10px rgba(255,220,110,0.85);">${_irisShimmyCount}</span>` +
+      `</div>` +
+      `<div style="font-size:7.5px;letter-spacing:1px;color:#8a7340;margin-top:5px;">stars shattered with your cursor &#10038;</div>`;
   }
 
   stopBgAnim();
@@ -7642,6 +8121,7 @@ function viewChar(id) {
   if (_isHelios(c))   _startHeliosOverlay();
   if (_isZoe(c))      _startZoeOverlay();
   if (_isIris(c))     _startIrisOverlay();
+  if (_isMb(c))       _startMbOverlay();
 
   renderInventory(c);
   renderTraitsDisplay(c);
@@ -12683,7 +13163,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -12700,6 +13180,7 @@ window.addEventListener('resize', () => {
       if (_isHelios(c))   _startHeliosOverlay();
       if (_isZoe(c))      _startZoeOverlay();
       if (_isIris(c))     _startIrisOverlay();
+      if (_isMb(c))       _startMbOverlay();
     }
   }
 });

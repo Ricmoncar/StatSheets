@@ -1959,6 +1959,88 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 /* ============================================================
+   MOUSEBURGER — magical-boy knight. Serious, melancholic, but warm:
+   ember / crimson over a charred dusk. --char-color is ember-red.
+   ============================================================ */
+#char-view.mb-ui .panel {
+  --p-border: rgba(220,108,52,0.5);
+  border-color: rgba(220,108,52,0.46);
+  background: linear-gradient(180deg, rgba(34,16,9,0.92), rgba(20,8,4,0.94));
+  box-shadow:
+    0 0 22px rgba(200,85,35,0.22),
+    inset 0 0 32px rgba(95,40,18,0.32);
+}
+/* a low ember glow */
+#char-view.mb-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(130% 75% at 50% 115%, rgba(255,140,60,0.1), transparent 55%);
+}
+#char-view.mb-ui .panel-title {
+  color: #f0c089 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(160,78,38,0.32);
+  text-shadow: 0 0 13px rgba(255,150,75,0.6);
+}
+#char-view.mb-ui .tab-btn { color: #8a5938; }
+#char-view.mb-ui .tab-btn:hover { color: #ffd2a4; text-shadow: 0 0 12px rgba(255,150,70,0.7); }
+#char-view.mb-ui .tab-btn.active {
+  color: #ffd9b0;
+  border-bottom-color: rgba(230,120,58,0.85);
+  text-shadow: 0 0 16px rgba(255,150,75,0.85);
+}
+
+/* Name: ember-gold, serious — a slow restrained glow + faint warm echo
+   (no sparkle sweep; this one broods) */
+.char-name-display.mb-name {
+  position: relative;
+  color: #f4d0a2 !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  text-shadow: 0 0 12px rgba(255,160,85,0.78), 0 0 30px rgba(190,70,25,0.5);
+  animation: mb-name-brood 6s ease-in-out infinite;
+}
+@keyframes mb-name-brood {
+  0%, 100% { opacity: 0.8;  text-shadow: 0 0 9px rgba(255,160,85,0.52), 0 0 22px rgba(190,70,25,0.3); }
+  50%      { opacity: 0.98; text-shadow: 0 0 15px rgba(255,190,120,0.88), 0 0 38px rgba(220,95,40,0.52); }
+}
+.char-name-display.mb-name::before {   /* faint warm echo, slightly offset */
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  color: rgba(210,100,45,0.32);
+  transform: translate(1.5px, 1px);
+  filter: blur(3px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Portrait: ember-steel frame, crimson glow, slow brooding breath */
+.char-avatar-large.mb-pfp {
+  border-color: rgba(225,115,55,0.6) !important;
+  box-shadow: 0 0 24px rgba(205,90,35,0.42), inset 0 0 22px rgba(95,38,16,0.45);
+  animation: mb-pfp-breathe 6s ease-in-out infinite;
+}
+@keyframes mb-pfp-breathe {
+  0%, 100% { box-shadow: 0 0 18px rgba(205,90,35,0.3),  inset 0 0 18px rgba(95,38,16,0.4); }
+  50%      { box-shadow: 0 0 32px rgba(255,135,60,0.54), inset 0 0 26px rgba(125,52,22,0.55); }
+}
+.char-avatar-large.mb-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 30%, rgba(255,165,95,0.26), transparent 58%);
+  mix-blend-mode: screen;
+}
+.char-avatar-large.mb-pfp::after {
+  content: "";
+  position: absolute; inset: 4px;
+  pointer-events: none;
+  border: 1px solid rgba(255,180,120,0.32);
+}
+
+/* ============================================================
    PATTERN CANVAS
    ============================================================ */
 #pattern-canvas {
