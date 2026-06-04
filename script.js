@@ -208,6 +208,22 @@ let _mbOverlayRafId = null;
 let _mbX = 0, _mbY = 0, _mbTargX = 0, _mbTargY = 0, _mbVX = 0, _mbVY = 0;
 let _mbParts = [], _mbRings = [], _mbEmit = 0, _mbThread = [];
 let _mbSwordAng = 0, _mbSlashes = [];
+let _mbSliceCount = 0;   // burgers cut in half (shown in Mouseburger's STYLE tab)
+function _mbUpdateSliceDisplay() {
+  const el = document.getElementById('mb-slice-count');
+  if (el) el.textContent = _mbSliceCount;
+}
+// Cut splatter: a flash ring + a spray of burger crumbs (bun, lettuce, patty,
+// cheese, sesame), pushed into the overlay (x,y in viewport coords).
+function _mbBurgerFx(x, y) {
+  _mbRings.push({ x, y, r: 7, life: 1 });
+  const cols = ['#e7c27a', '#7ec24a', '#8a4a2a', '#f3c64c', '#fff2d6'];
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * Math.PI * 2, s = 55 + Math.random() * 185;
+    _mbParts.push({ kind: 'crumb', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 45, life: 1, decay: 1.1,
+      sz: 2 + Math.random() * 3, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 11, grav: 300, col: cols[(Math.random() * cols.length) | 0] });
+  }
+}
 
 // ── Juko! — energetic programmer girl (green code-garden + cat-sprite cursor) ──
 const _JUKO_RE = /^Juko!?$/i;
@@ -6505,6 +6521,13 @@ function _mbDrawSword(ctx, x, y, ang, alpha) {
   ctx.restore();
   ctx.globalAlpha = 1;
 }
+// shortest distance from point (px,py) to segment (ax,ay)-(bx,by)
+function _mbSegDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+  let tt = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0;
+  tt = tt < 0 ? 0 : tt > 1 ? 1 : tt;
+  return Math.hypot(px - (ax + tt * dx), py - (ay + tt * dy));
+}
 function _mbCrownSprite() {
   if (_mbCrownSprite._c) return _mbCrownSprite._c;
   const s = document.createElement('canvas'); s.width = 40; s.height = 30;
@@ -6527,7 +6550,7 @@ function _mbNewMote(W, H, scatter) {
 function _mbNewBurger(W, H) {
   return { x: Math.random() * W, y: H * 0.12 + Math.random() * H * 0.72,
     vx: (Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 10), bob: Math.random() * 6.28, bs: 0.4 + Math.random() * 0.6,
-    ba: 8 + Math.random() * 14, sz: 0.55 + Math.random() * 0.4, rot: (Math.random() - 0.5) * 0.3, a: 0.2 + Math.random() * 0.18 };
+    ba: 8 + Math.random() * 14, sz: 0.85 + Math.random() * 0.5, rot: (Math.random() - 0.5) * 0.3, a: 0.2 + Math.random() * 0.18 };
 }
 
 function _drawMbPattern(canvas, ctx, W, H, t) {
@@ -6540,7 +6563,7 @@ function _drawMbPattern(canvas, ctx, W, H, t) {
   if (canvas._mbW !== W || canvas._mbH !== H) {
     canvas._mbW = W; canvas._mbH = H;
     canvas._mbBase = null; canvas._mbVign = null; canvas._mbStars = null;
-    canvas._mbCryst = null; canvas._mbMotes = null; canvas._mbBurgers = null; canvas._mbConst = null; canvas._mbSwordC = null;
+    canvas._mbCryst = null; canvas._mbMotes = null; canvas._mbBurgers = null; canvas._mbConst = null; canvas._mbSwordC = null; canvas._mbHalves = null;
   }
   const pulse = 0.5 + 0.5 * Math.sin(t * 0.5);
   const spr = _mbSparkleSprite();
@@ -6657,17 +6680,48 @@ function _drawMbPattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1;
 
   // 6 ── Stray drifting burgers (subtle easter egg — never the main plate)
-  // (one of them is Iris's crown drifting by — her knight keeps it near)
+  // (one of them is Iris's crown) — and you can SLICE a burger clean in half by
+  // swinging the blade through it fast enough (the crown is spared).
   if (!canvas._mbBurgers) canvas._mbBurgers = Array.from({ length: 4 }, (_, i) => { const b = _mbNewBurger(W, H); b.crown = (i === 0); return b; });
+  if (!canvas._mbHalves) canvas._mbHalves = [];
   const bspr = _mbBurgerSprite(), crspr = _mbCrownSprite();
+  // blade segment + swing speed in canvas-local space (while the cursor is live)
+  let _bx0 = -99999, _by0 = -99999, _bx1 = 0, _by1 = 0, _swspd = 0, _rcL = 0, _rcT = 0;
+  if (_mbOverlayRafId) {
+    const rc = canvas.getBoundingClientRect(); _rcL = rc.left; _rcT = rc.top;
+    _bx0 = _mbTargX - _rcL; _by0 = _mbTargY - _rcT; _swspd = Math.hypot(_mbVX, _mbVY);
+    _bx1 = _bx0 + Math.cos(_mbSwordAng) * 42; _by1 = _by0 + Math.sin(_mbSwordAng) * 42;
+  }
+  const CUT_SPEED = 520;
   ctx.globalCompositeOperation = 'source-over';
   for (const b of canvas._mbBurgers) {
     b.x += b.vx * dt;
     if (b.x < -50) b.x = W + 50; if (b.x > W + 50) b.x = -50;
     const by = b.y + Math.sin(t * b.bs + b.bob) * b.ba;
+    if (!b.crown && _swspd > CUT_SPEED && _mbSegDist(b.x, by, _bx0, _by0, _bx1, _by1) < 22 + 14 * b.sz) {
+      const ux = _mbVX / _swspd, uy = _mbVY / _swspd, ppx = -uy, ppy = ux, imp = 90, sep = 95;
+      if (canvas._mbHalves.length < 24) for (const hf of [1, -1]) {
+        canvas._mbHalves.push({ x: b.x, y: by, vx: ux * imp + ppx * sep * hf, vy: uy * imp + ppy * sep * hf,
+          rot: b.rot, vr: (Math.random() - 0.5) * 5 + hf * 2.5, life: 1, half: hf > 0 ? 1 : 0, sz: b.sz });
+      }
+      _mbSlashes.push({ x: b.x + _rcL, y: by + _rcT, ang: _mbSwordAng, life: 1 });   // feedback slash
+      _mbBurgerFx(b.x + _rcL, by + _rcT); _mbSliceCount++; _mbUpdateSliceDisplay();
+      Object.assign(b, _mbNewBurger(W, H)); b.crown = false;
+      continue;
+    }
     const sprI = b.crown ? crspr : bspr, iw = b.crown ? 40 : 44, ih = b.crown ? 30 : 40;
     ctx.save(); ctx.globalAlpha = b.a * (0.7 + 0.3 * Math.sin(t * 0.7 + b.bob)); ctx.translate(b.x, by); ctx.rotate(b.rot);
     ctx.drawImage(sprI, -iw * b.sz / 2, -ih * b.sz / 2, iw * b.sz, ih * b.sz);
+    ctx.restore();
+  }
+  // tumbling burger halves (top piece flies one way, bottom piece the other)
+  for (let i = canvas._mbHalves.length - 1; i >= 0; i--) {
+    const h = canvas._mbHalves[i];
+    h.x += h.vx * dt; h.y += h.vy * dt; h.vy += 240 * dt; h.vx *= 0.99; h.rot += h.vr * dt; h.life -= dt * 0.5;
+    if (h.life <= 0) { canvas._mbHalves.splice(i, 1); continue; }
+    const w = 44 * h.sz, hh2 = 20 * h.sz;
+    ctx.save(); ctx.globalAlpha = Math.min(1, h.life); ctx.translate(h.x, h.y); ctx.rotate(h.rot);
+    ctx.drawImage(bspr, 0, h.half === 0 ? 0 : 20, 44, 20, -w / 2, -hh2 / 2, w, hh2);
     ctx.restore();
   }
   ctx.globalAlpha = 1;
@@ -6716,13 +6770,12 @@ function _mbClick() {
   for (let i = 0; i < 22; i++) {
     const a = Math.random() * Math.PI * 2, s = 55 + Math.random() * 175;
     _mbParts.push({ x: _mbX, y: _mbY, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1,
-      sz: 4 + Math.random() * 5, grav: 45, tw: 1.5 + Math.random() * 3, ph: Math.random() * 6.28, burger: false });
+      sz: 4 + Math.random() * 5, grav: 45, tw: 1.5 + Math.random() * 3, ph: Math.random() * 6.28 });
   }
-  if (Math.random() < 0.5) {   // rare stray burger
-    const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 120;
-    _mbParts.push({ x: _mbX, y: _mbY, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 1.4,
-      sz: 0.5 + Math.random() * 0.3, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 5, grav: 240, burger: true });
-  }
+  // a big burger flung from the blade — swing back through it to slice it!
+  const a = Math.random() * Math.PI * 2, s = 95 + Math.random() * 130;
+  _mbParts.push({ kind: 'burger', x: _mbX, y: _mbY, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 75, life: 1, decay: 0.32,
+    sz: 1.0 + Math.random() * 0.55, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 4, grav: 210, cuttable: true, cutArm: 0.22 });
 }
 function _drawMbOverlay(canvas, ctx, W, H, t) {
   if (_drawMbOverlay._lt !== undefined && t - _drawMbOverlay._lt < 0.033) return;
@@ -6774,16 +6827,39 @@ function _drawMbOverlay(canvas, ctx, W, H, t) {
     ctx.strokeStyle = `rgba(255,255,255,${s.life * 0.5})`; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(s.x, s.y, r + 5, s.ang - spread * 0.8, s.ang + spread * 0.8); ctx.stroke();
   }
+  const _bx0 = _mbX, _by0 = _mbY, _bx1 = _mbX + Math.cos(_mbSwordAng) * 42, _by1 = _mbY + Math.sin(_mbSwordAng) * 42;
+  const _swspd = Math.hypot(_mbVX, _mbVY);
   for (let i = _mbParts.length - 1; i >= 0; i--) {
     const p = _mbParts[i];
-    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.grav * dt; p.vx *= 0.98; p.life -= dt * (p.burger ? 0.6 : 0.75);
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.grav || 0) * dt; p.vx *= 0.98;
+    if (p.vr) p.rot += p.vr * dt;
+    p.life -= (p.decay || 0.75) * dt;
+    // a flung burger gets cut in half by a fast swing through it
+    if (p.kind === 'burger' && p.cuttable) {
+      p.cutArm -= dt;
+      if (p.cutArm <= 0 && _swspd > 520 && _mbSegDist(p.x, p.y, _bx0, _by0, _bx1, _by1) < 16 + 18 * p.sz) {
+        const ux = _mbVX / _swspd, uy = _mbVY / _swspd, ppx = -uy, ppy = ux;
+        for (const hf of [1, -1]) _mbParts.push({ kind: 'half', x: p.x, y: p.y, vx: ux * 70 + ppx * 110 * hf, vy: uy * 70 + ppy * 110 * hf,
+          rot: p.rot, vr: (Math.random() - 0.5) * 5 + hf * 2, life: 1, decay: 0.55, sz: p.sz, half: hf > 0 ? 1 : 0, grav: 240 });
+        _mbBurgerFx(p.x, p.y); _mbSlashes.push({ x: p.x, y: p.y, ang: _mbSwordAng, life: 1 });
+        _mbSliceCount++; _mbUpdateSliceDisplay();
+        _mbParts.splice(i, 1); continue;
+      }
+    }
     if (p.life <= 0) { _mbParts.splice(i, 1); continue; }
     const a = Math.min(1, p.life);
-    if (p.burger) {
-      p.rot += p.vr * dt;
+    if (p.kind === 'burger') {
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a;
-      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot || 0);
       const w = 44 * p.sz, h = 40 * p.sz; ctx.drawImage(bspr, -w / 2, -h / 2, w, h); ctx.restore();
+    } else if (p.kind === 'half') {
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot || 0);
+      const w = 44 * p.sz, hh2 = 20 * p.sz; ctx.drawImage(bspr, 0, p.half === 0 ? 0 : 20, 44, 20, -w / 2, -hh2 / 2, w, hh2); ctx.restore();
+    } else if (p.kind === 'crumb') {
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot || 0);
+      ctx.fillStyle = p.col; ctx.fillRect(-p.sz, -p.sz, p.sz * 2, p.sz * 2); ctx.restore();
     } else {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = a * (0.55 + 0.45 * Math.sin(t * p.tw + p.ph));
@@ -8105,6 +8181,14 @@ function viewChar(id) {
         `&#10022; SHIMMY COUNTER: <span id="iris-shimmy-count" style="color:#fff4cf;font-weight:bold;text-shadow:0 0 10px rgba(255,220,110,0.85);">${_irisShimmyCount}</span>` +
       `</div>` +
       `<div style="font-size:7.5px;letter-spacing:1px;color:#8a7340;margin-top:5px;">stars shattered with your cursor &#10038;</div>`;
+  }
+  // Mouseburger-only "burgers sliced" counter
+  if (_isMb(c)) {
+    styleEl.innerHTML +=
+      `<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(224,120,60,0.25);font-size:9px;letter-spacing:2px;line-height:1.8;color:#f0c089;">` +
+        `&#9876; BURGERS SLICED: <span id="mb-slice-count" style="color:#ffe2bc;font-weight:bold;text-shadow:0 0 10px rgba(255,150,80,0.85);">${_mbSliceCount}</span>` +
+      `</div>` +
+      `<div style="font-size:7.5px;letter-spacing:1px;color:#8a6038;margin-top:5px;">cut clean in half with a fast swing &#9876;</div>`;
   }
 
   stopBgAnim();
