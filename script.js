@@ -176,6 +176,15 @@ let _heliosOverlayRafId = null;
 let _heliosX = 0, _heliosY = 0, _heliosTargX = 0, _heliosTargY = 0, _heliosVX = 0, _heliosVY = 0;
 let _heliosSparks = [], _heliosRings = [], _heliosFlareT = 0, _heliosEmit = 0;
 
+// ── Zoe — spirit of life. Warm, lush, alive: an enchanted glowing garden of
+// blooming flowers, drifting petals, rising pollen and swaying grass in greens
+// and soft florals. Character-wide (matches "Zoe"). ──
+const _ZOE_RE = /^Zoe$/i;
+function _isZoe(c) { return !!(c && c.name && _ZOE_RE.test(c.name)); }
+let _zoeOverlayRafId = null;
+let _zoeX = 0, _zoeY = 0, _zoeTargX = 0, _zoeTargY = 0, _zoeVX = 0, _zoeVY = 0;
+let _zoeParts = [], _zoeRings = [], _zoeEmit = 0;
+
 // ── Juko! — energetic programmer girl (green code-garden + cat-sprite cursor) ──
 const _JUKO_RE = /^Juko!?$/i;
 function _isJuko(c) { return !!(c && c.name && _JUKO_RE.test(c.name)); }
@@ -1504,6 +1513,7 @@ const PATTERN_DEFS = {
   shi_souls:        { label: "The Shi · Soul Garden",  params: [] },
   lunar_moon:       { label: "Lunar · Moonlight",      params: [] },
   helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
+  zoe_garden:       { label: "Zoe · Living Garden",    params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -5803,6 +5813,286 @@ function _stopHeliosOverlay() {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+// ════════════════════════════════════════════════════════════════
+// ZOE — spirit of life. A living, blooming, glowing garden.
+// ════════════════════════════════════════════════════════════════
+// Cached soft petal sprites in several flower hues (drawImage, tint baked in).
+function _zoePetalSprites() {
+  if (_zoePetalSprites._a) return _zoePetalSprites._a;
+  const cols = [[255,150,190],[255,226,120],[206,176,246],[250,250,244],[255,172,140],[176,233,150]];
+  _zoePetalSprites._a = cols.map(c => {
+    const s = document.createElement('canvas'); s.width = 24; s.height = 36;
+    const g = s.getContext('2d');
+    g.beginPath(); g.moveTo(12, 2); g.bezierCurveTo(23, 12, 21, 30, 12, 34); g.bezierCurveTo(3, 30, 1, 12, 12, 2); g.closePath();
+    const lg = g.createLinearGradient(0, 0, 0, 36);
+    lg.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},0.96)`);
+    lg.addColorStop(1, `rgba(${(c[0]*0.65)|0},${(c[1]*0.65)|0},${(c[2]*0.65)|0},0.6)`);
+    g.fillStyle = lg; g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.25)'; g.beginPath(); g.ellipse(10, 13, 2.6, 6, 0, 0, Math.PI * 2); g.fill();
+    return s;
+  });
+  return _zoePetalSprites._a;
+}
+function _zoePollenSprite() {
+  if (_zoePollenSprite._c) return _zoePollenSprite._c;
+  const s = document.createElement('canvas'); s.width = s.height = 16;
+  const g = s.getContext('2d');
+  const rg = g.createRadialGradient(8, 8, 0, 8, 8, 8);
+  rg.addColorStop(0, 'rgba(232,255,180,1)');
+  rg.addColorStop(0.45, 'rgba(170,225,120,0.6)');
+  rg.addColorStop(1, 'rgba(110,180,90,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, 16, 16);
+  return _zoePollenSprite._c = s;
+}
+function _zoeDrawFlower(ctx, sz, n, sprIdx, bloom) {
+  const spr = _zoePetalSprites()[sprIdx];
+  const open = 0.5 + 0.55 * bloom;
+  for (let i = 0; i < n; i++) {
+    ctx.save();
+    ctx.rotate(i * (Math.PI * 2 / n));
+    const pl = sz * open;
+    ctx.globalAlpha = 0.88;
+    ctx.drawImage(spr, -sz * 0.28, -pl, sz * 0.56, pl);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, sz * 0.42);
+  cg.addColorStop(0, `rgba(255,240,150,${0.7 + bloom * 0.28})`);
+  cg.addColorStop(1, 'rgba(230,180,60,0)');
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, sz * 0.42, 0, Math.PI * 2); ctx.fill();
+}
+function _zoeNewFlower(W, H) {
+  return { x: Math.random() * W, y: Math.random() * H, sz: 16 + Math.random() * 26,
+    n: 5 + (Math.random() * 3 | 0), spr: Math.random() * 6 | 0, rate: 0.35 + Math.random() * 0.6,
+    ph: Math.random() * 6.28, spin: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.18, a: 0.55 + Math.random() * 0.4 };
+}
+function _zoeNewFall(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : -20 - Math.random() * 40,
+    vy: 12 + Math.random() * 24, sz: 9 + Math.random() * 9, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 1.4,
+    sw: 0.4 + Math.random() * 1.0, sa: 8 + Math.random() * 16, ph: Math.random() * 6.28, spr: Math.random() * 6 | 0,
+    a: 0.55 + Math.random() * 0.4 };
+}
+function _zoeNewMote(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : H + Math.random() * 30,
+    vy: 10 + Math.random() * 26, r: 1.5 + Math.random() * 4, a: 0.35 + Math.random() * 0.5,
+    sw: 0.4 + Math.random() * 1.1, sa: 6 + Math.random() * 14, ph: Math.random() * 6.28, ff: 2 + Math.random() * 3, flick: 1 };
+}
+
+function _drawZoePattern(canvas, ctx, W, H, t) {
+  if (_drawZoePattern._lt !== undefined && t - _drawZoePattern._lt < 0.033) return;
+  const dt = _drawZoePattern._lt === undefined ? 0.016 : Math.min(t - _drawZoePattern._lt, 0.05);
+  _drawZoePattern._lt = t;
+
+  if (canvas._zoeW !== W || canvas._zoeH !== H) {
+    canvas._zoeW = W; canvas._zoeH = H;
+    canvas._zoeBase = null; canvas._zoeVign = null; canvas._zoeFlowers = null;
+    canvas._zoeFall = null; canvas._zoeMotes = null; canvas._zoeGrass = null;
+  }
+  const breathe = 0.5 + 0.5 * Math.sin(t * 0.6);
+
+  // 1 ── Deep verdant base
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  if (!canvas._zoeBase) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0c2014'); g.addColorStop(0.55, '#0a1a10'); g.addColorStop(1, '#06120a');
+    canvas._zoeBase = g;
+  }
+  ctx.fillStyle = canvas._zoeBase; ctx.fillRect(0, 0, W, H);
+
+  // 2 ── Soft canopy light from above
+  ctx.globalCompositeOperation = 'lighter';
+  const lg = ctx.createRadialGradient(W * 0.5, -H * 0.1, 0, W * 0.5, -H * 0.1, H * 1.1);
+  lg.addColorStop(0, `rgba(150,220,120,${0.12 + breathe * 0.06})`);
+  lg.addColorStop(0.5, 'rgba(110,180,90,0.05)');
+  lg.addColorStop(1, 'rgba(60,120,60,0)');
+  ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H);
+
+  // 3 ── Blooming flowers (breathing open/closed), softly glowing
+  if (!canvas._zoeFlowers) canvas._zoeFlowers = Array.from({ length: 7 }, () => _zoeNewFlower(W, H));
+  ctx.globalCompositeOperation = 'source-over';
+  for (const f of canvas._zoeFlowers) {
+    f.spin += f.vr * dt;
+    const bloom = 0.5 + 0.5 * Math.sin(t * f.rate + f.ph);
+    ctx.save(); ctx.globalAlpha = f.a; ctx.translate(f.x, f.y); ctx.rotate(f.spin);
+    _zoeDrawFlower(ctx, f.sz, f.n, f.spr, bloom);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // 4 ── Drifting petals
+  if (!canvas._zoeFall) canvas._zoeFall = Array.from({ length: 28 }, () => _zoeNewFall(W, H, true));
+  const psp = _zoePetalSprites();
+  for (const p of canvas._zoeFall) {
+    p.y += p.vy * dt; p.x += Math.sin(t * p.sw + p.ph) * p.sa * dt; p.rot += p.vr * dt;
+    if (p.y > H + 20) Object.assign(p, _zoeNewFall(W, H, false));
+    ctx.save(); ctx.globalAlpha = p.a; ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.drawImage(psp[p.spr], -p.sz / 2, -p.sz * 0.7, p.sz, p.sz * 1.4);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // 5 ── Rising pollen / fireflies
+  if (!canvas._zoeMotes) canvas._zoeMotes = Array.from({ length: 36 }, () => _zoeNewMote(W, H, true));
+  const poll = _zoePollenSprite();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const m of canvas._zoeMotes) {
+    m.y -= m.vy * dt; m.x += Math.sin(t * m.sw + m.ph) * m.sa * dt;
+    m.flick = 0.55 + 0.45 * Math.sin(t * m.ff + m.ph);
+    if (m.y < -14) Object.assign(m, _zoeNewMote(W, H, false));
+    ctx.globalAlpha = Math.min(1, m.flick * m.a);
+    const d = m.r * 4; ctx.drawImage(poll, m.x - d / 2, m.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 6 ── Swaying grass along the bottom
+  if (!canvas._zoeGrass) {
+    const n = Math.ceil(W / 20);
+    canvas._zoeGrass = Array.from({ length: n }, (_, i) => ({
+      x: i * 20 + Math.random() * 20, h: 34 + Math.random() * 78, ph: Math.random() * 6.28,
+      sw: 0.5 + Math.random() * 0.8, w: 3 + Math.random() * 3, shade: 30 + Math.random() * 40,
+    }));
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  for (const b of canvas._zoeGrass) {
+    const sway = Math.sin(t * b.sw + b.ph) * b.h * 0.22;
+    const tipX = b.x + sway, tipY = H - b.h, cX = b.x + sway * 0.5;
+    ctx.fillStyle = `rgb(${(20 + b.shade * 0.4) | 0},${(60 + b.shade) | 0},${(28 + b.shade * 0.4) | 0})`;
+    ctx.beginPath();
+    ctx.moveTo(b.x - b.w / 2, H + 2);
+    ctx.quadraticCurveTo(cX - b.w * 0.3, (H + tipY) / 2, tipX, tipY);
+    ctx.quadraticCurveTo(cX + b.w * 0.3, (H + tipY) / 2, b.x + b.w / 2, H + 2);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // 7 ── Soft vignette
+  if (!canvas._zoeVign) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.82);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(4,10,5,0.7)');
+    canvas._zoeVign = vg;
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = canvas._zoeVign; ctx.fillRect(0, 0, W, H);
+}
+
+// ── Cursor: a glowing life-spirit orb with orbiting leaves; trails petals +
+// pollen, and clicks bloom a burst of petals + a growing ring. ──
+function _zoeMouseMove(e) { _zoeTargX = e.clientX; _zoeTargY = e.clientY; }
+function _zoeClick() {
+  _zoeRings.push({ x: _zoeX, y: _zoeY, r: 6, life: 1 });
+  for (let i = 0; i < 18; i++) {
+    const a = Math.random() * Math.PI * 2, s = 50 + Math.random() * 140;
+    _zoeParts.push({ x: _zoeX, y: _zoeY, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1,
+      sz: 8 + Math.random() * 8, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 4,
+      spr: Math.random() * 6 | 0, petal: true, grav: 30 });
+  }
+}
+function _drawZoeOverlay(canvas, ctx, W, H, t) {
+  if (_drawZoeOverlay._lt !== undefined && t - _drawZoeOverlay._lt < 0.033) return;
+  const dt = _drawZoeOverlay._lt === undefined ? 0.016 : Math.min(t - _drawZoeOverlay._lt, 0.05);
+  _drawZoeOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const SPRING = 58, DAMP = 11;
+  _zoeVX += ((_zoeTargX - _zoeX) * SPRING - _zoeVX * DAMP) * dt;
+  _zoeVY += ((_zoeTargY - _zoeY) * SPRING - _zoeVY * DAMP) * dt;
+  _zoeX += _zoeVX * dt; _zoeY += _zoeVY * dt;
+  const spd = Math.hypot(_zoeVX, _zoeVY);
+
+  // emit trail (petals + pollen)
+  _zoeEmit += dt * (6 + spd * 0.04);
+  while (_zoeEmit > 1) {
+    _zoeEmit -= 1;
+    if (_zoeParts.length > 220) break;
+    const pollen = Math.random() < 0.55;
+    const a = Math.random() * Math.PI * 2, s = 6 + Math.random() * 22;
+    _zoeParts.push({ x: _zoeX + (Math.random() - 0.5) * 12, y: _zoeY + (Math.random() - 0.5) * 12,
+      vx: Math.cos(a) * s - _zoeVX * 0.04, vy: Math.sin(a) * s - _zoeVY * 0.04 + 8, life: 1,
+      sz: pollen ? (1.5 + Math.random() * 2.5) : (6 + Math.random() * 6), rot: Math.random() * 6.28,
+      vr: (Math.random() - 0.5) * 2.5, spr: Math.random() * 6 | 0, petal: !pollen, grav: 14 });
+  }
+
+  // rings (blooming growth)
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _zoeRings.length - 1; i >= 0; i--) {
+    const r = _zoeRings[i];
+    r.r += 150 * dt; r.life -= dt * 1.0;
+    if (r.life <= 0) { _zoeRings.splice(i, 1); continue; }
+    ctx.strokeStyle = `rgba(170,235,140,${r.life * 0.45})`; ctx.lineWidth = 2 + r.life * 2;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // particles
+  const psp = _zoePetalSprites(); const poll = _zoePollenSprite();
+  for (let i = _zoeParts.length - 1; i >= 0; i--) {
+    const p = _zoeParts[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.grav * dt; p.vx *= 0.97; p.rot += p.vr * dt; p.life -= dt * 0.6;
+    if (p.life <= 0) { _zoeParts.splice(i, 1); continue; }
+    const a = Math.min(1, p.life);
+    if (p.petal) {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.save(); ctx.globalAlpha = a * 0.9; ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.drawImage(psp[p.spr], -p.sz / 2, -p.sz * 0.7, p.sz, p.sz * 1.4); ctx.restore();
+    } else {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a; const d = p.sz * 4.5; ctx.drawImage(poll, p.x - d / 2, p.y - d / 2, d, d);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // life-spirit orb + orbiting leaves
+  ctx.globalCompositeOperation = 'lighter';
+  const pr = 12 + Math.sin(t * 2.5) * 2;
+  const og = ctx.createRadialGradient(_zoeX, _zoeY, 0, _zoeX, _zoeY, pr * 2.4);
+  og.addColorStop(0, 'rgba(225,255,190,0.92)');
+  og.addColorStop(0.4, 'rgba(150,225,120,0.55)');
+  og.addColorStop(1, 'rgba(80,160,80,0)');
+  ctx.fillStyle = og; ctx.beginPath(); ctx.arc(_zoeX, _zoeY, pr * 2.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(236,255,210,0.95)'; ctx.beginPath(); ctx.arc(_zoeX, _zoeY, pr * 0.45, 0, Math.PI * 2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  const leaf = _zoePetalSprites()[5];   // green sprite as a leaf
+  for (let i = 0; i < 3; i++) {
+    const a = t * 1.4 + i * (Math.PI * 2 / 3);
+    const lx = _zoeX + Math.cos(a) * 20, ly = _zoeY + Math.sin(a) * 20;
+    ctx.save(); ctx.globalAlpha = 0.85; ctx.translate(lx, ly); ctx.rotate(a + Math.PI / 2);
+    ctx.drawImage(leaf, -5, -8, 10, 16); ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+function _startZoeOverlay() {
+  _stopZoeOverlay();
+  _drawZoeOverlay._lt = undefined;
+  _zoeX = _zoeTargX = window.innerWidth * 0.5;
+  _zoeY = _zoeTargY = window.innerHeight * 0.5;
+  _zoeVX = _zoeVY = 0; _zoeParts = []; _zoeRings = []; _zoeEmit = 0;
+  window.addEventListener('mousemove', _zoeMouseMove);
+  window.addEventListener('click', _zoeClick);
+  const cv = document.createElement('canvas');
+  cv.id = 'zoe-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('zoe-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawZoeOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _zoeOverlayRafId = requestAnimationFrame(frame);
+  }
+  _zoeOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopZoeOverlay() {
+  if (_zoeOverlayRafId) { cancelAnimationFrame(_zoeOverlayRafId); _zoeOverlayRafId = null; }
+  window.removeEventListener('mousemove', _zoeMouseMove);
+  window.removeEventListener('click', _zoeClick);
+  const cv = document.getElementById('zoe-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -5821,6 +6111,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'shi_souls')      { _drawShiPattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'lunar_moon')     { _drawLunarPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'zoe_garden')     { _drawZoePattern(canvas, ctx, W, H, t);                 return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -6285,6 +6576,8 @@ function startBgAnim(type, params) {
   _drawLunarOverlay._lt       = undefined;
   _drawHeliosPattern._lt      = undefined;
   _drawHeliosOverlay._lt      = undefined;
+  _drawZoePattern._lt         = undefined;
+  _drawZoeOverlay._lt         = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -6315,6 +6608,7 @@ function stopBgAnim() {
   _stopShiOverlay();
   _stopLunarOverlay();
   _stopHeliosOverlay();
+  _stopZoeOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -6799,19 +7093,20 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); }
-  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); }
-  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
-  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
-  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
-  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); }
+  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); }
+  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
+  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
+  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
+  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
+  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
   {
@@ -6922,6 +7217,26 @@ function viewChar(id) {
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c)) _pc.style.opacity = '';
     }
   }
+
+  // ── Zoe — living-garden UI chrome (verdant panels, blooming name, leafy
+  // portrait). Character-wide. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isZoe(c)) {
+      _cvRoot.classList.add('zoe-ui');
+      if (_av) _av.classList.add('zoe-pfp');
+      if (_nm) { _nm.classList.add('zoe-name'); _nm.setAttribute('data-text', _nm.textContent || 'ZOE'); }
+      if (_pc) _pc.style.opacity = '0.72';
+    } else {
+      _cvRoot.classList.remove('zoe-ui');
+      if (_av) _av.classList.remove('zoe-pfp');
+      if (_nm) { _nm.classList.remove('zoe-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c)) _pc.style.opacity = '';
+    }
+  }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -6961,10 +7276,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -6984,6 +7299,7 @@ function viewChar(id) {
   if (_isShi(c))      _startShiOverlay();
   if (_isLunar(c))    _startLunarOverlay();
   if (_isHelios(c))   _startHeliosOverlay();
+  if (_isZoe(c))      _startZoeOverlay();
 
   renderInventory(c);
   renderTraitsDisplay(c);
@@ -12025,7 +12341,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -12040,6 +12356,7 @@ window.addEventListener('resize', () => {
       if (_isShi(c))      _startShiOverlay();
       if (_isLunar(c))    _startLunarOverlay();
       if (_isHelios(c))   _startHeliosOverlay();
+      if (_isZoe(c))      _startZoeOverlay();
     }
   }
 });
