@@ -133,6 +133,49 @@ function _furyMuffinClick() {
   }
 }
 
+// ── Lucifer · UNLEASHED — form-specific demonic style (the devil, strongest
+// by far). Only fires when Lucifer's ACTIVE form is "Unleashed"; the base form
+// and every other form keep their normal styling. ──
+const _LUCIFER_RE = /^Lucifer$/i;
+function _isLuciferUnleashed(c) {
+  if (!c || !c.name || !_LUCIFER_RE.test(c.name)) return false;
+  const idx = c.activeFormIdx || 0;
+  if (idx === 0) return false;
+  const af = (c.altForms || [])[idx - 1];
+  return !!(af && af.name && /unleash/i.test(af.name));
+}
+let _luciferOverlayRafId = null;
+let _luciferX = 0, _luciferY = 0, _luciferTargX = 0, _luciferTargY = 0, _luciferVX = 0, _luciferVY = 0;
+let _luciferEmbers = [], _luciferRings = [], _luciferFlareT = 0, _luciferEmit = 0;
+const _LUCIFER_RUNES = 'ΩΨΣΦΛΞΔΘ†‡'.split('');
+
+// ── The Shi — god of death. Silent, mysterious, VERY elegant: a pale soul
+// garden (drifting petals, rising spirit-wisps, a cold moon) in blue/white/gray.
+// Beauty in death. Character-wide (matches "The Shi" / "Shi"). ──
+const _SHI_RE = /^(the\s+)?shi$/i;
+function _isShi(c) { return !!(c && c.name && _SHI_RE.test(c.name)); }
+let _shiOverlayRafId = null;
+let _shiX = 0, _shiY = 0, _shiTargX = 0, _shiTargY = 0, _shiVX = 0, _shiVY = 0;
+let _shiTrail = [], _shiPetals = [], _shiRings = [], _shiEmit = 0;
+
+// ── Lunar — goddess of the moon. Elegant, calm, slightly melancholic; deep dark
+// blues, a luminous moon centerpiece over a quiet starfield, drifting clouds and
+// the occasional slow shooting star. Character-wide (matches "Lunar"). ──
+const _LUNAR_RE = /^Lunar$/i;
+function _isLunar(c) { return !!(c && c.name && _LUNAR_RE.test(c.name)); }
+let _lunarOverlayRafId = null;
+let _lunarX = 0, _lunarY = 0, _lunarTargX = 0, _lunarTargY = 0, _lunarVX = 0, _lunarVY = 0;
+let _lunarDust = [], _lunarRings = [], _lunarEmit = 0;
+
+// ── Helios — god of the sun. Strong, intimidating, aggressive, voracious: a
+// blazing central sun firing long rotating rays, throbbing corona, solar flares
+// and rising sparks in gold/white-hot. Character-wide (matches "Helios"). ──
+const _HELIOS_RE = /^Helios$/i;
+function _isHelios(c) { return !!(c && c.name && _HELIOS_RE.test(c.name)); }
+let _heliosOverlayRafId = null;
+let _heliosX = 0, _heliosY = 0, _heliosTargX = 0, _heliosTargY = 0, _heliosVX = 0, _heliosVY = 0;
+let _heliosSparks = [], _heliosRings = [], _heliosFlareT = 0, _heliosEmit = 0;
+
 // ── Juko! — energetic programmer girl (green code-garden + cat-sprite cursor) ──
 const _JUKO_RE = /^Juko!?$/i;
 function _isJuko(c) { return !!(c && c.name && _JUKO_RE.test(c.name)); }
@@ -1457,6 +1500,10 @@ const PATTERN_DEFS = {
   adam_ice:         { label: "Adam's ice thing",   params: [] },
   fury_fire:        { label: "Fury's Fire",            params: [] },
   juko_code:        { label: "Juko's Code Garden",     params: [] },
+  lucifer_unleashed:{ label: "Lucifer · Unleashed",    params: [] },
+  shi_souls:        { label: "The Shi · Soul Garden",  params: [] },
+  lunar_moon:       { label: "Lunar · Moonlight",      params: [] },
+  helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -4665,6 +4712,1097 @@ function _stopJukoOverlay() {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+// ════════════════════════════════════════════════════════════════
+// LUCIFER · UNLEASHED — demonic hellscape (background) + hellfire cursor
+// ════════════════════════════════════════════════════════════════
+function _lucNewEmber(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : H + Math.random() * 40,
+    vy: 30 + Math.random() * 95, r: 1.5 + Math.random() * 4.5, a: 0.4 + Math.random() * 0.6,
+    sw: 0.5 + Math.random() * 1.5, sa: 6 + Math.random() * 16, ph: Math.random() * 6.28,
+    ff: 3 + Math.random() * 5, flick: 1 };
+}
+function _lucNewRune(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : H + 20 + Math.random() * 60,
+    vy: 8 + Math.random() * 22, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.6,
+    sz: 14 + Math.random() * 26, a: 0.3 + Math.random() * 0.5, pf: 0.6 + Math.random() * 1.6,
+    ph: Math.random() * 6.28, ch: _LUCIFER_RUNES[(Math.random() * _LUCIFER_RUNES.length) | 0] };
+}
+// Cached soft ember sprite — drawImage'd per ember instead of building a fresh
+// radial gradient each one (far cheaper for hundreds of additive embers).
+function _lucEmberSprite() {
+  if (_lucEmberSprite._c) return _lucEmberSprite._c;
+  const s = document.createElement('canvas'); s.width = s.height = 32;
+  const g = s.getContext('2d');
+  const rg = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  rg.addColorStop(0, 'rgba(255,232,155,1)');
+  rg.addColorStop(0.4, 'rgba(255,120,40,0.8)');
+  rg.addColorStop(1, 'rgba(120,12,10,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, 32, 32);
+  return _lucEmberSprite._c = s;
+}
+// Inverted (point-down) pentagram path into the current transform.
+function _lucPentagram(ctx, R) {
+  const star = [];
+  for (let i = 0; i < 5; i++) { const a = Math.PI / 2 + i * (Math.PI * 2 / 5); star.push([Math.cos(a) * R, Math.sin(a) * R]); }
+  const order = [0, 2, 4, 1, 3, 0];
+  ctx.beginPath();
+  for (let k = 0; k < order.length; k++) { const p = star[order[k]]; if (k === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); }
+}
+function _lucDrawSigil(ctx, cx, cy, R, t, glow) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.rotate(t * 0.06);
+  // concentric rings
+  for (const rr of [R, R * 0.82]) {
+    ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(150,16,12,${0.10 + glow * 0.16})`; ctx.lineWidth = 11; ctx.stroke();
+    ctx.strokeStyle = `rgba(255,70,40,${0.26 + glow * 0.4})`;  ctx.lineWidth = 1.6; ctx.stroke();
+  }
+  // pentagram
+  _lucPentagram(ctx, R * 0.82);
+  ctx.strokeStyle = `rgba(160,18,12,${0.14 + glow * 0.2})`; ctx.lineWidth = 9; ctx.stroke();
+  ctx.strokeStyle = `rgba(255,84,46,${0.32 + glow * 0.5})`; ctx.lineWidth = 2; ctx.stroke();
+  // counter-rotating rune ring
+  ctx.rotate(-t * 0.16);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${Math.max(12, R * 0.075)}px "Times New Roman", serif`;
+  const runeN = 12, rr = R * 0.91;
+  for (let i = 0; i < runeN; i++) {
+    const a = i * (Math.PI * 2 / runeN);
+    ctx.fillStyle = `rgba(220,40,28,${0.22 + glow * 0.32})`;
+    ctx.fillText(_LUCIFER_RUNES[i % _LUCIFER_RUNES.length], Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  ctx.restore();
+}
+function _lucDrawHellfire(canvas, ctx, W, H, t, pulse) {
+  ctx.globalCompositeOperation = 'lighter';
+  const baseH = H * 0.26;
+  if (!canvas._lucFlame) {
+    const g = ctx.createLinearGradient(0, H, 0, H - baseH * 1.4);
+    g.addColorStop(0, 'rgba(255,232,150,0.9)');
+    g.addColorStop(0.25, 'rgba(255,140,30,0.72)');
+    g.addColorStop(0.6, 'rgba(200,30,15,0.42)');
+    g.addColorStop(1, 'rgba(80,8,8,0)');
+    canvas._lucFlame = g;
+  }
+  ctx.fillStyle = canvas._lucFlame;
+  const step = Math.max(8, W / 80);
+  for (let layer = 0; layer < 3; layer++) {
+    const amp = 18 + layer * 14, spd = 1.2 + layer * 0.5;
+    const h = baseH * (0.6 + layer * 0.28) * (0.92 + pulse * 0.16);
+    ctx.globalAlpha = 0.5 - layer * 0.12;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += step) {
+      const y = H - h + Math.sin(x * 0.012 + t * spd + layer) * amp
+                      + Math.sin(x * 0.031 - t * spd * 1.7 + layer * 2) * amp * 0.5;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+function _lucDrawBolt(canvas, ctx, W, H, t) {
+  let b = canvas._lucBolt;
+  if (!b || t < b.born) { canvas._lucBolt = b = { next: t + 1.5 + Math.random() * 3, born: -99, dur: 0.4, segs: null }; }
+  if (t > b.next) {
+    b.born = t; b.dur = 0.32 + Math.random() * 0.3; b.next = t + 2.5 + Math.random() * 4.5;
+    const bx = W * (0.12 + Math.random() * 0.76);
+    const segs = [[bx, -10]]; let x = bx, y = -10;
+    while (y < H + 20) { y += 28 + Math.random() * 55; x += (Math.random() - 0.5) * 130; segs.push([x, y]); }
+    b.segs = segs;
+  }
+  const age = t - b.born;
+  if (age > b.dur || !b.segs) return;
+  const a = 1 - age / b.dur;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(b.segs[0][0], b.segs[0][1]);
+  for (let i = 1; i < b.segs.length; i++) ctx.lineTo(b.segs[i][0], b.segs[i][1]);
+  ctx.strokeStyle = `rgba(180,22,15,${a * 0.5})`; ctx.lineWidth = 7; ctx.stroke();
+  ctx.strokeStyle = `rgba(255,150,70,${a})`;     ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = `rgba(120,15,10,${a * 0.07})`; ctx.fillRect(0, 0, W, H);
+}
+
+function _drawLuciferPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawLuciferPattern._lt === undefined;   // (re)entry — clock t just reset to 0
+  if (!fresh && t - _drawLuciferPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawLuciferPattern._lt, 0.05);
+  _drawLuciferPattern._lt = t;
+  // The bolt stores absolute-time fields (born/next); since startBgAnim resets
+  // t to 0 on every entry, stale values would make `age` hugely negative and
+  // freeze a full-screen flash on screen. Drop it so it reschedules cleanly.
+  if (fresh) canvas._lucBolt = null;
+
+  if (canvas._lucW !== W || canvas._lucH !== H) {
+    canvas._lucW = W; canvas._lucH = H;
+    canvas._lucEmbers = null; canvas._lucRunes = null; canvas._lucVign = null;
+    canvas._lucCore = null; canvas._lucFlame = null;
+  }
+  const pulse = 0.5 + 0.5 * Math.sin(t * 1.5);
+
+  // 1 ── Abyss base
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = '#0a0204'; ctx.fillRect(0, 0, W, H);
+
+  // bottom hell-glow
+  if (!canvas._lucCore) {
+    const g = ctx.createRadialGradient(W / 2, H * 1.05, H * 0.1, W / 2, H * 1.05, H * 1.1);
+    g.addColorStop(0, 'rgba(150,18,10,0.85)');
+    g.addColorStop(0.4, 'rgba(80,8,6,0.5)');
+    g.addColorStop(1, 'rgba(10,2,4,0)');
+    canvas._lucCore = g;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.55 + pulse * 0.4; ctx.fillStyle = canvas._lucCore; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1;
+
+  // 2 ── Giant rotating pentagram sigil
+  _lucDrawSigil(ctx, W / 2, H * 0.42, Math.min(W, H) * 0.34, t, 0.4 + pulse * 0.5);
+
+  // 3 ── Floating runes
+  if (!canvas._lucRunes) canvas._lucRunes = Array.from({ length: 14 }, () => _lucNewRune(W, H, true));
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const r of canvas._lucRunes) {
+    r.y -= r.vy * dt; r.rot += r.vr * dt;
+    if (r.y < -30) Object.assign(r, _lucNewRune(W, H, false));
+    const fl = 0.35 + 0.4 * Math.sin(t * r.pf + r.ph) + 0.25 * Math.sin(t * 0.7 + r.ph);
+    const a = Math.max(0, fl) * r.a;
+    if (a < 0.02) continue;
+    ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(r.rot);
+    ctx.font = `${r.sz}px "Times New Roman", serif`;
+    ctx.fillStyle = `rgba(${(200 + a * 40) | 0},${(38 + a * 30) | 0},28,${a})`;
+    ctx.fillText(r.ch, 0, 0); ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // 4 ── Hellfire at the bottom
+  _lucDrawHellfire(canvas, ctx, W, H, t, pulse);
+
+  // 5 ── Rising embers (cached sprite, additive)
+  if (!canvas._lucEmbers) canvas._lucEmbers = Array.from({ length: 70 }, () => _lucNewEmber(W, H, true));
+  ctx.globalCompositeOperation = 'lighter';
+  const _spr = _lucEmberSprite();
+  for (const e of canvas._lucEmbers) {
+    e.y -= e.vy * dt; e.x += Math.sin(t * e.sw + e.ph) * e.sa * dt;
+    e.flick = 0.5 + 0.5 * Math.sin(t * e.ff + e.ph);
+    if (e.y < -10) Object.assign(e, _lucNewEmber(W, H, false));
+    ctx.globalAlpha = Math.min(1, e.flick * e.a);
+    const d = e.r * 3.2;
+    ctx.drawImage(_spr, e.x - d / 2, e.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 6 ── Molten crack / lightning
+  _lucDrawBolt(canvas, ctx, W, H, t);
+
+  // 7 ── Vignette
+  if (!canvas._lucVign) {
+    const vg = ctx.createRadialGradient(W / 2, H * 0.5, Math.min(W, H) * 0.2, W / 2, H * 0.5, Math.max(W, H) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(0.7, 'rgba(8,0,2,0.4)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.9)');
+    canvas._lucVign = vg;
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = canvas._lucVign; ctx.fillRect(0, 0, W, H);
+}
+
+// ── Hellfire cursor overlay ──
+function _luciferMouseMove(e) { _luciferTargX = e.clientX; _luciferTargY = e.clientY; }
+function _luciferClick() {
+  _luciferFlareT = 1.0;
+  _luciferRings.push({ x: _luciferX, y: _luciferY, r: 8, life: 1 });
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * Math.PI * 2, s = 90 + Math.random() * 250;
+    _luciferEmbers.push({ x: _luciferX, y: _luciferY, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 70,
+      life: 1, r: 2 + Math.random() * 4, burst: true });
+  }
+}
+function _drawLuciferOverlay(canvas, ctx, W, H, t) {
+  if (_drawLuciferOverlay._lt !== undefined && t - _drawLuciferOverlay._lt < 0.033) return;
+  const dt = _drawLuciferOverlay._lt === undefined ? 0.016 : Math.min(t - _drawLuciferOverlay._lt, 0.05);
+  _drawLuciferOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const SPRING = 120, DAMP = 14;
+  _luciferVX += ((_luciferTargX - _luciferX) * SPRING - _luciferVX * DAMP) * dt;
+  _luciferVY += ((_luciferTargY - _luciferY) * SPRING - _luciferVY * DAMP) * dt;
+  _luciferX += _luciferVX * dt; _luciferY += _luciferVY * dt;
+  _luciferFlareT = Math.max(0, _luciferFlareT - dt * 2.2);
+  const spd = Math.hypot(_luciferVX, _luciferVY);
+
+  // trailing embers
+  _luciferEmit += dt * (18 + spd * 0.05);
+  while (_luciferEmit > 1) {
+    _luciferEmit -= 1;
+    if (_luciferEmbers.length > 360) break;
+    const a = Math.random() * Math.PI * 2, s = 10 + Math.random() * 40;
+    _luciferEmbers.push({ x: _luciferX + (Math.random() - 0.5) * 10, y: _luciferY + (Math.random() - 0.5) * 10,
+      vx: Math.cos(a) * s - _luciferVX * 0.06, vy: Math.sin(a) * s - 40 - _luciferVY * 0.06,
+      life: 1, r: 1.5 + Math.random() * 3, burst: false });
+  }
+
+  ctx.globalCompositeOperation = 'lighter';
+  // shockwave rings
+  for (let i = _luciferRings.length - 1; i >= 0; i--) {
+    const rg = _luciferRings[i];
+    rg.r += 420 * dt; rg.life -= dt * 1.6;
+    if (rg.life <= 0) { _luciferRings.splice(i, 1); continue; }
+    ctx.beginPath(); ctx.arc(rg.x, rg.y, rg.r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,90,40,${rg.life * 0.5})`; ctx.lineWidth = 3 + rg.life * 4; ctx.stroke();
+  }
+  // embers (cached sprite)
+  const _spr = _lucEmberSprite();
+  for (let i = _luciferEmbers.length - 1; i >= 0; i--) {
+    const e = _luciferEmbers[i];
+    e.x += e.vx * dt; e.y += e.vy * dt; e.vy += (e.burst ? 180 : 60) * dt;
+    e.life -= dt * (e.burst ? 1.1 : 1.5);
+    if (e.life <= 0) { _luciferEmbers.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, e.life);
+    const d = e.r * 4.4;
+    ctx.drawImage(_spr, e.x - d / 2, e.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+  // core flame orb
+  const flare = 1 + _luciferFlareT * 1.6;
+  const cr = (14 + Math.sin(t * 12) * 2) * flare;
+  const cg = ctx.createRadialGradient(_luciferX, _luciferY, 0, _luciferX, _luciferY, cr * 2.4);
+  cg.addColorStop(0, 'rgba(255,210,120,0.9)');
+  cg.addColorStop(0.35, 'rgba(255,90,30,0.7)');
+  cg.addColorStop(1, 'rgba(120,8,8,0)');
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(_luciferX, _luciferY, cr * 2.4, 0, Math.PI * 2); ctx.fill();
+  // rotating sigil at the cursor
+  ctx.save(); ctx.translate(_luciferX, _luciferY); ctx.rotate(t * 0.8);
+  ctx.lineJoin = 'round';
+  _lucPentagram(ctx, 10 * flare);
+  ctx.strokeStyle = `rgba(255,120,60,${0.5 + _luciferFlareT * 0.5})`; ctx.lineWidth = 1.6; ctx.stroke();
+  ctx.restore();
+  ctx.globalCompositeOperation = 'source-over';
+}
+function _startLuciferOverlay() {
+  _stopLuciferOverlay();
+  _drawLuciferOverlay._lt = undefined;
+  _luciferX = _luciferTargX = window.innerWidth * 0.5;
+  _luciferY = _luciferTargY = window.innerHeight * 0.5;
+  _luciferVX = _luciferVY = 0; _luciferFlareT = 0; _luciferEmit = 0;
+  _luciferEmbers = []; _luciferRings = [];
+  window.addEventListener('mousemove', _luciferMouseMove);
+  window.addEventListener('click', _luciferClick);
+  const cv = document.createElement('canvas');
+  cv.id = 'lucifer-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('lucifer-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawLuciferOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _luciferOverlayRafId = requestAnimationFrame(frame);
+  }
+  _luciferOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopLuciferOverlay() {
+  if (_luciferOverlayRafId) { cancelAnimationFrame(_luciferOverlayRafId); _luciferOverlayRafId = null; }
+  window.removeEventListener('mousemove', _luciferMouseMove);
+  window.removeEventListener('click', _luciferClick);
+  const cv = document.getElementById('lucifer-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// THE SHI — god of death. Silent, mysterious, elegant soul garden.
+// ════════════════════════════════════════════════════════════════
+function _shiSoulSprite() {
+  if (_shiSoulSprite._c) return _shiSoulSprite._c;
+  const s = document.createElement('canvas'); s.width = s.height = 32;
+  const g = s.getContext('2d');
+  const rg = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  rg.addColorStop(0, 'rgba(224,238,250,1)');
+  rg.addColorStop(0.4, 'rgba(150,188,222,0.7)');
+  rg.addColorStop(1, 'rgba(90,130,170,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, 32, 32);
+  return _shiSoulSprite._c = s;
+}
+function _shiPetalSprite() {
+  if (_shiPetalSprite._c) return _shiPetalSprite._c;
+  const s = document.createElement('canvas'); s.width = 24; s.height = 40;
+  const g = s.getContext('2d');
+  g.beginPath();
+  g.moveTo(12, 2);
+  g.bezierCurveTo(22, 12, 22, 28, 12, 38);
+  g.bezierCurveTo(2, 28, 2, 12, 12, 2);
+  g.closePath();
+  const lg = g.createLinearGradient(0, 0, 0, 40);
+  lg.addColorStop(0, 'rgba(228,240,250,0.96)');
+  lg.addColorStop(0.5, 'rgba(192,214,234,0.82)');
+  lg.addColorStop(1, 'rgba(150,182,212,0.55)');
+  g.fillStyle = lg; g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(12, 5); g.lineTo(12, 35); g.stroke();
+  return _shiPetalSprite._c = s;
+}
+function _shiNewWisp(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : H + Math.random() * 30,
+    vy: 12 + Math.random() * 28, r: 2 + Math.random() * 5, a: 0.3 + Math.random() * 0.5,
+    sw: 0.3 + Math.random() * 0.8, sa: 5 + Math.random() * 12, ph: Math.random() * 6.28,
+    ff: 1.5 + Math.random() * 2.5, flick: 1 };
+}
+function _shiNewPetal(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : -20 - Math.random() * 40,
+    vy: 14 + Math.random() * 26, sz: 8 + Math.random() * 10, rot: Math.random() * 6.28,
+    vr: (Math.random() - 0.5) * 1.2, a: 0.4 + Math.random() * 0.4,
+    sw: 0.4 + Math.random() * 1.0, sa: 8 + Math.random() * 16, ph: Math.random() * 6.28 };
+}
+function _shiNewFog(W, H) {
+  return { x: Math.random() * W, y: Math.random() * H, r: 120 + Math.random() * 200,
+    vx: (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 10), a: 0.04 + Math.random() * 0.05 };
+}
+
+function _drawShiPattern(canvas, ctx, W, H, t) {
+  if (_drawShiPattern._lt !== undefined && t - _drawShiPattern._lt < 0.033) return;
+  const dt = _drawShiPattern._lt === undefined ? 0.016 : Math.min(t - _drawShiPattern._lt, 0.05);
+  _drawShiPattern._lt = t;
+
+  if (canvas._shiW !== W || canvas._shiH !== H) {
+    canvas._shiW = W; canvas._shiH = H;
+    canvas._shiBase = null; canvas._shiMoon = null; canvas._shiVign = null;
+    canvas._shiWisps = null; canvas._shiPetals = null; canvas._shiFog = null;
+  }
+  const breathe = 0.5 + 0.5 * Math.sin(t * 0.5);
+
+  // 1 ── Cold base gradient
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  if (!canvas._shiBase) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0b0f16'); g.addColorStop(0.5, '#0e131c'); g.addColorStop(1, '#080a10');
+    canvas._shiBase = g;
+  }
+  ctx.fillStyle = canvas._shiBase; ctx.fillRect(0, 0, W, H);
+
+  // 2 ── Cold moon halo, high
+  if (!canvas._shiMoon) {
+    const cx = W * 0.5, cy = H * 0.28, r = Math.min(W, H) * 0.42;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, 'rgba(180,205,225,0.2)');
+    g.addColorStop(0.4, 'rgba(120,150,180,0.08)');
+    g.addColorStop(1, 'rgba(80,110,140,0)');
+    canvas._shiMoon = g;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.7 + breathe * 0.3; ctx.fillStyle = canvas._shiMoon; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1;
+  const mx = W * 0.5, my = H * 0.28, mr = Math.min(W, H) * 0.1;
+  const mg = ctx.createRadialGradient(mx, my, mr * 0.55, mx, my, mr);
+  mg.addColorStop(0, `rgba(214,228,242,${0.1 + breathe * 0.06})`);
+  mg.addColorStop(1, 'rgba(214,228,242,0)');
+  ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+
+  // 3 ── Drifting fog banks
+  if (!canvas._shiFog) canvas._shiFog = Array.from({ length: 5 }, () => _shiNewFog(W, H));
+  ctx.globalCompositeOperation = 'lighter';
+  for (const f of canvas._shiFog) {
+    f.x += f.vx * dt;
+    if (f.x - f.r > W) f.x = -f.r;
+    if (f.x + f.r < 0) f.x = W + f.r;
+    const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r);
+    g.addColorStop(0, `rgba(150,178,205,${f.a * (0.6 + breathe * 0.4)})`);
+    g.addColorStop(1, 'rgba(150,178,205,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // 4 ── Rising spirit-wisps (souls ascending)
+  if (!canvas._shiWisps) canvas._shiWisps = Array.from({ length: 34 }, () => _shiNewWisp(W, H, true));
+  const wsp = _shiSoulSprite();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const w of canvas._shiWisps) {
+    w.y -= w.vy * dt; w.x += Math.sin(t * w.sw + w.ph) * w.sa * dt;
+    w.flick = 0.6 + 0.4 * Math.sin(t * w.ff + w.ph);
+    if (w.y < -20) Object.assign(w, _shiNewWisp(W, H, false));
+    ctx.globalAlpha = Math.min(1, w.flick * w.a);
+    const d = w.r * 3.4; ctx.drawImage(wsp, w.x - d / 2, w.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 5 ── Falling petals (beauty in death)
+  if (!canvas._shiPetals) canvas._shiPetals = Array.from({ length: 26 }, () => _shiNewPetal(W, H, true));
+  const psp = _shiPetalSprite();
+  ctx.globalCompositeOperation = 'source-over';
+  for (const p of canvas._shiPetals) {
+    p.y += p.vy * dt; p.x += Math.sin(t * p.sw + p.ph) * p.sa * dt; p.rot += p.vr * dt;
+    if (p.y > H + 20) Object.assign(p, _shiNewPetal(W, H, false));
+    ctx.save();
+    ctx.globalAlpha = p.a;
+    ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.drawImage(psp, -p.sz / 2, -p.sz * 0.85, p.sz, p.sz * 1.7);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // 6 ── Soft vignette
+  if (!canvas._shiVign) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.8);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(4,6,10,0.72)');
+    canvas._shiVign = vg;
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = canvas._shiVign; ctx.fillRect(0, 0, W, H);
+}
+
+// ── Spectral cursor companion: a silent soul-flame with a flowing veil trail
+// and slowly drifting petals. Click → a soft ripple + petal bloom. ──
+function _shiMouseMove(e) { _shiTargX = e.clientX; _shiTargY = e.clientY; }
+function _shiClick() {
+  _shiRings.push({ x: _shiX, y: _shiY, r: 6, life: 1 });
+  for (let i = 0; i < 14; i++) {
+    const a = Math.random() * Math.PI * 2, s = 30 + Math.random() * 70;
+    _shiPetals.push({ x: _shiX, y: _shiY, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+      rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 2, sz: 8 + Math.random() * 8,
+      life: 1, grav: 16 + Math.random() * 14 });
+  }
+}
+function _drawShiOverlay(canvas, ctx, W, H, t) {
+  if (_drawShiOverlay._lt !== undefined && t - _drawShiOverlay._lt < 0.033) return;
+  const dt = _drawShiOverlay._lt === undefined ? 0.016 : Math.min(t - _drawShiOverlay._lt, 0.05);
+  _drawShiOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  // Slow, graceful spring — elegant lag
+  const SPRING = 46, DAMP = 9;
+  _shiVX += ((_shiTargX - _shiX) * SPRING - _shiVX * DAMP) * dt;
+  _shiVY += ((_shiTargY - _shiY) * SPRING - _shiVY * DAMP) * dt;
+  _shiX += _shiVX * dt; _shiY += _shiVY * dt;
+
+  _shiTrail.push({ x: _shiX, y: _shiY });
+  if (_shiTrail.length > 22) _shiTrail.shift();
+
+  // Flowing veil trail (tapering pale ribbon)
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (let i = 1; i < _shiTrail.length; i++) {
+    const f = i / _shiTrail.length;
+    ctx.strokeStyle = `rgba(190,216,240,${f * 0.22})`;
+    ctx.lineWidth = f * 7;
+    ctx.beginPath(); ctx.moveTo(_shiTrail[i - 1].x, _shiTrail[i - 1].y); ctx.lineTo(_shiTrail[i].x, _shiTrail[i].y); ctx.stroke();
+  }
+
+  // Emit slowly drifting petals
+  _shiEmit += dt * (4 + Math.hypot(_shiVX, _shiVY) * 0.01);
+  while (_shiEmit > 1) {
+    _shiEmit -= 1;
+    if (_shiPetals.length > 150) break;
+    const a = Math.random() * Math.PI * 2, s = 8 + Math.random() * 22;
+    _shiPetals.push({ x: _shiX, y: _shiY, vx: Math.cos(a) * s, vy: Math.sin(a) * s + 10,
+      rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 1.5, sz: 7 + Math.random() * 7,
+      life: 1, grav: 10 + Math.random() * 10 });
+  }
+
+  // Soft ripples
+  for (let i = _shiRings.length - 1; i >= 0; i--) {
+    const r = _shiRings[i];
+    r.r += 120 * dt; r.life -= dt * 0.9;
+    if (r.life <= 0) { _shiRings.splice(i, 1); continue; }
+    ctx.strokeStyle = `rgba(200,222,245,${r.life * 0.4})`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // Petals
+  const psp = _shiPetalSprite();
+  ctx.globalCompositeOperation = 'source-over';
+  for (let i = _shiPetals.length - 1; i >= 0; i--) {
+    const p = _shiPetals[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.grav * dt; p.vx *= 0.98; p.rot += p.vr * dt; p.life -= dt * 0.5;
+    if (p.life <= 0) { _shiPetals.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.85, p.life * 0.85);
+    ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.drawImage(psp, -p.sz / 2, -p.sz * 0.85, p.sz, p.sz * 1.7);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // Soul-flame orb at the head
+  ctx.globalCompositeOperation = 'lighter';
+  const pr = 10 + Math.sin(t * 3) * 1.5;
+  const og = ctx.createRadialGradient(_shiX, _shiY, 0, _shiX, _shiY, pr * 2.6);
+  og.addColorStop(0, 'rgba(226,240,252,0.9)');
+  og.addColorStop(0.4, 'rgba(160,196,230,0.55)');
+  og.addColorStop(1, 'rgba(90,130,170,0)');
+  ctx.fillStyle = og; ctx.beginPath(); ctx.arc(_shiX, _shiY, pr * 2.6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(236,246,255,0.9)'; ctx.beginPath(); ctx.arc(_shiX, _shiY, pr * 0.5, 0, Math.PI * 2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+}
+function _startShiOverlay() {
+  _stopShiOverlay();
+  _drawShiOverlay._lt = undefined;
+  _shiX = _shiTargX = window.innerWidth * 0.5;
+  _shiY = _shiTargY = window.innerHeight * 0.5;
+  _shiVX = _shiVY = 0; _shiTrail = []; _shiPetals = []; _shiRings = []; _shiEmit = 0;
+  window.addEventListener('mousemove', _shiMouseMove);
+  window.addEventListener('click', _shiClick);
+  const cv = document.createElement('canvas');
+  cv.id = 'shi-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('shi-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawShiOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _shiOverlayRafId = requestAnimationFrame(frame);
+  }
+  _shiOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopShiOverlay() {
+  if (_shiOverlayRafId) { cancelAnimationFrame(_shiOverlayRafId); _shiOverlayRafId = null; }
+  window.removeEventListener('mousemove', _shiMouseMove);
+  window.removeEventListener('click', _shiClick);
+  const cv = document.getElementById('shi-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// LUNAR — goddess of the moon. Calm, elegant, melancholic moonlight.
+// ════════════════════════════════════════════════════════════════
+function _lunarStarSprite() {
+  if (_lunarStarSprite._c) return _lunarStarSprite._c;
+  const s = document.createElement('canvas'); s.width = s.height = 16;
+  const g = s.getContext('2d');
+  const rg = g.createRadialGradient(8, 8, 0, 8, 8, 8);
+  rg.addColorStop(0, 'rgba(236,244,255,1)');
+  rg.addColorStop(0.5, 'rgba(172,200,236,0.6)');
+  rg.addColorStop(1, 'rgba(120,150,200,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, 16, 16);
+  return _lunarStarSprite._c = s;
+}
+function _lunarCrescentSprite() {
+  if (_lunarCrescentSprite._c) return _lunarCrescentSprite._c;
+  const s = document.createElement('canvas'); s.width = s.height = 64;
+  const g = s.getContext('2d');
+  const rg = g.createRadialGradient(26, 26, 2, 32, 32, 24);
+  rg.addColorStop(0, 'rgba(238,244,253,1)');
+  rg.addColorStop(0.7, 'rgba(198,214,238,0.96)');
+  rg.addColorStop(1, 'rgba(150,176,214,0.9)');
+  g.fillStyle = rg; g.beginPath(); g.arc(32, 32, 22, 0, Math.PI * 2); g.fill();
+  g.globalCompositeOperation = 'destination-out';
+  g.beginPath(); g.arc(42, 28, 20, 0, Math.PI * 2); g.fill();
+  return _lunarCrescentSprite._c = s;
+}
+function _lunarNewMote(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : H + Math.random() * 30,
+    vy: 8 + Math.random() * 18, r: 1.5 + Math.random() * 3.5, a: 0.25 + Math.random() * 0.4,
+    sw: 0.2 + Math.random() * 0.6, sa: 4 + Math.random() * 9, ph: Math.random() * 6.28,
+    ff: 1 + Math.random() * 2, flick: 1 };
+}
+function _lunarNewCloud(W, H) {
+  const my = H * 0.30;
+  return { x: Math.random() * W, y: my + (Math.random() - 0.5) * H * 0.34,
+    w: W * (0.3 + Math.random() * 0.45), h: 26 + Math.random() * 46,
+    vx: (Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 9), a: 0.16 + Math.random() * 0.2 };
+}
+
+function _drawLunarPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawLunarPattern._lt === undefined;
+  if (!fresh && t - _drawLunarPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawLunarPattern._lt, 0.05);
+  _drawLunarPattern._lt = t;
+  if (fresh) canvas._lunShoot = null;   // shooting star uses absolute time → reset on (re)entry
+
+  if (canvas._lunW !== W || canvas._lunH !== H) {
+    canvas._lunW = W; canvas._lunH = H;
+    canvas._lunBase = null; canvas._lunStars = null; canvas._lunMoonGlow = null;
+    canvas._lunVign = null; canvas._lunClouds = null; canvas._lunMotes = null;
+  }
+  const breathe = 0.5 + 0.5 * Math.sin(t * 0.4);
+  const mx = W * 0.72, my = H * 0.30, mr = Math.min(W, H) * 0.15;
+
+  // 1 ── Deep night gradient
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  if (!canvas._lunBase) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#070d1f'); g.addColorStop(0.5, '#0b1430'); g.addColorStop(1, '#05080f');
+    canvas._lunBase = g;
+  }
+  ctx.fillStyle = canvas._lunBase; ctx.fillRect(0, 0, W, H);
+
+  // 2 ── Starfield (cached positions, twinkling)
+  if (!canvas._lunStars) {
+    canvas._lunStars = Array.from({ length: 150 }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      base: 0.25 + Math.random() * 0.7, sz: 1 + Math.random() * 2.6,
+      tw: 0.6 + Math.random() * 2.2, ph: Math.random() * 6.28,
+      glint: Math.random() < 0.12,
+    }));
+  }
+  const star = _lunarStarSprite();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const s of canvas._lunStars) {
+    const a = s.base * (0.4 + 0.6 * (0.5 + 0.5 * Math.sin(t * s.tw + s.ph)));
+    ctx.globalAlpha = a;
+    const d = s.sz * 4; ctx.drawImage(star, s.x - d / 2, s.y - d / 2, d, d);
+    if (s.glint && a > 0.5) {
+      ctx.strokeStyle = `rgba(225,238,255,${(a - 0.5) * 0.7})`; ctx.lineWidth = 0.7;
+      const gl = s.sz * 4.5;
+      ctx.beginPath(); ctx.moveTo(s.x - gl, s.y); ctx.lineTo(s.x + gl, s.y);
+      ctx.moveTo(s.x, s.y - gl); ctx.lineTo(s.x, s.y + gl); ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // 3 ── The Moon (centerpiece) — glow halo + lit disc + soft craters
+  if (!canvas._lunMoonGlow) {
+    const g = ctx.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 3.6);
+    g.addColorStop(0, 'rgba(150,180,225,0.5)');
+    g.addColorStop(0.4, 'rgba(90,120,175,0.16)');
+    g.addColorStop(1, 'rgba(60,90,150,0)');
+    canvas._lunMoonGlow = g;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.6 + breathe * 0.3; ctx.fillStyle = canvas._lunMoonGlow; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  const dg = ctx.createRadialGradient(mx - mr * 0.32, my - mr * 0.32, mr * 0.15, mx, my, mr);
+  dg.addColorStop(0, '#eaf0fa'); dg.addColorStop(0.55, '#c6d3e8'); dg.addColorStop(1, '#9aabcb');
+  ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+  // craters
+  ctx.fillStyle = 'rgba(120,140,172,0.28)';
+  for (const cr of [[-0.32, -0.22, 0.17], [0.26, 0.12, 0.2], [0.04, 0.36, 0.14], [-0.16, 0.28, 0.1], [0.34, -0.18, 0.09]]) {
+    ctx.beginPath(); ctx.arc(mx + cr[0] * mr, my + cr[1] * mr, cr[2] * mr, 0, Math.PI * 2); ctx.fill();
+  }
+  // rim light
+  ctx.strokeStyle = 'rgba(228,238,252,0.35)'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(mx, my, mr, Math.PI * 1.05, Math.PI * 1.75); ctx.stroke();
+
+  // 4 ── Drifting clouds (pass over the moon, dim it slightly) — melancholic
+  if (!canvas._lunClouds) canvas._lunClouds = Array.from({ length: 4 }, () => _lunarNewCloud(W, H));
+  ctx.globalCompositeOperation = 'source-over';
+  for (const c of canvas._lunClouds) {
+    c.x += c.vx * dt;
+    if (c.x - c.w > W) c.x = -c.w;
+    if (c.x + c.w < 0) c.x = W + c.w;
+    const g = ctx.createLinearGradient(c.x - c.w, 0, c.x + c.w, 0);
+    g.addColorStop(0, 'rgba(7,11,26,0)');
+    g.addColorStop(0.5, `rgba(8,13,30,${c.a})`);
+    g.addColorStop(1, 'rgba(7,11,26,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(c.x, c.y, c.w, c.h, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // 5 ── Rising light motes
+  if (!canvas._lunMotes) canvas._lunMotes = Array.from({ length: 22 }, () => _lunarNewMote(W, H, true));
+  ctx.globalCompositeOperation = 'lighter';
+  for (const m of canvas._lunMotes) {
+    m.y -= m.vy * dt; m.x += Math.sin(t * m.sw + m.ph) * m.sa * dt;
+    m.flick = 0.6 + 0.4 * Math.sin(t * m.ff + m.ph);
+    if (m.y < -16) Object.assign(m, _lunarNewMote(W, H, false));
+    ctx.globalAlpha = Math.min(1, m.flick * m.a);
+    const d = m.r * 4; ctx.drawImage(star, m.x - d / 2, m.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 6 ── Occasional slow shooting star (re-entry safe)
+  {
+    let sh = canvas._lunShoot;
+    if (!sh || t < sh.born) canvas._lunShoot = sh = { next: t + 2.5 + Math.random() * 5, born: -99, dur: 1, x0: 0, y0: 0, ang: 0, len: 0 };
+    if (t > sh.next) {
+      sh.born = t; sh.dur = 0.8 + Math.random() * 0.5; sh.next = t + 5 + Math.random() * 8;
+      sh.x0 = W * (0.08 + Math.random() * 0.6); sh.y0 = H * (0.04 + Math.random() * 0.28);
+      sh.ang = Math.PI * (0.13 + Math.random() * 0.18); sh.len = Math.min(W, H) * (0.4 + Math.random() * 0.3);
+    }
+    const age = t - sh.born;
+    if (age >= 0 && age < sh.dur) {
+      const prog = age / sh.dur;
+      const hx = sh.x0 + Math.cos(sh.ang) * sh.len * prog, hy = sh.y0 + Math.sin(sh.ang) * sh.len * prog;
+      const trail = 70, tx = hx - Math.cos(sh.ang) * trail, ty = hy - Math.sin(sh.ang) * trail;
+      const a = Math.sin(prog * Math.PI);
+      const g = ctx.createLinearGradient(tx, ty, hx, hy);
+      g.addColorStop(0, 'rgba(200,220,250,0)'); g.addColorStop(1, `rgba(228,240,255,${a * 0.9})`);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+      ctx.fillStyle = `rgba(236,246,255,${a})`; ctx.beginPath(); ctx.arc(hx, hy, 2.2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // 7 ── Soft vignette
+  if (!canvas._lunVign) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.82);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(3,5,12,0.75)');
+    canvas._lunVign = vg;
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = canvas._lunVign; ctx.fillRect(0, 0, W, H);
+}
+
+// ── Crescent-moon cursor companion with a trail of twinkling stardust. ──
+function _lunarMouseMove(e) { _lunarTargX = e.clientX; _lunarTargY = e.clientY; }
+function _lunarClick() {
+  _lunarRings.push({ x: _lunarX, y: _lunarY, r: 6, life: 1 });
+  for (let i = 0; i < 18; i++) {
+    const a = Math.random() * Math.PI * 2, s = 40 + Math.random() * 110;
+    _lunarDust.push({ x: _lunarX, y: _lunarY, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+      life: 1, sz: 1.5 + Math.random() * 3, tw: 1 + Math.random() * 3, ph: Math.random() * 6.28, grav: 6 });
+  }
+}
+function _drawLunarOverlay(canvas, ctx, W, H, t) {
+  if (_drawLunarOverlay._lt !== undefined && t - _drawLunarOverlay._lt < 0.033) return;
+  const dt = _drawLunarOverlay._lt === undefined ? 0.016 : Math.min(t - _drawLunarOverlay._lt, 0.05);
+  _drawLunarOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const SPRING = 52, DAMP = 10;
+  _lunarVX += ((_lunarTargX - _lunarX) * SPRING - _lunarVX * DAMP) * dt;
+  _lunarVY += ((_lunarTargY - _lunarY) * SPRING - _lunarVY * DAMP) * dt;
+  _lunarX += _lunarVX * dt; _lunarY += _lunarVY * dt;
+  const spd = Math.hypot(_lunarVX, _lunarVY);
+
+  // emit stardust trail
+  _lunarEmit += dt * (8 + spd * 0.03);
+  while (_lunarEmit > 1) {
+    _lunarEmit -= 1;
+    if (_lunarDust.length > 200) break;
+    const a = Math.random() * Math.PI * 2, s = 6 + Math.random() * 18;
+    _lunarDust.push({ x: _lunarX + (Math.random() - 0.5) * 12, y: _lunarY + (Math.random() - 0.5) * 12,
+      vx: Math.cos(a) * s - _lunarVX * 0.04, vy: Math.sin(a) * s - _lunarVY * 0.04,
+      life: 1, sz: 1.2 + Math.random() * 2.4, tw: 1 + Math.random() * 3, ph: Math.random() * 6.28, grav: 4 });
+  }
+
+  ctx.globalCompositeOperation = 'lighter';
+  // ripples
+  for (let i = _lunarRings.length - 1; i >= 0; i--) {
+    const r = _lunarRings[i];
+    r.r += 140 * dt; r.life -= dt * 0.9;
+    if (r.life <= 0) { _lunarRings.splice(i, 1); continue; }
+    ctx.strokeStyle = `rgba(186,210,245,${r.life * 0.4})`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+  }
+  // stardust
+  const star = _lunarStarSprite();
+  for (let i = _lunarDust.length - 1; i >= 0; i--) {
+    const p = _lunarDust[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.grav * dt; p.vx *= 0.985; p.life -= dt * 0.6;
+    if (p.life <= 0) { _lunarDust.splice(i, 1); continue; }
+    const a = Math.min(1, p.life) * (0.55 + 0.45 * Math.sin(t * p.tw + p.ph));
+    if (a <= 0.02) continue;
+    ctx.globalAlpha = a;
+    const d = p.sz * 4.5; ctx.drawImage(star, p.x - d / 2, p.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // crescent companion at the head
+  const cr = _lunarCrescentSprite();
+  const glow = ctx.createRadialGradient(_lunarX, _lunarY, 0, _lunarX, _lunarY, 34);
+  glow.addColorStop(0, 'rgba(180,205,240,0.5)');
+  glow.addColorStop(1, 'rgba(120,150,200,0)');
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(_lunarX, _lunarY, 34, 0, Math.PI * 2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.save();
+  ctx.translate(_lunarX, _lunarY);
+  ctx.rotate(-0.3 + Math.sin(t * 0.8) * 0.12 + Math.max(-0.3, Math.min(0.3, _lunarVX / 600)));
+  ctx.globalAlpha = 0.96;
+  ctx.drawImage(cr, -16, -16, 32, 32);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+function _startLunarOverlay() {
+  _stopLunarOverlay();
+  _drawLunarOverlay._lt = undefined;
+  _lunarX = _lunarTargX = window.innerWidth * 0.5;
+  _lunarY = _lunarTargY = window.innerHeight * 0.5;
+  _lunarVX = _lunarVY = 0; _lunarDust = []; _lunarRings = []; _lunarEmit = 0;
+  window.addEventListener('mousemove', _lunarMouseMove);
+  window.addEventListener('click', _lunarClick);
+  const cv = document.createElement('canvas');
+  cv.id = 'lunar-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('lunar-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawLunarOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _lunarOverlayRafId = requestAnimationFrame(frame);
+  }
+  _lunarOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopLunarOverlay() {
+  if (_lunarOverlayRafId) { cancelAnimationFrame(_lunarOverlayRafId); _lunarOverlayRafId = null; }
+  window.removeEventListener('mousemove', _lunarMouseMove);
+  window.removeEventListener('click', _lunarClick);
+  const cv = document.getElementById('lunar-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// HELIOS — god of the sun. Aggressive, voracious, blinding sun rays.
+// ════════════════════════════════════════════════════════════════
+function _heliosSparkSprite() {
+  if (_heliosSparkSprite._c) return _heliosSparkSprite._c;
+  const s = document.createElement('canvas'); s.width = s.height = 32;
+  const g = s.getContext('2d');
+  const rg = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  rg.addColorStop(0, 'rgba(255,250,225,1)');
+  rg.addColorStop(0.4, 'rgba(255,180,60,0.85)');
+  rg.addColorStop(1, 'rgba(200,80,10,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, 32, 32);
+  return _heliosSparkSprite._c = s;
+}
+function _helNewSpark(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : H + Math.random() * 30,
+    vy: 40 + Math.random() * 120, r: 1.5 + Math.random() * 4, a: 0.4 + Math.random() * 0.6,
+    sw: 0.6 + Math.random() * 1.6, sa: 8 + Math.random() * 20, ph: Math.random() * 6.28,
+    ff: 4 + Math.random() * 6, flick: 1 };
+}
+// Long radiating rays from a common apex; flat additive triangles overlap near
+// the apex → a naturally bright, blinding core that fades outward. Aggressive
+// per-ray throb.
+function _heliosRays(ctx, cx, cy, len, t, count, spin, speed, widthF) {
+  for (let i = 0; i < count; i++) {
+    const a = spin + t * speed + i * (Math.PI * 2 / count);
+    const pulse = 0.5 + 0.5 * Math.sin(t * 2.6 + i * 1.7);
+    const half = (Math.PI / count) * widthF * (0.45 + 0.55 * pulse);
+    const al = 0.045 + 0.16 * pulse;
+    ctx.fillStyle = `rgba(255,${(170 + pulse * 60) | 0},${(40 + pulse * 45) | 0},${al})`;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a - half) * len, cy + Math.sin(a - half) * len);
+    ctx.lineTo(cx + Math.cos(a + half) * len, cy + Math.sin(a + half) * len);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+// Big pyramid silhouettes grounded at the very bottom, backlit by the sun.
+function _helDrawPyramids(ctx, W, H) {
+  ctx.fillStyle = 'rgba(6,3,1,0.97)';
+  for (const [pf, hf, wf] of [[0.5, 0.40, 1.0], [0.24, 0.28, 0.95], [0.78, 0.31, 0.95], [0.07, 0.2, 0.9], [0.93, 0.22, 0.9]]) {
+    const px = W * pf, ph = H * hf, half = ph * wf;
+    ctx.beginPath(); ctx.moveTo(px, H - ph); ctx.lineTo(px - half, H + 2); ctx.lineTo(px + half, H + 2); ctx.closePath(); ctx.fill();
+  }
+}
+
+function _drawHeliosPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawHeliosPattern._lt === undefined;
+  if (!fresh && t - _drawHeliosPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawHeliosPattern._lt, 0.05);
+  _drawHeliosPattern._lt = t;
+  if (fresh) canvas._helFlare = null;   // solar flare uses absolute time → reset on (re)entry
+
+  if (canvas._helW !== W || canvas._helH !== H) {
+    canvas._helW = W; canvas._helH = H;
+    canvas._helBase = null; canvas._helVign = null; canvas._helSparks = null;
+  }
+  const cx = W * 0.5, cy = H * 0.32, rayLen = Math.hypot(W, H);
+  const sr = Math.min(W, H) * 0.13;
+  const throb = 0.5 + 0.5 * Math.sin(t * 2.2);   // aggressive heartbeat
+
+  // 1 ── Scorched warm base
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  if (!canvas._helBase) {
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.95);
+    g.addColorStop(0, '#241405'); g.addColorStop(0.5, '#160c03'); g.addColorStop(1, '#080401');
+    canvas._helBase = g;
+  }
+  ctx.fillStyle = canvas._helBase; ctx.fillRect(0, 0, W, H);
+
+  // 2 ── Strong rotating sun rays (two layers — bold long spears + a dense fan)
+  ctx.globalCompositeOperation = 'lighter';
+  _heliosRays(ctx, cx, cy, rayLen, t, 26, 0, 0.09, 0.8);
+  _heliosRays(ctx, cx, cy, rayLen, t, 10, 0.4, -0.05, 0.35);   // long bright spears, counter-spin
+
+  // 3 ── Blazing sun: corona glow + churning disc + white-hot core
+  const cg = ctx.createRadialGradient(cx, cy, sr * 0.3, cx, cy, sr * 3.4);
+  cg.addColorStop(0, `rgba(255,212,120,${0.6 + throb * 0.32})`);
+  cg.addColorStop(0.4, `rgba(255,140,40,${0.28 + throb * 0.2})`);
+  cg.addColorStop(1, 'rgba(255,90,20,0)');
+  ctx.fillStyle = cg; ctx.fillRect(0, 0, W, H);
+  // churning surface flares around the rim (voracious)
+  for (let i = 0; i < 6; i++) {
+    const a = t * 0.5 + i * (Math.PI * 2 / 6);
+    const fx = cx + Math.cos(a) * sr * 0.7, fy = cy + Math.sin(a) * sr * 0.7;
+    const fr = sr * (0.35 + 0.2 * Math.sin(t * 3 + i));
+    const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, fr);
+    fg.addColorStop(0, 'rgba(255,225,150,0.5)'); fg.addColorStop(1, 'rgba(255,150,50,0)');
+    ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
+  }
+  // disc
+  const dg = ctx.createRadialGradient(cx, cy, 0, cx, cy, sr * (1 + throb * 0.07));
+  dg.addColorStop(0, 'rgba(255,252,240,1)');
+  dg.addColorStop(0.55, 'rgba(255,205,95,0.96)');
+  dg.addColorStop(1, 'rgba(255,140,40,0.55)');
+  ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(cx, cy, sr * (1 + throb * 0.07), 0, Math.PI * 2); ctx.fill();
+
+  // 4 ── Solar flare eruption (occasional, re-entry safe)
+  {
+    let fl = canvas._helFlare;
+    if (!fl || t < fl.born) canvas._helFlare = fl = { next: t + 1.5 + Math.random() * 3, born: -99, dur: 0.7, ang: 0, reach: sr };
+    if (t > fl.next) {
+      fl.born = t; fl.dur = 0.55 + Math.random() * 0.45; fl.next = t + 2.5 + Math.random() * 4;
+      fl.ang = Math.random() * Math.PI * 2; fl.reach = sr * (1.4 + Math.random() * 1.6);
+    }
+    const age = t - fl.born;
+    if (age >= 0 && age < fl.dur) {
+      const p = age / fl.dur, a = Math.sin(p * Math.PI);
+      const ox = cx + Math.cos(fl.ang) * sr * 0.85, oy = cy + Math.sin(fl.ang) * sr * 0.85;
+      const rr = fl.reach * p + 1;
+      const rg = ctx.createRadialGradient(ox, oy, 0, ox, oy, rr);
+      rg.addColorStop(0, 'rgba(255,235,170,0)');
+      rg.addColorStop(0.7, `rgba(255,195,85,${a * 0.5})`);
+      rg.addColorStop(1, 'rgba(255,140,40,0)');
+      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(ox, oy, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(255,175,65,${a * 0.05})`; ctx.fillRect(0, 0, W, H);   // screen flash
+    }
+  }
+
+  // 5 ── Rising sparks (cached sprite)
+  if (!canvas._helSparks) canvas._helSparks = Array.from({ length: 60 }, () => _helNewSpark(W, H, true));
+  const spr = _heliosSparkSprite();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const e of canvas._helSparks) {
+    e.y -= e.vy * dt; e.x += Math.sin(t * e.sw + e.ph) * e.sa * dt;
+    e.flick = 0.5 + 0.5 * Math.sin(t * e.ff + e.ph);
+    if (e.y < -12) Object.assign(e, _helNewSpark(W, H, false));
+    ctx.globalAlpha = Math.min(1, e.flick * e.a);
+    const d = e.r * 3.2; ctx.drawImage(spr, e.x - d / 2, e.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 5.5 ── Pyramid silhouettes on the desert horizon (backlit)
+  ctx.globalCompositeOperation = 'source-over';
+  _helDrawPyramids(ctx, W, H);
+
+  // 6 ── Warm vignette
+  if (!canvas._helVign) {
+    const vg = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.25, cx, cy, Math.max(W, H) * 0.8);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(12,4,0,0.82)');
+    canvas._helVign = vg;
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = canvas._helVign; ctx.fillRect(0, 0, W, H);
+}
+
+// ── Cursor: a blazing little sun with its own rotating rays + spark trail.
+// Click → an aggressive solar burst (sparks + shockwave + flash). ──
+function _heliosMouseMove(e) { _heliosTargX = e.clientX; _heliosTargY = e.clientY; }
+function _heliosClick() {
+  _heliosFlareT = 1.0;
+  _heliosRings.push({ x: _heliosX, y: _heliosY, r: 8, life: 1 });
+  for (let i = 0; i < 30; i++) {
+    const a = Math.random() * Math.PI * 2, s = 120 + Math.random() * 320;
+    _heliosSparks.push({ x: _heliosX, y: _heliosY, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+      life: 1, r: 2 + Math.random() * 4, burst: true });
+  }
+}
+function _drawHeliosOverlay(canvas, ctx, W, H, t) {
+  if (_drawHeliosOverlay._lt !== undefined && t - _drawHeliosOverlay._lt < 0.033) return;
+  const dt = _drawHeliosOverlay._lt === undefined ? 0.016 : Math.min(t - _drawHeliosOverlay._lt, 0.05);
+  _drawHeliosOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const SPRING = 175, DAMP = 16;   // aggressive, snappy
+  _heliosVX += ((_heliosTargX - _heliosX) * SPRING - _heliosVX * DAMP) * dt;
+  _heliosVY += ((_heliosTargY - _heliosY) * SPRING - _heliosVY * DAMP) * dt;
+  _heliosX += _heliosVX * dt; _heliosY += _heliosVY * dt;
+  _heliosFlareT = Math.max(0, _heliosFlareT - dt * 2.4);
+  const spd = Math.hypot(_heliosVX, _heliosVY);
+
+  // spark trail
+  _heliosEmit += dt * (22 + spd * 0.06);
+  while (_heliosEmit > 1) {
+    _heliosEmit -= 1;
+    if (_heliosSparks.length > 380) break;
+    const a = Math.random() * Math.PI * 2, s = 14 + Math.random() * 50;
+    _heliosSparks.push({ x: _heliosX + (Math.random() - 0.5) * 10, y: _heliosY + (Math.random() - 0.5) * 10,
+      vx: Math.cos(a) * s - _heliosVX * 0.05, vy: Math.sin(a) * s - _heliosVY * 0.05,
+      life: 1, r: 1.5 + Math.random() * 3, burst: false });
+  }
+
+  const spr = _heliosSparkSprite();
+  ctx.globalCompositeOperation = 'lighter';
+  // shockwave rings
+  for (let i = _heliosRings.length - 1; i >= 0; i--) {
+    const r = _heliosRings[i];
+    r.r += 480 * dt; r.life -= dt * 1.7;
+    if (r.life <= 0) { _heliosRings.splice(i, 1); continue; }
+    ctx.strokeStyle = `rgba(255,200,90,${r.life * 0.55})`; ctx.lineWidth = 3 + r.life * 4;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+  }
+  // sparks
+  for (let i = _heliosSparks.length - 1; i >= 0; i--) {
+    const e = _heliosSparks[i];
+    e.x += e.vx * dt; e.y += e.vy * dt; e.vy += (e.burst ? 90 : 40) * dt;
+    e.life -= dt * (e.burst ? 1.2 : 1.7);
+    if (e.life <= 0) { _heliosSparks.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, e.life);
+    const d = e.r * 3.6; ctx.drawImage(spr, e.x - d / 2, e.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // blazing sun head with rotating mini-rays
+  const flare = 1 + _heliosFlareT * 1.4;
+  _heliosRays(ctx, _heliosX, _heliosY, (34 + Math.sin(t * 6) * 4) * flare, t, 14, t * 0.6, 0.0, 0.5);
+  const og = ctx.createRadialGradient(_heliosX, _heliosY, 0, _heliosX, _heliosY, 22 * flare);
+  og.addColorStop(0, 'rgba(255,248,225,0.95)');
+  og.addColorStop(0.4, 'rgba(255,170,60,0.6)');
+  og.addColorStop(1, 'rgba(220,90,15,0)');
+  ctx.fillStyle = og; ctx.beginPath(); ctx.arc(_heliosX, _heliosY, 22 * flare, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,252,238,0.95)'; ctx.beginPath(); ctx.arc(_heliosX, _heliosY, 5 * flare, 0, Math.PI * 2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+}
+function _startHeliosOverlay() {
+  _stopHeliosOverlay();
+  _drawHeliosOverlay._lt = undefined;
+  _heliosX = _heliosTargX = window.innerWidth * 0.5;
+  _heliosY = _heliosTargY = window.innerHeight * 0.5;
+  _heliosVX = _heliosVY = 0; _heliosSparks = []; _heliosRings = []; _heliosFlareT = 0; _heliosEmit = 0;
+  window.addEventListener('mousemove', _heliosMouseMove);
+  window.addEventListener('click', _heliosClick);
+  const cv = document.createElement('canvas');
+  cv.id = 'helios-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('helios-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawHeliosOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _heliosOverlayRafId = requestAnimationFrame(frame);
+  }
+  _heliosOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopHeliosOverlay() {
+  if (_heliosOverlayRafId) { cancelAnimationFrame(_heliosOverlayRafId); _heliosOverlayRafId = null; }
+  window.removeEventListener('mousemove', _heliosMouseMove);
+  window.removeEventListener('click', _heliosClick);
+  const cv = document.getElementById('helios-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -4679,6 +5817,10 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'adam_ice')       { _drawAdamPattern(canvas, ctx, W, H, t, params);       return; }
   if (type === 'fury_fire')      { _drawFuryPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'juko_code')      { _drawJukoPattern(canvas, ctx, W, H, t);               return; }
+  if (type === 'lucifer_unleashed') { _drawLuciferPattern(canvas, ctx, W, H, t);         return; }
+  if (type === 'shi_souls')      { _drawShiPattern(canvas, ctx, W, H, t);                 return; }
+  if (type === 'lunar_moon')     { _drawLunarPattern(canvas, ctx, W, H, t);               return; }
+  if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -5135,6 +6277,14 @@ function startBgAnim(type, params) {
   _drawFuryOverlay._lt        = undefined;
   _drawJukoPattern._lt        = undefined;
   _drawJukoOverlay._lt        = undefined;
+  _drawLuciferPattern._lt     = undefined;
+  _drawLuciferOverlay._lt     = undefined;
+  _drawShiPattern._lt         = undefined;
+  _drawShiOverlay._lt         = undefined;
+  _drawLunarPattern._lt       = undefined;
+  _drawLunarOverlay._lt       = undefined;
+  _drawHeliosPattern._lt      = undefined;
+  _drawHeliosOverlay._lt      = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -5161,6 +6311,10 @@ function stopBgAnim() {
   _stopAdamOverlay();
   _stopFuryOverlay();
   _stopJukoOverlay();
+  _stopLuciferOverlay();
+  _stopShiOverlay();
+  _stopLunarOverlay();
+  _stopHeliosOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -5645,15 +6799,19 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); }
-  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); }
-  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); }
+  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); }
+  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
+  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
+  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
+  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
   {
@@ -5682,6 +6840,86 @@ function viewChar(id) {
       _cvRoot.classList.remove('juko-ui');
       if (_av) { _av.classList.remove('juko-pfp'); const fx = _av.querySelector('.juko-pfp-fx'); if (fx) fx.remove(); }
       if (_nm) { _nm.classList.remove('juko-name'); _nm.removeAttribute('data-text'); }
+    }
+  }
+
+  // ── Lucifer · Unleashed — demonic UI chrome (infernal panels, hellish pfp,
+  // menacing glitching name). Only while the Unleashed form is active. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isLuciferUnleashed(c)) {
+      _cvRoot.classList.add('lucifer-ui');
+      if (_av) _av.classList.add('lucifer-pfp');
+      if (_nm) { _nm.classList.add('lucifer-name'); _nm.setAttribute('data-text', _nm.textContent || 'LUCIFER'); }
+      if (_pc) _pc.style.opacity = '0.9';   // the hellscape should DOMINATE, not whisper
+    } else {
+      _cvRoot.classList.remove('lucifer-ui');
+      if (_av) _av.classList.remove('lucifer-pfp');
+      if (_nm) { _nm.classList.remove('lucifer-name'); if (!_nm.classList.contains('juko-name')) _nm.removeAttribute('data-text'); }
+      if (_pc) _pc.style.opacity = '';      // back to the default subtle 0.3
+    }
+  }
+
+  // ── The Shi — elegant soul-garden UI chrome (frost-pale panels, ethereal
+  // breathing name, spectral portrait). Character-wide. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isShi(c)) {
+      _cvRoot.classList.add('shi-ui');
+      if (_av) _av.classList.add('shi-pfp');
+      if (_nm) { _nm.classList.add('shi-name'); _nm.setAttribute('data-text', _nm.textContent || 'THE SHI'); }
+      if (_pc) _pc.style.opacity = '0.6';   // ethereal but present
+    } else {
+      _cvRoot.classList.remove('shi-ui');
+      if (_av) _av.classList.remove('shi-pfp');
+      if (_nm) { _nm.classList.remove('shi-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Lunar — moonlit UI chrome (deep-blue panels, silver breathing name,
+  // moonlit portrait). Character-wide. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isLunar(c)) {
+      _cvRoot.classList.add('lunar-ui');
+      if (_av) _av.classList.add('lunar-pfp');
+      if (_nm) { _nm.classList.add('lunar-name'); _nm.setAttribute('data-text', _nm.textContent || 'LUNAR'); }
+      if (_pc) _pc.style.opacity = '0.7';
+    } else {
+      _cvRoot.classList.remove('lunar-ui');
+      if (_av) _av.classList.remove('lunar-pfp');
+      if (_nm) { _nm.classList.remove('lunar-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Helios — blazing solar UI chrome (molten-gold panels, fierce radiant
+  // name, sun-forged portrait). Character-wide. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isHelios(c)) {
+      _cvRoot.classList.add('helios-ui');
+      if (_av) _av.classList.add('helios-pfp');
+      if (_nm) { _nm.classList.add('helios-name'); _nm.setAttribute('data-text', _nm.textContent || 'HELIOS'); }
+      if (_pc) _pc.style.opacity = '0.85';   // blinding
+    } else {
+      _cvRoot.classList.remove('helios-ui');
+      if (_av) _av.classList.remove('helios-pfp');
+      if (_nm) { _nm.classList.remove('helios-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c)) _pc.style.opacity = '';
     }
   }
   const statsEl = document.getElementById('cv-stats');
@@ -5723,10 +6961,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'juko_code' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -5742,6 +6980,10 @@ function viewChar(id) {
   if (_isAdam(c))     _startAdamOverlay();
   if (_isFury(c))     _startFuryOverlay();
   if (_isJuko(c))     _startJukoOverlay();
+  if (_isLuciferUnleashed(c)) _startLuciferOverlay();
+  if (_isShi(c))      _startShiOverlay();
+  if (_isLunar(c))    _startLunarOverlay();
+  if (_isHelios(c))   _startHeliosOverlay();
 
   renderInventory(c);
   renderTraitsDisplay(c);
@@ -10783,7 +12025,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -10794,6 +12036,10 @@ window.addEventListener('resize', () => {
       if (_isAdam(c))     _startAdamOverlay();
       if (_isFury(c))     _startFuryOverlay();
       if (_isJuko(c))     _startJukoOverlay();
+      if (_isLuciferUnleashed(c)) _startLuciferOverlay();
+      if (_isShi(c))      _startShiOverlay();
+      if (_isLunar(c))    _startLunarOverlay();
+      if (_isHelios(c))   _startHeliosOverlay();
     }
   }
 });

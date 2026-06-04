@@ -1403,6 +1403,379 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 /* ============================================================
+   LUCIFER · UNLEASHED — demonic, over-the-top form styling.
+   Crimson + black, molten panels, a menacing flickering name, an
+   infernal portrait. Only applied while the Unleashed form is active.
+   --char-color is forced to crimson by the JS view branch.
+   ============================================================ */
+/* Molten panels: dark glassy fill, glowing crimson frame that pulses
+   (we animate border-color only — cheap — and keep the glow static). */
+#char-view.lucifer-ui .panel {
+  --p-border: #c1110b;
+  border-color: #c1110b;
+  background: linear-gradient(180deg, rgba(20,2,3,0.94), rgba(7,1,2,0.94));
+  box-shadow:
+    0 0 24px rgba(200,22,12,0.5),
+    inset 0 0 30px rgba(120,8,6,0.4),
+    inset 0 0 2px rgba(255,95,45,0.6);
+  animation: luc-edge 2.6s ease-in-out infinite;
+}
+@keyframes luc-edge {
+  0%, 100% { border-color: #8f0d08; }
+  50%      { border-color: #f0281c; }
+}
+/* pulsing inner ember glow (opacity only → compositor-cheap) */
+#char-view.lucifer-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% 115%, rgba(255,80,30,0.22), transparent 62%);
+  mix-blend-mode: screen;   /* only adds light — never darkens the panel content */
+  animation: luc-breathe 2.6s ease-in-out infinite;
+}
+@keyframes luc-breathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+
+/* Section headers + tabs glow infernal */
+#char-view.lucifer-ui .panel-title {
+  color: #ff3b22 !important;
+  letter-spacing: 4px;
+  border-bottom-color: #5a0a06;
+  text-shadow: 0 0 12px rgba(255,50,20,0.85), 0 0 26px rgba(180,10,6,0.5);
+}
+#char-view.lucifer-ui .tab-btn { color: #7a1812; }
+#char-view.lucifer-ui .tab-btn:hover { color: #ff5630; text-shadow: 0 0 12px #b3110c; }
+#char-view.lucifer-ui .tab-btn.active {
+  color: #ff3b22;
+  border-bottom-color: #e0231b;
+  text-shadow: 0 0 16px rgba(255,60,30,0.9);
+}
+
+/* Name: bigger, blood-red, flickering, with a dark echo + molten shudder */
+.char-name-display.lucifer-name {
+  position: relative;
+  color: #ff2b16 !important;
+  font-size: 22px;
+  letter-spacing: 5px;
+  text-shadow:
+    0 0 10px rgba(255,40,18,0.95),
+    0 0 26px rgba(200,12,8,0.7),
+    0 0 52px rgba(120,6,4,0.6);
+  animation: luc-name-flicker 3.2s infinite;
+}
+@keyframes luc-name-flicker {
+  0%, 40%, 44%, 61%, 67%, 100% { opacity: 1; }
+  42% { opacity: 0.5; }
+  63% { opacity: 0.28; }
+  65% { opacity: 0.72; }
+}
+.char-name-display.lucifer-name::before,
+.char-name-display.lucifer-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+}
+.char-name-display.lucifer-name::before {   /* deep-blood echo behind */
+  color: #6a0500;
+  transform: translate(2px, 1px);
+  text-shadow: 0 0 18px rgba(180,10,6,0.85);
+  z-index: -1;
+}
+.char-name-display.lucifer-name::after {    /* ember ghost, shuddering */
+  color: rgba(255,140,40,0.5);
+  mix-blend-mode: screen;
+  animation: luc-name-shudder 2.4s steps(3, end) infinite;
+}
+@keyframes luc-name-shudder {
+  0%, 88%, 100% { transform: translate(-1px, -1px); }
+  90% { transform: translate(-4px, 1px); }
+  94% { transform: translate(3px, -2px); }
+}
+
+/* Portrait: infernal frame, pulsing ember glow + scorched scanlines */
+.char-avatar-large.lucifer-pfp {
+  border-color: #c1110b !important;
+  box-shadow:
+    0 0 26px rgba(220,30,14,0.6),
+    inset 0 0 22px rgba(120,8,6,0.5);
+  animation: luc-edge 2.2s ease-in-out infinite;
+}
+.char-avatar-large.lucifer-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 120%, rgba(255,95,30,0.55), transparent 62%);
+  mix-blend-mode: screen;
+  animation: luc-breathe 2.2s ease-in-out infinite;
+}
+.char-avatar-large.lucifer-pfp::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255,120,50,0.55);
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(120,10,6,0.14) 3px 4px);
+}
+
+/* ============================================================
+   THE SHI — god of death. Silent, mysterious, VERY elegant.
+   Blue / white / gray, beauty-in-death. Restrained, refined,
+   slow breathing glows — nothing loud. --char-color is pale ice.
+   ============================================================ */
+/* Frost-pale panels: dark glassy fill, thin luminous edge, gentle glow */
+#char-view.shi-ui .panel {
+  --p-border: rgba(165,198,224,0.55);
+  border-color: rgba(165,198,224,0.5);
+  background: linear-gradient(180deg, rgba(14,20,30,0.9), rgba(9,13,20,0.92));
+  box-shadow:
+    0 0 22px rgba(120,160,200,0.16),
+    inset 0 0 30px rgba(60,90,120,0.18);
+}
+/* a whisper of light along the top edge */
+#char-view.shi-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(190,216,238,0.08), transparent 38%);
+}
+#char-view.shi-ui .panel-title {
+  color: #d2e4f1 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(130,168,200,0.28);
+  text-shadow: 0 0 14px rgba(155,193,226,0.6);
+}
+#char-view.shi-ui .tab-btn { color: #5f7585; }
+#char-view.shi-ui .tab-btn:hover { color: #cfe2f0; text-shadow: 0 0 12px rgba(150,190,225,0.7); }
+#char-view.shi-ui .tab-btn.active {
+  color: #e3eef6;
+  border-bottom-color: rgba(175,205,230,0.8);
+  text-shadow: 0 0 16px rgba(165,200,230,0.8);
+}
+
+/* Name: serene, spaced, ethereal — a slow breathing glow + soft blurred echo.
+   No glitch; elegance through restraint and stillness. */
+.char-name-display.shi-name {
+  position: relative;
+  color: #e8f1f8 !important;
+  letter-spacing: 8px;
+  font-weight: normal;
+  text-shadow: 0 0 12px rgba(172,207,236,0.8), 0 0 30px rgba(120,160,200,0.5);
+  animation: shi-name-breathe 5.5s ease-in-out infinite;
+}
+@keyframes shi-name-breathe {
+  0%, 100% { opacity: 0.82; text-shadow: 0 0 10px rgba(172,207,236,0.55), 0 0 24px rgba(120,160,200,0.32); }
+  50%      { opacity: 1;    text-shadow: 0 0 16px rgba(196,224,248,0.9),  0 0 42px rgba(140,182,220,0.6); }
+}
+.char-name-display.shi-name::before {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  color: rgba(150,190,225,0.35);
+  filter: blur(3px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Portrait: a quiet spectral frame — pale glow + thin inner line, slow breath */
+.char-avatar-large.shi-pfp {
+  border-color: rgba(174,208,234,0.6) !important;
+  box-shadow: 0 0 24px rgba(130,170,210,0.38), inset 0 0 20px rgba(70,100,135,0.4);
+  animation: shi-pfp-breathe 5.5s ease-in-out infinite;
+}
+@keyframes shi-pfp-breathe {
+  0%, 100% { box-shadow: 0 0 18px rgba(130,170,210,0.3),  inset 0 0 16px rgba(70,100,135,0.35); }
+  50%      { box-shadow: 0 0 32px rgba(160,200,235,0.55), inset 0 0 24px rgba(90,125,160,0.5); }
+}
+.char-avatar-large.shi-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 28%, rgba(192,222,246,0.26), transparent 60%);
+  mix-blend-mode: screen;
+}
+.char-avatar-large.shi-pfp::after {
+  content: "";
+  position: absolute; inset: 4px;
+  pointer-events: none;
+  border: 1px solid rgba(192,222,246,0.32);
+}
+
+/* ============================================================
+   LUNAR — goddess of the moon. Elegant, calm, slightly melancholic.
+   Deep dark blues with silver moonlight. --char-color is moon-blue.
+   ============================================================ */
+#char-view.lunar-ui .panel {
+  --p-border: rgba(122,156,216,0.5);
+  border-color: rgba(122,156,216,0.46);
+  background: linear-gradient(180deg, rgba(11,18,40,0.92), rgba(6,10,24,0.94));
+  box-shadow:
+    0 0 24px rgba(70,105,180,0.2),
+    inset 0 0 32px rgba(30,50,100,0.28);
+}
+/* faint moonlight wash from above */
+#char-view.lunar-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(140% 90% at 80% -20%, rgba(150,180,235,0.1), transparent 55%);
+}
+#char-view.lunar-ui .panel-title {
+  color: #c4d6f2 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(90,125,190,0.3);
+  text-shadow: 0 0 14px rgba(130,165,225,0.6);
+}
+#char-view.lunar-ui .tab-btn { color: #56678f; }
+#char-view.lunar-ui .tab-btn:hover { color: #c7d8f4; text-shadow: 0 0 12px rgba(120,155,225,0.7); }
+#char-view.lunar-ui .tab-btn.active {
+  color: #dbe7fb;
+  border-bottom-color: rgba(140,170,225,0.85);
+  text-shadow: 0 0 16px rgba(135,170,230,0.85);
+}
+
+/* Name: silver, spaced, calm — a slow moonlight shimmer sweeps across it */
+.char-name-display.lunar-name {
+  position: relative;
+  color: #dce6fb !important;
+  letter-spacing: 7px;
+  font-weight: normal;
+  text-shadow: 0 0 12px rgba(140,172,230,0.8), 0 0 32px rgba(80,115,190,0.5);
+  animation: lunar-name-breathe 6s ease-in-out infinite;
+}
+@keyframes lunar-name-breathe {
+  0%, 100% { opacity: 0.84; text-shadow: 0 0 10px rgba(140,172,230,0.55), 0 0 24px rgba(80,115,190,0.32); }
+  50%      { opacity: 1;    text-shadow: 0 0 16px rgba(175,200,245,0.9),  0 0 44px rgba(100,140,210,0.6); }
+}
+/* a slow silver light-sweep across the letters */
+.char-name-display.lunar-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(105deg, transparent 35%, rgba(225,236,255,0.85) 50%, transparent 65%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: lunar-name-sweep 6.5s ease-in-out infinite;
+}
+@keyframes lunar-name-sweep {
+  0%, 100% { background-position: 130% 0; }
+  50%      { background-position: -130% 0; }
+}
+
+/* Portrait: moonlit frame, soft silver-blue glow, slow breath */
+.char-avatar-large.lunar-pfp {
+  border-color: rgba(135,170,225,0.6) !important;
+  box-shadow: 0 0 26px rgba(90,130,200,0.42), inset 0 0 22px rgba(40,65,120,0.45);
+  animation: lunar-pfp-breathe 6s ease-in-out infinite;
+}
+@keyframes lunar-pfp-breathe {
+  0%, 100% { box-shadow: 0 0 20px rgba(90,130,200,0.32),  inset 0 0 18px rgba(40,65,120,0.4); }
+  50%      { box-shadow: 0 0 36px rgba(125,165,235,0.58), inset 0 0 26px rgba(55,85,150,0.55); }
+}
+.char-avatar-large.lunar-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 72% 26%, rgba(180,205,245,0.3), transparent 58%);
+  mix-blend-mode: screen;
+}
+.char-avatar-large.lunar-pfp::after {
+  content: "";
+  position: absolute; inset: 4px;
+  pointer-events: none;
+  border: 1px solid rgba(170,198,240,0.3);
+}
+
+/* ============================================================
+   HELIOS — god of the sun. Strong, intimidating, aggressive,
+   voracious. Molten gold / white-hot, fast fierce pulses.
+   --char-color is blazing amber-gold.
+   ============================================================ */
+#char-view.helios-ui .panel {
+  --p-border: #ff9e1a;
+  border-color: #ff9e1a;
+  background: linear-gradient(180deg, rgba(28,14,2,0.93), rgba(14,7,1,0.94));
+  box-shadow:
+    0 0 26px rgba(255,150,30,0.5),
+    inset 0 0 30px rgba(150,60,8,0.4),
+    inset 0 0 2px rgba(255,210,120,0.6);
+  animation: helios-edge 1.7s ease-in-out infinite;
+}
+@keyframes helios-edge {
+  0%, 100% { border-color: #c96a08; }
+  50%      { border-color: #ffc24a; }
+}
+/* molten heat glow rising from below, fast pulse */
+#char-view.helios-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(130% 80% at 50% 118%, rgba(255,140,30,0.26), transparent 60%);
+  mix-blend-mode: screen;
+  animation: helios-breathe 1.7s ease-in-out infinite;
+}
+@keyframes helios-breathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+#char-view.helios-ui .panel-title {
+  color: #ffc24a !important;
+  letter-spacing: 4px;
+  border-bottom-color: rgba(180,90,12,0.4);
+  text-shadow: 0 0 12px rgba(255,160,40,0.85), 0 0 26px rgba(255,110,20,0.5);
+}
+#char-view.helios-ui .tab-btn { color: #8a5314; }
+#char-view.helios-ui .tab-btn:hover { color: #ffce5e; text-shadow: 0 0 12px #ff9e1a; }
+#char-view.helios-ui .tab-btn.active {
+  color: #ffd066;
+  border-bottom-color: #ffb02a;
+  text-shadow: 0 0 16px rgba(255,170,40,0.9);
+}
+
+/* Name: big, blazing, radiant — fierce fast pulse with a white-hot core glow */
+.char-name-display.helios-name {
+  position: relative;
+  color: #ffd24a !important;
+  font-size: 22px;
+  letter-spacing: 5px;
+  text-shadow:
+    0 0 10px rgba(255,200,80,0.95),
+    0 0 26px rgba(255,140,30,0.75),
+    0 0 52px rgba(255,90,10,0.55);
+  animation: helios-name-blaze 1.8s ease-in-out infinite;
+}
+@keyframes helios-name-blaze {
+  0%, 100% { text-shadow: 0 0 9px rgba(255,200,80,0.7), 0 0 22px rgba(255,140,30,0.5), 0 0 44px rgba(255,90,10,0.4); }
+  50%      { text-shadow: 0 0 16px rgba(255,235,150,1), 0 0 38px rgba(255,165,45,0.85), 0 0 70px rgba(255,110,20,0.65); }
+}
+.char-name-display.helios-name::before {   /* white-hot heat haze behind */
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  color: rgba(255,240,200,0.5);
+  filter: blur(4px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Portrait: sun-forged frame, fierce gold glow, fast pulse */
+.char-avatar-large.helios-pfp {
+  border-color: #ff9e1a !important;
+  box-shadow: 0 0 28px rgba(255,150,30,0.62), inset 0 0 22px rgba(150,60,8,0.5);
+  animation: helios-edge 1.7s ease-in-out infinite;
+}
+.char-avatar-large.helios-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 40%, rgba(255,180,70,0.4), transparent 62%);
+  mix-blend-mode: screen;
+  animation: helios-breathe 1.7s ease-in-out infinite;
+}
+.char-avatar-large.helios-pfp::after {
+  content: "";
+  position: absolute; inset: 3px;
+  pointer-events: none;
+  border: 1px solid rgba(255,205,110,0.55);
+}
+
+/* ============================================================
    PATTERN CANVAS
    ============================================================ */
 #pattern-canvas {
