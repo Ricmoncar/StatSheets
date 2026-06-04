@@ -185,6 +185,15 @@ let _zoeOverlayRafId = null;
 let _zoeX = 0, _zoeY = 0, _zoeTargX = 0, _zoeTargY = 0, _zoeVX = 0, _zoeVY = 0;
 let _zoeParts = [], _zoeRings = [], _zoeEmit = 0;
 
+// ── Iris — starry, shimmyful, joyous magical-girl energy: a twinkling golden
+// sky full of sparkles, glitter, drifting hearts and shooting stars over a warm
+// magical twilight. Character-wide (matches "Iris"). ──
+const _IRIS_RE = /^Iris$/i;
+function _isIris(c) { return !!(c && c.name && _IRIS_RE.test(c.name)); }
+let _irisOverlayRafId = null;
+let _irisX = 0, _irisY = 0, _irisTargX = 0, _irisTargY = 0, _irisVX = 0, _irisVY = 0;
+let _irisParts = [], _irisRings = [], _irisEmit = 0;
+
 // ── Juko! — energetic programmer girl (green code-garden + cat-sprite cursor) ──
 const _JUKO_RE = /^Juko!?$/i;
 function _isJuko(c) { return !!(c && c.name && _JUKO_RE.test(c.name)); }
@@ -1514,6 +1523,7 @@ const PATTERN_DEFS = {
   lunar_moon:       { label: "Lunar · Moonlight",      params: [] },
   helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
   zoe_garden:       { label: "Zoe · Living Garden",    params: [] },
+  iris_starlight:   { label: "Iris · Shimmerlight",    params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -6093,6 +6103,312 @@ function _stopZoeOverlay() {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+// ════════════════════════════════════════════════════════════════
+// IRIS — starry, shimmyful, joyous magical-girl sparkle.
+// ════════════════════════════════════════════════════════════════
+// Cached 4-point sparkle glint (warm gold/white) — drawn scaled for twinkle.
+function _irisSparkleSprite() {
+  if (_irisSparkleSprite._c) return _irisSparkleSprite._c;
+  const s = document.createElement('canvas'); s.width = s.height = 32;
+  const g = s.getContext('2d'); g.translate(16, 16);
+  const rg = g.createRadialGradient(0, 0, 0, 0, 0, 10);
+  rg.addColorStop(0, 'rgba(255,251,215,1)');
+  rg.addColorStop(0.5, 'rgba(255,224,110,0.55)');
+  rg.addColorStop(1, 'rgba(255,200,80,0)');
+  g.fillStyle = rg; g.beginPath(); g.arc(0, 0, 10, 0, Math.PI * 2); g.fill();
+  g.fillStyle = 'rgba(255,252,228,0.95)';
+  for (let k = 0; k < 4; k++) {
+    g.beginPath(); g.moveTo(0, -15); g.lineTo(2, 0); g.lineTo(0, 4); g.lineTo(-2, 0); g.closePath(); g.fill();
+    g.rotate(Math.PI / 2);
+  }
+  return _irisSparkleSprite._c = s;
+}
+function _irisStarPath(ctx, R) {
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = -Math.PI / 2 + i * (Math.PI * 2 / 5), a2 = a + Math.PI / 5;
+    ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R);
+    ctx.lineTo(Math.cos(a2) * R * 0.45, Math.sin(a2) * R * 0.45);
+  }
+  ctx.closePath();
+}
+function _irisNewMote(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : H + Math.random() * 30,
+    vy: 12 + Math.random() * 26, r: 1.5 + Math.random() * 3.5, a: 0.4 + Math.random() * 0.5,
+    sw: 0.4 + Math.random() * 1.2, sa: 6 + Math.random() * 16, ph: Math.random() * 6.28, ff: 2.5 + Math.random() * 4, flick: 1 };
+}
+function _irisNewFall(W, H, scatter) {
+  const vy = 55 + Math.random() * 95;
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : -24 - Math.random() * 60,
+    vx: (Math.random() - 0.5) * 34, vy, fall: vy, sz: 9 + Math.random() * 11,
+    rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 2.4, a: 0.88 + Math.random() * 0.12,
+    explode: scatter ? false : Math.random() < 0.5, explodeY: H * (0.22 + Math.random() * 0.5) };
+}
+// Burst a falling star into smaller stars shooting outward.
+function _irisBurst(canvas, x, y) {
+  if (canvas._irisFrags.length >= 300) return;
+  const n = 6 + (Math.random() * 5 | 0);
+  for (let k = 0; k < n; k++) {
+    const a = Math.random() * Math.PI * 2, spd = 80 + Math.random() * 170;
+    canvas._irisFrags.push({ x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
+      sz: 3.5 + Math.random() * 4, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 9, life: 1 });
+  }
+}
+// A glowing 5-point star with a sparkle halo (cheap: one sprite + two fills).
+function _irisDrawStar(ctx, x, y, sz, rot, alpha) {
+  const spr = _irisSparkleSprite();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = alpha * 0.6;
+  const d = sz * 4.2; ctx.drawImage(spr, x - d / 2, y - d / 2, d, d);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.globalAlpha = alpha;
+  _irisStarPath(ctx, sz); ctx.fillStyle = '#ffd766'; ctx.fill();
+  _irisStarPath(ctx, sz * 0.52); ctx.fillStyle = '#fff4cf'; ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function _drawIrisPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawIrisPattern._lt === undefined;
+  if (!fresh && t - _drawIrisPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawIrisPattern._lt, 0.05);
+  _drawIrisPattern._lt = t;
+  if (fresh) canvas._irisShoot = null;   // shooting star uses absolute time → reset on (re)entry
+
+  if (canvas._irisW !== W || canvas._irisH !== H) {
+    canvas._irisW = W; canvas._irisH = H;
+    canvas._irisBase = null; canvas._irisVign = null; canvas._irisStars = null;
+    canvas._irisBig = null; canvas._irisMotes = null;
+    canvas._irisFalls = null; canvas._irisFrags = null;
+  }
+  const shimmer = 0.5 + 0.5 * Math.sin(t * 1.1);
+  const spr = _irisSparkleSprite();
+
+  // 1 ── Warm magical twilight base (gold heart → plum edges)
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  if (!canvas._irisBase) {
+    const g = ctx.createRadialGradient(W * 0.5, H * 0.42, 0, W * 0.5, H * 0.42, Math.max(W, H) * 0.9);
+    g.addColorStop(0, '#3a2c12'); g.addColorStop(0.5, '#241433'); g.addColorStop(1, '#160a20');
+    canvas._irisBase = g;
+  }
+  ctx.fillStyle = canvas._irisBase; ctx.fillRect(0, 0, W, H);
+
+  // 2 ── Twinkling star field
+  if (!canvas._irisStars) {
+    canvas._irisStars = Array.from({ length: 130 }, () => ({
+      x: Math.random() * W, y: Math.random() * H, sz: 1.6 + Math.random() * 3.4,
+      tw: 1 + Math.random() * 3, ph: Math.random() * 6.28, base: 0.4 + Math.random() * 0.6,
+    }));
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const s of canvas._irisStars) {
+    const a = s.base * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * s.tw + s.ph)));
+    ctx.globalAlpha = a;
+    const d = s.sz * 3.4; ctx.drawImage(spr, s.x - d / 2, s.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 3 ── Big shimmyful sparkles (slow twinkle, prominent glitter)
+  if (!canvas._irisBig) {
+    canvas._irisBig = Array.from({ length: 16 }, () => ({
+      x: Math.random() * W, y: Math.random() * H, sz: 8 + Math.random() * 12,
+      tw: 0.6 + Math.random() * 1.4, ph: Math.random() * 6.28, spin: (Math.random() - 0.5) * 0.4, rot: Math.random() * 6.28,
+    }));
+  }
+  for (const s of canvas._irisBig) {
+    s.rot += s.spin * dt;
+    const pulse = 0.5 + 0.5 * Math.sin(t * s.tw + s.ph);
+    ctx.globalAlpha = 0.3 + pulse * 0.7;
+    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot);
+    const d = s.sz * (1.6 + pulse * 1.2) * 2;
+    ctx.drawImage(spr, -d / 2, -d / 2, d, d);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // 4 ── Rising glitter motes
+  if (!canvas._irisMotes) canvas._irisMotes = Array.from({ length: 30 }, () => _irisNewMote(W, H, true));
+  for (const m of canvas._irisMotes) {
+    m.y -= m.vy * dt; m.x += Math.sin(t * m.sw + m.ph) * m.sa * dt;
+    m.flick = 0.5 + 0.5 * Math.sin(t * m.ff + m.ph);
+    if (m.y < -12) Object.assign(m, _irisNewMote(W, H, false));
+    ctx.globalAlpha = Math.min(1, m.flick * m.a);
+    const d = m.r * 3.6; ctx.drawImage(spr, m.x - d / 2, m.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // 5.5 ── Falling 5-point stars; some burst into smaller stars shooting out.
+  // The cursor (read in canvas-local space) draws nearby stars toward your wand
+  // and pops any it touches — interactive sparkle-catching.
+  if (!canvas._irisFalls) canvas._irisFalls = Array.from({ length: 10 }, () => _irisNewFall(W, H, true));
+  if (!canvas._irisFrags) canvas._irisFrags = [];
+  let mx = -99999, my = -99999;
+  if (_irisOverlayRafId) { const rc = canvas.getBoundingClientRect(); mx = _irisTargX - rc.left; my = _irisTargY - rc.top; }
+  const PULL = 130, POP = 30;
+  for (const f of canvas._irisFalls) {
+    const dx = f.x - mx, dy = f.y - my, dist = Math.hypot(dx, dy);
+    if (dist < POP) { _irisBurst(canvas, f.x, f.y); Object.assign(f, _irisNewFall(W, H, false)); continue; }
+    if (dist < PULL) {                                  // gently drawn toward the wand
+      const k = (1 - dist / PULL) / (dist + 0.001);
+      f.vx -= dx * k * 620 * dt; f.vy -= dy * k * 620 * dt;
+    }
+    f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.vr * dt;
+    f.vx += (0 - f.vx) * dt * 1.1;                      // ease back to a calm fall
+    f.vy += (f.fall - f.vy) * dt * 1.1;
+    if (f.explode && f.y >= f.explodeY) { _irisBurst(canvas, f.x, f.y); Object.assign(f, _irisNewFall(W, H, false)); continue; }
+    if (f.y > H + 30 || f.y < -120 || f.x < -120 || f.x > W + 120) Object.assign(f, _irisNewFall(W, H, false));
+    _irisDrawStar(ctx, f.x, f.y, f.sz, f.rot, f.a);
+  }
+  for (let i = canvas._irisFrags.length - 1; i >= 0; i--) {
+    const p = canvas._irisFrags[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 70 * dt; p.vx *= 0.99; p.rot += p.vr * dt; p.life -= dt * 1.3;
+    if (p.life <= 0) { canvas._irisFrags.splice(i, 1); continue; }
+    _irisDrawStar(ctx, p.x, p.y, p.sz, p.rot, Math.min(1, p.life) * 0.95);
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+
+  // 6 ── Occasional shooting star (re-entry safe)
+  {
+    let sh = canvas._irisShoot;
+    if (!sh || t < sh.born) canvas._irisShoot = sh = { next: t + 1.5 + Math.random() * 3, born: -99, dur: 0.9, x0: 0, y0: 0, ang: 0, len: 0 };
+    if (t > sh.next) {
+      sh.born = t; sh.dur = 0.7 + Math.random() * 0.5; sh.next = t + 3 + Math.random() * 5;
+      sh.x0 = W * (0.08 + Math.random() * 0.6); sh.y0 = H * (0.04 + Math.random() * 0.3);
+      sh.ang = Math.PI * (0.12 + Math.random() * 0.2); sh.len = Math.min(W, H) * (0.45 + Math.random() * 0.3);
+    }
+    const age = t - sh.born;
+    if (age >= 0 && age < sh.dur) {
+      const prog = age / sh.dur;
+      const hx = sh.x0 + Math.cos(sh.ang) * sh.len * prog, hy = sh.y0 + Math.sin(sh.ang) * sh.len * prog;
+      const trail = 80, tx = hx - Math.cos(sh.ang) * trail, ty = hy - Math.sin(sh.ang) * trail;
+      const a = Math.sin(prog * Math.PI);
+      const g = ctx.createLinearGradient(tx, ty, hx, hy);
+      g.addColorStop(0, 'rgba(255,240,180,0)'); g.addColorStop(1, `rgba(255,246,205,${a * 0.9})`);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = g; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+      const d = 12; ctx.globalAlpha = a; ctx.drawImage(spr, hx - d / 2, hy - d / 2, d, d); ctx.globalAlpha = 1;
+    }
+  }
+
+  // 7 ── Soft warm vignette
+  if (!canvas._irisVign) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.82);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(14,6,20,0.72)');
+    canvas._irisVign = vg;
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = canvas._irisVign; ctx.fillRect(0, 0, W, H);
+}
+
+// ── Cursor: a spinning golden star wand trailing glitter; click bursts sparkles
+// + hearts + a twinkle ring. ──
+function _irisMouseMove(e) { _irisTargX = e.clientX; _irisTargY = e.clientY; }
+function _irisClick() {
+  _irisRings.push({ x: _irisX, y: _irisY, r: 6, life: 1 });
+  for (let i = 0; i < 24; i++) {
+    const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 190;
+    _irisParts.push({ x: _irisX, y: _irisY, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1,
+      sz: 4 + Math.random() * 6, grav: 50, tw: 2 + Math.random() * 4, ph: Math.random() * 6.28 });
+  }
+}
+function _drawIrisOverlay(canvas, ctx, W, H, t) {
+  if (_drawIrisOverlay._lt !== undefined && t - _drawIrisOverlay._lt < 0.033) return;
+  const dt = _drawIrisOverlay._lt === undefined ? 0.016 : Math.min(t - _drawIrisOverlay._lt, 0.05);
+  _drawIrisOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const SPRING = 70, DAMP = 12;
+  _irisVX += ((_irisTargX - _irisX) * SPRING - _irisVX * DAMP) * dt;
+  _irisVY += ((_irisTargY - _irisY) * SPRING - _irisVY * DAMP) * dt;
+  _irisX += _irisVX * dt; _irisY += _irisVY * dt;
+  const spd = Math.hypot(_irisVX, _irisVY);
+
+  // glitter trail
+  _irisEmit += dt * (16 + spd * 0.06);
+  while (_irisEmit > 1) {
+    _irisEmit -= 1;
+    if (_irisParts.length > 260) break;
+    const a = Math.random() * Math.PI * 2, s = 8 + Math.random() * 26;
+    _irisParts.push({ x: _irisX + (Math.random() - 0.5) * 12, y: _irisY + (Math.random() - 0.5) * 12,
+      vx: Math.cos(a) * s - _irisVX * 0.05, vy: Math.sin(a) * s - _irisVY * 0.05, life: 1,
+      sz: 3 + Math.random() * 5, rot: 0, vr: 0, heart: false, grav: 24, tw: 2 + Math.random() * 4, ph: Math.random() * 6.28 });
+  }
+
+  const spr = _irisSparkleSprite();
+  // twinkle rings
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _irisRings.length - 1; i >= 0; i--) {
+    const r = _irisRings[i];
+    r.r += 260 * dt; r.life -= dt * 1.3;
+    if (r.life <= 0) { _irisRings.splice(i, 1); continue; }
+    ctx.strokeStyle = `rgba(255,235,150,${r.life * 0.5})`; ctx.lineWidth = 2 + r.life * 3;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+  }
+  // particles
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _irisParts.length - 1; i >= 0; i--) {
+    const p = _irisParts[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.grav * dt; p.vx *= 0.98; p.life -= dt * 0.7;
+    if (p.life <= 0) { _irisParts.splice(i, 1); continue; }
+    const a = Math.min(1, p.life);
+    ctx.globalAlpha = a * (0.6 + 0.4 * Math.sin(t * p.tw + p.ph));
+    const d = p.sz * 3.4; ctx.drawImage(spr, p.x - d / 2, p.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+
+  // spinning star wand at the head
+  ctx.globalCompositeOperation = 'lighter';
+  const pr = 14 + Math.sin(t * 4) * 2;
+  const og = ctx.createRadialGradient(_irisX, _irisY, 0, _irisX, _irisY, pr * 2.6);
+  og.addColorStop(0, 'rgba(255,250,210,0.9)');
+  og.addColorStop(0.4, 'rgba(255,215,90,0.55)');
+  og.addColorStop(1, 'rgba(255,180,60,0)');
+  ctx.fillStyle = og; ctx.beginPath(); ctx.arc(_irisX, _irisY, pr * 2.6, 0, Math.PI * 2); ctx.fill();
+  ctx.save(); ctx.translate(_irisX, _irisY); ctx.rotate(t * 1.6);
+  _irisStarPath(ctx, pr);
+  const sg = ctx.createLinearGradient(0, -pr, 0, pr);
+  sg.addColorStop(0, 'rgba(255,250,225,0.98)'); sg.addColorStop(1, 'rgba(255,205,80,0.95)');
+  ctx.fillStyle = sg; ctx.fill();
+  ctx.restore();
+  ctx.globalCompositeOperation = 'source-over';
+}
+function _startIrisOverlay() {
+  _stopIrisOverlay();
+  _drawIrisOverlay._lt = undefined;
+  _irisX = _irisTargX = window.innerWidth * 0.5;
+  _irisY = _irisTargY = window.innerHeight * 0.5;
+  _irisVX = _irisVY = 0; _irisParts = []; _irisRings = []; _irisEmit = 0;
+  window.addEventListener('mousemove', _irisMouseMove);
+  window.addEventListener('click', _irisClick);
+  const cv = document.createElement('canvas');
+  cv.id = 'iris-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('iris-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawIrisOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _irisOverlayRafId = requestAnimationFrame(frame);
+  }
+  _irisOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopIrisOverlay() {
+  if (_irisOverlayRafId) { cancelAnimationFrame(_irisOverlayRafId); _irisOverlayRafId = null; }
+  window.removeEventListener('mousemove', _irisMouseMove);
+  window.removeEventListener('click', _irisClick);
+  const cv = document.getElementById('iris-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -6112,6 +6428,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'lunar_moon')     { _drawLunarPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'zoe_garden')     { _drawZoePattern(canvas, ctx, W, H, t);                 return; }
+  if (type === 'iris_starlight') { _drawIrisPattern(canvas, ctx, W, H, t);                return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -6578,6 +6895,8 @@ function startBgAnim(type, params) {
   _drawHeliosOverlay._lt      = undefined;
   _drawZoePattern._lt         = undefined;
   _drawZoeOverlay._lt         = undefined;
+  _drawIrisPattern._lt        = undefined;
+  _drawIrisOverlay._lt        = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -6609,6 +6928,7 @@ function stopBgAnim() {
   _stopLunarOverlay();
   _stopHeliosOverlay();
   _stopZoeOverlay();
+  _stopIrisOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -7093,20 +7413,21 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); }
-  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); }
-  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
-  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
-  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
-  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
-  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); }
+  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); }
+  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
+  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
+  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
+  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
+  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
+  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffd633'); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
   {
@@ -7237,6 +7558,26 @@ function viewChar(id) {
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c)) _pc.style.opacity = '';
     }
   }
+
+  // ── Iris — shimmyful magical-girl UI chrome (golden sparkle panels, twinkling
+  // name, starlit portrait). Character-wide. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isIris(c)) {
+      _cvRoot.classList.add('iris-ui');
+      if (_av) _av.classList.add('iris-pfp');
+      if (_nm) { _nm.classList.add('iris-name'); _nm.setAttribute('data-text', _nm.textContent || 'IRIS'); }
+      if (_pc) _pc.style.opacity = '0.78';
+    } else {
+      _cvRoot.classList.remove('iris-ui');
+      if (_av) _av.classList.remove('iris-pfp');
+      if (_nm) { _nm.classList.remove('iris-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c)) _pc.style.opacity = '';
+    }
+  }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -7276,10 +7617,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -7300,6 +7641,7 @@ function viewChar(id) {
   if (_isLunar(c))    _startLunarOverlay();
   if (_isHelios(c))   _startHeliosOverlay();
   if (_isZoe(c))      _startZoeOverlay();
+  if (_isIris(c))     _startIrisOverlay();
 
   renderInventory(c);
   renderTraitsDisplay(c);
@@ -12341,7 +12683,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -12357,6 +12699,7 @@ window.addEventListener('resize', () => {
       if (_isLunar(c))    _startLunarOverlay();
       if (_isHelios(c))   _startHeliosOverlay();
       if (_isZoe(c))      _startZoeOverlay();
+      if (_isIris(c))     _startIrisOverlay();
     }
   }
 });
