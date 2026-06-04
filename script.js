@@ -133,6 +133,12 @@ function _furyMuffinClick() {
   }
 }
 
+// ── Sorrow — exactly Fury's fire, but monochrome and pouring DOWN from above,
+// with a googly-eyed kebab cursor instead of the muffin. (Reuses Fury's draw.) ──
+const _SORROW_RE = /^Sorrow$/i;
+function _isSorrow(c) { return !!(c && c.name && _SORROW_RE.test(c.name)); }
+let _sorrowOverlayRafId = null;
+
 // ── Lucifer · UNLEASHED — form-specific demonic style (the devil, strongest
 // by far). Only fires when Lucifer's ACTIVE form is "Unleashed"; the base form
 // and every other form keep their normal styling. ──
@@ -1548,6 +1554,7 @@ const PATTERN_DEFS = {
   valkyrie_rain:    { label: "Valkyrie's Blood Rain",  params: [] },
   adam_ice:         { label: "Adam's ice thing",   params: [] },
   fury_fire:        { label: "Fury's Fire",            params: [] },
+  sorrow_fire:      { label: "Sorrow's Ashes",         params: [] },
   juko_code:        { label: "Juko's Code Garden",     params: [] },
   lucifer_unleashed:{ label: "Lucifer · Unleashed",    params: [] },
   shi_souls:        { label: "The Shi · Soul Garden",  params: [] },
@@ -3751,7 +3758,7 @@ function _furyDrawMuffin(ctx, x, y, t) {
   ctx.restore();
 }
 
-function _drawFuryOverlay(canvas, ctx, W, H, t) {
+function _drawFuryOverlay(canvas, ctx, W, H, t, drawCompanion) {
   if (_drawFuryOverlay._lt !== undefined && t - _drawFuryOverlay._lt < 0.033) return;
   const dt = _drawFuryOverlay._lt === undefined ? 0.016 : Math.min(t - _drawFuryOverlay._lt, 0.05);
   _drawFuryOverlay._lt = t;
@@ -3848,7 +3855,7 @@ function _drawFuryOverlay(canvas, ctx, W, H, t) {
   }
 
   ctx.globalAlpha = 1;
-  _furyDrawMuffin(ctx, _furyMuffinX, _furyMuffinY, t);
+  (drawCompanion || _furyDrawMuffin)(ctx, _furyMuffinX, _furyMuffinY, t);
 }
 
 function _startFuryOverlay() {
@@ -3884,6 +3891,140 @@ function _stopFuryOverlay() {
   window.removeEventListener('mousemove', _furyMuffinMouseMove);
   window.removeEventListener('click', _furyMuffinClick);
   const cv = document.getElementById('fury-fire-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// SORROW — Fury, but monochrome and upside-down, with a kebab cursor.
+// ════════════════════════════════════════════════════════════════
+// Pattern: draw Fury flipped vertically (fire falls from above), then strip the
+// colour with one cheap 'saturation' blend pass (the canvas is opaque).
+function _drawSorrowPattern(canvas, ctx, W, H, t) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, -1, 0, H);          // flip Y → flames pour down from the top
+  _drawFuryPattern(canvas, ctx, W, H, t);
+  ctx.restore();
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'saturation';  // keep luma, drop all colour → grayscale
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// Googly-eyed kebab cursor — same bounce/eyes as the muffin, different body.
+function _sorrowDrawKebab(ctx, x, y, t) {
+  const bT = _furyMuffinBounceT;
+  const sq = bT > 0 ? Math.sin(bT * Math.PI * 3.2) * bT * 0.42 : 0;
+  const sX = 1 + sq * 0.32, sY = 1 - sq * 0.42;
+  const bobY = Math.sin(t * 2.4) * 3.5;
+  const spd = Math.hypot(_furyMuffinVX, _furyMuffinVY);
+  const tilt = spd > 18 ? Math.atan2(_furyMuffinVY, _furyMuffinVX) * 0.09 : 0;
+  const happy = _furyMuffinHappyT > 0 ? Math.min(1, _furyMuffinHappyT) : 0;
+
+  ctx.save();
+  ctx.translate(x, y + bobY);
+  ctx.rotate(tilt);
+  ctx.scale(sX, sY);
+
+  // skewer
+  ctx.strokeStyle = '#caa066'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(0, 40); ctx.stroke();
+  ctx.fillStyle = '#caa066'; ctx.beginPath(); ctx.moveTo(-3, 39); ctx.lineTo(3, 39); ctx.lineTo(0, 47); ctx.closePath(); ctx.fill();
+
+  const cube = (cy, w, h, col) => {
+    ctx.fillStyle = col; ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(-w, cy - h, 2 * w, 2 * h, 4); else ctx.rect(-w, cy - h, 2 * w, 2 * h);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(30,12,4,0.5)'; ctx.lineWidth = 1.6; ctx.stroke();
+  };
+  cube(38, 11, 8, '#c44a2e');    // pepper near the tip
+  cube(22, 13, 7, '#ece2d0');    // onion
+  cube(-20, 13, 7, '#5f9a3a');   // green pepper
+  cube(-34, 11, 9, '#8a4420');   // top meat
+  cube(2, 17, 13, '#7a3a1a');    // face meat chunk (front)
+  ctx.strokeStyle = 'rgba(20,8,2,0.4)'; ctx.lineWidth = 1.6;        // grill marks
+  ctx.beginPath(); ctx.moveTo(-12, -6); ctx.lineTo(12, 0); ctx.moveTo(-12, 4); ctx.lineTo(12, 10); ctx.stroke();
+
+  // googly eyes (same behaviour as the muffin)
+  const eyeR = 11, eyeOX = 10.5, eyeY = -2;
+  for (let s = -1; s <= 1; s += 2) {
+    const ex = s * eyeOX, er = eyeR + happy * 1.2;
+    ctx.beginPath(); ctx.arc(ex, eyeY, er, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8e4e0'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.6; ctx.stroke();
+    const mvSpd = Math.hypot(_furyMuffinVX, _furyMuffinVY), vf = Math.min(1, mvSpd / 320);
+    let pdx, pdy;
+    if (happy > 0.05) { pdx = Math.sin(t * 2.2 + s * 1.1) * er * 0.18; pdy = -er * 0.26 + Math.sin(t * 1.8 + s) * er * 0.09; }
+    else { pdx = Math.sin(t * 1.1 + s * 0.9) * er * 0.35 * (1 - vf); pdy = Math.cos(t * 0.85 + s * 1.3) * er * 0.35 * (1 - vf); }
+    if (mvSpd > 8) { pdx += (_furyMuffinVX / mvSpd) * er * 0.38 * vf; pdy += (_furyMuffinVY / mvSpd) * er * 0.38 * vf; }
+    const pDist = Math.hypot(pdx, pdy), maxPd = er * 0.38;
+    if (pDist > maxPd) { pdx *= maxPd / pDist; pdy *= maxPd / pDist; }
+    const px = ex + pdx, py = eyeY + pdy;
+    ctx.beginPath(); ctx.arc(px, py, er * 0.58, 0, Math.PI * 2); ctx.fillStyle = '#111'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px + er * 0.19, py - er * 0.19, er * 0.19, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+  }
+  if (happy > 0) {
+    for (let s = -1; s <= 1; s += 2) {
+      const er = eyeR + happy * 1.2;
+      ctx.globalAlpha = happy * 0.5;
+      ctx.beginPath(); ctx.ellipse(s * (eyeOX + er * 0.6), eyeY + er * 0.85, er * 0.6, er * 0.25, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff4466'; ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+// Overlay: run Fury's full overlay (with the kebab companion), then desaturate
+// it in place via an offscreen buffer (preserves alpha, unlike a blend fill).
+function _drawSorrowOverlay(canvas, ctx, W, H, t) {
+  const prev = _drawFuryOverlay._lt;
+  _drawFuryOverlay(canvas, ctx, W, H, t, _sorrowDrawKebab);
+  if (_drawFuryOverlay._lt === prev) return;    // Fury capped this frame — nothing redrawn
+  let buf = canvas._srBuf;
+  if (!buf || buf.width !== W || buf.height !== H) {
+    buf = canvas._srBuf = document.createElement('canvas'); buf.width = W; buf.height = H; canvas._srCtx = buf.getContext('2d');
+  }
+  const b = canvas._srCtx;
+  b.clearRect(0, 0, W, H); b.drawImage(canvas, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.filter = 'grayscale(1)'; ctx.drawImage(buf, 0, 0); ctx.filter = 'none';
+}
+function _startSorrowOverlay() {
+  _stopSorrowOverlay();
+  _drawFuryOverlay._lt = undefined;
+  _furyMuffinX = _furyMuffinTargX = window.innerWidth * 0.5;
+  _furyMuffinY = _furyMuffinTargY = window.innerHeight * 0.5;
+  _furyMuffinVX = 0; _furyMuffinVY = 0; _furyMuffinBounceT = 0; _furyMuffinHappyT = 0; _furyMuffinSparkles = [];
+  window.addEventListener('mousemove', _furyMuffinMouseMove);
+  window.addEventListener('click', _furyMuffinClick);
+  const cv = document.createElement('canvas');
+  cv.id = 'sorrow-fire-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('sorrow-fire-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawSorrowOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _sorrowOverlayRafId = requestAnimationFrame(frame);
+  }
+  _sorrowOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopSorrowOverlay() {
+  if (_sorrowOverlayRafId) { cancelAnimationFrame(_sorrowOverlayRafId); _sorrowOverlayRafId = null; }
+  window.removeEventListener('mousemove', _furyMuffinMouseMove);
+  window.removeEventListener('click', _furyMuffinClick);
+  const cv = document.getElementById('sorrow-fire-overlay');
   if (cv) cv.remove();
 }
 /* ─────────────────────────────────────────────────────────────── */
@@ -6944,6 +7085,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'valkyrie_rain')  { _drawValkyriePattern(canvas, ctx, W, H, t);            return; }
   if (type === 'adam_ice')       { _drawAdamPattern(canvas, ctx, W, H, t, params);       return; }
   if (type === 'fury_fire')      { _drawFuryPattern(canvas, ctx, W, H, t);               return; }
+  if (type === 'sorrow_fire')    { _drawSorrowPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'juko_code')      { _drawJukoPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'lucifer_unleashed') { _drawLuciferPattern(canvas, ctx, W, H, t);         return; }
   if (type === 'shi_souls')      { _drawShiPattern(canvas, ctx, W, H, t);                 return; }
@@ -7455,6 +7597,7 @@ function stopBgAnim() {
   _stopZoeOverlay();
   _stopIrisOverlay();
   _stopMbOverlay();
+  _stopSorrowOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -7939,22 +8082,23 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); }
-  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); }
-  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
-  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
-  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
-  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
-  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
-  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffd633'); }
-  else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); }
+  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); }
+  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
+  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
+  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
+  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
+  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
+  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffd633'); }
+  else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
+  else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
   {
@@ -8164,10 +8308,10 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -8198,6 +8342,7 @@ function viewChar(id) {
   if (_isValkyrie(c)) _startValkyrieOverlay();
   if (_isAdam(c))     _startAdamOverlay();
   if (_isFury(c))     _startFuryOverlay();
+  if (_isSorrow(c))   _startSorrowOverlay();
   if (_isJuko(c))     _startJukoOverlay();
   if (_isLuciferUnleashed(c)) _startLuciferOverlay();
   if (_isShi(c))      _startShiOverlay();
@@ -13247,7 +13392,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -13257,6 +13402,7 @@ window.addEventListener('resize', () => {
       if (_isValkyrie(c)) _startValkyrieOverlay();
       if (_isAdam(c))     _startAdamOverlay();
       if (_isFury(c))     _startFuryOverlay();
+      if (_isSorrow(c))   _startSorrowOverlay();
       if (_isJuko(c))     _startJukoOverlay();
       if (_isLuciferUnleashed(c)) _startLuciferOverlay();
       if (_isShi(c))      _startShiOverlay();
