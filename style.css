@@ -1516,6 +1516,97 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 /* ============================================================
+   DIVINE — goddess of LIGHT. The radiant mirror of Lucifer:
+   same grand presence, but heavenly. Luminous gold/white panels,
+   a holy glowing name, a haloed portrait. --char-color is warm gold.
+   ============================================================ */
+/* Her radiance is pinned to the content viewport from JS (fixed, sized to
+   the #content rect each frame) so it never leaves a dark gap below the
+   fold when you scroll. See _drawDivinePattern. */
+/* Luminous panels: pale glassy fill, glowing gold edge, soft halo */
+#char-view.divine-ui .panel {
+  --p-border: #d9b256;
+  border-color: #d9b256;
+  background: linear-gradient(180deg, rgba(38,30,13,0.94), rgba(24,18,7,0.96));
+  box-shadow:
+    0 0 18px rgba(255,210,120,0.25),
+    inset 0 0 30px rgba(255,222,150,0.09),
+    inset 0 0 2px rgba(255,244,200,0.45);
+  animation: div-edge 3.4s ease-in-out infinite;
+}
+@keyframes div-edge {
+  0%, 100% { border-color: #e6b94c; }
+  50%      { border-color: #fff0bf; }
+}
+/* gentle inner radiance breathing from above (opacity only → cheap) */
+#char-view.divine-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% -15%, rgba(255,238,175,0.15), transparent 62%);
+  mix-blend-mode: screen;
+  animation: div-breathe 3.4s ease-in-out infinite;
+}
+@keyframes div-breathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.85; } }
+
+/* Section headers + tabs glow holy gold */
+#char-view.divine-ui .panel-title {
+  color: #ffe39a !important;
+  letter-spacing: 4px;
+  border-bottom-color: #7a611f;
+  text-shadow: 0 0 12px rgba(255,224,140,0.85), 0 0 26px rgba(255,200,90,0.5);
+}
+#char-view.divine-ui .tab-btn { color: #b89a52; }
+#char-view.divine-ui .tab-btn:hover { color: #fff0c0; text-shadow: 0 0 12px #e8c266; }
+#char-view.divine-ui .tab-btn.active {
+  color: #ffe39a;
+  border-bottom-color: #f0c860;
+  text-shadow: 0 0 16px rgba(255,228,140,0.9);
+}
+
+/* Name: warm gold with a crisp dark outline so it stays legible against the
+   bright radiance, plus a restrained luminous halo. */
+.char-name-display.divine-name {
+  position: relative;
+  color: #ffe7a0 !important;
+  font-size: 22px;
+  letter-spacing: 5px;
+  text-shadow:
+    -1px -1px 0 #4a330a, 1px -1px 0 #4a330a, -1px 1px 0 #4a330a, 1px 1px 0 #4a330a,
+    0 2px 3px rgba(40,26,4,0.95),
+    0 0 12px rgba(255,224,140,0.55),
+    0 0 26px rgba(255,200,100,0.4);
+  animation: div-name-glow 3.4s ease-in-out infinite;
+}
+@keyframes div-name-glow {
+  0%, 100% { color: #ffe7a0; text-shadow: -1px -1px 0 #4a330a, 1px -1px 0 #4a330a, -1px 1px 0 #4a330a, 1px 1px 0 #4a330a, 0 2px 3px rgba(40,26,4,0.95), 0 0 12px rgba(255,224,140,0.55), 0 0 26px rgba(255,200,100,0.4); }
+  50%      { color: #fff2c4; text-shadow: -1px -1px 0 #4a330a, 1px -1px 0 #4a330a, -1px 1px 0 #4a330a, 1px 1px 0 #4a330a, 0 2px 3px rgba(40,26,4,0.95), 0 0 18px rgba(255,240,180,0.8), 0 0 36px rgba(255,214,120,0.55); }
+}
+/* Portrait: radiant gold frame, breathing halo + soft light rays */
+.char-avatar-large.divine-pfp {
+  border-color: #f0c860 !important;
+  box-shadow:
+    0 0 26px rgba(255,220,130,0.6),
+    inset 0 0 22px rgba(255,232,160,0.4);
+  animation: div-edge 2.6s ease-in-out infinite;
+}
+.char-avatar-large.divine-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% -20%, rgba(255,240,180,0.6), transparent 62%);
+  mix-blend-mode: screen;
+  animation: div-breathe 2.6s ease-in-out infinite;
+}
+.char-avatar-large.divine-pfp::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255,246,210,0.6);
+  background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,240,180,0.1) 0deg 6deg, transparent 6deg 18deg);
+}
+
+/* ============================================================
    THE SHI — god of death. Silent, mysterious, VERY elegant.
    Blue / white / gray, beauty-in-death. Restrained, refined,
    slow breathing glows — nothing loud. --char-color is pale ice.
