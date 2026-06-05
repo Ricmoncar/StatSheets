@@ -86,6 +86,406 @@ function _stopNaraRaf() {
 }
 // ─────────────────────────────────────────────────────────────
 
+// ══ NARA PAINT STUDIO ════════════════════════════════════════
+// Nara's content area is a flowing pastel-rainbow background everywhere EXCEPT
+// the Style tab, which becomes a blank white canvas you paint on. You mix your
+// colour by dipping the pencil (cursor) into the floating R/G/B/water buckets:
+// while the pencil sits in a bucket it absorbs that colour over ~couple seconds,
+// blending a % of it into the live RGB. Dip several buckets to mix any colour.
+// Painting lives on a persistent offscreen buffer; the brush + transparent
+// rainbow frame are a pointer-transparent overlay so the UI stays clickable.
+let _naraPaint = {
+  active: false,
+  rF: 255, gF: 90, bF: 130,     // live colour (floats so dips blend smoothly)
+  dip: null,                    // [r,g,b] of the bucket the pencil is currently in
+  down: false, mx: 0, my: 0, lastX: null, lastY: null,
+  rafId: null, prevTs: 0, t: 0,
+  size: 16,                     // brush stroke width (mouse-wheel adjustable, Style tab only)
+  buf: null,                    // offscreen canvas holding the actual painting
+  charId: null, saveTimer: null,// for per-user localStorage persistence
+  undo: [], redo: []            // snapshot stacks for ctrl-z / ctrl-y
+};
+function _naraRGB() { const p = _naraPaint; return [Math.round(p.rF), Math.round(p.gF), Math.round(p.bF)]; }
+function _naraPaintColor() { const c = _naraRGB(); return `rgb(${c[0]},${c[1]},${c[2]})`; }
+
+// ── Per-user persistence (localStorage only — never the shared DB) ──
+function _naraStorageKey() { return 'nara_drawing_' + (_naraPaint.charId || 'default'); }
+function _naraSaveDrawing() {
+  if (!_naraPaint.buf) return;
+  try { localStorage.setItem(_naraStorageKey(), _naraPaint.buf.toDataURL('image/png')); } catch (e) {}
+}
+function _naraScheduleSave() {
+  clearTimeout(_naraPaint.saveTimer);
+  _naraPaint.saveTimer = setTimeout(_naraSaveDrawing, 600);
+}
+function _naraLoadDrawing() {
+  if (!_naraPaint.buf) return;
+  let data = null;
+  try { data = localStorage.getItem(_naraStorageKey()); } catch (e) {}
+  if (!data) return;
+  const img = new Image();
+  img.onload = () => { if (_naraPaint.buf) _naraPaint.buf.getContext('2d').drawImage(img, 0, 0); };
+  img.src = data;
+}
+function _naraClearCanvas() {
+  if (!_naraPaint.buf) return;
+  _naraPushUndo();      // clearing is undoable
+  _naraPaint.buf.getContext('2d').clearRect(0, 0, _naraPaint.buf.width, _naraPaint.buf.height);
+  _naraSaveDrawing();   // persist the cleared state too
+}
+
+// ── Undo / redo (snapshot the paint buffer before each change) ──
+function _naraSnapshot() {
+  const b = _naraPaint.buf; if (!b) return null;
+  try { return b.getContext('2d').getImageData(0, 0, b.width, b.height); } catch (e) { return null; }
+}
+function _naraApplySnap(snap) {
+  const b = _naraPaint.buf; if (!b || !snap) return;
+  const ctx = b.getContext('2d');
+  ctx.clearRect(0, 0, b.width, b.height);
+  try { ctx.putImageData(snap, 0, 0); } catch (e) {}
+}
+function _naraPushUndo() {
+  const snap = _naraSnapshot(); if (!snap) return;
+  _naraPaint.undo.push(snap);
+  if (_naraPaint.undo.length > 12) _naraPaint.undo.shift();   // cap memory
+  _naraPaint.redo.length = 0;
+}
+function _naraUndo() {
+  if (!_naraPaint.undo.length) return;
+  const cur = _naraSnapshot();
+  if (cur) _naraPaint.redo.push(cur);
+  _naraApplySnap(_naraPaint.undo.pop());
+  _naraSaveDrawing();
+}
+function _naraRedo() {
+  if (!_naraPaint.redo.length) return;
+  const cur = _naraSnapshot();
+  if (cur) _naraPaint.undo.push(cur);
+  _naraApplySnap(_naraPaint.redo.pop());
+  _naraSaveDrawing();
+}
+function _naraKeyDown(e) {
+  if (!_naraPaint.active) return;
+  const tgt = e.target;
+  if (tgt && (/^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName) || tgt.isContentEditable)) return;
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); _naraUndo(); }
+  else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); _naraRedo(); }
+}
+function _naraOnStyleTab() {
+  if (!_naraPaint.active) return false;
+  const st = document.getElementById('tab-style');
+  return !!st && st.style.display !== 'none';
+}
+
+// floating bucket palette — dip the pencil in one to start absorbing its colour
+function _naraBuildPalette() {
+  if (document.getElementById('nara-palette')) return;
+  const pal = document.createElement('div'); pal.id = 'nara-palette'; pal.className = 'nara-palette';
+  const buckets = [
+    { c: [255, 40, 60],  label: 'RED' },
+    { c: [40, 210, 90],  label: 'GREEN' },
+    { c: [60, 110, 255], label: 'BLUE' },
+    { c: [255, 255, 255], label: 'WATER', water: true },
+  ];
+  buckets.forEach(b => {
+    const el = document.createElement('div');
+    el.className = 'nara-bucket' + (b.water ? ' water' : '');
+    el.style.setProperty('--bk', `rgb(${b.c[0]},${b.c[1]},${b.c[2]})`);
+    el.innerHTML = `<div class="nara-bucket-can"><div class="nara-bucket-paint"></div></div><div class="nara-bucket-label">${b.label}</div>`;
+    el.addEventListener('mouseenter', () => { _naraPaint.dip = b.c.slice(); });
+    el.addEventListener('mouseleave', () => { _naraPaint.dip = null; });
+    pal.appendChild(el);
+  });
+  // live colour readout (the "RGB table")
+  const read = document.createElement('div');
+  read.className = 'nara-readout';
+  read.innerHTML = `<div id="nara-read-swatch" class="nara-read-swatch"></div>
+    <div class="nara-read-vals"><span id="nara-read-rgb">R255 G90 B130</span>
+    <button class="nara-read-clr" onclick="_naraClearCanvas()">CLEAR</button></div>`;
+  pal.appendChild(read);
+  document.body.appendChild(pal);
+}
+function _naraRemovePalette() { document.getElementById('nara-palette')?.remove(); }
+
+// keep #pattern-canvas pinned over #content; manage the persistent paint buffer
+function _naraPinCanvas(cv) {
+  const ct = document.getElementById('content');
+  if (!ct) return;
+  const r = ct.getBoundingClientRect();
+  const cw = Math.max(1, Math.round(r.width)), ch = Math.max(1, Math.round(r.height));
+  if (cv.style.position !== 'fixed') cv.style.position = 'fixed';
+  cv.style.left = r.left + 'px'; cv.style.top = r.top + 'px';
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  cv.style.background = '';
+  cv.style.pointerEvents = 'none';
+  if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+}
+function _naraEnsureBuf(w, h) {
+  let buf = _naraPaint.buf;
+  if (!buf) { buf = document.createElement('canvas'); buf.width = w; buf.height = h; _naraPaint.buf = buf; return buf; }
+  if (buf.width !== w || buf.height !== h) {
+    const nb = document.createElement('canvas'); nb.width = w; nb.height = h;
+    try { nb.getContext('2d').drawImage(buf, 0, 0); } catch (e) {}   // preserve painting on resize
+    _naraPaint.buf = nb; return nb;
+  }
+  return buf;
+}
+
+function _naraIsBackground(target) {
+  if (!target) return false;
+  return !target.closest('.panel, button, input, textarea, select, a, label, .tab-bar, .nara-bucket, .nara-palette, #header, #sidebar, #mobile-topbar, #editor, [id$="-modal"], [id$="-overlay"], #char-context-menu, .cv-owner-subtitle');
+}
+function _naraCanvasXY(clientX, clientY) {
+  const ct = document.getElementById('content'); const r = ct.getBoundingClientRect();
+  return { x: clientX - r.left, y: clientY - r.top };
+}
+function _naraStroke(x0, y0, x1, y1) {
+  const cv = document.getElementById('pattern-canvas'); if (!cv) return;
+  const buf = _naraEnsureBuf(cv.width, cv.height);
+  const ctx = buf.getContext('2d');
+  const col = _naraPaintColor();
+  const sz = _naraPaint.size;
+  ctx.strokeStyle = col; ctx.fillStyle = col;
+  ctx.lineWidth = sz; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x1, y1, sz / 2, 0, 6.2832); ctx.fill();
+  _naraScheduleSave();   // debounced save while drawing
+}
+// mouse wheel resizes the brush — Style tab only
+function _naraWheel(e) {
+  if (!_naraOnStyleTab()) return;
+  e.preventDefault();
+  const step = Math.max(1, Math.round(_naraPaint.size * 0.12));   // bigger jumps when already big
+  _naraPaint.size = Math.max(2, Math.min(140, _naraPaint.size + (e.deltaY < 0 ? step : -step)));
+}
+function _naraEndStroke() {
+  if (!_naraPaint.down) return;
+  _naraPaint.down = false; _naraPaint.lastX = null; _naraPaint.lastY = null;
+  document.body.classList.remove('nara-no-select');
+  _naraSaveDrawing();   // persist at the end of every stroke
+}
+function _naraPointerDown(e) {
+  if (!_naraOnStyleTab() || e.button !== 0 || !_naraIsBackground(e.target)) return;
+  e.preventDefault();                         // stop drag-selecting page text
+  document.body.classList.add('nara-no-select');
+  _naraPushUndo();                            // snapshot BEFORE the stroke (for undo)
+  _naraPaint.down = true;
+  const { x, y } = _naraCanvasXY(e.clientX, e.clientY);
+  _naraPaint.lastX = x; _naraPaint.lastY = y;
+  _naraStroke(x, y, x, y);
+}
+function _naraPointerMove(e) {
+  _naraPaint.mx = e.clientX; _naraPaint.my = e.clientY;
+  if (!_naraPaint.down) return;
+  // If the primary button is no longer held (a pointerup we never saw), stop.
+  if ((e.buttons & 1) === 0 || !_naraOnStyleTab()) { _naraEndStroke(); return; }
+  e.preventDefault();
+  const { x, y } = _naraCanvasXY(e.clientX, e.clientY);
+  if (_naraPaint.lastX != null) _naraStroke(_naraPaint.lastX, _naraPaint.lastY, x, y);
+  _naraPaint.lastX = x; _naraPaint.lastY = y;
+}
+function _naraPointerUp() { _naraEndStroke(); }
+
+// flowing pastel-rainbow page background (shown on every tab except Style)
+function _naraDrawRainbowBg(ctx, w, h, t) {
+  const lg = ctx.createLinearGradient(0, 0, w, h);
+  for (let s = 0; s <= 8; s++) {
+    const f = s / 8;
+    const hue = ((f * 360) + t * 22) % 360;
+    lg.addColorStop(f, `hsl(${hue},68%,85%)`);
+  }
+  ctx.fillStyle = lg; ctx.fillRect(0, 0, w, h);
+  // soft drifting light blobs for depth
+  for (let i = 0; i < 5; i++) {
+    const bx = (0.5 + 0.42 * Math.sin(t * 0.25 + i * 1.7)) * w;
+    const by = (0.5 + 0.42 * Math.cos(t * 0.21 + i * 2.3)) * h;
+    const rr = Math.min(w, h) * (0.28 + 0.08 * Math.sin(t * 0.4 + i));
+    const hue = ((i / 5) * 360 + t * 30) % 360;
+    const rg = ctx.createRadialGradient(bx, by, 0, bx, by, rr);
+    rg.addColorStop(0, `hsla(${hue},80%,90%,0.5)`);
+    rg.addColorStop(1, `hsla(${hue},80%,90%,0)`);
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, w, h);
+  }
+}
+
+// translucent, flowing rainbow ribbon frame around the whole viewport
+function _naraRainGrad(g, x0, y0, x1, y1, hueOff, t, a) {
+  const lg = g.createLinearGradient(x0, y0, x1, y1);
+  for (let s = 0; s <= 6; s++) {
+    const f = s / 6;
+    const hue = ((f * 360) + hueOff + t * 40) % 360;
+    lg.addColorStop(f, `hsla(${hue},85%,82%,${a})`);
+  }
+  return lg;
+}
+function _naraDrawEdges(g, w, h, t) {
+  const base = Math.max(12, Math.min(w, h) * 0.022);
+  const amp = base * 0.6, step = 7;
+  g.save();
+  // two passes: a soft wide glow then the brighter ribbon
+  for (let pass = 0; pass < 2; pass++) {
+    const tk = pass === 0 ? base * 1.7 : base;
+    const a = pass === 0 ? 0.16 : 0.5;
+    const ph = pass === 0 ? 0 : 1.6;
+    // top
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(w, 0);
+    for (let x = w; x >= 0; x -= step) g.lineTo(x, tk + amp * Math.sin(x * 0.011 + t * 1.3 + ph));
+    g.closePath(); g.fillStyle = _naraRainGrad(g, 0, 0, w, 0, 0, t, a); g.fill();
+    // bottom
+    g.beginPath(); g.moveTo(0, h); g.lineTo(w, h);
+    for (let x = w; x >= 0; x -= step) g.lineTo(x, h - tk - amp * Math.sin(x * 0.011 - t * 1.15 + ph));
+    g.closePath(); g.fillStyle = _naraRainGrad(g, 0, 0, w, 0, 180, t, a); g.fill();
+    // left
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(0, h);
+    for (let y = h; y >= 0; y -= step) g.lineTo(tk + amp * Math.sin(y * 0.011 + t * 1.1 + ph), y);
+    g.closePath(); g.fillStyle = _naraRainGrad(g, 0, 0, 0, h, 90, t, a); g.fill();
+    // right
+    g.beginPath(); g.moveTo(w, 0); g.lineTo(w, h);
+    for (let y = h; y >= 0; y -= step) g.lineTo(w - tk - amp * Math.sin(y * 0.011 - t * 1.25 + ph), y);
+    g.closePath(); g.fillStyle = _naraRainGrad(g, 0, 0, 0, h, 270, t, a); g.fill();
+  }
+  g.restore();
+}
+// a ring showing the current brush footprint (centred on the paint point)
+function _naraDrawSizeRing(g, x, y, size) {
+  const r = size / 2;
+  g.save();
+  g.beginPath(); g.arc(x, y, r, 0, 6.2832);
+  g.lineWidth = 1.5; g.strokeStyle = 'rgba(0,0,0,0.55)'; g.stroke();
+  g.beginPath(); g.arc(x, y, r, 0, 6.2832);
+  g.lineWidth = 0.8; g.strokeStyle = 'rgba(255,255,255,0.9)'; g.stroke();
+  g.restore();
+}
+// the pencil/brush — bristle tip pinned exactly on the cursor point
+function _naraDrawBrush(g, x, y) {
+  const col = _naraPaintColor();
+  g.save();
+  g.translate(x, y);
+  g.rotate(0.6);
+  g.fillStyle = col;
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(-5.5, -15); g.lineTo(5.5, -15); g.closePath(); g.fill();
+  g.beginPath(); g.arc(0, 0, 3.2, 0, 6.2832); g.fill();             // wet blob at tip
+  g.fillStyle = 'rgba(255,255,255,0.55)';
+  g.beginPath(); g.arc(-1, -1, 1.1, 0, 6.2832); g.fill();
+  g.fillStyle = '#c9cdd6'; g.strokeStyle = '#8a9099'; g.lineWidth = 1; // ferrule
+  g.beginPath(); g.rect(-5.5, -22, 11, 7.5); g.fill(); g.stroke();
+  g.fillStyle = '#d9af63'; g.strokeStyle = '#6b4f23'; g.lineWidth = 1.2; // handle
+  g.beginPath(); g.moveTo(-3.2, -22); g.lineTo(3.2, -22); g.lineTo(2, -48); g.lineTo(-2, -48); g.closePath();
+  g.fill(); g.stroke();
+  g.restore();
+}
+function _naraPaintTick(ts) {
+  if (!_naraPaint.active) { _naraPaint.rafId = null; return; }
+  if (!_naraPaint.prevTs) _naraPaint.prevTs = ts;
+  const dt = Math.min((ts - _naraPaint.prevTs) / 1000, 0.05); _naraPaint.prevTs = ts; _naraPaint.t += dt;
+
+  // dip mixing — while the pencil sits in a bucket, absorb that colour (~2s to full)
+  if (_naraPaint.dip) {
+    const k = 1 - Math.exp(-dt / 0.6);
+    _naraPaint.rF += (_naraPaint.dip[0] - _naraPaint.rF) * k;
+    _naraPaint.gF += (_naraPaint.dip[1] - _naraPaint.gF) * k;
+    _naraPaint.bF += (_naraPaint.dip[2] - _naraPaint.bF) * k;
+  }
+
+  const onStyle = _naraOnStyleTab();
+
+  // paint surface: white canvas + painting on Style tab, pastel rainbow elsewhere
+  const cv = document.getElementById('pattern-canvas');
+  if (cv) {
+    _naraPinCanvas(cv);
+    const w = cv.width, h = cv.height;
+    const buf = _naraEnsureBuf(w, h);
+    const ctx = cv.getContext('2d');
+    if (onStyle) {
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(buf, 0, 0);
+    } else {
+      _naraDrawRainbowBg(ctx, w, h, _naraPaint.t);
+    }
+  }
+
+  // palette only on the Style tab (that's where you paint)
+  const pal = document.getElementById('nara-palette');
+  if (pal) pal.style.display = onStyle ? '' : 'none';
+  if (onStyle) {
+    const c = _naraRGB();
+    const sw = document.getElementById('nara-read-swatch'); if (sw) sw.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
+    const rg = document.getElementById('nara-read-rgb'); if (rg) rg.textContent = `R${c[0]} G${c[1]} B${c[2]}`;
+  }
+
+  // overlay: frame everywhere + brush
+  const ov = document.getElementById('nara-overlay');
+  if (ov) {
+    const w = window.innerWidth, h = window.innerHeight;
+    if (ov.width !== w || ov.height !== h) { ov.width = w; ov.height = h; }
+    const g = ov.getContext('2d'); g.clearRect(0, 0, w, h);
+    _naraDrawEdges(g, w, h, _naraPaint.t);
+    if (onStyle) _naraDrawSizeRing(g, _naraPaint.mx, _naraPaint.my, _naraPaint.size);
+    _naraDrawBrush(g, _naraPaint.mx, _naraPaint.my);
+  }
+  _naraPaint.rafId = requestAnimationFrame(_naraPaintTick);
+}
+
+function _startNaraPaint() {
+  document.getElementById('char-view')?.classList.add('nara-paint-ui');
+  if (_naraPaint.active) return;       // keep painting persistent across re-renders
+  _naraPaint.active = true; _naraPaint.dip = null;
+  _naraPaint.charId = currentId;       // key this user's saved drawing to the character
+  _injectNaraStyles();
+  _naraBuildPalette();
+
+  const cv = document.getElementById('pattern-canvas');
+  if (cv) { _naraPinCanvas(cv); _naraEnsureBuf(cv.width, cv.height); _naraLoadDrawing(); }
+  window.addEventListener('beforeunload', _naraSaveDrawing);
+
+  const arrow = document.getElementById('cursor'); if (arrow) arrow.style.display = 'none';
+
+  if (!document.getElementById('nara-overlay')) {
+    const ov = document.createElement('canvas'); ov.id = 'nara-overlay'; document.body.appendChild(ov);
+  }
+  document.addEventListener('pointerdown', _naraPointerDown);
+  document.addEventListener('pointermove', _naraPointerMove);
+  window.addEventListener('pointerup', _naraPointerUp);
+  window.addEventListener('pointercancel', _naraPointerUp);
+  window.addEventListener('blur', _naraPointerUp);
+  document.addEventListener('keydown', _naraKeyDown);
+  document.addEventListener('wheel', _naraWheel, { passive: false });
+
+  _naraPaint.prevTs = 0;
+  if (!_naraPaint.rafId) _naraPaint.rafId = requestAnimationFrame(_naraPaintTick);
+}
+function _stopNaraPaint() {
+  document.getElementById('char-view')?.classList.remove('nara-paint-ui');
+  if (!_naraPaint.active) return;
+  clearTimeout(_naraPaint.saveTimer);
+  _naraSaveDrawing();                  // persist before tearing down
+  window.removeEventListener('beforeunload', _naraSaveDrawing);
+  _naraPaint.active = false; _naraPaint.down = false; _naraPaint.dip = null; _naraPaint.buf = null;
+  if (_naraPaint.rafId) { cancelAnimationFrame(_naraPaint.rafId); _naraPaint.rafId = null; }
+  document.removeEventListener('pointerdown', _naraPointerDown);
+  document.removeEventListener('pointermove', _naraPointerMove);
+  window.removeEventListener('pointerup', _naraPointerUp);
+  window.removeEventListener('pointercancel', _naraPointerUp);
+  window.removeEventListener('blur', _naraPointerUp);
+  document.removeEventListener('keydown', _naraKeyDown);
+  document.removeEventListener('wheel', _naraWheel, { passive: false });
+  document.body.classList.remove('nara-no-select');
+  _naraPaint.undo.length = 0; _naraPaint.redo.length = 0;
+  _naraRemovePalette();
+  document.getElementById('nara-overlay')?.remove();
+  const arrow = document.getElementById('cursor'); if (arrow) arrow.style.display = '';
+  const cv = document.getElementById('pattern-canvas');
+  if (cv) {
+    const x = cv.getContext('2d'); x.clearRect(0, 0, cv.width, cv.height);
+    cv.style.pointerEvents = ''; cv.style.background = '';
+    if (cv.style.position === 'fixed') { cv.style.position = ''; cv.style.left = ''; cv.style.top = ''; cv.style.width = ''; cv.style.height = ''; }
+  }
+}
+// ─────────────────────────────────────────────────────────────
+
 // ── BIZZY bee pattern ─────────────────────────────────────────
 const _BIZZY_RE = /^Bizzy$/i;
 function _isBizzy(c) { return !!(c && c.name && _BIZZY_RE.test(c.name)); }
@@ -166,6 +566,40 @@ let _divineOverlayRafId = null;
 let _divineX = 0, _divineY = 0, _divineTargX = 0, _divineTargY = 0, _divineVX = 0, _divineVY = 0;
 let _divineMotes = [], _divineRings = [], _divineFlareT = 0, _divineEmit = 0;
 const _DIVINE_GLYPHS = '✦✧✶✷❋✺✵⁂'.split('');
+
+// ── Jimmy — he's just Fury's googly-eyed muffin, but BIG and sitting on the
+// page background (a bit to the right), watching your cursor. No fire, no
+// overlay companion: the muffin IS the background. Pattern-only, character-wide
+// (matches "Jimmy"). Eyes track the real pointer wherever it goes. ──
+const _JIMMY_RE = /^Jimmy$/i;
+function _isJimmy(c) { return !!(c && c.name && _JIMMY_RE.test(c.name)); }
+let _jimmyMX = (typeof window !== 'undefined' ? window.innerWidth  / 2 : 0);
+let _jimmyMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _jimmyMouseHooked = false;
+let _jimmyHover = false;          // cursor inside the muffin's hit ellipse
+let _jimmyHappyT = 0;            // 0→1 happy ramp (hover + click)
+let _jimmyBounceT = 0;          // decays after a click — squish anim
+let _jimmyEmitBurst = 0;        // # of crumb sparkles queued by the last click
+let _jimmySparkles = [];        // flying crumb particles (canvas coords)
+let _jimmyLastDraw = 0;         // perf.now() of last Jimmy frame (gates the click hit-test)
+// Screen-space hit ellipse for the muffin, refreshed every frame by the draw loop
+let _jimmyCSX = 0, _jimmyCSY = 0, _jimmyHRX = 1, _jimmyHRY = 1;
+function _jimmyHookMouse() {
+  if (_jimmyMouseHooked) return;
+  _jimmyMouseHooked = true;
+  document.addEventListener('mousemove', e => { _jimmyMX = e.clientX; _jimmyMY = e.clientY; });
+  document.addEventListener('click', e => {
+    // only react while Jimmy is actually on-screen and only if the click lands on him
+    if (performance.now() - _jimmyLastDraw > 500) return;
+    const dx = (e.clientX - _jimmyCSX) / _jimmyHRX;
+    const dy = (e.clientY - _jimmyCSY) / _jimmyHRY;
+    if (dx * dx + dy * dy <= 1) {
+      _jimmyBounceT = 1.0;
+      _jimmyHappyT  = Math.min(1, _jimmyHappyT + 0.7);
+      _jimmyEmitBurst = 16;
+    }
+  });
+}
 
 // ── The Shi — god of death. Silent, mysterious, VERY elegant: a pale soul
 // garden (drifting petals, rising spirit-wisps, a cold moon) in blue/white/gray.
@@ -1570,6 +2004,7 @@ const PATTERN_DEFS = {
   juko_code:        { label: "Juko's Code Garden",     params: [] },
   lucifer_unleashed:{ label: "Lucifer · Unleashed",    params: [] },
   divine_light:     { label: "Divine · Radiance",      params: [] },
+  jimmy_muffin:     { label: "Jimmy · Big Muffin",     params: [] },
   shi_souls:        { label: "The Shi · Soul Garden",  params: [] },
   lunar_moon:       { label: "Lunar · Moonlight",      params: [] },
   helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
@@ -5840,6 +6275,264 @@ function _stopDivineOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// JIMMY — Fury's muffin, supersized, sitting on the page background and
+// following your cursor with its big googly eyes. Pattern-only.
+// ════════════════════════════════════════════════════════════════
+// A big muffin whose pupils point at the cursor. (cx,cy) = muffin centre in
+// canvas pixels; (curX,curY) = cursor in the SAME canvas pixel space; scale
+// blows the whole thing up. Geometry mirrors _furyDrawMuffin so it reads as
+// the exact same character, just larger and eye-tracking instead of velocity.
+function _drawJimmyMuffin(ctx, cx, cy, t, scale, curX, curY) {
+  const happy = _jimmyHappyT;                   // 0→1 (hover/click reaction)
+  const bobY = Math.sin(t * 1.5) * 5 - happy * 4;   // perks up when happy
+  const breathe = 1 + Math.sin(t * 1.1) * 0.012;
+  // click squish
+  const bT = _jimmyBounceT;
+  const sq = bT > 0 ? Math.sin(bT * Math.PI * 3.2) * bT * 0.42 : 0;
+  const sX = (1 + sq * 0.30) * breathe;
+  const sY = (1 - sq * 0.38) * breathe;
+
+  ctx.save();
+  ctx.translate(cx, cy + bobY);
+  const sxx = scale * sX, syy = scale * sY;
+  ctx.scale(sxx, syy);
+
+  // cursor in the muffin's LOCAL coordinate frame (undo translate+scale)
+  const lcx = (curX - cx) / sxx;
+  const lcy = (curY - (cy + bobY)) / syy;
+
+  // Same proportions as Fury's muffin
+  const eyeR = 14, eyeOX = 18, eyeY = 0;
+  const cupTW = 19, cupBW = 14, cupH = 22;
+  const cupTopY = eyeY + eyeR;      // 14
+  const cupBotY = cupTopY + cupH;   // 36
+  const domeR   = 16;
+  const domeY   = cupTopY - domeR;  // -2
+
+  // soft contact shadow on the page under him
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = '#2a1604';
+  ctx.beginPath();
+  ctx.ellipse(0, cupBotY + 7, cupTW * 1.15, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // 1 ── Orange cup with dark vertical stripes
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(-cupTW, cupTopY); ctx.lineTo(-cupBW, cupBotY);
+  ctx.lineTo(cupBW, cupBotY);  ctx.lineTo(cupTW, cupTopY);
+  ctx.closePath();
+  const wg = ctx.createLinearGradient(-cupTW, 0, cupTW, 0);
+  wg.addColorStop(0, '#993e04'); wg.addColorStop(0.18, '#d96c12');
+  wg.addColorStop(0.50, '#ee8c28'); wg.addColorStop(0.82, '#d96c12');
+  wg.addColorStop(1, '#993e04');
+  ctx.fillStyle = wg; ctx.fill();
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(38,10,0,0.62)'; ctx.lineWidth = 2.8;
+  for (let i = 0; i <= 6; i++) {
+    const f = i / 6;
+    ctx.beginPath();
+    ctx.moveTo(-cupTW + f * cupTW * 2, cupTopY);
+    ctx.lineTo(-cupBW + f * cupBW * 2, cupBotY);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // Dark rim band
+  ctx.fillStyle = 'rgba(40,10,0,0.88)';
+  ctx.beginPath();
+  ctx.moveTo(-cupTW - 1, cupTopY - 1); ctx.lineTo(cupTW + 1, cupTopY - 1);
+  ctx.lineTo(cupTW + 1, cupTopY + 4);  ctx.lineTo(-cupTW - 1, cupTopY + 4);
+  ctx.closePath(); ctx.fill();
+
+  // 2 ── Chocolate dome
+  const dg = ctx.createRadialGradient(-domeR * 0.28, domeY - domeR * 0.28, 2, 0, domeY, domeR * 1.05);
+  dg.addColorStop(0,    '#b05425');
+  dg.addColorStop(0.40, '#7a3010');
+  dg.addColorStop(1,    '#2e0e02');
+  ctx.beginPath(); ctx.arc(0, domeY, domeR, 0, Math.PI * 2);
+  ctx.fillStyle = dg; ctx.fill();
+
+  // 3 ── Big googly eyes — pupils aim straight at the cursor (grow when happy)
+  for (let sgn = -1; sgn <= 1; sgn += 2) {
+    const ex = sgn * eyeOX;
+    const er = eyeR + happy * 1.6;
+    ctx.beginPath(); ctx.arc(ex, eyeY, er, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8e4e0'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.70)'; ctx.lineWidth = 1.8; ctx.stroke();
+    // direction from this eye toward the cursor, clamped inside the eye
+    let dx = lcx - ex, dy = lcy - eyeY;
+    const d = Math.hypot(dx, dy) || 1;
+    const maxPd = er * 0.40;
+    const reach = Math.min(maxPd, d);          // ease toward centre when cursor is right on it
+    const px = ex + (dx / d) * reach;
+    const py = eyeY + (dy / d) * reach;
+    ctx.beginPath(); ctx.arc(px, py, er * 0.58, 0, Math.PI * 2);
+    ctx.fillStyle = '#111'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px + er * 0.19, py - er * 0.19, er * 0.19, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+  }
+
+  // 4 ── Happy blush when you hover / poke him
+  if (happy > 0.02) {
+    for (let sgn = -1; sgn <= 1; sgn += 2) {
+      const er = eyeR + happy * 1.6;
+      ctx.globalAlpha = happy * 0.50;
+      ctx.beginPath();
+      ctx.ellipse(sgn * (eyeOX + er * 0.55), eyeY + er * 0.80, er * 0.62, er * 0.26, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff4466'; ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+function _drawJimmyPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawJimmyPattern._lt === undefined;
+  if (!fresh && t - _drawJimmyPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawJimmyPattern._lt, 0.05);
+  _drawJimmyPattern._lt = t;
+  _jimmyLastDraw = performance.now();
+  _jimmyHookMouse();
+
+  // Pin the canvas FIXED to the #content rect every frame so Jimmy stays put
+  // (and fully covers) while the sheet scrolls — same idiom as Divine.
+  let rLeft = 0, rTop = 0;
+  const _ct = document.getElementById('content');
+  if (_ct) {
+    const r = _ct.getBoundingClientRect();
+    const cw = Math.max(1, Math.round(r.width)), ch = Math.max(1, Math.round(r.height));
+    if (canvas.style.position !== 'fixed') canvas.style.position = 'fixed';
+    canvas.style.left = r.left + 'px'; canvas.style.top = r.top + 'px';
+    canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+    rLeft = r.left; rTop = r.top;
+  }
+  W = canvas.width; H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // muffin placement — big and brought up toward the top, a bit to the right
+  const mx = W * 0.66;
+  const my = H * 0.26;
+  const scale = Math.max(4.6, Math.min(W, H) / 95);   // BIG, sane on small screens
+  const curX = _jimmyMX - rLeft;
+  const curY = _jimmyMY - rTop;
+
+  // ── publish the screen-space hit ellipse (used by the click handler + hover) ──
+  _jimmyCSX = rLeft + mx;
+  _jimmyCSY = rTop  + my + 9 * scale;       // centre shifted toward the cup
+  _jimmyHRX = 34 * scale;
+  _jimmyHRY = 30 * scale;
+  const hdx = (_jimmyMX - _jimmyCSX) / _jimmyHRX, hdy = (_jimmyMY - _jimmyCSY) / _jimmyHRY;
+  _jimmyHover = (hdx * hdx + hdy * hdy) <= 1;
+
+  // ── reaction timers ──
+  if (_jimmyHover) _jimmyHappyT = Math.min(1, _jimmyHappyT + dt * 3.0);
+  else             _jimmyHappyT = Math.max(0, _jimmyHappyT - dt * 1.6);
+  if (_jimmyBounceT > 0) _jimmyBounceT = Math.max(0, _jimmyBounceT - dt * 1.7);
+
+  // 1 ── Warm dark backdrop so the orange muffin and red rain pop
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0,    '#2a1d10');
+  bg.addColorStop(0.55, '#1f160c');
+  bg.addColorStop(1,    '#150e07');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // 2 ── RED BINARY RAIN — falling from above, semi-transparent, BEHIND the muffin
+  _drawJimmyBinary(canvas, ctx, W, H, dt);
+
+  // gentle warm glow centred on the muffin (over the rain, under the muffin)
+  const gl = ctx.createRadialGradient(mx, my, 10, mx, my, Math.max(W, H) * 0.50);
+  gl.addColorStop(0,   'rgba(255,176,80,0.18)');
+  gl.addColorStop(0.5, 'rgba(200,110,40,0.06)');
+  gl.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+
+  // 3 ── Big Jimmy, eyes on the cursor (drawn AFTER the rain → rain never covers him)
+  _drawJimmyMuffin(ctx, mx, my, t, scale, curX, curY);
+
+  // 4 ── Crumb sparkles flung out on click (emitted at the muffin, on top of him)
+  if (_jimmyEmitBurst > 0) {
+    for (let i = 0; i < _jimmyEmitBurst; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = (60 + Math.random() * 140);
+      _jimmySparkles.push({
+        x: mx + (Math.random() - 0.5) * 18 * scale * 0.3,
+        y: my - 6 * scale,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 90,
+        life: 1, r: (1.4 + Math.random() * 2.2) * (scale / 3.5),
+        c: Math.random() < 0.5 ? '#ffcf6b' : (Math.random() < 0.5 ? '#d96c12' : '#7a3010')
+      });
+    }
+    _jimmyEmitBurst = 0;
+  }
+  for (let i = _jimmySparkles.length - 1; i >= 0; i--) {
+    const p = _jimmySparkles[i];
+    p.vy += 320 * dt;                 // gravity
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.life -= dt * 1.1;
+    if (p.life <= 0) { _jimmySparkles.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+    ctx.fillStyle = p.c;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // 5 ── soft edge vignette
+  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.72);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+}
+
+// Red 0/1 streams pouring down the page — sparse, semi-transparent, persistent
+// per-column state cached on the canvas so the digits don't flicker every frame.
+function _drawJimmyBinary(canvas, ctx, W, H, dt) {
+  const lineH = 17, colW = 18;
+  if (canvas._jimBinW !== W || canvas._jimBinH !== H || !canvas._jimCols) {
+    canvas._jimBinW = W; canvas._jimBinH = H;
+    const n = Math.ceil(W / colW);
+    canvas._jimCols = Array.from({ length: n }, (_, i) => {
+      const len = 7 + Math.floor(Math.random() * 16);
+      return {
+        x: i * colW + colW * 0.5,
+        y: Math.random() * H,
+        speed: 45 + Math.random() * 95,
+        len,
+        bits: Array.from({ length: len }, () => (Math.random() < 0.5 ? '0' : '1'))
+      };
+    });
+  }
+  ctx.save();
+  ctx.font = '14px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  for (const col of canvas._jimCols) {
+    col.y += col.speed * dt;
+    if (col.y - col.len * lineH > H) {            // wrapped fully past the bottom
+      col.y = -Math.random() * H * 0.4;
+      col.speed = 45 + Math.random() * 95;
+    }
+    // slowly mutate one digit so the stream feels alive without flickering
+    if (Math.random() < 0.06) col.bits[(Math.random() * col.len) | 0] = (Math.random() < 0.5 ? '0' : '1');
+    for (let k = 0; k < col.len; k++) {
+      const cy = col.y - k * lineH;
+      if (cy < -lineH || cy > H + lineH) continue;
+      const f = 1 - k / col.len;                  // head brightest
+      if (k === 0) {
+        ctx.fillStyle = 'rgba(255,150,140,0.55)';  // bright leading glyph
+      } else {
+        ctx.fillStyle = `rgba(225,30,30,${(0.40 * f).toFixed(3)})`;
+      }
+      ctx.fillText(col.bits[k], col.x, cy);
+    }
+  }
+  ctx.restore();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // THE SHI — god of death. Silent, mysterious, elegant soul garden.
 // ════════════════════════════════════════════════════════════════
 function _shiSoulSprite() {
@@ -7717,6 +8410,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'juko_code')      { _drawJukoPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'lucifer_unleashed') { _drawLuciferPattern(canvas, ctx, W, H, t);         return; }
   if (type === 'divine_light')      { _drawDivinePattern(canvas, ctx, W, H, t);          return; }
+  if (type === 'jimmy_muffin')      { _drawJimmyPattern(canvas, ctx, W, H, t);           return; }
   if (type === 'shi_souls')      { _drawShiPattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'lunar_moon')     { _drawLunarPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
@@ -8183,6 +8877,7 @@ function startBgAnim(type, params) {
   _drawLuciferOverlay._lt     = undefined;
   _drawDivinePattern._lt      = undefined;
   _drawDivineOverlay._lt      = undefined;
+  _drawJimmyPattern._lt       = undefined;
   _drawShiPattern._lt         = undefined;
   _drawShiOverlay._lt         = undefined;
   _drawLunarPattern._lt       = undefined;
@@ -8921,8 +9616,9 @@ function viewChar(id) {
       if (_av) _av.classList.remove('divine-pfp');
       if (_nm) { _nm.classList.remove('divine-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name')) _nm.removeAttribute('data-text'); }
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c)) _pc.style.opacity = '';
-      // Undo the fixed-to-#content pinning the divine draw loop applied, so other
-      // characters get the default absolute, content-sized background canvas back.
+      // Undo the fixed-to-#content pinning the Divine (or Jimmy) draw loop applied,
+      // so other characters get the default absolute, content-sized background
+      // canvas back. (Both pin the canvas fixed; this generic reset un-pins either.)
       if (_pc && _pc.style.position === 'fixed') {
         _pc.style.position = ''; _pc.style.left = ''; _pc.style.top = '';
         _pc.style.width = ''; _pc.style.height = '';
@@ -8968,15 +9664,25 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
+  const _stPanel = document.querySelector('#tab-style .panel');
+  const _stPanelTitle = document.querySelector('#tab-style .panel-title');
+  if (_isNara(c)) {
+    // Nara has no "pattern" panel — the Style tab is just her blank paint canvas.
+    if (_stPanel) _stPanel.style.display = 'none';
+    styleEl.innerHTML = '';
+  } else {
+  if (_stPanel) _stPanel.style.display = '';
+  if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
       styleEl.innerHTML += `<div style="font-size:8px;letter-spacing:1px;margin-bottom:6px;color:#666;">${p.label}: <span style="color:#ccc;">${v}</span></div>`;
     });
+  }
   }
   // Iris-only "shimmy counter" — tally of falling stars popped with the cursor
   if (_isIris(c)) {
@@ -8995,7 +9701,8 @@ function viewChar(id) {
       `<div style="font-size:7.5px;letter-spacing:1px;color:#8a6038;margin-top:5px;">cut clean in half with a fast swing &#9876;</div>`;
   }
   stopBgAnim();
-  if (ptype !== 'none') startBgAnim(ptype, c.pattern?.params || {});
+  if (ptype !== 'none' && !_isNara(c)) startBgAnim(ptype, c.pattern?.params || {});  // Nara keeps the canvas blank to paint on
+  if (_isNara(c)) _startNaraPaint(); else _stopNaraPaint();
   if (_isKatie(c))    _startKatieOverlay();    // start AFTER stopBgAnim so it isn't killed
   if (_isLeon(c))     _startLeonOverlay();
   if (_isValkyrie(c)) _startValkyrieOverlay();
@@ -14053,7 +14760,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});

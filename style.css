@@ -1607,6 +1607,120 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 /* ============================================================
+   NARA — PAINT STUDIO. Pastel-rainbow page background everywhere
+   except the Style tab, which is a blank white canvas you paint
+   on. Pencil cursor + translucent rainbow screen frame; floating
+   R/G/B/water buckets you dip the pencil into to mix colour.
+   Panels go pastel-rainbow and glow brighter on hover; the name
+   glows too.
+   ============================================================ */
+/* The full-screen brush + frame overlay never eats clicks */
+#nara-overlay {
+  position: fixed; inset: 0; z-index: 9998; pointer-events: none;
+}
+/* While a paint stroke is in progress, suppress text selection everywhere */
+body.nara-no-select, body.nara-no-select * {
+  user-select: none !important; -webkit-user-select: none !important;
+}
+@keyframes naraPanelRbw {
+  0%   { border-color: #ffb3ba; box-shadow: 0 0 0 1.5px rgba(255,179,186,0.85), 0 0 26px rgba(255,179,186,0.5); }
+  16%  { border-color: #ffd4a8; box-shadow: 0 0 0 1.5px rgba(255,212,168,0.85), 0 0 26px rgba(255,212,168,0.5); }
+  33%  { border-color: #feffa8; box-shadow: 0 0 0 1.5px rgba(254,255,168,0.85), 0 0 26px rgba(254,255,168,0.5); }
+  50%  { border-color: #b8ffc9; box-shadow: 0 0 0 1.5px rgba(184,255,201,0.85), 0 0 26px rgba(184,255,201,0.5); }
+  66%  { border-color: #a8d8ff; box-shadow: 0 0 0 1.5px rgba(168,216,255,0.85), 0 0 26px rgba(168,216,255,0.5); }
+  83%  { border-color: #d4b3ff; box-shadow: 0 0 0 1.5px rgba(212,179,255,0.85), 0 0 26px rgba(212,179,255,0.5); }
+  100% { border-color: #ffb3ba; box-shadow: 0 0 0 1.5px rgba(255,179,186,0.85), 0 0 26px rgba(255,179,186,0.5); }
+}
+/* Pastel-rainbow panels; each one offset so they sweep the spectrum together */
+#char-view.nara-paint-ui .panel {
+  background: rgba(20,16,28,0.82);
+  border: 1.5px solid #ffb3ba;
+  animation: naraPanelRbw 7s linear infinite;
+  transition: filter .25s ease, transform .25s ease, box-shadow .25s ease;
+}
+#char-view.nara-paint-ui .panel:nth-of-type(2) { animation-delay: -1.4s; }
+#char-view.nara-paint-ui .panel:nth-of-type(3) { animation-delay: -2.8s; }
+#char-view.nara-paint-ui .panel:nth-of-type(4) { animation-delay: -4.2s; }
+#char-view.nara-paint-ui .panel:nth-of-type(5) { animation-delay: -5.6s; }
+/* Brighten the whole box on hover — bigger, bolder glow */
+#char-view.nara-paint-ui .panel:hover {
+  filter: brightness(1.7) saturate(1.5);
+  transform: translateY(-2px);
+  animation-play-state: paused;
+}
+
+/* Nara's name glows (colour already animates via .nara-rainbow) */
+#char-view.nara-paint-ui .char-name-display {
+  text-shadow:
+    0 0 7px currentColor,
+    0 0 16px currentColor,
+    0 0 28px currentColor;
+  animation: naraNamePulse 2.4s ease-in-out infinite;
+}
+@keyframes naraNamePulse {
+  0%, 100% { filter: brightness(1);    }
+  50%      { filter: brightness(1.45); }
+}
+
+/* Floating bucket palette — bottom centre */
+.nara-palette {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  display: flex; gap: 14px; z-index: 9999;
+  padding: 10px 16px;
+  background: rgba(18,14,24,0.78); border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px; backdrop-filter: blur(4px);
+}
+.nara-bucket {
+  width: 52px; cursor: pointer; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: transform .15s ease, filter .15s ease;
+}
+.nara-bucket:hover { transform: translateY(-5px) scale(1.08); filter: brightness(1.2); }
+.nara-bucket-can {
+  width: 38px; height: 34px; position: relative;
+  background: linear-gradient(180deg, #d8dade, #a7abb2 60%, #8b9097);
+  border: 2px solid #6c7077; border-radius: 4px 4px 7px 7px;
+  overflow: hidden;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+}
+.nara-bucket-can::before {   /* metal rim */
+  content: ""; position: absolute; left: -3px; right: -3px; top: -2px; height: 5px;
+  background: #c2c6cc; border: 2px solid #6c7077; border-radius: 4px;
+}
+.nara-bucket-paint {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 64%;
+  background: var(--bk);
+}
+.nara-bucket.water .nara-bucket-paint {
+  background: linear-gradient(180deg, rgba(150,210,255,0.55), rgba(90,170,255,0.85));
+}
+.nara-bucket-label {
+  font-size: 7px; letter-spacing: 1px; color: #d8d8e0; font-weight: bold;
+}
+
+/* Live colour readout on the palette ("RGB table") */
+.nara-readout {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 12px; margin-left: 4px;
+  border-left: 1px solid rgba(255,255,255,0.16);
+}
+.nara-read-swatch {
+  width: 34px; height: 34px; border-radius: 7px;
+  border: 2px solid rgba(255,255,255,0.65);
+  box-shadow: 0 0 12px rgba(255,255,255,0.22), inset 0 0 0 1px rgba(0,0,0,0.25);
+  background: rgb(255,90,130);
+}
+.nara-read-vals { display: flex; flex-direction: column; gap: 4px; }
+#nara-read-rgb { font-size: 8px; letter-spacing: 1px; color: #fff; font-weight: bold; white-space: nowrap; }
+.nara-read-clr {
+  font-family: inherit; font-size: 7px; letter-spacing: 1px; font-weight: bold;
+  padding: 3px 6px; cursor: pointer; color: #fff;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.28); border-radius: 5px;
+  transition: filter .12s ease;
+}
+.nara-read-clr:hover { filter: brightness(1.5); }
+
+/* ============================================================
    THE SHI — god of death. Silent, mysterious, VERY elegant.
    Blue / white / gray, beauty-in-death. Restrained, refined,
    slow breathing glows — nothing loud. --char-color is pale ice.
