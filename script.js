@@ -2006,6 +2006,7 @@ const PATTERN_DEFS = {
   divine_light:     { label: "Divine · Radiance",      params: [] },
   jimmy_muffin:     { label: "Jimmy · Big Muffin",     params: [] },
   aether_forest:    { label: "Aether · Dark Forest",   params: [] },
+  cappy_milk:       { label: "Cappy · Milk",            params: [] },
   shi_souls:        { label: "The Shi · Soul Garden",  params: [] },
   lunar_moon:       { label: "Lunar · Moonlight",      params: [] },
   helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
@@ -6684,6 +6685,163 @@ function _stopAetherOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// CAPPY — the screen is filled with white milk: gooey metaball blobs that
+// flow toward the cursor (viscous, sloshing). The cursor is a glowing blue
+// Star of David. Character-wide (matches "Cappy").
+// ════════════════════════════════════════════════════════════════
+const _CAPPY_RE = /^(funtime |nightmare |toy |withered )?cappy$/i;
+function _isCappy(c) { return !!(c && c.name && _CAPPY_RE.test(c.name)); }
+// each Cappy variant pours a different-coloured milk
+function _cappyMilkColor(c) {
+  const n = (c && c.name || '').toLowerCase();
+  if (n === 'funtime cappy')   return '#ff86c9';   // pink
+  if (n === 'nightmare cappy') return '#9aa0a8';   // gray
+  if (n === 'toy cappy')       return '#ffe06a';   // yellow
+  if (n === 'withered cappy')  return '#3450b0';   // dark blue
+  return '#fdfdf6';                                 // plain Cappy: milk white
+}
+let _cappyOverlayRafId = null;
+let _cappyMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _cappyMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+function _cappyMouseMove(e) { _cappyMX = e.clientX; _cappyMY = e.clientY; }
+
+function _drawCappyPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawCappyPattern._lt === undefined;
+  if (!fresh && t - _drawCappyPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawCappyPattern._lt, 0.05);
+  _drawCappyPattern._lt = t;
+
+  // (re)seed the milk blobs, scattered across the whole canvas
+  if (!canvas._cappyBlobs || canvas._cappyW !== W || canvas._cappyH !== H) {
+    canvas._cappyW = W; canvas._cappyH = H; canvas._cappyOff = null; canvas._cappyLit = null;
+    canvas._cappyBlobs = Array.from({ length: 46 }, () => {
+      const hx = Math.random() * W, hy = Math.random() * H;
+      return { x: hx, y: hy, hx, hy, vx: 0, vy: 0, r: 26 + Math.random() * 52 };
+    });
+  }
+  const blobs = canvas._cappyBlobs;
+
+  // cursor in this canvas's pixel space
+  let cx = W * 0.5, cy = H * 0.5;
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width) { cx = (_cappyMX - rect.left) * (W / rect.width); cy = (_cappyMY - rect.top) * (H / rect.height); }
+
+  // viscous flow: a gentle home spring keeps the milk spread; a strong local
+  // pull makes it stream toward the cursor
+  const damp = Math.pow(0.88, dt * 60);
+  for (const b of blobs) {
+    b.vx += (b.hx - b.x) * 1.2 * dt;
+    b.vy += (b.hy - b.y) * 1.2 * dt;
+    const toX = cx - b.x, toY = cy - b.y, d = Math.hypot(toX, toY) + 1;
+    const pull = Math.min(2000, 180000 / d);
+    b.vx += (toX / d) * pull * dt;
+    b.vy += (toY / d) * pull * dt;
+    b.vx *= damp; b.vy *= damp;
+    b.x += b.vx * dt; b.y += b.vy * dt;
+  }
+
+  // ── metaball render (cheap): the milk is blurry, so draw it at LOW resolution
+  //    and upscale. Solid circles + one combined blur+contrast pass = gooey
+  //    threshold; the upscale adds free smoothing. ~10x less pixel work. ──
+  const scale = Math.min(1, 420 / Math.max(W, H));
+  const sw = Math.max(1, Math.round(W * scale)), sh = Math.max(1, Math.round(H * scale));
+  let off = canvas._cappyOff;
+  if (!off || off.width !== sw || off.height !== sh) {
+    off = document.createElement('canvas'); off.width = sw; off.height = sh; canvas._cappyOff = off; canvas._cappyLit = null;
+  }
+  const og = off.getContext('2d');
+  og.globalCompositeOperation = 'source-over';
+  og.fillStyle = '#08090e'; og.fillRect(0, 0, sw, sh);
+  og.fillStyle = '#ffffff';
+  for (const b of blobs) { og.beginPath(); og.arc(b.x * scale, b.y * scale, b.r * scale, 0, 6.2832); og.fill(); }
+
+  // one blur+contrast pass → gooey threshold, then tint to this variant's colour
+  const milkColor = _cappyMilkColor((typeof characters !== 'undefined') ? characters.find(x => x.id === currentId) : null);
+  let lit = canvas._cappyLit;
+  if (!lit) { lit = document.createElement('canvas'); lit.width = sw; lit.height = sh; canvas._cappyLit = lit; }
+  const lg = lit.getContext('2d');
+  lg.globalCompositeOperation = 'source-over'; lg.clearRect(0, 0, sw, sh);
+  lg.filter = `blur(${Math.max(3, 13 * scale)}px) contrast(14) brightness(1.04)`;
+  lg.drawImage(off, 0, 0);
+  lg.filter = 'none';
+  lg.globalCompositeOperation = 'multiply'; lg.fillStyle = milkColor; lg.fillRect(0, 0, sw, sh);
+  lg.globalCompositeOperation = 'source-over';
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(lit, 0, 0, sw, sh, 0, 0, W, H);
+
+  // soft creamy sheen near the cursor (where the milk pools)
+  const sg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.35);
+  sg.addColorStop(0, 'rgba(255,255,255,0.10)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sg; ctx.fillRect(0, 0, W, H);
+}
+
+// ── blue Star of David cursor ──
+function _drawCappyStar(ctx, x, y, t) {
+  const R = 15 * (1 + Math.sin(t * 2) * 0.04);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.sin(t * 0.6) * 0.06);
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = 'rgba(70,130,255,0.85)'; ctx.shadowBlur = 10;
+  // translucent blue fill (both triangles) then bright outline
+  for (let pass = 0; pass < 2; pass++) {
+    ctx.fillStyle = 'rgba(70,130,255,0.16)';
+    ctx.strokeStyle = pass === 0 ? '#1b3fae' : '#4d8bff';
+    ctx.lineWidth = pass === 0 ? 4 : 2.2;
+    for (let tri = 0; tri < 2; tri++) {
+      ctx.beginPath();
+      for (let i = 0; i < 3; i++) {
+        const a = tri * Math.PI - Math.PI / 2 + i * (2 * Math.PI / 3);
+        const px = Math.cos(a) * R, py = Math.sin(a) * R;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      if (pass === 1) ctx.fill();
+      ctx.stroke();
+    }
+  }
+  // bright center
+  ctx.shadowBlur = 6; ctx.fillStyle = '#cfe0ff';
+  ctx.beginPath(); ctx.arc(0, 0, 1.8, 0, 6.2832); ctx.fill();
+  ctx.restore();
+}
+function _drawCappyOverlay(canvas, ctx, W, H, t) {
+  if (_drawCappyOverlay._lt !== undefined && t - _drawCappyOverlay._lt < 0.012) return;
+  _drawCappyOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  _drawCappyStar(ctx, _cappyMX, _cappyMY, t);
+}
+function _startCappyOverlay() {
+  _stopCappyOverlay();
+  _drawCappyOverlay._lt = undefined;
+  window.addEventListener('mousemove', _cappyMouseMove);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'cappy-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('cappy-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawCappyOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _cappyOverlayRafId = requestAnimationFrame(frame);
+  }
+  _cappyOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopCappyOverlay() {
+  if (_cappyOverlayRafId) { cancelAnimationFrame(_cappyOverlayRafId); _cappyOverlayRafId = null; }
+  window.removeEventListener('mousemove', _cappyMouseMove);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('cappy-overlay'); if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // JIMMY — Fury's muffin, supersized, sitting on the page background and
 // following your cursor with its big googly eyes. Pattern-only.
 // ════════════════════════════════════════════════════════════════
@@ -8821,6 +8979,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'divine_light')      { _drawDivinePattern(canvas, ctx, W, H, t);          return; }
   if (type === 'jimmy_muffin')      { _drawJimmyPattern(canvas, ctx, W, H, t);           return; }
   if (type === 'aether_forest')     { _drawAetherPattern(canvas, ctx, W, H, t);          return; }
+  if (type === 'cappy_milk')        { _drawCappyPattern(canvas, ctx, W, H, t);           return; }
   if (type === 'shi_souls')      { _drawShiPattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'lunar_moon')     { _drawLunarPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
@@ -9290,6 +9449,8 @@ function startBgAnim(type, params) {
   _drawJimmyPattern._lt       = undefined;
   _drawAetherPattern._lt      = undefined;
   _drawAetherOverlay._lt      = undefined;
+  _drawCappyPattern._lt       = undefined;
+  _drawCappyOverlay._lt       = undefined;
   _drawShiPattern._lt         = undefined;
   _drawShiOverlay._lt         = undefined;
   _drawLunarPattern._lt       = undefined;
@@ -9331,6 +9492,7 @@ function stopBgAnim() {
   _stopLuciferOverlay();
   _stopDivineOverlay();
   _stopAetherOverlay();
+  _stopCappyOverlay();
   _stopShiOverlay();
   _stopLunarOverlay();
   _stopHeliosOverlay();
@@ -10077,7 +10239,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -10089,7 +10251,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -10126,6 +10288,7 @@ function viewChar(id) {
   if (_isLuciferUnleashed(c)) _startLuciferOverlay();
   if (_isDivine(c)) _startDivineOverlay();
   if (_isAether(c))   _startAetherOverlay();
+  if (_isCappy(c))    _startCappyOverlay();
   if (_isShi(c))      _startShiOverlay();
   if (_isLunar(c))    _startLunarOverlay();
   if (_isHelios(c))   _startHeliosOverlay();
@@ -15176,7 +15339,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -15191,6 +15354,7 @@ window.addEventListener('resize', () => {
       if (_isLuciferUnleashed(c)) _startLuciferOverlay();
   if (_isDivine(c)) _startDivineOverlay();
       if (_isAether(c))   _startAetherOverlay();
+      if (_isCappy(c))    _startCappyOverlay();
       if (_isShi(c))      _startShiOverlay();
       if (_isLunar(c))    _startLunarOverlay();
       if (_isHelios(c))   _startHeliosOverlay();
