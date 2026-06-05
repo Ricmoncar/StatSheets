@@ -2005,6 +2005,7 @@ const PATTERN_DEFS = {
   lucifer_unleashed:{ label: "Lucifer · Unleashed",    params: [] },
   divine_light:     { label: "Divine · Radiance",      params: [] },
   jimmy_muffin:     { label: "Jimmy · Big Muffin",     params: [] },
+  aether_forest:    { label: "Aether · Dark Forest",   params: [] },
   shi_souls:        { label: "The Shi · Soul Garden",  params: [] },
   lunar_moon:       { label: "Lunar · Moonlight",      params: [] },
   helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
@@ -6275,6 +6276,414 @@ function _stopDivineOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// AETHER — a dark, eerie forest at night. Cached painterly tree trunks
+// framing a black void, a misty teal-green floor, drifting fog, glowing
+// fireflies / a will-o'-wisp, and rare pale eyes in the dark. The cursor
+// is a red targeting crosshair. Character-wide (matches "Aether").
+// ════════════════════════════════════════════════════════════════
+const _AETHER_RE = /^Aether$/i;
+function _isAether(c) { return !!(c && c.name && _AETHER_RE.test(c.name)); }
+let _aetherOverlayRafId = null;
+let _aetherMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _aetherMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _aetherFireT = 0;          // recoil/flash timer (decays after a click)
+let _aetherShock = [];         // expanding shockwave rings spawned on click
+let _aetherPX = _aetherMX, _aetherPY = _aetherMY;   // smoothed reticle position
+let _aetherRing = null;        // the wedding ring on the ground (shootable ragdoll)
+
+// deterministic RNG so cached trunks are stable but each one is unique
+function _aetherRng(seed) { let s = (seed >>> 0) || 1; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function _aRGBA(c, a) { return `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`; }
+// a bold tapering limb that forks a couple of times → bare branches up top
+function _aetherLimb(g, x, y, a, len, w, depth, color, rng) {
+  if (depth <= 0 || len < 10) return;
+  const ex = x + Math.cos(a) * len, ey = y + Math.sin(a) * len;
+  const mx = (x + ex) / 2 + (rng() - 0.5) * len * 0.22;
+  const my = (y + ey) / 2 + (rng() - 0.5) * len * 0.16;
+  g.strokeStyle = color; g.lineWidth = Math.max(1, w); g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(mx, my, ex, ey); g.stroke();
+  for (let i = 0; i < 2; i++) {
+    const da = (i === 0 ? -1 : 1) * (0.28 + rng() * 0.3) + (rng() - 0.5) * 0.18;
+    _aetherLimb(g, ex, ey, a + da, len * 0.7, w * 0.62, depth - 1, color, rng);
+  }
+  if (depth > 1 && rng() < 0.3) _aetherLimb(g, ex, ey, a + (rng() - 0.5) * 0.6, len * 0.5, w * 0.45, depth - 1, color, rng);
+}
+// a big SOLID, lit, painterly tree trunk (the kind that frames the scene).
+// base/light/dark are [r,g,b]; the trunk gets cylindrical shading + bark streaks.
+function _aetherTrunk(g, W, H, o) {
+  const rng = _aetherRng(o.seed || 1);
+  const topY = -40, baseY = H * 0.80, botExtra = H * 0.16;
+  const steps = 12, L = [], R = [];
+  for (let i = 0; i <= steps; i++) {
+    const f = i / steps;
+    const y = topY + (baseY + botExtra - topY) * f;
+    const w = o.topW + (o.botW - o.topW) * Math.pow(f, 1.25);
+    const wob = Math.sin(f * 5 + (o.seed || 1)) * o.topW * 0.05;
+    const cx = o.x + (o.lean || 0) * f + wob;
+    const flare = f > 0.78 ? Math.pow((f - 0.78) / 0.22, 2) * o.botW * 0.7 : 0;
+    L.push([cx - w / 2 - flare, y]); R.push([cx + w / 2 + flare, y]);
+  }
+  const p = new Path2D();
+  p.moveTo(L[0][0], L[0][1]);
+  for (let i = 1; i < L.length; i++) p.lineTo(L[i][0], L[i][1]);
+  for (let i = R.length - 1; i >= 0; i--) p.lineTo(R[i][0], R[i][1]);
+  p.closePath();
+  g.fillStyle = _aRGBA(o.base, 1); g.fill(p);
+  g.save(); g.clip(p);
+  // cylindrical shading across the trunk width (dark edge → lit core → dark edge)
+  const cg = g.createLinearGradient(o.x - o.botW * 0.85, 0, o.x + o.botW * 0.85, 0);
+  cg.addColorStop(0, _aRGBA(o.dark, 1));
+  cg.addColorStop(0.34, _aRGBA(o.light, 1));
+  cg.addColorStop(0.56, _aRGBA(o.base, 1));
+  cg.addColorStop(1, _aRGBA(o.dark, 1));
+  g.fillStyle = cg; g.fillRect(o.x - o.botW * 1.3, topY, o.botW * 2.6, H + 90);
+  // vertical bark streaks
+  for (let i = 0; i < 18; i++) {
+    const sx = o.x - o.botW * 0.5 + rng() * o.botW;
+    const isLight = rng() < 0.45;
+    g.strokeStyle = isLight ? _aRGBA(o.light, 0.08 + rng() * 0.14) : _aRGBA(o.dark, 0.16 + rng() * 0.22);
+    g.lineWidth = 1 + rng() * 3.5; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(sx, topY);
+    g.bezierCurveTo(sx + (rng() - 0.5) * 16, H * 0.35, sx + (rng() - 0.5) * 16, H * 0.7, sx + (rng() - 0.5) * 12, baseY + botExtra);
+    g.stroke();
+  }
+  // soft top-down light so the canopy end of the trunk is a touch brighter
+  const tg = g.createLinearGradient(0, topY, 0, baseY);
+  tg.addColorStop(0, _aRGBA(o.light, 0.16)); tg.addColorStop(0.55, 'rgba(0,0,0,0)');
+  g.fillStyle = tg; g.fillRect(o.x - o.botW * 1.3, topY, o.botW * 2.6, baseY - topY);
+  // subtle blood — a reddish stain bleeding DOWN the bark, tinted into the wood
+  if (o.blood) {
+    const br = _aetherRng((o.seed || 1) + 99);
+    const cx = o.x + (br() - 0.5) * o.botW * 0.18;
+    const top = H * 0.30, runMax = H * 0.24;
+    g.save();
+    g.globalCompositeOperation = 'multiply';   // stains/darkens the bark instead of sitting on top
+    // a soft pooled source where the wound starts
+    const rg = g.createRadialGradient(cx, top + 8, 1, cx, top + 14, o.botW * 0.42);
+    rg.addColorStop(0, 'rgba(120,16,16,0.55)'); rg.addColorStop(1, 'rgba(120,16,16,0)');
+    g.fillStyle = rg;
+    g.beginPath(); g.ellipse(cx, top + 10, o.botW * 0.34, o.botW * 0.24, 0, 0, 6.2832); g.fill();
+    // many thin vertical runs of varying length, tapering to a point
+    for (let i = 0; i < 10; i++) {
+      const x = cx + (br() - 0.5) * o.botW * 0.55;
+      const w = 1.5 + br() * 5;
+      const y0 = top + (br() - 0.3) * H * 0.04;
+      const len = runMax * (0.25 + br() * 0.75);
+      const red = [80 + br() * 70, 10 + br() * 16, 10 + br() * 14];
+      g.fillStyle = _aRGBA(red, 0.3 + br() * 0.3);
+      g.beginPath();
+      g.moveTo(x - w / 2, y0);
+      g.lineTo(x + w / 2, y0);
+      g.quadraticCurveTo(x + w * 0.2, y0 + len * 0.7, x, y0 + len);
+      g.quadraticCurveTo(x - w * 0.2, y0 + len * 0.7, x - w / 2, y0);
+      g.closePath(); g.fill();
+    }
+    g.restore();
+  }
+  g.restore();
+  // bare branches reaching up & out from the top, so it's not just a line
+  if (o.branches) {
+    const lrng = _aetherRng((o.seed || 1) * 7 + 1);
+    const fA = 0.16, ay = topY + (baseY + botExtra - topY) * fA, ax = o.x + (o.lean || 0) * fA;
+    const bcol = _aRGBA(o.base, 1), lw = Math.max(3, o.topW * 0.45);
+    _aetherLimb(g, ax - o.topW * 0.25, ay, -Math.PI / 2 - 0.6, H * 0.16, lw, 3, bcol, lrng);
+    _aetherLimb(g, ax + o.topW * 0.25, ay, -Math.PI / 2 + 0.6, H * 0.16, lw, 3, bcol, lrng);
+    _aetherLimb(g, ax, ay - H * 0.05, -Math.PI / 2 + 0.12, H * 0.15, lw * 0.85, 3, bcol, lrng);
+  }
+}
+function _aetherGround(g, W, H) {
+  const gy = H * 0.82;
+  g.beginPath(); g.moveTo(0, gy);
+  for (let x = 0; x <= W; x += W / 10) g.lineTo(x, gy - 14 + Math.sin(x * 0.012) * 10 + Math.random() * 9);
+  g.lineTo(W, H); g.lineTo(0, H); g.closePath();
+  const grad = g.createLinearGradient(0, gy - 20, 0, H);
+  grad.addColorStop(0, '#2c4a3d'); grad.addColorStop(0.5, '#16271f'); grad.addColorStop(1, '#08110c');
+  g.fillStyle = grad; g.fill();
+  // cool misty highlight skimming the top of the floor
+  g.fillStyle = 'rgba(150,190,168,0.07)';
+  g.beginPath(); g.moveTo(0, gy);
+  for (let x = 0; x <= W; x += W / 10) g.lineTo(x, gy - 14 + Math.sin(x * 0.012) * 10);
+  g.lineTo(W, gy + 16); g.lineTo(0, gy + 16); g.closePath(); g.fill();
+}
+function _aetherBuildForest(W, H) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  // night base — a touch of cold sky filtering through the canopy at the top
+  const bg = g.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#10161a'); bg.addColorStop(0.4, '#0a0f11'); bg.addColorStop(1, '#0a0f0c');
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  // deep black central void (the dark gap between the trees)
+  const vd = g.createRadialGradient(W * 0.46, H * 0.42, 10, W * 0.46, H * 0.5, Math.max(W, H) * 0.42);
+  vd.addColorStop(0, 'rgba(0,0,0,0.92)'); vd.addColorStop(0.7, 'rgba(0,0,0,0.5)'); vd.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = vd; g.fillRect(0, 0, W, H);
+
+  // faint distant trunks for depth (low contrast, behind everything)
+  _aetherTrunk(g, W, H, { x: 0.40 * W, topW: 0.05 * W, botW: 0.08 * W, base: [26, 28, 26], light: [40, 42, 38], dark: [12, 14, 12], seed: 61 });
+  _aetherTrunk(g, W, H, { x: 0.58 * W, topW: 0.05 * W, botW: 0.09 * W, base: [28, 28, 26], light: [44, 44, 40], dark: [12, 13, 12], seed: 67 });
+
+  // ── big LIT trunks framing the void (left cluster + the prominent right one) ──
+  _aetherTrunk(g, W, H, { x: 0.13 * W, topW: 0.085 * W, botW: 0.15 * W, base: [60, 54, 44], light: [104, 92, 70], dark: [22, 19, 13], lean: -W * 0.015, seed: 3, branches: true });
+  _aetherTrunk(g, W, H, { x: -0.02 * W, topW: 0.09 * W, botW: 0.14 * W, base: [50, 47, 42], light: [86, 80, 68], dark: [18, 16, 12], lean: W * 0.01, seed: 5, branches: true });
+  // the big warm trunk on the right (like the reference) — carries the subtle blood
+  _aetherTrunk(g, W, H, { x: 0.74 * W, topW: 0.11 * W, botW: 0.19 * W, base: [66, 50, 40], light: [112, 86, 64], dark: [26, 18, 13], lean: W * 0.025, seed: 7, branches: true, blood: true });
+  _aetherTrunk(g, W, H, { x: 0.95 * W, topW: 0.10 * W, botW: 0.16 * W, base: [54, 50, 44], light: [92, 84, 72], dark: [20, 18, 14], lean: 0, seed: 11, branches: true });
+
+  _aetherGround(g, W, H);
+  return c;
+}
+
+function _drawAetherPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawAetherPattern._lt === undefined;
+  if (!fresh && t - _drawAetherPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawAetherPattern._lt, 0.05);
+  _drawAetherPattern._lt = t;
+
+  if (canvas._aetherBgW !== W || canvas._aetherBgH !== H || !canvas._aetherBg) {
+    canvas._aetherBg = _aetherBuildForest(W, H);
+    canvas._aetherBgW = W; canvas._aetherBgH = H;
+    canvas._aetherFlies = null; canvas._aetherEye = null; canvas._aetherEyeT = 3 + Math.random() * 5;
+  }
+  ctx.drawImage(canvas._aetherBg, 0, 0);
+
+  // light vignette — just darkens the corners a touch (keeps the side trunks lit)
+  const vg = ctx.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.3, W / 2, H * 0.5, Math.max(W, H) * 0.9);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.32)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+  // drifting fog
+  for (let i = 0; i < 4; i++) {
+    const fx = W * (0.18 + i * 0.22) + Math.sin(t * 0.15 + i * 1.7) * W * 0.12;
+    const fy = H * (0.55 + (i % 2) * 0.18);
+    const rw = W * 0.34, rh = H * 0.10;
+    const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, rw);
+    fg.addColorStop(0, 'rgba(150,180,165,0.07)'); fg.addColorStop(1, 'rgba(150,180,165,0)');
+    ctx.save(); ctx.translate(fx, fy); ctx.scale(1, rh / rw);
+    ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(0, 0, rw, 0, 6.2832); ctx.fill(); ctx.restore();
+  }
+
+  // fireflies + a pale will-o'-wisp (additive glow)
+  if (!canvas._aetherFlies) {
+    canvas._aetherFlies = Array.from({ length: 16 }, (_, i) => {
+      const wisp = i === 0;
+      return {
+        bx: Math.random() * W, by: H * (0.18 + Math.random() * 0.6),
+        ph: Math.random() * 6.28, sp: 0.15 + Math.random() * 0.45,
+        amp: 15 + Math.random() * 55, r: wisp ? 2.3 : 0.7 + Math.random() * 1.5,
+        hue: wisp ? 150 : 70 + Math.random() * 70, sat: wisp ? 12 : 85,
+      };
+    });
+  }
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const f of canvas._aetherFlies) {
+    const x = f.bx + Math.sin(t * f.sp + f.ph) * f.amp;
+    const y = f.by + Math.cos(t * f.sp * 0.7 + f.ph * 1.3) * f.amp * 0.5;
+    const tw = 0.3 + 0.7 * Math.abs(Math.sin(t * 1.6 + f.ph));
+    const gg = ctx.createRadialGradient(x, y, 0, x, y, f.r * 5);
+    gg.addColorStop(0, `hsla(${f.hue},${f.sat}%,82%,${0.9 * tw})`);
+    gg.addColorStop(1, `hsla(${f.hue},${f.sat}%,82%,0)`);
+    ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x, y, f.r * 5, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = `hsla(${f.hue},${f.sat}%,94%,${tw})`;
+    ctx.beginPath(); ctx.arc(x, y, f.r * 0.9, 0, 6.2832); ctx.fill();
+  }
+  ctx.restore();
+
+  // rare pale eyes opening in the dark
+  canvas._aetherEyeT -= dt;
+  if (!canvas._aetherEye && canvas._aetherEyeT <= 0) {
+    canvas._aetherEye = { x: W * (0.3 + Math.random() * 0.4), y: H * (0.24 + Math.random() * 0.28), life: 0, dur: 3.6 };
+  }
+  if (canvas._aetherEye) {
+    const e = canvas._aetherEye; e.life += dt;
+    let a = 1;
+    if (e.life < 0.8) a = e.life / 0.8;
+    else if (e.life > e.dur - 1) a = Math.max(0, e.dur - e.life);
+    if (e.life >= e.dur) { canvas._aetherEye = null; canvas._aetherEyeT = 6 + Math.random() * 9; }
+    else {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (const dx of [-7, 7]) {
+        ctx.fillStyle = `rgba(224,250,236,${a * 0.7})`;
+        ctx.beginPath(); ctx.ellipse(e.x + dx, e.y, 3.1, 2.0, 0, 0, 6.2832); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  // the wedding ring lives on the FOREST layer (so the panels occlude it),
+  // in this canvas's pixel space — physics + draw here, not on the overlay
+  _aetherUpdateRing(dt, W, H);
+  _aetherDrawRing(ctx, t);
+}
+
+// ── Red targeting crosshair cursor (lots of moving parts) ──
+function _aetherMouseMove(e) { _aetherMX = e.clientX; _aetherMY = e.clientY; }
+function _aetherClick() {
+  _aetherFireT = 1;                                   // slow recoil settle
+  _aetherShock.push({ life: 1 });                    // contracting lock-on ring
+  // shooting the ring kicks it flying with a tumble. The ring lives in the
+  // forest canvas's pixel space, so convert the mouse into that space first.
+  const r = _aetherRing;
+  const pc = document.getElementById('pattern-canvas');
+  if (r && pc && pc.width) {
+    const rc = pc.getBoundingClientRect();
+    const mx = (_aetherMX - rc.left) * (pc.width / rc.width);
+    const my = (_aetherMY - rc.top) * (pc.height / rc.height);
+    const dx = mx - r.x, dy = my - r.y;
+    if (dx * dx + dy * dy < 28 * 28) {
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.1;   // mostly up, some spread
+      const spd = 720 + Math.random() * 520;
+      r.vx = Math.cos(ang) * spd; r.vy = Math.sin(ang) * spd;
+      r.vr = (Math.random() - 0.5) * 36; r.moving = true;
+    }
+  }
+}
+// physics in the forest canvas's pixel space: gravity + bounce off its walls /
+// ground, with spin & damping. (W,H are the pattern canvas dimensions.)
+function _aetherUpdateRing(dt, W, H) {
+  const r = _aetherRing; if (!r) return;
+  const R = r.R, floorY = H * r.restFy;
+  if (!r.moving) { r.x = W * r.restFx; r.y = floorY; return; }   // anchored at rest
+  r.vy += 1500 * dt;
+  r.x += r.vx * dt; r.y += r.vy * dt; r.rot += r.vr * dt;
+  if (r.x < R) { r.x = R; r.vx = Math.abs(r.vx) * 0.6; r.vr *= 0.8; }
+  else if (r.x > W - R) { r.x = W - R; r.vx = -Math.abs(r.vx) * 0.6; r.vr *= 0.8; }
+  if (r.y < R) { r.y = R; r.vy = Math.abs(r.vy) * 0.6; }
+  if (r.y > floorY) {
+    r.y = floorY; r.vy = -Math.abs(r.vy) * 0.5; r.vx *= 0.7; r.vr *= 0.6;
+    if (Math.abs(r.vy) < 45 && Math.abs(r.vx) < 22) {
+      r.moving = false; r.vx = r.vy = r.vr = 0;
+      r.restFx = r.x / W; r.restFy = r.y / H;   // stay where it landed (survives resize)
+    }
+  }
+}
+function _aetherDrawRing(ctx, t) {
+  const r = _aetherRing; if (!r) return;
+  const moving = r.moving, a = moving ? 0.95 : 0.55;   // subtle but findable at rest
+  ctx.save();
+  ctx.translate(r.x, r.y);
+  ctx.rotate(moving ? r.rot * 0.3 : 0.2);
+  // squash to fake a tumbling band (edge-on → flat) while flying
+  ctx.scale(1, moving ? (0.2 + 0.8 * Math.abs(Math.cos(r.rot))) : 0.45);
+  ctx.shadowColor = `rgba(255,214,120,${moving ? 0.6 : 0.4})`; ctx.shadowBlur = moving ? 7 : 5;
+  ctx.lineWidth = moving ? 2.4 : 2; ctx.strokeStyle = `rgba(226,188,96,${a})`;
+  ctx.beginPath(); ctx.arc(0, 0, r.R, 0, 6.2832); ctx.stroke();
+  ctx.lineWidth = moving ? 1.1 : 0.9; ctx.strokeStyle = `rgba(160,120,48,${a * 0.7})`;
+  ctx.beginPath(); ctx.arc(0, 0, r.R * 0.66, 0, 6.2832); ctx.stroke();
+  // diamond gem — twinkles every so often to catch the eye
+  const tw = moving ? 0.95 : 0.4 + 0.6 * Math.pow(Math.abs(Math.sin(t * 1.5)), 4);
+  ctx.shadowColor = 'rgba(255,255,255,0.9)'; ctx.shadowBlur = moving ? 8 : 3 + 6 * tw;
+  ctx.fillStyle = `rgba(255,255,255,${tw})`;
+  ctx.beginPath(); ctx.arc(0, -r.R, moving ? 2.2 : 1.8, 0, 6.2832); ctx.fill();
+  ctx.restore();
+}
+function _drawAetherCrosshair(ctx, x, y, t) {
+  ctx.save();
+  ctx.translate(x, y);
+  const fire = _aetherFireT;
+  // recoil: the scope kicks up sharply then slowly settles back on target
+  ctx.translate(0, -fire * fire * 8);
+  const col = `rgb(255,${(46 + fire * 150) | 0},${(26 + fire * 120) | 0})`;
+  ctx.shadowColor = 'rgba(255,40,20,0.85)'; ctx.shadowBlur = 9;
+  ctx.lineCap = 'round'; ctx.strokeStyle = col; ctx.fillStyle = col;
+
+  const R = 15 * (1 + Math.sin(t * 2.5) * 0.045);    // gentle breathing
+
+  // contracting lock-on ring from a shot — wide, then snaps onto the reticle (slow, tense)
+  for (const s of _aetherShock) {
+    const p = Math.max(0, s.life);                   // 1 → 0
+    const rr = R * 1.05 + p * 80;
+    ctx.globalAlpha = 0.55 * p; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(0, 0, rr, 0, 6.2832); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // main ring
+  ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(0, 0, R, 0, 6.2832); ctx.stroke();
+  // N/E/S/W ticks — the inner gap breathes open & closed
+  const gap = R * (0.42 + 0.14 * Math.sin(t * 3));
+  for (let k = 0; k < 4; k++) {
+    const a = k * Math.PI / 2, cx = Math.cos(a), sy = Math.sin(a);
+    ctx.beginPath(); ctx.moveTo(cx * gap, sy * gap); ctx.lineTo(cx * (R + 8), sy * (R + 8)); ctx.stroke();
+  }
+  // center dot
+  ctx.shadowBlur = 0; ctx.beginPath(); ctx.arc(0, 0, 1.9, 0, 6.2832); ctx.fill(); ctx.shadowBlur = 9;
+  // slow idle lock-on pulse (held-breath tension)
+  const op = (t * 0.45) % 1;
+  ctx.globalAlpha = (1 - op) * 0.4; ctx.lineWidth = 1.3;
+  ctx.beginPath(); ctx.arc(0, 0, R + op * 16, 0, 6.2832); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // SHOT brackets — snap inward as the recoil settles (only while firing)
+  if (fire > 0.01) {
+    const spread = R + 10 + fire * 26, bl = 6 + fire * 4;
+    ctx.globalAlpha = Math.min(1, fire * 1.4); ctx.lineWidth = 2;
+    for (let sx = -1; sx <= 1; sx += 2) for (let sy = -1; sy <= 1; sy += 2) {
+      ctx.beginPath();
+      ctx.moveTo(sx * spread - sx * bl, sy * spread);
+      ctx.lineTo(sx * spread, sy * spread);
+      ctx.lineTo(sx * spread, sy * spread - sy * bl);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+function _drawAetherOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawAetherOverlay._lt === undefined;
+  if (!fresh && t - _drawAetherOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawAetherOverlay._lt, 0.05);
+  _drawAetherOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  // smooth the reticle toward the pointer (tiny lag = weighty, "aimed" feel)
+  _aetherPX += (_aetherMX - _aetherPX) * Math.min(1, dt * 26);
+  _aetherPY += (_aetherMY - _aetherPY) * Math.min(1, dt * 26);
+  _aetherFireT = Math.max(0, _aetherFireT - dt * 0.6);   // slow settle (~1.6s)
+  for (let i = _aetherShock.length - 1; i >= 0; i--) {
+    _aetherShock[i].life -= dt * 0.55;                   // slow contract (~1.8s)
+    if (_aetherShock[i].life <= 0) _aetherShock.splice(i, 1);
+  }
+  // (the wedding ring is drawn on the forest layer in _drawAetherPattern,
+  //  so the panels occlude it — not here on the top overlay)
+  // faint held-breath sway → tension
+  const swX = Math.sin(t * 0.8) * 1.1 + Math.sin(t * 2.1 + 1) * 0.5;
+  const swY = Math.cos(t * 0.62) * 0.9 + Math.cos(t * 1.7) * 0.4;
+  _drawAetherCrosshair(ctx, _aetherPX + swX, _aetherPY + swY, t);
+}
+function _startAetherOverlay() {
+  _stopAetherOverlay();
+  _drawAetherOverlay._lt = undefined;
+  _aetherPX = _aetherMX; _aetherPY = _aetherMY; _aetherFireT = 0; _aetherShock = [];
+  _aetherRing = { restFx: 0.12, restFy: 0.88, x: 0, y: 0, vx: 0, vy: 0, rot: Math.PI * 0.18, vr: 0, R: 9, moving: false };
+  window.addEventListener('mousemove', _aetherMouseMove);
+  window.addEventListener('mousedown', _aetherClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'aether-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('aether-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawAetherOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _aetherOverlayRafId = requestAnimationFrame(frame);
+  }
+  _aetherOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopAetherOverlay() {
+  if (_aetherOverlayRafId) { cancelAnimationFrame(_aetherOverlayRafId); _aetherOverlayRafId = null; }
+  window.removeEventListener('mousemove', _aetherMouseMove);
+  window.removeEventListener('mousedown', _aetherClick);
+  _aetherRing = null;
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('aether-overlay'); if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // JIMMY — Fury's muffin, supersized, sitting on the page background and
 // following your cursor with its big googly eyes. Pattern-only.
 // ════════════════════════════════════════════════════════════════
@@ -8411,6 +8820,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'lucifer_unleashed') { _drawLuciferPattern(canvas, ctx, W, H, t);         return; }
   if (type === 'divine_light')      { _drawDivinePattern(canvas, ctx, W, H, t);          return; }
   if (type === 'jimmy_muffin')      { _drawJimmyPattern(canvas, ctx, W, H, t);           return; }
+  if (type === 'aether_forest')     { _drawAetherPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'shi_souls')      { _drawShiPattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'lunar_moon')     { _drawLunarPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
@@ -8878,6 +9288,8 @@ function startBgAnim(type, params) {
   _drawDivinePattern._lt      = undefined;
   _drawDivineOverlay._lt      = undefined;
   _drawJimmyPattern._lt       = undefined;
+  _drawAetherPattern._lt      = undefined;
+  _drawAetherOverlay._lt      = undefined;
   _drawShiPattern._lt         = undefined;
   _drawShiOverlay._lt         = undefined;
   _drawLunarPattern._lt       = undefined;
@@ -8918,6 +9330,7 @@ function stopBgAnim() {
   _stopJukoOverlay();
   _stopLuciferOverlay();
   _stopDivineOverlay();
+  _stopAetherOverlay();
   _stopShiOverlay();
   _stopLunarOverlay();
   _stopHeliosOverlay();
@@ -9664,7 +10077,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -9676,7 +10089,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -9712,6 +10125,7 @@ function viewChar(id) {
   if (_isJuko(c))     _startJukoOverlay();
   if (_isLuciferUnleashed(c)) _startLuciferOverlay();
   if (_isDivine(c)) _startDivineOverlay();
+  if (_isAether(c))   _startAetherOverlay();
   if (_isShi(c))      _startShiOverlay();
   if (_isLunar(c))    _startLunarOverlay();
   if (_isHelios(c))   _startHeliosOverlay();
@@ -12485,6 +12899,8 @@ const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic', 'hexxed',
 const RARITY_LABEL = { common: 'COMMON', rare: 'RARE', epic: 'EPIC', legendary: 'LEGENDARY', mythic: 'MYTHIC', hexxed: 'HEXXED', duality: 'DUALITY', determined: 'DETERMINED' };
 const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
 
+//const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 11, mythic: 5, hexxed: 5, duality: 2, determined: 0 };
+
 const PITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 68.9, mythic: 25, hexxed: 1, duality: 5, determined: 0.1 };
 
 
@@ -14760,7 +15176,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -14774,6 +15190,7 @@ window.addEventListener('resize', () => {
       if (_isJuko(c))     _startJukoOverlay();
       if (_isLuciferUnleashed(c)) _startLuciferOverlay();
   if (_isDivine(c)) _startDivineOverlay();
+      if (_isAether(c))   _startAetherOverlay();
       if (_isShi(c))      _startShiOverlay();
       if (_isLunar(c))    _startLunarOverlay();
       if (_isHelios(c))   _startHeliosOverlay();
