@@ -220,7 +220,13 @@ function _naraLoadDrawing() {
   const img = new Image();
   img.onload = () => {
     const l = _naraGetLayerBuf('base');
-    if (l) l.getContext('2d').drawImage(img, 0, 0, l.width, l.height);
+    if (l) {
+      const ctx = l.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.mozImageSmoothingEnabled = false;
+      ctx.webkitImageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0, l.width, l.height);
+    }
   };
   img.src = data;
 }
@@ -293,6 +299,7 @@ function _naraDrawStroke(ctx, s, bw, bh) {
   const brush = s.brush || 'pen', ws = s.ws;
   const widthAt = i => Math.max(0.5, ((ws && ws[i]) || (ws && ws[ws.length - 1]) || s.size || 0.012) * bw);
   ctx.save();
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   if (brush === 'eraser') {
     ctx.globalCompositeOperation = 'destination-out';
     ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
@@ -388,6 +395,7 @@ function _naraCommitStroke() {
     s.id = 'local' + Date.now() + Math.random();
     _naraCollab.strokes.set(s.id, s);
     _naraCollab.myUndo.push({ type: 'stroke', stroke: s }); _naraCollab.myRedo.length = 0;
+    _naraSaveDrawing();
     _naraScheduleSave();
   }
 }
