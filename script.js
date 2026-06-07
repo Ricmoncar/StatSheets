@@ -157,7 +157,7 @@ function _naraLayerById(id) { return _naraPaint.layers.find(l => l.id === id); }
 function _naraActiveLayer() { return _naraLayerById(_naraPaint.activeLayerId) || _naraPaint.layers[0]; }
 function _naraResolveLayerId(s) { const id = (typeof s.layer === 'string') ? s.layer : null; return (id && _naraLayerById(id)) ? id : 'base'; }
 function _naraLayersKey() { return 'nara_layers_' + (_naraCollab.canvasId || _naraPaint.charId || 'default'); }
-function _naraSaveLayers() { try { localStorage.setItem(_naraLayersKey(), JSON.stringify({ layers: _naraPaint.layers, active: _naraPaint.activeLayerId })); } catch (e) {} }
+function _naraSaveLayers() { try { localStorage.setItem(_naraLayersKey(), JSON.stringify({ layers: _naraPaint.layers, active: _naraPaint.activeLayerId })); } catch (e) {} const ref = _naraLayersRef(); if (ref) { ref.set({ layers: _naraPaint.layers, active: _naraPaint.activeLayerId }).catch(e => console.warn('nara layer sync', e)); } }
 function _naraLoadLayers() {
   let data = null;
   try { data = JSON.parse(localStorage.getItem(_naraLayersKey())); } catch (e) {}
@@ -168,6 +168,7 @@ function _naraLoadLayers() {
   } else { _naraPaint.layers = _naraDefaultLayers(); _naraPaint.activeLayerId = 'base'; }
   _naraNormalizeLayerOrder();
 }
+function _naraListenLayers() { const ref = _naraLayersRef(); if (!ref) return; _naraCollab.unsubLayers = ref.onSnapshot(snap => { if (!snap.exists) return; const data = snap.data(); if (data && Array.isArray(data.layers)) { _naraPaint.layers = data.layers.map(l => ({ id: l.id, name: l.name || 'Layer', order: +l.order || 0, visible: l.visible !== false, alphaLock: !!l.alphaLock, locked: !!l.locked, opacity: l.opacity == null ? 1 : +l.opacity, blend: l.blend || 'source-over' })); if (!_naraLayerById('base')) _naraPaint.layers.unshift(_naraDefaultLayers()[0]); _naraPaint.activeLayerId = (data.active && _naraLayerById(data.active)) ? data.active : 'base'; _naraNormalizeLayerOrder(); _naraRenderLayers(); _naraRenderTools(); } }); }
 function _naraRGB() { const p = _naraPaint; return [Math.round(p.rF), Math.round(p.gF), Math.round(p.bF)]; }
 function _naraPaintColor() { const c = _naraRGB(); return `rgb(${c[0]},${c[1]},${c[2]})`; }
 
@@ -241,7 +242,7 @@ let _naraCollab = {
   cur: null,                   // in-progress stroke being drawn locally
   cursors: new Map(),          // id -> {x,y,color,name,t}  (other people)
   canvases: [],                // [{id,name,order}]
-  unsubList: null, unsubStrokes: null, unsubCursors: null,
+  unsubList: null, unsubStrokes: null, unsubLayers: null, unsubCursors: null,
   lastCursorT: 0, lastCursorX: -1, lastCursorY: -1, bootstrapping: false,
   myUndo: [], myRedo: [],      // your own actions (typed: stroke / clear) for undo-redo
   deleted: new Set(),          // tombstones: ids we removed → ignore late 'added' echoes
@@ -259,6 +260,7 @@ function _naraIdentity() {
 function _naraCanvasesRef() { const d = _naraDb(); return d ? d.collection('nara_canvases') : null; }
 function _naraStrokesRef() { const d = _naraDb(); return (d && _naraCollab.canvasId) ? d.collection('nara_canvases').doc(_naraCollab.canvasId).collection('strokes') : null; }
 function _naraCursorsRef() { const d = _naraDb(); return (d && _naraCollab.canvasId) ? d.collection('nara_canvases').doc(_naraCollab.canvasId).collection('cursors') : null; }
+function _naraLayersRef() { const d = _naraDb(); return (d && _naraCollab.canvasId) ? d.collection('nara_canvases').doc(_naraCollab.canvasId).collection('meta').doc('layers') : null; }
 
 function _naraCanvasSize() {
   const cv = document.getElementById('pattern-canvas');
@@ -569,6 +571,7 @@ function _naraSwitchCanvas(id) {
   _naraDeleteMyCursor();
   if (_naraCollab.canvasId) _naraSaveLayers();   // persist the layer stack of the canvas we're leaving
   if (_naraCollab.unsubStrokes) { _naraCollab.unsubStrokes(); _naraCollab.unsubStrokes = null; }
+  if (_naraCollab.unsubLayers) { _naraCollab.unsubLayers(); _naraCollab.unsubLayers = null; }
   if (_naraCollab.unsubCursors) { _naraCollab.unsubCursors(); _naraCollab.unsubCursors = null; }
   _naraCollab.canvasId = id;
   try { localStorage.setItem('nara_active_canvas', id); } catch (e) {}
@@ -578,7 +581,7 @@ function _naraSwitchCanvas(id) {
   _naraRedrawAll(); _naraRenderLayers();
   _naraCollab.loading = true;                      // show a loading indicator until strokes stream in
   clearTimeout(_naraCollab.loadTimer); _naraCollab.loadTimer = setTimeout(() => { _naraCollab.loading = false; }, 5000);
-  _naraSubscribeStrokes(); _naraSubscribeCursors();
+  _naraSubscribeStrokes(); _naraListenLayers(); _naraSubscribeCursors();
   _naraRenderCanvasList();
 }
 function _naraCreateCanvas(name) {
@@ -1091,6 +1094,7 @@ function _stopNaraPaint() {
   _naraDeleteMyCursor();
   if (_naraCollab.unsubList) { _naraCollab.unsubList(); _naraCollab.unsubList = null; }
   if (_naraCollab.unsubStrokes) { _naraCollab.unsubStrokes(); _naraCollab.unsubStrokes = null; }
+  if (_naraCollab.unsubLayers) { _naraCollab.unsubLayers(); _naraCollab.unsubLayers = null; }
   if (_naraCollab.unsubCursors) { _naraCollab.unsubCursors(); _naraCollab.unsubCursors = null; }
   _naraCollab.canvasId = null; _naraCollab.cur = null; _naraCollab.loading = false;
   _naraCollab.strokes.clear(); _naraCollab.cursors.clear(); _naraCollab.deleted.clear();
