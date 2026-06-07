@@ -126,30 +126,73 @@ let _naraPaint = {
   down: false, mx: 0, my: 0, lastX: null, lastY: null,
   rafId: null, prevTs: 0, t: 0,
   size: 16,                     // brush stroke width (mouse-wheel adjustable, Style tab only)
-  buf: null,                    // offscreen canvas holding the actual painting
+  layers: [],                   // layer metadata: {id,name,order,visible,alphaLock,locked,opacity}
+  bufs: new Map(),              // layer id -> offscreen canvas (pixels)
+  activeLayerId: 'base',        // which layer new strokes land on
+  brush: 'pen',                 // pen | marker | spray | neon
   charId: null, saveTimer: null,// for per-user localStorage persistence
   undo: [], redo: []            // snapshot stacks for ctrl-z / ctrl-y
 };
+const NARA_BRUSHES = ['pen', 'marker', 'spray', 'neon'];
+function _naraHash(n) { const x = Math.sin(n) * 43758.5453; return x - Math.floor(x); }
+// ── layer model: a stack of named layers. "Base" always exists at order 0 and
+//    holds everything drawn before layers; new layers go above (order>0) or below.
+//    Layer structure is per-client (saved in localStorage); each stroke records the
+//    id of the layer it was drawn on, so a stroke composites onto that layer.
+// Photoshop/Krita-style blend modes → canvas globalCompositeOperation values
+const NARA_BLENDS = [
+  ['source-over', 'Normal'], ['lighter', 'Add (Linear Dodge)'], ['multiply', 'Multiply'], ['screen', 'Screen'],
+  ['overlay', 'Overlay'], ['darken', 'Darken'], ['lighten', 'Lighten'],
+  ['color-dodge', 'Color Dodge'], ['color-burn', 'Color Burn'], ['hard-light', 'Hard Light'],
+  ['soft-light', 'Soft Light'], ['difference', 'Difference'], ['exclusion', 'Exclusion'],
+  ['hue', 'Hue'], ['saturation', 'Saturation'], ['color', 'Color'], ['luminosity', 'Luminosity'],
+];
+function _naraDefaultLayers() { return [{ id: 'base', name: 'Base', order: 0, visible: true, alphaLock: false, locked: false, opacity: 1, blend: 'source-over' }]; }
+function _naraSortLayers() { _naraPaint.layers.sort((a, b) => a.order - b.order); }
+function _naraLayerById(id) { return _naraPaint.layers.find(l => l.id === id); }
+function _naraActiveLayer() { return _naraLayerById(_naraPaint.activeLayerId) || _naraPaint.layers[0]; }
+function _naraResolveLayerId(s) { const id = (typeof s.layer === 'string') ? s.layer : null; return (id && _naraLayerById(id)) ? id : 'base'; }
+function _naraLayersKey() { return 'nara_layers_' + (_naraCollab.canvasId || _naraPaint.charId || 'default'); }
+function _naraSaveLayers() { try { localStorage.setItem(_naraLayersKey(), JSON.stringify({ layers: _naraPaint.layers, active: _naraPaint.activeLayerId })); } catch (e) {} }
+function _naraLoadLayers() {
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(_naraLayersKey())); } catch (e) {}
+  if (data && Array.isArray(data.layers) && data.layers.length) {
+    _naraPaint.layers = data.layers.map(l => ({ id: l.id, name: l.name || 'Layer', order: +l.order || 0, visible: l.visible !== false, alphaLock: !!l.alphaLock, locked: !!l.locked, opacity: l.opacity == null ? 1 : +l.opacity, blend: l.blend || 'source-over' }));
+    if (!_naraLayerById('base')) _naraPaint.layers.unshift(_naraDefaultLayers()[0]);
+    _naraPaint.activeLayerId = (data.active && _naraLayerById(data.active)) ? data.active : 'base';
+  } else { _naraPaint.layers = _naraDefaultLayers(); _naraPaint.activeLayerId = 'base'; }
+  _naraSortLayers();
+}
 function _naraRGB() { const p = _naraPaint; return [Math.round(p.rF), Math.round(p.gF), Math.round(p.bF)]; }
 function _naraPaintColor() { const c = _naraRGB(); return `rgb(${c[0]},${c[1]},${c[2]})`; }
 
 // ── Offline fallback persistence (localStorage; only used when there's no db) ──
 function _naraStorageKey() { return 'nara_drawing_' + (_naraPaint.charId || 'default'); }
-function _naraSaveDrawing() {
-  if (!_naraPaint.buf || _naraDb()) return;
-  try { localStorage.setItem(_naraStorageKey(), _naraPaint.buf.toDataURL('image/png')); } catch (e) {}
+function _naraFlatten() {  // composite all visible layers into one canvas (offline save)
+  const { w, h } = _naraCanvasSize(); _naraEnsureBufs(w, h);
+  const flat = document.createElement('canvas'); flat.width = w; flat.height = h;
+  const g = flat.getContext('2d');
+  for (const l of _naraPaint.layers) { if (l.visible === false) continue; const b = _naraPaint.bufs.get(l.id); if (b) { g.globalAlpha = l.opacity == null ? 1 : l.opacity; g.globalCompositeOperation = l.blend || 'source-over'; g.drawImage(b, 0, 0); } }
+  g.globalCompositeOperation = 'source-over';
+  return flat;
 }
+function _naraSaveDrawing() {
+  if (!_naraPaint.layers.length || _naraDb()) return;
+  const flat = _naraFlatten(); if (!flat) return;
+  try { localStorage.setItem(_naraStorageKey(), flat.toDataURL('image/png')); } catch (e) {}
+}
+function _naraGetBuf() { return _naraGetLayerBuf(_naraPaint.activeLayerId); }   // active layer's pixel buffer
 function _naraScheduleSave() {
   clearTimeout(_naraPaint.saveTimer);
   _naraPaint.saveTimer = setTimeout(_naraSaveDrawing, 600);
 }
 function _naraLoadDrawing() {
-  if (!_naraPaint.buf) return;
   let data = null;
   try { data = localStorage.getItem(_naraStorageKey()); } catch (e) {}
   if (!data) return;
   const img = new Image();
-  img.onload = () => { if (_naraPaint.buf) _naraPaint.buf.getContext('2d').drawImage(img, 0, 0); };
+  img.onload = () => { const l = _naraGetLayerBuf('base'); if (l) l.getContext('2d').drawImage(img, 0, 0); };
   img.src = data;
 }
 
@@ -165,7 +208,9 @@ let _naraCollab = {
   canvases: [],                // [{id,name,order}]
   unsubList: null, unsubStrokes: null, unsubCursors: null,
   lastCursorT: 0, lastCursorX: -1, lastCursorY: -1, bootstrapping: false,
-  myUndo: [], myRedo: [],      // your own strokes (collaborative undo)
+  myUndo: [], myRedo: [],      // your own actions (typed: stroke / clear) for undo-redo
+  deleted: new Set(),          // tombstones: ids we removed → ignore late 'added' echoes
+  loading: false, loadTimer: null,   // true while a canvas's strokes are still streaming in
 };
 function _naraDb() { return (typeof db !== 'undefined') ? db : null; }
 function _naraIdentity() {
@@ -180,50 +225,74 @@ function _naraCanvasesRef() { const d = _naraDb(); return d ? d.collection('nara
 function _naraStrokesRef() { const d = _naraDb(); return (d && _naraCollab.canvasId) ? d.collection('nara_canvases').doc(_naraCollab.canvasId).collection('strokes') : null; }
 function _naraCursorsRef() { const d = _naraDb(); return (d && _naraCollab.canvasId) ? d.collection('nara_canvases').doc(_naraCollab.canvasId).collection('cursors') : null; }
 
-function _naraGetBuf() {
-  if (_naraPaint.buf) return _naraPaint.buf;
+function _naraCanvasSize() {
   const cv = document.getElementById('pattern-canvas');
-  return _naraEnsureBuf((cv && cv.width) || 1200, (cv && cv.height) || 800);
+  return { w: (cv && cv.width) || 1200, h: (cv && cv.height) || 800 };
+}
+// one offscreen pixel buffer per layer id. Resizing preserves each layer's pixels;
+// buffers for deleted layers are dropped.
+function _naraEnsureBufs(w, h) {
+  const ids = new Set(_naraPaint.layers.map(l => l.id));
+  for (const id of [..._naraPaint.bufs.keys()]) if (!ids.has(id)) _naraPaint.bufs.delete(id);
+  for (const l of _naraPaint.layers) {
+    let buf = _naraPaint.bufs.get(l.id);
+    if (!buf) { buf = document.createElement('canvas'); buf.width = w; buf.height = h; _naraPaint.bufs.set(l.id, buf); }
+    else if (buf.width !== w || buf.height !== h) {
+      const nb = document.createElement('canvas'); nb.width = w; nb.height = h;
+      try { nb.getContext('2d').drawImage(buf, 0, 0); } catch (e) {}
+      _naraPaint.bufs.set(l.id, nb);
+    }
+  }
+  return _naraPaint.bufs;
+}
+function _naraGetLayerBuf(id) {
+  const { w, h } = _naraCanvasSize(); _naraEnsureBufs(w, h);
+  return _naraPaint.bufs.get(id) || _naraPaint.bufs.get('base');
+}
+// deterministic spray scatter (same on every redraw → no flicker)
+function _naraSprayDots(ctx, px, py, ww, st, j) {
+  const dr = Math.max(0.6, ww * 0.13);
+  for (let k = 0; k < 7; k++) {
+    const a = _naraHash(st * 0.011 + j * 7.1 + k * 3.3) * 6.2832, r = _naraHash(st * 0.013 + j * 5.7 + k * 9.1) * ww;
+    ctx.beginPath(); ctx.arc(px + Math.cos(a) * r, py + Math.sin(a) * r, dr, 0, 6.2832); ctx.fill();
+  }
 }
 // A stroke stores per-point widths (s.ws, fractions of canvas width) so pen
-// pressure varies the line thickness ALONG the stroke. Legacy strokes with a
-// single s.size still render.
+// pressure varies thickness ALONG the stroke; s.brush picks the rendering style.
 function _naraDrawStroke(ctx, s, bw, bh) {
   const pts = s.pts; if (!pts || pts.length < 2) return;
+  const brush = s.brush || 'pen', ws = s.ws;
+  const widthAt = i => Math.max(0.5, ((ws && ws[i]) || (ws && ws[ws.length - 1]) || s.size || 0.012) * bw);
+  ctx.save();
+  if (s.alphaLock) ctx.globalCompositeOperation = 'source-atop';   // alpha lock: only paint over existing layer pixels
   ctx.strokeStyle = s.color || '#fff'; ctx.fillStyle = s.color || '#fff';
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  const ws = s.ws;
-  if (ws && ws.length) {
-    if (pts.length === 2) {
-      const r = Math.max(0.3, (ws[0] || 0.012) * bw) / 2;
-      ctx.beginPath(); ctx.arc(pts[0] * bw, pts[1] * bh, r, 0, 6.2832); ctx.fill(); return;
-    }
-    for (let i = 2; i < pts.length; i += 2) {
-      ctx.lineWidth = Math.max(0.5, (ws[i / 2] || ws[ws.length - 1] || 0.012) * bw);
-      ctx.beginPath();
-      ctx.moveTo(pts[i - 2] * bw, pts[i - 1] * bh);
-      ctx.lineTo(pts[i] * bw, pts[i + 1] * bh);
-      ctx.stroke();
-    }
-    return;
+  if (brush === 'neon') { ctx.shadowColor = s.color || '#fff'; ctx.shadowBlur = Math.max(6, widthAt(0) * 1.4); }
+  else if (brush === 'marker') ctx.globalAlpha = 0.4;
+  if (brush === 'spray') {
+    const st = s.t || 1;
+    for (let i = 0; i < pts.length; i += 2) _naraSprayDots(ctx, pts[i] * bw, pts[i + 1] * bh, widthAt(i / 2) * 2.4, st, i / 2);
+    ctx.restore(); return;
   }
-  const lw = Math.max(0.6, (s.size || 0.012) * bw);   // legacy single-width
-  ctx.lineWidth = lw;
-  if (pts.length === 2) { ctx.beginPath(); ctx.arc(pts[0] * bw, pts[1] * bh, lw / 2, 0, 6.2832); ctx.fill(); return; }
-  ctx.beginPath(); ctx.moveTo(pts[0] * bw, pts[1] * bh);
-  for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i] * bw, pts[i + 1] * bh);
-  ctx.stroke();
+  const mul = brush === 'marker' ? 1.7 : 1;
+  if (pts.length === 2) { ctx.lineWidth = widthAt(0) * mul; ctx.beginPath(); ctx.arc(pts[0] * bw, pts[1] * bh, ctx.lineWidth / 2, 0, 6.2832); ctx.fill(); ctx.restore(); return; }
+  for (let i = 2; i < pts.length; i += 2) {
+    ctx.lineWidth = widthAt(i / 2) * mul;
+    ctx.beginPath(); ctx.moveTo(pts[i - 2] * bw, pts[i - 1] * bh); ctx.lineTo(pts[i] * bw, pts[i + 1] * bh); ctx.stroke();
+  }
+  if (brush === 'neon') { ctx.shadowBlur = 0; ctx.strokeStyle = '#fff'; ctx.globalAlpha = 0.5; for (let i = 2; i < pts.length; i += 2) { ctx.lineWidth = Math.max(0.5, widthAt(i / 2) * 0.4); ctx.beginPath(); ctx.moveTo(pts[i - 2] * bw, pts[i - 1] * bh); ctx.lineTo(pts[i] * bw, pts[i + 1] * bh); ctx.stroke(); } }
+  ctx.restore();
 }
 function _naraDrawStrokeOnBuf(s) {
-  const buf = _naraGetBuf(); if (!buf) return;
+  const buf = _naraGetLayerBuf(_naraResolveLayerId(s)); if (!buf) return;
   _naraDrawStroke(buf.getContext('2d'), s, buf.width, buf.height);
 }
 function _naraRedrawAll() {
-  const buf = _naraGetBuf(); if (!buf) return;
-  const ctx = buf.getContext('2d'); ctx.clearRect(0, 0, buf.width, buf.height);
+  const { w, h } = _naraCanvasSize(); _naraEnsureBufs(w, h);
+  for (const b of _naraPaint.bufs.values()) b.getContext('2d').clearRect(0, 0, b.width, b.height);
   const all = [..._naraCollab.strokes.values()].sort((a, b) => (a.t || 0) - (b.t || 0));
-  for (const s of all) _naraDrawStroke(ctx, s, buf.width, buf.height);
-  if (_naraCollab.cur) _naraDrawStroke(ctx, _naraCollab.cur, buf.width, buf.height);
+  for (const s of all) { const b = _naraPaint.bufs.get(_naraResolveLayerId(s)); if (b) _naraDrawStroke(b.getContext('2d'), s, b.width, b.height); }
+  if (_naraCollab.cur) { const b = _naraPaint.bufs.get(_naraResolveLayerId(_naraCollab.cur)); if (b) _naraDrawStroke(b.getContext('2d'), _naraCollab.cur, b.width, b.height); }
 }
 // current brush width (fraction of canvas width) sampled from live pen pressure.
 // Soft press → much thinner (low floor); hard press → larger.
@@ -234,16 +303,27 @@ function _naraCurWidthFrac() {
 }
 // live drawing → one stroke that is published on release
 function _naraBeginStroke(nx, ny) {
-  _naraCollab.cur = { pts: [nx, ny], ws: [_naraCurWidthFrac()], color: _naraPaintColor(), author: _naraCollab.me ? _naraCollab.me.id : 'me', t: Date.now() };
+  const al = _naraActiveLayer();
+  _naraCollab.cur = { pts: [nx, ny], ws: [_naraCurWidthFrac()], color: _naraPaintColor(), author: _naraCollab.me ? _naraCollab.me.id : 'me', t: Date.now(), layer: al ? al.id : 'base', brush: _naraPaint.brush, alphaLock: !!(al && al.alphaLock) };
   _naraDrawStrokeOnBuf(_naraCollab.cur);
 }
 function _naraExtendStroke(nx, ny) {
   const s = _naraCollab.cur; if (!s) return;
-  const buf = _naraGetBuf(); const ctx = buf.getContext('2d');
-  const n = s.pts.length, w = _naraCurWidthFrac();
-  ctx.strokeStyle = s.color; ctx.fillStyle = s.color; ctx.lineWidth = Math.max(0.5, w * buf.width); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.beginPath(); ctx.moveTo(s.pts[n - 2] * buf.width, s.pts[n - 1] * buf.height); ctx.lineTo(nx * buf.width, ny * buf.height); ctx.stroke();
+  const buf = _naraGetLayerBuf(_naraResolveLayerId(s)); const ctx = buf.getContext('2d');
+  const bw = buf.width, bh = buf.height, n = s.pts.length, w = _naraCurWidthFrac();
   s.pts.push(nx, ny); s.ws.push(w);
+  const brush = s.brush || 'pen';
+  ctx.save(); if (s.alphaLock) ctx.globalCompositeOperation = 'source-atop'; ctx.strokeStyle = s.color; ctx.fillStyle = s.color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const x0 = s.pts[n - 2] * bw, y0 = s.pts[n - 1] * bh, x1 = nx * bw, y1 = ny * bh;
+  if (brush === 'spray') { _naraSprayDots(ctx, x1, y1, Math.max(0.6, w * bw) * 2.4, s.t || 1, (n - 2) / 2 + 1); }
+  else {
+    if (brush === 'neon') { ctx.shadowColor = s.color; ctx.shadowBlur = Math.max(6, w * bw * 1.4); }
+    else if (brush === 'marker') ctx.globalAlpha = 0.4;
+    ctx.lineWidth = Math.max(0.5, w * bw) * (brush === 'marker' ? 1.7 : 1);
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    if (brush === 'neon') { ctx.shadowBlur = 0; ctx.strokeStyle = '#fff'; ctx.globalAlpha = 0.5; ctx.lineWidth = Math.max(0.5, w * bw * 0.4); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+  }
+  ctx.restore();
 }
 function _naraSimplifyStroke(s, maxPts) {
   const np = s.pts.length / 2; if (np <= maxPts) return;
@@ -260,42 +340,136 @@ function _naraCommitStroke() {
   if (ref) {
     const doc = ref.doc(); s.id = doc.id;
     _naraCollab.strokes.set(s.id, s);                 // optimistic (already drawn live)
-    _naraCollab.myUndo.push(s); _naraCollab.myRedo.length = 0;
-    doc.set({ pts: s.pts, ws: s.ws, color: s.color, author: s.author, t: s.t }).catch(e => console.warn('nara stroke', e));
+    _naraCollab.myUndo.push({ type: 'stroke', stroke: s }); _naraCollab.myRedo.length = 0;
+    doc.set({ pts: s.pts, ws: s.ws, color: s.color, author: s.author, t: s.t, layer: s.layer || 'base', brush: s.brush || 'pen', alphaLock: !!s.alphaLock }).catch(e => console.warn('nara stroke', e));
   } else {
     s.id = 'local' + Date.now() + Math.random();
     _naraCollab.strokes.set(s.id, s);
-    _naraCollab.myUndo.push(s); _naraCollab.myRedo.length = 0;
+    _naraCollab.myUndo.push({ type: 'stroke', stroke: s }); _naraCollab.myRedo.length = 0;
     _naraScheduleSave();
   }
 }
-function _naraClearCanvas() {
-  _naraCollab.strokes.clear(); _naraCollab.myUndo.length = 0; _naraCollab.myRedo.length = 0;
+// ── stroke (re)creation helpers used by undo/redo + undo-clear ──
+function _naraCloneStroke(s) { return { pts: s.pts.slice(), ws: s.ws ? s.ws.slice() : null, color: s.color, author: s.author, t: s.t, layer: s.layer || 'base', brush: s.brush || 'pen', alphaLock: !!s.alphaLock }; }
+function _naraStrokeData(s) { return { pts: s.pts, ws: s.ws || null, color: s.color, author: s.author, t: s.t, layer: s.layer || 'base', brush: s.brush || 'pen', alphaLock: !!s.alphaLock }; }
+function _naraReaddStroke(s) {   // give a stroke object a fresh id, store it, persist
+  const ref = _naraStrokesRef();
+  if (ref) { const doc = ref.doc(); s.id = doc.id; _naraCollab.strokes.set(s.id, s); doc.set(_naraStrokeData(s)).catch(() => {}); }
+  else { s.id = 'local' + Date.now() + Math.random(); _naraCollab.strokes.set(s.id, s); _naraScheduleSave(); }
+  return s;
+}
+function _naraReaddStrokes(list) {   // restore a whole batch (undo of a clear)
+  const ref = _naraStrokesRef(), d = _naraDb();
+  let batch = (ref && d) ? d.batch() : null, n = 0, i = 0;
+  for (const src of list) {
+    const s = _naraCloneStroke(src);
+    if (ref) { const doc = ref.doc(); s.id = doc.id; _naraCollab.strokes.set(s.id, s); if (batch) { batch.set(doc, _naraStrokeData(s)); if (++n >= 400) { batch.commit(); batch = d.batch(); n = 0; } } }
+    else { s.id = 'local' + Date.now() + '_' + (i++); _naraCollab.strokes.set(s.id, s); }
+  }
+  if (batch && n) batch.commit();
+  _naraRedrawAll();
+  if (!ref) _naraScheduleSave();
+}
+// ── layer operations (dynamic add / delete / reorder / rename / props) ──
+function _naraAddLayer(dir) {   // dir>=0 → above active, dir<0 → below active
+  _naraSortLayers();
+  const a = _naraActiveLayer() || _naraPaint.layers[0];
+  const idx = _naraPaint.layers.findIndex(l => l.id === a.id);
+  let order;
+  if (dir >= 0) { const above = _naraPaint.layers[idx + 1]; order = above ? (a.order + above.order) / 2 : a.order + 1; }
+  else { const below = _naraPaint.layers[idx - 1]; order = below ? (a.order + below.order) / 2 : a.order - 1; }
+  const id = 'L' + Math.random().toString(36).slice(2, 9);
+  _naraPaint.layers.push({ id, name: 'Layer ' + _naraPaint.layers.length, order, visible: true, alphaLock: false, locked: false, opacity: 1, blend: 'source-over' });
+  _naraSortLayers(); _naraPaint.activeLayerId = id;
+  _naraSaveLayers(); _naraRenderLayers();
+}
+function _naraDeleteLayer(id) {
+  if (id === 'base') return;
+  const l = _naraLayerById(id); if (!l) return;
+  if (!confirm('Delete layer "' + l.name + '" and everything on it?')) return;
+  const ref = _naraStrokesRef(), d = _naraDb();
+  let batch = (ref && d) ? d.batch() : null, n = 0;
+  for (const [sid, s] of [..._naraCollab.strokes]) {
+    if (_naraResolveLayerId(s) !== id) continue;
+    _naraCollab.strokes.delete(sid);
+    if (!String(sid).startsWith('local')) { _naraCollab.deleted.add(sid); if (batch) { batch.delete(ref.doc(sid)); if (++n >= 400) { batch.commit(); batch = d.batch(); n = 0; } } }
+  }
+  if (batch && n) batch.commit();
+  _naraCollab.myUndo = _naraFilterActionsByLayer(_naraCollab.myUndo, id);
+  _naraCollab.myRedo = _naraFilterActionsByLayer(_naraCollab.myRedo, id);
+  _naraPaint.layers = _naraPaint.layers.filter(x => x.id !== id);
+  _naraPaint.bufs.delete(id);
+  if (_naraPaint.activeLayerId === id) _naraPaint.activeLayerId = 'base';
+  _naraSaveLayers(); _naraRenderLayers(); _naraRedrawAll();
+  if (!ref) _naraScheduleSave();
+}
+function _naraMoveLayer(id, dir) {   // dir>0 → toward front, dir<0 → toward back
+  _naraSortLayers();
+  const idx = _naraPaint.layers.findIndex(l => l.id === id);
+  const j = idx + (dir > 0 ? 1 : -1);
+  if (idx < 0 || j < 0 || j >= _naraPaint.layers.length) return;
+  const a = _naraPaint.layers[idx], b = _naraPaint.layers[j], o = a.order; a.order = b.order; b.order = o;
+  _naraSortLayers(); _naraSaveLayers(); _naraRenderLayers();
+}
+function _naraRenameLayer(id, name) { const l = _naraLayerById(id); if (l) { l.name = (name || 'Layer').slice(0, 24); _naraSaveLayers(); } }
+function _naraSetActiveLayer(id) { if (_naraLayerById(id)) { _naraPaint.activeLayerId = id; _naraSaveLayers(); _naraRenderLayers(); } }
+function _naraToggleLayerProp(id, prop) { const l = _naraLayerById(id); if (l) { l[prop] = !l[prop]; _naraSaveLayers(); _naraRenderLayers(); } }
+function _naraSetLayerOpacity(id, v) { const l = _naraLayerById(id); if (l) { l.opacity = Math.max(0, Math.min(1, (+v) / 100)); _naraSaveLayers(); } }
+function _naraSetLayerBlend(id, v) { const l = _naraLayerById(id); if (l) { l.blend = v || 'source-over'; _naraSaveLayers(); } }
+function _naraFilterActionsByLayer(stack, layerId) {
+  const keep = s => _naraResolveLayerId(s) !== layerId;
+  return stack
+    .map(a => a && a.type === 'clear' ? { type: 'clear', strokes: (a.strokes || []).filter(keep) } : a)
+    .filter(a => !a || a.type !== 'stroke' || keep(a.stroke));
+}
+// wipe every stroke (also deletes the docs). Returns a snapshot so it can be undone.
+function _naraWipeStrokes() {
+  const snap = [..._naraCollab.strokes.values()].map(_naraCloneStroke);
+  for (const id of _naraCollab.strokes.keys()) _naraCollab.deleted.add(id);   // tombstone so late echoes don't reappear
+  _naraCollab.strokes.clear();
   _naraRedrawAll();
   const ref = _naraStrokesRef(), d = _naraDb();
   if (ref && d) {
-    ref.get().then(snap => {
-      let batch = d.batch(), n = 0;
-      snap.forEach(doc => { batch.delete(doc.ref); if (++n >= 400) { batch.commit(); batch = d.batch(); n = 0; } });
-      if (n) batch.commit();
-    }).catch(() => {});
+    ref.get().then(s2 => { let batch = d.batch(), n = 0; s2.forEach(doc => { batch.delete(doc.ref); if (++n >= 400) { batch.commit(); batch = d.batch(); n = 0; } }); if (n) batch.commit(); }).catch(() => {});
   } else _naraScheduleSave();
+  return snap;
 }
-// collaborative undo/redo — acts only on YOUR own strokes
+function _naraClearCanvas() {
+  if (!_naraCollab.strokes.size) return;
+  if (!confirm('Clear the WHOLE canvas? This wipes everyone\'s strokes.\n\nYou can undo it with Ctrl+Z.')) return;
+  const snap = _naraWipeStrokes();
+  _naraCollab.myUndo.push({ type: 'clear', strokes: snap });   // Ctrl+Z restores it all
+  _naraCollab.myRedo.length = 0;
+}
+// collaborative undo/redo — acts on YOUR own strokes + your clears
 function _naraUndo() {
   if (!_naraCollab.myUndo.length) return;
-  const s = _naraCollab.myUndo.pop(); _naraCollab.myRedo.push(s);
-  _naraCollab.strokes.delete(s.id); _naraRedrawAll();
+  const a = _naraCollab.myUndo.pop();
+  if (a.type === 'clear') {                    // undo a clear → bring everything back
+    _naraReaddStrokes(a.strokes);
+    _naraCollab.myRedo.push({ type: 'reclear' });
+    return;
+  }
+  const s = a.stroke;                          // undo a stroke
+  _naraCollab.strokes.delete(s.id);
+  if (s.id && !String(s.id).startsWith('local')) _naraCollab.deleted.add(s.id);   // ignore the server's late 'added' echo
+  _naraRedrawAll();
+  _naraCollab.myRedo.push(a);
   const ref = _naraStrokesRef();
   if (ref && s.id && !String(s.id).startsWith('local')) ref.doc(s.id).delete().catch(() => {});
   else _naraScheduleSave();
 }
 function _naraRedo() {
   if (!_naraCollab.myRedo.length) return;
-  const s = _naraCollab.myRedo.pop(); s.t = Date.now();
-  const ref = _naraStrokesRef();
-  if (ref) { const doc = ref.doc(); s.id = doc.id; _naraCollab.strokes.set(s.id, s); _naraCollab.myUndo.push(s); _naraDrawStrokeOnBuf(s); doc.set({ pts: s.pts, ws: s.ws || null, color: s.color, author: s.author, t: s.t }).catch(() => {}); }
-  else { s.id = 'local' + Date.now() + Math.random(); _naraCollab.strokes.set(s.id, s); _naraCollab.myUndo.push(s); _naraDrawStrokeOnBuf(s); _naraScheduleSave(); }
+  const a = _naraCollab.myRedo.pop();
+  if (a.type === 'reclear') {                  // redo a clear → wipe again (still undoable)
+    const snap = _naraWipeStrokes();
+    _naraCollab.myUndo.push({ type: 'clear', strokes: snap });
+    return;
+  }
+  const s = a.stroke; s.t = Date.now();        // redo a stroke
+  _naraReaddStroke(s); _naraDrawStrokeOnBuf(s);
+  _naraCollab.myUndo.push(a);
 }
 // ── realtime subscriptions ──
 function _naraSubscribeStrokes() {
@@ -305,17 +479,22 @@ function _naraSubscribeStrokes() {
     snap.docChanges().forEach(ch => {
       const id = ch.doc.id;
       if (ch.type === 'added') {
-        if (_naraCollab.strokes.has(id)) return;       // our own optimistic stroke
+        if (_naraCollab.strokes.has(id) || _naraCollab.deleted.has(id)) return;   // own optimistic / locally-removed
         const s = { id, ...ch.doc.data() };
         _naraCollab.strokes.set(id, s); _naraDrawStrokeOnBuf(s);
       } else if (ch.type === 'removed') {
+        _naraCollab.deleted.delete(id);                // tombstone resolved
         if (_naraCollab.strokes.delete(id)) redraw = true;
       } else if (ch.type === 'modified') {
+        if (_naraCollab.deleted.has(id)) return;
         _naraCollab.strokes.set(id, { id, ...ch.doc.data() }); redraw = true;
       }
     });
     if (redraw) _naraRedrawAll();
-  }, e => console.warn('nara strokes sub', e));
+    // canvas is "loaded" once the server has answered (or anything is on screen) →
+    // stop showing the loading state. A blank-from-cache first hit keeps loading on.
+    if (_naraCollab.loading && (!snap.metadata.fromCache || _naraCollab.strokes.size > 0)) _naraCollab.loading = false;
+  }, e => { console.warn('nara strokes sub', e); _naraCollab.loading = false; });
 }
 function _naraSubscribeCursors() {
   const ref = _naraCursorsRef(); if (!ref) return;
@@ -333,13 +512,17 @@ function _naraDeleteMyCursor() {
 function _naraSwitchCanvas(id) {
   if (!id || id === _naraCollab.canvasId) { _naraRenderCanvasList(); return; }
   _naraDeleteMyCursor();
+  if (_naraCollab.canvasId) _naraSaveLayers();   // persist the layer stack of the canvas we're leaving
   if (_naraCollab.unsubStrokes) { _naraCollab.unsubStrokes(); _naraCollab.unsubStrokes = null; }
   if (_naraCollab.unsubCursors) { _naraCollab.unsubCursors(); _naraCollab.unsubCursors = null; }
   _naraCollab.canvasId = id;
   try { localStorage.setItem('nara_active_canvas', id); } catch (e) {}
-  _naraCollab.strokes.clear(); _naraCollab.cursors.clear();
+  _naraCollab.strokes.clear(); _naraCollab.cursors.clear(); _naraCollab.deleted.clear();
   _naraCollab.myUndo.length = 0; _naraCollab.myRedo.length = 0; _naraCollab.cur = null;
-  _naraRedrawAll();
+  _naraPaint.bufs.clear(); _naraLoadLayers();     // each canvas has its own layer stack
+  _naraRedrawAll(); _naraRenderLayers();
+  _naraCollab.loading = true;                      // show a loading indicator until strokes stream in
+  clearTimeout(_naraCollab.loadTimer); _naraCollab.loadTimer = setTimeout(() => { _naraCollab.loading = false; }, 5000);
   _naraSubscribeStrokes(); _naraSubscribeCursors();
   _naraRenderCanvasList();
 }
@@ -373,13 +556,21 @@ function _naraSubscribeList() {
 function _naraRenderCanvasList() {
   const wrap = document.getElementById('nara-canvas-bar'); if (!wrap) return;
   if (!_naraDb()) { wrap.innerHTML = `<span class="nara-cv-label">LOCAL CANVAS (offline)</span>`; return; }
-  const opts = _naraCollab.canvases.map(c => `<option value="${c.id}" ${c.id === _naraCollab.canvasId ? 'selected' : ''}>${(c.name || 'Canvas').replace(/</g, '&lt;')}</option>`).join('');
+  const esc = s => (s || 'Canvas').replace(/</g, '&lt;');
+  const cur = _naraCollab.canvases.find(c => c.id === _naraCollab.canvasId);
+  const items = _naraCollab.canvases.map(c =>
+    `<div class="nara-cv-item${c.id === _naraCollab.canvasId ? ' sel' : ''}" onclick="_naraPickCanvas('${c.id}')"><span class="nara-cv-dot"></span>${esc(c.name)}</div>`).join('');
   wrap.innerHTML =
     `<span class="nara-cv-label">CANVAS</span>` +
-    `<select class="nara-cv-select" onchange="_naraSwitchCanvas(this.value)">${opts}</select>` +
-    `<button class="nara-cv-btn" onclick="_naraNewCanvasPrompt()" title="New shared canvas">＋</button>` +
+    `<div class="nara-cv-drop">` +
+      `<button class="nara-cv-current" onclick="_naraToggleCvMenu(event)"><span class="nara-cv-name">${esc(cur ? cur.name : '…')}</span><span class="nara-cv-caret">▾</span></button>` +
+      `<div class="nara-cv-menu" id="nara-cv-menu">${items}<div class="nara-cv-item nara-cv-new" onclick="_naraNewCanvasPrompt()">＋ New canvas…</div></div>` +
+    `</div>` +
     `<span class="nara-cv-live" id="nara-cv-live"></span>`;
 }
+function _naraToggleCvMenu(e) { if (e) e.stopPropagation(); const m = document.getElementById('nara-cv-menu'); if (m) m.classList.toggle('open'); }
+function _naraPickCanvas(id) { const m = document.getElementById('nara-cv-menu'); if (m) m.classList.remove('open'); _naraSwitchCanvas(id); }
+function _naraGlobalClick(e) { const m = document.getElementById('nara-cv-menu'); if (m && m.classList.contains('open') && !e.target.closest('.nara-cv-drop')) m.classList.remove('open'); }
 function _naraKeyDown(e) {
   if (!_naraPaint.active) return;
   const tgt = e.target;
@@ -427,10 +618,67 @@ function _naraBuildPalette() {
     <div class="nara-read-vals"><span id="nara-read-rgb">R255 G90 B130</span>
     <button class="nara-read-clr" onclick="_naraClearCanvas()">CLEAR</button></div>`;
   row.appendChild(read);
+  // brush picker
+  const lb = document.createElement('div'); lb.className = 'nara-tools-row nara-lb-row'; lb.id = 'nara-lb-row';
+  pal.appendChild(lb);
   document.body.appendChild(pal);
+  _naraRenderTools();
   _naraRenderCanvasList();
 }
+function _naraRenderTools() {
+  const lb = document.getElementById('nara-lb-row'); if (!lb) return;
+  const brushes = NARA_BRUSHES.map(b => `<button class="nara-brush${b === _naraPaint.brush ? ' active' : ''}" onclick="_naraSetBrush('${b}')">${b}</button>`).join('');
+  lb.innerHTML = `<div class="nara-lb-group"><span class="nara-mini-label">BRUSH</span>${brushes}</div>`;
+}
+function _naraSetBrush(b) { if (NARA_BRUSHES.includes(b)) _naraPaint.brush = b; _naraRenderTools(); }
 function _naraRemovePalette() { document.getElementById('nara-palette')?.remove(); }
+
+// ── right-edge sliding LAYERS panel (Procreate-style stack) ──
+function _naraBuildLayersPanel() {
+  if (document.getElementById('nara-layers-panel')) return;
+  const p = document.createElement('div'); p.id = 'nara-layers-panel'; p.className = 'nara-layers-panel';
+  p.innerHTML =
+    `<div class="nlp-tab" onclick="this.parentNode.classList.toggle('pinned')"><span>LAYERS</span></div>` +
+    `<div class="nlp-inner">` +
+      `<div class="nlp-head"><span>LAYERS</span><div class="nlp-add">` +
+        `<button onclick="_naraAddLayer(1)" title="new layer above active">＋ Above</button>` +
+        `<button onclick="_naraAddLayer(-1)" title="new layer below active">＋ Below</button>` +
+      `</div></div>` +
+      `<div id="nara-layers-list" class="nlp-list"></div>` +
+      `<div class="nlp-hint">drag cursor here to open · active layer is highlighted</div>` +
+    `</div>`;
+  document.body.appendChild(p);
+  _naraRenderLayers();
+}
+function _naraRemoveLayersPanel() { document.getElementById('nara-layers-panel')?.remove(); }
+function _naraRenderLayers() {
+  const list = document.getElementById('nara-layers-list'); if (!list) return;
+  _naraSortLayers();
+  const rows = [];
+  for (let i = _naraPaint.layers.length - 1; i >= 0; i--) {   // front layer at top of the list
+    const l = _naraPaint.layers[i];
+    const act = l.id === _naraPaint.activeLayerId ? ' active' : '';
+    const esc = (l.name || '').replace(/"/g, '&quot;');
+    rows.push(
+      `<div class="nlp-row${act}" onclick="_naraSetActiveLayer('${l.id}')">` +
+        `<button class="nlp-eye${l.visible === false ? ' off' : ''}" title="show / hide" onclick="event.stopPropagation();_naraToggleLayerProp('${l.id}','visible')">${l.visible === false ? '◌' : '◉'}</button>` +
+        `<input class="nlp-name" value="${esc}" spellcheck="false" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter')this.blur()" onchange="_naraRenameLayer('${l.id}',this.value)">` +
+        `<div class="nlp-opts">` +
+          `<button class="nlp-opt${l.alphaLock ? ' on' : ''}" title="alpha lock (paint only on existing pixels)" onclick="event.stopPropagation();_naraToggleLayerProp('${l.id}','alphaLock')">▦</button>` +
+          `<button class="nlp-opt${l.locked ? ' on' : ''}" title="lock (no drawing)" onclick="event.stopPropagation();_naraToggleLayerProp('${l.id}','locked')">${l.locked ? '🔒' : '🔓'}</button>` +
+          `<button class="nlp-opt" title="move up" onclick="event.stopPropagation();_naraMoveLayer('${l.id}',1)">▲</button>` +
+          `<button class="nlp-opt" title="move down" onclick="event.stopPropagation();_naraMoveLayer('${l.id}',-1)">▼</button>` +
+          (l.id === 'base' ? '' : `<button class="nlp-opt nlp-del" title="delete layer" onclick="event.stopPropagation();_naraDeleteLayer('${l.id}')">✕</button>`) +
+        `</div>` +
+        `<select class="nlp-blend" title="blend mode" onclick="event.stopPropagation()" onchange="_naraSetLayerBlend('${l.id}',this.value)">` +
+          NARA_BLENDS.map(([v, n]) => `<option value="${v}"${(l.blend || 'source-over') === v ? ' selected' : ''}>${n}</option>`).join('') +
+        `</select>` +
+        `<input type="range" class="nlp-opacity" min="0" max="100" value="${Math.round((l.opacity == null ? 1 : l.opacity) * 100)}" title="opacity" onclick="event.stopPropagation()" oninput="_naraSetLayerOpacity('${l.id}',this.value)">` +
+      `</div>`
+    );
+  }
+  list.innerHTML = rows.join('');
+}
 
 // keep #pattern-canvas pinned over #content; manage the persistent paint buffer
 function _naraPinCanvas(cv) {
@@ -445,20 +693,10 @@ function _naraPinCanvas(cv) {
   cv.style.pointerEvents = 'none';
   if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
 }
-function _naraEnsureBuf(w, h) {
-  let buf = _naraPaint.buf;
-  if (!buf) { buf = document.createElement('canvas'); buf.width = w; buf.height = h; _naraPaint.buf = buf; return buf; }
-  if (buf.width !== w || buf.height !== h) {
-    const nb = document.createElement('canvas'); nb.width = w; nb.height = h;
-    try { nb.getContext('2d').drawImage(buf, 0, 0); } catch (e) {}   // preserve painting on resize
-    _naraPaint.buf = nb; return nb;
-  }
-  return buf;
-}
 
 function _naraIsBackground(target) {
   if (!target) return false;
-  return !target.closest('.panel, button, input, textarea, select, a, label, .tab-bar, .nara-bucket, .nara-palette, #header, #sidebar, #mobile-topbar, #editor, [id$="-modal"], [id$="-overlay"], #char-context-menu, .cv-owner-subtitle');
+  return !target.closest('.panel, button, input, textarea, select, a, label, .tab-bar, .nara-bucket, .nara-palette, .nara-layers-panel, #header, #sidebar, #mobile-topbar, #editor, [id$="-modal"], [id$="-overlay"], #char-context-menu, .cv-owner-subtitle');
 }
 function _naraCanvasXY(clientX, clientY) {
   const ct = document.getElementById('content'); const r = ct.getBoundingClientRect();
@@ -481,6 +719,7 @@ function _naraPointerDown(e) {
   // pen tablets report button 0 on contact; also accept pen/touch explicitly
   const okBtn = e.button === 0 || e.button === -1 || e.pointerType === 'pen' || e.pointerType === 'touch';
   if (!_naraOnStyleTab() || !okBtn || !_naraIsBackground(e.target)) return;
+  const al = _naraActiveLayer(); if (al && al.locked) return;   // can't draw on a locked layer
   if (_naraPaint.down) return;                 // already drawing → ignore palm / 2nd pointer
   e.preventDefault();                          // stop drag-selecting / scrolling
   // Capture this pointer so EVERY move/up for it routes here — vital for pens,
@@ -610,6 +849,24 @@ function _naraDrawBrush(g, x, y) {
   g.fill(); g.stroke();
   g.restore();
 }
+// centred "loading" badge shown while a canvas's strokes are still streaming in
+function _naraDrawLoading(g, w, h) {
+  const cx = w / 2, cy = h / 2, t = _naraPaint.t;
+  g.save();
+  g.fillStyle = 'rgba(255,255,255,0.82)';
+  g.fillRect(cx - 132, cy - 34, 264, 68);
+  g.strokeStyle = 'rgba(120,120,140,0.35)'; g.lineWidth = 1; g.strokeRect(cx - 132, cy - 34, 264, 68);
+  // spinner
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * 6.2832 + t * 4, fade = (i / 12);
+    g.strokeStyle = `rgba(150,120,200,${0.25 + 0.6 * fade})`; g.lineWidth = 3; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(cx - 96 + Math.cos(a) * 7, cy + Math.sin(a) * 7); g.lineTo(cx - 96 + Math.cos(a) * 13, cy + Math.sin(a) * 13); g.stroke();
+  }
+  g.fillStyle = '#4a3f63'; g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.font = 'bold 13px system-ui, sans-serif'; g.fillText('Loading canvas…', cx - 72, cy - 6);
+  g.fillStyle = '#7a7290'; g.font = '10px system-ui, sans-serif'; g.fillText('your drawings are safe — fetching strokes', cx - 72, cy + 11);
+  g.restore();
+}
 function _naraPaintTick(ts) {
   if (!_naraPaint.active) { _naraPaint.rafId = null; return; }
   if (!_naraPaint.prevTs) _naraPaint.prevTs = ts;
@@ -638,19 +895,29 @@ function _naraPaintTick(ts) {
   if (cv) {
     _naraPinCanvas(cv);
     const w = cv.width, h = cv.height;
-    const buf = _naraEnsureBuf(w, h);
+    _naraEnsureBufs(w, h);
     const ctx = cv.getContext('2d');
     if (onStyle) {
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
-      ctx.drawImage(buf, 0, 0);
+      for (const l of _naraPaint.layers) {   // already sorted back→front by order
+        if (l.visible === false) continue;
+        const b = _naraPaint.bufs.get(l.id); if (!b) continue;
+        ctx.globalAlpha = l.opacity == null ? 1 : l.opacity;
+        ctx.globalCompositeOperation = l.blend || 'source-over';   // Photoshop/Krita blend mode
+        ctx.drawImage(b, 0, 0);
+      }
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      if (_naraCollab.loading) _naraDrawLoading(ctx, w, h);   // reassure: drawings are loading, not lost
     } else {
       _naraDrawRainbowBg(ctx, w, h, _naraPaint.t);
     }
   }
 
-  // palette only on the Style tab (that's where you paint)
+  // palette + layers panel only on the Style tab (that's where you paint)
   const pal = document.getElementById('nara-palette');
   if (pal) pal.style.display = onStyle ? '' : 'none';
+  const lpanel = document.getElementById('nara-layers-panel');
+  if (lpanel) lpanel.style.display = onStyle ? '' : 'none';
   if (onStyle) {
     const c = _naraRGB();
     const sw = document.getElementById('nara-read-swatch'); if (sw) sw.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -722,17 +989,21 @@ function _startNaraPaint() {
   _naraPaint.charId = currentId;       // key this user's saved drawing to the character
   _injectNaraStyles();
   _naraBuildPalette();
-
+  _naraBuildLayersPanel();
+  _naraPaint.bufs = new Map(); _naraLoadLayers();   // restore this canvas's layer stack
   const cv = document.getElementById('pattern-canvas');
-  if (cv) { _naraPinCanvas(cv); _naraEnsureBuf(cv.width, cv.height); }
+  if (cv) { _naraPinCanvas(cv); _naraEnsureBufs(cv.width, cv.height); }
   // collaboration: shared canvases via Firestore (or local fallback when offline)
   _naraCollab.me = _naraIdentity();
   if (_naraDb()) {
-    _naraCollab.canvasId = null; _naraCollab.strokes.clear(); _naraCollab.cursors.clear();
+    _naraCollab.loading = true;
+    _naraCollab.canvasId = null; _naraCollab.strokes.clear(); _naraCollab.cursors.clear(); _naraCollab.deleted.clear();
     _naraSubscribeList();
   } else {
     _naraLoadDrawing();           // offline: single local canvas
   }
+  _naraRenderLayers();
+  document.addEventListener('click', _naraGlobalClick);
   window.addEventListener('beforeunload', _naraSaveDrawing);
   window.addEventListener('beforeunload', _naraDeleteMyCursor);
 
@@ -757,6 +1028,7 @@ function _stopNaraPaint() {
   if (!_naraPaint.active) return;
   clearTimeout(_naraPaint.saveTimer);
   _naraSaveDrawing();                  // persist before tearing down (offline only)
+  _naraSaveLayers();
   window.removeEventListener('beforeunload', _naraSaveDrawing);
   window.removeEventListener('beforeunload', _naraDeleteMyCursor);
   // tear down collaboration listeners + remove my cursor from the shared canvas
@@ -764,11 +1036,12 @@ function _stopNaraPaint() {
   if (_naraCollab.unsubList) { _naraCollab.unsubList(); _naraCollab.unsubList = null; }
   if (_naraCollab.unsubStrokes) { _naraCollab.unsubStrokes(); _naraCollab.unsubStrokes = null; }
   if (_naraCollab.unsubCursors) { _naraCollab.unsubCursors(); _naraCollab.unsubCursors = null; }
-  _naraCollab.canvasId = null; _naraCollab.cur = null;
-  _naraCollab.strokes.clear(); _naraCollab.cursors.clear();
+  _naraCollab.canvasId = null; _naraCollab.cur = null; _naraCollab.loading = false;
+  _naraCollab.strokes.clear(); _naraCollab.cursors.clear(); _naraCollab.deleted.clear();
   _naraCollab.myUndo.length = 0; _naraCollab.myRedo.length = 0;
-  _naraPaint.active = false; _naraPaint.down = false; _naraPaint.dip = null; _naraPaint.buf = null;
+  _naraPaint.active = false; _naraPaint.down = false; _naraPaint.dip = null; _naraPaint.layers = []; _naraPaint.bufs = new Map();
   if (_naraPaint.rafId) { cancelAnimationFrame(_naraPaint.rafId); _naraPaint.rafId = null; }
+  document.removeEventListener('click', _naraGlobalClick);
   document.removeEventListener('pointerdown', _naraPointerDown);
   document.removeEventListener('pointermove', _naraPointerMove);
   window.removeEventListener('pointerup', _naraPointerUp);
@@ -781,6 +1054,7 @@ function _stopNaraPaint() {
   _naraPaint.taOff = '';
   _naraPaint.undo.length = 0; _naraPaint.redo.length = 0;
   _naraRemovePalette();
+  _naraRemoveLayersPanel();
   document.getElementById('nara-overlay')?.remove();
   const arrow = document.getElementById('cursor'); if (arrow) arrow.style.display = '';
   const cv = document.getElementById('pattern-canvas');
@@ -8903,48 +9177,93 @@ function _joLeaf(g, x, y, s, ang, col, dark) {
   for (let k = -2; k <= 2; k++) { if (!k) continue; const fy = k * s * 0.28; g.beginPath(); g.moveTo(0, fy); g.lineTo((k > 0 ? 1 : -1) * s * 0.34, fy + s * 0.22); g.stroke(); }
   g.restore();
 }
-// a clean hanging vine: a smooth tapering tendril that wavers and curls
+// a clean hanging vine: a smooth tapering tendril that wavers and curls, with
+// leaflets that GROW from actual points on the vine (stem connects them on).
 function _joVine(g, x, topY, len, col) {
   g.strokeStyle = col; g.lineCap = 'round';
-  let cx = x, cy = topY, ca = Math.PI / 2; const segs = 9;
+  let cx = x, cy = topY, ca = Math.PI / 2; const segs = 9, pts = [[cx, cy]];
   for (let i = 0; i < segs; i++) {
     const f = i / segs; ca += Math.sin(i * 1.2 + x) * 0.2 + (i > segs - 3 ? 0.25 : 0);   // gentle waver + curl at the end
     const sl = len / segs, nx = cx + Math.cos(ca) * sl, ny = cy + Math.sin(ca) * sl;
     g.lineWidth = Math.max(1.5, len * 0.02 * (1 - f * 0.75));
     g.beginPath(); g.moveTo(cx, cy); g.lineTo(nx, ny); g.stroke();
-    cx = nx; cy = ny;
+    cx = nx; cy = ny; pts.push([nx, ny]);
   }
-  // a small pair of leaves clasped right on the vine, partway down
-  g.fillStyle = col;
-  for (const s of [-1, 1]) { g.save(); g.translate(x + Math.sin(x) * len * 0.05, topY + len * 0.45); g.rotate(s * 1.1); g.beginPath(); g.ellipse(s * len * 0.04, 0, len * 0.05, len * 0.022, 0, 0, 6.2832); g.fill(); g.restore(); }
+  // leaflets anchored ON the vine: a short stem from the actual vine point, then a blade
+  const ll = len * 0.06;
+  for (let k = 0; k < pts.length; k++) {
+    if (k < 2 || k % 2 === 1) continue;                       // a few, alternating
+    const p = pts[k], pp = pts[k - 1];
+    const dir = Math.atan2(p[1] - pp[1], p[0] - pp[0]);       // local vine direction
+    const side = (k % 4 === 0) ? 1 : -1;
+    g.save(); g.translate(p[0], p[1]); g.rotate(dir + side * 0.95);
+    g.strokeStyle = col; g.lineWidth = Math.max(1, len * 0.012);
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(ll * 0.7, 0); g.stroke();   // stem joining the vine
+    g.fillStyle = col;                                                  // pointed leaflet at the stem's end
+    g.beginPath(); g.moveTo(ll * 0.7, 0); g.quadraticCurveTo(ll * 1.5, -ll * 0.5, ll * 2.3, 0); g.quadraticCurveTo(ll * 1.5, ll * 0.5, ll * 0.7, 0); g.closePath(); g.fill();
+    g.restore();
+  }
+}
+// a leafy cluster of big leaves (used at branch tips for the canopy)
+function _joLeafCluster(g, x, y, s, col) {
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.2832 + Math.random() * 0.5, d = s * (0.1 + Math.random() * 0.4); _joFrond(g, x + Math.cos(a) * d, y + Math.sin(a) * d, s * (0.7 + Math.random() * 0.6), a + 1.5708, col); }
+}
+// a recursive tree branch that ends in leaf clusters, occasionally dropping a vine
+function _joBranch(g, x, y, ang, len, w, depth, brCol, leafCol, vineCol) {
+  if (depth <= 0 || len < 16) { _joLeafCluster(g, x, y, len * 1.5 + 10, leafCol); return; }
+  const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+  g.strokeStyle = brCol; g.lineWidth = Math.max(2, w); g.lineCap = 'round';
+  g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo((x + ex) / 2 + (Math.random() - 0.5) * len * 0.2, (y + ey) / 2, ex, ey); g.stroke();
+  if (depth === 2 && vineCol && Math.random() < 0.6) _joVine(g, ex, ey, len * 1.4, vineCol);
+  for (let i = 0; i < 2; i++) { const da = (i === 0 ? -1 : 1) * (0.35 + Math.random() * 0.3); _joBranch(g, ex, ey, ang + da, len * 0.72, w * 0.66, depth - 1, brCol, leafCol, vineCol); }
+  if (depth > 1 && Math.random() < 0.4) _joBranch(g, ex, ey, ang + (Math.random() - 0.5) * 0.5, len * 0.55, w * 0.5, depth - 1, brCol, leafCol, vineCol);
+}
+// a whole jungle tree: brown trunk with root flares + bark, leafy branching canopy
+function _joTree(g, x, baseY, h, leafCol, vineCol) {
+  const tw = h * 0.07, topY = baseY - h * 0.62, brCol = '#33271a';
+  g.fillStyle = brCol;
+  g.beginPath(); g.moveTo(x - tw * 2.6, baseY);
+  g.quadraticCurveTo(x - tw * 1.1, baseY - h * 0.04, x - tw * 0.55, baseY - h * 0.4);
+  g.quadraticCurveTo(x - tw * 0.5, baseY - h * 0.55, x - tw * 0.4, topY);
+  g.lineTo(x + tw * 0.4, topY);
+  g.quadraticCurveTo(x + tw * 0.5, baseY - h * 0.55, x + tw * 0.55, baseY - h * 0.4);
+  g.quadraticCurveTo(x + tw * 1.1, baseY - h * 0.04, x + tw * 2.6, baseY);
+  g.lineTo(x + tw * 1.5, baseY); g.quadraticCurveTo(x, baseY - h * 0.12, x - tw * 1.5, baseY);
+  g.closePath(); g.fill();
+  g.strokeStyle = 'rgba(18,12,7,0.5)'; g.lineWidth = tw * 0.18; g.lineCap = 'round';
+  for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(x + i * tw * 0.4, baseY - h * 0.1); g.quadraticCurveTo(x + i * tw * 0.5, baseY - h * 0.35, x + i * tw * 0.3, topY); g.stroke(); }
+  _joBranch(g, x, topY, -Math.PI / 2 - 0.4, h * 0.34, tw * 1.1, 3, brCol, leafCol, vineCol);
+  _joBranch(g, x, topY, -Math.PI / 2 + 0.4, h * 0.34, tw * 1.1, 3, brCol, leafCol, vineCol);
+  _joBranch(g, x, topY - h * 0.04, -Math.PI / 2 + 0.05, h * 0.36, tw * 1.0, 3, brCol, leafCol, vineCol);
 }
 function _joBuildJungle(W, H) {
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d'); const S = Math.min(W, H);
   const grad = g.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, '#16331a'); grad.addColorStop(0.35, '#244a22'); grad.addColorStop(0.62, '#2f6230'); grad.addColorStop(0.85, '#28521f'); grad.addColorStop(1, '#1b3815');
+  grad.addColorStop(0, '#7bb84e'); grad.addColorStop(0.24, '#4f9a44'); grad.addColorStop(0.52, '#357a34'); grad.addColorStop(0.8, '#266026'); grad.addColorStop(1, '#1b461b');
   g.fillStyle = grad; g.fillRect(0, 0, W, H);
-  // shafts of canopy light (baked soft glow upper-center)
-  const lg = g.createRadialGradient(W * 0.5, -H * 0.1, 10, W * 0.5, H * 0.4, Math.max(W, H) * 0.7);
-  lg.addColorStop(0, 'rgba(220,255,170,0.22)'); lg.addColorStop(1, 'rgba(220,255,170,0)');
-  g.fillStyle = lg; g.fillRect(0, 0, W, H * 0.7);
-  // distant foliage silhouette band at the top (canopy)
-  g.fillStyle = '#102813';
-  g.beginPath(); g.moveTo(0, 0); g.lineTo(W, 0); g.lineTo(W, H * 0.16);
-  for (let x = W; x >= 0; x -= W * 0.06) { g.lineTo(x, H * (0.1 + 0.06 * Math.sin(x * 0.02))); }
-  g.lineTo(0, H * 0.16); g.closePath(); g.fill();
-  // hanging vines
-  for (let i = 0; i < 7; i++) _joVine(g, W * (0.05 + i * 0.14 + Math.random() * 0.05), 0, H * (0.25 + Math.random() * 0.35), '#1c3e1c');
-  // big leaves / fronds framing the corners
-  _joFrond(g, W * 0.04, H * 0.34, S * 0.32, 0.5, '#1d4520');
-  _joFrond(g, W * 0.97, H * 0.32, S * 0.34, -0.5, '#1d4520');
-  _joLeaf(g, W * 0.1, H * 0.7, S * 0.18, -0.7, '#2c6a2e', '#194a1c');
-  _joLeaf(g, W * 0.93, H * 0.72, S * 0.17, 0.7, '#2c6a2e', '#194a1c');
-  _joLeaf(g, W * 0.84, H * 0.86, S * 0.14, 1.2, '#347e34', '#1d5520');
-  _joLeaf(g, W * 0.16, H * 0.88, S * 0.13, -1.1, '#347e34', '#1d5520');
-  // jungle floor
-  g.fillStyle = '#1c3a14'; g.beginPath(); g.moveTo(0, H); g.lineTo(W, H); g.lineTo(W, H * 0.9);
-  for (let x = W; x >= 0; x -= W * 0.08) g.lineTo(x, H * (0.9 + 0.02 * Math.sin(x * 0.03)));
+  const lg = g.createRadialGradient(W * 0.5, -H * 0.05, 10, W * 0.5, H * 0.45, Math.max(W, H) * 0.7);
+  lg.addColorStop(0, 'rgba(225,255,170,0.32)'); lg.addColorStop(1, 'rgba(225,255,170,0)');
+  g.fillStyle = lg; g.fillRect(0, 0, W, H * 0.8);
+  // far foliage haze blobs (depth)
+  for (let i = 0; i < 9; i++) { g.fillStyle = `rgba(${50 + Math.random() * 30 | 0},${110 + Math.random() * 40 | 0},${50 + Math.random() * 20 | 0},0.45)`; const lx = Math.random() * W, ly = H * (0.1 + Math.random() * 0.55), ls = S * (0.06 + Math.random() * 0.12); g.save(); g.translate(lx, ly); g.scale(1, 0.7); g.beginPath(); g.arc(0, 0, ls, 0, 6.2832); g.fill(); g.restore(); }
+  // two big trees framing the sides (leafy canopies)
+  _joTree(g, W * 0.86, H * 1.02, H * 1.0, '#236b23', '#1d4a1c');
+  _joTree(g, W * 0.13, H * 1.02, H * 0.86, '#1f5f20', '#19421a');
+  // canopy band along the very top
+  g.fillStyle = '#143218';
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(W, 0); g.lineTo(W, H * 0.1);
+  for (let x = W; x >= 0; x -= W * 0.05) g.lineTo(x, H * (0.05 + 0.04 * Math.sin(x * 0.02)));
+  g.lineTo(0, H * 0.1); g.closePath(); g.fill();
+  for (let i = 0; i < 5; i++) _joVine(g, W * (0.2 + i * 0.16 + Math.random() * 0.04), H * 0.03, H * (0.2 + Math.random() * 0.28), '#1c3e1c');
+  // big leaves ROOTED at the bottom edges (growing up, not floating)
+  _joFrond(g, W * 0.02, H * 1.02, S * 0.36, 0.32, '#2e6a2e');
+  _joFrond(g, W * 0.98, H * 1.0, S * 0.32, -0.34, '#2e6a2e');
+  _joFrond(g, W * 0.3, H * 1.04, S * 0.18, 0.1, '#347e34');
+  _joFrond(g, W * 0.55, H * 1.05, S * 0.16, -0.1, '#2f7030');
+  // floor
+  g.fillStyle = '#173612'; g.beginPath(); g.moveTo(0, H); g.lineTo(W, H); g.lineTo(W, H * 0.93);
+  for (let x = W; x >= 0; x -= W * 0.08) g.lineTo(x, H * (0.93 + 0.02 * Math.sin(x * 0.03)));
   g.closePath(); g.fill();
   return c;
 }
@@ -8959,7 +9278,11 @@ function _drawJoniPattern(canvas, ctx, W, H, t) {
     canvas._joBg = _joBuildJungle(W, H);
     canvas._joFlies = Array.from({ length: 22 }, () => ({ x: Math.random() * W, y: Math.random() * H, ph: Math.random() * 6.28, sp: 0.4 + Math.random() * 0.7, amp: S * (0.02 + Math.random() * 0.05), r: 0.8 + Math.random() * 1.6 }));
     canvas._joMist = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: H * (0.55 + Math.random() * 0.4), r: W * (0.14 + Math.random() * 0.18), sp: 5 + Math.random() * 12, a: 0.04 + Math.random() * 0.05 }));
-    canvas._joFronds = Array.from({ length: 3 }, (_, i) => ({ x: [W * 0.02, W * 0.99, W * 0.5][i], y: [H * 0.4, H * 0.38, H * 1.02][i], len: S * (0.3 + Math.random() * 0.08), base: [0.55, -0.55, 0][i], ph: Math.random() * 6.28 }));
+    canvas._joFronds = [
+      { x: W * 0.03, y: H * 1.02, len: S * 0.34, base: 0.32, ph: Math.random() * 6.28 },
+      { x: W * 0.98, y: H * 1.02, len: S * 0.34, base: -0.34, ph: Math.random() * 6.28 },
+      { x: W * 0.48, y: H * 1.06, len: S * 0.24, base: 0.02, ph: Math.random() * 6.28 },
+    ];
   }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.drawImage(canvas._joBg, 0, 0);
@@ -8977,33 +9300,56 @@ function _drawJoniPattern(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'lighter';
   for (const f of canvas._joFlies) { const fx = f.x + Math.sin(t * f.sp + f.ph) * f.amp, fy = f.y + Math.cos(t * f.sp * 0.8 + f.ph) * f.amp * 0.7, tw = 0.3 + 0.7 * Math.abs(Math.sin(t * 2 + f.ph)); const gg = ctx.createRadialGradient(fx, fy, 0, fx, fy, f.r * 5); gg.addColorStop(0, `rgba(220,255,120,${0.9 * tw})`); gg.addColorStop(1, 'rgba(220,255,120,0)'); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(fx, fy, f.r * 5, 0, 6.2832); ctx.fill(); ctx.fillStyle = `rgba(245,255,200,${tw})`; ctx.beginPath(); ctx.arc(fx, fy, f.r, 0, 6.2832); ctx.fill(); }
   ctx.globalCompositeOperation = 'source-over';
+
+  // ── bananas live on THIS layer (behind the panels, so they never cover menus) ──
+  const rect = canvas.getBoundingClientRect();
+  const rx = rect.width ? W / rect.width : 1, ry = rect.height ? H / rect.height : 1;
+  const pmx = (_joMX - rect.left) * rx, pmy = (_joMY - rect.top) * ry;
+  if (!_joBananas.length) for (let i = 0; i < 6; i++) _joBananas.push(_joNewBanana(W, H));
+  if (_joBananas.length < 6) { _joRespawnT -= dt; if (_joRespawnT <= 0) { _joBananas.push(_joNewBanana(W, H)); _joRespawnT = 1 + Math.random() * 2; } }
+  for (const b of _joBananas) if (b !== _joHeld) _joBanana(ctx, b.x, b.y, b.rot, b.sc, b.peel);
+  for (let i = _joEatFx.length - 1; i >= 0; i--) { const p = _joEatFx[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 240 * dt; p.life -= dt * 1.4; if (p.life <= 0) { _joEatFx.splice(i, 1); continue; } ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = '#f6eecb'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  if (_joHeld) { _joHeld.x += (pmx + 18 - _joHeld.x) * Math.min(1, dt * 16); _joHeld.y += (pmy + 26 - _joHeld.y) * Math.min(1, dt * 16); _joBanana(ctx, _joHeld.x, _joHeld.y, 0.2, _joHeld.sc * 1.1, _joHeld.peel); }
 }
 
-// ── bananas + hand cursor (pick up → peel → eat) ──
+// ── hand cursor (overlay) + pick-up/peel/eat handlers ──
 function _joMouseMove(e) { _joMX = e.clientX; _joMY = e.clientY; }
 function _joNewBanana(W, H) { return { x: W * (0.1 + Math.random() * 0.8), y: H * (0.74 + Math.random() * 0.2), rot: (Math.random() - 0.5) * 2, sc: 0.85 + Math.random() * 0.4, peel: 0 }; }
-// a curved tapering peel strip / fruit segment, anchored at (0,0) pointing up
-function _joStripUp(ctx, len, hw, peel, col) {
-  ctx.fillStyle = col; const bend = len * 0.16, curl = peel * hw * 1.5;
-  ctx.beginPath(); ctx.moveTo(-hw, 0);
-  ctx.quadraticCurveTo(-hw + bend * 0.4, -len * 0.55, bend - hw * 0.35, -len);
-  ctx.quadraticCurveTo(bend, -len - curl, bend + hw * 0.35, -len);
-  ctx.quadraticCurveTo(bend * 0.4 + hw, -len * 0.55, hw, 0);
+// a single curved banana body (a peel flap OR the fruit), hinged at (0,0) up
+function _joBananaBody(ctx, len, hw, col, edge) {
+  const tx = len * 0.17;   // tip leans → gives the banana its crescent curve
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(-hw * 0.7, -len * 0.22, tx - hw, -len * 0.8, tx, -len);
+  ctx.bezierCurveTo(tx + hw, -len * 0.8, hw * 1.3, -len * 0.22, 0, 0);
   ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = 'rgba(150,110,10,0.4)'; ctx.lineWidth = 0.9; ctx.stroke();
+  ctx.strokeStyle = edge; ctx.lineWidth = 1.1; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1.4;   // highlight ridge along the curve
+  ctx.beginPath(); ctx.moveTo(tx * 0.2, -len * 0.16); ctx.quadraticCurveTo(tx * 0.4, -len * 0.6, tx, -len * 0.9); ctx.stroke();
 }
-// banana = a cream FRUIT core + 3 yellow peel strips that fully cover it when
-// whole and splay open as `peel` rises (smooth, no shape jump).
+// banana: a curved yellow body when whole; peel flaps hinge open from the base
+// as `peel` rises, revealing the curved white fruit standing inside.
 function _joBanana(ctx, x, y, rot, sc, peel) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sc, sc);
-  const B = 24, aY = B * 0.9;
-  // cream fruit core (behind; never splays)
-  ctx.save(); ctx.translate(0, aY); _joStripUp(ctx, B * 1.78, 5.2, 0, '#f6eecb'); ctx.restore();
-  // 3 peel strips covering it → splay open with peel (left, front-down, right)
-  const dirs = [-1.25, Math.PI, 1.25], cols = ['#e8bf1c', '#f3cd24', '#e0b714'];
-  for (let i = 0; i < 3; i++) { ctx.save(); ctx.translate(0, aY); ctx.rotate(dirs[i] * peel); _joStripUp(ctx, B * 1.85, 7, peel, cols[i]); ctx.restore(); }
-  // brown stem nub at the base
-  ctx.fillStyle = '#5a3a18'; ctx.beginPath(); ctx.arc(0, aY, 2.6, 0, 6.2832); ctx.fill();
+  const L = 48, hw = 8.5; ctx.translate(0, L * 0.42);   // hinge near the base
+  // white fruit (revealed as the peel opens)
+  if (peel > 0.03) {
+    _joBananaBody(ctx, L * 0.94, hw * 0.78, '#f7f0d2', '#e3d3a0');
+    ctx.fillStyle = '#cdb072'; ctx.beginPath(); ctx.arc(L * 0.94 * 0.17, -L * 0.94, hw * 0.5, 0, 6.2832); ctx.fill();
+  }
+  // 4 peel flaps: all stacked (whole banana) at peel 0, splay symmetrically as it opens
+  const ang = [-1.5, -0.55, 0.55, 1.5], cols = ['#e0b41c', '#f3cd24', '#edc620', '#d7a814'];
+  for (const i of [0, 3, 1, 2]) {   // outer first, inner last → clean lit center when closed
+    ctx.save(); ctx.rotate(ang[i] * peel * 0.92);
+    _joBananaBody(ctx, L, hw, cols[i], '#b6890f');
+    ctx.fillStyle = '#5a3a18'; ctx.beginPath(); ctx.arc(L * 0.17, -L, hw * 0.4, 0, 6.2832); ctx.fill();   // brown tip
+    ctx.restore();
+  }
+  // little stem you hold at the base
+  ctx.fillStyle = '#6b4a22'; ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(-2.2, -2, 4.4, 9, 2); else ctx.rect(-2.2, -2, 4.4, 9);
+  ctx.fill();
   ctx.restore();
 }
 function _joHand(ctx, x, y, grab) {
@@ -9016,42 +9362,29 @@ function _joHand(ctx, x, y, grab) {
   ctx.restore();
 }
 function _joClick() {
+  // convert the pointer into the forest-canvas pixel space (where bananas live)
+  const pc = document.getElementById('pattern-canvas'); if (!pc || !pc.width) return;
+  const rect = pc.getBoundingClientRect();
+  const rx = rect.width ? pc.width / rect.width : 1, ry = rect.height ? pc.height / rect.height : 1;
+  const pmx = (_joMX - rect.left) * rx, pmy = (_joMY - rect.top) * ry;
   const b = _joHeld;
   if (b) {
     if (b.peel < 0.99) b.peel = Math.min(1, b.peel + 0.34);
     else { // eat it
-      for (let i = 0; i < 10; i++) { const a = Math.random() * 6.28, s = 40 + Math.random() * 120; _joEatFx.push({ x: _joMX, y: _joMY + 16, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 1, r: 2 + Math.random() * 3 }); }
+      for (let i = 0; i < 10; i++) { const a = Math.random() * 6.28, s = 40 + Math.random() * 120; _joEatFx.push({ x: pmx, y: pmy + 16, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 1, r: 2 + Math.random() * 3 }); }
       _joBananas.splice(_joBananas.indexOf(b), 1); _joHeld = null; _joRespawnT = 1.2;
     }
     return;
   }
-  // try to pick up a ground banana under the cursor
-  for (const ban of _joBananas) {
-    if (ban === _joHeld) continue;
-    const d = Math.hypot(_joMX - ban.x, _joMY - ban.y);
-    if (d < 34 * ban.sc) { _joHeld = ban; ban.peel = 0; return; }
-  }
+  for (const ban of _joBananas) { if (ban === _joHeld) continue; const d = Math.hypot(pmx - ban.x, pmy - ban.y); if (d < 48 * ban.sc) { _joHeld = ban; ban.peel = 0; return; } }
 }
 function _drawJoniCursor(canvas, ctx, W, H, t) {
   const fresh = _drawJoniCursor._lt === undefined;
   if (!fresh && t - _drawJoniCursor._lt < 0.016) return;
-  const dt = fresh ? 0.016 : Math.min(t - _drawJoniCursor._lt, 0.05);
   _drawJoniCursor._lt = t;
   ctx.clearRect(0, 0, W, H);
-  if (!_joBananas.length) for (let i = 0; i < 6; i++) _joBananas.push(_joNewBanana(W, H));
-  // respawn
-  if (_joBananas.length < 6) { _joRespawnT -= dt; if (_joRespawnT <= 0) { _joBananas.push(_joNewBanana(W, H)); _joRespawnT = 1 + Math.random() * 2; } }
-  // ground bananas (not held)
-  for (const b of _joBananas) if (b !== _joHeld) _joBanana(ctx, b.x, b.y, b.rot, b.sc, b.peel);
-  // eat particles
-  for (let i = _joEatFx.length - 1; i >= 0; i--) { const p = _joEatFx[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 240 * dt; p.life -= dt * 1.4; if (p.life <= 0) { _joEatFx.splice(i, 1); continue; } ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = '#f6eecb'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill(); }
-  ctx.globalAlpha = 1;
-  // held banana follows the hand
-  if (_joHeld) { _joHeld.x += (_joMX + 16 - _joHeld.x) * Math.min(1, dt * 18); _joHeld_yEase(dt); _joBanana(ctx, _joHeld.x, _joHeld.y, 0.2, _joHeld.sc * 1.1, _joHeld.peel); }
-  // hand cursor
-  _joHand(ctx, _joMX, _joMY, !!_joHeld);
+  _joHand(ctx, _joMX, _joMY, !!_joHeld);   // only the hand is on the top overlay
 }
-function _joHeld_yEase(dt) { if (_joHeld) _joHeld.y += (_joMY + 24 - _joHeld.y) * Math.min(1, dt * 18); }
 function _startJoniOverlay() {
   _stopJoniOverlay();
   _drawJoniCursor._lt = undefined; _joBananas = []; _joHeld = null; _joEatFx = []; _joRespawnT = 0;
