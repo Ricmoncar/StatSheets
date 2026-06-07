@@ -2318,6 +2318,7 @@ const PATTERN_DEFS = {
   oliver_west:      { label: "Oliver · Wild West",      params: [] },
   spruce_roses:     { label: "Spruce · White Roses",    params: [] },
   momo_waste:       { label: "Momo · Wasteland",        params: [] },
+  ronnette_scrap:   { label: "Ronnette · Can't Fix You", params: [] },
   shi_souls:        { label: "The Shi · Soul Garden",  params: [] },
   lunar_moon:       { label: "Lunar · Moonlight",      params: [] },
   helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
@@ -8396,6 +8397,299 @@ function _stopMomoOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// RONNETTE — "I Can't Fix You" (Living Tombstone / Mangle vibes): a fiery
+// ORANGE scene strewn with dark silhouettes of robot scrap — tangled wires,
+// claws, gears, endoskeleton hands — with white flickering flames, glowing
+// eyes peering from the junk, sparks, and a failing-light flicker. The cursor
+// is a wrench (you can't fix it) trailing sparks.
+// ════════════════════════════════════════════════════════════════
+const _RONNETTE_RE = /^Ronnette$/i;
+function _isRonnette(c) { return !!(c && c.name && _RONNETTE_RE.test(c.name)); }
+let _ronnetteOverlayRafId = null;
+let _roMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _roMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _roSparks = [];
+const _RO_DARK = '#0a0a0c';
+function _roWire(g, x, y, len, ang, width, seed) {
+  const rng = _aetherRng(seed);
+  g.lineWidth = width; g.lineCap = 'round'; g.strokeStyle = _RO_DARK;
+  let cx = x, cy = y, ca = ang; g.beginPath(); g.moveTo(cx, cy);
+  const segs = 4 + (rng() * 4 | 0);
+  for (let i = 0; i < segs; i++) { const sl = len / segs; ca += (rng() - 0.5) * 1.5; const nx = cx + Math.cos(ca) * sl, ny = cy + Math.sin(ca) * sl, mx = cx + Math.cos(ca - 0.6) * sl * 0.6, my = cy + Math.sin(ca - 0.6) * sl * 0.6; g.quadraticCurveTo(mx, my, nx, ny); cx = nx; cy = ny; }
+  g.stroke();
+}
+function _roShard(g, x, y, s, seed) { const rng = _aetherRng(seed); g.fillStyle = _RO_DARK; g.beginPath(); const n = 4 + (rng() * 3 | 0); for (let i = 0; i < n; i++) { const a = i / n * 6.2832 + rng() * 0.4, rr = s * (0.5 + rng() * 0.7); const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr * 0.85; i === 0 ? g.moveTo(px, py) : g.lineTo(px, py); } g.closePath(); g.fill(); }
+function _roGear(g, x, y, r, teeth) { g.fillStyle = _RO_DARK; g.beginPath(); for (let i = 0; i < teeth * 2; i++) { const rr = i % 2 ? r : r * 1.28, a = i / (teeth * 2) * 6.2832; const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr; i === 0 ? g.moveTo(px, py) : g.lineTo(px, py); } g.closePath(); g.fill(); g.save(); g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.arc(x, y, r * 0.42, 0, 6.2832); g.fill(); g.restore(); }
+// a real mechanical claw: forearm + palm joint + three curved tapered talons
+function _roTalon(g, x, y, s, ang) {
+  g.save(); g.translate(x, y); g.rotate(ang); g.fillStyle = _RO_DARK;
+  g.beginPath(); g.moveTo(-s * 0.2, -s * 0.28); g.lineTo(-s * 1.7, -s * 0.16); g.lineTo(-s * 1.7, s * 0.16); g.lineTo(-s * 0.2, s * 0.28); g.closePath(); g.fill();
+  g.beginPath(); g.arc(0, 0, s * 0.34, 0, 6.2832); g.fill();
+  for (let k = 0; k < 3; k++) {
+    g.save(); g.rotate(-0.55 + k * 0.55);
+    g.beginPath();
+    g.moveTo(-s * 0.12, -s * 0.18);
+    g.quadraticCurveTo(s * 0.28, -s * 0.7, s * 0.16, -s * 1.22);
+    g.quadraticCurveTo(s * 0.02, -s * 1.28, -s * 0.08, -s * 1.16);
+    g.quadraticCurveTo(s * 0.06, -s * 0.62, -s * 0.28, -s * 0.12);
+    g.closePath(); g.fill();
+    g.restore();
+  }
+  g.restore();
+}
+// a drooping cable hanging from (x,y), drifting + curling, with a connector end
+function _roCable(g, x, y, len, drift, width, seed) {
+  const rng = _aetherRng(seed);
+  g.strokeStyle = _RO_DARK; g.lineWidth = width; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath(); g.moveTo(x, y);
+  let cx = x, cy = y; const segs = 3 + (rng() * 2 | 0);
+  for (let i = 0; i < segs; i++) {
+    const ny = y + len * ((i + 1) / segs), nx = cx + drift * (8 + rng() * 24) + (rng() - 0.5) * 16;
+    const mx = (cx + nx) / 2 + drift * 12, my = (cy + ny) / 2 + len / segs * 0.45;
+    g.quadraticCurveTo(mx, my, nx, ny); cx = nx; cy = ny;
+  }
+  g.stroke();
+  g.fillStyle = _RO_DARK; g.beginPath(); g.arc(cx, cy, width * 0.85, 0, 6.2832); g.fill();
+}
+function _roEndoHand(g, x, y, s, ang) {
+  g.save(); g.translate(x, y); g.rotate(ang); g.strokeStyle = _RO_DARK; g.fillStyle = _RO_DARK; g.lineCap = 'round';
+  g.beginPath(); g.arc(0, 0, s * 0.4, 0, 6.2832); g.fill();
+  for (const a of [-0.65, -0.22, 0.22, 0.65]) { g.save(); g.rotate(a); g.lineWidth = s * 0.14; g.beginPath(); g.moveTo(0, -s * 0.3); g.lineTo(0, -s * 0.95); g.stroke(); g.beginPath(); g.arc(0, -s * 0.58, s * 0.1, 0, 6.2832); g.fill(); g.beginPath(); g.arc(0, -s * 0.95, s * 0.08, 0, 6.2832); g.fill(); g.restore(); }
+  g.restore();
+}
+// a flickering flame: a tall tongue that tapers to a wavy point, its sides
+// rippling into licks and the lean growing toward the tip.
+function _roFlame(ctx, x, baseY, w, h, t, seed, col) {
+  const flick = 0.82 + 0.18 * Math.sin(t * 7 + seed) + 0.1 * Math.sin(t * 13 + seed * 1.7);
+  const hh = h * flick, steps = 16;
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(x, baseY);
+  for (let i = 1; i <= steps; i++) {                       // up the LEFT edge
+    const f = i / steps;
+    const taper = Math.pow(1 - f, 0.85) * (0.72 + 0.28 * Math.sin(f * 9 - t * 6 + seed));
+    const sway = Math.sin(f * 4 + t * 5 + seed) * w * 0.4 * f;
+    ctx.lineTo(x - w * 0.5 * taper + sway, baseY - hh * f);
+  }
+  for (let i = steps - 1; i >= 0; i--) {                   // down the RIGHT edge
+    const f = i / steps;
+    const taper = Math.pow(1 - f, 0.85) * (0.72 + 0.28 * Math.sin(f * 9 - t * 6 + seed));
+    const sway = Math.sin(f * 4 + t * 5 + seed) * w * 0.4 * f;
+    ctx.lineTo(x + w * 0.5 * taper + sway, baseY - hh * f);
+  }
+  ctx.closePath(); ctx.fill();
+}
+// A deliberately composed silhouette: a ragged dark "ceiling" and "floor" of
+// broken machinery frame the scene, cables drape from the ceiling, and a few
+// bold claws/cogs reach in from the corners — leaving a clean centre for fire.
+function _roBuildScraps(W, H) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); const S = Math.min(W, H);
+  g.fillStyle = _RO_DARK;
+  // CEILING — ragged dark band, dipping low at the corners
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(W, 0); g.lineTo(W, H * 0.24);
+  g.bezierCurveTo(W * 0.86, H * 0.1, W * 0.8, H * 0.18, W * 0.7, H * 0.08);
+  g.bezierCurveTo(W * 0.62, H * 0.15, W * 0.56, H * 0.05, W * 0.5, H * 0.07);
+  g.bezierCurveTo(W * 0.43, H * 0.05, W * 0.37, H * 0.13, W * 0.3, H * 0.06);
+  g.bezierCurveTo(W * 0.22, H * 0.14, W * 0.14, H * 0.08, W * 0.05, H * 0.16);
+  g.lineTo(0, H * 0.24); g.closePath(); g.fill();
+  // FLOOR — low ragged ground with mounds in the corners
+  g.beginPath(); g.moveTo(0, H); g.lineTo(W, H); g.lineTo(W, H * 0.8);
+  g.bezierCurveTo(W * 0.86, H * 0.98, W * 0.8, H * 0.88, W * 0.7, H * 0.98);
+  g.bezierCurveTo(W * 0.6, H * 0.93, W * 0.5, H * 1.0, W * 0.4, H * 0.96);
+  g.bezierCurveTo(W * 0.3, H * 1.0, W * 0.2, H * 0.9, W * 0.1, H * 0.98);
+  g.lineTo(0, H * 0.82); g.closePath(); g.fill();
+  // cables draping from the ceiling (longer/denser toward the corners)
+  [0.04, 0.1, 0.17, 0.25, 0.5, 0.75, 0.83, 0.9, 0.96].forEach((fx, i) => {
+    const corner = Math.max(0, 1 - Math.min(fx, 1 - fx) / 0.3);
+    const cy = H * (0.05 + 0.04 * Math.sin(fx * 22)) + corner * H * 0.08;
+    _roCable(g, fx * W, cy + H * 0.02, H * (0.12 + corner * 0.42 + (i % 2) * 0.06), fx < 0.5 ? -1 : 1, S * (0.013 + corner * 0.01), 600 + i);
+  });
+  // bold focal robot parts in the corners
+  _roTalon(g, W * 0.9, H * 0.17, S * 0.2, 2.3);        // top-right: big claw reaching down-left
+  _roGear(g, W * 0.98, H * 0.05, S * 0.075, 11);
+  _roEndoHand(g, W * 0.8, H * 0.3, S * 0.13, -0.4);
+  _roGear(g, W * 0.72, H * 0.13, S * 0.045, 9);
+  _roShard(g, W * 0.16, H * 0.07, S * 0.09, 5);        // top-left plate
+  _roTalon(g, W * 0.08, H * 0.88, S * 0.16, -0.7);     // bottom-left claw
+  _roGear(g, W * 0.94, H * 0.92, S * 0.065, 10);
+  _roTalon(g, W * 0.95, H * 0.8, S * 0.15, 3.5);       // bottom-right claw
+  // a couple of cables draping into the bottom corners
+  _roCable(g, W * 0.06, H * 0.78, H * 0.18, 1, S * 0.014, 700);
+  _roCable(g, W * 0.94, H * 0.74, H * 0.2, -1, S * 0.014, 701);
+  return c;
+}
+// the broken animatronic head hanging & swaying from a cable — the centerpiece.
+// Fox-ish skull, bent ears, a dangling jaw, severed neck wires, a glowing eye.
+function _roMangleHead(ctx, t, W, H) {
+  const ax = W * 0.5, ay = -H * 0.03, L = H * 0.3;
+  const ang = Math.sin(t * 0.7) * 0.13 + Math.sin(t * 1.9) * 0.04;
+  const hx = ax + Math.sin(ang) * L, hy = ay + Math.cos(ang) * L, s = H * 0.085;
+  ctx.save();
+  ctx.strokeStyle = _RO_DARK; ctx.lineWidth = Math.max(3, H * 0.006); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo((ax + hx) / 2, (ay + hy) / 2, hx, hy); ctx.stroke();
+  ctx.translate(hx, hy); ctx.rotate(ang * 1.2);
+  ctx.fillStyle = _RO_DARK; ctx.strokeStyle = _RO_DARK;
+  // severed neck wires reaching up toward the cable
+  ctx.lineWidth = s * 0.08; ctx.lineCap = 'round';
+  for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(k * s * 0.12, -s * 0.6); ctx.quadraticCurveTo(k * s * 0.22 + Math.sin(t * 3 + k) * 4, -s * 1.0, k * s * 0.32, -s * 1.25); ctx.stroke(); }
+  // skull
+  ctx.beginPath(); ctx.ellipse(0, 0, s * 0.85, s * 0.95, 0, 0, 6.2832); ctx.fill();
+  // ears (one upright, one bent)
+  ctx.beginPath(); ctx.moveTo(-s * 0.55, -s * 0.5); ctx.lineTo(-s * 0.88, -s * 1.25); ctx.lineTo(-s * 0.18, -s * 0.72); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(s * 0.45, -s * 0.55); ctx.lineTo(s * 1.0, -s * 0.95); ctx.lineTo(s * 0.78, -s * 1.1); ctx.lineTo(s * 0.7, -s * 0.45); ctx.closePath(); ctx.fill();
+  // snout pointing down-front
+  ctx.beginPath(); ctx.moveTo(-s * 0.42, s * 0.45); ctx.quadraticCurveTo(-s * 0.25, s * 1.35, s * 0.08, s * 1.5); ctx.quadraticCurveTo(s * 0.5, s * 1.25, s * 0.52, s * 0.55); ctx.closePath(); ctx.fill();
+  // dangling lower jaw (swings with lag)
+  const jaw = 0.2 + Math.sin(t * 1.5 + 1) * 0.12;
+  ctx.save(); ctx.translate(s * 0.05, s * 1.0); ctx.rotate(jaw);
+  ctx.beginPath(); ctx.moveTo(-s * 0.32, 0); ctx.quadraticCurveTo(-s * 0.05, s * 0.85, s * 0.42, s * 0.4); ctx.lineTo(s * 0.22, -s * 0.02); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // glowing flickering eye
+  const blink = Math.abs(Math.sin(t * 0.9)) > 0.1 ? (0.7 + 0.3 * Math.sin(t * 9)) : 0.15;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const eg = ctx.createRadialGradient(s * 0.18, -s * 0.05, 0, s * 0.18, -s * 0.05, s * 0.8);
+  eg.addColorStop(0, `rgba(255,170,60,${0.9 * blink})`); eg.addColorStop(0.5, `rgba(255,110,30,${0.4 * blink})`); eg.addColorStop(1, 'rgba(255,110,30,0)');
+  ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(s * 0.18, -s * 0.05, s * 0.8, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = `rgba(255,240,205,${blink})`; ctx.beginPath(); ctx.arc(s * 0.18, -s * 0.05, s * 0.17, 0, 6.2832); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+function _drawRonnettePattern(canvas, ctx, W, H, t) {
+  const fresh = _drawRonnettePattern._lt === undefined;
+  if (!fresh && t - _drawRonnettePattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawRonnettePattern._lt, 0.05);
+  _drawRonnettePattern._lt = t;
+  if (canvas._roW !== W || canvas._roH !== H || !canvas._roScraps) {
+    canvas._roW = W; canvas._roH = H;
+    canvas._roScraps = _roBuildScraps(W, H);
+    canvas._roFlames = Array.from({ length: 12 }, () => ({ x: W * (0.04 + Math.random() * 0.92), base: H * (0.9 + Math.random() * 0.12), w: W * (0.022 + Math.random() * 0.03), h: H * (0.22 + Math.random() * 0.34), seed: Math.random() * 100 }));
+    canvas._roEyes = Array.from({ length: 3 }, () => ({ x: W * (0.7 + Math.random() * 0.28), y: H * (0.06 + Math.random() * 0.34), r: S0(W, H) * 0.008 + Math.random() * 3, ph: Math.random() * 6.28 }));
+    canvas._roSmoke = Array.from({ length: 10 }, () => ({ x: Math.random() * W, y: H * (0.5 + Math.random() * 0.5), vy: -(10 + Math.random() * 22), r: W * (0.03 + Math.random() * 0.05), a: 0.05 + Math.random() * 0.06 }));
+    canvas._roEmbers = Array.from({ length: 40 }, () => ({ x: Math.random() * W, y: H * (0.5 + Math.random() * 0.55), vy: -(22 + Math.random() * 46), r: 0.6 + Math.random() * 1.9, ph: Math.random() * 6.28, drift: Math.random() * 6.28 }));
+  }
+  // 1 ── orange firelit background (flickering brightness)
+  const flick = 1 + Math.sin(t * 24) * 0.04 + Math.sin(t * 7) * 0.03;
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#3a1604'); bg.addColorStop(0.45, `rgb(${168 * flick | 0},${74 * flick | 0},14)`); bg.addColorStop(0.8, `rgb(${214 * flick | 0},${104 * flick | 0},26)`); bg.addColorStop(1, '#7a3208');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  // 2 ── white flames + warm under-glow
+  ctx.globalCompositeOperation = 'lighter';
+  for (const f of canvas._roFlames) { const gg = ctx.createRadialGradient(f.x, f.base - f.h * 0.4, 0, f.x, f.base - f.h * 0.4, f.w * 3); gg.addColorStop(0, 'rgba(255,180,90,0.18)'); gg.addColorStop(1, 'rgba(255,180,90,0)'); ctx.fillStyle = gg; ctx.fillRect(f.x - f.w * 3, f.base - f.h * 2, f.w * 6, f.h * 2.5); }
+  ctx.globalCompositeOperation = 'source-over';
+  for (const f of canvas._roFlames) { _roFlame(ctx, f.x, f.base, f.w, f.h, t, f.seed, '#f4efe6'); _roFlame(ctx, f.x, f.base, f.w * 0.6, f.h * 0.78, t * 1.1, f.seed + 3, '#fffdf8'); }
+  // 3 ── drifting smoke
+  ctx.globalCompositeOperation = 'lighter';
+  for (const sm of canvas._roSmoke) { sm.y += sm.vy * dt; sm.x += Math.sin(t * 0.5 + sm.y) * 6 * dt; if (sm.y < -sm.r) { sm.y = H + sm.r; sm.x = Math.random() * W; } const sg = ctx.createRadialGradient(sm.x, sm.y, 0, sm.x, sm.y, sm.r); sg.addColorStop(0, `rgba(60,30,12,${sm.a})`); sg.addColorStop(1, 'rgba(60,30,12,0)'); ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sm.x, sm.y, sm.r, 0, 6.2832); ctx.fill(); }
+  ctx.globalCompositeOperation = 'source-over';
+  // 4 ── dark robot scrap (framing, in front of the flames)
+  ctx.drawImage(canvas._roScraps, 0, 0);
+  // 4b ── fire-glow rim light: warms the lower edges of the scrap from below
+  ctx.globalCompositeOperation = 'lighter';
+  const rim = ctx.createRadialGradient(W * 0.5, H * 1.02, 0, W * 0.5, H * 1.02, Math.max(W, H) * 0.7);
+  rim.addColorStop(0, `rgba(255,140,50,${0.14 + 0.04 * Math.sin(t * 5)})`); rim.addColorStop(0.5, 'rgba(255,120,40,0.05)'); rim.addColorStop(1, 'rgba(255,120,40,0)');
+  ctx.fillStyle = rim; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+  // 4c ── the hanging, swaying mangled head (centerpiece)
+  _roMangleHead(ctx, t, W, H);
+  // 4d ── embers rising from the fire
+  ctx.globalCompositeOperation = 'lighter';
+  for (const em of canvas._roEmbers) {
+    em.y += em.vy * dt; em.x += Math.sin(t * 0.8 + em.drift) * 14 * dt; em.vy *= 0.998;
+    if (em.y < H * 0.08) { em.y = H * (0.92 + Math.random() * 0.08); em.x = Math.random() * W; em.vy = -(22 + Math.random() * 46); }
+    const tw = 0.4 + 0.6 * Math.abs(Math.sin(t * 4 + em.ph));
+    ctx.fillStyle = `rgba(255,${150 + 60 * tw | 0},60,${tw})`;
+    ctx.beginPath(); ctx.arc(em.x, em.y, em.r, 0, 6.2832); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  // 5 ── glowing eyes peering from the junk
+  ctx.globalCompositeOperation = 'lighter';
+  for (const e of canvas._roEyes) { const blink = Math.abs(Math.sin(t * 0.8 + e.ph)) > 0.12 ? 1 : 0.1; const eg = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.r * 4); eg.addColorStop(0, `rgba(255,170,60,${0.85 * blink})`); eg.addColorStop(0.5, `rgba(255,120,30,${0.4 * blink})`); eg.addColorStop(1, 'rgba(255,120,30,0)'); ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 4, 0, 6.2832); ctx.fill(); ctx.fillStyle = `rgba(255,235,200,${blink})`; ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, 6.2832); ctx.fill(); }
+  ctx.globalCompositeOperation = 'source-over';
+  // 6 ── failing-light flicker (occasional dark dip / orange surge)
+  if (Math.random() < 0.05) { ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, W, H); }
+  else if (Math.random() < 0.04) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,130,40,0.1)'; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; }
+  // 7 ── vignette
+  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.82);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.62)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+}
+function S0(W, H) { return Math.min(W, H); }
+
+// ── wrench cursor (trails sparks; click = spark burst) ──
+function _roMouseMove(e) { _roMX = e.clientX; _roMY = e.clientY; }
+function _roClick() {
+  for (let i = 0; i < 18; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, s = 80 + Math.random() * 240; _roSparks.push({ x: _roMX, y: _roMY, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, r: 0.8 + Math.random() * 2, hot: Math.random() < 0.5 }); }
+}
+function _roWrench(ctx, x, y, rot) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.lineJoin = 'round'; ctx.strokeStyle = '#141418'; ctx.lineWidth = 1.4;
+  const mg = ctx.createLinearGradient(-7, 0, 7, 0); mg.addColorStop(0, '#34343a'); mg.addColorStop(0.5, '#5a5a64'); mg.addColorStop(1, '#2a2a30');
+  ctx.fillStyle = mg;
+  // open-end head (jaws) near the hotspot
+  ctx.beginPath(); ctx.moveTo(-7, 3); ctx.lineTo(-7, -9); ctx.lineTo(-2.4, -9); ctx.lineTo(-2.4, -3.5); ctx.lineTo(2.4, -3.5); ctx.lineTo(2.4, -9); ctx.lineTo(7, -9); ctx.lineTo(7, 3); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // handle
+  ctx.beginPath(); ctx.moveTo(-3.2, 3); ctx.lineTo(3.2, 3); ctx.lineTo(2.6, 27); ctx.lineTo(-2.6, 27); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // box-end ring
+  ctx.beginPath(); ctx.arc(0, 31, 5.4, 0, 6.2832); ctx.fill(); ctx.stroke();
+  ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath(); ctx.arc(0, 31, 2.6, 0, 6.2832); ctx.fill(); ctx.restore();
+  // highlight
+  ctx.fillStyle = 'rgba(210,210,220,0.3)'; ctx.fillRect(-1.6, 5, 1.4, 20);
+  ctx.restore();
+}
+function _drawRonnetteCursor(canvas, ctx, W, H, t) {
+  const fresh = _drawRonnetteCursor._lt === undefined;
+  if (!fresh && t - _drawRonnetteCursor._lt < 0.016) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawRonnetteCursor._lt, 0.05);
+  _drawRonnetteCursor._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  // occasional spark drip from the wrench
+  if (_roSparks.length < 160 && Math.random() < 0.25) _roSparks.push({ x: _roMX + (Math.random() - 0.5) * 6, y: _roMY + 4, vx: (Math.random() - 0.5) * 30, vy: 20 + Math.random() * 40, life: 1, r: 0.7 + Math.random() * 1.6, hot: Math.random() < 0.4 });
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _roSparks.length - 1; i >= 0; i--) {
+    const s = _roSparks[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 320 * dt; s.life -= dt * 1.5;
+    if (s.life <= 0) { _roSparks.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, s.life); ctx.fillStyle = s.hot ? '#fff2c0' : '#ff9a30';
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.2832); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  // a soft warm glow + the wrench (slight idle sway)
+  const gl = ctx.createRadialGradient(_roMX, _roMY, 0, _roMX, _roMY, 24);
+  gl.addColorStop(0, 'rgba(255,150,60,0.22)'); gl.addColorStop(1, 'rgba(255,150,60,0)');
+  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(_roMX, _roMY, 24, 0, 6.2832); ctx.fill();
+  _roWrench(ctx, _roMX, _roMY, -0.5 + Math.sin(t * 2) * 0.08);
+}
+function _startRonnetteOverlay() {
+  _stopRonnetteOverlay();
+  _drawRonnetteCursor._lt = undefined; _roSparks = [];
+  window.addEventListener('mousemove', _roMouseMove);
+  window.addEventListener('click', _roClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'ronnette-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('ronnette-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    _drawRonnetteCursor(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _ronnetteOverlayRafId = requestAnimationFrame(frame);
+  }
+  _ronnetteOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopRonnetteOverlay() {
+  if (_ronnetteOverlayRafId) { cancelAnimationFrame(_ronnetteOverlayRafId); _ronnetteOverlayRafId = null; }
+  window.removeEventListener('mousemove', _roMouseMove);
+  window.removeEventListener('click', _roClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('ronnette-overlay'); if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // JIMMY — Fury's muffin, supersized, sitting on the page background and
 // following your cursor with its big googly eyes. Pattern-only.
 // ════════════════════════════════════════════════════════════════
@@ -10539,6 +10833,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'oliver_west')       { _drawOliverPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'spruce_roses')      { _drawSprucePattern(canvas, ctx, W, H, t);          return; }
   if (type === 'momo_waste')        { _drawMomoPattern(canvas, ctx, W, H, t);            return; }
+  if (type === 'ronnette_scrap')    { _drawRonnettePattern(canvas, ctx, W, H, t);        return; }
   if (type === 'shi_souls')      { _drawShiPattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'lunar_moon')     { _drawLunarPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
@@ -11022,6 +11317,8 @@ function startBgAnim(type, params) {
   _drawSpruceCursor._lt       = undefined;
   _drawMomoPattern._lt        = undefined;
   _drawMomoCursor._lt         = undefined;
+  _drawRonnettePattern._lt    = undefined;
+  _drawRonnetteCursor._lt     = undefined;
   _drawShiPattern._lt         = undefined;
   _drawShiOverlay._lt         = undefined;
   _drawLunarPattern._lt       = undefined;
@@ -11069,6 +11366,7 @@ function stopBgAnim() {
   _stopOliverOverlay();
   _stopSpruceOverlay();
   _stopMomoOverlay();
+  _stopRonnetteOverlay();
   _stopShiOverlay();
   _stopLunarOverlay();
   _stopHeliosOverlay();
@@ -11824,6 +12122,15 @@ function viewChar(id) {
     if (_isMomo(c)) { _cvRoot.classList.add('momo-ui'); if (_nm) _nm.classList.add('momo-name'); }
     else { _cvRoot.classList.remove('momo-ui'); if (_nm) _nm.classList.remove('momo-name'); }
   }
+
+  // ── Ronnette — scorched-orange industrial UI chrome (charred panels + a
+  // flickering ember name). ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _nm = document.getElementById('cv-name');
+    if (_isRonnette(c)) { _cvRoot.classList.add('ronnette-ui'); if (_nm) _nm.classList.add('ronnette-name'); }
+    else { _cvRoot.classList.remove('ronnette-ui'); if (_nm) _nm.classList.remove('ronnette-name'); }
+  }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -11863,7 +12170,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -11875,7 +12182,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -11919,6 +12226,7 @@ function viewChar(id) {
   if (_isOliver(c))   _startOliverOverlay();
   if (_isSpruce(c))   _startSpruceOverlay();
   if (_isMomo(c))     _startMomoOverlay();
+  if (_isRonnette(c)) _startRonnetteOverlay();
   if (_isShi(c))      _startShiOverlay();
   if (_isLunar(c))    _startLunarOverlay();
   if (_isHelios(c))   _startHeliosOverlay();
@@ -16970,7 +17278,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -16991,6 +17299,7 @@ window.addEventListener('resize', () => {
       if (_isOliver(c))   _startOliverOverlay();
       if (_isSpruce(c))   _startSpruceOverlay();
       if (_isMomo(c))     _startMomoOverlay();
+      if (_isRonnette(c)) _startRonnetteOverlay();
       if (_isShi(c))      _startShiOverlay();
       if (_isLunar(c))    _startLunarOverlay();
       if (_isHelios(c))   _startHeliosOverlay();

@@ -1804,6 +1804,26 @@ body.nara-no-select, body.nara-no-select * {
   animation: moNameGlow 3.2s ease-in-out infinite;
 }
 
+/* ============================================================
+   RONNETTE — "I Can't Fix You": scorched-orange industrial UI,
+   charred panels and a flickering ember name.
+   ============================================================ */
+#char-view.ronnette-ui .panel {
+  border: 1px solid rgba(220,110,40,0.55);
+  background: linear-gradient(180deg, rgba(40,20,8,0.92), rgba(22,11,5,0.95));
+  box-shadow: 0 0 22px rgba(220,90,20,0.22), inset 0 0 30px rgba(90,40,12,0.4);
+}
+@keyframes roEmber {
+  0%,100% { color: #f0a040; text-shadow: 0 0 10px rgba(255,130,40,0.8); }
+  43% { color: #ffc060; text-shadow: 0 0 16px rgba(255,160,60,1); }
+  47% { color: #c06020; text-shadow: 0 0 5px rgba(255,120,40,0.4); }   /* flicker dip */
+  70% { color: #ffb050; text-shadow: 0 0 14px rgba(255,150,55,0.9); }
+}
+.char-name-display.ronnette-name {
+  letter-spacing: 1px;
+  animation: roEmber 2.4s linear infinite;
+}
+
 .nara-bucket {
   width: 52px; cursor: pointer; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
