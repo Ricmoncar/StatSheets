@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 
 <body>
@@ -455,7 +455,8 @@
                 <div class="info-row" style="padding-top:0;">
                   <div class="info-field-group" style="flex:1 1 100%;">
                     <div class="info-tiny-label">AFFILIATION(S)</div>
-                    <input type="text" id="cv-info-affiliation" class="info-line-input" placeholder="—" maxlength="80" oninput="saveInfoField('affiliation',this.value)"/>
+                    <input type="text" id="cv-info-affiliation" class="info-line-input" placeholder="—" maxlength="80" oninput="saveInfoField('affiliation',this.value)" onblur="_showAffiliationFx()"/>
+                    <div id="cv-info-affiliation-fx" class="info-line-fx" style="display:none;" title="click to edit" onclick="_editAffiliation()"></div>
                   </div>
                 </div>
               </div>
@@ -1267,7 +1268,7 @@
   <input type="file" id="theme-file-input" accept="audio/*" style="display:none;" onchange="onThemeFileSelected(this)">
 
   <script src="traits.js?v=1"></script>
-  <script src="script.js?v=11"></script>
+  <script src="script.js?v=12"></script>
 
   <!-- ── Character Chat Modal ────────────────────────────── -->
   <div id="char-chat-overlay" onclick="closeCharChat()"></div>

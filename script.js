@@ -12617,6 +12617,7 @@ function viewChar(id) {
   _setVal('cv-info-origin', _info.origin);
   _setVal('cv-info-occupation', _info.occupation);
   _setVal('cv-info-affiliation', _info.affiliation);
+  _showAffiliationFx();
   _setVal('cv-info-personality', _info.personality);
   _setVal('cv-info-goals', _info.goals);
   _setVal('cv-info-fears', _info.fears);
@@ -13105,6 +13106,29 @@ function switchTabById(tab) {
 }
 
 let _infoSaveTimer = null;
+// Affiliation supports an inline glitch syntax: text wrapped in [[ ]] renders as
+// green, glowing, glitching text (Juko-style). The styled version shows when not
+// editing; clicking it swaps back to the raw input.
+function _affiliationHtml(v) {
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return esc(v).replace(/\[\[(.+?)\]\]/g, (_m, t) => `<span class="info-glitch" data-text="${t.replace(/"/g, '&quot;')}">${t}</span>`);
+}
+function _showAffiliationFx() {
+  const inp = document.getElementById('cv-info-affiliation');
+  const fx = document.getElementById('cv-info-affiliation-fx');
+  if (!inp || !fx) return;
+  const v = inp.value || '';
+  if (/\[\[.+?\]\]/.test(v)) { fx.innerHTML = _affiliationHtml(v); fx.style.display = ''; inp.style.display = 'none'; }
+  else { fx.style.display = 'none'; inp.style.display = ''; }
+}
+function _editAffiliation() {
+  const inp = document.getElementById('cv-info-affiliation');
+  const fx = document.getElementById('cv-info-affiliation-fx');
+  if (!inp || !fx) return;
+  fx.style.display = 'none'; inp.style.display = '';
+  inp.focus();
+  const val = inp.value; inp.value = ''; inp.value = val;   // caret to end
+}
 function saveInfoField(key, val) {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;

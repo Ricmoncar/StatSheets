@@ -3757,6 +3757,39 @@ body.nara-no-select, body.nara-no-select * {
   border-bottom-color: var(--char-color, #ffff00);
 }
 .info-line-input::placeholder { color: #1c1c1c; }
+/* styled read view of the affiliation line (shows when not editing) */
+.info-line-fx {
+  font-family: var(--font-main); font-size: 9px; letter-spacing: 1px; color: #777;
+  border-bottom: 1px solid #181818; width: 100%; padding: 4px 0 6px; cursor: text;
+  white-space: pre-wrap; word-break: break-word;
+}
+/* inline green glowing glitch text (Juko-style) for [[ ]] spans */
+.info-glitch {
+  position: relative; display: inline-block;
+  color: #4ade5a !important; letter-spacing: 1px; font-weight: bold;
+  text-shadow: 0 0 5px rgba(74,222,90,0.95), 0 0 12px rgba(74,222,90,0.55), 0 0 22px rgba(74,222,90,0.3);
+  animation: infoGlitchGlow 2.6s ease-in-out infinite;
+}
+.info-glitch::before, .info-glitch::after {
+  content: attr(data-text); position: absolute; left: 0; top: 0; width: 100%;
+  overflow: hidden; pointer-events: none;
+}
+.info-glitch::before { color: #ff3b6b; clip-path: inset(0 0 55% 0); animation: infoGlitchA 2.4s steps(2, end) infinite; }
+.info-glitch::after  { color: #2fe6ff; clip-path: inset(55% 0 0 0); animation: infoGlitchB 1.9s steps(2, end) infinite; }
+@keyframes infoGlitchGlow {
+  0%, 100% { text-shadow: 0 0 5px rgba(74,222,90,0.95), 0 0 12px rgba(74,222,90,0.55), 0 0 22px rgba(74,222,90,0.3); }
+  50%      { text-shadow: 0 0 8px rgba(120,255,130,1), 0 0 18px rgba(74,222,90,0.8), 0 0 30px rgba(74,222,90,0.45); }
+}
+@keyframes infoGlitchA {
+  0%, 92%, 100% { clip-path: inset(0 0 55% 0); transform: translateX(-1px); opacity: 0.85; }
+  93% { clip-path: inset(10% 0 60% 0); transform: translateX(-4px); opacity: 1; }
+  96% { clip-path: inset(40% 0 20% 0); transform: translateX(3px); }
+}
+@keyframes infoGlitchB {
+  0%, 90%, 100% { clip-path: inset(55% 0 0 0); transform: translateX(1px); opacity: 0.85; }
+  91% { clip-path: inset(60% 0 8% 0); transform: translateX(4px); opacity: 1; }
+  95% { clip-path: inset(20% 0 45% 0); transform: translateX(-3px); }
+}
 
 /* Markdown field group */
 .info-md-group {
