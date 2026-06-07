@@ -157,7 +157,7 @@ function _naraLayerById(id) { return _naraPaint.layers.find(l => l.id === id); }
 function _naraActiveLayer() { return _naraLayerById(_naraPaint.activeLayerId) || _naraPaint.layers[0]; }
 function _naraResolveLayerId(s) { const id = (typeof s.layer === 'string') ? s.layer : null; return (id && _naraLayerById(id)) ? id : 'base'; }
 function _naraLayersKey() { return 'nara_layers_' + (_naraCollab.canvasId || _naraPaint.charId || 'default'); }
-function _naraSaveLayers() { try { localStorage.setItem(_naraLayersKey(), JSON.stringify({ layers: _naraPaint.layers, active: _naraPaint.activeLayerId })); } catch (e) {} const ref = _naraLayersRef(); if (ref) { ref.set({ layers: _naraPaint.layers, active: _naraPaint.activeLayerId }).catch(e => console.warn('nara layer sync', e)); } }
+function _naraSaveLayers() { try { localStorage.setItem(_naraLayersKey(), JSON.stringify({ layers: _naraPaint.layers, active: _naraPaint.activeLayerId })); } catch (e) {} const ref = _naraLayersRef(); if (ref) { const layerData = _naraPaint.layers.map(l => ({ id: l.id, name: l.name, order: l.order, visible: l.visible, opacity: l.opacity, blend: l.blend, locked: l.locked, alphaLock: l.alphaLock })); ref.set({ layers: layerData, active: _naraPaint.activeLayerId }).catch(e => console.warn('nara layer sync', e)); } }
 function _naraLoadLayers() {
   let data = null;
   try { data = JSON.parse(localStorage.getItem(_naraLayersKey())); } catch (e) {}
@@ -169,6 +169,7 @@ function _naraLoadLayers() {
   _naraNormalizeLayerOrder();
 }
 function _naraListenLayers() { const ref = _naraLayersRef(); if (!ref) return; _naraCollab.unsubLayers = ref.onSnapshot(snap => { if (!snap.exists) return; const data = snap.data(); if (data && Array.isArray(data.layers)) { _naraPaint.layers = data.layers.map(l => ({ id: l.id, name: l.name || 'Layer', order: +l.order || 0, visible: l.visible !== false, alphaLock: !!l.alphaLock, locked: !!l.locked, opacity: l.opacity == null ? 1 : +l.opacity, blend: l.blend || 'source-over' })); if (!_naraLayerById('base')) _naraPaint.layers.unshift(_naraDefaultLayers()[0]); _naraPaint.activeLayerId = (data.active && _naraLayerById(data.active)) ? data.active : 'base'; _naraNormalizeLayerOrder(); _naraRenderLayers(); _naraRenderTools(); } }); }
+function _naraPushLayersIfEmpty() { const ref = _naraLayersRef(); if (!ref) return; ref.get().then(snap => { if (!snap.exists) _naraSaveLayers(); }).catch(() => {}); }
 function _naraRGB() { const p = _naraPaint; return [Math.round(p.rF), Math.round(p.gF), Math.round(p.bF)]; }
 function _naraPaintColor() { const c = _naraRGB(); return `rgb(${c[0]},${c[1]},${c[2]})`; }
 
@@ -578,6 +579,7 @@ function _naraSwitchCanvas(id) {
   _naraCollab.strokes.clear(); _naraCollab.cursors.clear(); _naraCollab.deleted.clear();
   _naraCollab.myUndo.length = 0; _naraCollab.myRedo.length = 0; _naraCollab.cur = null;
   _naraPaint.bufs.clear(); _naraLoadLayers();     // each canvas has its own layer stack
+  _naraPushLayersIfEmpty();                        // push local layers to Firestore if remote is empty
   _naraRedrawAll(); _naraRenderLayers();
   _naraCollab.loading = true;                      // show a loading indicator until strokes stream in
   clearTimeout(_naraCollab.loadTimer); _naraCollab.loadTimer = setTimeout(() => { _naraCollab.loading = false; }, 5000);
