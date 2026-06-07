@@ -2319,6 +2319,7 @@ const PATTERN_DEFS = {
   spruce_roses:     { label: "Spruce · White Roses",    params: [] },
   momo_waste:       { label: "Momo · Wasteland",        params: [] },
   ronnette_scrap:   { label: "Ronnette · Can't Fix You", params: [] },
+  miami_aero:       { label: "Miami · Frutiger Aero",   params: [] },
   shi_souls:        { label: "The Shi · Soul Garden",  params: [] },
   lunar_moon:       { label: "Lunar · Moonlight",      params: [] },
   helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
@@ -8690,6 +8691,184 @@ function _stopRonnetteOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// MIAMI — full Frutiger Aero: glossy blue skies, turquoise water and lush green,
+// fluffy clouds, a bright sun with god-rays, glassy rising bubbles, drifting
+// bokeh, swaying grass, and sparkles. The cursor is a glossy water bubble that
+// trails bubbles and pops into a ripple on click.
+// ════════════════════════════════════════════════════════════════
+const _MIAMI_RE = /^Miami$/i;
+function _isMiami(c) { return !!(c && c.name && _MIAMI_RE.test(c.name)); }
+let _miamiOverlayRafId = null;
+let _miMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _miMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _miTrail = [], _miRipples = [];
+function _miBubble(ctx, x, y, r, alpha) {
+  ctx.save(); ctx.globalAlpha = alpha == null ? 1 : alpha;
+  const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+  g.addColorStop(0, 'rgba(255,255,255,0.28)'); g.addColorStop(0.7, 'rgba(170,235,255,0.08)'); g.addColorStop(1, 'rgba(120,220,255,0.2)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = Math.max(0.8, r * 0.06); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.ellipse(x - r * 0.34, y - r * 0.4, r * 0.24, r * 0.14, -0.6, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.arc(x + r * 0.3, y + r * 0.28, r * 0.09, 0, 6.2832); ctx.fill();
+  ctx.restore();
+}
+function _miBokeh(ctx, x, y, r, hue, alpha) {
+  const g = ctx.createRadialGradient(x, y, r * 0.4, x, y, r);
+  g.addColorStop(0, `hsla(${hue},85%,82%,${alpha * 0.28})`); g.addColorStop(0.82, `hsla(${hue},85%,86%,${alpha * 0.5})`); g.addColorStop(1, `hsla(${hue},85%,86%,0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
+}
+function _miCloud(g, x, y, s) {
+  const puffs = [[-0.72, 0.16, 0.52], [-0.28, 0.2, 0.6], [0.28, 0.2, 0.6], [0.72, 0.16, 0.5], [-0.42, -0.16, 0.58], [0.12, -0.32, 0.7], [0.46, -0.1, 0.54]];
+  g.fillStyle = 'rgba(188,224,246,0.9)';
+  for (const [dx, dy, r] of puffs) { g.beginPath(); g.arc(x + dx * s, y + dy * s + s * 0.07, r * s, 0, 6.2832); g.fill(); }
+  g.fillStyle = '#ffffff';
+  for (const [dx, dy, r] of puffs) { g.beginPath(); g.arc(x + dx * s, y + dy * s, r * s, 0, 6.2832); g.fill(); }
+}
+function _miLeaf(g, x, y, s, ang) {
+  g.save(); g.translate(x, y); g.rotate(ang);
+  const grad = g.createLinearGradient(0, -s, 0, s); grad.addColorStop(0, '#86e35e'); grad.addColorStop(1, '#2e9e4f');
+  g.fillStyle = grad;
+  g.beginPath(); g.moveTo(0, -s); g.bezierCurveTo(s * 0.72, -s * 0.4, s * 0.6, s * 0.62, 0, s); g.bezierCurveTo(-s * 0.6, s * 0.62, -s * 0.72, -s * 0.4, 0, -s); g.closePath(); g.fill();
+  g.strokeStyle = 'rgba(20,80,40,0.4)'; g.lineWidth = s * 0.035; g.beginPath(); g.moveTo(0, -s * 0.85); g.lineTo(0, s * 0.85); g.stroke();
+  for (let k = -2; k <= 2; k++) { if (!k) continue; const fy = k * s * 0.28; g.beginPath(); g.moveTo(0, fy); g.lineTo(Math.sign(k) * s * 0.0 + s * 0.32 * (k > 0 ? 1 : -1), fy + s * 0.22); g.stroke(); }
+  g.fillStyle = 'rgba(255,255,255,0.28)'; g.beginPath(); g.ellipse(-s * 0.2, -s * 0.18, s * 0.16, s * 0.5, -0.3, 0, 6.2832); g.fill();
+  g.restore();
+}
+function _miGrass(g, x, baseY, h, bend, col) {
+  g.fillStyle = col; g.beginPath(); g.moveTo(x - h * 0.06, baseY);
+  g.quadraticCurveTo(x + bend * 0.5, baseY - h * 0.55, x + bend, baseY - h);
+  g.quadraticCurveTo(x + bend * 0.5, baseY - h * 0.5, x + h * 0.06, baseY);
+  g.closePath(); g.fill();
+}
+function _miBuildScene(W, H) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); const S = Math.min(W, H);
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#2ea3e6'); sky.addColorStop(0.32, '#5cc6ec'); sky.addColorStop(0.52, '#88e4d4'); sky.addColorStop(0.64, '#a3ea9e'); sky.addColorStop(0.82, '#4fbf66'); sky.addColorStop(1, '#2c9446');
+  g.fillStyle = sky; g.fillRect(0, 0, W, H);
+  // sun + glow
+  const sx = W * 0.24, sy = H * 0.15, sr = S * 0.14;
+  const sg = g.createRadialGradient(sx, sy, 0, sx, sy, sr * 4.5);
+  sg.addColorStop(0, 'rgba(255,255,255,0.9)'); sg.addColorStop(0.2, 'rgba(255,255,245,0.5)'); sg.addColorStop(1, 'rgba(255,255,220,0)');
+  g.fillStyle = sg; g.fillRect(0, 0, W, H * 0.6);
+  g.fillStyle = 'rgba(255,255,255,0.95)'; g.beginPath(); g.arc(sx, sy, sr * 0.45, 0, 6.2832); g.fill();
+  // clouds
+  _miCloud(g, W * 0.6, H * 0.16, S * 0.1); _miCloud(g, W * 0.83, H * 0.3, S * 0.07); _miCloud(g, W * 0.42, H * 0.09, S * 0.06); _miCloud(g, W * 0.1, H * 0.34, S * 0.055);
+  // glossy leaves framing the lower corners
+  _miLeaf(g, W * 0.05, H * 0.56, S * 0.15, -0.5); _miLeaf(g, W * 0.97, H * 0.5, S * 0.14, 0.5); _miLeaf(g, W * 0.92, H * 0.64, S * 0.1, 1.05); _miLeaf(g, W * 0.12, H * 0.68, S * 0.09, -1.0);
+  // grass field
+  const gy = H * 0.88; g.fillStyle = '#2c9446'; g.fillRect(0, gy, W, H - gy);
+  const rng = _aetherRng(321), step = Math.max(8, W / 130);
+  for (let x = 0; x < W; x += step) { const bx = x + rng() * step, h = H * (0.05 + rng() * 0.1), bend = (rng() - 0.5) * h * 0.5, sh = 0.7 + rng() * 0.35; g.fillStyle = `rgb(${48 * sh | 0},${158 * sh | 0},${70 * sh | 0})`; _miGrass(g, bx, gy + H * 0.02, h, bend); }
+  return c;
+}
+function _drawMiamiPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawMiamiPattern._lt === undefined;
+  if (!fresh && t - _drawMiamiPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawMiamiPattern._lt, 0.05);
+  _drawMiamiPattern._lt = t;
+  const S = Math.min(W, H);
+  if (canvas._miW !== W || canvas._miH !== H || !canvas._miBg) {
+    canvas._miW = W; canvas._miH = H;
+    canvas._miBg = _miBuildScene(W, H);
+    canvas._miBubbles = Array.from({ length: 26 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: S * (0.008 + Math.random() * 0.03), vy: -(14 + Math.random() * 40), wob: Math.random() * 6.28, ws: 0.5 + Math.random() }));
+    canvas._miBokeh = Array.from({ length: 16 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: S * (0.03 + Math.random() * 0.08), vy: -(6 + Math.random() * 14), hue: 150 + Math.random() * 70, ph: Math.random() * 6.28 }));
+    canvas._miSpark = Array.from({ length: 18 }, () => ({ x: Math.random() * W, y: Math.random() * H * 0.7, ph: Math.random() * 6.28, sp: 1 + Math.random() * 2 }));
+    canvas._miGrassF = Array.from({ length: 16 }, () => ({ x: Math.random() * W, h: H * (0.1 + Math.random() * 0.12), ph: Math.random() * 6.28, col: `rgb(${40 + Math.random() * 20 | 0},${150 + Math.random() * 40 | 0},${64 + Math.random() * 20 | 0})` }));
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.drawImage(canvas._miBg, 0, 0);
+  const sx = W * 0.24, sy = H * 0.15;
+  // god-rays from the sun
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(sx, sy);
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * 6.2832 + t * 0.06, flick = 0.5 + 0.5 * Math.sin(t * 0.8 + i * 1.3), len = Math.max(W, H) * 0.9, wd = 0.018 + 0.014 * flick;
+    const rg = ctx.createLinearGradient(0, 0, len, 0); rg.addColorStop(0, `rgba(255,255,240,${0.04 + 0.05 * flick})`); rg.addColorStop(1, 'rgba(255,255,240,0)');
+    ctx.save(); ctx.rotate(a); ctx.fillStyle = rg; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, -len * wd); ctx.lineTo(len, len * wd); ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  ctx.restore(); ctx.globalCompositeOperation = 'source-over';
+  // drifting bokeh
+  ctx.globalCompositeOperation = 'lighter';
+  for (const b of canvas._miBokeh) { b.y += b.vy * dt; b.x += Math.sin(t * 0.3 + b.ph) * 10 * dt; if (b.y < -b.r) { b.y = H + b.r; b.x = Math.random() * W; } _miBokeh(ctx, b.x, b.y, b.r, b.hue, 0.6 + 0.4 * Math.sin(t * 0.7 + b.ph)); }
+  ctx.globalCompositeOperation = 'source-over';
+  // swaying foreground grass
+  const gy = H * 0.9;
+  for (const gr of canvas._miGrassF) _miGrass(ctx, gr.x, gy + H * 0.04, gr.h, Math.sin(t * 1.4 + gr.ph) * gr.h * 0.28, gr.col);
+  // rising glossy bubbles
+  for (const bu of canvas._miBubbles) { bu.y += bu.vy * dt; bu.x += Math.sin(t * bu.ws + bu.wob) * 16 * dt; if (bu.y < -bu.r) { bu.y = H + bu.r; bu.x = Math.random() * W; } _miBubble(ctx, bu.x, bu.y, bu.r, 0.85); }
+  // sparkles / lens flares
+  ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#ffffff';
+  for (const sp of canvas._miSpark) { const tw = Math.pow(Math.abs(Math.sin(t * sp.sp + sp.ph)), 4); if (tw < 0.05) continue; ctx.globalAlpha = tw; const r = 1 + tw * 3; ctx.beginPath(); ctx.arc(sp.x, sp.y, r, 0, 6.2832); ctx.fill(); ctx.fillRect(sp.x - r * 3, sp.y - 0.5, r * 6, 1); ctx.fillRect(sp.x - 0.5, sp.y - r * 3, 1, r * 6); }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  // glossy diagonal sheen across the top
+  const sh = ctx.createLinearGradient(0, 0, W * 0.5, H * 0.5);
+  sh.addColorStop(0, 'rgba(255,255,255,0.12)'); sh.addColorStop(0.4, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sh; ctx.fillRect(0, 0, W, H * 0.5);
+}
+
+// ── glossy bubble cursor ──
+function _miMouseMove(e) { _miMX = e.clientX; _miMY = e.clientY; }
+function _miClick() {
+  _miRipples.push({ x: _miMX, y: _miMY, r: 6, life: 1 });
+  for (let i = 0; i < 12; i++) { const a = Math.random() * 6.28, s = 60 + Math.random() * 160; _miTrail.push({ x: _miMX, y: _miMY, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 2 + Math.random() * 5, life: 1 }); }
+}
+function _drawMiamiCursor(canvas, ctx, W, H, t) {
+  const fresh = _drawMiamiCursor._lt === undefined;
+  if (!fresh && t - _drawMiamiCursor._lt < 0.016) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawMiamiCursor._lt, 0.05);
+  _drawMiamiCursor._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  if (_miTrail.length < 90 && Math.random() < 0.6) _miTrail.push({ x: _miMX + (Math.random() - 0.5) * 10, y: _miMY + (Math.random() - 0.5) * 10, vx: (Math.random() - 0.5) * 14, vy: -(10 + Math.random() * 24), r: 1.5 + Math.random() * 4, life: 1 });
+  for (let i = _miTrail.length - 1; i >= 0; i--) {
+    const p = _miTrail[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 12 * dt; p.life -= dt * 0.8;
+    if (p.life <= 0) { _miTrail.splice(i, 1); continue; }
+    _miBubble(ctx, p.x, p.y, p.r, Math.min(1, p.life) * 0.85);
+  }
+  // ripples (click pops)
+  for (let i = _miRipples.length - 1; i >= 0; i--) {
+    const rp = _miRipples[i]; rp.r += 220 * dt; rp.life -= dt * 1.4;
+    if (rp.life <= 0) { _miRipples.splice(i, 1); continue; }
+    ctx.strokeStyle = `rgba(180,240,255,${Math.max(0, rp.life) * 0.7})`; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(rp.x, rp.y, rp.r, 0, 6.2832); ctx.stroke();
+  }
+  // the main glossy bubble
+  const r = 14 + Math.sin(t * 2.5) * 1.2;
+  const gl = ctx.createRadialGradient(_miMX, _miMY, 0, _miMX, _miMY, r * 2);
+  gl.addColorStop(0, 'rgba(150,235,255,0.3)'); gl.addColorStop(1, 'rgba(150,235,255,0)');
+  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(_miMX, _miMY, r * 2, 0, 6.2832); ctx.fill();
+  _miBubble(ctx, _miMX, _miMY, r, 1);
+}
+function _startMiamiOverlay() {
+  _stopMiamiOverlay();
+  _drawMiamiCursor._lt = undefined; _miTrail = []; _miRipples = [];
+  window.addEventListener('mousemove', _miMouseMove);
+  window.addEventListener('click', _miClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'miami-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('miami-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    _drawMiamiCursor(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _miamiOverlayRafId = requestAnimationFrame(frame);
+  }
+  _miamiOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopMiamiOverlay() {
+  if (_miamiOverlayRafId) { cancelAnimationFrame(_miamiOverlayRafId); _miamiOverlayRafId = null; }
+  window.removeEventListener('mousemove', _miMouseMove);
+  window.removeEventListener('click', _miClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('miami-overlay'); if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // JIMMY — Fury's muffin, supersized, sitting on the page background and
 // following your cursor with its big googly eyes. Pattern-only.
 // ════════════════════════════════════════════════════════════════
@@ -10834,6 +11013,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'spruce_roses')      { _drawSprucePattern(canvas, ctx, W, H, t);          return; }
   if (type === 'momo_waste')        { _drawMomoPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'ronnette_scrap')    { _drawRonnettePattern(canvas, ctx, W, H, t);        return; }
+  if (type === 'miami_aero')        { _drawMiamiPattern(canvas, ctx, W, H, t);           return; }
   if (type === 'shi_souls')      { _drawShiPattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'lunar_moon')     { _drawLunarPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
@@ -11319,6 +11499,8 @@ function startBgAnim(type, params) {
   _drawMomoCursor._lt         = undefined;
   _drawRonnettePattern._lt    = undefined;
   _drawRonnetteCursor._lt     = undefined;
+  _drawMiamiPattern._lt       = undefined;
+  _drawMiamiCursor._lt        = undefined;
   _drawShiPattern._lt         = undefined;
   _drawShiOverlay._lt         = undefined;
   _drawLunarPattern._lt       = undefined;
@@ -11367,6 +11549,7 @@ function stopBgAnim() {
   _stopSpruceOverlay();
   _stopMomoOverlay();
   _stopRonnetteOverlay();
+  _stopMiamiOverlay();
   _stopShiOverlay();
   _stopLunarOverlay();
   _stopHeliosOverlay();
@@ -12131,6 +12314,14 @@ function viewChar(id) {
     if (_isRonnette(c)) { _cvRoot.classList.add('ronnette-ui'); if (_nm) _nm.classList.add('ronnette-name'); }
     else { _cvRoot.classList.remove('ronnette-ui'); if (_nm) _nm.classList.remove('ronnette-name'); }
   }
+
+  // ── Miami — glossy Frutiger-Aero UI chrome (aqua glass panels + a chrome-blue name). ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _nm = document.getElementById('cv-name');
+    if (_isMiami(c)) { _cvRoot.classList.add('miami-ui'); if (_nm) _nm.classList.add('miami-name'); }
+    else { _cvRoot.classList.remove('miami-ui'); if (_nm) _nm.classList.remove('miami-name'); }
+  }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -12170,7 +12361,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -12182,7 +12373,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -12227,6 +12418,7 @@ function viewChar(id) {
   if (_isSpruce(c))   _startSpruceOverlay();
   if (_isMomo(c))     _startMomoOverlay();
   if (_isRonnette(c)) _startRonnetteOverlay();
+  if (_isMiami(c))    _startMiamiOverlay();
   if (_isShi(c))      _startShiOverlay();
   if (_isLunar(c))    _startLunarOverlay();
   if (_isHelios(c))   _startHeliosOverlay();
@@ -17278,7 +17470,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -17300,6 +17492,7 @@ window.addEventListener('resize', () => {
       if (_isSpruce(c))   _startSpruceOverlay();
       if (_isMomo(c))     _startMomoOverlay();
       if (_isRonnette(c)) _startRonnetteOverlay();
+      if (_isMiami(c))    _startMiamiOverlay();
       if (_isShi(c))      _startShiOverlay();
       if (_isLunar(c))    _startLunarOverlay();
       if (_isHelios(c))   _startHeliosOverlay();

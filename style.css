@@ -1824,6 +1824,27 @@ body.nara-no-select, body.nara-no-select * {
   animation: roEmber 2.4s linear infinite;
 }
 
+/* ============================================================
+   MIAMI — glossy Frutiger Aero: aqua glass panels, a glossy
+   chrome-blue name with a sweeping shine.
+   ============================================================ */
+#char-view.miami-ui .panel {
+  border: 1px solid rgba(255,255,255,0.55);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(190,242,255,0.22), rgba(90,205,180,0.16));
+  box-shadow: 0 6px 22px rgba(40,160,200,0.25), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -10px 24px rgba(60,180,210,0.12);
+  backdrop-filter: blur(3px);
+}
+@keyframes miShine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.char-name-display.miami-name {
+  background: linear-gradient(110deg, #eafcff 0%, #7fd6ff 35%, #ffffff 50%, #6cc6f0 65%, #3fa8e0 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 1px 1px rgba(20,90,130,0.6)) drop-shadow(0 0 8px rgba(130,225,255,0.5));
+  animation: miShine 4s linear infinite;
+}
+
 .nara-bucket {
   width: 52px; cursor: pointer; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
