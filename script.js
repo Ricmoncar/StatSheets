@@ -173,6 +173,7 @@ function _naraPaintColor() { const c = _naraRGB(); return `rgb(${c[0]},${c[1]},$
 
 // ── Offline fallback persistence (localStorage; only used when there's no db) ──
 function _naraStorageKey() { return 'nara_drawing_' + (_naraPaint.charId || 'default'); }
+function _naraStrokeStorageKey() { return 'nara_strokes_' + (_naraPaint.charId || 'default'); }
 function _naraFlatten() {  // composite all visible layers into one canvas (offline save)
   const { w, h } = _naraCanvasSize(); _naraEnsureBufs(w, h);
   const flat = document.createElement('canvas'); flat.width = w; flat.height = h;
@@ -181,8 +182,16 @@ function _naraFlatten() {  // composite all visible layers into one canvas (offl
   g.globalCompositeOperation = 'source-over';
   return flat;
 }
+function _naraSaveStrokes() {
+  if (_naraDb()) return;
+  try {
+    const strokes = [..._naraCollab.strokes.values()].map(_naraStrokeData);
+    localStorage.setItem(_naraStrokeStorageKey(), JSON.stringify({ strokes, updated: Date.now() }));
+  } catch (e) {}
+}
 function _naraSaveDrawing() {
   if (!_naraPaint.layers.length || _naraDb()) return;
+  _naraSaveStrokes();
   const flat = _naraFlatten(); if (!flat) return;
   try { localStorage.setItem(_naraStorageKey(), flat.toDataURL('image/png')); } catch (e) {}
 }
@@ -191,12 +200,28 @@ function _naraScheduleSave() {
   clearTimeout(_naraPaint.saveTimer);
   _naraPaint.saveTimer = setTimeout(_naraSaveDrawing, 600);
 }
+function _naraLoadStrokes() {
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(_naraStrokeStorageKey())); } catch (e) {}
+  if (!data || !Array.isArray(data.strokes)) return;
+  _naraCollab.strokes.clear();
+  for (const s of data.strokes) {
+    if (s && s.pts && s.pts.length >= 2) {
+      const id = s.id || ('local' + Math.random().toString(36).slice(2, 9));
+      _naraCollab.strokes.set(id, { id, ...s });
+    }
+  }
+  _naraRedrawAll();
+}
 function _naraLoadDrawing() {
   let data = null;
   try { data = localStorage.getItem(_naraStorageKey()); } catch (e) {}
   if (!data) return;
   const img = new Image();
-  img.onload = () => { const l = _naraGetLayerBuf('base'); if (l) l.getContext('2d').drawImage(img, 0, 0); };
+  img.onload = () => {
+    const l = _naraGetLayerBuf('base');
+    if (l) l.getContext('2d').drawImage(img, 0, 0, l.width, l.height);
+  };
   img.src = data;
 }
 
@@ -1022,7 +1047,8 @@ function _startNaraPaint() {
     _naraCollab.canvasId = null; _naraCollab.strokes.clear(); _naraCollab.cursors.clear(); _naraCollab.deleted.clear();
     _naraSubscribeList();
   } else {
-    _naraLoadDrawing();           // offline: single local canvas
+    _naraLoadStrokes();           // offline: restore stroke data if present
+    if (!_naraCollab.strokes.size) _naraLoadDrawing();
   }
   _naraRenderLayers();
   document.addEventListener('click', _naraGlobalClick);
