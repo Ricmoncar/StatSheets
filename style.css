@@ -1845,6 +1845,21 @@ body.nara-no-select, body.nara-no-select * {
   animation: miShine 4s linear infinite;
 }
 
+/* ============================================================
+   JONI — leafy jungle UI chrome: deep-green foliage panels and
+   a lush green, softly swaying name.
+   ============================================================ */
+#char-view.joni-ui .panel {
+  border: 1px solid rgba(120,200,110,0.5);
+  background: linear-gradient(180deg, rgba(30,70,34,0.92), rgba(18,44,20,0.95));
+  box-shadow: 0 0 20px rgba(40,120,50,0.25), inset 0 1px 0 rgba(150,220,130,0.25);
+}
+@keyframes joNameSway { 0%,100% { color: #9be86a; text-shadow: 0 0 10px rgba(120,220,90,0.6); } 50% { color: #c4f59a; text-shadow: 0 0 16px rgba(160,240,120,0.85); } }
+.char-name-display.joni-name {
+  color: #9be86a; letter-spacing: 1px;
+  animation: joNameSway 3s ease-in-out infinite;
+}
+
 .nara-bucket {
   width: 52px; cursor: pointer; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 4px;

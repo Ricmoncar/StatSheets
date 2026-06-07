@@ -1695,7 +1695,7 @@ async function onThemeFileSelected(input) {
     // Capture previous song (if any) before overwriting — useful for verification
     const prevSong = _getFormTheme(c, formIdx);
 
-    console.log('[UPLOAD] New theme uploaded:', { url: data.secure_url, cachebustedUrl: url, songData, prevSong });
+    console.log('[UPLOAD] New theme uploaded:', { url: rawUrl, cachebustedUrl: url, songData, prevSong });
 
     if (formIdx === 0) {
       c.info = c.info || {};
@@ -2320,6 +2320,7 @@ const PATTERN_DEFS = {
   momo_waste:       { label: "Momo · Wasteland",        params: [] },
   ronnette_scrap:   { label: "Ronnette · Can't Fix You", params: [] },
   miami_aero:       { label: "Miami · Frutiger Aero",   params: [] },
+  joni_jungle:      { label: "Joni · Jungle Bananas",   params: [] },
   shi_souls:        { label: "The Shi · Soul Garden",  params: [] },
   lunar_moon:       { label: "Lunar · Moonlight",      params: [] },
   helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
@@ -8869,6 +8870,210 @@ function _stopMiamiOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// JONI — a lush jungle (canopy, big leaves, hanging vines, god-rays, fireflies,
+// mist). Bananas lie on the floor; the cursor is a hand that PICKS one up, and
+// clicking PEELS it open strip by strip, then EATS it. They respawn.
+// ════════════════════════════════════════════════════════════════
+const _JONI_RE = /^Joni$/i;
+function _isJoni(c) { return !!(c && c.name && _JONI_RE.test(c.name)); }
+let _joniOverlayRafId = null;
+let _joMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _joMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _joBananas = [], _joHeld = null, _joEatFx = [], _joRespawnT = 0;
+// ── jungle scene helpers ──
+function _joFrond(g, x, baseY, len, ang, col) {
+  g.save(); g.translate(x, baseY); g.rotate(ang); g.fillStyle = col; g.strokeStyle = col; g.lineWidth = len * 0.025; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -len); g.stroke();
+  const n = 9;
+  for (let i = 1; i <= n; i++) { const f = i / n, ly = -len * f, ll = len * 0.42 * (1 - f * 0.45); for (const s of [-1, 1]) { g.save(); g.translate(0, ly); g.rotate(s * (0.75 - f * 0.3)); g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(ll * 0.5, -ll * 0.12, ll, 0); g.quadraticCurveTo(ll * 0.5, ll * 0.16, 0, 0); g.closePath(); g.fill(); g.restore(); } }
+  g.restore();
+}
+function _joLeaf(g, x, y, s, ang, col, dark) {
+  g.save(); g.translate(x, y); g.rotate(ang); g.fillStyle = col;
+  g.beginPath(); g.moveTo(0, -s); g.bezierCurveTo(s * 0.52, -s * 0.4, s * 0.42, s * 0.62, 0, s); g.bezierCurveTo(-s * 0.42, s * 0.62, -s * 0.52, -s * 0.4, 0, -s); g.closePath(); g.fill();
+  g.strokeStyle = dark; g.lineWidth = s * 0.03; g.beginPath(); g.moveTo(0, -s * 0.85); g.lineTo(0, s * 0.85); g.stroke();
+  for (let k = -2; k <= 2; k++) { if (!k) continue; const fy = k * s * 0.28; g.beginPath(); g.moveTo(0, fy); g.lineTo((k > 0 ? 1 : -1) * s * 0.34, fy + s * 0.22); g.stroke(); }
+  g.restore();
+}
+function _joVine(g, x, topY, len, col) {
+  g.strokeStyle = col; g.lineWidth = Math.max(2, len * 0.012); g.lineCap = 'round'; g.fillStyle = col;
+  g.beginPath(); g.moveTo(x, topY); let cx = x, cy = topY;
+  for (let i = 0; i < 6; i++) { const ny = topY + len * (i + 1) / 6, nx = x + Math.sin(i * 1.3) * len * 0.08; g.quadraticCurveTo(cx + Math.sin(i) * 14, (cy + ny) / 2, nx, ny); cx = nx; cy = ny; }
+  g.stroke();
+  // little leaves along it
+  for (let i = 1; i < 6; i++) { const ny = topY + len * i / 6, nx = x + Math.sin(i * 1.3 - 0.5) * len * 0.08; g.save(); g.translate(nx, ny); g.rotate(i); g.beginPath(); g.ellipse(0, len * 0.04, len * 0.025, len * 0.05, 0, 0, 6.2832); g.fill(); g.restore(); }
+}
+function _joBuildJungle(W, H) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); const S = Math.min(W, H);
+  const grad = g.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#16331a'); grad.addColorStop(0.35, '#244a22'); grad.addColorStop(0.62, '#2f6230'); grad.addColorStop(0.85, '#28521f'); grad.addColorStop(1, '#1b3815');
+  g.fillStyle = grad; g.fillRect(0, 0, W, H);
+  // shafts of canopy light (baked soft glow upper-center)
+  const lg = g.createRadialGradient(W * 0.5, -H * 0.1, 10, W * 0.5, H * 0.4, Math.max(W, H) * 0.7);
+  lg.addColorStop(0, 'rgba(220,255,170,0.22)'); lg.addColorStop(1, 'rgba(220,255,170,0)');
+  g.fillStyle = lg; g.fillRect(0, 0, W, H * 0.7);
+  // distant foliage silhouette band at the top (canopy)
+  g.fillStyle = '#102813';
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(W, 0); g.lineTo(W, H * 0.16);
+  for (let x = W; x >= 0; x -= W * 0.06) { g.lineTo(x, H * (0.1 + 0.06 * Math.sin(x * 0.02))); }
+  g.lineTo(0, H * 0.16); g.closePath(); g.fill();
+  // hanging vines
+  for (let i = 0; i < 7; i++) _joVine(g, W * (0.05 + i * 0.14 + Math.random() * 0.05), 0, H * (0.25 + Math.random() * 0.35), '#1c3e1c');
+  // big leaves / fronds framing the corners
+  _joFrond(g, W * 0.04, H * 0.34, S * 0.32, 0.5, '#1d4520');
+  _joFrond(g, W * 0.97, H * 0.32, S * 0.34, -0.5, '#1d4520');
+  _joLeaf(g, W * 0.1, H * 0.7, S * 0.18, -0.7, '#2c6a2e', '#194a1c');
+  _joLeaf(g, W * 0.93, H * 0.72, S * 0.17, 0.7, '#2c6a2e', '#194a1c');
+  _joLeaf(g, W * 0.84, H * 0.86, S * 0.14, 1.2, '#347e34', '#1d5520');
+  _joLeaf(g, W * 0.16, H * 0.88, S * 0.13, -1.1, '#347e34', '#1d5520');
+  // jungle floor
+  g.fillStyle = '#1c3a14'; g.beginPath(); g.moveTo(0, H); g.lineTo(W, H); g.lineTo(W, H * 0.9);
+  for (let x = W; x >= 0; x -= W * 0.08) g.lineTo(x, H * (0.9 + 0.02 * Math.sin(x * 0.03)));
+  g.closePath(); g.fill();
+  return c;
+}
+function _drawJoniPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawJoniPattern._lt === undefined;
+  if (!fresh && t - _drawJoniPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawJoniPattern._lt, 0.05);
+  _drawJoniPattern._lt = t;
+  const S = Math.min(W, H);
+  if (canvas._joW !== W || canvas._joH !== H || !canvas._joBg) {
+    canvas._joW = W; canvas._joH = H;
+    canvas._joBg = _joBuildJungle(W, H);
+    canvas._joFlies = Array.from({ length: 22 }, () => ({ x: Math.random() * W, y: Math.random() * H, ph: Math.random() * 6.28, sp: 0.4 + Math.random() * 0.7, amp: S * (0.02 + Math.random() * 0.05), r: 0.8 + Math.random() * 1.6 }));
+    canvas._joMist = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: H * (0.55 + Math.random() * 0.4), r: W * (0.14 + Math.random() * 0.18), sp: 5 + Math.random() * 12, a: 0.04 + Math.random() * 0.05 }));
+    canvas._joFronds = Array.from({ length: 3 }, (_, i) => ({ x: [W * 0.02, W * 0.99, W * 0.5][i], y: [H * 0.4, H * 0.38, H * 1.02][i], len: S * (0.3 + Math.random() * 0.08), base: [0.55, -0.55, 0][i], ph: Math.random() * 6.28 }));
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.drawImage(canvas._joBg, 0, 0);
+  // soft green-gold god rays
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(W * 0.5, -H * 0.05);
+  for (let i = 0; i < 11; i++) { const a = Math.PI / 2 + (i - 5) * 0.16 + Math.sin(t * 0.1) * 0.05, flick = 0.5 + 0.5 * Math.sin(t * 0.6 + i), len = H * 1.1, wd = 0.02 + 0.015 * flick; const rg = ctx.createLinearGradient(0, 0, 0, len); rg.addColorStop(0, `rgba(220,255,160,${0.04 + 0.04 * flick})`); rg.addColorStop(1, 'rgba(220,255,160,0)'); ctx.save(); ctx.rotate(a - Math.PI / 2); ctx.fillStyle = rg; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-len * wd, len); ctx.lineTo(len * wd, len); ctx.closePath(); ctx.fill(); ctx.restore(); }
+  ctx.restore(); ctx.globalCompositeOperation = 'source-over';
+  // mist
+  ctx.globalCompositeOperation = 'lighter';
+  for (const m of canvas._joMist) { m.x += m.sp * dt; if (m.x - m.r > W) m.x = -m.r; const mg = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r); mg.addColorStop(0, `rgba(200,230,180,${m.a})`); mg.addColorStop(1, 'rgba(200,230,180,0)'); ctx.save(); ctx.translate(m.x, m.y); ctx.scale(1, 0.4); ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(0, 0, m.r, 0, 6.2832); ctx.fill(); ctx.restore(); }
+  ctx.globalCompositeOperation = 'source-over';
+  // swaying foreground fronds (over the scene)
+  for (const fr of canvas._joFronds) _joFrond(ctx, fr.x, fr.y, fr.len, fr.base + Math.sin(t * 0.8 + fr.ph) * 0.06, '#163a18');
+  // glowing fireflies
+  ctx.globalCompositeOperation = 'lighter';
+  for (const f of canvas._joFlies) { const fx = f.x + Math.sin(t * f.sp + f.ph) * f.amp, fy = f.y + Math.cos(t * f.sp * 0.8 + f.ph) * f.amp * 0.7, tw = 0.3 + 0.7 * Math.abs(Math.sin(t * 2 + f.ph)); const gg = ctx.createRadialGradient(fx, fy, 0, fx, fy, f.r * 5); gg.addColorStop(0, `rgba(220,255,120,${0.9 * tw})`); gg.addColorStop(1, 'rgba(220,255,120,0)'); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(fx, fy, f.r * 5, 0, 6.2832); ctx.fill(); ctx.fillStyle = `rgba(245,255,200,${tw})`; ctx.beginPath(); ctx.arc(fx, fy, f.r, 0, 6.2832); ctx.fill(); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// ── bananas + hand cursor (pick up → peel → eat) ──
+function _joMouseMove(e) { _joMX = e.clientX; _joMY = e.clientY; }
+function _joNewBanana(W, H) { return { x: W * (0.1 + Math.random() * 0.8), y: H * (0.74 + Math.random() * 0.2), rot: (Math.random() - 0.5) * 2, sc: 0.85 + Math.random() * 0.4, peel: 0 }; }
+function _joStripUp(ctx, len, hw, peel, col) {
+  ctx.fillStyle = col; const curl = peel * hw * 1.6;
+  ctx.beginPath(); ctx.moveTo(-hw, 0);
+  ctx.quadraticCurveTo(-hw * 0.85, -len * 0.6, -hw * 0.25, -len);
+  ctx.quadraticCurveTo(0, -len - curl, hw * 0.25, -len);
+  ctx.quadraticCurveTo(hw * 0.85, -len * 0.6, hw, 0);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(140,100,8,0.4)'; ctx.lineWidth = 0.9; ctx.stroke();
+}
+function _joBanana(ctx, x, y, rot, sc, peel) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sc, sc);
+  const B = 24;
+  if (peel < 0.04) {
+    // whole curved banana
+    ctx.fillStyle = '#f4cb22';
+    ctx.beginPath(); ctx.moveTo(0, B); ctx.quadraticCurveTo(-9, B * 0.3, -7, -B * 0.5); ctx.quadraticCurveTo(-5, -B * 0.95, 0, -B); ctx.quadraticCurveTo(2, -B * 0.9, 1, -B * 0.5); ctx.quadraticCurveTo(0, B * 0.2, 0, B); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#caa015'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,210,0.5)'; ctx.beginPath(); ctx.ellipse(-3.5, -B * 0.2, 1.5, B * 0.5, 0.1, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = '#5a3a18'; ctx.beginPath(); ctx.arc(0, -B, 2.4, 0, 6.2832); ctx.fill(); ctx.beginPath(); ctx.arc(0, B, 1.8, 0, 6.2832); ctx.fill();
+  } else {
+    // fruit + splaying peel strips
+    ctx.fillStyle = '#f6eecb';
+    ctx.beginPath(); ctx.ellipse(0, -B * 0.05, 6, B * 0.92, 0, 0, 6.2832); ctx.fill();
+    ctx.strokeStyle = 'rgba(190,170,110,0.5)'; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.fillStyle = '#cbb47a'; ctx.beginPath(); ctx.arc(0, -B * 0.95, 2.4, 0, 6.2832); ctx.fill();
+    const dirs = [-1.3, Math.PI, 1.3], cols = ['#e8bf1c', '#f5cf24', '#e0b714'];
+    for (let i = 0; i < 3; i++) { ctx.save(); ctx.translate(0, B * 0.9); ctx.rotate(dirs[i] * peel); _joStripUp(ctx, B * 1.85, 6.5, peel, cols[i]); ctx.restore(); }
+  }
+  ctx.restore();
+}
+function _joHand(ctx, x, y, grab) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(0.25);
+  ctx.fillStyle = '#e6b079'; ctx.strokeStyle = '#9c6a36'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.ellipse(0, 7, 9, 11, 0, 0, 6.2832); ctx.fill(); ctx.stroke();   // palm
+  const fl = grab ? 5 : 12;
+  for (let i = 0; i < 4; i++) { const fx = -6 + i * 4; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(fx - 1.7, -fl + (grab ? 7 : -2), 3.4, fl, 1.6); else ctx.rect(fx - 1.7, -fl + (grab ? 7 : -2), 3.4, fl); ctx.fill(); ctx.stroke(); }
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(7, grab ? 2 : 0, 3.4, grab ? 6 : 9, 1.6); else ctx.rect(7, 0, 3.4, 9); ctx.fill(); ctx.stroke();   // thumb
+  ctx.restore();
+}
+function _joClick() {
+  const b = _joHeld;
+  if (b) {
+    if (b.peel < 0.99) b.peel = Math.min(1, b.peel + 0.34);
+    else { // eat it
+      for (let i = 0; i < 10; i++) { const a = Math.random() * 6.28, s = 40 + Math.random() * 120; _joEatFx.push({ x: _joMX, y: _joMY + 16, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 1, r: 2 + Math.random() * 3 }); }
+      _joBananas.splice(_joBananas.indexOf(b), 1); _joHeld = null; _joRespawnT = 1.2;
+    }
+    return;
+  }
+  // try to pick up a ground banana under the cursor
+  for (const ban of _joBananas) {
+    if (ban === _joHeld) continue;
+    const d = Math.hypot(_joMX - ban.x, _joMY - ban.y);
+    if (d < 34 * ban.sc) { _joHeld = ban; ban.peel = 0; return; }
+  }
+}
+function _drawJoniCursor(canvas, ctx, W, H, t) {
+  const fresh = _drawJoniCursor._lt === undefined;
+  if (!fresh && t - _drawJoniCursor._lt < 0.016) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawJoniCursor._lt, 0.05);
+  _drawJoniCursor._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  if (!_joBananas.length) for (let i = 0; i < 6; i++) _joBananas.push(_joNewBanana(W, H));
+  // respawn
+  if (_joBananas.length < 6) { _joRespawnT -= dt; if (_joRespawnT <= 0) { _joBananas.push(_joNewBanana(W, H)); _joRespawnT = 1 + Math.random() * 2; } }
+  // ground bananas (not held)
+  for (const b of _joBananas) if (b !== _joHeld) _joBanana(ctx, b.x, b.y, b.rot, b.sc, b.peel);
+  // eat particles
+  for (let i = _joEatFx.length - 1; i >= 0; i--) { const p = _joEatFx[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 240 * dt; p.life -= dt * 1.4; if (p.life <= 0) { _joEatFx.splice(i, 1); continue; } ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = '#f6eecb'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  // held banana follows the hand
+  if (_joHeld) { _joHeld.x += (_joMX + 16 - _joHeld.x) * Math.min(1, dt * 18); _joHeld_yEase(dt); _joBanana(ctx, _joHeld.x, _joHeld.y, 0.2, _joHeld.sc * 1.1, _joHeld.peel); }
+  // hand cursor
+  _joHand(ctx, _joMX, _joMY, !!_joHeld);
+}
+function _joHeld_yEase(dt) { if (_joHeld) _joHeld.y += (_joMY + 24 - _joHeld.y) * Math.min(1, dt * 18); }
+function _startJoniOverlay() {
+  _stopJoniOverlay();
+  _drawJoniCursor._lt = undefined; _joBananas = []; _joHeld = null; _joEatFx = []; _joRespawnT = 0;
+  window.addEventListener('mousemove', _joMouseMove);
+  window.addEventListener('click', _joClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'joni-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('joni-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    _drawJoniCursor(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _joniOverlayRafId = requestAnimationFrame(frame);
+  }
+  _joniOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopJoniOverlay() {
+  if (_joniOverlayRafId) { cancelAnimationFrame(_joniOverlayRafId); _joniOverlayRafId = null; }
+  window.removeEventListener('mousemove', _joMouseMove);
+  window.removeEventListener('click', _joClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('joni-overlay'); if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // JIMMY — Fury's muffin, supersized, sitting on the page background and
 // following your cursor with its big googly eyes. Pattern-only.
 // ════════════════════════════════════════════════════════════════
@@ -11014,6 +11219,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'momo_waste')        { _drawMomoPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'ronnette_scrap')    { _drawRonnettePattern(canvas, ctx, W, H, t);        return; }
   if (type === 'miami_aero')        { _drawMiamiPattern(canvas, ctx, W, H, t);           return; }
+  if (type === 'joni_jungle')       { _drawJoniPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'shi_souls')      { _drawShiPattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'lunar_moon')     { _drawLunarPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
@@ -11501,6 +11707,8 @@ function startBgAnim(type, params) {
   _drawRonnetteCursor._lt     = undefined;
   _drawMiamiPattern._lt       = undefined;
   _drawMiamiCursor._lt        = undefined;
+  _drawJoniPattern._lt        = undefined;
+  _drawJoniCursor._lt         = undefined;
   _drawShiPattern._lt         = undefined;
   _drawShiOverlay._lt         = undefined;
   _drawLunarPattern._lt       = undefined;
@@ -11550,6 +11758,7 @@ function stopBgAnim() {
   _stopMomoOverlay();
   _stopRonnetteOverlay();
   _stopMiamiOverlay();
+  _stopJoniOverlay();
   _stopShiOverlay();
   _stopLunarOverlay();
   _stopHeliosOverlay();
@@ -12322,6 +12531,14 @@ function viewChar(id) {
     if (_isMiami(c)) { _cvRoot.classList.add('miami-ui'); if (_nm) _nm.classList.add('miami-name'); }
     else { _cvRoot.classList.remove('miami-ui'); if (_nm) _nm.classList.remove('miami-name'); }
   }
+
+  // ── Joni — leafy jungle UI chrome (green foliage panels + a leafy name). ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _nm = document.getElementById('cv-name');
+    if (_isJoni(c)) { _cvRoot.classList.add('joni-ui'); if (_nm) _nm.classList.add('joni-name'); }
+    else { _cvRoot.classList.remove('joni-ui'); if (_nm) _nm.classList.remove('joni-name'); }
+  }
   const statsEl = document.getElementById('cv-stats');
   const effStats = getEffectiveStats(c);
 
@@ -12361,7 +12578,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -12373,7 +12590,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -12419,6 +12636,7 @@ function viewChar(id) {
   if (_isMomo(c))     _startMomoOverlay();
   if (_isRonnette(c)) _startRonnetteOverlay();
   if (_isMiami(c))    _startMiamiOverlay();
+  if (_isJoni(c))     _startJoniOverlay();
   if (_isShi(c))      _startShiOverlay();
   if (_isLunar(c))    _startLunarOverlay();
   if (_isHelios(c))   _startHeliosOverlay();
@@ -17470,7 +17688,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -17493,6 +17711,7 @@ window.addEventListener('resize', () => {
       if (_isMomo(c))     _startMomoOverlay();
       if (_isRonnette(c)) _startRonnetteOverlay();
       if (_isMiami(c))    _startMiamiOverlay();
+      if (_isJoni(c))     _startJoniOverlay();
       if (_isShi(c))      _startShiOverlay();
       if (_isLunar(c))    _startLunarOverlay();
       if (_isHelios(c))   _startHeliosOverlay();
