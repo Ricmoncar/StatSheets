@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 
 <body>
@@ -136,6 +136,7 @@
         <button class="btn accent" onclick="location.href='gallery.html'">GALLERY</button>
         <button class="btn accent" onclick="location.href='encyclopedia.html'">ENCYCLOPÆDIA</button>
         <button class="btn accent" onclick="location.href='playlists.html'">♪ PLAYLISTS</button>
+        <button class="btn js-perf-btn" id="perf-toggle-btn" onclick="togglePerfMode()" title="Performance mode: turn off heavy animated backgrounds & custom cursors if the site lags.">⚡ PERF</button>
         <button class="btn accent" onclick="showEditor(null)">+ NEW CHARACTER</button>
         <!-- Sound controls -->
         <div id="sfx-ctrl-wrap">
@@ -176,6 +177,7 @@
           </button>
           <button class="btn sm" onclick="location.href='encyclopedia.html'" style="margin-top:4px;">✦ ENCYCLOPÆDIA</button>
           <button class="btn sm" onclick="location.href='playlists.html'" style="margin-top:4px;">♪ PLAYLISTS</button>
+          <button class="btn sm js-perf-btn" onclick="togglePerfMode()" style="margin-top:4px;" title="Turn off heavy animated backgrounds & custom cursors if the site lags.">⚡ PERF</button>
         </div>
       </nav>
 
@@ -1265,7 +1267,7 @@
   <input type="file" id="theme-file-input" accept="audio/*" style="display:none;" onchange="onThemeFileSelected(this)">
 
   <script src="traits.js?v=1"></script>
-  <script src="script.js?v=6"></script>
+  <script src="script.js?v=7"></script>
 
   <!-- ── Character Chat Modal ────────────────────────────── -->
   <div id="char-chat-overlay" onclick="closeCharChat()"></div>
