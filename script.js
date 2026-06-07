@@ -8881,11 +8881,19 @@ let _joMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
 let _joMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
 let _joBananas = [], _joHeld = null, _joEatFx = [], _joRespawnT = 0;
 // ── jungle scene helpers ──
+// a big banana/tropical leaf — a paddle blade with a midrib and side veins
 function _joFrond(g, x, baseY, len, ang, col) {
-  g.save(); g.translate(x, baseY); g.rotate(ang); g.fillStyle = col; g.strokeStyle = col; g.lineWidth = len * 0.025; g.lineCap = 'round';
-  g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -len); g.stroke();
-  const n = 9;
-  for (let i = 1; i <= n; i++) { const f = i / n, ly = -len * f, ll = len * 0.42 * (1 - f * 0.45); for (const s of [-1, 1]) { g.save(); g.translate(0, ly); g.rotate(s * (0.75 - f * 0.3)); g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(ll * 0.5, -ll * 0.12, ll, 0); g.quadraticCurveTo(ll * 0.5, ll * 0.16, 0, 0); g.closePath(); g.fill(); g.restore(); } }
+  g.save(); g.translate(x, baseY); g.rotate(ang);
+  const wid = len * 0.34; g.fillStyle = col;
+  g.beginPath(); g.moveTo(0, 0);
+  g.bezierCurveTo(wid * 0.9, -len * 0.15, wid * 0.7, -len * 0.7, wid * 0.25, -len * 0.92);
+  g.quadraticCurveTo(0, -len, -wid * 0.25, -len * 0.92);
+  g.bezierCurveTo(-wid * 0.7, -len * 0.7, -wid * 0.9, -len * 0.15, 0, 0);
+  g.closePath(); g.fill();
+  g.strokeStyle = 'rgba(10,30,12,0.55)'; g.lineWidth = len * 0.022; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(0, -len * 0.5, 0, -len * 0.92); g.stroke();
+  g.lineWidth = len * 0.008;
+  for (let i = 1; i <= 7; i++) { const f = i / 8, vy = -len * f, vw = wid * 0.72 * (1 - f * 0.5); for (const s of [-1, 1]) { g.beginPath(); g.moveTo(0, vy); g.quadraticCurveTo(s * vw * 0.5, vy - vw * 0.15, s * vw, vy - vw * 0.35); g.stroke(); } }
   g.restore();
 }
 function _joLeaf(g, x, y, s, ang, col, dark) {
@@ -8895,13 +8903,20 @@ function _joLeaf(g, x, y, s, ang, col, dark) {
   for (let k = -2; k <= 2; k++) { if (!k) continue; const fy = k * s * 0.28; g.beginPath(); g.moveTo(0, fy); g.lineTo((k > 0 ? 1 : -1) * s * 0.34, fy + s * 0.22); g.stroke(); }
   g.restore();
 }
+// a clean hanging vine: a smooth tapering tendril that wavers and curls
 function _joVine(g, x, topY, len, col) {
-  g.strokeStyle = col; g.lineWidth = Math.max(2, len * 0.012); g.lineCap = 'round'; g.fillStyle = col;
-  g.beginPath(); g.moveTo(x, topY); let cx = x, cy = topY;
-  for (let i = 0; i < 6; i++) { const ny = topY + len * (i + 1) / 6, nx = x + Math.sin(i * 1.3) * len * 0.08; g.quadraticCurveTo(cx + Math.sin(i) * 14, (cy + ny) / 2, nx, ny); cx = nx; cy = ny; }
-  g.stroke();
-  // little leaves along it
-  for (let i = 1; i < 6; i++) { const ny = topY + len * i / 6, nx = x + Math.sin(i * 1.3 - 0.5) * len * 0.08; g.save(); g.translate(nx, ny); g.rotate(i); g.beginPath(); g.ellipse(0, len * 0.04, len * 0.025, len * 0.05, 0, 0, 6.2832); g.fill(); g.restore(); }
+  g.strokeStyle = col; g.lineCap = 'round';
+  let cx = x, cy = topY, ca = Math.PI / 2; const segs = 9;
+  for (let i = 0; i < segs; i++) {
+    const f = i / segs; ca += Math.sin(i * 1.2 + x) * 0.2 + (i > segs - 3 ? 0.25 : 0);   // gentle waver + curl at the end
+    const sl = len / segs, nx = cx + Math.cos(ca) * sl, ny = cy + Math.sin(ca) * sl;
+    g.lineWidth = Math.max(1.5, len * 0.02 * (1 - f * 0.75));
+    g.beginPath(); g.moveTo(cx, cy); g.lineTo(nx, ny); g.stroke();
+    cx = nx; cy = ny;
+  }
+  // a small pair of leaves clasped right on the vine, partway down
+  g.fillStyle = col;
+  for (const s of [-1, 1]) { g.save(); g.translate(x + Math.sin(x) * len * 0.05, topY + len * 0.45); g.rotate(s * 1.1); g.beginPath(); g.ellipse(s * len * 0.04, 0, len * 0.05, len * 0.022, 0, 0, 6.2832); g.fill(); g.restore(); }
 }
 function _joBuildJungle(W, H) {
   const c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -8967,34 +8982,28 @@ function _drawJoniPattern(canvas, ctx, W, H, t) {
 // ── bananas + hand cursor (pick up → peel → eat) ──
 function _joMouseMove(e) { _joMX = e.clientX; _joMY = e.clientY; }
 function _joNewBanana(W, H) { return { x: W * (0.1 + Math.random() * 0.8), y: H * (0.74 + Math.random() * 0.2), rot: (Math.random() - 0.5) * 2, sc: 0.85 + Math.random() * 0.4, peel: 0 }; }
+// a curved tapering peel strip / fruit segment, anchored at (0,0) pointing up
 function _joStripUp(ctx, len, hw, peel, col) {
-  ctx.fillStyle = col; const curl = peel * hw * 1.6;
+  ctx.fillStyle = col; const bend = len * 0.16, curl = peel * hw * 1.5;
   ctx.beginPath(); ctx.moveTo(-hw, 0);
-  ctx.quadraticCurveTo(-hw * 0.85, -len * 0.6, -hw * 0.25, -len);
-  ctx.quadraticCurveTo(0, -len - curl, hw * 0.25, -len);
-  ctx.quadraticCurveTo(hw * 0.85, -len * 0.6, hw, 0);
+  ctx.quadraticCurveTo(-hw + bend * 0.4, -len * 0.55, bend - hw * 0.35, -len);
+  ctx.quadraticCurveTo(bend, -len - curl, bend + hw * 0.35, -len);
+  ctx.quadraticCurveTo(bend * 0.4 + hw, -len * 0.55, hw, 0);
   ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = 'rgba(140,100,8,0.4)'; ctx.lineWidth = 0.9; ctx.stroke();
+  ctx.strokeStyle = 'rgba(150,110,10,0.4)'; ctx.lineWidth = 0.9; ctx.stroke();
 }
+// banana = a cream FRUIT core + 3 yellow peel strips that fully cover it when
+// whole and splay open as `peel` rises (smooth, no shape jump).
 function _joBanana(ctx, x, y, rot, sc, peel) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sc, sc);
-  const B = 24;
-  if (peel < 0.04) {
-    // whole curved banana
-    ctx.fillStyle = '#f4cb22';
-    ctx.beginPath(); ctx.moveTo(0, B); ctx.quadraticCurveTo(-9, B * 0.3, -7, -B * 0.5); ctx.quadraticCurveTo(-5, -B * 0.95, 0, -B); ctx.quadraticCurveTo(2, -B * 0.9, 1, -B * 0.5); ctx.quadraticCurveTo(0, B * 0.2, 0, B); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#caa015'; ctx.lineWidth = 1.2; ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,210,0.5)'; ctx.beginPath(); ctx.ellipse(-3.5, -B * 0.2, 1.5, B * 0.5, 0.1, 0, 6.2832); ctx.fill();
-    ctx.fillStyle = '#5a3a18'; ctx.beginPath(); ctx.arc(0, -B, 2.4, 0, 6.2832); ctx.fill(); ctx.beginPath(); ctx.arc(0, B, 1.8, 0, 6.2832); ctx.fill();
-  } else {
-    // fruit + splaying peel strips
-    ctx.fillStyle = '#f6eecb';
-    ctx.beginPath(); ctx.ellipse(0, -B * 0.05, 6, B * 0.92, 0, 0, 6.2832); ctx.fill();
-    ctx.strokeStyle = 'rgba(190,170,110,0.5)'; ctx.lineWidth = 0.8; ctx.stroke();
-    ctx.fillStyle = '#cbb47a'; ctx.beginPath(); ctx.arc(0, -B * 0.95, 2.4, 0, 6.2832); ctx.fill();
-    const dirs = [-1.3, Math.PI, 1.3], cols = ['#e8bf1c', '#f5cf24', '#e0b714'];
-    for (let i = 0; i < 3; i++) { ctx.save(); ctx.translate(0, B * 0.9); ctx.rotate(dirs[i] * peel); _joStripUp(ctx, B * 1.85, 6.5, peel, cols[i]); ctx.restore(); }
-  }
+  const B = 24, aY = B * 0.9;
+  // cream fruit core (behind; never splays)
+  ctx.save(); ctx.translate(0, aY); _joStripUp(ctx, B * 1.78, 5.2, 0, '#f6eecb'); ctx.restore();
+  // 3 peel strips covering it → splay open with peel (left, front-down, right)
+  const dirs = [-1.25, Math.PI, 1.25], cols = ['#e8bf1c', '#f3cd24', '#e0b714'];
+  for (let i = 0; i < 3; i++) { ctx.save(); ctx.translate(0, aY); ctx.rotate(dirs[i] * peel); _joStripUp(ctx, B * 1.85, 7, peel, cols[i]); ctx.restore(); }
+  // brown stem nub at the base
+  ctx.fillStyle = '#5a3a18'; ctx.beginPath(); ctx.arc(0, aY, 2.6, 0, 6.2832); ctx.fill();
   ctx.restore();
 }
 function _joHand(ctx, x, y, grab) {
