@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>STATSHEETS - BK'S CORNER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css?v=10">
+<style>
+  /* ════════════════════════════════════════════════════════════
+     BK'S CORNER  ·  signature = crimson / deep red, dim rose pattern
+     ════════════════════════════════════════════════════════════ */
+  :root {
+    --bk-pink:   #e23b4e;   /* crimson */
+    --bk-purple: #8b1322;   /* deep crimson */
+    --bk-soft:   #1a0f12;
+  }
+  body {
+    padding: 36px 40px 80px;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' width%3D'220' height%3D'220'%3E%3Cfilter id%3D'n'%3E%3CfeTurbulence type%3D'fractalNoise' baseFrequency%3D'0.85' numOctaves%3D'2' stitchTiles%3D'stitch'%2F%3E%3CfeColorMatrix type%3D'matrix' values%3D'0 0 0 0 0.55  0 0 0 0 0.06  0 0 0 0 0.09  0 0 0 0.12 0'%2F%3E%3C%2Ffilter%3E%3Crect width%3D'100%25' height%3D'100%25' filter%3D'url(%23n)'%2F%3E%3C%2Fsvg%3E"),
+      radial-gradient(1100px 620px at 88% -10%, rgba(180,30,46,0.14), transparent 62%),
+      radial-gradient(900px 600px at 4% 110%, rgba(120,16,30,0.16), transparent 60%),
+      linear-gradient(180deg, #120608, var(--bg) 55%);
+    background-size: 220px 220px, auto, auto, auto;
+    background-attachment: fixed;
+  }
+
+  /* ── Rose cursor: no native cursor anywhere, animate our own ── */
+  *, *::before, *::after { cursor: none !important; }
+  #cursor svg {
+    transform-origin: 37% 34%;
+    animation: bkRoseIdle 4s ease-in-out infinite;
+    will-change: transform;
+  }
+  /* gentle idle sway */
+  @keyframes bkRoseIdle {
+    0%, 100% { transform: rotate(-3deg); }
+    50%      { transform: rotate(3deg); }
+  }
+  /* hover over anything clickable: the rose blooms & wiggles */
+  #cursor.bk-hover svg { animation: bkRoseBloom 0.7s ease-in-out infinite; }
+  @keyframes bkRoseBloom {
+    0%   { transform: scale(1.3) rotate(-11deg); }
+    50%  { transform: scale(1.45) rotate(11deg); }
+    100% { transform: scale(1.3) rotate(-11deg); }
+  }
+  /* click: quick squash-pop */
+  #cursor.bk-press svg {
+    animation: none !important;
+    transform: scale(0.76) rotate(3deg);
+    transition: transform 0.09s ease;
+  }
+
+  /* ── Header ──────────────────────────────────────────────── */
+  #bk-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .bk-nav-spacer { flex: 1 1 auto; }
+  #bk-title-wrap { margin: 14px 0 26px; }
+  .bk-title {
+    font-size: 26px;
+    letter-spacing: 2px;
+    color: var(--bk-pink);
+    text-shadow: 0 0 18px rgba(226,59,78,0.45), 3px 3px 0 rgba(139,19,34,0.35);
+    line-height: 1.3;
+  }
+
+  /* ── Tabs ────────────────────────────────────────────────── */
+  #bk-tabs {
+    display: flex; gap: 4px; margin-bottom: 20px;
+    border-bottom: 1px solid #341f26;
+  }
+  .bk-tab {
+    font-family: var(--font-main); font-size: 9px; letter-spacing: 1px;
+    padding: 12px 20px; background: transparent; color: #8f757a;
+    border: none; border-bottom: 2px solid transparent; cursor: pointer;
+    transition: color 0.12s, border-color 0.12s; margin-bottom: -1px;
+  }
+  .bk-tab:hover { color: var(--bk-pink); }
+  .bk-tab.active { color: var(--bk-pink); border-bottom-color: var(--bk-pink); }
+
+  .bk-galnote { font-size: 7px; letter-spacing: 1px; color: #7d6569; line-height: 1.7; flex: 1; }
+
+  /* ── Gallery grid ────────────────────────────────────────── */
+  #bk-gal-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px;
+  }
+  .bk-gal-card {
+    background: linear-gradient(180deg, #190e11, #130a0c);
+    border: 1px solid #3a2128; border-radius: 11px; overflow: hidden; cursor: pointer;
+    display: flex; flex-direction: column;
+    transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+  }
+  .bk-gal-card:hover { transform: translateY(-3px); border-color: var(--bk-purple); box-shadow: 0 9px 26px rgba(139,19,34,0.28); }
+  .bk-gal-thumb { aspect-ratio: 1; background: #0a0a0a; position: relative; overflow: hidden; }
+  .bk-gal-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bk-gal-synced {
+    position: absolute; top: 7px; right: 7px; font-size: 7px; letter-spacing: 0.5px;
+    color: var(--accent-green); background: rgba(0,255,128,0.14);
+    border: 1px solid rgba(0,255,128,0.4); padding: 3px 7px; border-radius: 14px;
+    backdrop-filter: blur(3px);
+  }
+  .bk-gal-meta { padding: 9px 11px 11px; display: flex; flex-direction: column; gap: 7px; }
+  .bk-gal-name { font-size: 8px; color: #d8c2c4; letter-spacing: 0.5px; line-height: 1.5; word-break: break-word;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bk-gal-card .bk-chips { gap: 4px; }
+  .bk-gal-card .bk-chip { font-size: 6px; }
+  .bk-gal-card .bk-chip img, .bk-gal-card .bk-chip .bk-chip-noimg { width: 15px; height: 15px; }
+
+  #bk-gal-empty {
+    text-align: center; padding: 70px 20px; color: #6c555b;
+    font-size: 10px; letter-spacing: 1px; line-height: 2.4; display: none;
+  }
+  #bk-gal-empty .big { font-size: 38px; }
+
+  /* gallery detail */
+  .bk-galdet-img-wrap {
+    border-radius: 12px; overflow: hidden; border: 1px solid #3a2128; background: #0a0a0a;
+    cursor: pointer; margin-bottom: 18px;
+  }
+  .bk-galdet-img-wrap img { width: 100%; max-height: 440px; object-fit: contain; display: block; }
+  .bk-sync-note {
+    font-size: 7px; letter-spacing: 0.5px; color: #7d6569; line-height: 1.7; margin-top: 8px;
+    padding: 9px 11px; background: #170c0f; border: 1px solid #38222a; border-radius: 8px;
+  }
+  .bk-sync-note b { color: var(--accent-green); }
+
+  /* ── Toolbar ─────────────────────────────────────────────── */
+  #bk-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #341f26;
+  }
+  .bk-filters { display: flex; gap: 6px; }
+  .bk-filter {
+    font-family: var(--font-main);
+    font-size: 8px;
+    letter-spacing: 1px;
+    padding: 9px 13px;
+    background: #170c0f;
+    color: #90767a;
+    border: 1px solid #38222a;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .bk-filter:hover { color: var(--bk-pink); border-color: var(--bk-purple); }
+  .bk-filter.active {
+    color: #000;
+    background: var(--bk-pink);
+    border-color: var(--bk-pink);
+    box-shadow: 0 0 14px rgba(226,59,78,0.4);
+  }
+  .bk-count {
+    font-size: 8px;
+    color: #7d6569;
+    letter-spacing: 1px;
+    margin-left: auto;
+  }
+  .bk-new-btn {
+    font-family: var(--font-main);
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 11px 16px;
+    background: linear-gradient(135deg, var(--bk-pink), var(--bk-purple));
+    color: #1a0809;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+    box-shadow: 0 4px 16px rgba(139,19,34,0.3);
+  }
+  .bk-new-btn:hover { transform: translateY(-2px); filter: brightness(1.12); box-shadow: 0 7px 22px rgba(226,59,78,0.45); }
+
+  /* ── Request grid ────────────────────────────────────────── */
+  #bk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+    gap: 18px;
+  }
+  .bk-card {
+    background: linear-gradient(180deg, #190e11, #130a0c);
+    border: 1px solid #3a2128;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.13s, box-shadow 0.13s, border-color 0.13s;
+  }
+  .bk-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--bk-purple);
+    box-shadow: 0 10px 30px rgba(139,19,34,0.28);
+  }
+  .bk-card-cover {
+    aspect-ratio: 16 / 11;
+    background:
+      repeating-linear-gradient(45deg, #1b0d10 0 10px, #170b0d 10px 20px);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .bk-card-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bk-card-cover .bk-nocover {
+    font-size: 8px; color: #5f484e; letter-spacing: 1px; text-align: center; line-height: 1.8;
+  }
+  .bk-status {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 7px; letter-spacing: 1px;
+    padding: 4px 8px; border-radius: 20px;
+    backdrop-filter: blur(3px);
+  }
+  .bk-status.pending   { background: rgba(255,128,0,0.18);  color: var(--accent-orange); border: 1px solid rgba(255,128,0,0.5); }
+  .bk-status.completed { background: rgba(0,255,128,0.16);  color: var(--accent-green);  border: 1px solid rgba(0,255,128,0.5); }
+  .bk-card-body { padding: 13px 14px 15px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+  .bk-card-title {
+    font-size: 11px; color: var(--bk-pink); letter-spacing: 1px; line-height: 1.5;
+    word-break: break-word;
+  }
+  .bk-card-desc {
+    font-size: 8px; color: #9c8488; line-height: 1.7;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .bk-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
+  .bk-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #231016; border: 1px solid #3d2129; border-radius: 20px;
+    padding: 2px 8px 2px 2px; font-size: 7px; letter-spacing: 0.5px;
+  }
+  .bk-chip img, .bk-chip .bk-chip-noimg {
+    width: 18px; height: 18px; border-radius: 50%; object-fit: cover; display: block;
+    background: #0a0a0a;
+  }
+  .bk-chip .bk-chip-noimg { display: flex; align-items: center; justify-content: center; font-size: 7px; color: #555; }
+  .bk-chip span { color: #d8c2c4; }
+  .bk-chip-more { color: #90767a; align-self: center; font-size: 7px; padding: 0 3px; }
+
+  /* ── Empty state ─────────────────────────────────────────── */
+  #bk-empty {
+    text-align: center; padding: 70px 20px; color: #6c555b;
+    font-size: 10px; letter-spacing: 1px; line-height: 2.4; display: none;
+  }
+  #bk-empty .big { font-size: 38px; }
+
+  /* ════════════════════════════════════════════════════════════
+     MODALS
+     ════════════════════════════════════════════════════════════ */
+  .bk-overlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(6,2,8,0.82);
+    backdrop-filter: blur(4px);
+    display: none; align-items: flex-start; justify-content: center;
+    overflow-y: auto; padding: 40px 16px;
+  }
+  .bk-overlay.open { display: flex; }
+  .bk-modal {
+    width: 100%; max-width: 720px;
+    background: linear-gradient(180deg, #1a0e12, #120a0c);
+    border: 1px solid #45222c;
+    border-radius: 14px;
+    box-shadow: 0 20px 70px rgba(0,0,0,0.7), 0 0 0 1px rgba(139,19,34,0.12);
+    overflow: hidden;
+    margin: auto 0;
+  }
+  .bk-modal-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #341f26;
+    background: linear-gradient(90deg, rgba(226,59,78,0.06), transparent);
+  }
+  .bk-modal-head h2 { font-size: 13px; color: var(--bk-pink); letter-spacing: 1px; margin: 0; }
+  .bk-modal-x {
+    margin-left: auto; font-family: var(--font-main); font-size: 11px;
+    background: transparent; color: #9c8186; border: 1px solid #47232d;
+    border-radius: 8px; padding: 7px 10px; cursor: pointer; transition: all 0.1s;
+  }
+  .bk-modal-x:hover { color: var(--accent-red); border-color: var(--accent-red); }
+  .bk-modal-body { padding: 18px; }
+
+  .bk-field { margin-bottom: 18px; }
+  .bk-label {
+    display: block; font-size: 8px; letter-spacing: 1px;
+    color: var(--bk-purple); margin-bottom: 8px;
+  }
+  .bk-label .opt { color: #7d6569; }
+  .bk-input, .bk-textarea {
+    width: 100%; box-sizing: border-box;
+    font-family: var(--font-main); font-size: 10px; color: #f0dcde;
+    background: #120a0b; border: 1px solid #3d2129; border-radius: 8px;
+    padding: 11px 12px; line-height: 1.6; transition: border-color 0.1s, box-shadow 0.1s;
+  }
+  .bk-textarea { resize: vertical; min-height: 92px; }
+  .bk-input:focus, .bk-textarea:focus {
+    outline: none; border-color: var(--bk-pink);
+    box-shadow: 0 0 0 1px var(--bk-pink), 0 0 14px rgba(226,59,78,0.18);
+  }
+
+  /* character picker */
+  .bk-charsearch { margin-bottom: 10px; }
+  .bk-charpick {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 8px; max-height: 220px; overflow-y: auto;
+    padding: 4px; background: #100809; border: 1px solid #301b22; border-radius: 8px;
+  }
+  .bk-charopt {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 9px 5px; border-radius: 9px; cursor: pointer;
+    border: 1px solid transparent; transition: all 0.1s; position: relative;
+  }
+  .bk-charopt:hover { background: #1a0d11; }
+  .bk-charopt.sel { background: #281117; border-color: var(--bk-pink); box-shadow: 0 0 12px rgba(226,59,78,0.22); }
+  .bk-charopt-av {
+    width: 50px; height: 50px; border-radius: 50%; object-fit: cover;
+    background: #0a0a0a; display: flex; align-items: center; justify-content: center;
+    font-size: 7px; color: #555; overflow: hidden; border: 2px solid #341f26;
+  }
+  .bk-charopt.sel .bk-charopt-av { border-color: var(--bk-pink); }
+  .bk-charopt-av img { width: 100%; height: 100%; object-fit: cover; }
+  .bk-charopt-name {
+    font-size: 7px; letter-spacing: 0.5px; text-align: center; line-height: 1.4;
+    color: #ccb4b5; max-width: 86px; word-break: break-word;
+  }
+  .bk-charopt .bk-check {
+    position: absolute; top: 4px; right: 6px; font-size: 9px; color: var(--bk-pink);
+    opacity: 0; transition: opacity 0.1s;
+  }
+  .bk-charopt.sel .bk-check { opacity: 1; }
+  .bk-charpick-empty { grid-column: 1/-1; text-align: center; padding: 24px; font-size: 8px; color: #6c555b; letter-spacing: 1px; }
+
+  /* reference uploader */
+  .bk-drop {
+    border: 1.5px dashed #47232d; border-radius: 10px;
+    padding: 22px; text-align: center; cursor: pointer;
+    font-size: 8px; letter-spacing: 1px; color: #90767a; line-height: 1.9;
+    transition: all 0.12s; background: #100809;
+  }
+  .bk-drop:hover, .bk-drop.drag-over {
+    border-color: var(--bk-pink); color: var(--bk-pink); background: #180b0e;
+  }
+  .bk-refgrid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+    gap: 8px; margin-top: 12px;
+  }
+  .bk-refthumb {
+    position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden;
+    border: 1px solid #3a2128; background: #0a0a0a;
+  }
+  .bk-refthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bk-refthumb .bk-ref-del {
+    position: absolute; top: 3px; right: 3px;
+    background: rgba(0,0,0,0.7); color: var(--accent-red);
+    border: none; border-radius: 6px; font-family: var(--font-main); font-size: 8px;
+    width: 20px; height: 20px; cursor: pointer; line-height: 1;
+  }
+  .bk-refthumb .bk-ref-del:hover { background: var(--accent-red); color: #000; }
+
+  .bk-modal-foot {
+    display: flex; gap: 10px; justify-content: flex-end;
+    padding: 16px 18px; border-top: 1px solid #341f26; background: #100809;
+  }
+  .bk-btn {
+    font-family: var(--font-main); font-size: 9px; letter-spacing: 1px;
+    padding: 11px 16px; border-radius: 8px; cursor: pointer; border: 1px solid #47232d;
+    background: #190e11; color: #ccb4b5; transition: all 0.1s;
+  }
+  .bk-btn:hover { border-color: var(--bk-purple); color: #fff; }
+  .bk-btn.primary {
+    background: linear-gradient(135deg, var(--bk-pink), var(--bk-purple));
+    color: #1a0809; border: none; box-shadow: 0 4px 14px rgba(139,19,34,0.3);
+  }
+  .bk-btn.primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .bk-btn.danger { border-color: rgba(255,0,0,0.4); color: var(--accent-red); }
+  .bk-btn.danger:hover { background: var(--accent-red); color: #000; border-color: var(--accent-red); }
+  .bk-btn.success { border-color: rgba(0,255,128,0.4); color: var(--accent-green); }
+  .bk-btn.success:hover { background: var(--accent-green); color: #000; border-color: var(--accent-green); }
+  .bk-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; filter: none; }
+
+  /* ── Detail modal specifics ──────────────────────────────── */
+  #bk-detail-modal { max-width: 820px; }
+  .bk-detail-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 8px; letter-spacing: 1px; padding: 5px 11px; border-radius: 20px;
+  }
+  .bk-detail-status.pending   { background: rgba(255,128,0,0.16); color: var(--accent-orange); border: 1px solid rgba(255,128,0,0.5); }
+  .bk-detail-status.completed { background: rgba(0,255,128,0.14); color: var(--accent-green);  border: 1px solid rgba(0,255,128,0.5); }
+  .bk-detail-section-label {
+    font-size: 8px; letter-spacing: 1px; color: var(--bk-purple);
+    margin: 22px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #301b22;
+  }
+  .bk-detail-desc {
+    font-size: 9px; line-height: 2; color: #d8c2c4; white-space: pre-wrap; word-break: break-word;
+  }
+  .bk-detail-chars { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bk-detail-char {
+    display: flex; align-items: center; gap: 8px;
+    background: #1f0f13; border: 1px solid #3d2129; border-radius: 24px; padding: 5px 14px 5px 5px;
+  }
+  .bk-detail-char img, .bk-detail-char .noimg {
+    width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: #0a0a0a;
+    display: flex; align-items: center; justify-content: center; font-size: 7px; color: #555;
+  }
+  .bk-detail-char span { font-size: 8px; letter-spacing: 0.5px; }
+  .bk-detail-refs {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px;
+  }
+  .bk-detail-ref {
+    aspect-ratio: 1; border-radius: 9px; overflow: hidden; cursor: pointer;
+    border: 1px solid #3a2128; background: #0a0a0a; transition: transform 0.1s, border-color 0.1s;
+  }
+  .bk-detail-ref:hover { transform: scale(1.03); border-color: var(--bk-purple); }
+  .bk-detail-ref img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bk-result-wrap {
+    border-radius: 12px; overflow: hidden; border: 1px solid #3a2128; background: #0a0a0a;
+    cursor: pointer; position: relative;
+  }
+  .bk-result-wrap img { width: 100%; max-height: 460px; object-fit: contain; display: block; }
+  .bk-result-empty {
+    border: 1.5px dashed #47232d; border-radius: 12px; padding: 34px; text-align: center;
+    font-size: 8px; letter-spacing: 1px; color: #7d6569; line-height: 2;
+  }
+  .bk-detail-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 8px; }
+  .bk-loading { text-align: center; padding: 30px; font-size: 9px; color: #7d6569; letter-spacing: 1px; }
+
+  /* progress bar */
+  .bk-progress { height: 4px; background: #1f0f13; border-radius: 4px; overflow: hidden; margin: 10px 0; display: none; }
+  .bk-progress.show { display: block; }
+  .bk-progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--bk-pink), var(--bk-purple)); transition: width 0.2s; }
+
+  /* ── Lightbox ────────────────────────────────────────────── */
+  #bk-lightbox {
+    position: fixed; inset: 0; z-index: 9500; background: rgba(2,0,4,0.94);
+    display: none; align-items: center; justify-content: center;
+  }
+  #bk-lightbox.open { display: flex; }
+  #bk-lightbox img { max-width: 92vw; max-height: 88vh; object-fit: contain; }
+  .bk-lb-close {
+    position: fixed; top: 16px; right: 18px; font-family: var(--font-main); font-size: 11px;
+    background: #190e11; color: #fff; border: 1px solid #47232d; border-radius: 8px;
+    padding: 8px 11px; cursor: pointer; z-index: 9501;
+  }
+  .bk-lb-nav {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    background: rgba(20,12,24,0.7); color: #fff; border: 1px solid #47232d; border-radius: 8px;
+    font-family: var(--font-main); font-size: 12px; padding: 16px 10px; cursor: pointer; z-index: 9501;
+  }
+  .bk-lb-nav:hover { background: var(--bk-purple); color: #000; }
+  #bk-lb-prev { left: 16px; } #bk-lb-next { right: 16px; }
+  #bk-lb-counter { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); font-size: 8px; color: #7d6569; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+
+<div id="cursor">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:24px;height:24px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.55));">
+    <!-- stem -->
+    <path d="M11 12 C11 16 12 19 13 23" fill="none" stroke="#1f5c25" stroke-width="1.7" stroke-linecap="round"/>
+    <!-- leaf -->
+    <path d="M11.4 16.4 C8 15.4 6.3 16.8 5.8 19.4 C9 19.4 11 18.2 11.4 16.4 Z" fill="#3a9d43" stroke="#15431a" stroke-width="0.7" stroke-linejoin="round"/>
+    <!-- bloom outer petals -->
+    <path d="M9 1.8 C13 1.8 15.2 4.8 15.2 8 C15.2 11.2 12.6 13.2 9 13.2 C5.4 13.2 2.8 11.2 2.8 8 C2.8 4.8 5 1.8 9 1.8 Z" fill="#d12f44" stroke="#5e0d18" stroke-width="1"/>
+    <!-- inner petal ring -->
+    <path d="M9 4 C11.6 4 13.1 5.9 13.1 8 C13.1 10.1 11.1 11.3 9 11.3 C6.9 11.3 5.2 10 5.2 8.1" fill="none" stroke="#ef5468" stroke-width="1.1" stroke-linecap="round"/>
+    <!-- center swirl -->
+    <path d="M9 5.9 C10.5 5.9 11.2 7 11.2 8.1 C11.2 9.4 9.9 10 8.7 9.6 C7.7 9.2 7.5 7.8 8.5 7.1" fill="none" stroke="#f6929c" stroke-width="1.1" stroke-linecap="round"/>
+    <!-- petal seams -->
+    <path d="M9 1.8 L9 4 M2.9 8.2 L5.2 8 M15.1 8.2 L12.9 8" stroke="#5e0d18" stroke-width="0.55" stroke-linecap="round"/>
+  </svg>
+</div>
+
+<div id="notif"></div>
+
+<!-- Confirm dialog -->
+<div id="confirm-overlay">
+  <div id="confirm-box">
+    <p id="confirm-msg"></p>
+    <div id="confirm-btns">
+      <button class="btn danger" id="confirm-yes">YES</button>
+      <button class="btn" id="confirm-no">NO</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Page ════════════════════════════════════════════════════ -->
+<div id="bk-header">
+  <button class="btn accent" onclick="location.href='index.html'">&lt; MAIN</button>
+  <button class="btn" onclick="location.href='utilities.html'">UTILITIES</button>
+  <button class="btn" onclick="location.href='gallery.html'">GALLERY</button>
+  <button class="btn" onclick="location.href='playlists.html'">♪ PLAYLISTS</button>
+</div>
+
+<div id="bk-title-wrap">
+  <div class="bk-title">BK'S CORNER</div>
+</div>
+
+<div id="bk-tabs">
+  <button class="bk-tab active" data-view="requests" onclick="setView('requests')">ART REQUESTS</button>
+  <button class="bk-tab"        data-view="gallery"  onclick="setView('gallery')">GALLERY</button>
+</div>
+
+<!-- ══ View: Art Requests ═════════════════════════════════════ -->
+<div id="bk-view-requests">
+  <div id="bk-toolbar">
+    <button class="bk-new-btn" onclick="openCreate()">+ NEW ART REQUEST</button>
+    <div class="bk-filters">
+      <div class="bk-filter active" data-filter="all"       onclick="setFilter('all')">ALL</div>
+      <div class="bk-filter"        data-filter="pending"   onclick="setFilter('pending')">PENDING</div>
+      <div class="bk-filter"        data-filter="completed" onclick="setFilter('completed')">COMPLETED</div>
+    </div>
+    <div class="bk-count" id="bk-count"></div>
+  </div>
+
+  <div id="bk-grid"></div>
+  <div id="bk-empty">
+    <div class="big">❀</div>
+    NO ART REQUESTS YET<br>
+    CLICK "+ NEW ART REQUEST" TO START ONE
+  </div>
+</div>
+
+<!-- ══ View: Gallery ══════════════════════════════════════════ -->
+<div id="bk-view-gallery" style="display:none;">
+  <div id="bk-toolbar">
+    <button class="bk-new-btn" onclick="openGalUpload()">+ ADD IMAGES</button>
+    <div class="bk-galnote">Link characters and the image also shows on their Gallery page</div>
+    <div class="bk-count" id="bk-gal-count"></div>
+  </div>
+
+  <div id="bk-gal-grid"></div>
+  <div id="bk-gal-empty">
+    <div class="big">❀</div>
+    NO IMAGES YET<br>
+    CLICK "+ ADD IMAGES" TO SHARE SOME ART
+  </div>
+</div>
+
+<!-- ══ Create / Edit modal ════════════════════════════════════ -->
+<div class="bk-overlay" id="bk-create-overlay">
+  <div class="bk-modal">
+    <div class="bk-modal-head">
+      <h2 id="bk-create-title">NEW ART REQUEST</h2>
+      <button class="bk-modal-x" onclick="closeCreate()">&times;</button>
+    </div>
+    <div class="bk-modal-body">
+      <div class="bk-field">
+        <label class="bk-label">TITLE</label>
+        <input type="text" class="bk-input" id="bk-f-title" maxlength="120" autocomplete="off"/>
+      </div>
+
+      <div class="bk-field">
+        <label class="bk-label">DESCRIPTION <span class="opt">— what should the art be?</span></label>
+        <textarea class="bk-textarea" id="bk-f-desc"></textarea>
+      </div>
+
+      <div class="bk-field">
+        <label class="bk-label">CHARACTERS <span class="opt">— tap to add</span></label>
+        <input type="text" class="bk-input bk-charsearch" id="bk-charsearch" autocomplete="off" oninput="renderCharPick(this.value)"/>
+        <div class="bk-charpick" id="bk-charpick"></div>
+      </div>
+
+      <div class="bk-field">
+        <label class="bk-label">REFERENCE IMAGES <span class="opt">— optional, pick as many as you like</span></label>
+        <div class="bk-drop" id="bk-ref-drop">
+          DROP IMAGES HERE OR CLICK TO BROWSE
+          <input type="file" id="bk-ref-input" accept="image/*" multiple style="display:none;" onchange="onRefSelect(event)"/>
+        </div>
+        <div class="bk-progress" id="bk-ref-progress"><div class="bk-progress-bar" id="bk-ref-progress-bar"></div></div>
+        <div class="bk-refgrid" id="bk-ref-grid"></div>
+      </div>
+    </div>
+    <div class="bk-modal-foot">
+      <button class="bk-btn" onclick="closeCreate()">CANCEL</button>
+      <button class="bk-btn primary" id="bk-create-submit" onclick="submitRequest()">CREATE REQUEST</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Detail modal ═══════════════════════════════════════════ -->
+<div class="bk-overlay" id="bk-detail-overlay">
+  <div class="bk-modal" id="bk-detail-modal">
+    <div class="bk-modal-head">
+      <h2 id="bk-detail-title">REQUEST</h2>
+      <button class="bk-modal-x" onclick="closeDetail()">&times;</button>
+    </div>
+    <div class="bk-modal-body" id="bk-detail-body">
+      <div class="bk-loading">LOADING...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Gallery upload modal ═══════════════════════════════════ -->
+<div class="bk-overlay" id="bk-galup-overlay">
+  <div class="bk-modal">
+    <div class="bk-modal-head">
+      <h2>ADD IMAGES</h2>
+      <button class="bk-modal-x" onclick="closeGalUpload()">&times;</button>
+    </div>
+    <div class="bk-modal-body">
+      <div class="bk-field">
+        <label class="bk-label">IMAGES</label>
+        <div class="bk-drop" id="bk-galup-drop">
+          DROP IMAGES HERE OR CLICK TO BROWSE
+          <input type="file" id="bk-galup-input" accept="image/*" multiple style="display:none;" onchange="onGalUpSelect(event)"/>
+        </div>
+        <div class="bk-progress" id="bk-galup-progress"><div class="bk-progress-bar" id="bk-galup-progress-bar"></div></div>
+        <div class="bk-refgrid" id="bk-galup-grid"></div>
+      </div>
+
+      <div class="bk-field">
+        <label class="bk-label">LINK TO CHARACTERS <span class="opt">— optional · syncs to their Gallery page · pick as many as you like</span></label>
+        <input type="text" class="bk-input bk-charsearch" id="bk-galup-charsearch" autocomplete="off" oninput="renderGalUpCharPick(this.value)"/>
+        <div class="bk-charpick" id="bk-galup-charpick"></div>
+      </div>
+    </div>
+    <div class="bk-modal-foot">
+      <button class="bk-btn" onclick="closeGalUpload()">CANCEL</button>
+      <button class="bk-btn primary" id="bk-galup-submit" onclick="submitGalUpload()">ADD TO GALLERY</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Gallery image detail modal ═════════════════════════════ -->
+<div class="bk-overlay" id="bk-galdet-overlay">
+  <div class="bk-modal" id="bk-galdet-modal">
+    <div class="bk-modal-head">
+      <h2>IMAGE</h2>
+      <button class="bk-modal-x" onclick="closeGalDetail()">&times;</button>
+    </div>
+    <div class="bk-modal-body" id="bk-galdet-body">
+      <div class="bk-loading">LOADING...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Lightbox ═══════════════════════════════════════════════ -->
+<div id="bk-lightbox">
+  <button class="bk-lb-close" onclick="closeLightbox()">&times;</button>
+  <button class="bk-lb-nav" id="bk-lb-prev" onclick="lbNav(-1)">&#9664;</button>
+  <img id="bk-lb-img" src="" alt=""/>
+  <button class="bk-lb-nav" id="bk-lb-next" onclick="lbNav(1)">&#9654;</button>
+  <div id="bk-lb-counter"></div>
+</div>
+
+<div id="global-tooltip"></div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+// ============================================================
+// FIREBASE
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBRtoLzS--wz_6sD4rWMgzcwZnHVHUBNdg",
+  authDomain:        "statsheets-3668d.firebaseapp.com",
+  projectId:         "statsheets-3668d",
+  storageBucket:     "statsheets-3668d.firebasestorage.app",
+  messagingSenderId: "558910483943",
+  appId:             "1:558910483943:web:c468342f15569a4cf0e142"
+};
+
+let db = null;
+try {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+  db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+} catch (e) { console.error('Firebase init failed:', e); }
+
+// ============================================================
+// CURSOR
+// ============================================================
+const CURSOR_HOVER_SEL = 'a,button,input,textarea,select,label,[onclick],[role="button"],' +
+  '.btn,.bk-card,.bk-gal-card,.bk-tab,.bk-filter,.bk-new-btn,.bk-btn,.bk-modal-x,.bk-charopt,' +
+  '.bk-drop,.bk-ref-del,.bk-refthumb,.bk-detail-ref,.bk-galdet-img-wrap,.bk-lb-nav,.bk-lb-close,' +
+  '.bk-result-wrap,.bk-status,#confirm-yes,#confirm-no';
+document.addEventListener('mousemove', e => {
+  const c = document.getElementById('cursor');
+  if (!c) return;
+  c.style.left = e.clientX + 'px';
+  c.style.top = e.clientY + 'px';
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const hot = !!(el && el.closest && el.closest(CURSOR_HOVER_SEL));
+  c.classList.toggle('bk-hover', hot);
+});
+document.addEventListener('mousedown', () => {
+  const c = document.getElementById('cursor');
+  if (c) c.classList.add('bk-press');
+});
+document.addEventListener('mouseup', () => {
+  const c = document.getElementById('cursor');
+  if (c) c.classList.remove('bk-press');
+});
+
+// ============================================================
+// HELPERS
+// ============================================================
+function notify(msg, type = 'ok') {
+  const wrap = document.getElementById('notif');
+  const el = document.createElement('div');
+  el.className = 'notif-item ' + type;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+let _confirmResolve = null;
+function confirm2(msg) {
+  return new Promise(res => {
+    document.getElementById('confirm-msg').textContent = msg;
+    document.getElementById('confirm-overlay').classList.add('open');
+    _confirmResolve = res;
+  });
+}
+document.getElementById('confirm-yes').onclick = () => {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  if (_confirmResolve) _confirmResolve(true);
+};
+document.getElementById('confirm-no').onclick = () => {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  if (_confirmResolve) _confirmResolve(false);
+};
+
+// ============================================================
+// IMAGE COMPRESSION  (base64 stored in Firestore, like the gallery)
+// ============================================================
+const MAX_B64_LEN = 720000; // ~540KB actual
+
+function resizeAndCompress(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = ev => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+          else                 { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function compressToFit(file) {
+  const steps = [
+    { dim: 1400, q: 0.85 }, { dim: 1200, q: 0.80 }, { dim: 1000, q: 0.75 },
+    { dim: 900, q: 0.70 }, { dim: 800, q: 0.62 }, { dim: 700, q: 0.52 },
+    { dim: 600, q: 0.42 }, { dim: 480, q: 0.35 },
+  ];
+  for (const { dim, q } of steps) {
+    const dataUrl = await resizeAndCompress(file, dim, q);
+    if (dataUrl.length <= MAX_B64_LEN) return dataUrl;
+  }
+  return resizeAndCompress(file, 380, 0.28);
+}
+// tiny cover thumbnail for instant card rendering (kept in the main doc)
+function makeThumb(fileOrDataUrl) {
+  if (fileOrDataUrl instanceof Blob) return resizeAndCompress(fileOrDataUrl, 420, 0.6);
+  // dataUrl path: wrap into an image then shrink
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onerror = reject;
+    img.onload = () => {
+      const maxDim = 420;
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else                 { width = Math.round(width * maxDim / height); height = maxDim; }
+      }
+      const c = document.createElement('canvas');
+      c.width = width; c.height = height;
+      c.getContext('2d').drawImage(img, 0, 0, width, height);
+      resolve(c.toDataURL('image/jpeg', 0.6));
+    };
+    img.src = fileOrDataUrl;
+  });
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let _characters = [];
+let _charMap    = {};   // id -> char
+let _requests   = [];   // [{id, ...meta}]
+let _filter     = 'all';
+let _reqUnsub   = null;
+
+// create-modal draft
+let _draftRefs  = [];   // [{full, thumb}]
+let _draftChars = new Set();
+
+// gallery
+let _galImages    = [];     // [{id, dataUrl, thumb, name, charIds, uploadedAt}]
+let _galUnsub     = null;
+let _galInit      = false;
+let _galUpRefs    = [];      // staged uploads [{full, thumb, name}]
+let _galUpChars   = new Set();
+let _galEditId    = null;
+let _galEditChars = new Set();
+let _view         = 'requests';
+
+// detail-modal
+let _detailId    = null;
+let _detailUnsub = null;
+let _detailImgs  = [];  // [{id, dataUrl, kind, ...}]
+let _detailMeta  = null;
+
+// lightbox
+let _lbList = [];
+let _lbIdx  = 0;
+
+// ============================================================
+// INIT
+// ============================================================
+function initPage() {
+  if (!db) { notify('FIREBASE NOT CONNECTED', 'err'); return; }
+  db.collection('characters').orderBy('createdAt').onSnapshot(snap => {
+    _characters = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _charMap = {};
+    _characters.forEach(c => { _charMap[c.id] = c; });
+    // re-render anything depending on chars
+    if (document.getElementById('bk-create-overlay').classList.contains('open'))
+      renderCharPick(document.getElementById('bk-charsearch').value);
+    if (document.getElementById('bk-galup-overlay').classList.contains('open'))
+      renderGalUpCharPick(document.getElementById('bk-galup-charsearch').value);
+    if (document.getElementById('bk-galdet-overlay').classList.contains('open') && _galEditId)
+      renderGalDetail();
+    renderRequests();
+    renderGallery();
+  }, err => console.error('chars error:', err));
+
+  _reqUnsub = db.collection('art_requests').orderBy('createdAt', 'desc').onSnapshot(snap => {
+    _requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderRequests();
+  }, err => {
+    console.error('requests error:', err);
+    notify('COULD NOT LOAD REQUESTS', 'err');
+  });
+}
+
+// ============================================================
+// REQUEST GRID
+// ============================================================
+function setFilter(f) {
+  _filter = f;
+  document.querySelectorAll('.bk-filter').forEach(el =>
+    el.classList.toggle('active', el.dataset.filter === f));
+  renderRequests();
+}
+
+function charChip(id) {
+  const c = _charMap[id];
+  if (!c) return '';
+  const col = c.color || '#fff';
+  const av = c.avatar
+    ? `<img src="${esc(c.avatar)}" alt="" draggable="false"/>`
+    : `<div class="bk-chip-noimg">?</div>`;
+  return `<span class="bk-chip" style="border-color:${col}44;">${av}<span style="color:${col};">${esc(c.name || '???')}</span></span>`;
+}
+
+function renderRequests() {
+  const grid = document.getElementById('bk-grid');
+  const empty = document.getElementById('bk-empty');
+  const countEl = document.getElementById('bk-count');
+
+  let list = _requests.slice();
+  if (_filter === 'pending')   list = list.filter(r => !r.completed);
+  if (_filter === 'completed') list = list.filter(r => r.completed);
+
+  const total = _requests.length;
+  const done  = _requests.filter(r => r.completed).length;
+  countEl.textContent = total ? `${done}/${total} DONE` : '';
+
+  if (!list.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    empty.innerHTML = total
+      ? `<div class="big">❀</div>NO ${_filter.toUpperCase()} REQUESTS`
+      : `<div class="big">❀</div>NO ART REQUESTS YET<br>CLICK "+ NEW ART REQUEST" TO START ONE`;
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = list.map(r => {
+    const cover = (r.completed && r.resultCover) ? r.resultCover : r.refCover;
+    const coverHtml = cover
+      ? `<img src="${cover}" alt="" draggable="false"/>`
+      : `<div class="bk-nocover">NO<br>REFERENCES</div>`;
+    const chars = (r.charIds || []);
+    const chipsHtml = chars.slice(0, 3).map(charChip).join('') +
+      (chars.length > 3 ? `<span class="bk-chip-more">+${chars.length - 3}</span>` : '');
+    const status = r.completed
+      ? `<div class="bk-status completed">✓ DONE</div>`
+      : `<div class="bk-status pending">● PENDING</div>`;
+    return `<div class="bk-card" onclick="openDetail('${r.id}')">
+      <div class="bk-card-cover">${coverHtml}${status}</div>
+      <div class="bk-card-body">
+        <div class="bk-card-title">${esc(r.title) || 'UNTITLED'}</div>
+        ${r.description ? `<div class="bk-card-desc">${esc(r.description)}</div>` : ''}
+        ${chipsHtml ? `<div class="bk-chips">${chipsHtml}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// CREATE MODAL
+// ============================================================
+function openCreate() {
+  _draftRefs = [];
+  _draftChars = new Set();
+  document.getElementById('bk-f-title').value = '';
+  document.getElementById('bk-f-desc').value = '';
+  document.getElementById('bk-charsearch').value = '';
+  renderCharPick('');
+  renderDraftRefs();
+  document.getElementById('bk-create-submit').disabled = false;
+  document.getElementById('bk-create-submit').textContent = 'CREATE REQUEST';
+  document.getElementById('bk-create-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('bk-f-title').focus(), 50);
+}
+function closeCreate() {
+  document.getElementById('bk-create-overlay').classList.remove('open');
+}
+
+// generic character picker — reused by request create, gallery upload, gallery edit
+function renderCharPickInto(wrapId, selSet, filterStr, toggleFn) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const q = (filterStr || '').trim().toLowerCase();
+  let list = _characters;
+  if (q) list = list.filter(c => (c.name || '').toLowerCase().includes(q));
+  if (!list.length) {
+    wrap.innerHTML = `<div class="bk-charpick-empty">${_characters.length ? 'NO MATCHES' : 'NO CHARACTERS YET'}</div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(c => {
+    const sel = selSet.has(c.id);
+    const col = c.color || '#fff';
+    const av = c.avatar ? `<img src="${esc(c.avatar)}" alt="" draggable="false"/>` : '?';
+    return `<div class="bk-charopt ${sel ? 'sel' : ''}" onclick="${toggleFn}('${c.id}')">
+      <span class="bk-check">✓</span>
+      <div class="bk-charopt-av" style="${sel ? 'border-color:' + col : ''}">${av}</div>
+      <div class="bk-charopt-name">${esc(c.name || 'UNNAMED')}</div>
+    </div>`;
+  }).join('');
+}
+function renderCharPick(filterStr) { renderCharPickInto('bk-charpick', _draftChars, filterStr, 'toggleDraftChar'); }
+function toggleDraftChar(id) {
+  if (_draftChars.has(id)) _draftChars.delete(id); else _draftChars.add(id);
+  renderCharPick(document.getElementById('bk-charsearch').value);
+}
+
+// reference staging
+function onRefSelect(e) {
+  const files = Array.from(e.target.files);
+  e.target.value = '';
+  if (files.length) stageRefs(files);
+}
+async function stageRefs(files) {
+  const valid = files.filter(f => f.type.startsWith('image/'));
+  if (!valid.length) { notify('NO IMAGE FILES FOUND', 'err'); return; }
+  const prog = document.getElementById('bk-ref-progress');
+  const bar  = document.getElementById('bk-ref-progress-bar');
+  prog.classList.add('show');
+  for (let i = 0; i < valid.length; i++) {
+    bar.style.width = Math.round((i / valid.length) * 100) + '%';
+    try {
+      const full  = await compressToFit(valid[i]);
+      const thumb = await makeThumb(valid[i]);
+      _draftRefs.push({ full, thumb });
+      renderDraftRefs();
+    } catch (err) {
+      console.error(err);
+      notify(`${valid[i].name}: FAILED`, 'err');
+    }
+  }
+  bar.style.width = '100%';
+  await delay(180);
+  prog.classList.remove('show');
+  bar.style.width = '0';
+}
+function renderDraftRefs() {
+  const grid = document.getElementById('bk-ref-grid');
+  grid.innerHTML = _draftRefs.map((r, i) =>
+    `<div class="bk-refthumb">
+      <img src="${r.thumb}" alt=""/>
+      <button class="bk-ref-del" onclick="removeDraftRef(${i})">&times;</button>
+    </div>`).join('');
+}
+function removeDraftRef(i) {
+  _draftRefs.splice(i, 1);
+  renderDraftRefs();
+}
+
+async function submitRequest() {
+  if (!db) { notify('NOT CONNECTED', 'err'); return; }
+  const title = document.getElementById('bk-f-title').value.trim();
+  const desc  = document.getElementById('bk-f-desc').value.trim();
+  if (!title) { notify('GIVE IT A TITLE FIRST', 'err'); document.getElementById('bk-f-title').focus(); return; }
+
+  const btn = document.getElementById('bk-create-submit');
+  btn.disabled = true;
+  btn.textContent = 'SAVING...';
+
+  try {
+    const reqId = genId();
+    const charIds = Array.from(_draftChars);
+    const refCover = _draftRefs.length ? _draftRefs[0].thumb : '';
+    await db.collection('art_requests').doc(reqId).set({
+      title, description: desc, charIds,
+      completed: false,
+      refCount: _draftRefs.length,
+      refCover, resultCover: '',
+      createdAt: Date.now(), completedAt: null,
+    });
+    // add reference images to subcollection
+    for (let i = 0; i < _draftRefs.length; i++) {
+      await db.collection('art_requests').doc(reqId)
+        .collection('images').doc(genId()).set({
+          dataUrl: _draftRefs[i].full, kind: 'ref', order: i, addedAt: Date.now(),
+        });
+    }
+    notify('ART REQUEST CREATED!', 'ok');
+    closeCreate();
+  } catch (err) {
+    console.error(err);
+    notify('FAILED: ' + err.message, 'err');
+    btn.disabled = false;
+    btn.textContent = 'CREATE REQUEST';
+  }
+}
+
+// drag & drop for refs
+(function () {
+  const drop = document.getElementById('bk-ref-drop');
+  drop.addEventListener('click', () => document.getElementById('bk-ref-input').click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    if (files.length) stageRefs(files); else notify('NO IMAGE FILES IN DROP', 'err');
+  });
+})();
+
+// ============================================================
+// DETAIL MODAL
+// ============================================================
+function openDetail(id) {
+  _detailId = id;
+  _detailImgs = [];
+  _detailMeta = _requests.find(r => r.id === id) || null;
+  document.getElementById('bk-detail-title').textContent = _detailMeta ? (_detailMeta.title || 'REQUEST') : 'REQUEST';
+  document.getElementById('bk-detail-body').innerHTML = '<div class="bk-loading">LOADING...</div>';
+  document.getElementById('bk-detail-overlay').classList.add('open');
+
+  if (_detailUnsub) { _detailUnsub(); _detailUnsub = null; }
+  _detailUnsub = db.collection('art_requests').doc(id)
+    .collection('images').orderBy('addedAt')
+    .onSnapshot(snap => {
+      _detailImgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // keep meta fresh from the live list
+      _detailMeta = _requests.find(r => r.id === id) || _detailMeta;
+      renderDetail();
+    }, err => {
+      console.error(err);
+      document.getElementById('bk-detail-body').innerHTML =
+        `<div class="bk-loading">ERROR: ${esc(err.message)}</div>`;
+    });
+}
+function closeDetail() {
+  document.getElementById('bk-detail-overlay').classList.remove('open');
+  if (_detailUnsub) { _detailUnsub(); _detailUnsub = null; }
+  _detailId = null; _detailImgs = []; _detailMeta = null;
+}
+
+function renderDetail() {
+  const m = _detailMeta;
+  if (!m) { document.getElementById('bk-detail-body').innerHTML = '<div class="bk-loading">REQUEST NOT FOUND</div>'; return; }
+  document.getElementById('bk-detail-title').textContent = m.title || 'REQUEST';
+
+  const refs   = _detailImgs.filter(i => i.kind === 'ref');
+  const result = _detailImgs.filter(i => i.kind === 'result').slice(-1)[0] || null;
+  const done   = !!m.completed;
+
+  const statusHtml = done
+    ? `<span class="bk-detail-status completed">✓ COMPLETED</span>`
+    : `<span class="bk-detail-status pending">● PENDING</span>`;
+
+  const charsHtml = (m.charIds || []).map(id => {
+    const c = _charMap[id];
+    if (!c) return '';
+    const col = c.color || '#fff';
+    const av = c.avatar ? `<img src="${esc(c.avatar)}" alt=""/>` : `<div class="noimg">?</div>`;
+    return `<div class="bk-detail-char" style="border-color:${col}55;">${av}<span style="color:${col};">${esc(c.name || '???')}</span></div>`;
+  }).join('');
+
+  const refsHtml = refs.length
+    ? `<div class="bk-detail-refs">${refs.map((r, i) =>
+        `<div class="bk-detail-ref" onclick="openLightbox('ref',${i})"><img src="${r.dataUrl}" alt=""/></div>`).join('')}</div>`
+    : `<div class="bk-detail-desc" style="color:#6c555b;">No reference images.</div>`;
+
+  const resultHtml = result
+    ? `<div class="bk-result-wrap" onclick="openLightbox('result',0)"><img src="${result.dataUrl}" alt="finished art"/></div>`
+    : (done
+        ? `<div class="bk-result-empty">COMPLETED — UPLOAD THE FINISHED ART BELOW</div>`
+        : `<div class="bk-result-empty">MARK THIS REQUEST COMPLETED TO UPLOAD THE FINISHED ART</div>`);
+
+  document.getElementById('bk-detail-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      ${statusHtml}
+      <span style="font-size:7px;color:#6c555b;letter-spacing:1px;">${m.createdAt ? 'REQUESTED ' + fmtDate(m.createdAt) : ''}</span>
+    </div>
+
+    ${m.description ? `<div class="bk-detail-section-label">DESCRIPTION</div><div class="bk-detail-desc">${esc(m.description)}</div>` : ''}
+
+    ${charsHtml ? `<div class="bk-detail-section-label">CHARACTERS</div><div class="bk-detail-chars">${charsHtml}</div>` : ''}
+
+    <div class="bk-detail-section-label">REFERENCES ${refs.length ? '(' + refs.length + ')' : ''}</div>
+    ${refsHtml}
+
+    <div class="bk-detail-section-label">FINISHED ART</div>
+    ${resultHtml}
+
+    <div class="bk-progress" id="bk-result-progress"><div class="bk-progress-bar" id="bk-result-progress-bar"></div></div>
+
+    <div class="bk-detail-section-label">ACTIONS</div>
+    <div class="bk-detail-actions">
+      <button class="bk-btn ${done ? '' : 'success'}" onclick="toggleCompleted()">
+        ${done ? '↩ MARK AS PENDING' : '✓ MARK AS COMPLETED'}
+      </button>
+      <label class="bk-btn primary" style="cursor:${done ? 'pointer' : 'not-allowed'};${done ? '' : 'opacity:0.4;pointer-events:none;'}">
+        ${result ? '⟳ REPLACE FINISHED ART' : '⬆ UPLOAD FINISHED ART'}
+        <input type="file" accept="image/*" style="display:none;" onchange="onResultSelect(event)"/>
+      </label>
+      <button class="bk-btn" onclick="addMoreRefs()">+ ADD REFERENCES</button>
+      <button class="bk-btn danger" onclick="deleteRequest()">DELETE REQUEST</button>
+    </div>
+    <input type="file" id="bk-moreref-input" accept="image/*" multiple style="display:none;" onchange="onMoreRefSelect(event)"/>
+  `;
+}
+
+function fmtDate(ts) {
+  const d = new Date(ts || 0);
+  return `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`;
+}
+
+async function toggleCompleted() {
+  if (!_detailId || !_detailMeta) return;
+  const newVal = !_detailMeta.completed;
+  try {
+    await db.collection('art_requests').doc(_detailId).update({
+      completed: newVal,
+      completedAt: newVal ? Date.now() : null,
+    });
+    if (_detailMeta) _detailMeta.completed = newVal;
+    notify(newVal ? 'MARKED COMPLETED' : 'MOVED BACK TO PENDING', 'ok');
+    renderDetail();
+  } catch (err) {
+    console.error(err);
+    notify('FAILED: ' + err.message, 'err');
+  }
+}
+
+function onResultSelect(e) {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (file) uploadResult(file);
+}
+async function uploadResult(file) {
+  if (!_detailId) return;
+  if (!file.type.startsWith('image/')) { notify('NOT AN IMAGE', 'err'); return; }
+  const prog = document.getElementById('bk-result-progress');
+  const bar  = document.getElementById('bk-result-progress-bar');
+  if (prog) { prog.classList.add('show'); bar.style.width = '20%'; }
+  try {
+    const full  = await compressToFit(file);
+    if (bar) bar.style.width = '60%';
+    const thumb = await makeThumb(file);
+    // remove any previous result images
+    const prev = _detailImgs.filter(i => i.kind === 'result');
+    for (const p of prev) {
+      await db.collection('art_requests').doc(_detailId).collection('images').doc(p.id).delete();
+    }
+    await db.collection('art_requests').doc(_detailId)
+      .collection('images').doc(genId()).set({
+        dataUrl: full, kind: 'result', addedAt: Date.now(),
+      });
+    await db.collection('art_requests').doc(_detailId).update({ resultCover: thumb });
+    if (_detailMeta) _detailMeta.resultCover = thumb;
+    if (bar) bar.style.width = '100%';
+    notify('FINISHED ART UPLOADED!', 'ok');
+  } catch (err) {
+    console.error(err);
+    notify('UPLOAD FAILED: ' + err.message, 'err');
+  } finally {
+    await delay(200);
+    if (prog) { prog.classList.remove('show'); bar.style.width = '0'; }
+  }
+}
+
+function addMoreRefs() { document.getElementById('bk-moreref-input').click(); }
+function onMoreRefSelect(e) {
+  const files = Array.from(e.target.files);
+  e.target.value = '';
+  if (files.length) uploadMoreRefs(files);
+}
+async function uploadMoreRefs(files) {
+  if (!_detailId) return;
+  const valid = files.filter(f => f.type.startsWith('image/'));
+  if (!valid.length) { notify('NO IMAGE FILES', 'err'); return; }
+  const prog = document.getElementById('bk-result-progress');
+  const bar  = document.getElementById('bk-result-progress-bar');
+  if (prog) prog.classList.add('show');
+  try {
+    const existing = _detailImgs.filter(i => i.kind === 'ref').length;
+    let firstThumb = null;
+    for (let i = 0; i < valid.length; i++) {
+      if (bar) bar.style.width = Math.round((i / valid.length) * 100) + '%';
+      const full = await compressToFit(valid[i]);
+      if (i === 0 && existing === 0) firstThumb = await makeThumb(valid[i]);
+      await db.collection('art_requests').doc(_detailId)
+        .collection('images').doc(genId()).set({
+          dataUrl: full, kind: 'ref', order: existing + i, addedAt: Date.now(),
+        });
+    }
+    const update = { refCount: existing + valid.length };
+    if (firstThumb) update.refCover = firstThumb;
+    await db.collection('art_requests').doc(_detailId).update(update);
+    if (bar) bar.style.width = '100%';
+    notify('REFERENCES ADDED!', 'ok');
+  } catch (err) {
+    console.error(err);
+    notify('FAILED: ' + err.message, 'err');
+  } finally {
+    await delay(200);
+    if (prog) { prog.classList.remove('show'); bar.style.width = '0'; }
+  }
+}
+
+async function deleteRequest() {
+  if (!_detailId) return;
+  const ok = await confirm2('DELETE THIS ART REQUEST AND ALL ITS IMAGES? THIS CANNOT BE UNDONE.');
+  if (!ok) return;
+  try {
+    // delete image subdocs first
+    const imgs = await db.collection('art_requests').doc(_detailId).collection('images').get();
+    const batch = db.batch();
+    imgs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    await db.collection('art_requests').doc(_detailId).delete();
+    notify('REQUEST DELETED', 'ok');
+    closeDetail();
+  } catch (err) {
+    console.error(err);
+    notify('DELETE FAILED: ' + err.message, 'err');
+  }
+}
+
+document.getElementById('bk-detail-overlay').addEventListener('click', e => {
+  if (e.target.id === 'bk-detail-overlay') closeDetail();
+});
+document.getElementById('bk-create-overlay').addEventListener('click', e => {
+  if (e.target.id === 'bk-create-overlay') closeCreate();
+});
+
+// ============================================================
+// VIEW SWITCHER
+// ============================================================
+function setView(v) {
+  _view = v;
+  document.querySelectorAll('.bk-tab').forEach(el =>
+    el.classList.toggle('active', el.dataset.view === v));
+  document.getElementById('bk-view-requests').style.display = v === 'requests' ? '' : 'none';
+  document.getElementById('bk-view-gallery').style.display  = v === 'gallery'  ? '' : 'none';
+  if (v === 'gallery' && !_galInit) initGallery();
+}
+
+// ============================================================
+// GALLERY  (shared image board; linking a char mirrors to characters/{id}/gallery)
+// ============================================================
+function initGallery() {
+  if (!db) return;
+  _galInit = true;
+  _galUnsub = db.collection('bk_gallery').orderBy('uploadedAt', 'desc').onSnapshot(snap => {
+    _galImages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderGallery();
+    if (document.getElementById('bk-galdet-overlay').classList.contains('open') && _galEditId)
+      renderGalDetail();
+  }, err => {
+    console.error('gallery error:', err);
+    notify('COULD NOT LOAD GALLERY', 'err');
+  });
+}
+
+function renderGallery() {
+  const grid = document.getElementById('bk-gal-grid');
+  const empty = document.getElementById('bk-gal-empty');
+  const countEl = document.getElementById('bk-gal-count');
+  if (!grid) return;
+
+  countEl.textContent = _galImages.length ? `${_galImages.length} IMAGE${_galImages.length !== 1 ? 'S' : ''}` : '';
+
+  if (!_galImages.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = _galImages.map((img, i) => {
+    const chars = img.charIds || [];
+    const chips = chars.slice(0, 3).map(charChip).join('') +
+      (chars.length > 3 ? `<span class="bk-chip-more">+${chars.length - 3}</span>` : '');
+    const synced = chars.length ? `<div class="bk-gal-synced">↪ ${chars.length}</div>` : '';
+    return `<div class="bk-gal-card" onclick="openGalDetail('${img.id}')">
+      <div class="bk-gal-thumb"><img src="${img.thumb || img.dataUrl}" alt="" loading="lazy"/>${synced}</div>
+      <div class="bk-gal-meta">
+        ${img.name ? `<div class="bk-gal-name">${esc(img.name)}</div>` : ''}
+        ${chips ? `<div class="bk-chips">${chips}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// --- sync helper: mirror an image into each linked character's gallery ---
+async function syncImageToChars(imgId, data, oldIds, newIds) {
+  const oldS = new Set(oldIds || []);
+  const newS = new Set(newIds || []);
+  for (const cid of newS) {
+    if (oldS.has(cid)) continue;
+    await db.collection('characters').doc(cid).collection('gallery').doc(imgId).set({
+      dataUrl: data.dataUrl, name: data.name || '', uploadedAt: data.uploadedAt || Date.now(),
+      source: 'bkscorner', bkId: imgId,
+    });
+  }
+  for (const cid of oldS) {
+    if (newS.has(cid)) continue;
+    await db.collection('characters').doc(cid).collection('gallery').doc(imgId).delete().catch(() => {});
+  }
+}
+
+// --- upload modal ---
+function openGalUpload() {
+  _galUpRefs = [];
+  _galUpChars = new Set();
+  document.getElementById('bk-galup-charsearch').value = '';
+  renderGalUpCharPick('');
+  renderGalUpRefs();
+  const btn = document.getElementById('bk-galup-submit');
+  btn.disabled = false; btn.textContent = 'ADD TO GALLERY';
+  document.getElementById('bk-galup-overlay').classList.add('open');
+}
+function closeGalUpload() { document.getElementById('bk-galup-overlay').classList.remove('open'); }
+
+function renderGalUpCharPick(f) { renderCharPickInto('bk-galup-charpick', _galUpChars, f, 'toggleGalUpChar'); }
+function toggleGalUpChar(id) {
+  if (_galUpChars.has(id)) _galUpChars.delete(id); else _galUpChars.add(id);
+  renderGalUpCharPick(document.getElementById('bk-galup-charsearch').value);
+}
+
+function onGalUpSelect(e) {
+  const files = Array.from(e.target.files);
+  e.target.value = '';
+  if (files.length) stageGalUp(files);
+}
+async function stageGalUp(files) {
+  const valid = files.filter(f => f.type.startsWith('image/'));
+  if (!valid.length) { notify('NO IMAGE FILES FOUND', 'err'); return; }
+  const prog = document.getElementById('bk-galup-progress');
+  const bar  = document.getElementById('bk-galup-progress-bar');
+  prog.classList.add('show');
+  for (let i = 0; i < valid.length; i++) {
+    bar.style.width = Math.round((i / valid.length) * 100) + '%';
+    try {
+      const full  = await compressToFit(valid[i]);
+      const thumb = await makeThumb(valid[i]);
+      const name  = valid[i].name.replace(/\.[^.]+$/, '');
+      _galUpRefs.push({ full, thumb, name });
+      renderGalUpRefs();
+    } catch (err) { console.error(err); notify(`${valid[i].name}: FAILED`, 'err'); }
+  }
+  bar.style.width = '100%';
+  await delay(180);
+  prog.classList.remove('show'); bar.style.width = '0';
+}
+function renderGalUpRefs() {
+  const grid = document.getElementById('bk-galup-grid');
+  grid.innerHTML = _galUpRefs.map((r, i) =>
+    `<div class="bk-refthumb"><img src="${r.thumb}" alt=""/><button class="bk-ref-del" onclick="removeGalUpRef(${i})">&times;</button></div>`
+  ).join('');
+}
+function removeGalUpRef(i) { _galUpRefs.splice(i, 1); renderGalUpRefs(); }
+
+async function submitGalUpload() {
+  if (!db) { notify('NOT CONNECTED', 'err'); return; }
+  if (!_galUpRefs.length) { notify('PICK AT LEAST ONE IMAGE', 'err'); return; }
+  const btn = document.getElementById('bk-galup-submit');
+  btn.disabled = true; btn.textContent = 'UPLOADING...';
+  const chars = Array.from(_galUpChars);
+  try {
+    for (let i = 0; i < _galUpRefs.length; i++) {
+      btn.textContent = `UPLOADING ${i + 1}/${_galUpRefs.length}...`;
+      const r = _galUpRefs[i];
+      const id = genId();
+      const ts = Date.now();
+      await db.collection('bk_gallery').doc(id).set({
+        dataUrl: r.full, thumb: r.thumb, name: r.name || '',
+        charIds: chars, uploadedAt: ts,
+      });
+      if (chars.length) await syncImageToChars(id, { dataUrl: r.full, name: r.name || '', uploadedAt: ts }, [], chars);
+    }
+    notify(chars.length ? 'ADDED & SYNCED TO GALLERY!' : 'ADDED TO GALLERY!', 'ok');
+    closeGalUpload();
+  } catch (err) {
+    console.error(err);
+    notify('FAILED: ' + err.message, 'err');
+    btn.disabled = false; btn.textContent = 'ADD TO GALLERY';
+  }
+}
+
+// --- detail / edit modal ---
+function openGalDetail(id) {
+  const img = _galImages.find(x => x.id === id);
+  if (!img) return;
+  _galEditId = id;
+  _galEditChars = new Set(img.charIds || []);
+  document.getElementById('bk-galdet-overlay').classList.add('open');
+  renderGalDetail();
+}
+function closeGalDetail() {
+  document.getElementById('bk-galdet-overlay').classList.remove('open');
+  _galEditId = null; _galEditChars = new Set();
+}
+function renderGalDetail() {
+  const img = _galImages.find(x => x.id === _galEditId);
+  const body = document.getElementById('bk-galdet-body');
+  if (!img) { body.innerHTML = '<div class="bk-loading">IMAGE NOT FOUND</div>'; return; }
+  const linked = _galEditChars.size;
+  body.innerHTML = `
+    <div class="bk-galdet-img-wrap" onclick="openGalLightbox()">
+      <img src="${img.dataUrl}" alt=""/>
+    </div>
+
+    <div class="bk-field">
+      <label class="bk-label">NAME</label>
+      <input type="text" class="bk-input" id="bk-galdet-name" value="${esc(img.name || '')}" maxlength="120" autocomplete="off"/>
+    </div>
+
+    <div class="bk-field">
+      <label class="bk-label">LINKED CHARACTERS <span class="opt">— tap to toggle · syncs to their Gallery page</span></label>
+      <input type="text" class="bk-input bk-charsearch" id="bk-galdet-charsearch" autocomplete="off" oninput="renderGalDetCharPick(this.value)"/>
+      <div class="bk-charpick" id="bk-galdet-charpick"></div>
+      <div class="bk-sync-note">${linked ? `Linked to <b>${linked}</b> character${linked !== 1 ? 's' : ''} — this image appears on ${linked !== 1 ? 'their' : 'its'} Gallery page${linked !== 1 ? 's' : ''}.` : 'Not linked to any character. Link some to push this image into the main Gallery.'}</div>
+    </div>
+
+    <div class="bk-detail-actions">
+      <button class="bk-btn primary" onclick="saveGalDetail()">SAVE CHANGES</button>
+      <button class="bk-btn danger" onclick="deleteGalImage()">DELETE IMAGE</button>
+    </div>
+  `;
+  renderGalDetCharPick('');
+}
+function openGalLightbox() {
+  const img = _galImages.find(x => x.id === _galEditId);
+  if (img && img.dataUrl) openLightboxList([img.dataUrl], 0);
+}
+function renderGalDetCharPick(f) { renderCharPickInto('bk-galdet-charpick', _galEditChars, f, 'toggleGalDetChar'); }
+function toggleGalDetChar(id) {
+  if (_galEditChars.has(id)) _galEditChars.delete(id); else _galEditChars.add(id);
+  renderGalDetCharPick(document.getElementById('bk-galdet-charsearch').value);
+  // refresh the sync note count without losing inputs
+  const note = document.querySelector('#bk-galdet-body .bk-sync-note');
+  const n = _galEditChars.size;
+  if (note) note.innerHTML = n
+    ? `Linked to <b>${n}</b> character${n !== 1 ? 's' : ''} — this image appears on ${n !== 1 ? 'their' : 'its'} Gallery page${n !== 1 ? 's' : ''}.`
+    : 'Not linked to any character. Link some to push this image into the main Gallery.';
+}
+async function saveGalDetail() {
+  if (!_galEditId) return;
+  const img = _galImages.find(x => x.id === _galEditId);
+  if (!img) return;
+  const newName = document.getElementById('bk-galdet-name').value.trim();
+  const oldIds = img.charIds || [];
+  const newIds = Array.from(_galEditChars);
+  try {
+    await db.collection('bk_gallery').doc(_galEditId).update({ name: newName, charIds: newIds });
+    // sync link changes
+    await syncImageToChars(_galEditId, { dataUrl: img.dataUrl, name: newName, uploadedAt: img.uploadedAt }, oldIds, newIds);
+    // if name changed, update existing mirrors that stay linked
+    const stay = newIds.filter(id => oldIds.includes(id));
+    if (newName !== (img.name || '')) {
+      for (const cid of stay) {
+        await db.collection('characters').doc(cid).collection('gallery').doc(_galEditId)
+          .update({ name: newName }).catch(() => {});
+      }
+    }
+    notify('SAVED!', 'ok');
+    closeGalDetail();
+  } catch (err) {
+    console.error(err);
+    notify('SAVE FAILED: ' + err.message, 'err');
+  }
+}
+async function deleteGalImage() {
+  if (!_galEditId) return;
+  const ok = await confirm2('DELETE THIS IMAGE? IT WILL ALSO BE REMOVED FROM ANY LINKED CHARACTER GALLERIES.');
+  if (!ok) return;
+  const img = _galImages.find(x => x.id === _galEditId);
+  try {
+    const ids = (img && img.charIds) || [];
+    for (const cid of ids) {
+      await db.collection('characters').doc(cid).collection('gallery').doc(_galEditId).delete().catch(() => {});
+    }
+    await db.collection('bk_gallery').doc(_galEditId).delete();
+    notify('IMAGE DELETED', 'ok');
+    closeGalDetail();
+  } catch (err) {
+    console.error(err);
+    notify('DELETE FAILED: ' + err.message, 'err');
+  }
+}
+
+// gallery upload drag & drop + overlay click-out
+(function () {
+  const drop = document.getElementById('bk-galup-drop');
+  drop.addEventListener('click', () => document.getElementById('bk-galup-input').click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    if (files.length) stageGalUp(files); else notify('NO IMAGE FILES IN DROP', 'err');
+  });
+})();
+document.getElementById('bk-galup-overlay').addEventListener('click', e => {
+  if (e.target.id === 'bk-galup-overlay') closeGalUpload();
+});
+document.getElementById('bk-galdet-overlay').addEventListener('click', e => {
+  if (e.target.id === 'bk-galdet-overlay') closeGalDetail();
+});
+
+// ============================================================
+// LIGHTBOX
+// ============================================================
+function openLightbox(kind, idx) {
+  if (kind === 'ref') _lbList = _detailImgs.filter(i => i.kind === 'ref').map(i => i.dataUrl);
+  else _lbList = _detailImgs.filter(i => i.kind === 'result').map(i => i.dataUrl);
+  openLightboxList(_lbList, idx || 0);
+}
+function openLightboxList(urls, idx) {
+  _lbList = urls || [];
+  if (!_lbList.length) return;
+  _lbIdx = idx || 0;
+  updateLb();
+  document.getElementById('bk-lightbox').classList.add('open');
+}
+function closeLightbox() { document.getElementById('bk-lightbox').classList.remove('open'); }
+function lbNav(dir) {
+  if (!_lbList.length) return;
+  _lbIdx = (_lbIdx + dir + _lbList.length) % _lbList.length;
+  updateLb();
+}
+function updateLb() {
+  document.getElementById('bk-lb-img').src = _lbList[_lbIdx];
+  document.getElementById('bk-lb-counter').textContent =
+    _lbList.length > 1 ? (_lbIdx + 1) + ' / ' + _lbList.length : '';
+  const multi = _lbList.length > 1;
+  document.getElementById('bk-lb-prev').style.display = multi ? '' : 'none';
+  document.getElementById('bk-lb-next').style.display = multi ? '' : 'none';
+}
+document.getElementById('bk-lightbox').addEventListener('click', e => {
+  if (e.target.id === 'bk-lightbox' || e.target.id === 'bk-lb-img') closeLightbox();
+});
+
+// ============================================================
+// KEYBOARD
+// ============================================================
+document.addEventListener('keydown', e => {
+  if (document.getElementById('bk-lightbox').classList.contains('open')) {
+    if (e.key === 'ArrowLeft') lbNav(-1);
+    if (e.key === 'ArrowRight') lbNav(1);
+    if (e.key === 'Escape') closeLightbox();
+    return;
+  }
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('bk-galdet-overlay').classList.contains('open')) closeGalDetail();
+  else if (document.getElementById('bk-galup-overlay').classList.contains('open')) closeGalUpload();
+  else if (document.getElementById('bk-detail-overlay').classList.contains('open')) closeDetail();
+  else if (document.getElementById('bk-create-overlay').classList.contains('open')) closeCreate();
+});
+
+// ============================================================
+// GO
+// ============================================================
+document.addEventListener('DOMContentLoaded', initPage);
+</script>
+</body>
+</html>
