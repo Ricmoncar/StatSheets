@@ -1580,6 +1580,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (_themeAudio) {
     _themeAudio.loop = false; // Handled manually so startAt is respected on every loop
     _themeAudio.addEventListener('ended', _onThemeEnded);
+    // Safety net for playback — cascade through fallbacks so music never dies:
+    //   1) optimized transcode fails → original file (same account)
+    //   2) primary account fails     → the same file on the backup account
+    _themeAudio.addEventListener('error', () => {
+      const a = _themeAudio, raw = a.dataset.rawUrl || '', stage = a.dataset.bkStage || '0';
+      const reload = (url) => { const at = a.currentTime || 0; a.src = url; a.load(); try { a.currentTime = at; } catch (e) {} a.play().catch(() => {}); };
+      if (raw && a.src.indexOf('/br_128k/') !== -1 && stage === '0') { a.dataset.bkStage = '1'; reload(raw); return; }
+      const alt = _cldSwap(raw);
+      if (alt && stage !== '2') { a.dataset.bkStage = '2'; reload(alt); return; }
+    });
     // Top-level `let` does NOT become a window property in a non-module script,
     // so window._themeAudio was permanently undefined — which silently disabled
     // every music-reactive effect that read it (Juko's, etc.). Expose it here.
@@ -1618,33 +1628,64 @@ const THEME_MAX_MB = 20;
 
 const CLOUDINARY_CLOUD = 'dhlik6lkn';
 const CLOUDINARY_PRESET = 'statsheets';
+// Second, independent Cloudinary account used as a hot backup. Uploads are
+// mirrored to it at the SAME public_id, so if the primary ever fails to deliver
+// (outage or monthly-credit cap), the very same asset is served from here just
+// by swapping the cloud name in the URL.
+const CLOUDINARY_CLOUD_2 = 'dhdfz1iud';
+const CLOUDINARY_PRESET_2 = 'statsheets';
 
-// ── Upload helper: Cloudinary first, ImageKit fallback ────────
+// rewrite a primary-account Cloudinary URL to point at the backup account
+function _cldSwap(url) {
+  if (typeof url !== 'string') return null;
+  const needle = 'res.cloudinary.com/' + CLOUDINARY_CLOUD + '/';
+  if (url.indexOf(needle) === -1) return null;
+  return url.replace('/' + CLOUDINARY_CLOUD + '/', '/' + CLOUDINARY_CLOUD_2 + '/');
+}
+// <img> fallback: on load error, retry the same asset from the backup account (once)
+function _cldImgError(img) {
+  if (!img || img.dataset.cldBk) return;
+  const alt = _cldSwap(img.src);
+  if (alt) { img.dataset.cldBk = '1'; img.src = alt; }
+}
+
+// ── Upload helper: Cloudinary primary → Cloudinary backup → ImageKit ──────────
 // NOTE: enable "Unsigned uploads" in ImageKit Security settings
 const _IK_PUBLIC_KEY = 'w5ddaqvugh';
 const _IK_UPLOAD_URL = 'https://upload.imagekit.io/api/v1/files/upload';
 
+async function _cldUploadTo(cloud, preset, file, resourceType, pid) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('upload_preset', preset);
+  form.append('resource_type', resourceType);
+  if (pid) form.append('public_id', pid);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/${resourceType}/upload`, { method: 'POST', body: form });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.secure_url;
+}
+
 async function _uploadMedia(file, resourceType /* 'image' | 'video' */, publicId) {
-  // 1. Cloudinary (primary)
+  // shared id so the asset lands at the same path on BOTH accounts (enables the swap fallback)
+  const pid = publicId || ('uploads/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));
+  // 1. Cloudinary (primary) — and mirror to the backup account in the background
   try {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('upload_preset', CLOUDINARY_PRESET);
-    form.append('resource_type', resourceType);
-    if (publicId) form.append('public_id', publicId);
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`,
-      { method: 'POST', body: form }
-    );
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    return data.secure_url;
+    const url = await _cldUploadTo(CLOUDINARY_CLOUD, CLOUDINARY_PRESET, file, resourceType, pid);
+    _cldUploadTo(CLOUDINARY_CLOUD_2, CLOUDINARY_PRESET_2, file, resourceType, pid).catch(() => {}); // best-effort mirror
+    return url;
   } catch (err) {
-    console.warn('[Upload] Cloudinary failed — falling back to ImageKit:', err.message);
+    console.warn('[Upload] Cloudinary primary failed — trying backup account:', err.message);
+  }
+  // 2. Cloudinary (backup account)
+  try {
+    return await _cldUploadTo(CLOUDINARY_CLOUD_2, CLOUDINARY_PRESET_2, file, resourceType, pid);
+  } catch (err) {
+    console.warn('[Upload] Cloudinary backup failed — falling back to ImageKit:', err.message);
   }
 
-  // 2. ImageKit (fallback)
+  // 3. ImageKit (final fallback)
   const fname = publicId
     ? publicId.split('/').pop() + (resourceType === 'video' ? '.mp3' : '')
     : (file.name || `upload_${Date.now()}`);
@@ -1661,6 +1702,27 @@ async function _uploadMedia(file, resourceType /* 'image' | 'video' */, publicId
   const d2 = await res2.json();
   if (!d2.url) throw new Error(d2.message || 'ImageKit: no URL');
   return d2.url;
+}
+// ── Cloudinary delivery optimization (transparent bandwidth savings) ──────────
+// Inserts a transformation into a Cloudinary delivery URL so files come down
+// smaller. Anything that ISN'T a plain Cloudinary upload URL — ImageKit, data:
+// URIs, local files, or already-transformed URLs — passes straight through
+// unchanged, so these are always safe to wrap around any src. The visual/audio
+// result is intended to be indistinguishable; audio also has a hard fallback to
+// the untouched file if a transform ever fails (see theme-audio 'error' handler).
+function _cldImg(url) {
+  if (typeof url !== 'string') return url;
+  const m = url.match(/^(https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.*)$/i);
+  if (!m || /(^|\/)(f_|q_|fl_|t_)/.test(m[2])) return url;        // already optimized → leave it
+  // animated GIFs must stay GIFs (don't let f_auto turn them into a video); just compress
+  const t = /\.gif($|\?)/i.test(m[2]) ? 'q_auto,fl_lossy' : 'f_auto,q_auto';
+  return m[1] + t + '/' + m[2];
+}
+function _cldAudio(url) {
+  if (typeof url !== 'string') return url;
+  const m = url.match(/^(https?:\/\/res\.cloudinary\.com\/[^/]+\/video\/upload\/)(.*)$/i);
+  if (!m || /(^|\/)(br_|q_|ac_|t_)/.test(m[2])) return url;
+  return m[1] + 'br_128k/' + m[2];   // cap background-music bitrate → big bandwidth cut, inaudible for BGM
 }
 // ─────────────────────────────────────────────────────────────
 
@@ -1784,7 +1846,9 @@ function playThemeForCharacter(charId, overrideSong = null) {
       ? song.url + (song.url.includes('?') ? '&' : '?') + '_v=' + Date.now()
       : song.url;
 
-    _themeAudio.src = newUrl;
+    _themeAudio.dataset.rawUrl = newUrl;          // untouched URL for the error fallback
+    _themeAudio.dataset.bkStage = '0';            // reset fallback cascade for this track
+    _themeAudio.src = _cldAudio(newUrl);          // bandwidth-optimized delivery
     _themeAudio.dataset.trackKey = key;
     _themeAudio.dataset.trackUrl = song.url;
     _themeAudio.load();
@@ -1848,7 +1912,7 @@ function _kickPreloadQueue() {
     // Real Audio element — browser primes its audio pipeline, not just HTTP cache
     const a = new Audio();
     a.preload = 'metadata'; // downloads header + usually first few seconds
-    a.src = url;
+    a.src = _cldAudio(url);   // preload the optimized version too
     _themePreloadAudios.set(url, a); // prevent GC
     _kickPreloadQueue();
   }, 500); // 500 ms stagger — fast enough to preload all chars in ~10 s
@@ -12552,7 +12616,7 @@ function viewChar(id) {
   const avatarEl = document.getElementById('cv-avatar');
   const _naraMode = _isNara(c);
   if (_cvAvatar) {
-    avatarEl.innerHTML = `<img src="${_cvAvatar}"/>`;
+    avatarEl.innerHTML = `<img src="${_cldImg(_cvAvatar)}" onerror="_cldImgError(this)"/>`;
   } else if (_naraMode) {
     avatarEl.innerHTML = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;width:56px;height:56px;">
       <rect x="12" y="2" width="8" height="8" data-nara-fill="1"/>
@@ -17618,7 +17682,7 @@ function renderAbilityCards(c) {
 
     // Left visual: image if set, otherwise large type icon
     const visualHtml = ab.image
-      ? `<div class="ab-card-visual"><img class="ab-card-img" src="${ab.image}" alt=""></div>`
+      ? `<div class="ab-card-visual"><img class="ab-card-img" src="${_cldImg(ab.image)}" alt="" onerror="_cldImgError(this)"></div>`
       : `<div class="ab-card-visual ab-card-visual-icon" style="--ab-text:${tc.text};--ab-border:${tc.border};">
            <span class="ab-type-icon-lg" style="color:${tc.iconColor || tc.text}">${tc.icon}</span>
          </div>`;
@@ -19597,7 +19661,8 @@ function renderHeightChart() {
       const bottomOffset = (1 - botF) * fullH;
 
       const img = document.createElement('img');
-      img.src = _spriteUrl;
+      img.src = _cldImg(_spriteUrl);
+      img.onerror = () => _cldImgError(img);
       img.className = 'hc-char-sprite';
       img.style.height = fullH + 'px';
       img.style.bottom = (-bottomOffset) + 'px';
