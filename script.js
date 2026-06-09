@@ -14951,6 +14951,39 @@ function getEffectiveStats(c) {
     effSpd = Math.max(1, Math.round(effSpd * c.glitchRolls.spd));
   }
 
+  // Handle Determination trait: ATK bonus per defeat in HATRED mode, DEF bonus per spare in MERCYFUL mode
+  const hasDetermination = c.traits && c.traits.includes('determination');
+  if (hasDetermination && c.traitStacks) {
+    const stacks = c.traitStacks;
+    const deaths = stacks['determination:deaths'] || 0;
+    const spares = stacks['determination:spares'] || 0;
+    const state = stacks['determination:state'] || (stacks['determination:kills'] >= 10 ? 'hatred' : spares >= 10 ? 'mercyful' : 'determined');
+    
+    if (state === 'hatred') {
+      // +5% ATK per defeat in HATRED mode
+      const atkMul = 1 + (deaths * 0.05);
+      effAtk = Math.max(1, Math.round(effAtk * atkMul));
+      // Absorbed enemies: permanently add their non-HP main stats for the fight
+      let absAtk = 0, absDef = 0, absMag = 0, absSpd = 0;
+      for (const k in stacks) {
+        if (k.indexOf('determination:absorbed_') === 0 && stacks[k]) {
+          absAtk += stacks[k].atk || 0;
+          absDef += stacks[k].def || 0;
+          absMag += stacks[k].mag || 0;
+          absSpd += stacks[k].spd || 0;
+        }
+      }
+      effAtk += absAtk;
+      effDef += absDef;
+      effMag += absMag;
+      effSpd += absSpd;
+    } else if (state === 'mercyful') {
+      // +5% DEF per spare in MERCYFUL mode
+      const defMul = 1 + (spares * 0.05);
+      effDef = Math.max(1, Math.round(effDef * defMul));
+    }
+  }
+
   return {
     hp: effHp, atk: effAtk, def: effDef, mag: effMag, spd: effSpd, iq: effIq,
     heal_pow: effHealPow, crit_rate: effCritRate, crit_dmg: finalCritDmg,
@@ -16386,23 +16419,96 @@ function renderTraitsDisplay(c) {
       let rarLabel = 'DETERMINED';
       let dispName = 'Determination';
       let dispDesc = t.desc;
+      let stateButtons = '';
+      let countersHtml = '';
+      
       if (state === 'hatred') {
         chipClass += ' det-hatred'; rarLabel = 'HATRED'; dispName = 'HATRED';
         dispDesc = 'Absorb every defeated enemy: permanently add all their non-HP main stats to yours for the rest of that fight. Lose -1% HP per absorb. Revive infinitely with no stat loss.';
+        
+        // Build character picker for absorb
+        const otherChars = characters.filter(ch => ch.id !== c.id);
+        let charPickerHtml = '';
+        if (otherChars.length > 0) {
+          charPickerHtml = `<select id="det-absorb-picker" class="det-picker">
+            <option value="">-- SELECT CHARACTER TO ABSORB --</option>
+            ${otherChars.map(ch => `<option value="${ch.id}">${_escHtml(ch.name)}</option>`).join('')}
+          </select>
+          <button class="btn sm det-absorb-btn" onclick="absorbCharacterStats(event)">✦ ABSORB STATS</button>`;
+        }
+
+        // List of currently-absorbed characters (with remove buttons)
+        let absorbedListHtml = '';
+        const absorbedEntries = Object.keys(stacks_)
+          .filter(k => k.indexOf('determination:absorbed_') === 0)
+          .map(k => ({ id: k.slice('determination:absorbed_'.length), data: stacks_[k] }));
+        if (absorbedEntries.length > 0) {
+          absorbedListHtml = `<div class="det-absorbed-list">
+            ${absorbedEntries.map(e => {
+              const d = e.data || {};
+              const ch = characters.find(x => x.id === e.id);
+              const nm = d.name || (ch && ch.name) || 'UNKNOWN';
+              return `<div class="det-absorbed-item">
+                <div class="det-absorbed-info">
+                  <span class="det-absorbed-name">${_escHtml(nm)}</span>
+                  <span class="det-absorbed-stats">+${d.atk || 0} ATK · +${d.def || 0} DEF · +${d.mag || 0} MAG · +${d.spd || 0} SPD</span>
+                </div>
+                <button class="btn sm det-absorbed-del" onclick="removeAbsorbedStats('${e.id}',event)" title="Remove this absorb">✕</button>
+              </div>`;
+            }).join('')}
+          </div>`;
+        }
+        
+        stateButtons = `
+          <div class="det-state-btns">
+            <button class="btn sm det-state-btn det-state-active" disabled title="Currently in HATRED mode">⚔ HATRED</button>
+            <button class="btn sm det-state-btn" onclick="setDeterminationState('${key}','determined',event)">⟲ RETURN</button>
+          </div>`;
+        countersHtml = `
+          <div class="det-counters">
+            <div class="det-counter">
+              <span class="det-label">DEFEATS: ${deaths}</span>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','deaths',1,event)">+</button>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','deaths',-1,event)">-</button>
+            </div>
+            <div class="det-counter">
+              <span class="det-label">ABSORBS: ${kills}</span>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','kills',1,event)">+</button>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','kills',-1,event)">-</button>
+            </div>
+          </div>
+          ${charPickerHtml ? `<div class="det-absorb-section">${charPickerHtml}</div>` : ''}
+          ${absorbedListHtml}`;
       } else if (state === 'mercyful') {
         chipClass += ' det-mercyful'; rarLabel = 'MERCYFUL'; dispName = 'MERCYFUL';
         dispDesc = 'Revive infinitely without losing stats. x10 Heal Power, x10 DEF. Healing received is divided by 5.';
-      }
-      return `
-        <div class="trait-chip ${chipClass}" data-trait="${key}">
-          <div class="trait-chip-rarity">${rarLabel}</div>
-          <div class="trait-chip-name">${_escHtml(dispName)}</div>
-          <div class="trait-chip-desc">${_renderDescWithStatuses(dispDesc)}</div>
+        stateButtons = `
+          <div class="det-state-btns">
+            <button class="btn sm det-state-btn" onclick="setDeterminationState('${key}','determined',event)">⟲ RETURN</button>
+            <button class="btn sm det-state-btn det-state-active" disabled title="Currently in MERCYFUL mode">✦ MERCYFUL</button>
+          </div>`;
+        countersHtml = `
+          <div class="det-counters">
+            <div class="det-counter">
+              <span class="det-label">DEFEATS: ${deaths}</span>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','deaths',1,event)">+</button>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','deaths',-1,event)">-</button>
+            </div>
+            <div class="det-counter">
+              <span class="det-label">MERCIES: ${spares}</span>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','spares',1,event)">+</button>
+              <button class="btn sm det-btn" onclick="adjustDetermination('${key}','spares',-1,event)">-</button>
+            </div>
+          </div>`;
+      } else {
+        // DETERMINED state (default)
+        stateButtons = `
           <div class="det-state-btns">
             <button class="btn sm det-state-btn${state === 'hatred' ? ' det-state-active' : ''}" onclick="setDeterminationState('${key}','hatred',event)">⚔ HATRED</button>
-            <button class="btn sm det-state-btn${state === 'determined' ? ' det-state-active' : ''}" onclick="setDeterminationState('${key}','determined',event)">♥ RESET</button>
+            <button class="btn sm det-state-btn${state === 'determined' ? ' det-state-active' : ''}" disabled title="Already in DETERMINED mode">♥ RESET</button>
             <button class="btn sm det-state-btn${state === 'mercyful' ? ' det-state-active' : ''}" onclick="setDeterminationState('${key}','mercyful',event)">✦ MERCYFUL</button>
-          </div>
+          </div>`;
+        countersHtml = `
           <div class="det-counters">
             <div class="det-counter">
               <span class="det-label">DEFEATS: ${deaths}</span>
@@ -16419,7 +16525,15 @@ function renderTraitsDisplay(c) {
               <button class="btn sm det-btn" onclick="adjustDetermination('${key}','spares',1,event)">+</button>
               <button class="btn sm det-btn" onclick="adjustDetermination('${key}','spares',-1,event)">-</button>
             </div>
-          </div>
+          </div>`;
+      }
+      return `
+        <div class="trait-chip ${chipClass}" data-trait="${key}">
+          <div class="trait-chip-rarity">${rarLabel}</div>
+          <div class="trait-chip-name">${_escHtml(dispName)}</div>
+          <div class="trait-chip-desc">${_renderDescWithStatuses(dispDesc)}</div>
+          ${stateButtons}
+          ${countersHtml}
           <button class="trait-chip-remove" onclick="removeTrait('${key}', event)" title="Remove trait">✕</button>
         </div>`;
     }
@@ -17314,6 +17428,75 @@ function setDeterminationState(key, state, ev) {
   saveData(c);
   updateLiveStats(c);
   renderTraitsDisplay(c);
+}
+
+function absorbCharacterStats(ev) {
+  if (ev) ev.stopPropagation();
+  const picker = document.getElementById('det-absorb-picker');
+  if (!picker || !picker.value) {
+    notify('SELECT A CHARACTER TO ABSORB', 'error');
+    return;
+  }
+  
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  
+  const targetChar = characters.find(x => x.id === picker.value);
+  if (!targetChar) {
+    notify('CHARACTER NOT FOUND', 'error');
+    return;
+  }
+  
+  c.traitStacks = c.traitStacks || {};
+  
+  // Get target character's effective stats
+  const targetStats = getEffectiveStats(targetChar);
+  
+  // Store absorbed stats (non-HP main stats)
+  const absorbKey = `determination:absorbed_${picker.value}`;
+  if (!c.traitStacks[absorbKey]) {
+    c.traitStacks[absorbKey] = {
+      name: targetChar.name,
+      atk: targetStats.atk,
+      def: targetStats.def,
+      mag: targetStats.mag,
+      spd: targetStats.spd
+    };
+    
+    // Increment absorbs counter
+    c.traitStacks['determination:kills'] = (c.traitStacks['determination:kills'] || 0) + 1;
+    
+    saveData(c);
+    updateLiveStats(c);
+    renderTraitsDisplay(c);
+    notify(`ABSORBED ${targetChar.name.toUpperCase()}'S STATS`, 'ok');
+  } else {
+    notify(`ALREADY ABSORBED ${targetChar.name.toUpperCase()}`, 'warning');
+  }
+  
+  // Reset picker
+  picker.value = '';
+}
+
+function removeAbsorbedStats(absorbId, ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c || !c.traitStacks) return;
+
+  const absorbKey = `determination:absorbed_${absorbId}`;
+  const entry = c.traitStacks[absorbKey];
+  if (!entry) return;
+
+  const nm = (entry && entry.name) || 'CHARACTER';
+  delete c.traitStacks[absorbKey];
+
+  // Drop the absorbs counter (never below 0)
+  c.traitStacks['determination:kills'] = Math.max(0, (c.traitStacks['determination:kills'] || 0) - 1);
+
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+  notify(`REMOVED ${String(nm).toUpperCase()}`, 'ok');
 }
 
 function rerollHand() {

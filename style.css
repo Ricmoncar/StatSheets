@@ -5134,6 +5134,14 @@ body.nara-no-select, body.nara-no-select * {
   text-shadow: 0 0 8px rgba(255,0,0,0.7);
   filter: brightness(1.2);
 }
+.det-state-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  color: #555555 !important;
+}
+.det-state-btn:disabled:hover {
+  opacity: 0.5 !important;
+}
 
 /* Determination counters */
 .det-counters {
@@ -5161,6 +5169,100 @@ body.nara-no-select, body.nara-no-select * {
   font-size: 10px !important;
   min-width: 22px;
   line-height: 1 !important;
+}
+
+/* Determination absorb section */
+.det-absorb-section {
+  margin-top: 8px;
+  padding: 6px;
+  border-top: 1px solid rgba(255,50,50,0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.det-picker {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-size: 7px;
+  padding: 5px 6px;
+  background: #000;
+  border: 1px solid #553333;
+  color: #aaa;
+  font-family: var(--font-main);
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
+.det-picker option {
+  background: #111;
+  color: #aaa;
+}
+
+.det-absorb-btn {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px !important;
+  font-size: 7px !important;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.det-absorbed-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.det-absorbed-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: rgba(255,50,50,0.06);
+  border: 1px solid rgba(255,50,50,0.25);
+  border-radius: 3px;
+}
+
+.det-absorbed-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.det-absorbed-name {
+  font-size: 7px;
+  color: #ff8888;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.det-absorbed-stats {
+  font-size: 6px;
+  color: #aa8888;
+  letter-spacing: 0.5px;
+}
+
+.det-absorbed-del {
+  flex-shrink: 0;
+  padding: 2px 6px !important;
+  font-size: 8px !important;
+  line-height: 1;
+  color: #ff5555 !important;
+  border-color: #663333 !important;
+}
+
+.det-absorbed-del:hover {
+  background: #ff3333 !important;
+  color: #000 !important;
 }
 
 /* Hand card for determined */
