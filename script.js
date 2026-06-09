@@ -7453,22 +7453,45 @@ function _empKey(e) {
 
 function _empAddDecal(d) { _empDecals.push(d); if (_empDecals.length > 110) _empDecals.shift(); }
 
-// break VFX — scales up with the chain (how many coins this single shot has broken)
-function _empBreakFx(x, y, col, chain) {
+// break VFX — scales up with the chain, and differs per weapon
+function _empBreakFx(x, y, col, chain, opt) {
   const power = Math.min(6, Math.max(1, chain));
-  const n = 8 + power * 3;
-  const bits = [];
-  for (let i = 0; i < n; i++) bits.push({ a: Math.random() * Math.PI * 2, sp: (30 + Math.random() * 70) * (1 + power * 0.2), sz: (2 + Math.random() * 4) * (1 + power * 0.14), rot: Math.random() * 6 });
-  _empAddDecal({ type: 'shards', x, y, life: 1, bits, col: col || _EMP_GOLD });
-  _empAddDecal({ type: 'burst', x, y, life: 1, r: 20 + power * 13, col: power >= 4 ? _EMP_LIGHT : (col || _EMP_GOLD) });
+  const style = (opt && opt.style) || 'rev';
+
+  if (style === 'snipe') {
+    // clean cut — thin slivers slide apart perpendicular to the beam
+    const cut = (opt && opt.ang != null ? opt.ang : 0) + Math.PI / 2;
+    const n = 6 + power * 2;
+    const bits = [];
+    for (let i = 0; i < n; i++) {
+      const side = (i % 2) ? 0 : Math.PI;
+      bits.push({ a: cut + side + (Math.random() - 0.5) * 0.6, sp: (70 + Math.random() * 90) * (1 + power * 0.12), len: 7 + Math.random() * 11, w: 1.4 + Math.random(), rot: cut });
+    }
+    _empAddDecal({ type: 'slivers', x, y, life: 1, bits, col: _EMP_LIGHT });
+    _empAddDecal({ type: 'burst', x, y, life: 1, r: 14 + power * 9, col: _EMP_LIGHT });
+  } else if (style === 'rkt') {
+    // fiery disintegration — embers arc out and fall, plus a fire flash
+    const n = 10 + power * 3;
+    const bits = [];
+    for (let i = 0; i < n; i++) bits.push({ a: Math.random() * Math.PI * 2, sp: (40 + Math.random() * 110) * (1 + power * 0.12), vy0: -30 - Math.random() * 50, sz: 2 + Math.random() * 3 });
+    _empAddDecal({ type: 'embers', x, y, life: 1, bits });
+    _empAddDecal({ type: 'burst', x, y, life: 1, r: 18 + power * 12, col: '#ff7a2a' });
+  } else {
+    // revolver — golden shard burst + ring
+    const n = 8 + power * 3;
+    const bits = [];
+    for (let i = 0; i < n; i++) bits.push({ a: Math.random() * Math.PI * 2, sp: (30 + Math.random() * 70) * (1 + power * 0.2), sz: (2 + Math.random() * 4) * (1 + power * 0.14), rot: Math.random() * 6 });
+    _empAddDecal({ type: 'shards', x, y, life: 1, bits, col: col || _EMP_GOLD });
+    _empAddDecal({ type: 'burst', x, y, life: 1, r: 20 + power * 13, col: power >= 4 ? _EMP_LIGHT : (col || _EMP_GOLD) });
+  }
   if (chain >= 2) _empAddDecal({ type: 'combo', x, y, life: 1, n: chain });
   _empShake = Math.max(_empShake, Math.min(0.75, 0.08 + power * 0.1));
 }
 
-function _empKillTarget(idx, chain = 1) {
+function _empKillTarget(idx, chain = 1, opt) {
   const tg = _empTargets[idx];
   if (!tg) return;
-  _empBreakFx(tg.x, tg.y, tg.col, chain);
+  _empBreakFx(tg.x, tg.y, tg.col, chain, opt);
   // same SFX as a click, pitched up high — rising further with the chain
   if (typeof playSound === 'function') playSound('click', { rate: 1.5 + Math.min(2, chain * 0.18) + Math.random() * 0.4, volume: 0.5 });
   _empTargets.splice(idx, 1);
@@ -7481,7 +7504,7 @@ function _empExplode(x, y) {
   let chain = 0;
   for (let i = _empTargets.length - 1; i >= 0; i--) {
     const tg = _empTargets[i];
-    if (Math.hypot(tg.x - x, tg.y - y) < 150) { chain++; _empKillTarget(i, chain); }
+    if (Math.hypot(tg.x - x, tg.y - y) < 150) { chain++; _empKillTarget(i, chain, { style: 'rkt' }); }
   }
 }
 
@@ -7517,7 +7540,7 @@ function _empFire(cx, cy) {
       const perp = Math.abs((tg.x - cx) * -dy + (tg.y - cy) * dx);
       if (perp < tg.r + 12) {
         _empAddDecal({ type: 'crack', x: tg.x, y: tg.y, life: 1, r: 26, seed: Math.random() * 6 });
-        chain++; _empKillTarget(i, chain); any = true;
+        chain++; _empKillTarget(i, chain, { style: 'snipe', ang: a }); any = true;
       }
     }
     if (!any) _empAddDecal({ type: 'crack', x: cx + dx * 240, y: cy + dy * 240, life: 1, r: 30, seed: Math.random() * 6 });
@@ -7790,6 +7813,49 @@ function _empDrawDecal(ctx, x, y, d, s) {
       ctx.beginPath(); ctx.moveTo(0, -z); ctx.lineTo(z, z); ctx.lineTo(-z, z); ctx.closePath(); ctx.fill();
       ctx.restore();
     }
+  } else if (d.type === 'burst') {
+    const p = 1 - a;
+    const rr = (d.r || 30) * s * (0.25 + p * 1.2);
+    ctx.globalAlpha = a; ctx.strokeStyle = d.col || _EMP_LIGHT; ctx.lineWidth = 1 + a * 4;
+    ctx.shadowColor = d.col || _EMP_GOLD; ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = a * 0.5; ctx.fillStyle = d.col || _EMP_LIGHT;
+    ctx.beginPath(); ctx.arc(x, y, rr * 0.28, 0, Math.PI * 2); ctx.fill();
+  } else if (d.type === 'slivers') {
+    // sniper: the coin is cleanly cut — thin slivers slide apart along the cut
+    const spread = (1 - a) * 80 * s;
+    ctx.globalAlpha = a; ctx.fillStyle = d.col || _EMP_LIGHT;
+    ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = 8;
+    for (const b of d.bits) {
+      const bx = x + Math.cos(b.a) * b.sp * 0.01 * spread, by = y + Math.sin(b.a) * b.sp * 0.01 * spread;
+      ctx.save(); ctx.translate(bx, by); ctx.rotate(b.rot);
+      ctx.fillRect(-b.len * s * 0.5, -b.w * s * 0.5, b.len * s, b.w * s);
+      ctx.restore();
+    }
+    // thin bright cut-flash
+    ctx.globalAlpha = a; ctx.strokeStyle = _EMP_LIGHT; ctx.lineWidth = 1 + a * 2; ctx.shadowBlur = 12;
+    const cl = (d.bits[0] ? d.bits[0].rot : 0);
+    ctx.beginPath();
+    ctx.moveTo(x - Math.cos(cl) * 34 * s, y - Math.sin(cl) * 34 * s);
+    ctx.lineTo(x + Math.cos(cl) * 34 * s, y + Math.sin(cl) * 34 * s); ctx.stroke();
+  } else if (d.type === 'embers') {
+    // rocket: fiery disintegration — embers arc out and fall, cooling to red
+    const p = 1 - a;
+    for (const b of d.bits) {
+      const ex = x + Math.cos(b.a) * b.sp * p * s;
+      const ey = y + Math.sin(b.a) * b.sp * p * s + (b.vy0 * p + 240 * p * p) * s;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = `rgb(255,${Math.round(60 + a * 140)},${Math.round(a * 40)})`;
+      ctx.shadowColor = '#ff7a2a'; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.arc(ex, ey, b.sz * s * (0.5 + a * 0.6), 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (d.type === 'combo') {
+    const rise = (1 - a) * 42 * s;
+    ctx.globalAlpha = a; ctx.fillStyle = _EMP_LIGHT;
+    ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = 12;
+    ctx.font = `bold ${(13 + Math.min(d.n, 10) * 2.2) * s}px monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('x' + d.n, x, y - rise);
   }
   ctx.restore();
 }
@@ -7861,20 +7927,31 @@ function _drawEmporiumOverlay(canvas, ctx, W, H, t) {
         p.bounces++;
         _empKillTarget(hit, p.bounces);             // VFX grows with each coin this bullet chains
         p.spd = Math.min(9000, p.spd * 2);          // double speed each ricochet
-        const na = Math.random() * Math.PI * 2;      // bounce off to a random spot
-        p.dx = Math.cos(na); p.dy = Math.sin(na);
+        // realistic ricochet: reflect off the coin's surface, with a little scatter
+        let nx = p.x - tg.x, ny = p.y - tg.y; const nl = Math.hypot(nx, ny) || 1;
+        nx /= nl; ny /= nl;
+        const dot = p.dx * nx + p.dy * ny;
+        let rx = p.dx - 2 * dot * nx, ry = p.dy - 2 * dot * ny;
+        const jit = (Math.random() - 0.5) * 0.5;     // ±~14° scatter
+        const ra = Math.atan2(ry, rx) + jit;
+        p.dx = Math.cos(ra); p.dy = Math.sin(ra);
         p.x += p.dx * (tg.r + 6); p.y += p.dy * (tg.r + 6);
+        // per-bounce spark flash (hotter as it chains)
+        _empAddDecal({ type: 'burst', x: p.x, y: p.y, life: 1, r: 9 + p.bounces * 3, col: _EMP_LIGHT });
         if (p.bounces > 16) { _empShots.splice(i, 1); continue; }
       }
-      // draw streak + bullet (brighter & bigger the more it has chained)
+      // draw streak + bullet — heats up (gold → white → orange) and grows as it chains
+      const hot = Math.min(1, p.bounces / 8);
+      const core = p.bounces === 0 ? _EMP_GOLD : `rgb(255,${Math.round(243 - hot * 70)},${Math.round(192 - hot * 150)})`;
       ctx.save();
       for (let k = 0; k < p.trail.length; k++) {
         ctx.globalAlpha = (k / p.trail.length) * 0.6;
-        ctx.fillStyle = p.bounces > 0 ? _EMP_LIGHT : _EMP_GOLD;
-        ctx.beginPath(); ctx.arc(p.trail[k].x, p.trail[k].y, 2 + p.bounces * 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = core;
+        ctx.beginPath(); ctx.arc(p.trail[k].x, p.trail[k].y, 2 + p.bounces * 0.35, 0, Math.PI * 2); ctx.fill();
       }
-      ctx.globalAlpha = 1; ctx.fillStyle = _EMP_LIGHT; ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = 10;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 3 + p.bounces * 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1; ctx.fillStyle = _EMP_LIGHT;
+      ctx.shadowColor = p.bounces > 3 ? '#ff8a2a' : _EMP_GOLD; ctx.shadowBlur = 10 + p.bounces * 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 + p.bounces * 0.5, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       // expire off-screen, or drop a final hole on a long clean miss
       if (p.x < -60 || p.x > W + 60 || p.y < -60 || p.y > H + 60) { _empShots.splice(i, 1); continue; }
