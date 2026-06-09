@@ -2728,6 +2728,9 @@ const PATTERN_DEFS = {
   iris_starlight:   { label: "Iris · Shimmerlight",    params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
+  alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
+  jeckely_box:      { label: "Jeckely · Jack-in-the-Box", params: [] },
+  mimzy_bloom:      { label: "Mimzy · Reaching Bloom",   params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -8180,6 +8183,1059 @@ function _stopEmporiumOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// ALSACE — a dark, erratic jester of confusion. The whole screen is a deep-blue
+// hall of hypnotic spirals that breathe and jolt, drifting harlequin diamonds
+// and floating jester glyphs (? ♠ ♣). The cursor is a spinning hypno-spiral
+// medallion with jester bells that leaves erratic doubled afterimages; clicking
+// throws out a confusion ripple + a scatter of spinning cards. Matches "Alsace".
+// ════════════════════════════════════════════════════════════════
+const _ALSACE_RE = /^Alsace$/i;
+function _isAlsace(c) { return !!(c && c.name && _ALSACE_RE.test(c.name)); }
+// "MASK OFF" alt form — the spiral goes wild, the world darkens, black thunder
+function _isAlsaceMaskOff(c) {
+  if (!_isAlsace(c)) return false;
+  const idx = c.activeFormIdx || 0;
+  if (idx === 0) return false;
+  const af = (c.altForms || [])[idx - 1];
+  return !!(af && af.name && /mask\s*off/i.test(af.name));
+}
+let _alsMaskOff = false;          // set by the render path when the form is active
+let _alsBolts = [];               // black lightning bolts
+
+let _alsOverlayRafId = null;
+let _alsMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _alsMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _alsPX = _alsMX, _alsPY = _alsMY;        // smoothed (laggy, woozy) cursor pos
+let _alsSpin = 0;                             // medallion spin
+let _alsTrail = [];                           // erratic doubled afterimages
+let _alsRipples = [];                         // confusion shockwaves
+let _alsConfetti = [];                        // spinning jester cards / glyphs
+const _ALS_DEEP = '#070d22', _ALS_BLUE = '#1b3a8f', _ALS_MID = '#2f5fd0', _ALS_LIGHT = '#7fb0ff', _ALS_CYAN = '#46d4ff';
+const _ALS_GLYPHS = ['?', '♠', '♣', '♦', '✦', '!'];
+
+function _alsMouseMove(e) { _alsMX = e.clientX; _alsMY = e.clientY; }
+function _alsClick() {
+  _alsRipples.push({ x: _alsPX, y: _alsPY, life: 1, rot: Math.random() * 6.28 });
+  if (_alsRipples.length > 6) _alsRipples.shift();
+  const n = 7 + (Math.random() * 4 | 0);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 120 + Math.random() * 260;
+    _alsConfetti.push({
+      x: _alsPX, y: _alsPY, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 80,
+      rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 14, life: 1,
+      ch: _ALS_GLYPHS[(Math.random() * _ALS_GLYPHS.length) | 0], sz: 11 + Math.random() * 12,
+    });
+  }
+  if (_alsConfetti.length > 80) _alsConfetti.splice(0, _alsConfetti.length - 80);
+}
+
+// an Archimedean spiral stroke
+function _alsSpiralPath(ctx, cx, cy, rot, maxR, turns, steps) {
+  ctx.beginPath();
+  for (let i = 0; i <= steps; i++) {
+    const f = i / steps, th = f * turns * Math.PI * 2 + rot, r = f * maxR;
+    const x = cx + Math.cos(th) * r, y = cy + Math.sin(th) * r;
+    if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+  }
+}
+
+// ── background: deep-blue hall of spirals, harlequin diamonds, jester glyphs ──
+function _drawAlsacePattern(canvas, ctx, W, H, t) {
+  const fresh = _drawAlsacePattern._lt === undefined;
+  if (!fresh && t - _drawAlsacePattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawAlsacePattern._lt, 0.05);
+  _drawAlsacePattern._lt = t;
+
+  const mo = _alsMaskOff;            // MASK OFF — wild, dark, thunderous
+  // erratic time — mostly smooth, with sudden jolts of madness (violent when MASK OFF)
+  const jolt = Math.sin(t * 0.9) * 0.5 + Math.sin(t * 2.3 + 1) * 0.3 + (Math.sin(t * 13.0) > 0.93 ? (Math.random() - 0.5) * 0.6 : 0);
+  const wild = mo
+    ? Math.sin(t * 5.7) * 1.4 + Math.sin(t * 9.3 + 2) * 0.9 + (Math.random() - 0.5) * 0.5     // jittery, uncontrollable
+    : 0;
+  const spin = t * (mo ? 0.5 : 0.22) + jolt * 0.35 + wild;
+
+  // base — deep blue, or near-black when MASK OFF
+  const bg = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.62);
+  if (mo) { bg.addColorStop(0, '#070b1c'); bg.addColorStop(0.55, '#03040a'); bg.addColorStop(1, '#000002'); }
+  else { bg.addColorStop(0, '#0c1740'); bg.addColorStop(0.55, _ALS_DEEP); bg.addColorStop(1, '#03050f'); }
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // drifting harlequin diamond lattice (faint, scrolling, jester motif)
+  ctx.save();
+  ctx.globalAlpha = 0.05;
+  const ds = 64, off = (t * 14) % (ds * 2), off2 = (t * 9) % (ds * 2);
+  for (let yy = -ds; yy < H + ds; yy += ds) {
+    for (let xx = -ds; xx < W + ds; xx += ds * 2) {
+      const px = xx + ((Math.floor((yy + ds) / ds) % 2) ? ds : 0) + off - ds, py = yy + off2 - ds;
+      ctx.fillStyle = ((xx + yy) / ds) % 2 ? _ALS_MID : _ALS_LIGHT;
+      ctx.beginPath();
+      ctx.moveTo(px, py - ds * 0.5); ctx.lineTo(px + ds * 0.5, py);
+      ctx.lineTo(px, py + ds * 0.5); ctx.lineTo(px - ds * 0.5, py); ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // satellite spirals (different speeds / directions = disorientation)
+  if (!canvas._alsSubs || canvas._alsW !== W || canvas._alsH !== H) {
+    canvas._alsW = W; canvas._alsH = H;
+    canvas._alsSubs = Array.from({ length: 5 }, () => ({
+      x: Math.random() * W, y: Math.random() * H, r: 70 + Math.random() * 140,
+      sp: (Math.random() < 0.5 ? -1 : 1) * (0.3 + Math.random() * 0.8), ph: Math.random() * 6, turns: 2.5 + Math.random() * 2,
+    }));
+    canvas._alsGlyphs = Array.from({ length: 14 }, () => ({
+      x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 26, vy: (Math.random() - 0.5) * 26,
+      rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 1.6, sz: 12 + Math.random() * 20,
+      ch: _ALS_GLYPHS[(Math.random() * _ALS_GLYPHS.length) | 0],
+    }));
+  }
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (const s of canvas._alsSubs) {
+    ctx.globalAlpha = 0.1 + 0.05 * Math.sin(t * 1.3 + s.ph);
+    ctx.strokeStyle = _ALS_MID; ctx.lineWidth = 2;
+    _alsSpiralPath(ctx, s.x, s.y, t * s.sp + s.ph, s.r, s.turns, 130); ctx.stroke();
+  }
+  ctx.restore();
+
+  // central hypnotic double spiral — the eye of confusion
+  const cx = W * 0.5, cy = H * 0.5, maxR = Math.hypot(W, H) * 0.55;
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (let arm = 0; arm < 3; arm++) {
+    const armRot = spin + arm * (Math.PI * 2 / 3);
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+    grad.addColorStop(0, 'rgba(120,180,255,0.5)');
+    grad.addColorStop(0.4, 'rgba(47,95,208,0.32)');
+    grad.addColorStop(1, 'rgba(10,24,56,0)');
+    ctx.strokeStyle = grad; ctx.lineWidth = 3;
+    _alsSpiralPath(ctx, cx, cy, armRot, maxR, 6, 360); ctx.stroke();
+  }
+  // counter-rotating thin cyan spiral for shimmer
+  ctx.globalAlpha = 0.5; ctx.strokeStyle = _ALS_CYAN; ctx.lineWidth = 1;
+  _alsSpiralPath(ctx, cx, cy, -spin * 1.5, maxR * 0.9, 7, 360); ctx.stroke();
+  ctx.restore();
+
+  // floating jester glyphs (drift + erratic spin)
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const g of canvas._alsGlyphs) {
+    g.x += g.vx * dt; g.y += g.vy * dt; g.rot += g.vr * dt;
+    if (Math.sin(t * 11 + g.x) > 0.985) { g.vx += (Math.random() - 0.5) * 30; g.vy += (Math.random() - 0.5) * 30; }
+    g.vx *= 0.99; g.vy *= 0.99;
+    if (g.x < -30) g.x = W + 30; if (g.x > W + 30) g.x = -30;
+    if (g.y < -30) g.y = H + 30; if (g.y > H + 30) g.y = -30;
+    ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.rot);
+    ctx.globalAlpha = 0.16; ctx.fillStyle = _ALS_LIGHT;
+    ctx.font = `bold ${g.sz}px Georgia, serif`;
+    ctx.fillText(g.ch, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // occasional confusion glitch — torn horizontal bars
+  if (Math.sin(t * 5.0) > 0.88) {
+    ctx.save();
+    const bars = 3;
+    for (let i = 0; i < bars; i++) {
+      const by = Math.random() * H, bh = 2 + Math.random() * 10;
+      ctx.globalAlpha = 0.06 + Math.random() * 0.08;
+      ctx.fillStyle = Math.random() < 0.5 ? _ALS_CYAN : _ALS_LIGHT;
+      ctx.fillRect(0, by, W, bh);
+    }
+    ctx.restore();
+  }
+
+  // ── MASK OFF: black thunder cracking across the dark ──
+  if (mo) {
+    // spawn jagged bolts at random
+    if (Math.random() < dt * 2.2) {
+      const sx = Math.random() * W, pts = [[sx, -10]];
+      let bx = sx, by = -10;
+      const segs = 7 + (Math.random() * 6 | 0);
+      const drift = (Math.random() - 0.5) * W * 0.5;
+      for (let i = 1; i <= segs; i++) {
+        by += H / segs;
+        bx += drift / segs + (Math.random() - 0.5) * 70;
+        pts.push([bx, by]);
+      }
+      _alsBolts.push({ pts, life: 1, w: 2 + Math.random() * 2.5, branch: Math.random() < 0.6 });
+      if (_alsBolts.length > 5) _alsBolts.shift();
+    }
+    for (let i = _alsBolts.length - 1; i >= 0; i--) {
+      const b = _alsBolts[i]; b.life -= dt * 3.2;
+      if (b.life <= 0) { _alsBolts.splice(i, 1); continue; }
+      const flash = b.life > 0.7 ? (b.life - 0.7) / 0.3 : 0;   // brief white pop at strike
+      ctx.save();
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      // dark-glow edge so the BLACK bolt reads against the dark
+      ctx.strokeStyle = `rgba(40,70,150,${0.5 * b.life})`; ctx.lineWidth = b.w + 5; ctx.shadowColor = '#2a4aa0'; ctx.shadowBlur = 16;
+      ctx.beginPath(); ctx.moveTo(b.pts[0][0], b.pts[0][1]);
+      for (let k = 1; k < b.pts.length; k++) ctx.lineTo(b.pts[k][0], b.pts[k][1]);
+      ctx.stroke();
+      // black core
+      ctx.shadowBlur = 0; ctx.strokeStyle = `rgba(0,0,4,${0.85 * b.life})`; ctx.lineWidth = b.w;
+      ctx.beginPath(); ctx.moveTo(b.pts[0][0], b.pts[0][1]);
+      for (let k = 1; k < b.pts.length; k++) ctx.lineTo(b.pts[k][0], b.pts[k][1]);
+      ctx.stroke();
+      // forked branch
+      if (b.branch && b.pts.length > 4) {
+        const j = (b.pts.length / 2) | 0;
+        ctx.strokeStyle = `rgba(0,0,4,${0.7 * b.life})`; ctx.lineWidth = b.w * 0.6;
+        ctx.beginPath(); ctx.moveTo(b.pts[j][0], b.pts[j][1]);
+        ctx.lineTo(b.pts[j][0] + (Math.random() - 0.5) * 120, b.pts[j][1] + 80);
+        ctx.stroke();
+      }
+      // whole-screen flash at the moment of the strike
+      if (flash > 0) { ctx.fillStyle = `rgba(120,150,230,${flash * 0.12})`; ctx.fillRect(0, 0, W, H); }
+      ctx.restore();
+    }
+  }
+
+  // dark vignette to keep it brooding (heavier when MASK OFF)
+  const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * (mo ? 0.18 : 0.3), W * 0.5, H * 0.5, Math.hypot(W, H) * 0.6);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, mo ? 'rgba(0,0,2,0.86)' : 'rgba(0,0,8,0.6)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+}
+
+// ── cursor overlay: spinning hypno-medallion + bells, erratic doubles ──
+function _drawAlsaceOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawAlsaceOverlay._lt === undefined;
+  if (!fresh && t - _drawAlsaceOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawAlsaceOverlay._lt, 0.05);
+  _drawAlsaceOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  // woozy lagging follow with a tiny erratic jitter
+  const jx = Math.sin(t * 17) * 1.6 + (Math.sin(t * 4.3) > 0.9 ? (Math.random() - 0.5) * 10 : 0);
+  const jy = Math.cos(t * 15) * 1.6 + (Math.cos(t * 3.7) > 0.9 ? (Math.random() - 0.5) * 10 : 0);
+  _alsPX += (_alsMX - _alsPX) * Math.min(1, dt * 12);
+  _alsPY += (_alsMY - _alsPY) * Math.min(1, dt * 12);
+  const px = _alsPX + jx, py = _alsPY + jy;
+  _alsSpin += dt * 3.4;
+
+  // erratic doubled afterimages
+  _alsTrail.push({ x: px, y: py, life: 1, rot: _alsSpin });
+  if (_alsTrail.length > 7) _alsTrail.shift();
+
+  // ripples (confusion shockwaves)
+  for (let i = _alsRipples.length - 1; i >= 0; i--) {
+    const r = _alsRipples[i]; r.life -= dt * 0.8;
+    if (r.life <= 0) { _alsRipples.splice(i, 1); continue; }
+    const p = 1 - r.life, rad = p * 260;
+    ctx.save();
+    ctx.globalAlpha = r.life * 0.7; ctx.strokeStyle = _ALS_CYAN; ctx.lineWidth = 2;
+    ctx.shadowColor = _ALS_CYAN; ctx.shadowBlur = 12;
+    _alsSpiralPath(ctx, r.x, r.y, r.rot + p * 6, rad, 2.5, 120); ctx.stroke();
+    ctx.globalAlpha = r.life * 0.4; ctx.strokeStyle = _ALS_LIGHT; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(r.x, r.y, rad, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // spinning jester cards / glyphs thrown on click
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = _alsConfetti.length - 1; i >= 0; i--) {
+    const c = _alsConfetti[i];
+    c.life -= dt * 0.6; if (c.life <= 0) { _alsConfetti.splice(i, 1); continue; }
+    c.vy += 280 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.rot += c.vr * dt;
+    c.vx *= 0.99;
+    ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot);
+    ctx.globalAlpha = c.life;
+    ctx.fillStyle = c.life > 0.5 ? _ALS_CYAN : _ALS_LIGHT;
+    ctx.shadowColor = _ALS_BLUE; ctx.shadowBlur = 8;
+    ctx.font = `bold ${c.sz}px Georgia, serif`;
+    ctx.fillText(c.ch, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // afterimage doubles
+  for (let i = 0; i < _alsTrail.length - 1; i++) {
+    const a = _alsTrail[i];
+    _alsDrawMedallion(ctx, a.x, a.y, a.rot, (i / _alsTrail.length) * 0.28, true);
+  }
+  // the cursor medallion
+  _alsDrawMedallion(ctx, px, py, _alsSpin, 1, false);
+}
+
+function _alsDrawMedallion(ctx, x, y, spin, alpha, ghost) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = alpha;
+  const R = 14;
+  // jester collar prongs with bells (3 points)
+  if (!ghost) {
+    for (let i = 0; i < 3; i++) {
+      const a = -Math.PI / 2 + (i - 1) * 0.9 + Math.sin(spin * 0.7 + i) * 0.08;
+      const ex = Math.cos(a) * (R + 12), ey = Math.sin(a) * (R + 12);
+      ctx.strokeStyle = _ALS_BLUE; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(ex, ey); ctx.stroke();
+      ctx.fillStyle = _ALS_LIGHT; ctx.shadowColor = _ALS_CYAN; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.arc(ex, ey, 3.4, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    }
+  }
+  // disc
+  const g = ctx.createRadialGradient(-R * 0.3, -R * 0.3, 1, 0, 0, R);
+  g.addColorStop(0, _ALS_MID); g.addColorStop(0.7, _ALS_BLUE); g.addColorStop(1, _ALS_DEEP);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = _ALS_CYAN; ctx.lineWidth = 1.5;
+  if (!ghost) { ctx.shadowColor = _ALS_CYAN; ctx.shadowBlur = 10; }
+  ctx.stroke(); ctx.shadowBlur = 0;
+  // hypnotic spiral on the face (spins)
+  ctx.rotate(spin);
+  ctx.strokeStyle = _ALS_LIGHT; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  _alsSpiralPath(ctx, 0, 0, 0, R * 0.92, 2.4, 70); ctx.stroke();
+  ctx.restore();
+}
+
+function _startAlsaceOverlay() {
+  _stopAlsaceOverlay();
+  _drawAlsaceOverlay._lt = undefined;
+  _alsTrail = []; _alsRipples = []; _alsConfetti = [];
+  _alsPX = _alsMX; _alsPY = _alsMY; _alsSpin = 0;
+  window.addEventListener('mousemove', _alsMouseMove);
+  window.addEventListener('mousedown', _alsClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'alsace-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('alsace-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawAlsaceOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _alsOverlayRafId = requestAnimationFrame(frame);
+  }
+  _alsOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopAlsaceOverlay() {
+  if (_alsOverlayRafId) { cancelAnimationFrame(_alsOverlayRafId); _alsOverlayRafId = null; }
+  window.removeEventListener('mousemove', _alsMouseMove);
+  window.removeEventListener('mousedown', _alsClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('alsace-overlay'); if (cv) cv.remove();
+  _alsTrail = []; _alsRipples = []; _alsConfetti = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// JECKELY — a tense, spooky theatre-jester. On a black stage under a flickering
+// spotlight sits an ornate red-and-gold jack-in-the-box, OPEN and EMPTY (the
+// dread: nothing springs out). The cursor is a monochrome drama mask that flips
+// between comedy (smiling) and tragedy (sad) with every click — each click also
+// "winds the crank", trembling the box. Matches "Jeckely".
+// ════════════════════════════════════════════════════════════════
+const _JECKELY_RE = /^Jeckely$/i;
+function _isJeckely(c) { return !!(c && c.name && _JECKELY_RE.test(c.name)); }
+
+let _jkOverlayRafId = null;
+let _jkMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _jkMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _jkHappy = true;      // current mask mood
+let _jkExpr = 1;          // eased 0 (tragedy) … 1 (comedy)
+let _jkFlip = 0;          // click squash timer
+let _jkShake = 0;         // jack-box tremble (decays to a tense baseline)
+let _jkCrank = 0;         // crank handle angle
+let _jkRipples = [];
+const _JK_RED = '#9c1f1f', _JK_RED_D = '#560d0d', _JK_RED_L = '#c8403a', _JK_GOLD = '#d9b24a', _JK_GOLD_L = '#f6e29a', _JK_DARK = '#0a0607';
+
+function _jkMouseMove(e) { _jkMX = e.clientX; _jkMY = e.clientY; }
+function _jkClick() {
+  _jkHappy = !_jkHappy;                 // flip comedy ↔ tragedy
+  _jkFlip = 1;
+  _jkRipples.push({ x: _jkMX, y: _jkMY, life: 1 });
+  if (_jkRipples.length > 5) _jkRipples.shift();
+}
+
+// ── the ornate, open, EMPTY jack-in-the-box ──
+function _jkDrawBox(ctx, cx, cy, S, t) {
+  // a slow, smooth, uneasy sway — no jitter
+  const ox = Math.sin(t * 0.7) * 2.4 + Math.sin(t * 0.23) * 1.2;
+  const oy = Math.sin(t * 1.1 + 1) * 1.3;
+  ctx.save();
+  ctx.translate(cx + ox, cy + oy);
+
+  const w = S * 1.9, h = S * 1.45;
+  const BK = [w * 0.34, -h * 0.32];      // 3/4 back-offset (into the screen)
+  const A = (p, q) => [p[0] + q[0], p[1] + q[1]];
+  const FLt = [-w / 2, -h / 2], FRt = [w / 2, -h / 2], FRb = [w / 2, h / 2], FLb = [-w / 2, h / 2];
+  const BLt = A(FLt, BK), BRt = A(FRt, BK), BRb = A(FRb, BK);
+
+  // soft floor shadow
+  ctx.save(); ctx.globalAlpha = 0.55; ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(BK[0] * 0.4, h * 0.56, w * 0.72, h * 0.17, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // right side face (darker)
+  let g = ctx.createLinearGradient(FRt[0], 0, BRt[0], 0);
+  g.addColorStop(0, _JK_RED_D); g.addColorStop(1, '#3a0808');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.moveTo(...FRt); ctx.lineTo(...FRb); ctx.lineTo(...BRb); ctx.lineTo(...BRt); ctx.closePath(); ctx.fill();
+
+  // open top — dark empty interior (the dread: nothing inside)
+  const ig = ctx.createLinearGradient(0, FLt[1], 0, BLt[1]);
+  ig.addColorStop(0, '#1a0606'); ig.addColorStop(1, '#000');
+  ctx.fillStyle = ig;
+  ctx.beginPath(); ctx.moveTo(...FLt); ctx.lineTo(...FRt); ctx.lineTo(...BRt); ctx.lineTo(...BLt); ctx.closePath(); ctx.fill();
+  // a faint inner-wall glint so the emptiness reads as depth
+  ctx.strokeStyle = 'rgba(120,30,30,0.35)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(...FLt); ctx.lineTo(...BLt); ctx.moveTo(...FRt); ctx.lineTo(...BRt); ctx.stroke();
+
+  // front face (red wood)
+  const fg = ctx.createLinearGradient(0, FLt[1], 0, FLb[1]);
+  fg.addColorStop(0, _JK_RED_L); fg.addColorStop(0.5, _JK_RED); fg.addColorStop(1, _JK_RED_D);
+  ctx.fillStyle = fg;
+  ctx.beginPath(); ctx.moveTo(...FLt); ctx.lineTo(...FRt); ctx.lineTo(...FRb); ctx.lineTo(...FLb); ctx.closePath(); ctx.fill();
+  // wood grain
+  ctx.save(); ctx.globalAlpha = 0.12; ctx.strokeStyle = '#2a0606'; ctx.lineWidth = 1;
+  for (let i = 1; i < 6; i++) { const yy = -h / 2 + (h / 6) * i; ctx.beginPath(); ctx.moveTo(-w / 2 + 4, yy); ctx.lineTo(w / 2 - 4, yy + Math.sin(i) * 3); ctx.stroke(); }
+  ctx.restore();
+
+  // gold corner brackets on the front face
+  const T = Math.max(3, S * 0.07), L = S * 0.32;
+  const _corner = (p, dxs, dys) => {
+    const gg = ctx.createLinearGradient(p[0], p[1], p[0] + dxs * L, p[1] + dys * L);
+    gg.addColorStop(0, _JK_GOLD_L); gg.addColorStop(1, '#a07c1e');
+    ctx.fillStyle = gg;
+    const x = dxs > 0 ? p[0] : p[0] - L, y0 = dys > 0 ? p[1] : p[1] - T;
+    ctx.fillRect(x, y0, L, T);
+    const x2 = dxs > 0 ? p[0] : p[0] - T, y2 = dys > 0 ? p[1] : p[1] - L;
+    ctx.fillRect(x2, y2, T, L);
+  };
+  _corner(FLt, 1, 1); _corner(FRt, -1, 1); _corner(FRb, -1, -1); _corner(FLb, 1, -1);
+  // ornate gold trim lines along the top & bottom of the front face
+  ctx.strokeStyle = _JK_GOLD; ctx.globalAlpha = 0.8; ctx.lineWidth = Math.max(1.4, S * 0.022);
+  ctx.beginPath();
+  ctx.moveTo(-w / 2 + L, -h / 2 + T * 1.5); ctx.lineTo(w / 2 - L, -h / 2 + T * 1.5);
+  ctx.moveTo(-w / 2 + L, h / 2 - T * 1.5); ctx.lineTo(w / 2 - L, h / 2 - T * 1.5);
+  ctx.stroke();
+
+  // central gold medallion with a keyhole (the box is locked…)
+  ctx.globalAlpha = 1;
+  const mg = ctx.createRadialGradient(-S * 0.05, -S * 0.05, 1, 0, 0, S * 0.22);
+  mg.addColorStop(0, _JK_GOLD_L); mg.addColorStop(1, '#9c7818');
+  ctx.fillStyle = mg; ctx.strokeStyle = '#7a5c12'; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(0, -S * 0.22); ctx.lineTo(S * 0.17, 0); ctx.lineTo(0, S * 0.22); ctx.lineTo(-S * 0.17, 0); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#1a0606';
+  ctx.beginPath(); ctx.arc(0, -S * 0.03, S * 0.038, 0, Math.PI * 2); ctx.fill();
+  ctx.fillRect(-S * 0.02, -S * 0.03, S * 0.04, S * 0.1);
+
+  // scroll flourishes flanking the medallion
+  ctx.strokeStyle = _JK_GOLD; ctx.globalAlpha = 0.82; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  for (const sgn of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(sgn * S * 0.22, -S * 0.04);
+    ctx.quadraticCurveTo(sgn * S * 0.42, -S * 0.14, sgn * S * 0.38, S * 0.04);
+    ctx.quadraticCurveTo(sgn * S * 0.34, S * 0.13, sgn * S * 0.44, S * 0.1);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(sgn * S * 0.44, S * 0.1, S * 0.018, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // the OPEN lid, hinged at the back, standing up and tilted back
+  const LID = [BK[0] * 0.5, -h * 1.02];
+  const LLt = A(BLt, LID), LRt = A(BRt, LID);
+  const lg = ctx.createLinearGradient(0, BLt[1], 0, LLt[1]);
+  lg.addColorStop(0, _JK_RED); lg.addColorStop(1, _JK_RED_L);
+  ctx.fillStyle = lg;
+  ctx.beginPath(); ctx.moveTo(...BLt); ctx.lineTo(...BRt); ctx.lineTo(...LRt); ctx.lineTo(...LLt); ctx.closePath(); ctx.fill();
+  // lid gold trim + inner panel
+  ctx.strokeStyle = _JK_GOLD; ctx.lineWidth = Math.max(2, S * 0.05);
+  ctx.beginPath(); ctx.moveTo(...BLt); ctx.lineTo(...BRt); ctx.lineTo(...LRt); ctx.lineTo(...LLt); ctx.closePath(); ctx.stroke();
+  ctx.strokeStyle = 'rgba(217,178,74,0.5)'; ctx.lineWidth = 1.5;
+  const il = A(A(BLt, [(LRt[0] - BLt[0]) * 0.16, (LLt[1] - BLt[1]) * 0.16]), [0, 0]);
+  ctx.strokeRect(il[0], il[1], (BRt[0] - BLt[0]) * 0.7, (LLt[1] - BLt[1]) * 0.7);
+
+  // crank on the right side — turns when you wind it
+  const rcx = w / 2 + BK[0] * 0.5, rcy = BK[1] * 0.5 + h * 0.06;
+  ctx.strokeStyle = _JK_GOLD; ctx.lineWidth = Math.max(3, S * 0.07); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(w / 2 + BK[0] * 0.5 - S * 0.1, rcy); ctx.lineTo(rcx + S * 0.32, rcy); ctx.stroke();
+  ctx.save();
+  ctx.translate(rcx + S * 0.32, rcy); ctx.rotate(_jkCrank);
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, S * 0.34); ctx.stroke();
+  // red knob handle
+  const kg = ctx.createLinearGradient(-S * 0.08, S * 0.3, S * 0.08, S * 0.5);
+  kg.addColorStop(0, _JK_RED_L); kg.addColorStop(1, _JK_RED_D);
+  ctx.fillStyle = kg;
+  ctx.beginPath(); ctx.ellipse(0, S * 0.42, S * 0.07, S * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = _JK_GOLD_L; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, S * 0.42, S * 0.07, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+// ── background: black stage, flickering spotlight, faint harlequin, dust ──
+function _drawJeckelyPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawJeckelyPattern._lt === undefined;
+  if (!fresh && t - _drawJeckelyPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawJeckelyPattern._lt, 0.05);
+  _drawJeckelyPattern._lt = t;
+  _jkShake = Math.max(0, _jkShake - dt * 0.9);
+
+  // black stage
+  ctx.fillStyle = '#050406'; ctx.fillRect(0, 0, W, H);
+
+  // monochrome harlequin lattice — alternating BLACK & WHITE diamonds
+  ctx.save();
+  const ds = 80, sc = (t * 3) % ds;
+  for (let yy = -ds; yy < H + ds; yy += ds) {
+    for (let xx = -ds; xx < W + ds; xx += ds) {
+      const odd = (Math.round(xx / ds) + Math.round(yy / ds)) % 2;
+      ctx.globalAlpha = odd ? 0.055 : 0.03;
+      ctx.fillStyle = odd ? '#e8e8f0' : '#000000';
+      const cyp = yy + sc;
+      ctx.beginPath(); ctx.moveTo(xx, cyp - ds * 0.5); ctx.lineTo(xx + ds * 0.5, cyp);
+      ctx.lineTo(xx, cyp + ds * 0.5); ctx.lineTo(xx - ds * 0.5, cyp); ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // drifting monochrome mini drama-masks
+  if (!canvas._jkMasks || canvas._jkMW !== W || canvas._jkMH !== H) {
+    canvas._jkMW = W; canvas._jkMH = H;
+    canvas._jkMasks = Array.from({ length: 7 }, () => ({
+      x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12,
+      rot: (Math.random() - 0.5) * 0.5, vr: (Math.random() - 0.5) * 0.3, sz: 14 + Math.random() * 22, happy: Math.random() < 0.5, white: Math.random() < 0.5,
+    }));
+  }
+  ctx.save();
+  ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+  for (const m of canvas._jkMasks) {
+    m.x += m.vx * dt; m.y += m.vy * dt; m.rot += m.vr * dt;
+    if (m.x < -40) m.x = W + 40; if (m.x > W + 40) m.x = -40;
+    if (m.y < -40) m.y = H + 40; if (m.y > H + 40) m.y = -40;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(m.rot);
+    ctx.globalAlpha = 0.08; ctx.strokeStyle = m.white ? '#ffffff' : '#000000';
+    const z = m.sz;
+    // teardrop face
+    ctx.beginPath(); ctx.moveTo(0, -z);
+    ctx.bezierCurveTo(z * 0.8, -z, z * 0.7, z * 0.6, 0, z);
+    ctx.bezierCurveTo(-z * 0.7, z * 0.6, -z * 0.8, -z, 0, -z); ctx.closePath(); ctx.stroke();
+    // eyes
+    ctx.beginPath(); ctx.arc(-z * 0.3, -z * 0.18, z * 0.12, 0, Math.PI * 2); ctx.arc(z * 0.3, -z * 0.18, z * 0.12, 0, Math.PI * 2); ctx.stroke();
+    // mouth
+    ctx.beginPath();
+    if (m.happy) { ctx.moveTo(-z * 0.34, z * 0.22); ctx.quadraticCurveTo(0, z * 0.55, z * 0.34, z * 0.22); }
+    else { ctx.moveTo(-z * 0.34, z * 0.4); ctx.quadraticCurveTo(0, z * 0.1, z * 0.34, z * 0.4); }
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // flickering spotlight cone from above onto the box
+  const flick = (Math.sin(t * 31) * 0.5 + 0.5) * 0.12 + (Math.sin(t * 3.1 + 1) > 0.96 ? -0.4 : 0) + 0.7;
+  const f = Math.max(0.2, flick);
+  const sx = W * 0.5, sy = H * 0.62;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const cone = ctx.createRadialGradient(sx, H * 0.1, 0, sx, sy, H * 0.62);
+  cone.addColorStop(0, `rgba(220,210,225,${0.10 * f})`);
+  cone.addColorStop(0.55, `rgba(150,150,175,${0.05 * f})`);
+  cone.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = cone;
+  ctx.beginPath(); ctx.moveTo(sx - 30, -10); ctx.lineTo(sx + 30, -10);
+  ctx.lineTo(sx + W * 0.34, H); ctx.lineTo(sx - W * 0.34, H); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // drifting dust motes (spooky)
+  if (!canvas._jkDust || canvas._jkW !== W || canvas._jkH !== H) {
+    canvas._jkW = W; canvas._jkH = H;
+    canvas._jkDust = Array.from({ length: 40 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: 0.5 + Math.random() * 1.6, ph: Math.random() * 6, vy: 4 + Math.random() * 10 }));
+  }
+  ctx.save();
+  for (const d of canvas._jkDust) {
+    d.y -= d.vy * dt; d.x += Math.sin(t * 0.5 + d.ph) * 6 * dt;
+    if (d.y < -5) { d.y = H + 5; d.x = Math.random() * W; }
+    ctx.globalAlpha = (0.1 + 0.18 * (0.5 + 0.5 * Math.sin(t * 2 + d.ph))) * f;
+    ctx.fillStyle = '#cfcad6';
+    ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  // the box (the spotlight illuminates it)
+  ctx.save(); ctx.globalAlpha = 0.55 + 0.45 * f;
+  _jkDrawBox(ctx, W * 0.5, H * 0.60, Math.min(W, H) * 0.17, t);
+  ctx.restore();
+
+  // heavy vignette — tense, closing in
+  const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.28, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.6);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.82)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+}
+
+// ── the monochrome comedy/tragedy mask cursor — clean theatre-mask line art ──
+function _jkDrawMask(ctx, x, y, expr, t, flip) {
+  const W = 19, H = 28;
+  const sm = expr * 2 - 1;                    // +1 comedy … −1 tragedy
+  const fw = 1 - flip * 0.45;                 // brief horizontal squash on a flip
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.sin(t * 1.3) * 0.025);      // faint uneasy tilt
+  const SC = 0.7;                             // overall cursor scale (smaller)
+  ctx.scale(fw * SC, (1 + flip * 0.1) * SC);
+
+  // ── face silhouette: rounded brow → pinched cheeks → pointed chin (symmetric) ──
+  ctx.beginPath();
+  ctx.moveTo(0, -H);
+  ctx.bezierCurveTo(W * 0.78, -H, W * 1.0, -H * 0.5, W * 0.9, -H * 0.12);
+  ctx.bezierCurveTo(W * 0.78, H * 0.22, W * 0.46, H * 0.55, W * 0.24, H * 0.78);
+  ctx.bezierCurveTo(W * 0.14, H * 0.9, W * 0.06, H, 0, H);
+  ctx.bezierCurveTo(-W * 0.06, H, -W * 0.14, H * 0.9, -W * 0.24, H * 0.78);
+  ctx.bezierCurveTo(-W * 0.46, H * 0.55, -W * 0.78, H * 0.22, -W * 0.9, -H * 0.12);
+  ctx.bezierCurveTo(-W * 1.0, -H * 0.5, -W * 0.78, -H, 0, -H);
+  ctx.closePath();
+  // soft white halo so it reads on any panel, then flat porcelain fill + bold outline
+  ctx.save(); ctx.shadowColor = 'rgba(235,235,250,0.5)'; ctx.shadowBlur = 12;
+  ctx.fillStyle = '#fbfbfe'; ctx.fill();
+  ctx.restore();
+  ctx.lineJoin = 'round'; ctx.strokeStyle = '#23232b'; ctx.lineWidth = 2; ctx.stroke();
+
+  const ex = W * 0.4, ey = -H * 0.16;
+  // ── eyes: clean almond holes, tilting up (comedy) or drooping (tragedy) ──
+  ctx.fillStyle = '#1c1c24';
+  for (const s of [-1, 1]) {
+    ctx.save(); ctx.translate(s * ex, ey); ctx.rotate(s * sm * 0.3);
+    const ew = 6.6, eh = 4.3;
+    ctx.beginPath();
+    ctx.moveTo(-ew, 0);
+    ctx.quadraticCurveTo(0, -eh, ew, 0);
+    ctx.quadraticCurveTo(0, eh, -ew, 0);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // ── eyebrows: relaxed arch (comedy) ↔ worried inward angle (tragedy) ──
+  ctx.strokeStyle = '#1c1c24'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+  const by = ey - 9.5;
+  for (const s of [-1, 1]) {
+    const inY = by - (1 - expr) * 5;
+    const outY = by + (1 - expr) * 7;
+    const archY = by - 2.5 - expr * 3;
+    ctx.beginPath();
+    ctx.moveTo(s * (ex - 6.5), inY);
+    ctx.quadraticCurveTo(s * ex, archY, s * (ex + 7), outY);
+    ctx.stroke();
+  }
+  // ── mouth: big open grin (comedy) ↔ deep open frown (tragedy) ──
+  const my = H * 0.45, mw = W * 0.6;
+  const corner = my - sm * 6;
+  ctx.fillStyle = '#1c1c24';
+  ctx.beginPath();
+  ctx.moveTo(-mw, corner);
+  ctx.quadraticCurveTo(0, my + sm * mw * 1.05, mw, corner);
+  ctx.quadraticCurveTo(0, my + sm * mw * 0.3, -mw, corner);
+  ctx.closePath(); ctx.fill();
+
+  ctx.restore();
+}
+
+function _drawJeckelyOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawJeckelyOverlay._lt === undefined;
+  if (!fresh && t - _drawJeckelyOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawJeckelyOverlay._lt, 0.05);
+  _drawJeckelyOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  _jkExpr += ((_jkHappy ? 1 : 0) - _jkExpr) * Math.min(1, dt * 9);
+  _jkFlip = Math.max(0, _jkFlip - dt * 4);
+
+  // click ripples — pale, theatrical
+  for (let i = _jkRipples.length - 1; i >= 0; i--) {
+    const r = _jkRipples[i]; r.life -= dt * 1.3;
+    if (r.life <= 0) { _jkRipples.splice(i, 1); continue; }
+    const rad = (1 - r.life) * 70;
+    ctx.save();
+    ctx.globalAlpha = r.life * 0.5; ctx.strokeStyle = '#d7d7e2'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(r.x, r.y, rad, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  _jkDrawMask(ctx, _jkMX, _jkMY, _jkExpr, t, _jkFlip);
+}
+
+function _startJeckelyOverlay() {
+  _stopJeckelyOverlay();
+  _drawJeckelyOverlay._lt = undefined;
+  _jkRipples = []; _jkShake = 0; _jkFlip = 0;
+  window.addEventListener('mousemove', _jkMouseMove);
+  window.addEventListener('mousedown', _jkClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'jeckely-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('jeckely-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawJeckelyOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _jkOverlayRafId = requestAnimationFrame(frame);
+  }
+  _jkOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopJeckelyOverlay() {
+  if (_jkOverlayRafId) { cancelAnimationFrame(_jkOverlayRafId); _jkOverlayRafId = null; }
+  window.removeEventListener('mousemove', _jkMouseMove);
+  window.removeEventListener('mousedown', _jkClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('jeckely-overlay'); if (cv) cv.remove();
+  _jkRipples = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// MIMZY — the soft, sweet jester. A dreamy white-and-pink world of blooming
+// pink flowers and drifting petals. The cursor is a little pink blossom, and a
+// pale white jester's hand reaches up from below, VERY slowly creeping after
+// the cursor — always grasping, never quite catching it. Matches "Mimzy".
+// ════════════════════════════════════════════════════════════════
+const _MIMZY_RE = /^Mimzy$/i;
+function _isMimzy(c) { return !!(c && c.name && _MIMZY_RE.test(c.name)); }
+
+let _mzOverlayRafId = null;
+let _mzMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _mzMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _mzHX = _mzMX, _mzHY = _mzMY;     // the reaching hand (slow)
+let _mzReachAng = 0;
+const _MZ_WHITE = '#fffafd', _MZ_PINK_L = '#ffd9ea', _MZ_PINK = '#ff9ec7', _MZ_PINK_D = '#e86fa6', _MZ_CORE = '#fff1b8';
+
+function _mzMouseMove(e) { _mzMX = e.clientX; _mzMY = e.clientY; }
+
+// a prettier layered blossom: outer petals (base→tip gradient), lighter inner
+// petals, a soft golden center with stamen dots
+function _mzFlower(ctx, x, y, r, rot, baseCol, tipCol, alpha) {
+  const A = alpha == null ? 1 : alpha;
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot);
+  // outer petals
+  for (let i = 0; i < 5; i++) {
+    ctx.rotate((Math.PI * 2) / 5);
+    const g = ctx.createLinearGradient(0, 0, 0, -r);
+    g.addColorStop(0, baseCol); g.addColorStop(1, tipCol);
+    ctx.fillStyle = g; ctx.globalAlpha = A;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(r * 0.48, -r * 0.55, 0, -r);
+    ctx.quadraticCurveTo(-r * 0.48, -r * 0.55, 0, 0);
+    ctx.fill();
+  }
+  // inner petals (smaller, lighter, offset)
+  ctx.rotate(Math.PI / 5);
+  ctx.fillStyle = tipCol; ctx.globalAlpha = A * 0.85;
+  for (let i = 0; i < 5; i++) {
+    ctx.rotate((Math.PI * 2) / 5);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(r * 0.3, -r * 0.34, 0, -r * 0.62);
+    ctx.quadraticCurveTo(-r * 0.3, -r * 0.34, 0, 0);
+    ctx.fill();
+  }
+  ctx.rotate(-Math.PI / 5);
+  ctx.globalAlpha = A;
+  // golden center + stamen dots
+  const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.34);
+  cg.addColorStop(0, '#fff6d8'); cg.addColorStop(1, '#ffce72');
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#e8a13a';
+  for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.18, Math.sin(a) * r * 0.18, r * 0.055, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
+// a black 4-pointed star with elongated top/bottom points (the cursor)
+function _mzStar(ctx, x, y, rV, rH, rin, rot, alpha) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot || 0); ctx.globalAlpha = alpha == null ? 1 : alpha;
+  const outer = [rV, rH, rV, rH];     // top, right, bottom, left
+  ctx.beginPath();
+  for (let i = 0; i < 4; i++) {
+    const oa = -Math.PI / 2 + i * Math.PI / 2;
+    const ox = Math.cos(oa) * outer[i], oy = Math.sin(oa) * outer[i];
+    if (i === 0) ctx.moveTo(ox, oy); else ctx.lineTo(ox, oy);
+    const ia = oa + Math.PI / 4;
+    ctx.lineTo(Math.cos(ia) * rin, Math.sin(ia) * rin);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#111016'; ctx.fill();
+  ctx.restore();
+}
+
+// ── background: dreamy white/pink, blooming flowers, drifting petals ──
+function _drawMimzyPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawMimzyPattern._lt === undefined;
+  if (!fresh && t - _drawMimzyPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawMimzyPattern._lt, 0.05);
+  _drawMimzyPattern._lt = t;
+
+  // soft white→pink wash
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#fff7fb'); bg.addColorStop(0.5, '#ffe6f1'); bg.addColorStop(1, '#ffc9de');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  // gentle white glow from above
+  const gl = ctx.createRadialGradient(W * 0.5, H * 0.18, 0, W * 0.5, H * 0.18, Math.hypot(W, H) * 0.7);
+  gl.addColorStop(0, 'rgba(255,255,255,0.55)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+
+  // faint pale-pink harlequin diamonds (soft jester motif)
+  ctx.save();
+  ctx.globalAlpha = 0.05; ctx.fillStyle = _MZ_PINK;
+  const ds = 84, ph = (t * 5) % ds;
+  for (let yy = -ds; yy < H + ds; yy += ds) {
+    for (let xx = -ds; xx < W + ds; xx += ds) {
+      if (((Math.round(xx / ds) + Math.round(yy / ds)) % 2)) continue;
+      const cxp = xx, cyp = yy + ph;
+      ctx.beginPath(); ctx.moveTo(cxp, cyp - ds * 0.5); ctx.lineTo(cxp + ds * 0.5, cyp);
+      ctx.lineTo(cxp, cyp + ds * 0.5); ctx.lineTo(cxp - ds * 0.5, cyp); ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // seed flowers (framed around the edges — a garden along the bottom and a few
+  // in the corners, away from the centre panels), petals & sparkles
+  if (!canvas._mzFlowers || canvas._mzW !== W || canvas._mzH !== H) {
+    canvas._mzW = W; canvas._mzH = H;
+    const F = [];
+    const bottomN = 8;
+    for (let i = 0; i < bottomN; i++) {
+      F.push({
+        x: W * (0.05 + 0.9 * (i / (bottomN - 1))) + (Math.random() - 0.5) * W * 0.05,
+        y: H * (0.80 + Math.random() * 0.15), r: 18 + Math.random() * 16,
+        rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.5, ph: Math.random() * 6,
+        deep: i % 2 === 0, hover: 0, emit: 0,
+      });
+    }
+    for (const [fx, fy, fr] of [[0.08, 0.14, 16], [0.92, 0.12, 18], [0.15, 0.42, 13], [0.86, 0.46, 14], [0.5, 0.08, 15]]) {
+      F.push({ x: W * fx, y: H * fy, r: fr + Math.random() * 8, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.5, ph: Math.random() * 6, deep: Math.random() < 0.5, hover: 0, emit: 0 });
+    }
+    canvas._mzFlowers = F;
+    canvas._mzPetals = Array.from({ length: 22 }, () => ({
+      x: Math.random() * W, y: Math.random() * H, r: 5 + Math.random() * 7,
+      vy: 12 + Math.random() * 22, sway: Math.random() * 6, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 2,
+    }));
+    canvas._mzFly = [];
+    canvas._mzSpk = Array.from({ length: 16 }, () => ({ x: Math.random() * W, y: Math.random() * H, ph: Math.random() * 6, sz: 1.5 + Math.random() * 3 }));
+  }
+
+  // cursor in this canvas's pixel space (for interactivity)
+  const rect = canvas.getBoundingClientRect();
+  const csx = rect.width ? W / rect.width : 1, csy = rect.height ? H / rect.height : 1;
+  const cpx = (_mzMX - rect.left) * csx, cpy = (_mzMY - rect.top) * csy;
+
+  // drifting ambient petals
+  for (const p of canvas._mzPetals) {
+    p.y += p.vy * dt; p.x += Math.sin(t * 0.8 + p.sway) * 14 * dt; p.rot += p.vr * dt;
+    if (p.y > H + 12) { p.y = -12; p.x = Math.random() * W; }
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = 0.5;
+    ctx.fillStyle = _MZ_PINK;
+    ctx.beginPath(); ctx.ellipse(0, 0, p.r * 0.55, p.r, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // interactive blossoms — they bloom, spin & shed petals when the cursor nears
+  for (const fl of canvas._mzFlowers) {
+    const d = Math.hypot(fl.x - cpx, fl.y - cpy);
+    const near = Math.max(0, 1 - d / 160);
+    fl.hover += (near - fl.hover) * Math.min(1, dt * 6);
+    fl.rot += (fl.vr + fl.hover * 3) * dt;
+    const bloom = 0.82 + 0.12 * Math.sin(t * 0.9 + fl.ph) + fl.hover * 0.5;
+    const sway = Math.sin(t * 0.5 + fl.ph) * 5 * (1 - fl.hover * 0.4);
+    // shed petals while strongly hovered
+    fl.emit -= dt;
+    if (fl.hover > 0.55 && fl.emit <= 0) {
+      fl.emit = 0.12;
+      const a = Math.random() * Math.PI * 2, sp = 30 + Math.random() * 60;
+      canvas._mzFly.push({ x: fl.x, y: fl.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40, r: 5 + Math.random() * 5, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 5, life: 1, deep: fl.deep });
+      if (canvas._mzFly.length > 70) canvas._mzFly.shift();
+    }
+    ctx.save();
+    if (fl.hover > 0.05) { ctx.shadowColor = 'rgba(255,150,200,0.7)'; ctx.shadowBlur = 16 * fl.hover; }
+    _mzFlower(ctx, fl.x + sway, fl.y, fl.r * bloom, fl.rot, fl.deep ? _MZ_PINK_D : _MZ_PINK, _MZ_PINK_L, 0.6 + fl.hover * 0.4);
+    ctx.restore();
+  }
+
+  // petals shed by interaction (with gravity + fade)
+  for (let i = canvas._mzFly.length - 1; i >= 0; i--) {
+    const p = canvas._mzFly[i];
+    p.life -= dt * 0.7; if (p.life <= 0) { canvas._mzFly.splice(i, 1); continue; }
+    p.vy += 90 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; p.vx *= 0.99;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = p.life * 0.8;
+    ctx.fillStyle = p.deep ? _MZ_PINK_D : _MZ_PINK;
+    ctx.beginPath(); ctx.ellipse(0, 0, p.r * 0.55, p.r, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // sparkles
+  ctx.save();
+  for (const s of canvas._mzSpk) {
+    const tw = Math.sin(t * 2.5 + s.ph); if (tw <= 0) continue;
+    const z = s.sz * (0.6 + tw); ctx.globalAlpha = tw * 0.7; ctx.fillStyle = '#ffffff';
+    ctx.save(); ctx.translate(s.x, s.y);
+    ctx.beginPath(); ctx.moveTo(0, -z * 3); ctx.lineTo(z * 0.5, 0); ctx.lineTo(0, z * 3); ctx.lineTo(-z * 0.5, 0); ctx.closePath();
+    ctx.moveTo(-z * 3, 0); ctx.lineTo(0, z * 0.5); ctx.lineTo(z * 3, 0); ctx.lineTo(0, -z * 0.5); ctx.closePath();
+    ctx.fill(); ctx.restore();
+  }
+  ctx.restore();
+
+  // soft pink vignette
+  const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.35, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.62);
+  vg.addColorStop(0, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(255,150,195,0.22)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+}
+
+// ── the pale jester hand + a long ruffled sleeve from below ──
+function _mzDrawHand(ctx, ax, ay, hx, hy, ang, t) {
+  // sleeve: tapered from the off-screen shoulder to the wrist
+  const wristx = hx - Math.cos(ang) * 22, wristy = hy - Math.sin(ang) * 22;
+  const nx = -Math.sin(ang), ny = Math.cos(ang);     // perpendicular
+  const wW = 26, sW = 64;                              // wrist / shoulder half-widths
+  ctx.save();
+  const sg = ctx.createLinearGradient(ax, ay, wristx, wristy);
+  sg.addColorStop(0, _MZ_PINK_L); sg.addColorStop(1, _MZ_WHITE);
+  ctx.fillStyle = sg;
+  ctx.beginPath();
+  ctx.moveTo(ax + nx * sW, ay + ny * sW); ctx.lineTo(wristx + nx * wW, wristy + ny * wW);
+  ctx.lineTo(wristx - nx * wW, wristy - ny * wW); ctx.lineTo(ax - nx * sW, ay - ny * sW);
+  ctx.closePath(); ctx.fill();
+  // pink diagonal jester stripes on the sleeve
+  ctx.save(); ctx.clip(); ctx.strokeStyle = 'rgba(255,158,199,0.5)'; ctx.lineWidth = 7;
+  for (let d = -1; d < 14; d++) {
+    const f = d / 13;
+    const cxp = ax + (wristx - ax) * f, cyp = ay + (wristy - ay) * f;
+    ctx.beginPath(); ctx.moveTo(cxp + nx * sW - Math.cos(ang) * 16, cyp + ny * sW - Math.sin(ang) * 16);
+    ctx.lineTo(cxp - nx * sW + Math.cos(ang) * 16, cyp - ny * sW + Math.sin(ang) * 16); ctx.stroke();
+  }
+  ctx.restore();
+
+  // ruffled cuff at the wrist (scalloped)
+  ctx.fillStyle = _MZ_WHITE; ctx.strokeStyle = _MZ_PINK; ctx.lineWidth = 2;
+  const scallops = 7;
+  ctx.beginPath();
+  for (let i = 0; i <= scallops; i++) {
+    const f = i / scallops - 0.5;
+    const bx = wristx + nx * f * 2 * (wW + 8), by = wristy + ny * f * 2 * (wW + 8);
+    const ox = -Math.cos(ang) * 12, oy = -Math.sin(ang) * 12;
+    if (i === 0) ctx.moveTo(bx, by);
+    else ctx.quadraticCurveTo(bx + ox - nx * 4, by + oy - ny * 4, bx, by);
+  }
+  ctx.stroke();
+  // pink flowers tucked into the cuff
+  _mzFlower(ctx, wristx + nx * 10, wristy + ny * 10, 6, t * 0.4, _MZ_PINK_D, _MZ_PINK_L, 1);
+  _mzFlower(ctx, wristx - nx * 14, wristy - ny * 14, 4.6, -t * 0.5, _MZ_PINK, _MZ_PINK_L, 1);
+
+  // the hand itself — palm at wrist, fingers reaching toward the cursor (+x local)
+  ctx.translate(hx, hy); ctx.rotate(ang);
+  const grasp = 0.5 + 0.5 * Math.sin(t * 0.7);          // slow open/close
+  // palm
+  const pg = ctx.createRadialGradient(-2, -2, 2, 0, 0, 17);
+  pg.addColorStop(0, _MZ_WHITE); pg.addColorStop(1, '#f4d7e4');
+  ctx.fillStyle = pg; ctx.strokeStyle = _MZ_PINK; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(0, 0, 15, 12, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // fingers (4) fanning from the front edge, curling as they grasp
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (let i = 0; i < 4; i++) {
+    const spread = -0.62 + i * 0.41;
+    const len = 17 + (i === 1 || i === 2 ? 4 : 0);
+    const curl = grasp * 0.7;
+    const bx = Math.cos(spread) * 12, by = Math.sin(spread) * 12;
+    const mx = bx + Math.cos(spread) * len * 0.55, my = by + Math.sin(spread) * len * 0.55;
+    const tx = mx + Math.cos(spread + curl) * len * 0.5, ty = my + Math.sin(spread + curl) * len * 0.5;
+    ctx.strokeStyle = _MZ_WHITE; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(mx, my, tx, ty); ctx.stroke();
+    ctx.strokeStyle = '#f4d7e4'; ctx.lineWidth = 7; ctx.globalAlpha = 0.4;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(mx, my, tx, ty); ctx.stroke(); ctx.globalAlpha = 1;
+    // tiny pink bell on the fingertip
+    ctx.fillStyle = _MZ_PINK; ctx.beginPath(); ctx.arc(tx, ty, 2.6, 0, Math.PI * 2); ctx.fill();
+  }
+  // thumb (off to one side, curling in)
+  {
+    const sp = -1.5, curl = 0.5 + grasp * 0.5;
+    const bx = Math.cos(sp) * 11, by = Math.sin(sp) * 11;
+    const tx = bx + Math.cos(sp + curl) * 13, ty = by + Math.sin(sp + curl) * 13;
+    ctx.strokeStyle = _MZ_WHITE; ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tx, ty); ctx.stroke();
+    ctx.fillStyle = _MZ_PINK; ctx.beginPath(); ctx.arc(tx, ty, 2.6, 0, Math.PI * 2); ctx.fill();
+  }
+  // little pink flowers adorning the back of the hand
+  _mzFlower(ctx, -3, -4, 5.4, t * 0.5, _MZ_PINK_D, _MZ_PINK_L, 1);
+  _mzFlower(ctx, 5, 5, 4.4, -t * 0.4, _MZ_PINK, _MZ_PINK_L, 1);
+  _mzFlower(ctx, -9, 4, 3.8, t * 0.3, _MZ_PINK, _MZ_PINK_L, 1);
+  ctx.restore();
+}
+
+function _drawMimzyOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawMimzyOverlay._lt === undefined;
+  if (!fresh && t - _drawMimzyOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawMimzyOverlay._lt, 0.05);
+  _drawMimzyOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  // the hand creeps toward the cursor at a slow, fixed pace (never quite catches a moving target)
+  const dx = _mzMX - _mzHX, dy = _mzMY - _mzHY, d = Math.hypot(dx, dy);
+  const step = 135 * dt;
+  if (d > 1) { const s = Math.min(step, d); _mzHX += (dx / d) * s; _mzHY += (dy / d) * s; }
+  // a faint nervous tremor in the reach
+  const hx = _mzHX + Math.sin(t * 2.3) * 1.5, hy = _mzHY + Math.cos(t * 1.9) * 1.5;
+
+  // shoulder anchored off-screen at the bottom; arm reaches up toward the cursor
+  const ax = W * 0.5, ay = H + 70;
+  const targetAng = Math.atan2(_mzMY - ay, _mzMX - ax);
+  let da = targetAng - _mzReachAng;
+  while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2;
+  _mzReachAng += da * Math.min(1, dt * 1.4);
+
+  _mzDrawHand(ctx, ax, ay, hx, hy, _mzReachAng, t);
+
+  // the cursor: a black 4-pointed star with elongated top/bottom points
+  const pulse = 1 + Math.sin(t * 3) * 0.06;
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,255,255,0.85)'; ctx.shadowBlur = 8;   // white halo so it reads on any panel
+  _mzStar(ctx, _mzMX, _mzMY, 17 * pulse, 9, 3.4, 0, 1);
+  ctx.restore();
+  ctx.save(); ctx.globalAlpha = 0.7; ctx.fillStyle = _MZ_PINK;
+  ctx.beginPath(); ctx.arc(_mzMX, _mzMY, 1.8, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+
+function _startMimzyOverlay() {
+  _stopMimzyOverlay();
+  _drawMimzyOverlay._lt = undefined;
+  _mzHX = _mzMX; _mzHY = _mzMY; _mzReachAng = -Math.PI / 2;
+  window.addEventListener('mousemove', _mzMouseMove);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'mimzy-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('mimzy-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawMimzyOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _mzOverlayRafId = requestAnimationFrame(frame);
+  }
+  _mzOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopMimzyOverlay() {
+  if (_mzOverlayRafId) { cancelAnimationFrame(_mzOverlayRafId); _mzOverlayRafId = null; }
+  window.removeEventListener('mousemove', _mzMouseMove);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('mimzy-overlay'); if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // CAPPY — the screen is filled with white milk: gooey metaball blobs that
 // flow toward the cursor (viscous, sloshing). The cursor is a glowing blue
 // Star of David. Character-wide (matches "Cappy").
@@ -12476,6 +13532,9 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'iris_starlight') { _drawIrisPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
+  if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'jeckely_box')    { _drawJeckelyPattern(canvas, ctx, W, H, t);             return; }
+  if (type === 'mimzy_bloom')    { _drawMimzyPattern(canvas, ctx, W, H, t);               return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -12973,6 +14032,12 @@ function startBgAnim(type, params) {
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
   _drawEmporiumOverlay._lt    = undefined;
+  _drawAlsacePattern._lt      = undefined;
+  _drawAlsaceOverlay._lt      = undefined;
+  _drawJeckelyPattern._lt     = undefined;
+  _drawJeckelyOverlay._lt     = undefined;
+  _drawMimzyPattern._lt       = undefined;
+  _drawMimzyOverlay._lt       = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -13019,6 +14084,9 @@ function stopBgAnim() {
   _stopMbOverlay();
   _stopSorrowOverlay();
   _stopEmporiumOverlay();
+  _stopAlsaceOverlay();
+  _stopJeckelyOverlay();
+  _stopMimzyOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -13522,6 +14590,9 @@ function viewChar(id) {
   else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
   else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
   else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
+  else if (_isAlsace(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#4f7bdf'); }
+  else if (_isJeckely(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c23b46'); }
+  else if (_isMimzy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fc0'); }
   else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
@@ -13756,6 +14827,69 @@ function viewChar(id) {
     }
   }
 
+  // ── Alsace — dark jester UI chrome (deep-blue spiral panels, woozy glitching
+  // name, hypno-spiral portrait). Character-wide. Placed after Emporium so its
+  // name data-text survives. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isAlsace(c)) {
+      _cvRoot.classList.add('alsace-ui');
+      _cvRoot.classList.toggle('alsace-maskoff', _isAlsaceMaskOff(c));
+      if (_av) _av.classList.add('alsace-pfp');
+      if (_nm) { _nm.classList.add('alsace-name'); _nm.setAttribute('data-text', _nm.textContent || 'ALSACE'); }
+      if (_pc) _pc.style.opacity = '0.92';
+    } else {
+      _cvRoot.classList.remove('alsace-ui');
+      _cvRoot.classList.remove('alsace-maskoff');
+      if (_av) _av.classList.remove('alsace-pfp');
+      if (_nm) { _nm.classList.remove('alsace-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Jeckely — tense theatre-jester UI chrome (black/crimson panels, a
+  // nervously flickering name, spotlit portrait). Character-wide. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isJeckely(c)) {
+      _cvRoot.classList.add('jeckely-ui');
+      if (_av) _av.classList.add('jeckely-pfp');
+      if (_nm) { _nm.classList.add('jeckely-name'); _nm.setAttribute('data-text', _nm.textContent || 'JECKELY'); }
+      if (_pc) _pc.style.opacity = '0.95';
+    } else {
+      _cvRoot.classList.remove('jeckely-ui');
+      if (_av) _av.classList.remove('jeckely-pfp');
+      if (_nm) { _nm.classList.remove('jeckely-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Mimzy — soft sweet-jester UI chrome (pink-tinted panels, a tender glowing
+  // name with a petal-pink shimmer, blossom-framed portrait). Character-wide. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isMimzy(c)) {
+      _cvRoot.classList.add('mimzy-ui');
+      if (_av) _av.classList.add('mimzy-pfp');
+      if (_nm) { _nm.classList.add('mimzy-name'); _nm.setAttribute('data-text', _nm.textContent || 'MIMZY'); }
+      if (_pc) _pc.style.opacity = '0.95';
+    } else {
+      _cvRoot.classList.remove('mimzy-ui');
+      if (_av) _av.classList.remove('mimzy-pfp');
+      if (_nm) { _nm.classList.remove('mimzy-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c)) _pc.style.opacity = '';
+    }
+  }
+
   // ── Evelynn — elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -13853,7 +14987,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -13865,7 +14999,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -13919,6 +15053,9 @@ function viewChar(id) {
   if (_isIris(c))     _startIrisOverlay();
   if (_isMb(c))       _startMbOverlay();
   if (_isEmporium(c)) _startEmporiumOverlay();
+  if (_isAlsace(c))   { _alsMaskOff = _isAlsaceMaskOff(c); _startAlsaceOverlay(); }
+  if (_isJeckely(c))  _startJeckelyOverlay();
+  if (_isMimzy(c))    _startMimzyOverlay();
   }
 
   renderInventory(c);
@@ -19170,7 +20307,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -19201,6 +20338,9 @@ window.addEventListener('resize', () => {
       if (_isIris(c))     _startIrisOverlay();
       if (_isMb(c))       _startMbOverlay();
       if (_isEmporium(c)) _startEmporiumOverlay();
+      if (_isAlsace(c))   { _alsMaskOff = _isAlsaceMaskOff(c); _startAlsaceOverlay(); }
+      if (_isJeckely(c))  _startJeckelyOverlay();
+      if (_isMimzy(c))    _startMimzyOverlay();
     }
   }
 });
