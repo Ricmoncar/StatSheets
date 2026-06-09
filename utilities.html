@@ -562,7 +562,29 @@
   .gs-lol:hover:not(.active) { color:rgba(0,180,220,.55); border-color:rgba(0,180,220,.22); }
   .gs-lol.active { color:#00b4de; border-color:rgba(0,180,220,.4); background:rgba(0,180,220,.07); box-shadow:0 0 18px rgba(0,180,220,.09); }
   .gs-lol::after { background:#00b4de; box-shadow:0 0 10px rgba(0,180,220,.7); }
+  /* CRTL (Control) — emerald */
+  .gs-crtl:hover:not(.active) { color:rgba(54,201,138,.55); border-color:rgba(54,201,138,.22); }
+  .gs-crtl.active { color:#36c98a; border-color:rgba(54,201,138,.4); background:rgba(54,201,138,.07); box-shadow:0 0 18px rgba(54,201,138,.09); }
+  .gs-crtl::after { background:#36c98a; box-shadow:0 0 10px rgba(54,201,138,.7); }
   .gs-desc { font-size:8px; color:#3a3a3a; letter-spacing:1px; margin:0 0 18px; line-height:1.9; }
+
+  /* ── CRTL (Control) editor bits ─────────────────────────────── */
+  .crtl-type-toggle { display:flex; gap:6px; margin-bottom:14px; }
+  .crtl-type-btn { flex:1; padding:9px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.07); border-radius:3px; color:#333; font-family:inherit; font-size:8px; letter-spacing:3px; cursor:pointer; transition:all .15s; }
+  .crtl-type-btn:hover { background:rgba(255,255,255,.06); color:#666; }
+  .crtl-type-btn.entity.active { background:rgba(200,50,70,.12); border-color:#bb2233; color:#dd4455; }
+  .crtl-type-btn.klass.active  { background:rgba(54,201,138,.12); border-color:#2fae78; color:#36c98a; }
+  .crtl-stars { display:flex; gap:6px; }
+  .crtl-star { font-size:17px; color:#2a2a2a; cursor:pointer; transition:color .12s,text-shadow .12s; line-height:1; }
+  .crtl-star:hover { color:#5a5a3a; }
+  .crtl-star.on { color:#ffd24a; text-shadow:0 0 8px rgba(255,200,60,.55); }
+  .crtl-star.view { cursor:default; }
+  .crtl-star.view:hover { color:inherit; }
+  .crtl-hp-row { display:flex; align-items:center; gap:12px; }
+  .crtl-hp-range { flex:1; accent-color:#36c98a; cursor:pointer; }
+  .crtl-hp-val { font-size:9px; color:#36c98a; letter-spacing:1px; min-width:62px; text-align:right; font-family:'Press Start 2P',monospace; }
+  .crtl-hp-bar { height:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:4px; overflow:hidden; }
+  .crtl-hp-fill { height:100%; background:linear-gradient(90deg,#1f8f5e,#36c98a); transition:width .15s; }
 
   /* ── LoL view card ──────────────────────────────────────────── */
   .lol-view-card { position:relative; overflow:hidden; background:#020305; border:1px solid rgba(255,255,255,.07); border-radius:8px; min-height:260px; transition:border-color .25s; }
@@ -925,6 +947,9 @@
       <button class="gs-tab gs-lol" data-gs="lol" onclick="gsSelect('lol')">
         <span class="gs-tab-icon">⚔</span>LOL
       </button>
+      <button class="gs-tab gs-crtl" data-gs="crtl" onclick="gsSelect('crtl')">
+        <span class="gs-tab-icon">⊙</span>CRTL
+      </button>
     </div>
 
     <!-- NMT -->
@@ -953,6 +978,13 @@
       <p class="gs-desc">Your character joins the Rift. Define their passive, Q, W, E, and R, and pick the colors that make each ability theirs.</p>
       <div id="lol-grid" class="nmt-grid"></div>
       <div id="lol-editor" class="nmt-content-wrap" style="display:none;"></div>
+    </div>
+
+    <!-- CRTL -->
+    <div id="gs-crtl" class="gs-content" style="display:none;">
+      <p class="gs-desc">Your character enters Control. Are they an ENTITY — with attack patterns, passives &amp; a speed rating — or a CLASS, with HP, items &amp; passives?</p>
+      <div id="crtl-grid" class="nmt-grid"></div>
+      <div id="crtl-editor" class="nmt-content-wrap" style="display:none;"></div>
     </div>
   </div>
 
@@ -1153,7 +1185,7 @@ let _gsActive = 'nmt';
 function gsSelect(key) {
   _gsActive = key;
   document.querySelectorAll('.gs-tab').forEach(b => b.classList.toggle('active', b.dataset.gs === key));
-  ['nmt','fh','fg','lol'].forEach(k => {
+  ['nmt','fh','fg','lol','crtl'].forEach(k => {
     const el = document.getElementById('gs-'+k);
     if (el) el.style.display = k === key ? '' : 'none';
   });
@@ -1162,6 +1194,7 @@ function gsSelect(key) {
   if (key === 'fh'  && typeof _fhMode  !== 'undefined' && _fhMode  !== 'edit') _fhRenderGrid();
   if (key === 'fg'  && typeof _fgMode  !== 'undefined' && _fgMode  !== 'edit') _fgRenderGrid();
   if (key === 'lol' && typeof _lolMode !== 'undefined' && _lolMode !== 'edit') _lolRenderGrid();
+  if (key === 'crtl' && typeof _crtlMode !== 'undefined' && _crtlMode !== 'edit') _crtlRenderGrid();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1193,6 +1226,7 @@ function nmtInit() {
   if (typeof fhInit  === 'function') fhInit();
   if (typeof fgInit  === 'function') fgInit();
   if (typeof lolInit === 'function') lolInit();
+  if (typeof crtlInit === 'function') crtlInit();
 }
 
 function _nmtEsc(s) {
@@ -2176,6 +2210,257 @@ function _fhScheduleSaveChar(charId) {
     const d=_fhData[charId]; if(!d)return;
     db.collection('finalHour').doc(charId).set(d).catch(e=>console.error('FH save error',e));
   },900);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CRTL (CONTROL) — ENTITIES & CLASSES
+// ══════════════════════════════════════════════════════════════
+let _crtlData = {}, _crtlSel = null, _crtlMode = 'view', _crtlListening = false;
+
+function crtlInit() {
+  if (!_crtlListening && typeof db !== 'undefined') {
+    _crtlListening = true;
+    db.collection('crtl').onSnapshot(snap => {
+      snap.docChanges().forEach(ch => {
+        if (ch.type === 'removed') delete _crtlData[ch.doc.id];
+        else _crtlData[ch.doc.id] = ch.doc.data();
+      });
+      if (_crtlMode === 'edit') return;
+      _crtlRenderGrid();
+      if (_crtlSel) _crtlRenderContent();
+    }, () => {});
+  }
+  if (_crtlMode !== 'edit') _crtlRenderGrid();
+}
+
+/* ── data shape guard ───────────────────────────────────────── */
+function _crtlChar(id) {
+  if (!_crtlData[id]) _crtlData[id] = {};
+  const d = _crtlData[id];
+  if (d.type !== 'class' && d.type !== 'entity') d.type = 'entity';
+  if (typeof d.speed !== 'number') d.speed = 3;
+  d.speed = Math.max(1, Math.min(5, Math.round(d.speed)));
+  if (typeof d.hp !== 'number') d.hp = 100;
+  d.hp = Math.max(50, Math.min(300, Math.round(d.hp)));
+  const arr = a => (Array.isArray(a) && a.length) ? a.map(p => (p && typeof p === 'object') ? p : { name:'', desc: p||'' }) : [{ name:'', desc:'' }];
+  d.attackPatterns = arr(d.attackPatterns);
+  d.passives = arr(d.passives);
+  d.items = arr(d.items);
+  return d;
+}
+function _crtlArr(d, kind) { return kind === 'pattern' ? d.attackPatterns : kind === 'item' ? d.items : d.passives; }
+
+/* ── grid ───────────────────────────────────────────────────── */
+function _crtlRenderGrid() {
+  const el = document.getElementById('crtl-grid');
+  if (!el) return;
+  const chars = (typeof characters!=='undefined'?characters:[]).filter(c=>!c.isPlaceholder);
+  if (!chars.length) { el.innerHTML='<div style="color:#2a2a2a;font-size:8px;letter-spacing:2px;padding:24px 0;text-align:center;grid-column:1/-1;">NO CHARACTERS YET</div>'; return; }
+  el.innerHTML = chars.map(c => {
+    const d = _crtlData[c.id];
+    const hasDot = d && ((d.attackPatterns||[]).some(p=>p.name||p.desc) || (d.passives||[]).some(p=>p.name||p.desc) || (d.items||[]).some(p=>p.name||p.desc));
+    const dotCol = d?.type==='entity' ? '#dd4455' : d?.type==='class' ? '#36c98a' : (c.color||'#888');
+    const av = c.avatar
+      ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${c.color||'#333'}22;color:${c.color||'#888'};font-size:18px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+    const on = _crtlSel===c.id;
+    return `<div class="nmt-char-card${on?' nmt-card-active':''}" style="${on?`border-color:${c.color||'#888'}55;`:''}" onclick="crtlSelect('${c.id}')">
+      <div class="nmt-card-avatar" style="border-color:${c.color||'#444'}77">${av}</div>
+      <div class="nmt-card-name" style="${on?`color:${c.color||'#aaa'};`:''}">${_nmtEsc(c.name||'UNNAMED')}</div>
+      ${hasDot?`<div class="nmt-card-dot" style="background:${dotCol}"></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* ── select / mode ──────────────────────────────────────────── */
+function crtlSelect(id) {
+  const switching = _crtlSel!==id;
+  _crtlSel = id;
+  if (switching) _crtlMode = 'view';
+  _crtlRenderGrid();
+  const wrap = document.getElementById('crtl-editor');
+  if (wrap) wrap.style.display = '';
+  _crtlRenderContent();
+  if (switching) setTimeout(()=>wrap?.scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+}
+function _crtlRenderContent() { _crtlMode==='view' ? _crtlRenderView() : _crtlRenderEdit(); }
+function crtlSetMode(m) { _crtlMode = m; _crtlRenderContent(); }
+
+function _crtlStars(n, interactive) {
+  let h = '<div class="crtl-stars">';
+  for (let i=1;i<=5;i++) h += `<span class="crtl-star ${i<=n?'on':''}${interactive?'':' view'}"${interactive?` onclick="crtlSetSpeed(${i})"`:''}>★</span>`;
+  return h + '</div>';
+}
+
+/* ── VIEW MODE ──────────────────────────────────────────────── */
+function _crtlRenderView() {
+  const wrap = document.getElementById('crtl-editor');
+  if (!wrap || !_crtlSel) return;
+  const chars = typeof characters!=='undefined' ? characters : [];
+  const c = chars.find(x=>x.id===_crtlSel); if (!c) return;
+  const d = _crtlChar(_crtlSel);
+  const col = c.color||'#888888';
+  const isEnt = d.type==='entity';
+  const accent = isEnt ? '#dd4455' : '#36c98a';
+  const av = c.avatar
+    ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${col}22;color:${col};font-size:28px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+
+  const mkBlock = (title, arr, bullet, bcol) => {
+    const filled = arr.filter(e => (e.name||'').trim() || (e.desc||'').trim());
+    if (!filled.length) return '';
+    return `<div style="margin-bottom:14px;">
+      <div style="font-size:6px;letter-spacing:4px;color:${bcol};margin-bottom:8px;">${title}</div>
+      ${filled.map(e => `<div style="display:flex;gap:9px;padding:8px 11px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.04);border-left:2px solid ${bcol};border-radius:2px;margin-bottom:5px;">
+        <span style="color:${bcol};font-size:10px;flex-shrink:0;line-height:1.4;">${bullet}</span>
+        <div style="flex:1;min-width:0;">
+          ${e.name?`<div style="font-size:8.5px;letter-spacing:1px;color:${bcol};margin-bottom:3px;font-family:'Press Start 2P',monospace;line-height:1.5;">${_nmtEsc(e.name)}</div>`:''}
+          ${e.desc?`<div style="font-size:8px;color:rgba(255,255,255,.42);letter-spacing:.4px;line-height:1.9;">${_nmtEsc(e.desc)}</div>`:''}
+        </div>
+      </div>`).join('')}
+    </div>`;
+  };
+
+  const hasAny = isEnt
+    ? ((d.attackPatterns||[]).some(e=>e.name||e.desc) || (d.passives||[]).some(e=>e.name||e.desc))
+    : ((d.items||[]).some(e=>e.name||e.desc) || (d.passives||[]).some(e=>e.name||e.desc));
+
+  const body = isEnt ? `
+      <div style="margin-bottom:14px;">
+        <div style="font-size:6px;letter-spacing:4px;color:#555;margin-bottom:8px;">SPEED</div>
+        ${_crtlStars(d.speed,false)}
+      </div>
+      ${mkBlock('ATTACK PATTERNS', d.attackPatterns, '⚔', accent)}
+      ${mkBlock('PASSIVES', d.passives, '◆', '#8a8a96')}
+  ` : `
+      <div style="margin-bottom:14px;">
+        <div style="font-size:6px;letter-spacing:4px;color:#555;margin-bottom:8px;">HP &nbsp;<span style="color:${accent};font-family:'Press Start 2P',monospace;">${d.hp}</span></div>
+        <div class="crtl-hp-bar"><div class="crtl-hp-fill" style="width:${(d.hp-50)/250*100}%;"></div></div>
+      </div>
+      ${mkBlock('ITEMS', d.items, '✦', accent)}
+      ${mkBlock('PASSIVES', d.passives, '◆', '#8a8a96')}
+  `;
+
+  wrap.innerHTML = `
+    <div style="position:relative;overflow:hidden;background:#04060a;border:1px solid rgba(255,255,255,.07);border-top:2px solid ${accent};border-radius:8px;">
+      <div style="padding:20px;">
+        <div style="display:flex;align-items:flex-start;gap:16px;">
+          <div style="width:74px;height:74px;border-radius:50%;overflow:hidden;border:2px solid ${accent}66;flex-shrink:0;">${av}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Press Start 2P',monospace;font-size:12px;letter-spacing:2px;color:${col};margin-bottom:9px;line-height:1.5;">${_nmtEsc(c.name||'UNNAMED')}</div>
+            <span style="display:inline-block;font-size:6px;letter-spacing:3px;color:${accent};border:1px solid ${accent}55;padding:3px 9px;border-radius:2px;">${isEnt?'⚠ ENTITY':'◉ CLASS'}</span>
+            <div style="font-size:6px;letter-spacing:4px;color:#3a3a3a;margin-top:9px;">CONTROL</div>
+          </div>
+        </div>
+        <div style="height:1px;background:linear-gradient(90deg,${accent}55,transparent);margin:16px 0;"></div>
+        ${body}
+        ${!hasAny?`<div style="color:#282828;font-size:8px;letter-spacing:2px;text-align:center;padding:14px 0;">NO DATA. CLICK EDIT TO ADD.</div>`:''}
+        <div style="display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.04);padding-top:12px;margin-top:8px;">
+          <button class="btn sm" onclick="crtlSetMode('edit')">EDIT</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ── EDIT MODE ──────────────────────────────────────────────── */
+function _crtlEditRows(arr, kind, namePh, descPh) {
+  return arr.map((p,i)=>`
+    <div class="nmt-ability-row">
+      <span class="nmt-ability-num">${i+1}.</span>
+      <div class="nmt-ability-fields">
+        <input class="nmt-name-input" type="text" value="${_nmtEsc(p.name||'')}" placeholder="${namePh}" maxlength="60" oninput="crtlEdit('${kind}',${i},'name',this.value)"/>
+        <textarea class="nmt-textarea" rows="2" placeholder="${descPh}" oninput="crtlEdit('${kind}',${i},'desc',this.value)">${_nmtEsc(p.desc||'')}</textarea>
+      </div>
+      <button class="btn sm danger" onclick="crtlRemove('${kind}',${i})">✕</button>
+    </div>`).join('');
+}
+
+function _crtlRenderEdit() {
+  const wrap = document.getElementById('crtl-editor');
+  if (!wrap || !_crtlSel) return;
+  const chars = typeof characters!=='undefined' ? characters : [];
+  const c = chars.find(x=>x.id===_crtlSel); if (!c) return;
+  const d = _crtlChar(_crtlSel);
+  const col = c.color||'#888';
+  const isEnt = d.type==='entity';
+  const av = c.avatar
+    ? `<img src="${_nmtEsc(c.avatar)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${col}22;color:${col};font-size:20px;font-family:sans-serif;">${(c.name||'?')[0].toUpperCase()}</div>`;
+
+  wrap.innerHTML = `
+    <div class="nmt-edit-header">
+      <div class="nmt-edit-avatar" style="border-color:${col}66">${av}</div>
+      <div class="nmt-edit-name" style="color:${col}">${_nmtEsc(c.name||'UNNAMED')}</div>
+      <span class="nmt-save-status" id="crtl-save-status" style="margin-left:auto;"></span>
+      <button class="btn sm accent" onclick="crtlSetMode('view')" style="margin-left:8px;">VIEW</button>
+    </div>
+    <div class="crtl-type-toggle">
+      <button class="crtl-type-btn entity${isEnt?' active':''}" onclick="crtlSetType('entity')">⚠ ENTITY</button>
+      <button class="crtl-type-btn klass${!isEnt?' active':''}" onclick="crtlSetType('class')">◉ CLASS</button>
+    </div>
+    ${isEnt ? `
+      <div class="nmt-section">
+        <div class="nmt-section-title">SPEED</div>
+        ${_crtlStars(d.speed,true)}
+      </div>
+      <div class="nmt-section">
+        <div class="nmt-section-title">ATTACK PATTERNS</div>
+        ${_crtlEditRows(d.attackPatterns,'pattern','Pattern name...','How the attack works...')}
+        ${d.attackPatterns.length<6?`<button class="btn sm" onclick="crtlAdd('pattern')" style="margin-top:6px;">+ PATTERN</button>`:''}
+      </div>
+    ` : `
+      <div class="nmt-section">
+        <div class="nmt-section-title">HP <span style="color:#555;">(50 – 300)</span></div>
+        <div class="crtl-hp-row">
+          <input class="crtl-hp-range" type="range" min="50" max="300" step="5" value="${d.hp}" oninput="crtlSetHp(this.value)"/>
+          <span class="crtl-hp-val" id="crtl-hp-val">${d.hp} HP</span>
+        </div>
+        <div class="crtl-hp-bar" style="margin-top:9px;"><div class="crtl-hp-fill" id="crtl-hp-fill" style="width:${(d.hp-50)/250*100}%;"></div></div>
+      </div>
+      <div class="nmt-section">
+        <div class="nmt-section-title">ITEMS</div>
+        ${_crtlEditRows(d.items,'item','Item name...','What the item does...')}
+        ${d.items.length<6?`<button class="btn sm" onclick="crtlAdd('item')" style="margin-top:6px;">+ ITEM</button>`:''}
+      </div>
+    `}
+    <div class="nmt-section">
+      <div class="nmt-section-title">PASSIVES</div>
+      ${_crtlEditRows(d.passives,'passive','Passive name...','What the passive does...')}
+      ${d.passives.length<6?`<button class="btn sm" onclick="crtlAdd('passive')" style="margin-top:6px;">+ PASSIVE</button>`:''}
+    </div>`;
+}
+
+/* ── edit actions ───────────────────────────────────────────── */
+function crtlSetType(tp) { if(!_crtlSel)return; _crtlChar(_crtlSel).type = tp; _crtlRenderEdit(); _crtlScheduleSave(); }
+function crtlSetSpeed(n) { if(!_crtlSel)return; _crtlChar(_crtlSel).speed = Math.max(1,Math.min(5,n)); _crtlRenderEdit(); _crtlScheduleSave(); }
+function crtlSetHp(v) {
+  if(!_crtlSel)return;
+  const d = _crtlChar(_crtlSel);
+  d.hp = Math.max(50,Math.min(300,Math.round(+v||100)));
+  const val = document.getElementById('crtl-hp-val'); if(val) val.textContent = d.hp+' HP';
+  const fill = document.getElementById('crtl-hp-fill'); if(fill) fill.style.width = ((d.hp-50)/250*100)+'%';
+  _crtlScheduleSave();
+}
+function crtlEdit(kind,i,field,v) { if(!_crtlSel)return; const a=_crtlArr(_crtlChar(_crtlSel),kind); if(a[i]) a[i][field]=v; _crtlScheduleSave(); }
+function crtlAdd(kind) { if(!_crtlSel)return; const a=_crtlArr(_crtlChar(_crtlSel),kind); if(a.length<6) a.push({name:'',desc:''}); _crtlRenderEdit(); _crtlScheduleSave(); }
+function crtlRemove(kind,i) { if(!_crtlSel)return; const a=_crtlArr(_crtlChar(_crtlSel),kind); a.splice(i,1); if(!a.length) a.push({name:'',desc:''}); _crtlRenderEdit(); _crtlScheduleSave(); }
+
+/* ── save ───────────────────────────────────────────────────── */
+function _crtlScheduleSave() {
+  const el = document.getElementById('crtl-save-status');
+  if (el) { el.innerHTML = _NMT_ICON_SAVING; el.className = 'nmt-save-status saving'; }
+  clearTimeout(window._crtlSaveTimer);
+  window._crtlSaveTimer = setTimeout(_crtlFlush, 900);
+}
+function _crtlFlush() {
+  if (!_crtlSel || typeof db === 'undefined') return;
+  const d = _crtlData[_crtlSel]; if (!d) return;
+  db.collection('crtl').doc(_crtlSel).set(d)
+    .then(()=>{
+      const el = document.getElementById('crtl-save-status');
+      if (el) { el.innerHTML = _NMT_ICON_SAVED; el.className = 'nmt-save-status saved'; }
+      setTimeout(()=>{ const e=document.getElementById('crtl-save-status'); if(e){e.innerHTML='';e.className='nmt-save-status';} },2000);
+    }).catch(e=>console.error('CRTL save error',e));
 }
 
 // ══════════════════════════════════════════════════════════════
