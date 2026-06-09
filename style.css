@@ -2181,6 +2181,91 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   EMPORIUM — opulent gold gun-range. Brushed-gold panels, an
+   engraved metallic name with a fast shine sweep, gilded portrait.
+   ============================================================ */
+#char-view.emporium-ui .panel {
+  --p-border: rgba(255,207,58,0.55);
+  border-color: rgba(255,207,58,0.5);
+  background: linear-gradient(180deg, rgba(28,20,6,0.94), rgba(14,10,4,0.96));
+  box-shadow:
+    0 0 24px rgba(180,130,20,0.22),
+    inset 0 0 34px rgba(90,60,10,0.3);
+}
+#char-view.emporium-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(140% 90% at 80% -20%, rgba(255,220,120,0.1), transparent 55%);
+}
+#char-view.emporium-ui .panel-title {
+  color: #ffe8a8 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(200,150,40,0.4);
+  text-shadow: 0 0 14px rgba(255,200,80,0.6);
+}
+#char-view.emporium-ui .tab-btn { color: #8a6a2a; }
+#char-view.emporium-ui .tab-btn:hover { color: #ffe6a0; text-shadow: 0 0 12px rgba(255,200,90,0.7); }
+#char-view.emporium-ui .tab-btn.active {
+  color: #fff3c0;
+  border-bottom-color: rgba(255,210,90,0.9);
+  text-shadow: 0 0 16px rgba(255,205,80,0.9);
+}
+
+/* Name: polished gold, engraved, with a quick metallic shine sweep */
+.char-name-display.emporium-name {
+  position: relative;
+  color: #ffe08a !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  text-shadow: 0 0 12px rgba(255,200,70,0.8), 0 2px 0 rgba(120,75,10,0.7), 0 0 30px rgba(200,140,30,0.5);
+  animation: emporium-name-breathe 4s ease-in-out infinite;
+}
+@keyframes emporium-name-breathe {
+  0%, 100% { text-shadow: 0 0 10px rgba(255,200,70,0.55), 0 2px 0 rgba(120,75,10,0.7), 0 0 22px rgba(200,140,30,0.3); }
+  50%      { text-shadow: 0 0 18px rgba(255,225,120,0.95), 0 2px 0 rgba(120,75,10,0.7), 0 0 40px rgba(220,160,40,0.6); }
+}
+.char-name-display.emporium-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,250,220,0.95) 50%, transparent 62%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: emporium-name-sweep 3.2s linear infinite;
+}
+@keyframes emporium-name-sweep {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -130% 0; }
+}
+
+/* Portrait: gilded frame, warm glow, fast glint */
+.char-avatar-large.emporium-pfp {
+  border-color: rgba(255,207,58,0.7) !important;
+  box-shadow: 0 0 26px rgba(200,140,30,0.45), inset 0 0 22px rgba(90,55,10,0.5);
+  animation: emporium-pfp-breathe 4s ease-in-out infinite;
+}
+@keyframes emporium-pfp-breathe {
+  0%, 100% { box-shadow: 0 0 20px rgba(200,140,30,0.35), inset 0 0 18px rgba(90,55,10,0.45); }
+  50%      { box-shadow: 0 0 38px rgba(255,200,80,0.6), inset 0 0 26px rgba(120,75,15,0.55); }
+}
+.char-avatar-large.emporium-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 72% 26%, rgba(255,235,160,0.32), transparent 58%);
+  mix-blend-mode: screen;
+}
+.char-avatar-large.emporium-pfp::after {
+  content: "";
+  position: absolute; inset: 4px;
+  pointer-events: none;
+  border: 1px solid rgba(255,215,110,0.4);
+}
+
+/* ============================================================
    HELIOS — god of the sun. Strong, intimidating, aggressive,
    voracious. Molten gold / white-hot, fast fierce pulses.
    --char-color is blazing amber-gold.

@@ -2727,6 +2727,7 @@ const PATTERN_DEFS = {
   zoe_garden:       { label: "Zoe · Living Garden",    params: [] },
   iris_starlight:   { label: "Iris · Shimmerlight",    params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
+  emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -7399,6 +7400,709 @@ function _stopAetherOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// EMPORIUM — an elegant, fast, metallic gold gun range. The background is
+// brushed gunmetal with rotating art-deco rays, a sweeping shimmer band and
+// drifting golden targets (coins / medallions / gems). The cursor is a GUN
+// you switch between a REVOLVER, a SNIPER and a ROCKET LAUNCHER (right-click
+// or 1 / 2 / 3). Each fires differently and scars the background: bullet
+// holes, sniper cracks, rocket scorch craters — and shatters the targets.
+// Character-wide (matches "Emporium").
+// ════════════════════════════════════════════════════════════════
+const _EMPORIUM_RE = /^Emporium$/i;
+function _isEmporium(c) { return !!(c && c.name && _EMPORIUM_RE.test(c.name)); }
+
+let _empOverlayRafId = null;
+let _empMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _empMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+const _EMP_AIM = -0.42;                   // rest angle (up-right) when idle
+let _empBaseAng = _EMP_AIM;                // smoothed facing (follows your movement)
+let _empCurAng = _EMP_AIM;                 // drawn angle this frame (base + sway + recoil)
+let _empTailX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _empTailY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _empGun = 0;                          // 0 revolver, 1 sniper, 2 rocket
+const _EMP_GUNS = ['REVOLVER', 'SNIPER', 'ROCKET'];
+const _EMP_RATE = [95, 600, 780];         // ms between shots per gun
+let _empRecoil = 0, _empFlash = 0, _empCyl = 0, _empShake = 0, _empSwitch = 0;
+let _empLastFire = 0;
+let _empShots = [];      // travelling projectiles (client coords)
+let _empTracers = [];    // sniper beams
+let _empExpl = [];       // rocket explosions
+let _empTargets = [];    // drifting shootable targets (client coords)
+let _empDecals = [];     // impact scars on the background (client coords)
+let _empRect = null;     // pattern-canvas client rect (for seeding targets)
+
+const _EMP_GOLD = '#ffcf3a', _EMP_LIGHT = '#fff3c0', _EMP_DEEP = '#8a5a12', _EMP_STEEL = '#4a4640';
+
+function _empMouseMove(e) { _empMX = e.clientX; _empMY = e.clientY; }
+function _empSwitchGun(n) {
+  _empGun = ((n % 3) + 3) % 3;
+  _empSwitch = 1;
+  if (typeof notify === 'function') notify('▸ ' + _EMP_GUNS[_empGun], 'ok');
+}
+function _empMouseDown(e) {
+  if (e.button === 2) return;            // right-click cycles (handled in contextmenu)
+  _empFire(e.clientX, e.clientY);
+}
+function _empContext(e) { e.preventDefault(); _empSwitchGun(_empGun + 1); }
+function _empKey(e) {
+  if (e.key === '1') _empSwitchGun(0);
+  else if (e.key === '2') _empSwitchGun(1);
+  else if (e.key === '3') _empSwitchGun(2);
+  else if (e.key === 'q' || e.key === 'Q') _empSwitchGun(_empGun + 1);
+}
+
+function _empAddDecal(d) { _empDecals.push(d); if (_empDecals.length > 110) _empDecals.shift(); }
+
+// break VFX — scales up with the chain (how many coins this single shot has broken)
+function _empBreakFx(x, y, col, chain) {
+  const power = Math.min(6, Math.max(1, chain));
+  const n = 8 + power * 3;
+  const bits = [];
+  for (let i = 0; i < n; i++) bits.push({ a: Math.random() * Math.PI * 2, sp: (30 + Math.random() * 70) * (1 + power * 0.2), sz: (2 + Math.random() * 4) * (1 + power * 0.14), rot: Math.random() * 6 });
+  _empAddDecal({ type: 'shards', x, y, life: 1, bits, col: col || _EMP_GOLD });
+  _empAddDecal({ type: 'burst', x, y, life: 1, r: 20 + power * 13, col: power >= 4 ? _EMP_LIGHT : (col || _EMP_GOLD) });
+  if (chain >= 2) _empAddDecal({ type: 'combo', x, y, life: 1, n: chain });
+  _empShake = Math.max(_empShake, Math.min(0.75, 0.08 + power * 0.1));
+}
+
+function _empKillTarget(idx, chain = 1) {
+  const tg = _empTargets[idx];
+  if (!tg) return;
+  _empBreakFx(tg.x, tg.y, tg.col, chain);
+  // same SFX as a click, pitched up high — rising further with the chain
+  if (typeof playSound === 'function') playSound('click', { rate: 1.5 + Math.min(2, chain * 0.18) + Math.random() * 0.4, volume: 0.5 });
+  _empTargets.splice(idx, 1);
+}
+function _empExplode(x, y) {
+  _empExpl.push({ x, y, life: 1, r: 150 });
+  if (_empExpl.length > 8) _empExpl.shift();
+  _empShake = 1;
+  _empAddDecal({ type: 'scorch', x, y, life: 1, r: 120 + Math.random() * 30, seed: Math.random() * 6 });
+  let chain = 0;
+  for (let i = _empTargets.length - 1; i >= 0; i--) {
+    const tg = _empTargets[i];
+    if (Math.hypot(tg.x - x, tg.y - y) < 150) { chain++; _empKillTarget(i, chain); }
+  }
+}
+
+// You simply point — every shot lands exactly where the muzzle (cursor) is.
+function _empKillNear(x, y, rad) {
+  let hit = false;
+  for (let i = _empTargets.length - 1; i >= 0; i--) {
+    const tg = _empTargets[i];
+    if (Math.hypot(tg.x - x, tg.y - y) < tg.r + rad) { _empKillTarget(i); hit = true; }
+  }
+  return hit;
+}
+function _empFire(cx, cy) {
+  const now = performance.now();
+  if (now - _empLastFire < _EMP_RATE[_empGun]) return;
+  _empLastFire = now;
+  const a = _empCurAng, dx = Math.cos(a), dy = Math.sin(a);
+
+  if (_empGun === 0) {
+    // REVOLVER — fires a real travelling bullet that ricochets off whatever it
+    // breaks (random new direction, DOUBLE speed each time → endless chain)
+    _empFlash = 1; _empRecoil = Math.min(2.2, _empRecoil + 1); _empCyl += Math.PI / 3;
+    _empShots.push({ kind: 'bullet', x: cx, y: cy, dx, dy, spd: 1500, bounces: 0, dist: 0, trail: [] });
+  } else if (_empGun === 1) {
+    // SNIPER — instant hitscan beam FORWARD out of the barrel; pierces everything in line
+    _empFlash = 1.6; _empRecoil = Math.min(3.2, _empRecoil + 2.3);
+    _empTracers.push({ x0: cx, y0: cy, x1: cx + dx * 3000, y1: cy + dy * 3000, life: 1, w: 4 });
+    let any = false, chain = 0;
+    for (let i = _empTargets.length - 1; i >= 0; i--) {
+      const tg = _empTargets[i];
+      const along = (tg.x - cx) * dx + (tg.y - cy) * dy;   // forward only
+      if (along < 0 || along > 3000) continue;
+      const perp = Math.abs((tg.x - cx) * -dy + (tg.y - cy) * dx);
+      if (perp < tg.r + 12) {
+        _empAddDecal({ type: 'crack', x: tg.x, y: tg.y, life: 1, r: 26, seed: Math.random() * 6 });
+        chain++; _empKillTarget(i, chain); any = true;
+      }
+    }
+    if (!any) _empAddDecal({ type: 'crack', x: cx + dx * 240, y: cy + dy * 240, life: 1, r: 30, seed: Math.random() * 6 });
+  } else {
+    // ROCKET — launches forward and flies downrange until it hits something or lands
+    _empFlash = 0.9; _empRecoil = Math.min(2.4, _empRecoil + 1.4); _empShake = Math.max(_empShake, 0.3);
+    _empShots.push({ kind: 'rkt', x: cx, y: cy, dx, dy, spd: 900, dist: 0, smoke: [] });
+  }
+}
+
+// ── background pattern ──────────────────────────────────────────
+function _drawEmporiumPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawEmporiumPattern._lt === undefined;
+  if (!fresh && t - _drawEmporiumPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawEmporiumPattern._lt, 0.05);
+  _drawEmporiumPattern._lt = t;
+
+  _empRect = canvas.getBoundingClientRect();
+  const rect = _empRect;
+  const sx = rect.width ? W / rect.width : 1, sy = rect.height ? H / rect.height : 1;
+  const sAvg = (sx + sy) / 2;
+  const toPX = (cx, cy) => [(cx - rect.left) * sx, (cy - rect.top) * sy];
+
+  // ── 1. luxe base: warm radial glow over near-black ──
+  const base = ctx.createRadialGradient(W * 0.5, H * 0.42, 0, W * 0.5, H * 0.42, Math.hypot(W, H) * 0.72);
+  base.addColorStop(0, '#241803'); base.addColorStop(0.5, '#120c04'); base.addColorStop(1, '#070504');
+  ctx.fillStyle = base; ctx.fillRect(0, 0, W, H);
+
+  // ── 2. deco back wall: repeating fan arches ──
+  ctx.save();
+  ctx.globalAlpha = 0.05; ctx.strokeStyle = _EMP_GOLD; ctx.lineWidth = 2;
+  const aw = 150, bob = Math.sin(t * 0.6) * 4;
+  for (let x = aw * 0.5; x < W + aw; x += aw) {
+    for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(x, H * 0.2 + bob, 30 + k * 26, Math.PI, 0); ctx.stroke(); }
+  }
+  ctx.restore();
+
+  // ── 3. central rotating sun-medallion emblem ──
+  const mx = W * 0.5, my = H * 0.40, MR = Math.min(W, H) * 0.30;
+  ctx.save();
+  ctx.translate(mx, my);
+  ctx.globalAlpha = 0.08; ctx.fillStyle = _EMP_GOLD;
+  ctx.rotate(t * 0.06);
+  for (let i = 0; i < 48; i++) {
+    const a0 = (i / 48) * Math.PI * 2, a1 = a0 + (Math.PI * 2 / 48) * 0.42;
+    ctx.beginPath(); ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a0) * MR, Math.sin(a0) * MR);
+    ctx.lineTo(Math.cos(a1) * MR, Math.sin(a1) * MR); ctx.closePath(); ctx.fill();
+  }
+  ctx.rotate(-t * 0.06 - t * 0.12);
+  ctx.globalAlpha = 0.16; ctx.strokeStyle = _EMP_GOLD; ctx.lineWidth = 3;
+  ctx.setLineDash([10, 12]);
+  ctx.beginPath(); ctx.arc(0, 0, MR * 0.62, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 0.13; ctx.beginPath();
+  for (let i = 0; i < 16; i++) { const rr = i % 2 ? MR * 0.18 : MR * 0.4, a = i * Math.PI / 8; ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * rr, Math.sin(a) * rr); }
+  ctx.closePath(); ctx.fillStyle = _EMP_GOLD; ctx.fill();
+  ctx.restore();
+
+  // ── 4. sweeping spotlights (glam, fast) ──
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 3; i++) {
+    const apexX = W * (0.25 + i * 0.25);
+    const tipX = apexX + Math.sin(t * (0.5 + i * 0.18) + i * 2) * (W * 0.16);
+    const half = 60 + 20 * i;
+    const g = ctx.createLinearGradient(apexX, -20, tipX, H);
+    g.addColorStop(0, 'rgba(255,225,130,0.10)'); g.addColorStop(1, 'rgba(255,180,60,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(apexX - 8, -20); ctx.lineTo(apexX + 8, -20);
+    ctx.lineTo(tipX + half, H + 20); ctx.lineTo(tipX - half, H + 20); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  // ── 5. framing metallic columns ──
+  const _empCol = (cx, w) => {
+    const g = ctx.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
+    g.addColorStop(0, '#3a2a0a'); g.addColorStop(0.3, _EMP_GOLD); g.addColorStop(0.5, _EMP_LIGHT); g.addColorStop(0.7, _EMP_GOLD); g.addColorStop(1, '#2a1e06');
+    ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = g;
+    ctx.fillRect(cx - w / 2, H * 0.16, w, H * 0.84);
+    ctx.fillStyle = _EMP_GOLD; ctx.globalAlpha = 0.6;
+    ctx.fillRect(cx - w * 0.75, H * 0.14, w * 1.5, H * 0.035);
+    ctx.fillRect(cx - w * 0.75, H * 0.965, w * 1.5, H * 0.035);
+    ctx.globalAlpha = 0.22; ctx.strokeStyle = '#2a1e06'; ctx.lineWidth = 1;
+    for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(cx + k * w * 0.18, H * 0.18); ctx.lineTo(cx + k * w * 0.18, H * 0.95); ctx.stroke(); }
+    ctx.restore();
+  };
+  _empCol(W * 0.05, W * 0.035); _empCol(W * 0.95, W * 0.035);
+
+  // ── 6. chandelier (sway + twinkle) ──
+  ctx.save();
+  ctx.translate(W * 0.5, 0); ctx.rotate(Math.sin(t * 1.0) * 0.04);
+  ctx.strokeStyle = _EMP_GOLD; ctx.globalAlpha = 0.4; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, H * 0.08); ctx.stroke();
+  for (let tier = 0; tier < 2; tier++) {
+    const ty = H * 0.085 + tier * H * 0.05, arms = 6 + tier * 2, rr = 40 + tier * 32;
+    ctx.globalAlpha = 0.28; ctx.beginPath(); ctx.ellipse(0, ty, rr, rr * 0.4, 0, 0, Math.PI * 2); ctx.stroke();
+    for (let a = 0; a < arms; a++) {
+      const ang = (a / arms) * Math.PI * 2, bx = Math.cos(ang) * rr, by = ty + Math.sin(ang) * rr * 0.4;
+      const tw = 0.5 + 0.5 * Math.sin(t * 4 + a + tier);
+      ctx.globalAlpha = 0.5 + tw * 0.5; ctx.fillStyle = _EMP_LIGHT; ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = 8 + tw * 10;
+      ctx.beginPath(); ctx.arc(bx, by, 2.6, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // ── 7. falling gold coins (tumbling, parallax) + sparkles seed ──
+  if (!canvas._empCoins || canvas._empW !== W || canvas._empH !== H) {
+    canvas._empW = W; canvas._empH = H;
+    canvas._empCoins = Array.from({ length: 30 }, () => ({ x: Math.random() * W, y: Math.random() * H, vy: 60 + Math.random() * 130, rot: Math.random() * 6, vr: 1 + Math.random() * 4, r: 5 + Math.random() * 8, dollar: Math.random() < 0.45 }));
+    canvas._empSparks = Array.from({ length: 26 }, () => ({ x: Math.random() * W, y: Math.random() * H, ph: Math.random() * 6, sz: 1.5 + Math.random() * 3 }));
+  }
+  ctx.save();
+  for (const co of canvas._empCoins) {
+    co.y += co.vy * dt; co.rot += co.vr * dt;
+    if (co.y > H + 20) { co.y = -20; co.x = Math.random() * W; }
+    const fw = Math.abs(Math.cos(co.rot));
+    ctx.save(); ctx.translate(co.x, co.y);
+    ctx.globalAlpha = 0.85; ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = 6;
+    const cg = ctx.createLinearGradient(0, -co.r, 0, co.r);
+    cg.addColorStop(0, _EMP_LIGHT); cg.addColorStop(0.5, _EMP_GOLD); cg.addColorStop(1, _EMP_DEEP);
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.ellipse(0, 0, co.r * fw + 0.6, co.r, 0, 0, Math.PI * 2); ctx.fill();
+    if (fw > 0.45) { ctx.shadowBlur = 0; ctx.fillStyle = _EMP_DEEP; ctx.globalAlpha = 0.7; ctx.font = `bold ${co.r * 1.3}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(co.dollar ? '$' : '★', 0, co.r * 0.05); }
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // ── 8. sparkle twinkles ──
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const sp of canvas._empSparks) {
+    const tw = Math.sin(t * 3 + sp.ph);
+    if (tw <= 0) continue;
+    const z = sp.sz * (0.5 + tw); ctx.globalAlpha = tw; ctx.fillStyle = _EMP_LIGHT;
+    ctx.save(); ctx.translate(sp.x, sp.y);
+    ctx.beginPath();
+    ctx.moveTo(0, -z * 3); ctx.lineTo(z * 0.6, 0); ctx.lineTo(0, z * 3); ctx.lineTo(-z * 0.6, 0); ctx.closePath();
+    ctx.moveTo(-z * 3, 0); ctx.lineTo(0, z * 0.6); ctx.lineTo(z * 3, 0); ctx.lineTo(0, -z * 0.6); ctx.closePath();
+    ctx.fill(); ctx.restore();
+  }
+  ctx.restore();
+
+  // ── 9. reflective floor band ──
+  const fy = H * 0.84;
+  const fg = ctx.createLinearGradient(0, fy, 0, H);
+  fg.addColorStop(0, 'rgba(255,200,90,0.05)'); fg.addColorStop(0.15, 'rgba(40,28,8,0.55)'); fg.addColorStop(1, 'rgba(10,7,3,0.85)');
+  ctx.fillStyle = fg; ctx.fillRect(0, fy, W, H - fy);
+  const hl = (((t * 0.3) % 1.6) - 0.3) * W;
+  const hg = ctx.createLinearGradient(hl - 120, 0, hl + 120, 0);
+  hg.addColorStop(0, 'rgba(255,235,160,0)'); hg.addColorStop(0.5, 'rgba(255,235,160,0.10)'); hg.addColorStop(1, 'rgba(255,235,160,0)');
+  ctx.fillStyle = hg; ctx.fillRect(0, fy, W, H - fy);
+  ctx.strokeStyle = 'rgba(255,207,58,0.25)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, fy); ctx.lineTo(W, fy); ctx.stroke();
+
+  // ── 10. fast shimmer sweep over the whole metal ──
+  const sweep = (((t * 0.5) % 1.6) - 0.3) * W;
+  const sg = ctx.createLinearGradient(sweep - W * 0.14, 0, sweep + W * 0.14, 0);
+  sg.addColorStop(0, 'rgba(255,210,90,0)'); sg.addColorStop(0.5, 'rgba(255,230,150,0.06)'); sg.addColorStop(1, 'rgba(255,210,90,0)');
+  ctx.fillStyle = sg; ctx.fillRect(0, 0, W, H);
+
+  // seed / top-up drifting targets within the visible canvas rect
+  if (_empOverlayRafId) {
+    while (_empTargets.length < 16) {
+      const kinds = ['coin', 'coin', 'medal', 'gem'];
+      const kind = kinds[(Math.random() * kinds.length) | 0];
+      _empTargets.push({
+        x: rect.left + 40 + Math.random() * Math.max(60, rect.width - 80),
+        y: rect.top + 40 + Math.random() * Math.max(60, rect.height - 80),
+        vx: (Math.random() - 0.5) * 70, vy: (Math.random() - 0.5) * 70,
+        r: 15 + Math.random() * 9, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 1.4,
+        kind, col: kind === 'gem' ? '#ff9b3d' : _EMP_GOLD, glint: Math.random() * 6,
+      });
+    }
+  }
+  // move + draw targets (client → pixel)
+  for (const tg of _empTargets) {
+    tg.x += tg.vx * dt; tg.y += tg.vy * dt; tg.rot += tg.vr * dt;
+    if (tg.x < rect.left + 24 || tg.x > rect.right - 24) tg.vx *= -1;
+    if (tg.y < rect.top + 24 || tg.y > rect.bottom - 24) tg.vy *= -1;
+    tg.x = Math.max(rect.left + 24, Math.min(rect.right - 24, tg.x));
+    tg.y = Math.max(rect.top + 24, Math.min(rect.bottom - 24, tg.y));
+    const [px, py] = toPX(tg.x, tg.y);
+    _empDrawTarget(ctx, px, py, tg.r * sAvg, tg.rot, tg.kind, tg.col, t + tg.glint);
+  }
+
+  // impact scars (fade)
+  for (let i = _empDecals.length - 1; i >= 0; i--) {
+    const d = _empDecals[i];
+    d.life -= dt * (d.type === 'scorch' ? 0.18 : d.type === 'shards' ? 0.9 : d.type === 'burst' ? 1.4 : d.type === 'combo' ? 0.8 : 0.35);
+    if (d.life <= 0) { _empDecals.splice(i, 1); continue; }
+    const [px, py] = toPX(d.x, d.y);
+    _empDrawDecal(ctx, px, py, d, sAvg);
+  }
+
+  // settle shake (shared with overlay)
+  _empShake = Math.max(0, _empShake - dt * 2.2);
+}
+
+function _empDrawTarget(ctx, x, y, r, rot, kind, col, t) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot);
+  const glow = 0.5 + 0.5 * Math.sin(t * 3);
+  ctx.shadowColor = col; ctx.shadowBlur = 10 + glow * 8;
+  const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+  g.addColorStop(0, _EMP_LIGHT); g.addColorStop(0.5, col); g.addColorStop(1, _EMP_DEEP);
+  ctx.fillStyle = g; ctx.strokeStyle = _EMP_LIGHT; ctx.lineWidth = Math.max(1, r * 0.08);
+  if (kind === 'gem') {
+    ctx.beginPath();
+    ctx.moveTo(0, -r); ctx.lineTo(r * 0.9, -r * 0.2); ctx.lineTo(0, r); ctx.lineTo(-r * 0.9, -r * 0.2);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-r * 0.9, -r * 0.2); ctx.lineTo(r * 0.9, -r * 0.2); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+    if (kind === 'medal') {
+      ctx.fillStyle = _EMP_DEEP; ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const rr = i % 2 ? r * 0.32 : r * 0.66, a = -Math.PI / 2 + i * Math.PI / 5;
+        ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      ctx.closePath(); ctx.fill();
+    } else {
+      ctx.fillStyle = _EMP_DEEP; ctx.font = `bold ${r * 1.1}px serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', 0, r * 0.06);
+    }
+  }
+  ctx.restore();
+}
+
+function _empDrawDecal(ctx, x, y, d, s) {
+  const r = (d.r || 20) * s, a = Math.max(0, Math.min(1, d.life));
+  ctx.save();
+  if (d.type === 'hole') {
+    ctx.globalAlpha = a * 0.85;
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x, y, r * 0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = _EMP_GOLD; ctx.globalAlpha = a * 0.6; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, r * 0.7, 0, Math.PI * 2); ctx.stroke();
+  } else if (d.type === 'crack') {
+    ctx.globalAlpha = a; ctx.strokeStyle = _EMP_LIGHT; ctx.lineWidth = 1.5;
+    ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = 8;
+    for (let i = 0; i < 7; i++) {
+      const ang = d.seed + i * (Math.PI * 2 / 7);
+      const len = r * (0.6 + ((i * 7) % 5) / 6);
+      ctx.beginPath(); ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len); ctx.stroke();
+    }
+    ctx.globalAlpha = a * 0.8; ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+  } else if (d.type === 'scorch') {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(0,0,0,${a * 0.8})`);
+    g.addColorStop(0.6, `rgba(40,20,5,${a * 0.55})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = a * 0.7; ctx.strokeStyle = '#ff9b3d'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, r * 0.62, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = _EMP_GOLD; ctx.globalAlpha = a * 0.5;
+    for (let i = 0; i < 9; i++) {
+      const ang = d.seed + i * (Math.PI * 2 / 9);
+      ctx.beginPath(); ctx.moveTo(x + Math.cos(ang) * r * 0.3, y + Math.sin(ang) * r * 0.3);
+      ctx.lineTo(x + Math.cos(ang) * r * 0.9, y + Math.sin(ang) * r * 0.9); ctx.stroke();
+    }
+  } else if (d.type === 'shards') {
+    ctx.globalAlpha = a; ctx.fillStyle = d.col || _EMP_GOLD;
+    ctx.shadowColor = d.col || _EMP_GOLD; ctx.shadowBlur = 6;
+    const spread = (1 - a) * 60 * s;
+    for (const b of d.bits) {
+      const bx = x + Math.cos(b.a) * spread, by = y + Math.sin(b.a) * spread;
+      ctx.save(); ctx.translate(bx, by); ctx.rotate(b.rot + (1 - a) * 8);
+      const z = b.sz * s;
+      ctx.beginPath(); ctx.moveTo(0, -z); ctx.lineTo(z, z); ctx.lineTo(-z, z); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+// ── gun + projectile overlay ────────────────────────────────────
+function _drawEmporiumOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawEmporiumOverlay._lt === undefined;
+  if (!fresh && t - _drawEmporiumOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawEmporiumOverlay._lt, 0.05);
+  _drawEmporiumOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  // facing follows your movement via a lagging pivot (smooth, no jitter);
+  // shots fire forward out of the barrel along this facing.
+  _empTailX += (_empMX - _empTailX) * Math.min(1, dt * 9);
+  _empTailY += (_empMY - _empTailY) * Math.min(1, dt * 9);
+  const ddx = _empMX - _empTailX, ddy = _empMY - _empTailY;
+  if (ddx * ddx + ddy * ddy > 36) {           // only re-aim when actually moving (>6px lag)
+    const target = Math.atan2(ddy, ddx);
+    let da = target - _empBaseAng;
+    while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2;
+    _empBaseAng += da * Math.min(1, dt * 11);
+  }
+  _empCurAng = _empBaseAng + Math.sin(t * 1.5) * 0.02 - _empRecoil * 0.06;
+  _empRecoil = Math.max(0, _empRecoil - dt * 7);
+  _empFlash = Math.max(0, _empFlash - dt * 6);
+  _empSwitch = Math.max(0, _empSwitch - dt * 3);
+
+  if (_empShake > 0) {
+    const m = _empShake * 9;
+    ctx.save();
+    ctx.translate((Math.random() - 0.5) * m, (Math.random() - 0.5) * m);
+  }
+
+  for (let i = _empExpl.length - 1; i >= 0; i--) {
+    const e = _empExpl[i]; e.life -= dt * 1.7;
+    if (e.life <= 0) { _empExpl.splice(i, 1); continue; }
+    _empDrawExplosion(ctx, e.x, e.y, e.r, e.life);
+  }
+
+  for (let i = _empTracers.length - 1; i >= 0; i--) {
+    const tr = _empTracers[i]; tr.life -= dt * 4;
+    if (tr.life <= 0) { _empTracers.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = tr.life;
+    ctx.strokeStyle = _EMP_LIGHT; ctx.lineWidth = (tr.w || 2) * (0.4 + tr.life);
+    ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = 14; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(tr.x0, tr.y0); ctx.lineTo(tr.x1, tr.y1); ctx.stroke();
+    ctx.restore();
+  }
+
+  // projectiles
+  for (let i = _empShots.length - 1; i >= 0; i--) {
+    const p = _empShots[i];
+
+    if (p.kind === 'bullet') {
+      const step = p.spd * dt;
+      p.x += p.dx * step; p.y += p.dy * step; p.dist += step;
+      p.trail.push({ x: p.x, y: p.y }); if (p.trail.length > 12) p.trail.shift();
+      // hit a target?  → break it and ricochet faster in a random direction
+      let hit = -1;
+      for (let j = _empTargets.length - 1; j >= 0; j--) {
+        const tg = _empTargets[j];
+        if (Math.hypot(tg.x - p.x, tg.y - p.y) < tg.r + 5) { hit = j; break; }
+      }
+      if (hit >= 0) {
+        const tg = _empTargets[hit];
+        _empAddDecal({ type: 'crack', x: tg.x, y: tg.y, life: 1, r: 18, seed: Math.random() * 6 });
+        p.bounces++;
+        _empKillTarget(hit, p.bounces);             // VFX grows with each coin this bullet chains
+        p.spd = Math.min(9000, p.spd * 2);          // double speed each ricochet
+        const na = Math.random() * Math.PI * 2;      // bounce off to a random spot
+        p.dx = Math.cos(na); p.dy = Math.sin(na);
+        p.x += p.dx * (tg.r + 6); p.y += p.dy * (tg.r + 6);
+        if (p.bounces > 16) { _empShots.splice(i, 1); continue; }
+      }
+      // draw streak + bullet (brighter & bigger the more it has chained)
+      ctx.save();
+      for (let k = 0; k < p.trail.length; k++) {
+        ctx.globalAlpha = (k / p.trail.length) * 0.6;
+        ctx.fillStyle = p.bounces > 0 ? _EMP_LIGHT : _EMP_GOLD;
+        ctx.beginPath(); ctx.arc(p.trail[k].x, p.trail[k].y, 2 + p.bounces * 0.3, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1; ctx.fillStyle = _EMP_LIGHT; ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 + p.bounces * 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      // expire off-screen, or drop a final hole on a long clean miss
+      if (p.x < -60 || p.x > W + 60 || p.y < -60 || p.y > H + 60) { _empShots.splice(i, 1); continue; }
+      if (p.bounces === 0 && p.dist > 3200) { _empAddDecal({ type: 'hole', x: p.x, y: p.y, life: 1, r: 15 }); _empShots.splice(i, 1); continue; }
+      continue;
+    }
+
+    // travelling rockets — fly downrange, detonate on a target / max range / edge
+    const step = p.spd * dt;
+    p.x += p.dx * step; p.y += p.dy * step; p.dist += step;
+    let boom = false;
+    for (let j = _empTargets.length - 1; j >= 0; j--) {
+      const tg = _empTargets[j];
+      if (Math.hypot(tg.x - p.x, tg.y - p.y) < tg.r + 18) { boom = true; break; }
+    }
+    if (!boom && (p.dist > 2400 || p.x < -40 || p.x > W + 40 || p.y < -40 || p.y > H + 40)) boom = true;
+    if (boom) {
+      _empExplode(Math.max(-20, Math.min(W + 20, p.x)), Math.max(-20, Math.min(H + 20, p.y)));
+      _empShots.splice(i, 1); continue;
+    }
+    p.smoke.push({ x: p.x, y: p.y, life: 1 });
+    if (p.smoke.length > 22) p.smoke.shift();
+    ctx.save();
+    for (const s of p.smoke) s.life -= dt * 1.6;
+    for (const s of p.smoke) {
+      if (s.life <= 0) continue;
+      ctx.globalAlpha = s.life * 0.4; ctx.fillStyle = '#c9c2b4';
+      ctx.beginPath(); ctx.arc(s.x, s.y, (1 - s.life) * 9 + 2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1; ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.dy, p.dx));
+    // flame trail
+    ctx.fillStyle = '#ffd23a'; ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.moveTo(-10, -3); ctx.lineTo(-22 - Math.random() * 8, 0); ctx.lineTo(-10, 3); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = _EMP_STEEL; ctx.fillRect(-10, -4, 16, 8);
+    ctx.fillStyle = '#ff5a2a'; ctx.beginPath(); ctx.moveTo(6, -4); ctx.lineTo(13, 0); ctx.lineTo(6, 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = _EMP_GOLD; ctx.beginPath(); ctx.moveTo(-10, -4); ctx.lineTo(-15, -7); ctx.lineTo(-10, 0); ctx.lineTo(-15, 7); ctx.lineTo(-10, 4); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  _empDrawGun(ctx, _empMX, _empMY, _empCurAng, t);
+
+  ctx.save();
+  ctx.globalAlpha = 0.5 + _empSwitch * 0.5;
+  ctx.font = '700 9px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillStyle = _empSwitch > 0 ? _EMP_LIGHT : 'rgba(255,207,58,0.7)';
+  ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = _empSwitch * 10;
+  ctx.fillText(_EMP_GUNS[_empGun], _empMX + 16, _empMY + 18);
+  ctx.globalAlpha = 0.3; ctx.font = '7px monospace'; ctx.shadowBlur = 0;
+  ctx.fillText('R-CLICK / 1·2·3', _empMX + 16, _empMY + 30);
+  ctx.restore();
+
+  if (_empShake > 0) ctx.restore();
+}
+
+function _empDrawExplosion(ctx, x, y, r, life) {
+  const p = 1 - life;
+  ctx.save();
+  const fr = r * (0.2 + p * 1);
+  const g = ctx.createRadialGradient(x, y, 0, x, y, fr);
+  g.addColorStop(0, `rgba(255,247,200,${life})`);
+  g.addColorStop(0.4, `rgba(255,160,40,${life * 0.9})`);
+  g.addColorStop(0.8, `rgba(200,60,10,${life * 0.5})`);
+  g.addColorStop(1, 'rgba(120,30,0,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, fr, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = life * 0.8; ctx.strokeStyle = _EMP_LIGHT; ctx.lineWidth = 2 + life * 3;
+  ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = 16;
+  ctx.beginPath(); ctx.arc(x, y, r * (0.3 + p * 1.1), 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+
+// gun drawn with the MUZZLE at (x,y); body trails behind along -aim
+function _empDrawGun(ctx, x, y, ang, t) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(ang);
+  if (Math.cos(ang) < 0) ctx.scale(1, -1);
+  ctx.translate(-_empRecoil * 5, 0);
+  ctx.rotate(-_empRecoil * 0.05);
+
+  if (_empGun === 0) _empGunRevolver(ctx);
+  else if (_empGun === 1) _empGunSniper(ctx);
+  else _empGunRocket(ctx);
+
+  if (_empFlash > 0) {
+    ctx.save();
+    ctx.translate(_empRecoil * 5, 0);
+    _empMuzzleFlash(ctx, _empFlash, _empGun);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function _empMetalGrad(ctx, x0, y0, x1, y1) {
+  const g = ctx.createLinearGradient(x0, y0, x1, y1);
+  g.addColorStop(0, _EMP_LIGHT); g.addColorStop(0.45, _EMP_GOLD);
+  g.addColorStop(0.75, _EMP_DEEP); g.addColorStop(1, '#3a2a08');
+  return g;
+}
+
+function _empGunRevolver(ctx) {
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+  ctx.fillStyle = _empMetalGrad(ctx, 0, -6, 0, 2);
+  ctx.fillRect(-30, -5, 26, 6);
+  ctx.fillStyle = _EMP_LIGHT; ctx.globalAlpha = 0.5; ctx.fillRect(-30, -6, 26, 1.5); ctx.globalAlpha = 1;
+  ctx.fillStyle = _empMetalGrad(ctx, -44, -8, -44, 10);
+  ctx.beginPath(); ctx.moveTo(-30, -7); ctx.lineTo(-30, 5); ctx.lineTo(-46, 7); ctx.lineTo(-46, -7); ctx.closePath(); ctx.fill();
+  ctx.save(); ctx.translate(-37, -1); ctx.rotate(_empCyl);
+  ctx.shadowBlur = 0;
+  const cg = ctx.createRadialGradient(-2, -2, 1, 0, 0, 9);
+  cg.addColorStop(0, _EMP_LIGHT); cg.addColorStop(0.6, _EMP_GOLD); cg.addColorStop(1, _EMP_DEEP);
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2a1e06';
+  for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; ctx.beginPath(); ctx.arc(Math.cos(a) * 5.5, Math.sin(a) * 5.5, 1.6, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+  ctx.shadowBlur = 4;
+  ctx.fillStyle = '#5a3a10';
+  ctx.beginPath(); ctx.moveTo(-44, 4); ctx.lineTo(-52, 22); ctx.lineTo(-44, 24); ctx.lineTo(-38, 7); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = _EMP_GOLD; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(-40, 9, 4, 0, Math.PI); ctx.stroke();
+}
+
+function _empGunSniper(ctx) {
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 7; ctx.shadowOffsetY = 2;
+  ctx.fillStyle = _empMetalGrad(ctx, 0, -5, 0, 4);
+  ctx.fillRect(-120, -4, 116, 7);
+  ctx.fillStyle = _EMP_DEEP;
+  for (let i = 0; i < 3; i++) ctx.fillRect(-6 - i * 7, -5, 3, 9);
+  ctx.fillStyle = _empMetalGrad(ctx, -150, -10, -150, 12);
+  ctx.beginPath(); ctx.moveTo(-120, -7); ctx.lineTo(-120, 6); ctx.lineTo(-168, 8); ctx.lineTo(-168, -6); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 4;
+  ctx.fillStyle = '#2c2718'; ctx.fillRect(-96, -16, 40, 7);
+  ctx.fillStyle = '#1a160c'; ctx.fillRect(-100, -15, 5, 5); ctx.fillRect(-56, -15, 5, 5);
+  const lg = ctx.createRadialGradient(-95, -12, 0, -95, -12, 4);
+  lg.addColorStop(0, '#bfeaff'); lg.addColorStop(1, 'rgba(120,180,220,0)');
+  ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(-95, -12, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = _EMP_STEEL; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-30, 3); ctx.lineTo(-26, 18); ctx.moveTo(-30, 3); ctx.lineTo(-38, 18); ctx.stroke();
+  ctx.fillStyle = '#5a3a10';
+  ctx.beginPath(); ctx.moveTo(-150, 4); ctx.lineTo(-158, 20); ctx.lineTo(-150, 22); ctx.lineTo(-142, 7); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = _empMetalGrad(ctx, -184, -4, -184, 6);
+  ctx.fillRect(-184, -3, 22, 6);
+}
+
+function _empGunRocket(ctx) {
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+  ctx.fillStyle = _empMetalGrad(ctx, 0, -14, 0, 14);
+  ctx.fillRect(-110, -12, 108, 24);
+  ctx.beginPath(); ctx.moveTo(-2, -14); ctx.lineTo(12, -10); ctx.lineTo(12, 10); ctx.lineTo(-2, 14); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#1c160a'; ctx.beginPath(); ctx.ellipse(2, 0, 4, 11, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = _EMP_DEEP;
+  ctx.beginPath(); ctx.moveTo(-110, -12); ctx.lineTo(-124, -7); ctx.lineTo(-124, 7); ctx.lineTo(-110, 12); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 3; ctx.fillStyle = _EMP_STEEL; ctx.fillRect(-70, -20, 26, 6);
+  ctx.fillStyle = _EMP_GOLD; ctx.fillRect(-60, -24, 3, 5);
+  ctx.fillStyle = '#5a3a10';
+  ctx.beginPath(); ctx.moveTo(-66, 12); ctx.lineTo(-72, 30); ctx.lineTo(-62, 31); ctx.lineTo(-56, 14); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = _EMP_GOLD; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(-62, 17, 4, 0, Math.PI); ctx.stroke();
+  ctx.fillStyle = '#ff5a2a'; ctx.globalAlpha = 0.85; ctx.fillRect(-104, -3, 96, 2); ctx.globalAlpha = 1;
+}
+
+function _empMuzzleFlash(ctx, f, gun) {
+  const scale = gun === 1 ? 1.5 : gun === 2 ? 1.2 : 1;
+  const s = f * scale;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const r = 26 * s;
+  const g = ctx.createRadialGradient(2, 0, 0, 2, 0, r);
+  g.addColorStop(0, `rgba(255,250,210,${Math.min(1, f)})`);
+  g.addColorStop(0.4, `rgba(255,190,70,${f * 0.8})`);
+  g.addColorStop(1, 'rgba(255,140,30,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(2, 0, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = `rgba(255,240,180,${Math.min(1, f)})`;
+  const spikes = 5;
+  for (let i = 0; i < spikes; i++) {
+    const a = (i / spikes) * Math.PI * 2 + f;
+    const L = (18 + (i % 2) * 12) * s;
+    ctx.save(); ctx.rotate(a);
+    ctx.beginPath(); ctx.moveTo(0, -2.5 * s); ctx.lineTo(L, 0); ctx.lineTo(0, 2.5 * s); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function _startEmporiumOverlay() {
+  _stopEmporiumOverlay();
+  _drawEmporiumOverlay._lt = undefined;
+  _empShots = []; _empTracers = []; _empExpl = []; _empTargets = []; _empDecals = [];
+  _empRecoil = 0; _empFlash = 0; _empShake = 0; _empLastFire = 0;
+  _empCurAng = _empBaseAng = _EMP_AIM;
+  _empTailX = _empMX; _empTailY = _empMY;
+  window.addEventListener('mousemove', _empMouseMove);
+  window.addEventListener('mousedown', _empMouseDown);
+  window.addEventListener('contextmenu', _empContext);
+  window.addEventListener('keydown', _empKey);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'emporium-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('emporium-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawEmporiumOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _empOverlayRafId = requestAnimationFrame(frame);
+  }
+  _empOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopEmporiumOverlay() {
+  if (_empOverlayRafId) { cancelAnimationFrame(_empOverlayRafId); _empOverlayRafId = null; }
+  window.removeEventListener('mousemove', _empMouseMove);
+  window.removeEventListener('mousedown', _empMouseDown);
+  window.removeEventListener('contextmenu', _empContext);
+  window.removeEventListener('keydown', _empKey);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('emporium-overlay'); if (cv) cv.remove();
+  _empTargets = []; _empDecals = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // CAPPY — the screen is filled with white milk: gooey metaball blobs that
 // flow toward the cursor (viscous, sloshing). The cursor is a glowing blue
 // Star of David. Character-wide (matches "Cappy").
@@ -11694,6 +12398,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'zoe_garden')     { _drawZoePattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'iris_starlight') { _drawIrisPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
+  if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -12189,6 +12894,8 @@ function startBgAnim(type, params) {
   _drawIrisOverlay._lt        = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
+  _drawEmporiumPattern._lt    = undefined;
+  _drawEmporiumOverlay._lt    = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -12234,6 +12941,7 @@ function stopBgAnim() {
   _stopIrisOverlay();
   _stopMbOverlay();
   _stopSorrowOverlay();
+  _stopEmporiumOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -12736,6 +13444,7 @@ function viewChar(id) {
   else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffd633'); }
   else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
   else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
+  else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
   else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
@@ -12950,6 +13659,26 @@ function viewChar(id) {
     }
   }
 
+  // ── Emporium — opulent gold gun-range UI chrome (brushed-gold panels, engraved
+  // metallic name, framed portrait). Character-wide. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isEmporium(c)) {
+      _cvRoot.classList.add('emporium-ui');
+      if (_av) _av.classList.add('emporium-pfp');
+      if (_nm) { _nm.classList.add('emporium-name'); _nm.setAttribute('data-text', _nm.textContent || 'EMPORIUM'); }
+      if (_pc) _pc.style.opacity = '0.9';
+    } else {
+      _cvRoot.classList.remove('emporium-ui');
+      if (_av) _av.classList.remove('emporium-pfp');
+      if (_nm) { _nm.classList.remove('emporium-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c)) _pc.style.opacity = '';
+    }
+  }
+
   // ── Evelynn — elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -13047,7 +13776,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -13059,7 +13788,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -13112,6 +13841,7 @@ function viewChar(id) {
   if (_isZoe(c))      _startZoeOverlay();
   if (_isIris(c))     _startIrisOverlay();
   if (_isMb(c))       _startMbOverlay();
+  if (_isEmporium(c)) _startEmporiumOverlay();
   }
 
   renderInventory(c);
@@ -18363,7 +19093,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -18393,6 +19123,7 @@ window.addEventListener('resize', () => {
       if (_isZoe(c))      _startZoeOverlay();
       if (_isIris(c))     _startIrisOverlay();
       if (_isMb(c))       _startMbOverlay();
+      if (_isEmporium(c)) _startEmporiumOverlay();
     }
   }
 });
