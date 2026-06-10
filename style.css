@@ -2761,6 +2761,406 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   EX — monochrome glitch broadcast. Grey static panels, a
+   black/white split-ghost name that twitches, and a portrait
+   that flickers like bad reception. Edgy but lighthearted.
+   ============================================================ */
+#char-view.ex-ui .panel {
+  --p-border: rgba(220,220,220,0.5);
+  border-color: rgba(220,220,220,0.45);
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(26,26,26,0.93), rgba(12,12,12,0.96));
+  box-shadow:
+    0 0 20px rgba(255,255,255,0.07),
+    inset 0 0 30px rgba(255,255,255,0.04);
+}
+#char-view.ex-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% -15%, rgba(255,255,255,0.07), transparent 55%);
+}
+#char-view.ex-ui .panel-title {
+  color: #f0f0f0 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(220,220,220,0.35);
+  text-shadow: 1.5px 0 0 rgba(130,130,130,0.8), -1.5px 0 0 rgba(255,255,255,0.5);
+}
+#char-view.ex-ui .tab-btn { color: #6e6e6e; }
+#char-view.ex-ui .tab-btn:hover { color: #ffffff; text-shadow: 0 0 10px rgba(255,255,255,0.6); }
+#char-view.ex-ui .tab-btn.active {
+  color: #ffffff;
+  border-bottom-color: rgba(255,255,255,0.85);
+  text-shadow: 2px 0 0 rgba(120,120,120,0.7), -2px 0 0 rgba(255,255,255,0.4);
+}
+
+/* Name: white with grey split-ghosts that twitch like a corrupted signal */
+.char-name-display.ex-name {
+  position: relative;
+  color: #f5f5f5 !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  text-shadow: 2px 0 0 rgba(110,110,110,0.85), -2px 0 0 rgba(255,255,255,0.45);
+  animation: ex-name-twitch 2.6s steps(1) infinite;
+}
+@keyframes ex-name-twitch {
+  0%, 100% { transform: translate(0,0);        text-shadow: 2px 0 0 rgba(110,110,110,0.85), -2px 0 0 rgba(255,255,255,0.45); }
+  7%        { transform: translate(-2px,0);     text-shadow: 4px 0 0 rgba(140,140,140,0.9), -4px 0 0 rgba(255,255,255,0.55); }
+  9%        { transform: translate(1px,-1px); }
+  11%       { transform: translate(0,0); }
+  46%       { transform: translate(0,0); }
+  48%       { transform: translate(3px,1px);    text-shadow: -3px 0 0 rgba(150,150,150,0.9), 3px 0 0 rgba(255,255,255,0.5); }
+  50%       { transform: translate(-1px,0); }
+  52%       { transform: translate(0,0); }
+  83%       { transform: translate(0,0); }
+  84%       { transform: translate(-3px,1px); }
+  85%       { transform: translate(0,0); }
+}
+/* a clipped duplicate that slides sideways for a slice-glitch */
+.char-name-display.ex-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: #bdbdbd;
+  clip-path: inset(34% 0 38% 0);
+  opacity: 0;
+  animation: ex-name-slice 2.6s steps(1) infinite;
+}
+@keyframes ex-name-slice {
+  0%, 100% { opacity: 0; transform: translateX(0); }
+  7%        { opacity: 1; transform: translateX(6px); }
+  11%       { opacity: 0; }
+  48%       { opacity: 1; transform: translateX(-7px); clip-path: inset(58% 0 18% 0); }
+  52%       { opacity: 0; }
+  84%       { opacity: 1; transform: translateX(4px); clip-path: inset(10% 0 72% 0); }
+  86%       { opacity: 0; }
+}
+
+/* Portrait: grayscale feed with scanlines + an occasional reception flicker */
+.char-avatar-large.ex-pfp {
+  border-color: rgba(230,230,230,0.65) !important;
+  box-shadow: 0 0 22px rgba(255,255,255,0.18), inset 0 0 18px rgba(255,255,255,0.1);
+  overflow: hidden;
+  animation: ex-pfp-flicker 4s steps(1) infinite;
+}
+.char-avatar-large.ex-pfp img { filter: grayscale(1) contrast(1.08); }
+@keyframes ex-pfp-flicker {
+  0%, 100% { filter: none; transform: translate(0,0); }
+  31%       { filter: invert(0.06) brightness(1.25); transform: translate(-1px,0); }
+  32%       { filter: none; transform: translate(0,0); }
+  33.5%     { transform: translate(1.5px,0); }
+  34%       { transform: translate(0,0); }
+  72%       { filter: brightness(0.8); }
+  73%       { filter: none; }
+}
+.char-avatar-large.ex-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px);
+}
+.char-avatar-large.ex-pfp::after {
+  content: "";
+  position: absolute; left: 0; width: 100%; height: 14%;
+  top: 0;
+  pointer-events: none;
+  background: rgba(255,255,255,0.1);
+  animation: ex-pfp-band 5s linear infinite;
+}
+@keyframes ex-pfp-band {
+  from { top: -16%; }
+  to   { top: 108%; }
+}
+
+/* ============================================================
+   RIEGEN — the phoenix. Charred panels lit from below by embers,
+   a flame-gradient name that flickers like a living fire, and a
+   smouldering ember-ringed portrait.
+   ============================================================ */
+#char-view.riegen-ui .panel {
+  --p-border: rgba(255,122,38,0.55);
+  border-color: rgba(255,122,38,0.5);
+  background: linear-gradient(180deg, rgba(26,8,4,0.93), rgba(44,14,6,0.95));
+  box-shadow:
+    0 0 24px rgba(255,110,30,0.18),
+    inset 0 -18px 34px rgba(160,50,10,0.28);
+}
+#char-view.riegen-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(130% 60% at 50% 115%, rgba(255,140,50,0.16), transparent 60%);
+}
+#char-view.riegen-ui .panel-title {
+  color: #ffd9ae !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(255,122,38,0.42);
+  text-shadow: 0 0 14px rgba(255,130,40,0.6);
+}
+#char-view.riegen-ui .tab-btn { color: #9a5a2e; }
+#char-view.riegen-ui .tab-btn:hover { color: #ffe0bc; text-shadow: 0 0 12px rgba(255,140,50,0.7); }
+#char-view.riegen-ui .tab-btn.active {
+  color: #fff3e0;
+  border-bottom-color: rgba(255,140,50,0.85);
+  text-shadow: 0 0 16px rgba(255,140,50,0.85);
+}
+
+/* Name: living-flame gradient text with a flicker + rising shine */
+.char-name-display.riegen-name {
+  position: relative;
+  color: #ff8a2a !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  text-shadow: 0 0 14px rgba(255,120,30,0.75), 0 1px 0 rgba(80,20,0,0.6);
+  animation: riegen-name-flicker 3.4s ease-in-out infinite;
+}
+@keyframes riegen-name-flicker {
+  0%, 100% { text-shadow: 0 0 10px rgba(255,110,28,0.55), 0 1px 0 rgba(80,20,0,0.6); }
+  18%      { text-shadow: 0 0 20px rgba(255,150,50,0.9),  0 1px 0 rgba(80,20,0,0.6); }
+  22%      { text-shadow: 0 0 12px rgba(255,120,30,0.6),  0 1px 0 rgba(80,20,0,0.6); }
+  47%      { text-shadow: 0 0 22px rgba(255,170,70,0.95), 0 1px 0 rgba(80,20,0,0.6); }
+  72%      { text-shadow: 0 0 13px rgba(255,120,30,0.6),  0 1px 0 rgba(80,20,0,0.6); }
+  85%      { text-shadow: 0 0 19px rgba(255,150,55,0.85), 0 1px 0 rgba(80,20,0,0.6); }
+}
+.char-name-display.riegen-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(0deg, rgba(255,90,20,0.9) 12%, rgba(255,200,90,0.95) 45%, rgba(255,244,200,0.95) 75%, transparent 95%);
+  background-size: 100% 260%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: riegen-name-rise 4.5s ease-in-out infinite;
+}
+@keyframes riegen-name-rise {
+  0%, 100% { background-position: 0 110%; }
+  50%      { background-position: 0 -30%; }
+}
+
+/* Portrait: smouldering ember glow + a slow-burning ring */
+.char-avatar-large.riegen-pfp {
+  border-color: rgba(255,122,38,0.7) !important;
+  box-shadow: 0 0 28px rgba(255,110,30,0.5), inset 0 0 22px rgba(255,150,60,0.35);
+  animation: riegen-pfp-smoulder 3.2s ease-in-out infinite;
+  overflow: hidden;
+}
+@keyframes riegen-pfp-smoulder {
+  0%, 100% { box-shadow: 0 0 20px rgba(255,110,30,0.35), inset 0 0 18px rgba(255,150,60,0.3); }
+  35%      { box-shadow: 0 0 40px rgba(255,140,50,0.65), inset 0 0 28px rgba(255,180,90,0.45); }
+  55%      { box-shadow: 0 0 26px rgba(255,120,35,0.45), inset 0 0 20px rgba(255,160,70,0.35); }
+}
+.char-avatar-large.riegen-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: linear-gradient(0deg, rgba(255,120,35,0.28), transparent 55%);
+}
+.char-avatar-large.riegen-pfp::after {
+  content: "";
+  position: absolute; inset: 3px;
+  pointer-events: none;
+  border: 1px dashed rgba(255,160,70,0.55);
+  border-radius: inherit;
+  animation: alsace-pfp-spin 17s linear infinite;
+}
+
+/* ============================================================
+   LORRAINE — golden Victorian lady, strong and protective.
+   Antique-gold damask panels with a double gilt frame, a regal
+   golden name with a stately shine, and an ornately framed
+   portrait. Fancy, but built like a tank.
+   ============================================================ */
+#char-view.lorraine-ui .panel {
+  --p-border: rgba(217,169,63,0.6);
+  border-color: rgba(217,169,63,0.55);
+  background:
+    url("data:image/svg+xml,%3Csvg width='84' height='84' viewBox='0 0 84 84' xmlns='http://www.w3.org/2000/svg'%3E%3Cg stroke='%23d9a93f' stroke-opacity='0.14' fill='none' stroke-width='1.1'%3E%3Cpath d='M21 7.5q9 9 0 18.5q-9-9.5 0-18.5z'/%3E%3Cpath d='M17 27.5q-10 4 -5 12'/%3E%3Cpath d='M25 27.5q10 4 5 12'/%3E%3Cpath d='M63 49.5q9 9 0 18.5q-9-9.5 0-18.5z'/%3E%3Cpath d='M59 69.5q-10 4 -5 12'/%3E%3Cpath d='M67 69.5q10 4 5 12'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 84px 84px,
+    linear-gradient(180deg, rgba(36,24,7,0.93), rgba(20,13,4,0.96));
+  box-shadow:
+    0 0 22px rgba(217,169,63,0.16),
+    inset 0 0 0 1px rgba(217,169,63,0.18),
+    inset 0 0 30px rgba(110,80,22,0.25);
+}
+#char-view.lorraine-ui .panel::before {
+  content: "";
+  position: absolute; inset: 4px;
+  pointer-events: none;
+  border: 1px solid rgba(217,169,63,0.22);
+}
+#char-view.lorraine-ui .panel-title {
+  color: #f0d896 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(217,169,63,0.45);
+  text-shadow: 0 0 12px rgba(217,169,63,0.55);
+}
+#char-view.lorraine-ui .tab-btn { color: #8f6f2c; }
+#char-view.lorraine-ui .tab-btn:hover { color: #ffe9b0; text-shadow: 0 0 12px rgba(230,185,80,0.7); }
+#char-view.lorraine-ui .tab-btn.active {
+  color: #fff3d6;
+  border-bottom-color: rgba(230,185,80,0.85);
+  text-shadow: 0 0 16px rgba(230,185,80,0.85);
+}
+
+/* Name: regal antique gold with a stately, slow shine sweep */
+.char-name-display.lorraine-name {
+  position: relative;
+  color: #d9a93f !important;
+  letter-spacing: 7px;
+  font-weight: normal;
+  text-shadow: 0 0 12px rgba(217,169,63,0.6), 0 2px 0 rgba(70,48,10,0.65);
+  animation: lorraine-name-breathe 6s ease-in-out infinite;
+}
+@keyframes lorraine-name-breathe {
+  0%, 100% { text-shadow: 0 0 10px rgba(217,169,63,0.45), 0 2px 0 rgba(70,48,10,0.65); }
+  50%      { text-shadow: 0 0 18px rgba(235,190,85,0.8),  0 2px 0 rgba(70,48,10,0.65); }
+}
+.char-name-display.lorraine-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,240,200,0.95) 50%, transparent 60%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: lorraine-name-sweep 6s ease-in-out infinite;
+}
+@keyframes lorraine-name-sweep {
+  0%, 100% { background-position: 135% 0; }
+  50%      { background-position: -135% 0; }
+}
+
+/* Portrait: gilt cameo frame — layered gold rings + a slow turning band */
+.char-avatar-large.lorraine-pfp {
+  border-color: rgba(217,169,63,0.75) !important;
+  box-shadow:
+    0 0 24px rgba(217,169,63,0.4),
+    inset 0 0 0 2px rgba(240,205,110,0.4),
+    inset 0 0 20px rgba(217,169,63,0.3);
+  animation: lorraine-pfp-breathe 6s ease-in-out infinite;
+  overflow: hidden;
+}
+@keyframes lorraine-pfp-breathe {
+  0%, 100% { box-shadow: 0 0 18px rgba(217,169,63,0.3), inset 0 0 0 2px rgba(240,205,110,0.35), inset 0 0 16px rgba(217,169,63,0.25); }
+  50%      { box-shadow: 0 0 32px rgba(235,190,85,0.55), inset 0 0 0 2px rgba(240,205,110,0.5), inset 0 0 24px rgba(217,169,63,0.4); }
+}
+.char-avatar-large.lorraine-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,235,170,0.16), transparent 45%, rgba(110,80,22,0.2));
+}
+.char-avatar-large.lorraine-pfp::after {
+  content: "";
+  position: absolute; inset: 3px;
+  pointer-events: none;
+  border: 1px dashed rgba(240,205,110,0.6);
+  border-radius: inherit;
+  animation: alsace-pfp-spin 22s linear infinite;
+}
+
+/* ============================================================
+   SIMMER — the little starry prince of a space-water kingdom.
+   Deep sea-sky panels with a cyan shimmer and drifting star
+   specks, a star-bright name with a golden crown-glint sweep,
+   and a tide-ringed portrait.
+   ============================================================ */
+#char-view.simmer-ui .panel {
+  --p-border: rgba(89,201,242,0.55);
+  border-color: rgba(89,201,242,0.5);
+  background:
+    radial-gradient(circle at 18% 22%, rgba(214,244,255,0.10) 1px, transparent 2px),
+    radial-gradient(circle at 67% 64%, rgba(255,226,122,0.10) 1px, transparent 2px),
+    radial-gradient(circle at 84% 18%, rgba(214,244,255,0.08) 1px, transparent 2px),
+    radial-gradient(circle at 38% 81%, rgba(214,244,255,0.08) 1px, transparent 2px),
+    linear-gradient(180deg, rgba(7,30,48,0.93), rgba(3,14,26,0.96));
+  background-size: 90px 90px, 120px 120px, 70px 70px, 110px 110px, 100% 100%;
+  box-shadow:
+    0 0 22px rgba(89,201,242,0.18),
+    inset 0 -16px 30px rgba(20,90,130,0.25);
+}
+#char-view.simmer-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(130% 60% at 50% 115%, rgba(110,220,255,0.13), transparent 60%);
+}
+#char-view.simmer-ui .panel-title {
+  color: #c9eeff !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(89,201,242,0.42);
+  text-shadow: 0 0 14px rgba(110,210,250,0.6);
+}
+#char-view.simmer-ui .tab-btn { color: #4d7f99; }
+#char-view.simmer-ui .tab-btn:hover { color: #d8f4ff; text-shadow: 0 0 12px rgba(120,215,255,0.7); }
+#char-view.simmer-ui .tab-btn.active {
+  color: #f0fbff;
+  border-bottom-color: rgba(120,215,255,0.85);
+  text-shadow: 0 0 16px rgba(120,215,255,0.85);
+}
+
+/* Name: sky-cyan with a soft twinkle + a golden crown-glint sweep */
+.char-name-display.simmer-name {
+  position: relative;
+  color: #59c9f2 !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  text-shadow: 0 0 12px rgba(110,210,250,0.7), 0 1px 0 rgba(8,40,60,0.6);
+  animation: simmer-name-twinkle 4.2s ease-in-out infinite;
+}
+@keyframes simmer-name-twinkle {
+  0%, 100% { text-shadow: 0 0 10px rgba(110,210,250,0.5),  0 1px 0 rgba(8,40,60,0.6); }
+  30%      { text-shadow: 0 0 18px rgba(140,228,255,0.85), 0 1px 0 rgba(8,40,60,0.6); }
+  55%      { text-shadow: 0 0 12px rgba(110,210,250,0.6),  0 1px 0 rgba(8,40,60,0.6); }
+  75%      { text-shadow: 0 0 20px rgba(160,235,255,0.9),  0 1px 0 rgba(8,40,60,0.6); }
+}
+.char-name-display.simmer-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,236,160,0.95) 47%, rgba(255,255,255,0.95) 53%, transparent 62%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: simmer-name-sweep 4.2s ease-in-out infinite;
+}
+@keyframes simmer-name-sweep {
+  0%, 100% { background-position: 130% 0; }
+  50%      { background-position: -130% 0; }
+}
+
+/* Portrait: a tide-pool ring — cyan glow, rising-light sheen + slow halo */
+.char-avatar-large.simmer-pfp {
+  border-color: rgba(89,201,242,0.7) !important;
+  box-shadow: 0 0 26px rgba(89,201,242,0.45), inset 0 0 22px rgba(110,220,255,0.3);
+  animation: simmer-pfp-tide 4.2s ease-in-out infinite;
+  overflow: hidden;
+}
+@keyframes simmer-pfp-tide {
+  0%, 100% { box-shadow: 0 0 20px rgba(89,201,242,0.3),  inset 0 0 18px rgba(110,220,255,0.25); }
+  50%      { box-shadow: 0 0 36px rgba(120,220,255,0.6), inset 0 0 26px rgba(140,230,255,0.4); }
+}
+.char-avatar-large.simmer-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: linear-gradient(0deg, rgba(110,220,255,0.2), transparent 55%),
+              radial-gradient(circle at 28% 24%, rgba(255,236,160,0.16) 2px, transparent 3px);
+}
+.char-avatar-large.simmer-pfp::after {
+  content: "";
+  position: absolute; inset: 3px;
+  pointer-events: none;
+  border: 1px dashed rgba(140,228,255,0.55);
+  border-radius: inherit;
+  animation: alsace-pfp-spin 19s linear infinite;
+}
+
+/* ============================================================
    HELIOS — god of the sun. Strong, intimidating, aggressive,
    voracious. Molten gold / white-hot, fast fierce pulses.
    --char-color is blazing amber-gold.

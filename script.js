@@ -2741,6 +2741,10 @@ const PATTERN_DEFS = {
   jeckely_box:      { label: "Jeckely · Jack-in-the-Box", params: [] },
   mimzy_bloom:      { label: "Mimzy · Reaching Bloom",   params: [] },
   omen_stage:       { label: "Omen · Dark Stage",        params: [] },
+  ex_glitch:        { label: "EX · Glitch Broadcast",     params: [] },
+  riegen_phoenix:   { label: "Riegen · Phoenix Rebirth",  params: [] },
+  lorraine_brass:   { label: "Lorraine · Gilded Parlour", params: [] },
+  simmer_tide:      { label: "Simmer · Star-Tide Kingdom", params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -10012,6 +10016,1545 @@ function _stopOmenOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// EX — a monochrome, glitchy broadcast that's edgy but a little playful.
+// A black-and-white screen full of datamosh tear bands, drifting glitch
+// glyphs (a mix of harsh ▓ █ </> and cheeky :) <3 XD OK), static grain
+// and the odd flash. The cursor is a glitchy arrow that jitters, splits
+// into grey ghosts and, on click, bursts into blocks + a cheeky glyph.
+// ════════════════════════════════════════════════════════════════
+const _EX_RE = /^EX$/i;
+function _isEx(c) { return !!(c && c.name && _EX_RE.test(c.name)); }
+
+function _exHash(i) { const v = Math.sin(i * 99.13 + 7.7) * 43758.5453; return v - Math.floor(v); }
+
+const _EX_GLYPHS_BG = ['EX', '01', '▓', '█', ':)', ':(', '</>', 'OK', '?!', '<3', '×_×', '//', '[ ]', 'XD', '404', '><'];
+const _EX_GLYPHS_CUR = [':)', 'XD', '<3', 'OK', '!?', ':P', 'EX', ':D', '^_^', 'gg'];
+
+let _exNoiseCanvas = null;
+function _exNoiseTile() {
+  if (_exNoiseCanvas) return _exNoiseCanvas;
+  const n = 96, c = document.createElement('canvas'); c.width = n; c.height = n;
+  const x = c.getContext('2d'), img = x.createImageData(n, n), d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = (Math.random() * 255) | 0;
+    d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  _exNoiseCanvas = c; return c;
+}
+
+/* ── Glitch-broadcast pattern ───────────────────────────────────── */
+function _drawExPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawExPattern._lt === undefined;
+  if (!fresh && t - _drawExPattern._lt < 0.033) return;   // 30fps cap
+  _drawExPattern._lt = t;
+  const PI2 = Math.PI * 2;
+
+  ctx.clearRect(0, 0, W, H);
+  // near-black base with a faint top-down sheen
+  ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, W, H);
+  if (!_drawExPattern._bg || _drawExPattern._bgW !== W || _drawExPattern._bgH !== H) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, 'rgba(40,40,40,0.4)');
+    g.addColorStop(0.5, 'rgba(10,10,10,0)');
+    g.addColorStop(1, 'rgba(28,28,28,0.35)');
+    _drawExPattern._bg = g; _drawExPattern._bgW = W; _drawExPattern._bgH = H;
+  }
+  ctx.fillStyle = _drawExPattern._bg; ctx.fillRect(0, 0, W, H);
+
+  // static grain (cached tile, re-offset each frame)
+  ctx.save();
+  ctx.globalAlpha = 0.05 + _exHash(Math.floor(t * 11)) * 0.04;
+  const ox = (Math.random() * 96) | 0, oy = (Math.random() * 96) | 0;
+  ctx.translate(-ox, -oy);
+  ctx.fillStyle = ctx.createPattern(_exNoiseTile(), 'repeat');
+  ctx.fillRect(ox, oy, W + 96, H + 96);
+  ctx.restore();
+
+  // datamosh tear bands — re-roll ~9 times a second
+  const tick = Math.floor(t * 9);
+  for (let b = 0; b < 7; b++) {
+    if (_exHash(b * 7 + tick * 3.1) < 0.4) continue;       // sometimes off
+    const by = _exHash(b * 31 + tick) * H;
+    const bh = 4 + _exHash(b * 5 + tick) * 24;
+    const off = (_exHash(b * 17 + tick) - 0.5) * 70;
+    const inv = _exHash(b * 23 + tick) > 0.72;
+    ctx.fillStyle = inv ? 'rgba(225,225,225,0.10)' : 'rgba(0,0,0,0.4)';
+    ctx.fillRect(0, by, W, bh);
+    // bright displaced tear edge
+    ctx.fillStyle = `rgba(255,255,255,${(0.1 + _exHash(b + tick) * 0.16).toFixed(3)})`;
+    ctx.fillRect(off, by, W, 1.5);
+    // displaced data dashes
+    ctx.fillStyle = 'rgba(190,190,190,0.45)';
+    for (let k = 0; k < 6; k++) {
+      const dx = _exHash(b * 3 + k * 5 + tick) * W;
+      ctx.fillRect((dx + off + W) % W, by + _exHash(k + b) * bh, 8 + _exHash(k * 3) * 34, 1);
+    }
+  }
+
+  // drifting glitch glyphs with grey channel-split ghosts
+  for (let g = 0; g < 11; g++) {
+    const gtick = Math.floor(t * 7 + g);
+    if (_exHash(g * 9 + gtick) < 0.14) continue;            // flicker out
+    const basex = _exHash(g * 41) * W, basey = _exHash(g * 57) * H;
+    const jx = (_exHash(g * 11 + gtick) - 0.5) * 9;
+    const jy = (_exHash(g * 19 + gtick) - 0.5) * 9;
+    const x = basex + Math.sin(t * 0.2 + g) * 22 + jx;
+    const y = basey + Math.cos(t * 0.15 + g) * 18 + jy;
+    const sz = 13 + _exHash(g * 3) * 28;
+    const ch = _EX_GLYPHS_BG[g % _EX_GLYPHS_BG.length];
+    ctx.font = `bold ${sz | 0}px monospace`;
+    ctx.textBaseline = 'middle';
+    const sp = 2.5 + _exHash(g + gtick) * 3;
+    ctx.globalAlpha = 0.16; ctx.fillStyle = '#ffffff'; ctx.fillText(ch, x - sp, y);
+    ctx.globalAlpha = 0.16; ctx.fillStyle = '#7a7a7a'; ctx.fillText(ch, x + sp, y + 1);
+    ctx.globalAlpha = 0.5;  ctx.fillStyle = '#d6d6d6'; ctx.fillText(ch, x, y);
+    ctx.globalAlpha = 1;
+  }
+
+  // occasional white flash slice
+  if (_exHash(Math.floor(t * 13)) > 0.93) {
+    const fy = _exHash(Math.floor(t * 13) + 3) * H;
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.fillRect(0, fy, W, 8 + _exHash(Math.floor(t * 13) + 7) * 40);
+  }
+
+  // faint scanlines
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+}
+
+/* ── Glitchy arrow cursor ───────────────────────────────────────── */
+let _exOverlayRafId = null;
+let _exMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _exMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _exSMX = _exMX, _exSMY = _exMY;
+let _exTrail = [];
+let _exParts = [];
+let _exGlyphI = 0;
+
+function _exArrowPath(ctx, x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y + 16 * s);
+  ctx.lineTo(x + 4 * s, y + 12 * s);
+  ctx.lineTo(x + 7 * s, y + 18 * s);
+  ctx.lineTo(x + 9.5 * s, y + 17 * s);
+  ctx.lineTo(x + 6.5 * s, y + 11 * s);
+  ctx.lineTo(x + 11 * s, y + 11 * s);
+  ctx.closePath();
+}
+
+function _exMouseMove(e) { _exMX = e.clientX; _exMY = e.clientY; }
+function _exMouseDown() {
+  const PI2 = Math.PI * 2, x = _exMX, y = _exMY;
+  const push = p => { _exParts.push(p); if (_exParts.length > 200) _exParts.shift(); };
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * PI2, s = 90 + Math.random() * 200;
+    push({ type: 'block', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1,
+           max: 0.4 + Math.random() * 0.45, w: 3 + Math.random() * 8, h: 2 + Math.random() * 6,
+           sh: 90 + (Math.random() * 165 | 0) });
+  }
+  push({ type: 'tear', y, life: 1, max: 0.28 });
+  push({ type: 'glyph', x, y, ch: _EX_GLYPHS_CUR[_exGlyphI], life: 1, max: 0.85, sz: 36 + Math.random() * 18 });
+  _exGlyphI = (_exGlyphI + 1) % _EX_GLYPHS_CUR.length;
+}
+
+function _drawExOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawExOverlay._lt === undefined;
+  if (!fresh && t - _drawExOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawExOverlay._lt, 0.05);
+  _drawExOverlay._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  _exSMX += (_exMX - _exSMX) * Math.min(1, dt * 20);
+  _exSMY += (_exMY - _exSMY) * Math.min(1, dt * 20);
+  const vx = _exMX - _exSMX, vy = _exMY - _exSMY, spd = Math.hypot(vx, vy);
+  const tick = Math.floor(t * 14);
+
+  // ghost trail
+  _exTrail.push({ x: _exMX, y: _exMY, life: 1 });
+  if (_exTrail.length > 9) _exTrail.shift();
+  for (const p of _exTrail) {
+    p.life -= dt * 3.2; if (p.life <= 0) continue;
+    ctx.globalAlpha = p.life * 0.22;
+    ctx.fillStyle = '#ffffff';
+    _exArrowPath(ctx, p.x + (_exHash(p.x | 0) - 0.5) * 4, p.y, 1); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  _exTrail = _exTrail.filter(p => p.life > 0);
+
+  // particles
+  for (const p of _exParts) {
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, Math.min(1, p.life));
+    if (p.type === 'block') {
+      p.vx *= (1 - 1.5 * dt); p.vy *= (1 - 1.5 * dt); p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.globalAlpha = al; ctx.fillStyle = `rgb(${p.sh},${p.sh},${p.sh})`;
+      ctx.fillRect(p.x - p.w / 2, p.y - p.h / 2, p.w, p.h);
+    } else if (p.type === 'tear') {
+      const jit = (_exHash(tick * 2) - 0.5) * 30;
+      ctx.globalAlpha = al * 0.6; ctx.fillStyle = '#ffffff';
+      ctx.fillRect(jit, p.y - 1, W, 2);
+      ctx.globalAlpha = al * 0.25; ctx.fillStyle = '#000';
+      ctx.fillRect(0, p.y + 2, W, 3);
+    } else if (p.type === 'glyph') {
+      const jx = (_exHash(tick * 3) - 0.5) * 6, jy = (_exHash(tick * 5) - 0.5) * 6;
+      ctx.font = `bold ${p.sz | 0}px monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.globalAlpha = al * 0.4; ctx.fillStyle = '#888'; ctx.fillText(p.ch, p.x + jx + 3, p.y + jy);
+      ctx.globalAlpha = al;       ctx.fillStyle = '#fff'; ctx.fillText(p.ch, p.x + jx, p.y + jy);
+      ctx.textAlign = 'start';
+    }
+  }
+  ctx.globalAlpha = 1;
+  _exParts = _exParts.filter(p => p.life > 0);
+
+  // the glitchy arrow cursor
+  const gx = Math.min(7, 1 + spd * 0.18);
+  const jitter = (_exHash(tick) > 0.7) ? (_exHash(tick * 2) - 0.5) * 5 : 0;
+  const cx = _exMX + jitter, cy = _exMY;
+  // grey channel-split ghosts
+  ctx.globalAlpha = 0.35; ctx.fillStyle = '#ffffff'; _exArrowPath(ctx, cx - gx, cy, 1); ctx.fill();
+  ctx.globalAlpha = 0.3;  ctx.fillStyle = '#8c8c8c'; _exArrowPath(ctx, cx + gx, cy, 1); ctx.fill();
+  ctx.globalAlpha = 1;
+  // main arrow (occasionally inverts for a frame)
+  const inv = _exHash(tick * 3) > 0.92;
+  _exArrowPath(ctx, cx, cy, 1);
+  ctx.fillStyle = inv ? '#111' : '#f2f2f2'; ctx.fill();
+  ctx.lineWidth = 1; ctx.strokeStyle = inv ? '#fff' : '#000'; ctx.stroke();
+}
+
+function _startExOverlay() {
+  _stopExOverlay();
+  _drawExOverlay._lt = undefined;
+  _exParts = []; _exTrail = []; _exGlyphI = 0;
+  _exSMX = _exMX; _exSMY = _exMY;
+  window.addEventListener('mousemove', _exMouseMove);
+  window.addEventListener('mousedown', _exMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'ex-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('ex-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawExOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _exOverlayRafId = requestAnimationFrame(frame);
+  }
+  _exOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopExOverlay() {
+  if (_exOverlayRafId) { cancelAnimationFrame(_exOverlayRafId); _exOverlayRafId = null; }
+  window.removeEventListener('mousemove', _exMouseMove);
+  window.removeEventListener('mousedown', _exMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('ex-overlay'); if (cv) cv.remove();
+  _exParts = []; _exTrail = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// RIEGEN — the phoenix. A dark ember sky where a great firebird soars,
+// flapping and trailing flame, on an endless cycle of death and rebirth:
+// every so often it burns out into a burst of ash and embers, then
+// re-ignites in a flash and rises again. Burning feathers drift down,
+// embers rise. The cursor is a burning phoenix feather that sheds
+// sparks; clicking flares it and releases a tiny firebird that climbs
+// into the sky and dissolves.
+// ════════════════════════════════════════════════════════════════
+const _RIEGEN_RE = /^Riegen$/i;
+function _isRiegen(c) { return !!(c && c.name && _RIEGEN_RE.test(c.name)); }
+
+function _rgHash(i) { const v = Math.sin(i * 73.91 + 3.3) * 43758.5453; return v - Math.floor(v); }
+
+// Draw a phoenix at the origin facing +x. s = overall scale, flap = wing
+// phase (radians), glow = 0..1 extra brightness (rebirth flare).
+function _rgDrawPhoenix(ctx, s, flap, t, glow) {
+  const PI2 = Math.PI * 2;
+  ctx.save();
+  ctx.scale(s, s);
+  const wing = Math.sin(flap);                 // -1..1 wing beat
+  const g = Math.max(0, Math.min(1, glow || 0));
+
+  // ── tail: three waving flame ribbons trailing behind (-x) ──
+  for (let r = 0; r < 3; r++) {
+    const off = (r - 1) * 5;
+    const wav = Math.sin(t * 6 + r * 2.1) * 6;
+    const wav2 = Math.sin(t * 4.5 + r * 1.3) * 9;
+    const len = 52 + r * 10;
+    ctx.beginPath();
+    ctx.moveTo(-10, off * 0.4);
+    ctx.bezierCurveTo(-24, off + wav * 0.5, -36, off + wav, -len, off * 1.6 + wav2);
+    ctx.bezierCurveTo(-36, off + wav + 3, -24, off + wav * 0.5 + 3, -10, off * 0.4 + 2.5);
+    ctx.closePath();
+    const ta = 0.5 - r * 0.12 + g * 0.3;
+    ctx.fillStyle = r === 0 ? `rgba(255,177,54,${ta.toFixed(3)})`
+                  : r === 1 ? `rgba(255,94,31,${ta.toFixed(3)})`
+                            : `rgba(190,40,16,${ta.toFixed(3)})`;
+    ctx.fill();
+  }
+
+  // ── wings: far wing (dim) then body then near wing (bright) ──
+  const wingShape = (dir, lift) => {
+    // dir: -1 far (behind body), +1 near. lift: flap displacement
+    ctx.beginPath();
+    ctx.moveTo(2, -3);
+    ctx.bezierCurveTo(8, -10 - lift * 0.6, 18, -16 - lift, 30, -18 - lift * 1.35);
+    // feather fingers along the trailing edge
+    ctx.lineTo(24, -12 - lift * 0.95);
+    ctx.lineTo(27, -8 - lift * 0.8);
+    ctx.lineTo(20, -5 - lift * 0.55);
+    ctx.lineTo(23, -1 - lift * 0.4);
+    ctx.lineTo(12, 1 - lift * 0.15);
+    ctx.closePath();
+  };
+  // far wing
+  ctx.save();
+  ctx.translate(-2, 1); ctx.scale(0.92, 1);
+  wingShape(-1, wing * 13 - 3);
+  ctx.fillStyle = `rgba(170,40,14,${(0.55 + g * 0.3).toFixed(3)})`;
+  ctx.fill();
+  ctx.restore();
+
+  // ── body: a flame teardrop ──
+  ctx.beginPath();
+  ctx.moveTo(16, -1);
+  ctx.bezierCurveTo(12, -7, 0, -7.5, -9, -3.5);
+  ctx.bezierCurveTo(-12, -1.5, -12, 2.5, -8, 4.2);
+  ctx.bezierCurveTo(0, 7.5, 12, 5.5, 16, -1);
+  ctx.closePath();
+  ctx.fillStyle = `rgba(255,${Math.round(120 + g * 90)},${Math.round(34 + g * 120)},0.95)`;
+  ctx.fill();
+  // belly highlight
+  ctx.beginPath(); ctx.ellipse(2, 0.5, 8, 3.4, -0.15, 0, PI2);
+  ctx.fillStyle = `rgba(255,220,130,${(0.5 + g * 0.4).toFixed(3)})`; ctx.fill();
+
+  // ── head + beak + crest ──
+  ctx.beginPath(); ctx.arc(17.5, -3.5, 4.4, 0, PI2);
+  ctx.fillStyle = `rgba(255,${Math.round(150 + g * 70)},50,0.97)`; ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(21.2, -4.6); ctx.lineTo(26.5, -3.1); ctx.lineTo(21.2, -1.7); ctx.closePath();
+  ctx.fillStyle = '#ffd98c'; ctx.fill();
+  // crest flames
+  for (let k = 0; k < 3; k++) {
+    const ca = -1.9 + k * 0.45 + Math.sin(t * 7 + k) * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(16.5 + k * 1.2, -7);
+    ctx.quadraticCurveTo(15 + k * 1.4 + Math.cos(ca) * 4, -13 - k, 14 + k * 2.2, -14.5 - k * 1.5);
+    ctx.quadraticCurveTo(17 + k * 1.4, -11, 18 + k * 1.2, -7.2);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(255,140,40,${(0.7 - k * 0.15).toFixed(3)})`;
+    ctx.fill();
+  }
+  // eye
+  ctx.fillStyle = '#2a0a00';
+  ctx.beginPath(); ctx.arc(18.6, -4.2, 1, 0, PI2); ctx.fill();
+
+  // near wing
+  ctx.save();
+  ctx.translate(0, -1);
+  wingShape(1, wing * 16);
+  const wg = ctx.createLinearGradient(2, 0, 30, -20);
+  wg.addColorStop(0, `rgba(255,196,80,${(0.95).toFixed(2)})`);
+  wg.addColorStop(1, `rgba(255,80,24,${(0.85).toFixed(2)})`);
+  ctx.fillStyle = wg; ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+/* ── Ember-sky pattern with the soaring, rebirthing phoenix ────── */
+function _drawRiegenPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawRiegenPattern._lt === undefined;
+  if (!fresh && t - _drawRiegenPattern._lt < 0.033) return;   // 30fps cap
+  _drawRiegenPattern._lt = t;
+  const PI2 = Math.PI * 2;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // cached sky + ember-horizon gradients
+  if (!_drawRiegenPattern._bg || _drawRiegenPattern._bgW !== W || _drawRiegenPattern._bgH !== H) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0,   '#0c0405');
+    g.addColorStop(0.55,'#1c0907');
+    g.addColorStop(0.85,'#3a120a');
+    g.addColorStop(1,   '#571c0c');
+    const hz = ctx.createLinearGradient(0, H * 0.8, 0, H);
+    hz.addColorStop(0, 'rgba(255,120,40,0)');
+    hz.addColorStop(1, 'rgba(255,140,50,0.16)');
+    _drawRiegenPattern._bg = g; _drawRiegenPattern._hz = hz;
+    _drawRiegenPattern._bgW = W; _drawRiegenPattern._bgH = H;
+  }
+  ctx.fillStyle = _drawRiegenPattern._bg; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = _drawRiegenPattern._hz; ctx.fillRect(0, H * 0.8, W, H * 0.2);
+
+  // ── rising embers ──
+  for (let i = 0; i < 36; i++) {
+    const sd = i * 0.618;
+    const spd = 22 + (sd % 18);
+    const ex = ((sd * 2.73) % 1) * W + Math.sin(t * 0.8 + i) * 18;
+    const ey = H - ((t * spd + sd * H) % (H + 20));
+    const r = 0.9 + (sd % 1.3);
+    const al = 0.16 + (sd % 0.30) * (0.4 + 0.6 * Math.abs(Math.sin(t * 2 + i)));
+    ctx.fillStyle = `rgba(255,${150 + ((i * 37) % 70)},40,${al.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(ex, ey, r, 0, PI2); ctx.fill();
+  }
+
+  // ── drifting burning feathers ──
+  for (let f = 0; f < 5; f++) {
+    const sd = f * 1.618;
+    const cyc = 14 + (sd % 6);
+    const ph = ((t * 0.55 + sd * 3.7) % cyc) / cyc;
+    const fx = ((sd * 2.236) % 1) * W + Math.sin(t * 0.7 + f * 2) * 30;
+    const fy = ph * (H + 70) - 35;
+    const rot = Math.sin(t * 1.1 + f) * 0.7 + 0.5;
+    const fa = Math.sin(ph * Math.PI);          // fade in/out over the fall
+    ctx.save();
+    ctx.translate(fx, fy); ctx.rotate(rot);
+    ctx.globalAlpha = fa * 0.6;
+    // feather vane
+    ctx.beginPath();
+    ctx.moveTo(0, -9);
+    ctx.quadraticCurveTo(5, -3, 1.6, 8);
+    ctx.quadraticCurveTo(0, 9.5, -1.6, 8);
+    ctx.quadraticCurveTo(-5, -3, 0, -9);
+    ctx.closePath();
+    ctx.fillStyle = '#c2391a'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,170,70,0.8)'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(0, 9); ctx.stroke();
+    // burning tip
+    const fl = 0.6 + Math.sin(t * 9 + f * 3) * 0.25;
+    ctx.fillStyle = `rgba(255,190,70,${(fl * fa).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.moveTo(-2, -8); ctx.quadraticCurveTo(0, -15 - fl * 4, 2, -8);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── the phoenix: soar → burnout → ash → rebirth, every 22s ──
+  const T = 22, ph = (t % T) / T;
+  // flight path: a broad figure-sweep around the middle of the sky
+  const pos = tt => [
+    W * 0.5 + Math.sin(tt * 0.30) * W * 0.34,
+    H * 0.34 + Math.sin(tt * 0.60 + 1.2) * H * 0.16 + Math.cos(tt * 0.23) * H * 0.07
+  ];
+  const [bx, by] = pos(t);
+  const [bx2, by2] = pos(t + 0.05);
+  let ang = Math.atan2(by2 - by, bx2 - bx);
+
+  let scale = 1.6, glow = 0, alive = true;
+  if (ph > 0.78 && ph <= 0.86) {
+    // burnout: shrink + dim
+    const k = (ph - 0.78) / 0.08;
+    scale = 1.6 * (1 - k * 0.85);
+    glow = -k;
+  } else if (ph > 0.86 && ph <= 0.92) {
+    alive = false;                              // ash — no bird
+  } else if (ph > 0.92) {
+    // rebirth: blaze back in
+    const k = (ph - 0.92) / 0.08;
+    scale = 1.6 * (0.2 + 0.8 * k);
+    glow = 1 - k;
+  }
+
+  // burst ring + ash during the death/rebirth window
+  if (ph > 0.80 && ph < 0.97) {
+    const k = Math.min(1, (ph - 0.80) / 0.17);
+    const rr = k * 130;
+    ctx.strokeStyle = `rgba(255,160,60,${(0.5 * (1 - k)).toFixed(3)})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(bx, by, rr, 0, PI2); ctx.stroke();
+    for (let a = 0; a < 14; a++) {
+      const aa = a * (PI2 / 14) + k * 1.2;
+      const ar = rr * (0.55 + _rgHash(a) * 0.5);
+      ctx.fillStyle = `rgba(255,${120 + (a * 31) % 90},40,${(0.55 * (1 - k)).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(bx + Math.cos(aa) * ar, by + Math.sin(aa) * ar, 1.6 + _rgHash(a * 3) * 2, 0, PI2); ctx.fill();
+    }
+  }
+  // rebirth flash
+  if (ph > 0.90 && ph < 0.95) {
+    const k = 1 - Math.abs((ph - 0.925) / 0.025);
+    const fg = ctx.createRadialGradient(bx, by, 0, bx, by, 90);
+    fg.addColorStop(0, `rgba(255,230,150,${(0.5 * k).toFixed(3)})`);
+    fg.addColorStop(1, 'rgba(255,150,50,0)');
+    ctx.fillStyle = fg;
+    ctx.beginPath(); ctx.arc(bx, by, 90, 0, PI2); ctx.fill();
+  }
+
+  if (alive) {
+    // flame trail along the recent path
+    for (let k = 1; k <= 7; k++) {
+      const [tx, ty] = pos(t - k * 0.085);
+      const ta = (1 - k / 8) * 0.30 * (glow >= 0 ? 1 : 1 + glow);
+      if (ta <= 0) continue;
+      ctx.fillStyle = `rgba(255,${130 - k * 8},35,${ta.toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(tx, ty, 7 - k * 0.7, 0, PI2); ctx.fill();
+    }
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.rotate(ang);
+    if (Math.cos(ang) < 0) ctx.scale(1, -1);     // never upside down
+    _rgDrawPhoenix(ctx, scale, t * 7.5, t, Math.max(0, glow));
+    ctx.restore();
+  }
+
+  // soft heat vignette
+  if (!_drawRiegenPattern._vig || _drawRiegenPattern._vigW !== W || _drawRiegenPattern._vigH !== H) {
+    const vg = ctx.createRadialGradient(W * 0.5, H * 0.45, Math.min(W, H) * 0.25, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    _drawRiegenPattern._vig = vg; _drawRiegenPattern._vigW = W; _drawRiegenPattern._vigH = H;
+  }
+  ctx.fillStyle = _drawRiegenPattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* ── Burning-feather cursor ─────────────────────────────────────── */
+let _rgOverlayRafId = null;
+let _rgMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _rgMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _rgSMX = _rgMX, _rgSMY = _rgMY;
+let _rgParts = [];
+let _rgFlare = 0;
+let _rgEmitAcc = 0;
+
+function _rgMouseMove(e) { _rgMX = e.clientX; _rgMY = e.clientY; }
+function _rgMouseDown() {
+  const PI2 = Math.PI * 2, x = _rgMX, y = _rgMY;
+  _rgFlare = 1;
+  const push = p => { _rgParts.push(p); if (_rgParts.length > 220) _rgParts.shift(); };
+  // ember burst
+  for (let i = 0; i < 14; i++) {
+    const a = Math.random() * PI2, s = 70 + Math.random() * 160;
+    push({ type: 'ember', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40,
+           life: 1, max: 0.5 + Math.random() * 0.5, r: 1.5 + Math.random() * 2.2 });
+  }
+  // a tiny firebird rises from the click and dissolves
+  push({ type: 'bird', x, y, vy: -120 - Math.random() * 60, vx: (Math.random() - 0.5) * 60,
+         life: 1, max: 1.4, flap: Math.random() * PI2 });
+}
+
+function _drawRiegenOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawRiegenOverlay._lt === undefined;
+  if (!fresh && t - _drawRiegenOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawRiegenOverlay._lt, 0.05);
+  _drawRiegenOverlay._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  _rgSMX += (_rgMX - _rgSMX) * Math.min(1, dt * 16);
+  _rgSMY += (_rgMY - _rgSMY) * Math.min(1, dt * 16);
+  const vx = _rgMX - _rgSMX, vy = _rgMY - _rgSMY;
+  _rgFlare = Math.max(0, _rgFlare - dt * 2.2);
+
+  // continuous spark shed from the feather's flame
+  _rgEmitAcc += dt;
+  while (_rgEmitAcc > 0.05) {
+    _rgEmitAcc -= 0.05;
+    _rgParts.push({ type: 'ember', x: _rgMX + (Math.random() - 0.5) * 6, y: _rgMY - 14,
+      vx: (Math.random() - 0.5) * 26 - vx * 0.4, vy: -30 - Math.random() * 30 - vy * 0.3,
+      life: 1, max: 0.45 + Math.random() * 0.4, r: 1 + Math.random() * 1.6 });
+    if (_rgParts.length > 240) _rgParts.shift();
+  }
+
+  // particles
+  for (const p of _rgParts) {
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, Math.min(1, p.life));
+    if (p.type === 'ember') {
+      p.vy += 26 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.globalAlpha = al;
+      ctx.fillStyle = al > 0.6 ? '#ffd98c' : al > 0.3 ? '#ff9636' : '#c2391a';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.5 + al * 0.5), 0, PI2); ctx.fill();
+    } else if (p.type === 'bird') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy *= (1 - 0.25 * dt);
+      ctx.save();
+      ctx.globalAlpha = al;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(-0.5 * Math.sign(p.vx || 1) * 0.4);
+      if (p.vx < 0) ctx.scale(-1, 1);
+      _rgDrawPhoenix(ctx, 0.45 * (0.6 + al * 0.4), t * 14 + p.flap, t, al * 0.6);
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
+  _rgParts = _rgParts.filter(p => p.life > 0);
+
+  // ── the burning feather cursor ──
+  const tilt = Math.max(-0.5, Math.min(0.5, vx * 0.012)) + Math.sin(t * 2.2) * 0.06;
+  ctx.save();
+  ctx.translate(_rgMX, _rgMY);
+  ctx.rotate(tilt);
+  // vane
+  ctx.beginPath();
+  ctx.moveTo(0, -16);
+  ctx.bezierCurveTo(8, -8, 7, 4, 2, 14);
+  ctx.quadraticCurveTo(0, 16.5, -2, 14);
+  ctx.bezierCurveTo(-7, 4, -8, -8, 0, -16);
+  ctx.closePath();
+  const fgr = ctx.createLinearGradient(0, -16, 0, 16);
+  fgr.addColorStop(0, '#ffc24d');
+  fgr.addColorStop(0.5, '#ff6f24');
+  fgr.addColorStop(1, '#8e2410');
+  ctx.fillStyle = fgr; ctx.fill();
+  // barb lines + shaft
+  ctx.strokeStyle = 'rgba(60,12,2,0.55)'; ctx.lineWidth = 0.8;
+  for (let k = -2; k <= 2; k++) {
+    ctx.beginPath(); ctx.moveTo(0, k * 5 - 4); ctx.lineTo(k < 0 ? -4.5 : 4.5, k * 5 - 1); ctx.stroke();
+  }
+  ctx.strokeStyle = '#ffe2a8'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(0, 18); ctx.stroke();
+  // flame on the tip (flickers; flares on click)
+  const fl = 1 + Math.sin(t * 11) * 0.18 + Math.sin(t * 23) * 0.1 + _rgFlare * 1.6;
+  const flg = ctx.createRadialGradient(0, -18, 0, 0, -18, 14 * fl);
+  flg.addColorStop(0, `rgba(255,235,170,${(0.85).toFixed(2)})`);
+  flg.addColorStop(0.45, 'rgba(255,150,50,0.5)');
+  flg.addColorStop(1, 'rgba(255,90,25,0)');
+  ctx.fillStyle = flg;
+  ctx.beginPath(); ctx.arc(0, -18, 14 * fl, 0, PI2); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-3.5, -14);
+  ctx.quadraticCurveTo(-4 - Math.sin(t * 13) * 2, -22 - fl * 4, 0, -26 - fl * 5);
+  ctx.quadraticCurveTo(4 + Math.cos(t * 17) * 2, -22 - fl * 4, 3.5, -14);
+  ctx.closePath();
+  ctx.fillStyle = `rgba(255,170,60,${(0.85).toFixed(2)})`;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-1.6, -15);
+  ctx.quadraticCurveTo(0, -20 - fl * 3, 1.6, -15);
+  ctx.closePath();
+  ctx.fillStyle = '#fff0c8'; ctx.fill();
+  ctx.restore();
+}
+
+function _startRiegenOverlay() {
+  _stopRiegenOverlay();
+  _drawRiegenOverlay._lt = undefined;
+  _rgParts = []; _rgFlare = 0; _rgEmitAcc = 0;
+  _rgSMX = _rgMX; _rgSMY = _rgMY;
+  window.addEventListener('mousemove', _rgMouseMove);
+  window.addEventListener('mousedown', _rgMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'riegen-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('riegen-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawRiegenOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _rgOverlayRafId = requestAnimationFrame(frame);
+  }
+  _rgOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopRiegenOverlay() {
+  if (_rgOverlayRafId) { cancelAnimationFrame(_rgOverlayRafId); _rgOverlayRafId = null; }
+  window.removeEventListener('mousemove', _rgMouseMove);
+  window.removeEventListener('mousedown', _rgMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('riegen-overlay'); if (cv) cv.remove();
+  _rgParts = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// LORRAINE — a golden Victorian lady, strong and protective. A stately
+// parlour of antique gold: damask wallpaper, an ornate gilt frame,
+// meshing brass clockwork gears — and her tank heart: a heavy brass
+// rhino automaton that patrols the parlour floor, armour plates riveted,
+// chimney puffing steam, amber eye aglow. The cursor is an ornate brass
+// gear-medallion; clicking casts a protective golden ward (expanding
+// hex shield + rings + a burst of tiny cogs) and makes the rhino huff
+// a proud cloud of steam.
+// ════════════════════════════════════════════════════════════════
+const _LORRAINE_RE = /^Lorraine$/i;
+function _isLorraine(c) { return !!(c && c.name && _LORRAINE_RE.test(c.name)); }
+
+let _loPuff = 0;          // set by clicks; the rhino huffs extra steam
+let _loDamaskCanvas = null;
+
+// Cached damask wallpaper tile — drawn once, pattern-filled after.
+function _loDamaskTile() {
+  if (_loDamaskCanvas) return _loDamaskCanvas;
+  const S = 84, c = document.createElement('canvas'); c.width = S; c.height = S;
+  const x = c.getContext('2d');
+  x.strokeStyle = 'rgba(217,169,63,0.5)'; x.fillStyle = 'rgba(217,169,63,0.5)';
+  x.lineWidth = 1.1;
+  const motif = (cx, cy) => {
+    // diamond
+    x.beginPath();
+    x.moveTo(cx, cy - 16); x.quadraticCurveTo(cx + 9, cy - 7, cx, cy + 2);
+    x.quadraticCurveTo(cx - 9, cy - 7, cx, cy - 16);
+    x.closePath(); x.stroke();
+    // inner bud
+    x.beginPath(); x.arc(cx, cy - 7, 2.2, 0, Math.PI * 2); x.fill();
+    // side flourishes
+    x.beginPath(); x.moveTo(cx - 4, cy + 4); x.quadraticCurveTo(cx - 14, cy + 8, cx - 9, cy + 16); x.stroke();
+    x.beginPath(); x.moveTo(cx + 4, cy + 4); x.quadraticCurveTo(cx + 14, cy + 8, cx + 9, cy + 16); x.stroke();
+    // drop
+    x.beginPath(); x.moveTo(cx, cy + 6); x.quadraticCurveTo(cx + 3, cy + 12, cx, cy + 17);
+    x.quadraticCurveTo(cx - 3, cy + 12, cx, cy + 6); x.closePath(); x.stroke();
+  };
+  motif(S * 0.25, S * 0.28);
+  motif(S * 0.75, S * 0.78);
+  _loDamaskCanvas = c; return c;
+}
+
+// A brass cog at the origin, radius r with n teeth (stroked + filled).
+function _loCog(ctx, r, n, rot, fill, stroke) {
+  const PI2 = Math.PI * 2;
+  ctx.beginPath();
+  for (let i = 0; i < n * 2; i++) {
+    const rr = (i % 2) ? r : r * 0.82;
+    const a = rot + (i / (n * 2)) * PI2;
+    const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.4; ctx.stroke(); }
+  // hub + spokes
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.28, 0, PI2);
+  if (stroke) ctx.stroke();
+  for (let s = 0; s < 4; s++) {
+    const a = rot + s * (PI2 / 4);
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * r * 0.28, Math.sin(a) * r * 0.28);
+    ctx.lineTo(Math.cos(a) * r * 0.68, Math.sin(a) * r * 0.68);
+    if (stroke) ctx.stroke();
+  }
+}
+
+// The brass rhino automaton at the origin facing +x. s = scale,
+// step = walk phase (radians), puff = 0..1 extra steam/eye glow.
+function _loDrawRhino(ctx, s, step, t, puff) {
+  const PI2 = Math.PI * 2;
+  ctx.save();
+  ctx.scale(s, s);
+  const bob = Math.abs(Math.sin(step)) * 1.6;
+  ctx.translate(0, -bob);
+
+  // ground shadow
+  ctx.save(); ctx.translate(0, bob);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(0, 34, 58, 7, 0, 0, PI2); ctx.fill();
+  ctx.restore();
+
+  const leg = (lx, ph, far) => {
+    const sw = Math.sin(step + ph) * 5;
+    const lift = Math.max(0, Math.sin(step + ph)) * 3;
+    ctx.fillStyle = far ? '#5d4416' : '#8a6a24';
+    ctx.beginPath();
+    ctx.moveTo(lx - 6 + sw * 0.3, 8);
+    ctx.lineTo(lx + 6 + sw * 0.3, 8);
+    ctx.lineTo(lx + 5 + sw, 30 - lift);
+    ctx.lineTo(lx - 5 + sw, 30 - lift);
+    ctx.closePath(); ctx.fill();
+    // riveted knee plate + foot
+    ctx.fillStyle = far ? '#6d5420' : '#a8842e';
+    ctx.fillRect(lx - 6 + sw * 0.6, 16 - lift * 0.5, 12, 5);
+    ctx.fillStyle = far ? '#3c2c0e' : '#57400f';
+    ctx.fillRect(lx - 6.5 + sw, 29 - lift, 13, 5);
+  };
+  // far legs
+  leg(-32, Math.PI, true); leg(26, 0, true);
+
+  // body hull — heavy rounded armour
+  const hull = ctx.createLinearGradient(0, -34, 0, 26);
+  hull.addColorStop(0, '#c79b3a');
+  hull.addColorStop(0.45, '#9c7427');
+  hull.addColorStop(1, '#5f4513');
+  ctx.beginPath();
+  ctx.moveTo(-52, 8);
+  ctx.bezierCurveTo(-58, -16, -38, -32, -6, -33);
+  ctx.bezierCurveTo(22, -34, 44, -26, 50, -8);
+  ctx.bezierCurveTo(53, 2, 48, 12, 38, 14);
+  ctx.lineTo(-40, 14);
+  ctx.bezierCurveTo(-48, 14, -51, 12, -52, 8);
+  ctx.closePath();
+  ctx.fillStyle = hull; ctx.fill();
+  ctx.strokeStyle = '#3a2a0c'; ctx.lineWidth = 1.6; ctx.stroke();
+
+  // armour plate seams + rivets
+  ctx.strokeStyle = 'rgba(58,42,12,0.75)'; ctx.lineWidth = 1.3;
+  for (const sx of [-30, -6, 18]) {
+    ctx.beginPath();
+    ctx.moveTo(sx, -32 + Math.abs(sx) * 0.12);
+    ctx.quadraticCurveTo(sx + 3, -8, sx, 13);
+    ctx.stroke();
+    ctx.fillStyle = '#e8c466';
+    for (let rv = 0; rv < 4; rv++) {
+      ctx.beginPath(); ctx.arc(sx + 2.6, -26 + rv * 11 + Math.abs(sx) * 0.1, 1.3, 0, PI2); ctx.fill();
+    }
+  }
+  // gold filigree flourish on the mid plate
+  ctx.strokeStyle = 'rgba(240,205,110,0.8)'; ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.moveTo(-24, -6); ctx.quadraticCurveTo(-16, -16, -8, -8); ctx.quadraticCurveTo(-14, -4, -24, -6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(2, 0); ctx.quadraticCurveTo(8, -8, 14, -2); ctx.stroke();
+
+  // back ridge + chimney stack
+  ctx.fillStyle = '#7a5c1d';
+  ctx.beginPath();
+  ctx.moveTo(-20, -33); ctx.lineTo(-12, -39) ; ctx.lineTo(0, -39.5); ctx.lineTo(6, -34);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#57400f';
+  ctx.fillRect(-12, -50, 9, 13);
+  ctx.fillStyle = '#a8842e';
+  ctx.fillRect(-13.5, -52, 12, 4);
+
+  // steam from the chimney (more + bigger when puffing)
+  const puffN = 4 + Math.round(puff * 4);
+  for (let k = 0; k < puffN; k++) {
+    const age = ((t * 0.55 + k / puffN) % 1);
+    const py = -52 - age * (26 + puff * 18);
+    const px = -7 + Math.sin(t * 1.4 + k * 2.2) * (3 + age * 7);
+    const pr = (2.5 + age * (5 + puff * 4));
+    ctx.fillStyle = `rgba(235,228,210,${((1 - age) * (0.22 + puff * 0.25)).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(px, py, pr, 0, PI2); ctx.fill();
+  }
+
+  // near legs
+  leg(-24, Math.PI * 0.5, false); leg(34, Math.PI * 1.5, false);
+
+  // tail cable with a brass tuft
+  const tw = Math.sin(t * 2.3) * 5;
+  ctx.strokeStyle = '#6d5420'; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(-51, 0); ctx.quadraticCurveTo(-60, 6, -58 + tw * 0.3, 16); ctx.stroke();
+  ctx.fillStyle = '#a8842e';
+  ctx.beginPath(); ctx.arc(-58 + tw * 0.3, 17.5, 2.6, 0, PI2); ctx.fill();
+
+  // head — lowered armoured wedge with face plate
+  ctx.save();
+  ctx.translate(48, -8);
+  ctx.rotate(0.16 + Math.sin(step * 0.5) * 0.02);
+  const hd = ctx.createLinearGradient(0, -16, 0, 20);
+  hd.addColorStop(0, '#cfa342'); hd.addColorStop(1, '#6d5018');
+  ctx.beginPath();
+  ctx.moveTo(-6, -15);
+  ctx.bezierCurveTo(10, -18, 22, -12, 26, 0);
+  ctx.bezierCurveTo(28, 9, 24, 18, 14, 20);
+  ctx.lineTo(-4, 16);
+  ctx.closePath();
+  ctx.fillStyle = hd; ctx.fill();
+  ctx.strokeStyle = '#3a2a0c'; ctx.lineWidth = 1.5; ctx.stroke();
+  // face-plate seam + rivets
+  ctx.strokeStyle = 'rgba(58,42,12,0.7)'; ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.moveTo(8, -16); ctx.quadraticCurveTo(11, 0, 7, 19); ctx.stroke();
+  ctx.fillStyle = '#e8c466';
+  for (let rv = 0; rv < 3; rv++) { ctx.beginPath(); ctx.arc(9.6, -10 + rv * 10, 1.1, 0, PI2); ctx.fill(); }
+  // ear plate
+  ctx.fillStyle = '#8a6a24';
+  ctx.beginPath(); ctx.moveTo(-4, -14); ctx.lineTo(2, -22); ctx.lineTo(6, -13); ctx.closePath(); ctx.fill();
+  // amber eye (glows brighter on puff)
+  ctx.fillStyle = `rgba(255,${180 + Math.round(puff * 50)},60,${(0.85 + puff * 0.15).toFixed(2)})`;
+  ctx.beginPath(); ctx.arc(13, -6, 2.6 + puff * 0.8, 0, PI2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,235,170,0.9)';
+  ctx.beginPath(); ctx.arc(13.7, -6.7, 0.9, 0, PI2); ctx.fill();
+  // the great horn + the smaller one behind it
+  ctx.fillStyle = '#efe3c8';
+  ctx.beginPath();
+  ctx.moveTo(24, 2);
+  ctx.quadraticCurveTo(40, -8, 44, -26);
+  ctx.quadraticCurveTo(33, -12, 22, 9);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(90,70,30,0.55)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#dccfae';
+  ctx.beginPath();
+  ctx.moveTo(12, -14);
+  ctx.quadraticCurveTo(16, -24, 15, -28);
+  ctx.quadraticCurveTo(9, -20, 7, -13);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+/* ── The gilded parlour pattern ─────────────────────────────────── */
+function _drawLorrainePattern(canvas, ctx, W, H, t) {
+  const fresh = _drawLorrainePattern._lt === undefined;
+  if (!fresh && t - _drawLorrainePattern._lt < 0.033) return;   // 30fps cap
+  _drawLorrainePattern._lt = t;
+  const PI2 = Math.PI * 2;
+  const floorY = H * 0.82;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // cached base gradients
+  if (!_drawLorrainePattern._bg || _drawLorrainePattern._bgW !== W || _drawLorrainePattern._bgH !== H) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#171005');
+    g.addColorStop(0.5, '#241806');
+    g.addColorStop(1, '#1a1205');
+    const lamp = ctx.createRadialGradient(W * 0.5, H * 0.18, 0, W * 0.5, H * 0.3, Math.max(W, H) * 0.65);
+    lamp.addColorStop(0, 'rgba(255,214,120,0.13)');
+    lamp.addColorStop(1, 'rgba(255,200,90,0)');
+    const fl = ctx.createLinearGradient(0, floorY, 0, H);
+    fl.addColorStop(0, '#33240a');
+    fl.addColorStop(1, '#100b03');
+    const vig = ctx.createRadialGradient(W * 0.5, H * 0.45, Math.min(W, H) * 0.28, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.6)');
+    _drawLorrainePattern._bg = g; _drawLorrainePattern._lamp = lamp;
+    _drawLorrainePattern._fl = fl; _drawLorrainePattern._vig = vig;
+    _drawLorrainePattern._bgW = W; _drawLorrainePattern._bgH = H;
+  }
+  ctx.fillStyle = _drawLorrainePattern._bg; ctx.fillRect(0, 0, W, H);
+
+  // damask wallpaper (cached tile), gently breathing
+  ctx.save();
+  ctx.globalAlpha = 0.16 + 0.05 * Math.sin(t * 0.5);
+  ctx.fillStyle = ctx.createPattern(_loDamaskTile(), 'repeat');
+  ctx.fillRect(0, 0, W, floorY);
+  ctx.restore();
+
+  // warm lamp glow
+  ctx.fillStyle = _drawLorrainePattern._lamp; ctx.fillRect(0, 0, W, H);
+
+  // parquet floor
+  ctx.fillStyle = _drawLorrainePattern._fl; ctx.fillRect(0, floorY, W, H - floorY);
+  ctx.strokeStyle = 'rgba(120,90,30,0.30)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(W, floorY); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  for (let i = 0; i < 9; i++) {
+    const fx = W * 0.5 + (i - 4) * (W * 0.14);
+    ctx.beginPath(); ctx.moveTo(fx, H); ctx.lineTo(W * 0.5 + (i - 4) * (W * 0.10), floorY); ctx.stroke();
+  }
+
+  // meshing clockwork gears in the upper corners (counter-rotating pairs)
+  const gearSets = [
+    { x: W * 0.07, y: H * 0.13, r: 44, n: 10, sp: 0.22 },
+    { x: W * 0.07 + 64, y: H * 0.13 + 30, r: 26, n: 8, sp: -0.37 },
+    { x: W * 0.93, y: H * 0.15, r: 38, n: 9, sp: -0.26 },
+    { x: W * 0.93 - 56, y: H * 0.15 + 30, r: 24, n: 8, sp: 0.42 },
+  ];
+  for (const gs of gearSets) {
+    ctx.save();
+    ctx.translate(gs.x, gs.y);
+    ctx.globalAlpha = 0.5;
+    _loCog(ctx, gs.r, gs.n, t * gs.sp, 'rgba(120,90,30,0.35)', 'rgba(217,169,63,0.7)');
+    ctx.restore();
+  }
+
+  // golden dust motes drifting in the lamplight
+  for (let i = 0; i < 22; i++) {
+    const sd = i * 0.618;
+    const mx = ((sd * 2.73) % 1) * W + Math.sin(t * 0.4 + i) * 16;
+    const my = ((sd * 1.93) % 1) * floorY + Math.sin(t * 0.7 + i * 2) * 8;
+    const al = 0.10 + 0.12 * (0.5 + 0.5 * Math.sin(t * 1.6 + i * 1.3));
+    ctx.fillStyle = `rgba(240,205,110,${al.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(mx, my, 1 + (sd % 1.2), 0, PI2); ctx.fill();
+  }
+
+  // ── the rhino automaton patrols the parlour floor ──
+  _loPuff = Math.max(0, _loPuff - 0.035);
+  const span = W - 320;
+  const cyc = (t * 0.030) % 2;                       // full there-and-back
+  const fr = cyc < 1 ? cyc : 2 - cyc;
+  const dir = cyc < 1 ? 1 : -1;
+  const rx = 160 + fr * Math.max(0, span);
+  const rScale = Math.min(1.5, Math.max(1.05, W / 900));
+  ctx.save();
+  ctx.translate(rx, floorY - 4);
+  ctx.scale(dir, 1);
+  _loDrawRhino(ctx, rScale, t * 5, t, _loPuff);
+  ctx.restore();
+
+  // ornate gilt frame around the whole view (drawn over everything)
+  ctx.strokeStyle = 'rgba(217,169,63,0.5)'; ctx.lineWidth = 2;
+  ctx.strokeRect(10, 10, W - 20, H - 20);
+  ctx.strokeStyle = 'rgba(217,169,63,0.28)'; ctx.lineWidth = 1;
+  ctx.strokeRect(16, 16, W - 32, H - 32);
+  // corner flourishes
+  for (const [cx, cy, fx, fy] of [[10, 10, 1, 1], [W - 10, 10, -1, 1], [10, H - 10, 1, -1], [W - 10, H - 10, -1, -1]]) {
+    ctx.strokeStyle = 'rgba(240,205,110,0.55)'; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(cx + fx * 2, cy + fy * 26);
+    ctx.quadraticCurveTo(cx + fx * 4, cy + fy * 6, cx + fx * 26, cy + fy * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + fx * 8, cy + fy * 20);
+    ctx.quadraticCurveTo(cx + fx * 20, cy + fy * 20, cx + fx * 20, cy + fy * 8);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(240,205,110,0.6)';
+    ctx.beginPath(); ctx.arc(cx + fx * 13, cy + fy * 13, 2, 0, PI2); ctx.fill();
+  }
+
+  // vignette
+  ctx.fillStyle = _drawLorrainePattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* ── Brass gear-medallion cursor + protective wards ─────────────── */
+let _loOverlayRafId = null;
+let _loMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _loMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _loSMX = _loMX, _loSMY = _loMY;
+let _loParts = [];
+let _loEmitAcc = 0;
+
+function _loMouseMove(e) { _loMX = e.clientX; _loMY = e.clientY; }
+function _loMouseDown() {
+  const PI2 = Math.PI * 2, x = _loMX, y = _loMY;
+  _loPuff = 1;                                  // the rhino huffs proudly
+  const push = p => { _loParts.push(p); if (_loParts.length > 200) _loParts.shift(); };
+  // protective ward: hex shield + double ring
+  push({ type: 'hex', x, y, r: 8, rv: 240, life: 1, max: 0.7, rot: Math.random() * PI2 });
+  push({ type: 'ring', x, y, r: 4, rv: 190, life: 1, max: 0.55 });
+  push({ type: 'ring', x, y, r: 2, rv: 300, life: 1, max: 0.4 });
+  // burst of tiny cogs
+  for (let i = 0; i < 7; i++) {
+    const a = Math.random() * PI2, s = 80 + Math.random() * 150;
+    push({ type: 'cog', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40,
+           life: 1, max: 0.6 + Math.random() * 0.45, r: 3.5 + Math.random() * 4,
+           rot: Math.random() * PI2, spin: (Math.random() - 0.5) * 14 });
+  }
+  // golden sparks
+  for (let i = 0; i < 10; i++) {
+    const a = Math.random() * PI2, s = 60 + Math.random() * 130;
+    push({ type: 'spark', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+           life: 1, max: 0.4 + Math.random() * 0.35, r: 1.2 + Math.random() * 1.6 });
+  }
+}
+
+function _drawLorraineOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawLorraineOverlay._lt === undefined;
+  if (!fresh && t - _drawLorraineOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawLorraineOverlay._lt, 0.05);
+  _drawLorraineOverlay._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  _loSMX += (_loMX - _loSMX) * Math.min(1, dt * 16);
+  _loSMY += (_loMY - _loSMY) * Math.min(1, dt * 16);
+  const vx = _loMX - _loSMX;
+
+  // gentle golden sparkle shed
+  _loEmitAcc += dt;
+  while (_loEmitAcc > 0.09) {
+    _loEmitAcc -= 0.09;
+    _loParts.push({ type: 'spark', x: _loMX + (Math.random() - 0.5) * 14, y: _loMY + (Math.random() - 0.5) * 14,
+      vx: (Math.random() - 0.5) * 18, vy: 12 + Math.random() * 18,
+      life: 1, max: 0.5 + Math.random() * 0.4, r: 0.9 + Math.random() * 1.2 });
+    if (_loParts.length > 220) _loParts.shift();
+  }
+
+  // particles
+  for (const p of _loParts) {
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, Math.min(1, p.life));
+    if (p.type === 'hex') {
+      p.r += p.rv * dt; p.rot += dt * 0.8;
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = al * 0.85;
+      ctx.strokeStyle = '#f0cd6e'; ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const a = k * (PI2 / 6);
+        const hx = Math.cos(a) * p.r, hy = Math.sin(a) * p.r;
+        k === 0 ? ctx.moveTo(hx, hy) : ctx.lineTo(hx, hy);
+      }
+      ctx.closePath(); ctx.stroke();
+      ctx.globalAlpha = al * 0.25;
+      ctx.fillStyle = '#d9a93f'; ctx.fill();
+      ctx.restore();
+    } else if (p.type === 'ring') {
+      p.r += p.rv * dt;
+      ctx.globalAlpha = al * 0.7;
+      ctx.strokeStyle = '#ffe6a8'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, PI2); ctx.stroke();
+    } else if (p.type === 'cog') {
+      p.vy += 220 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.spin * dt;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalAlpha = al;
+      _loCog(ctx, p.r, 7, p.rot, 'rgba(168,132,46,0.85)', '#e8c466');
+      ctx.restore();
+    } else {  // spark
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.globalAlpha = al;
+      ctx.fillStyle = al > 0.5 ? '#ffe9b4' : '#d9a93f';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.4 + al * 0.6), 0, PI2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+  _loParts = _loParts.filter(p => p.life > 0);
+
+  // ── the brass gear-medallion cursor ──
+  const tilt = Math.max(-0.35, Math.min(0.35, vx * 0.01));
+  ctx.save();
+  ctx.translate(_loMX, _loMY);
+  ctx.rotate(tilt);
+  // outer gear ring, slowly turning
+  _loCog(ctx, 15, 9, t * 0.9, 'rgba(120,90,30,0.9)', '#d9a93f');
+  // inner ring counter-rotating with tick marks
+  ctx.strokeStyle = '#f0cd6e'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(0, 0, 9.5, 0, PI2); ctx.stroke();
+  for (let k = 0; k < 8; k++) {
+    const a = -t * 1.6 + k * (PI2 / 8);
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 7.4, Math.sin(a) * 7.4);
+    ctx.lineTo(Math.cos(a) * 9.5, Math.sin(a) * 9.5);
+    ctx.stroke();
+  }
+  // amber jewel heart with a breathing glow
+  const jb = 0.7 + 0.3 * Math.sin(t * 2.6);
+  ctx.fillStyle = `rgba(255,${170 + Math.round(jb * 40)},60,0.95)`;
+  ctx.beginPath(); ctx.arc(0, 0, 4.2, 0, PI2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,240,190,0.9)';
+  ctx.beginPath(); ctx.arc(-1.1, -1.1, 1.3, 0, PI2); ctx.fill();
+  // little crown atop the medallion — she IS a lady
+  ctx.fillStyle = '#f0cd6e'; ctx.strokeStyle = 'rgba(90,66,18,0.8)'; ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(-5.5, -16); ctx.lineTo(-5, -21.5) ; ctx.lineTo(-2.6, -17.5);
+  ctx.lineTo(0, -22.5); ctx.lineTo(2.6, -17.5); ctx.lineTo(5, -21.5);
+  ctx.lineTo(5.5, -16); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+function _startLorraineOverlay() {
+  _stopLorraineOverlay();
+  _drawLorraineOverlay._lt = undefined;
+  _loParts = []; _loEmitAcc = 0; _loPuff = 0;
+  _loSMX = _loMX; _loSMY = _loMY;
+  window.addEventListener('mousemove', _loMouseMove);
+  window.addEventListener('mousedown', _loMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'lorraine-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('lorraine-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawLorraineOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _loOverlayRafId = requestAnimationFrame(frame);
+  }
+  _loOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopLorraineOverlay() {
+  if (_loOverlayRafId) { cancelAnimationFrame(_loOverlayRafId); _loOverlayRafId = null; }
+  window.removeEventListener('mousemove', _loMouseMove);
+  window.removeEventListener('mousedown', _loMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('lorraine-overlay'); if (cv) cv.remove();
+  _loParts = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// SIMMER — the little starry prince of a space-water kingdom. The sky IS
+// the sea: stars twinkle and wobble through the current, cyan caustic
+// ribbons sway like light through water, constellation fish swim by,
+// bubbles carry stardust up to the surface, and his coral-spire castle
+// glows at the bottom with golden star windows. The cursor is his royal
+// star — crowned, bobbing, orbited by two little cyan companion stars —
+// and every click casts a princely spell: water ripple → starburst →
+// bubble fountain.
+// ════════════════════════════════════════════════════════════════
+const _SIMMER_RE = /^Simmer$/i;
+function _isSimmer(c) { return !!(c && c.name && _SIMMER_RE.test(c.name)); }
+
+function _smHash(i) { const v = Math.sin(i * 57.31 + 11.7) * 43758.5453; return v - Math.floor(v); }
+
+// A 4-point sparkle star (elongated vertically), filled.
+function _smStar4(ctx, x, y, r, elong, col, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(x, y - r * (elong || 1.4));
+  ctx.quadraticCurveTo(x + r * 0.22, y - r * 0.22, x + r, y);
+  ctx.quadraticCurveTo(x + r * 0.22, y + r * 0.22, x, y + r * (elong || 1.4));
+  ctx.quadraticCurveTo(x - r * 0.22, y + r * 0.22, x - r, y);
+  ctx.quadraticCurveTo(x - r * 0.22, y - r * 0.22, x, y - r * (elong || 1.4));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// A little constellation fish swimming at the origin facing +x:
+// star points joined by faint starlight lines, tail flicking.
+function _smConstFish(ctx, t, ph) {
+  const PI2 = Math.PI * 2;
+  const flick = Math.sin(t * 5 + ph) * 2.5;
+  const pts = [
+    [15, 0],            // nose
+    [5, -6],            // top fin
+    [-9, -4 + flick],   // tail top
+    [-15, flick * 1.4], // tail tip
+    [-9, 4 + flick],    // tail bottom
+    [5, 6],             // belly
+  ];
+  ctx.strokeStyle = 'rgba(190,235,255,0.4)';
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  for (let i = 0; i <= pts.length; i++) {
+    const [px, py] = pts[i % pts.length];
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  // star nodes
+  for (let i = 0; i < pts.length; i++) {
+    const tw = 0.55 + 0.45 * Math.sin(t * 3 + ph + i * 1.9);
+    _smStar4(ctx, pts[i][0], pts[i][1], 2.2 + tw, 1.5, i === 0 ? '#ffe27a' : '#cfeeff', 0.5 + tw * 0.5);
+  }
+}
+
+/* ── The space-water kingdom pattern ────────────────────────────── */
+function _drawSimmerPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawSimmerPattern._lt === undefined;
+  if (!fresh && t - _drawSimmerPattern._lt < 0.033) return;   // 30fps cap
+  _drawSimmerPattern._lt = t;
+  const PI2 = Math.PI * 2;
+  const kY = H * 0.86;                       // kingdom skyline base
+
+  ctx.clearRect(0, 0, W, H);
+
+  // cached gradients: deep space-sea + kingdom glow + vignette
+  if (!_drawSimmerPattern._bg || _drawSimmerPattern._bgW !== W || _drawSimmerPattern._bgH !== H) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0,   '#030a18');
+    g.addColorStop(0.5, '#062338');
+    g.addColorStop(0.85,'#0a3a52');
+    g.addColorStop(1,   '#0e4a63');
+    const kg = ctx.createRadialGradient(W * 0.5, H * 1.02, 0, W * 0.5, H * 1.02, H * 0.55);
+    kg.addColorStop(0, 'rgba(110,220,255,0.22)');
+    kg.addColorStop(1, 'rgba(110,220,255,0)');
+    const vig = ctx.createRadialGradient(W * 0.5, H * 0.45, Math.min(W, H) * 0.3, W * 0.5, H * 0.5, Math.max(W, H) * 0.78);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,4,12,0.5)');
+    _drawSimmerPattern._bg = g; _drawSimmerPattern._kg = kg; _drawSimmerPattern._vig = vig;
+    _drawSimmerPattern._bgW = W; _drawSimmerPattern._bgH = H;
+  }
+  ctx.fillStyle = _drawSimmerPattern._bg; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = _drawSimmerPattern._kg; ctx.fillRect(0, 0, W, H);
+
+  // ── stars twinkling through the current (refraction wobble) ──
+  for (let i = 0; i < 42; i++) {
+    const sd = i * 0.618;
+    const sx = ((sd * 2.73) % 1) * W + Math.sin(t * 0.9 + i * 1.3) * 3;
+    const sy = ((sd * 1.93) % 1) * H * 0.8 + Math.cos(t * 0.7 + i) * 2;
+    const tw = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(t * 2.2 + i * 2.1));
+    const big = (i % 7 === 0);
+    if (big) {
+      _smStar4(ctx, sx, sy, 2.4 + tw * 1.6, 1.6, i % 14 === 0 ? '#ffe27a' : '#e8f9ff', 0.45 + tw * 0.5);
+    } else {
+      ctx.fillStyle = `rgba(208,240,255,${(0.22 + tw * 0.4).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(sx, sy, 0.8 + tw * 0.7, 0, PI2); ctx.fill();
+    }
+  }
+
+  // ── cyan caustic ribbons swaying like light through water ──
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let r = 0; r < 3; r++) {
+    const baseY = H * (0.22 + r * 0.26);
+    ctx.strokeStyle = `rgba(90,210,250,${(0.05 + r * 0.012).toFixed(3)})`;
+    ctx.lineWidth = 22 - r * 4;
+    ctx.beginPath();
+    for (let x = -10; x <= W + 10; x += 26) {
+      const y = baseY + Math.sin(x * 0.011 + t * (0.6 + r * 0.18) + r * 2.2) * 16
+                       + Math.sin(x * 0.027 - t * 0.4 + r) * 8;
+      x === -10 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ── a shooting star with a bubble trail, every ~7s ──
+  {
+    const cycle = 7, sph = (t % cycle) / cycle;
+    if (sph < 0.18) {
+      const seed = Math.floor(t / cycle);
+      const k = sph / 0.18;
+      const x0 = _smHash(seed) * W * 0.7 + W * 0.15, y0 = _smHash(seed + 9) * H * 0.25 + 20;
+      const sx = x0 + k * W * 0.24, sy = y0 + k * H * 0.14;
+      const fade = Math.sin(k * Math.PI);
+      ctx.strokeStyle = `rgba(240,250,255,${(fade * 0.7).toFixed(3)})`;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(sx - 34, sy - 20); ctx.lineTo(sx, sy); ctx.stroke();
+      _smStar4(ctx, sx, sy, 3.4, 1.5, '#fff8e0', fade);
+      // little bubbles shed along the streak
+      for (let b = 1; b <= 3; b++) {
+        ctx.strokeStyle = `rgba(160,230,255,${(fade * 0.4 / b).toFixed(3)})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(sx - b * 12, sy - b * 7 - Math.sin(t * 4 + b) * 2, 1.6 + b * 0.4, 0, PI2); ctx.stroke();
+      }
+    }
+  }
+
+  // ── constellation fish on the current ──
+  for (let f = 0; f < 3; f++) {
+    const sd = f * 1.618;
+    const speed = W * 0.022 * (0.8 + sd % 0.5);
+    const dirL = f % 2 === 1;
+    const span = W + 120;
+    const fx = ((t * speed + sd * span) % span) - 60;
+    const x = dirL ? W - fx : fx;
+    const y = H * (0.2 + ((sd * 2.39) % 0.45)) + Math.sin(t * 0.8 + f * 2.4) * 14;
+    ctx.save();
+    ctx.translate(x, y);
+    if (dirL) ctx.scale(-1, 1);
+    const fs = 0.8 + (sd % 0.5);
+    ctx.scale(fs, fs);
+    _smConstFish(ctx, t, f * 2.7);
+    ctx.restore();
+  }
+
+  // ── rising stardust bubbles ──
+  for (let i = 0; i < 16; i++) {
+    const sd = i * 0.618;
+    const spd = 24 + (sd % 16);
+    const bx = ((sd * 2.41) % 1) * W + Math.sin(t * 1.1 + i * 1.7) * 12;
+    const by = H - ((t * spd + sd * H) % (H + 24));
+    const r = 1.8 + (sd % 2.6);
+    const al = 0.18 + (sd % 0.2);
+    ctx.strokeStyle = `rgba(170,230,255,${al.toFixed(3)})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(bx, by, r, 0, PI2); ctx.stroke();
+    // highlight + a speck of stardust inside the larger ones
+    ctx.fillStyle = `rgba(235,250,255,${(al * 0.9).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(bx - r * 0.35, by - r * 0.35, r * 0.22, 0, PI2); ctx.fill();
+    if (r > 3.4) _smStar4(ctx, bx, by, r * 0.34, 1.4, '#ffe27a', al * 1.6);
+  }
+
+  // ── the kingdom: coral-spire castle skyline with star windows ──
+  ctx.fillStyle = '#06222f';
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  ctx.lineTo(0, kY + 12);
+  const spires = [
+    [0.08, 46, 12], [0.17, 78, 16], [0.28, 58, 12], [0.42, 100, 20],
+    [0.5, 130, 24], [0.58, 100, 20], [0.72, 62, 13], [0.83, 84, 17], [0.93, 50, 12],
+  ];
+  for (const [fx, sh, sw] of spires) {
+    const cx = fx * W;
+    ctx.lineTo(cx - sw, kY + 10);
+    ctx.quadraticCurveTo(cx - sw * 0.5, kY - sh * 0.55, cx, kY - sh);
+    ctx.quadraticCurveTo(cx + sw * 0.5, kY - sh * 0.55, cx + sw, kY + 10);
+  }
+  ctx.lineTo(W, kY + 12);
+  ctx.lineTo(W, H);
+  ctx.closePath();
+  ctx.fill();
+  // glowing golden star windows + spire tips
+  for (let s = 0; s < spires.length; s++) {
+    const [fx, sh] = spires[s];
+    const cx = fx * W;
+    const tw = 0.6 + 0.4 * Math.sin(t * 1.6 + s * 2.3);
+    ctx.fillStyle = `rgba(255,222,110,${(0.4 + tw * 0.4).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(cx, kY - sh * 0.45, 1.6, 0, PI2); ctx.fill();
+    if (s % 2 === 0) { ctx.beginPath(); ctx.arc(cx + 5, kY - sh * 0.2, 1.3, 0, PI2); ctx.fill(); }
+    // star atop the great central spire
+    if (fx === 0.5) _smStar4(ctx, cx, kY - sh - 8, 4 + tw * 2, 1.5, '#ffe27a', 0.65 + tw * 0.35);
+    else if (sh > 75) _smStar4(ctx, cx, kY - sh - 4, 2.2 + tw, 1.4, '#cfeeff', 0.5 + tw * 0.3);
+  }
+
+  // vignette
+  ctx.fillStyle = _drawSimmerPattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* ── The crowned royal-star cursor ──────────────────────────────── */
+let _smOverlayRafId = null;
+let _smMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _smMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _smSMX = _smMX, _smSMY = _smMY;
+let _smParts = [];
+let _smSpell = 0;
+let _smEmitAcc = 0;
+
+function _smMouseMove(e) { _smMX = e.clientX; _smMY = e.clientY; }
+function _smMouseDown() {
+  const PI2 = Math.PI * 2, x = _smMX, y = _smMY;
+  const push = p => { _smParts.push(p); if (_smParts.length > 200) _smParts.shift(); };
+  if (_smSpell === 0) {              // WATER RIPPLE
+    push({ type: 'ring', x, y, r: 4, rv: 200, life: 1, max: 0.6 });
+    push({ type: 'ring', x, y, r: 2, rv: 300, life: 1, max: 0.45 });
+    for (let i = 0; i < 8; i++) {
+      const a = Math.random() * PI2, s = 60 + Math.random() * 110;
+      push({ type: 'drop', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60,
+             life: 1, max: 0.5 + Math.random() * 0.3, r: 1.4 + Math.random() * 1.6 });
+    }
+  } else if (_smSpell === 1) {       // STARBURST
+    for (let i = 0; i < 12; i++) {
+      const a = PI2 * i / 12 + Math.random() * 0.25, s = 110 + Math.random() * 130;
+      push({ type: 'star', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+             life: 1, max: 0.7 + Math.random() * 0.4, r: 2.4 + Math.random() * 2.6,
+             col: i % 3 === 0 ? '#ffe27a' : (i % 3 === 1 ? '#8ee6ff' : '#f4fcff') });
+    }
+  } else {                           // BUBBLE FOUNTAIN
+    for (let i = 0; i < 13; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 0.9, s = 90 + Math.random() * 140;
+      push({ type: 'bubble', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+             life: 1, max: 0.8 + Math.random() * 0.5, r: 2 + Math.random() * 3.4,
+             wob: Math.random() * PI2 });
+    }
+  }
+  push({ type: 'flash', x, y, life: 1, max: 0.3 });   // crown flash
+  _smSpell = (_smSpell + 1) % 3;
+}
+
+function _drawSimmerOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawSimmerOverlay._lt === undefined;
+  if (!fresh && t - _drawSimmerOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawSimmerOverlay._lt, 0.05);
+  _drawSimmerOverlay._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  _smSMX += (_smMX - _smSMX) * Math.min(1, dt * 16);
+  _smSMY += (_smMY - _smSMY) * Math.min(1, dt * 16);
+  const vx = _smMX - _smSMX, vy = _smMY - _smSMY;
+
+  // gentle stardust shed
+  _smEmitAcc += dt;
+  while (_smEmitAcc > 0.07) {
+    _smEmitAcc -= 0.07;
+    const isBub = Math.random() < 0.4;
+    _smParts.push(isBub
+      ? { type: 'bubble', x: _smMX + (Math.random() - 0.5) * 10, y: _smMY + 6,
+          vx: (Math.random() - 0.5) * 14 - vx * 0.3, vy: -22 - Math.random() * 20,
+          life: 1, max: 0.6 + Math.random() * 0.4, r: 1.2 + Math.random() * 1.8, wob: Math.random() * PI2 }
+      : { type: 'star', x: _smMX + (Math.random() - 0.5) * 12, y: _smMY + (Math.random() - 0.5) * 12,
+          vx: (Math.random() - 0.5) * 16 - vx * 0.4, vy: (Math.random() - 0.5) * 16 - vy * 0.4,
+          life: 1, max: 0.5 + Math.random() * 0.35, r: 1.2 + Math.random() * 1.6,
+          col: Math.random() < 0.3 ? '#ffe27a' : '#bfeaff' });
+    if (_smParts.length > 220) _smParts.shift();
+  }
+
+  // particles
+  for (const p of _smParts) {
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, Math.min(1, p.life));
+    if (p.type === 'ring') {
+      p.r += p.rv * dt;
+      ctx.globalAlpha = al * 0.7;
+      ctx.strokeStyle = '#8ee6ff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, PI2); ctx.stroke();
+      ctx.globalAlpha = al * 0.3;
+      ctx.strokeStyle = '#f4fcff'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.8, 0, PI2); ctx.stroke();
+    } else if (p.type === 'star') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= (1 - 0.7 * dt); p.vy *= (1 - 0.7 * dt);
+      _smStar4(ctx, p.x, p.y, p.r * (0.5 + al * 0.5), 1.5, p.col || '#bfeaff', al);
+    } else if (p.type === 'bubble') {
+      p.vy -= 26 * dt; p.x += p.vx * dt + Math.sin(t * 6 + p.wob) * 0.5; p.y += p.vy * dt;
+      ctx.globalAlpha = al * 0.8;
+      ctx.strokeStyle = '#aee4ff'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, PI2); ctx.stroke();
+      ctx.fillStyle = 'rgba(240,252,255,0.85)';
+      ctx.beginPath(); ctx.arc(p.x - p.r * 0.35, p.y - p.r * 0.35, p.r * 0.22, 0, PI2); ctx.fill();
+    } else if (p.type === 'drop') {
+      p.vy += 320 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.globalAlpha = al;
+      ctx.fillStyle = '#8ee6ff';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * al + 0.4, 0, PI2); ctx.fill();
+    } else if (p.type === 'flash') {
+      const fr = (1 - al) * 26 + 8;
+      ctx.globalAlpha = al * 0.6;
+      _smStar4(ctx, p.x, p.y, fr, 1.3, '#fff8e0', al * 0.8);
+    }
+  }
+  ctx.globalAlpha = 1;
+  _smParts = _smParts.filter(p => p.life > 0);
+
+  // ── the royal star cursor ──
+  const bob = Math.sin(t * 2.1) * 2.5;
+  const tilt = Math.max(-0.3, Math.min(0.3, vx * 0.008)) + Math.sin(t * 1.7) * 0.05;
+  const tw = 0.75 + 0.25 * Math.sin(t * 3.4);
+  ctx.save();
+  ctx.translate(_smMX, _smMY + bob);
+  ctx.rotate(tilt);
+  // soft halo
+  const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, 26);
+  halo.addColorStop(0, `rgba(160,230,255,${(0.22 * tw).toFixed(3)})`);
+  halo.addColorStop(1, 'rgba(160,230,255,0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath(); ctx.arc(0, 0, 26, 0, PI2); ctx.fill();
+  // the prince's star — warm white-gold 5-point
+  ctx.shadowColor = '#bfeaff'; ctx.shadowBlur = 10;
+  ctx.fillStyle = '#fdf6dc';
+  _omStarPath(ctx, 0, 0, 13 * tw + 2, 5.4, 5, t * 0.4);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ffe27a';
+  _omStarPath(ctx, 0, 0, 6.5, 2.7, 5, t * 0.4);
+  ctx.fill();
+  // his tiny crown, riding the top point
+  ctx.save();
+  ctx.translate(0, -17);
+  ctx.fillStyle = '#ffd24d'; ctx.strokeStyle = 'rgba(120,85,10,0.7)'; ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(-5, 0); ctx.lineTo(-4.4, -5); ctx.lineTo(-2.2, -1.8);
+  ctx.lineTo(0, -6); ctx.lineTo(2.2, -1.8); ctx.lineTo(4.4, -5);
+  ctx.lineTo(5, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#8ee6ff';
+  ctx.beginPath(); ctx.arc(0, -0.6, 1, 0, PI2); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+
+  // two cyan companion stars orbiting their prince
+  for (let i = 0; i < 2; i++) {
+    const a = t * (1.6 + i * 0.5) * (i === 0 ? 1 : -1) + i * Math.PI;
+    const orx = _smMX + Math.cos(a) * (24 + i * 8);
+    const ory = _smMY + bob + Math.sin(a) * (15 + i * 5);
+    const otw = 0.6 + 0.4 * Math.sin(t * 4 + i * 2);
+    _smStar4(ctx, orx, ory, 3 + otw * 1.6, 1.5, i === 0 ? '#8ee6ff' : '#cfeeff', 0.5 + otw * 0.5);
+  }
+}
+
+function _startSimmerOverlay() {
+  _stopSimmerOverlay();
+  _drawSimmerOverlay._lt = undefined;
+  _smParts = []; _smSpell = 0; _smEmitAcc = 0;
+  _smSMX = _smMX; _smSMY = _smMY;
+  window.addEventListener('mousemove', _smMouseMove);
+  window.addEventListener('mousedown', _smMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'simmer-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('simmer-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawSimmerOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _smOverlayRafId = requestAnimationFrame(frame);
+  }
+  _smOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopSimmerOverlay() {
+  if (_smOverlayRafId) { cancelAnimationFrame(_smOverlayRafId); _smOverlayRafId = null; }
+  window.removeEventListener('mousemove', _smMouseMove);
+  window.removeEventListener('mousedown', _smMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('simmer-overlay'); if (cv) cv.remove();
+  _smParts = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // CAPPY — the screen is filled with white milk: gooey metaball blobs that
 // flow toward the cursor (viscous, sloshing). The cursor is a glowing blue
 // Star of David. Character-wide (matches "Cappy").
@@ -14312,6 +15855,10 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'jeckely_box')    { _drawJeckelyPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'mimzy_bloom')    { _drawMimzyPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'omen_stage')     { _drawOmenPattern(canvas, ctx, W, H, t);                return; }
+  if (type === 'ex_glitch')      { _drawExPattern(canvas, ctx, W, H, t);                  return; }
+  if (type === 'riegen_phoenix') { _drawRiegenPattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'lorraine_brass') { _drawLorrainePattern(canvas, ctx, W, H, t);            return; }
+  if (type === 'simmer_tide')    { _drawSimmerPattern(canvas, ctx, W, H, t);              return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -14817,6 +16364,14 @@ function startBgAnim(type, params) {
   _drawMimzyOverlay._lt       = undefined;
   _drawOmenPattern._lt        = undefined;
   _drawOmenOverlay._lt        = undefined;
+  _drawExPattern._lt          = undefined;
+  _drawExOverlay._lt          = undefined;
+  _drawRiegenPattern._lt      = undefined;
+  _drawRiegenOverlay._lt      = undefined;
+  _drawLorrainePattern._lt    = undefined;
+  _drawLorraineOverlay._lt    = undefined;
+  _drawSimmerPattern._lt      = undefined;
+  _drawSimmerOverlay._lt      = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -14867,6 +16422,10 @@ function stopBgAnim() {
   _stopJeckelyOverlay();
   _stopMimzyOverlay();
   _stopOmenOverlay();
+  _stopExOverlay();
+  _stopRiegenOverlay();
+  _stopLorraineOverlay();
+  _stopSimmerOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -15374,6 +16933,10 @@ function viewChar(id) {
   else if (_isJeckely(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c23b46'); }
   else if (_isMimzy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fc0'); }
   else if (_isOmen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c92d77'); }
+  else if (_isEx(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e0e0e0'); }
+  else if (_isRiegen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8a2a'); }
+  else if (_isLorraine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9a93f'); }
+  else if (_isSimmer(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#59c9f2'); }
   else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
@@ -15713,6 +17276,89 @@ function viewChar(id) {
     }
   }
 
+  // ── EX — monochrome glitch UI chrome (grey static panels, an RGB-split-less
+  // black/white glitching name and a flickering portrait). Placed last among
+  // the opacity-setting blocks. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isEx(c)) {
+      _cvRoot.classList.add('ex-ui');
+      if (_av) _av.classList.add('ex-pfp');
+      if (_nm) { _nm.classList.add('ex-name'); _nm.setAttribute('data-text', _nm.textContent || 'EX'); }
+      if (_pc) _pc.style.opacity = '0.9';
+    } else {
+      _cvRoot.classList.remove('ex-ui');
+      if (_av) _av.classList.remove('ex-pfp');
+      if (_nm) { _nm.classList.remove('ex-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name') && !_nm.classList.contains('mimzy-name') && !_nm.classList.contains('bizzy-name') && !_nm.classList.contains('omen-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c) && !_isMimzy(c) && !_isBizzy(c) && !_isOmen(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Riegen — phoenix UI chrome (charred ember panels, a flame-lit name and
+  // a smouldering portrait). Placed last among the opacity-setting blocks. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isRiegen(c)) {
+      _cvRoot.classList.add('riegen-ui');
+      if (_av) _av.classList.add('riegen-pfp');
+      if (_nm) { _nm.classList.add('riegen-name'); _nm.setAttribute('data-text', _nm.textContent || 'RIEGEN'); }
+      if (_pc) _pc.style.opacity = '0.92';
+    } else {
+      _cvRoot.classList.remove('riegen-ui');
+      if (_av) _av.classList.remove('riegen-pfp');
+      if (_nm) { _nm.classList.remove('riegen-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name') && !_nm.classList.contains('mimzy-name') && !_nm.classList.contains('bizzy-name') && !_nm.classList.contains('omen-name') && !_nm.classList.contains('ex-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c) && !_isMimzy(c) && !_isBizzy(c) && !_isOmen(c) && !_isEx(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Lorraine — gilded Victorian UI chrome (antique-gold damask panels, a
+  // regal golden name and an ornately framed portrait). Placed last among the
+  // opacity-setting blocks. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isLorraine(c)) {
+      _cvRoot.classList.add('lorraine-ui');
+      if (_av) _av.classList.add('lorraine-pfp');
+      if (_nm) { _nm.classList.add('lorraine-name'); _nm.setAttribute('data-text', _nm.textContent || 'LORRAINE'); }
+      if (_pc) _pc.style.opacity = '0.9';
+    } else {
+      _cvRoot.classList.remove('lorraine-ui');
+      if (_av) _av.classList.remove('lorraine-pfp');
+      if (_nm) { _nm.classList.remove('lorraine-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name') && !_nm.classList.contains('mimzy-name') && !_nm.classList.contains('bizzy-name') && !_nm.classList.contains('omen-name') && !_nm.classList.contains('ex-name') && !_nm.classList.contains('riegen-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c) && !_isMimzy(c) && !_isBizzy(c) && !_isOmen(c) && !_isEx(c) && !_isRiegen(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Simmer — starry-prince UI chrome (deep sea-sky panels with a cyan
+  // shimmer, a star-bright name and a tide-ringed portrait). Placed last
+  // among the opacity-setting blocks. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isSimmer(c)) {
+      _cvRoot.classList.add('simmer-ui');
+      if (_av) _av.classList.add('simmer-pfp');
+      if (_nm) { _nm.classList.add('simmer-name'); _nm.setAttribute('data-text', _nm.textContent || 'SIMMER'); }
+      if (_pc) _pc.style.opacity = '0.92';
+    } else {
+      _cvRoot.classList.remove('simmer-ui');
+      if (_av) _av.classList.remove('simmer-pfp');
+      if (_nm) { _nm.classList.remove('simmer-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name') && !_nm.classList.contains('mimzy-name') && !_nm.classList.contains('bizzy-name') && !_nm.classList.contains('omen-name') && !_nm.classList.contains('ex-name') && !_nm.classList.contains('riegen-name') && !_nm.classList.contains('lorraine-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c) && !_isMimzy(c) && !_isBizzy(c) && !_isOmen(c) && !_isEx(c) && !_isRiegen(c) && !_isLorraine(c)) _pc.style.opacity = '';
+    }
+  }
+
   // ── Evelynn — elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -15810,7 +17456,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -15822,7 +17468,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -15880,6 +17526,10 @@ function viewChar(id) {
   if (_isJeckely(c))  _startJeckelyOverlay();
   if (_isMimzy(c))    _startMimzyOverlay();
   if (_isOmen(c))     _startOmenOverlay();
+  if (_isEx(c))       _startExOverlay();
+  if (_isRiegen(c))   _startRiegenOverlay();
+  if (_isLorraine(c)) _startLorraineOverlay();
+  if (_isSimmer(c))   _startSimmerOverlay();
   }
 
   renderInventory(c);
@@ -21131,7 +22781,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -21166,6 +22816,10 @@ window.addEventListener('resize', () => {
       if (_isJeckely(c))  _startJeckelyOverlay();
       if (_isMimzy(c))    _startMimzyOverlay();
       if (_isOmen(c))     _startOmenOverlay();
+      if (_isEx(c))       _startExOverlay();
+      if (_isRiegen(c))   _startRiegenOverlay();
+      if (_isLorraine(c)) _startLorraineOverlay();
+      if (_isSimmer(c))   _startSimmerOverlay();
     }
   }
 });
