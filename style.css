@@ -2570,6 +2570,197 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   BIZZY — a warm, busy beehive. Honeycomb-meshed golden panels,
+   a honey-glowing name, and a comb-framed portrait.
+   ============================================================ */
+#char-view.bizzy-ui .panel {
+  --p-border: rgba(255,188,46,0.4);
+  border-color: rgba(255,188,46,0.36);
+  background:
+    url("data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l11 6.3 11-6.3V17.9l-11-6.3-11 6.3zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z' fill='%23ffbb33' fill-opacity='0.16'/%3E%3C/svg%3E") 0 0 / 26px 46px,
+    linear-gradient(180deg, rgba(30,20,3,0.9), rgba(18,11,1,0.94));
+  background-position: 0 0, 0 0;
+  box-shadow:
+    0 0 18px rgba(255,180,40,0.1),
+    inset 0 0 30px rgba(90,54,0,0.22);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  /* The comb-flow animation is always *applied* but paused, so the panel's
+     paint layer stays stable — this avoids the brief blank flash that happened
+     when an animation was added/removed on hover. */
+  animation: bizzy-comb-flow 3s linear infinite;
+  animation-play-state: paused;
+}
+/* Hover: honey flows through the comb (animation resumes) + the frame warms. */
+#char-view.bizzy-ui .panel:hover {
+  border-color: rgba(255,205,90,0.62);
+  box-shadow:
+    0 0 24px rgba(255,190,60,0.24),
+    inset 0 0 38px rgba(150,95,0,0.3);
+  animation-play-state: running;
+}
+@keyframes bizzy-comb-flow {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 26px 46px, 0 0; }
+}
+#char-view.bizzy-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(130% 90% at 50% -20%, rgba(255,224,140,0.14), transparent 55%);
+}
+#char-view.bizzy-ui .panel-title {
+  color: #ffe1a0 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(255,188,46,0.42);
+  text-shadow: 0 0 14px rgba(255,190,60,0.6);
+}
+#char-view.bizzy-ui .tab-btn { color: #9a7326; }
+#char-view.bizzy-ui .tab-btn:hover { color: #ffe6a8; text-shadow: 0 0 12px rgba(255,200,80,0.7); }
+#char-view.bizzy-ui .tab-btn.active {
+  color: #fff2d2;
+  border-bottom-color: rgba(255,200,80,0.85);
+  text-shadow: 0 0 16px rgba(255,200,80,0.85);
+}
+
+/* Name: warm honey-gold with a soft glow + a golden shine sweep */
+.char-name-display.bizzy-name {
+  position: relative;
+  color: #ffcb3a !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  text-shadow: 0 0 12px rgba(255,190,60,0.7), 0 1px 0 rgba(90,55,0,0.5);
+  animation: bizzy-name-breathe 4.5s ease-in-out infinite;
+}
+@keyframes bizzy-name-breathe {
+  0%, 100% { text-shadow: 0 0 10px rgba(255,185,55,0.55), 0 1px 0 rgba(90,55,0,0.5); }
+  50%      { text-shadow: 0 0 20px rgba(255,205,80,0.9),  0 1px 0 rgba(90,55,0,0.5); }
+}
+.char-name-display.bizzy-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,244,200,0.95) 50%, transparent 62%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: bizzy-name-sweep 4.5s ease-in-out infinite;
+}
+@keyframes bizzy-name-sweep {
+  0%, 100% { background-position: 130% 0; }
+  50%      { background-position: -130% 0; }
+}
+
+/* Portrait: golden hive glow, a faint honeycomb overlay + a slow comb ring */
+.char-avatar-large.bizzy-pfp {
+  border-color: rgba(255,188,46,0.7) !important;
+  box-shadow: 0 0 26px rgba(255,180,40,0.5), inset 0 0 22px rgba(255,210,110,0.4);
+  animation: bizzy-pfp-breathe 4.5s ease-in-out infinite;
+  overflow: hidden;
+}
+@keyframes bizzy-pfp-breathe {
+  0%, 100% { box-shadow: 0 0 20px rgba(255,180,40,0.35), inset 0 0 18px rgba(255,210,110,0.35); }
+  50%      { box-shadow: 0 0 38px rgba(255,200,70,0.6),  inset 0 0 26px rgba(255,222,140,0.5); }
+}
+.char-avatar-large.bizzy-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l11 6.3 11-6.3V17.9l-11-6.3-11 6.3zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z' fill='%23ffcf5a' fill-opacity='0.6'/%3E%3C/svg%3E") center / 20px 35px;
+  opacity: 0.3;
+  mix-blend-mode: screen;
+}
+.char-avatar-large.bizzy-pfp::after {
+  content: "";
+  position: absolute; inset: 3px;
+  pointer-events: none;
+  border: 1px dashed rgba(255,200,90,0.55);
+  border-radius: inherit;
+  animation: alsace-pfp-spin 18s linear infinite;
+}
+
+/* ============================================================
+   OMEN — the ringmaster. Dark, elegant theatre: deep bordeaux velvet
+   panels, a magenta-lit name and a spotlit portrait. (BASE FORM ONLY.)
+   ============================================================ */
+#char-view.omen-ui .panel {
+  --p-border: rgba(201,45,119,0.55);
+  border-color: rgba(201,45,119,0.5);
+  background: linear-gradient(180deg, rgba(38,8,22,0.93), rgba(20,4,12,0.96));
+  box-shadow:
+    0 0 24px rgba(201,45,119,0.2),
+    inset 0 0 34px rgba(90,14,46,0.36);
+}
+#char-view.omen-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% -15%, rgba(255,120,180,0.14), transparent 55%);
+}
+#char-view.omen-ui .panel-title {
+  color: #ffc4df !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(201,45,119,0.42);
+  text-shadow: 0 0 14px rgba(201,45,119,0.6);
+}
+#char-view.omen-ui .tab-btn { color: #8e4663; }
+#char-view.omen-ui .tab-btn:hover { color: #ffd2e6; text-shadow: 0 0 12px rgba(255,95,168,0.7); }
+#char-view.omen-ui .tab-btn.active {
+  color: #fff0f6;
+  border-bottom-color: rgba(255,95,168,0.85);
+  text-shadow: 0 0 16px rgba(255,95,168,0.85);
+}
+
+/* Name: deep magenta with a soft glow + a bright spotlight sweep */
+.char-name-display.omen-name {
+  position: relative;
+  color: #d8347e !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  text-shadow: 0 0 12px rgba(255,95,168,0.7), 0 1px 0 rgba(60,6,30,0.55);
+  animation: omen-name-breathe 5s ease-in-out infinite;
+}
+@keyframes omen-name-breathe {
+  0%, 100% { text-shadow: 0 0 10px rgba(255,90,160,0.5),  0 1px 0 rgba(60,6,30,0.55); }
+  50%      { text-shadow: 0 0 20px rgba(255,110,180,0.9), 0 1px 0 rgba(60,6,30,0.55); }
+}
+.char-name-display.omen-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,225,240,0.95) 50%, transparent 62%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: omen-name-sweep 5s ease-in-out infinite;
+}
+@keyframes omen-name-sweep {
+  0%, 100% { background-position: 130% 0; }
+  50%      { background-position: -130% 0; }
+}
+
+/* Portrait: bordeaux velvet glow with a slow spotlit ring */
+.char-avatar-large.omen-pfp {
+  border-color: rgba(201,45,119,0.7) !important;
+  box-shadow: 0 0 26px rgba(201,45,119,0.5), inset 0 0 22px rgba(255,120,180,0.32);
+  animation: omen-pfp-breathe 5s ease-in-out infinite;
+  overflow: hidden;
+}
+@keyframes omen-pfp-breathe {
+  0%, 100% { box-shadow: 0 0 20px rgba(201,45,119,0.35), inset 0 0 18px rgba(255,120,180,0.28); }
+  50%      { box-shadow: 0 0 38px rgba(230,60,140,0.6),  inset 0 0 26px rgba(255,150,200,0.4); }
+}
+.char-avatar-large.omen-pfp::after {
+  content: "";
+  position: absolute; inset: 3px;
+  pointer-events: none;
+  border: 1px dashed rgba(255,120,180,0.5);
+  border-radius: inherit;
+  animation: alsace-pfp-spin 20s linear infinite;
+}
+
+/* ============================================================
    HELIOS — god of the sun. Strong, intimidating, aggressive,
    voracious. Molten gold / white-hot, fast fierce pulses.
    --char-color is blazing amber-gold.

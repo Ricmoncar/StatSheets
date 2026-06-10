@@ -1372,6 +1372,15 @@ let _bizzyRafId = null, _bizzyRafT = 0, _bizzyRafPrev = 0;
 let _bizzySmoothedLevel = 0;
 let _bizzyIsPlaying = false;
 let _bizzyAudioListening = false;
+let _bizzyLastColorStr = '';   // skip redundant --char-color writes (perf)
+let _bizzyOvFrame = 0;         // throttle layout reads for the in-panel overlay
+// Cursor-bee state
+let _bzMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _bzMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _bzBeeX = _bzMX, _bzBeeY = _bzMY, _bzBeeFace = 1, _bzBeeTilt = 0, _bzBeePrevT = 0;
+let _bzTrail = [];        // honey-dot trail behind the cursor bee
+let _bzBursts = [];       // pollen/petal bursts on click
+let _bzCursorListening = false;
 // ─────────────────────────────────────────────────────────────
 
 let currentId = null;
@@ -2731,6 +2740,7 @@ const PATTERN_DEFS = {
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
   jeckely_box:      { label: "Jeckely · Jack-in-the-Box", params: [] },
   mimzy_bloom:      { label: "Mimzy · Reaching Bloom",   params: [] },
+  omen_stage:       { label: "Omen · Dark Stage",        params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -2942,45 +2952,175 @@ function buildPatternParams(type) {
 // ============================================================
 // PATTERN RENDERERS
 // ============================================================
-/* ── Shared bee renderer ─────────────────────────────────────── */
-function _bzBeeAt(ctx, b, W, H, t) {
-  const sd  = b * 2.399, PI2 = Math.PI * 2;
-  const cx0 = W * (0.15 + 0.7 * ((sd * 1.618) % 1));
-  const cy0 = H * (0.2  + 0.6 * ((sd * 2.399) % 1));
-  const fx1 = 0.31+(b%4)*0.07, fy1 = 0.27+(b%3)*0.08;
-  const fx2 = 0.17+(b%3)*0.05, fy2 = 0.13+(b%4)*0.04;
-  const ph1 = sd*Math.PI, ph2 = sd*1.732;
-  const bx  = cx0+Math.sin(t*fx1*PI2+ph1)*W*0.11+Math.cos(t*fx2*PI2+ph2)*W*0.06;
-  const by  = cy0+Math.cos(t*fy1*PI2+ph1)*H*0.09+Math.sin(t*fy2*PI2+ph2)*H*0.05;
-  const dt  = 0.06;
-  const bx2 = cx0+Math.sin((t+dt)*fx1*PI2+ph1)*W*0.11+Math.cos((t+dt)*fx2*PI2+ph2)*W*0.06;
-  const by2 = cy0+Math.cos((t+dt)*fy1*PI2+ph1)*H*0.09+Math.sin((t+dt)*fy2*PI2+ph2)*H*0.05;
-  const ang = Math.atan2(by2-by, bx2-bx);
-  const wf  = Math.abs(Math.sin(t*22+b*1.57));
-  const ws  = 4.5+wf*3.5;
+/* ── Bees: shared body art + varied flight behaviours ────────────
+   _bzDrawBee draws a bee at the origin FACING +x (head leads). The
+   caller sets translate/rotate. _bzBeeAt computes a distinct flight
+   path per bee index and renders it. _bzHash gives a stable per-bee
+   pseudo-random value. ──────────────────────────────────────────── */
+function _bzHash(i, n) {
+  const v = Math.sin(i * 91.7 + n * 47.3 + 13.1) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+// Draw a bee body at origin facing +x. s=scale, wf=wing-flap 0..1,
+// queen=true for the larger crowned bee.
+function _bzDrawBee(ctx, s, wf, queen) {
+  const PI2 = Math.PI * 2;
   ctx.save();
-  ctx.translate(bx, by); ctx.rotate(ang); ctx.scale(0.78+(sd%0.28), 0.78+(sd%0.28));
-  ctx.globalAlpha = 0.28+wf*0.13; ctx.fillStyle = '#cce8ff';
-  ctx.beginPath(); ctx.ellipse(-2,-ws,9.5,4,-0.35,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse( 4,-ws,7,3,0.35,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse( 1,ws*0.7,6,2.2,0.3,0,Math.PI*2); ctx.fill();
+  ctx.scale(s, s);
+  const ws = 4.5 + wf * 3.5;
+  // soft golden aura
+  ctx.globalAlpha = 0.09 + wf * 0.05; ctx.fillStyle = '#ffd23a';
+  ctx.beginPath(); ctx.arc(0, 0, 16, 0, PI2); ctx.fill();
+  // wings — upper + lower pairs, translucent blue-white, blurred by flap
+  ctx.globalAlpha = 0.32 + wf * 0.16; ctx.fillStyle = '#e9f5ff';
+  ctx.beginPath(); ctx.ellipse(-1, -ws, 10, 4.3, -0.42, 0, PI2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 4, -ws * 0.8, 7.4, 3, 0.28, 0, PI2); ctx.fill();
+  ctx.globalAlpha = 0.20 + wf * 0.12;
+  ctx.beginPath(); ctx.ellipse(-1, ws, 9, 3.7, 0.42, 0, PI2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 4, ws * 0.8, 6.6, 2.6, -0.28, 0, PI2); ctx.fill();
+  // wing sheen
+  ctx.globalAlpha = 0.45; ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.ellipse(-1, -ws, 10, 4.3, -0.42, 0, PI2); ctx.stroke();
+  ctx.globalAlpha = 1;
+  // striped abdomen (clipped ellipse)
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(0, 0, 10.5, 6.2, 0, 0, PI2); ctx.clip();
+  ctx.fillStyle = '#ffc20a'; ctx.fillRect(-12, -8, 24, 16);
+  ctx.fillStyle = 'rgba(10,4,0,0.82)';
+  ctx.fillRect(-7, -8, 3.6, 16); ctx.fillRect(0, -8, 3.6, 16); ctx.fillRect(7, -8, 3.6, 16);
+  ctx.globalAlpha = 0.30; ctx.fillStyle = '#fff4b8'; ctx.fillRect(-11, -7, 22, 2.4);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+  // body rim
+  ctx.strokeStyle = 'rgba(80,40,0,0.45)'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.ellipse(0, 0, 10.5, 6.2, 0, 0, PI2); ctx.stroke();
+  // head at FRONT (+x)
+  ctx.fillStyle = '#160c00'; ctx.beginPath(); ctx.arc(13.5, 0, 4.6, 0, PI2); ctx.fill();
+  // stinger at BACK (-x)
+  ctx.fillStyle = '#3a2000'; ctx.beginPath();
+  ctx.moveTo(-10.5, 0); ctx.lineTo(-14.5, -1.6); ctx.lineTo(-14.5, 1.6); ctx.closePath(); ctx.fill();
+  // antennae sweeping up-forward from the head
+  ctx.strokeStyle = 'rgba(12,6,0,0.85)'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(15.5, -2); ctx.quadraticCurveTo(21, -11, 18, -15); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(15.5, -2); ctx.quadraticCurveTo(26, -9, 23, -13); ctx.stroke();
+  ctx.fillStyle = '#160c00';
+  ctx.beginPath(); ctx.arc(18, -15, 1.7, 0, PI2); ctx.fill();
+  ctx.beginPath(); ctx.arc(23, -13, 1.7, 0, PI2); ctx.fill();
+  // queen's little crown
+  if (queen) {
+    ctx.fillStyle = '#ffe27a'; ctx.strokeStyle = 'rgba(120,70,0,0.65)'; ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(9, -5.5); ctx.lineTo(8.5, -11.5); ctx.lineTo(6.5, -7.5);
+    ctx.lineTo(4.5, -12.5); ctx.lineTo(2.5, -7.5); ctx.lineTo(1.5, -11.5);
+    ctx.lineTo(1, -5.5); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// The original, simpler bee model — paler wings, flatter body. Kept around
+// for variety. Also faces +x. s=scale, wf=wing-flap 0..1.
+function _bzDrawBeeOld(ctx, s, wf) {
+  const PI2 = Math.PI * 2;
+  ctx.save();
+  ctx.scale(s, s);
+  const ws = 4.5 + wf * 3.5;
+  ctx.globalAlpha = 0.28 + wf * 0.13; ctx.fillStyle = '#cce8ff';
+  ctx.beginPath(); ctx.ellipse(1, -ws, 9.5, 4, 0.35, 0, PI2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-4, -ws, 7, 3, -0.35, 0, PI2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-1, ws * 0.7, 6, 2.2, -0.3, 0, PI2); ctx.fill();
   ctx.globalAlpha = 1;
   ctx.save();
-  ctx.beginPath(); ctx.ellipse(0,0,10,6,0,0,Math.PI*2); ctx.clip();
-  ctx.fillStyle='#ffcc00'; ctx.fillRect(-12,-8,24,16);
-  ctx.fillStyle='rgba(8,3,0,0.78)';
-  ctx.fillRect(-8,-8,3.5,16); ctx.fillRect(-1,-8,3.5,16); ctx.fillRect(6,-8,3.5,16);
+  ctx.beginPath(); ctx.ellipse(0, 0, 10, 6, 0, 0, PI2); ctx.clip();
+  ctx.fillStyle = '#ffcc00'; ctx.fillRect(-12, -8, 24, 16);
+  ctx.fillStyle = 'rgba(8,3,0,0.78)';
+  ctx.fillRect(-8, -8, 3.5, 16); ctx.fillRect(-1, -8, 3.5, 16); ctx.fillRect(6, -8, 3.5, 16);
   ctx.restore();
-  ctx.strokeStyle='rgba(90,45,0,0.38)'; ctx.lineWidth=0.6;
-  ctx.beginPath(); ctx.ellipse(0,0,10,6,0,0,Math.PI*2); ctx.stroke();
-  ctx.fillStyle='#160c00'; ctx.beginPath(); ctx.arc(-13.5,0,4.5,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#3a2000'; ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(14,-1.5); ctx.lineTo(14,1.5); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle='rgba(12,6,0,0.82)'; ctx.lineWidth=0.7;
-  ctx.beginPath(); ctx.moveTo(-16,-2); ctx.quadraticCurveTo(-22,-11,-19,-15); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-16,-2); ctx.quadraticCurveTo(-27,-9,-24,-13); ctx.stroke();
-  ctx.fillStyle='#160c00';
-  ctx.beginPath(); ctx.arc(-19,-15,1.6,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(-24,-13,1.6,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(90,45,0,0.38)'; ctx.lineWidth = 0.6;
+  ctx.beginPath(); ctx.ellipse(0, 0, 10, 6, 0, 0, PI2); ctx.stroke();
+  ctx.fillStyle = '#160c00'; ctx.beginPath(); ctx.arc(13.5, 0, 4.5, 0, PI2); ctx.fill();
+  ctx.fillStyle = '#3a2000'; ctx.beginPath();
+  ctx.moveTo(-10, 0); ctx.lineTo(-14, -1.5); ctx.lineTo(-14, 1.5); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(12,6,0,0.82)'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(16, -2); ctx.quadraticCurveTo(22, -11, 19, -15); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(16, -2); ctx.quadraticCurveTo(27, -9, 24, -13); ctx.stroke();
+  ctx.fillStyle = '#160c00';
+  ctx.beginPath(); ctx.arc(19, -15, 1.6, 0, PI2); ctx.fill();
+  ctx.beginPath(); ctx.arc(24, -13, 1.6, 0, PI2); ctx.fill();
+  ctx.restore();
+}
+
+// Flight behaviours. b 0,1 = lazy wanderers; 2 = figure-8 patrol;
+// 3,4 = darting workers (zip then pause); 5 = the queen; 6 = flower
+// inspector; 7 = loop-de-loop; 8 = commuter. Bees 0/6/8 use the old model.
+function _bzBeeAt(ctx, b, W, H, t) {
+  const PI2 = Math.PI * 2;
+  const sx = _bzHash(b, 1), sy = _bzHash(b, 2);
+  let pos, sc, flap, queen = false;
+
+  if (b === 2) {
+    // sweeping figure-8 across the whole canvas
+    const cx = W * 0.5, cy = H * (0.3 + 0.2 * sy), Ax = W * 0.4, Ay = H * 0.22;
+    const f = 0.06 + 0.02 * sx, ph = b * 1.3;
+    pos = tt => [cx + Math.sin(tt * f * PI2 + ph) * Ax,
+                 cy + Math.sin(2 * (tt * f * PI2 + ph)) * Ay];
+    sc = 0.82; flap = Math.abs(Math.sin(t * 24 + b));
+  } else if (b === 3 || b === 4) {
+    // darting worker: hop between hashed anchors, fast then a hover-pause
+    const period = 1.5 + sx * 0.9;
+    pos = tt => {
+      const k = Math.floor(tt / period), fr = tt / period - k;
+      const ax = _bzHash(b * 9 + k, 3) * W, ay = _bzHash(b * 9 + k, 4) * H;
+      const nx = _bzHash(b * 9 + k + 1, 3) * W, ny = _bzHash(b * 9 + k + 1, 4) * H;
+      let e = Math.min(1, fr / 0.55); e = e * e * (3 - 2 * e);     // ease-in-out, then idle
+      const hb = Math.sin(tt * 9) * (1 - e) * 4;                    // bob while hovering
+      return [ax + (nx - ax) * e, ay + (ny - ay) * e + hb];
+    };
+    sc = 0.7; flap = Math.abs(Math.sin(t * 30 + b * 2));
+  } else if (b === 5) {
+    // the queen — large, slow, majestic drift
+    const cx = W * (0.3 + 0.4 * sx), cy = H * (0.3 + 0.35 * sy);
+    const f = 0.022 + 0.01 * sy, ph = b * 2.1;
+    pos = tt => [cx + Math.cos(tt * f * PI2 + ph) * W * 0.18,
+                 cy + Math.sin(tt * f * PI2 * 1.3 + ph) * H * 0.14];
+    sc = 1.18; flap = Math.abs(Math.sin(t * 16 + b)); queen = true;
+  } else if (b === 6) {
+    // flower inspector — hovers over a slowly drifting spot, bobbing in place
+    const cx = W * (0.2 + 0.6 * sx), cy = H * (0.25 + 0.5 * sy), ph = b * 1.9;
+    pos = tt => [cx + Math.sin(tt * 0.13 + ph) * W * 0.06 + Math.cos(tt * 2.2) * 8,
+                 cy + Math.cos(tt * 0.11 + ph) * H * 0.05 + Math.sin(tt * 3.1) * 10];
+    sc = 0.74; flap = Math.abs(Math.sin(t * 28 + b));
+  } else if (b === 7) {
+    // loop-de-loop — tight fast loops riding on a wide slow drift
+    const cx = W * (0.2 + 0.6 * sx), cy = H * (0.2 + 0.55 * sy), ph = b * 2.4;
+    pos = tt => {
+      const dcx = cx + Math.sin(tt * 0.07 + ph) * W * 0.18;
+      const dcy = cy + Math.cos(tt * 0.06 + ph) * H * 0.12;
+      return [dcx + Math.cos(tt * 3.0 + ph) * 26, dcy + Math.sin(tt * 3.0 + ph) * 26];
+    };
+    sc = 0.76; flap = Math.abs(Math.sin(t * 26 + b));
+  } else if (b === 8) {
+    // commuter — cruises straight across the screen and wraps around
+    const speed = W * 0.11 * (0.8 + sx * 0.5), yBase = H * (0.15 + 0.7 * sy), ph = b * 1.1;
+    pos = tt => [((tt * speed + sx * W) % (W + 120)) - 60,
+                 yBase + Math.sin(tt * 1.5 + ph) * 22];
+    sc = 0.8; flap = Math.abs(Math.sin(t * 24 + b));
+  } else {
+    // lazy wide wanderers (b 0,1)
+    const cx = W * (0.18 + 0.64 * sx), cy = H * (0.2 + 0.55 * sy);
+    const f1 = 0.05 + 0.03 * sx, f2 = 0.08 + 0.04 * sy, ph = b * 1.7;
+    pos = tt => [cx + Math.sin(tt * f1 * PI2 + ph) * W * 0.13 + Math.cos(tt * f2 * PI2 * 1.7 + ph) * W * 0.05,
+                 cy + Math.cos(tt * f1 * PI2 + ph) * H * 0.11 + Math.sin(tt * f2 * PI2 * 1.5 + ph) * H * 0.05];
+    sc = 0.78 + sx * 0.16; flap = Math.abs(Math.sin(t * 22 + b * 1.57));
+  }
+
+  const [bx, by] = pos(t);
+  const [bx2, by2] = pos(t + 0.05);
+  const ang = Math.atan2(by2 - by, bx2 - bx);
+  ctx.save();
+  ctx.translate(bx, by); ctx.rotate(ang);
+  if (b === 0 || b === 6 || b === 8) _bzDrawBeeOld(ctx, sc, flap);   // old model for variety
+  else _bzDrawBee(ctx, sc, flap, queen);
   ctx.restore();
 }
 
@@ -3031,7 +3171,15 @@ function _bizzyPulseColor(c) {
   const pr=Math.min(255,Math.round(r*bright));
   const pg=Math.min(255,Math.round(g*bright));
   const pb=Math.min(255,Math.round(b*bright));
-  cv.style.setProperty('--char-color', `rgb(${pr},${pg},${pb})`);
+  // Only touch the DOM when the rounded colour actually changes — writing
+  // --char-color every frame forces a full style recalc of every panel/glow
+  // that references it. The value repeats across most frames, so this skips
+  // the vast majority of those restyles with no visible difference.
+  const str = `rgb(${pr},${pg},${pb})`;
+  if (str !== _bizzyLastColorStr) {
+    _bizzyLastColorStr = str;
+    cv.style.setProperty('--char-color', str);
+  }
 }
 
 function _bizzyRafTick(ts) {
@@ -3041,12 +3189,18 @@ function _bizzyRafTick(ts) {
   _bizzyRafT += (ts - _bizzyRafPrev) / 1000;
   _bizzyRafPrev = ts;
   _bizzyPulseColor(c);
+  _bizzyOvFrame++;
   // Draw escaped bees on overlay canvas
   const ov = document.getElementById('bizzy-bee-overlay');
   if (ov) {
-    const cvEl = document.getElementById('char-view');
-    const nw = cvEl ? cvEl.offsetWidth : 0, nh = cvEl ? cvEl.scrollHeight : 0;
-    if (nw>0 && nh>0 && (ov.width!==nw||ov.height!==nh)) { ov.width=nw; ov.height=nh; }
+    // Reading offsetWidth/scrollHeight forces a synchronous layout reflow, so
+    // only re-measure every ~20 frames instead of every frame. The canvas size
+    // doesn't change between measurements, so output is identical in practice.
+    if (_bizzyOvFrame % 20 === 1) {
+      const cvEl = document.getElementById('char-view');
+      const nw = cvEl ? cvEl.offsetWidth : 0, nh = cvEl ? cvEl.scrollHeight : 0;
+      if (nw>0 && nh>0 && (ov.width!==nw||ov.height!==nh)) { ov.width=nw; ov.height=nh; }
+    }
     if (ov.width>0 && ov.height>0) {
       const ctx = ov.getContext('2d');
       ctx.clearRect(0, 0, ov.width, ov.height);
@@ -3054,11 +3208,121 @@ function _bizzyRafTick(ts) {
       _bzBeeAt(ctx, 4, ov.width, ov.height, _bizzyRafT);
     }
   }
+  // Cursor bee on the fixed full-viewport overlay
+  const cov = document.getElementById('bizzy-cursor-overlay');
+  if (cov) {
+    if (cov.width !== window.innerWidth || cov.height !== window.innerHeight) {
+      cov.width = window.innerWidth; cov.height = window.innerHeight;
+    }
+    const cctx = cov.getContext('2d');
+    cctx.clearRect(0, 0, cov.width, cov.height);
+    _bzDrawCursor(cctx, cov.width, cov.height, _bizzyRafT);
+  }
   _bizzyRafId = requestAnimationFrame(_bizzyRafTick);
+}
+
+/* ── Cursor bee — a bee that chases the pointer with a lazy buzz, ──
+   leaving a honey trail and bursting pollen/petals on click. ───── */
+function _bzAngLerp(a, b, f) {
+  const PI2 = Math.PI * 2;
+  let d = b - a;
+  while (d > Math.PI) d -= PI2; while (d < -Math.PI) d += PI2;
+  return a + d * f;
+}
+function _bzMouseMove(e) { _bzMX = e.clientX; _bzMY = e.clientY; }
+function _bzMouseDown() {
+  const PI2 = Math.PI * 2;
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * PI2, s = 1.4 + Math.random() * 3.6;
+    _bzBursts.push({
+      x: _bzMX, y: _bzMY,
+      vx: Math.cos(a) * s, vy: Math.sin(a) * s - 1.2,
+      life: 1, r: 1.4 + Math.random() * 2.4,
+      petal: Math.random() < 0.32
+    });
+  }
+}
+function _bzDrawCursor(ctx, W, H, t) {
+  const PI2 = Math.PI * 2;
+  let dt = t - _bzBeePrevT; _bzBeePrevT = t;
+  if (!(dt > 0) || dt > 0.1) dt = 0.016;
+
+  // Gentle hover target, a touch above the actual pointer (calm buzz)
+  const tx = _bzMX + Math.sin(t * 4.2) * 5;
+  const ty = _bzMY - 14 + Math.cos(t * 5.1) * 4;
+  const sm = 1 - Math.pow(0.0016, dt);       // frame-rate independent chase
+  _bzBeeX += (tx - _bzBeeX) * sm;
+  _bzBeeY += (ty - _bzBeeY) * sm;
+
+  // Stay upright always: face TOWARD the cursor (with a deadzone so it
+  // doesn't flutter), and add only a small clamped tilt — never flips over.
+  const dx = _bzMX - _bzBeeX, dy = _bzMY - _bzBeeY;
+  if (dx >  20) _bzBeeFace = 1;
+  else if (dx < -20) _bzBeeFace = -1;
+  const targetTilt = Math.max(-0.4, Math.min(0.4, dy / 140));
+  _bzBeeTilt += (targetTilt - _bzBeeTilt) * Math.min(1, dt * 8);
+
+  // Honey-dot trail
+  _bzTrail.push({ x: _bzBeeX, y: _bzBeeY, life: 1 });
+  if (_bzTrail.length > 22) _bzTrail.shift();
+  for (let i = 0; i < _bzTrail.length; i++) {
+    const p = _bzTrail[i]; p.life -= dt * 1.7;
+    if (p.life <= 0) continue;
+    const a = p.life * 0.30 * (i / _bzTrail.length);
+    ctx.fillStyle = `rgba(255,205,40,${a.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 2.4 * p.life + 0.6, 0, PI2); ctx.fill();
+  }
+  _bzTrail = _bzTrail.filter(p => p.life > 0);
+
+  // Click bursts (pollen motes + drifting petals)
+  for (const b of _bzBursts) {
+    b.life -= dt * 1.5; if (b.life <= 0) continue;
+    b.vy += dt * 6; b.x += b.vx; b.y += b.vy; b.vx *= 0.96; b.vy *= 0.96;
+    if (b.petal) {
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.x * 0.05 + t);
+      ctx.fillStyle = `rgba(255,${150 + Math.round(b.life * 60)},195,${(b.life * 0.8).toFixed(3)})`;
+      ctx.beginPath(); ctx.ellipse(0, 0, b.r * 1.6, b.r * 0.8, 0, 0, PI2); ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.fillStyle = `rgba(255,216,70,${(b.life * 0.85).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r * b.life, 0, PI2); ctx.fill();
+    }
+  }
+  _bzBursts = _bzBursts.filter(b => b.life > 0);
+
+  // The lead bee — upright, facing the cursor with a small tilt
+  ctx.save();
+  ctx.translate(_bzBeeX, _bzBeeY);
+  ctx.rotate(_bzBeeTilt);
+  ctx.scale(_bzBeeFace, 1);
+  _bzDrawBee(ctx, 1.0, Math.abs(Math.sin(t * 34)), false);
+  ctx.restore();
+
+  // A small swarm orbiting the pointer (mix of old + new models). They stay
+  // upright too — facing their direction of travel without flipping over.
+  const ORB = 4;
+  for (let i = 0; i < ORB; i++) {
+    const dir = (i % 2 === 0) ? 1 : -1;
+    const rad = 24 + i * 11 + Math.sin(t * 1.3 + i) * 4;       // gently breathing radius
+    const a   = t * (1.5 + i * 0.35) * dir + i * (PI2 / ORB);
+    const ox  = _bzMX + Math.cos(a) * rad;
+    const oy  = _bzMY + Math.sin(a) * rad * 0.72;              // slightly elliptical orbit
+    // tangential velocity → upright facing (flip horizontally, slight tilt)
+    const vx = -Math.sin(a) * dir, vy = Math.cos(a) * dir * 0.72;
+    const face = vx >= 0 ? 1 : -1;
+    const tilt = Math.max(-0.4, Math.min(0.4, vy * 0.5));
+    const flap = Math.abs(Math.sin(t * 30 + i * 1.7));
+    ctx.save();
+    ctx.translate(ox, oy); ctx.rotate(tilt); ctx.scale(face, 1);
+    if (i % 2 === 0) _bzDrawBeeOld(ctx, 0.5, flap);            // old model
+    else             _bzDrawBee(ctx, 0.52, flap, false);       // new model
+    ctx.restore();
+  }
 }
 
 function _startBizzyRaf() {
   _bizzyConnectAudio();
+  _bizzyLastColorStr = ''; _bizzyOvFrame = 0;   // force a fresh measure + colour on (re)start
   let ov = document.getElementById('bizzy-bee-overlay');
   if (!ov) {
     ov = document.createElement('canvas');
@@ -3067,6 +3331,25 @@ function _startBizzyRaf() {
     const cv = document.getElementById('char-view');
     if (cv) { cv.style.position='relative'; cv.appendChild(ov); }
   }
+  // Fixed cursor-bee overlay (skipped in performance mode)
+  if (typeof _perfMode === 'undefined' || !_perfMode) {
+    let cov = document.getElementById('bizzy-cursor-overlay');
+    if (!cov) {
+      cov = document.createElement('canvas');
+      cov.id = 'bizzy-cursor-overlay';
+      cov.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+      cov.width = window.innerWidth; cov.height = window.innerHeight;
+      document.body.appendChild(cov);
+    }
+    if (!_bzCursorListening) {
+      window.addEventListener('mousemove', _bzMouseMove);
+      window.addEventListener('mousedown', _bzMouseDown);
+      _bzCursorListening = true;
+    }
+    _bzBeeX = _bzMX; _bzBeeY = _bzMY; _bzBeePrevT = _bizzyRafT;
+    _bzTrail = []; _bzBursts = [];
+    const arrow = document.getElementById('cursor'); if (arrow) arrow.style.display = 'none';
+  }
   _bizzyRafPrev = 0;
   if (!_bizzyRafId) _bizzyRafId = requestAnimationFrame(_bizzyRafTick);
 }
@@ -3074,6 +3357,14 @@ function _startBizzyRaf() {
 function _stopBizzyRaf() {
   if (_bizzyRafId) { cancelAnimationFrame(_bizzyRafId); _bizzyRafId = null; }
   const ov = document.getElementById('bizzy-bee-overlay'); if (ov) ov.remove();
+  const cov = document.getElementById('bizzy-cursor-overlay'); if (cov) cov.remove();
+  if (_bzCursorListening) {
+    window.removeEventListener('mousemove', _bzMouseMove);
+    window.removeEventListener('mousedown', _bzMouseDown);
+    _bzCursorListening = false;
+  }
+  _bzTrail = []; _bzBursts = [];
+  const arrow = document.getElementById('cursor'); if (arrow) arrow.style.display = '';
   // Restore the char's actual color
   const c = typeof characters!=='undefined' ? characters.find(x=>x.id===currentId) : null;
   const cv = document.getElementById('char-view');
@@ -3089,9 +3380,37 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
   if (_drawBizzyPattern._lt !== undefined && t - _drawBizzyPattern._lt < 0.033) return;
   _drawBizzyPattern._lt = t;
 
+  const PI2 = Math.PI * 2;
   ctx.clearRect(0, 0, W, H);
 
-  // ── Honeycomb (flat-top hexagons) ─────────────────────────────
+  // ── Warm hive backdrop glow (cached full-screen radial) ───────
+  if (!_drawBizzyPattern._bg || _drawBizzyPattern._bgW !== W || _drawBizzyPattern._bgH !== H) {
+    const g = ctx.createRadialGradient(W * 0.5, H * 0.30, 0, W * 0.5, H * 0.30, Math.max(W, H) * 0.9);
+    g.addColorStop(0,   'rgba(96,58,0,0.30)');
+    g.addColorStop(0.5, 'rgba(52,30,0,0.16)');
+    g.addColorStop(1,   'rgba(14,8,0,0.05)');
+    _drawBizzyPattern._bg = g; _drawBizzyPattern._bgW = W; _drawBizzyPattern._bgH = H;
+  }
+  ctx.fillStyle = _drawBizzyPattern._bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Soft light shafts pouring down through the hive ───────────
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let r = 0; r < 5; r++) {
+    const rx = (0.1 + r * 0.21) * W + Math.sin(t * 0.18 + r * 1.7) * 26;
+    const rw = 34 + r * 14;
+    const ra = 0.020 + 0.015 * (0.5 + 0.5 * Math.sin(t * 0.5 + r * 1.3));
+    ctx.fillStyle = `rgba(255,206,86,${ra.toFixed(3)})`;
+    ctx.beginPath();
+    ctx.moveTo(rx - rw * 0.25, -10); ctx.lineTo(rx + rw * 0.25, -10);
+    ctx.lineTo(rx + rw, H + 10); ctx.lineTo(rx - rw, H + 10); ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // ── Honeycomb (flat-top hexagons) — the gentle old pulse, mixed ──
+  //    with a few dim shimmering honey-filled cells ──
   const R   = 20;
   const csx = R * 1.5;
   const csy = R * Math.sqrt(3);
@@ -3110,19 +3429,32 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
   }
   const hexPath = _drawBizzyPattern._hex;
 
+  // lineWidth is constant for every cell — set it once instead of per cell.
+  ctx.lineWidth = 0.95;
   for (let col = -1; col * csx < W + csx; col++) {
     for (let row = -1; row * csy < H + csy; row++) {
       const cx = col * csx;
       const cy = row * csy + (col & 1 ? csy * 0.5 : 0);
       const ph = (Math.sin(t * 0.55 + col * 0.71 + row * 1.13) + 1) * 0.5;
-      ctx.save();
+      const honey = _bzHash(col * 13 + row * 7, 1);   // stable per cell
+      // Translate / untranslate instead of save()/restore() per cell — same
+      // result, but skips ~2000 state-stack push/pops per frame.
       ctx.translate(cx, cy);
-      ctx.fillStyle   = `rgba(210,115,0,${(0.10 + ph * 0.22).toFixed(3)})`;
-      ctx.fill(hexPath);
-      ctx.strokeStyle = `rgba(235,155,0,${(0.22 + ph * 0.32).toFixed(3)})`;
-      ctx.lineWidth   = 0.9;
+      if (honey > 0.84) {
+        // a few dim shimmering honey-filled cells
+        const sh = 0.5 + 0.5 * Math.sin(t * 1.3 + col * 0.5 + row * 0.9);
+        ctx.fillStyle = `rgba(225,150,10,${(0.13 + sh * 0.15).toFixed(3)})`;
+        ctx.fill(hexPath);
+        ctx.fillStyle = `rgba(255,232,160,${(0.05 + sh * 0.08).toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(-R * 0.2, -R * 0.2, R * 0.34, 0, PI2); ctx.fill();
+      } else {
+        // the original gentle amber pulse
+        ctx.fillStyle = `rgba(210,115,0,${(0.10 + ph * 0.20).toFixed(3)})`;
+        ctx.fill(hexPath);
+      }
+      ctx.strokeStyle = `rgba(235,158,8,${(0.20 + ph * 0.28).toFixed(3)})`;
       ctx.stroke(hexPath);
-      ctx.restore();
+      ctx.translate(-cx, -cy);
     }
   }
 
@@ -3141,29 +3473,39 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
       ctx.moveTo(drx, dy - len);
       ctx.bezierCurveTo(drx + r, dy - len * 0.5, drx + r, dy, drx, dy + len * 0.28);
       ctx.bezierCurveTo(drx - r, dy, drx - r, dy - len * 0.5, drx, dy - len);
-      ctx.fillStyle = `rgba(215,145,0,${al.toFixed(3)})`;
+      ctx.fillStyle = `rgba(238,162,8,${(al + 0.05).toFixed(3)})`;
       ctx.fill();
+      // glossy highlight on the bead
+      ctx.fillStyle = `rgba(255,238,170,${(al * 0.7).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(drx - r * 0.4, dy - r * 0.3, r * 0.4, 0, PI2); ctx.fill();
     }
   }
 
-  // ── Flying bees (bees 0-2 stay in the pattern background) ────
-  for (let b = 0; b < 3; b++) _bzBeeAt(ctx, b, W, H, t);
+  // ── Flying bees behind the menus: wanderers, figure-8, queen, ──
+  //    flower-inspector, looper, commuter ──
+  _bzBeeAt(ctx, 0, W, H, t);
+  _bzBeeAt(ctx, 1, W, H, t);
+  _bzBeeAt(ctx, 2, W, H, t);
+  _bzBeeAt(ctx, 5, W, H, t);
+  _bzBeeAt(ctx, 6, W, H, t);
+  _bzBeeAt(ctx, 7, W, H, t);
+  _bzBeeAt(ctx, 8, W, H, t);
 
   // ── Pollen particles ─────────────────────────────────────────
-  for (let p = 0; p < 28; p++) {
+  for (let p = 0; p < 30; p++) {
     const sd   = p * 0.618;
     const px   = ((sd * 2.73) % 1) * W;
     const spd  = 18 + (sd % 12);
     const py   = ((H - (t * spd + sd * H) % (H + 16) + H + 16)) % (H + 16);
     const drift= Math.sin(t * 0.7 + sd * 6.28) * 14;
     const r    = 1.2 + (sd % 1) * 1.8;
-    const al   = 0.15 + (sd % 0.22);
+    const al   = 0.14 + (sd % 0.20);
     // Outer glow: simple large semi-transparent arc (no createRadialGradient)
-    ctx.fillStyle = `rgba(255,210,20,${(al * 0.09).toFixed(3)})`;
-    ctx.beginPath(); ctx.arc(px + drift, py, r * 3.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = `rgba(255,212,30,${(al * 0.09).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(px + drift, py, r * 3.5, 0, PI2); ctx.fill();
     // Core dot
-    ctx.fillStyle = `rgba(255,210,20,${al.toFixed(3)})`;
-    ctx.beginPath(); ctx.arc(px + drift, py, r, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = `rgba(255,214,40,${al.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(px + drift, py, r, 0, PI2); ctx.fill();
   }
 }
 
@@ -9236,6 +9578,440 @@ function _stopMimzyOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// OMEN — the ringmaster. A dark, elegant theatre: deep bordeaux velvet
+// curtains framing a shadowed stage, two slowly sweeping spotlights, a
+// perspective stage floor and drifting dust in the light. The cursor is a
+// little magic wand that twinkles, trails sparkles and casts a DIFFERENT
+// spell on every click (starburst → ripple → confetti → fountain → swirl).
+// BASE FORM ONLY — alt forms fall back to their own pattern.
+// ════════════════════════════════════════════════════════════════
+const _OMEN_RE = /^Omen$/i;
+function _isOmen(c) {
+  if (!(c && c.name && _OMEN_RE.test(c.name))) return false;
+  return (c.activeFormIdx || 0) === 0;          // his BASE form only
+}
+const _OM_MAG   = '#c92d77';
+const _OM_MAGLT = '#ff5fa8';
+
+// shared 5-point (or n-point) star path at origin
+function _omStarPath(ctx, cx, cy, outer, inner, points, rot) {
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const r = (i % 2) ? inner : outer;
+    const a = rot + i * Math.PI / points - Math.PI / 2;
+    const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+}
+
+/* ── A billowing velvet curtain leg ──────────────────────────────
+   outerX = screen-edge x, innerX = stage-opening edge x. */
+function _omCurtain(ctx, outerX, innerX, topY, botY, t, phase) {
+  const steps = 10, w = innerX - outerX, billowDir = Math.sign(-w);
+  ctx.beginPath();
+  ctx.moveTo(outerX, topY);
+  ctx.lineTo(innerX, topY);
+  for (let i = 0; i <= steps; i++) {
+    const f = i / steps, y = topY + (botY - topY) * f;
+    const wob = Math.abs(Math.sin(f * 6 + t * 0.7 + phase)) * (5 + 9 * f);
+    ctx.lineTo(innerX + billowDir * wob, y);
+  }
+  ctx.lineTo(outerX, botY);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(outerX, 0, innerX, 0);
+  g.addColorStop(0,    '#2a0716');
+  g.addColorStop(0.5,  '#6e1038');
+  g.addColorStop(0.82, '#4a0a26');
+  g.addColorStop(1,    '#180409');
+  ctx.fillStyle = g; ctx.fill();
+  // folds
+  const folds = 6;
+  for (let k = 1; k < folds; k++) {
+    ctx.strokeStyle = (k % 2) ? 'rgba(255,95,168,0.10)' : 'rgba(0,0,0,0.30)';
+    ctx.lineWidth   = (k % 2) ? 2 : 3;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const f = i / steps, y = topY + (botY - topY) * f;
+      const wob = Math.sin(f * 6 + t * 0.7 + phase + k * 0.3) * (3 + 5 * f);
+      const xx = outerX + w * (k / folds) + wob * (k / folds);
+      i === 0 ? ctx.moveTo(xx, y) : ctx.lineTo(xx, y);
+    }
+    ctx.stroke();
+  }
+}
+
+/* ── The swagged top valance + tassels ──────────────────────────── */
+function _omValance(ctx, x0, x1, topY, depth, t) {
+  const span = x1 - x0;
+  const swags = Math.max(3, Math.round(span / 150));
+  const segW = span / swags;
+  ctx.beginPath();
+  ctx.moveTo(x0, topY);
+  for (let s = 0; s < swags; s++) {
+    const sx = x0 + s * segW, mx = sx + segW / 2, ex = sx + segW;
+    const dip = depth + Math.sin(t * 0.6 + s) * 4;
+    ctx.quadraticCurveTo(mx, topY + dip, ex, topY);
+  }
+  ctx.lineTo(x1, 0); ctx.lineTo(x0, 0); ctx.closePath();
+  const g = ctx.createLinearGradient(0, 0, 0, topY + depth);
+  g.addColorStop(0, '#3a0a1e');
+  g.addColorStop(1, '#6e1038');
+  ctx.fillStyle = g; ctx.fill();
+}
+
+/* ── The dark stage pattern ─────────────────────────────────────── */
+function _drawOmenPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawOmenPattern._lt === undefined;
+  if (!fresh && t - _drawOmenPattern._lt < 0.033) return;     // 30fps cap
+  _drawOmenPattern._lt = t;
+  const PI2 = Math.PI * 2;
+  const horizon = H * 0.7;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#08020a'; ctx.fillRect(0, 0, W, H);
+
+  // cached gradients (vignette + floor)
+  if (!_drawOmenPattern._bg || _drawOmenPattern._bgW !== W || _drawOmenPattern._bgH !== H) {
+    const g = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.46, Math.max(W, H) * 0.82);
+    g.addColorStop(0,   'rgba(86,16,48,0.55)');
+    g.addColorStop(0.5, 'rgba(34,8,22,0.8)');
+    g.addColorStop(1,   'rgba(6,2,8,0.96)');
+    const fg = ctx.createLinearGradient(0, horizon, 0, H);
+    fg.addColorStop(0, '#1a0510');
+    fg.addColorStop(1, '#3a0e22');
+    _drawOmenPattern._bg = g; _drawOmenPattern._fg = fg;
+    _drawOmenPattern._bgW = W; _drawOmenPattern._bgH = H;
+  }
+  ctx.fillStyle = _drawOmenPattern._bg; ctx.fillRect(0, 0, W, H);
+
+  // ── Stage floor with perspective boards ──
+  ctx.fillStyle = _drawOmenPattern._fg; ctx.fillRect(0, horizon, W, H - horizon);
+  const vx = W * 0.5;
+  ctx.strokeStyle = 'rgba(0,0,0,0.34)'; ctx.lineWidth = 2;
+  for (let i = -10; i <= 10; i++) {
+    const bx = W * 0.5 + i * (W * 0.075);
+    ctx.beginPath(); ctx.moveTo(bx, H); ctx.lineTo(vx, horizon); ctx.stroke();
+  }
+  // a couple of receding board seams
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1.5;
+  for (let s = 1; s <= 3; s++) {
+    const fy = horizon + (H - horizon) * (s * s) / 12;
+    ctx.beginPath(); ctx.moveTo(0, fy); ctx.lineTo(W, fy); ctx.stroke();
+  }
+  // glowing stage lip
+  ctx.strokeStyle = 'rgba(201,45,119,0.30)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, horizon); ctx.lineTo(W, horizon); ctx.stroke();
+
+  // ── Two sweeping spotlights (additive) ──
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const beams = [
+    { sx: W * 0.34, sweep: Math.sin(t * 0.25) * W * 0.07,        tint: '255,120,180' },
+    { sx: W * 0.66, sweep: Math.sin(t * 0.22 + 2.2) * W * 0.07,  tint: '200,120,255' },
+  ];
+  for (const bm of beams) {
+    const topx = bm.sx, topy = -20;
+    const hitx = W * 0.5 + bm.sweep, hity = horizon + 18, spread = 80;
+    const dx = hitx - topx, dy = hity - topy, L = Math.hypot(dx, dy) || 1;
+    const px = -dy / L, py = dx / L;
+    const grad = ctx.createLinearGradient(topx, topy, hitx, hity);
+    grad.addColorStop(0, `rgba(${bm.tint},0.16)`);
+    grad.addColorStop(1, `rgba(${bm.tint},0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(topx - 12 * px, topy - 12 * py);
+    ctx.lineTo(topx + 12 * px, topy + 12 * py);
+    ctx.lineTo(hitx + spread * px, hity + spread * py);
+    ctx.lineTo(hitx - spread * px, hity - spread * py);
+    ctx.closePath(); ctx.fill();
+    const pg = ctx.createRadialGradient(hitx, hity, 0, hitx, hity, spread * 1.5);
+    pg.addColorStop(0, `rgba(${bm.tint},0.12)`);
+    pg.addColorStop(1, `rgba(${bm.tint},0)`);
+    ctx.fillStyle = pg;
+    ctx.beginPath(); ctx.ellipse(hitx, hity, spread * 1.5, spread * 0.5, 0, 0, PI2); ctx.fill();
+  }
+  ctx.restore();
+
+  // ── Drifting dust in the light ──
+  for (let i = 0; i < 26; i++) {
+    const sd = i * 0.618;
+    const dx2 = ((sd * 2.73) % 1) * W + Math.sin(t * 0.3 + i) * 22;
+    const cyc = horizon + 40;
+    const dy2 = ((t * (6 + (sd % 5)) + sd * H) % cyc);
+    const al = 0.12 + (i % 5) * 0.04;
+    ctx.fillStyle = `rgba(255,150,200,${(al * 0.5).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(dx2, dy2, 1.6 + (sd % 1.4), 0, PI2); ctx.fill();
+  }
+
+  // ── Faint twinkling sparkles up in the dark ──
+  for (let i = 0; i < 14; i++) {
+    const sd = i * 1.37;
+    const sx2 = ((sd * 1.93) % 1) * W;
+    const sy2 = ((sd * 2.61) % 1) * (horizon * 0.8);
+    const tw = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * 2 + i * 1.7));
+    ctx.fillStyle = `rgba(255,180,220,${(tw * 0.35).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(sx2, sy2, 1.1, 0, PI2); ctx.fill();
+  }
+
+  // ── Velvet curtains framing the stage (drawn last, over the beams) ──
+  const cw = W * 0.16;
+  _omCurtain(ctx, 0, cw, 0, horizon + 6, t, 0);
+  _omCurtain(ctx, W, W - cw, 0, horizon + 6, t, 1.6);
+  _omValance(ctx, cw - 6, W - cw + 6, 0, H * 0.1, t);
+
+  // ── Big dark vignette that slowly breathes (opening shrinks & grows) ──
+  const vp = 0.5 + 0.5 * Math.sin(t * 0.5);          // slow 0..1, ~12.5s cycle
+  const innerR = Math.min(W, H) * (0.08 + vp * 0.14);
+  const outerR = Math.max(W, H) * (0.5  + vp * 0.12);
+  const vig = ctx.createRadialGradient(W * 0.5, H * 0.5, innerR, W * 0.5, H * 0.5, outerR);
+  vig.addColorStop(0,    'rgba(0,0,0,0)');
+  vig.addColorStop(0.55, 'rgba(0,0,0,0.32)');
+  vig.addColorStop(1,    'rgba(0,0,0,0.9)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/* ── Magic-wand cursor ──────────────────────────────────────────── */
+let _omOverlayRafId = null;
+let _omMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _omMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _omSMX = _omMX, _omSMY = _omMY;     // smoothed pointer (for wand liveliness)
+let _omParts = [];
+let _omSpell = 0;
+let _omWandAng = 0.95;
+let _omEmitAcc = 0;
+let _omScanCanvas = null;   // cached CRT scanline tile
+let _omNoiseCanvas = null;  // cached CRT grain tile
+
+// Lazily build the tiny CRT tiles (scanlines + grain) — one-time cost.
+function _omScanTile() {
+  if (_omScanCanvas) return _omScanCanvas;
+  const c = document.createElement('canvas'); c.width = 2; c.height = 3;
+  const x = c.getContext('2d');
+  x.fillStyle = 'rgba(0,0,0,0.55)'; x.fillRect(0, 0, 2, 1);   // one dark line per 3px
+  _omScanCanvas = c; return c;
+}
+function _omNoiseTile() {
+  if (_omNoiseCanvas) return _omNoiseCanvas;
+  const n = 64, c = document.createElement('canvas'); c.width = n; c.height = n;
+  const x = c.getContext('2d'), img = x.createImageData(n, n), d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = (Math.random() * 255) | 0;
+    d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  _omNoiseCanvas = c; return c;
+}
+
+function _omMouseMove(e) { _omMX = e.clientX; _omMY = e.clientY; }
+function _omMouseDown() { _omCast(_omSpell); _omSpell = (_omSpell + 1) % 5; }
+
+function _omCast(spell) {
+  const PI2 = Math.PI * 2, x = _omMX, y = _omMY;
+  const push = p => { _omParts.push(p); if (_omParts.length > 260) _omParts.shift(); };
+  if (spell === 0) {                       // STARBURST
+    for (let i = 0; i < 14; i++) {
+      const a = PI2 * i / 14 + Math.random() * 0.2, s = 150 + Math.random() * 120;
+      push({ type: 'star', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1,
+             max: 0.9 + Math.random() * 0.4, rot: Math.random() * PI2, spin: (Math.random() - 0.5) * 10,
+             size: 5 + Math.random() * 4, col: i % 2 ? _OM_MAGLT : '#fff0f8', grav: 70 });
+    }
+  } else if (spell === 1) {                // RIPPLE RINGS
+    for (let r = 0; r < 2; r++) push({ type: 'ring', x, y, r: 4, rv: 210 + r * 130, life: 1, max: 0.7, col: _OM_MAGLT });
+    for (let i = 0; i < 8; i++) { const a = PI2 * i / 8;
+      push({ type: 'spark', x, y, vx: Math.cos(a) * 95, vy: Math.sin(a) * 95, life: 1, max: 0.6, size: 2.6, col: '#ffd0e6', grav: 0 }); }
+  } else if (spell === 2) {                // CONFETTI
+    const cols = [_OM_MAG, _OM_MAGLT, '#ffffff', '#7a113f', '#ffd0e6'];
+    for (let i = 0; i < 22; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6, s = 130 + Math.random() * 170;
+      push({ type: 'confetti', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1,
+             max: 1.2 + Math.random() * 0.6, rot: Math.random() * PI2, spin: (Math.random() - 0.5) * 12,
+             size: 4 + Math.random() * 4, col: cols[i % cols.length], grav: 260, flut: Math.random() * PI2 });
+    }
+  } else if (spell === 3) {                // SPARK FOUNTAIN
+    for (let i = 0; i < 18; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 0.7, s = 210 + Math.random() * 170;
+      push({ type: 'spark', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1,
+             max: 1.0 + Math.random() * 0.5, size: 2 + Math.random() * 2.5, col: i % 2 ? _OM_MAGLT : '#fff0f8', grav: 400 });
+    }
+  } else {                                 // SWIRL
+    for (let i = 0; i < 16; i++) {
+      push({ type: 'swirl', cx: x, cy: y, ang: PI2 * i / 16, r: 6, rv: 75, av: 6 * (i % 2 ? 1 : -1),
+             life: 1, max: 1.1, size: 3, col: i % 2 ? _OM_MAGLT : '#ffd0e6' });
+    }
+  }
+  push({ type: 'ring', x, y, r: 2, rv: 95, life: 1, max: 0.35, col: '#fff0f8' });   // tip flash
+}
+
+function _omDrawWand(ctx, x, y, ang, t, twinkle) {
+  const PI2 = Math.PI * 2, L = 42;
+  const dx = Math.cos(ang), dy = Math.sin(ang);
+  const sx = x + dx * 7, sy = y + dy * 7, ex = x + dx * L, ey = y + dy * L;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.moveTo(sx + 1.5, sy + 2); ctx.lineTo(ex + 1.5, ey + 2); ctx.stroke();
+  ctx.strokeStyle = '#14040c'; ctx.lineWidth = 5.2;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+  ctx.strokeStyle = '#3c1224'; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex - dx * 4, ey - dy * 4); ctx.stroke();
+  ctx.strokeStyle = _OM_MAG; ctx.lineWidth = 5.4;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + dx * 5, sy + dy * 5); ctx.stroke();
+  ctx.fillStyle = _OM_MAG; ctx.beginPath(); ctx.arc(ex, ey, 3.2, 0, PI2); ctx.fill();
+  ctx.fillStyle = '#ffd0e6'; ctx.beginPath(); ctx.arc(ex - dx * 0.6, ey - dy * 0.6, 1.2, 0, PI2); ctx.fill();
+  // glowing star tip
+  const s = 9 * (1 + twinkle);
+  ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.9);
+  ctx.shadowColor = _OM_MAGLT; ctx.shadowBlur = 16;
+  ctx.fillStyle = _OM_MAGLT; _omStarPath(ctx, 0, 0, s, s * 0.4, 5, 0); ctx.fill();
+  ctx.shadowBlur = 0; ctx.fillStyle = '#fff3fb'; _omStarPath(ctx, 0, 0, s * 0.5, s * 0.2, 5, 0); ctx.fill();
+  ctx.restore();
+  // gleam cross
+  ctx.save(); ctx.globalAlpha = 0.6 + 0.3 * Math.sin(t * 7);
+  ctx.strokeStyle = 'rgba(255,220,240,0.9)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x - 12, y); ctx.lineTo(x + 12, y); ctx.moveTo(x, y - 12); ctx.lineTo(x, y + 12); ctx.stroke();
+  ctx.restore();
+  // orbiting micro-sparkles
+  for (let i = 0; i < 3; i++) {
+    const a = t * 2 + i * (PI2 / 3), r = 14 + Math.sin(t * 3 + i) * 3;
+    ctx.save(); ctx.globalAlpha = 0.6; ctx.fillStyle = i % 2 ? _OM_MAGLT : '#ffd0e6';
+    ctx.beginPath(); ctx.arc(x + Math.cos(a) * r, y + Math.sin(a) * r, 1.6, 0, PI2); ctx.fill(); ctx.restore();
+  }
+}
+
+function _drawOmenOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawOmenOverlay._lt === undefined;
+  if (!fresh && t - _drawOmenOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawOmenOverlay._lt, 0.05);
+  _drawOmenOverlay._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  // smoothed pointer → velocity for liveliness
+  _omSMX += (_omMX - _omSMX) * Math.min(1, dt * 18);
+  _omSMY += (_omMY - _omSMY) * Math.min(1, dt * 18);
+  const vx = _omMX - _omSMX, vy = _omMY - _omSMY;
+
+  // idle sparkle emission from the tip
+  _omEmitAcc += dt;
+  while (_omEmitAcc > 0.04) {
+    _omEmitAcc -= 0.04;
+    const a = Math.random() * PI2, s = 12 + Math.random() * 22;
+    _omParts.push({ type: 'spark', x: _omMX, y: _omMY,
+      vx: Math.cos(a) * s - vx * 0.3, vy: Math.sin(a) * s - 20 - vy * 0.3,
+      life: 1, max: 0.5 + Math.random() * 0.4, size: 1.4 + Math.random() * 1.4,
+      col: Math.random() < 0.5 ? _OM_MAGLT : '#ffd0e6', grav: 30 });
+    if (_omParts.length > 280) _omParts.shift();
+  }
+  // movement trail
+  if (Math.hypot(vx, vy) > 4) {
+    _omParts.push({ type: 'spark', x: _omMX, y: _omMY, vx: -vx * 2, vy: -vy * 2,
+      life: 1, max: 0.5, size: 2, col: _OM_MAGLT, grav: 0 });
+    if (_omParts.length > 280) _omParts.shift();
+  }
+
+  // update + draw particles
+  for (const p of _omParts) {
+    p.life -= dt / p.max;
+    if (p.life <= 0) continue;
+    const al = Math.max(0, Math.min(1, p.life));
+    if (p.type === 'star') {
+      p.vy += p.grav * dt; p.vx *= (1 - 0.8 * dt); p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.spin * dt;
+      ctx.save(); ctx.globalAlpha = al; ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.shadowColor = p.col; ctx.shadowBlur = 8; ctx.fillStyle = p.col;
+      _omStarPath(ctx, 0, 0, p.size, p.size * 0.42, 5, 0); ctx.fill(); ctx.restore();
+    } else if (p.type === 'confetti') {
+      p.vy += p.grav * dt; p.vx *= (1 - 0.5 * dt);
+      p.x += p.vx * dt + Math.sin(t * 8 + p.flut) * 0.6; p.y += p.vy * dt; p.rot += p.spin * dt;
+      ctx.save(); ctx.globalAlpha = al; ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.col; ctx.fillRect(-p.size * 0.5, -p.size * 0.3, p.size, p.size * 0.6); ctx.restore();
+    } else if (p.type === 'ring') {
+      p.r += p.rv * dt;
+      ctx.save(); ctx.globalAlpha = al * 0.8; ctx.strokeStyle = p.col; ctx.lineWidth = 2.2;
+      ctx.shadowColor = p.col; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, PI2); ctx.stroke(); ctx.restore();
+    } else if (p.type === 'swirl') {
+      p.ang += p.av * dt; p.r += p.rv * dt;
+      const ssx = p.cx + Math.cos(p.ang) * p.r, ssy = p.cy + Math.sin(p.ang) * p.r;
+      ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = p.col; ctx.shadowColor = p.col; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(ssx, ssy, p.size * al + 0.5, 0, PI2); ctx.fill(); ctx.restore();
+    } else {  // spark
+      p.vy += p.grav * dt; p.vx *= (1 - 0.6 * dt); p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = p.col; ctx.shadowColor = p.col; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * al + 0.4, 0, PI2); ctx.fill(); ctx.restore();
+    }
+  }
+  _omParts = _omParts.filter(p => p.life > 0);
+
+  // the wand (banks gently with motion, twinkles)
+  const baseAng = 0.95 + Math.sin(t * 2.4) * 0.06 + Math.max(-0.4, Math.min(0.4, vx * -0.01));
+  _omWandAng += (baseAng - _omWandAng) * Math.min(1, dt * 8);
+  const tw = Math.max(0, Math.sin(t * 7)) * 0.12;
+  _omDrawWand(ctx, _omMX, _omMY, _omWandAng, t, tw);
+
+  // ── Subtle old-TV / CRT layer over the whole screen ──
+  // faint scanlines with a tiny brightness flicker
+  ctx.save();
+  ctx.globalAlpha = 0.16 + Math.random() * 0.03;
+  ctx.fillStyle = ctx.createPattern(_omScanTile(), 'repeat');
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  // drifting grain
+  ctx.save();
+  ctx.globalAlpha = 0.035;
+  const ox = (Math.random() * 64) | 0, oy = (Math.random() * 64) | 0;
+  ctx.translate(-ox, -oy);
+  ctx.fillStyle = ctx.createPattern(_omNoiseTile(), 'repeat');
+  ctx.fillRect(ox, oy, W + 64, H + 64);
+  ctx.restore();
+  // a slow rolling brightness bar (classic vertical-hold roll)
+  const by = (t * 70) % (H + 260) - 130;
+  const rb = ctx.createLinearGradient(0, by, 0, by + 130);
+  rb.addColorStop(0,   'rgba(255,255,255,0)');
+  rb.addColorStop(0.5, 'rgba(255,235,245,0.05)');
+  rb.addColorStop(1,   'rgba(255,255,255,0)');
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = rb; ctx.fillRect(0, by, W, 130);
+  ctx.restore();
+}
+
+function _startOmenOverlay() {
+  _stopOmenOverlay();
+  _drawOmenOverlay._lt = undefined;
+  _omParts = []; _omSpell = 0; _omEmitAcc = 0;
+  _omSMX = _omMX; _omSMY = _omMY; _omWandAng = 0.95;
+  window.addEventListener('mousemove', _omMouseMove);
+  window.addEventListener('mousedown', _omMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'omen-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('omen-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawOmenOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _omOverlayRafId = requestAnimationFrame(frame);
+  }
+  _omOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopOmenOverlay() {
+  if (_omOverlayRafId) { cancelAnimationFrame(_omOverlayRafId); _omOverlayRafId = null; }
+  window.removeEventListener('mousemove', _omMouseMove);
+  window.removeEventListener('mousedown', _omMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('omen-overlay'); if (cv) cv.remove();
+  _omParts = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // CAPPY — the screen is filled with white milk: gooey metaball blobs that
 // flow toward the cursor (viscous, sloshing). The cursor is a glowing blue
 // Star of David. Character-wide (matches "Cappy").
@@ -13535,6 +14311,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
   if (type === 'jeckely_box')    { _drawJeckelyPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'mimzy_bloom')    { _drawMimzyPattern(canvas, ctx, W, H, t);               return; }
+  if (type === 'omen_stage')     { _drawOmenPattern(canvas, ctx, W, H, t);                return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -14038,6 +14815,8 @@ function startBgAnim(type, params) {
   _drawJeckelyOverlay._lt     = undefined;
   _drawMimzyPattern._lt       = undefined;
   _drawMimzyOverlay._lt       = undefined;
+  _drawOmenPattern._lt        = undefined;
+  _drawOmenOverlay._lt        = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -14087,6 +14866,7 @@ function stopBgAnim() {
   _stopAlsaceOverlay();
   _stopJeckelyOverlay();
   _stopMimzyOverlay();
+  _stopOmenOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -14593,6 +15373,7 @@ function viewChar(id) {
   else if (_isAlsace(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#4f7bdf'); }
   else if (_isJeckely(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c23b46'); }
   else if (_isMimzy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fc0'); }
+  else if (_isOmen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c92d77'); }
   else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
@@ -14886,7 +15667,49 @@ function viewChar(id) {
       _cvRoot.classList.remove('mimzy-ui');
       if (_av) _av.classList.remove('mimzy-pfp');
       if (_nm) { _nm.classList.remove('mimzy-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name')) _nm.removeAttribute('data-text'); }
-      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c)) _pc.style.opacity = '';
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c) && !_isBizzy(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Bizzy — warm honeycomb UI chrome (golden hive panels with a hexagon
+  // mesh, a honey-glowing name, and a comb-framed portrait). Placed last among
+  // the opacity-setting blocks so the brighter pattern survives. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isBizzy(c)) {
+      _cvRoot.classList.add('bizzy-ui');
+      if (_av) _av.classList.add('bizzy-pfp');
+      if (_nm) { _nm.classList.add('bizzy-name'); _nm.setAttribute('data-text', _nm.textContent || 'BIZZY'); }
+      if (_pc) _pc.style.opacity = '0.8';
+    } else {
+      _cvRoot.classList.remove('bizzy-ui');
+      if (_av) _av.classList.remove('bizzy-pfp');
+      if (_nm) { _nm.classList.remove('bizzy-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name') && !_nm.classList.contains('mimzy-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c) && !_isMimzy(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Omen — dark-theatre UI chrome (deep bordeaux velvet panels, a magenta
+  // ringmaster name and a spotlit portrait). BASE FORM ONLY. Placed last among
+  // the opacity-setting blocks. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isOmen(c)) {
+      _cvRoot.classList.add('omen-ui');
+      if (_av) _av.classList.add('omen-pfp');
+      if (_nm) { _nm.classList.add('omen-name'); _nm.setAttribute('data-text', _nm.textContent || 'OMEN'); }
+      if (_pc) _pc.style.opacity = '0.95';
+    } else {
+      _cvRoot.classList.remove('omen-ui');
+      if (_av) _av.classList.remove('omen-pfp');
+      if (_nm) { _nm.classList.remove('omen-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name') && !_nm.classList.contains('mimzy-name') && !_nm.classList.contains('bizzy-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c) && !_isMimzy(c) && !_isBizzy(c)) _pc.style.opacity = '';
     }
   }
 
@@ -14987,7 +15810,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -14999,7 +15822,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -15056,6 +15879,7 @@ function viewChar(id) {
   if (_isAlsace(c))   { _alsMaskOff = _isAlsaceMaskOff(c); _startAlsaceOverlay(); }
   if (_isJeckely(c))  _startJeckelyOverlay();
   if (_isMimzy(c))    _startMimzyOverlay();
+  if (_isOmen(c))     _startOmenOverlay();
   }
 
   renderInventory(c);
@@ -20307,7 +21131,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -20341,6 +21165,7 @@ window.addEventListener('resize', () => {
       if (_isAlsace(c))   { _alsMaskOff = _isAlsaceMaskOff(c); _startAlsaceOverlay(); }
       if (_isJeckely(c))  _startJeckelyOverlay();
       if (_isMimzy(c))    _startMimzyOverlay();
+      if (_isOmen(c))     _startOmenOverlay();
     }
   }
 });
