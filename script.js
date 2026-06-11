@@ -2745,6 +2745,7 @@ const PATTERN_DEFS = {
   riegen_phoenix:   { label: "Riegen · Phoenix Rebirth",  params: [] },
   lorraine_brass:   { label: "Lorraine · Gilded Parlour", params: [] },
   simmer_tide:      { label: "Simmer · Star-Tide Kingdom", params: [] },
+  omen_bar:         { label: "Omen · The Perfect Mix",     params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -11555,6 +11556,1188 @@ function _stopSimmerOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// OMEN · BARTENDER FORM — the ringmaster works the bar. A full cocktail-
+// mixing minigame in the spirit of the old flash game "The Perfect Mix":
+// an order ticket asks for a precise blend, you hold a bottle to pour it
+// into the glass, fill to the tick marks, then SERVE. Accuracy is graded
+// (PERFECT MIX! / GOOD POUR / BAR SLOP), perfects and streaks are counted,
+// DUMP empties a botched glass. The bar lives on a strip along the bottom
+// of the screen; the cursor is a star-tipped cocktail pick.
+// ════════════════════════════════════════════════════════════════
+function _isOmenBartender(c) {
+  if (!(c && c.name && _OMEN_RE.test(c.name))) return false;
+  const idx = c.activeFormIdx || 0;
+  if (idx === 0) return false;
+  const af = (c.altForms || [])[idx - 1];
+  return !!(af && af.name && /bartender/i.test(af.name));
+}
+
+function _obHash(i) { const v = Math.sin(i * 83.7 + 5.1) * 43758.5453; return v - Math.floor(v); }
+
+const _OB_H = 300;                   // game strip height (px)
+const _OB_GARNISH = [
+  { name: 'CHERRY', col: '#c92d40' },
+  { name: 'STAR',   col: '#ffd24d' },
+  { name: 'LEMON',  col: '#ffe27a' },
+  { name: 'OLIVE',  col: '#5cc457' },
+];
+const _OB_BOTTLES = [
+  { name: 'BORDEAUX',  col: '#c92d77', lit: '#ff5fa8' },
+  { name: 'EMBER',     col: '#ff8a2a', lit: '#ffc06a' },
+  { name: 'STARDUST',  col: '#59c9f2', lit: '#a5e6ff' },
+  { name: 'VENOM',     col: '#5cc457', lit: '#9fe89a' },
+  { name: 'MOONSHINE', col: '#e8e8f0', lit: '#ffffff' },
+  { name: 'VOID',      col: '#7a5fd8', lit: '#b39fff' },
+];
+const _OB_NAMES = [
+  'THE CRIMSON CURTAIN', 'RINGMASTER\'S RUIN', 'VELVET ENCORE', 'SKIBIDI FIZZ',
+  'SPOTLIGHT SLING', 'MASKLESS MULE', 'PINA COLADA', 'NIGLET PUNCH',
+  'GOLDEN PISS', 'STAR-TIDE SOUR', 'MIDNIGHT MATINEE', 'BAJA CALIFORNIA',
+];
+
+/* ── Moody bar backdrop on the pattern canvas ───────────────────── */
+function _drawOmenBarPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawOmenBarPattern._lt === undefined;
+  if (!fresh && t - _drawOmenBarPattern._lt < 0.033) return;     // 30fps cap
+  _drawOmenBarPattern._lt = t;
+  const PI2 = Math.PI * 2;
+
+  ctx.clearRect(0, 0, W, H);
+  if (!_drawOmenBarPattern._bg || _drawOmenBarPattern._bgW !== W || _drawOmenBarPattern._bgH !== H) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#120308');
+    g.addColorStop(0.6, '#2a0a18');
+    g.addColorStop(1, '#1a050e');
+    const vig = ctx.createRadialGradient(W * 0.5, H * 0.45, Math.min(W, H) * 0.22, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.7)');
+    _drawOmenBarPattern._bg = g; _drawOmenBarPattern._vig = vig;
+    _drawOmenBarPattern._bgW = W; _drawOmenBarPattern._bgH = H;
+  }
+  ctx.fillStyle = _drawOmenBarPattern._bg; ctx.fillRect(0, 0, W, H);
+
+  // hanging lamps with warm cones of light
+  for (let l = 0; l < 3; l++) {
+    const lx = W * (0.25 + l * 0.25);
+    const sway = Math.sin(t * 0.5 + l * 2.1) * 4;
+    ctx.strokeStyle = 'rgba(80,40,55,0.8)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx + sway, 56); ctx.stroke();
+    ctx.fillStyle = '#3a1020';
+    ctx.beginPath();
+    ctx.moveTo(lx + sway - 14, 56); ctx.lineTo(lx + sway + 14, 56);
+    ctx.lineTo(lx + sway + 8, 44); ctx.lineTo(lx + sway - 8, 44);
+    ctx.closePath(); ctx.fill();
+    const flick = 0.85 + 0.15 * Math.sin(t * 9 + l * 4);
+    const cone = ctx.createLinearGradient(0, 56, 0, H * 0.6);
+    cone.addColorStop(0, `rgba(255,180,110,${(0.13 * flick).toFixed(3)})`);
+    cone.addColorStop(1, 'rgba(255,160,90,0)');
+    ctx.fillStyle = cone;
+    ctx.beginPath();
+    ctx.moveTo(lx + sway - 12, 56); ctx.lineTo(lx + sway + 12, 56);
+    ctx.lineTo(lx + sway + 90, H * 0.6); ctx.lineTo(lx + sway - 90, H * 0.6);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = `rgba(255,220,160,${(0.8 * flick).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(lx + sway, 52, 3.4, 0, PI2); ctx.fill();
+  }
+
+  // back-bar shelves: under-lit glass bottles in proper silhouettes
+  for (let s = 0; s < 2; s++) {
+    const sy = H * (0.30 + s * 0.20);
+    const nB = Math.max(8, Math.floor(W / 110));
+    for (let b = 0; b < nB; b++) {
+      const seed = s * 37 + b;
+      const bx = W * 0.1 + (W * 0.8) * ((b + 0.5) / nB) + (_obHash(seed) - 0.5) * 22;
+      const bh = 30 + _obHash(seed + 3) * 24;
+      const bw = 9 + _obHash(seed + 7) * 7;
+      const bc = _OB_BOTTLES[seed % _OB_BOTTLES.length];
+      const shape = seed % 3;
+      const gl = 0.5 + 0.5 * Math.sin(t * 1.2 + seed * 2.7);
+      const hexr = parseInt(bc.col.slice(1, 3), 16), hexg = parseInt(bc.col.slice(3, 5), 16), hexb = parseInt(bc.col.slice(5, 7), 16);
+      // soft backbar glow halo behind the bottle
+      const halo = ctx.createRadialGradient(bx, sy - bh * 0.4, 0, bx, sy - bh * 0.4, bh * 0.9);
+      halo.addColorStop(0, `rgba(${hexr},${hexg},${hexb},${(0.10 + gl * 0.10).toFixed(3)})`);
+      halo.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = halo;
+      ctx.fillRect(bx - bh, sy - bh * 1.6, bh * 2, bh * 1.8);
+      // bottle silhouette with neck + shoulder
+      const body = () => {
+        const nw = bw * 0.32, nh = bh * 0.34;
+        ctx.beginPath();
+        ctx.moveTo(bx - bw / 2, sy);
+        if (shape === 0) {        // round shoulder
+          ctx.lineTo(bx - bw / 2, sy - bh + nh + 6);
+          ctx.quadraticCurveTo(bx - bw / 2, sy - bh + nh, bx - nw, sy - bh + nh - 2);
+          ctx.lineTo(bx - nw, sy - bh);
+          ctx.lineTo(bx + nw, sy - bh);
+          ctx.lineTo(bx + nw, sy - bh + nh - 2);
+          ctx.quadraticCurveTo(bx + bw / 2, sy - bh + nh, bx + bw / 2, sy - bh + nh + 6);
+        } else if (shape === 1) { // square gin
+          ctx.lineTo(bx - bw / 2, sy - bh + nh + 2);
+          ctx.lineTo(bx - nw, sy - bh + nh - 4);
+          ctx.lineTo(bx - nw, sy - bh);
+          ctx.lineTo(bx + nw, sy - bh);
+          ctx.lineTo(bx + nw, sy - bh + nh - 4);
+          ctx.lineTo(bx + bw / 2, sy - bh + nh + 2);
+        } else {                  // bulb flask
+          ctx.quadraticCurveTo(bx - bw * 0.72, sy - bh * 0.42, bx - nw, sy - bh + nh);
+          ctx.lineTo(bx - nw, sy - bh);
+          ctx.lineTo(bx + nw, sy - bh);
+          ctx.lineTo(bx + nw, sy - bh + nh);
+          ctx.quadraticCurveTo(bx + bw * 0.72, sy - bh * 0.42, bx + bw / 2, sy);
+        }
+        ctx.lineTo(bx + bw / 2, sy);
+        ctx.closePath();
+      };
+      body();
+      ctx.fillStyle = 'rgba(12,4,8,0.96)';
+      ctx.fill();
+      // glowing liquid inside (clipped to silhouette)
+      ctx.save();
+      body(); ctx.clip();
+      ctx.fillStyle = `rgba(${hexr},${hexg},${hexb},${(0.30 + gl * 0.30).toFixed(3)})`;
+      ctx.fillRect(bx - bw, sy - bh * 0.55, bw * 2, bh * 0.55);
+      ctx.fillStyle = `rgba(255,255,255,${(0.10 + gl * 0.08).toFixed(3)})`;
+      ctx.fillRect(bx - bw * 0.32, sy - bh, bw * 0.16, bh);
+      ctx.restore();
+      // rim light + cap
+      body();
+      ctx.strokeStyle = `rgba(${hexr},${hexg},${hexb},${(0.30 + gl * 0.25).toFixed(3)})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(140,110,70,0.8)';
+      ctx.fillRect(bx - bw * 0.18, sy - bh - 4, bw * 0.36, 4.5);
+    }
+    // shelf board + under-shelf light strip (drawn over bottle bases)
+    ctx.fillStyle = 'rgba(58,20,36,0.95)';
+    ctx.fillRect(W * 0.08, sy, W * 0.84, 5);
+    ctx.fillStyle = 'rgba(255,140,190,0.20)';
+    ctx.fillRect(W * 0.08, sy + 5, W * 0.84, 1.6);
+    ctx.fillStyle = 'rgba(16,5,10,0.6)';
+    ctx.fillRect(W * 0.08, sy + 6.6, W * 0.84, 7);
+  }
+
+  // drifting smoke wisps
+  for (let m = 0; m < 3; m++) {
+    const mx = ((t * (8 + m * 5) + m * W * 0.4) % (W + 300)) - 150;
+    const my = H * (0.25 + m * 0.16) + Math.sin(t * 0.4 + m * 2) * 18;
+    ctx.fillStyle = `rgba(200,160,180,${(0.025 + m * 0.008).toFixed(3)})`;
+    ctx.beginPath(); ctx.ellipse(mx, my, 130, 26 + m * 8, Math.sin(t * 0.2 + m) * 0.2, 0, PI2); ctx.fill();
+  }
+
+  ctx.fillStyle = _drawOmenBarPattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* ── The minigame ───────────────────────────────────────────────── */
+let _obOverlayRafId = null;
+let _obMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _obMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _obDown = false;
+let _obHover = null;        // {kind, i}
+let _obPourIdx = -1;
+let _obPourMap = {};        // bottleIdx -> parts poured (the scoring truth)
+let _obVis = [];            // visual liquid layers [{col, amt}]
+let _obIceCubes = [];       // [{ox, ph}]
+let _obGarnishSel = -1;
+let _obMix = null;          // null | 'shaken' | 'stirred'
+let _obFoam = false;
+let _obShakeMode = false, _obShakeMeter = 0, _obPrevMXf = 0, _obShakeVel = 0;
+let _obStirMode = false, _obStirMeter = 0, _obStirPrevA = null, _obStirAng = 0;
+let _obOrder = null;        // { name, parts, total, ice, mix, garnish, glass }
+let _obPhase = 'in', _obPhaseT = 0;   // patron: in → open → out
+let _obPatron = { seed: 1, mood: 0 };
+let _obPatience = 1;
+let _obReact = '', _obReactT = 0;
+let _obTips = 0, _obServed = 0, _obPerfect = 0, _obStreak = 0;
+let _obMsg = '', _obMsgT = 0, _obMsgCol = '#fff';
+let _obDrops = [];
+let _obCoins = [];
+let _obPrevT = 0;
+
+function _obFill() { let s = 0; for (const v of _obVis) s += v.amt; return s; }
+function _obPoured(i) { return _obPourMap[i] || 0; }
+function _obResetGlass() {
+  _obPourMap = {}; _obVis = []; _obIceCubes = [];
+  _obGarnishSel = -1; _obMix = null; _obFoam = false;
+  _obShakeMode = false; _obShakeMeter = 0;
+  _obStirMode = false; _obStirMeter = 0; _obStirPrevA = null;
+}
+
+function _obNewOrder() {
+  const nIng = 2 + Math.floor(Math.random() * 3);          // 2-4 ingredients
+  const picks = [];
+  while (picks.length < nIng) {
+    const i = Math.floor(Math.random() * _OB_BOTTLES.length);
+    if (!picks.includes(i)) picks.push(i);
+  }
+  const parts = picks.map(i => ({ i, amt: 1 + Math.floor(Math.random() * 3) }));
+  let total = parts.reduce((s, p) => s + p.amt, 0);
+  if (total < 3) { parts[0].amt += 3 - total; total = 3; }
+  const mixRoll = Math.random();
+  _obOrder = {
+    name: _OB_NAMES[Math.floor(Math.random() * _OB_NAMES.length)],
+    parts, total,
+    ice: Math.random() < 0.45,
+    mix: mixRoll < 0.36 ? 'shaken' : (mixRoll < 0.60 ? 'stirred' : null),
+    garnish: Math.random() < 0.55 ? Math.floor(Math.random() * _OB_GARNISH.length) : -1,
+    glass: Math.floor(Math.random() * 3),
+  };
+  _obPatron = { seed: 1 + Math.floor(Math.random() * 99991), mood: 0 };
+  _obPatience = 1;
+  _obResetGlass();
+}
+
+// blend everything in the glass into one colour (shake = foam on top)
+function _obBlendNow(kind) {
+  const fill = _obFill(); if (fill <= 0) return;
+  let r = 0, g = 0, b = 0;
+  for (const v of _obVis) {
+    r += parseInt(v.col.slice(1, 3), 16) * v.amt;
+    g += parseInt(v.col.slice(3, 5), 16) * v.amt;
+    b += parseInt(v.col.slice(5, 7), 16) * v.amt;
+  }
+  const col = '#' + [r, g, b].map(x => Math.max(0, Math.min(255, Math.round(x / fill))).toString(16).padStart(2, '0')).join('');
+  _obVis = [{ col, amt: fill }];
+  _obMix = kind; _obFoam = kind === 'shaken';
+}
+
+// glass shapes: 0 rocks tumbler, 1 highball, 2 martini (liquid in the cone)
+function _obGlassGeom(type) {
+  if (type === 0) return { kind: 0, w: 76, h: 92,  lb: 10, inner: 70 };
+  if (type === 1) return { kind: 1, w: 58, h: 138, lb: 8,  inner: 118 };
+  return            { kind: 2, w: 94, h: 120, lb: 60, inner: 54 };
+}
+
+// strip-local layout (W = strip width)
+function _obLayout(W) {
+  const gx = Math.max(430, W * 0.40);
+  return {
+    counterY: _OB_H - 58,
+    bx0: Math.max(14, W * 0.035),
+    bstep: Math.min(62, Math.max(46, (gx - 130 - Math.max(14, W * 0.035)) / 5)),
+    bY: _OB_H - 62,
+    gx, gBot: _OB_H - 62,
+    iceX: gx + 100, shakerX: gx + 164, spoonX: gx + 218, toolY: _OB_H - 64,
+    garX0: gx + 262, garStep: 38,
+    sx: gx + 100, sy: 34, sw: 96, sh: 34,
+    dx: gx + 210, dy: 34, dw: 72, dh: 34,
+    px: Math.max(gx + 480, W * 0.85),
+  };
+}
+
+function _obHitTest(x, y, W) {
+  const L = _obLayout(W);
+  for (let i = 0; i < _OB_BOTTLES.length; i++) {
+    const bx = L.bx0 + i * L.bstep;
+    if (x > bx - 17 && x < bx + 17 && y > L.bY - 102 && y < L.bY) return { kind: 'bottle', i };
+  }
+  if (x > L.iceX - 26 && x < L.iceX + 26 && y > L.toolY - 44 && y < L.toolY) return { kind: 'ice' };
+  if (x > L.shakerX - 20 && x < L.shakerX + 20 && y > L.toolY - 60 && y < L.toolY) return { kind: 'shaker' };
+  if (x > L.spoonX - 14 && x < L.spoonX + 14 && y > L.toolY - 60 && y < L.toolY) return { kind: 'spoon' };
+  for (let g = 0; g < _OB_GARNISH.length; g++) {
+    const gpx = L.garX0 + g * L.garStep;
+    if (x > gpx - 17 && x < gpx + 17 && y > L.toolY - 36 && y < L.toolY) return { kind: 'gar', i: g };
+  }
+  if (x > L.sx && x < L.sx + L.sw && y > L.sy && y < L.sy + L.sh) return { kind: 'serve' };
+  if (x > L.dx && x < L.dx + L.dw && y > L.dy && y < L.dy + L.dh) return { kind: 'dump' };
+  return null;
+}
+
+function _obSetMsg(s, col) { _obMsg = s; _obMsgCol = col || '#fff'; _obMsgT = 2.2; }
+function _obSnd(rate, vol) { if (typeof playSound === 'function') { try { playSound('click', { rate: rate || 1, volume: vol || 0.5 }); } catch (e) {} } }
+
+function _obServe() {
+  if (!_obOrder || _obPhase !== 'open') return;
+  if (_obFill() < 0.4) { _obSetMsg('AN EMPTY GLASS?', '#ff5fa8'); return; }
+  const total = _obOrder.total;
+  let err = 0;
+  const seen = new Set();
+  for (const p of _obOrder.parts) { err += Math.abs(p.amt - _obPoured(p.i)); seen.add(p.i); }
+  for (const k in _obPourMap) if (!seen.has(+k)) err += _obPourMap[k];
+  const acc = Math.max(0, 1 - err / (total * 2));
+  const iceOk = _obOrder.ice ? _obIceCubes.length > 0 : _obIceCubes.length === 0;
+  const mixOk = _obOrder.mix ? _obMix === _obOrder.mix : _obMix === null;
+  const garOk = _obOrder.garnish >= 0 ? _obGarnishSel === _obOrder.garnish : _obGarnishSel < 0;
+  const score = acc * 0.6 + (iceOk ? 0.12 : 0) + (mixOk ? 0.14 : 0) + (garOk ? 0.14 : 0);
+  _obServed++;
+  let base, grade;
+  if (score >= 0.94 && acc >= 0.88) {
+    _obPerfect++; _obStreak++; grade = 'perfect'; base = 100;
+    _obSetMsg(_obStreak > 1 ? `PERFECT MIX! ×${_obStreak}` : 'PERFECT MIX!', '#ffd24d');
+    _obPatron.mood = 1; _obReact = '♥';
+  } else if (score >= 0.72) {
+    _obStreak = 0; grade = 'good'; base = 20;
+    _obSetMsg('GOOD POUR', '#a5e6ff');
+    _obPatron.mood = 0; _obReact = 'ok';
+  } else {
+    _obStreak = 0; grade = 'slop'; base = 0.5;
+    _obSetMsg('...SLOP!', '#ff5fa8');
+    _obPatron.mood = -1; _obReact = '✗';
+  }
+  const tip = Math.max(1, Math.round(base * (0.5 + 0.5 * _obPatience) * (grade === 'perfect' ? 1 + 0.1 * Math.min(5, _obStreak - 1) : 1)));
+  _obTips += tip;
+  _obReactT = 1.7;
+  _obSetMsg(_obMsg + `  +$${tip}`, _obMsgCol);
+  for (let i = 0; i < Math.min(tip, 9); i++) {
+    _obCoins.push({ x: 0, y: 0, late: true, vx: (Math.random() - 0.3) * 160, vy: -150 - Math.random() * 130, life: 1, max: 0.9 });
+  }
+  _obSnd(grade === 'perfect' ? 1.7 : grade === 'good' ? 1.2 : 0.8, 0.6);
+  _obPhase = 'out'; _obPhaseT = 0;
+}
+
+function _obDump() {
+  if (_obPhase !== 'open' || (!_obVis.length && !_obIceCubes.length && _obGarnishSel < 0)) return;
+  for (let d = 0; d < 12; d++) {
+    const v = _obVis.length ? _obVis[Math.floor(Math.random() * _obVis.length)] : { col: '#8ee6ff' };
+    _obDrops.push({ x: 0, y: 0, late: true, vx: (Math.random() - 0.5) * 170, vy: -60 - Math.random() * 90,
+                    life: 1, max: 0.6, col: v.col, r: 2 + Math.random() * 2.5 });
+  }
+  _obResetGlass();
+  _obStreak = 0;
+  _obSetMsg('DUMPED', '#9a8a94');
+  _obSnd(0.8, 0.4);
+}
+
+function _obStripY() { return window.innerHeight - _OB_H; }
+function _obMouseMove(e) { _obMX = e.clientX; _obMY = e.clientY; }
+function _obGameDown(e) {
+  const x = e.clientX, y = e.clientY - _obStripY();
+  const hit = _obHitTest(x, y, window.innerWidth);
+  _obDown = true;
+  if (_obPhase !== 'open') return;
+  if (_obShakeMode) { if (hit && hit.kind === 'shaker') { _obShakeMode = false; _obSetMsg('SHAKE CANCELLED', '#9a8a94'); } return; }
+  if (_obStirMode)  { if (hit && hit.kind === 'spoon')  { _obStirMode = false;  _obSetMsg('STIR CANCELLED', '#9a8a94'); } return; }
+  if (!hit) return;
+  if (hit.kind === 'bottle') _obPourIdx = hit.i;
+  else if (hit.kind === 'serve') _obServe();
+  else if (hit.kind === 'dump') _obDump();
+  else if (hit.kind === 'ice') {
+    if (_obIceCubes.length < 4) {
+      _obIceCubes.push({ ox: (Math.random() - 0.5) * 0.55, ph: Math.random() * 6.28 });
+      _obDrops.push({ x: 0, y: -50, late: true, vx: (Math.random() - 0.5) * 70, vy: -40, life: 1, max: 0.4, col: '#cfeeff', r: 2 });
+      _obSnd(1.4, 0.35);
+    }
+  } else if (hit.kind === 'shaker') {
+    if (_obFill() < 0.3) _obSetMsg('NOTHING TO SHAKE', '#9a8a94');
+    else { _obShakeMode = true; _obShakeMeter = 0; _obPrevMXf = _obMX; _obSetMsg('SHAKE IT! WIGGLE THE MOUSE!', '#a5e6ff'); }
+  } else if (hit.kind === 'spoon') {
+    if (_obFill() < 0.3) _obSetMsg('NOTHING TO STIR', '#9a8a94');
+    else { _obStirMode = true; _obStirMeter = 0; _obStirPrevA = null; _obSetMsg('STIR! CIRCLE THE GLASS!', '#a5e6ff'); }
+  } else if (hit.kind === 'gar') {
+    _obGarnishSel = hit.i;
+    _obSnd(1.5, 0.3);
+  }
+}
+function _obGameUp() { _obDown = false; _obPourIdx = -1; }
+
+// draw one standing bottle (origin = bottom center) — silhouette varies
+// by index: 0 round-shoulder, 1 square gin, 2 bulb flask.
+function _obDrawBottle(ctx, b, hover) {
+  const c = _OB_BOTTLES[b];
+  const shape = b % 3;
+  const hexr = parseInt(c.col.slice(1, 3), 16), hexg = parseInt(c.col.slice(3, 5), 16), hexb = parseInt(c.col.slice(5, 7), 16);
+  ctx.save();
+  if (hover) ctx.translate(0, -7);
+
+  const body = () => {
+    ctx.beginPath();
+    if (shape === 0) {            // round shoulder
+      ctx.moveTo(-13, 0);
+      ctx.lineTo(-13, -52);
+      ctx.quadraticCurveTo(-13, -64, -4.5, -66);
+      ctx.lineTo(-4.5, -84);
+      ctx.lineTo(4.5, -84);
+      ctx.lineTo(4.5, -66);
+      ctx.quadraticCurveTo(13, -64, 13, -52);
+      ctx.lineTo(13, 0);
+    } else if (shape === 1) {     // square gin
+      ctx.moveTo(-14, 0);
+      ctx.lineTo(-14, -60);
+      ctx.lineTo(-5, -68);
+      ctx.lineTo(-3.8, -88);
+      ctx.lineTo(3.8, -88);
+      ctx.lineTo(5, -68);
+      ctx.lineTo(14, -60);
+      ctx.lineTo(14, 0);
+    } else {                      // bulb flask
+      ctx.moveTo(-14, 0);
+      ctx.quadraticCurveTo(-17, -34, -5, -48);
+      ctx.lineTo(-4, -86);
+      ctx.lineTo(4, -86);
+      ctx.lineTo(5, -48);
+      ctx.quadraticCurveTo(17, -34, 14, 0);
+    }
+    ctx.closePath();
+  };
+
+  // dark glass body
+  body();
+  ctx.fillStyle = 'rgba(14,7,12,0.94)';
+  ctx.fill();
+  // liquid inside (clip the body, fill the lower portion)
+  ctx.save();
+  body(); ctx.clip();
+  ctx.fillStyle = `rgba(${hexr},${hexg},${hexb},0.82)`;
+  ctx.fillRect(-17, -46, 34, 46);
+  ctx.fillStyle = `rgba(255,255,255,0.16)`;
+  ctx.fillRect(-17, -46, 34, 2);
+  // glass shine
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(-10, -82, 3.4, 80);
+  ctx.restore();
+  // outline glint
+  body();
+  ctx.strokeStyle = hover ? c.lit : 'rgba(255,210,230,0.22)';
+  ctx.lineWidth = hover ? 1.5 : 1;
+  ctx.stroke();
+  // foil cap
+  ctx.fillStyle = hover ? c.lit : '#8a6a3a';
+  ctx.fillRect(-4.6, shape === 1 ? -94 : -92, 9.2, 7);
+  // label
+  ctx.fillStyle = 'rgba(240,228,235,0.92)';
+  ctx.fillRect(-12, -36, 24, 14);
+  ctx.fillStyle = `rgb(${Math.round(hexr * 0.55)},${Math.round(hexg * 0.55)},${Math.round(hexb * 0.55)})`;
+  ctx.fillRect(-12, -36, 24, 2.6);
+  ctx.fillStyle = '#2a0a18';
+  ctx.font = 'bold 5px monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(c.name, 0, -28);
+  ctx.textAlign = 'start';
+  ctx.restore();
+}
+
+// little garnish icons (origin = center)
+function _obDrawGarnishIcon(ctx, gi, s, t) {
+  const PI2 = Math.PI * 2;
+  ctx.save();
+  ctx.scale(s, s);
+  if (gi === 0) {                 // cherry + stem
+    ctx.fillStyle = '#c92d40';
+    ctx.beginPath(); ctx.arc(0, 3, 6, 0, PI2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath(); ctx.arc(-2, 1, 1.8, 0, PI2); ctx.fill();
+    ctx.strokeStyle = '#5cc457'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(0, -3); ctx.quadraticCurveTo(4, -9, 7, -10); ctx.stroke();
+  } else if (gi === 1) {          // gold star
+    ctx.shadowColor = '#ffd24d'; ctx.shadowBlur = 6;
+    ctx.fillStyle = '#ffd24d';
+    _omStarPath(ctx, 0, 0, 8, 3.4, 5, (t || 0) * 0.5);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  } else if (gi === 2) {          // lemon wheel
+    ctx.fillStyle = '#ffe27a';
+    ctx.beginPath(); ctx.arc(0, 0, 7.5, 0, PI2); ctx.fill();
+    ctx.fillStyle = '#fff7d0';
+    ctx.beginPath(); ctx.arc(0, 0, 5.6, 0, PI2); ctx.fill();
+    ctx.strokeStyle = '#e8b93c'; ctx.lineWidth = 0.9;
+    for (let k = 0; k < 6; k++) {
+      const a = k * (PI2 / 6);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 5.4, Math.sin(a) * 5.4); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(0, 0, 7.5, 0, PI2); ctx.stroke();
+  } else {                        // olive on a pick
+    ctx.strokeStyle = '#e8d8c0'; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(-6, 8); ctx.lineTo(6, -8); ctx.stroke();
+    ctx.fillStyle = '#5cc457';
+    ctx.beginPath(); ctx.ellipse(0, 0, 6, 4.6, -0.7, 0, PI2); ctx.fill();
+    ctx.fillStyle = '#c92d40';
+    ctx.beginPath(); ctx.arc(2.4, -2.4, 1.7, 0, PI2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// the patron: a pure shadow silhouette on a stool, only its eyes glow.
+// mood -1/0/1 changes the eye glow.
+function _obDrawPatron(ctx, x, counterY, seed, mood, t) {
+  const PI2 = Math.PI * 2;
+  const h2 = _obHash(seed + 7);
+  const bob = Math.sin(t * 1.3 + seed) * 1.6;
+  const headY = counterY - 86 + bob;
+  const SHADOW = '#070309';
+  ctx.save();
+  // stool
+  ctx.fillStyle = '#1c0c14';
+  ctx.beginPath(); ctx.ellipse(x, counterY + 26, 24, 6, 0, 0, PI2); ctx.fill();
+  // one solid shadow: torso + arm + head + hat
+  ctx.fillStyle = SHADOW;
+  ctx.beginPath();
+  ctx.moveTo(x - 26, counterY + 28);
+  ctx.quadraticCurveTo(x - 30, counterY - 38 + bob, x - 14, counterY - 54 + bob);
+  ctx.lineTo(x + 16, counterY - 54 + bob);
+  ctx.quadraticCurveTo(x + 30, counterY - 36 + bob, x + 26, counterY + 28);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = SHADOW; ctx.lineWidth = 9; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - 16, counterY - 40 + bob);
+  ctx.quadraticCurveTo(x - 34, counterY - 22, x - 44, counterY - 4);
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, headY, 16, 0, PI2); ctx.fill();
+  const hat = Math.floor(h2 * 4);
+  if (hat === 0) {                // top hat
+    ctx.fillRect(x - 18, headY - 16, 36, 4);
+    ctx.fillRect(x - 11, headY - 38, 22, 23);
+  } else if (hat === 1) {         // bowler
+    ctx.fillRect(x - 18, headY - 14, 36, 3.4);
+    ctx.beginPath(); ctx.arc(x, headY - 13, 12, Math.PI, PI2); ctx.fill();
+  } else if (hat === 2) {         // flat cap
+    ctx.beginPath(); ctx.arc(x, headY - 10, 14, Math.PI, PI2); ctx.fill();
+    ctx.fillRect(x - 16, headY - 12, 20, 3);
+  } else {                        // swept hair + bun
+    ctx.beginPath(); ctx.arc(x, headY - 8, 14.5, Math.PI * 0.9, PI2 + 0.1); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + 14, headY - 12, 6, 0, PI2); ctx.fill();
+  }
+  // a whisper of magenta rim light from the bar
+  ctx.strokeStyle = 'rgba(255,95,168,0.14)'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(x, headY, 16, Math.PI * 0.6, Math.PI * 1.3); ctx.stroke();
+  // glowing eyes (the only feature in the dark)
+  ctx.save();
+  ctx.shadowBlur = 7;
+  if (mood === 1) {               // happy ^ ^ glow
+    ctx.shadowColor = '#ffd24d';
+    ctx.strokeStyle = '#ffe9a8'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(x - 10, headY - 1); ctx.lineTo(x - 7, headY - 4); ctx.lineTo(x - 4, headY - 1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + 1, headY - 1); ctx.lineTo(x + 4, headY - 4); ctx.lineTo(x + 7, headY - 1); ctx.stroke();
+  } else if (mood === -1) {       // angry slanted glow
+    ctx.shadowColor = '#ff4444';
+    ctx.strokeStyle = '#ff8a8a'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(x - 10, headY - 5); ctx.lineTo(x - 4, headY - 1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + 7, headY - 5); ctx.lineTo(x + 1, headY - 1); ctx.stroke();
+  } else {                        // calm pale dots
+    ctx.shadowColor = '#ffb6d9';
+    ctx.fillStyle = '#ffd9ec';
+    ctx.beginPath(); ctx.arc(x - 7, headY - 2, 1.9, 0, PI2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + 4, headY - 2, 1.9, 0, PI2); ctx.fill();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+// the glass interior path (for clipping liquid). Origin = page coords.
+function _obGlassClipPath(ctx, L, G) {
+  const gTop = L.gBot - G.h;
+  ctx.beginPath();
+  if (G.kind === 2) {       // martini cone
+    ctx.moveTo(L.gx - G.w / 2 + 5, gTop + 3);
+    ctx.lineTo(L.gx + G.w / 2 - 5, gTop + 3);
+    ctx.lineTo(L.gx, L.gBot - G.lb + 2);
+    ctx.closePath();
+  } else {
+    const iw = G.w - 10;
+    ctx.moveTo(L.gx - iw / 2, gTop + 4);
+    ctx.lineTo(L.gx - iw / 2 + 2, L.gBot - G.lb + 4);
+    ctx.lineTo(L.gx + iw / 2 - 2, L.gBot - G.lb + 4);
+    ctx.lineTo(L.gx + iw / 2, gTop + 4);
+    ctx.closePath();
+  }
+}
+
+// draw the serving glass: shape, liquid layers/blend, foam, ice, bubbles,
+// tick marks, garnish.
+function _obDrawGlass(ctx, L, t) {
+  const PI2 = Math.PI * 2;
+  const G = _obGlassGeom(_obOrder ? _obOrder.glass : 0);
+  const gTop = L.gBot - G.h;
+  const unit = _obOrder ? G.inner / _obOrder.total : 10;
+  const liqBot = L.gBot - G.lb;
+
+  // counter shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath(); ctx.ellipse(L.gx, L.gBot + 3, G.w * 0.55, 5, 0, 0, PI2); ctx.fill();
+
+  // liquid (clipped to interior; hidden while shaking)
+  const fill = _obFill();
+  if (_obOrder && fill > 0 && !_obShakeMode) {
+    ctx.save();
+    _obGlassClipPath(ctx, L, G); ctx.clip();
+    let yCur = liqBot;
+    for (const seg of _obVis) {
+      const hh = seg.amt * unit;
+      const hr = parseInt(seg.col.slice(1, 3), 16), hg = parseInt(seg.col.slice(3, 5), 16), hb = parseInt(seg.col.slice(5, 7), 16);
+      ctx.fillStyle = `rgba(${hr},${hg},${hb},0.88)`;
+      ctx.fillRect(L.gx - G.w, yCur - hh, G.w * 2, hh);
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.fillRect(L.gx - G.w, yCur - 3, G.w * 2, 3);
+      yCur -= hh;
+    }
+    // surface meniscus / foam
+    if (_obFoam) {
+      ctx.fillStyle = 'rgba(255,246,225,0.92)';
+      ctx.fillRect(L.gx - G.w, yCur - 5, G.w * 2, 5);
+      for (let f = 0; f < 5; f++) {
+        ctx.beginPath();
+        ctx.arc(L.gx - G.w * 0.3 + f * G.w * 0.15, yCur - 5, 2.2 + (f % 2), 0, PI2);
+        ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(L.gx - G.w, yCur - 1.4, G.w * 2, 2);
+    }
+    // bubbles rising in the liquid
+    for (let b = 0; b < 4; b++) {
+      const ph = ((t * (0.25 + b * 0.08) + b * 0.37) % 1);
+      const by = liqBot - ph * (liqBot - yCur - 4);
+      const bx = L.gx + Math.sin(b * 2.7 + t) * G.w * 0.18;
+      ctx.strokeStyle = `rgba(255,255,255,${(0.25 * (1 - ph)).toFixed(3)})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.arc(bx, by, 1.2 + (b % 2) * 0.6, 0, PI2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ice cubes — float at the surface, or sit at the bottom of an empty glass
+  if (_obIceCubes.length && !_obShakeMode) {
+    ctx.save();
+    _obGlassClipPath(ctx, L, G); ctx.clip();
+    const surfaceY = liqBot - fill * (_obOrder ? unit : 10);
+    for (const ic of _obIceCubes) {
+      const ix = L.gx + ic.ox * G.w * 0.6;
+      const iy = Math.min(liqBot - 7, surfaceY + 5) + Math.sin(t * 1.8 + ic.ph) * 1.5;
+      ctx.save();
+      ctx.translate(ix, iy); ctx.rotate(Math.sin(t * 0.9 + ic.ph) * 0.2);
+      ctx.fillStyle = 'rgba(225,244,255,0.6)';
+      ctx.beginPath(); _bjRRect(ctx, -6, -6, 12, 12, 3); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 1;
+      ctx.beginPath(); _bjRRect(ctx, -6, -6, 12, 12, 3); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(-3.5, -3.5, 3.4, 3.4);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // tick marks + the gold full-line
+  if (_obOrder && !_obShakeMode) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.32)'; ctx.lineWidth = 1;
+    for (let p = 1; p < _obOrder.total; p++) {
+      const ty = liqBot - p * unit;
+      let xr;
+      if (G.kind === 2) { const fr = (liqBot - ty) / G.inner; xr = L.gx + fr * (G.w / 2 - 7); }
+      else xr = L.gx + G.w / 2 - 7;
+      ctx.beginPath(); ctx.moveTo(xr - 6, ty); ctx.lineTo(xr, ty); ctx.stroke();
+    }
+    const fullY = liqBot - G.inner;
+    ctx.strokeStyle = 'rgba(255,210,77,0.85)'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(L.gx - G.w / 2 - 4, fullY); ctx.lineTo(L.gx + G.w / 2 + 4, fullY); ctx.stroke();
+  }
+
+  // glass body outline by shape
+  ctx.strokeStyle = 'rgba(225,238,255,0.8)'; ctx.lineWidth = 2;
+  if (G.kind === 2) {
+    ctx.beginPath();
+    ctx.moveTo(L.gx - G.w / 2, gTop);
+    ctx.lineTo(L.gx, liqBot + 4);
+    ctx.lineTo(L.gx + G.w / 2, gTop);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(L.gx, liqBot + 4); ctx.lineTo(L.gx, L.gBot - 6); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(L.gx, L.gBot - 3, 19, 3.4, 0, 0, PI2); ctx.stroke();
+  } else {
+    const iw = G.w - 10;
+    ctx.beginPath();
+    ctx.moveTo(L.gx - G.w / 2, gTop);
+    ctx.lineTo(L.gx - iw / 2, L.gBot - 2);
+    ctx.lineTo(L.gx + iw / 2, L.gBot - 2);
+    ctx.lineTo(L.gx + G.w / 2, gTop);
+    ctx.stroke();
+    // side shine
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath();
+    ctx.moveTo(L.gx - G.w / 2 + 3, gTop + 2);
+    ctx.lineTo(L.gx - iw / 2 + 3, L.gBot - 4);
+    ctx.lineTo(L.gx - iw / 2 + 10, L.gBot - 4);
+    ctx.lineTo(L.gx - G.w / 2 + 11, gTop + 2);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // garnish perched on the rim, just right of centre
+  if (_obGarnishSel >= 0) {
+    ctx.save();
+    ctx.translate(L.gx + G.w * 0.24, gTop - 5);
+    ctx.rotate(0.12);
+    _obDrawGarnishIcon(ctx, _obGarnishSel, 1.1, t);
+    ctx.restore();
+  }
+  return { G, gTop, liqBot, unit };
+}
+
+function _drawOmenBarGame(ctx, W, t) {
+  const fresh = _obPrevT === 0;
+  let dt = fresh ? 0.016 : Math.min(t - _obPrevT, 0.05);
+  if (!(dt > 0)) dt = 0.016;
+  _obPrevT = t;
+  const PI2 = Math.PI * 2;
+  const L = _obLayout(W);
+  ctx.clearRect(0, 0, W, _OB_H);
+
+  // ── patron lifecycle ──
+  _obPhaseT += dt;
+  let patronX = L.px;
+  if (_obPhase === 'in') {
+    const k = Math.min(1, _obPhaseT / 0.8), e = 1 - (1 - k) * (1 - k);
+    patronX = (W + 90) + ((L.px) - (W + 90)) * e;
+    if (k >= 1) { _obPhase = 'open'; _obPhaseT = 0; }
+  } else if (_obPhase === 'open') {
+    _obPatience = Math.max(0, _obPatience - dt / 75);        // ~75s of patience
+    if (_obPatience <= 0) {
+      _obPatron.mood = -1; _obReact = '✗'; _obReactT = 1.7;
+      _obStreak = 0;
+      _obSetMsg('THEY WALKED OUT...', '#ff5fa8');
+      _obPhase = 'out'; _obPhaseT = 0;
+    }
+  } else if (_obPhase === 'out') {
+    const k = Math.min(1, _obPhaseT / 0.9), e = k * k;
+    patronX = L.px + ((W + 90) - L.px) * e;
+    if (k >= 1) { _obNewOrder(); _obPhase = 'in'; _obPhaseT = 0; }
+  }
+
+  // patron sits BEHIND the counter edge
+  _obDrawPatron(ctx, patronX, L.counterY, _obPatron.seed, _obPatron.mood, t);
+  // reaction emote floating up
+  if (_obReactT > 0) {
+    _obReactT -= dt;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, _obReactT);
+    ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = _obReact === '♥' ? '#ff5fa8' : _obReact === '✗' ? '#ff4444' : '#a5e6ff';
+    ctx.fillText(_obReact, patronX, L.counterY - 112 - (1.7 - _obReactT) * 16);
+    ctx.restore(); ctx.textAlign = 'start';
+  }
+
+  // ── the bar counter (wood grain + brass rail) ──
+  const wood = ctx.createLinearGradient(0, L.counterY, 0, _OB_H);
+  wood.addColorStop(0, '#56182c');
+  wood.addColorStop(0.1, '#3a1220');
+  wood.addColorStop(1, '#1a0710');
+  ctx.fillStyle = wood;
+  ctx.fillRect(0, L.counterY, W, _OB_H - L.counterY);
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
+  for (let g = 0; g < 4; g++) {
+    const gy = L.counterY + 12 + g * 11;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 60) {
+      const yy = gy + Math.sin(x * 0.013 + g * 4) * 2.2;
+      x === 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(255,140,190,0.22)';
+  ctx.fillRect(0, L.counterY, W, 2.5);
+  ctx.fillStyle = 'rgba(217,169,63,0.4)';
+  ctx.fillRect(0, _OB_H - 8, W, 3);
+
+  // ── pour logic ──
+  if (_obPourIdx >= 0 && _obDown && _obOrder && _obPhase === 'open' && !_obShakeMode && !_obStirMode) {
+    const rate = 1.9 * dt;
+    _obPourMap[_obPourIdx] = (_obPourMap[_obPourIdx] || 0) + rate;
+    const col = _OB_BOTTLES[_obPourIdx].col;
+    const last = _obVis[_obVis.length - 1];
+    if (last && last.col === col && !_obFoam) last.amt += rate;
+    else _obVis.push({ col, amt: rate });
+    if (_obFill() > _obOrder.total + 0.4 && Math.random() < 0.5) {
+      _obDrops.push({ x: (Math.random() < 0.5 ? -38 : 38), y: -90, late: true,
+                      vx: (Math.random() - 0.5) * 60, vy: 20, life: 1, max: 0.5, col, r: 2 });
+    }
+  }
+
+  // ── shake / stir minigame updates ──
+  if (_obShakeMode) {
+    const dx = Math.abs(_obMX - _obPrevMXf);
+    _obPrevMXf = _obMX;
+    _obShakeVel = _obShakeVel * 0.8 + dx * 0.2;
+    _obShakeMeter = Math.min(1, _obShakeMeter + Math.min(dx, 42) / 2400);
+    if (_obShakeMeter >= 1) { _obShakeMode = false; _obBlendNow('shaken'); _obSetMsg('SHAKEN!', '#a5e6ff'); _obSnd(1.5, 0.45); }
+  }
+  if (_obStirMode) {
+    const cy0 = _obStripY() + L.gBot - 60;
+    const ang = Math.atan2(_obMY - cy0, _obMX - L.gx);
+    if (_obStirPrevA !== null) {
+      let da = ang - _obStirPrevA;
+      while (da > Math.PI) da -= PI2; while (da < -Math.PI) da += PI2;
+      _obStirMeter = Math.min(1, _obStirMeter + Math.abs(da) / (PI2 * 3.5));
+      _obStirAng = ang;
+    }
+    _obStirPrevA = ang;
+    if (_obStirMeter >= 1) { _obStirMode = false; _obBlendNow('stirred'); _obSetMsg('STIRRED!', '#a5e6ff'); _obSnd(1.3, 0.4); }
+  }
+
+  // ── bottles row ──
+  for (let i = 0; i < _OB_BOTTLES.length; i++) {
+    const bx = L.bx0 + i * L.bstep;
+    if (i === _obPourIdx && _obDown) continue;
+    ctx.save();
+    ctx.translate(bx, L.bY);
+    _obDrawBottle(ctx, i, !!(_obHover && _obHover.kind === 'bottle' && _obHover.i === i && _obPhase === 'open'));
+    ctx.restore();
+  }
+
+  // ── the glass ──
+  const GG = _obDrawGlass(ctx, L, t);
+
+  // ── shaker tool / shake mode ──
+  {
+    const hov = _obHover && _obHover.kind === 'shaker' && _obPhase === 'open';
+    let sx = L.shakerX, sy = L.toolY, rot = 0, scale = 1;
+    if (_obShakeMode) {
+      sx = L.gx; sy = L.toolY - 56;
+      rot = Math.sin(t * 30) * Math.min(0.45, _obShakeVel * 0.02);
+      scale = 1.25;
+    }
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(rot); ctx.scale(scale, scale);
+    // metal body
+    const met = ctx.createLinearGradient(-14, 0, 14, 0);
+    met.addColorStop(0, '#7a7a88'); met.addColorStop(0.5, '#d8d8e4'); met.addColorStop(1, '#6a6a78');
+    ctx.fillStyle = met;
+    ctx.beginPath();
+    ctx.moveTo(-13, 0); ctx.lineTo(-10, -34); ctx.lineTo(10, -34); ctx.lineTo(13, 0);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#b8b8c8';
+    ctx.beginPath();
+    ctx.moveTo(-10, -34); ctx.lineTo(-8, -46); ctx.lineTo(8, -46); ctx.lineTo(10, -34);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#88889a';
+    ctx.beginPath(); _bjRRect(ctx, -5, -52, 10, 7, 2); ctx.fill();
+    if (hov && !_obShakeMode) { ctx.strokeStyle = '#a5e6ff'; ctx.lineWidth = 1.4; ctx.strokeRect(-15, -54, 30, 55); }
+    ctx.restore();
+    // shake meter
+    if (_obShakeMode) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.beginPath(); _bjRRect(ctx, L.gx - 40, L.toolY - 140, 80, 9, 4); ctx.fill();
+      ctx.fillStyle = '#a5e6ff';
+      ctx.beginPath(); _bjRRect(ctx, L.gx - 38, L.toolY - 138, 76 * _obShakeMeter, 5, 2); ctx.fill();
+      // motion lines
+      for (let m = 0; m < 3; m++) {
+        ctx.strokeStyle = `rgba(220,240,255,${(0.3 - m * 0.08).toFixed(2)})`;
+        ctx.lineWidth = 1.4;
+        const off = 22 + m * 7 + Math.sin(t * 30) * 3;
+        ctx.beginPath(); ctx.moveTo(L.gx - off, L.toolY - 100); ctx.lineTo(L.gx - off - 8, L.toolY - 86); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(L.gx + off, L.toolY - 100); ctx.lineTo(L.gx + off + 8, L.toolY - 86); ctx.stroke();
+      }
+    }
+  }
+
+  // ── bar spoon tool / stir mode ──
+  {
+    const hov = _obHover && _obHover.kind === 'spoon' && _obPhase === 'open';
+    if (_obStirMode) {
+      // spoon circling in the glass
+      const sx = L.gx + Math.cos(_obStirAng) * 14, sy = GG.gTop + 14;
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(Math.cos(_obStirAng) * 0.25);
+      ctx.strokeStyle = '#d8d8e4'; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.moveTo(0, 24); ctx.lineTo(8, -42); ctx.stroke();
+      ctx.fillStyle = '#c8c8d8';
+      ctx.beginPath(); ctx.ellipse(0, 26, 4.5, 7, 0.15, 0, PI2); ctx.fill();
+      ctx.restore();
+      // stir meter ring
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(L.gx, GG.gTop - 28, 16, 0, PI2); ctx.stroke();
+      ctx.strokeStyle = '#a5e6ff'; ctx.lineWidth = 3.4;
+      ctx.beginPath(); ctx.arc(L.gx, GG.gTop - 28, 16, -Math.PI / 2, -Math.PI / 2 + PI2 * _obStirMeter); ctx.stroke();
+    } else {
+      ctx.save();
+      ctx.translate(L.spoonX, L.toolY);
+      ctx.strokeStyle = hov ? '#e8f4ff' : '#b8b8c8'; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(5, -52); ctx.stroke();
+      ctx.fillStyle = hov ? '#e8f4ff' : '#b8b8c8';
+      ctx.beginPath(); ctx.ellipse(-3.6, -3, 4, 6.4, 0.2, 0, PI2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ── ice bucket ──
+  {
+    const hov = _obHover && _obHover.kind === 'ice' && _obPhase === 'open';
+    ctx.save();
+    ctx.translate(L.iceX, L.toolY);
+    const met = ctx.createLinearGradient(-22, 0, 22, 0);
+    met.addColorStop(0, '#5a5a68'); met.addColorStop(0.5, '#a8a8ba'); met.addColorStop(1, '#54545f');
+    ctx.fillStyle = met;
+    ctx.beginPath();
+    ctx.moveTo(-22, -34); ctx.lineTo(-16, 0); ctx.lineTo(16, 0); ctx.lineTo(22, -34);
+    ctx.closePath(); ctx.fill();
+    // ice mound
+    for (let k = 0; k < 5; k++) {
+      const ix = -13 + k * 6.6, iy = -34 - (k % 2) * 5;
+      ctx.fillStyle = 'rgba(225,244,255,0.85)';
+      ctx.beginPath(); _bjRRect(ctx, ix - 4.4, iy - 4.4, 9, 9, 2.5); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 0.8;
+      ctx.beginPath(); _bjRRect(ctx, ix - 4.4, iy - 4.4, 9, 9, 2.5); ctx.stroke();
+    }
+    ctx.fillStyle = hov ? '#e8f6ff' : 'rgba(220,236,255,0.7)';
+    ctx.font = 'bold 6px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('ICE', 0, -12);
+    if (hov) { ctx.strokeStyle = '#a5e6ff'; ctx.lineWidth = 1.4; ctx.strokeRect(-25, -46, 50, 47); }
+    ctx.textAlign = 'start';
+    ctx.restore();
+  }
+
+  // ── garnish tray ──
+  for (let g = 0; g < _OB_GARNISH.length; g++) {
+    const gpx = L.garX0 + g * L.garStep;
+    const hov = _obHover && _obHover.kind === 'gar' && _obHover.i === g && _obPhase === 'open';
+    ctx.fillStyle = 'rgba(40,16,28,0.85)';
+    ctx.beginPath(); ctx.ellipse(gpx, L.toolY - 6, 16, 7, 0, 0, PI2); ctx.fill();
+    ctx.save();
+    ctx.translate(gpx, L.toolY - 16);
+    if (hov) ctx.translate(0, -4);
+    _obDrawGarnishIcon(ctx, g, 1, t);
+    ctx.restore();
+    if (_obGarnishSel === g) {
+      ctx.strokeStyle = '#ffd24d'; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.arc(gpx, L.toolY - 16, 14, 0, PI2); ctx.stroke();
+    }
+  }
+
+  // ── pouring bottle + stream ──
+  if (_obPourIdx >= 0 && _obDown && _obPhase === 'open' && !_obShakeMode && !_obStirMode) {
+    const c = _OB_BOTTLES[_obPourIdx];
+    // place the bottle so its MOUTH lands just above the glass centre:
+    // local mouth is at (0,-90); after rotate(rot) it sits at
+    // (px + 90·sin(rot), py − 90·cos(rot)).
+    const rot = 2.35 + Math.sin(t * 7) * 0.02;
+    const mouthX = L.gx - 2, mouthY = GG.gTop - 26;
+    const px = mouthX - 90 * Math.sin(rot);
+    const py = mouthY + 90 * Math.cos(rot);
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(rot);
+    _obDrawBottle(ctx, _obPourIdx, false);
+    ctx.restore();
+    // stream falls from the mouth straight down into the glass
+    const fillY = _obOrder ? Math.max(GG.gTop + 8, GG.liqBot - Math.min(_obFill(), _obOrder.total) * GG.unit) : L.gBot - 12;
+    ctx.strokeStyle = c.col; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(mouthX, mouthY);
+    ctx.quadraticCurveTo(mouthX + 1 + Math.sin(t * 18) * 1.2, (mouthY + fillY) / 2, L.gx + Math.sin(t * 22) * 1.2, fillY);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(mouthX, mouthY);
+    ctx.quadraticCurveTo(mouthX + 1, (mouthY + fillY) / 2, L.gx, fillY);
+    ctx.stroke();
+    for (let s = 0; s < 2; s++) {
+      ctx.fillStyle = c.col;
+      ctx.beginPath();
+      ctx.arc(L.gx + (Math.random() - 0.5) * 14, fillY - Math.random() * 4, 1.4, 0, PI2);
+      ctx.fill();
+    }
+  }
+
+  // ── the patron's speech-bubble order ──
+  if (_obOrder && _obPhase === 'open') {
+    const a = Math.min(1, _obPhaseT / 0.3);
+    const lines = _obOrder.parts.length;
+    const BW = 272;
+    const bh = 66 + lines * 19 + 24;
+    const bx = patronX - (BW + 64), by = 14;
+    ctx.save();
+    ctx.globalAlpha = a;
+    // patience bar above the bubble
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath(); _bjRRect(ctx, bx, by - 10, BW, 7, 3.5); ctx.fill();
+    ctx.fillStyle = _obPatience > 0.5 ? '#5cc457' : _obPatience > 0.25 ? '#ffd24d' : '#ff4444';
+    ctx.beginPath(); _bjRRect(ctx, bx + 1.5, by - 8.5, (BW - 3) * _obPatience, 4, 2); ctx.fill();
+    // bubble
+    ctx.fillStyle = '#f2ead9';
+    ctx.beginPath(); _bjRRect(ctx, bx, by, BW, bh, 9); ctx.fill();
+    // tail toward the patron
+    ctx.beginPath();
+    ctx.moveTo(bx + BW - 2, by + 32);
+    ctx.lineTo(bx + BW + 20, by + 48);
+    ctx.lineTo(bx + BW - 2, by + 52);
+    ctx.closePath(); ctx.fill();
+    // header
+    ctx.fillStyle = '#8a2050';
+    ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('"ONE ' + _obOrder.name + '"', bx + BW / 2, by + 20);
+    ctx.strokeStyle = '#cbbfa8';
+    ctx.beginPath(); ctx.moveTo(bx + 12, by + 30); ctx.lineTo(bx + BW - 12, by + 30); ctx.stroke();
+    // recipe rows with live pour status
+    ctx.textAlign = 'left'; ctx.font = 'bold 10px monospace';
+    let ly = by + 48;
+    for (const p of _obOrder.parts) {
+      const c = _OB_BOTTLES[p.i];
+      ctx.fillStyle = c.col;
+      ctx.fillRect(bx + 14, ly - 9, 11, 11);
+      ctx.strokeStyle = 'rgba(60,40,48,0.45)'; ctx.lineWidth = 1;
+      ctx.strokeRect(bx + 14, ly - 9, 11, 11);
+      ctx.fillStyle = '#3a2a30';
+      ctx.fillText(`${p.amt} PART${p.amt > 1 ? 'S' : ''} ${c.name}`, bx + 32, ly);
+      const got = _obPoured(p.i);
+      ctx.fillStyle = Math.abs(got - p.amt) <= 0.18 ? '#2e8a4a' : (got > p.amt ? '#b03030' : '#9a9088');
+      ctx.textAlign = 'right';
+      ctx.fillText(got <= 0.02 ? '—' : got.toFixed(1), bx + BW - 14, ly);
+      ctx.textAlign = 'left';
+      ly += 19;
+    }
+    // requirements row: glass, ice, mix, garnish
+    ctx.strokeStyle = '#cbbfa8';
+    ctx.beginPath(); ctx.moveTo(bx + 12, ly - 6); ctx.lineTo(bx + BW - 12, ly - 6); ctx.stroke();
+    const G2 = _obGlassGeom(_obOrder.glass);
+    const reqBits = [];
+    reqBits.push(G2.kind === 0 ? 'ROCKS GLASS' : G2.kind === 1 ? 'HIGHBALL' : 'MARTINI');
+    if (_obOrder.ice) reqBits.push('ON ICE');
+    if (_obOrder.mix) reqBits.push(_obOrder.mix.toUpperCase());
+    if (_obOrder.garnish >= 0) reqBits.push('+' + _OB_GARNISH[_obOrder.garnish].name);
+    ctx.fillStyle = '#5a4a50'; ctx.font = 'bold 9px monospace';
+    ctx.fillText(reqBits.join(' · '), bx + 14, ly + 10);
+    ctx.restore();
+    ctx.textAlign = 'start';
+  }
+
+  // ── SERVE + DUMP buttons ──
+  const hovS = _obHover && _obHover.kind === 'serve' && _obPhase === 'open';
+  const hovD = _obHover && _obHover.kind === 'dump' && _obPhase === 'open';
+  ctx.save();
+  if (_obPhase !== 'open') ctx.globalAlpha = 0.45;
+  ctx.fillStyle = hovS ? '#ffd24d' : '#d9a93f';
+  ctx.beginPath(); _bjRRect(ctx, L.sx, L.sy, L.sw, L.sh, 6); ctx.fill();
+  ctx.fillStyle = '#241408'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🔔 SERVE', L.sx + L.sw / 2, L.sy + L.sh / 2 + 1);
+  ctx.strokeStyle = hovD ? '#ff5fa8' : 'rgba(255,95,168,0.55)'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); _bjRRect(ctx, L.dx, L.dy, L.dw, L.dh, 6); ctx.stroke();
+  ctx.fillStyle = hovD ? '#ff5fa8' : 'rgba(255,95,168,0.75)'; ctx.font = 'bold 8px monospace';
+  ctx.fillText('DUMP', L.dx + L.dw / 2, L.dy + L.dh / 2 + 1);
+  ctx.restore();
+
+  // ── score board ──
+  ctx.textAlign = 'right'; ctx.font = 'bold 10px monospace'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#ffd24d';
+  ctx.fillText(`TIPS $${_obTips}`, W - 16, 22);
+  ctx.font = '8px monospace';
+  ctx.fillStyle = 'rgba(255,220,240,0.8)';
+  ctx.fillText(`SERVED ${_obServed} · PERFECT ${_obPerfect}`, W - 16, 36);
+  if (_obStreak > 1) { ctx.fillStyle = '#ff5fa8'; ctx.fillText(`STREAK ×${_obStreak}`, W - 16, 50); }
+  ctx.textAlign = 'start';
+
+  // ── droplets + coins ──
+  for (const d of _obDrops) {
+    d.life -= dt / d.max; if (d.life <= 0) continue;
+    if (d.late) { d.x = L.gx + d.x; d.y = L.gBot - 60 + d.y; d.late = false; }
+    d.vy += 500 * dt; d.x += d.vx * dt; d.y += d.vy * dt;
+    ctx.globalAlpha = Math.max(0, d.life);
+    ctx.fillStyle = d.col;
+    ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, PI2); ctx.fill();
+  }
+  _obDrops = _obDrops.filter(d => d.life > 0);
+  for (const cn of _obCoins) {
+    cn.life -= dt / cn.max; if (cn.life <= 0) continue;
+    if (cn.late) { cn.x = L.gx; cn.y = L.gBot - 80; cn.late = false; }
+    // drift up then home toward the tips counter
+    cn.vx += ((W - 60) - cn.x) * dt * 3.2;
+    cn.vy += ((24) - cn.y) * dt * 3.2;
+    cn.x += cn.vx * dt; cn.y += cn.vy * dt;
+    ctx.globalAlpha = Math.max(0, Math.min(1, cn.life * 1.4));
+    ctx.fillStyle = '#ffd24d';
+    ctx.beginPath(); ctx.arc(cn.x, cn.y, 5, 0, PI2); ctx.fill();
+    ctx.fillStyle = '#8a6010';
+    ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('$', cn.x, cn.y + 0.5);
+    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  }
+  ctx.globalAlpha = 1;
+  _obCoins = _obCoins.filter(c2 => c2.life > 0);
+
+  // ── floating message ──
+  if (_obMsgT > 0) {
+    _obMsgT -= dt;
+    const a = Math.min(1, _obMsgT / 0.5);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
+    ctx.shadowColor = _obMsgCol; ctx.shadowBlur = 12;
+    ctx.fillStyle = _obMsgCol;
+    ctx.fillText(_obMsg, L.gx + 60, 70 - (2.2 - _obMsgT) * 9);
+    ctx.restore();
+    ctx.textAlign = 'start';
+  }
+}
+
+/* ── star-tipped cocktail-pick cursor (full viewport) ──────────── */
+function _drawOmenBarCursor(ctx, W, H, t) {
+  ctx.clearRect(0, 0, W, H);
+  const PI2 = Math.PI * 2;
+  const x = _obMX, y = _obMY;
+  const hot = !!_obHover && _obPhase === 'open';
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(0.7 + Math.sin(t * 2.1) * 0.05 + (hot ? -0.25 : 0));
+  if (hot) ctx.scale(1.18, 1.18);
+  // pick shaft
+  ctx.strokeStyle = '#e8d8c0'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 30); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(1, 1); ctx.lineTo(1, 30); ctx.stroke();
+  // star tip
+  ctx.shadowColor = '#ff5fa8'; ctx.shadowBlur = 8;
+  ctx.fillStyle = '#ff5fa8';
+  _omStarPath(ctx, 0, -4, 7, 2.9, 5, t * 0.8);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ffd2e6';
+  _omStarPath(ctx, 0, -4, 3, 1.3, 5, t * 0.8);
+  ctx.fill();
+  // a skewered cherry
+  ctx.fillStyle = '#c92d40';
+  ctx.beginPath(); ctx.arc(0, 12, 4, 0, PI2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath(); ctx.arc(-1.3, 10.7, 1.2, 0, PI2); ctx.fill();
+  ctx.restore();
+}
+
+function _startOmenBarOverlay() {
+  _stopOmenBarOverlay();
+  _obPrevT = 0;
+  _obDrops = []; _obCoins = []; _obDown = false; _obPourIdx = -1; _obHover = null;
+  _obShakeMode = false; _obStirMode = false;
+  if (!_obOrder) { _obNewOrder(); _obPhase = 'in'; _obPhaseT = 0; }
+  window.addEventListener('mousemove', _obMouseMove);
+  window.addEventListener('mouseup', _obGameUp);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  // game strip (captures its own clicks)
+  const gcv = document.createElement('canvas');
+  gcv.id = 'omenbar-game';
+  gcv.style.cssText = `position:fixed;bottom:0;left:0;width:100vw;height:${_OB_H}px;z-index:9998;pointer-events:auto;`;
+  gcv.width = window.innerWidth; gcv.height = _OB_H;
+  gcv.addEventListener('mousedown', _obGameDown);
+  document.body.appendChild(gcv);
+  // cursor layer
+  const ccv = document.createElement('canvas');
+  ccv.id = 'omenbar-cursor';
+  ccv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  ccv.width = window.innerWidth; ccv.height = window.innerHeight;
+  document.body.appendChild(ccv);
+  const t0 = performance.now();
+  function frame(now) {
+    const g2 = document.getElementById('omenbar-game');
+    const c2 = document.getElementById('omenbar-cursor');
+    if (!g2 || !c2) return;
+    if (g2.width !== window.innerWidth) g2.width = window.innerWidth;
+    if (c2.width !== window.innerWidth || c2.height !== window.innerHeight) {
+      c2.width = window.innerWidth; c2.height = window.innerHeight;
+    }
+    const t = (now - t0) / 1000;
+    _obHover = _obHitTest(_obMX, _obMY - _obStripY(), window.innerWidth);
+    _drawOmenBarGame(g2.getContext('2d'), g2.width, t);
+    _drawOmenBarCursor(c2.getContext('2d'), c2.width, c2.height, t);
+    _obOverlayRafId = requestAnimationFrame(frame);
+  }
+  _obOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopOmenBarOverlay() {
+  if (_obOverlayRafId) { cancelAnimationFrame(_obOverlayRafId); _obOverlayRafId = null; }
+  window.removeEventListener('mousemove', _obMouseMove);
+  window.removeEventListener('mouseup', _obGameUp);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const gcv = document.getElementById('omenbar-game'); if (gcv) { gcv.removeEventListener('mousedown', _obGameDown); gcv.remove(); }
+  const ccv = document.getElementById('omenbar-cursor'); if (ccv) ccv.remove();
+  _obDrops = []; _obDown = false; _obPourIdx = -1;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // CAPPY — the screen is filled with white milk: gooey metaball blobs that
 // flow toward the cursor (viscous, sloshing). The cursor is a glowing blue
 // Star of David. Character-wide (matches "Cappy").
@@ -15859,6 +17042,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'riegen_phoenix') { _drawRiegenPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'lorraine_brass') { _drawLorrainePattern(canvas, ctx, W, H, t);            return; }
   if (type === 'simmer_tide')    { _drawSimmerPattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'omen_bar')       { _drawOmenBarPattern(canvas, ctx, W, H, t);             return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -16372,6 +17556,7 @@ function startBgAnim(type, params) {
   _drawLorraineOverlay._lt    = undefined;
   _drawSimmerPattern._lt      = undefined;
   _drawSimmerOverlay._lt      = undefined;
+  _drawOmenBarPattern._lt     = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -16426,6 +17611,7 @@ function stopBgAnim() {
   _stopRiegenOverlay();
   _stopLorraineOverlay();
   _stopSimmerOverlay();
+  _stopOmenBarOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -16937,6 +18123,7 @@ function viewChar(id) {
   else if (_isRiegen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8a2a'); }
   else if (_isLorraine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9a93f'); }
   else if (_isSimmer(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#59c9f2'); }
+  else if (_isOmenBartender(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8a13c'); }
   else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
@@ -17359,6 +18546,27 @@ function viewChar(id) {
     }
   }
 
+  // ── Omen · BARTENDER — speakeasy UI chrome (warm amber-on-bordeaux bar
+  // panels, a neon-sign name and a lamplit portrait). Form-specific. Placed
+  // last among the opacity-setting blocks. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isOmenBartender(c)) {
+      _cvRoot.classList.add('omenbar-ui');
+      if (_av) _av.classList.add('omenbar-pfp');
+      if (_nm) { _nm.classList.add('omenbar-name'); _nm.setAttribute('data-text', _nm.textContent || 'OMEN'); }
+      if (_pc) _pc.style.opacity = '0.95';
+    } else {
+      _cvRoot.classList.remove('omenbar-ui');
+      if (_av) _av.classList.remove('omenbar-pfp');
+      if (_nm) { _nm.classList.remove('omenbar-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name') && !_nm.classList.contains('mimzy-name') && !_nm.classList.contains('bizzy-name') && !_nm.classList.contains('omen-name') && !_nm.classList.contains('ex-name') && !_nm.classList.contains('riegen-name') && !_nm.classList.contains('lorraine-name') && !_nm.classList.contains('simmer-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c) && !_isMimzy(c) && !_isBizzy(c) && !_isOmen(c) && !_isEx(c) && !_isRiegen(c) && !_isLorraine(c) && !_isSimmer(c)) _pc.style.opacity = '';
+    }
+  }
+
   // ── Evelynn — elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -17456,7 +18664,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -17468,7 +18676,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -17530,6 +18738,7 @@ function viewChar(id) {
   if (_isRiegen(c))   _startRiegenOverlay();
   if (_isLorraine(c)) _startLorraineOverlay();
   if (_isSimmer(c))   _startSimmerOverlay();
+  if (_isOmenBartender(c)) _startOmenBarOverlay();
   }
 
   renderInventory(c);
@@ -22781,7 +23990,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -22820,6 +24029,7 @@ window.addEventListener('resize', () => {
       if (_isRiegen(c))   _startRiegenOverlay();
       if (_isLorraine(c)) _startLorraineOverlay();
       if (_isSimmer(c))   _startSimmerOverlay();
+      if (_isOmenBartender(c)) _startOmenBarOverlay();
     }
   }
 });

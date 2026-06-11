@@ -3161,6 +3161,99 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   OMEN · BARTENDER — the ringmaster works the bar. Speakeasy
+   panels of warm amber over bordeaux, a buzzing neon-sign name,
+   and a lamplit portrait. (Form-specific.)
+   ============================================================ */
+#char-view.omenbar-ui .panel {
+  --p-border: rgba(232,161,60,0.55);
+  border-color: rgba(232,161,60,0.5);
+  background: linear-gradient(180deg, rgba(40,12,24,0.93), rgba(22,6,13,0.96));
+  box-shadow:
+    0 0 22px rgba(232,161,60,0.16),
+    inset 0 -16px 30px rgba(120,40,70,0.3);
+}
+#char-view.omenbar-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 70% at 50% -15%, rgba(255,200,120,0.13), transparent 55%);
+}
+#char-view.omenbar-ui .panel-title {
+  color: #ffd9a8 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(232,161,60,0.42);
+  text-shadow: 0 0 14px rgba(232,161,60,0.6);
+}
+#char-view.omenbar-ui .tab-btn { color: #9a6e46; }
+#char-view.omenbar-ui .tab-btn:hover { color: #ffe2bc; text-shadow: 0 0 12px rgba(255,180,90,0.7); }
+#char-view.omenbar-ui .tab-btn.active {
+  color: #fff3e0;
+  border-bottom-color: rgba(255,180,90,0.85);
+  text-shadow: 0 0 16px rgba(255,180,90,0.85);
+}
+
+/* Name: a buzzing amber neon bar sign that occasionally falters */
+.char-name-display.omenbar-name {
+  position: relative;
+  color: #ffb24d !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  text-shadow:
+    0 0 8px rgba(255,170,70,0.9),
+    0 0 22px rgba(255,140,50,0.55),
+    0 1px 0 rgba(70,25,5,0.6);
+  animation: omenbar-neon 4.6s steps(1) infinite;
+}
+@keyframes omenbar-neon {
+  0%, 100% { opacity: 1; }
+  7%        { opacity: 0.62; }
+  8%        { opacity: 1; }
+  9.5%      { opacity: 0.75; }
+  10.5%     { opacity: 1; }
+  54%       { opacity: 1; }
+  55%       { opacity: 0.55; }
+  56%       { opacity: 1; }
+  81%       { opacity: 0.85; }
+  82%       { opacity: 1; }
+}
+.char-name-display.omenbar-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,230,190,0.9) 50%, transparent 62%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: omenbar-name-sweep 5.5s ease-in-out infinite;
+}
+@keyframes omenbar-name-sweep {
+  0%, 100% { background-position: 130% 0; }
+  50%      { background-position: -130% 0; }
+}
+
+/* Portrait: lamplit from above, with a warm swinging glow */
+.char-avatar-large.omenbar-pfp {
+  border-color: rgba(232,161,60,0.7) !important;
+  box-shadow: 0 0 26px rgba(232,161,60,0.45), inset 0 -14px 22px rgba(120,40,70,0.4), inset 0 10px 18px rgba(255,200,120,0.25);
+  animation: omenbar-pfp-lamp 5s ease-in-out infinite;
+  overflow: hidden;
+}
+@keyframes omenbar-pfp-lamp {
+  0%, 100% { box-shadow: 0 0 20px rgba(232,161,60,0.32), inset 0 -14px 20px rgba(120,40,70,0.38), inset 0 10px 16px rgba(255,200,120,0.2); }
+  50%      { box-shadow: 0 0 34px rgba(255,180,90,0.55), inset 0 -14px 24px rgba(120,40,70,0.45), inset 0 12px 22px rgba(255,210,140,0.32); }
+}
+.char-avatar-large.omenbar-pfp::after {
+  content: "";
+  position: absolute; inset: 3px;
+  pointer-events: none;
+  border: 1px dashed rgba(255,190,110,0.5);
+  border-radius: inherit;
+  animation: alsace-pfp-spin 21s linear infinite;
+}
+
+/* ============================================================
    HELIOS — god of the sun. Strong, intimidating, aggressive,
    voracious. Molten gold / white-hot, fast fierce pulses.
    --char-color is blazing amber-gold.
