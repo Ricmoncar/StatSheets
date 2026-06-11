@@ -12687,6 +12687,14 @@ function _drawOmenBarCursor(ctx, W, H, t) {
   ctx.restore();
 }
 
+function _getActiveTab() {
+  if (document.getElementById('tab-style') && document.getElementById('tab-style').style.display !== 'none') return 'style';
+  if (document.getElementById('tab-music') && document.getElementById('tab-music').style.display !== 'none') return 'music';
+  if (document.getElementById('tab-info') && document.getElementById('tab-info').style.display !== 'none') return 'info';
+  if (document.getElementById('tab-abilities') && document.getElementById('tab-abilities').style.display !== 'none') return 'abilities';
+  return 'stats';
+}
+
 function _startOmenBarOverlay() {
   _stopOmenBarOverlay();
   _obPrevT = 0;
@@ -12695,20 +12703,28 @@ function _startOmenBarOverlay() {
   if (!_obOrder) { _obNewOrder(); _obPhase = 'in'; _obPhaseT = 0; }
   window.addEventListener('mousemove', _obMouseMove);
   window.addEventListener('mouseup', _obGameUp);
-  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  
+  const activeTab = _getActiveTab();
+  const showBar = (activeTab === 'style' || activeTab === 'music');
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = showBar ? 'none' : '';
+  
   // game strip (captures its own clicks)
   const gcv = document.createElement('canvas');
   gcv.id = 'omenbar-game';
   gcv.style.cssText = `position:fixed;bottom:0;left:0;width:100vw;height:${_OB_H}px;z-index:9998;pointer-events:auto;`;
+  if (!showBar) gcv.style.display = 'none';
   gcv.width = window.innerWidth; gcv.height = _OB_H;
   gcv.addEventListener('mousedown', _obGameDown);
   document.body.appendChild(gcv);
+  
   // cursor layer
   const ccv = document.createElement('canvas');
   ccv.id = 'omenbar-cursor';
   ccv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  if (!showBar) ccv.style.display = 'none';
   ccv.width = window.innerWidth; ccv.height = window.innerHeight;
   document.body.appendChild(ccv);
+  
   const t0 = performance.now();
   function frame(now) {
     const g2 = document.getElementById('omenbar-game');
@@ -12720,8 +12736,10 @@ function _startOmenBarOverlay() {
     }
     const t = (now - t0) / 1000;
     _obHover = _obHitTest(_obMX, _obMY - _obStripY(), window.innerWidth);
-    _drawOmenBarGame(g2.getContext('2d'), g2.width, t);
-    _drawOmenBarCursor(c2.getContext('2d'), c2.width, c2.height, t);
+    if (g2.style.display !== 'none') {
+      _drawOmenBarGame(g2.getContext('2d'), g2.width, t);
+      _drawOmenBarCursor(c2.getContext('2d'), c2.width, c2.height, t);
+    }
     _obOverlayRafId = requestAnimationFrame(frame);
   }
   _obOverlayRafId = requestAnimationFrame(frame);
@@ -18788,6 +18806,17 @@ function switchTab(tab, btn) {
   document.getElementById('tab-abilities').style.display  = tab === 'abilities' ? '' : 'none';
   if (tab === 'music')     renderThemeTab();
   if (tab === 'abilities') renderAbilitiesTab();
+
+  // Omen Bartender visibility toggle
+  const gcv = document.getElementById('omenbar-game');
+  const ccv = document.getElementById('omenbar-cursor');
+  const arrow = document.getElementById('cursor');
+  if (gcv) {
+    const showBar = (tab === 'style' || tab === 'music');
+    gcv.style.display = showBar ? '' : 'none';
+    if (ccv) ccv.style.display = showBar ? '' : 'none';
+    if (arrow) arrow.style.display = showBar ? 'none' : '';
+  }
 }
 
 // Jump to a tab by name — used by the mini-player bar click
