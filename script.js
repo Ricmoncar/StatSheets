@@ -25639,9 +25639,9 @@ const ROLE_LABELS = { dps: 'DPS', tank: 'TANK', assassin: 'ASSASSIN', support: '
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic', 'hexxed', 'duality', 'determined'];
 const RARITY_LABEL = { common: 'COMMON', rare: 'RARE', epic: 'EPIC', legendary: 'LEGENDARY', mythic: 'MYTHIC', hexxed: 'HEXXED', duality: 'DUALITY', determined: 'DETERMINED' };
 
-//const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
+const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
 
-const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 10, mythic: 55, hexxed: 2, duality: 2, determined: 0 };
+//const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 10, mythic: 55, hexxed: 2, duality: 2, determined: 0 };
 
 const PITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 68.9, mythic: 25, hexxed: 1, duality: 5, determined: 0.1 };
 
@@ -25746,8 +25746,8 @@ function rollHand(isPityRoll) {
     if (!seen.has(k)) {
       seen.add(k);
       const _r = TRAITS[k]?.rarity;
-      //const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'mythic' && Math.random() < 0.10) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
-      const shimmyful = (_r === 'common' && Math.random() < 1) || (_r === 'legendary' && Math.random() < 1) || (_r === 'mythic' && Math.random() < 1) || (_r === 'rare' && Math.random() < 1) || (_r === 'epic' && Math.random() < 1);
+      const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'mythic' && Math.random() < 0.10) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
+      //const shimmyful = (_r === 'common' && Math.random() < 1) || (_r === 'legendary' && Math.random() < 1) || (_r === 'mythic' && Math.random() < 1) || (_r === 'rare' && Math.random() < 1) || (_r === 'epic' && Math.random() < 1);
 //findme
       hand.push({ key: k, shimmyful });
     }
