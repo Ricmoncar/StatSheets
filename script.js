@@ -2749,6 +2749,7 @@ const PATTERN_DEFS = {
   omen_janitor:     { label: "Omen · Janitor Duty",        params: [] },
   gonela_frontier:  { label: "Gonela · Frontier Law",      params: [] },
   justin_cotton:    { label: "Justin · Red Harvest",       params: [] },
+  anti_sanctuary:   { label: "Anti · Quiet Inferno",       params: [] },
   haru_parasite:    { label: "Haru · The Watching Dark",   params: [] },
   classic_det:      { label: "Classic · Determination.",   params: [] },
   classic_save:     { label: "Classic · SAVE",              params: [] },
@@ -13590,6 +13591,13 @@ function _jHash(i) { const v = Math.sin(i * 91.7 + 3.3) * 43758.5453; return v -
 
 function _jCotton(ctx, x, y, s, alpha) {
   const PI2 = Math.PI * 2;
+  if (s < 3.4) {   // cheap path for tiny far-row bolls
+    ctx.fillStyle = `rgba(243,241,235,${alpha.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(x, y, s * 0.9, 0, PI2); ctx.fill();
+    ctx.fillStyle = `rgba(255,255,255,${(alpha * 0.8).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(x - s * 0.22, y - s * 0.22, s * 0.42, 0, PI2); ctx.fill();
+    return;
+  }
   // brown boll husk peeking out at the base (only on the bigger field bolls)
   if (s > 4) {
     ctx.fillStyle = `rgba(74,42,22,${(alpha * 0.8).toFixed(3)})`;
@@ -13630,6 +13638,7 @@ function _jCotton(ctx, x, y, s, alpha) {
 function _drawJustinPattern(canvas, ctx, W, H, t) {
   const fresh = _drawJustinPattern._lt === undefined;
   if (!fresh && t - _drawJustinPattern._lt < 0.033) return;   // 30fps cap
+  const dt = fresh ? 0.033 : Math.min(t - _drawJustinPattern._lt, 0.1);
   _drawJustinPattern._lt = t;
   const PI2 = Math.PI * 2;
   ctx.clearRect(0, 0, W, H);
@@ -13671,8 +13680,8 @@ function _drawJustinPattern(canvas, ctx, W, H, t) {
       s.lineCap = 'butt';
     };
     tree(W * 0.14, horiz, 70, 1); tree(W * 0.86, horiz, 88, 7); tree(W * 0.66, horiz, 54, 13);
-    // cotton field — rows of stalks with white bolls, perspective toward horizon
-    const ROWS = 6;
+    // cotton field — bake just the STALKS; the bolls are live & harvestable
+    const ROWS = 6, bolls = [];
     for (let r = 0; r < ROWS; r++) {
       const f = r / (ROWS - 1);
       const ry = horiz + 6 + Math.pow(f, 1.5) * (H - horiz - 6);
@@ -13684,28 +13693,96 @@ function _drawJustinPattern(canvas, ctx, W, H, t) {
         s.strokeStyle = `rgba(${20 + f * 20 | 0},${12 + f * 10 | 0},8,${(0.5 + f * 0.4).toFixed(3)})`;
         s.lineWidth = 1 + f * 1.6;
         s.beginPath(); s.moveTo(bx, ry); s.lineTo(bx + (_jHash(bx) - 0.5) * 6, ry - stalkH); s.stroke();
-        // a couple bolls per stalk
         for (let b = 0; b < 2 + (f > 0.5 ? 1 : 0); b++) {
           const by = ry - stalkH * (0.5 + b * 0.3), bxx = bx + (_jHash(bx + b * 7) - 0.5) * 8;
-          _jCotton(s, bxx, by, bollR, 0.7 + f * 0.3);
+          bolls.push({ x: bxx, y: by, s: bollR, alpha: 0.7 + f * 0.3, harvested: false, respawn: 0, grow: 1 });
         }
       }
     }
     _drawJustinPattern._sc = sc; _drawJustinPattern._horiz = horiz; _drawJustinPattern._sun = { x: sunX, y: sunY, r: sunR };
+    _drawJustinPattern._bolls = bolls;
     const vig = ctx.createRadialGradient(W * 0.5, H * 0.46, Math.min(W, H) * 0.3, W * 0.5, H * 0.5, Math.max(W, H) * 0.74);
     vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(10,0,0,0.66)');
     _drawJustinPattern._vig = vig;
   }
   ctx.drawImage(_drawJustinPattern._sc, 0, 0);
   const horiz = _drawJustinPattern._horiz, sun = _drawJustinPattern._sun;
+  const bolls = _drawJustinPattern._bolls || [];
 
-  // sun corona shimmer
+  // ── harvestable cotton: reaped on a swing, slowly respawns ──
+  _drawJustinPattern._f = (_drawJustinPattern._f || 0) + 1;
+  if (!_drawJustinPattern._rect || _drawJustinPattern._f % 12 === 1) _drawJustinPattern._rect = canvas.getBoundingClientRect();
+  const rect = _drawJustinPattern._rect;
+  const sX = rect.width ? (W / rect.width) : 1, sY = rect.height ? (H / rect.height) : 1;
+  if (_jReapReq) {
+    const mx = (_jReapReq.x - rect.left) * sX, my = (_jReapReq.y - rect.top) * sY;
+    const rad = 76 * sX;
+    for (const bl of bolls) {
+      if (bl.harvested) continue;
+      if (Math.hypot(bl.x - mx, bl.y - my) < rad + bl.s) {
+        bl.harvested = true; bl.respawn = 5 + Math.random() * 7; bl.grow = 0;
+        _jHarvested++;
+        // a puff of cotton bursts off the reaped boll (in window coords, on the overlay)
+        const wx = rect.left + bl.x / sX, wy = rect.top + bl.y / sY;
+        for (let i = 0; i < 4 && _jParts.length < 190; i++) {
+          const a = Math.random() * PI2, sp = 40 + Math.random() * 130;
+          _jParts.push({ type: 'cotton', x: wx, y: wy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 55, s: bl.s * 0.8 + 2, rot: Math.random() * PI2, vr: (Math.random() - 0.5) * 5, life: 1, max: 1 + Math.random() * 0.8 });
+        }
+      }
+    }
+    _jReapReq = null;
+  }
+  // draw bolls (skip harvested; tick their respawn; grow back in)
+  for (const bl of bolls) {
+    if (bl.harvested) {
+      bl.respawn -= dt;
+      if (bl.respawn <= 0) bl.harvested = false; else continue;
+    }
+    if (bl.grow < 1) bl.grow = Math.min(1, bl.grow + dt * 2.6);
+    _jCotton(ctx, bl.x, bl.y, bl.s * (0.15 + bl.grow * 0.85), bl.alpha);
+  }
+
+  // ── dying-sun aura: huge layered glow + rotating god-rays + embers ──
   {
     const gl = 0.5 + 0.5 * Math.sin(t * 0.8);
-    const cg = ctx.createRadialGradient(sun.x, sun.y, sun.r * 0.6, sun.x, sun.y, sun.r * (1.6 + gl * 0.3));
-    cg.addColorStop(0, `rgba(255,90,40,${(0.12 + gl * 0.1).toFixed(3)})`);
-    cg.addColorStop(1, 'rgba(255,90,40,0)');
-    ctx.fillStyle = cg; ctx.fillRect(sun.x - sun.r * 2, sun.y - sun.r * 2, sun.r * 4, sun.r * 4);
+    // broad soft aura
+    const aura = ctx.createRadialGradient(sun.x, sun.y, sun.r * 0.4, sun.x, sun.y, sun.r * (3.6 + gl * 0.6));
+    aura.addColorStop(0, `rgba(255,86,36,${(0.2 + gl * 0.1).toFixed(3)})`);
+    aura.addColorStop(0.35, `rgba(190,28,16,${(0.12 + gl * 0.06).toFixed(3)})`);
+    aura.addColorStop(1, 'rgba(120,8,8,0)');
+    ctx.fillStyle = aura; ctx.fillRect(sun.x - sun.r * 4, sun.y - sun.r * 4, sun.r * 8, sun.r * 8);
+    // rotating god-rays
+    ctx.save();
+    ctx.translate(sun.x, sun.y);
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 16; i++) {
+      const a = i * PI2 / 16 + t * 0.045;
+      const len = sun.r * (1.9 + Math.sin(t * 0.7 + i) * 0.55);
+      const w = 0.05 + 0.022 * Math.sin(t * 1.1 + i * 2);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a - w) * len, Math.sin(a - w) * len);
+      ctx.lineTo(Math.cos(a + w) * len, Math.sin(a + w) * len);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(255,96,44,${(0.035 + 0.03 * (0.5 + 0.5 * Math.sin(t * 0.8 + i))).toFixed(3)})`;
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalCompositeOperation = 'source-over';
+    // a hot wavering rim on the disc
+    ctx.strokeStyle = `rgba(255,150,80,${(0.25 + gl * 0.2).toFixed(3)})`;
+    ctx.lineWidth = 2 + gl * 1.5;
+    ctx.beginPath(); ctx.arc(sun.x, sun.y, sun.r * (1.02 + Math.sin(t * 2) * 0.01), 0, PI2); ctx.stroke();
+    // embers lifting off the sun
+    for (let i = 0; i < 10; i++) {
+      const sd = _jHash(i * 17.3);
+      const ep = ((t * (0.15 + sd * 0.15) + sd) % 1);
+      const ang = sd * PI2;
+      const er = sun.r * (0.8 + ep * 1.8);
+      const ex = sun.x + Math.cos(ang) * er * 0.5, ey = sun.y - ep * sun.r * 2.2 + Math.sin(t * 2 + i) * 4;
+      ctx.fillStyle = `rgba(255,${120 + (i * 13) % 80 | 0},50,${((1 - ep) * 0.5).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(ex, ey, 1 + sd * 1.6, 0, PI2); ctx.fill();
+    }
   }
 
   // roiling dark ash clouds drifting across the sky
@@ -13758,31 +13835,54 @@ let _jOverlayRafId = null;
 let _jMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
 let _jMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
 let _jPMX = _jMX, _jSwing = 0, _jSwingDir = 1, _jParts = [], _jPrevT = 0, _jDriftAcc = 0;
+let _jBolt = null, _jBoltLife = 0, _jNextBolt = 2, _jFlash = 0;
+let _jHarvested = 0, _jReapReq = null;
+
+function _jMakeBolt(W, H) {
+  const sx = W * (0.12 + Math.random() * 0.76);
+  const tx = sx + (Math.random() - 0.5) * W * 0.3;
+  const segs = 11 + (Math.random() * 6 | 0), endY = H * (0.55 + Math.random() * 0.4);
+  const pts = [[sx, -12]];
+  for (let i = 1; i <= segs; i++) {
+    const f = i / segs;
+    pts.push([sx + (tx - sx) * f + (Math.random() - 0.5) * 64, f * endY]);
+  }
+  const branches = [];
+  for (let b = 0; b < 2; b++) {
+    const bi = 2 + (Math.random() * (pts.length - 5) | 0), base = pts[bi];
+    const br = [base.slice()]; let bx = base[0], by = base[1];
+    for (let i = 0; i < 4; i++) { bx += (Math.random() - 0.5) * 80; by += 18 + Math.random() * 42; br.push([bx, by]); }
+    branches.push(br);
+  }
+  return { pts, branches };
+}
 
 function _jScythe(ctx, x, y, rot, scale) {
   ctx.save();
   ctx.translate(x, y); ctx.rotate(rot); ctx.scale(scale, scale);
-  // snath (handle)
+  // snath (handle) trailing DOWN-right from the neck (the cursor)
   ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(20, -36, 30, -76); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(18, 34, 26, 72); ctx.stroke();
   ctx.strokeStyle = 'rgba(255,220,170,0.18)'; ctx.lineWidth = 1.4;
-  ctx.beginPath(); ctx.moveTo(-1, -2); ctx.quadraticCurveTo(19, -36, 29, -76); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(1, 1); ctx.quadraticCurveTo(19, 34, 27, 72); ctx.stroke();
   // grip nub
-  ctx.fillStyle = '#3a2412'; ctx.beginPath(); ctx.arc(22, -52, 3.4, 0, Math.PI * 2); ctx.fill();
-  // blade — a steel crescent sweeping from the heel
+  ctx.fillStyle = '#3a2412'; ctx.beginPath(); ctx.arc(20, 48, 3.4, 0, Math.PI * 2); ctx.fill();
+  // blade — a steel hook curling from the neck, tip pointing down-left
   ctx.beginPath();
-  ctx.moveTo(0, 2);
-  ctx.quadraticCurveTo(-44, -2, -64, -34);
-  ctx.quadraticCurveTo(-40, -14, -2, -7);
+  ctx.moveTo(0, -3);
+  ctx.quadraticCurveTo(-50, -16, -68, 16);    // spine out to the tip
+  ctx.quadraticCurveTo(-40, 1, -2, 4);         // honed inner edge back to the neck
   ctx.closePath();
-  const bg = ctx.createLinearGradient(-64, -34, 0, 0);
+  const bg = ctx.createLinearGradient(-68, 16, 0, -3);
   bg.addColorStop(0, '#d8dde2'); bg.addColorStop(0.5, '#9aa3ac'); bg.addColorStop(1, '#5a626c');
   ctx.fillStyle = bg; ctx.fill();
-  // honed edge with a blood tint
+  // honed edge (white) with a blood tint behind it
   ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.4;
-  ctx.beginPath(); ctx.moveTo(0, 2); ctx.quadraticCurveTo(-44, -2, -64, -34); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-2, 4); ctx.quadraticCurveTo(-40, 1, -68, 16); ctx.stroke();
   ctx.strokeStyle = 'rgba(150,12,12,0.5)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(-4, 0); ctx.quadraticCurveTo(-40, -4, -58, -30); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-4, 3); ctx.quadraticCurveTo(-38, -1, -60, 13); ctx.stroke();
+  // collar where blade meets the snath
+  ctx.fillStyle = '#2a2a30'; ctx.beginPath(); ctx.arc(0, 0, 3.6, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 
@@ -13790,6 +13890,7 @@ function _jMouseMove(e) { _jMX = e.clientX; _jMY = e.clientY; }
 function _jMouseDown() {
   const x = _jMX, y = _jMY, PI2 = Math.PI * 2;
   _jSwing = 1; _jSwingDir = -_jSwingDir;
+  _jReapReq = { x, y };                 // ask the field to reap any cotton in reach
   const push = p => { _jParts.push(p); if (_jParts.length > 180) _jParts.shift(); };
   push({ type: 'slash', x, y, dir: _jSwingDir, a0: -Math.PI / 2 + (_jSwingDir > 0 ? -1 : 0.2), life: 1, max: 0.26 });
   for (let i = 0; i < 9; i++) {                       // reaped cotton
@@ -13813,6 +13914,44 @@ function _drawJustinOverlay(canvas, ctx, W, H, t) {
   const PI2 = Math.PI * 2;
   ctx.clearRect(0, 0, W, H);
   _jSwing = Math.max(0, _jSwing - dt * 4.2);
+
+  // ── red lightning, striking over the menus ──
+  _jNextBolt -= dt;
+  if (_jNextBolt <= 0) {
+    _jNextBolt = 2.4 + Math.random() * 4.5;
+    _jBolt = _jMakeBolt(W, H); _jBoltLife = 1; _jFlash = 1;
+  }
+  _jBoltLife = Math.max(0, _jBoltLife - dt * 4.5);
+  _jFlash = Math.max(0, _jFlash - dt * 3.6);
+  if (_jFlash > 0) { ctx.fillStyle = `rgba(180,20,16,${(_jFlash * 0.12).toFixed(3)})`; ctx.fillRect(0, 0, W, H); }
+  if (_jBoltLife > 0 && _jBolt && (((t * 42) | 0) % 2 === 0 || _jBoltLife > 0.6)) {
+    const al = _jBoltLife;
+    const path = pp => { ctx.beginPath(); ctx.moveTo(pp[0][0], pp[0][1]); for (let i = 1; i < pp.length; i++) ctx.lineTo(pp[i][0], pp[i][1]); ctx.stroke(); };
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.shadowColor = 'rgba(255,24,20,0.9)'; ctx.shadowBlur = 14;
+    ctx.strokeStyle = `rgba(255,56,46,${(al * 0.9).toFixed(3)})`; ctx.lineWidth = 2.6; path(_jBolt.pts);
+    ctx.lineWidth = 1.6; for (const br of _jBolt.branches) path(br);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = `rgba(255,214,206,${(al * 0.85).toFixed(3)})`; ctx.lineWidth = 1; path(_jBolt.pts);
+    ctx.lineJoin = 'miter'; ctx.lineCap = 'butt';
+  }
+
+  // ── apocalyptic red border around the page ──
+  {
+    const pl = 0.5 + 0.5 * Math.sin(t * 1.4);
+    const bd = 26, A = (0.16 + pl * 0.12).toFixed(3);
+    let g = ctx.createLinearGradient(0, 0, 0, bd); g.addColorStop(0, `rgba(150,8,8,${A})`); g.addColorStop(1, 'rgba(150,8,8,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, bd);
+    g = ctx.createLinearGradient(0, H, 0, H - bd); g.addColorStop(0, `rgba(150,8,8,${A})`); g.addColorStop(1, 'rgba(150,8,8,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, H - bd, W, bd);
+    g = ctx.createLinearGradient(0, 0, bd, 0); g.addColorStop(0, `rgba(150,8,8,${A})`); g.addColorStop(1, 'rgba(150,8,8,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, bd, H);
+    g = ctx.createLinearGradient(W, 0, W - bd, 0); g.addColorStop(0, `rgba(150,8,8,${A})`); g.addColorStop(1, 'rgba(150,8,8,0)');
+    ctx.fillStyle = g; ctx.fillRect(W - bd, 0, bd, H);
+    ctx.strokeStyle = `rgba(200,30,20,${(0.4 + pl * 0.35).toFixed(3)})`;
+    ctx.lineWidth = 2; ctx.strokeRect(3, 3, W - 6, H - 6);
+    ctx.strokeStyle = `rgba(120,6,6,0.5)`; ctx.lineWidth = 1; ctx.strokeRect(6, 6, W - 12, H - 12);
+  }
 
   // a little ash/cotton drifts off the blade as it moves
   _jDriftAcc += dt;
@@ -13851,6 +13990,14 @@ function _drawJustinOverlay(canvas, ctx, W, H, t) {
   _jParts = _jParts.filter(p => p.life > 0);
   ctx.lineJoin = 'miter';
 
+  // ── harvest counter ──
+  ctx.textAlign = 'left';
+  ctx.font = '10px "Press Start 2P", monospace';
+  ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillText(`COTTON ${_jHarvested}`, 17, H - 18);
+  ctx.fillStyle = '#f3f1eb'; ctx.fillText(`COTTON ${_jHarvested}`, 16, H - 19);
+  ctx.fillStyle = 'rgba(200,30,20,0.5)'; ctx.fillText(`COTTON ${_jHarvested}`, 16.5, H - 19);
+  ctx.textAlign = 'start';
+
   // ── the scythe, swinging on click ──
   const vx = _jMX - _jPMX; _jPMX = _jMX;
   const tilt = Math.max(-0.3, Math.min(0.3, vx * 0.01)) + Math.sin(t * 1.5) * 0.04;
@@ -13861,6 +14008,8 @@ function _drawJustinOverlay(canvas, ctx, W, H, t) {
 function _startJustinOverlay() {
   _stopJustinOverlay();
   _jParts = []; _jSwing = 0; _jPrevT = 0; _jDriftAcc = 0; _jPMX = _jMX;
+  _jBolt = null; _jBoltLife = 0; _jNextBolt = 2; _jFlash = 0;
+  _jHarvested = 0; _jReapReq = null;
   window.addEventListener('mousemove', _jMouseMove);
   window.addEventListener('mousedown', _jMouseDown);
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
@@ -13888,6 +14037,334 @@ function _stopJustinOverlay() {
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('justin-overlay'); if (cv) cv.remove();
   _jParts = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// ANTI — a GOOD demon. Demonic, but utterly at peace: a tranquil
+// violet underworld at night, a dark haloed moon, a slowly turning
+// pentagram drawn in soft light, drifting soul-orbs and candle-wisps,
+// gentle rising embers and curling incense. The cursor is a calm
+// soul-flame crowned by a halo AND little horns; clicking releases a
+// peaceful bloom and frees a soul. Everything slow & smooth. Matches
+// "Anti".
+// ════════════════════════════════════════════════════════════════
+const _ANTI_RE = /^Anti$/i;
+function _isAnti(c) { return !!(c && c.name && _ANTI_RE.test(c.name)); }
+function _anHash(i) { const v = Math.sin(i * 67.31 + 8.1) * 43758.5453; return v - Math.floor(v); }
+
+function _anPentagram(ctx, cx, cy, R, rot) {
+  ctx.beginPath();
+  for (let i = 0; i <= 5; i++) {
+    const a = rot - Math.PI / 2 + i * (Math.PI * 4 / 5);   // {5/2} star — skip a point each step
+    const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+}
+
+function _drawAntiPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawAntiPattern._lt === undefined;
+  if (!fresh && t - _drawAntiPattern._lt < 0.033) return;   // 30fps cap
+  _drawAntiPattern._lt = t;
+  const PI2 = Math.PI * 2;
+  const breathe = 0.5 + 0.5 * Math.sin(t * 0.5);
+  ctx.clearRect(0, 0, W, H);
+
+  if (!_drawAntiPattern._sc || _drawAntiPattern._w !== W || _drawAntiPattern._h !== H) {
+    _drawAntiPattern._w = W; _drawAntiPattern._h = H;
+    const horiz = H * 0.72;
+    const sc = document.createElement('canvas'); sc.width = W; sc.height = H;
+    const s = sc.getContext('2d');
+    const sky = s.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#0d071c'); sky.addColorStop(0.4, '#22113a');
+    sky.addColorStop(0.62, '#451844'); sky.addColorStop(0.72, '#6a1838');   // violet bleeding into red
+    sky.addColorStop(0.74, '#3e1228'); sky.addColorStop(1, '#1a0816');
+    s.fillStyle = sky; s.fillRect(0, 0, W, H);
+    // a warm red glow rising off the horizon
+    const hg = s.createLinearGradient(0, horiz * 0.55, 0, horiz);
+    hg.addColorStop(0, 'rgba(200,40,70,0)'); hg.addColorStop(1, 'rgba(200,46,74,0.16)');
+    s.fillStyle = hg; s.fillRect(0, horiz * 0.55, W, horiz * 0.45);
+    // soft stars
+    for (let i = 0; i < 80; i++) {
+      const sx = _anHash(i * 3.1) * W, sy = _anHash(i * 7.7) * horiz * 0.95;
+      s.fillStyle = `rgba(225,210,245,${(0.15 + _anHash(i) * 0.5).toFixed(3)})`;
+      s.fillRect(sx | 0, sy | 0, _anHash(i * 5) > 0.9 ? 2 : 1, 1);
+    }
+    // dark haloed moon with a thin crescent of pale light
+    const mx = W * 0.7, my = horiz * 0.34, mr = Math.min(W, H) * 0.12;
+    const halo = s.createRadialGradient(mx, my, mr * 0.7, mx, my, mr * 2.6);
+    halo.addColorStop(0, 'rgba(206,170,236,0.22)'); halo.addColorStop(1, 'rgba(206,170,236,0)');
+    s.fillStyle = halo; s.fillRect(mx - mr * 2.6, my - mr * 2.6, mr * 5.2, mr * 5.2);
+    s.fillStyle = '#150c28'; s.beginPath(); s.arc(mx, my, mr, 0, PI2); s.fill();
+    s.strokeStyle = 'rgba(228,205,248,0.5)'; s.lineWidth = 2;
+    s.beginPath(); s.arc(mx, my, mr, -1.1, 0.7); s.stroke();
+    s.strokeStyle = 'rgba(228,205,248,0.15)'; s.lineWidth = 1; s.beginPath(); s.arc(mx, my, mr, 0, PI2); s.stroke();
+    // soft layered hills
+    const hill = (baseY, col, amp, len) => {
+      s.fillStyle = col; s.beginPath(); s.moveTo(0, H);
+      s.lineTo(0, baseY);
+      for (let x = 0; x <= W; x += len) s.lineTo(x, baseY - (0.5 + 0.5 * Math.sin(x * 0.004 + amp)) * amp * 18);
+      s.lineTo(W, H); s.closePath(); s.fill();
+    };
+    hill(horiz + 8, '#1d1030', 2.2, 60);
+    hill(horiz + 30, '#160b26', 3.4, 80);
+    _drawAntiPattern._sc = sc; _drawAntiPattern._horiz = horiz; _drawAntiPattern._moon = { x: mx, y: my, r: mr };
+    const vig = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.34, W * 0.5, H * 0.5, Math.max(W, H) * 0.76);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(8,2,16,0.6)');
+    _drawAntiPattern._vig = vig;
+  }
+  ctx.drawImage(_drawAntiPattern._sc, 0, 0);
+  const horiz = _drawAntiPattern._horiz;
+
+  // soft central aura of calm
+  {
+    const cx = W * 0.5, cy = horiz * 0.62, cr = Math.min(W, H) * (0.32 + breathe * 0.03);
+    const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
+    cg.addColorStop(0, `rgba(150,80,190,${(0.07 + breathe * 0.04).toFixed(3)})`);
+    cg.addColorStop(1, 'rgba(150,80,190,0)');
+    ctx.fillStyle = cg; ctx.fillRect(cx - cr, cy - cr, cr * 2, cr * 2);
+  }
+
+  // ── the pentagram, drawn in soft light, slowly turning & breathing ──
+  {
+    const cx = W * 0.5, cy = horiz * 0.6, R = Math.min(W, H) * 0.2;
+    const rot = t * 0.06;
+    ctx.save();
+    ctx.lineJoin = 'round';
+    const a = 0.10 + breathe * 0.06;
+    // outer ring
+    ctx.strokeStyle = `rgba(196,140,230,${(a * 0.8).toFixed(3)})`;
+    ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, R * 1.12, 0, PI2); ctx.stroke();
+    ctx.strokeStyle = `rgba(196,140,230,${(a * 0.4).toFixed(3)})`;
+    ctx.lineWidth = 0.8; ctx.beginPath(); ctx.arc(cx, cy, R * 1.2, 0, PI2); ctx.stroke();
+    // the star
+    ctx.shadowColor = 'rgba(190,120,230,0.6)'; ctx.shadowBlur = 12;
+    ctx.strokeStyle = `rgba(214,158,236,${a.toFixed(3)})`; ctx.lineWidth = 1.6;
+    _anPentagram(ctx, cx, cy, R, rot); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // tiny glints at the five points
+    for (let i = 0; i < 5; i++) {
+      const ang = rot - Math.PI / 2 + i * PI2 / 5;
+      const px = cx + Math.cos(ang) * R, py = cy + Math.sin(ang) * R;
+      const tw = 0.5 + 0.5 * Math.sin(t * 1.5 + i);
+      ctx.fillStyle = `rgba(240,220,255,${(a * (0.5 + tw)).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(px, py, 1.6 + tw * 1.4, 0, PI2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ── drifting soul-orbs rising gently ──
+  for (let i = 0; i < 9; i++) {
+    const sd = _anHash(i * 23.7);
+    const ph = ((t * (0.03 + sd * 0.03) + sd) % 1);
+    const ox = (0.1 + _anHash(i * 11) * 0.8) * W + Math.sin(t * 0.4 + i * 1.7) * 30;
+    const oy = H * (1.02 - ph) - 10;
+    const or = 4 + sd * 7, al = Math.sin(ph * Math.PI) * (0.18 + sd * 0.12);
+    const og = ctx.createRadialGradient(ox, oy, 0, ox, oy, or * 2.4);
+    og.addColorStop(0, `rgba(220,180,250,${al.toFixed(3)})`);
+    og.addColorStop(0.5, `rgba(170,100,210,${(al * 0.5).toFixed(3)})`);
+    og.addColorStop(1, 'rgba(170,100,210,0)');
+    ctx.fillStyle = og; ctx.fillRect(ox - or * 2.4, oy - or * 2.4, or * 4.8, or * 4.8);
+    ctx.fillStyle = `rgba(255,250,255,${(al * 1.4).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(ox, oy, or * 0.32, 0, PI2); ctx.fill();
+  }
+
+  // ── floating candle-wisps (little calm flames) ──
+  for (let i = 0; i < 6; i++) {
+    const sd = _anHash(i * 41.3);
+    const wx = (0.12 + _anHash(i * 9 + 2) * 0.76) * W + Math.sin(t * 0.5 + i * 2.1) * 26;
+    const wy = horiz * (0.5 + sd * 0.42) + Math.sin(t * 0.7 + i) * 12;
+    const fl = 0.5 + 0.5 * Math.sin(t * 6 + i * 3);
+    const wg = ctx.createRadialGradient(wx, wy, 0, wx, wy, 16);
+    wg.addColorStop(0, `rgba(255,180,140,${(0.18 + fl * 0.1).toFixed(3)})`);
+    wg.addColorStop(1, 'rgba(200,90,170,0)');
+    ctx.fillStyle = wg; ctx.fillRect(wx - 16, wy - 16, 32, 32);
+    ctx.fillStyle = `rgba(255,230,200,${(0.6 + fl * 0.3).toFixed(3)})`;
+    ctx.beginPath(); ctx.ellipse(wx, wy - 2 - fl * 2, 1.8, 3.6 + fl * 1.5, 0, 0, PI2); ctx.fill();
+    ctx.fillStyle = `rgba(210,150,235,${(0.5).toFixed(3)})`;
+    ctx.beginPath(); ctx.ellipse(wx, wy + 1, 2.6, 2, 0, 0, PI2); ctx.fill();
+  }
+
+  // ── gentle rising embers ──
+  for (let i = 0; i < 36; i++) {
+    const sd = i * 0.618;
+    const ex = ((sd * 2.7) % 1) * W + Math.sin(t * 0.5 + i) * 22;
+    const ey = H - ((t * (10 + (sd % 16)) + sd * H) % (H + 20));
+    const al = 0.1 + (sd % 0.18) + breathe * 0.05;
+    ctx.fillStyle = `rgba(${210 + (i * 7) % 40},${140 + (i * 11) % 50},${220 - (i * 5) % 40},${al.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(ex, ey, 0.8 + (sd % 1.5), 0, PI2); ctx.fill();
+  }
+
+  // ── curling incense smoke ──
+  for (let m = 0; m < 3; m++) {
+    const baseX = W * (0.24 + m * 0.26);
+    ctx.strokeStyle = `rgba(190,160,210,${(0.05 + m * 0.01).toFixed(3)})`;
+    ctx.lineWidth = 8 - m * 1.5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let k = 0; k <= 12; k++) {
+      const yy = H - k * (H / 14);
+      const xx = baseX + Math.sin(k * 0.5 + t * 0.6 + m * 2) * (8 + k * 2.2);
+      k ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy);
+    }
+    ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+
+  ctx.fillStyle = _drawAntiPattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* ── cursor: a calm soul-flame with a halo and little horns ──────── */
+let _anOverlayRafId = null;
+let _anMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _anMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _anParts = [], _anPrevT = 0, _anEmberAcc = 0;
+
+function _anFlame(ctx, x, y, t, sc, alpha) {
+  const PI2 = Math.PI * 2;
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(sc, sc);
+  const sway = Math.sin(t * 3.2) * 0.05 + Math.sin(t * 5.1) * 0.03;
+  ctx.rotate(sway);
+  const fl = 0.5 + 0.5 * Math.sin(t * 8) + 0.2 * Math.sin(t * 13 + 1);
+  // soft glow
+  const g = ctx.createRadialGradient(0, -4, 0, 0, -4, 26);
+  g.addColorStop(0, `rgba(196,120,230,${(0.4 * alpha).toFixed(3)})`);
+  g.addColorStop(1, 'rgba(120,40,160,0)');
+  ctx.fillStyle = g; ctx.fillRect(-26, -30, 52, 52);
+  // tiny horns at the base
+  ctx.fillStyle = `rgba(60,30,70,${(0.9 * alpha).toFixed(3)})`;
+  for (const dir of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(dir * 5, 7);
+    ctx.quadraticCurveTo(dir * 11, 5, dir * 12, -3);
+    ctx.quadraticCurveTo(dir * 8, 3, dir * 6, 8);
+    ctx.closePath(); ctx.fill();
+  }
+  // flame body (violet → magenta → white)
+  const flame = (hh, ww, col) => {
+    ctx.beginPath();
+    ctx.moveTo(0, 7);
+    ctx.bezierCurveTo(ww, 3, ww * 0.7, -hh * 0.5, 0, -hh);
+    ctx.bezierCurveTo(-ww * 0.7, -hh * 0.5, -ww, 3, 0, 7);
+    ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+  };
+  const H0 = 19 + fl * 2.5;
+  flame(H0, 8, `rgba(150,60,200,${(0.85 * alpha).toFixed(3)})`);
+  flame(H0 * 0.82, 5.6, `rgba(216,138,224,${(0.92 * alpha).toFixed(3)})`);
+  flame(H0 * 0.55, 3.4, `rgba(255,242,252,${alpha.toFixed(3)})`);
+  ctx.restore();
+  // halo ring floating above, bobbing gently
+  const hb = Math.sin(t * 1.8) * 1.5;
+  ctx.save();
+  ctx.strokeStyle = `rgba(246,233,200,${(0.75 * alpha).toFixed(3)})`;
+  ctx.shadowColor = 'rgba(246,233,200,0.8)'; ctx.shadowBlur = 8;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(x, y - 26 * sc + hb, 10 * sc, 3.4 * sc, 0, 0, PI2); ctx.stroke();
+  ctx.restore();
+}
+
+function _anMouseMove(e) { _anMX = e.clientX; _anMY = e.clientY; }
+function _anMouseDown() {
+  const x = _anMX, y = _anMY, PI2 = Math.PI * 2;
+  const push = p => { _anParts.push(p); if (_anParts.length > 170) _anParts.shift(); };
+  // peaceful blooming rings
+  push({ type: 'ring', x, y, col: '214,158,236', life: 1, max: 0.9 });
+  push({ type: 'ring', x, y, col: '246,233,200', life: 1, max: 1.1, delay: 0.12 });
+  // a soft sigil blooms and fades
+  push({ type: 'sigil', x, y, rot: Math.random() * PI2, life: 1, max: 1.3 });
+  // a freed soul floats up
+  push({ type: 'orb', x, y, vx: (Math.random() - 0.5) * 14, vy: -34 - Math.random() * 26, r: 5 + Math.random() * 4, life: 1, max: 1.8 });
+  // gentle drifting petals/embers
+  for (let i = 0; i < 12; i++) {
+    const a = Math.random() * PI2, sp = 24 + Math.random() * 70;
+    push({ type: 'mote', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 14, r: 1.4 + Math.random() * 2.4, hue: Math.random(), life: 1, max: 0.9 + Math.random() * 0.8 });
+  }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 0.7 + Math.random() * 0.2, volume: 0.32 }); } catch (e) {} }
+}
+
+function _drawAntiOverlay(canvas, ctx, W, H, t) {
+  const dt = _anPrevT ? Math.min(t - _anPrevT, 0.05) : 0.016;
+  _anPrevT = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  // soft embers drift off the flame as it moves
+  _anEmberAcc += dt;
+  if (_anEmberAcc > 0.07) {
+    _anEmberAcc = 0;
+    _anParts.push({ type: 'mote', x: _anMX + (Math.random() - 0.5) * 10, y: _anMY - 8, vx: (Math.random() - 0.5) * 14, vy: -18 - Math.random() * 20, r: 1 + Math.random() * 1.8, hue: Math.random(), life: 1, max: 0.7 + Math.random() * 0.5 });
+    if (_anParts.length > 170) _anParts.shift();
+  }
+
+  for (const p of _anParts) {
+    if (p.delay && p.delay > 0) { p.delay -= dt; continue; }
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, p.life);
+    if (p.type === 'ring') {
+      ctx.strokeStyle = `rgba(${p.col},${(al * 0.55).toFixed(3)})`;
+      ctx.lineWidth = 2 * al + 0.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 8 + (1 - al) * 70, 0, PI2); ctx.stroke();
+    } else if (p.type === 'sigil') {
+      const k = 1 - al, sc2 = 10 + k * 46;
+      ctx.save();
+      ctx.strokeStyle = `rgba(214,158,236,${(Math.sin(al * Math.PI) * 0.6).toFixed(3)})`;
+      ctx.lineWidth = 1.2; ctx.lineJoin = 'round';
+      ctx.shadowColor = 'rgba(190,120,230,0.6)'; ctx.shadowBlur = 8;
+      _anPentagram(ctx, p.x, p.y, sc2, p.rot + k * 0.6); ctx.stroke();
+      ctx.beginPath(); ctx.arc(p.x, p.y, sc2 * 1.16, 0, PI2); ctx.stroke();
+      ctx.restore();
+    } else if (p.type === 'orb') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 6 * dt; p.vx *= (1 - 0.5 * dt);
+      const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2.4);
+      og.addColorStop(0, `rgba(224,186,250,${al.toFixed(3)})`);
+      og.addColorStop(0.5, `rgba(170,100,210,${(al * 0.5).toFixed(3)})`);
+      og.addColorStop(1, 'rgba(170,100,210,0)');
+      ctx.fillStyle = og; ctx.fillRect(p.x - p.r * 2.4, p.y - p.r * 2.4, p.r * 4.8, p.r * 4.8);
+      ctx.fillStyle = `rgba(255,250,255,${al.toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.34, 0, PI2); ctx.fill();
+    } else {   // mote — soft drifting ember/petal
+      p.vy += 24 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= (1 - 0.9 * dt);
+      const r = p.hue, R = (210 + r * 45) | 0, G = (130 + r * 60) | 0, B = (220 - r * 30) | 0;
+      ctx.fillStyle = `rgba(${R},${G},${B},${(al * 0.7).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * al + 0.4, 0, PI2); ctx.fill();
+    }
+  }
+  _anParts = _anParts.filter(p => p.life > 0);
+
+  // ── the soul-flame cursor ──
+  _anFlame(ctx, _anMX, _anMY, t, 1, 1);
+}
+
+function _startAntiOverlay() {
+  _stopAntiOverlay();
+  _anParts = []; _anPrevT = 0; _anEmberAcc = 0;
+  window.addEventListener('mousemove', _anMouseMove);
+  window.addEventListener('mousedown', _anMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'anti-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('anti-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawAntiOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _anOverlayRafId = requestAnimationFrame(frame);
+  }
+  _anOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopAntiOverlay() {
+  if (_anOverlayRafId) { cancelAnimationFrame(_anOverlayRafId); _anOverlayRafId = null; }
+  window.removeEventListener('mousemove', _anMouseMove);
+  window.removeEventListener('mousedown', _anMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('anti-overlay'); if (cv) cv.remove();
+  _anParts = [];
 }
 /* ─────────────────────────────────────────────────────────────── */
 
@@ -20984,6 +21461,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'omen_janitor')   { _drawOmenJanitorPattern(canvas, ctx, W, H, t);         return; }
   if (type === 'gonela_frontier'){ _drawGonelaPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'justin_cotton')  { _drawJustinPattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'anti_sanctuary') { _drawAntiPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'haru_parasite')  { _drawHaruPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'classic_det')    { _drawClassicDetPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'classic_save')   { _drawClassicSavePattern(canvas, ctx, W, H, t);         return; }
@@ -21505,6 +21983,7 @@ function startBgAnim(type, params) {
   _drawOmenJanitorPattern._lt = undefined;
   _drawGonelaPattern._lt      = undefined;
   _drawJustinPattern._lt      = undefined;
+  _drawAntiPattern._lt        = undefined;
   _drawHaruPattern._lt        = undefined;
   _drawHaruOverlay._lt        = undefined;
   _drawClassicDetPattern._lt  = undefined;
@@ -21571,6 +22050,7 @@ function stopBgAnim() {
   _stopOmenJanitorOverlay();
   _stopGonelaOverlay();
   _stopJustinOverlay();
+  _stopAntiOverlay();
   _stopHaruOverlay();
   _stopClassicDetOverlay();
   _stopClassicSaveOverlay();
@@ -22090,6 +22570,7 @@ function viewChar(id) {
   else if (_isOmenJanitor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#6fb6a0'); }
   else if (_isGonela(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a8285c'); }
   else if (_isJustin(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9c1212'); }
+  else if (_isAnti(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b06ad6'); }
   else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
   else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
   else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
@@ -22552,6 +23033,15 @@ function viewChar(id) {
       if (_av) _av.classList.remove('justin-pfp');
       if (_nm) _nm.classList.remove('justin-name');
     }
+    if (_isAnti(c)) {
+      _cvRoot.classList.add('anti-ui');
+      if (_av) _av.classList.add('anti-pfp');
+      if (_nm) _nm.classList.add('anti-name');
+    } else {
+      _cvRoot.classList.remove('anti-ui');
+      if (_av) _av.classList.remove('anti-pfp');
+      if (_nm) _nm.classList.remove('anti-name');
+    }
     if (_isOmenBartender(c)) {
       _cvRoot.classList.add('omenbar-ui');
       if (_av) _av.classList.add('omenbar-pfp');
@@ -22712,7 +23202,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -22724,7 +23214,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -22790,6 +23280,7 @@ function viewChar(id) {
   if (_isOmenJanitor(c)) _startOmenJanitorOverlay();
   if (_isGonela(c))   _startGonelaOverlay();
   if (_isJustin(c))   _startJustinOverlay();
+  if (_isAnti(c))     _startAntiOverlay();
   if (_isHaru(c))     _startHaruOverlay();
   if (_isClassicDet(c)) _startClassicDetOverlay();
   if (_isClassicSave(c)) _startClassicSaveOverlay();
@@ -28070,7 +28561,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -28113,6 +28604,7 @@ window.addEventListener('resize', () => {
       if (_isOmenJanitor(c)) _startOmenJanitorOverlay();
       if (_isGonela(c))   _startGonelaOverlay();
       if (_isJustin(c))   _startJustinOverlay();
+      if (_isAnti(c))     _startAntiOverlay();
       if (_isHaru(c))     _startHaruOverlay();
       if (_isClassicDet(c)) _startClassicDetOverlay();
       if (_isClassicSave(c)) _startClassicSaveOverlay();
@@ -28565,6 +29057,41 @@ function getLeaderboardVal(c, stat) {
   return e[stat] || 0;
 }
 
+// ── Classic is UNRANKABLE: it can never place on the board. It is
+// pinned to the very bottom of every view, its numbers corrupted into
+// glitch glyphs with a red aura. ──────────────────────────────────
+function _lbIsClassic(c) { try { return _isClassic(c); } catch (e) { return false; } }
+// sort by valOf desc, but every Classic is forced to the end
+function _lbSortClassicLast(arr, valOf) {
+  return [...arr].sort((a, b) => {
+    const ca = _lbIsClassic(a), cb = _lbIsClassic(b);
+    if (ca !== cb) return ca ? 1 : -1;
+    return valOf(b) - valOf(a);
+  });
+}
+// move Classic chars to the end, preserving the rest's order
+function _lbClassicLast(arr) {
+  return [...arr.filter(c => !_lbIsClassic(c)), ...arr.filter(_lbIsClassic)];
+}
+const _LB_GLYPHS = '▓▒░█▌▐■□#%&@!?<>/\\|0123456789*';
+function _lbGlitchStr(n) { let s = ''; for (let i = 0; i < n; i++) s += _LB_GLYPHS[(Math.random() * _LB_GLYPHS.length) | 0]; return s; }
+let _lbGlitchInt = null;
+function _lbStartGlitch() {
+  if (_lbGlitchInt) return;
+  const tick = () => {
+    if (!document.getElementById('leaderboard-wrap')) { _lbStopGlitch(); return; }
+    document.querySelectorAll('[data-lb-glitch]').forEach(el => {
+      el.textContent = _lbGlitchStr(+el.getAttribute('data-lb-glitch') || 4);
+    });
+    document.querySelectorAll('[data-lb-glitch-bar]').forEach(el => {
+      const pw = +el.getAttribute('data-lb-glitch-bar') || 100;
+      el.setAttribute('width', (pw * (0.22 + Math.random() * 0.66)).toFixed(1));
+    });
+  };
+  tick(); _lbGlitchInt = setInterval(tick, 110);
+}
+function _lbStopGlitch() { if (_lbGlitchInt) { clearInterval(_lbGlitchInt); _lbGlitchInt = null; } }
+
 // ── Hover tooltip (pfp + stats) ───────────────────────────────
 let _lbCharsForTip = [];
 
@@ -28618,26 +29145,35 @@ function renderLeaderboard() {
     wrap.innerHTML = `<div style="text-align:center;color:#444;font-size:8px;padding:24px;letter-spacing:1px;">NO CHARACTERS</div>`;
     return;
   }
-  if (_lbView === 'radar')  { _renderLbRadar(wrap, chars);  return; }
-  if (_lbView === 'bars')   { _renderLbBars(wrap, chars);   return; }
-  if (_lbView === 'radial') { _renderLbRadial(wrap, chars); return; }
-  if (_lbView === 'lines')  { _renderLbLines(wrap, chars);  return; }
-  _renderLbList(wrap, chars);
+  if (_lbView === 'radar')  { _renderLbRadar(wrap, chars); }
+  else if (_lbView === 'bars')   { _renderLbBars(wrap, chars); }
+  else if (_lbView === 'radial') { _renderLbRadial(wrap, chars); }
+  else if (_lbView === 'lines')  { _renderLbLines(wrap, chars); }
+  else { _renderLbList(wrap, chars); }
+  if (chars.some(_lbIsClassic)) _lbStartGlitch(); else _lbStopGlitch();
 }
 
 // ── List (default) ────────────────────────────────────────────
 function _renderLbList(wrap, chars) {
   const stat = _leaderboardStat;
-  const ranked = chars
-    .map(c => ({ c, val: +getLeaderboardVal(c, stat).toFixed(1) }))
-    .sort((a, b) => b.val - a.val);
+  const ranked = _lbSortClassicLast(chars, c => +getLeaderboardVal(c, stat).toFixed(1))
+    .map(c => ({ c, val: +getLeaderboardVal(c, stat).toFixed(1) }));
   const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
   const isSub = ['heal_pow','crit_rate','crit_dmg','status_res','dexterity','resilience','true_dmg','lifesteal','cooldown_red'].includes(stat);
   wrap.innerHTML = ranked.map(({ c, val }, i) => {
+    const cl = _lbIsClassic(c);
     const av = c.avatar
       ? `<img src="${c.avatar}" style="width:28px;height:28px;object-fit:cover;border:1px solid ${c.color};flex-shrink:0;">`
       : `<svg viewBox="0 0 32 32" style="width:28px;height:28px;flex-shrink:0;"><rect x="12" y="2" width="8" height="8" fill="${c.color}"/><rect x="10" y="10" width="12" height="10" fill="${c.color}"/><rect x="8" y="20" width="6" height="8" fill="${c.color}"/><rect x="18" y="20" width="6" height="8" fill="${c.color}"/></svg>`;
     const fmtVal = (val % 1 === 0 ? val : val.toFixed(1)) + (isSub ? '%' : '');
+    if (cl) {
+      return `<div class="lb-row lb-cl-row">
+        <span class="lb-rank lb-cl-glitch" data-lb-glitch="2">#?</span>
+        ${av}
+        <span class="lb-name lb-cl-name">${c.name}</span>
+        <span class="lb-val lb-cl-glitch" data-lb-glitch="5">${_lbGlitchStr(5)}</span>
+      </div>`;
+    }
     const rowBg = i < 3 ? `background:${(RANK_COLORS[i] || '#2a2a2a')}11;` : '';
     return `<div class="lb-row" style="${rowBg}">
       <span class="lb-rank" style="color:${RANK_COLORS[i] || '#333'}">#${i + 1}</span>
@@ -28654,18 +29190,20 @@ function _renderLbRadar(wrap, chars) {
   const STATS  = ['hp','atk','def','mag','spd','iq'];
   const LBLS   = STATS.map(s => _LB_STAT_LABELS[s] || s.toUpperCase());
   const CAP    = 15;
-  const all    = [...chars].sort((a,b) => getLeaderboardVal(b,'avg') - getLeaderboardVal(a,'avg'));
-  const subset = all.slice(0, CAP);          // top-15 only for readability
-  const capped = chars.length > CAP;
+  const classics = chars.filter(_lbIsClassic);
+  const others = chars.filter(c => !_lbIsClassic(c)).sort((a,b) => getLeaderboardVal(b,'avg') - getLeaderboardVal(a,'avg'));
+  const subset = [...others.slice(0, Math.max(1, CAP - classics.length)), ...classics];  // Classic always shown, last
+  const capped = others.length > Math.max(1, CAP - classics.length);
   const W = 520, H = 360, cx = W/2, cy = H/2, R = 134;
   const N = STATS.length;
   const ang = i => -Math.PI/2 + (2*Math.PI*i)/N;
-  const n = subset.length;
+  const rk = others.slice(0, Math.max(1, CAP - classics.length));   // percentile basis: rankable only
+  const n = Math.max(rk.length, 1);
 
-  // Percentile rank within the shown subset
+  // Percentile rank within the shown rankable subset (Classic excluded so it can't distort the web)
   const rankOf = {};
   STATS.forEach(s => {
-    const sorted = [...subset].sort((a,b) => getLeaderboardVal(a,s) - getLeaderboardVal(b,s));
+    const sorted = [...rk].sort((a,b) => getLeaderboardVal(a,s) - getLeaderboardVal(b,s));
     rankOf[s] = new Map(sorted.map((c,i) => [c, n > 1 ? i/(n-1) : 0.5]));
   });
   const pct = (s, c) => rankOf[s].get(c) ?? 0.5;
@@ -28691,10 +29229,12 @@ function _renderLbRadar(wrap, chars) {
   // No SVG filter — too slow with many elements
   const polys = subset.map(c => {
     const origIdx = chars.indexOf(c);
+    const cl = _lbIsClassic(c);
     const pts = STATS.map((s, i) => {
-      const r = pct(s, c) * R;
+      const r = (cl ? (0.5 + 0.08 * Math.sin(i * 1.7)) : pct(s, c)) * R;   // Classic: a fixed corrupted blob
       return `${(cx + r*Math.cos(ang(i))).toFixed(1)},${(cy + r*Math.sin(ang(i))).toFixed(1)}`;
     });
+    if (cl) return `<polygon points="${pts.join(' ')}" class="lb-cl-poly" stroke="#ff1a1a" stroke-width="1.2" data-lb-char="${origIdx}" style="cursor:pointer"/>`;
     const col = c.color || '#888';
     return `<polygon points="${pts.join(' ')}" fill="${col}" fill-opacity="0.08" stroke="${col}" stroke-width="1.1" stroke-opacity="0.65" data-lb-char="${origIdx}" style="cursor:pointer"/>`;
   }).join('');
@@ -28710,8 +29250,9 @@ function _renderLbRadar(wrap, chars) {
 // ── Horizontal bars ───────────────────────────────────────────
 function _renderLbBars(wrap, chars) {
   const stat   = _leaderboardStat;
-  const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,stat) - getLeaderboardVal(a,stat));
-  const maxVal = Math.max(...sorted.map(c => getLeaderboardVal(c, stat)), 1);
+  const sorted = _lbSortClassicLast(chars, c => getLeaderboardVal(c, stat));
+  const rankable = sorted.filter(c => !_lbIsClassic(c));
+  const maxVal = Math.max(...rankable.map(c => getLeaderboardVal(c, stat)), 1);
   const W = 520, rowH = 16;
   const pad = { l: 112, r: 56, t: 14, b: 10 };
   const H  = pad.t + sorted.length * rowH + pad.b;
@@ -28725,17 +29266,29 @@ function _renderLbBars(wrap, chars) {
   </defs>`;
 
   const MEDALS = ['🥇','🥈','🥉'];
+  let rIdx = 0;
   const rows = sorted.map((c, i) => {
     const origIdx = chars.indexOf(c);
+    const y   = pad.t + i*rowH;
+    const stripe = i%2===0 ? `<rect x="0" y="${y}" width="${W}" height="${rowH}" fill="rgba(255,255,255,0.007)"/>` : '';
+    if (_lbIsClassic(c)) {
+      // unrankable: a flickering corrupted bar with scrambled numbers
+      return `${stripe}<g data-lb-char="${origIdx}" class="lb-cl-svg" style="cursor:pointer">
+    <rect x="0" y="${y}" width="${W}" height="${rowH}" fill="rgba(255,26,26,0.04)"/>
+    <text x="5" y="${y+rowH/2+2.5}" class="lb-cl-glitch-svg" data-lb-glitch="1" font-size="7">?</text>
+    <text x="${pad.l-5}" y="${y+rowH/2+2.5}" text-anchor="end" class="lb-cl-glitch-svg" font-size="7.5">${_esc((c.name||'?').substring(0,13))}</text>
+    <rect x="${pad.l}" y="${y+3.5}" width="${(pw*0.5).toFixed(1)}" height="${rowH-7}" data-lb-glitch-bar="${pw.toFixed(0)}" class="lb-cl-bar" rx="2" filter="url(#lb-bar-glow)"/>
+    <text x="${pad.l+pw*0.5+5}" y="${y+rowH/2+2.5}" class="lb-cl-glitch-svg" data-lb-glitch="4" font-size="7">${_lbGlitchStr(4)}</text>
+    </g>`;
+    }
     const val = getLeaderboardVal(c, stat);
     const bw  = Math.max((val/maxVal)*pw, 1);
-    const y   = pad.t + i*rowH;
     const col = c.color || '#888';
-    const stripe = i%2===0 ? `<rect x="0" y="${y}" width="${W}" height="${rowH}" fill="rgba(255,255,255,0.007)"/>` : '';
-    const rnk = i < 3 ? MEDALS[i] : `#${i+1}`;
+    const rnk = rIdx < 3 ? MEDALS[rIdx] : `#${rIdx+1}`;
+    rIdx++;
     return `${stripe}<g data-lb-char="${origIdx}" style="cursor:pointer">
     <rect x="0" y="${y}" width="${W}" height="${rowH}" fill="transparent"/>
-    <text x="5" y="${y+rowH/2+2.5}" fill="#1c1c2c" font-size="${i<3?8:7}">${rnk}</text>
+    <text x="5" y="${y+rowH/2+2.5}" fill="#1c1c2c" font-size="${rIdx<=3?8:7}">${rnk}</text>
     <text x="${pad.l-5}" y="${y+rowH/2+2.5}" text-anchor="end" fill="${col}" font-size="7.5" opacity="0.9">${_esc((c.name||'?').substring(0,13))}</text>
     <rect x="${pad.l}" y="${y+3.5}" width="${bw}" height="${rowH-7}" fill="${col}" fill-opacity="0.78" rx="2" filter="url(#lb-bar-glow)"/>
     <line x1="${pad.l}" y1="${y+3.5}" x2="${pad.l+bw}" y2="${y+3.5}" stroke="${col}" stroke-width="1.5" stroke-opacity="0.55"/>
@@ -28756,8 +29309,8 @@ function _renderLbBars(wrap, chars) {
 // ── Radial / Sunburst ─────────────────────────────────────────
 function _renderLbRadial(wrap, chars) {
   const stat   = _leaderboardStat;
-  const sorted = [...chars].sort((a,b) => getLeaderboardVal(b,stat) - getLeaderboardVal(a,stat));
-  const maxVal = Math.max(...sorted.map(c => getLeaderboardVal(c, stat)), 1);
+  const sorted = _lbSortClassicLast(chars, c => getLeaderboardVal(c, stat));
+  const maxVal = Math.max(...sorted.filter(c => !_lbIsClassic(c)).map(c => getLeaderboardVal(c, stat)), 1);
   const W = 520, H = 420;
   const cx = W/2, cy = H/2;
   const innerR = 52, outerR = 196;
@@ -28774,13 +29327,13 @@ function _renderLbRadial(wrap, chars) {
 
   const arcs = sorted.map((c, i) => {
     const origIdx = chars.indexOf(c);
-    const val = getLeaderboardVal(c, stat);
-    const t   = val/maxVal;
+    const cl = _lbIsClassic(c);
+    const t   = cl ? 0.6 : getLeaderboardVal(c, stat)/maxVal;
     const r   = innerR + t*(outerR-innerR);
     const a0  = -Math.PI/2 + (i/n)*TAU + gap/2;
     const a1  = -Math.PI/2 + ((i+1)/n)*TAU - gap/2;
     const la  = (a1-a0) > Math.PI ? 1 : 0;
-    const col = c.color || '#888';
+    const col = cl ? '#ff1a1a' : (c.color || '#888');
     const d = [
       `M ${(cx+innerR*Math.cos(a0)).toFixed(1)},${(cy+innerR*Math.sin(a0)).toFixed(1)}`,
       `L ${(cx+r*Math.cos(a0)).toFixed(1)},${(cy+r*Math.sin(a0)).toFixed(1)}`,
@@ -28788,6 +29341,7 @@ function _renderLbRadial(wrap, chars) {
       `L ${(cx+innerR*Math.cos(a1)).toFixed(1)},${(cy+innerR*Math.sin(a1)).toFixed(1)}`,
       `A ${innerR},${innerR} 0 ${la},0 ${(cx+innerR*Math.cos(a0)).toFixed(1)},${(cy+innerR*Math.sin(a0)).toFixed(1)} Z`
     ].join(' ');
+    if (cl) return `<path d="${d}" class="lb-cl-arc" stroke="#ff1a1a" stroke-width="0.5" stroke-opacity="0.5" data-lb-char="${origIdx}" style="cursor:pointer"/>`;
     const halo = t > 0.85 ? `<path d="${d}" fill="${col}" fill-opacity="0.1" filter="url(#lb-rd2-glow)"/>` : '';
     return `${halo}<path d="${d}" fill="${col}" fill-opacity="${(0.4+t*0.55).toFixed(2)}" stroke="${col}" stroke-width="0.4" stroke-opacity="0.25" data-lb-char="${origIdx}" style="cursor:pointer"/>`;
   }).join('');
@@ -28817,28 +29371,39 @@ function _renderLbLines(wrap, chars) {
   const pad = { l: 38, r: 38, t: 42, b: 38 };
   const ph = H - pad.t - pad.b;
 
+  const ordered = _lbClassicLast(chars);   // Classic drawn last, on top
+  const rankable = chars.filter(c => !_lbIsClassic(c));
   const minV = {}, maxV = {};
   STATS.forEach(s => {
-    const vs = chars.map(c => getLeaderboardVal(c, s));
+    const vs = (rankable.length ? rankable : chars).map(c => getLeaderboardVal(c, s));
     minV[s] = Math.min(...vs); maxV[s] = Math.max(...vs);
   });
   const axX = i => pad.l + (i/(STATS.length-1))*(W - pad.l - pad.r);
-  const toY = (s, v) => pad.t + (1 - (v-minV[s]) / (maxV[s]-minV[s] || 1)) * ph;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const toY = (s, v) => clamp(pad.t + (1 - (v-minV[s]) / (maxV[s]-minV[s] || 1)) * ph, pad.t, pad.t + ph);
 
   // Lines drawn behind axes
-  const lines = chars.map((c, ci) => {
-    const pts = STATS.map((s, i) => [axX(i), toY(s, getLeaderboardVal(c, s))]);
+  const lines = ordered.map((c) => {
+    const ci = chars.indexOf(c);
+    const cl = _lbIsClassic(c);
+    const pts = STATS.map((s, i) => [axX(i), cl ? (pad.t + ph * 0.5) : toY(s, getLeaderboardVal(c, s))]);
     let d = `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
     for (let i=1; i<pts.length; i++) d += ` L ${pts[i][0].toFixed(1)},${pts[i][1].toFixed(1)}`;
+    if (cl) return `<path d="${d}" fill="none" class="lb-cl-line" stroke="#ff1a1a" stroke-width="1.4" data-lb-char="${ci}" style="cursor:pointer"/>`;
     const col = c.color || '#888';
     return `<path d="${d}" fill="none" stroke="${col}" stroke-width="1.3" stroke-opacity="0.5" data-lb-char="${ci}" style="cursor:pointer"/>`;
   }).join('');
 
   // Dots where each line crosses each axis
-  const dots = chars.map((c, ci) => STATS.map((s, i) => {
-    const col = c.color || '#888';
-    return `<circle cx="${axX(i).toFixed(1)}" cy="${toY(s,getLeaderboardVal(c,s)).toFixed(1)}" r="2.2" fill="${col}" fill-opacity="0.7" data-lb-char="${ci}" style="cursor:pointer"/>`;
-  }).join('')).join('');
+  const dots = ordered.map((c) => {
+    const ci = chars.indexOf(c);
+    const cl = _lbIsClassic(c);
+    return STATS.map((s, i) => {
+      const cy2 = cl ? (pad.t + ph * 0.5) : toY(s, getLeaderboardVal(c, s));
+      const col = cl ? '#ff1a1a' : (c.color || '#888');
+      return `<circle cx="${axX(i).toFixed(1)}" cy="${cy2.toFixed(1)}" r="2.2" fill="${col}" ${cl ? 'class="lb-cl-line"' : 'fill-opacity="0.7"'} data-lb-char="${ci}" style="cursor:pointer"/>`;
+    }).join('');
+  }).join('');
 
   // Axes on top
   let axes = '';

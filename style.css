@@ -3468,6 +3468,82 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   ANTI — a good demon, at peace. Calm violet panels with a soft
+   breathing halo-glow, a serene gently-floating name, and a portrait
+   crowned by a faint halo. --char-color soft violet.
+   ============================================================ */
+#char-view.anti-ui .panel {
+  --p-border: #b06ad6;
+  border-color: #b06ad6;
+  background: linear-gradient(180deg, rgba(28,16,46,0.95), rgba(16,9,28,0.96));
+  box-shadow:
+    0 0 22px rgba(176,106,214,0.18),
+    inset 0 0 26px rgba(60,30,90,0.4);
+  animation: anti-breathe 6s ease-in-out infinite;
+}
+@keyframes anti-breathe {
+  0%, 100% { box-shadow: 0 0 16px rgba(176,106,214,0.14), inset 0 0 24px rgba(60,30,90,0.36); }
+  50%      { box-shadow: 0 0 30px rgba(214,158,236,0.3), inset 0 0 30px rgba(80,40,120,0.46); }
+}
+#char-view.anti-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% -12%, rgba(214,158,236,0.12), transparent 60%);
+  mix-blend-mode: screen;
+  animation: anti-halo 6s ease-in-out infinite;
+}
+@keyframes anti-halo { 0%,100% { opacity: 0.5; } 50% { opacity: 0.95; } }
+#char-view.anti-ui .panel-title {
+  color: #e0bdf2 !important;
+  letter-spacing: 4px;
+  font-weight: normal;
+  border-bottom-color: rgba(176,106,214,0.4);
+  text-shadow: 0 0 12px rgba(214,158,236,0.6);
+}
+#char-view.anti-ui .tab-btn { color: #6a5380; }
+#char-view.anti-ui .tab-btn:hover { color: #ecd6f6; text-shadow: 0 0 10px rgba(214,158,236,0.6); }
+#char-view.anti-ui .tab-btn.active {
+  color: #f2e0fb;
+  border-bottom-color: #c68be0;
+  text-shadow: 0 0 14px rgba(214,158,236,0.85);
+}
+/* Name: soft violet, gently floating, glowing like candlelight */
+.char-name-display.anti-name {
+  color: #d9b0ee !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  text-shadow: 0 0 10px rgba(214,158,236,0.7), 0 0 24px rgba(150,80,190,0.5);
+  animation: anti-float 5.5s ease-in-out infinite;
+}
+@keyframes anti-float {
+  0%, 100% { transform: translateY(0); text-shadow: 0 0 10px rgba(214,158,236,0.7), 0 0 24px rgba(150,80,190,0.5); }
+  50%      { transform: translateY(-2px); text-shadow: 0 0 16px rgba(230,190,250,0.85), 0 0 30px rgba(170,100,210,0.6); }
+}
+/* Portrait: violet frame with a soft golden halo floating above it */
+.char-avatar-large.anti-pfp {
+  border-color: #b06ad6 !important;
+  box-shadow: 0 0 22px rgba(176,106,214,0.45), inset 0 0 20px rgba(50,25,80,0.6);
+  overflow: visible;
+}
+.char-avatar-large.anti-pfp::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: -11px;
+  width: 60%; height: 9px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  border: 2px solid rgba(246,233,200,0.85);
+  box-shadow: 0 0 10px rgba(246,233,200,0.8), 0 0 18px rgba(214,158,236,0.5);
+  pointer-events: none;
+  animation: anti-halo-bob 4s ease-in-out infinite;
+}
+@keyframes anti-halo-bob {
+  0%, 100% { top: -11px; opacity: 0.85; }
+  50%      { top: -14px; opacity: 1; }
+}
+
+/* ============================================================
    HARU — parasitical, mysterious, overwhelming. Infected
    purple panels whose borders pulse like veins, a name that
    breathes unevenly in the dark, and a portrait something is
@@ -8133,6 +8209,37 @@ body.nara-no-select, body.nara-no-select * {
 .lb-rank { width: 28px; text-align: right; flex-shrink: 0; font-weight: bold; }
 .lb-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-val { color: var(--accent-cyan); flex-shrink: 0; font-size: 9px; }
+
+/* ── Classic is unrankable: pinned to the bottom, numbers corrupted ── */
+.lb-row.lb-cl-row {
+  background: linear-gradient(90deg, rgba(255,26,26,0.05), rgba(120,0,40,0.13)) !important;
+  box-shadow: inset 0 0 14px rgba(255,26,26,0.22);
+  border-bottom: 1px solid rgba(255,26,26,0.18);
+}
+.lb-cl-name {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: #ff3a3a !important;
+  text-shadow: 0 0 8px rgba(255,26,26,0.7), 1px 0 0 rgba(255,255,255,0.35);
+  animation: lb-cl-jit 0.32s steps(2) infinite;
+}
+.lb-cl-glitch {
+  color: #ff2a2a !important;
+  text-shadow: 2px 0 0 rgba(255,255,255,0.4), -2px 0 0 rgba(120,0,0,0.85);
+  letter-spacing: 1px;
+  animation: lb-cl-jit 0.3s steps(2) infinite;
+}
+@keyframes lb-cl-jit { 0%,100% { transform: translate(0,0); } 50% { transform: translate(1px,-1px); } }
+/* SVG variants */
+text.lb-cl-glitch-svg {
+  fill: #ff2a2a;
+  filter: drop-shadow(0 0 3px rgba(255,40,40,0.85));
+  animation: lb-cl-flick 0.3s steps(2) infinite;
+}
+.lb-cl-bar { fill: #ff1a1a; fill-opacity: 0.5; filter: drop-shadow(0 0 4px rgba(255,30,30,0.8)); animation: lb-cl-flick 0.26s steps(2) infinite; }
+.lb-cl-arc { fill: #ff1a1a; fill-opacity: 0.4; filter: drop-shadow(0 0 4px rgba(255,30,30,0.7)); animation: lb-cl-flick 0.3s steps(2) infinite; }
+.lb-cl-line { stroke-opacity: 0.9; filter: drop-shadow(0 0 3px rgba(255,30,30,0.8)); animation: lb-cl-flick 0.3s steps(2) infinite; }
+.lb-cl-poly { fill: #ff1a1a; fill-opacity: 0.1; filter: drop-shadow(0 0 4px rgba(255,30,30,0.7)); animation: lb-cl-flick 0.3s steps(2) infinite; }
+@keyframes lb-cl-flick { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 /* Chart SVG */
 .lb-chart-svg { width: 100%; height: auto; display: block; }
