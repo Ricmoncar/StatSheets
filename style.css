@@ -3374,6 +3374,408 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   CLASSIC — every panel is an UNDERTALE dialogue box: pure
+   black with a thick white pixel border. His name splits and
+   glitches, his portrait carries the SOUL, and his stats are
+   corrupted beyond reading. The Determination. form turns the
+   boxes red and mean.
+   ============================================================ */
+#char-view.classic-ui .panel {
+  --p-border: #f8f8f8;
+  border-color: #f8f8f8;
+  border-radius: 0;
+  background: #000;
+  box-shadow:
+    inset 0 0 0 3px #000,
+    inset 0 0 0 5px #f8f8f8;
+}
+#char-view.classic-ui .panel-title {
+  color: #fff !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(255,255,255,0.5);
+  text-shadow: none;
+}
+#char-view.classic-ui .tab-btn { color: #777; }
+#char-view.classic-ui .tab-btn:hover { color: #fff; text-shadow: 2px 0 0 rgba(255,26,26,0.6); }
+#char-view.classic-ui .tab-btn.active {
+  color: #fff;
+  border-bottom-color: #fff;
+  text-shadow: none;
+}
+/* Determination. — the boxes go red and mean, beating with the kill
+   floor's heart: pulsing border, breathing blood-glow, scanlines */
+#char-view.classic-ui.classic-det .panel {
+  --p-border: #ff1a1a;
+  border-color: #ff1a1a;
+  background: linear-gradient(180deg, #0c0000, #050000);
+  box-shadow:
+    inset 0 0 0 3px #050000,
+    inset 0 0 0 5px #ff1a1a,
+    0 0 22px rgba(255,26,26,0.22);
+  animation: classicdet-edge 4.2s ease-in-out infinite;
+}
+@keyframes classicdet-edge {
+  0%, 100% { border-color: #9a0e0e; }
+  50%      { border-color: #ec2020; }
+}
+#char-view.classic-ui.classic-det .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 118%, rgba(255,30,30,0.18), transparent 60%);
+  mix-blend-mode: screen;
+  animation: classicdet-breathe 4.2s ease-in-out infinite;
+}
+@keyframes classicdet-breathe {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.85; }
+}
+#char-view.classic-ui.classic-det .panel::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,26,26,0.045) 3px 4px);
+}
+#char-view.classic-ui.classic-det .panel-title {
+  color: #ff4a4a !important;
+  border-bottom-color: rgba(255,26,26,0.5);
+  text-shadow: 0 0 10px rgba(255,26,26,0.6);
+  animation: classicdet-title 3.7s steps(1) infinite;
+}
+@keyframes classicdet-title {
+  0%, 100% { opacity: 1; }
+  31%      { opacity: 0.55; }
+  32.5%    { opacity: 1; }
+  78%      { opacity: 0.4; }
+  79%      { opacity: 1; }
+}
+#char-view.classic-ui.classic-det .tab-btn.active {
+  color: #ff5a5a;
+  border-bottom-color: #ff1a1a;
+  text-shadow: 0 0 12px rgba(255,26,26,0.7);
+}
+/* the name burns red in this form */
+#char-view.classic-det .char-name-display.classic-name {
+  color: #ff2a2a !important;
+  text-shadow: 3px 0 0 rgba(255,255,255,0.35), -3px 0 0 rgba(120,0,0,0.8), 0 0 14px rgba(255,26,26,0.5);
+}
+
+/* Name: white pixel text that SPLITS — red/dark ghost slices snap apart */
+.char-name-display.classic-name {
+  position: relative;
+  color: #f8f8f8 !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  text-shadow: 3px 0 0 rgba(255,26,26,0.55), -3px 0 0 rgba(90,90,120,0.5);
+  animation: classic-name-split 3.1s steps(1) infinite;
+}
+@keyframes classic-name-split {
+  0%, 100% { text-shadow: 3px 0 0 rgba(255,26,26,0.55), -3px 0 0 rgba(90,90,120,0.5); transform: translate(0,0); }
+  11%      { text-shadow: 6px 0 0 rgba(255,26,26,0.8),  -6px 0 0 rgba(120,120,160,0.6); transform: translate(-2px,0); }
+  13%      { text-shadow: 3px 0 0 rgba(255,26,26,0.55), -3px 0 0 rgba(90,90,120,0.5); transform: translate(0,0); }
+  54%      { transform: translate(0,0); }
+  55%      { transform: translate(2px,-1px) skewX(-4deg); }
+  56.5%    { transform: translate(0,0) skewX(0); }
+  82%      { text-shadow: 3px 0 0 rgba(255,26,26,0.55), -3px 0 0 rgba(90,90,120,0.5); }
+  83%      { text-shadow: -5px 0 0 rgba(255,26,26,0.85), 5px 0 0 rgba(120,120,160,0.6); }
+  84.5%    { text-shadow: 3px 0 0 rgba(255,26,26,0.55), -3px 0 0 rgba(90,90,120,0.5); }
+}
+.char-name-display.classic-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: #ff1a1a;
+  clip-path: inset(40% 0 34% 0);
+  opacity: 0;
+  animation: classic-name-slice 3.1s steps(1) infinite;
+}
+@keyframes classic-name-slice {
+  0%, 100% { opacity: 0; transform: translateX(0); }
+  11%      { opacity: 1; transform: translateX(7px); clip-path: inset(40% 0 34% 0); }
+  14%      { opacity: 0; }
+  55%      { opacity: 1; transform: translateX(-8px); clip-path: inset(12% 0 66% 0); }
+  58%      { opacity: 0; }
+  83%      { opacity: 1; transform: translateX(5px); clip-path: inset(62% 0 14% 0); }
+  86%      { opacity: 0; }
+}
+
+/* Portrait: a white pixel frame carrying the SOUL — it glitch-skips */
+.char-avatar-large.classic-pfp {
+  border-color: #f8f8f8 !important;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #000, inset 0 0 0 3.5px #f8f8f8;
+  overflow: visible;
+  animation: classic-pfp-skip 4.7s steps(1) infinite;
+}
+#char-view.classic-det .char-avatar-large.classic-pfp {
+  border-color: #ff1a1a !important;
+  box-shadow: inset 0 0 0 2px #050000, inset 0 0 0 3.5px #ff1a1a, 0 0 18px rgba(255,26,26,0.4);
+  animation: classic-pfp-skip 4.7s steps(1) infinite, classicdet-pfp-glow 4.2s ease-in-out infinite;
+}
+@keyframes classicdet-pfp-glow {
+  0%, 100% { box-shadow: inset 0 0 0 2px #050000, inset 0 0 0 3.5px #ff1a1a, 0 0 12px rgba(255,26,26,0.3); }
+  50%      { box-shadow: inset 0 0 0 2px #050000, inset 0 0 0 3.5px #ff4040, 0 0 24px rgba(255,26,26,0.55); }
+}
+@keyframes classic-pfp-skip {
+  0%, 100% { transform: translate(0,0); filter: none; }
+  23%      { transform: translate(-2px,1px); filter: invert(0.08); }
+  24%      { transform: translate(0,0); filter: none; }
+  61%      { transform: translate(2px,0); }
+  62%      { transform: translate(0,0); }
+  87%      { filter: grayscale(1) contrast(1.3); }
+  88.5%    { filter: none; }
+}
+/* the SOUL, pinned to the portrait's corner, beating */
+.char-avatar-large.classic-pfp::after {
+  content: "❤";
+  position: absolute;
+  right: -7px; bottom: -9px;
+  font-size: 17px;
+  line-height: 1;
+  color: #ff1a1a;
+  text-shadow: 0 0 8px rgba(255,26,26,0.8), 1px 1px 0 #000;
+  animation: classic-soul-beat 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes classic-soul-beat {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.16); }
+}
+
+/* Stats: corrupted beyond reading — values jitter, bars spasm */
+#char-view.classic-ui .stat-val {
+  color: #ff2a2a !important;
+  text-shadow: 2px 0 0 rgba(255,255,255,0.4), -2px 0 0 rgba(120,0,0,0.85);
+  animation: classic-stat-jit 0.32s steps(2) infinite;
+}
+@keyframes classic-stat-jit {
+  0%, 100% { transform: translate(0,0); }
+  50%      { transform: translate(1px,-1px); }
+}
+#char-view.classic-ui .stat-seg.fill-fg { transition: none !important; }
+#char-view.classic-ui .stat-segs {
+  animation: classic-bar-jit 0.62s steps(3) infinite;
+}
+@keyframes classic-bar-jit {
+  0%, 100% { transform: translate(0,0); }
+  33%      { transform: translate(-1px,0); }
+  66%      { transform: translate(1.5px,0); }
+}
+
+/* ── Classic · SAVE — Asriel's rainbow. The whole menu sways and leaves
+   rainbow afterimages; borders, name and portrait all run rainbow. ── */
+#char-view.classic-save .panel {
+  border: 3px solid transparent !important;
+  border-radius: 0;
+  background:
+    linear-gradient(#000, #000) padding-box,
+    linear-gradient(120deg, #ff4d4d, #ffd24d, #4dff7a, #4dd2ff, #b84dff, #ff4d4d) border-box !important;
+  background-size: 100% 100%, 300% 100% !important;
+  animation: classic-save-bordermove 5s linear infinite, classic-save-panelsway 4.6s ease-in-out infinite;
+}
+@keyframes classic-save-bordermove {
+  0%   { background-position: 0 0, 0% 0; }
+  100% { background-position: 0 0, 300% 0; }
+}
+/* sway + colour-split box-shadows lagging the motion = rainbow afterimages */
+@keyframes classic-save-panelsway {
+  0%, 100% { transform: translate(0,0) rotate(0deg);
+    box-shadow: 7px 0 0 rgba(255,60,60,0.13), -7px 0 0 rgba(60,170,255,0.13), 0 7px 0 rgba(80,255,140,0.10), 0 0 24px rgba(180,120,255,0.22); }
+  33% { transform: translate(-5px,2px) rotate(-0.5deg);
+    box-shadow: 14px -2px 0 rgba(255,60,60,0.17), -5px 1px 0 rgba(60,170,255,0.14), -3px 9px 0 rgba(80,255,140,0.13), 0 0 30px rgba(180,120,255,0.32); }
+  66% { transform: translate(5px,-2px) rotate(0.5deg);
+    box-shadow: 5px 2px 0 rgba(255,60,60,0.14), -14px -1px 0 rgba(60,170,255,0.17), 3px 9px 0 rgba(80,255,140,0.13), 0 0 30px rgba(180,120,255,0.32); }
+}
+#char-view.classic-save .panel-title {
+  border-bottom-color: rgba(255,255,255,0.4);
+  background-image: linear-gradient(90deg, #ff6b6b, #ffe06b, #6bff9c, #6bd2ff, #c98bff, #ff6b6b);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  text-shadow: none;
+  animation: classic-save-rainbow 4s linear infinite, classic-save-microsway 4.6s ease-in-out infinite;
+}
+#char-view.classic-save .tab-btn.active {
+  border-bottom-color: #b84dff;
+  color: #fff; text-shadow: 0 0 10px rgba(180,120,255,0.8);
+}
+
+/* name — rainbow text, swaying, with chromatic ghost shadows */
+#char-view.classic-save .char-name-display.classic-name {
+  background-image: linear-gradient(90deg, #ff4d4d, #ffd24d, #4dff7a, #4dd2ff, #b84dff, #ff4d4d);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  text-shadow: none;
+  animation: classic-save-rainbow 4s linear infinite, classic-save-namesway 4.6s ease-in-out infinite;
+}
+#char-view.classic-save .char-name-display.classic-name::after { display: none; }
+@keyframes classic-save-namesway {
+  0%, 100% { transform: translate(0,0); filter: drop-shadow(4px 0 0 rgba(255,60,60,0.4)) drop-shadow(-4px 0 0 rgba(60,170,255,0.4)); }
+  33% { transform: translate(-3px,0); filter: drop-shadow(8px 0 0 rgba(255,60,60,0.45)) drop-shadow(-3px 0 0 rgba(60,170,255,0.4)); }
+  66% { transform: translate(3px,0); filter: drop-shadow(3px 0 0 rgba(255,60,60,0.4)) drop-shadow(-8px 0 0 rgba(60,170,255,0.45)); }
+}
+
+/* portrait — rainbow frame, swaying, chromatic ghosts */
+#char-view.classic-save .char-avatar-large.classic-pfp {
+  border: 3px solid transparent !important;
+  border-radius: 0;
+  background:
+    linear-gradient(#000, #000) padding-box,
+    linear-gradient(120deg, #ff4d4d, #ffd24d, #4dff7a, #4dd2ff, #b84dff, #ff4d4d) border-box !important;
+  background-size: 100% 100%, 300% 100% !important;
+  box-shadow: none;
+  animation: classic-save-bordermove 5s linear infinite, classic-save-pfpsway 4.6s ease-in-out infinite;
+}
+@keyframes classic-save-pfpsway {
+  0%, 100% { transform: translate(0,0) rotate(0deg);
+    box-shadow: 5px 0 0 rgba(255,60,60,0.16), -5px 0 0 rgba(60,170,255,0.16), 0 0 20px rgba(180,120,255,0.35); }
+  33% { transform: translate(-3px,1px) rotate(-0.6deg);
+    box-shadow: 10px 0 0 rgba(255,60,60,0.2), -3px 0 0 rgba(60,170,255,0.16), 0 0 24px rgba(180,120,255,0.4); }
+  66% { transform: translate(3px,-1px) rotate(0.6deg);
+    box-shadow: 3px 0 0 rgba(255,60,60,0.16), -10px 0 0 rgba(60,170,255,0.2), 0 0 24px rgba(180,120,255,0.4); }
+}
+#char-view.classic-save .char-avatar-large.classic-pfp::after {
+  color: #fff;
+  text-shadow: 0 0 8px rgba(255,255,255,0.9), 1px 1px 0 #000;
+}
+
+/* ── EVERYTHING goes rainbow under SAVE ──────────────────────────── */
+/* pure-text elements: a rainbow gradient spread across the glyphs */
+#char-view.classic-save .trait-chip-name,
+#char-view.classic-save .trait-chip-rarity,
+#char-view.classic-save .trait-chip-desc,
+#char-view.classic-save .trait-chip-desc *,
+#char-view.classic-save .stat-label,
+#char-view.classic-save .stat-val,
+#char-view.classic-save .cv-pl-label,
+#char-view.classic-save .sub-stat-label,
+#char-view.classic-save .sub-stat-val,
+#char-view.classic-save .substat-label,
+#char-view.classic-save .substat-val,
+#char-view.classic-save #cv-bio-text,
+#char-view.classic-save .panel-subtitle,
+#char-view.classic-save [id^="tier-disp-"] {
+  background-image: linear-gradient(90deg, #ff5b6b, #ffd25b, #5bff8c, #5bd2ff, #c98bff, #ff5b6b) !important;
+  background-size: 300% 100% !important;
+  -webkit-background-clip: text !important; background-clip: text !important;
+  -webkit-text-fill-color: transparent !important; color: transparent !important;
+  text-shadow: none !important;
+  animation: classic-save-rainbow 4s linear infinite, classic-save-microsway 4.6s ease-in-out infinite !important;
+}
+
+/* elements that contain icons (currentColor) cycle hue so the icons stay
+   visible: tabs, all buttons, the gold readout, section headers */
+#char-view.classic-save .tab-btn,
+#char-view.classic-save .btn,
+#char-view.classic-save #cv-gold-display,
+#char-view.classic-save #cv-gold-display * {
+  animation: classic-save-colorcycle 5s linear infinite, classic-save-microsway 4.6s ease-in-out infinite !important;
+}
+#char-view.classic-save .tab-btn,
+#char-view.classic-save .btn {
+  border-color: currentColor !important;
+}
+#char-view.classic-save .btn:hover { filter: brightness(1.3); }
+#char-view.classic-save .tab-btn.active {
+  text-shadow: 0 0 10px currentColor;
+}
+
+/* the corrupted stat bars run rainbow too */
+#char-view.classic-save .stat-seg.fill-fg {
+  background: linear-gradient(90deg, #ff5b6b, #ffd25b, #5bff8c, #5bd2ff, #c98bff, #ff5b6b) !important;
+  background-size: 300% 100% !important;
+  animation: classic-save-rainbow 4s linear infinite !important;
+}
+#char-view.classic-save .trait-chip {
+  border-color: transparent !important;
+  background:
+    linear-gradient(#000, #000) padding-box,
+    linear-gradient(120deg, #ff4d4d, #ffd24d, #4dff7a, #4dd2ff, #b84dff, #ff4d4d) border-box !important;
+  background-size: 100% 100%, 300% 100% !important;
+  animation: classic-save-bordermove 5s linear infinite, classic-save-microsway 5s ease-in-out infinite;
+}
+
+@keyframes classic-save-colorcycle {
+  0%, 100% { color: #ff5b6b; }
+  20% { color: #ffd25b; }
+  40% { color: #5bff8c; }
+  60% { color: #5bd2ff; }
+  80% { color: #c98bff; }
+}
+@keyframes classic-save-microsway {
+  0%, 100% { transform: translate(0,0) rotate(0deg); }
+  33% { transform: translate(-1.5px,0.5px) rotate(-0.5deg); }
+  66% { transform: translate(1.5px,-0.5px) rotate(0.5deg); }
+}
+
+/* ── Classic · GHOST — somber, melancholic. Pale dusty-gold dialogue
+   boxes with a faint glow that breathes slowly, and a washed-out name
+   that flickers like a fading spirit. ──────────────────────────── */
+#char-view.classic-ghost .panel {
+  --p-border: #b3a878;
+  border-color: #b3a878;
+  background: linear-gradient(180deg, rgba(10,10,12,0.96), rgba(6,6,8,0.96));
+  box-shadow:
+    inset 0 0 0 3px #060608,
+    inset 0 0 0 5px #b3a878,
+    0 0 18px rgba(190,170,90,0.10);
+  animation: classic-ghost-breathe 6s ease-in-out infinite;
+}
+@keyframes classic-ghost-breathe {
+  0%, 100% { box-shadow: inset 0 0 0 3px #060608, inset 0 0 0 5px #9c9168, 0 0 14px rgba(190,170,90,0.07); }
+  50%      { box-shadow: inset 0 0 0 3px #060608, inset 0 0 0 5px #cabd84, 0 0 22px rgba(210,190,110,0.16); }
+}
+#char-view.classic-ghost .panel-title {
+  color: #d6c98a !important;
+  text-shadow: 0 0 10px rgba(190,170,90,0.4);
+  border-bottom-color: rgba(190,170,90,0.32);
+}
+#char-view.classic-ghost .tab-btn { color: #6a6452; }
+#char-view.classic-ghost .tab-btn:hover { color: #d6c98a; text-shadow: 0 0 8px rgba(190,170,90,0.5); }
+#char-view.classic-ghost .tab-btn.active {
+  color: #e2d59a;
+  border-bottom-color: #c4b878;
+  text-shadow: 0 0 12px rgba(210,190,110,0.6);
+}
+/* name — a faded spirit: washed pale gold, slowly flickering + drifting */
+#char-view.classic-ghost .char-name-display.classic-name {
+  color: #e6ddc0 !important;
+  text-shadow: 0 0 10px rgba(214,201,138,0.55), 0 0 22px rgba(160,150,100,0.3);
+  animation: classic-ghost-nameflick 5.5s ease-in-out infinite, classic-ghost-namedrift 7s ease-in-out infinite;
+}
+#char-view.classic-ghost .char-name-display.classic-name::after { display: none; }
+@keyframes classic-ghost-nameflick {
+  0%, 100% { opacity: 0.92; }
+  43% { opacity: 0.92; }
+  46% { opacity: 0.5; }
+  48% { opacity: 0.86; }
+  74% { opacity: 0.72; }
+  76% { opacity: 0.92; }
+}
+@keyframes classic-ghost-namedrift {
+  0%, 100% { transform: translate(0,0); }
+  50% { transform: translate(0,-1.5px); }
+}
+/* portrait — pale dusty frame, faintly desaturated, soft gold glow */
+#char-view.classic-ghost .char-avatar-large.classic-pfp {
+  border-color: #b3a878 !important;
+  box-shadow: inset 0 0 0 2px #060608, inset 0 0 0 3.5px #b3a878, 0 0 16px rgba(190,170,90,0.22);
+  filter: saturate(0.7) brightness(0.92);
+  animation: classic-pfp-skip 4.7s steps(1) infinite, classic-ghost-breathe 6s ease-in-out infinite;
+}
+#char-view.classic-ghost .char-avatar-large.classic-pfp::after {
+  color: #e6ddc0;
+  text-shadow: 0 0 8px rgba(214,201,138,0.8), 1px 1px 0 #000;
+}
+/* the corrupted stats glow a mournful pale gold here */
+#char-view.classic-ghost .stat-val {
+  color: #d6c98a !important;
+  text-shadow: 1px 0 0 rgba(255,255,255,0.25), -1px 0 0 rgba(120,110,60,0.6);
+}
+
+/* ============================================================
    HELIOS — god of the sun. Strong, intimidating, aggressive,
    voracious. Molten gold / white-hot, fast fierce pulses.
    --char-color is blazing amber-gold.
@@ -7828,6 +8230,8 @@ body.nara-no-select, body.nara-no-select * {
   white-space: nowrap;
   transition: color 0.1s, border-color 0.1s;
 }
+/* form chips don't want the .btn offset-shadow frame (reads as a 2nd border) */
+.form-chip::after { display: none !important; }
 .form-chip:hover {
   color: #999;
   border-color: #555;
@@ -7836,6 +8240,103 @@ body.nara-no-select, body.nara-no-select * {
   color: var(--char-color, #ffff00);
   border-color: var(--char-color, #ffff00);
   box-shadow: 0 0 6px var(--char-color, #ffff00)55;
+}
+
+/* ── Classic's form chips — each always wears its own identity ── */
+.form-chip.classic-chip { position: relative; overflow: hidden; border-radius: 0; }
+.form-chip.classic-chip .form-chip-tx {
+  position: relative; z-index: 1;
+  background-clip: text; -webkit-background-clip: text;
+}
+
+/* GHOST — ghostly gray, faintly flickering and drifting */
+.form-chip.classic-chip-ghost {
+  border-color: #555;
+  background: #0a0a0a;
+  animation: classic-ghost-flicker 3.4s ease-in-out infinite;
+}
+.form-chip.classic-chip-ghost .form-chip-tx {
+  color: #c8c8d0;
+  -webkit-text-fill-color: #c8c8d0;
+  text-shadow: 0 0 6px rgba(200,200,220,0.65), 0 0 12px rgba(150,150,180,0.4);
+  animation: classic-ghost-drift 2.8s ease-in-out infinite;
+}
+.form-chip.classic-chip-ghost.form-chip-active {
+  border-color: #aaa;
+  box-shadow: 0 0 8px rgba(200,200,220,0.4);
+}
+@keyframes classic-ghost-flicker {
+  0%, 100% { opacity: 0.92; }
+  47% { opacity: 0.92; }
+  48% { opacity: 0.6; }
+  49% { opacity: 0.92; }
+  72% { opacity: 0.78; }
+  73% { opacity: 0.95; }
+}
+@keyframes classic-ghost-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+/* DETERMINATION — red & dark red, glimmering */
+.form-chip.classic-chip-det {
+  border-color: #8d0d0d;
+  background: linear-gradient(180deg, #1a0202, #0a0000);
+  animation: classic-det-glow 2.2s ease-in-out infinite;
+}
+.form-chip.classic-chip-det .form-chip-tx {
+  background-image: linear-gradient(100deg, #7a0808 0%, #ff2a2a 45%, #ffd0d0 50%, #ff2a2a 55%, #7a0808 100%);
+  background-size: 260% 100%;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: classic-det-glimmer 2.6s linear infinite;
+}
+.form-chip.classic-chip-det.form-chip-active {
+  border-color: #ff2a2a;
+  box-shadow: 0 0 10px rgba(255,26,26,0.5);
+}
+@keyframes classic-det-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(255,26,26,0.25); border-color: #8d0d0d; }
+  50% { box-shadow: 0 0 11px rgba(255,26,26,0.55); border-color: #e02020; }
+}
+@keyframes classic-det-glimmer {
+  0% { background-position: 130% 0; }
+  100% { background-position: -130% 0; }
+}
+
+/* SAVE — Asriel rainbow aura: one gradient border that scrolls, swaying */
+.form-chip.classic-chip-save {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#050505, #050505) padding-box,
+    linear-gradient(90deg, #ff4d4d, #ffd24d, #4dff7a, #4dd2ff, #b84dff, #ff4d4d) border-box;
+  background-size: 100% 100%, 300% 100%;
+  background-position: 0 0, 0% 0;
+  animation: classic-save-sway 3.6s ease-in-out infinite, classic-save-border 4s linear infinite;
+}
+.form-chip.classic-chip-save .form-chip-tx {
+  background-image: linear-gradient(90deg, #ff4d4d, #ffd24d, #4dff7a, #4dd2ff, #b84dff, #ff4d4d);
+  background-size: 300% 100%;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: bold;
+  animation: classic-save-rainbow 4s linear infinite;
+}
+.form-chip.classic-chip-save.form-chip-active {
+  box-shadow: 0 0 11px rgba(180,180,255,0.55);
+}
+@keyframes classic-save-rainbow {
+  0% { background-position: 0% 0; }
+  100% { background-position: 300% 0; }
+}
+@keyframes classic-save-border {
+  0% { background-position: 0 0, 0% 0; }
+  100% { background-position: 0 0, 300% 0; }
+}
+@keyframes classic-save-sway {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-1px) rotate(-0.6deg); }
+  66% { transform: translateY(1px) rotate(0.6deg); }
 }
 
 /* ── Editor-side: form cards ── */

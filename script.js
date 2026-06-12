@@ -2747,6 +2747,9 @@ const PATTERN_DEFS = {
   simmer_tide:      { label: "Simmer · Star-Tide Kingdom", params: [] },
   omen_bar:         { label: "Omen · The Perfect Mix",     params: [] },
   haru_parasite:    { label: "Haru · The Watching Dark",   params: [] },
+  classic_det:      { label: "Classic · Determination.",   params: [] },
+  classic_save:     { label: "Classic · SAVE",              params: [] },
+  classic_ghost:    { label: "Classic · GHOST",             params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -13374,22 +13377,51 @@ function _drawHaruOverlay(canvas, ctx, W, H, t) {
   for (const p of _hrParts) {
     p.life -= dt / p.max; if (p.life <= 0) continue;
     const al = Math.max(0, Math.min(1, p.life));
-    if (p.type === 'crack') {
-      ctx.strokeStyle = `rgba(255,63,174,${(al * 0.9).toFixed(3)})`;
-      ctx.lineWidth = 2 * al + 0.5;
-      ctx.beginPath();
-      for (let s = 0; s < p.pts.length; s++) {
-        s === 0 ? ctx.moveTo(p.pts[s].x, p.pts[s].y) : ctx.lineTo(p.pts[s].x, p.pts[s].y);
+    if (p.type === 'void') {
+      const k = 1 - al;                              // 0→1 over the lifetime
+      if (k < 0.4) {
+        // the tear opens: a dark core grows while the rim contracts inward
+        const g = k / 0.4;
+        const R = 46 * (1 - g) + 10;
+        ctx.strokeStyle = `rgba(170,55,200,${(0.18 + g * 0.45).toFixed(3)})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(p.x, p.y, R, p.rot + k * 7, p.rot + k * 7 + 4.6); ctx.stroke();
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 12 * g, 0, PI2); ctx.fill();
+      } else {
+        // the open void: black hole + counter-rotating event-horizon arcs,
+        // then it swallows itself
+        const g = (k - 0.4) / 0.6;
+        const r = 15 * Math.sin(Math.min(1, g * 1.15) * Math.PI) + 1;
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.5, 0, PI2); ctx.fill();
+        ctx.strokeStyle = `rgba(216,63,160,${(0.55 * (1 - g)).toFixed(3)})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.9, p.rot - g * 8, p.rot - g * 8 + 5.2); ctx.stroke();
+        ctx.strokeStyle = `rgba(120,40,150,${(0.4 * (1 - g)).toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r * 2.6, p.rot + g * 5, p.rot + g * 5 + 3.6); ctx.stroke();
       }
-      ctx.stroke();
-    } else if (p.type === 'shock') {
-      p.r += p.rv * dt;
-      ctx.strokeStyle = `rgba(190,80,235,${(al * 0.8).toFixed(3)})`;
-      ctx.lineWidth = 3 * al + 0.8;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, PI2); ctx.stroke();
-      ctx.strokeStyle = `rgba(0,0,0,${(al * 0.5).toFixed(3)})`;
-      ctx.lineWidth = 6 * al + 1;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.86, 0, PI2); ctx.stroke();
+    } else if (p.type === 'suck') {
+      // streaks of matter dragged into the tear
+      p.r = Math.max(2, p.r - 170 * dt);
+      p.a += dt * 3.2;
+      const x1 = p.x + Math.cos(p.a) * p.r, y1 = p.y + Math.sin(p.a) * p.r;
+      const x2 = p.x + Math.cos(p.a) * (p.r + p.len), y2 = p.y + Math.sin(p.a) * (p.r + p.len);
+      ctx.strokeStyle = `rgba(190,80,235,${(al * 0.7).toFixed(3)})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    } else if (p.type === 'goo') {
+      // gobs of the dark: splatter out, then sag and dribble
+      p.vx *= (1 - 3 * dt); p.vy = p.vy * (1 - 3 * dt) + 60 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const stretch = 1.1 + (1 - al) * 0.9;
+      ctx.globalAlpha = Math.min(1, al * 1.3);
+      ctx.fillStyle = '#1b0830';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * stretch, 0, 0, PI2); ctx.fill();
+      ctx.strokeStyle = `rgba(216,63,160,${(al * 0.4).toFixed(3)})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * stretch, 0, 0, PI2); ctx.stroke();
+      ctx.globalAlpha = 1;
     } else {
       p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= (1 - 1.2 * dt); p.vy *= (1 - 1.2 * dt);
       ctx.globalAlpha = al;
@@ -13450,6 +13482,16 @@ function _drawHaruOverlay(canvas, ctx, W, H, t) {
   ctx.fillStyle = 'rgba(255,210,245,0.85)';
   ctx.beginPath(); ctx.arc(px3 - 2, py3 - 2.4, 1.1, 0, PI2); ctx.fill();
   ctx.restore();
+
+  // ── purple grain shimmering over EVERYTHING (page included) ──
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.05 + hb * 0.02 + _hrThreat * 0.015;
+  const gox = (Math.random() * 96) | 0, goy = (Math.random() * 96) | 0;
+  ctx.translate(-gox, -goy);
+  ctx.fillStyle = ctx.createPattern(_hrGrainTile(), 'repeat');
+  ctx.fillRect(gox, goy, W + 96, H + 96);
+  ctx.restore();
 }
 
 function _startHaruOverlay() {
@@ -13486,6 +13528,2018 @@ function _stopHaruOverlay() {
   const cv = document.getElementById('haru-overlay'); if (cv) cv.remove();
   _hrParts = []; _hrWorm = [];
   _hrThreat = 0; _hrInfection = 0; _hrFlinch = 0; _hrHbLast = 0;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// CLASSIC — his stats are corrupted beyond reading (always glitched),
+// his menus are UNDERTALE dialogue boxes, his base form is GHOST.
+// The "Determination." form: an intense, intimidating red killing
+// floor — a giant beating pixel SOUL, pixel knives raining, slashes
+// ripping across the dark, 9999s climbing — and the cursor is a
+// faithful pixel replica of the Real Knife. Clicking SLASHES.
+// ════════════════════════════════════════════════════════════════
+const _CLASSIC_RE = /^Classic$/i;
+function _isClassic(c) { return !!(c && c.name && _CLASSIC_RE.test(c.name)); }
+function _isClassicDet(c) {
+  if (!_isClassic(c)) return false;
+  const idx = c.activeFormIdx || 0;
+  if (idx === 0) return false;
+  const af = (c.altForms || [])[idx - 1];
+  return !!(af && af.name && /determination/i.test(af.name));
+}
+function _isClassicSave(c) {
+  if (!_isClassic(c)) return false;
+  const idx = c.activeFormIdx || 0;
+  if (idx === 0) return false;
+  const af = (c.altForms || [])[idx - 1];
+  return !!(af && af.name && /save/i.test(af.name));
+}
+function _isClassicGhost(c) {
+  // GHOST is Classic's base form (index 0)
+  return _isClassic(c) && (c.activeFormIdx || 0) === 0;
+}
+
+function _clHash(a, b) { const v = Math.sin(a * 127.1 + (b || 0) * 311.7 + 17.7) * 43758.5453; return v - Math.floor(v); }
+
+/* ── the Real Knife — EXACT replica of the reference sprite ───────
+   28×28 cells extracted pixel-for-pixel from the image: diagonal,
+   tip at the bottom-left, mottled blade, grey-violet guard. Drawn
+   unrotated so the pixels stay perfectly crisp. ──────────────────── */
+let _clKnifeCv = null;
+function _clKnife() {
+  if (_clKnifeCv) return _clKnifeCv;
+  const ROWS = [
+    '........................RRR.',
+    '.......................RKKKR',
+    '......................RKKKKD',
+    '.....................RKOPKKD',
+    '.............RRRR...RKODOPKO',
+    '.............RGGGR.RKODOPKO.',
+    '.............DKGVVRKPOOPKO..',
+    '..............DKGVVKKPPKO...',
+    '...............DKVVVKKKO....',
+    '...............OKKVVVKO.....',
+    '..............DKKKKVVVR.....',
+    '.............DKKPOKKVVVR....',
+    '............DKKPORDKKGVGR...',
+    '...........DKKPOROOKOKGGR...',
+    '..........DKKPPOROKKOOKKD...',
+    '.........DKKPOOPODKO..ODD...',
+    '........DKKOORRDOKKD........',
+    '.......RKKOOROOODKO.........',
+    '......RKKOPOROPPKKD.........',
+    '.....RKKDOPODOPKKD..........',
+    '....RKKPODOPODKKD...........',
+    '...RKKDOOROPPKKD............',
+    '..RKKOODROPPKKD.............',
+    '.RKKOPOOOPKKKR..............',
+    'RKKOPPPPKKKRD...............',
+    'RKOOOKKKKRD.................',
+    'RKKKKKRRD...................',
+    'RRRRRD......................'
+  ];
+  const C = { K: '#000000', O: '#940f0f', R: '#ff5521', D: '#e82a1c',
+              P: '#661255', V: '#613a53', G: '#402d40' };
+  const CELL = 2;
+  const cv = document.createElement('canvas');
+  cv.width = 28 * CELL; cv.height = 28 * CELL;
+  const x = cv.getContext('2d');
+  for (let r = 0; r < 28; r++) {
+    for (let q = 0; q < 28; q++) {
+      const ch = ROWS[r][q]; if (ch === '.') continue;
+      x.fillStyle = C[ch];
+      x.fillRect(q * CELL, r * CELL, CELL, CELL);
+    }
+  }
+  _clKnifeCv = cv; return cv;
+}
+
+/* "9999" as UT-style pixel text — black inside, red outline, cached */
+let _cd9999Cv = null;
+function _cd9999() {
+  if (_cd9999Cv) return _cd9999Cv;
+  const G9 = ['######', '#....#', '#....#', '######', '.....#', '.....#', '######'];
+  const CELL = 5, GW = 6, GH = 7, GAP = 2, N = 6;   // 999999, bigger
+  const cv = document.createElement('canvas');
+  cv.width = (N * (GW + GAP) - GAP + 2) * CELL; cv.height = (GH + 2) * CELL;
+  const x = cv.getContext('2d');
+  for (const pass of [0, 1]) {
+    x.fillStyle = pass === 0 ? '#ff1a1a' : '#000000';
+    for (let d = 0; d < N; d++) {
+      const ox = 1 + d * (GW + GAP);
+      for (let r = 0; r < GH; r++) {
+        for (let q = 0; q < GW; q++) {
+          if (G9[r][q] !== '#') continue;
+          if (pass === 0) x.fillRect((ox + q - 1) * CELL, r * CELL, CELL * 3, CELL * 3);
+          // fatter black core, centred in the red 3×3 block
+          else x.fillRect((ox + q - 0.4) * CELL, (r + 0.6) * CELL, CELL * 1.8, CELL * 1.8);
+        }
+      }
+    }
+  }
+  _cd9999Cv = cv; return cv;
+}
+
+/* a sleek glowing red dagger for the background (NOT the Real Knife) —
+   horizontal, tip pointing +X, glow baked into the sprite */
+let _cdKnifeGCv = null;
+function _cdKnifeGlow() {
+  if (_cdKnifeGCv) return _cdKnifeGCv;
+  const cv = document.createElement('canvas');
+  cv.width = 104; cv.height = 28;
+  const x = cv.getContext('2d');
+  x.translate(0, 14);
+  const blade = () => {
+    x.beginPath();
+    x.moveTo(96, 0);
+    x.lineTo(34, -5.5);
+    x.lineTo(34, 4);
+    x.closePath();
+  };
+  const grd = x.createLinearGradient(34, 0, 96, 0);
+  grd.addColorStop(0, '#7e0a10');
+  grd.addColorStop(0.55, '#e3141c');
+  grd.addColorStop(1, '#ff8a7a');
+  x.shadowColor = 'rgba(255,30,30,0.9)';
+  x.shadowBlur = 9;
+  for (let i = 0; i < 3; i++) { blade(); x.fillStyle = grd; x.fill(); }
+  x.shadowBlur = 6;
+  x.fillStyle = '#5a060c';                       // guard
+  x.fillRect(30, -8.5, 4.5, 17);
+  x.fillStyle = '#3a040a';                       // grip
+  x.fillRect(12, -3, 18, 6);
+  x.fillStyle = '#e3141c';                       // pommel
+  x.beginPath(); x.arc(10, 0, 4, 0, Math.PI * 2); x.fill();
+  x.shadowBlur = 0;
+  x.strokeStyle = 'rgba(255,235,235,0.85)';      // shining edge
+  x.lineWidth = 1.2;
+  x.beginPath(); x.moveTo(96, 0); x.lineTo(34, 4); x.stroke();
+  _cdKnifeGCv = cv; return cv;
+}
+
+/* draw the glow dagger centred at the origin; `glow` (0..1) adds a
+   pulsing additive pass so the blade visibly breathes light */
+function _cdGlowKnifeDraw(ctx, sc, glow) {
+  const g = _cdKnifeGlow();
+  const dx = -g.width * 0.55 * sc, dy = -g.height * 0.5 * sc;
+  ctx.drawImage(g, dx, dy, g.width * sc, g.height * sc);
+  if (glow > 0.02) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha *= glow;
+    ctx.drawImage(g, dx, dy, g.width * sc, g.height * sc);
+    ctx.restore();
+  }
+}
+
+/* a tapered crescent slash — whisper-thin tail, hot wide head, with a
+   ghosting echo arc and impact lines bursting off the head near the
+   end of the sweep (`prog` = 0..1 sweep progress) */
+function _cdSlashArc(ctx, sx, sy, R, a0, sweep, env, prog) {
+  if (Math.abs(sweep) < 0.01 || env <= 0) return;
+  const M = 18, wMax = Math.max(5, R * 0.15);
+  const outer = [], inner = [];
+  for (let i = 0; i <= M; i++) {
+    const f = i / M, aa = a0 + sweep * f, w = wMax * f * f;
+    const ca = Math.cos(aa), sa = Math.sin(aa);
+    outer.push([sx + ca * (R + w), sy + sa * (R + w)]);
+    inner.push([sx + ca * (R - w), sy + sa * (R - w)]);
+  }
+  ctx.lineJoin = 'round';
+  // echo crescent ghosting outward
+  ctx.strokeStyle = `rgba(255,30,34,${(env * 0.3).toFixed(3)})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i <= M; i++) {
+    const f = i / M, aa = a0 + sweep * f, rr = R * 1.16 + wMax * f;
+    if (i === 0) ctx.moveTo(sx + Math.cos(aa) * rr, sy + Math.sin(aa) * rr);
+    else ctx.lineTo(sx + Math.cos(aa) * rr, sy + Math.sin(aa) * rr);
+  }
+  ctx.stroke();
+  // the crescent itself
+  ctx.beginPath();
+  ctx.moveTo(outer[0][0], outer[0][1]);
+  for (let i = 1; i <= M; i++) ctx.lineTo(outer[i][0], outer[i][1]);
+  for (let i = M; i >= 0; i--) ctx.lineTo(inner[i][0], inner[i][1]);
+  ctx.closePath();
+  ctx.strokeStyle = `rgba(255,38,42,${(env * 0.55).toFixed(3)})`;   // red glow shell
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+  ctx.fillStyle = `rgba(255,236,236,${(env * 0.88).toFixed(3)})`;   // bright body
+  ctx.fill();
+  const hx = (outer[M][0] + inner[M][0]) / 2, hy = (outer[M][1] + inner[M][1]) / 2;
+  ctx.fillStyle = `rgba(255,255,255,${(env * 0.95).toFixed(3)})`;   // hot head
+  ctx.beginPath(); ctx.arc(hx, hy, wMax * 0.55, 0, Math.PI * 2); ctx.fill();
+  // impact lines burst off the head as the cut lands
+  const ik = Math.max(0, ((prog === undefined ? 1 : prog) - 0.55) / 0.45);
+  if (ik > 0) {
+    const ha = a0 + sweep;
+    const fw = sweep > 0 ? 0.5 : -0.5;
+    ctx.strokeStyle = `rgba(255,250,250,${(ik * env * 0.9).toFixed(3)})`;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const ba = ha + fw + (i - 2) * 0.45;
+      const r1 = wMax * (1 + ik), r2 = r1 + wMax * (1.4 + ik * 1.2);
+      ctx.moveTo(hx + Math.cos(ba) * r1, hy + Math.sin(ba) * r1);
+      ctx.lineTo(hx + Math.cos(ba) * r2, hy + Math.sin(ba) * r2);
+    }
+    ctx.stroke();
+  }
+  ctx.lineJoin = 'miter';
+}
+
+/* the wound a slash leaves behind — a RIP IN REALITY: a lens-shaped tear
+   that opens onto a void, white-hot edges cooling to red, determination
+   light pouring out, score-marks scraped past each tip, sealing as it
+   heals (al 1→0). Drawn in local space rotated to the cut angle. */
+function _cdDrawWound(ctx, x, y, a, L, al) {
+  const heat = Math.max(0, (al - 0.5) / 0.5);           // white-hot early
+  const h = L / 2;
+  const w = (L * 0.15) * Math.pow(Math.max(0, al), 0.5); // opens fast, seals slow
+  const PI2 = Math.PI * 2;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(a);
+  const lens = () => {
+    ctx.beginPath();
+    ctx.moveTo(-h, 0);
+    ctx.quadraticCurveTo(0, -w, h, 0);
+    ctx.quadraticCurveTo(0, w, -h, 0);
+    ctx.closePath();
+  };
+  // 1 ── the void opening
+  lens();
+  ctx.fillStyle = `rgba(5,0,2,${(al * 0.9).toFixed(3)})`;
+  ctx.fill();
+  // 2 ── determination light pouring out of the tear
+  ctx.save();
+  lens(); ctx.clip();
+  ctx.globalCompositeOperation = 'lighter';
+  const rg = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(w * 2.6, h * 0.7));
+  rg.addColorStop(0, `rgba(255,${(60 + heat * 150) | 0},${(60 + heat * 110) | 0},${(0.55 * al).toFixed(3)})`);
+  rg.addColorStop(0.45, `rgba(255,32,32,${(0.3 * al).toFixed(3)})`);
+  rg.addColorStop(1, 'rgba(255,30,30,0)');
+  ctx.fillStyle = rg;
+  ctx.fillRect(-h, -w * 3 - 6, L, w * 6 + 12);
+  ctx.restore();
+  // 3 ── white-hot rim
+  lens();
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = `rgba(${(225 + heat * 30) | 0},${(70 + heat * 185) | 0},${(70 + heat * 180) | 0},${(0.4 + al * 0.5).toFixed(3)})`;
+  ctx.lineWidth = 1.2 + heat * 1.9;
+  ctx.stroke();
+  // 4 ── the sharp slit down the middle
+  ctx.strokeStyle = `rgba(255,${(190 + heat * 60) | 0},${(190 + heat * 60) | 0},${(0.45 * al + heat * 0.4).toFixed(3)})`;
+  ctx.lineWidth = 0.7 + heat;
+  ctx.beginPath();
+  ctx.moveTo(-h * 0.95, 0); ctx.lineTo(h * 0.95, 0);
+  ctx.stroke();
+  // 5 ── score-marks scraped past each tip
+  ctx.strokeStyle = `rgba(255,44,46,${(al * 0.5).toFixed(3)})`;
+  ctx.lineWidth = 1;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-h, 0); ctx.lineTo(-h - 8 - heat * 6, -2.5);
+  ctx.moveTo(h, 0);  ctx.lineTo(h + 8 + heat * 6, 2.5);
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+  // 6 ── ember tips flaring at the freshly-cut ends
+  if (heat > 0.05) {
+    ctx.fillStyle = `rgba(255,${(170 + heat * 70) | 0},120,${(heat * 0.7).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(-h, 0, 1.4 + heat * 1.6, 0, PI2); ctx.fill();
+    ctx.beginPath(); ctx.arc(h, 0, 1.4 + heat * 1.6, 0, PI2); ctx.fill();
+  }
+  ctx.restore();
+  // where the lower lip of the wound is, in world space (for bleeding)
+  const fr = (Math.random() - 0.5) * 0.7;
+  return [x + Math.cos(a) * h * 2 * fr - Math.sin(a) * w * 0.7,
+          y + Math.sin(a) * h * 2 * fr + Math.cos(a) * w * 0.7];
+}
+
+/* red noise, masked so it creeps in from the edges — rebuilt on resize */
+function _cdNoiseGradCv(W, H) {
+  const c = _cdNoiseGradCv;
+  if (c._cv && c._w === W && c._h === H) return c._cv;
+  if (!c._tile) {
+    const t2 = document.createElement('canvas'); t2.width = t2.height = 128;
+    const tx = t2.getContext('2d');
+    const id = tx.createImageData(128, 128);
+    for (let i = 0; i < id.data.length; i += 4) {
+      const v = Math.random();
+      id.data[i] = 200 + v * 55;
+      id.data[i + 1] = 8 + v * 30;
+      id.data[i + 2] = 10 + v * 26;
+      id.data[i + 3] = v < 0.5 ? 0 : (v - 0.5) * 2 * 110;
+    }
+    tx.putImageData(id, 0, 0);
+    c._tile = t2;
+  }
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const x = cv.getContext('2d');
+  x.fillStyle = x.createPattern(c._tile, 'repeat');
+  x.fillRect(0, 0, W, H);
+  x.globalCompositeOperation = 'destination-in';
+  const g = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.18, W / 2, H / 2, Math.max(W, H) * 0.62);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(0.55, 'rgba(0,0,0,0.35)');
+  g.addColorStop(1, 'rgba(0,0,0,1)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, W, H);
+  c._w = W; c._h = H; c._cv = cv;
+  return cv;
+}
+
+/* param u (0..1) → point on a rect inset from the screen edges,
+   with `a` = the inward-facing angle at that point */
+function _cdPerim(u, W, H, inset) {
+  const w = W - inset * 2, h = H - inset * 2, P = 2 * (w + h);
+  let d = (((u % 1) + 1) % 1) * P;
+  if (d < w) return { x: inset + d, y: inset, a: Math.PI / 2 };
+  d -= w;
+  if (d < h) return { x: W - inset, y: inset + d, a: Math.PI };
+  d -= h;
+  if (d < w) return { x: W - inset - d, y: H - inset, a: -Math.PI / 2 };
+  d -= w;
+  return { x: inset, y: H - inset - d, a: 0 };
+}
+
+/* ── "Determination." — the red killing floor ───────────────────── */
+let _cdBg = null;
+let _cdShakeT = 0, _cdCombo = 0, _cdComboT = 0;
+let _cdChargeAmt = 0, _cdPrevMX = 0, _cdPrevMY = 0;
+let _cdNotches = [], _cdEdgeAcc = 0, _cdCrossT = 0;
+function _drawClassicDetPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawClassicDetPattern._lt === undefined;
+  if (!fresh && t - _drawClassicDetPattern._lt < 0.033) return;   // 30fps cap
+  const dt = fresh ? 0.033 : Math.min(t - _drawClassicDetPattern._lt, 0.08);
+  _drawClassicDetPattern._lt = t;
+  const PI2 = Math.PI * 2;
+
+  // slow, smooth breathing (no more erratic double-thump)
+  const pulse = 0.5 + 0.5 * Math.sin(t * 1.15);
+
+  if (fresh || !_cdBg) {
+    _cdBg = { sent: [], hunt: [], fx: [], spawnIn: 1.4, slashSeed: -1, slash: null };
+    for (let i = 0; i < 14; i++) {
+      _cdBg.sent.push({ u: i / 14, dir: (i % 2 ? 1 : -1) * (0.0045 + _clHash(i * 7) * 0.004),
+                        s: 0.9 + _clHash(i * 29) * 0.7 });
+    }
+  }
+
+  // cursor in pattern coords (rect cached every ~15 frames)
+  _drawClassicDetPattern._f = (_drawClassicDetPattern._f || 0) + 1;
+  if (!_drawClassicDetPattern._rect || _drawClassicDetPattern._f % 15 === 1) {
+    _drawClassicDetPattern._rect = canvas.getBoundingClientRect();
+  }
+  const rect = _drawClassicDetPattern._rect;
+  const mx = (_cdMX - rect.left) * (W / Math.max(1, rect.width));
+  const my = (_cdMY - rect.top) * (H / Math.max(1, rect.height));
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#060000'; ctx.fillRect(0, 0, W, H);
+
+  // camera: punches in on every heartbeat, shakes when you cut
+  ctx.save();
+  {
+    const shk = Math.max(0, 1 - (performance.now() - _cdShakeT) / 180);
+    const punch = 1 + pulse * 0.009;
+    ctx.translate(W / 2 + (_clHash(_drawClassicDetPattern._f, 9) - 0.5) * shk * 12,
+                  H / 2 + (_clHash(_drawClassicDetPattern._f, 4) - 0.5) * shk * 12);
+    ctx.scale(punch, punch);
+    ctx.translate(-W / 2, -H / 2);
+  }
+
+  if (!_drawClassicDetPattern._bg || _drawClassicDetPattern._bgW !== W || _drawClassicDetPattern._bgH !== H) {
+    const g = ctx.createRadialGradient(W * 0.5, H * 0.44, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.78);
+    g.addColorStop(0, 'rgba(132,4,6,0.5)');
+    g.addColorStop(0.55, 'rgba(56,2,3,0.34)');
+    g.addColorStop(1, 'rgba(8,0,0,0.1)');
+    const fl = ctx.createLinearGradient(0, H * 0.72, 0, H);
+    fl.addColorStop(0, 'rgba(0,0,0,0)');
+    fl.addColorStop(1, 'rgba(96,2,6,0.30)');
+    const vig = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.2, W * 0.5, H * 0.5, Math.max(W, H) * 0.72);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.86)');
+    _drawClassicDetPattern._bg = g; _drawClassicDetPattern._fl = fl; _drawClassicDetPattern._vig = vig;
+    _drawClassicDetPattern._bgW = W; _drawClassicDetPattern._bgH = H;
+  }
+  ctx.globalAlpha = 0.66 + pulse * 0.34;
+  ctx.fillStyle = _drawClassicDetPattern._bg; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = _drawClassicDetPattern._fl; ctx.fillRect(0, H * 0.7, W, H * 0.3);
+
+  // ── scrolling diagonal battle-stripes, UT style ──
+  if (!_drawClassicDetPattern._stripePat) {
+    const sCv = document.createElement('canvas'); sCv.width = sCv.height = 64;
+    const sx2 = sCv.getContext('2d');
+    sx2.strokeStyle = 'rgba(255,24,28,0.5)';
+    sx2.lineWidth = 9;
+    for (let o = -64; o <= 128; o += 32) {
+      sx2.beginPath(); sx2.moveTo(o - 36, 100); sx2.lineTo(o + 100, -36); sx2.stroke();
+    }
+    _drawClassicDetPattern._stripePat = ctx.createPattern(sCv, 'repeat');
+  }
+  {
+    const so = (t * 9) % 64;
+    ctx.save();
+    ctx.translate(-so, so);
+    ctx.globalAlpha = 0.05 + pulse * 0.025;
+    ctx.fillStyle = _drawClassicDetPattern._stripePat;
+    ctx.fillRect(-64, -64, W + 128, H + 128);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  // ── huge dark blades drifting far behind everything (depth) ──
+  for (let i = 0; i < 3; i++) {
+    const sd = _clHash(i * 97);
+    const gx = ((((sd + t * 0.007 * (1 + sd * 0.5)) % 1) + 1) % 1) * (W + 600) - 300;
+    const gy = H * (0.2 + sd * 0.6) + Math.sin(t * 0.07 + i * 2) * 40;
+    ctx.save();
+    ctx.translate(gx, gy);
+    ctx.rotate(-0.5 + sd + Math.sin(t * 0.05 + i) * 0.08);
+    ctx.globalAlpha = 0.10;
+    _cdGlowKnifeDraw(ctx, 4.5 + sd * 3, 0);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // rare full-screen red flicker
+  if (_clHash(Math.floor(t * 1.4) * 7) > 0.965) {
+    ctx.fillStyle = 'rgba(255,18,22,0.05)';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // ── slow red smoke rolling through the void ──
+  if (!_drawClassicDetPattern._blob) {
+    const b = document.createElement('canvas'); b.width = b.height = 256;
+    const bx = b.getContext('2d');
+    const bg2 = bx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    bg2.addColorStop(0, 'rgba(150,10,14,0.5)');
+    bg2.addColorStop(0.6, 'rgba(90,4,8,0.2)');
+    bg2.addColorStop(1, 'rgba(60,2,4,0)');
+    bx.fillStyle = bg2; bx.fillRect(0, 0, 256, 256);
+    _drawClassicDetPattern._blob = b;
+  }
+  ctx.imageSmoothingEnabled = true;
+  for (let i = 0; i < 5; i++) {
+    const sd = _clHash(i * 61);
+    const bx2 = (((sd * 7.3 + t * 0.009 * (1 + sd)) % 1) + 1) % 1 * (W + 400) - 200;
+    const by2 = H * (0.18 + sd * 0.55) + Math.sin(t * 0.05 + i * 2.1) * H * 0.12;
+    const sc3 = (0.9 + sd * 1.7) * Math.min(W, H) / 256;
+    ctx.globalAlpha = 0.14 + sd * 0.10 + pulse * 0.05;
+    ctx.drawImage(_drawClassicDetPattern._blob, bx2 - 128 * sc3, by2 - 128 * sc3, 256 * sc3, 256 * sc3);
+  }
+  ctx.globalAlpha = 1;
+
+  // ── red rain, slashing down at an angle ──
+  ctx.strokeStyle = 'rgba(255,30,34,0.09)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < 22; i++) {
+    const sd = _clHash(i * 41);
+    const sp2 = 620 + sd * 460, len = 34 + sd * 62;
+    const fy = ((t * sp2 + sd * 4000) % (H + 240)) - 120;
+    const rx = (0.04 + ((sd * 9.77) % 1) * 0.94) * W;
+    ctx.moveTo(rx, fy);
+    ctx.lineTo(rx - len * 0.22, fy - len);
+  }
+  ctx.stroke();
+
+  // ── meteors — fast red streaks tearing down the sky ──
+  for (let i = 0; i < 4; i++) {
+    const sd = _clHash(i * 73);
+    const cyc3 = 2.6 + sd * 2.2;
+    const ph = (t / cyc3 + sd) % 1;
+    if (ph > 0.45) continue;
+    const k2 = ph / 0.45;
+    const x0 = (0.1 + ((sd * 5.7) % 1) * 0.9) * W + 100;
+    const dist = (H + 80) * k2;
+    const mxp = x0 - 0.45 * dist, myp = -40 + dist;
+    ctx.strokeStyle = `rgba(255,40,40,${(0.30 * (1 - k2)).toFixed(3)})`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(mxp + 0.45 * 90, myp - 90); ctx.lineTo(mxp, myp); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,240,240,${(0.5 * (1 - k2)).toFixed(3)})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(mxp + 0.45 * 16, myp - 16); ctx.lineTo(mxp, myp); ctx.stroke();
+  }
+
+  // ── THE STORM — every so often the whole cage turns on you and fires ──
+  const EV = 17, evT = (t + 8) % EV, stormSeed = Math.floor((t + 8) / EV);
+  const inStorm = evT < 2.0;
+  const ctrX = W * 0.5, ctrY = H * 0.45;
+  if (_cdBg.stormSeed !== stormSeed) {
+    _cdBg.stormSeed = stormSeed;
+    if (stormSeed > 0) {                       // queue the convergence payoff
+      _cdBg.fx.push({ type: 'flash', x: ctrX, y: ctrY, life: 1, max: 0.5, delay: 0.85 });
+      _cdBg.fx.push({ type: 'ring', x: ctrX, y: ctrY, life: 1, max: 0.7, delay: 0.85 });
+      for (let i = 0; i < 3; i++) {
+        _cdBg.fx.push({ type: 'dmg', x: ctrX + (i - 1) * 90, y: ctrY - 20, vy: -180 - i * 30, y0: ctrY,
+                        sc: 0.6, life: 1, max: 1.2, delay: 0.7 + i * 0.22 });
+      }
+      for (let i = 0; i < 14; i++) {
+        const aa = _clHash(stormSeed + i * 7) * PI2;
+        const sp3 = 160 + _clHash(i * 13) * 320;
+        _cdBg.fx.push({ type: 'spk', x: ctrX, y: ctrY, vx: Math.cos(aa) * sp3, vy: Math.sin(aa) * sp3,
+                        life: 1, max: 0.5, delay: 0.8 + _clHash(i * 3) * 0.5 });
+      }
+    }
+  }
+  // red surge gathering at the convergence point
+  if (evT < 2.6) {
+    const sk = inStorm ? Math.min(1, evT / 0.9) : Math.max(0, 1 - (evT - 2.0) / 0.6);
+    const gr2 = Math.min(W, H) * 0.3 * sk;
+    if (gr2 > 4) {
+      const gg2 = ctx.createRadialGradient(ctrX, ctrY, 0, ctrX, ctrY, gr2);
+      gg2.addColorStop(0, `rgba(255,24,28,${(0.14 * sk).toFixed(3)})`);
+      gg2.addColorStop(1, 'rgba(255,24,28,0)');
+      ctx.fillStyle = gg2;
+      ctx.fillRect(ctrX - gr2, ctrY - gr2, gr2 * 2, gr2 * 2);
+    }
+  }
+
+  // ── the blade cage — glowing knives ringing the dark; a wave of
+  //    light travels around the ring, they thrust on the beat, and
+  //    during the storm they launch one by one into the centre ──
+  const cageBackIn = inStorm ? 1 : (evT < 2.6 ? Math.min(1, (evT - 2.0) / 0.6) : 1);
+  for (let si = 0; si < _cdBg.sent.length; si++) {
+    const s2 = _cdBg.sent[si];
+    s2.u += s2.dir * dt;
+    const p = _cdPerim(s2.u, W, H, 38);
+    const launch = _clHash(si * 5, stormSeed) * 0.55;
+    if (inStorm && evT >= launch) {
+      const fph = (evT - launch) / 0.42;
+      if (fph < 1) {                           // in flight toward the centre
+        const e2 = fph * fph;
+        const fx2 = p.x + (ctrX - p.x) * e2, fy2 = p.y + (ctrY - p.y) * e2;
+        const fa = Math.atan2(ctrY - fy2, ctrX - fx2);
+        ctx.strokeStyle = 'rgba(255,28,32,0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(fx2 - Math.cos(fa) * 70, fy2 - Math.sin(fa) * 70);
+        ctx.lineTo(fx2, fy2);
+        ctx.stroke();
+        ctx.save();
+        ctx.translate(fx2, fy2);
+        ctx.rotate(fa);
+        ctx.globalAlpha = 0.9;
+        _cdGlowKnifeDraw(ctx, s2.s * 0.62, 1);
+        ctx.restore();
+      }
+      continue;                                // consumed until the cage reforms
+    }
+    const wave = Math.sin(t * 2.1 + s2.u * PI2 * 3);
+    const gp = 0.5 + 0.5 * Math.sin(t * 3 - s2.u * PI2 * 2);     // travelling glow wave
+    const thrust = pulse * 16 + wave * 6;
+    ctx.save();
+    ctx.translate(p.x + Math.cos(p.a) * thrust, p.y + Math.sin(p.a) * thrust);
+    ctx.rotate(p.a + wave * 0.06);
+    ctx.globalAlpha = (0.55 + pulse * 0.25) * cageBackIn;
+    _cdGlowKnifeDraw(ctx, s2.s * 0.62, gp * (0.4 + pulse * 0.6));
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // ── volleys — squads of glowing knives streak across in formation ──
+  for (let v = 0; v < 2; v++) {
+    const cyc2 = 3.6 + _clHash(v * 19) * 1.8;
+    const phr = t / cyc2 + _clHash(v * 3);
+    const ph = phr % 1, ci = Math.floor(phr);
+    const u0 = _clHash(v * 11 + ci * 29);
+    const p0 = _cdPerim(u0, W, H, -120);
+    const p1 = _cdPerim(u0 + 0.42 + _clHash(v * 5 + ci * 17) * 0.16, W, H, -120);
+    const a = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+    const nx2 = -Math.sin(a), ny2 = Math.cos(a);
+    for (let j = 0; j < 4; j++) {
+      const lph = ph - j * 0.025;
+      if (lph < 0 || lph > 1) continue;
+      const off = (j - 1.5) * 58;
+      const kx2 = p0.x + (p1.x - p0.x) * lph + nx2 * off;
+      const ky2 = p0.y + (p1.y - p0.y) * lph + ny2 * off;
+      ctx.strokeStyle = 'rgba(255,26,30,0.22)';                  // streak trail
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(kx2 - Math.cos(a) * 90, ky2 - Math.sin(a) * 90);
+      ctx.lineTo(kx2, ky2);
+      ctx.stroke();
+      ctx.save();
+      ctx.translate(kx2, ky2);
+      ctx.rotate(a);
+      ctx.globalAlpha = 0.8;
+      _cdGlowKnifeDraw(ctx, 0.7, 0.35 + pulse * 0.5);
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // ── hunters — knives that take aim at YOU and fire ──
+  _cdBg.spawnIn -= dt;
+  if (_cdBg.spawnIn <= 0 && _cdBg.hunt.length < 3) {
+    _cdBg.spawnIn = 2.2 + _clHash(t * 7.3) * 2.2;
+    const e = _cdPerim(_clHash(t * 3.1), W, H, 60);
+    _cdBg.hunt.push({ x: e.x, y: e.y, st: 'aim', tt: 0.55, tx: mx, ty: my });
+  }
+  for (const hk of _cdBg.hunt) {
+    if (hk.st === 'aim') {
+      hk.tx += (mx - hk.tx) * Math.min(1, dt * 6);               // tracks you while aiming
+      hk.ty += (my - hk.ty) * Math.min(1, dt * 6);
+      hk.tt -= dt;
+      const a = Math.atan2(hk.ty - hk.y, hk.tx - hk.x);
+      if (((t * 24) | 0) % 2) {                                  // flickering target line
+        ctx.strokeStyle = 'rgba(255,30,30,0.12)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 9]);
+        ctx.beginPath(); ctx.moveTo(hk.x, hk.y); ctx.lineTo(hk.tx, hk.ty); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      // contracting reticle locking onto you
+      {
+        const rr = 14 + hk.tt * 90;
+        ctx.strokeStyle = `rgba(255,30,34,${(0.3 * (1 - hk.tt / 0.55)).toFixed(3)})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(hk.tx, hk.ty, rr, 0, PI2); ctx.stroke();
+        ctx.beginPath();
+        for (let q2 = 0; q2 < 4; q2++) {
+          const aa2 = q2 * Math.PI / 2 + t * 1.6;
+          ctx.moveTo(hk.tx + Math.cos(aa2) * (rr - 6), hk.ty + Math.sin(aa2) * (rr - 6));
+          ctx.lineTo(hk.tx + Math.cos(aa2) * (rr + 6), hk.ty + Math.sin(aa2) * (rr + 6));
+        }
+        ctx.stroke();
+      }
+      const shake = (0.55 - hk.tt) * 9;
+      ctx.save();
+      ctx.translate(hk.x + (_clHash((t * 60) | 0, 1) - 0.5) * shake,
+                    hk.y + (_clHash((t * 60) | 0, 2) - 0.5) * shake);
+      ctx.rotate(a);
+      ctx.globalAlpha = 0.92;
+      _cdGlowKnifeDraw(ctx, 0.85, 0.5 + (1 - hk.tt / 0.55) * 0.5);
+      ctx.restore();
+      if (hk.tt <= 0) {
+        hk.st = 'fly';
+        hk.vx = Math.cos(a) * 1500; hk.vy = Math.sin(a) * 1500;
+      }
+    } else {
+      hk.x += hk.vx * dt; hk.y += hk.vy * dt;
+      const a = Math.atan2(hk.vy, hk.vx);
+      ctx.strokeStyle = 'rgba(255,30,34,0.35)';                  // streak trail
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(hk.x - hk.vx * 0.06, hk.y - hk.vy * 0.06);
+      ctx.lineTo(hk.x, hk.y);
+      ctx.stroke();
+      ctx.save();
+      ctx.translate(hk.x, hk.y);
+      ctx.rotate(a);
+      _cdGlowKnifeDraw(ctx, 0.85, 0.9);
+      ctx.restore();
+      const past = (hk.x - hk.tx) * hk.vx + (hk.y - hk.ty) * hk.vy > 0;   // passed the mark
+      if ((past && Math.hypot(hk.x - hk.tx, hk.y - hk.ty) < 60) ||
+          hk.x < -120 || hk.x > W + 120 || hk.y < -120 || hk.y > H + 120) {
+        hk.dead = true;
+        if (past) _cdBurst(hk.x, hk.y, a);
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+  _cdBg.hunt = _cdBg.hunt.filter(h => !h.dead);
+
+  // ── an arc slash sweeps through the dark every couple of seconds ──
+  {
+    const cyc = 2.4, sph = t % cyc, seed = Math.floor(t / cyc);
+    if (_cdBg.slashSeed !== seed) {
+      _cdBg.slashSeed = seed;
+      if (_clHash(seed * 3) > 0.25) {
+        const S2 = { sx: (0.2 + _clHash(seed) * 0.6) * W, sy: (0.18 + _clHash(seed + 5) * 0.5) * H,
+                     R: 70 + _clHash(seed + 7) * 130, a0: _clHash(seed + 9) * PI2,
+                     dir: _clHash(seed + 3) > 0.5 ? 1 : -1 };
+        _cdBg.slash = S2;
+        _cdBg.fx.push({ type: 'dmg', x: S2.sx, y: S2.sy - 16,
+                        vy: -170 - _clHash(seed + 2) * 90, y0: S2.sy - 6,
+                        sc: 0.45 + _clHash(seed + 4) * 0.45, life: 1, max: 1.15, delay: 0.13 });
+        // the cut LANDS — flash and sparks off the end of the arc
+        const ha = S2.a0 + 1.8 * S2.dir;
+        const hx2 = S2.sx + Math.cos(ha) * S2.R, hy2 = S2.sy + Math.sin(ha) * S2.R;
+        _cdBg.fx.push({ type: 'flash', x: hx2, y: hy2, life: 1, max: 0.18, delay: 0.12 });
+        for (let i = 0; i < 5; i++) {
+          const aa = ha + (_clHash(seed + i * 7) - 0.5) * 2.2;
+          const sp3 = 140 + _clHash(seed + i * 13) * 220;
+          _cdBg.fx.push({ type: 'spk', x: hx2, y: hy2, vx: Math.cos(aa) * sp3, vy: Math.sin(aa) * sp3,
+                          life: 1, max: 0.3 + _clHash(i * 31) * 0.25, delay: 0.12 });
+        }
+      } else { _cdBg.slash = null; }
+    }
+    const k = sph / 0.18;
+    if (k < 1 && _cdBg.slash) {
+      const S = _cdBg.slash, ek = 1 - Math.pow(1 - k, 3);
+      const env = Math.sin(Math.min(1, k * 1.15) * Math.PI);
+      _cdSlashArc(ctx, S.sx, S.sy, S.R, S.a0, 1.8 * S.dir * ek, env, ek);
+    }
+  }
+
+  // ── transient fx: impact rings, cut marks, sparks, damage numbers ──
+  for (const f of _cdBg.fx) {
+    if (f.delay && f.delay > 0) { f.delay -= dt; continue; }
+    f.life -= dt / f.max; if (f.life <= 0) continue;
+    const al = Math.max(0, f.life);
+    if (f.type === 'ring') {
+      ctx.strokeStyle = `rgba(255,40,40,${(al * 0.55).toFixed(3)})`;
+      ctx.lineWidth = 2.2 * al + 0.4;
+      ctx.beginPath(); ctx.arc(f.x, f.y, 6 + (1 - al) * 64, 0, PI2); ctx.stroke();
+    } else if (f.type === 'gash') {
+      const lip = _cdDrawWound(ctx, f.x, f.y, f.a, f.L, al);
+      if (al > 0.25 && Math.random() < dt * 1.6 && _cdBg.fx.length < 130) {
+        _cdBg.fx.push({ type: 'spk', x: lip[0], y: lip[1], vx: (Math.random() - 0.5) * 8,
+                        vy: 26 + Math.random() * 30, life: 1, max: 0.6 });
+      }
+    } else if (f.type === 'dmg') {
+      // UT damage popup — pops up, falls, bounces once
+      f.vy += 760 * dt; f.y += f.vy * dt;
+      if (f.y > f.y0 && f.vy > 0) { f.y = f.y0; f.vy *= -0.42; }
+      const n9 = _cd9999();
+      const dw2 = n9.width * f.sc, dh2 = n9.height * f.sc;
+      ctx.globalAlpha = f.life < 0.3 ? f.life / 0.3 : 1;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(n9, f.x - dw2 / 2, f.y - dh2, dw2, dh2);
+      ctx.imageSmoothingEnabled = true;
+      ctx.globalAlpha = 1;
+    } else if (f.type === 'flash') {
+      const fr = 26 + (1 - al) * 50;
+      const fg = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, fr);
+      fg.addColorStop(0, `rgba(255,240,240,${(al * 0.5).toFixed(3)})`);
+      fg.addColorStop(1, 'rgba(255,40,40,0)');
+      ctx.fillStyle = fg;
+      ctx.fillRect(f.x - fr, f.y - fr, fr * 2, fr * 2);
+    } else {   // spk
+      f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 540 * dt;
+      ctx.globalAlpha = al;
+      ctx.fillStyle = al > 0.5 ? '#ff7a52' : '#b81212';
+      ctx.beginPath(); ctx.arc(f.x, f.y, 1 + al * 1.6, 0, PI2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+  _cdBg.fx = _cdBg.fx.filter(f => f.life > 0);
+  if (_cdBg.fx.length > 120) _cdBg.fx.splice(0, _cdBg.fx.length - 120);
+
+  // ── embers rising off the killing floor ──
+  for (let i = 0; i < 36; i++) {
+    const sd = i * 0.618;
+    const mx2 = ((sd * 2.73) % 1) * W + Math.sin(t * 0.8 + i) * 18;
+    const my2 = H - ((t * (16 + (sd % 22)) + sd * H) % (H + 16));
+    const al = 0.07 + (sd % 0.18) + pulse * 0.09;
+    ctx.fillStyle = `rgba(255,${30 + ((i * 23) % 60)},30,${al.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(mx2, my2, 0.8 + (sd % 1.5), 0, PI2); ctx.fill();
+  }
+
+  // vignette + red edge slam on the beat
+  ctx.fillStyle = _drawClassicDetPattern._vig; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = `rgba(255,22,24,${(0.03 + pulse * 0.15).toFixed(3)})`;
+  ctx.lineWidth = 34;
+  ctx.strokeRect(-10, -10, W + 20, H + 20);
+  ctx.restore();
+
+  // ── red noise creeping in from the edges, crawling every frame ──
+  {
+    const ng = _cdNoiseGradCv(W, H);
+    const jx2 = (_clHash(_drawClassicDetPattern._f, 3) - 0.5) * 6;
+    const jy2 = (_clHash(_drawClassicDetPattern._f, 8) - 0.5) * 6;
+    ctx.globalAlpha = 0.5 + pulse * 0.18;
+    ctx.drawImage(ng, jx2 - 3, jy2 - 3, W + 6, H + 6);
+    ctx.globalAlpha = 1;
+  }
+
+  // rare glitch tear — slices of the frame shear sideways for a beat
+  {
+    const gs = Math.floor(t * 2.3);
+    if (_clHash(gs * 11) > 0.93) {
+      for (let i = 0; i < 3; i++) {
+        const sy2 = _clHash(gs, i * 7) * H;
+        const sh2 = 8 + _clHash(i * 13, gs) * 38;
+        const dx2 = (_clHash(i * 29, gs) - 0.5) * 34;
+        ctx.drawImage(canvas, 0, sy2, W, sh2, dx2, sy2, W, sh2);
+      }
+    }
+  }
+}
+
+/* impact burst where a hunter knife lands */
+function _cdBurst(x, y, a) {
+  if (!_cdBg) return;
+  _cdBg.fx.push({ type: 'flash', x, y, life: 1, max: 0.16 });
+  _cdBg.fx.push({ type: 'ring', x, y, life: 1, max: 0.4 });
+  const ga = a + (_clHash(x + y) - 0.5) * 0.6;
+  const gL = 50 + _clHash(x * 3) * 50;
+  _cdBg.fx.push({ type: 'gash', x, y, a: ga, L: gL, life: 1, max: 1.4 });
+  _cdBg.fx.push({ type: 'dmg', x, y: y - 14, vy: -200, y0: y - 4,
+                  sc: 0.55, life: 1, max: 1.1 });
+  for (let i = 0; i < 9; i++) {
+    const aa = a + Math.PI + (_clHash(x + i * 7) - 0.5) * 2.4;
+    const sp3 = 120 + _clHash(y + i * 13) * 260;
+    _cdBg.fx.push({ type: 'spk', x, y, vx: Math.cos(aa) * sp3, vy: Math.sin(aa) * sp3,
+                    life: 1, max: 0.35 + _clHash(i * 31) * 0.3 });
+  }
+}
+
+/* ── the Real Knife cursor + SLASH ──────────────────────────────── */
+let _cdOverlayRafId = null;
+let _cdMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _cdMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _cdSMX = _cdMX;
+let _cdParts = [];
+let _cdSwing = 0, _cdSwingDir = 1;
+let _cdFlash = 0;
+let _cdDripAcc = 0, _cdEmberAcc = 0;
+let _cdTrail = [];
+
+function _cdMouseMove(e) { _cdMX = e.clientX; _cdMY = e.clientY; }
+function _cdMouseDown() {
+  const PI2 = Math.PI * 2, x = _cdMX, y = _cdMY;
+  const now = performance.now();
+  _cdCombo = (now - _cdComboT < 900) ? _cdCombo + 1 : 1;       // chain hits
+  _cdComboT = now;
+  _cdShakeT = now;                                             // the floor shakes
+  const cb = Math.min(_cdCombo, 8);
+  const charge = _cdChargeAmt; _cdChargeAmt = 0;               // release stored power
+  const boost = 1 + cb * 0.05 + charge * 0.7;
+  _cdSwing = 1; _cdSwingDir = -_cdSwingDir; _cdFlash = 1;
+  const push = p => { _cdParts.push(p); if (_cdParts.length > 170) _cdParts.shift(); };
+  // the SLASH — a tapered crescent sweeping with the swing
+  push({ type: 'slash', x, y, R: (52 + Math.random() * 30) * boost, a0: Math.random() * PI2,
+         dir: _cdSwingDir, life: 1, max: 0.22 + charge * 0.06 });
+  // white impact flash
+  push({ type: 'flash', x, y, life: 1, max: 0.14 + charge * 0.08 });
+  // shockwave ring (a second one when the chain or charge runs hot)
+  push({ type: 'ring', x, y, life: 1, max: 0.34 });
+  if (cb >= 5 || charge > 0.5) push({ type: 'ring', x, y, life: 1, max: 0.4, delay: 0.08 });
+  // a lingering cut mark — a real wound now
+  const cutA = -Math.PI / 4 + (Math.random() - 0.5) * 0.8;
+  const cutL = (50 + Math.random() * 50) * boost;
+  push({ type: 'cut', x, y, a: cutA, L: cutL, life: 1, max: 1.1 });
+  // UT damage popup — pixel 9999, pops up and bounces
+  push({ type: 'dmg', x: x + (Math.random() - 0.5) * 26, y: y - 20, vy: -190, y0: y - 10,
+         sc: 0.5 + charge * 0.3, life: 1, max: 1.0 });
+  // red sparks
+  const ns = 10 + cb * 2 + ((charge * 8) | 0);
+  for (let i = 0; i < ns; i++) {
+    const a = Math.random() * PI2, s = (110 + Math.random() * 260) * (1 + charge * 0.5);
+    push({ type: 'spark', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+           life: 1, max: 0.35 + Math.random() * 0.35, r: 1.2 + Math.random() * 2 });
+  }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 1.5 + Math.random() * 0.3, volume: 0.5 }); } catch (e) {} }
+}
+
+function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawClassicDetOverlay._lt === undefined;
+  if (!fresh && t - _drawClassicDetOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawClassicDetOverlay._lt, 0.05);
+  _drawClassicDetOverlay._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+  ctx.imageSmoothingEnabled = false;
+
+  const vx = _cdMX - _cdSMX;
+  _cdSMX += vx * Math.min(1, dt * 14);
+  _cdSwing = Math.max(0, _cdSwing - dt * 5.2);
+  _cdFlash = Math.max(0, _cdFlash - dt * 3.4);
+
+  // smooth breathing for overlay effects (matches the pattern)
+  const pulse = 0.5 + 0.5 * Math.sin(t * 1.15);
+
+  // holding the blade still gathers power — embers spiral in
+  {
+    const moved = Math.hypot(_cdMX - _cdPrevMX, _cdMY - _cdPrevMY);
+    _cdPrevMX = _cdMX; _cdPrevMY = _cdMY;
+    if (moved < 4) _cdChargeAmt = Math.min(1, _cdChargeAmt + dt / 1.3);
+    else _cdChargeAmt = Math.max(0, _cdChargeAmt - dt * 2.5);
+    if (_cdChargeAmt > 0.3 && Math.random() < dt * 18 * _cdChargeAmt) {
+      const aa = Math.random() * PI2, rr = 38 + Math.random() * 34;
+      _cdParts.push({ type: 'suck', x: _cdMX + Math.cos(aa) * rr, y: _cdMY + Math.sin(aa) * rr,
+                      life: 1, max: 0.5, r: 1 + Math.random() * 1.6 });
+      if (_cdParts.length > 170) _cdParts.shift();
+    }
+    if (_cdCombo > 0 && performance.now() - _cdComboT > 1100) _cdCombo = 0;
+  }
+
+  // red flash slams the screen edges on every slash
+  if (_cdFlash > 0) {
+    ctx.strokeStyle = `rgba(255,26,26,${(_cdFlash * 0.28).toFixed(3)})`;
+    ctx.lineWidth = 44;
+    ctx.strokeRect(-12, -12, W + 24, H + 24);
+  }
+
+  // ── THE LIVING FRAME — the page itself bleeds and hums ──
+  {
+    const ets = performance.now() / 1000;
+    const ep = 0.5 + 0.5 * Math.sin(ets * 1.15);   // smooth breathing
+
+    // blood breathing in at the very edges, over the UI but faint
+    const bd = 26, eAl = (0.05 + ep * 0.10).toFixed(3);
+    let eg = ctx.createLinearGradient(0, 0, 0, bd);
+    eg.addColorStop(0, `rgba(160,4,8,${eAl})`); eg.addColorStop(1, 'rgba(160,4,8,0)');
+    ctx.fillStyle = eg; ctx.fillRect(0, 0, W, bd);
+    eg = ctx.createLinearGradient(0, H, 0, H - bd);
+    eg.addColorStop(0, `rgba(160,4,8,${eAl})`); eg.addColorStop(1, 'rgba(160,4,8,0)');
+    ctx.fillStyle = eg; ctx.fillRect(0, H - bd, W, bd);
+    eg = ctx.createLinearGradient(0, 0, bd, 0);
+    eg.addColorStop(0, `rgba(160,4,8,${eAl})`); eg.addColorStop(1, 'rgba(160,4,8,0)');
+    ctx.fillStyle = eg; ctx.fillRect(0, 0, bd, H);
+    eg = ctx.createLinearGradient(W, 0, W - bd, 0);
+    eg.addColorStop(0, `rgba(160,4,8,${eAl})`); eg.addColorStop(1, 'rgba(160,4,8,0)');
+    ctx.fillStyle = eg; ctx.fillRect(W - bd, 0, bd, H);
+
+    // a ripple ring drifting slowly inward from the frame, forever
+    {
+      const rk = (ets * 0.28) % 1;
+      const ins = 4 + rk * 16;
+      ctx.strokeStyle = `rgba(255,30,34,${(Math.sin(rk * Math.PI) * 0.22).toFixed(3)})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(ins, ins, W - ins * 2, H - ins * 2);
+    }
+
+    // UT corner brackets — double-struck, thumping, glitch-twitching
+    const arm = 20 + ep * 4;
+    const gseed = (ets * 31) | 0;
+    const gj = _clHash(gseed) > 0.82 ? (_clHash(gseed, 2) - 0.5) * 4 : 0;
+    const cIn = 7;
+    const cors = [[cIn, cIn, 1, 1], [W - cIn, cIn, -1, 1],
+                  [W - cIn, H - cIn, -1, -1], [cIn, H - cIn, 1, -1]];
+    for (const pass2 of [0, 1]) {
+      ctx.strokeStyle = pass2 === 0 ? `rgba(70,2,5,${(0.6 + ep * 0.3).toFixed(3)})`
+                                    : `rgba(255,26,26,${(0.5 + ep * 0.4).toFixed(3)})`;
+      ctx.lineWidth = pass2 === 0 ? 5.5 : 2.6;
+      const o2 = pass2 === 0 ? 2 : 0;
+      ctx.beginPath();
+      for (const [cx2, cy2, sx2, sy2] of cors) {
+        ctx.moveTo(cx2 + gj + sx2 * o2, cy2 + arm * sy2 + sy2 * o2);
+        ctx.lineTo(cx2 + gj + sx2 * o2, cy2 + sy2 * o2);
+        ctx.lineTo(cx2 + arm * sx2 + gj + sx2 * o2, cy2 + sy2 * o2);
+      }
+      ctx.stroke();
+    }
+    if (ep > 0.35) {                             // hot pin at each corner on the beat
+      ctx.fillStyle = `rgba(255,235,235,${(ep * 0.8).toFixed(3)})`;
+      for (const [cx2, cy2] of cors) {
+        ctx.beginPath(); ctx.arc(cx2 + gj, cy2, 2.2 * ep + 0.6, 0, PI2); ctx.fill();
+      }
+    }
+
+    // two tracers racing the perimeter — they SPARK when they collide
+    if (!_cdNotches.length) for (let i = 0; i < 10; i++) _cdNotches.push({ u: _clHash(i * 17), f: 0 });
+    const us = [(((t * 0.055) % 1) + 1) % 1, (((t * -0.055 + 0.5) % 1) + 1) % 1];
+    const dCross = Math.abs((((us[0] - us[1] + 0.5) % 1) + 1) % 1 - 0.5);
+    if (dCross < 0.006 && performance.now() - _cdCrossT > 600) {
+      _cdCrossT = performance.now();
+      const pc = _cdPerim(us[0], W, H, 3);
+      for (let i = 0; i < 8 && _cdParts.length < 165; i++) {
+        const aa3 = Math.random() * PI2, s3 = 60 + Math.random() * 160;
+        _cdParts.push({ type: 'spark', x: pc.x, y: pc.y, vx: Math.cos(aa3) * s3, vy: Math.sin(aa3) * s3,
+                        life: 1, max: 0.4, r: 1 + Math.random() * 1.6 });
+      }
+      if (_cdParts.length < 165) _cdParts.push({ type: 'flash', x: pc.x, y: pc.y, life: 1, max: 0.18 });
+    }
+    for (let tr = 0; tr < 2; tr++) {
+      const dir2 = tr ? -1 : 1;
+      const u = us[tr];
+      let prev = _cdPerim(u, W, H, 3);
+      for (let k2 = 1; k2 <= 13; k2++) {
+        const pt = _cdPerim(u - dir2 * k2 * 0.004, W, H, 3);
+        const fAl = 1 - k2 / 14;
+        ctx.strokeStyle = k2 < 3 ? `rgba(255,240,240,${(fAl * 0.85).toFixed(3)})`
+                                 : `rgba(255,26,30,${(fAl * 0.55).toFixed(3)})`;
+        ctx.lineWidth = k2 < 3 ? 2.6 : 1.4;
+        ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(pt.x, pt.y); ctx.stroke();
+        prev = pt;
+      }
+      for (const n2 of _cdNotches) {
+        const d2 = Math.abs((((n2.u - u + 0.5) % 1) + 1) % 1 - 0.5);
+        if (d2 < 0.012) n2.f = 1;
+      }
+    }
+    // X-shaped claw scars on the frame — they flare as the current passes
+    for (const n2 of _cdNotches) {
+      n2.f = Math.max(0, n2.f - dt * 2.6);
+      const p2 = _cdPerim(n2.u, W, H, 3);
+      const ln = 4.5 + n2.f * 7;
+      ctx.strokeStyle = `rgba(255,${(40 + n2.f * 170) | 0},40,${(0.2 + n2.f * 0.7).toFixed(3)})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (const da of [0.7, 1.9]) {
+        const aa2 = p2.a + da;
+        ctx.moveTo(p2.x - Math.cos(aa2) * ln, p2.y - Math.sin(aa2) * ln);
+        ctx.lineTo(p2.x + Math.cos(aa2) * ln, p2.y + Math.sin(aa2) * ln);
+      }
+      ctx.stroke();
+      if (n2.f > 0.45) {                         // white-hot heart of the flare
+        ctx.fillStyle = `rgba(255,240,240,${((n2.f - 0.45) * 1.1).toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(p2.x, p2.y, 2.4 * n2.f, 0, PI2); ctx.fill();
+      }
+    }
+
+    // determination bleeding down from the top of the page
+    _cdEdgeAcc += dt;
+    if (_cdEdgeAcc > 1.1) {
+      _cdEdgeAcc = 0;
+      if (Math.random() < 0.75) {
+        _cdParts.push({ type: 'edrip', x: 20 + Math.random() * (W - 40), len: 0,
+                        maxL: 26 + Math.random() * 56, vs: 26 + Math.random() * 30, life: 1, max: 2.4 });
+        if (_cdParts.length > 170) _cdParts.shift();
+      }
+    }
+  }
+
+  // ── red-and-black ribbon trailing the blade ──
+  {
+    const last = _cdTrail[_cdTrail.length - 1];
+    if (!last || Math.hypot(_cdMX - last.x, _cdMY - last.y) > 3) {
+      _cdTrail.push({ x: _cdMX, y: _cdMY });
+      if (_cdTrail.length > 16) _cdTrail.shift();
+    } else if (_cdTrail.length > 1) {
+      _cdTrail.shift();                          // retracts while you hold still
+    }
+    if (_cdTrail.length > 1) {
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      for (const pass of [0, 1]) {
+        for (let i = 1; i < _cdTrail.length; i++) {
+          const f = i / _cdTrail.length;
+          ctx.strokeStyle = pass === 0
+            ? `rgba(5,0,2,${(f * 0.5).toFixed(3)})`
+            : `rgba(255,22,26,${(f * 0.45).toFixed(3)})`;
+          ctx.lineWidth = pass === 0 ? 7 * f + 1 : 2.6 * f + 0.4;
+          ctx.beginPath();
+          ctx.moveTo(_cdTrail[i - 1].x, _cdTrail[i - 1].y);
+          ctx.lineTo(_cdTrail[i].x, _cdTrail[i].y);
+          ctx.stroke();
+        }
+      }
+      ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+    }
+  }
+
+  // determination drips from the blade
+  _cdDripAcc += dt;
+  if (_cdDripAcc > 0.34) {
+    _cdDripAcc = 0;
+    const bx = _cdMX + 16, by = _cdMY - 16;     // mid-blade (up-right of tip)
+    _cdParts.push({ type: 'drip', x: bx + (Math.random() - 0.5) * 12, y: by + (Math.random() - 0.5) * 12,
+                    vy: 30, life: 1, max: 0.8 + Math.random() * 0.4, r: 1.6 + Math.random() * 1.6 });
+    if (_cdParts.length > 170) _cdParts.shift();
+  }
+
+  // red aura bleeding off the blade
+  _cdEmberAcc += dt;
+  if (_cdEmberAcc > 0.045) {
+    _cdEmberAcc = 0;
+    const d2 = 8 + Math.random() * 28;
+    _cdParts.push({ type: 'ember', x: _cdMX + d2 * 0.7, y: _cdMY - d2 * 0.7,
+                    vx: (Math.random() - 0.5) * 26, vy: -26 - Math.random() * 40,
+                    life: 1, max: 0.4 + Math.random() * 0.35, r: 0.8 + Math.random() * 1.8 });
+    if (_cdParts.length > 170) _cdParts.shift();
+  }
+
+  // ── particles ──
+  for (const p of _cdParts) {
+    if (p.delay && p.delay > 0) { p.delay -= dt; continue; }
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, Math.min(1, p.life));
+    if (p.type === 'slash') {
+      const k = 1 - al;
+      const ek = 1 - Math.pow(1 - k, 3);
+      const env = Math.sin(Math.min(1, k * 1.2) * Math.PI);
+      _cdSlashArc(ctx, p.x, p.y, p.R, p.a0, 2.3 * p.dir * ek, env, ek);
+    } else if (p.type === 'flash') {
+      const fr = 22 + (1 - al) * 46;
+      const fg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, fr);
+      fg.addColorStop(0, `rgba(255,240,240,${(al * 0.55).toFixed(3)})`);
+      fg.addColorStop(1, 'rgba(255,40,40,0)');
+      ctx.fillStyle = fg;
+      ctx.fillRect(p.x - fr, p.y - fr, fr * 2, fr * 2);
+    } else if (p.type === 'cut') {
+      const lip = _cdDrawWound(ctx, p.x, p.y, p.a, p.L, al);
+      if (al > 0.25 && Math.random() < dt * 2.2 && _cdParts.length < 160) {
+        _cdParts.push({ type: 'drip', x: lip[0], y: lip[1], vy: 20,
+                        life: 1, max: 0.7, r: 1.2 + Math.random() });
+      }
+    } else if (p.type === 'dmg') {
+      // UT damage popup — pixel 9999 pops up, falls, bounces once
+      p.vy += 760 * dt; p.y += p.vy * dt;
+      if (p.y > p.y0 && p.vy > 0) { p.y = p.y0; p.vy *= -0.42; }
+      const n9 = _cd9999();
+      const dw2 = n9.width * p.sc, dh2 = n9.height * p.sc;
+      ctx.globalAlpha = p.life < 0.3 ? p.life / 0.3 : 1;
+      ctx.drawImage(n9, p.x - dw2 / 2, p.y - dh2, dw2, dh2);
+      ctx.globalAlpha = 1;
+    } else if (p.type === 'ring') {
+      ctx.strokeStyle = `rgba(255,40,40,${(al * 0.6).toFixed(3)})`;
+      ctx.lineWidth = 2.6 * al + 0.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 8 + (1 - al) * 80, 0, PI2); ctx.stroke();
+    } else if (p.type === 'ember') {
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.globalAlpha = al * 0.8;
+      ctx.fillStyle = al > 0.55 ? '#ff5a3a' : '#a01212';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * al + 0.3, 0, PI2); ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (p.type === 'suck') {
+      p.x += (_cdMX - p.x) * Math.min(1, dt * 9);
+      p.y += (_cdMY - p.y) * Math.min(1, dt * 9);
+      ctx.globalAlpha = (1 - al) * 0.9;
+      ctx.fillStyle = '#ff4030';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.5 + (1 - al) * 0.8), 0, PI2); ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (p.type === 'edrip') {
+      p.len = Math.min(p.maxL, p.len + p.vs * dt);
+      const eAl2 = al * 0.7;
+      ctx.strokeStyle = `rgba(150,8,10,${(eAl2 * 0.8).toFixed(3)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(p.x, 0); ctx.lineTo(p.x, p.len); ctx.stroke();
+      ctx.fillStyle = `rgba(220,20,20,${eAl2.toFixed(3)})`;
+      ctx.beginPath(); ctx.ellipse(p.x, p.len, 1.6, 2.4, 0, 0, PI2); ctx.fill();
+    } else if (p.type === 'drip') {
+      p.vy += 320 * dt; p.y += p.vy * dt;
+      ctx.fillStyle = `rgba(200,10,10,${(al * 0.85).toFixed(3)})`;
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, p.r * 0.7, p.r * 1.2, 0, 0, PI2);
+      ctx.fill();
+    } else {   // spark
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= (1 - 1.4 * dt); p.vy *= (1 - 1.4 * dt);
+      ctx.globalAlpha = al;
+      ctx.fillStyle = al > 0.5 ? '#ff6a4a' : '#c01010';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * al + 0.4, 0, PI2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+  _cdParts = _cdParts.filter(p => p.life > 0);
+
+  // ── ELEGANCE — bokeh, drifting petals, a gleam passing over the page ──
+  {
+    // soft red bokeh motes, breathing as they rise
+    for (let i = 0; i < 6; i++) {
+      const sd = _clHash(i * 211);
+      const bx3 = ((sd * 13.7) % 1) * W + Math.sin(t * 0.11 + i * 1.7) * 40;
+      const by3 = ((((sd * 7.3 - t * 0.008 * (1 + sd)) % 1) + 1) % 1) * H;
+      const br = 18 + sd * 40;
+      const bal = 0.03 + 0.025 * Math.sin(t * 0.5 + i * 2.3) + 0.025;
+      const bg3 = ctx.createRadialGradient(bx3, by3, 0, bx3, by3, br);
+      bg3.addColorStop(0, `rgba(255,60,66,${bal.toFixed(3)})`);
+      bg3.addColorStop(1, 'rgba(255,60,66,0)');
+      ctx.fillStyle = bg3;
+      ctx.fillRect(bx3 - br, by3 - br, br * 2, br * 2);
+    }
+    // petals of burnt determination, falling and fluttering over the UI —
+    // a whole drift of them, layered by depth (far ones small and faint)
+    for (let i = 0; i < 42; i++) {
+      const sd = _clHash(i * 131), sd2 = _clHash(i * 67);
+      const depth = 0.35 + _clHash(i * 41) * 0.65;               // 0.35 far … 1 near
+      const py3 = ((t * (9 + sd * 15) * depth + sd * (H + 80)) % (H + 80)) - 40;
+      const px3 = sd2 * W + Math.sin(t * 0.45 + i * 1.9) * 34 * depth;
+      const rot = t * (0.5 + sd * 0.6) * (i % 2 ? 1 : -1) + Math.sin(t * 1.3 + i) * 0.4;
+      const ps = (5 + sd * 7) * depth;
+      ctx.save();
+      ctx.translate(px3, py3);
+      ctx.rotate(rot);
+      ctx.scale(1, 0.55 + 0.45 * Math.sin(t * 1.1 + i * 2.6));   // flutter
+      ctx.beginPath();
+      ctx.moveTo(0, -ps);
+      ctx.quadraticCurveTo(ps * 0.95, -ps * 0.15, 0, ps);
+      ctx.quadraticCurveTo(-ps * 0.95, -ps * 0.15, 0, -ps);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(190,16,24,${((0.16 + sd * 0.2) * depth + 0.08).toFixed(3)})`;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,90,90,${((0.1 + sd * 0.15) * depth + 0.06).toFixed(3)})`;
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+      ctx.restore();
+    }
+    // golden petals drifting among the red — rarer, with a faint glow
+    for (let i = 0; i < 14; i++) {
+      const sd = _clHash(i * 197 + 13), sd2 = _clHash(i * 89 + 5);
+      const depth = 0.4 + _clHash(i * 53 + 9) * 0.6;
+      const py3 = ((t * (8 + sd * 13) * depth + sd * (H + 80)) % (H + 80)) - 40;
+      const px3 = sd2 * W + Math.sin(t * 0.4 + i * 2.3) * 40 * depth;
+      const rot = t * (0.45 + sd * 0.55) * (i % 2 ? -1 : 1) + Math.sin(t * 1.2 + i) * 0.4;
+      const ps = (5 + sd * 7) * depth;
+      ctx.save();
+      ctx.translate(px3, py3);
+      ctx.rotate(rot);
+      ctx.scale(1, 0.55 + 0.45 * Math.sin(t * 1.05 + i * 2.1));   // flutter
+      ctx.shadowColor = 'rgba(255,200,80,0.5)';
+      ctx.shadowBlur = 5 * depth;
+      ctx.beginPath();
+      ctx.moveTo(0, -ps);
+      ctx.quadraticCurveTo(ps * 0.95, -ps * 0.15, 0, ps);
+      ctx.quadraticCurveTo(-ps * 0.95, -ps * 0.15, 0, -ps);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(255,205,90,${((0.18 + sd * 0.22) * depth + 0.07).toFixed(3)})`;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = `rgba(255,235,170,${((0.12 + sd * 0.16) * depth + 0.06).toFixed(3)})`;
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+      ctx.restore();
+    }
+    // a gleam of light passing over the whole page, like light on a blade
+    const gph = ((t + 4) % 11) / 2.2;
+    if (gph < 1) {
+      const span = W + H * 0.6;
+      const gx = -span * 0.25 + gph * span * 1.3;
+      const genv = Math.sin(gph * Math.PI);
+      ctx.save();
+      ctx.translate(gx, H * 0.5);
+      ctx.rotate(-0.35);
+      const bw = 130;
+      const gg3 = ctx.createLinearGradient(-bw, 0, bw, 0);
+      gg3.addColorStop(0, 'rgba(255,232,234,0)');
+      gg3.addColorStop(0.42, `rgba(255,238,240,${(0.045 * genv).toFixed(3)})`);
+      gg3.addColorStop(0.5, `rgba(255,246,248,${(0.085 * genv).toFixed(3)})`);
+      gg3.addColorStop(0.58, `rgba(255,238,240,${(0.045 * genv).toFixed(3)})`);
+      gg3.addColorStop(1, 'rgba(255,232,234,0)');
+      ctx.fillStyle = gg3;
+      ctx.fillRect(-bw, -H * 1.6, bw * 2, H * 3.2);
+      ctx.strokeStyle = `rgba(255,40,46,${(0.12 * genv).toFixed(3)})`;   // hair-thin red line riding behind
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-bw * 0.55, -H * 1.6); ctx.lineTo(-bw * 0.55, H * 1.6); ctx.stroke();
+      ctx.restore();
+    }
+    // red grain noise crawling over the menus — smooth gentle pulse
+    {
+      const smoothPulse = 0.5 + 0.5 * Math.sin(t * 0.8);
+      ctx.globalAlpha = 0.18 + smoothPulse * 0.08;
+      ctx.fillStyle = 'rgba(180,20,30,0.35)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+    // red vignette around the borders — creeps inward and darkens with the heartbeat
+    const vig = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.25, W * 0.5, H * 0.5, Math.max(W, H) * 0.68);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(0.6, `rgba(160,4,8,${(0.08 + pulse * 0.12).toFixed(3)})`);
+    vig.addColorStop(1, `rgba(160,4,8,${(0.25 + pulse * 0.18).toFixed(3)})`);
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // ── the Real Knife, tip at the pointer — unrotated, pixel-crisp ──
+  const kn = _clKnife();
+  const swingK = _cdSwing > 0 ? Math.sin(_cdSwing * Math.PI) : 0;
+  const swingRot = swingK * _cdSwingDir * -0.9;
+  // red light pooling under the blade — swells as power gathers
+  {
+    const gr = 46 + Math.sin(t * 2.7) * 8 + swingK * 34 + _cdChargeAmt * 32;
+    const gg = ctx.createRadialGradient(_cdMX, _cdMY, 0, _cdMX, _cdMY, gr);
+    gg.addColorStop(0, `rgba(255,22,26,${(0.10 + swingK * 0.12 + _cdChargeAmt * 0.16).toFixed(3)})`);
+    gg.addColorStop(1, 'rgba(255,22,26,0)');
+    ctx.fillStyle = gg;
+    ctx.fillRect(_cdMX - gr, _cdMY - gr, gr * 2, gr * 2);
+  }
+  const bob = Math.sin(t * 1.6) * 1.4;
+  // afterimages mid-swing (rotating about the tip)
+  if (swingK > 0.05) {
+    for (let g2 = 2; g2 >= 1; g2--) {
+      ctx.save();
+      ctx.translate(_cdMX, _cdMY + bob);
+      ctx.rotate(swingRot * (1 - g2 * 0.3));
+      ctx.globalAlpha = (g2 === 1 ? 0.3 : 0.14) * swingK;
+      ctx.drawImage(kn, -4, -kn.height + 4);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.save();
+  ctx.translate(_cdMX, _cdMY + bob);
+  if (swingRot) ctx.rotate(swingRot);
+  ctx.shadowColor = 'rgba(255,26,26,0.6)';
+  ctx.shadowBlur = 8 + Math.sin(t * 3.1) * 2.5 + swingK * 8 + _cdChargeAmt * 10;
+  ctx.drawImage(kn, -4, -kn.height + 4);        // tip (bottom-left of sprite) at the pointer
+  ctx.restore();
+
+  // combo pips burning under the cursor — one per chained hit
+  if (_cdCombo > 1) {
+    const n = Math.min(_cdCombo, 8);
+    for (let i = 0; i < n; i++) {
+      const px2 = _cdMX - (n - 1) * 3.5 + i * 7, py2 = _cdMY + 20;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(px2 - 2, py2 - 1, 4, 4);
+      ctx.fillStyle = i === n - 1 ? '#ff6a4a' : '#ff1a1a';
+      ctx.fillRect(px2 - 2, py2 - 2, 4, 4);
+    }
+  }
+}
+
+function _startClassicDetOverlay() {
+  _stopClassicDetOverlay();
+  _drawClassicDetOverlay._lt = undefined;
+  _cdParts = []; _cdTrail = []; _cdSwing = 0; _cdFlash = 0; _cdDripAcc = 0; _cdEmberAcc = 0;
+  _cdCombo = 0; _cdChargeAmt = 0; _cdPrevMX = _cdMX; _cdPrevMY = _cdMY;
+  _cdNotches = []; _cdEdgeAcc = 0;
+  _cdSMX = _cdMX;
+  window.addEventListener('mousemove', _cdMouseMove);
+  window.addEventListener('mousedown', _cdMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'classicdet-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('classicdet-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawClassicDetOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _cdOverlayRafId = requestAnimationFrame(frame);
+  }
+  _cdOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopClassicDetOverlay() {
+  if (_cdOverlayRafId) { cancelAnimationFrame(_cdOverlayRafId); _cdOverlayRafId = null; }
+  window.removeEventListener('mousemove', _cdMouseMove);
+  window.removeEventListener('mousedown', _cdMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('classicdet-overlay'); if (cv) cv.remove();
+  _cdParts = []; _cdTrail = [];
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CLASSIC · SAVE — Asriel's rainbow. A chunky pixel rainbow sky that
+   flows and ripples from a glowing core, drifting pixel stars and
+   star-bullets, and a rainbow knife cursor that swings and trails
+   rainbow afterimages. Every pulse is SMOOTH. ──────────────────── */
+function _hsl2rgb(h, s, l) {
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const hue2 = (p, q, tt) => {
+      if (tt < 0) tt += 1; if (tt > 1) tt -= 1;
+      if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+      if (tt < 1 / 2) return q;
+      if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2(p, q, h + 1 / 3); g = hue2(p, q, h); b = hue2(p, q, h - 1 / 3);
+  }
+  return [(r * 255) | 0, (g * 255) | 0, (b * 255) | 0];
+}
+
+function _drawClassicSavePattern(canvas, ctx, W, H, t) {
+  const fresh = _drawClassicSavePattern._lt === undefined;
+  if (!fresh && t - _drawClassicSavePattern._lt < 0.033) return;   // 30fps cap
+  _drawClassicSavePattern._lt = t;
+  const PI2 = Math.PI * 2;
+  const breathe = 0.5 + 0.5 * Math.sin(t * 1.05);
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#070310'; ctx.fillRect(0, 0, W, H);
+
+  // ── chunky pixel rainbow flowing out of a glowing core ──
+  const PX = 16;
+  const lw = Math.ceil(W / PX) + 1, lh = Math.ceil(H / PX) + 1;
+  if (!_drawClassicSavePattern._lo || _drawClassicSavePattern._lw !== lw || _drawClassicSavePattern._lh !== lh) {
+    const lo = document.createElement('canvas'); lo.width = lw; lo.height = lh;
+    _drawClassicSavePattern._lo = lo; _drawClassicSavePattern._lw = lw; _drawClassicSavePattern._lh = lh;
+  }
+  const lo = _drawClassicSavePattern._lo, lx = lo.getContext('2d');
+  const id = lx.createImageData(lw, lh);
+  const cx2 = lw * 0.5, cy2 = lh * 0.42;
+  for (let yy = 0; yy < lh; yy++) {
+    for (let xx = 0; xx < lw; xx++) {
+      const dr = Math.hypot(xx - cx2, yy - cy2);
+      const ang = Math.atan2(yy - cy2, xx - cx2);
+      // hue spirals out from the core and rotates over time
+      const hue = (((ang / PI2) + dr * 0.018 - t * 0.10) % 1 + 1) % 1;
+      const ripple = 0.5 + 0.5 * Math.sin(dr * 0.22 - t * 1.5);
+      const L = 0.26 + ripple * 0.20;
+      const rgb = _hsl2rgb(hue, 0.9, L);
+      const o = (yy * lw + xx) * 4;
+      id.data[o] = rgb[0]; id.data[o + 1] = rgb[1]; id.data[o + 2] = rgb[2]; id.data[o + 3] = 255;
+    }
+  }
+  lx.putImageData(id, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.globalAlpha = 0.5;
+  ctx.drawImage(lo, 0, 0, lw * PX, lh * PX);
+  ctx.globalAlpha = 1;
+
+  // ── glowing white core, gently breathing ──
+  const coreX = W * 0.5, coreY = H * 0.42;
+  const cr = Math.min(W, H) * (0.16 + breathe * 0.04);
+  const cg = ctx.createRadialGradient(coreX, coreY, 0, coreX, coreY, cr);
+  cg.addColorStop(0, `rgba(255,255,255,${(0.42 + breathe * 0.16).toFixed(3)})`);
+  cg.addColorStop(0.4, 'rgba(255,240,255,0.18)');
+  cg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = cg;
+  ctx.fillRect(coreX - cr, coreY - cr, cr * 2, cr * 2);
+
+  // ── twinkling pixel stars ──
+  for (let i = 0; i < 70; i++) {
+    const sx = _clHash(i * 12.9) * W, sy = _clHash(i * 78.2) * H;
+    const tw = 0.5 + 0.5 * Math.sin(t * (1.4 + _clHash(i) * 2) + i);
+    const sz = (1 + _clHash(i * 3) * 2) | 0;
+    ctx.fillStyle = `rgba(255,255,255,${(0.12 + tw * 0.6).toFixed(3)})`;
+    ctx.fillRect(sx | 0, sy | 0, sz + 1, sz + 1);
+  }
+
+  // ── drifting pixel star-bullets (Asriel) — slow, rainbow-tinted ──
+  for (let i = 0; i < 9; i++) {
+    const sd = _clHash(i * 41.7);
+    const sxp = ((sd + t * 0.012 * (0.6 + sd)) % 1) * (W + 60) - 30;
+    const syp = ((_clHash(i * 9.1) + t * 0.02 * (0.5 + sd)) % 1) * (H + 60) - 30;
+    const hue = (t * 0.1 + sd) % 1;
+    const rgb = _hsl2rgb(hue, 0.9, 0.65);
+    _csStar(ctx, sxp, syp, 5 + sd * 6, t * (0.3 + sd) * (i % 2 ? 1 : -1),
+            `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.5)`, true);
+  }
+
+  // ── soft vignette so the menus stay readable ──
+  if (!_drawClassicSavePattern._vig || _drawClassicSavePattern._vw !== W || _drawClassicSavePattern._vh !== H) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.72);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(6,2,14,0.66)');
+    _drawClassicSavePattern._vig = vg; _drawClassicSavePattern._vw = W; _drawClassicSavePattern._vh = H;
+  }
+  ctx.fillStyle = _drawClassicSavePattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* a 4-point pixel-ish star, pointing up, drawn at (x,y) */
+function _csStar(ctx, x, y, r, rot, style, glow) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot);
+  if (glow) { ctx.shadowColor = style; ctx.shadowBlur = r * 1.2; }
+  ctx.fillStyle = style;
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+    const rr = i % 2 === 0 ? r : r * 0.34;
+    const px2 = Math.cos(a) * rr, py2 = Math.sin(a) * rr;
+    if (i === 0) ctx.moveTo(px2, py2); else ctx.lineTo(px2, py2);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+/* the rainbow knife — the pixel knife sprite recoloured to a shifting
+   rainbow gradient, built into a shared offscreen each call */
+let _csKnifeBuf = null;
+function _csTintKnife(hueDeg) {
+  const base = _clKnife();
+  if (!_csKnifeBuf) {
+    _csKnifeBuf = document.createElement('canvas');
+    _csKnifeBuf.width = base.width; _csKnifeBuf.height = base.height;
+  }
+  const x = _csKnifeBuf.getContext('2d');
+  x.clearRect(0, 0, base.width, base.height);
+  x.drawImage(base, 0, 0);
+  x.globalCompositeOperation = 'source-atop';
+  const g = x.createLinearGradient(0, base.height, base.width, 0);
+  for (let i = 0; i <= 6; i++) {
+    const rgb = _hsl2rgb((((hueDeg + i * 55) % 360) / 360), 1, 0.6);
+    g.addColorStop(i / 6, `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`);
+  }
+  x.fillStyle = g;
+  x.fillRect(0, 0, base.width, base.height);
+  x.globalCompositeOperation = 'source-over';
+  return _csKnifeBuf;
+}
+
+let _csOverlayRafId = null;
+let _csMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _csMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _csParts = [], _csHist = [], _csSwing = 0, _csSwingDir = 1, _csHue = 0;
+
+function _csMouseMove(e) { _csMX = e.clientX; _csMY = e.clientY; }
+function _csMouseDown() {
+  const x = _csMX, y = _csMY, PI2 = Math.PI * 2;
+  _csSwing = 1; _csSwingDir = -_csSwingDir;
+  const push = p => { _csParts.push(p); if (_csParts.length > 170) _csParts.shift(); };
+  push({ type: 'ring', x, y, hue: _csHue, life: 1, max: 0.5 });
+  push({ type: 'ring', x, y, hue: (_csHue + 140) % 360, life: 1, max: 0.6, delay: 0.07 });
+  for (let i = 0; i < 8; i++) {
+    const a = Math.random() * PI2, s = 120 + Math.random() * 220;
+    push({ type: 'star', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, rot: Math.random() * PI2,
+           vr: (Math.random() - 0.5) * 9, r: 4 + Math.random() * 5, hue: (_csHue + i * 42) % 360,
+           life: 1, max: 0.6 + Math.random() * 0.4 });
+  }
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * PI2, s = 80 + Math.random() * 260;
+    push({ type: 'spark', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 1 + Math.random() * 2,
+           hue: (_csHue + i * 24) % 360, life: 1, max: 0.4 + Math.random() * 0.3 });
+  }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 1.4 + Math.random() * 0.4, volume: 0.4 }); } catch (e) {} }
+}
+
+function _drawClassicSaveOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawClassicSaveOverlay._lt === undefined;
+  if (!fresh && t - _drawClassicSaveOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawClassicSaveOverlay._lt, 0.05);
+  _drawClassicSaveOverlay._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+  ctx.imageSmoothingEnabled = false;
+
+  _csHue = (_csHue + dt * 110) % 360;
+  _csSwing = Math.max(0, _csSwing - dt * 5);
+
+  // ── rainbow neon border running around the whole page ──
+  {
+    const N = 84, inset = 6;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (const pass of [0, 1]) {
+      ctx.lineWidth = pass === 0 ? 11 : 5;
+      ctx.globalAlpha = pass === 0 ? 0.4 : 1;     // soft glow under a bright core
+      let prev = _cdPerim(0, W, H, inset);
+      for (let i = 1; i <= N; i++) {
+        const u = i / N;
+        const pt = _cdPerim(u, W, H, inset);
+        const hue = ((u * 360 + t * 70) % 360 + 360) % 360;
+        ctx.strokeStyle = `hsl(${hue | 0},100%,${pass === 0 ? 60 : 66}%)`;
+        ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(pt.x, pt.y); ctx.stroke();
+        prev = pt;
+      }
+    }
+    ctx.globalAlpha = 1;
+    // little star sparkles riding the border
+    for (let i = 0; i < 4; i++) {
+      const u = ((t * 0.09 + i / 4) % 1 + 1) % 1;
+      const pt = _cdPerim(u, W, H, inset);
+      const hue = ((u * 360 + t * 70) % 360 + 360) % 360;
+      const rgb = _hsl2rgb(hue / 360, 1, 0.7);
+      _csStar(ctx, pt.x, pt.y, 5 + Math.sin(t * 3 + i) * 1.5, t * 2 + i,
+              `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.85)`, true);
+    }
+  }
+
+  // record cursor history for the rainbow afterimage trail
+  _csHist.push({ x: _csMX, y: _csMY, hue: _csHue });
+  if (_csHist.length > 15) _csHist.shift();
+
+  // ── particles ──
+  for (const p of _csParts) {
+    if (p.delay && p.delay > 0) { p.delay -= dt; continue; }
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, p.life);
+    if (p.type === 'ring') {
+      const rgb = _hsl2rgb(p.hue / 360, 1, 0.62);
+      ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${(al * 0.7).toFixed(3)})`;
+      ctx.lineWidth = 2.4 * al + 0.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 8 + (1 - al) * 74, 0, PI2); ctx.stroke();
+    } else if (p.type === 'star') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 130 * dt;
+      p.vx *= (1 - 0.9 * dt); p.rot += p.vr * dt;
+      const rgb = _hsl2rgb(p.hue / 360, 1, 0.65);
+      _csStar(ctx, p.x, p.y, p.r * (0.5 + al * 0.6), p.rot,
+              `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${al.toFixed(3)})`, true);
+    } else {   // spark
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= (1 - 1.5 * dt); p.vy *= (1 - 1.5 * dt);
+      const rgb = _hsl2rgb(p.hue / 360, 1, 0.66);
+      ctx.globalAlpha = al;
+      ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+      ctx.fillRect((p.x - p.r) | 0, (p.y - p.r) | 0, (p.r * 2 * al + 1) | 0 || 1, (p.r * 2 * al + 1) | 0 || 1);
+      ctx.globalAlpha = 1;
+    }
+  }
+  _csParts = _csParts.filter(p => p.life > 0);
+
+  // ── rainbow afterimages of the knife trailing the cursor ──
+  const swingRot = _csSwing > 0 ? _csSwingDir * Math.sin(_csSwing * Math.PI) * -0.9 : 0;
+  for (let i = 0; i < _csHist.length - 1; i++) {
+    const hh = _csHist[i], a = (i + 1) / _csHist.length;
+    const kn = _csTintKnife(hh.hue);
+    ctx.globalAlpha = a * a * 0.34;
+    ctx.save();
+    ctx.translate(hh.x, hh.y);
+    if (swingRot) ctx.rotate(swingRot * a);
+    ctx.drawImage(kn, -4, -kn.height + 4);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // ── the rainbow knife itself, tip at the pointer ──
+  const kn = _csTintKnife(_csHue);
+  const bob = Math.sin(t * 1.6) * 1.4;
+  ctx.save();
+  ctx.translate(_csMX, _csMY + bob);
+  if (swingRot) ctx.rotate(swingRot);
+  ctx.shadowColor = `hsl(${_csHue | 0},100%,60%)`;
+  ctx.shadowBlur = 11 + Math.sin(t * 3) * 3;
+  ctx.drawImage(kn, -4, -kn.height + 4);   // tip (bottom-left of sprite) at the pointer
+  ctx.restore();
+  ctx.shadowBlur = 0;
+}
+
+function _startClassicSaveOverlay() {
+  _stopClassicSaveOverlay();
+  _drawClassicSaveOverlay._lt = undefined;
+  _csParts = []; _csHist = []; _csSwing = 0;
+  window.addEventListener('mousemove', _csMouseMove);
+  window.addEventListener('mousedown', _csMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'classicsave-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('classicsave-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawClassicSaveOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _csOverlayRafId = requestAnimationFrame(frame);
+  }
+  _csOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopClassicSaveOverlay() {
+  if (_csOverlayRafId) { cancelAnimationFrame(_csOverlayRafId); _csOverlayRafId = null; }
+  window.removeEventListener('mousemove', _csMouseMove);
+  window.removeEventListener('mousedown', _csMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('classicsave-overlay'); if (cv) cv.remove();
+  _csParts = []; _csHist = [];
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CLASSIC · GHOST — Classic's base form. Somber and melancholic: a
+   dim, cold dusk; golden-yellow petals drifting down through pale
+   light; slow rising ghost-wisps; and a faded white SOUL for a cursor
+   that bobs and leaves a quiet ghost-trail. Everything is slow and
+   soft — grief, not menace. ─────────────────────────────────────── */
+function _cgPetal(ctx, ps, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(0, -ps);
+  ctx.quadraticCurveTo(ps * 0.92, -ps * 0.12, 0, ps);
+  ctx.quadraticCurveTo(-ps * 0.92, -ps * 0.12, 0, -ps);
+  ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 0.7; ctx.stroke(); }
+}
+function _cgHeart(ctx, x, y, s, fill, glow) {
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(s, s);
+  if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 14; }
+  ctx.beginPath();
+  ctx.moveTo(0, -0.38);
+  ctx.bezierCurveTo(0, -0.7, -0.62, -0.7, -0.62, -0.18);
+  ctx.bezierCurveTo(-0.62, 0.22, -0.12, 0.5, 0, 0.72);
+  ctx.bezierCurveTo(0.12, 0.5, 0.62, 0.22, 0.62, -0.18);
+  ctx.bezierCurveTo(0.62, -0.7, 0, -0.7, 0, -0.38);
+  ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function _drawClassicGhostPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawClassicGhostPattern._lt === undefined;
+  if (!fresh && t - _drawClassicGhostPattern._lt < 0.033) return;   // 30fps cap
+  _drawClassicGhostPattern._lt = t;
+  const PI2 = Math.PI * 2;
+  const breathe = 0.5 + 0.5 * Math.sin(t * 0.5);     // very slow, melancholic
+
+  ctx.clearRect(0, 0, W, H);
+
+  // cold dusk backdrop + a pale light bleeding from above
+  if (!_drawClassicGhostPattern._bg || _drawClassicGhostPattern._bgW !== W || _drawClassicGhostPattern._bgH !== H) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#14161d');
+    g.addColorStop(0.5, '#0d0e13');
+    g.addColorStop(1, '#08080b');
+    const glow = ctx.createRadialGradient(W * 0.5, H * 0.08, 0, W * 0.5, H * 0.08, Math.max(W, H) * 0.6);
+    glow.addColorStop(0, 'rgba(214,190,110,0.10)');
+    glow.addColorStop(0.5, 'rgba(150,140,120,0.04)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    const haze = ctx.createLinearGradient(0, H * 0.6, 0, H);
+    haze.addColorStop(0, 'rgba(120,110,80,0)');
+    haze.addColorStop(1, 'rgba(150,130,80,0.10)');
+    const vig = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.32, W * 0.5, H * 0.5, Math.max(W, H) * 0.7);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.7)');
+    _drawClassicGhostPattern._bg = g; _drawClassicGhostPattern._glow = glow;
+    _drawClassicGhostPattern._haze = haze; _drawClassicGhostPattern._vig = vig;
+    _drawClassicGhostPattern._bgW = W; _drawClassicGhostPattern._bgH = H;
+  }
+  ctx.fillStyle = _drawClassicGhostPattern._bg; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 0.7 + breathe * 0.3;
+  ctx.fillStyle = _drawClassicGhostPattern._glow; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1;
+
+  // distant, faint stars
+  for (let i = 0; i < 40; i++) {
+    const sx = _clHash(i * 14.7) * W, sy = _clHash(i * 51.3) * H * 0.55;
+    const tw = 0.5 + 0.5 * Math.sin(t * (0.6 + _clHash(i) * 1.2) + i * 2);
+    ctx.fillStyle = `rgba(226,220,200,${(0.04 + tw * 0.12).toFixed(3)})`;
+    ctx.fillRect(sx | 0, sy | 0, 1, 1);
+  }
+
+  // pale wandering moon-glow high up, dimming in and out
+  const mx = W * (0.5 + Math.sin(t * 0.05) * 0.06), my = H * 0.1;
+  {
+    const mr = Math.min(W, H) * 0.13;
+    const mg = ctx.createRadialGradient(mx, my, 0, mx, my, mr);
+    mg.addColorStop(0, `rgba(236,224,180,${(0.10 + breathe * 0.06).toFixed(3)})`);
+    mg.addColorStop(1, 'rgba(236,224,180,0)');
+    ctx.fillStyle = mg; ctx.fillRect(mx - mr, my - mr, mr * 2, mr * 2);
+  }
+
+  // soft god-rays spilling down from the moon
+  {
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7 - 0.5) * 1.1 + Math.PI / 2 + Math.sin(t * 0.08 + i) * 0.04;
+      const len = Math.max(W, H) * 0.95;
+      const wdt = 26 + (i % 3) * 18;
+      const al = (0.018 + 0.012 * Math.sin(t * 0.3 + i * 1.7)) * (0.6 + breathe * 0.4);
+      ctx.save();
+      ctx.rotate(a - Math.PI / 2);
+      const rg = ctx.createLinearGradient(0, 0, 0, len);
+      rg.addColorStop(0, `rgba(238,228,180,${al.toFixed(3)})`);
+      rg.addColorStop(1, 'rgba(238,228,180,0)');
+      ctx.fillStyle = rg;
+      ctx.beginPath();
+      ctx.moveTo(-wdt * 0.3, 0); ctx.lineTo(wdt * 0.3, 0);
+      ctx.lineTo(wdt, len); ctx.lineTo(-wdt, len);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // slow ghost-wisps rising and fading
+  for (let i = 0; i < 6; i++) {
+    const sd = _clHash(i * 53.1);
+    const ph = ((t * 0.03 * (0.5 + sd) + sd) % 1);
+    const wx = (0.1 + _clHash(i * 19) * 0.8) * W + Math.sin(t * 0.2 + i) * 24;
+    const wy = H * (1 - ph);
+    const wh = 60 + sd * 120;
+    const al = Math.sin(ph * Math.PI) * 0.06;
+    const wg = ctx.createLinearGradient(wx, wy, wx, wy - wh);
+    wg.addColorStop(0, `rgba(200,200,210,${al.toFixed(3)})`);
+    wg.addColorStop(1, 'rgba(200,200,210,0)');
+    ctx.fillStyle = wg;
+    ctx.fillRect(wx - 8, wy - wh, 16, wh);
+  }
+
+  // drifting dust motes
+  for (let i = 0; i < 34; i++) {
+    const sd = i * 0.618;
+    const dx = ((sd * 2.71) % 1) * W + Math.sin(t * 0.25 + i) * 30;
+    const dy = (((sd * 5.3 - t * 0.01 * (0.5 + (sd % 1))) % 1) + 1) % 1 * H;
+    ctx.fillStyle = `rgba(220,214,190,${(0.04 + (sd % 0.12)).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(dx, dy, 0.7 + (sd % 1.2), 0, PI2); ctx.fill();
+  }
+
+  // ── the yellow petals — the heart of it, drifting down, fluttering ──
+  for (let i = 0; i < 60; i++) {
+    const sd = _clHash(i * 131.7), sd2 = _clHash(i * 71.3);
+    const depth = 0.35 + _clHash(i * 41.9) * 0.65;
+    const py = ((t * (10 + sd * 16) * depth + sd * (H + 90)) % (H + 90)) - 45;
+    const px = sd2 * W + Math.sin(t * 0.4 + i * 1.7) * 46 * depth;
+    const rot = t * (0.4 + sd * 0.5) * (i % 2 ? 1 : -1) + Math.sin(t * 0.9 + i) * 0.5;
+    const ps = (5 + sd * 8) * depth;
+    // muted golds: some warmer, some paler & greyer (melancholy)
+    const warm = _clHash(i * 7) > 0.4;
+    const fill = warm
+      ? `rgba(220,${(180 + sd * 24) | 0},${(70 + sd * 26) | 0},${(0.22 + sd * 0.26) * depth + 0.06})`
+      : `rgba(196,${(186 + sd * 20) | 0},${(130 + sd * 30) | 0},${(0.16 + sd * 0.2) * depth + 0.05})`;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(rot);
+    ctx.scale(1, 0.5 + 0.5 * Math.sin(t * 1.0 + i * 2.4));      // flutter
+    _cgPetal(ctx, ps, fill, `rgba(236,222,150,${(0.10 * depth).toFixed(3)})`);
+    ctx.restore();
+  }
+
+  // a thin layer of petals already settled, drifting slowly along the floor
+  for (let i = 0; i < 12; i++) {
+    const sd = _clHash(i * 97.3);
+    const px = (((sd + t * 0.006 * (0.4 + sd)) % 1)) * W;
+    const py = H - 6 - (sd % 1) * 10;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(Math.sin(t * 0.3 + i) * 0.3 + (sd - 0.5));
+    ctx.scale(1, 0.4);
+    _cgPetal(ctx, 5 + sd * 5, `rgba(200,170,80,${(0.10 + sd * 0.08).toFixed(3)})`, null);
+    ctx.restore();
+  }
+
+  ctx.fillStyle = _drawClassicGhostPattern._haze; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = _drawClassicGhostPattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+let _cgOverlayRafId = null;
+let _cgMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _cgMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _cgParts = [], _cgHist = [], _cgPetalAcc = 0;
+
+function _cgMouseMove(e) { _cgMX = e.clientX; _cgMY = e.clientY; }
+function _cgMouseDown() {
+  const x = _cgMX, y = _cgMY, PI2 = Math.PI * 2;
+  const push = p => { _cgParts.push(p); if (_cgParts.length > 150) _cgParts.shift(); };
+  // a quiet pale ring
+  push({ type: 'ring', x, y, life: 1, max: 0.9 });
+  // a soft sigh of yellow petals lifting and falling
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, s = 30 + Math.random() * 90;
+    push({ type: 'petal', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 20,
+           rot: Math.random() * PI2, vr: (Math.random() - 0.5) * 3, ps: 4 + Math.random() * 5,
+           warm: Math.random() > 0.4, life: 1, max: 1.6 + Math.random() * 1.2 });
+  }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 0.7 + Math.random() * 0.15, volume: 0.3 }); } catch (e) {} }
+}
+
+function _drawClassicGhostOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawClassicGhostOverlay._lt === undefined;
+  if (!fresh && t - _drawClassicGhostOverlay._lt < 0.012) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawClassicGhostOverlay._lt, 0.05);
+  _drawClassicGhostOverlay._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  // record cursor history for a soft ghost-trail
+  _cgHist.push({ x: _cgMX, y: _cgMY });
+  if (_cgHist.length > 18) _cgHist.shift();
+
+  // petals occasionally drift off the soul as it moves
+  _cgPetalAcc += dt;
+  if (_cgPetalAcc > 0.5) {
+    _cgPetalAcc = 0;
+    if (Math.random() < 0.7) {
+      _cgParts.push({ type: 'petal', x: _cgMX + (Math.random() - 0.5) * 16, y: _cgMY + 6,
+                      vx: (Math.random() - 0.5) * 20, vy: 18 + Math.random() * 24,
+                      rot: Math.random() * PI2, vr: (Math.random() - 0.5) * 2.4, ps: 3 + Math.random() * 4,
+                      warm: Math.random() > 0.4, life: 1, max: 1.6 + Math.random() });
+      if (_cgParts.length > 150) _cgParts.shift();
+    }
+  }
+
+  // ── particles ──
+  for (const p of _cgParts) {
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, p.life);
+    if (p.type === 'ring') {
+      ctx.strokeStyle = `rgba(228,214,150,${(al * 0.3).toFixed(3)})`;
+      ctx.lineWidth = 1.5 * al + 0.4;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 6 + (1 - al) * 56, 0, PI2); ctx.stroke();
+    } else {   // petal
+      p.vy += 26 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx *= (1 - 0.6 * dt); p.rot += p.vr * dt;
+      const fill = p.warm
+        ? `rgba(220,188,78,${(al * 0.7).toFixed(3)})`
+        : `rgba(198,190,140,${(al * 0.6).toFixed(3)})`;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.scale(1, 0.5 + 0.5 * Math.sin(t * 1.4 + p.x));
+      _cgPetal(ctx, p.ps, fill, null);
+      ctx.restore();
+    }
+  }
+  _cgParts = _cgParts.filter(p => p.life > 0);
+
+  // ── pale-gold fireflies drifting lazily in front of everything ──
+  for (let i = 0; i < 13; i++) {
+    const sd = _clHash(i * 27.3), sd2 = _clHash(i * 61.9);
+    const fx = (sd + Math.sin(t * (0.06 + sd * 0.05) + i) * 0.12) * W;
+    const fy = ((sd2 - t * 0.012 * (0.4 + sd)) % 1 + 1) % 1 * H;
+    const tw = 0.5 + 0.5 * Math.sin(t * (1.1 + sd) + i * 2.3);
+    const fr = 1.4 + sd * 2.2;
+    const al = (0.1 + tw * 0.4);
+    ctx.save();
+    ctx.shadowColor = 'rgba(236,214,130,0.9)';
+    ctx.shadowBlur = 8 + tw * 8;
+    ctx.fillStyle = `rgba(244,228,160,${al.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(fx, fy, fr, 0, PI2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── foreground petals drifting in front of the menus (soft focus) ──
+  for (let i = 0; i < 10; i++) {
+    const sd = _clHash(i * 113.7 + 3), sd2 = _clHash(i * 47.1 + 9);
+    const py = ((t * (26 + sd * 22) + sd * (H + 140)) % (H + 140)) - 70;
+    const px = sd2 * W + Math.sin(t * 0.5 + i * 1.6) * 70;
+    const rot = t * (0.5 + sd * 0.6) * (i % 2 ? 1 : -1) + Math.sin(t * 0.8 + i) * 0.6;
+    const ps = 11 + sd * 12;     // large, near-camera
+    const warm = _clHash(i * 5) > 0.4;
+    const fill = warm
+      ? `rgba(222,188,80,${(0.14 + sd * 0.12).toFixed(3)})`
+      : `rgba(204,196,150,${(0.11 + sd * 0.1).toFixed(3)})`;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(rot);
+    ctx.scale(1, 0.5 + 0.5 * Math.sin(t * 0.9 + i * 2.2));
+    ctx.shadowColor = 'rgba(210,180,90,0.5)';
+    ctx.shadowBlur = 6;
+    _cgPetal(ctx, ps, fill, `rgba(236,222,150,0.12)`);
+    ctx.restore();
+  }
+  ctx.shadowBlur = 0;
+
+  // ── ghost-trail of faded souls behind the cursor ──
+  for (let i = 0; i < _cgHist.length - 1; i++) {
+    const hh = _cgHist[i], a = (i + 1) / _cgHist.length;
+    _cgHeart(ctx, hh.x, hh.y + Math.sin(t * 1.4) * 2, 11 + a * 3,
+             `rgba(232,228,214,${(a * a * 0.10).toFixed(3)})`, null);
+  }
+
+  // ── the faded white SOUL, bobbing gently, tip at the pointer ──
+  const bob = Math.sin(t * 1.4) * 2.2;
+  const pulse = 0.5 + 0.5 * Math.sin(t * 1.1);
+  _cgHeart(ctx, _cgMX, _cgMY + bob, 15,
+           `rgba(244,242,232,${(0.5 + pulse * 0.18).toFixed(3)})`, 'rgba(228,214,150,0.7)');
+  // a small inner glow so it reads as a soul, not a sticker
+  _cgHeart(ctx, _cgMX, _cgMY + bob, 7, `rgba(255,255,255,${(0.4 + pulse * 0.2).toFixed(3)})`, null);
+}
+
+function _startClassicGhostOverlay() {
+  _stopClassicGhostOverlay();
+  _drawClassicGhostOverlay._lt = undefined;
+  _cgParts = []; _cgHist = []; _cgPetalAcc = 0;
+  window.addEventListener('mousemove', _cgMouseMove);
+  window.addEventListener('mousedown', _cgMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'classicghost-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('classicghost-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawClassicGhostOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _cgOverlayRafId = requestAnimationFrame(frame);
+  }
+  _cgOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopClassicGhostOverlay() {
+  if (_cgOverlayRafId) { cancelAnimationFrame(_cgOverlayRafId); _cgOverlayRafId = null; }
+  window.removeEventListener('mousemove', _cgMouseMove);
+  window.removeEventListener('mousedown', _cgMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('classicghost-overlay'); if (cv) cv.remove();
+  _cgParts = []; _cgHist = [];
+}
+
+/* ── Classic's stats are corrupted — you can never read them ────── */
+let _clGlitchInt = null;
+const _CL_GLYPHS = '▓▒░█▌▐■□#%&@!?<>/\\|0123456789*';
+function _clGlitchStr(n) {
+  let s2 = '';
+  for (let i = 0; i < n; i++) s2 += _CL_GLYPHS[(Math.random() * _CL_GLYPHS.length) | 0];
+  return s2;
+}
+function _startClassicStatGlitch() {
+  if (_clGlitchInt) return;
+  const tick = () => {
+    const cv = document.getElementById('char-view');
+    if (!cv || !cv.classList.contains('classic-ui')) { _stopClassicStatGlitch(); return; }
+    cv.querySelectorAll('.stat-val').forEach(el => {
+      el.textContent = _clGlitchStr(3 + ((Math.random() * 3) | 0));
+    });
+    cv.querySelectorAll('.stat-seg.fill-fg').forEach(el => {
+      const r = Math.random();
+      el.style.opacity = r < 0.45 ? '0' : '1';
+      el.style.filter = r > 0.86 ? `invert(1) hue-rotate(${(Math.random() * 360) | 0}deg)` : '';
+    });
+    // the overall LEVEL badge is corrupted too — keeps the " LEVEL" suffix
+    const plLabel = document.querySelector('.cv-pl-label');
+    if (plLabel) {
+      if (plLabel.dataset.cllen === undefined) {
+        plLabel.dataset.cllen = String(plLabel.textContent.replace(/ LEVEL$/, '').length || 7);
+      }
+      plLabel.textContent = _clGlitchStr(+plLabel.dataset.cllen) + ' LEVEL';
+    }
+    // per-stat tier badges glitch as well
+    cv.querySelectorAll('[id^="tier-disp-"]').forEach(el => {
+      if (el.textContent.trim()) el.textContent = _clGlitchStr(3 + ((Math.random() * 2) | 0));
+    });
+  };
+  tick();
+  _clGlitchInt = setInterval(tick, 110);
+}
+function _stopClassicStatGlitch() {
+  if (_clGlitchInt) { clearInterval(_clGlitchInt); _clGlitchInt = null; }
+  document.querySelectorAll('#char-view .stat-seg.fill-fg').forEach(el => {
+    el.style.opacity = ''; el.style.filter = '';
+  });
+  // restore the LEVEL badge if it got corrupted
+  const plLabel = document.querySelector('.cv-pl-label');
+  if (plLabel && plLabel.dataset.cllen !== undefined) {
+    delete plLabel.dataset.cllen;
+    const c = characters.find(x => x.id === currentId);
+    if (c) updateCharPLBadge(c);
+  }
 }
 /* ─────────────────────────────────────────────────────────────── */
 
@@ -17796,6 +19850,9 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'simmer_tide')    { _drawSimmerPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'omen_bar')       { _drawOmenBarPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'haru_parasite')  { _drawHaruPattern(canvas, ctx, W, H, t);                return; }
+  if (type === 'classic_det')    { _drawClassicDetPattern(canvas, ctx, W, H, t);          return; }
+  if (type === 'classic_save')   { _drawClassicSavePattern(canvas, ctx, W, H, t);         return; }
+  if (type === 'classic_ghost')  { _drawClassicGhostPattern(canvas, ctx, W, H, t);        return; }
 
   // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -18312,6 +20369,12 @@ function startBgAnim(type, params) {
   _drawOmenBarPattern._lt     = undefined;
   _drawHaruPattern._lt        = undefined;
   _drawHaruOverlay._lt        = undefined;
+  _drawClassicDetPattern._lt  = undefined;
+  _drawClassicDetOverlay._lt  = undefined;
+  _drawClassicSavePattern._lt = undefined;
+  _drawClassicSaveOverlay._lt = undefined;
+  _drawClassicGhostPattern._lt = undefined;
+  _drawClassicGhostOverlay._lt = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -18368,6 +20431,9 @@ function stopBgAnim() {
   _stopSimmerOverlay();
   _stopOmenBarOverlay();
   _stopHaruOverlay();
+  _stopClassicDetOverlay();
+  _stopClassicSaveOverlay();
+  _stopClassicGhostOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -18881,6 +20947,10 @@ function viewChar(id) {
   else if (_isSimmer(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#59c9f2'); }
   else if (_isOmenBartender(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8a13c'); }
   else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
+  else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
+  else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
+  else if (_isClassicGhost(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d8c46a'); }
+  else if (_isClassic(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8e8e8'); }
   else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
@@ -19345,6 +21415,35 @@ function viewChar(id) {
     }
   }
 
+  // ── Classic — UNDERTALE dialogue-box UI chrome for ALL his forms (white
+  // pixel-box panels, a glitch-split name, a soul-marked portrait, and stats
+  // that are permanently corrupted). The Determination. form goes red. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isClassic(c)) {
+      _cvRoot.classList.add('classic-ui');
+      _cvRoot.classList.toggle('classic-det', _isClassicDet(c));
+      _cvRoot.classList.toggle('classic-save', _isClassicSave(c));
+      _cvRoot.classList.toggle('classic-ghost', _isClassicGhost(c));
+      if (_av) _av.classList.add('classic-pfp');
+      if (_nm) { _nm.classList.add('classic-name'); _nm.setAttribute('data-text', _nm.textContent || 'CLASSIC'); }
+      if (_pc && (_isClassicDet(c) || _isClassicSave(c) || _isClassicGhost(c))) _pc.style.opacity = '0.95';
+      _startClassicStatGlitch();
+    } else {
+      _cvRoot.classList.remove('classic-ui');
+      _cvRoot.classList.remove('classic-det');
+      _cvRoot.classList.remove('classic-save');
+      _cvRoot.classList.remove('classic-ghost');
+      if (_av) _av.classList.remove('classic-pfp');
+      if (_nm) { _nm.classList.remove('classic-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name') && !_nm.classList.contains('mimzy-name') && !_nm.classList.contains('bizzy-name') && !_nm.classList.contains('omen-name') && !_nm.classList.contains('ex-name') && !_nm.classList.contains('riegen-name') && !_nm.classList.contains('lorraine-name') && !_nm.classList.contains('simmer-name') && !_nm.classList.contains('omenbar-name') && !_nm.classList.contains('haru-name')) _nm.removeAttribute('data-text'); }
+      if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c) && !_isMimzy(c) && !_isBizzy(c) && !_isOmen(c) && !_isEx(c) && !_isRiegen(c) && !_isLorraine(c) && !_isSimmer(c) && !_isOmenBartender(c) && !_isHaru(c)) _pc.style.opacity = '';
+      _stopClassicStatGlitch();
+    }
+  }
+
   // ── Evelynn — elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -19442,7 +21541,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isHaru(c) ? 'haru_parasite' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -19454,7 +21553,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'haru_parasite' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -19518,6 +21617,9 @@ function viewChar(id) {
   if (_isSimmer(c))   _startSimmerOverlay();
   if (_isOmenBartender(c)) _startOmenBarOverlay();
   if (_isHaru(c))     _startHaruOverlay();
+  if (_isClassicDet(c)) _startClassicDetOverlay();
+  if (_isClassicSave(c)) _startClassicSaveOverlay();
+  if (_isClassicGhost(c)) _startClassicGhostOverlay();
   }
 
   renderInventory(c);
@@ -19852,9 +21954,20 @@ function renderFormSwitcher(c) {
   if (!forms.length) { wrap.innerHTML = ''; return; }
   const active = c.activeFormIdx || 0;
   const all = [{ name: 'BASE' }, ...forms];
+  const classic = _isClassic(c);
   wrap.innerHTML = all.map((f, i) => {
-    const label = i === 0 ? 'BASE' : (f.name || `FORM ${i}`);
-    return `<button class="btn sm form-chip${i === active ? ' form-chip-active' : ''}" onclick="switchForm(${i})">${label}</button>`;
+    // Classic's base form is called GHOST
+    const label = i === 0 ? (classic ? 'GHOST' : 'BASE') : (f.name || `FORM ${i}`);
+    let extra = '';
+    if (classic) {
+      // each Classic form chip is always styled to its identity
+      const ln = label.toLowerCase();
+      if (i === 0) extra = ' classic-chip classic-chip-ghost';
+      else if (/determination/.test(ln)) extra = ' classic-chip classic-chip-det';
+      else if (/save/.test(ln)) extra = ' classic-chip classic-chip-save';
+      else extra = ' classic-chip';
+    }
+    return `<button class="btn sm form-chip${i === active ? ' form-chip-active' : ''}${extra}" onclick="switchForm(${i})"><span class="form-chip-tx">${label}</span></button>`;
   }).join('');
 }
 
@@ -22351,9 +24464,10 @@ const ROLE_LABELS = { dps: 'DPS', tank: 'TANK', assassin: 'ASSASSIN', support: '
 
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic', 'hexxed', 'duality', 'determined'];
 const RARITY_LABEL = { common: 'COMMON', rare: 'RARE', epic: 'EPIC', legendary: 'LEGENDARY', mythic: 'MYTHIC', hexxed: 'HEXXED', duality: 'DUALITY', determined: 'DETERMINED' };
-const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
 
-//const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 11, mythic: 5, hexxed: 5, duality: 2, determined: 0 };
+//const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
+
+const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 2, mythic: 15, hexxed: 5, duality: 2, determined: 0 };
 
 const PITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 68.9, mythic: 25, hexxed: 1, duality: 5, determined: 0.1 };
 
@@ -22458,7 +24572,9 @@ function rollHand(isPityRoll) {
     if (!seen.has(k)) {
       seen.add(k);
       const _r = TRAITS[k]?.rarity;
-      const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'mythic' && Math.random() < 0.10) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
+      //const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'mythic' && Math.random() < 0.10) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
+            const shimmyful = (_r === 'common' && Math.random() < 1) || (_r === 'legendary' && Math.random() < 1) || (_r === 'mythic' && Math.random() < 1) || (_r === 'rare' && Math.random() < 1) || (_r === 'epic' && Math.random() < 1);
+//findme
       hand.push({ key: k, shimmyful });
     }
     tries++;
@@ -24780,7 +26896,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isHaru(c) ? 'haru_parasite' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -24821,6 +26937,9 @@ window.addEventListener('resize', () => {
       if (_isSimmer(c))   _startSimmerOverlay();
       if (_isOmenBartender(c)) _startOmenBarOverlay();
       if (_isHaru(c))     _startHaruOverlay();
+      if (_isClassicDet(c)) _startClassicDetOverlay();
+      if (_isClassicSave(c)) _startClassicSaveOverlay();
+      if (_isClassicGhost(c)) _startClassicGhostOverlay();
     }
   }
 });
