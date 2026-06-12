@@ -3254,6 +3254,147 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   OMEN · JANITOR — grimy fluorescent restroom. Cold tiled panels
+   with a damp green cast, a flickering institutional name, and a
+   portrait behind a grubby tiled frame. --char-color is mop teal.
+   ============================================================ */
+#char-view.omenjanitor-ui .panel {
+  --p-border: #5f7a70;
+  border-color: #5f7a70;
+  background:
+    linear-gradient(180deg, rgba(22,30,28,0.95), rgba(12,18,16,0.96)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 22px);
+  box-shadow:
+    0 0 18px rgba(95,184,160,0.10),
+    inset 0 0 26px rgba(20,50,42,0.4);
+}
+#char-view.omenjanitor-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% -10%, rgba(190,220,205,0.08), transparent 55%);
+  animation: oj-fluoro 7s steps(1) infinite;
+}
+@keyframes oj-fluoro {
+  0%, 100% { opacity: 1; }
+  48% { opacity: 1; }
+  49% { opacity: 0.55; }
+  50% { opacity: 1; }
+  77% { opacity: 0.8; }
+  78% { opacity: 1; }
+}
+#char-view.omenjanitor-ui .panel-title {
+  color: #b9d6c8 !important;
+  letter-spacing: 4px;
+  font-weight: normal;
+  border-bottom-color: rgba(95,184,160,0.35);
+  text-shadow: 0 0 10px rgba(95,184,160,0.45);
+}
+#char-view.omenjanitor-ui .tab-btn { color: #5d7268; }
+#char-view.omenjanitor-ui .tab-btn:hover { color: #d4ece2; text-shadow: 0 0 10px rgba(120,200,175,0.6); }
+#char-view.omenjanitor-ui .tab-btn.active {
+  color: #e2f3ec;
+  border-bottom-color: rgba(120,200,175,0.8);
+  text-shadow: 0 0 12px rgba(120,200,175,0.7);
+}
+/* Name: a humming fluorescent strip-light label that flickers */
+.char-name-display.omenjanitor-name {
+  color: #cfe6db !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  text-shadow: 0 0 8px rgba(150,220,195,0.7), 0 0 20px rgba(80,150,130,0.4), 0 1px 0 rgba(10,24,20,0.6);
+  animation: oj-fluoro 7s steps(1) infinite;
+}
+/* Portrait: grubby tiled frame with a damp green wash */
+.char-avatar-large.omenjanitor-pfp {
+  border-color: #5f7a70 !important;
+  box-shadow: 0 0 18px rgba(95,184,160,0.3), inset 0 0 22px rgba(20,50,42,0.5);
+  filter: saturate(0.85) brightness(0.95);
+  overflow: hidden;
+}
+.char-avatar-large.omenjanitor-pfp::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 12px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 12px);
+}
+
+/* ============================================================
+   GONELA — Mexican frontier lawman: fast & strong. Deep navy-blue
+   panels banded with a serape stripe, wine-glowing borders, a name
+   that dashes like a quick-draw. Wine #701345 / blue #222742.
+   ============================================================ */
+#char-view.gonela-ui .panel {
+  --p-border: #a8285c;
+  border-color: #a8285c;
+  background: linear-gradient(180deg, rgba(34,39,66,0.95), rgba(18,21,38,0.96));
+  box-shadow:
+    0 0 20px rgba(168,40,92,0.2),
+    inset 0 0 26px rgba(34,39,66,0.5);
+}
+/* serape stripe banner across the top of each panel */
+#char-view.gonela-ui .panel::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 4px;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg,
+    #701345 0 14px, #d6457a 14px 20px, #4d7fc4 20px 34px, #e8c24a 34px 40px, #222742 40px 54px);
+  opacity: 0.85;
+}
+#char-view.gonela-ui .panel-title {
+  color: #e0568a !important;
+  letter-spacing: 4px;
+  font-weight: normal;
+  border-bottom-color: rgba(168,40,92,0.4);
+  text-shadow: 0 0 12px rgba(214,69,122,0.6);
+}
+#char-view.gonela-ui .tab-btn { color: #5a6488; }
+#char-view.gonela-ui .tab-btn:hover { color: #e9a7c2; text-shadow: 0 0 10px rgba(214,69,122,0.6); }
+#char-view.gonela-ui .tab-btn.active {
+  color: #ff9ec0;
+  border-bottom-color: #d6457a;
+  text-shadow: 0 0 14px rgba(214,69,122,0.8);
+}
+/* Name: wine→pink with a blue echo, dashing on a fast beat */
+.char-name-display.gonela-name {
+  position: relative;
+  color: #e0568a !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  text-shadow: 2px 0 0 rgba(77,127,196,0.6), -1px 0 0 rgba(112,19,69,0.8), 0 0 14px rgba(214,69,122,0.5);
+  animation: gonela-dash 3.4s ease-in-out infinite;
+}
+@keyframes gonela-dash {
+  0%, 86%, 100% { transform: translateX(0); }
+  88% { transform: translateX(-5px); text-shadow: 5px 0 0 rgba(77,127,196,0.7), -4px 0 0 rgba(214,69,122,0.7), 0 0 14px rgba(214,69,122,0.5); }
+  90% { transform: translateX(4px); }
+  92% { transform: translateX(0); }
+}
+/* Portrait: wine frame, blue inner glow, gold star in the corner */
+.char-avatar-large.gonela-pfp {
+  border-color: #a8285c !important;
+  box-shadow: 0 0 22px rgba(168,40,92,0.45), inset 0 0 20px rgba(34,50,90,0.6);
+}
+.char-avatar-large.gonela-pfp::after {
+  content: "★";
+  position: absolute;
+  right: -6px; bottom: -9px;
+  font-size: 18px;
+  line-height: 1;
+  color: #e8c24a;
+  text-shadow: 0 0 8px rgba(214,69,122,0.9), 1px 1px 0 #3a0e22;
+  animation: gonela-star-spin 6s linear infinite;
+  pointer-events: none;
+}
+@keyframes gonela-star-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ============================================================
    HARU — parasitical, mysterious, overwhelming. Infected
    purple panels whose borders pulse like veins, a name that
    breathes unevenly in the dark, and a portrait something is

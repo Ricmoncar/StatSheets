@@ -2746,6 +2746,8 @@ const PATTERN_DEFS = {
   lorraine_brass:   { label: "Lorraine · Gilded Parlour", params: [] },
   simmer_tide:      { label: "Simmer · Star-Tide Kingdom", params: [] },
   omen_bar:         { label: "Omen · The Perfect Mix",     params: [] },
+  omen_janitor:     { label: "Omen · Janitor Duty",        params: [] },
+  gonela_frontier:  { label: "Gonela · Frontier Law",      params: [] },
   haru_parasite:    { label: "Haru · The Watching Dark",   params: [] },
   classic_det:      { label: "Classic · Determination.",   params: [] },
   classic_save:     { label: "Classic · SAVE",              params: [] },
@@ -12760,6 +12762,821 @@ function _stopOmenBarOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// OMEN · JANITOR — the ringmaster's other job. A grimy fluorescent-lit
+// bathroom; the cursor is a MOP, and messes ooze across the floor (and
+// over the menus). Scrub them away by mopping over them — keep the mop
+// rinsed at the bucket. Different spills have different toughness, and
+// "CAPPY'S SPECIAL" (it looks just like Cappy's milk) is a nightmare to
+// get up. Only on Omen's JANITOR alt-form.
+// ════════════════════════════════════════════════════════════════
+function _isOmenJanitor(c) {
+  if (!(c && c.name && _OMEN_RE.test(c.name))) return false;
+  const idx = c.activeFormIdx || 0;
+  if (idx === 0) return false;
+  const af = (c.altForms || [])[idx - 1];
+  return !!(af && af.name && /janitor/i.test(af.name));
+}
+
+const _OJ_TYPES = [
+  { id: 'piss',  name: 'SUSPICIOUS PUDDLE', col: '#9a8527', gloss: '#fff39a', tough: 0.9, hard: false },
+  { id: 'gunk',  name: 'MYSTERY GUNK',      col: '#4d3618', gloss: '#a8743a', tough: 1.15, hard: false },
+  { id: 'goo',   name: 'TOXIC GOO',         col: '#379030', gloss: '#a6f07e', tough: 1.35, hard: false },
+  { id: 'blood', name: 'OMINOUS RED STAIN', col: '#6b1116', gloss: '#d8443e', tough: 1.6, hard: false },
+  { id: 'cappy', name: "CAPPY'S SPECIAL",   col: '#fdfdf6', gloss: '#ffffff', tough: 3.6, hard: true },
+];
+const _OJ_PRAISE = ['SPOTLESS!', 'SQUEAKY CLEAN!', 'NICE!', 'GLEAMING!', 'SHINY!', 'TIDY!'];
+
+let _ojOverlayRafId = null;
+let _ojMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _ojMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _ojPMX = _ojMX, _ojPMY = _ojMY, _ojSpeed = 0;
+let _ojMesses = [], _ojSuds = [];
+let _ojCleaned = 0, _ojStreak = 0;
+let _ojSpawnTimers = [], _ojPrevT = 0, _ojIntroT = 0;
+let _ojMopDirt = 0, _ojMopTint = '#888c88';
+let _ojMsg = '', _ojMsgT = 0, _ojMsgCol = '#fff';
+
+function _ojMouseMove(e) { _ojMX = e.clientX; _ojMY = e.clientY; }
+function _ojRGBA(hex, a) {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function _ojMixHex(h1, h2, f) {
+  const a = [parseInt(h1.slice(1, 3), 16), parseInt(h1.slice(3, 5), 16), parseInt(h1.slice(5, 7), 16)];
+  const b = [parseInt(h2.slice(1, 3), 16), parseInt(h2.slice(3, 5), 16), parseInt(h2.slice(5, 7), 16)];
+  return `rgb(${(a[0] + (b[0] - a[0]) * f) | 0},${(a[1] + (b[1] - a[1]) * f) | 0},${(a[2] + (b[2] - a[2]) * f) | 0})`;
+}
+// smooth closed organic blob through radius multipliers
+function _ojBlob(ctx, x, y, r, m) {
+  const N = m.length, P = i => { const a = (((i % N) + N) % N) / N * Math.PI * 2; const rr = r * m[((i % N) + N) % N]; return [x + Math.cos(a) * rr, y + Math.sin(a) * rr]; };
+  ctx.beginPath();
+  const p0 = P(0), pl = P(N - 1);
+  ctx.moveTo((pl[0] + p0[0]) / 2, (pl[1] + p0[1]) / 2);
+  for (let i = 0; i < N; i++) { const cu = P(i), nx = P(i + 1); ctx.quadraticCurveTo(cu[0], cu[1], (cu[0] + nx[0]) / 2, (cu[1] + nx[1]) / 2); }
+  ctx.closePath();
+}
+// a fresh random wait before this liquid next appears — tougher = rarer
+function _ojTypeInterval(i) { return (4.5 + Math.random() * 6) * _OJ_TYPES[i].tough; }
+function _ojSpawnMess(W, H, typeIdx) {
+  const type = (typeIdx == null) ? (Math.random() * 4) | 0 : typeIdx;
+  const cappy = _OJ_TYPES[type].hard;
+  const r = cappy ? 30 + Math.random() * 22 : 22 + Math.random() * 26;
+  const m = Array.from({ length: 9 }, () => 0.74 + Math.random() * 0.4);
+  _ojMesses.push({
+    x: 50 + Math.random() * (W - 100), y: 90 + Math.random() * (H - 150),
+    r, type, dirt: 1, m, lastScrub: 0, spreadAcc: 0,
+    sat: cappy ? Array.from({ length: 3 }, () => ({ a: Math.random() * 6.28, d: r * (0.5 + Math.random() * 0.5), rr: r * (0.3 + Math.random() * 0.25), m: Array.from({ length: 8 }, () => 0.7 + Math.random() * 0.5) })) : null,
+    bub: cappy ? Array.from({ length: 6 }, () => ({ ox: (Math.random() - 0.5) * r, oy: (Math.random() - 0.5) * r, br: 1.5 + Math.random() * 3 })) : null,
+  });
+}
+
+/* the grimy bathroom backdrop (static scene cached, lit dynamically) */
+function _ojBuildScene(W, H) {
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const x = cv.getContext('2d');
+  const floorY = H * 0.6;
+  // brighter, grimy teal restroom
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#33433e'); g.addColorStop(0.45, '#2a3a36');
+  g.addColorStop(0.6, '#1d2420'); g.addColorStop(0.62, '#222019'); g.addColorStop(1, '#15140f');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+
+  // ── wall tiles (varied shade, grout, mildew, rust, cracks) ──
+  const TS = Math.max(40, Math.round(W / 24));
+  for (let ty = 0; ty < floorY; ty += TS) for (let tx = 0; tx < W; tx += TS) {
+    const sd = _obHash(tx * 0.13 + ty * 0.07);
+    const lr = 70 + sd * 46, lg = 96 + sd * 40, lb = 90 + sd * 38;
+    x.fillStyle = `rgba(${lr | 0},${lg | 0},${lb | 0},0.5)`;
+    x.fillRect(tx + 1.5, ty + 1.5, TS - 3, TS - 3);
+    // top-left tile sheen
+    x.fillStyle = 'rgba(255,255,255,0.05)'; x.fillRect(tx + 2, ty + 2, TS - 4, 3);
+    // mildew creeping from grout
+    if (sd > 0.82) { x.fillStyle = 'rgba(40,70,30,0.4)'; x.fillRect(tx + 2, ty + TS * 0.55, TS - 4, TS * 0.45 - 2); }
+    if (sd < 0.1) { x.fillStyle = 'rgba(90,60,30,0.3)'; x.fillRect(tx + TS * 0.5, ty + 2, TS * 0.5 - 2, TS - 4); }   // rust
+    // cracked tile
+    if (sd > 0.93) { x.strokeStyle = 'rgba(10,16,14,0.7)'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(tx + TS * 0.3, ty + 3); x.lineTo(tx + TS * 0.55, ty + TS * 0.55); x.lineTo(tx + TS * 0.38, ty + TS - 3); x.stroke(); }
+    x.strokeStyle = 'rgba(12,20,18,0.55)'; x.lineWidth = 2; x.strokeRect(tx + 0.5, ty + 0.5, TS, TS);
+  }
+  // long mildew/water streaks down the wall
+  for (let i = 0; i < 7; i++) {
+    const sx = _obHash(i * 13.3) * W;
+    x.fillStyle = `rgba(30,46,30,${(0.06 + _obHash(i) * 0.08).toFixed(3)})`;
+    x.fillRect(sx, 0, 5 + _obHash(i + 4) * 8, floorY * (0.4 + _obHash(i + 7) * 0.5));
+  }
+
+  // ── floor tiles (warmer grey, perspective lines) ──
+  for (let ty = floorY; ty < H; ty += TS * 1.05) for (let tx = 0; tx < W; tx += TS * 1.35) {
+    const sd = _obHash(tx * 0.09 + ty * 0.05 + 9);
+    x.fillStyle = `rgba(${(64 + sd * 30) | 0},${(60 + sd * 26) | 0},${(50 + sd * 22) | 0},0.4)`;
+    x.fillRect(tx + 1, ty + 1, TS * 1.35 - 2, TS * 1.05 - 2);
+    if (sd > 0.78) { x.fillStyle = 'rgba(80,66,30,0.22)'; x.fillRect(tx + 4, ty + 4, TS * 1.35 - 8, TS * 1.05 - 8); }
+    x.strokeStyle = 'rgba(8,8,6,0.5)'; x.lineWidth = 1.5; x.strokeRect(tx + 0.5, ty + 0.5, TS * 1.35, TS * 1.05);
+  }
+  // baseboard
+  x.fillStyle = 'rgba(20,28,24,0.9)'; x.fillRect(0, floorY - 4, W, 6);
+  x.fillStyle = 'rgba(120,150,140,0.25)'; x.fillRect(0, floorY - 5, W, 1.5);
+
+  // ── toilet-stall partitions on the right ──
+  const stallX = W * 0.72;
+  x.fillStyle = 'rgba(150,160,158,0.5)';
+  for (const px of [stallX, W * 0.95]) x.fillRect(px - 5, floorY * 0.2, 10, floorY * 0.8);
+  x.fillStyle = 'rgba(120,132,130,0.42)'; x.fillRect(stallX, floorY * 0.24, W * 0.95 - stallX, floorY * 0.74);   // door
+  x.strokeStyle = 'rgba(20,28,26,0.6)'; x.lineWidth = 2; x.strokeRect(stallX, floorY * 0.24, W * 0.95 - stallX, floorY * 0.74);
+  x.fillStyle = 'rgba(40,48,46,0.8)'; x.fillRect(stallX + 6, floorY * 0.58, 10, 4);                              // latch
+  x.fillStyle = 'rgba(180,40,40,0.8)'; x.fillRect(stallX + 14, floorY * 0.585, 4, 3);                            // occupied dot
+
+  // ── mirror + sink on the left ──
+  const mw = Math.min(180, W * 0.17), mh = mw * 1.05, mxp = W * 0.18, myp = floorY * 0.4;
+  x.fillStyle = 'rgba(70,80,80,0.7)'; x.fillRect(mxp - mw / 2 - 5, myp - mh / 2 - 5, mw + 10, mh + 10);
+  const mg = x.createLinearGradient(mxp - mw / 2, myp - mh / 2, mxp + mw / 2, myp + mh / 2);
+  mg.addColorStop(0, 'rgba(96,116,120,0.7)'); mg.addColorStop(0.5, 'rgba(120,140,142,0.55)'); mg.addColorStop(1, 'rgba(70,88,90,0.7)');
+  x.fillStyle = mg; x.fillRect(mxp - mw / 2, myp - mh / 2, mw, mh);
+  for (let i = 0; i < 6; i++) { x.fillStyle = 'rgba(200,210,205,0.06)'; x.beginPath(); x.ellipse(mxp + (_obHash(i) - 0.5) * mw * 0.7, myp + (_obHash(i + 9) - 0.5) * mh * 0.7, 10 + _obHash(i + 3) * 20, 14 + _obHash(i + 5) * 22, 0.6, 0, 6.2832); x.fill(); }
+  // a cracked corner on the mirror
+  x.strokeStyle = 'rgba(20,30,30,0.6)'; x.lineWidth = 1; x.beginPath(); x.moveTo(mxp + mw / 2, myp - mh / 2); x.lineTo(mxp + mw * 0.2, myp - mh * 0.1); x.moveTo(mxp + mw * 0.34, myp - mh / 2); x.lineTo(mxp + mw * 0.2, myp - mh * 0.1); x.stroke();
+  // sink basin
+  const skw = mw * 1.15, sky = floorY - 6;
+  x.fillStyle = 'rgba(196,202,200,0.5)';
+  x.beginPath(); x.moveTo(mxp - skw / 2, sky - 34); x.quadraticCurveTo(mxp, sky + 4, mxp + skw / 2, sky - 34); x.lineTo(mxp + skw / 2, sky - 44); x.lineTo(mxp - skw / 2, sky - 44); x.closePath(); x.fill();
+  x.fillStyle = 'rgba(150,156,152,0.5)'; x.fillRect(mxp - 4, myp + mh / 2, 8, sky - 44 - (myp + mh / 2));        // pipe
+  x.fillStyle = 'rgba(170,176,172,0.6)'; x.fillRect(mxp - 5, sky - 58, 10, 14);                                  // faucet
+  // a doodled star scrawled on the wall (Omen's mark)
+  x.strokeStyle = 'rgba(255,95,168,0.5)'; x.lineWidth = 2.4;
+  _omStarPath(x, mxp + mw * 0.85, myp - mh * 0.2, 16, 7, 5, 0.3); x.stroke();
+
+  // ── drain on the floor ──
+  const dxp = W * 0.5, dyp = (floorY + H) / 2 + 10;
+  x.fillStyle = 'rgba(70,80,76,0.6)'; x.beginPath(); x.arc(dxp, dyp, 24, 0, 6.2832); x.fill();
+  x.fillStyle = 'rgba(8,10,8,0.7)'; x.beginPath(); x.arc(dxp, dyp, 19, 0, 6.2832); x.fill();
+  x.strokeStyle = 'rgba(150,156,150,0.5)'; x.lineWidth = 2.5;
+  for (let i = 0; i < 5; i++) { x.beginPath(); x.moveTo(dxp - 14, dyp - 11 + i * 5.5); x.lineTo(dxp + 14, dyp - 11 + i * 5.5); x.stroke(); }
+  x.fillStyle = 'rgba(40,70,60,0.16)'; x.beginPath(); x.ellipse(dxp, dyp, 70, 32, 0.15, 0, 6.2832); x.fill();
+
+  // ── WET FLOOR caution sign ──
+  const cxp = W * 0.84, cyp = H * 0.86;
+  x.save(); x.translate(cxp, cyp);
+  x.fillStyle = '#d9b020'; x.beginPath(); x.moveTo(-26, 30); x.lineTo(-10, -34); x.lineTo(10, -34); x.lineTo(26, 30); x.closePath(); x.fill();
+  x.fillStyle = '#caa017'; x.beginPath(); x.moveTo(10, -34); x.lineTo(26, 30); x.lineTo(14, 30); x.lineTo(2, -34); x.closePath(); x.fill();
+  x.strokeStyle = 'rgba(40,30,0,0.7)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-26, 30); x.lineTo(-10, -34); x.lineTo(10, -34); x.lineTo(26, 30); x.stroke();
+  // little falling-man glyph
+  x.fillStyle = '#2a2208';
+  x.beginPath(); x.arc(-2, -22, 3.4, 0, 6.2832); x.fill();
+  x.lineWidth = 3; x.strokeStyle = '#2a2208';
+  x.beginPath(); x.moveTo(-2, -18); x.lineTo(6, -10); x.moveTo(-2, -14); x.lineTo(-10, -8); x.moveTo(-2, -18); x.lineTo(-9, -2); x.moveTo(-2, -18); x.lineTo(7, -4); x.stroke();
+  x.restore();
+
+  // ── green EXIT sign, top-right ──
+  const exX = W * 0.9, exY = H * 0.07;
+  x.fillStyle = 'rgba(10,20,12,0.9)'; x.fillRect(exX - 30, exY - 11, 60, 22);
+  x.strokeStyle = 'rgba(60,255,120,0.5)'; x.lineWidth = 1.5; x.strokeRect(exX - 30, exY - 11, 60, 22);
+  x.fillStyle = '#5fff8c'; x.font = 'bold 13px monospace'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('EXIT', exX, exY + 1); x.textAlign = 'start'; x.textBaseline = 'alphabetic';
+  return cv;
+}
+
+function _drawOmenJanitorPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawOmenJanitorPattern._lt === undefined;
+  if (!fresh && t - _drawOmenJanitorPattern._lt < 0.033) return;   // 30fps cap
+  _drawOmenJanitorPattern._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  if (!_drawOmenJanitorPattern._sc || _drawOmenJanitorPattern._w !== W || _drawOmenJanitorPattern._h !== H) {
+    _drawOmenJanitorPattern._sc = _ojBuildScene(W, H);
+    _drawOmenJanitorPattern._w = W; _drawOmenJanitorPattern._h = H;
+    const vig = ctx.createRadialGradient(W * 0.5, H * 0.42, Math.min(W, H) * 0.36, W * 0.5, H * 0.5, Math.max(W, H) * 0.78);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(4,8,6,0.4)');
+    _drawOmenJanitorPattern._vig = vig;
+  }
+  ctx.drawImage(_drawOmenJanitorPattern._sc, 0, 0);
+
+  // flickering fluorescent tube near the top, casting cold light
+  const flick = (_obHash(Math.floor(t * 11)) > 0.12 ? 1 : 0.5) * (0.92 + 0.08 * Math.sin(t * 40));
+  const ty = H * 0.05;
+  ctx.fillStyle = `rgba(170,180,170,${(0.14 + flick * 0.08).toFixed(3)})`;
+  ctx.fillRect(W * 0.28, ty - 6, W * 0.44, 11);
+  ctx.fillStyle = `rgba(225,245,230,${(0.6 * flick).toFixed(3)})`;
+  ctx.fillRect(W * 0.28 + 3, ty - 3, W * 0.44 - 6, 5);
+  const cone = ctx.createLinearGradient(0, ty, 0, H * 0.62);
+  cone.addColorStop(0, `rgba(200,228,212,${(0.13 * flick).toFixed(3)})`);
+  cone.addColorStop(1, 'rgba(200,228,212,0)');
+  ctx.fillStyle = cone;
+  ctx.beginPath(); ctx.moveTo(W * 0.28, ty); ctx.lineTo(W * 0.72, ty); ctx.lineTo(W * 0.86, H * 0.62); ctx.lineTo(W * 0.14, H * 0.62); ctx.closePath(); ctx.fill();
+
+  // EXIT sign green glow, gently pulsing
+  {
+    const exX = W * 0.9, exY = H * 0.07, gl = 0.6 + 0.4 * Math.sin(t * 1.6);
+    const eg = ctx.createRadialGradient(exX, exY, 0, exX, exY, 70);
+    eg.addColorStop(0, `rgba(70,255,130,${(0.10 * gl).toFixed(3)})`);
+    eg.addColorStop(1, 'rgba(70,255,130,0)');
+    ctx.fillStyle = eg; ctx.fillRect(exX - 70, exY - 70, 140, 140);
+  }
+
+  // dripping faucet
+  {
+    const dph = (t * 0.6) % 1.4;
+    if (dph < 1) {
+      const dx = W * 0.2, dy0 = H * 0.62 * 0.42 + Math.min(170, W * 0.16) * 0.55 + 4;
+      const dy = dy0 + dph * (H * 0.62 - dy0 - 40);
+      ctx.fillStyle = 'rgba(150,200,210,0.5)';
+      ctx.beginPath(); ctx.ellipse(dx, dy, 1.8, 3.2, 0, 0, PI2); ctx.fill();
+    }
+  }
+
+  // steam / damp wisps
+  for (let m = 0; m < 3; m++) {
+    const mx = ((t * (10 + m * 6) + m * W * 0.4) % (W + 280)) - 140;
+    const my = H * (0.2 + m * 0.14) + Math.sin(t * 0.4 + m * 2) * 16;
+    ctx.fillStyle = `rgba(180,200,190,${(0.02 + m * 0.006).toFixed(3)})`;
+    ctx.beginPath(); ctx.ellipse(mx, my, 120, 24 + m * 8, Math.sin(t * 0.2 + m) * 0.2, 0, PI2); ctx.fill();
+  }
+
+  ctx.fillStyle = _drawOmenJanitorPattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+function _ojDrawMess(ctx, mess, t) {
+  const PI2 = Math.PI * 2;
+  const T = _OJ_TYPES[mess.type];
+  const a = mess.dirt; if (a <= 0) return;
+  const r = mess.r * (0.55 + a * 0.45);
+  // wet shadow
+  ctx.save();
+  _ojBlob(ctx, mess.x + 2, mess.y + 3, r * 1.04, mess.m);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill();
+  if (T.hard) {
+    // CAPPY'S SPECIAL — milk: satellites, creamy body, bubbles, sheen
+    for (const s of mess.sat) {
+      _ojBlob(ctx, mess.x + Math.cos(s.a) * s.d * a, mess.y + Math.sin(s.a) * s.d * a, s.rr * (0.5 + a * 0.5), s.m);
+      ctx.fillStyle = _ojRGBA('#fdfdf6', 0.6 + 0.32 * a); ctx.fill();
+    }
+    _ojBlob(ctx, mess.x, mess.y, r, mess.m);
+    ctx.fillStyle = _ojRGBA('#fdfdf6', 0.72 + 0.26 * a); ctx.fill();
+    // cool cream shade in the lower half
+    ctx.save(); _ojBlob(ctx, mess.x, mess.y, r, mess.m); ctx.clip();
+    const cg = ctx.createLinearGradient(0, mess.y - r, 0, mess.y + r);
+    cg.addColorStop(0, 'rgba(255,255,255,0)'); cg.addColorStop(1, 'rgba(196,206,224,0.5)');
+    ctx.fillStyle = cg; ctx.fillRect(mess.x - r, mess.y - r, r * 2, r * 2);
+    // little bubbles
+    for (const b of mess.bub) {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath(); ctx.arc(mess.x + b.ox * a, mess.y + b.oy * a, b.br, 0, PI2); ctx.fill();
+      ctx.fillStyle = 'rgba(210,220,235,0.6)';
+      ctx.beginPath(); ctx.arc(mess.x + b.ox * a + b.br * 0.3, mess.y + b.oy * a + b.br * 0.3, b.br * 0.5, 0, PI2); ctx.fill();
+    }
+    ctx.restore();
+    // glossy sheen
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath(); ctx.ellipse(mess.x - r * 0.3, mess.y - r * 0.34, r * 0.28, r * 0.13, -0.5, 0, PI2); ctx.fill();
+  } else {
+    _ojBlob(ctx, mess.x, mess.y, r, mess.m);
+    ctx.fillStyle = _ojRGBA(T.col, 0.5 + 0.42 * a); ctx.fill();
+    // darker inner pool
+    _ojBlob(ctx, mess.x, mess.y, r * 0.6, mess.m);
+    ctx.fillStyle = _ojRGBA(T.col, 0.3 * a); ctx.fill();
+    // gloss highlight
+    ctx.fillStyle = _ojRGBA(T.gloss, 0.4 * a);
+    ctx.beginPath(); ctx.ellipse(mess.x - r * 0.28, mess.y - r * 0.3, r * 0.3, r * 0.15, -0.5, 0, PI2); ctx.fill();
+    // mopped streaks appear as it gets cleaner
+    if (a < 0.8) {
+      ctx.strokeStyle = _ojRGBA(T.col, 0.25 * a); ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        const yy = mess.y - r * 0.4 + i * r * 0.4;
+        ctx.beginPath(); ctx.moveTo(mess.x - r, yy); ctx.quadraticCurveTo(mess.x, yy + 4, mess.x + r, yy); ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+// sctx = stains layer (CSS-blended onto the page); fctx = effects/cursor layer
+function _drawOmenJanitorOverlay(sctx, fctx, W, H, t) {
+  const dt = _ojPrevT ? Math.min(t - _ojPrevT, 0.05) : 0.016;
+  _ojPrevT = t;
+  const PI2 = Math.PI * 2;
+  sctx.clearRect(0, 0, W, H);
+  fctx.clearRect(0, 0, W, H);
+
+  // mop speed (smoothed px/s)
+  const raw = Math.hypot(_ojMX - _ojPMX, _ojMY - _ojPMY) / Math.max(0.001, dt);
+  _ojPMX = _ojMX; _ojPMY = _ojMY;
+  _ojSpeed += (raw - _ojSpeed) * Math.min(1, dt * 12);
+  _ojMopDirt = Math.max(0, _ojMopDirt - dt * 0.35);   // the mop self-cleans over time
+
+  // each liquid appears on its own random timer (tougher = rarer); duplicates allowed
+  for (let i = 0; i < _OJ_TYPES.length; i++) {
+    _ojSpawnTimers[i] -= dt;
+    if (_ojSpawnTimers[i] <= 0) {
+      if (_ojMesses.length < 9) { _ojSpawnMess(W, H, i); _ojSpawnTimers[i] = _ojTypeInterval(i); }
+      else _ojSpawnTimers[i] = 1.5;   // floor's full — try again shortly
+    }
+  }
+
+  // scrub messes
+  const reachBase = 30;
+  for (const mess of _ojMesses) {
+    const T = _OJ_TYPES[mess.type];
+    const d = Math.hypot(_ojMX - mess.x, _ojMY - mess.y);
+    const reach = mess.r * 0.85 + reachBase;
+    if (d < reach && mess.dirt > 0) {
+      const moveF = Math.min(1, _ojSpeed / 520);
+      const power = 0.14 + moveF * 0.95;
+      const eff = power * dt / T.tough;
+      if (eff > 0) {
+        mess.dirt = Math.max(0, mess.dirt - eff);
+        _ojMopDirt = Math.min(1, _ojMopDirt + eff * 1.1);
+        _ojMopTint = T.col;
+        mess.lastScrub = t;
+        if (Math.random() < moveF * 0.9 + 0.05) {
+          const a = Math.random() * PI2, sp = 20 + Math.random() * 60;
+          _ojSuds.push({ x: _ojMX + (Math.random() - 0.5) * 30, y: _ojMY + (Math.random() - 0.5) * 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 30, r: 2 + Math.random() * 4, life: 1, max: 0.5 + Math.random() * 0.4, sud: true });
+        }
+      }
+    }
+    // CAPPY'S SPECIAL fights back: re-congeals when left alone, and creeps
+    if (T.hard && mess.dirt > 0) {
+      if (t - mess.lastScrub > 0.4 && mess.dirt < 1) mess.dirt = Math.min(1, mess.dirt + dt * 0.07);
+      mess.spreadAcc += dt;
+      if (mess.spreadAcc > 3.5 && mess.dirt > 0.25 && _ojMesses.length < 10) {
+        mess.spreadAcc = 0;
+        const a = Math.random() * PI2, dd = mess.r + 16 + Math.random() * 26;
+        _ojMesses.push({ x: Math.max(40, Math.min(W - 40, mess.x + Math.cos(a) * dd)), y: Math.max(80, Math.min(H - 40, mess.y + Math.sin(a) * dd)),
+          r: 12 + Math.random() * 12, type: 4, dirt: 1, m: Array.from({ length: 9 }, () => 0.7 + Math.random() * 0.45), lastScrub: 0, spreadAcc: 0,
+          sat: [{ a: Math.random() * 6.28, d: 12, rr: 7, m: Array.from({ length: 8 }, () => 0.7 + Math.random() * 0.5) }],
+          bub: Array.from({ length: 3 }, () => ({ ox: (Math.random() - 0.5) * 14, oy: (Math.random() - 0.5) * 14, br: 1.5 + Math.random() * 2 })) });
+      }
+    }
+    if (mess.dirt <= 0 && !mess.done) {
+      mess.done = true;
+      _ojCleaned++; _ojStreak++;
+      _ojMsg = T.hard ? "ALL CLEAN!" : _OJ_PRAISE[(Math.random() * _OJ_PRAISE.length) | 0];
+      _ojMsgCol = T.hard ? '#fffef2' : '#cdf3d2'; _ojMsgT = 1.4;
+      for (let i = 0; i < (T.hard ? 22 : 12); i++) {
+        const a = Math.random() * PI2, sp = 50 + Math.random() * 160;
+        _ojSuds.push({ x: mess.x, y: mess.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40, r: 1.5 + Math.random() * 3, life: 1, max: 0.5 + Math.random() * 0.5, spark: true });
+      }
+    }
+  }
+  _ojMesses = _ojMesses.filter(m => !m.done);
+
+  // ── stains (blended onto the page below) ──
+  for (const mess of _ojMesses) _ojDrawMess(sctx, mess, t);
+
+  // ── everything else, on the crisp effects layer ──
+  // suds / sparkles
+  for (const s of _ojSuds) {
+    s.life -= dt / s.max; if (s.life <= 0) continue;
+    s.vy += 180 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vx *= (1 - 1.2 * dt);
+    const al = Math.max(0, s.life);
+    if (s.spark) {
+      fctx.fillStyle = `rgba(255,255,255,${al.toFixed(3)})`;
+      _omStarPath(fctx, s.x, s.y, 3.5 * al + 1, 1.4, 4, t * 2); fctx.fill();
+    } else {
+      fctx.fillStyle = `rgba(244,250,248,${(al * 0.85).toFixed(3)})`;
+      fctx.beginPath(); fctx.arc(s.x, s.y, s.r * al + 0.5, 0, PI2); fctx.fill();
+      fctx.fillStyle = `rgba(255,255,255,${(al * 0.5).toFixed(3)})`;
+      fctx.beginPath(); fctx.arc(s.x - s.r * 0.3, s.y - s.r * 0.3, s.r * al * 0.4 + 0.3, 0, PI2); fctx.fill();
+    }
+  }
+  _ojSuds = _ojSuds.filter(s => s.life > 0);
+
+  // ── HUD ──
+  fctx.textAlign = 'left';
+  fctx.font = '10px "Press Start 2P", monospace';
+  fctx.fillStyle = 'rgba(0,0,0,0.55)'; fctx.fillText(`CLEANED ${_ojCleaned}`, 17, H - 18);
+  fctx.fillStyle = '#bfe8c4'; fctx.fillText(`CLEANED ${_ojCleaned}`, 16, H - 19);
+  if (_ojStreak > 1) { fctx.font = '7px "Press Start 2P", monospace'; fctx.fillStyle = '#ffd27a'; fctx.fillText(`STREAK x${_ojStreak}`, 16, H - 6); }
+
+  // ── floating praise message — pixel font, big, above the mop ──
+  if (_ojMsgT > 0) {
+    _ojMsgT -= dt;
+    const a = Math.min(1, _ojMsgT / 0.4);
+    const rise = (1.4 - _ojMsgT) * 14;
+    fctx.font = '15px "Press Start 2P", monospace';
+    fctx.textAlign = 'center';
+    fctx.lineWidth = 4; fctx.lineJoin = 'round';
+    fctx.strokeStyle = `rgba(0,0,0,${(a * 0.85).toFixed(3)})`;
+    fctx.strokeText(_ojMsg, _ojMX, _ojMY - 58 - rise);
+    fctx.fillStyle = _ojRGBA(_ojMsgCol, a);
+    fctx.fillText(_ojMsg, _ojMX, _ojMY - 58 - rise);
+  }
+
+  // intro hint
+  _ojIntroT += dt;
+  if (_ojIntroT < 5) {
+    const a = _ojIntroT < 4 ? 0.65 : 0.65 * (5 - _ojIntroT);
+    fctx.font = '9px "Press Start 2P", monospace'; fctx.textAlign = 'center';
+    fctx.fillStyle = `rgba(0,0,0,${(a * 0.7).toFixed(3)})`; fctx.fillText('MOP THE MESSES', W * 0.5 + 1, 65);
+    fctx.fillStyle = `rgba(220,240,230,${a.toFixed(3)})`; fctx.fillText('MOP THE MESSES', W * 0.5, 64);
+  }
+  fctx.textAlign = 'start';
+
+  // ── the MOP cursor ──
+  {
+    const x = _ojMX, y = _ojMY;
+    const moveF = Math.min(1, _ojSpeed / 520);
+    const lean = Math.max(-0.5, Math.min(0.5, (_ojMX - _ojPMX) * 0.02)) + Math.sin(t * 2) * 0.04;
+    const mopCol = _ojMixHex('#9a9e96', _ojMopTint, _ojMopDirt * 0.85);
+    fctx.save();
+    fctx.translate(x, y);
+    fctx.rotate(lean);
+    // handle going up-right (held)
+    fctx.strokeStyle = '#7a5a32'; fctx.lineWidth = 4; fctx.lineCap = 'round';
+    fctx.beginPath(); fctx.moveTo(0, 0); fctx.lineTo(34, -74); fctx.stroke();
+    fctx.strokeStyle = 'rgba(255,255,255,0.18)'; fctx.lineWidth = 1.3;
+    fctx.beginPath(); fctx.moveTo(-1, -2); fctx.lineTo(33, -74); fctx.stroke();
+    // metal collar
+    fctx.fillStyle = '#b9beba'; fctx.beginPath(); fctx.ellipse(2, -6, 7, 5, lean, 0, PI2); fctx.fill();
+    // mop strands fanning down from the head
+    const strands = 13;
+    for (let i = 0; i < strands; i++) {
+      const f = i / (strands - 1) - 0.5;
+      const splay = (0.5 + moveF * 0.7);
+      const ang = f * 1.5 * splay + Math.sin(t * (8 + moveF * 14) + i) * (0.06 + moveF * 0.16);
+      const len = 22 + Math.sin(i * 2.3) * 5 + moveF * 6;
+      const ex = Math.sin(ang) * len, ey = Math.cos(ang) * len + 4;
+      fctx.strokeStyle = i % 2 ? mopCol : _ojMixHex(mopCol, '#000000', 0.18);
+      fctx.lineWidth = 2.6; fctx.lineCap = 'round';
+      fctx.beginPath(); fctx.moveTo(0, 0); fctx.quadraticCurveTo(ex * 0.5, ey * 0.5 + 2, ex, ey); fctx.stroke();
+    }
+    // a wet drip from a dirty mop
+    if (_ojMopDirt > 0.5 && Math.sin(t * 3) > 0.9) {
+      fctx.fillStyle = _ojRGBA(_ojMopTint, 0.6);
+      fctx.beginPath(); fctx.ellipse(0, 30, 2, 3.4, 0, 0, PI2); fctx.fill();
+    }
+    fctx.restore();
+  }
+}
+
+function _startOmenJanitorOverlay() {
+  _stopOmenJanitorOverlay();
+  _ojMesses = []; _ojSuds = []; _ojCleaned = 0; _ojStreak = 0;
+  _ojPrevT = 0; _ojIntroT = 0; _ojMopDirt = 0; _ojMsgT = 0;
+  _ojPMX = _ojMX; _ojPMY = _ojMY; _ojSpeed = 0;
+  const W = window.innerWidth, H = window.innerHeight;
+  // stagger each liquid's first appearance so they trickle in, not all at once
+  _ojSpawnTimers = _OJ_TYPES.map((T, i) => _ojTypeInterval(i) * (0.1 + Math.random() * 0.6));
+  _ojSpawnMess(W, H, 0);        // one easy puddle so the floor isn't empty
+  window.addEventListener('mousemove', _ojMouseMove);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  // stains layer: blends with the surfaces below (overlay/hard-light)
+  const scv = document.createElement('canvas');
+  scv.id = 'omenjanitor-stains';
+  scv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9998;pointer-events:none;mix-blend-mode:hard-light;';
+  scv.width = W; scv.height = H;
+  document.body.appendChild(scv);
+  // effects + cursor layer: crisp, on top
+  const fcv = document.createElement('canvas');
+  fcv.id = 'omenjanitor-fx';
+  fcv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  fcv.width = W; fcv.height = H;
+  document.body.appendChild(fcv);
+  const t0 = performance.now();
+  function frame(now) {
+    const s2 = document.getElementById('omenjanitor-stains');
+    const f2 = document.getElementById('omenjanitor-fx');
+    if (!s2 || !f2) return;
+    if (s2.width !== window.innerWidth || s2.height !== window.innerHeight) {
+      s2.width = window.innerWidth; s2.height = window.innerHeight;
+      f2.width = window.innerWidth; f2.height = window.innerHeight;
+    }
+    _drawOmenJanitorOverlay(s2.getContext('2d'), f2.getContext('2d'), s2.width, s2.height, (now - t0) / 1000);
+    _ojOverlayRafId = requestAnimationFrame(frame);
+  }
+  _ojOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopOmenJanitorOverlay() {
+  if (_ojOverlayRafId) { cancelAnimationFrame(_ojOverlayRafId); _ojOverlayRafId = null; }
+  window.removeEventListener('mousemove', _ojMouseMove);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const scv = document.getElementById('omenjanitor-stains'); if (scv) scv.remove();
+  const fcv = document.getElementById('omenjanitor-fx'); if (fcv) fcv.remove();
+  _ojMesses = []; _ojSuds = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// GONELA — a Mexican lawman: blistering fast and bull strong. A
+// nocturnal frontier under a wine-and-blue sky, papel-picado bunting,
+// mesas and cacti, with speed-blurs tearing across. The cursor is a
+// spinning marshal STAR that smears wine/blue afterimages as it moves
+// (speed) and SLAMS a shockwave on click (strength). Wine #701345,
+// blue #222742. Character-wide (matches "Gonela").
+// ════════════════════════════════════════════════════════════════
+const _GONELA_RE = /^Gonela$/i;
+function _isGonela(c) { return !!(c && c.name && _GONELA_RE.test(c.name)); }
+function _gnHash(i) { const v = Math.sin(i * 73.13 + 4.7) * 43758.5453; return v - Math.floor(v); }
+const _GN_WINE = '#701345', _GN_WINE_LT = '#d6457a', _GN_BLUE = '#222742', _GN_BLUE_LT = '#4d7fc4', _GN_GOLD = '#e8c24a';
+
+// the marshal star badge — ball-tipped, wine body, gold rim, blue ring
+function _gnBadge(ctx, x, y, R, rot, alpha, glow) {
+  const PI2 = Math.PI * 2;
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot);
+  if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = R * 0.8; }
+  for (let i = 0; i < 5; i++) {
+    const a = -Math.PI / 2 + i * PI2 / 5;
+    ctx.fillStyle = `rgba(232,194,74,${alpha})`;
+    ctx.beginPath(); ctx.arc(Math.cos(a) * R, Math.sin(a) * R, R * 0.14, 0, PI2); ctx.fill();
+  }
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? R * 0.42 : R;
+    const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = `rgba(112,19,69,${alpha})`; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = `rgba(232,194,74,${(alpha * 0.9).toFixed(3)})`; ctx.lineWidth = R * 0.08; ctx.stroke();
+  ctx.strokeStyle = `rgba(77,127,196,${(alpha * 0.85).toFixed(3)})`; ctx.lineWidth = R * 0.06;
+  ctx.beginPath(); ctx.arc(0, 0, R * 0.36, 0, PI2); ctx.stroke();
+  ctx.fillStyle = `rgba(214,69,122,${alpha})`; ctx.beginPath(); ctx.arc(0, 0, R * 0.13, 0, PI2); ctx.fill();
+  ctx.restore();
+}
+
+function _drawGonelaPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawGonelaPattern._lt === undefined;
+  if (!fresh && t - _drawGonelaPattern._lt < 0.033) return;   // 30fps cap
+  _drawGonelaPattern._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  // cached static scene: sky, moon, stars, mesas, cacti, ground
+  if (!_drawGonelaPattern._sc || _drawGonelaPattern._w !== W || _drawGonelaPattern._h !== H) {
+    _drawGonelaPattern._w = W; _drawGonelaPattern._h = H;
+    const sc = document.createElement('canvas'); sc.width = W; sc.height = H;
+    const s = sc.getContext('2d');
+    const horiz = H * 0.66;
+    const sky = s.createLinearGradient(0, 0, 0, horiz);
+    sky.addColorStop(0, '#161a30'); sky.addColorStop(0.45, '#2a2348'); sky.addColorStop(0.8, '#561530'); sky.addColorStop(1, '#7a1b3a');
+    s.fillStyle = sky; s.fillRect(0, 0, W, horiz);
+    // stars
+    for (let i = 0; i < 90; i++) {
+      const sx = _gnHash(i * 3.1) * W, sy = _gnHash(i * 7.7) * horiz * 0.9;
+      s.fillStyle = `rgba(235,225,240,${(0.2 + _gnHash(i) * 0.7).toFixed(3)})`;
+      s.fillRect(sx | 0, sy | 0, _gnHash(i * 5) > 0.85 ? 2 : 1, 1);
+    }
+    // moon, pale with halo
+    const mx = W * 0.74, my = horiz * 0.3, mr = Math.min(W, H) * 0.09;
+    const halo = s.createRadialGradient(mx, my, 0, mx, my, mr * 3);
+    halo.addColorStop(0, 'rgba(230,224,236,0.22)'); halo.addColorStop(1, 'rgba(230,224,236,0)');
+    s.fillStyle = halo; s.fillRect(mx - mr * 3, my - mr * 3, mr * 6, mr * 6);
+    s.fillStyle = '#e6e0ec'; s.beginPath(); s.arc(mx, my, mr, 0, PI2); s.fill();
+    s.fillStyle = 'rgba(120,110,140,0.18)';
+    s.beginPath(); s.arc(mx - mr * 0.3, my - mr * 0.2, mr * 0.22, 0, PI2); s.fill();
+    s.beginPath(); s.arc(mx + mr * 0.3, my + mr * 0.25, mr * 0.16, 0, PI2); s.fill();
+    // layered mesa silhouettes
+    const mesa = (baseY, col, scl) => {
+      s.fillStyle = col; s.beginPath(); s.moveTo(0, horiz);
+      let xx = 0;
+      while (xx < W) {
+        const hh = (0.4 + _gnHash(xx * 0.013 * scl) * 0.6) * H * 0.13 * scl;
+        const flat = 40 + _gnHash(xx * 0.02) * 120;
+        s.lineTo(xx, baseY - hh); s.lineTo(xx + flat, baseY - hh);
+        xx += flat;
+      }
+      s.lineTo(W, horiz); s.closePath(); s.fill();
+    };
+    mesa(horiz, '#3a0e22', 1.1);
+    mesa(horiz + 6, '#2a0a18', 0.7);
+    // cacti
+    for (let i = 0; i < 7; i++) {
+      const cx = _gnHash(i * 11 + 2) * W, ch = 26 + _gnHash(i * 4) * 46, cw = 5 + _gnHash(i) * 3;
+      s.fillStyle = '#1c0712';
+      s.fillRect(cx - cw / 2, horiz - ch, cw, ch);
+      if (_gnHash(i * 9) > 0.4) { s.fillRect(cx - cw / 2 - 8, horiz - ch * 0.7, 8, cw); s.fillRect(cx - cw / 2 - 8, horiz - ch * 0.7 - 10, cw, 12); }
+      if (_gnHash(i * 6) > 0.5) { s.fillRect(cx + cw / 2, horiz - ch * 0.55, 8, cw); s.fillRect(cx + cw / 2 + 8 - cw, horiz - ch * 0.55 - 9, cw, 11); }
+    }
+    // ground
+    const grd = s.createLinearGradient(0, horiz, 0, H);
+    grd.addColorStop(0, '#3a1020'); grd.addColorStop(1, '#1a0810');
+    s.fillStyle = grd; s.fillRect(0, horiz, W, H - horiz);
+    for (let i = 0; i < 60; i++) {
+      const gx = _gnHash(i * 2.3) * W, gy = horiz + _gnHash(i * 8.1) * (H - horiz);
+      s.fillStyle = `rgba(120,40,70,${(0.04 + _gnHash(i) * 0.06).toFixed(3)})`;
+      s.fillRect(gx | 0, gy | 0, 2, 1);
+    }
+    _drawGonelaPattern._sc = sc;
+    const vig = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.32, W * 0.5, H * 0.5, Math.max(W, H) * 0.74);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(8,2,10,0.6)');
+    _drawGonelaPattern._vig = vig;
+  }
+  ctx.drawImage(_drawGonelaPattern._sc, 0, 0);
+
+  // twinkle overlay (a few bright stars pulse)
+  for (let i = 0; i < 14; i++) {
+    const sx = _gnHash(i * 17 + 1) * W, sy = _gnHash(i * 23 + 3) * H * 0.4;
+    const tw = 0.5 + 0.5 * Math.sin(t * (1.5 + _gnHash(i) * 2) + i);
+    ctx.fillStyle = `rgba(255,250,255,${(tw * 0.7).toFixed(3)})`;
+    ctx.fillRect(sx | 0, sy | 0, 1, 1);
+  }
+
+  // ── papel picado bunting, two swaying rows ──
+  for (let row = 0; row < 2; row++) {
+    const baseY = 10 + row * 26;
+    const cols = [_GN_WINE_LT, _GN_BLUE_LT, '#e8c24a', _GN_WINE_LT, '#5cc4a8'];
+    const span = 46, n = Math.ceil(W / span) + 1;
+    // string
+    ctx.strokeStyle = 'rgba(180,160,200,0.25)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const fx = i * span, fy = baseY + Math.sin(i * 0.6 + t * 0.8 + row) * 4;
+      i ? ctx.lineTo(fx, fy) : ctx.moveTo(fx, fy);
+    }
+    ctx.stroke();
+    for (let i = 0; i < n; i++) {
+      const fx = i * span + span * 0.5;
+      const sway = Math.sin(i * 0.6 + t * 0.8 + row) * 4 + Math.sin(t * 1.6 + i) * 1.5;
+      const fy = baseY + sway;
+      const fw = span * 0.8, fh = 22;
+      ctx.fillStyle = cols[(i + row) % cols.length];
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(fx - fw / 2, fy); ctx.lineTo(fx + fw / 2, fy);
+      ctx.lineTo(fx + fw / 2, fy + fh * 0.55); ctx.lineTo(fx, fy + fh); ctx.lineTo(fx - fw / 2, fy + fh * 0.55);
+      ctx.closePath(); ctx.fill();
+      // little cut-out holes
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath(); ctx.arc(fx, fy + fh * 0.45, 3, 0, PI2); ctx.fill();
+      ctx.beginPath(); ctx.arc(fx - fw * 0.25, fy + fh * 0.3, 1.8, 0, PI2); ctx.fill();
+      ctx.beginPath(); ctx.arc(fx + fw * 0.25, fy + fh * 0.3, 1.8, 0, PI2); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ── speed blurs tearing across (he's FAST) ──
+  for (let k = 0; k < 3; k++) {
+    const cyc = 2.4 + _gnHash(k * 31) * 2.6;
+    const ph = (t / cyc + _gnHash(k * 5)) % 1;
+    if (ph > 0.32) continue;
+    const kk = ph / 0.32;
+    const dir = _gnHash(k * 9) > 0.5 ? 1 : -1;
+    const yy = H * (0.25 + _gnHash(k * 7 + Math.floor(t / cyc)) * 0.5);
+    const cx = dir > 0 ? -150 + kk * (W + 300) : W + 150 - kk * (W + 300);
+    const len = 120 + _gnHash(k) * 160;
+    const col = _gnHash(k * 13) > 0.5 ? '214,69,122' : '77,127,196';
+    const env = Math.sin(kk * Math.PI);
+    const gr = ctx.createLinearGradient(cx - dir * len, yy, cx, yy);
+    gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(1, `rgba(${col},${(env * 0.5).toFixed(3)})`);
+    ctx.strokeStyle = gr; ctx.lineWidth = 2 + env * 2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - dir * len, yy); ctx.lineTo(cx, yy); ctx.stroke();
+    ctx.fillStyle = `rgba(255,255,255,${(env * 0.6).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(cx, yy, 2 + env * 1.5, 0, PI2); ctx.fill();
+  }
+  ctx.lineCap = 'butt';
+
+  // drifting dust
+  for (let i = 0; i < 26; i++) {
+    const sd = i * 0.618;
+    const dx = ((sd * 2.7 + t * 0.01 * (0.5 + (sd % 1))) % 1) * W;
+    const dy = H * 0.66 + ((sd * 5.1) % 1) * (H * 0.34) + Math.sin(t * 0.5 + i) * 6;
+    ctx.fillStyle = `rgba(180,120,140,${(0.03 + (sd % 0.1)).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(dx, dy, 0.8 + (sd % 1.4), 0, PI2); ctx.fill();
+  }
+
+  ctx.fillStyle = _drawGonelaPattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* ── cursor: marshal star + speed trail + click impact ──────────── */
+let _gnOverlayRafId = null;
+let _gnMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _gnMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _gnPMX = _gnMX, _gnPMY = _gnMY, _gnSpeed = 0, _gnSpin = 0;
+let _gnHist = [], _gnParts = [], _gnFlash = 0, _gnPrevT = 0, _gnDustAcc = 0;
+
+function _gnMouseMove(e) { _gnMX = e.clientX; _gnMY = e.clientY; }
+function _gnMouseDown() {
+  const x = _gnMX, y = _gnMY, PI2 = Math.PI * 2;
+  _gnFlash = 1; _gnSpin += 6;
+  const push = p => { _gnParts.push(p); if (_gnParts.length > 170) _gnParts.shift(); };
+  push({ type: 'ring', x, y, col: '214,69,122', life: 1, max: 0.5 });
+  push({ type: 'ring', x, y, col: '77,127,196', life: 1, max: 0.6, delay: 0.07 });
+  for (let i = 0; i < 12; i++) {                         // radial speed/impact lines
+    const a = (i / 12) * PI2 + (Math.random() - 0.5) * 0.2;
+    push({ type: 'line', x, y, a, len: 26 + Math.random() * 30, life: 1, max: 0.3 + Math.random() * 0.2 });
+  }
+  for (let i = 0; i < 14; i++) {                         // kicked-up dust
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * PI2, sp = 60 + Math.random() * 200;
+    push({ type: 'dust', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 30, r: 2 + Math.random() * 4, life: 1, max: 0.5 + Math.random() * 0.5 });
+  }
+  for (let i = 0; i < 6; i++) {                          // flung stars
+    const a = Math.random() * PI2, sp = 120 + Math.random() * 220;
+    push({ type: 'star', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: Math.random() * PI2, vr: (Math.random() - 0.5) * 12, r: 4 + Math.random() * 5, col: i % 2 ? '214,69,122' : '232,194,74', life: 1, max: 0.5 + Math.random() * 0.4 });
+  }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 1.2 + Math.random() * 0.3, volume: 0.5 }); } catch (e) {} }
+}
+
+function _drawGonelaOverlay(canvas, ctx, W, H, t) {
+  const dt = _gnPrevT ? Math.min(t - _gnPrevT, 0.05) : 0.016;
+  _gnPrevT = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  const raw = Math.hypot(_gnMX - _gnPMX, _gnMY - _gnPMY) / Math.max(0.001, dt);
+  _gnPMX = _gnMX; _gnPMY = _gnMY;
+  _gnSpeed += (raw - _gnSpeed) * Math.min(1, dt * 12);
+  const moveF = Math.min(1, _gnSpeed / 700);
+  _gnSpin += dt * (1.2 + moveF * 7);
+  _gnFlash = Math.max(0, _gnFlash - dt * 3);
+
+  // edge flash on impact
+  if (_gnFlash > 0) {
+    ctx.strokeStyle = `rgba(214,69,122,${(_gnFlash * 0.3).toFixed(3)})`;
+    ctx.lineWidth = 40; ctx.strokeRect(-12, -12, W + 24, H + 24);
+  }
+
+  // history for afterimage smear
+  _gnHist.push({ x: _gnMX, y: _gnMY });
+  if (_gnHist.length > 12) _gnHist.shift();
+
+  // speed dust trailing fast movement
+  _gnDustAcc += dt;
+  if (moveF > 0.35 && _gnDustAcc > 0.02) {
+    _gnDustAcc = 0;
+    const h = _gnHist[0] || { x: _gnMX, y: _gnMY };
+    _gnParts.push({ type: 'dust', x: h.x + (Math.random() - 0.5) * 10, y: h.y + (Math.random() - 0.5) * 10, vx: (Math.random() - 0.5) * 30, vy: 10 + Math.random() * 30, r: 1.5 + Math.random() * 2.5, life: 1, max: 0.4 + Math.random() * 0.3 });
+    if (_gnParts.length > 170) _gnParts.shift();
+  }
+
+  // particles
+  for (const p of _gnParts) {
+    if (p.delay && p.delay > 0) { p.delay -= dt; continue; }
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, p.life);
+    if (p.type === 'ring') {
+      ctx.strokeStyle = `rgba(${p.col},${(al * 0.7).toFixed(3)})`;
+      ctx.lineWidth = 3 * al + 0.6;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 8 + (1 - al) * 80, 0, PI2); ctx.stroke();
+    } else if (p.type === 'line') {
+      const k = 1 - al, r0 = 10 + k * 40, r1 = r0 + p.len * al;
+      ctx.strokeStyle = `rgba(255,235,245,${(al * 0.8).toFixed(3)})`;
+      ctx.lineWidth = 2.4 * al + 0.4; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(p.x + Math.cos(p.a) * r0, p.y + Math.sin(p.a) * r0);
+      ctx.lineTo(p.x + Math.cos(p.a) * r1, p.y + Math.sin(p.a) * r1);
+      ctx.stroke(); ctx.lineCap = 'butt';
+    } else if (p.type === 'dust') {
+      p.vy += 140 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= (1 - 1.2 * dt);
+      ctx.fillStyle = `rgba(150,108,120,${(al * 0.5).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * al + 0.6, 0, PI2); ctx.fill();
+    } else {   // star
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 120 * dt; p.vx *= (1 - 0.7 * dt); p.rot += p.vr * dt;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = `rgba(${p.col},${al.toFixed(3)})`;
+      _omStarPath(ctx, 0, 0, p.r * (0.5 + al * 0.6), p.r * 0.4, 5, 0); ctx.fill();
+      ctx.restore();
+    }
+  }
+  _gnParts = _gnParts.filter(p => p.life > 0);
+
+  // ── afterimage smear (wine + blue ghosts) ──
+  for (let i = 0; i < _gnHist.length - 1; i++) {
+    const h = _gnHist[i], a = (i + 1) / _gnHist.length;
+    const ga = a * a * moveF * 0.5;
+    if (ga < 0.02) continue;
+    _gnBadge(ctx, h.x, h.y, 15, _gnSpin - (1 - a) * 1.5, ga, null);
+  }
+
+  // ── the marshal star, on the pointer ──
+  _gnBadge(ctx, _gnMX, _gnMY, 16, _gnSpin, 1, 'rgba(214,69,122,0.7)');
+}
+
+function _startGonelaOverlay() {
+  _stopGonelaOverlay();
+  _gnHist = []; _gnParts = []; _gnFlash = 0; _gnPrevT = 0; _gnDustAcc = 0; _gnSpin = 0;
+  _gnPMX = _gnMX; _gnPMY = _gnMY; _gnSpeed = 0;
+  window.addEventListener('mousemove', _gnMouseMove);
+  window.addEventListener('mousedown', _gnMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'gonela-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('gonela-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawGonelaOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _gnOverlayRafId = requestAnimationFrame(frame);
+  }
+  _gnOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopGonelaOverlay() {
+  if (_gnOverlayRafId) { cancelAnimationFrame(_gnOverlayRafId); _gnOverlayRafId = null; }
+  window.removeEventListener('mousemove', _gnMouseMove);
+  window.removeEventListener('mousedown', _gnMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('gonela-overlay'); if (cv) cv.remove();
+  _gnHist = []; _gnParts = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // HARU — mysterious, overwhelming, parasitical. A near-black void where
 // purple tendrils creep in from every edge, infected veins pulse to a
 // slow heartbeat, and eyes open in the dark to WATCH the cursor — every
@@ -19849,6 +20666,8 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'lorraine_brass') { _drawLorrainePattern(canvas, ctx, W, H, t);            return; }
   if (type === 'simmer_tide')    { _drawSimmerPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'omen_bar')       { _drawOmenBarPattern(canvas, ctx, W, H, t);             return; }
+  if (type === 'omen_janitor')   { _drawOmenJanitorPattern(canvas, ctx, W, H, t);         return; }
+  if (type === 'gonela_frontier'){ _drawGonelaPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'haru_parasite')  { _drawHaruPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'classic_det')    { _drawClassicDetPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'classic_save')   { _drawClassicSavePattern(canvas, ctx, W, H, t);         return; }
@@ -20367,6 +21186,8 @@ function startBgAnim(type, params) {
   _drawSimmerPattern._lt      = undefined;
   _drawSimmerOverlay._lt      = undefined;
   _drawOmenBarPattern._lt     = undefined;
+  _drawOmenJanitorPattern._lt = undefined;
+  _drawGonelaPattern._lt      = undefined;
   _drawHaruPattern._lt        = undefined;
   _drawHaruOverlay._lt        = undefined;
   _drawClassicDetPattern._lt  = undefined;
@@ -20430,6 +21251,8 @@ function stopBgAnim() {
   _stopLorraineOverlay();
   _stopSimmerOverlay();
   _stopOmenBarOverlay();
+  _stopOmenJanitorOverlay();
+  _stopGonelaOverlay();
   _stopHaruOverlay();
   _stopClassicDetOverlay();
   _stopClassicSaveOverlay();
@@ -20946,6 +21769,8 @@ function viewChar(id) {
   else if (_isLorraine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9a93f'); }
   else if (_isSimmer(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#59c9f2'); }
   else if (_isOmenBartender(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8a13c'); }
+  else if (_isOmenJanitor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#6fb6a0'); }
+  else if (_isGonela(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a8285c'); }
   else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
   else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
   else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
@@ -21381,6 +22206,24 @@ function viewChar(id) {
     const _av = document.getElementById('cv-avatar');
     const _nm = document.getElementById('cv-name');
     const _pc = document.getElementById('pattern-canvas');
+    if (_isOmenJanitor(c)) {
+      _cvRoot.classList.add('omenjanitor-ui');
+      if (_av) _av.classList.add('omenjanitor-pfp');
+      if (_nm) _nm.classList.add('omenjanitor-name');
+    } else {
+      _cvRoot.classList.remove('omenjanitor-ui');
+      if (_av) _av.classList.remove('omenjanitor-pfp');
+      if (_nm) _nm.classList.remove('omenjanitor-name');
+    }
+    if (_isGonela(c)) {
+      _cvRoot.classList.add('gonela-ui');
+      if (_av) _av.classList.add('gonela-pfp');
+      if (_nm) _nm.classList.add('gonela-name');
+    } else {
+      _cvRoot.classList.remove('gonela-ui');
+      if (_av) _av.classList.remove('gonela-pfp');
+      if (_nm) _nm.classList.remove('gonela-name');
+    }
     if (_isOmenBartender(c)) {
       _cvRoot.classList.add('omenbar-ui');
       if (_av) _av.classList.add('omenbar-pfp');
@@ -21541,7 +22384,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -21553,7 +22396,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -21616,6 +22459,8 @@ function viewChar(id) {
   if (_isLorraine(c)) _startLorraineOverlay();
   if (_isSimmer(c))   _startSimmerOverlay();
   if (_isOmenBartender(c)) _startOmenBarOverlay();
+  if (_isOmenJanitor(c)) _startOmenJanitorOverlay();
+  if (_isGonela(c))   _startGonelaOverlay();
   if (_isHaru(c))     _startHaruOverlay();
   if (_isClassicDet(c)) _startClassicDetOverlay();
   if (_isClassicSave(c)) _startClassicSaveOverlay();
@@ -24460,14 +25305,14 @@ const TRAIT_ROLES = {
   toottoo: 'dps', tillicollapse: 'tank',
 };
 const ROLE_ORDER = ['dps', 'tank', 'assassin', 'support', 'scaling', 'utility'];
-const ROLE_LABELS = { dps: 'DPS', tank: 'TANK', assassin: 'ASSASSIN', support: 'SUPPORT', scaling: 'SCALING', utility: 'UTILITY' };
+const ROLE_LABELS = { dps: 'DPS', tank: 'TANK', assassin: 'ASSASSIN', support: ' SUPPORT', scaling: 'SCALING', utility: 'UTILITY' };
 
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic', 'hexxed', 'duality', 'determined'];
 const RARITY_LABEL = { common: 'COMMON', rare: 'RARE', epic: 'EPIC', legendary: 'LEGENDARY', mythic: 'MYTHIC', hexxed: 'HEXXED', duality: 'DUALITY', determined: 'DETERMINED' };
 
-const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
+//const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
 
-//const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 2, mythic: 15, hexxed: 5, duality: 2, determined: 0 };
+const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 10, mythic: 55, hexxed: 2, duality: 2, determined: 0 };
 
 const PITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 68.9, mythic: 25, hexxed: 1, duality: 5, determined: 0.1 };
 
@@ -24572,8 +25417,8 @@ function rollHand(isPityRoll) {
     if (!seen.has(k)) {
       seen.add(k);
       const _r = TRAITS[k]?.rarity;
-      const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'mythic' && Math.random() < 0.10) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
-      //const shimmyful = (_r === 'common' && Math.random() < 1) || (_r === 'legendary' && Math.random() < 1) || (_r === 'mythic' && Math.random() < 1) || (_r === 'rare' && Math.random() < 1) || (_r === 'epic' && Math.random() < 1);
+      //const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'mythic' && Math.random() < 0.10) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
+      const shimmyful = (_r === 'common' && Math.random() < 1) || (_r === 'legendary' && Math.random() < 1) || (_r === 'mythic' && Math.random() < 1) || (_r === 'rare' && Math.random() < 1) || (_r === 'epic' && Math.random() < 1);
 //findme
       hand.push({ key: k, shimmyful });
     }
@@ -26051,8 +26896,8 @@ function pickTraitFromHand(handItem) {
     const seen = new Set(['brave']);
     if (shimmyful) {
       // Guaranteed 3 additional rare/epic traits — one is guaranteed epic.
-      const epicPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'epic').map(([k]) => k);
-      const rareEpicPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'rare' || t.rarity === 'epic').map(([k]) => k);
+      const epicPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'legendary').map(([k]) => k);
+      const rareEpicPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'legendary' || t.rarity === 'legendary').map(([k]) => k);
 
       // Roll 1 epic trait first
       let rolledEpic = false;
@@ -26896,7 +27741,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -26936,6 +27781,8 @@ window.addEventListener('resize', () => {
       if (_isLorraine(c)) _startLorraineOverlay();
       if (_isSimmer(c))   _startSimmerOverlay();
       if (_isOmenBartender(c)) _startOmenBarOverlay();
+      if (_isOmenJanitor(c)) _startOmenJanitorOverlay();
+      if (_isGonela(c))   _startGonelaOverlay();
       if (_isHaru(c))     _startHaruOverlay();
       if (_isClassicDet(c)) _startClassicDetOverlay();
       if (_isClassicSave(c)) _startClassicSaveOverlay();

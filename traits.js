@@ -1868,6 +1868,8 @@ const TRAITS = {
     notes: 'DEF-to-ATK conversion. Passive shown as approximate bonus.',
   },
 
+
+
   eternalhunger: {
     name: 'Eternal Hunger', rarity: 'rare',
     desc: 'Lifesteal scales with missing HP. At 50% HP: +10% lifesteal. At 10% HP: +30% lifesteal.',
@@ -1886,6 +1888,14 @@ const TRAITS = {
     desc: 'On kill: +20 ATK for 2 turns. On elite kill: +35 ATK for 2 turns.',
     passive: [],
     situational: [{ id: 'lv-kill', label: 'On kill (+20 ATK, 2 turns)', passive: [{ stat: 'atk', op: 'add', value: 20 }] }, { id: 'lv-elite', label: 'On elite kill (+35 ATK, 2 turns)', passive: [{ stat: 'atk', op: 'add', value: 35 }] }],
+  },
+
+  darktriad: {
+    name: 'Dark Triad', rarity: 'mythic',
+    desc: 'On-hit, you permanently have a 33% chance to apply BLEEDING, 33% POISONED, or 33% BURNING). Your first strike hits thrice, and applies all 3. Infinitely stackable. If you reach exactly 3 stacks of each at the same time, increase your ATK by x3.33 for 3 rounds and convert the stacks to HELLFIRE BURN, SHATTERED and DECAY for 3 rounds.',
+    passive: [],
+    situational: [{ id: 'dt-triad', label: 'Dark Triad stacks', passive: [{ stat: 'atk', op: 'mul', value: 3.33 }] }],
+    notes: 'First 3 hits per combat strike 3 times and apply a random debuff.',
   },
 
   lovetap: {
@@ -4331,7 +4341,8 @@ const SHIMMYFUL_MYTHIC_TRAITS = {
 
   shinigami:           { name: 'SHIMMYFUL Shinigami', desc: 'Ability to bring back characters that the enemy has killed to fight alongside you. Three per fight, consumes a turn. Apply CURSED on-hit with a 50% chance. Apply HOLLOW on-hit with a 60% chance. Hitting CURSED enemies applies DOOM. +150% Lifesteal. Hitting HOLLOW enemies applies BRITTLE.', passive: [{ stat: 'lifesteal', op: 'add', value: 150 }], notes: '3 revivals per fight. 50% CURSED, 60% HOLLOW on-hit. CURSED → DOOM. HOLLOW → BRITTLE.' },
 
-  sunrise_trait:       { name: 'SHIMMYFUL SUNRISE', desc: 'every turn, your non-hp stats are multiplied by the Fibonacci formula. (x0, x1, x1, x2, x3, x5, x8...)', passive: [], situational: [{ id: 'sun-s-t1', label: 'Turn 1 (x1 non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 1 }, { stat: 'def', op: 'mul', value: 1 }, { stat: 'mag', op: 'mul', value: 1 }, { stat: 'spd', op: 'mul', value: 1 }] }, { id: 'sun-s-t2', label: 'Turn 2 (x1)', passive: [{ stat: 'atk', op: 'mul', value: 1 }, { stat: 'def', op: 'mul', value: 1 }, { stat: 'mag', op: 'mul', value: 1 }, { stat: 'spd', op: 'mul', value: 1 }] }, { id: 'sun-s-t3', label: 'Turn 3 (x2)', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'def', op: 'mul', value: 2 }, { stat: 'mag', op: 'mul', value: 2 }, { stat: 'spd', op: 'mul', value: 2 }] }, { id: 'sun-s-t4', label: 'Turn 4 (x3)', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'def', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }] }, { id: 'sun-s-t5', label: 'Turn 5 (x5)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }] }, { id: 'sun-s-t6', label: 'Turn 6 (x8)', passive: [{ stat: 'atk', op: 'mul', value: 8 }, { stat: 'def', op: 'mul', value: 8 }, { stat: 'mag', op: 'mul', value: 8 }, { stat: 'spd', op: 'mul', value: 8 }] }], notes: 'Shimmyful: Fibonacci scales every turn instead of every 2.' },
+  sunrise_trait:       { name: 'SHIMMYFUL SUNRISE', desc: 'every turn, your non-hp stats are multiplied by the Fibonacci formula. (x0, x1, x1, x2, x3, x5, x8...)', passive: [], situational: [{ id: 'sun-s-t1', label: 'Turn 1 (x1 non-HP stats)', passive: [{ stat: 'atk', op: 'mul', value: 1 }, { stat: 'def', op: 'mul', value: 1 }, { stat: 'mag', op: 'mul', value: 1 }, { stat: 'spd', op: 'mul', value: 1 }] }, { id: 'sun-s-t2', label: 'Turn 2 (x1)', passive: [{ stat: 'atk', op: 'mul', value: 1 }, { stat: 'def', op: 'mul', value: 1 }, { stat: 'mag', op: 'mul', value: 1 }, { stat: 'spd', op: 'mul', value: 1 }] }, { id: 'sun-s-t3', label: 'Turn 3 (x2)', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'def', op: 'mul', value: 2 }, { stat: 'mag', op: 'mul', value: 2 }, { stat: 'spd', op: 'mul', value: 2 }] }, { id: 'sun-s-t4', label: 'Turn 4 (x3)', passive: [{ stat: 'atk', op: 'mul', value: 3 }, { stat: 'def', op: 'mul', value: 3 }, { stat: 'mag', op: 'mul', value: 3 }, { stat: 'spd', op: 'mul', value: 3 }] }, { id: 'sun-s-t5', label: 'Turn 5 (x5)', passive: [{ stat: 'atk', op: 'mul', value: 5 }, { stat: 'def', op: 'mul', value: 5 }, { stat: 'mag', op: 'mul', value: 5 }, { stat: 'spd', op: 'mul', value: 5 }] }, { id: 'sun-s-t6', label: 'Turn 6 (x8)',
+   passive: [{ stat: 'atk', op: 'mul', value: 8 }, { stat: 'def', op: 'mul', value: 8 }, { stat: 'mag', op: 'mul', value: 8 }, { stat: 'spd', op: 'mul', value: 8 }] }], notes: 'Shimmyful: Fibonacci scales every turn instead of every 2.' },
 
   thick_of_it:         { name: 'SHIMMYFUL Im in the Thick of It', desc: 'apply BAIT and MARKED to yourself, but gain x30 DEF and x3 ATK.', passive: [{ stat: 'def', op: 'mul', value: 30 }, { stat: 'atk', op: 'mul', value: 3 }], notes: 'BAIT + MARKED on self. x30 DEF, x3 ATK.' },
 
