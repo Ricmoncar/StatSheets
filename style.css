@@ -3683,6 +3683,195 @@ body.nara-no-select, body.nara-no-select * {
 @keyframes cuckoo-gear-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 /* ============================================================
+   LAYLA — the sea bunny under the aurora. Panels glow like deep
+   water lit from above, the name shimmers through aurora hues, and
+   the portrait drifts with a soft bioluminescent halo. Ethereal.
+   ============================================================ */
+#char-view.layla-ui .panel {
+  --p-border: #5fe6c8;
+  border-color: #5fe6c8;
+  background: linear-gradient(180deg, rgba(8,22,30,0.95), rgba(4,12,18,0.97));
+  box-shadow:
+    0 0 22px rgba(95,230,200,0.16),
+    inset 0 0 30px rgba(8,30,38,0.5),
+    inset 0 0 0 1px rgba(95,230,200,0.1);
+}
+/* a soft aurora gradient sweeping across the panel top */
+#char-view.layla-ui .panel::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 3px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(95,255,176,0.6), rgba(67,224,216,0.5), rgba(120,200,255,0.55), rgba(176,120,230,0.5), rgba(95,255,176,0.6));
+  background-size: 220% 100%;
+  opacity: 0.85;
+  animation: layla-aurora-sweep 9s linear infinite;
+}
+@keyframes layla-aurora-sweep { 0% { background-position: 0 0; } 100% { background-position: 220% 0; } }
+#char-view.layla-ui .panel-title {
+  color: #e0fbf5 !important;
+  letter-spacing: 4px;
+  font-weight: normal;
+  border-bottom-color: rgba(95,230,200,0.36);
+  text-shadow: 0 0 11px rgba(95,230,200,0.6);
+}
+#char-view.layla-ui .tab-btn { color: #4a7a72; }
+#char-view.layla-ui .tab-btn:hover { color: #aef2e2; text-shadow: 0 0 9px rgba(95,230,200,0.6); }
+#char-view.layla-ui .tab-btn.active {
+  color: #d6fff6;
+  border-bottom-color: #5fe6c8;
+  text-shadow: 0 0 13px rgba(95,230,200,0.85);
+}
+/* Name: ivory-aqua with a slow aurora shimmer sweeping across */
+.char-name-display.layla-name {
+  letter-spacing: 5px;
+  font-weight: normal;
+  background-image: linear-gradient(100deg, #bdeee2 0%, #5fffb0 30%, #43e0d8 50%, #78c8ff 65%, #b078e6 80%, #bdeee2 100%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 9px rgba(95,230,200,0.5));
+  animation: layla-shimmer 7s linear infinite;
+}
+@keyframes layla-shimmer { 0% { background-position: 140% 0; } 100% { background-position: -140% 0; } }
+/* Portrait: aqua ring with a softly pulsing bioluminescent halo */
+.char-avatar-large.layla-pfp {
+  border-color: #5fe6c8 !important;
+  box-shadow: 0 0 22px rgba(95,230,200,0.45), inset 0 0 18px rgba(6,26,32,0.6);
+  animation: layla-pfp-glow 4.5s ease-in-out infinite;
+}
+@keyframes layla-pfp-glow {
+  0%, 100% { box-shadow: 0 0 18px rgba(95,230,200,0.35), inset 0 0 18px rgba(6,26,32,0.6); }
+  50%      { box-shadow: 0 0 30px rgba(120,200,255,0.55), inset 0 0 18px rgba(6,26,32,0.6); }
+}
+
+/* ============================================================
+   PAWN — the playable board. Onyx & ivory marble panels banded in
+   gold, a name engraved in pale stone, and a portrait framed like a
+   board square. Stately, regal, grandmaster's-study energy.
+   ============================================================ */
+#char-view.pawn-ui .panel {
+  --p-border: #c9a44e;
+  border-color: #c9a44e;
+  background:
+    linear-gradient(180deg, rgba(20,21,28,0.96), rgba(9,10,15,0.97));
+  box-shadow:
+    0 0 20px rgba(201,164,78,0.14),
+    inset 0 0 30px rgba(8,9,14,0.6),
+    inset 0 0 0 1px rgba(201,164,78,0.12);
+}
+/* a gold-and-shadow board-edge band across the panel top */
+#char-view.pawn-ui .panel::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 4px;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, #e6c878 0 14px, #1a1c24 14px 28px);
+  opacity: 0.7;
+}
+#char-view.pawn-ui .panel-title {
+  color: #efe7d2 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(201,164,78,0.4);
+  text-shadow: 0 0 10px rgba(201,164,78,0.5), 0 1px 0 #000;
+}
+#char-view.pawn-ui .tab-btn { color: #6e6446; }
+#char-view.pawn-ui .tab-btn:hover { color: #ecdca8; text-shadow: 0 0 9px rgba(201,164,78,0.6); }
+#char-view.pawn-ui .tab-btn.active {
+  color: #f6ecc8;
+  border-bottom-color: #c9a44e;
+  text-shadow: 0 0 13px rgba(201,164,78,0.85);
+}
+/* Name: pale marble with a slow gold gleam sweeping across */
+.char-name-display.pawn-name {
+  letter-spacing: 6px;
+  font-weight: normal;
+  background-image: linear-gradient(100deg, #d8d2c2 0%, #efe7d0 40%, #f6e6b0 50%, #efe7d0 60%, #d8d2c2 100%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 8px rgba(201,164,78,0.4)) drop-shadow(0 1px 0 rgba(0,0,0,0.5));
+  animation: pawn-gleam 7s linear infinite;
+}
+@keyframes pawn-gleam { 0% { background-position: 140% 0; } 100% { background-position: -140% 0; } }
+/* Portrait: gold frame with a thin board-square checker corner */
+.char-avatar-large.pawn-pfp {
+  border-color: #c9a44e !important;
+  box-shadow: 0 0 18px rgba(201,164,78,0.4), inset 0 0 16px rgba(10,10,14,0.6);
+  overflow: visible;
+}
+.char-avatar-large.pawn-pfp::after {
+  content: "♟";
+  position: absolute;
+  right: -7px; bottom: -11px;
+  font-size: 19px; line-height: 1;
+  color: #c9a44e;
+  text-shadow: 0 0 8px rgba(230,200,120,0.7), 1px 1px 0 #000;
+  pointer-events: none;
+}
+
+/* ============================================================
+   ASTRA — the dreaming blue. Panels of deep periwinkle dusk, a name
+   that drifts with a soft starlight gleam, and a portrait haloed in
+   quiet astral glow. Still, luminous, a little melancholic.
+   ============================================================ */
+#char-view.astra-ui .panel {
+  --p-border: #8fa6e8;
+  border-color: #8fa6e8;
+  background: linear-gradient(180deg, rgba(34,42,86,0.95), rgba(20,26,56,0.97));
+  box-shadow:
+    0 0 22px rgba(143,166,232,0.18),
+    inset 0 0 30px rgba(20,28,64,0.5),
+    inset 0 0 0 1px rgba(143,166,232,0.12);
+}
+/* a soft drifting starlight band across the panel top */
+#char-view.astra-ui .panel::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 3px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(143,166,232,0) 0%, rgba(206,222,250,0.7) 35%, rgba(232,240,253,0.85) 50%, rgba(206,222,250,0.7) 65%, rgba(143,166,232,0) 100%);
+  background-size: 240% 100%;
+  opacity: 0.8;
+  animation: astra-drift 11s linear infinite;
+}
+@keyframes astra-drift { 0% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
+#char-view.astra-ui .panel-title {
+  color: #e3eafb !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(143,166,232,0.4);
+  text-shadow: 0 0 12px rgba(160,184,240,0.7);
+}
+#char-view.astra-ui .tab-btn { color: #5a648f; }
+#char-view.astra-ui .tab-btn:hover { color: #c3d2f4; text-shadow: 0 0 9px rgba(160,184,240,0.6); }
+#char-view.astra-ui .tab-btn.active {
+  color: #e3eafb;
+  border-bottom-color: #8fa6e8;
+  text-shadow: 0 0 13px rgba(160,184,240,0.85);
+}
+/* Name: pale periwinkle with a slow starlight gleam sweeping across */
+.char-name-display.astra-name {
+  letter-spacing: 6px;
+  font-weight: normal;
+  background-image: linear-gradient(100deg, #aebce8 0%, #cdd9f4 38%, #f0f4fe 50%, #cdd9f4 62%, #aebce8 100%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 10px rgba(160,184,240,0.55));
+  animation: astra-gleam 8s linear infinite;
+}
+@keyframes astra-gleam { 0% { background-position: 140% 0; } 100% { background-position: -140% 0; } }
+/* Portrait: periwinkle ring with a softly breathing astral halo */
+.char-avatar-large.astra-pfp {
+  border-color: #8fa6e8 !important;
+  box-shadow: 0 0 22px rgba(143,166,232,0.45), inset 0 0 18px rgba(20,28,64,0.6);
+  animation: astra-pfp-glow 5s ease-in-out infinite;
+}
+@keyframes astra-pfp-glow {
+  0%, 100% { box-shadow: 0 0 18px rgba(143,166,232,0.35), inset 0 0 18px rgba(20,28,64,0.6); }
+  50%      { box-shadow: 0 0 30px rgba(206,222,250,0.55), inset 0 0 18px rgba(20,28,64,0.6); }
+}
+
+/* ============================================================
    FURY — the FIRE DICTATOR. Maxed-out molten chrome: panels forged
    in lava with a violently pulsing ember border, a roaring name that
    shudders & flares, and a portrait wreathed in flame. Aura: total.
@@ -6221,6 +6410,50 @@ body.nara-no-select, body.nara-no-select * {
   max-width: 340px;
   height: 191px; /* 16:9 of 340px */
   border: none;
+}
+
+/* MP3 voice-claim upload */
+.info-link-mp3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.info-link-audio {
+  height: 30px;
+  max-width: 240px;
+  flex: 1 1 200px;
+  min-width: 0;
+  filter: grayscale(1) brightness(0.9);
+}
+.info-link-mp3-name {
+  font-family: var(--font-main);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: #666;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.info-link-mp3-btn {
+  font-family: var(--font-main);
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: var(--char-color, #ffff00);
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  padding: 3px 7px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.info-link-mp3-btn:hover {
+  background: var(--char-color, #ffff00);
+  color: #000;
+  border-color: var(--char-color, #ffff00);
 }
 
 .info-add-link-btn {
