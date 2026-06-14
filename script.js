@@ -1162,6 +1162,7 @@ let _furyMuffinVX = 0, _furyMuffinVY = 0;   // spring velocity
 let _furyMuffinBounceT = 0;   // decays after click (squish anim)
 let _furyMuffinHappyT  = 0;   // decays after click (happy eyes)
 let _furyMuffinSparkles = [];  // fire sparkle particles on click
+let _furyFlash = 0, _furyRings = [];   // Fury-only: screen flash + shockwave rings on eruption
 function _furyMuffinMouseMove(e) { _furyMuffinTargX = e.clientX; _furyMuffinTargY = e.clientY; }
 function _furyMuffinClick() {
   _furyMuffinBounceT = 1.0;
@@ -1173,6 +1174,88 @@ function _furyMuffinClick() {
       vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 80,
       life: 1, r: 2.5 + Math.random() * 4.5, hue: Math.random() * 45 });
   }
+}
+// Fury's ERUPTION — a tyrant's wrath: shockwaves, screen flash, a gout of fire
+function _furyEruptClick() {
+  _furyChipBlue = !_furyChipBlue;   // flip the chip's colour each click
+  _furyMuffinBounceT = 1.0;
+  _furyMuffinHappyT  = 0;
+  _furyFlash = 1;
+  _furyRings.push({ x: _furyMuffinTargX, y: _furyMuffinTargY, life: 1, max: 0.5 });
+  _furyRings.push({ x: _furyMuffinTargX, y: _furyMuffinTargY, life: 1, max: 0.7, delay: 0.06 });
+  if (_furyRings.length > 8) _furyRings.splice(0, _furyRings.length - 8);
+  for (let i = 0; i < 34; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const spd = 120 + Math.random() * 360;
+    _furyMuffinSparkles.push({ x: _furyMuffinTargX, y: _furyMuffinTargY,
+      vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 120,
+      life: 1, r: 2 + Math.random() * 5.5, hue: Math.random() * 42 });
+  }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 0.6 + Math.random() * 0.15, volume: 0.6 }); } catch (e) {} }
+}
+
+// a flaming IRON CROWN — Fury's menacing cursor (the fire dictator)
+let _furyCEmbers = [];   // embers spiralling into the cursor
+let _furyChipBlue = false;   // chip flips red <-> blue on every click
+const _FURY_CHIP = {
+  red:  { body: '#9c1414', inner: '#c0282a', ring: '#e6c060', glow: '255,80,40' },
+  blue: { body: '#16307a', inner: '#2a52c0', ring: '#8fb8ec', glow: '70,130,255' },
+};
+function _furyDrawChip(ctx, x, y, t) {
+  const PI2 = Math.PI * 2;
+  const dt = Math.min(0.05, t - (_furyDrawChip._pt || t)); _furyDrawChip._pt = t;
+  const bT = _furyMuffinBounceT, pulse = bT > 0 ? Math.sin(bT * Math.PI) : 0;
+  const cx = _furyMuffinTargX, cy = _furyMuffinTargY, R = 16 * (1 + pulse * 0.3);
+
+  // embers spiralling inward toward the chip
+  while (_furyCEmbers.length < 18) _furyCEmbers.push({ a: Math.random() * PI2, rad: 38 + Math.random() * 34, spin: (0.8 + Math.random() * 1.6) * (Math.random() < 0.5 ? 1 : -1), pull: 20 + Math.random() * 26, r: 1 + Math.random() * 2 });
+  ctx.globalCompositeOperation = 'lighter';
+  for (const e of _furyCEmbers) {
+    e.a += e.spin * dt; e.rad -= e.pull * dt;
+    if (e.rad < R * 0.55) { e.rad = 38 + Math.random() * 34; e.a = Math.random() * PI2; }
+    const ex = cx + Math.cos(e.a) * e.rad, ey = cy + Math.sin(e.a) * e.rad;
+    const ea = Math.min(1, (e.rad - R * 0.55) / 30);
+    ctx.fillStyle = `rgba(255,${(90 + (1 - ea) * 120) | 0},40,${(0.8 * (1 - ea * 0.3)).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(ex, ey, e.r * (1.3 - ea * 0.6), 0, PI2); ctx.fill();
+  }
+
+  const P = _furyChipBlue ? _FURY_CHIP.blue : _FURY_CHIP.red;
+  ctx.save();
+  ctx.translate(cx, cy);
+  // glow under the chip (tinted to the chip's colour)
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 2.4);
+  g.addColorStop(0, `rgba(${P.glow},${(0.4 + pulse * 0.3).toFixed(3)})`);
+  g.addColorStop(0.5, `rgba(${P.glow},0.14)`); g.addColorStop(1, `rgba(${P.glow},0)`);
+  ctx.fillStyle = g; ctx.fillRect(-R * 2.4, -R * 2.4, R * 4.8, R * 4.8);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // ── the casino chip ──
+  const spin = t * 0.5;
+  ctx.rotate(spin);
+  // body
+  ctx.beginPath(); ctx.arc(0, 0, R, 0, PI2); ctx.fillStyle = P.body; ctx.fill();
+  // cream edge spots around the rim (the classic chip inserts)
+  ctx.fillStyle = '#efe6d2';
+  for (let i = 0; i < 6; i++) { ctx.save(); ctx.rotate(i * PI2 / 6); ctx.beginPath(); ctx.rect(-R * 0.17, -R - 0.5, R * 0.34, R * 0.3); ctx.fill(); ctx.restore(); }
+  // edge ring + dark groove
+  ctx.strokeStyle = P.ring; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(0, 0, R * 0.96, 0, PI2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(20,4,6,0.7)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, R * 0.78, 0, PI2); ctx.stroke();
+  // inner disc + dashed ring
+  ctx.fillStyle = P.inner; ctx.beginPath(); ctx.arc(0, 0, R * 0.6, 0, PI2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,248,232,0.7)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.arc(0, 0, R * 0.6, 0, PI2); ctx.stroke(); ctx.setLineDash([]);
+  // centre pips (four little inserts) + a hub
+  ctx.fillStyle = '#efe6d2';
+  for (let i = 0; i < 4; i++) { ctx.save(); ctx.rotate(i * PI2 / 4 + Math.PI / 4); ctx.beginPath(); ctx.rect(-R * 0.07, -R * 0.6, R * 0.14, R * 0.14); ctx.fill(); ctx.restore(); }
+  ctx.fillStyle = P.ring; ctx.beginPath(); ctx.arc(0, 0, R * 0.18, 0, PI2); ctx.fill();
+  ctx.fillStyle = P.body; ctx.beginPath(); ctx.arc(0, 0, R * 0.1, 0, PI2); ctx.fill();
+  // glossy sheen (fixed lighting)
+  ctx.rotate(-spin);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  ctx.beginPath(); ctx.ellipse(-R * 0.3, -R * 0.34, R * 0.52, R * 0.22, -0.5, 0, PI2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.restore();
 }
 
 // ── Sorrow — exactly Fury's fire, but monochrome and pouring DOWN from above,
@@ -2750,6 +2833,8 @@ const PATTERN_DEFS = {
   gonela_frontier:  { label: "Gonela · Frontier Law",      params: [] },
   justin_cotton:    { label: "Justin · Red Harvest",       params: [] },
   anti_sanctuary:   { label: "Anti · Quiet Inferno",       params: [] },
+  leonor_muertos:   { label: "Leonor · Monochrome Muertos", params: [] },
+  cuckoo_clockwork: { label: "Cuckoo · Clockwork",          params: [] },
   haru_parasite:    { label: "Haru · The Watching Dark",   params: [] },
   classic_det:      { label: "Classic · Determination.",   params: [] },
   classic_save:     { label: "Classic · SAVE",              params: [] },
@@ -5065,6 +5150,14 @@ function _furyNewEmber(W, H, scatter) {
   };
 }
 
+// crown outline path (the 5-spike silhouette), scaled S, centred at cx,cy
+function _furyCrownPath(ctx, cx, cy, S) {
+  const P = [[-18, 8], [-16, -10], [-11, 0], [-8, -20], [-3, -2], [0, -26], [3, -2], [8, -20], [11, 0], [16, -10], [18, 8]];
+  ctx.beginPath();
+  for (let i = 0; i < P.length; i++) { const px = cx + P[i][0] * S, py = cy + P[i][1] * S; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+  ctx.closePath();
+}
+
 function _drawFuryPattern(canvas, ctx, W, H, t) {
   if (_drawFuryPattern._lt !== undefined && t - _drawFuryPattern._lt < 0.033) return;
   const dt = _drawFuryPattern._lt === undefined ? 0.016 : Math.min(t - _drawFuryPattern._lt, 0.05);
@@ -5079,6 +5172,17 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
+
+  // ── marching CADENCE — a steady BOOM-boom footfall — plus the ROAR ──
+  const _roar = t % 9, _shk = _roar < 0.5 ? (0.5 - _roar) * 2 : 0;
+  const _cadP = t % 1.5;
+  const _stomp = Math.max(Math.exp(-_cadP * 26), _cadP > 0.26 ? 0.55 * Math.exp(-(_cadP - 0.26) * 26) : 0);
+  ctx.save();
+  if (_shk > 0 || _stomp > 0.02) {
+    const sx = (Math.random() - 0.5) * _shk * 16 + (Math.random() - 0.5) * _stomp * 5;
+    const sy = (Math.random() - 0.5) * _shk * 16 + _stomp * 9;   // footfalls jolt downward
+    ctx.translate(sx, sy);
+  }
 
   // Smouldering glow — wide floor haze + per-channel radial pools
   if (!canvas._furyBaseGrads) {
@@ -5142,6 +5246,124 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
     ctx.fillStyle = `hsl(${e.hue},100%,${e.bright + 8 * e.life}%)`;
     ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill();
   }
+  // ── FIERCE licking flames + lava cracks along the floor ──
+  {
+    const pulse = 0.5 + 0.5 * Math.sin(t * 1.8);
+    // glowing lava cracks creeping along the very bottom
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = `rgba(255,${(60 + pulse * 70) | 0},10,${(0.3 + pulse * 0.25).toFixed(3)})`;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      const bx = (i + 0.5) * (W / 6) + Math.sin(t * 0.5 + i) * 20;
+      ctx.beginPath(); ctx.moveTo(bx, H);
+      let cxp = bx, cyp = H;
+      for (let k = 0; k < 4; k++) { cxp += Math.sin(i * 3 + k * 1.7) * 26; cyp -= 14 + (k % 2) * 10; ctx.lineTo(cxp, cyp); }
+      ctx.stroke();
+    }
+    // a wall of crimson flame tongues rising from the bottom
+    ctx.save(); ctx.translate(0, H); _furyFlameTongues(ctx, W, t, 3, H * 0.2, { a: 0.9, crimson: true }); ctx.restore();
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ── TOWERING fire pillars on the far edges ──
+  {
+    const pulse = 0.5 + 0.5 * Math.sin(t * 1.6);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [px, ph] of [[W * 0.035, 0], [W * 0.965, 1.7]]) {
+      const pg = ctx.createLinearGradient(0, H, 0, H * 0.08);
+      pg.addColorStop(0, `rgba(255,70,0,${(0.3 + pulse * 0.18).toFixed(3)})`);
+      pg.addColorStop(0.5, 'rgba(180,12,0,0.12)'); pg.addColorStop(1, 'rgba(120,0,0,0)');
+      ctx.fillStyle = pg;
+      ctx.beginPath(); ctx.moveTo(px, H);
+      for (let yy = H; yy >= H * 0.08; yy -= 22) { const w = 34 * (yy / H) + Math.sin(yy * 0.045 + t * 4 + ph) * 12; ctx.lineTo(px - w, yy); }
+      for (let yy = H * 0.08; yy <= H; yy += 22) { const w = 34 * (yy / H) + Math.sin(yy * 0.045 + t * 4 + ph + 1) * 12; ctx.lineTo(px + w, yy); }
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ── SWIRLING FIRE COLUMNS twisting up through the background ──
+  {
+    ctx.globalCompositeOperation = 'lighter';
+    const yTop = H * 0.12, step = 18;
+    for (const [colX, phase] of [[W * 0.32, 0], [W * 0.5, 2.1], [W * 0.68, 4.3]]) {
+      // soft column glow
+      const cg = ctx.createLinearGradient(colX, H, colX, yTop);
+      cg.addColorStop(0, 'rgba(170,14,28,0.13)'); cg.addColorStop(1, 'rgba(150,0,24,0)');
+      ctx.fillStyle = cg; ctx.fillRect(colX - 66, yTop, 132, H - yTop);
+      // shared crimson gradient for both twisting strands
+      const sg = ctx.createLinearGradient(colX, H, colX, yTop);
+      sg.addColorStop(0, 'rgba(255,68,28,0.45)'); sg.addColorStop(0.5, 'rgba(190,14,34,0.24)'); sg.addColorStop(1, 'rgba(140,0,24,0)');
+      ctx.fillStyle = sg;
+      for (let strand = 0; strand < 2; strand++) {
+        const ph = phase + strand * Math.PI;
+        ctx.beginPath();
+        for (let yy = H; yy >= yTop; yy -= step) { const amp = 46 * (0.35 + 0.65 * (yy / H)); const sw = Math.sin(yy * 0.024 + t * 2 + ph) * amp; const w = 9 * (yy / H) + 4; const xx = colX + sw; (yy === H) ? ctx.moveTo(xx - w, yy) : ctx.lineTo(xx - w, yy); }
+        for (let yy = yTop; yy <= H; yy += step) { const amp = 46 * (0.35 + 0.65 * (yy / H)); const sw = Math.sin(yy * 0.024 + t * 2 + ph) * amp; const w = 9 * (yy / H) + 4; const xx = colX + sw; ctx.lineTo(xx + w, yy); }
+        ctx.closePath(); ctx.fill();
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ── dictator's WAR BANNERS hanging from above, flame-lit & swaying ──
+  for (const bx0 of [W * 0.28, W * 0.72]) {
+    const sway = Math.sin(t * 0.9 + bx0) * 7;
+    const bw = Math.min(94, W * 0.08), bh = H * 0.42;
+    const topX = bx0, botX = bx0 + sway;
+    ctx.save();
+    // cloth (dark crimson, gradient)
+    const cg = ctx.createLinearGradient(0, 0, 0, bh);
+    cg.addColorStop(0, 'rgba(60,4,6,0.85)'); cg.addColorStop(1, 'rgba(28,2,3,0.7)');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(topX - bw / 2, 0); ctx.lineTo(topX + bw / 2, 0);
+    ctx.lineTo(botX + bw / 2, bh); ctx.lineTo(botX, bh + bw * 0.32); ctx.lineTo(botX - bw / 2, bh);
+    ctx.closePath(); ctx.fill();
+    // flame-lit edges
+    ctx.strokeStyle = `rgba(255,40,30,${(0.28 + 0.18 * Math.sin(t * 2 + bx0)).toFixed(3)})`;
+    ctx.lineWidth = 1.5; ctx.stroke();
+    // crown emblem
+    const eX = (topX + botX) / 2, eY = bh * 0.42, S = bw * 0.024;
+    _furyCrownPath(ctx, eX, eY, S);
+    ctx.fillStyle = 'rgba(255,150,40,0.22)'; ctx.fill();
+    ctx.restore();
+  }
+
+  // ── falling cinders / ash drifting down ──
+  for (let i = 0; i < 28; i++) {
+    const sd = i * 0.733;
+    const ax = ((sd * 3.1) % 1) * W + Math.sin(t * 0.6 + i) * 26;
+    const ay = ((t * (12 + (sd % 18)) + sd * H) % (H + 16)) - 8;
+    ctx.globalAlpha = 0.10 + (sd % 0.22);
+    ctx.fillStyle = i % 4 === 0 ? '#ff5a20' : '#3a0606';
+    ctx.fillRect(ax | 0, ay | 0, 1 + (sd % 2 | 0), 1 + (sd % 2 | 0));
+  }
+  ctx.globalAlpha = 1;
+
+  // ── each footfall throws a red pulse + a glow off the floor ──
+  if (_stomp > 0.02) {
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(180,20,8,${(_stomp * 0.12).toFixed(3)})`;
+    ctx.fillRect(-20, -20, W + 40, H + 40);
+    const bg = ctx.createLinearGradient(0, H, 0, H - H * 0.2);
+    bg.addColorStop(0, `rgba(255,60,20,${(_stomp * 0.32).toFixed(3)})`); bg.addColorStop(1, 'rgba(255,60,20,0)');
+    ctx.fillStyle = bg; ctx.fillRect(-20, H - H * 0.2, W + 40, H * 0.2 + 20);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ── the tyrant's ROAR — a screen-wide flare every ~9s ──
+  {
+    const roar = t % 9;
+    if (roar < 0.7) {
+      const k = 1 - roar / 0.7;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = `rgba(255,90,20,${(k * k * 0.2).toFixed(3)})`;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
   // Subtle golden glow at the very top edge
   if (!canvas._furyTopGlow) {
     const tg = ctx.createLinearGradient(0, 0, 0, H * 0.20);
@@ -5154,6 +5376,19 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1; ctx.fillStyle = canvas._furyTopGlow; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
+  ctx.restore();   // end roar-shake transform
+
+  // ── HEAT SHIMMER over the lower half (horizontal strip displacement) ──
+  // Taller strips = far fewer (costly) self-copies; visually ~identical.
+  {
+    const shimTop = H * 0.46, stripH = 7, span = H - shimTop;
+    for (let y = shimTop; y < H - stripH; y += stripH) {
+      const d = (y - shimTop) / span;
+      const off = Math.sin(y * 0.045 + t * 5) * (1 + d * 4.5);
+      if (off < 0.4 && off > -0.4) continue;   // skip near-zero shifts (free)
+      ctx.drawImage(canvas, 0, y, W, stripH, off, y, W, stripH);
+    }
+  }
 }
 
 function _furyNewOvEmber(W, H, scatter) {
@@ -5281,6 +5516,168 @@ function _furyDrawMuffin(ctx, x, y, t) {
   ctx.restore();
 }
 
+// a row of licking flame tongues along +x (0..len), reaching toward -y.
+// opt: { a: alpha multiplier, crimson: true } — crimson = deep blood-red palette
+function _furyFlameTongues(ctx, len, t, seed, baseH, opt) {
+  const a = (opt && opt.a != null) ? opt.a : 1;
+  const pal = (opt && opt.crimson)
+    ? [['rgba(96,0,14,' + (0.5 * a).toFixed(3) + ')', 15, 1], ['rgba(190,14,40,' + (0.55 * a).toFixed(3) + ')', 9, 0.82], ['rgba(255,72,96,' + (0.7 * a).toFixed(3) + ')', 4.5, 0.56]]
+    : [['rgba(150,18,0,' + (0.5 * a).toFixed(3) + ')', 15, 1], ['rgba(255,84,8,' + (0.55 * a).toFixed(3) + ')', 9, 0.82], ['rgba(255,210,80,' + (0.72 * a).toFixed(3) + ')', 4.5, 0.56]];
+  const n = Math.max(6, Math.ceil(len / 26));
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < n; i++) {
+    const x = (i + 0.5) * (len / n);
+    const fl = 0.6 + 0.4 * Math.sin(t * 7 + i * 1.7 + seed) + 0.22 * Math.sin(t * 13 + i + seed);
+    const h = baseH * (0.55 + fl * 0.8);
+    const sway = Math.sin(t * 5 + i + seed) * 6;
+    for (const [col, w, hm] of pal) {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(x - w, 0);
+      ctx.quadraticCurveTo(x + sway, -h * hm * 0.6, x + sway * 0.5, -h * hm);
+      ctx.quadraticCurveTo(x - sway, -h * hm * 0.6, x + w, 0);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// an ornate golden Victorian scroll for a page corner (local box ~62px,
+// drawn from the corner inward; fx/fy mirror it into each corner)
+function _furyCorner(ctx, x, y, s, fx, fy, t) {
+  const PI2 = Math.PI * 2;
+  const a = 0.55 + 0.3 * Math.sin(t * 1.5);
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(fx * s, fy * s);
+  ctx.strokeStyle = `rgba(226,198,122,${a.toFixed(3)})`;
+  ctx.fillStyle = `rgba(244,218,146,${a.toFixed(3)})`;
+  ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.shadowColor = 'rgba(232,192,92,0.7)'; ctx.shadowBlur = 6;
+  // sweep along the top edge curling into a spiral
+  ctx.beginPath();
+  ctx.moveTo(60, 6);
+  ctx.bezierCurveTo(34, 6, 26, 14, 24, 30);
+  ctx.bezierCurveTo(22, 44, 30, 50, 40, 46);
+  ctx.bezierCurveTo(48, 42, 46, 32, 38, 33);
+  ctx.bezierCurveTo(33.5, 34, 34.5, 40, 38, 39);
+  ctx.stroke();
+  // mirrored sweep down the side edge
+  ctx.beginPath();
+  ctx.moveTo(6, 60);
+  ctx.bezierCurveTo(6, 34, 14, 26, 30, 24);
+  ctx.bezierCurveTo(44, 22, 50, 30, 46, 40);
+  ctx.bezierCurveTo(42, 48, 32, 46, 33, 38);
+  ctx.bezierCurveTo(34, 33.5, 40, 34.5, 39, 38);
+  ctx.stroke();
+  // a connecting bead-vine across the corner
+  ctx.beginPath();
+  ctx.moveTo(60, 6); ctx.quadraticCurveTo(30, 16, 6, 60);
+  ctx.lineWidth = 0.9; ctx.stroke();
+  ctx.lineWidth = 1.6;
+  // acanthus leaf flicks off the ends
+  ctx.beginPath(); ctx.moveTo(60, 6); ctx.quadraticCurveTo(52, 1, 45, 8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(6, 60); ctx.quadraticCurveTo(1, 52, 8, 45); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(24, 30); ctx.quadraticCurveTo(16, 24, 14, 16); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(30, 24); ctx.quadraticCurveTo(24, 16, 16, 14); ctx.stroke();
+  // decorative beads
+  for (const [dx, dy] of [[60, 6], [6, 60], [38, 39], [12, 12]]) { ctx.beginPath(); ctx.arc(dx, dy, 1.7, 0, PI2); ctx.fill(); }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+// a swirly golden vine running along an edge, connecting the corner scrolls
+function _furyEdgeVine(ctx, ax, ay, bx, by, t) {
+  const a = 0.5 + 0.28 * Math.sin(t * 1.5);
+  const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy);
+  if (len < 30) return;
+  const ux = dx / len, uy = dy / len, nx = -uy, ny = ux;
+  ctx.save();
+  ctx.strokeStyle = `rgba(226,198,122,${a.toFixed(3)})`;
+  ctx.fillStyle = `rgba(244,218,146,${a.toFixed(3)})`;
+  ctx.lineWidth = 1.3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.shadowColor = 'rgba(232,192,92,0.6)'; ctx.shadowBlur = 5;
+  const waves = Math.max(2, Math.round(len / 78)), amp = 6, N = waves * 16;
+  // undulating vine
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const f = i / N, px = ax + ux * len * f, py = ay + uy * len * f;
+    const off = Math.sin(f * Math.PI * 2 * waves) * amp;
+    const x = px + nx * off, y = py + ny * off;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.stroke();
+  // a little scroll curl + bead at each crest, alternating sides
+  for (let w = 0; w < waves; w++) {
+    const f = (w + 0.25) / waves, px = ax + ux * len * f, py = ay + uy * len * f;
+    const sgn = w % 2 === 0 ? 1 : -1;
+    const cxp = px + nx * amp * sgn, cyp = py + ny * amp * sgn;
+    ctx.beginPath(); ctx.arc(cxp, cyp, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cxp, cyp);
+    ctx.quadraticCurveTo(cxp + nx * 6 * sgn + ux * 5, cyp + ny * 6 * sgn + uy * 5, cxp + ux * 9, cyp + uy * 9);
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0; ctx.restore();
+}
+
+// a crimson burning frame: soft edge-glow on all sides + tall wispy flames
+// rising from the bottom + a faint molten rim. Elegant, not blobby.
+function _furyFlameBorder(ctx, W, H, t) {
+  const pulse = 0.5 + 0.5 * Math.sin(t * 2.6);
+  const bd = 46 + pulse * 12;
+  ctx.globalCompositeOperation = 'lighter';
+  // soft crimson glow bleeding inward from each edge
+  const edge = (x, y, w, h, g0x, g0y, g1x, g1y, str) => {
+    const g = ctx.createLinearGradient(g0x, g0y, g1x, g1y);
+    g.addColorStop(0, `rgba(150,8,18,${(str).toFixed(3)})`); g.addColorStop(1, 'rgba(150,8,18,0)');
+    ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+  };
+  const a = 0.2 + pulse * 0.12;
+  edge(0, H - bd * 1.4, W, bd * 1.4, 0, H, 0, H - bd * 1.4, a * 1.3);   // bottom (strongest)
+  edge(0, 0, W, bd * 0.8, 0, 0, 0, bd * 0.8, a * 0.7);                   // top
+  edge(0, 0, bd * 0.8, H, 0, 0, bd * 0.8, 0, a * 0.8);                   // left
+  edge(W - bd * 0.8, 0, bd * 0.8, H, W, 0, W - bd * 0.8, 0, a * 0.8);    // right
+
+  // tall, thin, soft flame wisps rising only from the bottom (gradient-faded).
+  // One shared vertical gradient (anchored at the bottom) for all wisps — they
+  // all start at H, so it reads the same but skips ~30 gradient allocations.
+  const n = Math.max(8, Math.ceil(W / 46));
+  const wg = ctx.createLinearGradient(0, H, 0, H - bd * 2.2);
+  wg.addColorStop(0, 'rgba(210,18,44,0.4)');
+  wg.addColorStop(0.55, 'rgba(150,6,26,0.16)');
+  wg.addColorStop(1, 'rgba(120,0,22,0)');
+  ctx.fillStyle = wg;
+  for (let i = 0; i < n; i++) {
+    const x = (i + 0.5) * (W / n) + Math.sin(t * 0.7 + i) * 10;
+    const fl = 0.5 + 0.5 * Math.sin(t * 6 + i * 1.9) + 0.2 * Math.sin(t * 11 + i);
+    const h = bd * (0.7 + fl * 1.5);
+    const sway = Math.sin(t * 4 + i) * 9, w = 5 + fl * 3;
+    ctx.beginPath();
+    ctx.moveTo(x - w, H);
+    ctx.quadraticCurveTo(x + sway, H - h * 0.62, x + sway * 0.4, H - h);
+    ctx.quadraticCurveTo(x - sway, H - h * 0.62, x + w, H);
+    ctx.closePath(); ctx.fill();
+  }
+  // faint molten rim
+  ctx.strokeStyle = `rgba(200,${(18 + pulse * 26) | 0},40,${(0.12 + pulse * 0.12).toFixed(3)})`;
+  ctx.lineWidth = 3 + pulse * 2;
+  ctx.strokeRect(2, 2, W - 4, H - 4);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // ornate golden Victorian swirls in each corner
+  const cs = 1.05, m = 12;
+  _furyCorner(ctx, m, m, cs, 1, 1, t);
+  _furyCorner(ctx, W - m, m, cs, -1, 1, t);
+  _furyCorner(ctx, m, H - m, cs, 1, -1, t);
+  _furyCorner(ctx, W - m, H - m, cs, -1, -1, t);
+  // swirly vines connecting the corner scrolls along each edge
+  const e = 80;
+  _furyEdgeVine(ctx, e, 13, W - e, 13, t);          // top
+  _furyEdgeVine(ctx, e, H - 13, W - e, H - 13, t);  // bottom
+  _furyEdgeVine(ctx, 13, e, 13, H - e, t);          // left
+  _furyEdgeVine(ctx, W - 13, e, W - 13, H - e, t);  // right
+}
+
 function _drawFuryOverlay(canvas, ctx, W, H, t, drawCompanion, flip) {
   if (_drawFuryOverlay._lt !== undefined && t - _drawFuryOverlay._lt < 0.033) return;
   const dt = _drawFuryOverlay._lt === undefined ? 0.016 : Math.min(t - _drawFuryOverlay._lt, 0.05);
@@ -5381,6 +5778,31 @@ function _drawFuryOverlay(canvas, ctx, W, H, t, drawCompanion, flip) {
     ctx.beginPath(); ctx.arc(sp.x, sp.y, sp.r * Math.max(0.2, sp.life), 0, Math.PI * 2); ctx.fill();
   }
 
+  // Eruption shockwave rings + screen flash (Fury only; empty for others)
+  if (_furyFlash > 0) {
+    _furyFlash = Math.max(0, _furyFlash - dt * 2.6);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(120,16,0,${(_furyFlash * 0.22).toFixed(3)})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = `rgba(255,90,20,${(_furyFlash * 0.5).toFixed(3)})`;
+    ctx.lineWidth = 30; ctx.strokeRect(-12, -12, W + 24, H + 24);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  for (let i = _furyRings.length - 1; i >= 0; i--) {
+    const r = _furyRings[i];
+    if (r.delay && r.delay > 0) { r.delay -= dt; continue; }
+    r.life -= dt / r.max; if (r.life <= 0) { _furyRings.splice(i, 1); continue; }
+    const al = r.life, rr = 12 + (1 - al) * 220;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = `rgba(255,${(70 + al * 90) | 0},10,${(al * 0.7).toFixed(3)})`;
+    ctx.lineWidth = 5 * al + 1;
+    ctx.beginPath(); ctx.arc(r.x, r.y, rr, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // Fury's flaming page border (not Sorrow)
+  if (drawCompanion === _furyDrawChip) _furyFlameBorder(ctx, W, H, t);
+
   ctx.globalAlpha = 1;
   (drawCompanion || _furyDrawMuffin)(ctx, _furyMuffinX, _furyMuffinY, t);
 }
@@ -5392,9 +5814,10 @@ function _startFuryOverlay() {
   _furyMuffinY = _furyMuffinTargY = window.innerHeight * 0.5;
   _furyMuffinVX = 0; _furyMuffinVY = 0;
   _furyMuffinBounceT = 0; _furyMuffinHappyT = 0;
-  _furyMuffinSparkles = [];
+  _furyMuffinSparkles = []; _furyFlash = 0; _furyRings = []; _furyCEmbers = []; _furyChipBlue = false;
   window.addEventListener('mousemove', _furyMuffinMouseMove);
-  window.addEventListener('click', _furyMuffinClick);
+  window.addEventListener('mousedown', _furyEruptClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
   const cv = document.createElement('canvas');
   cv.id = 'fury-fire-overlay';
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
@@ -5407,7 +5830,7 @@ function _startFuryOverlay() {
     if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
       cv2.width = window.innerWidth; cv2.height = window.innerHeight;
     }
-    _drawFuryOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _drawFuryOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000, _furyDrawChip);
     _furyOverlayRafId = requestAnimationFrame(frame);
   }
   _furyOverlayRafId = requestAnimationFrame(frame);
@@ -5416,9 +5839,71 @@ function _startFuryOverlay() {
 function _stopFuryOverlay() {
   if (_furyOverlayRafId) { cancelAnimationFrame(_furyOverlayRafId); _furyOverlayRafId = null; }
   window.removeEventListener('mousemove', _furyMuffinMouseMove);
-  window.removeEventListener('click', _furyMuffinClick);
+  window.removeEventListener('mousedown', _furyEruptClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('fury-fire-overlay');
   if (cv) cv.remove();
+  _furyFlash = 0; _furyRings = [];
+}
+
+// ── Jimmy's MUFFIN CURSOR — the googly-eyed muffin (moved here from Fury),
+// springing after the pointer with cheery sparkles on click. No fire. ──
+let _jimmyCursorRafId = null;
+function _startJimmyCursorOverlay() {
+  _stopJimmyCursorOverlay();
+  _furyMuffinX = _furyMuffinTargX = window.innerWidth * 0.5;
+  _furyMuffinY = _furyMuffinTargY = window.innerHeight * 0.5;
+  _furyMuffinVX = 0; _furyMuffinVY = 0;
+  _furyMuffinBounceT = 0; _furyMuffinHappyT = 0;
+  _furyMuffinSparkles = [];
+  window.addEventListener('mousemove', _furyMuffinMouseMove);
+  window.addEventListener('mousedown', _furyMuffinClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'jimmy-cursor-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  let lt;
+  function frame(now) {
+    const cv2 = document.getElementById('jimmy-cursor-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    const t = (now - t0) / 1000;
+    const dt = lt === undefined ? 0.016 : Math.min(t - lt, 0.05); lt = t;
+    const ctx = cv2.getContext('2d');
+    ctx.clearRect(0, 0, cv2.width, cv2.height);
+    // spring physics
+    const SPRING = 75, DAMP = 9;
+    _furyMuffinVX += ((_furyMuffinTargX - _furyMuffinX) * SPRING - _furyMuffinVX * DAMP) * dt;
+    _furyMuffinVY += ((_furyMuffinTargY - _furyMuffinY) * SPRING - _furyMuffinVY * DAMP) * dt;
+    _furyMuffinX += _furyMuffinVX * dt; _furyMuffinY += _furyMuffinVY * dt;
+    _furyMuffinBounceT = Math.max(0, _furyMuffinBounceT - dt * 3.2);
+    _furyMuffinHappyT = Math.max(0, _furyMuffinHappyT - dt);
+    // crumb sparkles
+    for (let i = _furyMuffinSparkles.length - 1; i >= 0; i--) {
+      const sp = _furyMuffinSparkles[i];
+      sp.x += sp.vx * dt; sp.y += sp.vy * dt; sp.vy += 130 * dt; sp.life -= dt * 2.2;
+      if (sp.life <= 0) { _furyMuffinSparkles.splice(i, 1); continue; }
+      ctx.globalAlpha = sp.life * 0.95;
+      ctx.fillStyle = `hsl(${Math.round(28 + sp.hue)},90%,${Math.round(48 + 30 * sp.life)}%)`;
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, sp.r * Math.max(0.2, sp.life), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    _furyDrawMuffin(ctx, _furyMuffinX, _furyMuffinY, t);
+    _jimmyCursorRafId = requestAnimationFrame(frame);
+  }
+  _jimmyCursorRafId = requestAnimationFrame(frame);
+}
+function _stopJimmyCursorOverlay() {
+  if (_jimmyCursorRafId) { cancelAnimationFrame(_jimmyCursorRafId); _jimmyCursorRafId = null; }
+  window.removeEventListener('mousemove', _furyMuffinMouseMove);
+  window.removeEventListener('mousedown', _furyMuffinClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('jimmy-cursor-overlay'); if (cv) cv.remove();
 }
 /* ─────────────────────────────────────────────────────────────── */
 
@@ -14120,8 +14605,9 @@ function _drawAntiPattern(canvas, ctx, W, H, t) {
   {
     const cx = W * 0.5, cy = horiz * 0.62, cr = Math.min(W, H) * (0.32 + breathe * 0.03);
     const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
-    cg.addColorStop(0, `rgba(150,80,190,${(0.07 + breathe * 0.04).toFixed(3)})`);
-    cg.addColorStop(1, 'rgba(150,80,190,0)');
+    cg.addColorStop(0, `rgba(168,70,180,${(0.08 + breathe * 0.04).toFixed(3)})`);
+    cg.addColorStop(0.55, `rgba(190,46,86,${(0.05 + breathe * 0.03).toFixed(3)})`);   // violet → red
+    cg.addColorStop(1, 'rgba(150,30,60,0)');
     ctx.fillStyle = cg; ctx.fillRect(cx - cr, cy - cr, cr * 2, cr * 2);
   }
 
@@ -14132,14 +14618,17 @@ function _drawAntiPattern(canvas, ctx, W, H, t) {
     ctx.save();
     ctx.lineJoin = 'round';
     const a = 0.10 + breathe * 0.06;
+    // violet→red gradient for the whole sigil
+    const pg = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+    pg.addColorStop(0, `rgba(206,140,236,${a.toFixed(3)})`);
+    pg.addColorStop(1, `rgba(228,72,104,${a.toFixed(3)})`);
     // outer ring
-    ctx.strokeStyle = `rgba(196,140,230,${(a * 0.8).toFixed(3)})`;
+    ctx.strokeStyle = pg;
     ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, R * 1.12, 0, PI2); ctx.stroke();
-    ctx.strokeStyle = `rgba(196,140,230,${(a * 0.4).toFixed(3)})`;
-    ctx.lineWidth = 0.8; ctx.beginPath(); ctx.arc(cx, cy, R * 1.2, 0, PI2); ctx.stroke();
+    ctx.lineWidth = 0.8; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(cx, cy, R * 1.2, 0, PI2); ctx.stroke(); ctx.globalAlpha = 1;
     // the star
-    ctx.shadowColor = 'rgba(190,120,230,0.6)'; ctx.shadowBlur = 12;
-    ctx.strokeStyle = `rgba(214,158,236,${a.toFixed(3)})`; ctx.lineWidth = 1.6;
+    ctx.shadowColor = 'rgba(214,90,140,0.6)'; ctx.shadowBlur = 12;
+    ctx.strokeStyle = pg; ctx.lineWidth = 1.6;
     _anPentagram(ctx, cx, cy, R, rot); ctx.stroke();
     ctx.shadowBlur = 0;
     // tiny glints at the five points
@@ -14160,10 +14649,11 @@ function _drawAntiPattern(canvas, ctx, W, H, t) {
     const ox = (0.1 + _anHash(i * 11) * 0.8) * W + Math.sin(t * 0.4 + i * 1.7) * 30;
     const oy = H * (1.02 - ph) - 10;
     const or = 4 + sd * 7, al = Math.sin(ph * Math.PI) * (0.18 + sd * 0.12);
+    const red = i % 2 === 0;   // half the souls glow red, half violet
     const og = ctx.createRadialGradient(ox, oy, 0, ox, oy, or * 2.4);
-    og.addColorStop(0, `rgba(220,180,250,${al.toFixed(3)})`);
-    og.addColorStop(0.5, `rgba(170,100,210,${(al * 0.5).toFixed(3)})`);
-    og.addColorStop(1, 'rgba(170,100,210,0)');
+    og.addColorStop(0, red ? `rgba(248,180,200,${al.toFixed(3)})` : `rgba(220,180,250,${al.toFixed(3)})`);
+    og.addColorStop(0.5, red ? `rgba(204,52,86,${(al * 0.5).toFixed(3)})` : `rgba(170,100,210,${(al * 0.5).toFixed(3)})`);
+    og.addColorStop(1, red ? 'rgba(204,52,86,0)' : 'rgba(170,100,210,0)');
     ctx.fillStyle = og; ctx.fillRect(ox - or * 2.4, oy - or * 2.4, or * 4.8, or * 4.8);
     ctx.fillStyle = `rgba(255,250,255,${(al * 1.4).toFixed(3)})`;
     ctx.beginPath(); ctx.arc(ox, oy, or * 0.32, 0, PI2); ctx.fill();
@@ -14191,14 +14681,17 @@ function _drawAntiPattern(canvas, ctx, W, H, t) {
     const ex = ((sd * 2.7) % 1) * W + Math.sin(t * 0.5 + i) * 22;
     const ey = H - ((t * (10 + (sd % 16)) + sd * H) % (H + 20));
     const al = 0.1 + (sd % 0.18) + breathe * 0.05;
-    ctx.fillStyle = `rgba(${210 + (i * 7) % 40},${140 + (i * 11) % 50},${220 - (i * 5) % 40},${al.toFixed(3)})`;
+    // embers drift between violet and red
+    ctx.fillStyle = (i % 3 === 0)
+      ? `rgba(${224 + (i * 5) % 24},${70 + (i * 7) % 40},${100 + (i * 5) % 40},${al.toFixed(3)})`
+      : `rgba(${200 + (i * 7) % 45},${130 + (i * 11) % 50},${220 - (i * 5) % 40},${al.toFixed(3)})`;
     ctx.beginPath(); ctx.arc(ex, ey, 0.8 + (sd % 1.5), 0, PI2); ctx.fill();
   }
 
   // ── curling incense smoke ──
   for (let m = 0; m < 3; m++) {
     const baseX = W * (0.24 + m * 0.26);
-    ctx.strokeStyle = `rgba(190,160,210,${(0.05 + m * 0.01).toFixed(3)})`;
+    ctx.strokeStyle = m % 2 ? `rgba(206,120,150,${(0.05 + m * 0.01).toFixed(3)})` : `rgba(186,150,212,${(0.05 + m * 0.01).toFixed(3)})`;
     ctx.lineWidth = 8 - m * 1.5; ctx.lineCap = 'round';
     ctx.beginPath();
     for (let k = 0; k <= 12; k++) {
@@ -14226,10 +14719,11 @@ function _anFlame(ctx, x, y, t, sc, alpha) {
   const sway = Math.sin(t * 3.2) * 0.05 + Math.sin(t * 5.1) * 0.03;
   ctx.rotate(sway);
   const fl = 0.5 + 0.5 * Math.sin(t * 8) + 0.2 * Math.sin(t * 13 + 1);
-  // soft glow
+  // soft glow (violet → red)
   const g = ctx.createRadialGradient(0, -4, 0, 0, -4, 26);
-  g.addColorStop(0, `rgba(196,120,230,${(0.4 * alpha).toFixed(3)})`);
-  g.addColorStop(1, 'rgba(120,40,160,0)');
+  g.addColorStop(0, `rgba(208,110,210,${(0.4 * alpha).toFixed(3)})`);
+  g.addColorStop(0.55, `rgba(200,50,90,${(0.26 * alpha).toFixed(3)})`);
+  g.addColorStop(1, 'rgba(150,30,70,0)');
   ctx.fillStyle = g; ctx.fillRect(-26, -30, 52, 52);
   // tiny horns at the base
   ctx.fillStyle = `rgba(60,30,70,${(0.9 * alpha).toFixed(3)})`;
@@ -14249,9 +14743,9 @@ function _anFlame(ctx, x, y, t, sc, alpha) {
     ctx.closePath(); ctx.fillStyle = col; ctx.fill();
   };
   const H0 = 19 + fl * 2.5;
-  flame(H0, 8, `rgba(150,60,200,${(0.85 * alpha).toFixed(3)})`);
-  flame(H0 * 0.82, 5.6, `rgba(216,138,224,${(0.92 * alpha).toFixed(3)})`);
-  flame(H0 * 0.55, 3.4, `rgba(255,242,252,${alpha.toFixed(3)})`);
+  flame(H0, 8, `rgba(140,52,196,${(0.85 * alpha).toFixed(3)})`);          // violet base
+  flame(H0 * 0.82, 5.6, `rgba(214,72,118,${(0.92 * alpha).toFixed(3)})`); // red-magenta middle
+  flame(H0 * 0.55, 3.4, `rgba(255,244,246,${alpha.toFixed(3)})`);          // white core
   ctx.restore();
   // halo ring floating above, bobbing gently
   const hb = Math.sin(t * 1.8) * 1.5;
@@ -14267,9 +14761,9 @@ function _anMouseMove(e) { _anMX = e.clientX; _anMY = e.clientY; }
 function _anMouseDown() {
   const x = _anMX, y = _anMY, PI2 = Math.PI * 2;
   const push = p => { _anParts.push(p); if (_anParts.length > 170) _anParts.shift(); };
-  // peaceful blooming rings
-  push({ type: 'ring', x, y, col: '214,158,236', life: 1, max: 0.9 });
-  push({ type: 'ring', x, y, col: '246,233,200', life: 1, max: 1.1, delay: 0.12 });
+  // peaceful blooming rings — violet, then red
+  push({ type: 'ring', x, y, col: '206,140,236', life: 1, max: 0.9 });
+  push({ type: 'ring', x, y, col: '226,74,108', life: 1, max: 1.1, delay: 0.12 });
   // a soft sigil blooms and fades
   push({ type: 'sigil', x, y, rot: Math.random() * PI2, life: 1, max: 1.3 });
   // a freed soul floats up
@@ -14307,25 +14801,28 @@ function _drawAntiOverlay(canvas, ctx, W, H, t) {
     } else if (p.type === 'sigil') {
       const k = 1 - al, sc2 = 10 + k * 46;
       ctx.save();
-      ctx.strokeStyle = `rgba(214,158,236,${(Math.sin(al * Math.PI) * 0.6).toFixed(3)})`;
+      const sg = ctx.createLinearGradient(p.x - sc2, p.y - sc2, p.x + sc2, p.y + sc2);
+      const sa = (Math.sin(al * Math.PI) * 0.65).toFixed(3);
+      sg.addColorStop(0, `rgba(206,140,236,${sa})`); sg.addColorStop(1, `rgba(226,74,108,${sa})`);
+      ctx.strokeStyle = sg;
       ctx.lineWidth = 1.2; ctx.lineJoin = 'round';
-      ctx.shadowColor = 'rgba(190,120,230,0.6)'; ctx.shadowBlur = 8;
+      ctx.shadowColor = 'rgba(214,90,140,0.6)'; ctx.shadowBlur = 8;
       _anPentagram(ctx, p.x, p.y, sc2, p.rot + k * 0.6); ctx.stroke();
       ctx.beginPath(); ctx.arc(p.x, p.y, sc2 * 1.16, 0, PI2); ctx.stroke();
       ctx.restore();
     } else if (p.type === 'orb') {
       p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 6 * dt; p.vx *= (1 - 0.5 * dt);
       const og = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2.4);
-      og.addColorStop(0, `rgba(224,186,250,${al.toFixed(3)})`);
-      og.addColorStop(0.5, `rgba(170,100,210,${(al * 0.5).toFixed(3)})`);
-      og.addColorStop(1, 'rgba(170,100,210,0)');
+      og.addColorStop(0, `rgba(244,184,224,${al.toFixed(3)})`);
+      og.addColorStop(0.5, `rgba(196,56,108,${(al * 0.5).toFixed(3)})`);   // violet→red soul
+      og.addColorStop(1, 'rgba(196,56,108,0)');
       ctx.fillStyle = og; ctx.fillRect(p.x - p.r * 2.4, p.y - p.r * 2.4, p.r * 4.8, p.r * 4.8);
       ctx.fillStyle = `rgba(255,250,255,${al.toFixed(3)})`;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.34, 0, PI2); ctx.fill();
-    } else {   // mote — soft drifting ember/petal
+    } else {   // mote — soft drifting ember/petal, violet → red
       p.vy += 24 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= (1 - 0.9 * dt);
-      const r = p.hue, R = (210 + r * 45) | 0, G = (130 + r * 60) | 0, B = (220 - r * 30) | 0;
-      ctx.fillStyle = `rgba(${R},${G},${B},${(al * 0.7).toFixed(3)})`;
+      const r = p.hue, R = (170 + r * 56) | 0, G = (100 - r * 28) | 0, B = (212 - r * 110) | 0;
+      ctx.fillStyle = `rgba(${R},${G},${B},${(al * 0.72).toFixed(3)})`;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r * al + 0.4, 0, PI2); ctx.fill();
     }
   }
@@ -14365,6 +14862,610 @@ function _stopAntiOverlay() {
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('anti-overlay'); if (cv) cv.remove();
   _anParts = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// LEONOR — Mexican, in monochrome. A black-and-white Día de los
+// Muertos: a full wall of ornate talavera tiles, papel-picado bunting
+// (top, bottom & side strands), a slowly turning marigold rosette and
+// drifting petals — all in greys & white. The cursor is a turning
+// marigold that trails petals and blooms marigolds on click.
+// Character-wide (matches "Leonor").
+// ════════════════════════════════════════════════════════════════
+const _LEONOR_RE = /^Leonor$/i;
+function _isLeonor(c) { return !!(c && c.name && _LEONOR_RE.test(c.name)); }
+function _leHash(i) { const v = Math.sin(i * 57.93 + 2.4) * 43758.5453; return v - Math.floor(v); }
+
+// a marigold (cempasúchil) in monochrome — layered ruffled petals
+function _leMarigold(ctx, x, y, r, rot, alpha) {
+  const PI2 = Math.PI * 2;
+  for (let ring = 3; ring >= 0; ring--) {
+    const rr = r * (0.28 + ring * 0.24);
+    const n = 7 + ring * 4;
+    const shade = 250 - ring * 34;
+    ctx.fillStyle = `rgba(${shade},${shade},${shade},${alpha})`;
+    for (let i = 0; i < n; i++) {
+      const a = rot + i * PI2 / n + ring * 0.4;
+      const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+      ctx.save(); ctx.translate(px, py); ctx.rotate(a);
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 0.16, r * 0.3, 0, 0, PI2); ctx.fill();
+      ctx.restore();
+    }
+  }
+  ctx.fillStyle = `rgba(110,110,110,${alpha})`;
+  ctx.beginPath(); ctx.arc(x, y, r * 0.3, 0, PI2); ctx.fill();
+  ctx.fillStyle = `rgba(36,36,36,${alpha})`;
+  ctx.beginPath(); ctx.arc(x, y, r * 0.16, 0, PI2); ctx.fill();
+}
+
+// an ornate talavera tile motif (baked into the backdrop, monochrome)
+function _leTileMotif(s, cx, cy, sz, v) {
+  const PI2 = Math.PI * 2, h = sz / 2;
+  s.save(); s.translate(cx, cy);
+  s.strokeStyle = 'rgba(255,255,255,0.06)'; s.lineWidth = 1; s.fillStyle = 'rgba(255,255,255,0.05)';
+  // diamond frame
+  s.beginPath(); s.moveTo(0, -h); s.lineTo(h, 0); s.lineTo(0, h); s.lineTo(-h, 0); s.closePath(); s.stroke();
+  if (v % 2 === 0) {
+    for (let i = 0; i < 4; i++) { s.save(); s.rotate(i * Math.PI / 2); s.beginPath(); s.ellipse(0, -h * 0.44, h * 0.14, h * 0.26, 0, 0, PI2); s.stroke(); s.restore(); }
+    s.beginPath(); s.arc(0, 0, h * 0.13, 0, PI2); s.fill();
+  } else {
+    s.beginPath();
+    for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8 + Math.PI / 16, rr = i % 2 ? h * 0.16 : h * 0.4; const px = Math.cos(a) * rr, py = Math.sin(a) * rr; i ? s.lineTo(px, py) : s.moveTo(px, py); }
+    s.closePath(); s.stroke();
+  }
+  for (const [dx, dy] of [[-h, -h], [h, -h], [h, h], [-h, h]]) { s.beginPath(); s.arc(dx, dy, 1.4, 0, PI2); s.fill(); }
+  s.restore();
+}
+
+// one papel-picado flag with a cut-out motif (monochrome)
+function _lePapelFlag(ctx, fx, fy, fw, fh, motif, fill) {
+  const PI2 = Math.PI * 2;
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(fx - fw / 2, fy); ctx.lineTo(fx + fw / 2, fy);
+  ctx.lineTo(fx + fw / 2, fy + fh * 0.52); ctx.lineTo(fx, fy + fh); ctx.lineTo(fx - fw / 2, fy + fh * 0.52);
+  ctx.closePath(); ctx.fill();
+  const cy = fy + fh * 0.4;
+  ctx.globalCompositeOperation = 'destination-out';
+  for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.arc(fx + k * fw * 0.17, fy + fh * 0.5, 1.5, 0, PI2); ctx.fill(); }
+  if (motif === 'flower') {
+    for (let i = 0; i < 6; i++) { const a = i * PI2 / 6; ctx.beginPath(); ctx.arc(fx + Math.cos(a) * 4.4, cy + Math.sin(a) * 4.4, 1.9, 0, PI2); ctx.fill(); }
+    ctx.beginPath(); ctx.arc(fx, cy, 2.2, 0, PI2); ctx.fill();
+  } else if (motif === 'sun') {
+    ctx.beginPath(); ctx.arc(fx, cy, 3.4, 0, PI2); ctx.fill();
+    for (let i = 0; i < 8; i++) { const a = i * PI2 / 8; ctx.beginPath(); ctx.arc(fx + Math.cos(a) * 6.6, cy + Math.sin(a) * 6.6, 1.1, 0, PI2); ctx.fill(); }
+  } else if (motif === 'diamond') {
+    ctx.beginPath(); ctx.moveTo(fx, cy - 6); ctx.lineTo(fx + 4.6, cy); ctx.lineTo(fx, cy + 6); ctx.lineTo(fx - 4.6, cy); ctx.closePath(); ctx.fill();
+  } else {   // lattice
+    for (let gx = -1; gx <= 1; gx++) for (let gy = -1; gy <= 1; gy++) { ctx.beginPath(); ctx.arc(fx + gx * 4.4, cy + gy * 4.4, 1.4, 0, PI2); ctx.fill(); }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function _drawLeonorPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawLeonorPattern._lt === undefined;
+  if (!fresh && t - _drawLeonorPattern._lt < 0.033) return;   // 30fps cap
+  _drawLeonorPattern._lt = t;
+  const PI2 = Math.PI * 2;
+  const breathe = 0.5 + 0.5 * Math.sin(t * 0.5);
+  ctx.clearRect(0, 0, W, H);
+
+  if (!_drawLeonorPattern._sc || _drawLeonorPattern._w !== W || _drawLeonorPattern._h !== H) {
+    _drawLeonorPattern._w = W; _drawLeonorPattern._h = H;
+    const sc = document.createElement('canvas'); sc.width = W; sc.height = H;
+    const s = sc.getContext('2d');
+    const bg = s.createRadialGradient(W * 0.5, H * 0.46, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.7);
+    bg.addColorStop(0, '#191919'); bg.addColorStop(0.6, '#0d0d0d'); bg.addColorStop(1, '#040404');
+    s.fillStyle = bg; s.fillRect(0, 0, W, H);
+    // a full wall of ornate talavera tiles
+    const TS = 86;
+    for (let yy = 0, ry = 0; yy < H + TS; yy += TS, ry++)
+      for (let xx = 0, rx = 0; xx < W + TS; xx += TS, rx++)
+        _leTileMotif(s, xx, yy, TS, (rx + ry) % 2);
+    // tiny connecting dots at every tile crossing
+    s.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let yy = 0; yy < H + TS; yy += TS) for (let xx = 0; xx < W + TS; xx += TS) { s.beginPath(); s.arc(xx, yy, 1.8, 0, PI2); s.fill(); }
+    // ornate double border frame with scallop dots
+    s.strokeStyle = 'rgba(255,255,255,0.12)'; s.lineWidth = 2; s.strokeRect(10, 10, W - 20, H - 20);
+    s.strokeStyle = 'rgba(255,255,255,0.07)'; s.lineWidth = 1; s.strokeRect(16, 16, W - 32, H - 32);
+    s.fillStyle = 'rgba(255,255,255,0.09)';
+    for (let x = 24; x < W - 24; x += 18) { s.beginPath(); s.arc(x, 22, 1.5, 0, PI2); s.fill(); s.beginPath(); s.arc(x, H - 22, 1.5, 0, PI2); s.fill(); }
+    for (let y = 24; y < H - 24; y += 18) { s.beginPath(); s.arc(22, y, 1.5, 0, PI2); s.fill(); s.beginPath(); s.arc(W - 22, y, 1.5, 0, PI2); s.fill(); }
+    // corner filigree swirls
+    s.strokeStyle = 'rgba(255,255,255,0.07)'; s.lineWidth = 1.2;
+    const swirl = (cx, cy, dir) => {
+      s.beginPath();
+      for (let i = 0; i < 40; i++) { const a = i * 0.3, rr = i * 1.4; const px = cx + Math.cos(a) * rr * dir, py = cy + Math.sin(a) * rr; i ? s.lineTo(px, py) : s.moveTo(px, py); }
+      s.stroke();
+    };
+    swirl(44, 44, 1); swirl(W - 44, 44, -1); swirl(44, H - 44, 1); swirl(W - 44, H - 44, -1);
+    _drawLeonorPattern._sc = sc;
+    const vig = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.3, W * 0.5, H * 0.5, Math.max(W, H) * 0.74);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.7)');
+    _drawLeonorPattern._vig = vig;
+  }
+  ctx.drawImage(_drawLeonorPattern._sc, 0, 0);
+
+  // ── central marigold rosette, slowly turning & breathing ──
+  {
+    const cx = W * 0.5, cy = H * 0.46, R = Math.min(W, H) * 0.26;
+    const a = 0.05 + breathe * 0.04;
+    // dotted rings
+    ctx.fillStyle = `rgba(255,255,255,${(a * 1.2).toFixed(3)})`;
+    for (const rr of [R * 0.7, R, R * 1.18]) {
+      const n = Math.round(rr * 0.18);
+      for (let i = 0; i < n; i++) { const ang = t * 0.05 + i * PI2 / n; ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr, 1.6, 0, PI2); ctx.fill(); }
+    }
+    // big petal rings
+    for (let ring = 0; ring < 3; ring++) {
+      const rr = R * (0.34 + ring * 0.2), n = 12 + ring * 6;
+      ctx.fillStyle = `rgba(${236 - ring * 30},${236 - ring * 30},${236 - ring * 30},${a.toFixed(3)})`;
+      for (let i = 0; i < n; i++) {
+        const ang = t * 0.05 * (ring % 2 ? -1 : 1) + i * PI2 / n;
+        const px = cx + Math.cos(ang) * rr, py = cy + Math.sin(ang) * rr;
+        ctx.save(); ctx.translate(px, py); ctx.rotate(ang); ctx.beginPath(); ctx.ellipse(0, 0, R * 0.04, R * 0.09, 0, 0, PI2); ctx.fill(); ctx.restore();
+      }
+    }
+  }
+
+  // ── papel-picado bunting: rows at top AND bottom, swaying ──
+  const MOTIFS = ['flower', 'sun', 'diamond', 'lattice'];
+  const buntRow = (baseY, span, fh, down) => {
+    const n = Math.ceil(W / span) + 1;
+    ctx.strokeStyle = 'rgba(220,220,220,0.22)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) { const fx = i * span, fy = baseY + Math.sin(i * 0.6 + t * 0.8) * 4 * down; i ? ctx.lineTo(fx, fy) : ctx.moveTo(fx, fy); }
+    ctx.stroke();
+    for (let i = 0; i < n; i++) {
+      const fx = i * span + span * 0.5;
+      const fy = baseY + (Math.sin(i * 0.6 + t * 0.8) * 4 + Math.sin(t * 1.6 + i) * 1.5) * down;
+      const fill = i % 2 ? 'rgba(230,230,230,0.5)' : 'rgba(150,150,150,0.42)';
+      ctx.save();
+      if (down < 0) { ctx.translate(fx, fy); ctx.scale(1, -1); ctx.translate(-fx, -fy); }
+      _lePapelFlag(ctx, fx, fy, span * 0.82, fh, MOTIFS[i % MOTIFS.length], fill);
+      ctx.restore();
+    }
+  };
+  buntRow(8, 50, 26, 1);
+  buntRow(34, 44, 22, 1);
+  buntRow(H - 8, 50, 26, -1);   // a row hanging up from the bottom edge
+
+  // ── side hanging strands of little flowers ──
+  for (const sx of [22, W - 22]) {
+    for (let k = 0; k < 7; k++) {
+      const fy = H * 0.16 + k * H * 0.1, sw = Math.sin(t * 0.7 + k * 0.6) * 4;
+      _leMarigold(ctx, sx + sw, fy, 7, t * 0.2 + k, 0.16);
+    }
+  }
+
+  // ── drifting white marigold petals ──
+  for (let i = 0; i < 16; i++) {
+    const sd = _leHash(i * 31.3);
+    const py = ((t * (12 + sd * 18) + sd * (H + 80)) % (H + 80)) - 40;
+    const px = sd * W + Math.sin(t * 0.5 + i * 1.7) * 44;
+    const rot = t * (0.5 + sd * 0.6) * (i % 2 ? 1 : -1);
+    const ps = 4 + sd * 5, sh = (200 + sd * 55) | 0;
+    ctx.save(); ctx.translate(px, py); ctx.rotate(rot); ctx.scale(1, 0.55 + 0.45 * Math.sin(t + i * 2.3));
+    ctx.fillStyle = `rgba(${sh},${sh},${sh},${(0.3 + sd * 0.3).toFixed(3)})`;
+    ctx.beginPath(); ctx.ellipse(0, 0, ps * 0.5, ps, 0, 0, PI2); ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.fillStyle = _drawLeonorPattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* ── cursor: a sugar skull trailing petals; click blooms marigolds ── */
+let _leOverlayRafId = null;
+let _leMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _leMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _leParts = [], _lePrevT = 0, _lePetalAcc = 0;
+
+function _leMouseMove(e) { _leMX = e.clientX; _leMY = e.clientY; }
+function _leMouseDown() {
+  const x = _leMX, y = _leMY, PI2 = Math.PI * 2;
+  const push = p => { _leParts.push(p); if (_leParts.length > 170) _leParts.shift(); };
+  // a marigold blooms
+  push({ type: 'bloom', x, y, rot: Math.random() * PI2, r: 18 + Math.random() * 10, life: 1, max: 1.1 });
+  // filigree dotted rings
+  push({ type: 'ring', x, y, life: 1, max: 0.8 });
+  push({ type: 'ring', x, y, life: 1, max: 1.0, delay: 0.1 });
+  // a scatter of petals
+  for (let i = 0; i < 14; i++) {
+    const a = Math.random() * PI2, sp = 50 + Math.random() * 170;
+    push({ type: 'petal', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40, s: 4 + Math.random() * 5, rot: Math.random() * PI2, vr: (Math.random() - 0.5) * 7, sh: (180 + Math.random() * 75) | 0, life: 1, max: 0.9 + Math.random() * 0.8 });
+  }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 0.9 + Math.random() * 0.25, volume: 0.35 }); } catch (e) {} }
+}
+
+function _lePetal(ctx, x, y, s, rot, sh, alpha) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.fillStyle = `rgba(${sh},${sh},${sh},${alpha.toFixed(3)})`;
+  ctx.beginPath(); ctx.ellipse(0, 0, s * 0.5, s, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = `rgba(110,110,110,${(alpha * 0.6).toFixed(3)})`; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(0, -s * 0.8); ctx.lineTo(0, s * 0.8); ctx.stroke();
+  ctx.restore();
+}
+
+function _drawLeonorOverlay(canvas, ctx, W, H, t) {
+  const dt = _lePrevT ? Math.min(t - _lePrevT, 0.05) : 0.016;
+  _lePrevT = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  // petals drift off the skull as it moves
+  _lePetalAcc += dt;
+  if (_lePetalAcc > 0.12) {
+    _lePetalAcc = 0;
+    if (Math.random() < 0.7) _leParts.push({ type: 'petal', x: _leMX + (Math.random() - 0.5) * 14, y: _leMY + 8, vx: (Math.random() - 0.5) * 18, vy: 14 + Math.random() * 24, s: 3 + Math.random() * 3, rot: Math.random() * PI2, vr: (Math.random() - 0.5) * 4, sh: (190 + Math.random() * 60) | 0, life: 1, max: 0.9 + Math.random() * 0.6 });
+    if (_leParts.length > 170) _leParts.shift();
+  }
+
+  for (const p of _leParts) {
+    if (p.delay && p.delay > 0) { p.delay -= dt; continue; }
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, p.life);
+    if (p.type === 'ring') {
+      const rr = 8 + (1 - al) * 70, n = 22;
+      ctx.fillStyle = `rgba(238,238,238,${(al * 0.6).toFixed(3)})`;
+      for (let i = 0; i < n; i++) { const a = i * PI2 / n + (1 - al); ctx.beginPath(); ctx.arc(p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr, 1.4 * al + 0.4, 0, PI2); ctx.fill(); }
+    } else if (p.type === 'bloom') {
+      const k = 1 - al;
+      _leMarigold(ctx, p.x, p.y, p.r * (0.3 + k * 0.7), p.rot + k * 0.8, Math.sin(al * Math.PI) * 0.9);
+    } else {   // petal
+      p.vy += 40 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= (1 - 0.9 * dt); p.rot += p.vr * dt;
+      _lePetal(ctx, p.x, p.y, p.s, p.rot, p.sh, al * 0.85);
+    }
+  }
+  _leParts = _leParts.filter(p => p.life > 0);
+
+  // ── the marigold cursor — a white flower that slowly turns ──
+  const bob = Math.sin(t * 1.8) * 1.6;
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,255,255,0.45)'; ctx.shadowBlur = 9;
+  _leMarigold(ctx, _leMX, _leMY + bob, 14, t * 0.5, 1);
+  ctx.restore();
+}
+
+function _startLeonorOverlay() {
+  _stopLeonorOverlay();
+  _leParts = []; _lePrevT = 0; _lePetalAcc = 0;
+  window.addEventListener('mousemove', _leMouseMove);
+  window.addEventListener('mousedown', _leMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'leonor-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('leonor-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawLeonorOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _leOverlayRafId = requestAnimationFrame(frame);
+  }
+  _leOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopLeonorOverlay() {
+  if (_leOverlayRafId) { cancelAnimationFrame(_leOverlayRafId); _leOverlayRafId = null; }
+  window.removeEventListener('mousemove', _leMouseMove);
+  window.removeEventListener('mousedown', _leMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('leonor-overlay'); if (cv) cv.remove();
+  _leParts = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// CUCKOO — elegant & mysterious clockwork. A vast faint clock dial
+// with moving hands, meshing brass gears turning in the dark, a slow
+// swinging pendulum, drifting dust and the occasional unsettling
+// time-skip. The cursor is an ornate pocket watch; clicking ripples
+// time outward in ticking rings and scattered gears. Character-wide
+// (matches "Cuckoo").
+// ════════════════════════════════════════════════════════════════
+const _CUCKOO_RE = /^Cuckoo$/i;
+function _isCuckoo(c) { return !!(c && c.name && _CUCKOO_RE.test(c.name)); }
+function _cuHash(i) { const v = Math.sin(i * 49.13 + 6.7) * 43758.5453; return v - Math.floor(v); }
+const _CU_BRASS = '#c4a24e', _CU_BRASS_LT = '#e6c878', _CU_IVORY = '#e8e2cf';
+const _CU_ROMAN = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+
+// an ornate gear outline (brass), drawn at origin offset
+function _cuGear(ctx, x, y, r, teeth, rot, col, alpha, lw) {
+  const PI2 = Math.PI * 2, seg = PI2 / teeth, rr = r * 0.84;
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot);
+  ctx.globalAlpha = alpha; ctx.strokeStyle = col; ctx.lineWidth = lw || 1.3; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  for (let i = 0; i < teeth; i++) {
+    const a = i * seg;
+    const p = [[rr, a], [r, a + seg * 0.2], [r, a + seg * 0.32], [rr, a + seg * 0.52], [rr, a + seg]];
+    for (let j = 0; j < p.length; j++) { const px = Math.cos(p[j][1]) * p[j][0], py = Math.sin(p[j][1]) * p[j][0]; (i === 0 && j === 0) ? ctx.moveTo(px, py) : ctx.lineTo(px, py); }
+  }
+  ctx.closePath(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.6, 0, PI2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.15, 0, PI2); ctx.stroke();
+  for (let i = 0; i < 6; i++) { const a = i * PI2 / 6; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.15, Math.sin(a) * r * 0.15); ctx.lineTo(Math.cos(a) * r * 0.56, Math.sin(a) * r * 0.56); ctx.stroke(); }
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+
+// an elegant clock hand (spade-tipped) pointing up, length L
+function _cuHand(ctx, ang, L, w, col, alpha) {
+  ctx.save();
+  ctx.rotate(ang);
+  ctx.globalAlpha = alpha; ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(-w, w * 1.4);
+  ctx.lineTo(-w * 0.5, -L * 0.74);
+  ctx.lineTo(0, -L);                       // tip
+  ctx.lineTo(w * 0.5, -L * 0.74);
+  ctx.lineTo(w, w * 1.4);
+  ctx.closePath(); ctx.fill();
+  // a little spade pierce
+  ctx.globalAlpha = alpha * 0.5;
+  ctx.beginPath(); ctx.arc(0, -L * 0.78, w * 0.9, 0, Math.PI * 2); ctx.fill();
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+
+function _drawCuckooPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawCuckooPattern._lt === undefined;
+  if (!fresh && t - _drawCuckooPattern._lt < 0.033) return;   // 30fps cap
+  _drawCuckooPattern._lt = t;
+  const PI2 = Math.PI * 2;
+  const breathe = 0.5 + 0.5 * Math.sin(t * 0.5);
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W * 0.5, cy = H * 0.44, R = Math.min(W, H) * 0.26;
+
+  if (!_drawCuckooPattern._sc || _drawCuckooPattern._w !== W || _drawCuckooPattern._h !== H) {
+    _drawCuckooPattern._w = W; _drawCuckooPattern._h = H;
+    const sc = document.createElement('canvas'); sc.width = W; sc.height = H;
+    const s = sc.getContext('2d');
+    const bg = s.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.72);
+    bg.addColorStop(0, '#11141f'); bg.addColorStop(0.55, '#0a0c14'); bg.addColorStop(1, '#04050a');
+    s.fillStyle = bg; s.fillRect(0, 0, W, H);
+    // ── the great clock dial (faint, ornate) ──
+    s.strokeStyle = 'rgba(196,162,78,0.16)';
+    s.lineWidth = 2; s.beginPath(); s.arc(cx, cy, R, 0, PI2); s.stroke();
+    s.lineWidth = 1; s.beginPath(); s.arc(cx, cy, R * 1.07, 0, PI2); s.stroke();
+    s.beginPath(); s.arc(cx, cy, R * 0.86, 0, PI2); s.stroke();
+    // minute/second tick marks
+    for (let i = 0; i < 60; i++) {
+      const a = i * PI2 / 60 - Math.PI / 2, big = i % 5 === 0;
+      const r0 = R * (big ? 0.9 : 0.94), r1 = R * 0.99;
+      s.strokeStyle = `rgba(196,162,78,${big ? 0.3 : 0.14})`; s.lineWidth = big ? 1.6 : 0.8;
+      s.beginPath(); s.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); s.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); s.stroke();
+    }
+    // roman numerals
+    s.fillStyle = 'rgba(232,226,207,0.26)';
+    s.font = `${Math.round(R * 0.13)}px Georgia, "Times New Roman", serif`;
+    s.textAlign = 'center'; s.textBaseline = 'middle';
+    for (let i = 0; i < 12; i++) {
+      const a = i * PI2 / 12 - Math.PI / 2, rr = R * 0.74;
+      s.fillText(_CU_ROMAN[i], cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+    }
+    s.textAlign = 'start'; s.textBaseline = 'alphabetic';
+    // faint corner flourishes
+    s.strokeStyle = 'rgba(196,162,78,0.08)'; s.lineWidth = 1.1;
+    for (const [fx, fy, dx, dy] of [[26, 26, 1, 1], [W - 26, 26, -1, 1], [26, H - 26, 1, -1], [W - 26, H - 26, -1, -1]]) {
+      s.beginPath();
+      for (let i = 0; i < 26; i++) { const a = i * 0.34, q = i * 1.5; const px = fx + Math.cos(a) * q * dx, py = fy + Math.sin(a) * q * dy; i ? s.lineTo(px, py) : s.moveTo(px, py); }
+      s.stroke();
+    }
+    _drawCuckooPattern._sc = sc;
+    const vig = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.3, W * 0.5, H * 0.5, Math.max(W, H) * 0.74);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(2,3,6,0.72)');
+    _drawCuckooPattern._vig = vig;
+  }
+  ctx.drawImage(_drawCuckooPattern._sc, 0, 0);
+
+  // ── meshing gears turning in the dark ──
+  const gears = [
+    [cx - R * 1.15, cy - R * 0.5, R * 0.34, 14, 0.18],
+    [cx + R * 1.2, cy + R * 0.35, R * 0.42, 16, -0.13],
+    [cx + R * 0.1, cy + R * 1.25, R * 0.3, 12, 0.2],
+    [W * 0.08, H * 0.82, R * 0.5, 18, -0.1],
+    [W * 0.92, H * 0.12, R * 0.36, 14, 0.16],
+  ];
+  for (let i = 0; i < gears.length; i++) {
+    const [gx, gy, gr, teeth, sp] = gears[i];
+    const gl = 0.10 + 0.05 * Math.sin(t * 0.4 + i);
+    _cuGear(ctx, gx, gy, gr, teeth, t * sp, i % 2 ? 'rgba(196,162,78,' + (gl + 0.06).toFixed(3) + ')' : 'rgba(150,170,180,' + gl.toFixed(3) + ')', 1, 1.4);
+  }
+
+  // ── swinging pendulum behind everything ──
+  {
+    const swing = Math.sin(t * 0.9) * 0.34;
+    const px = cx + Math.sin(swing) * (H * 0.4), py = cy + Math.cos(swing) * (H * 0.4);
+    ctx.strokeStyle = 'rgba(196,162,78,0.12)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+    const bg2 = ctx.createRadialGradient(px, py, 0, px, py, 24);
+    bg2.addColorStop(0, 'rgba(230,200,120,0.2)'); bg2.addColorStop(1, 'rgba(230,200,120,0)');
+    ctx.fillStyle = bg2; ctx.fillRect(px - 24, py - 24, 48, 48);
+    ctx.strokeStyle = 'rgba(196,162,78,0.3)'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.arc(px, py, 15, 0, PI2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px, py, 7, 0, PI2); ctx.stroke();
+  }
+
+  // ── the great clock's hands (with an eerie occasional time-skip) ──
+  {
+    const skipPhase = (t % 19);
+    const skip = skipPhase > 18 ? (skipPhase - 18) * 40 : 0;   // a brief mad spin every 19s
+    const sec = t * 0.7 + skip, minute = t * 0.12 + skip * 0.3, hour = t * 0.03;
+    ctx.save();
+    ctx.translate(cx, cy);
+    _cuHand(ctx, hour, R * 0.5, 4.5, 'rgba(232,226,207,0.4)', 1);
+    _cuHand(ctx, minute, R * 0.74, 3, 'rgba(232,226,207,0.4)', 1);
+    // second hand — thin, with a counterweight tail
+    ctx.save(); ctx.rotate(sec);
+    ctx.strokeStyle = `rgba(214,120,90,${(0.5 + breathe * 0.2).toFixed(3)})`; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(0, R * 0.16); ctx.lineTo(0, -R * 0.82); ctx.stroke();
+    ctx.restore();
+    // hub
+    ctx.fillStyle = _CU_BRASS; ctx.beginPath(); ctx.arc(0, 0, 4, 0, PI2); ctx.fill();
+    ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(0, 0, 1.6, 0, PI2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── drifting dust motes ──
+  for (let i = 0; i < 40; i++) {
+    const sd = i * 0.618;
+    const mx = ((sd * 2.7 + t * 0.008 * (0.5 + (sd % 1))) % 1) * W;
+    const my = H - ((t * (6 + (sd % 10)) + sd * H) % (H + 14));
+    ctx.fillStyle = `rgba(220,200,150,${(0.04 + (sd % 0.12)).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(mx, my, 0.7 + (sd % 1.2), 0, PI2); ctx.fill();
+  }
+
+  ctx.fillStyle = _drawCuckooPattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* ── cursor: an ornate pocket watch; click ripples time outward ──── */
+let _cuOverlayRafId = null;
+let _cuMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _cuMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _cuParts = [], _cuPrevT = 0, _cuDustAcc = 0;
+
+function _cuWatch(ctx, x, y, t) {
+  const PI2 = Math.PI * 2, r = 14;
+  ctx.save();
+  ctx.translate(x, y);
+  // knob + ring at top (pocket watch)
+  ctx.strokeStyle = _CU_BRASS; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0, -r - 5, 3, 0, PI2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -r - 2); ctx.lineTo(0, -r); ctx.stroke();
+  // case glow
+  const g = ctx.createRadialGradient(0, 0, r * 0.4, 0, 0, r * 1.8);
+  g.addColorStop(0, 'rgba(230,200,120,0.18)'); g.addColorStop(1, 'rgba(230,200,120,0)');
+  ctx.fillStyle = g; ctx.fillRect(-r * 1.8, -r * 1.8, r * 3.6, r * 3.6);
+  // case + dial
+  ctx.fillStyle = '#15161f'; ctx.beginPath(); ctx.arc(0, 0, r, 0, PI2); ctx.fill();
+  ctx.strokeStyle = _CU_BRASS_LT; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, r, 0, PI2); ctx.stroke();
+  ctx.strokeStyle = _CU_BRASS; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, r * 0.84, 0, PI2); ctx.stroke();
+  // tick marks
+  ctx.strokeStyle = 'rgba(232,226,207,0.7)';
+  for (let i = 0; i < 12; i++) {
+    const a = i * PI2 / 12; ctx.lineWidth = i % 3 === 0 ? 1.4 : 0.7;
+    ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.66, Math.sin(a) * r * 0.66); ctx.lineTo(Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8); ctx.stroke();
+  }
+  // hands (ticking)
+  _cuHand(ctx, t * 0.25, r * 0.5, 1.8, _CU_IVORY, 0.95);
+  _cuHand(ctx, t * 1.4, r * 0.72, 1.2, _CU_IVORY, 0.95);
+  ctx.save(); ctx.rotate(Math.floor(t * 4) / 4 * PI2 % PI2 + t * 0.0);   // stepped second hand
+  ctx.strokeStyle = '#d6785a'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, r * 0.18); ctx.lineTo(0, -r * 0.78); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = _CU_BRASS; ctx.beginPath(); ctx.arc(0, 0, 2, 0, PI2); ctx.fill();
+  ctx.restore();
+}
+
+function _cuMouseMove(e) { _cuMX = e.clientX; _cuMY = e.clientY; }
+function _cuMouseDown() {
+  const x = _cuMX, y = _cuMY, PI2 = Math.PI * 2;
+  const push = p => { _cuParts.push(p); if (_cuParts.length > 160) _cuParts.shift(); };
+  // ticking time-ripple rings
+  push({ type: 'tick', x, y, life: 1, max: 1.0 });
+  push({ type: 'tick', x, y, life: 1, max: 1.3, delay: 0.14 });
+  // a sweeping ghost clock-hand
+  push({ type: 'sweep', x, y, a0: -Math.PI / 2, life: 1, max: 0.7 });
+  // gears spinning out
+  for (let i = 0; i < 5; i++) {
+    const a = Math.random() * PI2, sp = 40 + Math.random() * 130;
+    push({ type: 'gear', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 6 + Math.random() * 9, teeth: 9 + (Math.random() * 6 | 0), rot: Math.random() * PI2, vr: (Math.random() - 0.5) * 6, life: 1, max: 1 + Math.random() * 0.8 });
+  }
+  // roman-numeral motes drifting up
+  for (let i = 0; i < 6; i++) {
+    push({ type: 'num', x: x + (Math.random() - 0.5) * 40, y: y + (Math.random() - 0.5) * 20, vy: -20 - Math.random() * 30, txt: _CU_ROMAN[(Math.random() * 12) | 0], life: 1, max: 1.1 + Math.random() * 0.6 });
+  }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 1.0 + Math.random() * 0.2, volume: 0.35 }); } catch (e) {} }
+}
+
+function _drawCuckooOverlay(canvas, ctx, W, H, t) {
+  const dt = _cuPrevT ? Math.min(t - _cuPrevT, 0.05) : 0.016;
+  _cuPrevT = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  // faint gear-dust trails off the watch
+  _cuDustAcc += dt;
+  if (_cuDustAcc > 0.06) {
+    _cuDustAcc = 0;
+    _cuParts.push({ type: 'spark', x: _cuMX + (Math.random() - 0.5) * 14, y: _cuMY + (Math.random() - 0.5) * 14, vx: (Math.random() - 0.5) * 14, vy: 6 + Math.random() * 16, life: 1, max: 0.6 + Math.random() * 0.5 });
+    if (_cuParts.length > 160) _cuParts.shift();
+  }
+
+  for (const p of _cuParts) {
+    if (p.delay && p.delay > 0) { p.delay -= dt; continue; }
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, p.life);
+    if (p.type === 'tick') {
+      const rr = 10 + (1 - al) * 90, n = 24;
+      ctx.strokeStyle = `rgba(196,162,78,${(al * 0.5).toFixed(3)})`; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, PI2); ctx.stroke();
+      ctx.fillStyle = `rgba(230,200,120,${(al * 0.6).toFixed(3)})`;
+      for (let i = 0; i < n; i++) { const a = i * PI2 / n; ctx.beginPath(); ctx.arc(p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr, i % 6 === 0 ? 1.6 : 0.9, 0, PI2); ctx.fill(); }
+    } else if (p.type === 'sweep') {
+      const ang = p.a0 + (1 - al) * PI2;   // one full clockwise sweep
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
+      ctx.strokeStyle = `rgba(232,226,207,${(al * 0.7).toFixed(3)})`; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -44); ctx.stroke();
+      ctx.restore();
+    } else if (p.type === 'gear') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= (1 - 0.9 * dt); p.vy *= (1 - 0.9 * dt); p.rot += p.vr * dt;
+      _cuGear(ctx, p.x, p.y, p.r, p.teeth, p.rot, `rgba(196,162,78,${(al * 0.8).toFixed(3)})`, 1, 1.1);
+    } else if (p.type === 'num') {
+      p.y += p.vy * dt; p.vy *= (1 - 0.4 * dt);
+      ctx.fillStyle = `rgba(232,226,207,${(al * 0.7).toFixed(3)})`;
+      ctx.font = '13px Georgia, serif'; ctx.textAlign = 'center';
+      ctx.fillText(p.txt, p.x, p.y); ctx.textAlign = 'start';
+    } else {   // spark dust
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.fillStyle = `rgba(220,200,150,${(al * 0.6).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 1.1 * al + 0.3, 0, PI2); ctx.fill();
+    }
+  }
+  _cuParts = _cuParts.filter(p => p.life > 0);
+
+  // ── the pocket-watch cursor ──
+  const bob = Math.sin(t * 1.6) * 1.4;
+  ctx.save();
+  ctx.shadowColor = 'rgba(230,200,120,0.4)'; ctx.shadowBlur = 8;
+  _cuWatch(ctx, _cuMX, _cuMY + bob, t);
+  ctx.restore();
+}
+
+function _startCuckooOverlay() {
+  _stopCuckooOverlay();
+  _cuParts = []; _cuPrevT = 0; _cuDustAcc = 0;
+  window.addEventListener('mousemove', _cuMouseMove);
+  window.addEventListener('mousedown', _cuMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'cuckoo-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('cuckoo-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawCuckooOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _cuOverlayRafId = requestAnimationFrame(frame);
+  }
+  _cuOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopCuckooOverlay() {
+  if (_cuOverlayRafId) { cancelAnimationFrame(_cuOverlayRafId); _cuOverlayRafId = null; }
+  window.removeEventListener('mousemove', _cuMouseMove);
+  window.removeEventListener('mousedown', _cuMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('cuckoo-overlay'); if (cv) cv.remove();
+  _cuParts = [];
 }
 /* ─────────────────────────────────────────────────────────────── */
 
@@ -21462,6 +22563,8 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'gonela_frontier'){ _drawGonelaPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'justin_cotton')  { _drawJustinPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'anti_sanctuary') { _drawAntiPattern(canvas, ctx, W, H, t);                return; }
+  if (type === 'leonor_muertos') { _drawLeonorPattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'cuckoo_clockwork'){ _drawCuckooPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'haru_parasite')  { _drawHaruPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'classic_det')    { _drawClassicDetPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'classic_save')   { _drawClassicSavePattern(canvas, ctx, W, H, t);         return; }
@@ -21984,6 +23087,8 @@ function startBgAnim(type, params) {
   _drawGonelaPattern._lt      = undefined;
   _drawJustinPattern._lt      = undefined;
   _drawAntiPattern._lt        = undefined;
+  _drawLeonorPattern._lt      = undefined;
+  _drawCuckooPattern._lt      = undefined;
   _drawHaruPattern._lt        = undefined;
   _drawHaruOverlay._lt        = undefined;
   _drawClassicDetPattern._lt  = undefined;
@@ -22051,6 +23156,9 @@ function stopBgAnim() {
   _stopGonelaOverlay();
   _stopJustinOverlay();
   _stopAntiOverlay();
+  _stopLeonorOverlay();
+  _stopCuckooOverlay();
+  _stopJimmyCursorOverlay();
   _stopHaruOverlay();
   _stopClassicDetOverlay();
   _stopClassicSaveOverlay();
@@ -22571,6 +23679,8 @@ function viewChar(id) {
   else if (_isGonela(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a8285c'); }
   else if (_isJustin(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9c1212'); }
   else if (_isAnti(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b06ad6'); }
+  else if (_isLeonor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#dcdcdc'); }
+  else if (_isCuckoo(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c4a24e'); }
   else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
   else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
   else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
@@ -23042,6 +24152,24 @@ function viewChar(id) {
       if (_av) _av.classList.remove('anti-pfp');
       if (_nm) _nm.classList.remove('anti-name');
     }
+    if (_isLeonor(c)) {
+      _cvRoot.classList.add('leonor-ui');
+      if (_av) _av.classList.add('leonor-pfp');
+      if (_nm) _nm.classList.add('leonor-name');
+    } else {
+      _cvRoot.classList.remove('leonor-ui');
+      if (_av) _av.classList.remove('leonor-pfp');
+      if (_nm) _nm.classList.remove('leonor-name');
+    }
+    if (_isCuckoo(c)) {
+      _cvRoot.classList.add('cuckoo-ui');
+      if (_av) _av.classList.add('cuckoo-pfp');
+      if (_nm) _nm.classList.add('cuckoo-name');
+    } else {
+      _cvRoot.classList.remove('cuckoo-ui');
+      if (_av) _av.classList.remove('cuckoo-pfp');
+      if (_nm) _nm.classList.remove('cuckoo-name');
+    }
     if (_isOmenBartender(c)) {
       _cvRoot.classList.add('omenbar-ui');
       if (_av) _av.classList.add('omenbar-pfp');
@@ -23073,6 +24201,22 @@ function viewChar(id) {
       if (_av) _av.classList.remove('haru-pfp');
       if (_nm) { _nm.classList.remove('haru-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name') && !_nm.classList.contains('iris-name') && !_nm.classList.contains('mb-name') && !_nm.classList.contains('divine-name') && !_nm.classList.contains('diva-name') && !_nm.classList.contains('emporium-name') && !_nm.classList.contains('alsace-name') && !_nm.classList.contains('jeckely-name') && !_nm.classList.contains('mimzy-name') && !_nm.classList.contains('bizzy-name') && !_nm.classList.contains('omen-name') && !_nm.classList.contains('ex-name') && !_nm.classList.contains('riegen-name') && !_nm.classList.contains('lorraine-name') && !_nm.classList.contains('simmer-name') && !_nm.classList.contains('omenbar-name')) _nm.removeAttribute('data-text'); }
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c) && !_isIris(c) && !_isMb(c) && !_isDivine(c) && !_isEmporium(c) && !_isAlsace(c) && !_isJeckely(c) && !_isMimzy(c) && !_isBizzy(c) && !_isOmen(c) && !_isEx(c) && !_isRiegen(c) && !_isLorraine(c) && !_isSimmer(c) && !_isOmenBartender(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Fury — the fire dictator: molten infernal UI chrome ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isFury(c)) {
+      _cvRoot.classList.add('fury-ui');
+      if (_av) _av.classList.add('fury-pfp');
+      if (_nm) _nm.classList.add('fury-name');
+    } else {
+      _cvRoot.classList.remove('fury-ui');
+      if (_av) _av.classList.remove('fury-pfp');
+      if (_nm) _nm.classList.remove('fury-name');
     }
   }
 
@@ -23202,7 +24346,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -23214,7 +24358,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -23248,6 +24392,7 @@ function viewChar(id) {
   if (_isAdam(c))     _startAdamOverlay();
   if (_isFury(c))     _startFuryOverlay();
   if (_isSorrow(c))   _startSorrowOverlay();
+  if (_isJimmy(c))    _startJimmyCursorOverlay();
   if (_isJuko(c))     _startJukoOverlay();
   if (_isLuciferUnleashed(c)) _startLuciferOverlay();
   if (_isDivine(c)) _startDivineOverlay();
@@ -23281,6 +24426,8 @@ function viewChar(id) {
   if (_isGonela(c))   _startGonelaOverlay();
   if (_isJustin(c))   _startJustinOverlay();
   if (_isAnti(c))     _startAntiOverlay();
+  if (_isLeonor(c))   _startLeonorOverlay();
+  if (_isCuckoo(c))   _startCuckooOverlay();
   if (_isHaru(c))     _startHaruOverlay();
   if (_isClassicDet(c)) _startClassicDetOverlay();
   if (_isClassicSave(c)) _startClassicSaveOverlay();
@@ -28561,7 +29708,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -28572,6 +29719,7 @@ window.addEventListener('resize', () => {
       if (_isAdam(c))     _startAdamOverlay();
       if (_isFury(c))     _startFuryOverlay();
       if (_isSorrow(c))   _startSorrowOverlay();
+      if (_isJimmy(c))    _startJimmyCursorOverlay();
       if (_isJuko(c))     _startJukoOverlay();
       if (_isLuciferUnleashed(c)) _startLuciferOverlay();
   if (_isDivine(c)) _startDivineOverlay();
@@ -28605,6 +29753,8 @@ window.addEventListener('resize', () => {
       if (_isGonela(c))   _startGonelaOverlay();
       if (_isJustin(c))   _startJustinOverlay();
       if (_isAnti(c))     _startAntiOverlay();
+      if (_isLeonor(c))   _startLeonorOverlay();
+      if (_isCuckoo(c))   _startCuckooOverlay();
       if (_isHaru(c))     _startHaruOverlay();
       if (_isClassicDet(c)) _startClassicDetOverlay();
       if (_isClassicSave(c)) _startClassicSaveOverlay();
