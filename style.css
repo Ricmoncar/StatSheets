@@ -4008,6 +4008,212 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   SHOO SHI — the abyssal octopus sushi chef. Deep-purple lacquer
+   panels lit by neon-magenta, a glowing 寿司-sign name and an
+   ink-ringed portrait with a little sushi tag. Irasshai!
+   ============================================================ */
+#char-view.shooshi-ui .panel {
+  --p-border: #b07be8;
+  border-color: #b07be8;
+  background: linear-gradient(180deg, rgba(36,16,58,0.96), rgba(16,6,28,0.98));
+  box-shadow:
+    0 0 20px rgba(176,123,232,0.25),
+    inset 0 0 30px rgba(20,8,38,0.55),
+    inset 0 0 0 1px rgba(224,123,255,0.16);
+}
+/* a noren-curtain band of sushi-purple panels across the panel top */
+#char-view.shooshi-ui .panel::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 5px;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, rgba(224,123,255,0.75) 0 14px, rgba(95,179,202,0.6) 14px 28px);
+  opacity: 0.75;
+}
+#char-view.shooshi-ui .panel-title {
+  color: #f3d6ff !important;
+  letter-spacing: 4px;
+  font-weight: normal;
+  border-bottom-color: rgba(224,123,255,0.4);
+  text-shadow: 0 0 12px rgba(224,123,255,0.75), 0 1px 0 #000;
+}
+#char-view.shooshi-ui .tab-btn { color: #7a5aa0; }
+#char-view.shooshi-ui .tab-btn:hover { color: #e0b8ff; text-shadow: 0 0 10px rgba(224,123,255,0.65); }
+#char-view.shooshi-ui .tab-btn.active {
+  color: #f6e3ff;
+  border-bottom-color: #c861ff;
+  text-shadow: 0 0 14px rgba(224,123,255,0.9);
+}
+/* Name: neon-sign purple with a drifting glow sweep */
+.char-name-display.shooshi-name {
+  letter-spacing: 5px;
+  font-weight: normal;
+  background-image: linear-gradient(100deg, #8a4fd0 0%, #e07bff 42%, #fff0ff 50%, #e07bff 58%, #8a4fd0 100%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 10px rgba(224,123,255,0.6)) drop-shadow(0 1px 0 rgba(0,0,0,0.5));
+  animation: shooshi-gleam 6.5s linear infinite;
+}
+@keyframes shooshi-gleam { 0% { background-position: 140% 0; } 100% { background-position: -140% 0; } }
+/* Portrait: ink-purple ring with a little sushi corner tag */
+.char-avatar-large.shooshi-pfp {
+  border-color: #b07be8 !important;
+  box-shadow: 0 0 20px rgba(176,123,232,0.5), inset 0 0 16px rgba(16,6,28,0.65);
+  overflow: visible;
+}
+.char-avatar-large.shooshi-pfp::after {
+  content: "🍣";
+  position: absolute;
+  right: -9px; bottom: -10px;
+  font-size: 18px; line-height: 1;
+  filter: drop-shadow(0 0 8px rgba(224,123,255,0.9));
+  pointer-events: none;
+}
+
+/* ============================================================
+   KARDIA — the heart of the void. Grave, elegant chrome: obsidian
+   panels rimmed in a single thread of magenta light, a hairline
+   filigree edge, a name that breathes on a slow heartbeat behind a
+   faint echo, and a portrait haloed like the core itself. Aura only.
+   ============================================================ */
+#char-view.kardia-ui .panel {
+  --p-border: #cf5fd6;
+  border-color: rgba(207,95,214,0.55);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(58,18,82,0.5), rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, rgba(16,6,26,0.97), rgba(6,2,12,0.99));
+  box-shadow:
+    0 0 26px rgba(207,95,214,0.18),
+    inset 0 0 36px rgba(40,10,60,0.45),
+    inset 0 0 0 1px rgba(232,110,220,0.12);
+}
+/* a single hairline thread of magenta light along the top */
+#char-view.kardia-ui .panel::before {
+  content: "";
+  position: absolute; left: 12%; right: 12%; top: 0; height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(232,110,220,0.85), transparent);
+  box-shadow: 0 0 10px rgba(232,110,220,0.7);
+}
+#char-view.kardia-ui .panel-title {
+  color: #efc8f2 !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  border-bottom-color: rgba(207,95,214,0.3);
+  text-shadow: 0 0 14px rgba(207,95,214,0.7);
+}
+#char-view.kardia-ui .tab-btn { color: #6e4a86; }
+#char-view.kardia-ui .tab-btn:hover { color: #e3b8ec; text-shadow: 0 0 12px rgba(207,95,214,0.6); }
+#char-view.kardia-ui .tab-btn.active {
+  color: #f4dcf6;
+  border-bottom-color: #cf5fd6;
+  text-shadow: 0 0 16px rgba(207,95,214,0.9);
+}
+/* Name: a graceful violet→magenta that breathes on a slow heartbeat,
+   shadowed by a faint echo of itself */
+.char-name-display.kardia-name {
+  position: relative;
+  letter-spacing: 7px;
+  font-weight: normal;
+  background-image: linear-gradient(100deg, #7a3fb8 0%, #cf5fd6 45%, #ffd9f6 52%, #cf5fd6 60%, #7a3fb8 100%);
+  background-size: 240% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 12px rgba(207,95,214,0.55));
+  animation: kardia-beat 2.6s ease-in-out infinite, kardia-drift 9s linear infinite;
+}
+.char-name-display.kardia-name::before {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0;
+  -webkit-text-fill-color: rgba(232,110,220,0.18); color: rgba(232,110,220,0.18);
+  filter: blur(6px);
+  z-index: -1;
+  pointer-events: none;
+}
+@keyframes kardia-beat {
+  0%, 12%, 100% { filter: drop-shadow(0 0 12px rgba(207,95,214,0.55)); }
+  5% { filter: drop-shadow(0 0 22px rgba(232,110,220,0.95)); }
+  9% { filter: drop-shadow(0 0 16px rgba(232,110,220,0.7)); }
+}
+@keyframes kardia-drift { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+/* Portrait: an obsidian ring haloed in magenta, like the core */
+.char-avatar-large.kardia-pfp {
+  border-color: rgba(207,95,214,0.7) !important;
+  box-shadow:
+    0 0 24px rgba(207,95,214,0.5),
+    0 0 60px rgba(138,63,208,0.25),
+    inset 0 0 18px rgba(6,2,12,0.7);
+  overflow: visible;
+}
+.char-avatar-large.kardia-pfp::after {
+  content: "";
+  position: absolute; inset: -7px;
+  border-radius: inherit;
+  border: 1px solid rgba(232,110,220,0.4);
+  box-shadow: 0 0 14px rgba(232,110,220,0.5);
+  pointer-events: none;
+  animation: kardia-halo 2.6s ease-in-out infinite;
+}
+@keyframes kardia-halo {
+  0%, 12%, 100% { transform: scale(1); opacity: 0.5; }
+  5% { transform: scale(1.08); opacity: 0.9; }
+}
+/* Void border framing the whole page — a glowing magenta frame that
+   darkens the edges into the void and pulses on the heartbeat */
+#kardia-frame {
+  position: fixed;
+  inset: 13px;
+  pointer-events: none;
+  z-index: 9998;
+  border: 1px solid rgba(232,110,220,0.55);
+  border-radius: 4px;
+  box-shadow:
+    0 0 22px rgba(232,110,220,0.45),
+    inset 0 0 2px rgba(255,200,245,0.6),
+    inset 0 0 90px rgba(4,0,10,0.78),
+    0 0 0 13px rgba(3,0,8,0.55);
+  animation: kardia-frame-beat 2.6s ease-in-out infinite;
+}
+/* a second, fainter hairline just inside for an elegant double frame */
+#kardia-frame::before {
+  content: "";
+  position: absolute; inset: 6px;
+  border: 1px solid rgba(150,70,200,0.28);
+  border-radius: 3px;
+}
+@keyframes kardia-frame-beat {
+  0%, 12%, 100% { box-shadow: 0 0 22px rgba(232,110,220,0.45), inset 0 0 2px rgba(255,200,245,0.6), inset 0 0 90px rgba(4,0,10,0.78), 0 0 0 13px rgba(3,0,8,0.55); border-color: rgba(232,110,220,0.55); }
+  5% { box-shadow: 0 0 40px rgba(232,110,220,0.85), inset 0 0 4px rgba(255,210,250,0.9), inset 0 0 90px rgba(4,0,10,0.7), 0 0 0 13px rgba(3,0,8,0.5); border-color: rgba(255,150,240,0.85); }
+}
+/* Fried-on-hover: pointing at any menu element fries it the same way the
+   background is fried — crushed contrast, blown saturation, RGB split */
+#char-view.kardia-ui .tab-btn,
+#char-view.kardia-ui .panel,
+#char-view.kardia-ui .panel-title,
+#char-view.kardia-ui button,
+#char-view.kardia-ui .char-avatar-large.kardia-pfp,
+#char-view.kardia-ui .char-avatar-large.kardia-pfp img {
+  transition: filter 0.1s ease;
+}
+#char-view.kardia-ui .tab-btn:hover,
+#char-view.kardia-ui .panel:hover,
+#char-view.kardia-ui .panel-title:hover,
+#char-view.kardia-ui button:hover {
+  filter:
+    contrast(1.6) saturate(2.85) brightness(1.12)
+    drop-shadow(1.6px 0 0 rgba(255,40,120,0.6))
+    drop-shadow(-1.6px 0 0 rgba(50,200,255,0.5));
+}
+/* the portrait — fry the image itself on hover (high-specificity + !important
+   so nothing on the avatar can override it) */
+#char-view.kardia-ui .char-avatar-large.kardia-pfp:hover img {
+  filter:
+    contrast(1.75) saturate(3.1) brightness(1.15)
+    drop-shadow(1.8px 0 0 rgba(255,40,120,0.7))
+    drop-shadow(-1.8px 0 0 rgba(50,200,255,0.6)) !important;
+}
+
+/* ============================================================
    FURY — the FIRE DICTATOR. Maxed-out molten chrome: panels forged
    in lava with a violently pulsing ember border, a roaring name that
    shudders & flares, and a portrait wreathed in flame. Aura: total.
