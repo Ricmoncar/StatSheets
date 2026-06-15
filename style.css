@@ -3872,6 +3872,142 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   JIHAU — the funky vaporwave mall. Neon-bordered panels over a faint
+   grid, a chrome-holographic name that drifts through pink↔cyan, and a
+   portrait ringed in magenta/cyan glow. Aesthetic. A E S T H E T I C.
+   ============================================================ */
+#char-view.jihau-ui .panel {
+  --p-border: #ff6ec7;
+  border-color: #ff6ec7;
+  background:
+    linear-gradient(180deg, rgba(42,18,72,0.94), rgba(22,10,48,0.96));
+  box-shadow:
+    0 0 18px rgba(255,110,199,0.3),
+    0 0 30px rgba(95,230,230,0.14),
+    inset 0 0 26px rgba(40,12,70,0.5);
+}
+/* a faint neon grid inside the panels */
+#char-view.jihau-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(95,230,230,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,110,199,0.06) 1px, transparent 1px);
+  background-size: 26px 26px;
+  opacity: 0.8;
+}
+#char-view.jihau-ui .panel-title {
+  color: #ffffff !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(255,110,199,0.5);
+  text-shadow: -1.5px 0 6px rgba(255,63,163,0.9), 1.5px 0 6px rgba(95,230,230,0.9);
+}
+#char-view.jihau-ui .tab-btn { color: #9a6cc0; }
+#char-view.jihau-ui .tab-btn:hover { color: #ffd0ee; text-shadow: -1px 0 5px rgba(255,63,163,0.8), 1px 0 5px rgba(95,230,230,0.8); }
+#char-view.jihau-ui .tab-btn.active {
+  color: #ffffff;
+  border-bottom-color: #ff6ec7;
+  text-shadow: -1.5px 0 7px rgba(255,63,163,1), 1.5px 0 7px rgba(95,230,230,1);
+}
+/* Name: chrome holographic gradient drifting pink↔cyan↔yellow */
+.char-name-display.jihau-name {
+  letter-spacing: 6px;
+  font-weight: normal;
+  background-image: linear-gradient(100deg, #ff6ec7 0%, #ffe57a 28%, #ffffff 42%, #5fe6e6 58%, #b18ce8 78%, #ff6ec7 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(-1px 0 4px rgba(255,63,163,0.7)) drop-shadow(1px 0 4px rgba(95,230,230,0.7));
+  animation: jihau-holo 6s linear infinite;
+}
+@keyframes jihau-holo { 0% { background-position: 150% 0; } 100% { background-position: -150% 0; } }
+/* Portrait: neon ring pulsing between magenta and cyan */
+.char-avatar-large.jihau-pfp {
+  border-color: #ff6ec7 !important;
+  box-shadow: 0 0 20px rgba(255,110,199,0.5), inset 0 0 16px rgba(40,12,70,0.6);
+  overflow: visible;
+  animation: jihau-pfp-glow 3.6s ease-in-out infinite;
+}
+@keyframes jihau-pfp-glow {
+  0%, 100% { box-shadow: 0 0 18px rgba(255,110,199,0.5), inset 0 0 16px rgba(40,12,70,0.6); }
+  50%      { box-shadow: 0 0 26px rgba(95,230,230,0.6), inset 0 0 16px rgba(40,12,70,0.6); }
+}
+.char-avatar-large.jihau-pfp::after {
+  content: "★";
+  position: absolute;
+  right: -8px; bottom: -10px;
+  font-size: 18px; line-height: 1;
+  color: #ffe57a;
+  text-shadow: 0 0 8px rgba(255,110,199,0.9), 1px 1px 0 #000;
+  pointer-events: none;
+}
+
+/* ============================================================
+   ANDY THE GOAT — a goat. in texas. Dusty burnt-orange leather panels,
+   a branded-sign name with a warm glow, a lone-star portrait. Howdy.
+   ============================================================ */
+#char-view.andy-ui .panel {
+  --p-border: #e07b39;
+  border-color: #e07b39;
+  background: linear-gradient(180deg, rgba(58,38,22,0.95), rgba(34,22,12,0.97));
+  box-shadow:
+    0 0 18px rgba(224,123,57,0.2),
+    inset 0 0 28px rgba(40,24,10,0.5),
+    inset 0 0 0 1px rgba(224,123,57,0.14);
+}
+/* a stitched-leather band across the panel top */
+#char-view.andy-ui .panel::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 4px;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, rgba(224,123,57,0.7) 0 8px, transparent 8px 16px);
+  opacity: 0.7;
+}
+#char-view.andy-ui .panel-title {
+  color: #f4dcb4 !important;
+  letter-spacing: 4px;
+  font-weight: normal;
+  border-bottom-color: rgba(224,123,57,0.4);
+  text-shadow: 0 0 10px rgba(224,123,57,0.6), 0 1px 0 #000;
+}
+#char-view.andy-ui .tab-btn { color: #8a6442; }
+#char-view.andy-ui .tab-btn:hover { color: #f0c98a; text-shadow: 0 0 9px rgba(224,123,57,0.6); }
+#char-view.andy-ui .tab-btn.active {
+  color: #ffe7c0;
+  border-bottom-color: #e07b39;
+  text-shadow: 0 0 13px rgba(224,123,57,0.85);
+}
+/* Name: warm sunset gradient with a slow gleam */
+.char-name-display.andy-name {
+  letter-spacing: 5px;
+  font-weight: normal;
+  background-image: linear-gradient(100deg, #d68a4a 0%, #f4c66a 40%, #fff1cc 50%, #f4c66a 60%, #d68a4a 100%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 8px rgba(224,123,57,0.5)) drop-shadow(0 1px 0 rgba(0,0,0,0.5));
+  animation: andy-gleam 7s linear infinite;
+}
+@keyframes andy-gleam { 0% { background-position: 140% 0; } 100% { background-position: -140% 0; } }
+/* Portrait: burnt-orange ring with a lone-star corner */
+.char-avatar-large.andy-pfp {
+  border-color: #e07b39 !important;
+  box-shadow: 0 0 18px rgba(224,123,57,0.45), inset 0 0 16px rgba(34,20,8,0.6);
+  overflow: visible;
+}
+.char-avatar-large.andy-pfp::after {
+  content: "★";
+  position: absolute;
+  right: -8px; bottom: -10px;
+  font-size: 18px; line-height: 1;
+  color: #f4d27a;
+  text-shadow: 0 0 8px rgba(224,123,57,0.9), 1px 1px 0 #000;
+  pointer-events: none;
+}
+
+/* ============================================================
    FURY — the FIRE DICTATOR. Maxed-out molten chrome: panels forged
    in lava with a violently pulsing ember border, a roaring name that
    shudders & flares, and a portrait wreathed in flame. Aura: total.
