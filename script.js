@@ -2842,6 +2842,7 @@ const PATTERN_DEFS = {
   andy_goat:        { label: "Andy · Goat in Texas",         params: [] },
   shooshi_sushi:    { label: "Shoo Shi · Abyssal Sushi Bar",  params: [] },
   kardia_void:      { label: "Kardia · Heart of the Void",    params: [] },
+  rook_slam:        { label: "Rook · Checkered Mayhem",       params: [] },
   haru_parasite:    { label: "Haru · The Watching Dark",   params: [] },
   classic_det:      { label: "Classic · Determination.",   params: [] },
   classic_save:     { label: "Classic · SAVE",              params: [] },
@@ -18042,6 +18043,297 @@ function _stopKardiaOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// ROOK — a single enormous rook piece with nothing behind the eyes,
+// SLAMMING itself down all over a checkered arena. It hops to a random
+// square, winds up, and crashes — cracking the board, kicking dust and
+// debris, jolting the screen — and every time it lands a little comic
+// speech bubble pops beside it asking, simply, "FUCK?". The cursor is a
+// smaller rook that does the exact same thing on click. Character-wide
+// (matches "Rook").
+// ════════════════════════════════════════════════════════════════
+const _ROOK_RE = /^rook$/i;
+function _isRook(c) { return !!(c && c.name && _ROOK_RE.test(c.name)); }
+function _rkHash(i) { const v = Math.sin(i * 37.41 + 1.7) * 43758.5453; return v - Math.floor(v); }
+const _RK_INK = '#16110a';
+
+// the rook piece itself — a crenellated castle tower. style: 'dark'|'light'
+function _rkRook(ctx, x, y, s, style, squash) {
+  ctx.save(); ctx.translate(x, y);
+  const sx = 1 + (squash || 0) * 0.22, sy = 1 - (squash || 0) * 0.22;
+  ctx.scale(sx, sy);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.strokeStyle = _RK_INK; ctx.lineWidth = Math.max(2, s * 0.05);
+  const g = ctx.createLinearGradient(-s * 0.5, -s, s * 0.5, s * 0.2);
+  if (style === 'light') { g.addColorStop(0, '#fbf4e2'); g.addColorStop(0.6, '#e6dcc2'); g.addColorStop(1, '#c9bd9c'); }
+  else { g.addColorStop(0, '#5a5560'); g.addColorStop(0.5, '#322d38'); g.addColorStop(1, '#191620'); }
+  ctx.fillStyle = g;
+  // base (two tiers)
+  _jhRound(ctx, -s * 0.6, s * 0.0, s * 1.2, s * 0.22, s * 0.06); ctx.fill(); ctx.stroke();
+  _jhRound(ctx, -s * 0.5, -s * 0.18, s * 1.0, s * 0.2, s * 0.05); ctx.fill(); ctx.stroke();
+  // tapered body
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.4, -s * 0.18);
+  ctx.lineTo(-s * 0.3, -s * 0.66);
+  ctx.lineTo(s * 0.3, -s * 0.66);
+  ctx.lineTo(s * 0.4, -s * 0.18);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // collar
+  _jhRound(ctx, -s * 0.42, -s * 0.78, s * 0.84, s * 0.16, s * 0.05); ctx.fill(); ctx.stroke();
+  // crenellated top (battlements)
+  ctx.beginPath();
+  const ty = -s * 1.06, th = s * 0.28, bw = s * 0.84, bx = -s * 0.42;
+  ctx.moveTo(bx, ty + th);
+  const notches = [0, 1, 0, 1, 0, 1, 0];
+  const seg = bw / 7;
+  for (let i = 0; i < 7; i++) {
+    const x0 = bx + i * seg, x1 = x0 + seg;
+    const up = notches[i] ? ty : ty + th * 0.45;
+    ctx.lineTo(x0, up); ctx.lineTo(x1, up);
+  }
+  ctx.lineTo(bx + bw, ty + th); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // a couple of brick lines + two blank eyes (nobody home)
+  ctx.strokeStyle = style === 'light' ? 'rgba(120,105,70,0.5)' : 'rgba(180,170,200,0.18)';
+  ctx.lineWidth = Math.max(1, s * 0.02);
+  ctx.beginPath(); ctx.moveTo(-s * 0.36, -s * 0.36); ctx.lineTo(s * 0.36, -s * 0.36); ctx.stroke();
+  ctx.fillStyle = _RK_INK;
+  ctx.beginPath(); ctx.ellipse(-s * 0.14, -s * 0.5, s * 0.05, s * 0.07, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(s * 0.14, -s * 0.5, s * 0.05, s * 0.07, 0, 0, 7); ctx.fill();
+  ctx.restore();
+}
+
+// a comic speech bubble saying its one word, with a tail toward the rook
+function _rkBubble(ctx, x, y, scale, alpha, txt) {
+  if (alpha <= 0.02) return;
+  ctx.save(); ctx.globalAlpha = Math.min(1, alpha);
+  ctx.translate(x, y); ctx.scale(scale, scale);
+  ctx.font = 'bold 22px "Comic Sans MS", "Segoe UI", system-ui, sans-serif';
+  const w = ctx.measureText(txt).width;
+  const bw = w + 28, bh = 40, r = 12;
+  ctx.fillStyle = '#fffdf6'; ctx.strokeStyle = _RK_INK; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  _jhRound(ctx, -bw / 2, -bh, bw, bh, r); ctx.fill();
+  // tail (points down-left toward the piece)
+  ctx.beginPath(); ctx.moveTo(-bw * 0.18, -2); ctx.lineTo(-bw * 0.34, 16); ctx.lineTo(-bw * 0.04, -2); ctx.closePath(); ctx.fill();
+  _jhRound(ctx, -bw / 2, -bh, bw, bh, r); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-bw * 0.18, -1); ctx.lineTo(-bw * 0.34, 16); ctx.lineTo(-bw * 0.04, -1); ctx.stroke();
+  ctx.fillStyle = '#c0392b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(txt, 0, -bh / 2 - 1);
+  ctx.restore();
+}
+
+function _drawRookPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawRookPattern._lt === undefined;
+  if (!fresh && t - _drawRookPattern._lt < 0.033) return;   // 30fps cap
+  _drawRookPattern._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+  const tile = Math.max(46, Math.floor(Math.min(W, H) / 9));
+
+  // ── cached checkered arena + vignette ──
+  if (!_drawRookPattern._sc || _drawRookPattern._w !== W || _drawRookPattern._h !== H) {
+    _drawRookPattern._w = W; _drawRookPattern._h = H;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const s = cv.getContext('2d');
+    const bg = s.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#2b2630'); bg.addColorStop(1, '#14111a');
+    s.fillStyle = bg; s.fillRect(0, 0, W, H);
+    // checkerboard
+    for (let yi = 0, row = 0; yi < H; yi += tile, row++) {
+      for (let xi = 0, col = 0; xi < W; xi += tile, col++) {
+        const dark = (row + col) % 2 === 0;
+        s.fillStyle = dark ? 'rgba(34,30,40,0.92)' : 'rgba(214,205,184,0.9)';
+        s.fillRect(xi, yi, tile, tile);
+      }
+    }
+    // soft top-light sheen across the board
+    const sh = s.createLinearGradient(0, 0, 0, H);
+    sh.addColorStop(0, 'rgba(255,255,255,0.06)'); sh.addColorStop(0.4, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.28)');
+    s.fillStyle = sh; s.fillRect(0, 0, W, H);
+    _drawRookPattern._sc = cv;
+    const vig = ctx.createRadialGradient(W / 2, H * 0.5, Math.min(W, H) * 0.32, W / 2, H * 0.5, Math.max(W, H) * 0.78);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(6,4,10,0.6)');
+    _drawRookPattern._vig = vig;
+  }
+
+  // ── slam state machine ──
+  const period = 1.3;
+  const idx = Math.floor(t / period);
+  const ph = (t % period) / period;            // 0..1 within this slam
+  // target square for this slam (and the previous one, to hop between)
+  const tx = (0.12 + _rkHash(idx * 1.7) * 0.76) * W;
+  const groundY = (0.34 + _rkHash(idx * 2.3 + 1) * 0.5) * H;
+  const ptx = (0.12 + _rkHash((idx - 1) * 1.7) * 0.76) * W;
+  const pgroundY = (0.34 + _rkHash((idx - 1) * 2.3 + 1) * 0.5) * H;
+
+  const rookS = Math.min(W, H) * 0.13;
+  // vertical motion: hop up & travel, then SLAM down
+  let cx, cy, lift, squash = 0;
+  if (ph < 0.5) {
+    const e = ph / 0.5;                          // rise + travel from prev square
+    const arc = Math.sin(e * Math.PI);
+    cx = ptx + (tx - ptx) * e;
+    lift = arc * rookS * 1.8;                    // big hop
+    cy = (pgroundY + (groundY - pgroundY) * e) - lift;
+  } else if (ph < 0.62) {
+    const e = (ph - 0.5) / 0.12;                 // SLAM down (fast)
+    cx = tx;
+    lift = (1 - e * e) * rookS * 1.8;
+    cy = groundY - lift;
+    squash = 0;
+  } else {
+    cx = tx; cy = groundY;
+    const e = (ph - 0.62) / 0.38;
+    squash = Math.max(0, (1 - e) * (1 - e)) * 0.6;   // recoil squash easing out
+  }
+  const impactAge = ph >= 0.62 ? (ph - 0.62) * period : -1;   // seconds since landing
+  const slamming = impactAge >= 0;
+
+  // ── screen shake from the last slam ──
+  let shx = 0, shy = 0;
+  if (slamming && impactAge < 0.32) {
+    const k = (1 - impactAge / 0.32);
+    shx = Math.sin(impactAge * 90) * 9 * k; shy = Math.cos(impactAge * 78) * 7 * k;
+  }
+  ctx.save(); ctx.translate(shx, shy);
+  ctx.drawImage(_drawRookPattern._sc, 0, 0);
+
+  // ── impact: cracks, dust ring, debris (deterministic from idx) ──
+  if (slamming && impactAge < 0.7) {
+    const k = 1 - impactAge / 0.7;
+    // radial cracks
+    ctx.save(); ctx.translate(tx, groundY + rookS * 0.16);
+    ctx.strokeStyle = `rgba(20,14,8,${(0.5 * k).toFixed(3)})`;
+    for (let i = 0; i < 7; i++) {
+      const a = _rkHash(idx * 5 + i) * PI2;
+      const len = rookS * (0.8 + _rkHash(idx * 7 + i) * 1.3) * Math.min(1, impactAge * 6 + 0.3);
+      ctx.lineWidth = 2.4 * k; ctx.beginPath(); ctx.moveTo(0, 0);
+      const mx = Math.cos(a) * len * 0.5 + (_rkHash(i) - 0.5) * 10, my = Math.sin(a) * len * 0.5;
+      ctx.quadraticCurveTo(mx, my, Math.cos(a) * len, Math.sin(a) * len * 0.6); ctx.stroke();
+    }
+    ctx.restore();
+    // expanding dust ring
+    const ringR = rookS * (0.4 + impactAge * 9);
+    ctx.strokeStyle = `rgba(210,198,170,${(0.45 * k).toFixed(3)})`; ctx.lineWidth = 5 * k;
+    ctx.beginPath(); ctx.ellipse(tx, groundY + rookS * 0.16, ringR, ringR * 0.4, 0, 0, PI2); ctx.stroke();
+    // debris shards
+    for (let i = 0; i < 12; i++) {
+      const a = -Math.PI / 2 + (_rkHash(idx * 11 + i) - 0.5) * 2.6;
+      const sp = (90 + _rkHash(idx * 13 + i) * 200) * impactAge;
+      const dx = tx + Math.cos(a) * sp, dy = groundY + rookS * 0.1 + Math.sin(a) * sp + 320 * impactAge * impactAge;
+      ctx.fillStyle = `rgba(${i % 2 ? '60,54,48' : '210,200,176'},${k.toFixed(3)})`;
+      ctx.save(); ctx.translate(dx, dy); ctx.rotate(_rkHash(i) * PI2 + impactAge * 12);
+      const ds = 3 + _rkHash(idx + i) * 4; ctx.fillRect(-ds / 2, -ds / 2, ds, ds); ctx.restore();
+    }
+  }
+
+  // landing shadow
+  const shadowK = 1 - Math.min(1, lift / (rookS * 1.8));
+  ctx.fillStyle = `rgba(0,0,0,${(0.28 * shadowK + 0.06).toFixed(3)})`;
+  ctx.beginPath(); ctx.ellipse(cx, groundY + rookS * 0.18, rookS * (0.62 + squash * 0.4), rookS * 0.16, 0, 0, PI2); ctx.fill();
+
+  // ── the rook ──
+  _rkRook(ctx, cx, cy, rookS, 'dark', squash);
+
+  // ── "FUCK?" speech bubble on each landing ──
+  if (slamming) {
+    const ba = 1 - Math.min(1, impactAge / 0.85);
+    const pop = Math.min(1, impactAge * 9);
+    _rkBubble(ctx, cx + rookS * 0.95, cy - rookS * 1.05, 0.7 + pop * 0.35, ba, 'FUCK?');
+  }
+
+  ctx.fillStyle = _drawRookPattern._vig; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+/* ── cursor: a smaller rook that SLAMS on click (with a FUCK? bubble) ── */
+let _rkOverlayRafId = null;
+let _rkMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _rkMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _rkParts = [], _rkPrevT = 0, _rkSlam = 0, _rkBubbleAge = 99;
+
+function _rkMouseMove(e) { _rkMX = e.clientX; _rkMY = e.clientY; }
+function _rkMouseDown() {
+  const x = _rkMX, y = _rkMY, PI2 = Math.PI * 2;
+  _rkSlam = 1; _rkBubbleAge = 0;
+  const push = p => { _rkParts.push(p); if (_rkParts.length > 200) _rkParts.shift(); };
+  // dust ring
+  push({ type: 'ring', x, y: y + 16, life: 1, max: 0.6 });
+  for (let i = 0; i < 3; i++) push({ type: 'puff', x: x + (Math.random() - 0.5) * 26, y: y + 18, r0: 7 + Math.random() * 7, life: 1, max: 0.55 + Math.random() * 0.3 });
+  // debris shards
+  for (let i = 0; i < 12; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, sp = 80 + Math.random() * 200; push({ type: 'shard', x, y: y + 14, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: Math.random() * PI2, vr: (Math.random() - 0.5) * 14, r: 3 + Math.random() * 4, light: Math.random() < 0.5, life: 1, max: 0.6 + Math.random() * 0.5 }); }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 0.5 + Math.random() * 0.12, volume: 0.4 }); } catch (e) {} }
+}
+
+function _drawRookOverlay(canvas, ctx, W, H, t) {
+  const dt = _rkPrevT ? Math.min(t - _rkPrevT, 0.05) : 0.016;
+  _rkPrevT = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+  _rkSlam += (0 - _rkSlam) * Math.min(1, dt * 9);
+  _rkBubbleAge += dt;
+
+  for (const p of _rkParts) {
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, p.life);
+    if (p.type === 'ring') {
+      const rr = 8 + (1 - al) * 70;
+      ctx.strokeStyle = `rgba(210,198,170,${(al * 0.5).toFixed(3)})`; ctx.lineWidth = 3 * al + 1;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, rr, rr * 0.4, 0, 0, PI2); ctx.stroke();
+    } else if (p.type === 'puff') {
+      const rr = p.r0 + (1 - al) * 26;
+      ctx.fillStyle = `rgba(205,195,172,${(al * 0.4).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, PI2); ctx.fill();
+    } else { // shard
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 520 * dt; p.rot += p.vr * dt;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = `rgba(${p.light ? '210,200,176' : '60,54,48'},${al.toFixed(3)})`;
+      ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r); ctx.restore();
+    }
+  }
+  _rkParts = _rkParts.filter(p => p.life > 0);
+
+  // the rook cursor: bobbing, slamming down on click
+  const bob = Math.sin(t * 3) * 1.4;
+  const drop = _rkSlam * 7;
+  _rkRook(ctx, _rkMX, _rkMY + bob + drop + 14, 15, 'dark', _rkSlam * 0.6);
+  // its FUCK? bubble after a slam
+  if (_rkBubbleAge < 0.9) {
+    const ba = 1 - _rkBubbleAge / 0.9, pop = Math.min(1, _rkBubbleAge * 10);
+    _rkBubble(ctx, _rkMX + 26, _rkMY - 20, 0.5 + pop * 0.2, ba, 'FUCK?');
+  }
+}
+
+function _startRookOverlay() {
+  _stopRookOverlay();
+  _rkParts = []; _rkPrevT = 0; _rkSlam = 0; _rkBubbleAge = 99;
+  window.addEventListener('mousemove', _rkMouseMove);
+  window.addEventListener('mousedown', _rkMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'rook-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('rook-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    _drawRookOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _rkOverlayRafId = requestAnimationFrame(frame);
+  }
+  _rkOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopRookOverlay() {
+  if (_rkOverlayRafId) { cancelAnimationFrame(_rkOverlayRafId); _rkOverlayRafId = null; }
+  window.removeEventListener('mousemove', _rkMouseMove);
+  window.removeEventListener('mousedown', _rkMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('rook-overlay'); if (cv) cv.remove();
+  _rkParts = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // HARU — mysterious, overwhelming, parasitical. A near-black void where
 // purple tendrils creep in from every edge, infected veins pulse to a
 // slow heartbeat, and eyes open in the dark to WATCH the cursor — every
@@ -25144,6 +25436,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'andy_goat')      { _drawAndyPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'shooshi_sushi')  { _drawShooShiPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'kardia_void')    { _drawKardiaPattern(canvas, ctx, W, H, t);             return; }
+  if (type === 'rook_slam')      { _drawRookPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'haru_parasite')  { _drawHaruPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'classic_det')    { _drawClassicDetPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'classic_save')   { _drawClassicSavePattern(canvas, ctx, W, H, t);         return; }
@@ -25677,6 +25970,7 @@ function startBgAnim(type, params) {
   _drawShooShiOverlay._lt     = undefined;
   _drawKardiaPattern._lt      = undefined;
   _drawKardiaOverlay._lt      = undefined;
+  _drawRookPattern._lt        = undefined;
   _drawHaruPattern._lt        = undefined;
   _drawHaruOverlay._lt        = undefined;
   _drawClassicDetPattern._lt  = undefined;
@@ -25753,6 +26047,7 @@ function stopBgAnim() {
   _stopAndyOverlay();
   _stopShooShiOverlay();
   _stopKardiaOverlay();
+  _stopRookOverlay();
   _stopJimmyCursorOverlay();
   _stopHaruOverlay();
   _stopClassicDetOverlay();
@@ -26283,6 +26578,7 @@ function viewChar(id) {
   else if (_isAndy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e07b39'); }
   else if (_isShooShi(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b07be8'); }
   else if (_isKardia(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf5fd6'); }
+  else if (_isRook(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf4436'); }
   else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
   else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
   else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
@@ -26826,6 +27122,15 @@ function viewChar(id) {
       if (_av) _av.classList.remove('shooshi-pfp');
       if (_nm) _nm.classList.remove('shooshi-name');
     }
+    if (_isRook(c)) {
+      _cvRoot.classList.add('rook-ui');
+      if (_av) _av.classList.add('rook-pfp');
+      if (_nm) _nm.classList.add('rook-name');
+    } else {
+      _cvRoot.classList.remove('rook-ui');
+      if (_av) _av.classList.remove('rook-pfp');
+      if (_nm) _nm.classList.remove('rook-name');
+    }
     if (_isKardia(c)) {
       _cvRoot.classList.add('kardia-ui');
       if (_av) _av.classList.add('kardia-pfp');
@@ -27016,7 +27321,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isRook(c) ? 'rook_slam' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -27028,7 +27333,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'rook_slam' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -27105,6 +27410,7 @@ function viewChar(id) {
   if (_isAndy(c))     _startAndyOverlay();
   if (_isShooShi(c))  _startShooShiOverlay();
   if (_isKardia(c))   _startKardiaOverlay();
+  if (_isRook(c))     _startRookOverlay();
   if (_isHaru(c))     _startHaruOverlay();
   if (_isClassicDet(c)) _startClassicDetOverlay();
   if (_isClassicSave(c)) _startClassicSaveOverlay();
@@ -32441,7 +32747,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isRook(c) ? 'rook_slam' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -32495,6 +32801,7 @@ window.addEventListener('resize', () => {
       if (_isAndy(c))     _startAndyOverlay();
       if (_isShooShi(c))  _startShooShiOverlay();
       if (_isKardia(c))   _startKardiaOverlay();
+      if (_isRook(c))     _startRookOverlay();
       if (_isHaru(c))     _startHaruOverlay();
       if (_isClassicDet(c)) _startClassicDetOverlay();
       if (_isClassicSave(c)) _startClassicSaveOverlay();
