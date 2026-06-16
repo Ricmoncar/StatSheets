@@ -4367,6 +4367,306 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   BLACKJACK — electric argyle. Deep-navy panels with an orange &
+   blue diamond rule, a blue-to-orange name and a diamond-marked
+   portrait. ◆
+   ============================================================ */
+#char-view.blackjack-ui .panel {
+  --p-border: #1f8fe0;
+  border-color: #1f8fe0;
+  /* the whole frame is a left→right blue→orange gradient */
+  border-image: linear-gradient(90deg, #1f8fe0 0%, #36a6e2 38%, #ff9a3c 62%, #ff7a1e 100%) 1;
+  background: linear-gradient(90deg, rgba(10,26,46,0.96) 0%, rgba(12,32,54,0.96) 38%, rgba(42,28,18,0.97) 62%, rgba(28,12,6,0.98) 100%);
+  box-shadow:
+    0 0 15px rgba(31,143,224,0.18),
+    0 0 15px rgba(255,128,30,0.16),
+    inset 0   0   60px rgba(0,0,0,0.65),
+    inset 40px  0  50px rgba(0,0,0,0.45),
+    inset -40px 0  50px rgba(0,0,0,0.45),
+    inset 0  40px  50px rgba(0,0,0,0.4),
+    inset 0 -40px  50px rgba(0,0,0,0.4);
+}
+/* a bolder gradient bar just inside the top edge */
+#char-view.blackjack-ui .panel::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; pointer-events: none;
+  background: linear-gradient(90deg, #1f8fe0 0%, #36a6e2 38%, #ff9a3c 62%, #ff7a1e 100%);
+}
+#char-view.blackjack-ui .panel::after {
+  content: ""; position: absolute; right: -11px; top: -11px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #12233c 0 18%, rgba(18,35,60,0) 19%),
+    repeating-conic-gradient(#ff801e 0deg 30deg, #f2ede0 30deg 60deg);
+  border: 2px solid #f2ede0;
+  box-shadow: 0 0 9px rgba(255,128,30,0.85), 0 1px 3px rgba(0,0,0,0.6);
+  pointer-events: none;
+  z-index: 10;
+}
+#char-view.blackjack-ui .panel-title {
+  color: #bfe2ff !important; letter-spacing: 4px; font-weight: bold;
+  border-bottom-color: rgba(31,143,224,0.4); text-shadow: 0 0 10px rgba(31,143,224,0.55), 1px 1px 0 #000;
+}
+#char-view.blackjack-ui .panel-title::before {
+  content: ""; position: absolute; left: -11px; top: -11px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #12233c 0 18%, rgba(18,35,60,0) 19%),
+    repeating-conic-gradient(#1f8fe0 0deg 30deg, #f2ede0 30deg 60deg);
+  border: 2px solid #f2ede0;
+  box-shadow: 0 0 9px rgba(31,143,224,0.85), 0 1px 3px rgba(0,0,0,0.6);
+  pointer-events: none;
+  z-index: 10;
+}
+#char-view.blackjack-ui .panel-title::after {
+  content: ""; position: absolute; right: -11px; bottom: -11px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #12233c 0 18%, rgba(18,35,60,0) 19%),
+    repeating-conic-gradient(#ff801e 0deg 30deg, #f2ede0 30deg 60deg);
+  border: 2px solid #f2ede0;
+  box-shadow: 0 0 9px rgba(255,128,30,0.85), 0 1px 3px rgba(0,0,0,0.6);
+  pointer-events: none;
+  z-index: 10;
+}
+#char-view.blackjack-ui .tab-btn { color: #6a89a8; }
+#char-view.blackjack-ui .tab-btn:hover { color: #9fd0ff; text-shadow: 0 0 9px rgba(31,143,224,0.6); }
+#char-view.blackjack-ui .tab-btn.active { color: #ffd9b0; border-bottom-color: #ff801e; text-shadow: 0 0 13px rgba(255,128,30,0.85); }
+.char-name-display.blackjack-name {
+  letter-spacing: 4px; font-weight: bold;
+  /* symmetric gradient (blue at BOTH ends) so the shimmer loops seamlessly */
+  background-image: linear-gradient(100deg, #1f8fe0 0%, #9fd0ff 20%, #ffffff 34%, #ffb877 50%, #ffffff 66%, #9fd0ff 80%, #1f8fe0 100%);
+  background-size: 200% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 8px rgba(31,143,224,0.5)) drop-shadow(0 1px 0 rgba(0,0,0,0.6));
+  animation: blackjack-gleam 7s linear infinite;
+}
+@keyframes blackjack-gleam { from { background-position: 200% 0; } to { background-position: 0% 0; } }
+.char-avatar-large.blackjack-pfp {
+  border-color: #1f8fe0 !important;
+  box-shadow: 0 0 18px rgba(31,143,224,0.5), 0 0 10px rgba(255,128,30,0.3), inset 0 0 16px rgba(2,14,28,0.6); overflow: visible;
+}
+/* corner casino chip */
+.char-avatar-large.blackjack-pfp::after {
+  content: ""; position: absolute; right: -10px; bottom: -11px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #12233c 0 18%, rgba(18,35,60,0) 19%),
+    repeating-conic-gradient(#ff801e 0deg 30deg, #f2ede0 30deg 60deg);
+  border: 2px solid #f2ede0;
+  box-shadow: 0 0 9px rgba(31,143,224,0.85), 0 1px 3px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+
+/* ============================================================
+   SNAPS — reptilian scales. Deep-emerald glassy panels, an iridescent
+   serpentine name and a scaled portrait. 🐍
+   ============================================================ */
+#char-view.snaps-ui .panel {
+  --p-border: #37c66f;
+  border-color: #2e9f5a;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(40,120,70,0.35), rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, rgba(6,26,14,0.96), rgba(2,12,7,0.98));
+  box-shadow: 0 0 16px rgba(55,198,111,0.2), inset 0 0 28px rgba(0,30,15,0.55), inset 0 0 0 1px rgba(63,191,106,0.16);
+}
+#char-view.snaps-ui .panel::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; pointer-events: none;
+  background: repeating-linear-gradient(90deg, rgba(63,191,106,0.7) 0 10px, rgba(20,90,55,0.6) 10px 20px); opacity: 0.8;
+}
+#char-view.snaps-ui .panel-title {
+  color: #bdf2cf !important; letter-spacing: 4px; font-weight: normal;
+  border-bottom-color: rgba(55,198,111,0.4); text-shadow: 0 0 10px rgba(55,198,111,0.55);
+}
+#char-view.snaps-ui .tab-btn { color: #5f8a6f; }
+#char-view.snaps-ui .tab-btn:hover { color: #9ff0bc; text-shadow: 0 0 9px rgba(55,198,111,0.6); }
+#char-view.snaps-ui .tab-btn.active { color: #d6ffe6; border-bottom-color: #37c66f; text-shadow: 0 0 13px rgba(55,198,111,0.85); }
+.char-name-display.snaps-name {
+  letter-spacing: 5px; font-weight: normal;
+  background-image: linear-gradient(100deg, #1f8f55 0%, #57e08a 38%, #d8fff0 50%, #57e08a 62%, #1f8f55 100%);
+  background-size: 260% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 8px rgba(55,198,111,0.5));
+  animation: snaps-gleam 6.5s linear infinite;
+}
+@keyframes snaps-gleam { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+.char-avatar-large.snaps-pfp {
+  border-color: #37c66f !important;
+  box-shadow: 0 0 18px rgba(55,198,111,0.45), inset 0 0 16px rgba(0,24,12,0.6); overflow: visible;
+}
+.char-avatar-large.snaps-pfp::after {
+  content: "🐍"; position: absolute; right: -9px; bottom: -10px; font-size: 18px; line-height: 1;
+  filter: drop-shadow(0 0 7px rgba(55,198,111,0.9)); pointer-events: none;
+}
+
+/* ============================================================
+   KATIE — her pond. Deep-teal water panels, an aqua name and a
+   lily-marked portrait, with a koi-orange glint. 🪷
+   ============================================================ */
+#char-view.katie-ui .panel {
+  --p-border: #36b3a6;
+  border-color: #2f9aa0;
+  background: linear-gradient(180deg, rgba(10,48,62,0.96), rgba(6,28,38,0.98));
+  box-shadow: 0 0 16px rgba(54,179,166,0.22), inset 0 0 28px rgba(2,24,32,0.55), inset 0 0 0 1px rgba(54,179,166,0.16);
+}
+/* spinning lily pads on the corners of every Katie panel */
+#char-view.katie-ui .panel::before,
+#char-view.katie-ui .panel::after {
+  content: ""; position: absolute; width: 30px; height: 30px; pointer-events: none;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 34%, rgba(255,255,255,0.4), rgba(120,210,150,0) 55%),
+    conic-gradient(from 92deg, rgba(0,0,0,0) 0 26deg, #3aa861 26deg 360deg);
+  box-shadow: 0 0 9px rgba(54,179,166,0.5), inset 0 -3px 5px rgba(0,55,28,0.45);
+  opacity: 0.92;
+  z-index: 2;
+}
+#char-view.katie-ui .panel::before { top: -11px; left: -11px; animation: katie-lily-spin 17s linear infinite; }
+#char-view.katie-ui .panel::after  { bottom: -11px; right: -11px; animation: katie-lily-spin 23s linear infinite reverse; }
+@keyframes katie-lily-spin { to { transform: rotate(360deg); } }
+#char-view.katie-ui .panel-title {
+  color: #bdeee6 !important; letter-spacing: 4px; font-weight: normal;
+  border-bottom-color: rgba(54,179,166,0.4); text-shadow: 0 0 10px rgba(54,179,166,0.55);
+}
+#char-view.katie-ui .tab-btn { color: #5f9090; }
+#char-view.katie-ui .tab-btn:hover { color: #9fe7dc; text-shadow: 0 0 9px rgba(54,179,166,0.6); }
+#char-view.katie-ui .tab-btn.active { color: #d8fff7; border-bottom-color: #36b3a6; text-shadow: 0 0 13px rgba(54,179,166,0.85); }
+.char-name-display.katie-name {
+  letter-spacing: 4px; font-weight: normal;
+  background-image: linear-gradient(100deg, #1f8f8a 0%, #4fd6c4 38%, #ddfff7 50%, #6fe0a0 62%, #1f8f8a 100%);
+  background-size: 260% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 8px rgba(54,179,166,0.5));
+  animation: katie-gleam 6.5s linear infinite;
+}
+@keyframes katie-gleam { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+.char-avatar-large.katie-pfp {
+  border-color: #36b3a6 !important;
+  box-shadow: 0 0 18px rgba(54,179,166,0.45), inset 0 0 16px rgba(2,22,30,0.6); overflow: visible;
+}
+.char-avatar-large.katie-pfp::after {
+  content: "🪷"; position: absolute; right: -9px; bottom: -10px; font-size: 18px; line-height: 1;
+  filter: drop-shadow(0 0 7px rgba(54,179,166,0.9)); pointer-events: none;
+}
+
+/* ============================================================
+   VALKYRIE — blood rain. Near-black steel panels with a crimson rule,
+   a steel-to-blood name and a sword-marked portrait. ⚔
+   ============================================================ */
+#char-view.valkyrie-ui .panel {
+  --p-border: #d1213a;
+  border-color: #8f1626;
+  background: linear-gradient(180deg, rgba(20,6,10,0.97), rgba(8,2,5,0.99));
+  box-shadow: 0 0 16px rgba(209,33,58,0.22), inset 0 0 30px rgba(20,0,6,0.6), inset 0 0 0 1px rgba(209,33,58,0.16);
+}
+#char-view.valkyrie-ui .panel::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(209,33,58,0.9), transparent); box-shadow: 0 0 10px rgba(209,33,58,0.7);
+}
+#char-view.valkyrie-ui .panel-title {
+  color: #f0c6cd !important; letter-spacing: 5px; font-weight: normal;
+  border-bottom-color: rgba(209,33,58,0.4); text-shadow: 0 0 12px rgba(209,33,58,0.6), 0 1px 0 #000;
+}
+#char-view.valkyrie-ui .tab-btn { color: #8a6066; }
+#char-view.valkyrie-ui .tab-btn:hover { color: #e8a6b0; text-shadow: 0 0 9px rgba(209,33,58,0.6); }
+#char-view.valkyrie-ui .tab-btn.active { color: #ffd9df; border-bottom-color: #d1213a; text-shadow: 0 0 14px rgba(209,33,58,0.9); }
+.char-name-display.valkyrie-name {
+  letter-spacing: 5px; font-weight: normal;
+  background-image: linear-gradient(100deg, #6a6e76 0%, #c6ccd6 30%, #ffffff 42%, #e0455b 56%, #8f1626 100%);
+  background-size: 260% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 8px rgba(209,33,58,0.5)) drop-shadow(0 1px 0 rgba(0,0,0,0.6));
+  animation: valkyrie-gleam 6s linear infinite;
+}
+@keyframes valkyrie-gleam { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+.char-avatar-large.valkyrie-pfp {
+  border-color: #d1213a !important;
+  box-shadow: 0 0 18px rgba(209,33,58,0.5), inset 0 0 16px rgba(16,0,4,0.65); overflow: visible;
+}
+.char-avatar-large.valkyrie-pfp::after {
+  content: "🪶"; position: absolute; right: -9px; bottom: -10px; font-size: 18px; line-height: 1;
+  filter: drop-shadow(0 0 7px rgba(209,33,58,0.95)); pointer-events: none;
+}
+
+/* ============================================================
+   ADAM — his ice. Frosted cyan-on-dark panels, a glacial name and a
+   snowflake-marked portrait. ❄
+   ============================================================ */
+#char-view.adam-ui .panel {
+  --p-border: #00cfcf;
+  border-color: #1aa3a3;
+  background: linear-gradient(180deg, rgba(8,30,38,0.96), rgba(4,16,22,0.98));
+  box-shadow: 0 0 18px rgba(0,207,207,0.22), inset 0 1px 0 rgba(180,255,255,0.25), inset 0 0 26px rgba(0,24,30,0.5);
+}
+#char-view.adam-ui .panel::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; pointer-events: none;
+  background: linear-gradient(90deg, rgba(0,207,207,0) 0%, rgba(150,255,255,0.85) 50%, rgba(0,207,207,0) 100%);
+}
+#char-view.adam-ui .panel-title {
+  color: #c8f7f7 !important; letter-spacing: 4px; font-weight: normal;
+  border-bottom-color: rgba(0,207,207,0.4); text-shadow: 0 0 12px rgba(0,207,207,0.6);
+}
+#char-view.adam-ui .tab-btn { color: #5f9494; }
+#char-view.adam-ui .tab-btn:hover { color: #a6f0f0; text-shadow: 0 0 9px rgba(0,207,207,0.6); }
+#char-view.adam-ui .tab-btn.active { color: #e0ffff; border-bottom-color: #00cfcf; text-shadow: 0 0 14px rgba(0,207,207,0.9); }
+.char-name-display.adam-name {
+  letter-spacing: 5px; font-weight: normal;
+  background-image: linear-gradient(100deg, #2a9aa6 0%, #7fe9e9 38%, #ffffff 50%, #7fe9e9 62%, #2a9aa6 100%);
+  background-size: 260% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 9px rgba(0,207,207,0.55));
+  animation: adam-gleam 6.5s linear infinite;
+}
+@keyframes adam-gleam { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+.char-avatar-large.adam-pfp {
+  border-color: #00cfcf !important;
+  box-shadow: 0 0 20px rgba(0,207,207,0.5), inset 0 0 16px rgba(2,20,26,0.6); overflow: visible;
+}
+.char-avatar-large.adam-pfp::after {
+  content: "❄"; position: absolute; right: -8px; bottom: -10px; font-size: 19px; line-height: 1;
+  color: #e0ffff; text-shadow: 0 0 8px rgba(0,207,207,0.95), 1px 1px 0 #04323a; pointer-events: none;
+}
+
+/* ============================================================
+   LEON — falling fire swords. Charcoal-and-ember panels with a molten
+   rule, a steel-to-flame name and a blade-marked portrait. ⚔
+   ============================================================ */
+#char-view.leon-ui .panel {
+  --p-border: #ff7a1e;
+  border-color: #c0560f;
+  background: linear-gradient(180deg, rgba(26,16,10,0.96), rgba(12,8,6,0.98));
+  box-shadow: 0 0 18px rgba(255,122,30,0.22), inset 0 0 30px rgba(40,12,0,0.55), inset 0 0 0 1px rgba(255,150,40,0.16);
+}
+#char-view.leon-ui .panel::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; pointer-events: none;
+  background: linear-gradient(90deg, rgba(255,90,0,0) 0%, rgba(255,120,20,0.85) 30%, rgba(255,230,130,0.95) 50%, rgba(255,120,20,0.85) 70%, rgba(255,90,0,0) 100%);
+  box-shadow: 0 0 10px rgba(255,120,20,0.7);
+}
+#char-view.leon-ui .panel-title {
+  color: #ffd9a8 !important; letter-spacing: 4px; font-weight: bold;
+  border-bottom-color: rgba(255,122,30,0.4); text-shadow: 0 0 11px rgba(255,122,30,0.6), 1px 1px 0 #000;
+}
+#char-view.leon-ui .tab-btn { color: #9a7152; }
+#char-view.leon-ui .tab-btn:hover { color: #ffc890; text-shadow: 0 0 9px rgba(255,122,30,0.6); }
+#char-view.leon-ui .tab-btn.active { color: #fff0d0; border-bottom-color: #ff7a1e; text-shadow: 0 0 13px rgba(255,122,30,0.9); }
+.char-name-display.leon-name {
+  letter-spacing: 5px; font-weight: bold;
+  background-image: linear-gradient(100deg, #8a9099 0%, #d8dde4 26%, #fff3d0 42%, #ff9a3c 58%, #d4400a 100%);
+  background-size: 260% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 9px rgba(255,122,30,0.55)) drop-shadow(0 1px 0 rgba(0,0,0,0.6));
+  animation: leon-gleam 5.5s linear infinite;
+}
+@keyframes leon-gleam { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+.char-avatar-large.leon-pfp {
+  border-color: #ff7a1e !important;
+  box-shadow: 0 0 20px rgba(255,122,30,0.5), 0 0 8px rgba(255,210,90,0.4), inset 0 0 16px rgba(30,10,0,0.6); overflow: visible;
+}
+.char-avatar-large.leon-pfp::after {
+  content: "⚔"; position: absolute; right: -8px; bottom: -10px; font-size: 19px; line-height: 1;
+  color: #ffe3b0; text-shadow: 0 0 8px rgba(255,122,30,0.95), 1px 1px 0 #2a1000; pointer-events: none;
+}
+
+/* ============================================================
    FURY — the FIRE DICTATOR. Maxed-out molten chrome: panels forged
    in lava with a violently pulsing ember border, a roaring name that
    shudders & flares, and a portrait wreathed in flame. Aura: total.
