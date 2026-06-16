@@ -2843,6 +2843,7 @@ const PATTERN_DEFS = {
   shooshi_sushi:    { label: "Shoo Shi · Abyssal Sushi Bar",  params: [] },
   kardia_void:      { label: "Kardia · Heart of the Void",    params: [] },
   rook_slam:        { label: "Rook · Checkered Mayhem",       params: [] },
+  starry_aero:      { label: "Starry · Aero Wishing Sky",     params: [] },
   haru_parasite:    { label: "Haru · The Watching Dark",   params: [] },
   classic_det:      { label: "Classic · Determination.",   params: [] },
   classic_save:     { label: "Classic · SAVE",              params: [] },
@@ -18334,6 +18335,266 @@ function _stopRookOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// STARRY — Frutiger Aero meets a wishing sky. A glossy pink-and-white
+// dream: big translucent aqua swooshes, glassy bubbles rising and
+// wobbling, soft bokeh and a gentle lens flare — and over all of it,
+// golden stars twinkle and the odd shooting star streaks past. Blue and
+// green only as accents. The cursor is a glossy gold star trailing
+// sparkles and bubbles; click pops a shower of bubbles and stars.
+// Character-wide (matches "Starry").
+// ════════════════════════════════════════════════════════════════
+const _STARRY_RE = /^starry$/i;
+function _isStarry(c) { return !!(c && c.name && _STARRY_RE.test(c.name)); }
+function _syHash(i) { const v = Math.sin(i * 41.93 + 3.1) * 43758.5453; return v - Math.floor(v); }
+
+// a glossy 5-point golden star
+function _syStar(ctx, x, y, r, rot, bright) {
+  const PI2 = Math.PI * 2;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const gg = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 2.6);
+  gg.addColorStop(0, `rgba(255,231,120,${(0.55 * bright).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,231,120,0)');
+  ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(0, 0, r * 2.6, 0, PI2); ctx.fill();
+  ctx.restore();
+  const g = ctx.createLinearGradient(0, -r, 0, r);
+  g.addColorStop(0, '#fff7c8'); g.addColorStop(0.5, '#ffe46b'); g.addColorStop(1, '#ffcb38');
+  ctx.fillStyle = g; ctx.strokeStyle = 'rgba(255,176,40,0.7)'; ctx.lineWidth = Math.max(1, r * 0.08); ctx.lineJoin = 'round';
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rad = i % 2 ? r * 0.45 : r; const px = Math.cos(a) * rad, py = Math.sin(a) * rad; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.beginPath(); ctx.ellipse(-r * 0.16, -r * 0.32, r * 0.28, r * 0.15, -0.5, 0, PI2); ctx.fill();
+  ctx.restore();
+}
+
+// a Frutiger-Aero glass bubble. kind 0 pink, 1 blue, 2 green, 3 white
+function _syBubble(ctx, x, y, r, kind) {
+  const PI2 = Math.PI * 2;
+  const pal = [
+    ['rgba(255,210,236,0.42)', 'rgba(255,150,210,0.30)', 'rgba(255,120,190,0.20)'],
+    ['rgba(200,238,255,0.42)', 'rgba(130,210,255,0.30)', 'rgba(90,180,245,0.20)'],
+    ['rgba(206,248,220,0.42)', 'rgba(140,228,176,0.30)', 'rgba(95,205,150,0.20)'],
+    ['rgba(255,255,255,0.45)', 'rgba(255,245,252,0.30)', 'rgba(240,235,245,0.18)'],
+  ][kind % 4];
+  ctx.save(); ctx.translate(x, y);
+  const g = ctx.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.08, 0, 0, r);
+  g.addColorStop(0, 'rgba(255,255,255,0.6)'); g.addColorStop(0.28, pal[0]); g.addColorStop(0.82, pal[1]); g.addColorStop(1, pal[2]);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, PI2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = Math.max(1, r * 0.05);
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.95, 0, PI2); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath(); ctx.ellipse(-r * 0.34, -r * 0.42, r * 0.26, r * 0.16, -0.6, 0, PI2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath(); ctx.arc(r * 0.3, r * 0.34, r * 0.1, 0, PI2); ctx.fill();
+  ctx.restore();
+}
+
+function _drawStarryPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawStarryPattern._lt === undefined;
+  if (!fresh && t - _drawStarryPattern._lt < 0.033) return;   // 30fps cap
+  _drawStarryPattern._lt = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+
+  // ── cached scene: dream sky, aero swooshes, bokeh, lens flare, gloss ──
+  if (!_drawStarryPattern._sc || _drawStarryPattern._w !== W || _drawStarryPattern._h !== H) {
+    _drawStarryPattern._w = W; _drawStarryPattern._h = H;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const s = cv.getContext('2d');
+    const sky = s.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#ffd6ec'); sky.addColorStop(0.4, '#ffe9f4'); sky.addColorStop(0.7, '#fbf7ff'); sky.addColorStop(1, '#e7f7f2');
+    s.fillStyle = sky; s.fillRect(0, 0, W, H);
+    // soft bokeh orbs
+    for (let i = 0; i < 16; i++) {
+      const bx = _syHash(i * 1.7) * W, by = _syHash(i * 2.9 + 1) * H, br = 18 + _syHash(i * 3.3) * 70;
+      const cols = ['255,180,225', '160,215,255', '170,235,200', '255,255,255'];
+      const c = cols[i % 4];
+      const bg = s.createRadialGradient(bx, by, 0, bx, by, br);
+      bg.addColorStop(0, `rgba(${c},0.18)`); bg.addColorStop(1, `rgba(${c},0)`);
+      s.fillStyle = bg; s.beginPath(); s.arc(bx, by, br, 0, PI2); s.fill();
+    }
+    // glossy aero swooshes (translucent ribbons with a bright top edge)
+    const ribbon = (yc, h, c1, c2) => {
+      s.beginPath();
+      s.moveTo(-60, yc);
+      s.bezierCurveTo(W * 0.3, yc - h * 1.5, W * 0.62, yc + h * 1.3, W + 60, yc - h * 0.5);
+      s.lineTo(W + 60, yc - h * 0.5 + h);
+      s.bezierCurveTo(W * 0.62, yc + h * 1.3 + h, W * 0.3, yc - h * 1.5 + h, -60, yc + h);
+      s.closePath();
+      const g = s.createLinearGradient(0, yc - h, 0, yc + h * 2);
+      g.addColorStop(0, c1); g.addColorStop(1, c2);
+      s.fillStyle = g; s.fill();
+      s.strokeStyle = 'rgba(255,255,255,0.55)'; s.lineWidth = 3;
+      s.beginPath(); s.moveTo(-60, yc); s.bezierCurveTo(W * 0.3, yc - h * 1.5, W * 0.62, yc + h * 1.3, W + 60, yc - h * 0.5); s.stroke();
+    };
+    ribbon(H * 0.7, H * 0.16, 'rgba(150,205,255,0.4)', 'rgba(120,180,250,0.05)');     // blue accent
+    ribbon(H * 0.82, H * 0.18, 'rgba(150,230,185,0.4)', 'rgba(110,210,150,0.05)');    // green accent
+    ribbon(H * 0.6, H * 0.13, 'rgba(255,180,222,0.5)', 'rgba(255,150,205,0.06)');     // pink (front)
+    // lens-flare sun glow, upper-right
+    const fx = W * 0.82, fy = H * 0.16;
+    const fl = s.createRadialGradient(fx, fy, 0, fx, fy, Math.min(W, H) * 0.4);
+    fl.addColorStop(0, 'rgba(255,255,255,0.7)'); fl.addColorStop(0.2, 'rgba(255,244,210,0.4)'); fl.addColorStop(1, 'rgba(255,244,210,0)');
+    s.fillStyle = fl; s.beginPath(); s.arc(fx, fy, Math.min(W, H) * 0.4, 0, PI2); s.fill();
+    // bottom gloss reflection
+    const gloss = s.createLinearGradient(0, H * 0.88, 0, H);
+    gloss.addColorStop(0, 'rgba(255,255,255,0)'); gloss.addColorStop(1, 'rgba(255,255,255,0.3)');
+    s.fillStyle = gloss; s.fillRect(0, H * 0.88, W, H * 0.12);
+    _drawStarryPattern._sc = cv;
+    const vig = ctx.createRadialGradient(W / 2, H * 0.46, Math.min(W, H) * 0.4, W / 2, H * 0.5, Math.max(W, H) * 0.8);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(120,80,130,0.16)');
+    _drawStarryPattern._vig = vig;
+  }
+  ctx.drawImage(_drawStarryPattern._sc, 0, 0);
+
+  // ── lens-flare shimmer pulse ──
+  const fx = W * 0.82, fy = H * 0.16;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const fp = 0.5 + 0.5 * Math.sin(t * 1.1);
+  const fl = ctx.createRadialGradient(fx, fy, 0, fx, fy, 80 + fp * 40);
+  fl.addColorStop(0, `rgba(255,255,255,${(0.25 + fp * 0.2).toFixed(3)})`); fl.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = fl; ctx.beginPath(); ctx.arc(fx, fy, 80 + fp * 40, 0, PI2); ctx.fill();
+  ctx.restore();
+
+  // ── rising glass bubbles (wobbling upward) ──
+  for (let i = 0; i < 15; i++) {
+    const seed = i * 0.7 + 1;
+    const r = 12 + _syHash(i * 3.1) * 34;
+    const speed = 14 + _syHash(i * 2.2) * 22;
+    const by = H + r - ((t * speed + seed * H) % (H + r * 2));
+    const bx = _syHash(i * 1.9) * W + Math.sin(t * (0.5 + _syHash(i) * 0.6) + i) * 24;
+    _syBubble(ctx, bx, by, r, i % 4);
+  }
+
+  // ── twinkling golden stars ──
+  for (let i = 0; i < 34; i++) {
+    const sx = _syHash(i * 1.3) * W, sy = _syHash(i * 2.7 + 1) * H * 0.92;
+    const tw = 0.4 + 0.6 * Math.abs(Math.sin(t * (0.9 + _syHash(i * 4) * 1.4) + i * 1.3));
+    const r = 4 + _syHash(i * 5) * 7;
+    _syStar(ctx, sx, sy, r * (0.7 + tw * 0.4), t * 0.2 + i, tw);
+    if (tw > 0.9) {   // sparkle cross on the brightest
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(255,250,210,${((tw - 0.9) * 6).toFixed(3)})`; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(sx - r * 3, sy); ctx.lineTo(sx + r * 3, sy); ctx.moveTo(sx, sy - r * 3); ctx.lineTo(sx, sy + r * 3); ctx.stroke(); ctx.restore();
+    }
+  }
+
+  // ── occasional shooting stars ──
+  for (let k = 0; k < 2; k++) {
+    const period = 6.5 + k * 3.7, prog = ((t + k * 4.2) % period) / period;
+    if (prog > 0.42) continue;                       // only streak for part of the cycle
+    const e = prog / 0.42;
+    const startX = -60 + _syHash(k * 9 + Math.floor((t + k * 4.2) / period)) * W * 0.5;
+    const startY = H * (0.08 + _syHash(k * 5 + 2) * 0.3);
+    const dx = W * 0.7, dy = H * 0.32;
+    const hx = startX + dx * e, hy = startY + dy * e;
+    const tailLen = 120;
+    const tx = hx - dx / Math.hypot(dx, dy) * tailLen, ty = hy - dy / Math.hypot(dx, dy) * tailLen;
+    const al = Math.sin(e * Math.PI);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const tg = ctx.createLinearGradient(tx, ty, hx, hy);
+    tg.addColorStop(0, 'rgba(255,240,180,0)'); tg.addColorStop(1, `rgba(255,245,200,${(0.8 * al).toFixed(3)})`);
+    ctx.strokeStyle = tg; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.restore();
+    _syStar(ctx, hx, hy, 8, t * 3, al);
+  }
+
+  ctx.fillStyle = _drawStarryPattern._vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* ── cursor: a glossy gold star; click → bubble & star shower ──────── */
+let _syOverlayRafId = null;
+let _syMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _syMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _syParts = [], _syPrevT = 0, _syTrailAcc = 0, _syPop = 0;
+
+function _syMouseMove(e) { _syMX = e.clientX; _syMY = e.clientY; }
+function _syMouseDown() {
+  const x = _syMX, y = _syMY, PI2 = Math.PI * 2;
+  _syPop = 1;
+  const push = p => { _syParts.push(p); if (_syParts.length > 220) _syParts.shift(); };
+  // soft aero ring
+  push({ type: 'ring', x, y, life: 1, max: 0.7 });
+  // shower of bubbles
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 3, sp = 50 + Math.random() * 150; push({ type: 'bubble', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 30, r: 5 + Math.random() * 12, kind: (Math.random() * 4) | 0, life: 1, max: 0.8 + Math.random() * 0.6 }); }
+  // scattered stars
+  for (let i = 0; i < 7; i++) { const a = Math.random() * PI2, sp = 40 + Math.random() * 130; push({ type: 'star', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 20, r: 4 + Math.random() * 6, rot: Math.random() * PI2, vr: (Math.random() - 0.5) * 8, life: 1, max: 0.7 + Math.random() * 0.5 }); }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 1.1 + Math.random() * 0.3, volume: 0.3 }); } catch (e) {} }
+}
+
+function _drawStarryOverlay(canvas, ctx, W, H, t) {
+  const dt = _syPrevT ? Math.min(t - _syPrevT, 0.05) : 0.016;
+  _syPrevT = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+  _syPop += (0 - _syPop) * Math.min(1, dt * 6);
+
+  // sparkle + bubble trail
+  _syTrailAcc += dt;
+  if (_syTrailAcc > 0.045) {
+    _syTrailAcc = 0;
+    if (Math.random() < 0.6) _syParts.push({ type: 'spark', x: _syMX + (Math.random() - 0.5) * 12, y: _syMY + (Math.random() - 0.5) * 12, vx: (Math.random() - 0.5) * 14, vy: 10 + Math.random() * 16, r: 1.5 + Math.random() * 2.5, life: 1, max: 0.6 + Math.random() * 0.4 });
+    else _syParts.push({ type: 'bubble', x: _syMX + (Math.random() - 0.5) * 10, y: _syMY + 8, vx: (Math.random() - 0.5) * 12, vy: -14 - Math.random() * 14, r: 4 + Math.random() * 7, kind: (Math.random() * 4) | 0, life: 1, max: 0.9 });
+    if (_syParts.length > 220) _syParts.shift();
+  }
+
+  for (const p of _syParts) {
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, p.life);
+    if (p.type === 'ring') {
+      const rr = 8 + (1 - al) * 64;
+      ctx.strokeStyle = `rgba(255,255,255,${(al * 0.6).toFixed(3)})`; ctx.lineWidth = 2.5 * al + 0.6;
+      ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, PI2); ctx.stroke();
+    } else if (p.type === 'bubble') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 26 * dt; p.vx *= (1 - 0.4 * dt);
+      ctx.globalAlpha = Math.min(1, al * 1.4); _syBubble(ctx, p.x, p.y, p.r, p.kind); ctx.globalAlpha = 1;
+    } else if (p.type === 'star') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 120 * dt; p.rot += p.vr * dt;
+      ctx.globalAlpha = Math.min(1, al * 1.5); _syStar(ctx, p.x, p.y, p.r, p.rot, al); ctx.globalAlpha = 1;
+    } else { // spark
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(255,244,190,${(al * 0.9).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, PI2); ctx.fill(); ctx.restore();
+    }
+  }
+  _syParts = _syParts.filter(p => p.life > 0);
+
+  // the cursor star, gently bobbing & spinning, swelling on click
+  const bob = Math.sin(t * 2.6) * 1.6;
+  _syStar(ctx, _syMX, _syMY + bob, 13 + _syPop * 6, t * 0.8, 0.7 + _syPop * 0.3);
+}
+
+function _startStarryOverlay() {
+  _stopStarryOverlay();
+  _syParts = []; _syPrevT = 0; _syTrailAcc = 0; _syPop = 0;
+  window.addEventListener('mousemove', _syMouseMove);
+  window.addEventListener('mousedown', _syMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'starry-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('starry-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    _drawStarryOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _syOverlayRafId = requestAnimationFrame(frame);
+  }
+  _syOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopStarryOverlay() {
+  if (_syOverlayRafId) { cancelAnimationFrame(_syOverlayRafId); _syOverlayRafId = null; }
+  window.removeEventListener('mousemove', _syMouseMove);
+  window.removeEventListener('mousedown', _syMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('starry-overlay'); if (cv) cv.remove();
+  _syParts = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // HARU — mysterious, overwhelming, parasitical. A near-black void where
 // purple tendrils creep in from every edge, infected veins pulse to a
 // slow heartbeat, and eyes open in the dark to WATCH the cursor — every
@@ -25437,6 +25698,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'shooshi_sushi')  { _drawShooShiPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'kardia_void')    { _drawKardiaPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'rook_slam')      { _drawRookPattern(canvas, ctx, W, H, t);               return; }
+  if (type === 'starry_aero')    { _drawStarryPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'haru_parasite')  { _drawHaruPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'classic_det')    { _drawClassicDetPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'classic_save')   { _drawClassicSavePattern(canvas, ctx, W, H, t);         return; }
@@ -25971,6 +26233,7 @@ function startBgAnim(type, params) {
   _drawKardiaPattern._lt      = undefined;
   _drawKardiaOverlay._lt      = undefined;
   _drawRookPattern._lt        = undefined;
+  _drawStarryPattern._lt      = undefined;
   _drawHaruPattern._lt        = undefined;
   _drawHaruOverlay._lt        = undefined;
   _drawClassicDetPattern._lt  = undefined;
@@ -26048,6 +26311,7 @@ function stopBgAnim() {
   _stopShooShiOverlay();
   _stopKardiaOverlay();
   _stopRookOverlay();
+  _stopStarryOverlay();
   _stopJimmyCursorOverlay();
   _stopHaruOverlay();
   _stopClassicDetOverlay();
@@ -26579,6 +26843,7 @@ function viewChar(id) {
   else if (_isShooShi(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b07be8'); }
   else if (_isKardia(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf5fd6'); }
   else if (_isRook(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf4436'); }
+  else if (_isStarry(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fcf'); }
   else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
   else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
   else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
@@ -27131,6 +27396,15 @@ function viewChar(id) {
       if (_av) _av.classList.remove('rook-pfp');
       if (_nm) _nm.classList.remove('rook-name');
     }
+    if (_isStarry(c)) {
+      _cvRoot.classList.add('starry-ui');
+      if (_av) _av.classList.add('starry-pfp');
+      if (_nm) _nm.classList.add('starry-name');
+    } else {
+      _cvRoot.classList.remove('starry-ui');
+      if (_av) _av.classList.remove('starry-pfp');
+      if (_nm) _nm.classList.remove('starry-name');
+    }
     if (_isKardia(c)) {
       _cvRoot.classList.add('kardia-ui');
       if (_av) _av.classList.add('kardia-pfp');
@@ -27321,7 +27595,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isRook(c) ? 'rook_slam' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -27333,7 +27607,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'rook_slam' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -27411,6 +27685,7 @@ function viewChar(id) {
   if (_isShooShi(c))  _startShooShiOverlay();
   if (_isKardia(c))   _startKardiaOverlay();
   if (_isRook(c))     _startRookOverlay();
+  if (_isStarry(c))   _startStarryOverlay();
   if (_isHaru(c))     _startHaruOverlay();
   if (_isClassicDet(c)) _startClassicDetOverlay();
   if (_isClassicSave(c)) _startClassicSaveOverlay();
@@ -32747,7 +33022,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isRook(c) ? 'rook_slam' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -32802,6 +33077,7 @@ window.addEventListener('resize', () => {
       if (_isShooShi(c))  _startShooShiOverlay();
       if (_isKardia(c))   _startKardiaOverlay();
       if (_isRook(c))     _startRookOverlay();
+      if (_isStarry(c))   _startStarryOverlay();
       if (_isHaru(c))     _startHaruOverlay();
       if (_isClassicDet(c)) _startClassicDetOverlay();
       if (_isClassicSave(c)) _startClassicSaveOverlay();
