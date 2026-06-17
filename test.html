@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Glitch GIF Generator</title>
+    <script src="gifshot.min.js"></script>
+    <!-- Firebase (compat build so it works in this plain inline script) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root { --accent: #00ff00; }
+        html { background-color: #050505; }
+        #matrix {
+            position: fixed; inset: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none; opacity: 0.55;
+        }
+        body {
+            background-color: transparent;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            margin: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-shadow: 0 0 15px #00ff00;
+            margin-bottom: 24px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 920px;
+            gap: 20px;
+        }
+
+        textarea,
+        .canvas-wrapper {
+            flex: 1;
+            background-color: #000;
+            border: 1px solid #00ff00;
+            height: 350px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.15);
+        }
+
+        .canvas-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        textarea {
+            padding: 20px;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            resize: none;
+        }
+
+        textarea::placeholder { color: #005500; }
+
+        textarea:focus {
+            outline: none;
+            box-shadow: 0 0 25px rgba(0, 255, 0, 0.4);
+            border-color: #55ff55;
+        }
+
+        .panel {
+            margin-top: 22px;
+            width: 100%;
+            max-width: 920px;
+            background: #0c0f0c;
+            border: 1px solid #003300;
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-sizing: border-box;
+        }
+
+        .panel h2 {
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0 0 14px;
+            color: #44ff44;
+            border-bottom: 1px solid #062a06;
+            padding-bottom: 8px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px 22px;
+            align-items: center;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .field.inline { flex-direction: row; align-items: center; gap: 9px; }
+
+        input[type="range"] { accent-color: #00ff00; cursor: pointer; width: 150px; }
+        input[type="color"] {
+            width: 46px; height: 30px; padding: 0; border: 1px solid #00aa00;
+            background: #000; cursor: pointer; border-radius: 4px;
+        }
+        select {
+            background: #000; color: #00ff00; border: 1px solid #00aa00;
+            padding: 6px 8px; font-family: inherit; border-radius: 4px; cursor: pointer;
+        }
+        .val { color: #aaffaa; min-width: 26px; text-align: right; }
+
+        button {
+            background-color: #000;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 9px 16px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.82rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.15);
+        }
+        button:hover { background-color: #00ff00; color: #000; box-shadow: 0 0 16px #00ff00; }
+        button.alt { border-color: #00aa66; color: #00dd99; }
+        button.alt:hover { background:#00dd99; color:#000; }
+        button.on { background:#00ff00; color:#000; box-shadow: 0 0 14px #00ff00; }
+        button:disabled { border-color: #003300; color: #003300; cursor: not-allowed; box-shadow: none; background:#000; }
+
+        .seg { display:inline-flex; border:1px solid #00aa00; border-radius:4px; overflow:hidden; }
+        .seg button { border:none; border-radius:0; box-shadow:none; }
+        .seg button:not(:last-child){ border-right:1px solid #064006; }
+
+        .hint { font-size: 0.68rem; color: #4a7a4a; margin-top: 10px; line-height: 1.6; }
+        .hint code { color: #9fe89f; background:#041404; padding:1px 5px; border-radius:3px; }
+
+        #status { margin-top: 10px; font-size: 0.75rem; color: #8fe88f; min-height: 1em; }
+
+        #result { margin-top: 18px; display:none; flex-direction:column; align-items:center; gap:12px; }
+        #result img { max-width: 100%; border:1px solid #00aa00; border-radius:4px; background:#000; image-rendering:auto; }
+        .result-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+        .generate-row { margin-top: 18px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; justify-content:center; }
+        .big { padding: 12px 26px; font-size: 0.95rem; }
+
+        /* panels sit above the matrix with a slightly translucent backing */
+        .panel, .container textarea, .canvas-wrapper { background-color: rgba(8, 12, 8, 0.82); }
+        .panel { background: rgba(12, 15, 12, 0.86); }
+
+        /* ── Gallery ── */
+        .gallery-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+        .gallery-grid {
+            display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap:12px; margin-top:14px;
+        }
+        .gallery-item {
+            border:1px solid #064006; border-radius:6px; overflow:hidden; background:#000;
+            cursor:pointer; transition: box-shadow .15s ease, transform .15s ease; position:relative;
+        }
+        .gallery-item:hover { box-shadow:0 0 14px rgba(0,255,0,0.4); transform: translateY(-2px); }
+        .gallery-item img { width:100%; display:block; aspect-ratio:1; object-fit:contain; background:#000; }
+        .gallery-item .cap {
+            font-size:0.6rem; color:#7ad17a; padding:5px 6px; white-space:nowrap;
+            overflow:hidden; text-overflow:ellipsis; border-top:1px solid #062a06;
+        }
+        .gallery-empty { font-size:0.74rem; color:#4a7a4a; margin-top:12px; }
+        button.link { border-color:#00aaee; color:#33ddff; }
+        button.link:hover { background:#33ddff; color:#000; box-shadow:0 0 16px #33ddff; }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="matrix" aria-hidden="true"></canvas>
+
+    <h1>// JUKO ENGINE //</h1>
+
+    <div class="container">
+        <textarea id="input" placeholder="Type your dialogue...
+Select text, then use the tools below to style just that part."></textarea>
+        <div class="canvas-wrapper">
+            <canvas id="output" width="410" height="350"></canvas>
+        </div>
+    </div>
+
+    <!-- ── STYLING TOOLS (apply to selection or the whole dialogue) ── -->
+    <div class="panel">
+        <h2>Style Tools</h2>
+        <div class="row">
+            <div class="field inline">
+                Apply to
+                <span class="seg" id="applyMode">
+                    <button data-mode="selection" class="on">Selection</button>
+                    <button data-mode="all">Entire</button>
+                </span>
+            </div>
+
+            <div class="field inline">
+                Color
+                <input type="color" id="colorPick" value="#00ff00">
+                <button id="applyColor" class="alt">Apply</button>
+            </div>
+
+            <div class="field inline">
+                <button id="applyRainbow" class="alt">🌈 Rainbow!!!!</button>
+            </div>
+
+            <div class="field inline">
+                Animation
+                <select id="animSelect">
+                    <option value="none">None</option>
+                    <option value="wave">Wave</option>
+                    <option value="bounce">Bounce</option>
+                    <option value="shake">Shake</option>
+                    <option value="jitter">Jitter</option>
+                    <option value="wobble">Wobble</option>
+                    <option value="pulse">Pulse</option>
+                    <option value="float">Float</option>
+                    <option value="spin">Spin</option>
+                    <option value="drift">Drift</option>
+                    <option value="quake">Quake</option>
+                    <option value="swing">Swing</option>
+                </select>
+                <button id="applyAnim" class="alt">Apply</button>
+            </div>
+
+            <div class="field inline">
+                <button id="applyStable" class="alt" title="Freeze glitch/zalgo on this part">Steady (no glitch)</button>
+            </div>
+
+            <div class="field inline">
+                <button id="clearSel" class="alt">Clear styles</button>
+                <button id="resetAll" class="alt">Reset all</button>
+            </div>
+        </div>
+        <div class="hint">
+            <strong>How it works:</strong> set <em>Apply to</em> → <code>Selection</code>, highlight part of the text, then click a tool to style just that bit.
+            Set it to <code>Entire</code> to change the default for the whole dialogue.
+            Styles nest, and you can type the tags by hand too:
+            <code>[c=#ff0000]red[/c]</code> · <code>[rb]rainbow[/rb]</code> · <code>[a=wave]animated[/a]</code> · <code>[f=Impact]font[/f]</code> · <code>[stable]no glitch[/stable]</code>.
+            Leave everything untouched for the classic green matrix thinygy.
+        </div>
+    </div>
+
+    <!-- ── FONTS ── -->
+    <div class="panel">
+        <h2>Font</h2>
+        <div class="row">
+            <div class="field inline">
+                Font
+                <select id="fontSelect">
+                    <option value="&quot;Courier New&quot;, Courier, monospace">Courier New (default)</option>
+                    <option value="Consolas, &quot;Lucida Console&quot;, monospace">Consolas</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Impact, sans-serif">Impact</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="&quot;Times New Roman&quot;, serif">Times New Roman</option>
+                    <option value="&quot;Comic Sans MS&quot;, cursive">Comic Sans MS</option>
+                    <option value="Verdana, sans-serif">Verdana</option>
+                    <option value="&quot;Trebuchet MS&quot;, sans-serif">Trebuchet MS</option>
+                </select>
+                <button id="applyFont" class="alt">Apply</button>
+            </div>
+
+            <label class="field">Font Size <input type="range" id="fontSize" min="8" max="80" value="20"></label>
+
+            <div class="field inline">
+                Google Font
+                <input type="text" id="gfontName" placeholder="e.g. Press Start 2P" style="width:150px;background:#000;color:#0f0;border:1px solid #00aa00;border-radius:4px;padding:6px 8px;font-family:inherit;">
+                <button id="loadGFont" class="alt">Load</button>
+            </div>
+
+            <div class="field inline">
+                Upload font
+                <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2,font/*" style="font-size:0.7rem;max-width:180px;">
+            </div>
+        </div>
+        <div class="hint">
+            Pick a built-in font, type any <strong>Google Font</strong> name and hit Load, or upload a <code>.ttf/.otf/.woff</code> file —
+            then <strong>Apply</strong> (respects the Selection/Entire toggle above). Per-part by hand: <code>[f=Font Name]styled[/f]</code>.
+        </div>
+    </div>
+
+    <!-- ── TWEAKS ── -->
+    <div class="panel">
+        <h2>Tweaks</h2>
+        <div class="row">
+            <label class="field">Glitch Intensity <input type="range" id="intensity" min="0" max="15" value="5"></label>
+            <label class="field">Zalgo Corruption <input type="range" id="zalgo" min="0" max="6" value="1"></label>
+            <label class="field">Animation Speed <input type="range" id="animSpeed" min="1" max="160" value="40"></label>
+            <label class="field">Animation Amount <input type="range" id="animAmp" min="0" max="22" value="6"></label>
+            <label class="field">Rainbow Speed <input type="range" id="rbSpeed" min="1" max="120" value="40"></label>
+            <label class="field">Rainbow Spread <input type="range" id="rbSpread" min="0" max="60" value="22"></label>
+            <label class="field">Glow <input type="range" id="glow" min="0" max="40" value="15"></label>
+        </div>
+    </div>
+
+    <div class="generate-row">
+        <label class="field inline" style="text-transform:uppercase;font-size:0.72rem;">
+            Frames <input type="range" id="frames" min="8" max="48" value="24" style="width:110px;"> <span class="val" id="framesVal">24</span>
+        </label>
+        <button id="recordBtn" class="big">Generate GIF</button>
+    </div>
+
+    <div id="result">
+        <img id="resultImg" alt="generated gif">
+        <div class="result-btns">
+            <button id="copyLinkBtn" class="link" title="Upload &amp; copy a link that auto-plays in Discord/Slack/etc.">📎 Copy Link</button>
+            <button id="copyBtn">Copy GIF</button>
+            <button id="downloadBtn" class="alt">⬇ Download</button>
+        </div>
+    </div>
+
+    <div id="status"></div>
+
+    <!-- ── PUBLIC GALLERY ── -->
+    <div class="panel">
+        <div class="gallery-head">
+            <h2 style="margin:0;border:none;padding:0;">Gallery</h2>
+            <div class="field inline" style="gap:10px;">
+                <label class="field inline" style="font-size:0.68rem;">
+                    <input type="checkbox" id="shareToggle" checked style="accent-color:#00ff00;"> Share on Copy Link
+                </label>
+                <button id="refreshGallery" class="alt" style="font-size:0.7rem;padding:6px 12px;">↻ Refresh</button>
+            </div>
+        </div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+        <div class="gallery-empty" id="galleryEmpty">Loading recent creations…</div>
+        <div class="hint">Hit <strong>📎 Copy Link</strong> on a GIF to share it here for everyone. Click any tile to copy its link.</div>
+    </div>
+
+    <script>
+        const inputEl = document.getElementById('input');
+        const canvas = document.getElementById('output');
+        const ctx = canvas.getContext('2d');
+        const intensityEl = document.getElementById('intensity');
+        const zalgoEl = document.getElementById('zalgo');
+        const animSpeedEl = document.getElementById('animSpeed');
+        const animAmpEl = document.getElementById('animAmp');
+        const rbSpeedEl = document.getElementById('rbSpeed');
+        const rbSpreadEl = document.getElementById('rbSpread');
+        const glowEl = document.getElementById('glow');
+        const framesEl = document.getElementById('frames');
+        const framesVal = document.getElementById('framesVal');
+        const recordBtn = document.getElementById('recordBtn');
+        const statusEl = document.getElementById('status');
+
+        const DEFAULT_COLOR = '#00ff00';
+        const DEFAULT_FONT = '"Courier New", Courier, monospace';
+        const WRAP_WIDTH = 380;
+
+        const fontSelect = document.getElementById('fontSelect');
+        const fontSizeEl = document.getElementById('fontSize');
+
+        // ── Global (whole-dialogue) defaults — these reproduce the classic look ──
+        let globalColor = DEFAULT_COLOR;
+        let globalRainbow = false;
+        let globalAnim = 'none';
+        let globalFontCss = DEFAULT_FONT;
+        let applyMode = 'selection';
+        let curFontSize = 20;   // updated each frame from the slider
+
+        // first family of a CSS font string, unquoted (for the [f=..] tag)
+        function familyName(css) { return css.split(',')[0].trim().replace(/^["']|["']$/g, ''); }
+        // build a canvas font string for a glyph (per-part [f=] overrides the global font)
+        function fontStrFor(g) {
+            const fam = g.font ? ('"' + g.font + '", sans-serif') : globalFontCss;
+            return curFontSize + 'px ' + fam;
+        }
+
+        const leetMap = {
+            'a': '4', 'e': '3', 'i': '1', 'o': '0', 's': '5', 't': '7',
+            'A': '4', 'E': '3', 'I': '1', 'O': '0', 'S': '5', 'T': '7'
+        };
+        const glitchChars = '!<>-_\\\\/[]{}—=+*^?#_010101';
+        const zalgoChars = ['̍', '̎', '̄', '̅', '̿', '̑', '̆', '̐', '̕', '̛', '̧', '̨', '̴', '̵', '̶'];
+
+        let capturedFrames = [];
+        let isRecording = false;
+        let lastGifUrl = null;
+
+        // ── Animation library: each returns {dx, dy, rot, scale} for a glyph ──
+        const ANIMS = {
+            none:   () => ({}),
+            wave:   (t, c, sp, amp) => ({ dy: Math.sin(t * sp + c * 0.5) * amp }),
+            bounce: (t, c, sp, amp) => ({ dy: -Math.abs(Math.sin(t * sp + c * 0.5)) * amp }),
+            shake:  (t, c, sp, amp) => ({ dx: (Math.random() - 0.5) * amp, dy: (Math.random() - 0.5) * amp }),
+            jitter: (t, c, sp, amp) => ({ dx: (Math.random() - 0.5) * amp * 0.5, dy: (Math.random() - 0.5) * amp * 0.5 }),
+            wobble: (t, c, sp, amp) => ({ rot: Math.sin(t * sp + c * 0.4) * amp * 0.05 }),
+            pulse:  (t, c, sp, amp) => ({ scale: 1 + Math.sin(t * sp + c * 0.3) * amp * 0.03 }),
+            float:  (t, c, sp, amp) => ({ dy: Math.sin(t * sp * 0.7 + c * 0.3) * amp, dx: Math.cos(t * sp * 0.5 + c * 0.2) * amp * 0.5 }),
+            spin:   (t, c, sp, amp) => ({ rot: (t * sp + c * 0.5) }),
+            drift:  (t, c, sp, amp) => ({ dx: Math.sin(t * sp * 0.5 + c * 0.25) * amp }),
+            quake:  (t, c, sp, amp) => ({ dx: (Math.random() - 0.5) * amp * 2, dy: (Math.random() - 0.5) * amp * 2 }),
+            swing:  (t, c, sp, amp) => ({ rot: Math.sin(t * sp) * amp * 0.06, dx: Math.sin(t * sp) * amp }),
+        };
+
+        function applyZalgo(char, level) {
+            if (char === ' ' || char === '\n') return char;
+            let numZalgo = Math.floor(Math.random() * level);
+            let result = char;
+            for (let i = 0; i < numZalgo; i++) {
+                result += zalgoChars[Math.floor(Math.random() * zalgoChars.length)];
+            }
+            return result;
+        }
+
+        // ── Parse the markup tags into a flat list of styled glyphs ──
+        // Tags: [c=#hex]..[/c] [rb]..[/rb] [a=name]..[/a] [f=Font]..[/f] [stable]..[/stable]
+        const TAG_RE = /^\[(\/)?(c=#[0-9a-fA-F]{3,8}|c|rb|a=[a-z]+|a|stable|f=[^\]]+|f)\]/;
+        const STRIP_RE = /\[\/?(c=#[0-9a-fA-F]{3,8}|c|rb|a=[a-z]+|a|stable|f=[^\]]+|f)\]/g;
+        function parseMarkup(raw) {
+            const glyphs = [];
+            const st = { color: [], rainbow: 0, anim: [], stable: 0, font: [] };
+            let hasAnim = false;
+            let i = 0;
+            while (i < raw.length) {
+                const m = raw.slice(i).match(TAG_RE);
+                if (m) {
+                    const closing = m[1], body = m[2];
+                    if (body.indexOf('c=#') === 0) { if (!closing) st.color.push(body.slice(2)); }
+                    else if (body === 'c') { if (closing) st.color.pop(); }
+                    else if (body === 'rb') { st.rainbow += closing ? -1 : 1; }
+                    else if (body.indexOf('a=') === 0) { if (!closing) { st.anim.push(body.slice(2)); hasAnim = true; } }
+                    else if (body === 'a') { if (closing) st.anim.pop(); }
+                    else if (body.indexOf('f=') === 0) { if (!closing) st.font.push(body.slice(2)); }
+                    else if (body === 'f') { if (closing) st.font.pop(); }
+                    else if (body === 'stable') { st.stable += closing ? -1 : 1; }
+                    i += m[0].length;
+                    continue;
+                }
+                glyphs.push({
+                    ch: raw[i],
+                    color: st.color.length ? st.color[st.color.length - 1] : null,
+                    rainbow: st.rainbow > 0,
+                    anim: st.anim.length ? st.anim[st.anim.length - 1] : null,
+                    font: st.font.length ? st.font[st.font.length - 1] : null,
+                    stable: st.stable > 0
+                });
+                i++;
+            }
+            return { glyphs, hasAnim };
+        }
+
+        // ── Pixel-based word wrap (handles any font, proportional or mono) ──
+        function advanceOf(g) { ctx.font = fontStrFor(g); return ctx.measureText(g.ch).width; }
+        function layout(glyphs, maxWidth) {
+            const placed = [];
+            let line = 0, x = 0, gi = 0, maxW = 0;
+            let i = 0;
+            while (i < glyphs.length) {
+                const g = glyphs[i];
+                if (g.ch === '\n') { if (x > maxW) maxW = x; line++; x = 0; i++; continue; }
+                if (g.ch === ' ') {
+                    const w = advanceOf(g);
+                    if (x > 0 && x > maxWidth) { if (x > maxW) maxW = x; line++; x = 0; }
+                    placed.push({ g, line, x, w, gi: gi++, draw: false });
+                    x += w; i++; continue;
+                }
+                // measure this word (run of non-space chars)
+                let j = i; const ws = []; let wordW = 0;
+                while (j < glyphs.length && glyphs[j].ch !== ' ' && glyphs[j].ch !== '\n') { const w = advanceOf(glyphs[j]); ws.push(w); wordW += w; j++; }
+                if (wordW <= maxWidth && x > 0 && x + wordW > maxWidth) { if (x > maxW) maxW = x; line++; x = 0; }
+                for (let k = 0; k < ws.length; k++) {
+                    if (x > 0 && x + ws[k] > maxWidth) { if (x > maxW) maxW = x; line++; x = 0; }   // hard-break long words
+                    placed.push({ g: glyphs[i + k], line, x, w: ws[k], gi: gi++, draw: true });
+                    x += ws[k];
+                    if (x > maxW) maxW = x;
+                }
+                i = j;
+            }
+            if (x > maxW) maxW = x;
+            return { placed, lines: line + 1, width: maxW };
+        }
+
+        function corruptChar(ch, intensity, zalgoLevel) {
+            let c = ch;
+            if (leetMap[c] && Math.random() > 0.4) c = leetMap[c];
+            if (Math.random() * 100 < intensity && c !== ' ' && c !== '\n') {
+                c = glitchChars[Math.floor(Math.random() * glitchChars.length)];
+            }
+            if (zalgoLevel > 0) c = applyZalgo(c, zalgoLevel);
+            return c;
+        }
+
+        function generateFrame() {
+            const raw = inputEl.value;
+            const intensity = parseInt(intensityEl.value);
+            const zalgoLevel = parseInt(zalgoEl.value);
+            const animSpeed = parseInt(animSpeedEl.value) / 10;
+            const animAmp = parseInt(animAmpEl.value);
+            const rbSpeed = parseInt(rbSpeedEl.value);
+            const rbSpread = parseInt(rbSpreadEl.value);
+            const glow = parseInt(glowEl.value);
+            const t = performance.now() / 1000;
+
+            if (!raw) {
+                if (canvas.width !== 410 || canvas.height !== 350) { canvas.width = 410; canvas.height = 350; }
+                ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            curFontSize = parseInt(fontSizeEl.value);
+            const lineHeight = Math.round(curFontSize * 1.4);
+
+            const { glyphs, hasAnim } = parseMarkup(raw);
+            const animActive = hasAnim || globalAnim !== 'none';
+
+            const maxWidth = WRAP_WIDTH * (curFontSize / 20);
+            const { placed, lines, width } = layout(glyphs, maxWidth);
+
+            // padding (extra room so animated glyphs, descenders & glow don't clip)
+            const pad = Math.round(curFontSize * 0.55) + (animActive ? animAmp + 8 : 6) + Math.ceil(glow * 0.4);
+            const newW = Math.max(60, Math.ceil(width + pad * 2));
+            const newH = Math.max(60, Math.ceil(lines * lineHeight + pad * 2));
+            if (canvas.width !== newW || canvas.height !== newH) { canvas.width = newW; canvas.height = newH; }
+
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // whole-frame white flicker — only affects classic default-green glyphs
+            const frameFlash = Math.random() > 0.88;
+
+            for (const p of placed) {
+                if (!p.draw) continue;
+                const g = p.g;
+
+                // resolve effective style
+                let rainbow = g.rainbow || (!g.color && globalRainbow);
+                let color = g.color || globalColor;
+                const animName = g.anim || (globalAnim !== 'none' ? globalAnim : null);
+                const stable = g.stable;
+
+                let drawColor, blur = glow;
+                if (rainbow) {
+                    const hue = (t * rbSpeed * 6 + p.gi * rbSpread) % 360;
+                    drawColor = 'hsl(' + (hue < 0 ? hue + 360 : hue) + ',100%,58%)';
+                } else if (frameFlash && color.toLowerCase() === DEFAULT_COLOR) {
+                    drawColor = '#ffffff'; blur = Math.random() * 30 + 10;   // classic flash
+                } else {
+                    drawColor = color;
+                }
+
+                const char = stable ? g.ch : corruptChar(g.ch, intensity, zalgoLevel);
+
+                const cx = pad + p.x + p.w / 2;
+                const cy = pad + p.line * lineHeight + lineHeight / 2;
+
+                let off = {};
+                if (animName && ANIMS[animName]) off = ANIMS[animName](t, p.gi, animSpeed, animAmp);
+                const dx = off.dx || 0, dy = off.dy || 0, rot = off.rot || 0, scale = off.scale || 1;
+
+                ctx.save();
+                ctx.font = fontStrFor(g);
+                ctx.translate(cx + dx, cy + dy);
+                if (rot) ctx.rotate(rot);
+                if (scale !== 1) ctx.scale(scale, scale);
+                ctx.fillStyle = drawColor;
+                ctx.shadowColor = drawColor;
+                ctx.shadowBlur = blur;
+                ctx.fillText(char, 0, 0);
+                ctx.restore();
+            }
+
+            if (isRecording && capturedFrames.length < currentMaxFrames) {
+                capturedFrames.push(canvas.toDataURL('image/png'));
+                if (capturedFrames.length === currentMaxFrames) {
+                    isRecording = false;
+                    compileGIF();
+                }
+            }
+        }
+
+        let currentMaxFrames = 24;
+
+        function compileGIF() {
+            recordBtn.innerText = 'Compiling...';
+            setStatus('Compiling ' + capturedFrames.length + ' frames...');
+            gifshot.createGIF({
+                images: capturedFrames,
+                gifWidth: canvas.width,
+                gifHeight: canvas.height,
+                interval: 0.08,
+                numWorkers: 2,
+                sampleInterval: 1
+            }, function (obj) {
+                if (!obj.error) {
+                    if (lastGifUrl) URL.revokeObjectURL(lastGifUrl);
+                    lastGifUrl = obj.image;
+                    showResult(obj.image);
+                    setStatus('Done! Copy or download below.');
+                } else {
+                    setStatus('GIF generation failed: ' + (obj.errorMsg || 'try shorter text.'));
+                }
+                recordBtn.innerText = 'Generate GIF';
+                recordBtn.disabled = false;
+                capturedFrames = [];
+            });
+        }
+
+        const resultBox = document.getElementById('result');
+        const resultImg = document.getElementById('resultImg');
+        function showResult(dataUrl) {
+            resultImg.src = dataUrl;
+            resultBox.style.display = 'flex';
+        }
+        function setStatus(msg) { statusEl.textContent = msg; }
+
+        recordBtn.addEventListener('click', () => {
+            if (!inputEl.value.trim()) { setStatus('Type some text first!'); return; }
+            currentMaxFrames = parseInt(framesEl.value);
+            isRecording = true;
+            capturedFrames = [];
+            recordBtn.disabled = true;
+            recordBtn.innerText = 'Recording...';
+            setStatus('Recording ' + currentMaxFrames + ' frames...');
+        });
+
+        // ── Copy / download the generated GIF ──
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            if (!resultImg.src) return;
+            const a = document.createElement('a');
+            a.download = 'glitch-dialogue.gif';
+            a.href = resultImg.src;
+            a.click();
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            if (!resultImg.src) return;
+            try {
+                if (!navigator.clipboard || !window.ClipboardItem) throw new Error('Clipboard API unavailable');
+                const blob = await (await fetch(resultImg.src)).blob();
+                await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+                setStatus('✅ GIF copied to clipboard!');
+            } catch (err) {
+                // Fallbacks: many browsers refuse image/gif on the clipboard.
+                try {
+                    await navigator.clipboard.writeText(resultImg.src);
+                    setStatus('⚠ This browser won\'t put a GIF on the clipboard. copied the image data instead. (Tip: right-click the preview → Copy image.)');
+                } catch (e2) {
+                    setStatus('⚠ Copy blocked here. Right-click the preview image → "Copy image".');
+                }
+            }
+        });
+
+        // ── Selection / global style tools ──
+        function wrapSelection(open, close) {
+            const s = inputEl.selectionStart, e = inputEl.selectionEnd;
+            const v = inputEl.value;
+            if (s === e) { setStatus('Select some text first (or switch "Apply to" → Entire).'); return false; }
+            inputEl.value = v.slice(0, s) + open + v.slice(s, e) + close + v.slice(e);
+            inputEl.selectionStart = s + open.length;
+            inputEl.selectionEnd = e + open.length;
+            inputEl.focus();
+            return true;
+        }
+
+        function refreshGlobalButtons() {
+            document.getElementById('applyRainbow').classList.toggle('on', applyMode === 'all' && globalRainbow);
+        }
+
+        // Apply-to toggle
+        document.getElementById('applyMode').addEventListener('click', (ev) => {
+            const b = ev.target.closest('button'); if (!b) return;
+            applyMode = b.dataset.mode;
+            [...ev.currentTarget.children].forEach(c => c.classList.toggle('on', c === b));
+            refreshGlobalButtons();
+        });
+
+        document.getElementById('applyColor').addEventListener('click', () => {
+            const hex = document.getElementById('colorPick').value;
+            if (applyMode === 'all') { globalColor = hex; globalRainbow = false; refreshGlobalButtons(); setStatus('Whole dialogue color set to ' + hex); }
+            else wrapSelection('[c=' + hex + ']', '[/c]');
+        });
+
+        document.getElementById('applyRainbow').addEventListener('click', () => {
+            if (applyMode === 'all') { globalRainbow = !globalRainbow; refreshGlobalButtons(); setStatus('Rainbow ' + (globalRainbow ? 'ON' : 'OFF') + ' for whole dialogue'); }
+            else wrapSelection('[rb]', '[/rb]');
+        });
+
+        document.getElementById('applyAnim').addEventListener('click', () => {
+            const name = document.getElementById('animSelect').value;
+            if (applyMode === 'all') { globalAnim = name; setStatus('Whole-dialogue animation: ' + name); }
+            else if (name === 'none') setStatus('Pick an animation to apply to a selection.');
+            else wrapSelection('[a=' + name + ']', '[/a]');
+        });
+
+        document.getElementById('applyStable').addEventListener('click', () => {
+            if (applyMode === 'all') { setStatus('"Steady" only applies to a selection. Use the Glitch slider for the whole dialogue.'); }
+            else wrapSelection('[stable]', '[/stable]');
+        });
+
+        document.getElementById('clearSel').addEventListener('click', () => {
+            const s = inputEl.selectionStart, e = inputEl.selectionEnd, v = inputEl.value;
+            if (s === e) { setStatus('Select the text whose tags you want to strip.'); return; }
+            const cleaned = v.slice(s, e).replace(STRIP_RE, '');
+            inputEl.value = v.slice(0, s) + cleaned + v.slice(e);
+            inputEl.selectionStart = s; inputEl.selectionEnd = s + cleaned.length;
+            inputEl.focus();
+        });
+
+        document.getElementById('resetAll').addEventListener('click', () => {
+            inputEl.value = inputEl.value.replace(STRIP_RE, '');
+            globalColor = DEFAULT_COLOR; globalRainbow = false; globalAnim = 'none'; globalFontCss = DEFAULT_FONT;
+            document.getElementById('animSelect').value = 'none';
+            document.getElementById('colorPick').value = DEFAULT_COLOR;
+            fontSelect.selectedIndex = 0;
+            fontSizeEl.value = 20; curFontSize = 20;
+            refreshGlobalButtons();
+            setStatus('Reset to the classic green glitch.');
+        });
+
+        // ── Fonts: pick built-in, load any Google Font, or upload a font file ──
+        function addFontOption(label, value) {
+            let opt = [...fontSelect.options].find(o => o.value === value);
+            if (!opt) { opt = document.createElement('option'); opt.value = value; opt.textContent = label; fontSelect.appendChild(opt); }
+            fontSelect.value = value;
+        }
+
+        document.getElementById('applyFont').addEventListener('click', () => {
+            const css = fontSelect.value;
+            if (applyMode === 'all') { globalFontCss = css; setStatus('Whole-dialogue font: ' + fontSelect.options[fontSelect.selectedIndex].text); }
+            else wrapSelection('[f=' + familyName(css) + ']', '[/f]');
+        });
+
+        // changing the dropdown applies live when in "Entire" mode
+        fontSelect.addEventListener('change', () => {
+            if (applyMode === 'all') { globalFontCss = fontSelect.value; setStatus('Whole-dialogue font: ' + fontSelect.options[fontSelect.selectedIndex].text); }
+        });
+
+        document.getElementById('loadGFont').addEventListener('click', async () => {
+            const name = document.getElementById('gfontName').value.trim();
+            if (!name) { setStatus('Type a Google Font name first.'); return; }
+            const href = 'https://fonts.googleapis.com/css2?family=' + name.trim().replace(/\s+/g, '+') + '&display=swap';
+            if (!document.querySelector('link[data-gf="' + name + '"]')) {
+                const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.dataset.gf = name; document.head.appendChild(l);
+            }
+            setStatus('Loading "' + name + '"...');
+            try {
+                await new Promise(r => setTimeout(r, 250));   // give the <link> a beat to register
+                await document.fonts.load('20px "' + name + '"');
+                await document.fonts.ready;
+                addFontOption(name, '"' + name + '", sans-serif');
+                if (applyMode === 'all') globalFontCss = fontSelect.value;
+                setStatus('Loaded Google Font "' + name + '". Hit Apply (or it\'s already live in Entire mode).');
+            } catch (err) { setStatus('Could not load "' + name + '" — check the spelling.'); }
+        });
+
+        document.getElementById('fontFile').addEventListener('change', async (ev) => {
+            const file = ev.target.files[0]; if (!file) return;
+            const name = (file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_ -]/g, '').trim()) || 'CustomFont';
+            setStatus('Loading "' + name + '"...');
+            try {
+                const buf = await file.arrayBuffer();
+                const ff = new FontFace(name, buf);
+                await ff.load();
+                document.fonts.add(ff);
+                addFontOption(name, '"' + name + '", sans-serif');
+                if (applyMode === 'all') globalFontCss = fontSelect.value;
+                setStatus('Loaded font "' + name + '". Hit Apply (or it\'s already live in Entire mode).');
+            } catch (err) { setStatus('Failed to load that font file.'); }
+        });
+
+        framesEl.addEventListener('input', () => framesVal.textContent = framesEl.value);
+
+        // Run engine loop at 12fps (keeps performance smooth and GIF sizes reasonable)
+        setInterval(generateFrame, 1000 / 12);
+    </script>
+
+    <!-- ════════ CLOUD: Cloudinary uploads + Firebase (gallery, shared fonts, settings) ════════ -->
+    <script>
+    (function () {
+        // ── Cloudinary (signed uploads, done client-side) ──
+        const CLOUD = 'duq37uaxf';
+        const API_KEY = '959326612136268';
+        const API_SECRET = 'cjSXtWmhgZfmH-Khk75bJM8Rl5Y';
+
+        // ── Firebase ──
+        const firebaseConfig = {
+            apiKey: "AIzaSyDqG2yoL9SMlLI6JpDUOOdtIuGkO2iEuhw",
+            authDomain: "juko-dea8f.firebaseapp.com",
+            projectId: "juko-dea8f",
+            storageBucket: "juko-dea8f.firebasestorage.app",
+            messagingSenderId: "671312075063",
+            appId: "1:671312075063:web:674f3836837b709d2ea2b2",
+            measurementId: "G-DRMTETLEDE"
+        };
+
+        let db = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+        } catch (e) {
+            console.warn('Firebase init failed — gallery/shared fonts disabled.', e);
+        }
+
+        // ── Cloudinary signed upload helper ──
+        async function sha1Hex(str) {
+            const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(str));
+            return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        async function cloudinaryUpload(blob, folder, filename) {
+            const ts = Math.round(Date.now() / 1000);
+            const signature = await sha1Hex(`folder=${folder}&timestamp=${ts}${API_SECRET}`);
+            const fd = new FormData();
+            fd.append('file', blob, filename || 'file');
+            fd.append('api_key', API_KEY);
+            fd.append('timestamp', ts);
+            fd.append('folder', folder);
+            fd.append('signature', signature);
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/auto/upload`, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.secure_url) return data.secure_url;
+            throw new Error((data.error && data.error.message) || 'Cloudinary upload failed');
+        }
+
+        // plain-text preview of the dialogue (tags stripped) for captions
+        function plainText() {
+            return inputEl.value.replace(STRIP_RE, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+        }
+
+        // ───────────────────────── COPY LINK (upload + share) ─────────────────────────
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const shareToggle = document.getElementById('shareToggle');
+        copyLinkBtn.addEventListener('click', async () => {
+            if (!resultImg.src) return;
+            const oldLabel = copyLinkBtn.textContent;
+            copyLinkBtn.disabled = true;
+            copyLinkBtn.textContent = '⏳ Uploading…';
+            setStatus('Uploading GIF…');
+            try {
+                const blob = await (await fetch(resultImg.src)).blob();
+                const url = await cloudinaryUpload(blob, 'juko/gifs', 'juko-' + Date.now() + '.gif');
+                try { await navigator.clipboard.writeText(url); } catch (_) {}
+                setStatus('✅ Link copied! Paste it in Discord/Slack and it plays animated: ' + url);
+
+                if (db && shareToggle.checked) {
+                    try {
+                        await db.collection('gifs').add({
+                            url, text: plainText(),
+                            w: canvas.width, h: canvas.height,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        loadGallery();
+                    } catch (e) { console.warn('Gallery save failed', e); }
+                }
+            } catch (err) {
+                setStatus('⚠ Upload failed: ' + err.message);
+            } finally {
+                copyLinkBtn.disabled = false;
+                copyLinkBtn.textContent = oldLabel;
+            }
+        });
+
+        // ───────────────────────── PUBLIC GALLERY ─────────────────────────
+        const galleryGrid = document.getElementById('galleryGrid');
+        const galleryEmpty = document.getElementById('galleryEmpty');
+        async function loadGallery() {
+            if (!db) { galleryEmpty.textContent = 'Gallery offline (Firebase unavailable).'; return; }
+            try {
+                const snap = await db.collection('gifs').orderBy('createdAt', 'desc').limit(40).get();
+                galleryGrid.innerHTML = '';
+                if (snap.empty) { galleryEmpty.style.display = 'block'; galleryEmpty.textContent = 'No GIFs yet — be the first! Generate one and hit 📎 Copy Link.'; return; }
+                galleryEmpty.style.display = 'none';
+                snap.forEach(doc => {
+                    const d = doc.data(); if (!d.url) return;
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
+                    item.title = 'Click to copy link';
+                    const img = document.createElement('img');
+                    img.loading = 'lazy'; img.src = d.url; img.alt = d.text || 'gif';
+                    const cap = document.createElement('div');
+                    cap.className = 'cap'; cap.textContent = d.text || '(no text)';
+                    item.appendChild(img); item.appendChild(cap);
+                    item.addEventListener('click', async () => {
+                        try { await navigator.clipboard.writeText(d.url); setStatus('✅ Link copied: ' + d.url); }
+                        catch (_) { window.open(d.url, '_blank'); }
+                    });
+                    galleryGrid.appendChild(item);
+                });
+            } catch (e) {
+                console.warn('Gallery load failed', e);
+                galleryEmpty.textContent = 'Could not load gallery.';
+            }
+        }
+        document.getElementById('refreshGallery').addEventListener('click', loadGallery);
+
+        // ───────────────────────── SHARED FONTS (saved forever for everyone) ─────────────────────────
+        // When someone uploads a font, also push it to the cloud so it appears for all future visitors.
+        document.getElementById('fontFile').addEventListener('change', async (ev) => {
+            const file = ev.target.files[0];
+            if (!file || !db) return;
+            const name = (file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_ -]/g, '').trim()) || 'CustomFont';
+            try {
+                // skip if a font with this name is already shared
+                const existing = await db.collection('fonts').where('name', '==', name).limit(1).get();
+                if (!existing.empty) return;
+                const url = await cloudinaryUpload(file, 'juko/fonts', file.name);
+                await db.collection('fonts').add({
+                    name, url, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                setStatus('Font "' + name + '" shared — everyone can use it now.');
+            } catch (e) { console.warn('Font share failed', e); }
+        });
+
+        async function loadSharedFonts() {
+            if (!db) return;
+            try {
+                const snap = await db.collection('fonts').orderBy('createdAt', 'desc').limit(60).get();
+                snap.forEach(async doc => {
+                    const d = doc.data(); if (!d.name || !d.url) return;
+                    if ([...fontSelect.options].some(o => o.value === '"' + d.name + '", sans-serif')) return;
+                    try {
+                        const ff = new FontFace(d.name, 'url(' + d.url + ')');
+                        await ff.load();
+                        document.fonts.add(ff);
+                        const opt = document.createElement('option');
+                        opt.value = '"' + d.name + '", sans-serif';
+                        opt.textContent = d.name + ' (shared)';
+                        fontSelect.appendChild(opt);
+                    } catch (e) { /* font failed to load — skip */ }
+                });
+            } catch (e) { console.warn('Shared fonts load failed', e); }
+        }
+
+        // ───────────────────────── SETTINGS PERSISTENCE (localStorage) ─────────────────────────
+        const SETTINGS_KEY = 'juko-settings-v1';
+        const persistIds = ['intensity', 'zalgo', 'animSpeed', 'animAmp', 'rbSpeed', 'rbSpread', 'glow', 'frames', 'fontSize', 'input'];
+        function saveSettings() {
+            const data = {};
+            persistIds.forEach(id => { const el = document.getElementById(id); if (el) data[id] = el.value; });
+            try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); } catch (_) {}
+        }
+        function restoreSettings() {
+            let data; try { data = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch (_) { return; }
+            persistIds.forEach(id => {
+                if (data[id] == null) return;
+                const el = document.getElementById(id);
+                if (el) { el.value = data[id]; el.dispatchEvent(new Event('input', { bubbles: true })); }
+            });
+        }
+        persistIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.addEventListener('input', saveSettings); el.addEventListener('change', saveSettings); }
+        });
+
+        // ───────────────────────── MATRIX FALLING NUMBERS (non-laggy) ─────────────────────────
+        const mcanvas = document.getElementById('matrix');
+        const mctx = mcanvas.getContext('2d');
+        const FONT_SIZE = 16;
+        let cols = 0, drops = [], glowCol = [];
+        function initMatrix() {
+            mcanvas.width = window.innerWidth;
+            mcanvas.height = window.innerHeight;
+            cols = Math.ceil(mcanvas.width / FONT_SIZE);
+            drops = new Array(cols).fill(0).map(() => Math.floor(Math.random() * (mcanvas.height / FONT_SIZE)));
+            glowCol = new Array(cols).fill(0).map(() => Math.random() < 0.16); // ~16% of columns glow
+        }
+        let lastDraw = 0;
+        function drawMatrix(ts) {
+            requestAnimationFrame(drawMatrix);
+            if (ts - lastDraw < 55) return;   // cap ~18fps → smooth & cheap
+            lastDraw = ts;
+            mctx.fillStyle = 'rgba(5,5,5,0.10)';   // fading trail
+            mctx.fillRect(0, 0, mcanvas.width, mcanvas.height);
+            mctx.font = FONT_SIZE + 'px monospace';
+            for (let i = 0; i < cols; i++) {
+                const ch = String.fromCharCode(48 + ((Math.random() * 10) | 0)); // 0-9
+                const x = i * FONT_SIZE, y = drops[i] * FONT_SIZE;
+                if (glowCol[i]) {
+                    mctx.shadowColor = '#00ff00'; mctx.shadowBlur = 8;
+                    mctx.fillStyle = 'rgba(140,255,140,0.55)';
+                } else {
+                    mctx.shadowBlur = 0; mctx.fillStyle = 'rgba(0,170,0,0.30)';
+                }
+                mctx.fillText(ch, x, y);
+                if (y > mcanvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+            mctx.shadowBlur = 0;
+        }
+        let mResizeT;
+        window.addEventListener('resize', () => { clearTimeout(mResizeT); mResizeT = setTimeout(initMatrix, 200); });
+        initMatrix();
+        requestAnimationFrame(drawMatrix);
+
+        // ───────────────────────── BOOT ─────────────────────────
+        restoreSettings();
+        loadSharedFonts();
+        loadGallery();
+    })();
+    </script>
+</body>
+
+</html>
