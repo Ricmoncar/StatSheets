@@ -1,0 +1,3030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>STATSHEETS - SPIN A BADDIE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css?v=65">
+<style>
+/* ════════════════════════════════════════════════════════════════
+   SPIN A BADDIE - self contained gacha idle game
+   ════════════════════════════════════════════════════════════════ */
+body { padding: 0; overflow-x: hidden; }
+.back-btn { margin: 18px 0 14px 18px; }
+
+#bd-wrap { max-width: 1180px; margin: 0 auto; padding: 0 14px 90px; }
+
+/* rarity colors */
+:root {
+  --r-common:#b8c0cc; --r-rare:#4aa3ff; --r-epic:#b15cff; --r-legendary:#ffb028;
+  --r-secret:#ff4d6d; --r-prismatic:#7df9ff; --r-divine:#fff1a8; --r-godly:#ff8a3d;
+  --r-cosmic:#2bd9d9; --r-apex:#7CFF4A; --r-primordial:#ff2bd0;
+}
+
+/* ── header / stats bar ── */
+#bd-top {
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:14px 18px; margin-bottom:16px; border-radius:8px;
+  background:linear-gradient(135deg,#120a18,#0a0710 60%,#160a14);
+  border:1px solid #2a1830; box-shadow:0 0 30px rgba(120,40,160,0.12) inset;
+}
+#bd-title {
+  font-size:15px; letter-spacing:2px; color:#fff;
+  text-shadow:0 0 12px #c050ff, 0 0 4px #ff50c0; flex-shrink:0;
+}
+#bd-title small{ display:block; font-size:6px; letter-spacing:4px; color:#9a6bd0; margin-top:5px; }
+.bd-stat { display:flex; flex-direction:column; gap:3px; padding:0 12px; border-left:1px solid #2a1830; }
+.bd-stat .lbl{ font-size:6px; letter-spacing:2px; color:#7a6b90; }
+.bd-stat .val{ font-size:12px; letter-spacing:1px; color:#ffe27a; text-shadow:0 0 8px #ffb02855; }
+.bd-stat .val.green{ color:#7CFF4A; text-shadow:0 0 8px #7CFF4A55; }
+#bd-buffs { display:flex; gap:5px; flex-wrap:wrap; margin-left:auto; }
+.bd-buff {
+  font-size:6px; letter-spacing:1px; padding:4px 7px; border-radius:12px;
+  border:1px solid #444; background:rgba(0,0,0,0.3); color:#ccc; white-space:nowrap;
+}
+.bd-buff.money{ border-color:#ffb028; color:#ffd56a; }
+.bd-buff.luck{ border-color:#7CFF4A; color:#aaff7a; }
+.bd-buff.mod{ border-color:#b15cff; color:#d49bff; }
+.bd-buff.pet{ border-color:#4aa3ff; color:#8fc8ff; }
+
+/* ── tab nav ── */
+#bd-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:18px; }
+.bd-tab {
+  font-family:inherit; font-size:8px; letter-spacing:2px; padding:10px 14px;
+  background:#0d0810; color:#7a6b90; border:1px solid #241830; border-radius:5px;
+  cursor:pointer; transition:all .15s;
+}
+.bd-tab:hover { color:#cbb6e0; border-color:#4a2a60; }
+.bd-tab.active { background:#1c1026; color:#fff; border-color:#7a3ac0; box-shadow:0 0 14px #7a3ac055; }
+.bd-panel { display:none; animation:bd-fade .3s ease; }
+.bd-panel.active { display:block; }
+@keyframes bd-fade { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+
+/* ── generic card / section ── */
+.bd-card {
+  background:linear-gradient(160deg,#0e0912,#0a070e); border:1px solid #221830;
+  border-radius:8px; padding:16px; margin-bottom:14px;
+}
+.bd-h { font-size:11px; letter-spacing:2px; color:#cbb6e0; margin:0 0 12px; }
+.bd-sub { font-size:7px; letter-spacing:1px; color:#6a5a80; line-height:1.7; }
+.bd-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.bd-grid { display:grid; gap:10px; }
+
+button.bd-btn {
+  font-family:inherit; font-size:8px; letter-spacing:1px; padding:9px 13px;
+  background:#1a1024; color:#e6d6f5; border:1px solid #3a2450; border-radius:5px;
+  cursor:pointer; transition:all .12s;
+}
+button.bd-btn:hover:not(:disabled){ background:#2a1640; border-color:#7a3ac0; transform:translateY(-1px); }
+button.bd-btn:disabled{ opacity:.4; cursor:not-allowed; }
+button.bd-btn.gold{ background:#241803; border-color:#6a4a10; color:#ffd56a; }
+button.bd-btn.gold:hover:not(:disabled){ background:#3a2806; border-color:#ffb028; }
+button.bd-btn.danger{ border-color:#5a1820; color:#ff8a96; }
+button.bd-btn.danger:hover:not(:disabled){ background:#2a0c10; border-color:#ff4d6d; }
+button.bd-btn.big{ font-size:11px; padding:14px 22px; }
+
+/* ── baddie card ── */
+.bd-baddie {
+  position:relative; width:118px; border-radius:8px; overflow:hidden;
+  background:#070509; border:2px solid var(--rc,#444); cursor:pointer;
+  transition:transform .12s, box-shadow .12s;
+}
+.bd-baddie:hover{ transform:translateY(-3px) scale(1.02); box-shadow:0 6px 20px var(--rc,#444)55; }
+.bd-baddie .pic {
+  width:100%; height:118px; object-fit:cover; display:block; background:#15101c;
+  image-rendering:auto;
+}
+.bd-baddie .ph {
+  width:100%; height:118px; display:flex; align-items:center; justify-content:center;
+  font-size:34px; color:#fff; background:radial-gradient(circle at 40% 35%, var(--rc,#333), #060409 80%);
+}
+.bd-baddie .meta { padding:6px 7px 8px; }
+.bd-baddie .nm { font-size:7px; letter-spacing:.5px; color:#eee; line-height:1.4; word-break:break-word; }
+.bd-baddie .rr { font-size:6px; letter-spacing:1px; color:var(--rc,#888); margin-top:3px; }
+.bd-baddie .md { font-size:6px; letter-spacing:1px; margin-top:2px; }
+.bd-baddie .inc { font-size:6px; color:#7CFF4A; margin-top:3px; }
+.bd-baddie .lvl {
+  position:absolute; top:4px; right:4px; font-size:6px; padding:2px 4px; border-radius:4px;
+  background:rgba(0,0,0,0.7); color:#ffd56a; border:1px solid #6a4a10;
+}
+.bd-baddie .ovr {
+  position:absolute; top:4px; left:4px; font-size:6px; padding:2px 4px; border-radius:4px;
+  background:#ff2b00; color:#fff; box-shadow:0 0 8px #ff2b00; animation:bd-pulse .6s infinite alternate;
+}
+@keyframes bd-pulse { from{opacity:.7;} to{opacity:1;} }
+
+/* prismatic / cosmic / primordial special name shimmer */
+.rar-prismatic .rr, .rar-prismatic .nm.shine,
+.bd-prism-text {
+  background:linear-gradient(90deg,#ff4d4d,#ffb028,#7CFF4A,#4aa3ff,#b15cff,#ff4d6d);
+  background-size:300% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:bd-rainbow 3s linear infinite;
+}
+@keyframes bd-rainbow { to{ background-position:300% 0; } }
+
+/* ── modifier visual effects on the picture ── */
+.mod-Silver .pic,.mod-Silver .ph{ filter:grayscale(.4) brightness(1.15) contrast(1.1); }
+.mod-Golden .pic,.mod-Golden .ph{ filter:sepia(.6) saturate(1.6) brightness(1.1); box-shadow:inset 0 0 24px #ffd56a99; }
+.mod-Wet .pic,.mod-Wet .ph{ filter:hue-rotate(160deg) brightness(1.05) contrast(1.1); }
+.mod-Emerald .pic,.mod-Emerald .ph{ filter:hue-rotate(80deg) saturate(1.5); box-shadow:inset 0 0 24px #2bff8899; }
+.mod-Diamond .pic,.mod-Diamond .ph{ filter:brightness(1.2) contrast(1.2); box-shadow:inset 0 0 26px #aee9ffcc; }
+.mod-Ruby .pic,.mod-Ruby .ph{ filter:saturate(1.8) hue-rotate(-20deg); box-shadow:inset 0 0 24px #ff3b5cbb; }
+.mod-Rainbow .pic,.mod-Rainbow .ph{ animation:bd-modhue 3s linear infinite; }
+@keyframes bd-modhue { to{ filter:hue-rotate(360deg); } }
+.mod-Lovestruck .pic,.mod-Lovestruck .ph{ filter:saturate(1.4) brightness(1.05); box-shadow:inset 0 0 24px #ff5bb0aa; }
+.mod-Lunar .pic,.mod-Lunar .ph{ filter:brightness(.85) contrast(1.2) hue-rotate(200deg); box-shadow:inset 0 0 24px #6a8fffaa; }
+.mod-Solar .pic,.mod-Solar .ph{ filter:brightness(1.25) saturate(1.5); box-shadow:inset 0 0 30px #ffae3bcc; }
+.mod-Celestial .pic,.mod-Celestial .ph{ filter:brightness(1.1) contrast(1.1); box-shadow:inset 0 0 30px #c9a8ffcc; animation:bd-modhue 6s linear infinite; }
+.mod-Starstruck .pic,.mod-Starstruck .ph{ filter:brightness(1.15); box-shadow:inset 0 0 30px #ffe27acc; }
+.mod-Hellish .pic,.mod-Hellish .ph{ filter:saturate(1.6) contrast(1.3) hue-rotate(-30deg); box-shadow:inset 0 0 30px #ff2b00cc; animation:bd-pulse .8s infinite alternate; }
+.mod-Cappyfied .pic,.mod-Cappyfied .ph{ filter:saturate(1.5) brightness(1.2); box-shadow:inset 0 0 34px #ff66ddcc; animation:bd-modhue 2s linear infinite; }
+
+/* ── modifier flair overlays (particles/fx on top of the card) ── */
+@keyframes bd-sheen{ 0%{ background-position:140% -40%; } 100%{ background-position:-40% 140%; } }
+@keyframes bd-twinkle{ 0%,100%{ opacity:.2; transform:scale(.8); } 50%{ opacity:1; transform:scale(1.15); } }
+@keyframes bd-twinkle2{ 0%,100%{ opacity:.15; } 50%{ opacity:.95; } }
+@keyframes bd-drip{ 0%{ background-position:0 -6px,0 -6px,0 -6px,0 0; opacity:.85; } 100%{ background-position:0 80px,0 96px,0 64px,0 0; opacity:0; } }
+@keyframes bd-rise{ 0%{ background-position:0 100%,0 100%,0 100%; opacity:0; } 15%{ opacity:1; } 85%{ opacity:1; } 100%{ background-position:0 -10%,0 -28%,0 -16%; opacity:0; } }
+@keyframes bd-flash{ 0%,100%{ opacity:0; } 8%,12%{ opacity:1; } 50%{ opacity:0; } 58%,62%{ opacity:.9; } }
+@keyframes bd-rays{ to{ transform:rotate(360deg); } }
+
+/* Silver - metallic glint sweep */
+.mod-Silver::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
+  background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.7) 49%, rgba(255,255,255,.95) 50%, rgba(255,255,255,.7) 51%, transparent 65%);
+  background-size:260% 260%; mix-blend-mode:overlay; animation:bd-sheen 2.8s ease-in-out infinite; }
+
+/* Golden - coin sparkle glints */
+.mod-Golden::after{ content:''; position:absolute; width:3px; height:3px; border-radius:50%; background:#fff8d8; top:16%; left:18%;
+  box-shadow:0 0 6px 2px #ffe27a, 46px 12px 5px 1px #ffd56a, 20px 64px 4px 1px #fff8d8, 78px 46px 5px 1px #ffe27a, 60px 86px 4px 1px #ffd56a;
+  pointer-events:none; z-index:3; animation:bd-twinkle 1.6s ease-in-out infinite; }
+
+/* Wet - dripping droplets + wet sheen */
+.mod-Wet::before{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
+  background:linear-gradient(115deg, transparent 40%, rgba(180,225,255,.5) 50%, transparent 60%);
+  background-size:240% 240%; mix-blend-mode:screen; animation:bd-sheen 3.4s ease-in-out infinite; }
+.mod-Wet::after{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:3;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(150,215,255,.9) 0 4px, transparent 5px),
+    radial-gradient(circle at 50% 0%, rgba(150,215,255,.9) 0 5px, transparent 6px),
+    radial-gradient(circle at 78% 0%, rgba(150,215,255,.9) 0 3px, transparent 4px),
+    linear-gradient(180deg, rgba(120,195,255,.3), transparent 35%);
+  mix-blend-mode:screen; animation:bd-drip 2.2s linear infinite; }
+
+/* Emerald - gem sheen + facet sparkles */
+.mod-Emerald::before{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
+  background:linear-gradient(115deg, transparent 35%, rgba(140,255,180,.55) 49%, rgba(180,255,200,.8) 50%, rgba(140,255,180,.55) 51%, transparent 65%);
+  background-size:260% 260%; mix-blend-mode:overlay; animation:bd-sheen 3s ease-in-out infinite; }
+.mod-Emerald::after{ content:''; position:absolute; width:3px; height:3px; border-radius:50%; background:#d8ffe6; top:20%; left:22%;
+  box-shadow:0 0 5px 2px #2bff88, 42px 18px 4px 1px #7dffb0, 16px 60px 4px 1px #2bff88, 70px 50px 4px 1px #7dffb0;
+  pointer-events:none; z-index:3; animation:bd-twinkle2 2s ease-in-out infinite; }
+
+/* Diamond - bright prismatic twinkle */
+.mod-Diamond::after{ content:''; position:absolute; width:3px; height:3px; border-radius:50%; background:#fff; top:12%; left:16%;
+  box-shadow:0 0 7px 2px #fff, 40px 8px 6px 1px #aee9ff, 70px 46px 5px 1px #fff, 12px 68px 5px 1px #aee9ff, 92px 86px 5px 1px #fff, 30px 96px 4px 1px #cdeaff;
+  pointer-events:none; z-index:3; animation:bd-twinkle 1.4s ease-in-out infinite; }
+
+/* Ruby - gem sheen + ember sparkle */
+.mod-Ruby::before{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
+  background:linear-gradient(115deg, transparent 35%, rgba(255,90,120,.55) 49%, rgba(255,140,160,.8) 50%, rgba(255,90,120,.55) 51%, transparent 65%);
+  background-size:260% 260%; mix-blend-mode:overlay; animation:bd-sheen 2.9s ease-in-out infinite; }
+.mod-Ruby::after{ content:''; position:absolute; width:3px; height:3px; border-radius:50%; background:#ffd8df; top:18%; left:20%;
+  box-shadow:0 0 5px 2px #ff3b5c, 44px 16px 4px 1px #ff7a90, 18px 62px 4px 1px #ff3b5c, 72px 52px 4px 1px #ff7a90;
+  pointer-events:none; z-index:3; animation:bd-twinkle2 1.8s ease-in-out infinite; }
+
+/* Rainbow - cycling colored sparkle dots */
+.mod-Rainbow::after{ content:''; position:absolute; width:3px; height:3px; border-radius:50%; background:#fff; top:14%; left:18%;
+  box-shadow:0 0 6px 2px #ff4d4d, 40px 10px 5px 1px #ffb028, 18px 60px 5px 1px #7CFF4A, 70px 48px 5px 1px #4aa3ff, 90px 84px 5px 1px #b15cff;
+  pointer-events:none; z-index:3; animation:bd-twinkle 1.3s ease-in-out infinite, bd-modhue 4s linear infinite; }
+
+/* Lovestruck - rising pink heart sparkles */
+.mod-Lovestruck::after{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:3;
+  background:
+    radial-gradient(circle at 22% 100%, rgba(255,110,170,.9) 0 4px, transparent 5px),
+    radial-gradient(circle at 52% 100%, rgba(255,150,190,.9) 0 3px, transparent 4px),
+    radial-gradient(circle at 78% 100%, rgba(255,110,170,.9) 0 4px, transparent 5px);
+  mix-blend-mode:screen; animation:bd-rise 2.6s ease-in infinite; }
+
+/* Lunar - moon glow + twinkling stars */
+.mod-Lunar::before{ content:''; position:absolute; width:22px; height:22px; border-radius:50%; top:6px; right:6px; pointer-events:none; z-index:3;
+  background:radial-gradient(circle, rgba(200,220,255,.9), rgba(140,170,255,.3) 60%, transparent 75%);
+  animation:bd-twinkle2 3s ease-in-out infinite; }
+.mod-Lunar::after{ content:''; position:absolute; width:2px; height:2px; border-radius:50%; background:#dce8ff; top:24%; left:14%;
+  box-shadow:0 0 4px 1px #dce8ff, 50px 30px 3px 1px #fff, 20px 70px 3px 1px #dce8ff, 76px 60px 3px 1px #fff;
+  pointer-events:none; z-index:3; animation:bd-twinkle 2.2s ease-in-out infinite; }
+
+/* Solar - rotating sun rays */
+.mod-Solar::after{ content:''; position:absolute; inset:-30%; pointer-events:none; z-index:3; opacity:.5;
+  background:conic-gradient(from 0deg, transparent 0deg, rgba(255,180,60,.55) 4deg, transparent 14deg, transparent 40deg, rgba(255,180,60,.55) 44deg, transparent 54deg, transparent 80deg, rgba(255,180,60,.55) 84deg, transparent 94deg, transparent 130deg, rgba(255,180,60,.55) 134deg, transparent 144deg, transparent 220deg, rgba(255,180,60,.55) 224deg, transparent 234deg);
+  mix-blend-mode:screen; animation:bd-rays 9s linear infinite; }
+
+/* Celestial - aurora wash + twinkling stars */
+.mod-Celestial::before{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:3; opacity:.4;
+  background:linear-gradient(120deg, rgba(170,140,255,.5), rgba(130,210,255,.5), rgba(255,150,230,.5));
+  background-size:300% 300%; mix-blend-mode:overlay; animation:bd-modhue 5s linear infinite, bd-sheen 4s ease-in-out infinite; }
+.mod-Celestial::after{ content:''; position:absolute; width:2px; height:2px; border-radius:50%; background:#fff; top:10%; left:14%;
+  box-shadow:0 0 5px 1px #fff, 44px 12px 4px 1px #c9a8ff, 16px 56px 4px 1px #fff, 74px 50px 4px 1px #aee9ff, 92px 90px 4px 1px #fff;
+  pointer-events:none; z-index:3; animation:bd-twinkle 1.7s ease-in-out infinite; }
+
+/* Starstruck - flashing star bursts */
+.mod-Starstruck::after{ content:''; position:absolute; width:4px; height:4px; border-radius:50%; background:#fff; top:18%; left:24%;
+  box-shadow:0 0 8px 2px #fff, 48px 14px 7px 2px #ffe27a, 20px 66px 6px 2px #fff, 76px 56px 7px 2px #ffe27a;
+  pointer-events:none; z-index:3; animation:bd-flash 2.4s ease-in-out infinite; }
+
+/* Hellish - rising embers + flame glow */
+.mod-Hellish::before{ content:''; position:absolute; left:0; right:0; bottom:0; height:45%; pointer-events:none; z-index:3;
+  background:linear-gradient(0deg, rgba(255,60,0,.45), transparent); mix-blend-mode:screen; animation:bd-pulse .9s infinite alternate; }
+.mod-Hellish::after{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:3;
+  background:
+    radial-gradient(circle at 24% 100%, rgba(255,140,40,.95) 0 3px, transparent 4px),
+    radial-gradient(circle at 54% 100%, rgba(255,90,0,.95) 0 3px, transparent 4px),
+    radial-gradient(circle at 80% 100%, rgba(255,140,40,.95) 0 3px, transparent 4px);
+  mix-blend-mode:screen; animation:bd-rise 1.8s ease-in infinite; }
+
+/* upgrade glow tiers added to the baddie card border */
+.bd-baddie.up1{ box-shadow:0 0 10px #7CFF4A55; }
+.bd-baddie.up2{ box-shadow:0 0 16px #4aa3ff77; }
+.bd-baddie.up3{ box-shadow:0 0 22px #b15cff99; animation:bd-upglow 2s ease-in-out infinite; }
+@keyframes bd-upglow { 0%,100%{ filter:brightness(1);} 50%{ filter:brightness(1.25);} }
+
+/* ── roll overlay ── */
+#bd-roll-ov, #bd-egg-ov, #bd-modal-ov {
+  position:fixed; inset:0; background:rgba(2,1,4,0.86); z-index:9000;
+  display:none; align-items:center; justify-content:center; backdrop-filter:blur(3px);
+}
+#bd-roll-ov.on, #bd-egg-ov.on, #bd-modal-ov.on { display:flex; }
+.bd-roll-stage { text-align:center; }
+#bd-roll-card {
+  position:relative; width:230px; margin:0 auto; border-radius:12px; overflow:hidden;
+  border:3px solid var(--rc,#666); background:#070509; box-shadow:0 0 50px var(--rc,#666)88;
+  transform:scale(.9); transition:transform .3s;
+}
+#bd-roll-card .pic, #bd-roll-card .ph { height:230px; }
+#bd-roll-card .ph { font-size:64px; }
+#bd-roll-cyc { font-size:18px; letter-spacing:2px; min-height:24px; margin-bottom:14px; }
+#bd-roll-info { margin-top:14px; font-size:9px; letter-spacing:1px; color:#ccc; line-height:1.8; }
+.bd-roll-land { animation:bd-land .5s cubic-bezier(.2,1.4,.4,1); }
+@keyframes bd-land { 0%{transform:scale(.3) rotate(-12deg);opacity:0;} 60%{transform:scale(1.12) rotate(4deg);} 100%{transform:scale(1) rotate(0);opacity:1;} }
+
+/* confetti / ray burst behind big pulls */
+.bd-rays { position:absolute; inset:0; pointer-events:none; background:
+  conic-gradient(from 0deg, transparent 0 8deg, var(--rc,#fff)22 8deg 14deg, transparent 14deg 22deg);
+  animation:bd-spin 9s linear infinite; opacity:.5; }
+@keyframes bd-spin { to{ transform:rotate(360deg); } }
+
+/* ── dice / shop tiles ── */
+.bd-shoptile {
+  width:160px; padding:14px; border-radius:8px; text-align:center;
+  background:linear-gradient(160deg,#120c18,#0a070e); border:1px solid #2a1c38;
+  transition:all .15s;
+}
+.bd-shoptile:hover{ border-color:#7a3ac0; transform:translateY(-2px); }
+.bd-shoptile .ic { font-size:30px; margin-bottom:6px; }
+.bd-shoptile .tn { font-size:8px; letter-spacing:1px; color:#e6d6f5; margin-bottom:4px; }
+.bd-shoptile .td { font-size:6px; color:#7a6b90; line-height:1.6; min-height:46px; margin-bottom:8px; }
+.bd-shoptile .tc { font-size:8px; color:#ffd56a; margin-bottom:8px; }
+
+/* dice odds mini bars */
+.bd-odds { display:flex; height:6px; border-radius:3px; overflow:hidden; margin:6px 0; }
+.bd-odds i { display:block; height:100%; }
+
+/* ── plot grid ── */
+#bd-plot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; }
+.bd-slot {
+  height:150px; border-radius:8px; border:2px dashed #2a2038; background:#0a070e;
+  display:flex; align-items:center; justify-content:center; color:#3a2a50; font-size:24px;
+  cursor:pointer; transition:all .12s;
+}
+.bd-slot:hover{ border-color:#5a3a80; color:#7a5aa0; }
+.bd-slot.full{ border-style:solid; padding:0; }
+
+/* ── inventory grid ── */
+#bd-inv-grid, #bd-roll-inv { display:flex; flex-wrap:wrap; gap:10px; }
+
+/* ── pets ── */
+#bd-pet-layer { position:fixed; inset:0; pointer-events:none; z-index:500; overflow:hidden; }
+.bd-pet {
+  position:absolute; font-size:30px; transition:transform 3s ease-in-out, left 3s linear, top 3s linear;
+  filter:drop-shadow(0 0 6px currentColor); will-change:left,top,transform;
+}
+.bd-petcard {
+  width:140px; padding:12px; border-radius:8px; text-align:center;
+  background:linear-gradient(160deg,#0c1018,#08090e); border:1px solid #1c2838;
+}
+.bd-petcard .pic{ font-size:34px; margin-bottom:6px; }
+.bd-petcard .nm{ font-size:8px; letter-spacing:1px; color:#cfe6ff; }
+.bd-petcard .st{ font-size:6px; color:#7a90b0; margin:5px 0 8px; line-height:1.6; }
+
+/* egg open */
+#bd-egg-stage { text-align:center; }
+.bd-egg-vis { font-size:90px; animation:bd-shake .4s infinite; }
+@keyframes bd-shake { 0%,100%{transform:rotate(-7deg);} 50%{transform:rotate(7deg);} }
+.bd-egg-pop { font-size:90px; animation:bd-eggpop .6s cubic-bezier(.2,1.5,.4,1); }
+@keyframes bd-eggpop { 0%{transform:scale(0);} 70%{transform:scale(1.3);} 100%{transform:scale(1);} }
+
+/* modal box */
+#bd-modal-box {
+  width:min(560px,92vw); max-height:84vh; overflow-y:auto; border-radius:10px;
+  background:#0c0810; border:1px solid #3a2450; padding:20px; box-shadow:0 0 50px #7a3ac044;
+}
+.bd-slotcard { border:1px solid #2a1c38; border-radius:7px; padding:12px; margin-bottom:10px; background:#0a070e; }
+
+/* cheat panel */
+#bd-cheat {
+  position:fixed; right:14px; bottom:14px; width:230px; z-index:8000; display:none;
+  background:#060a06; border:1px solid #1c5a1c; border-radius:8px; padding:12px;
+  box-shadow:0 0 24px #00ff0033; max-height:78vh; overflow-y:auto;
+}
+#bd-cheat.on{ display:block; }
+#bd-cheat h4{ margin:0 0 8px; font-size:8px; letter-spacing:2px; color:#7CFF4A; }
+#bd-cheat button{ font-family:inherit; font-size:6px; letter-spacing:.5px; width:100%; margin-bottom:4px;
+  padding:6px; background:#0c1a0c; color:#aaffaa; border:1px solid #1c5a1c; border-radius:4px; cursor:pointer; }
+#bd-cheat button:hover{ background:#143014; }
+#bd-cheat select,#bd-cheat input{ font-family:inherit; font-size:6px; width:100%; margin-bottom:4px;
+  background:#0c1a0c; color:#aaffaa; border:1px solid #1c5a1c; border-radius:4px; padding:5px; }
+
+/* toast */
+#bd-toast-wrap{ position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:9500; display:flex; flex-direction:column; gap:6px; align-items:center; }
+.bd-toast{ font-size:8px; letter-spacing:1px; padding:9px 16px; border-radius:6px; background:#160a22; border:1px solid #7a3ac0; color:#e6d6f5; box-shadow:0 4px 18px rgba(0,0,0,.5); animation:bd-toastin .3s ease; }
+@keyframes bd-toastin{ from{opacity:0;transform:translateY(-10px);} to{opacity:1;transform:translateY(0);} }
+
+.bd-empty{ color:#3a2a50; font-size:8px; letter-spacing:2px; padding:24px; text-align:center; width:100%; }
+.bd-pill{ font-size:6px; padding:2px 6px; border-radius:10px; border:1px solid currentColor; }
+
+/* ════════════════════ x1000 COOLER LAYER ════════════════════ */
+#bd-bg{ position:fixed; inset:0; z-index:-2; display:block; }
+#bd-fx{ position:fixed; inset:0; z-index:9200; pointer-events:none; }
+/* isolate makes body a stacking context so the z-index:-2 canvas + z-index:-1 grid
+   render ABOVE the site's body background instead of being hidden behind it */
+body{ background-color:#050308 !important; isolation:isolate; }
+#bd-wrap{ position:relative; z-index:1; }
+
+/* faint moving grid + vignette over the nebula */
+body::before{ content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    linear-gradient(transparent 0 96%, rgba(120,80,200,.045) 96%) 0 0/100% 44px,
+    linear-gradient(90deg, transparent 0 96%, rgba(120,80,200,.045) 96%) 0 0/44px 100%,
+    radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,.65) 100%);
+  animation:bd-gridrise 24s linear infinite; }
+@keyframes bd-gridrise{ to{ background-position:0 44px, 44px 0, 0 0; } }
+
+/* title shimmer */
+#bd-title{ background:linear-gradient(90deg,#ff4d9d,#c050ff,#4aa3ff,#2bd9d9,#7CFF4A,#ff4d9d);
+  background-size:300% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:bd-rainbow 5s linear infinite; text-shadow:none; filter:drop-shadow(0 0 16px #c050ff77); }
+#bd-top{ position:relative; overflow:hidden; }
+#bd-top::after{ content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(180,120,255,.07),transparent); background-size:220% 100%;
+  animation:bd-rainbow 8s linear infinite; }
+
+/* glass panels with animated top edge */
+.bd-card{ background:linear-gradient(160deg,rgba(22,13,32,.74),rgba(10,7,16,.66)); backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px); border:1px solid rgba(150,90,200,.16);
+  box-shadow:0 10px 34px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05); position:relative; overflow:hidden; }
+.bd-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,#b15cff,#4aa3ff,#7CFF4A,transparent); background-size:220% 100%;
+  animation:bd-cardline 6s linear infinite; opacity:.7; }
+@keyframes bd-cardline{ to{ background-position:220% 0; } }
+
+/* button shine sweep + gold pulse */
+button.bd-btn{ position:relative; overflow:hidden; }
+button.bd-btn::after{ content:''; position:absolute; top:0; left:-130%; width:55%; height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.22),transparent); transform:skewX(-18deg);
+  transition:left .55s ease; pointer-events:none; }
+button.bd-btn:hover::after{ left:140%; }
+button.bd-btn.big.gold{ animation:bd-goldpulse 2s ease-in-out infinite; }
+@keyframes bd-goldpulse{ 0%,100%{ box-shadow:0 0 0 rgba(255,176,40,0);} 50%{ box-shadow:0 0 20px rgba(255,176,40,.5);} }
+
+/* tab active glow underline */
+.bd-tab.active::after{ content:''; position:absolute; left:14%; right:14%; bottom:-1px; height:2px;
+  background:linear-gradient(90deg,transparent,#c050ff,transparent); box-shadow:0 0 8px #c050ff; }
+.bd-tab{ position:relative; }
+
+/* high rarity card aura */
+.bd-baddie.rar-divine,.bd-baddie.rar-mythic,.bd-baddie.rar-prismatic,.bd-baddie.rar-sacred,
+.bd-baddie.rar-secret,.bd-baddie.rar-godly,.bd-baddie.rar-cosmic,.bd-baddie.rar-apex,.bd-baddie.rar-primordial{ animation:bd-rarglow 2.6s ease-in-out infinite; }
+@keyframes bd-rarglow{ 0%,100%{ box-shadow:0 0 7px var(--rc); } 50%{ box-shadow:0 0 20px var(--rc), 0 0 40px color-mix(in srgb,var(--rc) 45%,transparent); } }
+
+/* roll overlay flash / shake / banner / scramble pulse */
+#bd-flash{ position:fixed; inset:0; z-index:9100; pointer-events:none; opacity:0;
+  background:radial-gradient(circle at 50% 44%, var(--fc,#fff), transparent 60%); }
+#bd-flash.go{ animation:bd-flashk .7s ease-out; }
+@keyframes bd-flashk{ 0%{opacity:0;} 10%{opacity:.9;} 100%{opacity:0;} }
+#bd-banner{ position:fixed; top:15%; left:50%; transform:translateX(-50%) scale(.5); z-index:9300;
+  pointer-events:none; opacity:0; font-size:22px; letter-spacing:7px; text-align:center; white-space:nowrap; }
+#bd-banner.go{ animation:bd-bann 2.4s ease forwards; }
+@keyframes bd-bann{ 0%{opacity:0;transform:translateX(-50%) scale(.4) rotate(-3deg);}
+  14%{opacity:1;transform:translateX(-50%) scale(1.08) rotate(0);}
+  78%{opacity:1;transform:translateX(-50%) scale(1);}
+  100%{opacity:0;transform:translateX(-50%) scale(1.12);} }
+#bd-banner small{ display:block; font-size:9px; letter-spacing:4px; color:#cbb6e0; margin-top:9px; text-shadow:none; }
+.bd-shake{ animation:bd-shakek .52s ease; }
+@keyframes bd-shakek{ 0%,100%{transform:translate(0,0);} 15%{transform:translate(-7px,4px);}
+  30%{transform:translate(6px,-5px);} 45%{transform:translate(-5px,-4px);}
+  60%{transform:translate(5px,5px);} 75%{transform:translate(-3px,3px);} }
+#bd-roll-cyc{ animation:bd-cycp .26s ease-in-out infinite alternate; }
+@keyframes bd-cycp{ from{ transform:scale(.95); } to{ transform:scale(1.06); } }
+
+/* baddie cards get a little 3D lift */
+#bd-inv-grid, #bd-roll-inv, #bd-plot-grid { perspective:900px; }
+.bd-baddie:hover{ transform:translateY(-4px) scale(1.04) rotateX(5deg); }
+
+/* ════════════════════ CUSTOM ASSET ANIMATIONS ════════════════════ */
+.bd-petsvg, .bd-die-svg{ display:block; overflow:visible; }
+.bd-pet svg{ width:100%; height:100%; display:block; }
+.bd-flap{ transform-box:fill-box; transform-origin:center; animation:bd-flap .34s ease-in-out infinite alternate; }
+@keyframes bd-flap{ from{ transform:scaleY(.62) rotate(-3deg);} to{ transform:scaleY(1.06) rotate(3deg);} }
+.bd-spin-svg{ transform-box:fill-box; transform-origin:center; animation:bd-spin 7s linear infinite; }
+.bd-bob svg{ animation:bd-bob 2.4s ease-in-out infinite; }
+@keyframes bd-bob{ 0%,100%{ transform:translateY(0) rotate(-2deg);} 50%{ transform:translateY(-4px) rotate(2deg);} }
+.bd-petcard .pic svg{ filter:drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+
+/* rolling die in the reveal overlay - each die has its own motion */
+#bd-roll-die{ display:none; height:112px; margin-bottom:6px; perspective:520px; }
+#bd-roll-die svg{ display:inline-block; }
+.bd-dieanim-tumble svg{ animation:bd-d-tumble .55s linear infinite; }
+.bd-dieanim-spin svg{ animation:bd-d-spin .5s linear infinite; }
+.bd-dieanim-flip svg{ animation:bd-d-flip .7s ease-in-out infinite; }
+.bd-dieanim-warp svg{ animation:bd-d-warp .6s ease-in-out infinite; }
+.bd-dieanim-chaos svg{ animation:bd-d-chaos .5s ease-in-out infinite; }
+.bd-dieanim-energy svg{ animation:bd-d-energy .7s ease-in-out infinite; }
+@keyframes bd-d-tumble{ 0%{transform:rotate(0) translateY(0);} 50%{transform:rotate(180deg) translateY(-16px);} 100%{transform:rotate(360deg) translateY(0);} }
+@keyframes bd-d-spin{ to{ transform:rotate(360deg);} }
+@keyframes bd-d-flip{ 0%{transform:rotateX(0) rotateY(0);} 100%{transform:rotateX(360deg) rotateY(360deg);} }
+@keyframes bd-d-warp{ 0%{transform:scale(1) rotate(0);} 50%{transform:scale(1.3,.7) rotate(180deg);} 100%{transform:scale(1) rotate(360deg);} }
+@keyframes bd-d-chaos{ 0%{transform:translate(0,0) rotate(0);} 25%{transform:translate(-12px,7px) rotate(90deg);} 50%{transform:translate(9px,-9px) rotate(200deg);} 75%{transform:translate(-7px,-4px) rotate(300deg);} 100%{transform:translate(0,0) rotate(360deg);} }
+@keyframes bd-d-energy{ 0%,100%{transform:rotate(0) scale(1);} 50%{transform:rotate(180deg) scale(1.18);} }
+
+/* die selector buttons */
+.bd-diebtn{ display:inline-flex; align-items:center; gap:7px; }
+.bd-diebtn svg{ flex-shrink:0; }
+.bd-diebtn.gold svg{ animation:bd-bob 1.8s ease-in-out infinite; }
+
+/* shop tiles get a holographic sheen sweep */
+.bd-shoptile{ position:relative; overflow:hidden; }
+.bd-shoptile::before{ content:''; position:absolute; top:-60%; left:-70%; width:55%; height:220%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.10),transparent); transform:rotate(8deg);
+  transition:left .6s ease; pointer-events:none; }
+.bd-shoptile:hover::before{ left:170%; }
+.bd-shoptile .ic svg{ transition:transform .3s; }
+.bd-shoptile:hover .ic svg{ transform:scale(1.12) rotate(-6deg); }
+
+/* egg hatch stage */
+.bd-egg-vis svg, .bd-egg-pop svg{ display:inline-block; filter:drop-shadow(0 4px 14px rgba(0,0,0,.6)); }
+
+/* header coins flip like real coins */
+#bd-top .bd-coinic{ animation:bd-coinspin 4.5s linear infinite; transform-style:preserve-3d; }
+@keyframes bd-coinspin{ to{ transform:rotateY(360deg); } }
+#bd-cps{ text-shadow:0 0 8px #7CFF4A66; }
+
+/* ════════════════════ THEME ACCENT + NEW UI ════════════════════ */
+:root{ --bd-accent:#b15cff; }
+/* neutral grid so it reads across all themes; lighter vignette so the nebula shows */
+body::before{ background:
+    linear-gradient(transparent 0 96%, rgba(255,255,255,.028) 96%) 0 0/100% 44px,
+    linear-gradient(90deg, transparent 0 96%, rgba(255,255,255,.028) 96%) 0 0/44px 100%,
+    radial-gradient(ellipse at center, transparent 58%, rgba(0,0,0,.5) 100%) !important; }
+#bd-title{ filter:drop-shadow(0 0 16px var(--bd-accent)) !important; }
+.bd-tab.active{ border-color:var(--bd-accent) !important; box-shadow:0 0 14px color-mix(in srgb,var(--bd-accent) 45%, transparent) !important; }
+.bd-tab.active::after{ background:linear-gradient(90deg,transparent,var(--bd-accent),transparent) !important; box-shadow:0 0 8px var(--bd-accent) !important; }
+button.bd-btn:hover:not(:disabled){ border-color:var(--bd-accent); }
+
+/* custom dropdown */
+.bd-dd{ position:relative; display:inline-block; font-family:inherit; }
+.bd-dd-btn{ font-family:inherit; font-size:8px; letter-spacing:1px; padding:9px 12px; min-width:130px;
+  background:#1a1024; color:#e6d6f5; border:1px solid #3a2450; border-radius:5px; cursor:pointer;
+  display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.bd-dd-btn:hover{ border-color:var(--bd-accent); }
+.bd-dd-ar{ font-size:7px; transition:transform .2s; }
+.bd-dd.open .bd-dd-ar{ transform:rotate(180deg); }
+.bd-dd-menu{ position:absolute; top:calc(100% + 4px); left:0; min-width:100%; z-index:60;
+  background:#0c0810; border:1px solid #3a2450; border-radius:6px; overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.6); display:none; }
+.bd-dd.open .bd-dd-menu{ display:block; animation:bd-fade .15s ease; }
+.bd-dd-opt{ font-size:8px; letter-spacing:1px; padding:9px 12px; color:#bda6d6; cursor:pointer; white-space:nowrap; }
+.bd-dd-opt:hover{ background:#1c1026; color:#fff; }
+.bd-dd-opt.sel{ color:var(--bd-accent); }
+
+/* auto-roll floating window */
+#bd-auto{ position:fixed; right:16px; bottom:16px; width:204px; z-index:8200; display:none;
+  background:linear-gradient(160deg,#140c1e,#0a070e); border:1px solid var(--bd-accent); border-radius:10px;
+  box-shadow:0 12px 34px rgba(0,0,0,.65); overflow:hidden; }
+#bd-auto-head{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px;
+  background:rgba(255,255,255,.05); cursor:grab; font-size:8px; letter-spacing:1px; color:#e6d6f5; }
+#bd-auto-head button{ font-family:inherit; font-size:7px; padding:4px 8px; margin-left:4px; border-radius:4px;
+  background:#241803; color:#ffd56a; border:1px solid #6a4a10; cursor:pointer; }
+#bd-auto-toggle.on{ background:#2a0c10; color:#ff8a96; border-color:#5a1820; }
+.bd-auto-x{ background:#1a1024 !important; color:#999 !important; border-color:#3a2450 !important; }
+#bd-auto-card{ position:relative; width:96px; height:96px; margin:12px auto 6px; border-radius:8px; overflow:hidden;
+  border:2px solid var(--rc,#3a2450); background:#070509; }
+#bd-auto-card .pic,#bd-auto-card .ph{ height:96px; }
+#bd-auto-card .ph{ font-size:30px; }
+#bd-auto-cyc{ text-align:center; font-size:8px; letter-spacing:1px; min-height:13px; color:#ccc; padding:0 6px; word-break:break-word; }
+#bd-auto-foot{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; font-size:6px; letter-spacing:1px; color:#7a6b90; }
+#bd-auto-count{ color:#7CFF4A; font-size:8px; }
+
+/* pet order context menu */
+#bd-pet-orders{ position:fixed; z-index:8300; display:none; width:122px;
+  background:#0c0810; border:1px solid #3a2450; border-radius:8px; padding:8px; box-shadow:0 8px 24px rgba(0,0,0,.6); }
+.bd-po-h{ font-size:8px; letter-spacing:1px; margin-bottom:7px; text-align:center; word-break:break-word; }
+#bd-pet-orders button{ font-family:inherit; font-size:7px; letter-spacing:1px; width:100%; margin-bottom:4px;
+  padding:7px; border-radius:5px; background:#1a1024; color:#cbb6e0; border:1px solid #3a2450; cursor:pointer; }
+#bd-pet-orders button:hover{ background:#2a1640; border-color:var(--bd-accent); }
+#bd-pet-orders button.on{ background:#241803; color:#ffd56a; border-color:#6a4a10; }
+
+/* pets are interactive now */
+.bd-pet{ pointer-events:auto; cursor:none; touch-action:none; }
+
+/* cooler plot */
+#bd-plot-stage{ position:relative; padding:20px 14px 30px; border-radius:14px;
+  background:radial-gradient(ellipse at 50% -10%, color-mix(in srgb,var(--bd-accent) 14%, transparent), transparent 72%);
+  border:1px solid rgba(255,255,255,.04); }
+#bd-plot-stage::after{ content:''; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--bd-accent),transparent); opacity:.3; pointer-events:none; }
+.bd-plot-inc{ font-size:9px; letter-spacing:1px; color:#ffe27a; white-space:nowrap; display:flex; align-items:center; gap:2px; }
+.bd-plot-inc b{ color:#fff; }
+.bd-slot.empty{ background:linear-gradient(160deg,#0c0912,#08060c); border:2px dashed #2a2038; }
+.bd-slot.empty:hover{ border-color:var(--bd-accent); }
+.bd-slot-plus{ font-size:26px; transition:text-shadow .15s; }
+.bd-slot.empty:hover .bd-slot-plus{ text-shadow:0 0 14px var(--bd-accent); }
+.bd-slot.full{ border:none; background:transparent; display:flex; align-items:center; justify-content:center; overflow:visible; }
+.bd-slot.full .bd-baddie{ animation:bd-floaty 3.2s ease-in-out infinite; }
+@keyframes bd-floaty{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+.bd-slot.full .bd-baddie:hover{ animation:none; }
+
+/* special-roll expanding ring */
+.bd-fxring{ position:fixed; width:24px; height:24px; margin:-12px; border:3px solid #fff; border-radius:50%;
+  z-index:9150; pointer-events:none; animation:bd-ring .95s ease-out forwards; }
+@keyframes bd-ring{ from{transform:scale(.2);opacity:.9;} to{transform:scale(15);opacity:0;} }
+
+/* cappyfied = dripping milk overlay */
+.mod-Cappyfied::after{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:3;
+  background:
+    radial-gradient(circle at 24% 0%, rgba(255,255,255,.75) 0 5px, transparent 6px),
+    radial-gradient(circle at 54% 0%, rgba(255,255,255,.75) 0 4px, transparent 5px),
+    radial-gradient(circle at 80% 0%, rgba(255,255,255,.75) 0 6px, transparent 7px),
+    linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,240,255,.16) 22%, transparent 44%);
+  mix-blend-mode:screen; animation:bd-milk 3s ease-in-out infinite; }
+@keyframes bd-milk{ 0%,100%{ background-position:0 0,0 0,0 0,0 -2px; opacity:.85; } 50%{ background-position:0 4px,0 5px,0 3px,0 1px; opacity:1; } }
+
+/* index locked tiles */
+.bd-baddie.bd-locked{ filter:brightness(.32) saturate(.4); }
+.bd-baddie.bd-locked .nm, .bd-baddie.bd-locked .rr{ color:#3a3a44 !important; }
+#bd-index-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+</style>
+</head>
+<body>
+
+<!-- animated cosmic backdrop + particle layer -->
+<canvas id="bd-bg"></canvas>
+<canvas id="bd-fx"></canvas>
+<div id="bd-flash"></div>
+<div id="bd-banner"></div>
+
+<!-- shared svg gradient defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <radialGradient id="bdCoinG" cx="38%" cy="32%" r="75%">
+    <stop offset="0" stop-color="#fff0b0"/><stop offset="55%" stop-color="#ffc23c"/><stop offset="100%" stop-color="#c8860c"/>
+  </radialGradient>
+</defs></svg>
+
+<!-- custom cursor (matches site) -->
+<div id="cursor">
+  <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px;">
+    <polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="white"/>
+    <polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<div id="bd-pet-layer"></div>
+<div id="bd-toast-wrap"></div>
+
+<div class="back-btn">
+  <button class="btn accent" onclick="location.href='index.html'">&lt; BACK TO MAIN MENU</button>
+</div>
+
+<div id="bd-wrap">
+
+  <!-- TOP STATS BAR -->
+  <div id="bd-top">
+    <div id="bd-title">SPIN A BADDIE<small>STATSHEETS GACHA</small></div>
+    <div class="bd-stat"><span class="lbl">COINS</span><span class="val"><span class="bd-coinslot"></span><span id="bd-coins">0</span></span></div>
+    <div class="bd-stat"><span class="lbl">PER SECOND</span><span class="val green"><span class="bd-coinslot"></span><span id="bd-cps">0</span></span></div>
+    <div class="bd-stat"><span class="lbl">BADDIES</span><span class="val" id="bd-count" style="color:#cbb6e0;text-shadow:none;">0</span></div>
+    <div id="bd-buffs"></div>
+  </div>
+
+  <!-- TABS -->
+  <div id="bd-tabs">
+    <button class="bd-tab active" data-tab="roll" onclick="bdTab('roll')">ROLL</button>
+    <button class="bd-tab" data-tab="plot" onclick="bdTab('plot')">PLOT</button>
+    <button class="bd-tab" data-tab="inv" onclick="bdTab('inv')">INVENTORY</button>
+    <button class="bd-tab" data-tab="shop" onclick="bdTab('shop')">SHOP</button>
+    <button class="bd-tab" data-tab="pets" onclick="bdTab('pets')">PETS</button>
+    <button class="bd-tab" data-tab="index" onclick="bdTab('index')">INDEX</button>
+    <button class="bd-tab" data-tab="saves" onclick="bdTab('saves')">SAVES</button>
+  </div>
+
+  <!-- ROLL -->
+  <div class="bd-panel active" id="bd-panel-roll">
+    <div class="bd-card">
+      <div class="bd-h">ROLL THE DICE</div>
+      <div class="bd-sub" style="margin-bottom:12px;">Pick a die and roll to pull a baddie. Better dice and more luck push you toward rarer pulls. Every baddie can land with a random modifier.</div>
+      <div class="bd-row" id="bd-die-row" style="margin-bottom:14px;"></div>
+      <div class="bd-row">
+        <button class="bd-btn big gold" onclick="bdRoll()">ROLL</button>
+        <button class="bd-btn big" onclick="bdAutoOpen()">AUTO ROLL</button>
+      </div>
+    </div>
+    <div class="bd-card">
+      <div class="bd-h">RECENT PULLS</div>
+      <div id="bd-roll-inv"><div class="bd-empty">NO PULLS YET</div></div>
+    </div>
+  </div>
+
+  <!-- PLOT -->
+  <div class="bd-panel" id="bd-panel-plot">
+    <div class="bd-card">
+      <div class="bd-row" style="justify-content:space-between;">
+        <div class="bd-h" style="margin:0;">YOUR PLOT</div>
+        <div class="bd-row">
+          <button class="bd-btn gold" onclick="bdAutoPlace()">AUTO PLACE BEST</button>
+          <button class="bd-btn danger" onclick="bdClearPlot()">CLEAR PLOT</button>
+        </div>
+      </div>
+      <div class="bd-row" style="justify-content:space-between;align-items:center;margin:10px 0 14px;">
+        <div class="bd-sub" style="max-width:62%;">Placed baddies earn coins every second. Click a baddie to upgrade, crack it into overdrive, or pull it back to inventory.</div>
+        <div id="bd-plot-inc" class="bd-plot-inc"></div>
+      </div>
+      <div id="bd-plot-stage"><div id="bd-plot-grid"></div></div>
+    </div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div class="bd-panel" id="bd-panel-inv">
+    <div class="bd-card">
+      <div class="bd-row" style="justify-content:space-between;">
+        <div class="bd-h" style="margin:0;">INVENTORY</div>
+        <div class="bd-row">
+          <div id="bd-inv-sort-dd"></div>
+          <button class="bd-btn danger" onclick="bdSellAllPrompt()">SELL ALL UNPLACED</button>
+        </div>
+      </div>
+      <div class="bd-row" style="margin:10px 0 14px;">
+        <span class="bd-sub">Bulk sell rarity and below:</span>
+        <div id="bd-sell-rar-dd"></div>
+        <button class="bd-btn danger" onclick="bdSellRarityAndBelow()">SELL</button>
+      </div>
+      <div id="bd-inv-grid"><div class="bd-empty">EMPTY - GO ROLL SOME BADDIES</div></div>
+      <div id="bd-inv-pager" class="bd-row" style="justify-content:center;align-items:center;margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- SHOP -->
+  <div class="bd-panel" id="bd-panel-shop">
+    <div class="bd-card">
+      <div class="bd-h">DICE</div>
+      <div class="bd-sub" style="margin-bottom:12px;">Buy better dice. Once owned, select them on the ROLL tab. Higher dice greatly raise your odds of rare baddies.</div>
+      <div class="bd-row" id="bd-shop-dice"></div>
+    </div>
+    <div class="bd-card">
+      <div class="bd-h">POTIONS</div>
+      <div class="bd-sub" style="margin-bottom:12px;">Temporary buffs, 10 minutes each. They stack with one another and with duplicates of themselves (multiplied together).</div>
+      <div class="bd-row" id="bd-shop-pots"></div>
+    </div>
+    <div class="bd-card">
+      <div class="bd-h">CURSORS</div>
+      <div class="bd-sub" style="margin-bottom:12px;">Each cursor restyles your pointer and rolls the dice faster (manual and auto roll).</div>
+      <div class="bd-row" id="bd-shop-cursors"></div>
+    </div>
+    <div class="bd-card">
+      <div class="bd-h">MENU THEMES</div>
+      <div class="bd-sub" style="margin-bottom:12px;">Restyle the whole page with an animated backdrop. Buy once, switch any time.</div>
+      <div class="bd-row" id="bd-shop-themes"></div>
+    </div>
+    <div class="bd-card">
+      <div class="bd-h">SPECIALS</div>
+      <div class="bd-row" id="bd-shop-special"></div>
+    </div>
+  </div>
+
+  <!-- PETS -->
+  <div class="bd-panel" id="bd-panel-pets">
+    <div class="bd-card">
+      <div class="bd-h">EGGS</div>
+      <div class="bd-sub" style="margin-bottom:12px;">Hatch eggs for pets. Pets float around your screen and grant luck and money multipliers while equipped. One egg at a time.</div>
+      <div class="bd-row" id="bd-egg-row"></div>
+    </div>
+    <div class="bd-card">
+      <div class="bd-row" style="justify-content:space-between;">
+        <div class="bd-h" style="margin:0;">YOUR PETS</div>
+        <div class="bd-sub">EQUIPPED <span id="bd-pet-slots">0/2</span> &nbsp;
+          <button class="bd-btn gold" id="bd-buy-slot" onclick="bdBuyPetSlot()">BUY SLOT</button>
+        </div>
+      </div>
+      <div id="bd-pet-grid" style="margin-top:12px;"><div class="bd-empty">NO PETS YET</div></div>
+    </div>
+  </div>
+
+  <!-- INDEX -->
+  <div class="bd-panel" id="bd-panel-index">
+    <div class="bd-card">
+      <div class="bd-row" style="justify-content:space-between;align-items:center;">
+        <div class="bd-h" style="margin:0;">BADDIE INDEX</div>
+        <div class="bd-sub" id="bd-index-count">0 / 0 DISCOVERED</div>
+      </div>
+      <div class="bd-sub" style="margin:10px 0 14px;">Every baddie you have ever rolled. Locked ones stay hidden until you find them.</div>
+      <div id="bd-index-grid"></div>
+    </div>
+  </div>
+
+  <!-- SAVES -->
+  <div class="bd-panel" id="bd-panel-saves">
+    <div class="bd-card">
+      <div class="bd-h">REBIRTH</div>
+      <div id="bd-rebirth-body"></div>
+    </div>
+    <div class="bd-card">
+      <div class="bd-h">DAILY REWARD</div>
+      <div id="bd-daily-body"></div>
+    </div>
+    <div class="bd-card">
+      <div class="bd-h">SAVE FILES</div>
+      <div class="bd-sub" style="margin-bottom:12px;">Your game auto-saves to this device. Save into a slot to get a transfer CODE you can paste on another device. Up to 3 slots.</div>
+      <div id="bd-slots"></div>
+    </div>
+    <div class="bd-card">
+      <div class="bd-h">TRANSFER CODE</div>
+      <div class="bd-sub" style="margin-bottom:10px;">Load a save code from another device. This overwrites your current game.</div>
+      <div class="bd-row">
+        <textarea id="bd-code-in" placeholder="PASTE CODE HERE" style="flex:1;min-width:200px;font-family:inherit;font-size:7px;background:#080510;color:#cbb6e0;border:1px solid #2a1c38;border-radius:5px;padding:8px;height:54px;"></textarea>
+        <button class="bd-btn gold" onclick="bdImportCode()">LOAD CODE</button>
+      </div>
+      <div class="bd-row" style="margin-top:10px;">
+        <button class="bd-btn" onclick="bdExportCurrent()">COPY CURRENT AS CODE</button>
+        <button class="bd-btn danger" onclick="bdHardReset()">RESET CURRENT GAME</button>
+        <button class="bd-btn danger" onclick="bdFullWipe()">START OVER (WIPE SAVE FILES)</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ROLL OVERLAY -->
+<div id="bd-roll-ov" onclick="bdDismissRoll()">
+  <div class="bd-roll-stage" onclick="event.stopPropagation()">
+    <div id="bd-roll-die"></div>
+    <div id="bd-roll-cyc"></div>
+    <div style="position:relative;">
+      <div class="bd-rays" id="bd-roll-rays" style="display:none;"></div>
+      <div id="bd-roll-card"></div>
+    </div>
+    <div id="bd-roll-info"></div>
+    <div class="bd-row" style="justify-content:center;margin-top:16px;">
+      <button class="bd-btn big gold" onclick="bdRollAgain()">ROLL AGAIN</button>
+      <button class="bd-btn" onclick="bdDismissRoll()">CONTINUE</button>
+    </div>
+  </div>
+</div>
+
+<!-- EGG OVERLAY -->
+<div id="bd-egg-ov" onclick="bdDismissEgg()">
+  <div id="bd-egg-stage" onclick="event.stopPropagation()"></div>
+</div>
+
+<!-- GENERIC MODAL -->
+<div id="bd-modal-ov" onclick="bdCloseModal()">
+  <div id="bd-modal-box" onclick="event.stopPropagation()"></div>
+</div>
+
+<!-- CHEAT PANEL (test mode only) -->
+<div id="bd-cheat">
+  <h4>TEST / CHEAT MENU</h4>
+  <button onclick="bdCheatCoins(1e6)">+ 1M COINS</button>
+  <button onclick="bdCheatCoins(1e9)">+ 1B COINS</button>
+  <button onclick="bdCheatCoins(1e15)">+ 1Qa COINS</button>
+  <select id="bd-cheat-rar"></select>
+  <select id="bd-cheat-mod"></select>
+  <button onclick="bdCheatGive()">GIVE BADDIE</button>
+  <button onclick="bdCheatGiveEgg('common')">OPEN COMMON EGG FREE</button>
+  <button onclick="bdCheatGiveEgg('prismatic')">OPEN PRISMATIC EGG FREE</button>
+  <button onclick="bdCheatGiveEgg('cosmic')">OPEN COSMIC EGG FREE</button>
+  <button onclick="bdCheatAllDice()">UNLOCK ALL DICE</button>
+  <button onclick="bdCheatResetCrack()">RESET CRACK COOLDOWN</button>
+  <button onclick="bdCheatFinishUpgrade()">FINISH UPGRADE NOW</button>
+  <button onclick="bdCheatResetDaily()">RESET DAILY</button>
+  <input id="bd-cheat-luck" type="number" placeholder="set luck mult e.g. 5"/>
+  <button onclick="bdCheatLuck()">APPLY DEBUG LUCK</button>
+  <button onclick="bdCheatClear()" style="border-color:#5a1818;color:#ff8a8a;">CLEAR ALL BADDIES</button>
+  <button onclick="bdToggleCheat(false)" style="border-color:#444;color:#888;">HIDE</button>
+</div>
+
+<!-- AUTO ROLL floating window -->
+<div id="bd-auto">
+  <div id="bd-auto-head"><span>AUTO ROLL</span>
+    <span><button id="bd-auto-toggle" onclick="bdAutoToggle()">START</button><button class="bd-auto-x" onclick="bdAutoHide()">&times;</button></span>
+  </div>
+  <div id="bd-auto-card" class="bd-auto-card"></div>
+  <div id="bd-auto-cyc"></div>
+  <div id="bd-auto-foot"><span id="bd-auto-count">0 ROLLS</span><span>keeps rolling while you play</span></div>
+</div>
+
+<!-- pet order context menu -->
+<div id="bd-pet-orders"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   SPIN A BADDIE  -  game engine
+   ════════════════════════════════════════════════════════════════ */
+
+/* ─────────────── CONFIG: RARITIES ─────────────── */
+/* order matters: index = power tier (0 lowest) */
+/* 13 tiers, low to high. weight = base drop weight (also seeds dice odds) */
+const RARITIES = [
+  { key:'Common',     col:'#b8c0cc', rate:1,     sell:5,      weight:1000   },
+  { key:'Rare',       col:'#4aa3ff', rate:3,     sell:20,     weight:480    },
+  { key:'Epic',       col:'#b15cff', rate:8,     sell:65,     weight:200    },
+  { key:'Legendary',  col:'#ffb028', rate:35,    sell:180,    weight:50     },
+  { key:'Divine',     col:'#c9b0ff', rate:99,    sell:450,    weight:20     },
+  { key:'Mythic',     col:'#ff5ec4', rate:220,    sell:1100,   weight:7      },
+  { key:'Prismatic',  col:'#7df9ff', rate:400,   sell:2700,   weight:2.4    },
+  { key:'Sacred',     col:'#ffe08a', rate:580,   sell:6800,   weight:0.8    },
+  { key:'Secret',     col:'#ff4d6d', rate:1000,   sell:16000,  weight:0.26   },
+  { key:'Godly',      col:'#ff8a3d', rate:3000,  sell:40000,  weight:0.08   },
+  { key:'Cosmic',     col:'#2bd9d9', rate:5000,  sell:95000,  weight:0.022  },
+  { key:'Apex',       col:'#7CFF4A', rate:15000,  sell:230000, weight:0.0035 },
+  { key:'Primordial', col:'#ff2bd0', rate:16000, sell:600000, weight:0.0007 },
+];
+const RAR_IDX = {}; RARITIES.forEach((r,i)=>RAR_IDX[r.key]=i);
+function rarMeta(key){ return RARITIES[RAR_IDX[key] ?? 0]; }
+
+/* ─────────────── CONFIG: MODIFIERS ─────────────── */
+/* weights are the percentages from the spec; Cappyfied is item-only */
+const MODIFIERS = [
+  { key:'None',       mult:1,    weight:70,  col:'#9aa' },
+  { key:'Silver',     mult:1.1,  weight:10,  col:'#cfd6e0' },
+  { key:'Golden',     mult:1.3,  weight:7,   col:'#ffd24a' },
+  { key:'Wet',        mult:1.4,  weight:3.3, col:'#4ad6ff' },
+  { key:'Emerald',    mult:1.5,  weight:2.5, col:'#3bff9b' },
+  { key:'Diamond',    mult:1.7,  weight:2,   col:'#aee9ff' },
+  { key:'Ruby',       mult:2,    weight:1.5, col:'#ff3b5c' },
+  { key:'Rainbow',    mult:2.2,  weight:1,   col:'#ff8ad6' },
+  { key:'Lovestruck', mult:2.5,  weight:0.7, col:'#ff5bb0' },
+  { key:'Lunar',      mult:2.7,  weight:0.6, col:'#8aa6ff' },
+  { key:'Solar',      mult:2.9,  weight:0.5, col:'#ffae3b' },
+  { key:'Celestial',  mult:3.15, weight:0.4, col:'#c9a8ff' },
+  { key:'Starstruck', mult:3.33, weight:0.3, col:'#ffe27a' },
+  { key:'Hellish',    mult:3.4,  weight:0.2, col:'#ff5a2b' },
+  { key:'Cappyfied',  mult:5,    weight:0,   col:'#ff66dd', itemOnly:true },
+];
+const MOD_IDX = {}; MODIFIERS.forEach((m,i)=>MOD_IDX[m.key]=i);
+function modMeta(key){ return MODIFIERS[MOD_IDX[key] ?? 0]; }
+
+/* ─────────────── CONFIG: DICE ─────────────── */
+/* Each die's odds are computed from the rarity base weights, biased toward
+   rarer tiers by its luck value (higher die = bigger luck). 13 tiers. */
+function _dieWeights(luck){ return RARITIES.map((r,i)=> r.weight * Math.pow(1+luck, i)); }
+const _DICE_DEF = [
+  { name:'Wooden Die',     cost:0,           luck:0    },
+  { name:'Stone Die',      cost:15000,       luck:0.05 },
+  { name:'Iron Die',       cost:65000,       luck:0.10 },
+  { name:'Gold Die',       cost:220000,      luck:0.20 },
+  { name:'Crystal Die',    cost:1500000,     luck:0.30 },
+  { name:'Astral Die',     cost:7000000,     luck:0.40 },
+  { name:'Void Die',       cost:50000000,    luck:0.50 },
+  { name:'Celestial Die',  cost:600000000,   luck:0.60 },
+  { name:'Chaos Die',      cost:6000000000,  luck:0.70 },
+  { name:'Primordial Die', cost:100000000000, luck:1.00 },
+];
+const DICE = _DICE_DEF.map((d,i)=>{
+  let weights = _dieWeights(d.luck);
+  // hard caps: certain low dice can NEVER roll above a given rarity
+  const HARD_CAP = { 0:'Epic', 1:'Legendary', 2:'Divine', 3:'Mythic' };
+  if(HARD_CAP[i]){
+    const capIdx = RAR_IDX[HARD_CAP[i]];
+    weights = weights.map((w,ri)=> ri>capIdx ? 0 : w);
+  }
+  // epics are slightly rarer on the first 3 dice (Wooden, Stone, Iron)
+  if(i<3){
+    const epicIdx = RAR_IDX['Epic'];
+    weights = weights.map((w,ri)=> ri===epicIdx ? w*0.7 : w);
+  }
+  return { id:i, name:d.name, cost:d.cost, weights };
+});
+
+/* ─────────────── CONFIG: POTIONS ─────────────── */
+const POTIONS = {
+  money: { name:'Money Tonic',     col:'#ffb028', icon:'$',  levels:[
+            {mult:1.25, cost:50000},   {mult:1.5, cost:250000},  {mult:2, cost:1200000} ] },
+  luck:  { name:'Luck Elixir',     col:'#7CFF4A', icon:'?',  levels:[
+            {mult:1.25, cost:80000},   {mult:1.5, cost:400000},  {mult:2, cost:2000000} ] },
+  mod:   { name:'Modifier Draught',col:'#b15cff', icon:'*',  levels:[
+            {mult:1.25, cost:120000},  {mult:1.5, cost:600000},  {mult:2, cost:3200000} ] },
+};
+const POTION_DURATION = 10*60*1000; // 10 minutes
+
+/* ─────────────── CONFIG: PETS / EGGS ─────────────── */
+const PETS = {
+  Dog:        { glyph:'\u{1F436}', col:'#caa472', luck:1.05, money:1,    behav:'hop'   },
+  Cat:        { glyph:'\u{1F431}', col:'#c0c0c0', luck:1,    money:1.05, behav:'prowl' },
+  Goat:       { glyph:'\u{1F410}', col:'#e0d8c0', luck:1.05, money:1.05, behav:'hop'   },
+  Lizard:     { glyph:'\u{1F98E}', col:'#6fd06f', luck:1.2,  money:1.2,  behav:'dart'  },
+  Dragon:     { glyph:'\u{1F409}', col:'#ff5a3c', luck:1.3,  money:1.65, behav:'fly'   },
+  Phoenix:    { glyph:'\u{1F985}', col:'#ff8a3d', luck:1.65, money:1.3,  behav:'fly'   },
+  Pegasus:    { glyph:'\u{1F40E}', col:'#cfe0ff', luck:2,    money:1.1,  behav:'fly'   },
+  Unicorn:    { glyph:'\u{1F984}', col:'#ff8ad6', luck:2.4,  money:2.4,  behav:'fly', shiny:true },
+  CosmicFish: { glyph:'\u{1F420}', col:'#2bd9d9', luck:2,    money:2,    behav:'swim', name:'Cosmic Fish' },
+  Parasite:   { glyph:'\u{1F9A0}', col:'#a23fe0', luck:2.4,  money:2.2,  behav:'creep' },
+  ShooShi:    { glyph:'\u{1F419}', col:'#b07be8', luck:2.6,  money:2.6,  behav:'swim', name:'ShooShi' },
+  Tiki:       { glyph:'\u{1F438}', col:'#6fe06f', luck:3,    money:2.3,  behav:'hop',  name:'Tiki' },
+  Kebab:      { glyph:'\u{1F362}', col:'#d8a05a', luck:1,    money:4,    behav:'prowl' },
+  Bizzy:      { glyph:'\u{1F41D}', col:'#ffd24a', luck:4,    money:2,    behav:'fly',  name:'Bizzy' },
+  Muffin:     { glyph:'\u{1F9C1}', col:'#e0a060', luck:3,    money:3,    behav:'hop'   },
+  SHIMMY:     { glyph:'⭐',    col:'#fff27a', luck:5,    money:5,    behav:'star', shiny:true, special:true },
+};
+const EGGS = {
+  common:    { name:'Common Egg',    col:'#b8c0cc', cost:1000,     glyph:'\u{1F95A}', table:[
+                ['Dog',40],['Cat',40],['Goat',15],['Lizard',5] ] },
+  prismatic: { name:'Prismatic Egg', col:'#7df9ff', cost:25000000,   glyph:'\u{1F95A}', table:[
+                ['Dragon',33.3],['Phoenix',33.3],['Pegasus',33.3],['Unicorn',0.1] ] },
+  cosmic:    { name:'Cosmic Egg',    col:'#2bd9d9', cost:5000000000,   glyph:'\u{1F95A}', table:[
+                ['CosmicFish',50],['Parasite',15],['ShooShi',10],['Tiki',10],
+                ['Kebab',9.9],['Bizzy',2.5],['Muffin',2.5],['SHIMMY',0.1] ] },
+};
+
+/* ─────────────── CONFIG: CURSORS ─────────────── */
+/* speed = roll-animation speed multiplier (higher is faster) */
+const CURSORS = [
+  { id:'classic', name:'Classic Arrow', cost:0,       speed:1,    col:'#ffffff',
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;"><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="#fff"/><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
+  { id:'gold', name:'Gilded Arrow', cost:8000,         speed:1.15, col:'#ffd34a',
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 3px #ffb028);"><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="#ffd34a"/><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="#6a4a06" stroke-width="1.4" stroke-linejoin="round"/></svg>` },
+  { id:'gem', name:'Crystal Tip', cost:45000,          speed:1.3,  col:'#7fe9ff',
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 4px #4ec6e6);"><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="#aef6ff"/><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="#2188a6" stroke-width="1.4" stroke-linejoin="round"/></svg>` },
+  { id:'flame', name:'Flame Pointer', cost:200000,     speed:1.5,  col:'#ff7a1c',
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 5px #ff5a2b);"><defs><linearGradient id="curfl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe24a"/><stop offset="1" stop-color="#ff3b00"/></linearGradient></defs><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="url(#curfl)"/><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="#7a1800" stroke-width="1.3" stroke-linejoin="round"/></svg>` },
+  { id:'star', name:'Star Wand', cost:1000000,         speed:1.75, col:'#ffe24a',
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 6px #ffe24a);"><path d="M10 2 L12 8 L18 8 L13 12 L15 18 L10 14 L5 18 L7 12 L2 8 L8 8 Z" fill="#ffe24a" stroke="#a06a00" stroke-width="1" stroke-linejoin="round"/></svg>` },
+  { id:'void', name:'Void Cursor', cost:6000000,       speed:2.1,  col:'#c084ff',
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 7px #9a5bff);"><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="#7a3ac0"/><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="#e6d6ff" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
+];
+const CUR_IDX={}; CURSORS.forEach((c,i)=>CUR_IDX[c.id]=i);
+function curMeta(id){ return CURSORS[CUR_IDX[id] ?? 0] || CURSORS[0]; }
+function rollSpeed(){ return curMeta(S.cursors.active).speed; }
+
+/* ─────────────── CONFIG: MENU THEMES ─────────────── */
+/* mode drives the animated backdrop. accent recolors title/tabs. */
+/* mutbuff = extra mutation/modifier luck while equipped (stacks with potions/pets/rebirth) */
+const THEMES = [
+  { id:'midnight', name:'Midnight',   cost:0,           custom:false, mutbuff:1,    mode:'nebula', accent:'#b15cff',
+    grad:['#1c0e2e','#0a0612','#050308'], pal:['#b15cff','#4aa3ff','#2bd9d9','#ff4d9d'] },
+  { id:'emerald',  name:'Emerald',    cost:50000,       custom:false, mutbuff:1.03, mode:'nebula', accent:'#3bff9b',
+    grad:['#06241a','#04140e','#020806'], pal:['#3bff9b','#2bd9d9','#7CFF4A','#aef6ff'] },
+  { id:'crimson',  name:'Crimson',    cost:50000,       custom:false, mutbuff:1.03, mode:'nebula', accent:'#ff4d6d',
+    grad:['#2a0810','#160409','#080204'], pal:['#ff4d6d','#ff8a3d','#c216a0','#ffd24a'] },
+  { id:'oceanic',  name:'Oceanic',    cost:150000,      custom:false, mutbuff:1.05, mode:'nebula', accent:'#4aa3ff',
+    grad:['#06182e','#040e1c','#02060e'], pal:['#4aa3ff','#2bd9d9','#7df9ff','#8aa6ff'] },
+  { id:'mono',     name:'Monochrome', cost:400000,      custom:false, mutbuff:1.08, mode:'nebula', accent:'#cfd6e0',
+    grad:['#181820','#0e0e14','#060608'], pal:['#cfd6e0','#9aa0aa','#7a808a','#e8ecf2'] },
+  { id:'jimmy',    name:'Jimmy',      cost:8000000,     custom:true,  mutbuff:1.15, mode:'cupcakes', accent:'#e0a060',
+    grad:['#3a2416','#241509','#140c05'], pal:['#e0a060','#d98c4a','#8a4a2a'] },
+  { id:'fury',     name:'Fury',       cost:80000000,    custom:true,  mutbuff:1.30, mode:'embers',   accent:'#ffb028',
+    grad:['#1a0a06','#0e0604','#050201'], pal:['#ff5a2b','#ffb028','#ffd24a'] },
+  { id:'juko',     name:'Juko',       cost:600000000,   custom:true,  mutbuff:1.50, mode:'matrix',   accent:'#00ff66',
+    grad:['#020a02','#010401','#000000'], pal:['#00ff66','#7CFF4A'] },
+  { id:'nara',     name:'Nara',       cost:600000000,   custom:true,  mutbuff:1.50, mode:'nebula',   accent:'#ff9ed6', pastel:true,
+    grad:['#241033','#160a24','#0a0614'], pal:['#ff8ad6','#8ad0ff','#9bffc0','#fff39a','#c79bff','#ff9ed6'] },
+  { id:'texas',    name:'Texas',      cost:5000000000,  custom:true,  mutbuff:1.80, mode:'nebula',   accent:'#ffcf3a', texas:true,
+    grad:['#2a160a','#3a1208','#140804'], pal:['#ffcf3a','#ff5a2b','#ffffff','#c8a020'] },
+];
+const THM_IDX={}; THEMES.forEach((t,i)=>THM_IDX[t.id]=i);
+function thmMeta(id){ return THEMES[THM_IDX[id] ?? 0] || THEMES[0]; }
+
+/* ─────────────── CONFIG: UPGRADE ─────────────── */
+const UPGRADE_MULT_PER_LVL = 1.18;
+const UPGRADE_MAX_LVL = 60;
+const UPGRADE_COOLDOWN = 60*1000;          // 1 minute
+function upgradeMult(level){ return Math.pow(UPGRADE_MULT_PER_LVL, level); }
+function upgradeCost(b){
+  const base = rarMeta(b.rarity).sell;
+  return Math.ceil(base * 3 * Math.pow(1.55, b.level));
+}
+
+/* ─────────────── CONFIG: CRACK / OVERDRIVE ─────────────── */
+const CRACK_DURATION = 5*60*1000;          // 5 min overdrive
+const CRACK_COOLDOWN = 30*60*1000;         // 30 min global
+const CRACK_MULT = 2;
+const CRACK_MOD_CHANCE = 0.6;              // chance to gain a fresh modifier
+
+const PLOT_SIZE = 12;
+const PET_SLOT_BASE_COST = 50000000;       // 50M for the 3rd slot, escalates hard
+const OFFLINE_CAP_MS = 4*60*60*1000;       // earn up to 4h offline
+const OFFLINE_RATE = 0.25;                 // closed-browser rate (tabbed-out is full)
+
+/* ─────────────── STATE ─────────────── */
+const SAVE_KEY  = 'baddie_save_v1';
+const SLOTS_KEY = 'baddie_slots_v1';
+let S = null;
+let _uid = 1;
+
+function defaultState(){
+  return {
+    coins: 50,
+    baddies: [],            // {id,key,rarity,modifier,level,placed,slot,overUntil,born}
+    dice: [0],              // owned die ids
+    activeDie: 0,
+    potions: [],            // {type,level,mult,exp}
+    pets: { list:[], equipped:[], slots:2 },
+    upgrade: null,          // {id, finish}
+    crackUntil: 0,          // global cooldown ends
+    daily: { lastDay:0, streak:0 },
+    petSlotsBought: 0,
+    cursors: { owned:['classic'], active:'classic' },
+    themes:  { owned:['midnight'], active:'midnight' },
+    autoRoll: false,
+    rebirths: 0,            // 0..5
+    maxRarityEver: 0,       // highest rarity index ever rolled
+    unlocked: {},           // key -> true once rolled (for the INDEX)
+    cappyBought: 0,
+    lastSeen: Date.now(),
+    born: Date.now(),
+    test: false,
+  };
+}
+function migrate(s){
+  const d = defaultState();
+  s = Object.assign(d, s||{});
+  s.pets = Object.assign({list:[],equipped:[],slots:2}, s.pets||{});
+  s.daily = Object.assign({lastDay:0,streak:0}, s.daily||{});
+  s.cursors = Object.assign({owned:['classic'],active:'classic'}, s.cursors||{});
+  s.themes  = Object.assign({owned:['midnight'],active:'midnight'}, s.themes||{});
+  if(!s.cursors.owned.includes('classic')) s.cursors.owned.unshift('classic');
+  if(!s.themes.owned.includes('midnight')) s.themes.owned.unshift('midnight');
+  if(typeof s.autoRoll!=='boolean') s.autoRoll=false;
+  if(typeof s.rebirths!=='number') s.rebirths=0;
+  if(typeof s.maxRarityEver!=='number') s.maxRarityEver=0;
+  if(typeof s.cappyBought!=='number') s.cappyBought=0;
+  if(!s.unlocked||typeof s.unlocked!=='object') s.unlocked={};
+  if(!Array.isArray(s.baddies)) s.baddies=[];
+  if(!Array.isArray(s.dice)||!s.dice.length) s.dice=[0];
+  s.baddies.forEach(b=>{ if(typeof b.varMul!=='number') b.varMul=1; });
+  s.pets.list.forEach(p=>{ if(!p.mode) p.mode='move'; });
+  // re-seed uid counter above any existing id
+  s.baddies.forEach(b=>{ if(b.id>=_uid) _uid=b.id+1; });
+  s.pets.list.forEach(p=>{ if(p.id>=_uid) _uid=p.id+1; });
+  return s;
+}
+function load(){
+  try{ const raw=localStorage.getItem(SAVE_KEY); S = migrate(raw?JSON.parse(raw):null); }
+  catch(e){ S = defaultState(); }
+}
+let _saveT=0;
+function save(force){
+  const now=Date.now();
+  if(!force && now-_saveT<1500) return;   // throttle
+  _saveT=now;
+  S.lastSeen=now;
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){}
+}
+
+/* ─────────────── HELPERS ─────────────── */
+const SUFFIX=['','K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc','Ud','Dd'];
+function fmt(n){
+  if(n===Infinity) return 'INF';
+  n = n||0;
+  if(n<0) return '-'+fmt(-n);
+  if(n<1000) return (Math.floor(n)===n? n : n.toFixed(1)).toString();
+  let t=0;
+  while(n>=1000 && t<SUFFIX.length-1){ n/=1000; t++; }
+  return (n<10? n.toFixed(2) : n<100? n.toFixed(1) : Math.floor(n)) + SUFFIX[t];
+}
+function fmtTime(ms){
+  ms=Math.max(0,ms); const s=Math.floor(ms/1000);
+  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+  if(h>0) return h+'h '+m+'m';
+  if(m>0) return m+'m '+sec+'s';
+  return sec+'s';
+}
+function rnd(a){ return a[Math.floor(Math.random()*a.length)]; }
+function escapeHtml(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+let _sfx=true;
+function playSfx(name,opt){
+  if(!_sfx) return;
+  try{ const a=new Audio('sounds/'+name+'.mp3'); a.volume=(opt&&opt.v)??0.6;
+    if(opt&&opt.rate) a.playbackRate=opt.rate; a.play().catch(()=>{}); }catch(e){}
+}
+function toast(msg,col){
+  const w=document.getElementById('bd-toast-wrap');
+  const el=document.createElement('div'); el.className='bd-toast'; el.textContent=msg;
+  if(col){ el.style.borderColor=col; el.style.color=col; }
+  w.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .4s'; el.style.opacity='0'; setTimeout(()=>el.remove(),400); },2600);
+}
+
+/* baddie display name + image src chain. Keys already end in "baddie"
+   (e.g. "codebaddie") and map straight to baddies/<key>.png */
+function baddieDisplayName(key){ return key; }
+function baddieImgFile(key){ return 'baddies/' + key + '.png'; }
+
+/* ════════════════ CUSTOM SVG ASSETS ════════════════ */
+function coinSVG(size){ size=size||12; return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" class="bd-coinic" style="vertical-align:-2px;margin-right:3px;">
+<circle cx="12" cy="12" r="10.5" fill="url(#bdCoinG)" stroke="#9a6406" stroke-width="1.4"/>
+<circle cx="12" cy="12" r="7.4" fill="none" stroke="#fff3c0" stroke-width="0.9" opacity="0.6"/>
+<path d="M12 6.6l1.7 3.5 3.8.5-2.8 2.6.7 3.8-3.4-1.9-3.4 1.9.7-3.8-2.8-2.6 3.8-.5z" fill="#fff7d6"/></svg>`; }
+function burgerSVG(size){ size=size||18; return `<svg viewBox="0 0 24 24" width="${size}" height="${size}">
+<path d="M3 8c0-4 18-4 18 0z" fill="#e0a44a"/><circle cx="8" cy="6" r="0.7" fill="#fff2cf"/><circle cx="12" cy="5.4" r="0.7" fill="#fff2cf"/><circle cx="16" cy="6" r="0.7" fill="#fff2cf"/>
+<rect x="3" y="8.5" width="18" height="2.4" rx="1" fill="#5bbf4a"/><rect x="3.5" y="10.6" width="17" height="2.6" fill="#7a3a1a"/><rect x="3" y="12.8" width="18" height="2.2" fill="#ffcf3a"/>
+<path d="M3 15c0 4 18 4 18 0z" fill="#e0a44a"/></svg>`; }
+
+const DICE_THEME = {
+0:{lite:'#c89a63',base:'#8a5a2c',edge:'#4d3015',glow:'#c89a63',
+   motif:`<line x1="14" y1="13" x2="34" y2="33" stroke="#6b4422" stroke-width="1.2" opacity=".5"/><line x1="20" y1="11" x2="37" y2="28" stroke="#6b4422" stroke-width="1" opacity=".4"/><circle cx="24" cy="24" r="3.6" fill="#3a2410"/>`},
+1:{lite:'#aab0b8',base:'#71777e',edge:'#3f444a',glow:'#aab0b8',
+   motif:`<path d="M15 13 L21 22 L17 31" stroke="#4a4e54" stroke-width="1.3" fill="none" opacity=".6"/><circle cx="18" cy="18" r="3" fill="#2f3338"/><circle cx="30" cy="30" r="3" fill="#2f3338"/>`},
+2:{lite:'#d4dde6',base:'#8b95a0',edge:'#4a525b',glow:'#cfe0ff',
+   motif:`<circle cx="11" cy="11" r="1.7" fill="#5b636b"/><circle cx="37" cy="11" r="1.7" fill="#5b636b"/><circle cx="11" cy="37" r="1.7" fill="#5b636b"/><circle cx="37" cy="37" r="1.7" fill="#5b636b"/><circle cx="18" cy="18" r="3" fill="#2f343a"/><circle cx="30" cy="18" r="3" fill="#2f343a"/><circle cx="24" cy="30" r="3" fill="#2f343a"/>`},
+3:{lite:'#ffe88a',base:'#e0a312',edge:'#9a6a08',glow:'#ffd34a',
+   motif:`<circle cx="18" cy="18" r="3.2" fill="#6a4a06"/><circle cx="30" cy="18" r="3.2" fill="#6a4a06"/><circle cx="18" cy="30" r="3.2" fill="#6a4a06"/><circle cx="30" cy="30" r="3.2" fill="#6a4a06"/><path d="M10 12 L16 12 L10 18 Z" fill="#fff6c0" opacity=".7"/>`},
+4:{lite:'#bdf4ff',base:'#4ec6e6',edge:'#2188a6',glow:'#7fe9ff',
+   motif:`<path d="M24 8 L40 24 L24 40 L8 24 Z" fill="none" stroke="#dffaff" stroke-width="1" opacity=".5"/><circle cx="24" cy="24" r="3.2" fill="#0c5566"/><circle cx="16" cy="16" r="2.3" fill="#0c5566"/><circle cx="32" cy="32" r="2.3" fill="#0c5566"/><circle cx="32" cy="16" r="2.3" fill="#0c5566"/><circle cx="16" cy="32" r="2.3" fill="#0c5566"/>`},
+5:{lite:'#d6b3ff',base:'#8a3ff0',edge:'#5a1fae',glow:'#b277ff',
+   motif:`<path d="M24 12l1.6 3.4 3.7.4-2.8 2.6.8 3.6-3.3-1.9-3.3 1.9.8-3.6-2.8-2.6 3.7-.4z" fill="#fff"/><circle cx="15" cy="32" r="1.6" fill="#fff"/><circle cx="33" cy="33" r="1.6" fill="#fff"/><circle cx="34" cy="15" r="1.4" fill="#fff"/>`},
+6:{lite:'#3a2d5c',base:'#171029',edge:'#7a3ac0',glow:'#9a5bff',
+   motif:`<circle cx="24" cy="24" r="11" fill="none" stroke="#9a5bff" stroke-width="2" opacity=".8"/><path d="M24 17 a7 7 0 1 0 0.1 0" fill="none" stroke="#c9a8ff" stroke-width="2"/><circle cx="24" cy="24" r="2.6" fill="#e6d6ff"/>`},
+7:{lite:'#fff6d8',base:'#f0c860',edge:'#c89020',glow:'#ffe9a8',
+   motif:`<circle cx="24" cy="24" r="7" fill="#fff" opacity=".85"/><g stroke="#fff" stroke-width="1.8" opacity=".85"><line x1="24" y1="6" x2="24" y2="12"/><line x1="24" y1="36" x2="24" y2="42"/><line x1="6" y1="24" x2="12" y2="24"/><line x1="36" y1="24" x2="42" y2="24"/></g>`},
+8:{lite:'#ff8a64',base:'#e03050',edge:'#7a1830',glow:'#ff5a7a',
+   motif:`<path d="M24 9l4 9 9-3-5 8 7 6-9 1 2 9-8-5-8 5 2-9-9-1 7-6-5-8 9 3z" fill="#ffe27a" opacity=".9"/>`},
+9:{lite:'#ff8ae6',base:'#c216a0',edge:'#6a0a58',glow:'#ff2bd0',
+   motif:`<path d="M24 8 L28 22 L42 24 L28 26 L24 40 L20 26 L6 24 L20 22 Z" fill="#fff" opacity=".92"/><circle cx="24" cy="24" r="3" fill="#ff2bd0"/>`},
+};
+function diceSVG(id,size){ size=size||34; const t=DICE_THEME[id]||DICE_THEME[0];
+  return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" class="bd-die-svg" style="filter:drop-shadow(0 0 5px ${t.glow}88);">
+<defs><linearGradient id="dg${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t.lite}"/><stop offset="1" stop-color="${t.base}"/></linearGradient></defs>
+<rect x="5" y="5" width="38" height="38" rx="9" fill="url(#dg${id})" stroke="${t.edge}" stroke-width="2.6"/>
+<path d="M9 12 Q9 9 12 9 L30 9 Q20 14 14 30 Q9 24 9 12Z" fill="#fff" opacity="0.16"/>
+${t.motif}</svg>`; }
+const DICE_ANIM = {0:'tumble',1:'tumble',2:'flip',3:'spin',4:'flip',5:'spin',6:'warp',7:'spin',8:'chaos',9:'energy'};
+
+function eggSVG(type,size){ size=size||30;
+  if(type==='common') return `<svg viewBox="0 0 48 60" width="${size}" height="${size*1.25}">
+<defs><radialGradient id="egcoG" cx="40%" cy="34%" r="70%"><stop offset="0" stop-color="#f4ead2"/><stop offset="1" stop-color="#b7a37e"/></radialGradient></defs>
+<ellipse cx="24" cy="34" rx="19" ry="24" fill="url(#egcoG)" stroke="#8a7754" stroke-width="2"/>
+<ellipse cx="17" cy="22" rx="5" ry="7" fill="#fff" opacity=".4"/>
+<circle cx="30" cy="26" r="2.4" fill="#9c8a64"/><circle cx="18" cy="40" r="3" fill="#9c8a64"/><circle cx="32" cy="44" r="2" fill="#9c8a64"/><circle cx="24" cy="50" r="2.2" fill="#9c8a64"/></svg>`;
+  if(type==='prismatic') return `<svg viewBox="0 0 48 60" width="${size}" height="${size*1.25}">
+<defs><linearGradient id="egprG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#aef6ff"/><stop offset=".5" stop-color="#c79bff"/><stop offset="1" stop-color="#7df9ff"/></linearGradient></defs>
+<ellipse cx="24" cy="34" rx="19" ry="24" fill="url(#egprG)" stroke="#5fd6ff" stroke-width="2"/>
+<path d="M24 10 L34 30 L24 58 L14 30 Z" fill="#fff" opacity=".22"/>
+<path d="M14 30 L24 26 L34 30 L24 34 Z" fill="#fff" opacity=".35"/>
+<path d="M24 12l1.4 3 3.2.3-2.4 2.2.7 3.1-2.9-1.6-2.9 1.6.7-3.1-2.4-2.2 3.2-.3z" fill="#fff"/></svg>`;
+  return `<svg viewBox="0 0 48 60" width="${size}" height="${size*1.25}">
+<defs><radialGradient id="egcsG" cx="42%" cy="34%" r="72%"><stop offset="0" stop-color="#3a2f66"/><stop offset="1" stop-color="#0c0a1e"/></radialGradient></defs>
+<ellipse cx="24" cy="34" rx="19" ry="24" fill="url(#egcsG)" stroke="#2bd9d9" stroke-width="2"/>
+<circle cx="18" cy="24" r="1.4" fill="#fff"/><circle cx="30" cy="20" r="1" fill="#aef6ff"/><circle cx="33" cy="34" r="1.3" fill="#fff"/><circle cx="16" cy="40" r="1.1" fill="#7df9ff"/><circle cx="26" cy="46" r="1" fill="#fff"/>
+<path d="M14 34 Q24 26 34 34 Q24 42 14 34Z" fill="#2bd9d9" opacity=".4"/>
+<path d="M24 12l1.6 3.4 3.7.4-2.8 2.6.8 3.6-3.3-1.9-3.3 1.9.8-3.6-2.8-2.6 3.7-.4z" fill="#fff" opacity=".9"/></svg>`;
+}
+
+const PET_BODY = {
+Dog:`<ellipse cx="20" cy="24" rx="7" ry="11" fill="#9c7a4e"/><ellipse cx="44" cy="24" rx="7" ry="11" fill="#9c7a4e"/><ellipse cx="32" cy="34" rx="17" ry="15" fill="#caa472"/><ellipse cx="32" cy="42" rx="10" ry="8" fill="#ecdcb8"/><ellipse cx="32" cy="39" rx="3.2" ry="2.4" fill="#3a2a18"/><circle cx="24" cy="31" r="2.6" fill="#2a1c10"/><circle cx="40" cy="31" r="2.6" fill="#2a1c10"/><circle cx="25" cy="30" r="0.9" fill="#fff"/><circle cx="41" cy="30" r="0.9" fill="#fff"/>`,
+Cat:`<path d="M16 18 L22 31 L11 28 Z" fill="#9a9a9a"/><path d="M48 18 L42 31 L53 28 Z" fill="#9a9a9a"/><ellipse cx="32" cy="34" rx="17" ry="15" fill="#c8c8c8"/><ellipse cx="24" cy="32" rx="3" ry="4.2" fill="#7be08a"/><ellipse cx="40" cy="32" rx="3" ry="4.2" fill="#7be08a"/><ellipse cx="24" cy="32" rx="1" ry="3.2" fill="#13202a"/><ellipse cx="40" cy="32" rx="1" ry="3.2" fill="#13202a"/><path d="M32 39 l-2 2 2 1 2-1z" fill="#ff8aa0"/><g stroke="#9a9a9a" stroke-width="1"><line x1="20" y1="40" x2="10" y2="38"/><line x1="20" y1="42" x2="11" y2="45"/><line x1="44" y1="40" x2="54" y2="38"/><line x1="44" y1="42" x2="53" y2="45"/></g>`,
+Goat:`<path d="M20 18 Q12 10 16 24" fill="none" stroke="#cdbd98" stroke-width="3.4"/><path d="M44 18 Q52 10 48 24" fill="none" stroke="#cdbd98" stroke-width="3.4"/><ellipse cx="32" cy="32" rx="14" ry="15" fill="#e6ddc6"/><ellipse cx="32" cy="46" rx="7" ry="8" fill="#d4c8a8"/><circle cx="26" cy="30" r="2.4" fill="#2a2418"/><circle cx="38" cy="30" r="2.4" fill="#2a2418"/><ellipse cx="32" cy="40" rx="2" ry="2.6" fill="#3a3022"/><path d="M29 50 Q32 56 35 50" fill="#cdbd98"/>`,
+Lizard:`<path d="M14 38 Q4 38 8 30 Q12 36 18 34Z" fill="#5bb85b"/><ellipse cx="34" cy="34" rx="20" ry="11" fill="#6fd06f"/><ellipse cx="50" cy="30" rx="9" ry="8" fill="#7be07b"/><circle cx="52" cy="28" r="2.4" fill="#163a16"/><circle cx="52.6" cy="27.4" r="0.8" fill="#fff"/><ellipse cx="26" cy="44" rx="3" ry="5" fill="#4ca84c"/><ellipse cx="40" cy="44" rx="3" ry="5" fill="#4ca84c"/><path d="M20 28 Q34 22 48 27" fill="none" stroke="#4ca84c" stroke-width="2" opacity=".6"/>`,
+Dragon:`<path class="bd-flap" d="M30 30 L6 18 Q12 34 30 38Z" fill="#b8341c"/><path class="bd-flap" d="M34 30 L58 18 Q52 34 34 38Z" fill="#b8341c"/><path d="M22 16 L24 8 L28 16Z" fill="#7a1d0e"/><path d="M42 16 L40 8 L36 16Z" fill="#7a1d0e"/><ellipse cx="32" cy="32" rx="15" ry="14" fill="#ff5a3c"/><ellipse cx="32" cy="42" rx="9" ry="7" fill="#ff8a64"/><circle cx="28" cy="41" r="1.2" fill="#5a1408"/><circle cx="36" cy="41" r="1.2" fill="#5a1408"/><circle cx="26" cy="30" r="3" fill="#ffe27a"/><circle cx="38" cy="30" r="3" fill="#ffe27a"/><circle cx="26" cy="30" r="1.2" fill="#222"/><circle cx="38" cy="30" r="1.2" fill="#222"/>`,
+Phoenix:`<path d="M24 36 Q8 32 3 42 Q14 40 24 42Z" fill="#be2810"/><path d="M24 33 Q8 26 5 36 Q14 34 24 37Z" fill="#ff5e1f"/><path d="M24 31 Q10 22 11 31 Q17 31 24 35Z" fill="#ffb136"/><path class="bd-flap" d="M30 30 Q49 15 59 24 Q46 31 34 39Z" fill="#ff7a1c"/><ellipse cx="33" cy="35" rx="13" ry="11" fill="#ff8a3d"/><ellipse cx="35" cy="37" rx="8" ry="4" fill="#ffdc82"/><path d="M42 23 Q40 13 44 15 Q43 19 46 24Z" fill="#ff8a3d"/><path d="M45 22 Q46 12 50 16 Q47 19 49 24Z" fill="#ffb136"/><circle cx="44" cy="28" r="6" fill="#ffae3b"/><path d="M49 26 L58 28.5 L49 31Z" fill="#ffd98c"/><circle cx="45" cy="27" r="1.4" fill="#2a0a00"/>`,
+Pegasus:`<path class="bd-flap" d="M28 28 Q6 18 8 34 Q20 34 28 38Z" fill="#eaf2ff"/><ellipse cx="36" cy="32" rx="13" ry="13" fill="#dce8ff"/><path d="M44 24 Q53 22 52 31 L45 30Z" fill="#dce8ff"/><path d="M30 20 Q28 12 34 14 Q32 18 35 22Z" fill="#b9d0ff"/><circle cx="42" cy="30" r="2.2" fill="#2a3a5a"/><ellipse cx="49" cy="33" rx="3.5" ry="2.6" fill="#cfe0ff"/>`,
+Unicorn:`<path d="M35 14 L41 2 L38 15Z" fill="#ffe27a"/><path d="M28 18 Q22 10 30 10 Q26 16 30 22Z" fill="#a86bff"/><path d="M31 16 Q24 14 24 22" stroke="#ff6fae" stroke-width="3" fill="none"/><path d="M31 18 Q24 18 22 26" stroke="#7df9ff" stroke-width="3" fill="none"/><ellipse cx="36" cy="34" rx="13" ry="13" fill="#ffd0ea"/><path d="M44 26 Q53 24 52 33 L45 32Z" fill="#ffd0ea"/><circle cx="42" cy="32" r="2.4" fill="#5a2a4a"/><path d="M50 16l1 2.4 2.6.3-1.9 1.8.5 2.6-2.2-1.3-2.2 1.3.5-2.6-1.9-1.8 2.6-.3z" fill="#fff"/>`,
+CosmicFish:`<path d="M44 32 L58 22 L56 42Z" fill="#1c9aa8"/><ellipse cx="30" cy="32" rx="20" ry="13" fill="#2bd9d9"/><path d="M26 20 Q33 12 40 21Z" fill="#1c9aa8"/><ellipse cx="30" cy="36" rx="16" ry="6" fill="#aef6ff" opacity=".45"/><path d="M34 25l1 2.1 2.3.2-1.7 1.5.5 2.2-2.1-1.1-2.1 1.1.5-2.2-1.7-1.5 2.3-.2z" fill="#fff"/><circle cx="40" cy="34" r="1.2" fill="#bfeaff"/><circle cx="26" cy="38" r="1.1" fill="#fff"/><circle cx="38" cy="24" r="1" fill="#ffe27a"/><circle cx="18" cy="30" r="3.6" fill="#fff"/><circle cx="18" cy="30" r="1.8" fill="#0c2a30"/><circle cx="11" cy="19" r="2.2" fill="none" stroke="#aee4ff" stroke-width="1"/><circle cx="16" cy="13" r="1.4" fill="none" stroke="#aee4ff" stroke-width="0.8"/>`,
+Parasite:`<ellipse cx="32" cy="32" rx="25" ry="21" fill="#0a0414" opacity=".55"/><path d="M14 46 Q9 53 13 58 M50 46 Q55 53 51 58 M32 51 Q32 60 30 62" stroke="#3a1258" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M8 32 Q20 12 32 12 Q44 12 56 32 Q44 52 32 52 Q20 52 8 32Z" fill="#040108" stroke="#76205c" stroke-width="1.5"/><circle cx="32" cy="32" r="13" fill="#3a1258"/><circle cx="32" cy="32" r="10" fill="none" stroke="#5a1c86" stroke-width="1"/><circle cx="32" cy="32" r="6.5" fill="#7a2aa8"/><ellipse cx="32" cy="32" rx="2.4" ry="8" fill="#0a0208"/><path d="M21 32 Q32 30 43 32" stroke="#c43aa0" stroke-width="1" fill="none" opacity=".6"/>`,
+ShooShi:`<path d="M16 40 Q12 56 17 58 M24 44 Q22 58 28 57 M32 45 Q32 60 37 58 M40 44 Q42 58 47 57 M48 40 Q53 56 48 58" stroke="#4a2080" stroke-width="4.5" fill="none" stroke-linecap="round"/><ellipse cx="32" cy="33" rx="18" ry="18" fill="#6a32a6"/><ellipse cx="26" cy="27" rx="11" ry="11" fill="#a96fe0" opacity=".5"/><ellipse cx="20" cy="38" rx="3.5" ry="2.2" fill="#ff78c8" opacity=".5"/><ellipse cx="44" cy="38" rx="3.5" ry="2.2" fill="#ff78c8" opacity=".5"/><ellipse cx="25" cy="31" rx="4" ry="5" fill="#fdf7ff"/><ellipse cx="39" cy="31" rx="4" ry="5" fill="#fdf7ff"/><circle cx="25.6" cy="32" r="2" fill="#1a0a2a"/><circle cx="39.6" cy="32" r="2" fill="#1a0a2a"/><path d="M27 40 Q32 44 37 40" stroke="#1a0a2a" stroke-width="1.6" fill="none"/><rect x="22" y="12" width="20" height="7" rx="3" fill="#fbf7ef"/><circle cx="26" cy="10" r="5" fill="#fbf7ef"/><circle cx="32" cy="8" r="6" fill="#fbf7ef"/><circle cx="38" cy="10" r="5" fill="#fbf7ef"/>`,
+Tiki:`<ellipse cx="20" cy="49" rx="7" ry="5" fill="#2d5225"/><ellipse cx="44" cy="49" rx="7" ry="5" fill="#2d5225"/><ellipse cx="32" cy="38" rx="20" ry="16" fill="#365a2a"/><ellipse cx="32" cy="43" rx="11" ry="9" fill="#d4d0be"/><ellipse cx="20" cy="22" rx="9" ry="9" fill="#2a4820"/><ellipse cx="44" cy="22" rx="9" ry="9" fill="#2a4820"/><circle cx="20" cy="22" r="6" fill="#9fb4c4"/><circle cx="44" cy="22" r="6" fill="#9fb4c4"/><rect x="17" y="19" width="6" height="6" rx="1" fill="#1a2630"/><rect x="41" y="19" width="6" height="6" rx="1" fill="#1a2630"/><rect x="18.6" y="20.6" width="2.8" height="2.8" fill="#b03030"/><rect x="42.6" y="20.6" width="2.8" height="2.8" fill="#b03030"/><path d="M32 41 Q31 52 29 58" stroke="#7030c0" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="29" cy="58" rx="3.2" ry="2.4" fill="#6828b0"/><path d="M24 45 Q32 49 40 45" stroke="#253d1c" stroke-width="1.6" fill="none"/>`,
+Kebab:`<line x1="32" y1="6" x2="32" y2="58" stroke="#c9c2b0" stroke-width="2.4"/><circle cx="32" cy="16" r="8" fill="#8a4a22"/><rect x="24" y="24" width="16" height="9" rx="2" fill="#5bbf4a"/><circle cx="32" cy="38" r="8" fill="#a05a2a"/><rect x="24" y="46" width="16" height="8" rx="2" fill="#e03050"/><circle cx="28" cy="14" r="1.4" fill="#b76a3a"/><circle cx="35" cy="40" r="1.4" fill="#c07440"/>`,
+Bizzy:`<defs><filter id="bzAura"><feGaussianBlur stdDeviation="2"/></filter></defs><g transform="translate(32,32)"><circle cx="0" cy="0" r="12" fill="#ffd23a" opacity="0.15" filter="url(#bzAura)"/><ellipse cx="-3" cy="-7.2" rx="7.5" ry="3.2" fill="#e9f5ff" opacity="0.48" transform="rotate(-24)"/><ellipse cx="3" cy="-5.6" rx="5.5" ry="2.2" fill="#e9f5ff" opacity="0.48" transform="rotate(20)"/><ellipse cx="-3" cy="6" rx="6.8" ry="2.8" fill="#e9f5ff" opacity="0.32" transform="rotate(24)"/><ellipse cx="3" cy="4.8" rx="5" ry="2" fill="#e9f5ff" opacity="0.32" transform="rotate(-20)"/><ellipse cx="-3" cy="-7.2" rx="7.5" ry="3.2" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="0.4" transform="rotate(-24)" opacity="0.45"/><ellipse cx="0" cy="0" rx="7.9" ry="4.7" fill="#ffc20a"/><path d="M-5 -4 L5 -4 L5 4 L-5 4 Z" fill="#ffc20a" clip-path="polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)"/><rect x="-5.3" y="-4.7" width="2.7" height="9.4" fill="rgba(10,4,0,0.82)"/><rect x="0" y="-4.7" width="2.7" height="9.4" fill="rgba(10,4,0,0.82)"/><rect x="5.3" y="-4.7" width="2.7" height="9.4" fill="rgba(10,4,0,0.82)"/><ellipse cx="0" cy="0" rx="7.9" ry="4.7" fill="none" stroke="rgba(80,40,0,0.45)" stroke-width="0.5"/><circle cx="10.1" cy="0" r="3.5" fill="#160c00"/><path d="M-8,-1.2 L-10.8,-1.2 L-10.8,1.2 Z" fill="#3a2000"/><path d="M11.6,-1.5 Q15.8,-8.3 13.5,-11.3" stroke="rgba(12,6,0,0.85)" stroke-width="0.5" fill="none" stroke-linecap="round"/><path d="M11.6,-1.5 Q19.5,-6.8 17.3,-9.8" stroke="rgba(12,6,0,0.85)" stroke-width="0.5" fill="none" stroke-linecap="round"/><circle cx="13.5" cy="-11.3" r="1.3" fill="#160c00"/><circle cx="17.3" cy="-9.8" r="1.3" fill="#160c00"/></g>`,
+Muffin:`<path d="M16 33 L48 33 L43 58 L21 58Z" fill="#d96c12"/><path d="M23 33 L21 58 M30 33 L29 58 M37 33 L37 58 M44 33 L43 58" stroke="#5a1c02" stroke-width="2"/><rect x="14" y="30" width="36" height="5" rx="1" fill="#3a1000"/><path d="M15 31 Q15 11 32 11 Q49 11 49 31Z" fill="#7a3010"/><path d="M18 29 Q19 16 32 15 Q45 16 46 29Z" fill="#b05425"/><circle cx="25" cy="25" r="8" fill="#e8e4e0" stroke="#1a1208" stroke-width="1.3"/><circle cx="39" cy="25" r="8" fill="#e8e4e0" stroke="#1a1208" stroke-width="1.3"/><circle cx="26" cy="27" r="3.4" fill="#1a1208"/><circle cx="40" cy="27" r="3.4" fill="#1a1208"/>`,
+SHIMMY:`<g class="bd-spin-svg"><path d="M32 2 L36 14 L48 6 L42 18 L56 18 L44 26 L58 32 L44 38 L56 46 L42 46 L48 58 L36 50 L32 62 L28 50 L16 58 L22 46 L8 46 L20 38 L6 32 L20 26 L8 18 L22 18 L16 6 L28 14Z" fill="#fff27a" opacity=".25"/></g><path d="M32 8 L38 26 L57 26 L42 38 L48 56 L32 45 L16 56 L22 38 L7 26 L26 26Z" fill="#ffe24a" stroke="#ffb028" stroke-width="1.5"/><path d="M32 18 L35 28 L45 28 L37 34 L40 44 L32 38 L24 44 L27 34 L19 28 L29 28Z" fill="#fff7c0"/><circle cx="27" cy="30" r="1.8" fill="#a06a00"/><circle cx="37" cy="30" r="1.8" fill="#a06a00"/><path d="M28 35 Q32 38 36 35" stroke="#a06a00" stroke-width="1.4" fill="none"/>`,
+};
+function petSVG(type,size){ size=size||30; const m=PET_BODY[type]||PET_BODY.Dog;
+  return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" class="bd-petsvg">${m}</svg>`; }
+
+/* ════════ PAGE-ACCURATE PET ART (ported 1:1 from the character pages) ════════ */
+let _jimmyHappyT=0, _jimmyBounceT=0;
+function _jhRound(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+const _SS_INK = '#0c0512';
+function _ssNigiri(ctx, x, y, s, kind){
+  ctx.save(); ctx.translate(x, y); ctx.lineJoin = 'round';
+  ctx.fillStyle = '#f3ecda'; ctx.strokeStyle = _SS_INK; ctx.lineWidth = Math.max(1.4, s * 0.04);
+  _jhRound(ctx, -s * 0.6, -s * 0.12, s * 1.2, s * 0.5, s * 0.2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(-s * 0.4 + i * s * 0.26, s * 0.2, s * 0.05, 0, 7); ctx.fill(); }
+  const top = kind === 0 ? '#ff9a5c' : kind === 1 ? '#e2455f' : '#f7c9bd';
+  const g = ctx.createLinearGradient(0, -s * 0.5, 0, 0); g.addColorStop(0, top); g.addColorStop(1, kind === 1 ? '#b8324a' : '#e07a45');
+  ctx.fillStyle = g; ctx.lineWidth = Math.max(1.4, s * 0.04);
+  ctx.beginPath(); ctx.moveTo(-s * 0.62, -s * 0.04); ctx.quadraticCurveTo(0, -s * 0.62, s * 0.62, -s * 0.04);
+  ctx.quadraticCurveTo(s * 0.5, s * 0.08, 0, s * 0.06); ctx.quadraticCurveTo(-s * 0.5, s * 0.08, -s * 0.62, -s * 0.04); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = Math.max(1, s * 0.05);
+  ctx.beginPath(); ctx.moveTo(-s * 0.34, -s * 0.18); ctx.quadraticCurveTo(0, -s * 0.34, s * 0.34, -s * 0.16); ctx.stroke();
+  ctx.restore();
+}
+function _ssOcto(ctx, x, y, s, t){
+  ctx.save(); ctx.translate(x, y); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  for (let i = 0; i < 8; i++) {
+    const side = i < 4 ? -1 : 1, k = i % 4;
+    const bx = side * (s * 0.16 + k * s * 0.2);
+    const sway = Math.sin(t * 1.5 + i * 0.8) * s * 0.18;
+    ctx.strokeStyle = i % 2 ? '#5a2a8f' : '#4a2080'; ctx.lineWidth = s * 0.2 * (1 - k * 0.13);
+    ctx.beginPath(); ctx.moveTo(bx, s * 0.55);
+    ctx.quadraticCurveTo(bx + sway, s * 1.05, bx + sway * 1.5 + side * s * 0.12, s * 1.45 + Math.cos(t * 1.5 + i) * s * 0.1);
+    ctx.stroke();
+  }
+  const g = ctx.createRadialGradient(-s * 0.2, -s * 0.35, s * 0.1, 0, 0, s * 1.2);
+  g.addColorStop(0, '#a96fe0'); g.addColorStop(0.55, '#6a32a6'); g.addColorStop(1, '#341255');
+  ctx.fillStyle = g; ctx.strokeStyle = _SS_INK; ctx.lineWidth = Math.max(2, s * 0.04);
+  ctx.beginPath(); ctx.ellipse(0, 0, s * 0.92, s * 1.02, 0, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,120,200,0.3)';
+  ctx.beginPath(); ctx.ellipse(-s * 0.45, s * 0.28, s * 0.16, s * 0.1, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(s * 0.45, s * 0.28, s * 0.16, s * 0.1, 0, 0, 7); ctx.fill();
+  const blink = (Math.sin(t * 0.7) > 0.96) ? 0.12 : 1;
+  for (const dx of [-1, 1]) {
+    ctx.fillStyle = '#fdf7ff'; ctx.strokeStyle = _SS_INK; ctx.lineWidth = Math.max(1.5, s * 0.025);
+    ctx.beginPath(); ctx.ellipse(dx * s * 0.32, -s * 0.08, s * 0.2, s * 0.24 * blink, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = _SS_INK; ctx.beginPath(); ctx.ellipse(dx * s * 0.36, -s * 0.04, s * 0.1, s * 0.13 * blink, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(dx * s * 0.32, -s * 0.1, s * 0.035, 0, 7); ctx.fill();
+  }
+  ctx.strokeStyle = _SS_INK; ctx.lineWidth = Math.max(1.6, s * 0.03);
+  ctx.beginPath(); ctx.arc(0, s * 0.16, s * 0.16, 0.2, Math.PI - 0.2); ctx.stroke();
+  ctx.fillStyle = '#fbf7ef'; ctx.lineWidth = Math.max(2, s * 0.035);
+  _jhRound(ctx, -s * 0.34, -s * 1.02, s * 0.68, s * 0.26, s * 0.1); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(-s * 0.26, -s * 1.16, s * 0.2, s * 0.2, 0, 0, 7);
+  ctx.ellipse(0, -s * 1.26, s * 0.24, s * 0.24, 0, 0, 7);
+  ctx.ellipse(s * 0.26, -s * 1.16, s * 0.2, s * 0.2, 0, 0, 7);
+  ctx.fill(); ctx.stroke();
+  const lift = Math.sin(t * 2.4) * s * 0.08;
+  ctx.strokeStyle = '#7b3fb0'; ctx.lineWidth = s * 0.16; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(s * 0.6, s * 0.5); ctx.quadraticCurveTo(s * 1.15, s * 0.2, s * 1.05, -s * 0.25 + lift); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,160,220,0.7)';
+  for (let i = 0; i < 4; i++) { const tt = i / 3; const px = s * 0.6 + (s * 0.45) * tt + Math.sin(tt * 3) * s * 0.1, py = s * 0.5 - s * 0.75 * tt + lift * tt; ctx.beginPath(); ctx.arc(px + s * 0.06, py, s * 0.035, 0, 7); ctx.fill(); }
+  _ssNigiri(ctx, s * 1.05, -s * 0.42 + lift, s * 0.36, 0);
+  ctx.restore();
+}
+function _hrHash(i){ const v = Math.sin(i * 61.17 + 9.3) * 43758.5453; return v - Math.floor(v); }
+function _hrDrawEye(ctx, cx, cy, sz, open01, lookA, glow, seed){
+  if (open01 <= 0.02) return;
+  const PI2 = Math.PI * 2;
+  const s1 = _hrHash((seed||0)*13+2), s2 = _hrHash((seed||0)*29+5), s3 = _hrHash((seed||0)*7+11);
+  const w = sz, h = sz * 0.6 * open01;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate((s3 - 0.5) * 0.3);
+  const lid = () => {
+    ctx.beginPath(); ctx.moveTo(-w, 0);
+    ctx.quadraticCurveTo(-w * 0.55, -h * (1.6 + s1 * 0.7), -w * (0.18 - s2 * 0.12), -h * (1.85 + s2 * 0.5));
+    ctx.quadraticCurveTo(w * 0.42, -h * (1.7 + s1 * 0.4), w, 0);
+    ctx.quadraticCurveTo(w * 0.5, h * (1.5 + s2 * 0.6), -w * 0.1, h * (1.7 + s1 * 0.45));
+    ctx.quadraticCurveTo(-w * 0.6, h * 1.5, -w, 0); ctx.closePath();
+  };
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.ellipse(0, 0, w * 1.28, h * 2.2, 0, 0, PI2); ctx.fill();
+  lid(); ctx.fillStyle = '#040108'; ctx.fill();
+  ctx.strokeStyle = `rgba(118,32,92,${(0.30 + glow * 0.22).toFixed(3)})`; ctx.lineWidth = 1; ctx.stroke();
+  ctx.clip();
+  ctx.fillStyle = 'rgba(38,13,58,0.35)';
+  ctx.beginPath(); ctx.ellipse(0, 0, w * 0.8, h * 1.4, 0, 0, PI2); ctx.fill();
+  const ix = Math.cos(lookA) * w * 0.24, iy = Math.sin(lookA) * h * 0.55;
+  ctx.fillStyle = `rgba(58,18,88,${(0.45 + glow * 0.2).toFixed(3)})`;
+  ctx.beginPath(); ctx.arc(ix, iy, sz * 0.42, 0, PI2); ctx.fill();
+  for (let r = 3; r >= 1; r--) {
+    ctx.strokeStyle = `rgba(${86 + r * 16},${18 + r * 7},${124 + r * 18},${(0.15 + glow * 0.10).toFixed(3)})`;
+    ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(ix, iy, sz * 0.13 * r, 0, PI2); ctx.stroke();
+  }
+  ctx.save(); ctx.translate(ix, iy); ctx.rotate(Math.sin(lookA) * 0.2);
+  ctx.fillStyle = `rgba(142,38,108,${(0.30 + glow * 0.28).toFixed(3)})`;
+  ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.12, sz * 0.46, 0, 0, PI2); ctx.fill();
+  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.075, sz * 0.4, 0, 0, PI2); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(105,24,66,0.42)'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(-w, 0); ctx.quadraticCurveTo(-w * 0.6, -h * 0.4, -w * 0.35 + ix * 0.3, iy * 0.5 - h * 0.2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w, 0); ctx.quadraticCurveTo(w * 0.6, h * 0.5, w * 0.4 + ix * 0.3, iy * 0.5 + h * 0.3); ctx.stroke();
+  ctx.restore();
+}
+function _smStar4(ctx, x, y, r, elong, col, alpha){
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = col; ctx.beginPath();
+  ctx.moveTo(x, y - r * (elong || 1.4));
+  ctx.quadraticCurveTo(x + r * 0.22, y - r * 0.22, x + r, y);
+  ctx.quadraticCurveTo(x + r * 0.22, y + r * 0.22, x, y + r * (elong || 1.4));
+  ctx.quadraticCurveTo(x - r * 0.22, y + r * 0.22, x - r, y);
+  ctx.quadraticCurveTo(x - r * 0.22, y - r * 0.22, x, y - r * (elong || 1.4));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function _smConstFish(ctx, t, ph){
+  const flick = Math.sin(t * 5 + ph) * 2.5;
+  const pts = [[15,0],[5,-6],[-9,-4+flick],[-15,flick*1.4],[-9,4+flick],[5,6]];
+  ctx.strokeStyle = 'rgba(190,235,255,0.4)'; ctx.lineWidth = 0.9; ctx.beginPath();
+  for (let i = 0; i <= pts.length; i++){ const p = pts[i % pts.length]; i === 0 ? ctx.moveTo(p[0],p[1]) : ctx.lineTo(p[0],p[1]); }
+  ctx.stroke();
+  for (let i = 0; i < pts.length; i++){ const tw = 0.55 + 0.45 * Math.sin(t*3+ph+i*1.9);
+    _smStar4(ctx, pts[i][0], pts[i][1], 2.2+tw, 1.5, i===0?'#ffe27a':'#cfeeff', 0.5+tw*0.5); }
+}
+function _rgDrawPhoenix(ctx, s, flap, t, glow){
+  const PI2 = Math.PI * 2; ctx.save(); ctx.scale(s, s);
+  const wing = Math.sin(flap); const g = Math.max(0, Math.min(1, glow || 0));
+  for (let r = 0; r < 3; r++) {
+    const off = (r - 1) * 5; const wav = Math.sin(t*6+r*2.1)*6; const wav2 = Math.sin(t*4.5+r*1.3)*9; const len = 52 + r*10;
+    ctx.beginPath(); ctx.moveTo(-10, off*0.4);
+    ctx.bezierCurveTo(-24, off+wav*0.5, -36, off+wav, -len, off*1.6+wav2);
+    ctx.bezierCurveTo(-36, off+wav+3, -24, off+wav*0.5+3, -10, off*0.4+2.5);
+    ctx.closePath();
+    const ta = 0.5 - r*0.12 + g*0.3;
+    ctx.fillStyle = r===0?`rgba(255,177,54,${ta.toFixed(3)})`:r===1?`rgba(255,94,31,${ta.toFixed(3)})`:`rgba(190,40,16,${ta.toFixed(3)})`;
+    ctx.fill();
+  }
+  const wingShape = (dir, lift) => {
+    ctx.beginPath(); ctx.moveTo(2, -3);
+    ctx.bezierCurveTo(8, -10 - lift*0.6, 18, -16 - lift, 30, -18 - lift*1.35);
+    ctx.lineTo(24, -12 - lift*0.95); ctx.lineTo(27, -8 - lift*0.8); ctx.lineTo(20, -5 - lift*0.55);
+    ctx.lineTo(23, -1 - lift*0.4); ctx.lineTo(12, 1 - lift*0.15); ctx.closePath();
+  };
+  ctx.save(); ctx.translate(-2, 1); ctx.scale(0.92, 1); wingShape(-1, wing*13 - 3);
+  ctx.fillStyle = `rgba(170,40,14,${(0.55 + g*0.3).toFixed(3)})`; ctx.fill(); ctx.restore();
+  ctx.beginPath(); ctx.moveTo(16, -1);
+  ctx.bezierCurveTo(12, -7, 0, -7.5, -9, -3.5); ctx.bezierCurveTo(-12, -1.5, -12, 2.5, -8, 4.2);
+  ctx.bezierCurveTo(0, 7.5, 12, 5.5, 16, -1); ctx.closePath();
+  ctx.fillStyle = `rgba(255,${Math.round(120+g*90)},${Math.round(34+g*120)},0.95)`; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(2, 0.5, 8, 3.4, -0.15, 0, PI2);
+  ctx.fillStyle = `rgba(255,220,130,${(0.5+g*0.4).toFixed(3)})`; ctx.fill();
+  ctx.beginPath(); ctx.arc(17.5, -3.5, 4.4, 0, PI2); ctx.fillStyle = `rgba(255,${Math.round(150+g*70)},50,0.97)`; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(21.2, -4.6); ctx.lineTo(26.5, -3.1); ctx.lineTo(21.2, -1.7); ctx.closePath(); ctx.fillStyle = '#ffd98c'; ctx.fill();
+  for (let k = 0; k < 3; k++) {
+    const ca = -1.9 + k*0.45 + Math.sin(t*7+k)*0.1;
+    ctx.beginPath(); ctx.moveTo(16.5+k*1.2, -7);
+    ctx.quadraticCurveTo(15+k*1.4+Math.cos(ca)*4, -13-k, 14+k*2.2, -14.5-k*1.5);
+    ctx.quadraticCurveTo(17+k*1.4, -11, 18+k*1.2, -7.2); ctx.closePath();
+    ctx.fillStyle = `rgba(255,140,40,${(0.7-k*0.15).toFixed(3)})`; ctx.fill();
+  }
+  ctx.fillStyle = '#2a0a00'; ctx.beginPath(); ctx.arc(18.6, -4.2, 1, 0, PI2); ctx.fill();
+  ctx.save(); ctx.translate(0, -1); wingShape(1, wing*16);
+  const wg = ctx.createLinearGradient(2, 0, 30, -20);
+  wg.addColorStop(0, 'rgba(255,196,80,0.95)'); wg.addColorStop(1, 'rgba(255,80,24,0.85)');
+  ctx.fillStyle = wg; ctx.fill(); ctx.restore();
+  ctx.restore();
+}
+function _drawKatieFrog(ctx, x, y, ang, spd, t){
+  const norm = Math.min(1, spd/350); const sqX = 1 + norm*0.22; const sqY = 1 - norm*0.14;
+  const hop = spd > 30 ? Math.abs(Math.sin(t*13))*Math.min(10, spd*0.035) : 0;
+  const blink = Math.sin(t*1.7) > 0.94;
+  ctx.save(); ctx.translate(x, y - hop); ctx.rotate(ang); ctx.scale(sqX, sqY);
+  const BW = 24, BH = 20;
+  const wag = Math.sin(t*9+spd*0.05)*(5+norm*22);
+  const mouthY = -BH*0.28; const tongueLen = BH*0.45+10+norm*18+Math.abs(Math.sin(t*3.5))*7; const tipY = mouthY - tongueLen;
+  ctx.save(); ctx.shadowBlur = 6; ctx.shadowColor = '#5520a0';
+  ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#7030c0';
+  ctx.beginPath(); ctx.moveTo(0, mouthY);
+  ctx.bezierCurveTo(wag*0.3, mouthY-tongueLen*0.35, wag*0.75, mouthY-tongueLen*0.68, wag, tipY); ctx.stroke();
+  ctx.fillStyle = '#6828b0'; ctx.beginPath(); ctx.ellipse(wag, tipY, 6, 4, Math.atan2(-tongueLen, wag), 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0; ctx.restore();
+  for (const s of [-1,1]) { ctx.save(); ctx.translate(s*BW*0.78, BH*0.55); ctx.rotate(s*0.4);
+    ctx.beginPath(); ctx.ellipse(s*3, 5, 8, 6, s*0.3, 0, Math.PI*2); ctx.fillStyle = '#2d5225'; ctx.fill(); ctx.restore(); }
+  for (const s of [-1,1]) { ctx.save(); ctx.translate(s*BW*0.7, BH*0.05); ctx.rotate(s*0.55);
+    ctx.beginPath(); ctx.ellipse(s*2.5, 4, 6, 4.5, s*0.25, 0, Math.PI*2); ctx.fillStyle = '#2d5225'; ctx.fill(); ctx.restore(); }
+  const bg = ctx.createRadialGradient(-BW*0.25, -BH*0.25, 2, 0, 0, BW*1.1);
+  bg.addColorStop(0,'#4a7038'); bg.addColorStop(0.65,'#365a2a'); bg.addColorStop(1,'#253d1c');
+  ctx.beginPath(); ctx.ellipse(0, 0, BW, BH, 0, 0, Math.PI*2); ctx.fillStyle = bg;
+  ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.fill(); ctx.shadowBlur = 0;
+  ctx.beginPath(); ctx.ellipse(0, BH*0.18, BW*0.56, BH*0.56, 0, 0, Math.PI*2); ctx.fillStyle = '#d4d0be'; ctx.fill();
+  const EX = BW*0.52, EY_base = -BH*0.55, ER = 8;
+  for (const s of [-1,1]) {
+    const ex = s*EX, ey = EY_base;
+    ctx.beginPath(); ctx.ellipse(ex, ey, ER+2, ER+1.5, 0, 0, Math.PI*2); ctx.fillStyle = '#2a4820'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ex, ey, ER, ER*0.92, 0, 0, Math.PI*2); ctx.fillStyle = '#8ab4c8'; ctx.fill();
+    if (blink) { ctx.save(); ctx.beginPath(); ctx.moveTo(ex-ER*0.6, ey); ctx.lineTo(ex+ER*0.6, ey);
+      ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore(); }
+    else { const pw = ER*0.7, ph = ER*0.82; ctx.fillStyle = '#0a0a0a'; ctx.beginPath();
+      ctx.moveTo(ex-pw*0.5+2, ey-ph*0.5); ctx.lineTo(ex+pw*0.5-2, ey-ph*0.5);
+      ctx.arcTo(ex+pw*0.5, ey-ph*0.5, ex+pw*0.5, ey-ph*0.5+2, 2); ctx.lineTo(ex+pw*0.5, ey+ph*0.5-2);
+      ctx.arcTo(ex+pw*0.5, ey+ph*0.5, ex+pw*0.5-2, ey+ph*0.5, 2); ctx.lineTo(ex-pw*0.5+2, ey+ph*0.5);
+      ctx.arcTo(ex-pw*0.5, ey+ph*0.5, ex-pw*0.5, ey+ph*0.5-2, 2); ctx.lineTo(ex-pw*0.5, ey-ph*0.5+2);
+      ctx.arcTo(ex-pw*0.5, ey-ph*0.5, ex-pw*0.5+2, ey-ph*0.5, 2); ctx.closePath(); ctx.fill(); }
+    const icx = ex - s*ER*0.42, icy = ey+ER*0.3;
+    ctx.beginPath(); ctx.ellipse(icx, icy, ER*0.42, ER*0.28, s*0.4, 0, Math.PI*2); ctx.fillStyle = 'rgba(130,10,0,0.82)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(ex-ER*0.32, ey-ER*0.32, ER*0.21, 0, Math.PI*2); ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.fill();
+  }
+  ctx.restore();
+}
+function _drawJimmyMuffin(ctx, cx, cy, t, scale, curX, curY){
+  const happy = _jimmyHappyT; const bobY = Math.sin(t*1.5)*5 - happy*4; const breathe = 1 + Math.sin(t*1.1)*0.012;
+  const bT = _jimmyBounceT; const sq = bT > 0 ? Math.sin(bT*Math.PI*3.2)*bT*0.42 : 0;
+  const sX = (1+sq*0.30)*breathe, sY = (1-sq*0.38)*breathe;
+  ctx.save(); ctx.translate(cx, cy+bobY); const sxx = scale*sX, syy = scale*sY; ctx.scale(sxx, syy);
+  const lcx = (curX-cx)/sxx, lcy = (curY-(cy+bobY))/syy;
+  const eyeR = 14, eyeOX = 18, eyeY = 0; const cupTW = 19, cupBW = 14, cupH = 22;
+  const cupTopY = eyeY+eyeR, cupBotY = cupTopY+cupH; const domeR = 16, domeY = cupTopY-domeR;
+  ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = '#2a1604';
+  ctx.beginPath(); ctx.ellipse(0, cupBotY+7, cupTW*1.15, 7, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.moveTo(-cupTW, cupTopY); ctx.lineTo(-cupBW, cupBotY); ctx.lineTo(cupBW, cupBotY); ctx.lineTo(cupTW, cupTopY); ctx.closePath();
+  const wg = ctx.createLinearGradient(-cupTW, 0, cupTW, 0);
+  wg.addColorStop(0, '#993e04'); wg.addColorStop(0.18, '#d96c12'); wg.addColorStop(0.50, '#ee8c28'); wg.addColorStop(0.82, '#d96c12'); wg.addColorStop(1, '#993e04');
+  ctx.fillStyle = wg; ctx.fill(); ctx.clip();
+  ctx.strokeStyle = 'rgba(38,10,0,0.62)'; ctx.lineWidth = 2.8;
+  for (let i = 0; i <= 6; i++) { const f = i/6; ctx.beginPath(); ctx.moveTo(-cupTW+f*cupTW*2, cupTopY); ctx.lineTo(-cupBW+f*cupBW*2, cupBotY); ctx.stroke(); }
+  ctx.restore();
+  ctx.fillStyle = 'rgba(40,10,0,0.88)'; ctx.beginPath();
+  ctx.moveTo(-cupTW-1, cupTopY-1); ctx.lineTo(cupTW+1, cupTopY-1); ctx.lineTo(cupTW+1, cupTopY+4); ctx.lineTo(-cupTW-1, cupTopY+4); ctx.closePath(); ctx.fill();
+  const dg = ctx.createRadialGradient(-domeR*0.28, domeY-domeR*0.28, 2, 0, domeY, domeR*1.05);
+  dg.addColorStop(0, '#b05425'); dg.addColorStop(0.40, '#7a3010'); dg.addColorStop(1, '#2e0e02');
+  ctx.beginPath(); ctx.arc(0, domeY, domeR, 0, Math.PI*2); ctx.fillStyle = dg; ctx.fill();
+  for (let sgn = -1; sgn <= 1; sgn += 2) {
+    const ex = sgn*eyeOX; const er = eyeR + happy*1.6;
+    ctx.beginPath(); ctx.arc(ex, eyeY, er, 0, Math.PI*2); ctx.fillStyle = '#e8e4e0'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.70)'; ctx.lineWidth = 1.8; ctx.stroke();
+    let dx = lcx-ex, dy = lcy-eyeY; const d = Math.hypot(dx, dy)||1; const reach = Math.min(er*0.40, d);
+    const px = ex+(dx/d)*reach, py = eyeY+(dy/d)*reach;
+    ctx.beginPath(); ctx.arc(px, py, er*0.58, 0, Math.PI*2); ctx.fillStyle = '#111'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px+er*0.19, py-er*0.19, er*0.19, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+  }
+  if (happy > 0.02) { for (let sgn = -1; sgn <= 1; sgn += 2) { const er = eyeR+happy*1.6; ctx.globalAlpha = happy*0.50;
+    ctx.beginPath(); ctx.ellipse(sgn*(eyeOX+er*0.55), eyeY+er*0.80, er*0.62, er*0.26, 0, 0, Math.PI*2); ctx.fillStyle = '#ff4466'; ctx.fill(); } ctx.globalAlpha = 1; }
+  ctx.restore();
+}
+
+/* canvas-rendered pets that match their character pages 1:1 */
+const PET_CANVAS = {Phoenix:1, CosmicFish:1, Parasite:1, ShooShi:1, Tiki:1, Muffin:1};
+function petMarkup(type,size){
+  if(PET_CANVAS[type]) return `<canvas class="bd-petc" data-pet="${type}" width="${size*2}" height="${size*2}" style="width:${size}px;height:${size}px;display:block;"></canvas>`;
+  return petSVG(type,size);
+}
+function petPaint(ctx, type, W, H, t){
+  ctx.clearRect(0,0,W,H); const cx=W/2, cy=H/2; ctx.save();
+  if(type==='Phoenix'){ ctx.translate(cx+W*0.06, cy); _rgDrawPhoenix(ctx, W/120, t*7.5, t, 0.12+0.12*Math.sin(t*2)); }
+  else if(type==='Tiki'){ const s=W/82; ctx.translate(cx, cy+H*0.05); ctx.scale(s,s); _drawKatieFrog(ctx,0,0,0,0,t); }
+  else if(type==='Muffin'){ _drawJimmyMuffin(ctx, cx, cy-H*0.05, t, W/82, cx, cy-H*0.6); }
+  else if(type==='ShooShi'){ _ssOcto(ctx, cx-W*0.03, cy-H*0.01, W*0.23, t); }
+  else if(type==='Parasite'){ _hrDrawEye(ctx, cx, cy, W/3.0, 1, Math.sin(t*1.2)*1.3, 0.5+0.25*Math.sin(t*3), 7); }
+  else if(type==='CosmicFish'){ ctx.translate(cx,cy); const s=W/42; ctx.scale(s,s); _smConstFish(ctx, t, 0); }
+  ctx.restore();
+}
+function petAnimLoop(){
+  if(!document.hidden){
+    const t=performance.now()/1000;
+    document.querySelectorAll('.bd-petc').forEach(cv=>{ try{ petPaint(cv.getContext('2d'), cv.dataset.pet, cv.width, cv.height, t); }catch(e){} });
+  }
+  requestAnimationFrame(petAnimLoop);
+}
+
+/* ─────────────── ROSTER (fixed list) ─────────────── */
+/* The full baddie roster with assigned rarities. Each image is baddies/<key>.png.
+   To add a baddie: add a line here and drop the matching png in the baddies folder. */
+const BADDIES = [
+  {key:'codebaddie',rarity:'Apex'},
+  {key:'komodobaddie',rarity:'Legendary'},
+  {key:'racialbaddie',rarity:'Secret'},
+  {key:'frogbaddie',rarity:'Secret'},
+  {key:'employmentbaddie',rarity:'Mythic'},
+  {key:'sniperbaddie',rarity:'Secret'},
+  {key:'humblebaddie',rarity:'Cosmic'},
+  {key:'bravebaddie',rarity:'Mythic'},
+  {key:'phonebaddie',rarity:'Sacred'},
+  {key:'drunkbaddie',rarity:'Godly'},
+  {key:'parasitebaddie',rarity:'Mythic'},
+  {key:'nightguardbaddie',rarity:'Godly'},
+  {key:'cottonbaddie',rarity:'Legendary'},
+  {key:'bloodbaddie',rarity:'Prismatic'},
+  {key:'shimmybaddie',rarity:'Cosmic'},
+  {key:'lifebaddie',rarity:'Epic'},
+  {key:'fatbaddie',rarity:'Epic'},
+  {key:'beebaddie',rarity:'Prismatic'},
+  {key:'cupcakebaddie',rarity:'Prismatic'},
+  {key:'devilbaddie',rarity:'Godly'},
+  {key:'dominantbaddie',rarity:'Sacred'},
+  {key:'policebaddie',rarity:'Rare'},
+  {key:'engibaddie',rarity:'Legendary'},
+  {key:'moonbaddie',rarity:'Prismatic'},
+  {key:'sunbaddie',rarity:'Secret'},
+  {key:'waterbaddie',rarity:'Godly'},
+  {key:'kebabbaddie',rarity:'Sacred'},
+  {key:'milfbaddie',rarity:'Divine'},
+  {key:'deathbaddie',rarity:'Legendary'},
+  {key:'phoenixbaddie',rarity:'Cosmic'},
+  {key:'rhinobaddie',rarity:'Sacred'},
+  {key:'bunnybaddie',rarity:'Mythic'},
+  {key:'crowbaddie',rarity:'Sacred'},
+  {key:'junglebaddie',rarity:'Common'},
+  {key:'anorexicbaddie',rarity:'Common'},
+  {key:'starbaddie',rarity:'Secret'},
+  {key:'axolotlbaddie',rarity:'Mythic'},
+  {key:'mombaddie',rarity:'Secret'},
+  {key:'burgerbaddie',rarity:'Cosmic'},
+  {key:'lightbaddie',rarity:'Sacred'},
+  {key:'bossbaddie',rarity:'Prismatic'},
+  {key:'jihaubaddie',rarity:'Prismatic'},
+  {key:'mexicanbaddie',rarity:'Mythic'},
+  {key:'artbaddie',rarity:'Primordial'},
+  {key:'goatbaddie',rarity:'Rare'},
+  {key:'piratebaddie',rarity:'Sacred'},
+  {key:'sirenbaddie',rarity:'Secret'},
+  {key:'twirlybaddie',rarity:'Common'},
+  {key:'furrybaddie',rarity:'Secret'},
+  {key:'clockbaddie',rarity:'Mythic'},
+  {key:'armorbaddie',rarity:'Godly'},
+  {key:'frutigerbaddie',rarity:'Secret'},
+  {key:'seabunnybaddie',rarity:'Secret'},
+  {key:'sushibaddie',rarity:'Godly'},
+  {key:'texasbaddie',rarity:'Prismatic'},
+  {key:'daddybaddie',rarity:'Godly'},
+  {key:'dragbaddie',rarity:'Mythic'},
+  {key:'virusbaddie',rarity:'Secret'},
+  {key:'priestbaddie',rarity:'Godly'},
+  {key:'pawnbaddie',rarity:'Prismatic'},
+  {key:'fuckbaddie',rarity:'Sacred'},
+  {key:'steampunkbaddie',rarity:'Sacred'},
+  {key:'nullbaddie',rarity:'Divine'},
+  {key:'maskbaddie',rarity:'Prismatic'},
+  {key:'tikibaddie',rarity:'Rare'},
+  {key:'archiebaddie',rarity:'Rare'},
+  {key:'determinedbaddie',rarity:'Cosmic'},
+  {key:'firemanbaddie',rarity:'Legendary'},
+  {key:'mangabaddie',rarity:'Prismatic'},
+  {key:'schizobaddie',rarity:'Godly'},
+  {key:'infestedbaddie',rarity:'Sacred'},
+  {key:'larpingbaddie',rarity:'Cosmic'},
+];
+let ROSTER = [];
+let ROSTER_BY_RARITY = {};   // rarityKey -> [entries]
+function rebuildRoster(){
+  ROSTER = BADDIES.map(b=>({ key:b.key, rarity:b.rarity }));
+  ROSTER_BY_RARITY = {};
+  RARITIES.forEach(r=>ROSTER_BY_RARITY[r.key]=[]);
+  ROSTER.forEach(e=>{ (ROSTER_BY_RARITY[e.rarity] || ROSTER_BY_RARITY.Common).push(e); });
+}
+function rosterEntry(key){ return ROSTER.find(e=>e.key===key) || { key, rarity:'Common' }; }
+function pickCharForRarity(rarKey){
+  let idx = RAR_IDX[rarKey];
+  // exact tier, else nearest lower with baddies, else nearest higher
+  for(let i=idx;i>=0;i--){ const a=ROSTER_BY_RARITY[RARITIES[i].key]; if(a&&a.length) return {entry:rnd(a),rarity:RARITIES[i].key}; }
+  for(let i=idx+1;i<RARITIES.length;i++){ const a=ROSTER_BY_RARITY[RARITIES[i].key]; if(a&&a.length) return {entry:rnd(a),rarity:RARITIES[i].key}; }
+  return {entry:{key:'mysterybaddie',rarity:rarKey}, rarity:rarKey};
+}
+
+/* ─────────────── MULTIPLIER AGGREGATION ─────────────── */
+function potionMult(type){
+  let m=1;
+  S.potions.forEach(p=>{ if(p.type===type && p.exp>Date.now()) m*=p.mult; });
+  return m;
+}
+function petMults(){
+  let luck=1, money=1;
+  S.pets.equipped.forEach(id=>{
+    const p=S.pets.list.find(x=>x.id===id); if(!p) return;
+    const def=PETS[p.type]; if(!def) return;
+    luck*=def.luck; money*=def.money;
+  });
+  return {luck,money};
+}
+let _debugLuck=1;
+function rebirthMult(){ return 1 + 0.25 * (S.rebirths||0); }   // additive +0.25 per rebirth
+function themeMutBuff(){ return thmMeta(S.themes.active).mutbuff || 1; }
+function totalLuck(){ return potionMult('luck') * petMults().luck * rebirthMult() * _debugLuck; }
+function totalMoneyMult(){ return potionMult('money') * petMults().money * rebirthMult(); }
+function totalModMult(){ return potionMult('mod') * themeMutBuff() * rebirthMult(); }
+
+/* ─────────────── ROLL LOGIC ─────────────── */
+/* rarity index needed for rebirths 1..5; also acts as the soft "cap" - rolling
+   above your current cap is heavily penalised (rarer, not impossible) */
+const REBIRTH_REQ = [4,6,8,10,11]; // Divine, Prismatic, Secret, Cosmic, Apex
+function rebirthCapIdx(){ const r=S.rebirths||0; return r>=5 ? 99 : REBIRTH_REQ[r]; }
+function pickRarityIndex(weights, luck){
+  const cap=rebirthCapIdx();
+  const w = weights.map((base,i)=>{ let v=base*Math.pow(luck,i*0.32); if(i>cap) v*=Math.pow(0.05,i-cap); return v; });
+  const total=w.reduce((a,b)=>a+b,0);
+  let x=Math.random()*total;
+  for(let i=0;i<w.length;i++){ if(x<w[i]) return i; x-=w[i]; }
+  return 0;
+}
+function pickModifier(modMult, allowCappy){
+  const pool = MODIFIERS.filter(m=>allowCappy ? true : !m.itemOnly);
+  // bias toward higher index (better) by modMult
+  const w = pool.map((m,i)=> m.weight * Math.pow(modMult, i*0.42));
+  const total=w.reduce((a,b)=>a+b,0);
+  let x=Math.random()*total;
+  for(let i=0;i<pool.length;i++){ if(x<w[i]) return pool[i].key; x-=w[i]; }
+  return 'None';
+}
+function makeBaddie(rarKey, modKey){
+  const pick = pickCharForRarity(rarKey);
+  return {
+    id:_uid++, key:pick.entry.key, rarity:pick.rarity,
+    modifier: modKey || 'None', level:0, placed:false, slot:-1, overUntil:0, born:Date.now(),
+    varMul: +(0.5 + Math.random()).toFixed(3),   // same-rarity income varies 0.5x..1.5x
+  };
+}
+let _lastRolls=[];
+function doOneRoll(){
+  const die = DICE[S.activeDie] || DICE[0];
+  const ri = pickRarityIndex(die.weights, totalLuck());
+  const mod = pickModifier(totalModMult(), false);
+  const b = makeBaddie(RARITIES[ri].key, mod);
+  S.baddies.push(b);
+  S.unlocked[b.key]=true;                                  // index
+  const idx=RAR_IDX[b.rarity]; if(idx>(S.maxRarityEver||0)) S.maxRarityEver=idx;  // rebirth gating
+  return b;
+}
+let _rollBusy=false;
+function bdRoll(){
+  if(_rollBusy){ return; }
+  if(!S.dice.includes(S.activeDie)){ toast('YOU DO NOT OWN THAT DIE'); return; }
+  const b=doOneRoll(); save(true); refreshTop();
+  showRollOverlay(b);
+}
+function showRollOverlay(b){
+  const ov=document.getElementById('bd-roll-ov');
+  const cyc=document.getElementById('bd-roll-cyc');
+  const card=document.getElementById('bd-roll-card');
+  const info=document.getElementById('bd-roll-info');
+  const rays=document.getElementById('bd-roll-rays');
+  ov.classList.add('on');
+  rays.style.display='none';
+  info.textContent='';
+  playSfx('diceroll',{v:0.5});
+  // show the active die tumbling with its own animation style
+  const dieEl=document.getElementById('bd-roll-die');
+  if(dieEl){ dieEl.style.display='block'; dieEl.className='bd-dieanim-'+(DICE_ANIM[S.activeDie]||'tumble'); dieEl.innerHTML=diceSVG(S.activeDie,100); }
+  // scramble cycle - faster with better cursors
+  _rollBusy=true;
+  const spd=rollSpeed();
+  let ticks=0; const max=14+Math.floor(Math.random()*6);
+  const iv=Math.max(26, Math.round(70/spd));
+  card.innerHTML=''; card.className='';
+  const allKeys=ROSTER.map(e=>e.key);
+  const timer=setInterval(()=>{
+    ticks++;
+    const fakeR=rnd(RARITIES);
+    cyc.textContent = rnd(allKeys.length?allKeys:['?????']).toUpperCase();
+    cyc.style.color=fakeR.col;
+    playSfx('dicealt',{v:0.18,rate:1.4});
+    if(ticks>=max){
+      clearInterval(timer);
+      landRoll(b);
+    }
+  }, iv);
+}
+function landRoll(b){
+  const cyc=document.getElementById('bd-roll-cyc');
+  const card=document.getElementById('bd-roll-card');
+  const info=document.getElementById('bd-roll-info');
+  const rays=document.getElementById('bd-roll-rays');
+  const rm=rarMeta(b.rarity), mm=modMeta(b.modifier);
+  cyc.textContent=baddieDisplayName(b.key).toUpperCase();
+  cyc.style.color=rm.col;
+  card.style.setProperty('--rc',rm.col);
+  card.className='bd-roll-land mod-'+b.modifier+' rar-'+b.rarity.toLowerCase();
+  card.innerHTML = baddieVisual(b, true);
+  rays.style.setProperty('--rc',rm.col);
+  if(RAR_IDX[b.rarity]>=4){ rays.style.display='block'; }
+  const modTxt = b.modifier==='None' ? '' : `<span style="color:${mm.col}">${b.modifier} x${mm.mult}</span><br>`;
+  info.innerHTML = `<span style="color:${rm.col};font-size:11px;">${b.rarity.toUpperCase()}</span><br>${modTxt}<span style="color:#7CFF4A">${fmt(baddieRate(b))}/s</span>`;
+  // screen reaction scaled by rarity
+  const idx=RAR_IDX[b.rarity];
+  const cx=innerWidth/2, cy=innerHeight*0.42;
+  flashScreen(rm.col);
+  if(idx>=8){ burst(cx,cy,rm.col,150,11); shakeScreen();
+    bigBanner(b.rarity.toUpperCase()+'!<small>'+escapeHtml(baddieDisplayName(b.key))+(b.modifier!=='None'?' &middot; '+b.modifier:'')+'</small>', rm.col); }
+  else if(idx>=5){ burst(cx,cy,rm.col,85,9); shakeScreen(); }
+  else if(idx>=3){ burst(cx,cy,rm.col,44,7); }
+  else { burst(cx,cy,rm.col,20,5); }
+  if(b.modifier!=='None' && MOD_IDX[b.modifier]>=7) burst(cx,cy,mm.col,40,8);
+  if(idx>=10) specialRollFX(idx, cx, cy);   // Cosmic / Apex / Primordial signature effects
+  // rarity sfx
+  if(idx>=8) playSfx('mythic',{v:0.7});
+  else if(idx>=5) playSfx('legendary',{v:0.6});
+  else playSfx('rolldone',{v:0.5});
+  // hide the spinning die and NOW reveal in recent pulls (after the animation)
+  const dieEl=document.getElementById('bd-roll-die'); if(dieEl) dieEl.style.display='none';
+  _lastRolls = [b].concat(_lastRolls).slice(0,40);
+  bdRenderRollInv();
+  _rollBusy=false;
+}
+function bdDismissRoll(){ document.getElementById('bd-roll-ov').classList.remove('on'); }
+function bdRollAgain(){
+  if(_rollBusy) return;
+  if(!S.dice.includes(S.activeDie)){ toast('YOU DO NOT OWN THAT DIE'); return; }
+  const b=doOneRoll(); save(true); refreshTop();
+  showRollOverlay(b);   // overlay stays open, just runs a fresh roll
+}
+
+/* ─────────────── INCOME ─────────────── */
+function baddieRate(b){
+  const base = rarMeta(b.rarity).rate;
+  const mod  = modMeta(b.modifier).mult;
+  const up   = upgradeMult(b.level||0);
+  const over = (b.overUntil>Date.now()) ? CRACK_MULT : 1;
+  return base * mod * up * over * (b.varMul||1);
+}
+function plotIncomePerSec(){
+  let sum=0;
+  S.baddies.forEach(b=>{ if(b.placed) sum+=baddieRate(b); });
+  return sum * totalMoneyMult();
+}
+let _acc=0, _lastTick=performance.now(), _hiddenAt=0;
+function tick(){
+  const now=performance.now();
+  const dt=Math.min(2, (now-_lastTick)/1000); _lastTick=now;
+  // while tabbed out we skip live accrual; the visibility handler credits the
+  // whole hidden span at FULL rate so being tabbed out is not penalised
+  if(!document.hidden){
+    const cps=plotIncomePerSec();
+    _acc += cps*dt;
+    if(_acc>=1){ const add=Math.floor(_acc); S.coins+=add; _acc-=add; refreshTop(); }
+  }
+  // expire potions
+  let dirty=false;
+  const before=S.potions.length;
+  S.potions=S.potions.filter(p=>p.exp>Date.now());
+  if(S.potions.length!==before){ dirty=true; refreshBuffs(); if(_curTab==='shop') bdRenderShop(); }
+  // finish upgrade
+  if(S.upgrade && Date.now()>=S.upgrade.finish){ finishUpgrade(); dirty=true; }
+  // overdrive end -> refresh visuals occasionally
+  save();
+  if(dirty) save(true);
+}
+function refreshTop(){
+  document.getElementById('bd-coins').textContent=fmt(S.coins);
+  document.getElementById('bd-cps').textContent=fmt(plotIncomePerSec())+'/s';
+  document.getElementById('bd-count').textContent=S.baddies.length;
+}
+function refreshBuffs(){
+  const el=document.getElementById('bd-buffs'); const parts=[];
+  const mm=totalMoneyMult(), lm=potionMult('luck')*petMults().luck, mod=totalModMult();
+  if(mm>1.001) parts.push(`<span class="bd-buff money">MONEY x${mm.toFixed(2)}</span>`);
+  if(lm>1.001) parts.push(`<span class="bd-buff luck">LUCK x${lm.toFixed(2)}</span>`);
+  if(mod>1.001) parts.push(`<span class="bd-buff mod">MOD x${mod.toFixed(2)}</span>`);
+  if(S.pets.equipped.length) parts.push(`<span class="bd-buff pet">${S.pets.equipped.length} PET(S)</span>`);
+  if(S.upgrade){ const left=S.upgrade.finish-Date.now(); if(left>0) parts.push(`<span class="bd-buff">UPGRADING ${fmtTime(left)}</span>`); }
+  const ck=S.crackUntil-Date.now();
+  if(ck>0) parts.push(`<span class="bd-buff">CRACK CD ${fmtTime(ck)}</span>`);
+  el.innerHTML=parts.join('');
+}
+
+/* ─────────────── BADDIE VISUAL ─────────────── */
+function baddieVisual(b, big){
+  const file=baddieImgFile(b.key);
+  const rm=rarMeta(b.rarity);
+  // placeholder = first 2 letters of the name (before "baddie") until the png exists
+  const initials = b.key.replace(/baddie$/i,'').slice(0,2).toUpperCase() || '??';
+  // replace ONLY the img with the placeholder (outerHTML) so the name/rarity meta survives
+  const onerr = `this.onerror=null;this.outerHTML='<div class=\\'ph\\' style=\\'--rc:${rm.col}\\'>${initials}</div>'`;
+  return `<img class="pic" src="${file}" onerror="${onerr}" alt=""/>`;
+}
+function baddieCard(b, ctx){
+  const rm=rarMeta(b.rarity), mm=modMeta(b.modifier);
+  const upClass = b.level>=40?'up3':b.level>=20?'up2':b.level>0?'up1':'';
+  const over = b.overUntil>Date.now();
+  const cls = ['bd-baddie','mod-'+b.modifier, upClass, 'rar-'+b.rarity.toLowerCase()].join(' ');
+  const modLine = b.modifier==='None' ? '' : `<div class="md" style="color:${mm.col}">${b.modifier} x${mm.mult}</div>`;
+  return `<div class="${cls}" style="--rc:${rm.col}" onclick="bdBaddieClick(${b.id})">
+    ${over?'<div class="ovr">OVERDRIVE</div>':''}
+    ${b.level>0?`<div class="lvl">LV ${b.level}</div>`:''}
+    ${baddieVisual(b)}
+    <div class="meta">
+      <div class="nm">${escapeHtml(baddieDisplayName(b.key))}</div>
+      <div class="rr">${b.rarity.toUpperCase()}</div>
+      ${modLine}
+      <div class="inc">${coinSVG(9)}${fmt(baddieRate(b))}/s</div>
+    </div>
+  </div>`;
+}
+
+/* cloudinary helper (mirrors site) */
+function cldImg(url){
+  if(typeof url!=='string') return url;
+  const m=url.match(/^(https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.*)$/i);
+  if(!m || /(^|\/)(f_|q_|fl_|t_)/.test(m[2])) return url;
+  const t=/\.gif($|\?)/i.test(m[2])?'q_auto,fl_lossy':'f_auto,q_auto';
+  return m[1]+t+'/'+m[2];
+}
+
+/* ─────────────── BADDIE CLICK MENU ─────────────── */
+function bdBaddieClick(id){
+  const b=S.baddies.find(x=>x.id===id); if(!b) return;
+  playSfx('click',{v:0.4});
+  const rm=rarMeta(b.rarity), mm=modMeta(b.modifier);
+  const upCost=upgradeCost(b);
+  const canUp = !S.upgrade && b.level<UPGRADE_MAX_LVL && S.coins>=upCost;
+  const crackReady = Date.now()>=S.crackUntil;
+  const over=b.overUntil>Date.now();
+  const sellV=sellValue(b);
+  const upBusy = S.upgrade && S.upgrade.id===id;
+  let upLabel = b.level>=UPGRADE_MAX_LVL ? 'MAX LEVEL'
+    : upBusy ? ('UPGRADING '+fmtTime(S.upgrade.finish-Date.now()))
+    : S.upgrade ? 'ANOTHER UPGRADE BUSY'
+    : ('UPGRADE  LV'+b.level+' to LV'+(b.level+1)+'  ['+fmt(upCost)+']');
+  openModal(`
+    <div style="text-align:center;">
+      <div class="bd-baddie mod-${b.modifier} rar-${b.rarity.toLowerCase()}" style="--rc:${rm.col};margin:0 auto 12px;cursor:default;pointer-events:none;width:150px;">
+        ${baddieVisual(b)}
+        <div class="meta">
+          <div class="nm">${escapeHtml(baddieDisplayName(b.key))}</div>
+          <div class="rr">${b.rarity.toUpperCase()}</div>
+          ${b.modifier==='None'?'':`<div class="md" style="color:${mm.col}">${b.modifier} x${mm.mult}</div>`}
+          <div class="inc">${coinSVG(9)}${fmt(baddieRate(b))}/s</div>
+        </div>
+      </div>
+      <div class="bd-sub" style="margin-bottom:14px;line-height:1.9;">
+        LEVEL ${b.level} &nbsp; UPGRADE x${upgradeMult(b.level).toFixed(2)}<br>
+        SELL VALUE ${fmt(sellV)} COINS
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="bd-btn" ${b.placed?'':''} onclick="bdTogglePlace(${id})">${b.placed?'REMOVE FROM PLOT':'PLACE ON PLOT'}</button>
+        <button class="bd-btn gold" ${canUp||upBusy?'':'disabled'} onclick="bdStartUpgrade(${id})">${upLabel}</button>
+        <button class="bd-btn ${crackReady&&!over?'gold':''}" ${crackReady&&!over?'':'disabled'} onclick="bdCrack(${id})">
+          ${over?'IN OVERDRIVE ('+fmtTime(b.overUntil-Date.now())+')':crackReady?'CRACK (OVERDRIVE x2, 5MIN)':'CRACK ON COOLDOWN ('+fmtTime(S.crackUntil-Date.now())+')'}
+        </button>
+        <button class="bd-btn danger" onclick="bdSellOne(${id})">SELL FOR ${fmt(sellV)}</button>
+      </div>
+    </div>
+  `);
+}
+
+/* ─────────────── PLOT ─────────────── */
+function placedCount(){ return S.baddies.filter(b=>b.placed).length; }
+function bdTogglePlace(id){
+  const b=S.baddies.find(x=>x.id===id); if(!b) return;
+  if(b.placed){ b.placed=false; b.slot=-1; }
+  else {
+    if(placedCount()>=PLOT_SIZE){ toast('PLOT IS FULL ('+PLOT_SIZE+')'); return; }
+    b.placed=true;
+  }
+  playSfx('equip',{v:0.5});
+  save(true); refreshTop(); bdCloseModal(); bdRenderPlot(); bdRenderInv();
+}
+function bdAutoPlace(){
+  // place the highest income baddies into the plot
+  const sorted=[...S.baddies].sort((a,b)=>baddieRate(b)-baddieRate(a));
+  S.baddies.forEach(b=>{ b.placed=false; b.slot=-1; });
+  sorted.slice(0,PLOT_SIZE).forEach(b=>b.placed=true);
+  playSfx('equip',{v:0.5});
+  save(true); refreshTop(); bdRenderPlot(); bdRenderInv();
+  toast('PLACED BEST '+Math.min(PLOT_SIZE,S.baddies.length)+' BADDIES','#7CFF4A');
+}
+function bdClearPlot(){
+  S.baddies.forEach(b=>{ b.placed=false; b.slot=-1; });
+  save(true); refreshTop(); bdRenderPlot(); bdRenderInv();
+}
+function bdRenderPlot(){
+  const grid=document.getElementById('bd-plot-grid');
+  // sort by income (highest first) so the biggest earners land top-left
+  const placed=S.baddies.filter(b=>b.placed).sort((a,b)=>baddieRate(b)-baddieRate(a));
+  let html='';
+  for(let i=0;i<PLOT_SIZE;i++){
+    const b=placed[i];
+    if(b){ const rm=rarMeta(b.rarity);
+      html+=`<div class="bd-slot full" style="--rc:${rm.col}">${baddieCard(b,'plot')}</div>`;
+    } else html+=`<div class="bd-slot empty" onclick="bdTab('inv')"><span class="bd-slot-plus">+</span></div>`;
+  }
+  grid.innerHTML=html;
+  _plotSig=plotSig();
+  bdPlotIncLine();
+}
+/* signature of what is shown in the plot - only rebuild the DOM when this
+   changes, so the modifier auras can glow smoothly instead of restarting
+   every second */
+let _plotSig=null;
+function plotSig(){ return S.baddies.filter(b=>b.placed).map(b=>b.id+':'+b.level+':'+b.modifier+':'+(b.overUntil>Date.now()?1:0)).join('|'); }
+function bdPlotIncLine(){
+  const inc=document.getElementById('bd-plot-inc'); if(!inc) return;
+  const n=S.baddies.filter(b=>b.placed).length;
+  inc.innerHTML=`${coinSVG(13)}<b>${fmt(plotIncomePerSec())}</b>/s &middot; ${n}/${PLOT_SIZE} placed`;
+}
+function bdPlotLive(){
+  if(plotSig()!==_plotSig){ bdRenderPlot(); return; }  // structural change -> full render
+  bdPlotIncLine();                                      // otherwise just refresh the number
+}
+
+/* ─────────────── UPGRADE ─────────────── */
+function bdStartUpgrade(id){
+  const b=S.baddies.find(x=>x.id===id); if(!b) return;
+  if(S.upgrade){ toast('ALREADY UPGRADING ANOTHER BADDIE'); return; }
+  if(b.level>=UPGRADE_MAX_LVL){ toast('MAX LEVEL'); return; }
+  const cost=upgradeCost(b);
+  if(S.coins<cost){ toast('NOT ENOUGH COINS'); return; }
+  S.coins-=cost;
+  S.upgrade={ id, finish:Date.now()+UPGRADE_COOLDOWN };
+  playSfx('save',{v:0.5});
+  toast('UPGRADING: 1 MIN','#ffd56a');
+  save(true); refreshTop(); refreshBuffs(); bdCloseModal();
+}
+function finishUpgrade(){
+  if(!S.upgrade) return;
+  const b=S.baddies.find(x=>x.id===S.upgrade.id);
+  S.upgrade=null;
+  if(b){ b.level=(b.level||0)+1; playSfx('max',{v:0.5}); toast(baddieDisplayName(b.key)+' UPGRADED TO LV'+b.level,'#7CFF4A'); }
+  save(true); refreshTop(); refreshBuffs();
+  if(_curTab==='plot') bdRenderPlot();
+  if(_curTab==='inv') bdRenderInv();
+}
+
+/* ─────────────── CRACK / OVERDRIVE ─────────────── */
+function bdCrack(id){
+  const b=S.baddies.find(x=>x.id===id); if(!b) return;
+  if(Date.now()<S.crackUntil){ toast('CRACK ON COOLDOWN'); return; }
+  if(b.overUntil>Date.now()){ toast('ALREADY IN OVERDRIVE'); return; }
+  b.overUntil=Date.now()+CRACK_DURATION;
+  S.crackUntil=Date.now()+CRACK_COOLDOWN;
+  playSfx('hexxed',{v:0.6});
+  let msg='OVERDRIVE x2 FOR 5 MIN';
+  if(Math.random()<CRACK_MOD_CHANCE){
+    const newMod=pickModifier(totalModMult()*1.5, false);
+    b.modifier=newMod;
+    if(newMod!=='None'){ msg+=' - GAINED '+newMod+'!'; playSfx('legendary',{v:0.5}); }
+  }
+  toast(msg,'#ff5a2b');
+  save(true); refreshTop(); refreshBuffs(); bdCloseModal();
+  if(_curTab==='plot') bdRenderPlot();
+  if(_curTab==='inv') bdRenderInv();
+}
+
+/* ─────────────── SELL ─────────────── */
+function sellValue(b){
+  return Math.ceil(rarMeta(b.rarity).sell * modMeta(b.modifier).mult * (1 + (b.level||0)*0.12));
+}
+function bdSellOne(id){
+  const i=S.baddies.findIndex(x=>x.id===id); if(i<0) return;
+  const b=S.baddies[i];
+  S.coins+=sellValue(b);
+  if(S.upgrade && S.upgrade.id===id) S.upgrade=null;
+  S.baddies.splice(i,1);
+  playSfx('delete',{v:0.5});
+  save(true); refreshTop(); bdCloseModal(); bdRenderInv(); bdRenderPlot(); bdRenderRollInv();
+}
+function bdSellAllPrompt(){
+  const unplaced=S.baddies.filter(b=>!b.placed);
+  if(!unplaced.length){ toast('NOTHING UNPLACED TO SELL'); return; }
+  const total=unplaced.reduce((s,b)=>s+sellValue(b),0);
+  openModal(`<div style="text-align:center;">
+    <div class="bd-h">SELL ALL UNPLACED?</div>
+    <div class="bd-sub" style="margin-bottom:16px;">${unplaced.length} baddies for <span style="color:#ffd56a">${fmt(total)}</span> coins. Placed baddies are kept safe.</div>
+    <button class="bd-btn danger" onclick="bdSellAllConfirm()">CONFIRM SELL</button>
+    <button class="bd-btn" onclick="bdCloseModal()">CANCEL</button>
+  </div>`);
+}
+function bdSellAllConfirm(){
+  const keep=[]; let gained=0;
+  S.baddies.forEach(b=>{ if(b.placed) keep.push(b); else gained+=sellValue(b); });
+  S.baddies=keep;
+  if(S.upgrade && !S.baddies.find(b=>b.id===S.upgrade.id)) S.upgrade=null;
+  S.coins+=gained;
+  playSfx('delete',{v:0.6});
+  toast('SOLD FOR '+fmt(gained),'#ffd56a');
+  save(true); refreshTop(); bdCloseModal(); bdRenderInv(); bdRenderRollInv();
+}
+function bdSellRarityAndBelow(){
+  const maxIdx=RAR_IDX[_sellRar];
+  const keep=[]; let gained=0, n=0;
+  S.baddies.forEach(b=>{
+    if(!b.placed && RAR_IDX[b.rarity]<=maxIdx){ gained+=sellValue(b); n++; }
+    else keep.push(b);
+  });
+  if(!n){ toast('NOTHING MATCHED'); return; }
+  S.baddies=keep;
+  if(S.upgrade && !S.baddies.find(b=>b.id===S.upgrade.id)) S.upgrade=null;
+  S.coins+=gained;
+  playSfx('delete',{v:0.6});
+  toast('SOLD '+n+' FOR '+fmt(gained),'#ffd56a');
+  save(true); refreshTop(); bdRenderInv(); bdRenderRollInv();
+}
+
+/* ─────────────── RENDER: ROLL TAB ─────────────── */
+function bdRenderDieRow(){
+  const row=document.getElementById('bd-die-row');
+  row.innerHTML = DICE.filter(d=>S.dice.includes(d.id)).map(d=>{
+    const act = d.id===S.activeDie;
+    return `<button class="bd-btn bd-diebtn ${act?'gold':''}" onclick="bdSelectDie(${d.id})">${diceSVG(d.id,22)}<span>${escapeHtml(d.name)}${act?' [ACTIVE]':''}</span></button>`;
+  }).join('');
+}
+function bdSelectDie(id){ if(!S.dice.includes(id)) return; S.activeDie=id; playSfx('click',{v:0.4}); save(true); bdRenderDieRow(); }
+function bdRenderRollInv(){
+  const el=document.getElementById('bd-roll-inv');
+  if(!_lastRolls.length){ el.innerHTML='<div class="bd-empty">NO PULLS YET</div>'; return; }
+  el.innerHTML=_lastRolls.map(b=>{
+    const live=S.baddies.find(x=>x.id===b.id);
+    return baddieCard(live||b,'roll');
+  }).join('');
+}
+
+/* ─────────────── RENDER: INVENTORY (paginated to stay fast) ─────────────── */
+let _invSort='rar', _sellRar='Common', _invPage=0;
+const INV_PAGE=48;
+function bdRenderInv(){
+  const grid=document.getElementById('bd-inv-grid');
+  const pager=document.getElementById('bd-inv-pager');
+  const sort=_invSort;
+  let list=[...S.baddies];
+  if(sort==='rar') list.sort((a,b)=> RAR_IDX[b.rarity]-RAR_IDX[a.rarity] || baddieRate(b)-baddieRate(a));
+  else if(sort==='inc') list.sort((a,b)=> baddieRate(b)-baddieRate(a));
+  else list.sort((a,b)=> b.born-a.born);
+  if(!list.length){ grid.innerHTML='<div class="bd-empty">EMPTY - GO ROLL SOME BADDIES</div>'; if(pager) pager.innerHTML=''; return; }
+  const pages=Math.max(1, Math.ceil(list.length/INV_PAGE));
+  if(_invPage>=pages) _invPage=pages-1; if(_invPage<0) _invPage=0;
+  const slice=list.slice(_invPage*INV_PAGE, _invPage*INV_PAGE+INV_PAGE);
+  grid.innerHTML=slice.map(b=>{
+    const tag = b.placed ? '<div class="lvl" style="left:4px;right:auto;top:auto;bottom:4px;background:#0a2a0a;color:#7CFF4A;border-color:#1c5a1c;">PLACED</div>' : '';
+    return `<div style="position:relative;">${baddieCard(b,'inv')}${tag}</div>`;
+  }).join('');
+  if(pager){
+    if(pages<=1) pager.innerHTML=`<span class="bd-sub">${list.length} BADDIES</span>`;
+    else pager.innerHTML=`<button class="bd-btn" ${_invPage<=0?'disabled':''} onclick="bdInvPage(-1)">&lt; PREV</button>
+      <span class="bd-sub" style="margin:0 4px;">PAGE ${_invPage+1} / ${pages} &middot; ${list.length} BADDIES</span>
+      <button class="bd-btn" ${_invPage>=pages-1?'disabled':''} onclick="bdInvPage(1)">NEXT &gt;</button>`;
+  }
+}
+function bdInvPage(d){ _invPage+=d; bdRenderInv(); const g=document.getElementById('bd-inv-grid'); if(g) g.scrollIntoView({behavior:'smooth',block:'start'}); }
+
+/* ─────────────── SHOP ─────────────── */
+function odessBar(weights){
+  const total=weights.reduce((a,b)=>a+b,0);
+  return '<div class="bd-odds">'+weights.map((w,i)=>{
+    const pct=(w/total*100); if(pct<0.4) return '';
+    return `<i style="width:${pct}%;background:${RARITIES[i].col}" title="${RARITIES[i].key} ${pct.toFixed(2)}%"></i>`;
+  }).join('')+'</div>';
+}
+function bdRenderShop(){
+  // dice
+  const dd=document.getElementById('bd-shop-dice');
+  dd.innerHTML=DICE.map(d=>{
+    const owned=S.dice.includes(d.id);
+    const can=S.coins>=d.cost;
+    return `<div class="bd-shoptile">
+      <div class="ic">${diceSVG(d.id,52)}</div>
+      <div class="tn">${escapeHtml(d.name)}</div>
+      ${odessBar(d.weights)}
+      <div class="td">Top odds shown above. Better tail = rarer pulls.</div>
+      <div class="tc">${d.cost===0?'STARTER':fmt(d.cost)+' COINS'}</div>
+      ${owned
+        ? `<button class="bd-btn" disabled>OWNED</button>`
+        : `<button class="bd-btn gold" ${can?'':'disabled'} onclick="bdBuyDie(${d.id})">BUY</button>`}
+    </div>`;
+  }).join('');
+  // potions
+  const pp=document.getElementById('bd-shop-pots');
+  pp.innerHTML=Object.keys(POTIONS).map(type=>{
+    const P=POTIONS[type];
+    const active=S.potions.filter(p=>p.type===type && p.exp>Date.now());
+    const stackTxt = active.length ? `<div class="bd-sub" style="color:${P.col};margin-top:4px;">ACTIVE x${active.reduce((m,p)=>m*p.mult,1).toFixed(2)} (${active.length})</div>` : '';
+    return `<div class="bd-shoptile" style="width:200px;">
+      <div class="ic" style="color:${P.col}">${P.icon}</div>
+      <div class="tn">${P.name}</div>
+      <div class="td">+${type} multiplier, 10 min. Stacks with itself and others.</div>
+      ${P.levels.map((lv,i)=>`<button class="bd-btn" style="margin-bottom:4px;width:100%;" ${S.coins>=lv.cost?'':'disabled'} onclick="bdBuyPotion('${type}',${i})">LV${i+1} x${lv.mult} - ${fmt(lv.cost)}</button>`).join('')}
+      ${stackTxt}
+    </div>`;
+  }).join('');
+  // cursors
+  const cu=document.getElementById('bd-shop-cursors');
+  if(cu) cu.innerHTML=CURSORS.map(c=>{
+    const owned=S.cursors.owned.includes(c.id); const active=S.cursors.active===c.id; const can=S.coins>=c.cost;
+    return `<div class="bd-shoptile" style="width:158px;${active?'border-color:'+c.col+';box-shadow:0 0 14px '+c.col+'55;':''}">
+      <div class="ic">${c.svg}</div>
+      <div class="tn">${escapeHtml(c.name)}</div>
+      <div class="td">ROLL SPEED x${c.speed}</div>
+      <div class="tc">${c.cost===0?'STARTER':fmt(c.cost)+' COINS'}</div>
+      ${active ? `<button class="bd-btn" disabled>EQUIPPED</button>`
+        : owned ? `<button class="bd-btn" onclick="bdEquipCursor('${c.id}')">EQUIP</button>`
+        : `<button class="bd-btn gold" ${can?'':'disabled'} onclick="bdBuyCursor('${c.id}')">BUY</button>`}
+    </div>`;
+  }).join('');
+  // themes
+  const th=document.getElementById('bd-shop-themes');
+  if(th) th.innerHTML=THEMES.map(t=>{
+    const owned=S.themes.owned.includes(t.id); const active=S.themes.active===t.id; const can=S.coins>=t.cost;
+    const swatch=(t.pal||['#888']).slice(0,4).map(c=>`<i style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${c};margin:0 1px;"></i>`).join('');
+    return `<div class="bd-shoptile" style="width:170px;${active?'border-color:'+t.accent+';box-shadow:0 0 14px '+t.accent+'55;':''}">
+      <div style="height:30px;border-radius:5px;margin-bottom:7px;background:linear-gradient(135deg,${t.grad[0]},${t.grad[1]||t.grad[0]});display:flex;align-items:center;justify-content:center;">${swatch}</div>
+      <div class="tn" style="color:${t.accent}">${escapeHtml(t.name)}${t.custom?' &#9733;':''}</div>
+      <div class="td">${t.custom?'Signature theme':'Theme'} - ${t.mode.toUpperCase()}</div>
+      <div class="tc">${t.cost===0?'DEFAULT':fmt(t.cost)+' COINS'}</div>
+      ${active ? `<button class="bd-btn" disabled>ACTIVE</button>`
+        : owned ? `<button class="bd-btn" onclick="bdEquipTheme('${t.id}')">EQUIP</button>`
+        : `<button class="bd-btn gold" ${can?'':'disabled'} onclick="bdBuyTheme('${t.id}')">BUY</button>`}
+    </div>`;
+  }).join('');
+  // specials
+  const sp=document.getElementById('bd-shop-special');
+  const cappyCost = (S.cappyBought||0) > 0 ? 5000000000 : 10000000;
+  sp.innerHTML=`<div class="bd-shoptile" style="width:200px;">
+    <div class="ic" style="color:#7CFF4A">&#8635;</div>
+    <div class="tn">AUTO ROLL</div>
+    <div class="td">Unlocks a floating window that auto-rolls one by one while you use the rest of the page.</div>
+    <div class="tc">${S.autoRoll?'OWNED':fmt(10000)+' COINS'}</div>
+    <button class="bd-btn gold" ${S.autoRoll||S.coins>=10000?'':'disabled'} onclick="bdBuyAutoRoll()">${S.autoRoll?'OPEN':'BUY'}</button>
+  </div>
+  <div class="bd-shoptile" style="width:200px;">
+    <div class="ic" style="color:#ff66dd">&#9733;</div>
+    <div class="tn">CAPPY'S MILK</div>
+    <div class="td">Applies the CAPPYFIED x5 modifier to one baddie you choose. The rarest modifier there is.</div>
+    <div class="tc">${fmt(cappyCost)} COINS</div>
+    <button class="bd-btn gold" ${S.coins>=cappyCost?'':'disabled'} onclick="bdCappyPrompt(${cappyCost})">USE</button>
+  </div>`;
+}
+function bdBuyDie(id){
+  const d=DICE[id]; if(!d || S.dice.includes(id)) return;
+  if(S.coins<d.cost){ toast('NOT ENOUGH COINS'); return; }
+  S.coins-=d.cost; S.dice.push(id); S.activeDie=id;
+  playSfx('save',{v:0.6}); toast('BOUGHT '+d.name,'#ffd56a');
+  save(true); refreshTop(); bdRenderShop(); bdRenderDieRow();
+}
+function bdBuyPotion(type,lvl){
+  const P=POTIONS[type]; const lv=P.levels[lvl];
+  if(S.coins<lv.cost){ toast('NOT ENOUGH COINS'); return; }
+  S.coins-=lv.cost;
+  S.potions.push({ type, level:lvl, mult:lv.mult, exp:Date.now()+POTION_DURATION });
+  playSfx('equip',{v:0.5}); toast(P.name+' LV'+(lvl+1)+' ACTIVE',P.col);
+  save(true); refreshTop(); refreshBuffs(); bdRenderShop();
+}
+function bdCappyPrompt(cost){
+  const cand=S.baddies.filter(b=>b.modifier!=='Cappyfied');
+  if(!cand.length){ toast('NO ELIGIBLE BADDIE'); return; }
+  cand.sort((a,b)=> RAR_IDX[b.rarity]-RAR_IDX[a.rarity]);
+  openModal(`<div>
+    <div class="bd-h">CAPPY'S MILK - PICK A BADDIE</div>
+    <div class="bd-sub" style="margin-bottom:12px;">Applies CAPPYFIED x5. Cost ${fmt(cost)}.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;max-height:50vh;overflow-y:auto;">
+      ${cand.map(b=>`<div onclick="bdCappyApply(${b.id},${cost})" style="cursor:pointer;">${baddieCard(b,'pick')}</div>`).join('')}
+    </div></div>`);
+}
+function bdCappyApply(id,cost){
+  if(S.coins<cost){ toast('NOT ENOUGH COINS'); return; }
+  const b=S.baddies.find(x=>x.id===id); if(!b) return;
+  S.coins-=cost; b.modifier='Cappyfied'; S.cappyBought=(S.cappyBought||0)+1;
+  playSfx('mythic',{v:0.7}); toast('CAPPYFIED x5 APPLIED','#ff66dd');
+  save(true); refreshTop(); bdCloseModal(); bdRenderInv(); bdRenderPlot(); bdRenderShop();
+}
+
+/* ─────────────── PETS ─────────────── */
+function bdRenderEggs(){
+  const row=document.getElementById('bd-egg-row');
+  row.innerHTML=Object.keys(EGGS).map(k=>{
+    const e=EGGS[k]; const can=S.coins>=e.cost;
+    return `<div class="bd-shoptile" style="width:190px;">
+      <div class="ic">${eggSVG(k,50)}</div>
+      <div class="tn" style="color:${e.col}">${e.name}</div>
+      <div class="td">${e.table.map(t=>{const d=PETS[t[0]];return (d.name||t[0])+' '+t[1]+'%';}).join('<br>')}</div>
+      <div class="tc">${fmt(e.cost)} COINS</div>
+      <button class="bd-btn gold" ${can?'':'disabled'} onclick="bdOpenEgg('${k}')">HATCH</button>
+    </div>`;
+  }).join('');
+}
+let _eggBusy=false;
+function rollPet(eggKey){
+  const table=EGGS[eggKey].table;
+  const total=table.reduce((s,t)=>s+t[1],0);
+  let x=Math.random()*total;
+  for(const [type,w] of table){ if(x<w) return type; x-=w; }
+  return table[0][0];
+}
+function bdOpenEgg(eggKey){
+  if(_eggBusy){ toast('ALREADY OPENING AN EGG'); return; }
+  const e=EGGS[eggKey]; if(S.coins<e.cost){ toast('NOT ENOUGH COINS'); return; }
+  S.coins-=e.cost; refreshTop(); save(true);
+  _eggBusy=true;
+  const type=rollPet(eggKey);
+  const ov=document.getElementById('bd-egg-ov'); const stage=document.getElementById('bd-egg-stage');
+  ov.classList.add('on');
+  stage.innerHTML=`<div class="bd-egg-vis">${eggSVG(eggKey,96)}</div><div class="bd-sub" style="margin-top:14px;">HATCHING...</div>`;
+  playSfx('diceroll',{v:0.5});
+  const _ecx=innerWidth/2, _ecy=innerHeight*0.4;
+  setTimeout(()=>{ burst(_ecx,_ecy,e.col,28,5); playSfx('dicealt',{v:0.3,rate:0.8}); const v=stage.querySelector('.bd-egg-vis'); if(v) v.style.animationDuration='0.18s'; },1000);
+  setTimeout(()=>{
+    const def=PETS[type];
+    const pet={ id:_uid++, type, born:Date.now() };
+    S.pets.list.push(pet);
+    // auto equip if room
+    if(S.pets.equipped.length<S.pets.slots) S.pets.equipped.push(pet.id);
+    save(true);
+    stage.innerHTML=`<div class="bd-egg-pop">${petMarkup(type,124)}</div>
+      <div style="margin-top:16px;font-size:13px;letter-spacing:2px;color:${def.col}">${(def.name||type).toUpperCase()}</div>
+      <div class="bd-sub" style="margin-top:10px;">LUCK x${def.luck} &nbsp; MONEY x${def.money}</div>
+      <button class="bd-btn" style="margin-top:16px;" onclick="bdDismissEgg()">NICE</button>`;
+    if(def.special||def.shiny){ playSfx('mythic',{v:0.8}); flashScreen(def.col); shakeScreen();
+      burst(innerWidth/2,innerHeight*0.4,def.col,130,10);
+      if(def.special) bigBanner((def.name||type).toUpperCase()+'!<small>LEGENDARY PET</small>',def.col); }
+    else { playSfx('legendary',{v:0.5}); burst(innerWidth/2,innerHeight*0.4,def.col,42,7); }
+    _eggBusy=false;
+    bdRenderPets(); refreshBuffs(); spawnPets();
+  },1500);
+}
+function bdDismissEgg(){ if(_eggBusy) return; document.getElementById('bd-egg-ov').classList.remove('on'); }
+function bdRenderPets(){
+  document.getElementById('bd-pet-slots').textContent=S.pets.equipped.length+'/'+S.pets.slots;
+  const slotBtn=document.getElementById('bd-buy-slot');
+  const cost=petSlotCost();
+  slotBtn.textContent='BUY SLOT ['+fmt(cost)+']';
+  slotBtn.disabled = S.coins<cost;
+  const grid=document.getElementById('bd-pet-grid');
+  if(!S.pets.list.length){ grid.innerHTML='<div class="bd-empty">NO PETS YET</div>'; return; }
+  grid.innerHTML='<div class="bd-row">'+S.pets.list.map(p=>{
+    const def=PETS[p.type]; const eq=S.pets.equipped.includes(p.id);
+    return `<div class="bd-petcard" style="border-color:${def.col}66;">
+      <div class="pic">${petMarkup(p.type,52)}</div>
+      <div class="nm">${escapeHtml(def.name||p.type)}</div>
+      <div class="st">LUCK x${def.luck}<br>MONEY x${def.money}</div>
+      <button class="bd-btn ${eq?'gold':''}" style="width:100%;" onclick="bdTogglePet(${p.id})">${eq?'EQUIPPED':'EQUIP'}</button>
+      <button class="bd-btn danger" style="width:100%;margin-top:4px;" onclick="bdReleasePet(${p.id})">RELEASE</button>
+    </div>`;
+  }).join('')+'</div>';
+}
+function petSlotCost(){ return Math.ceil(PET_SLOT_BASE_COST * Math.pow(8, S.petSlotsBought)); }
+function bdBuyPetSlot(){
+  const cost=petSlotCost();
+  if(S.coins<cost){ toast('NOT ENOUGH COINS'); return; }
+  S.coins-=cost; S.pets.slots++; S.petSlotsBought++;
+  playSfx('save',{v:0.6}); toast('NEW PET SLOT ('+S.pets.slots+' TOTAL)','#4aa3ff');
+  save(true); refreshTop(); bdRenderPets();
+}
+function bdTogglePet(id){
+  const i=S.pets.equipped.indexOf(id);
+  if(i>=0){ S.pets.equipped.splice(i,1); }
+  else {
+    if(S.pets.equipped.length>=S.pets.slots){ toast('NO FREE SLOTS - BUY MORE'); return; }
+    S.pets.equipped.push(id);
+  }
+  playSfx('equip',{v:0.5});
+  save(true); bdRenderPets(); refreshBuffs(); refreshTop(); spawnPets();
+}
+function bdReleasePet(id){
+  const i=S.pets.list.findIndex(p=>p.id===id); if(i<0) return;
+  S.pets.list.splice(i,1);
+  const e=S.pets.equipped.indexOf(id); if(e>=0) S.pets.equipped.splice(e,1);
+  playSfx('delete',{v:0.5});
+  save(true); bdRenderPets(); refreshBuffs(); refreshTop(); spawnPets();
+}
+
+/* ── floating pet sprites ── */
+let _petNodes={};
+let _shimmyT=0;
+function spawnPets(){
+  const layer=document.getElementById('bd-pet-layer');
+  // remove unequipped
+  Object.keys(_petNodes).forEach(id=>{
+    if(!S.pets.equipped.includes(+id)){ _petNodes[id].remove(); delete _petNodes[id]; }
+  });
+  S.pets.equipped.forEach(id=>{
+    if(_petNodes[id]) return;
+    const p=S.pets.list.find(x=>x.id===id); if(!p) return;
+    const def=PETS[p.type];
+    const el=document.createElement('div'); el.className='bd-pet bd-bob';
+    el.style.color=def.col;
+    const psz = def.special ? 64 : 46;
+    el.style.width=psz+'px'; el.style.height=psz+'px';
+    el.innerHTML=petMarkup(p.type,psz);
+    if(p.mode==='stay' && p.pos){ el.style.left=p.pos.x+'px'; el.style.top=p.pos.y+'px'; }
+    else { el.style.left=(Math.random()*(innerWidth-120)+20)+'px'; el.style.top=(Math.random()*(innerHeight-220)+90)+'px'; }
+    if(def.special) el.style.filter='drop-shadow(0 0 16px '+def.col+')';
+    layer.appendChild(el); _petNodes[id]=el; el._behav=def.behav; el._def=def; el._mode=p.mode||'move';
+    attachPetInteract(el,id);
+  });
+}
+function movePets(){
+  Object.keys(_petNodes).forEach(id=>{
+    const el=_petNodes[id]; if(el._mode!=='move' || el._drag) return;
+    const behav=el._behav; let dur=3;
+    if(behav==='fly'){ dur=2.4; } else if(behav==='swim'){ dur=4; } else if(behav==='dart'){ dur=1.3; }
+    else if(behav==='creep'){ dur=5.5; } else if(behav==='hop'){ dur=2.8; } else if(behav==='star'){ dur=2; }
+    const nx=Math.random()*(innerWidth-110)+18;
+    const ny=(behav==='fly'||behav==='star') ? (Math.random()*(innerHeight*0.4)+70) : (Math.random()*(innerHeight-240)+90);
+    el.style.transition='left '+dur+'s ease-in-out, top '+dur+'s ease-in-out, transform .5s';
+    el.style.left=nx+'px'; el.style.top=ny+'px';
+    el.style.transform = nx<innerWidth/2 ? 'scaleX(1)' : 'scaleX(-1)';
+    // SHIMMY spawns burgers
+    if(el._def && el._def.special && Math.random()<0.4){
+      const burg=document.createElement('div'); burg.className='bd-pet'; burg.style.pointerEvents='none';
+      burg.innerHTML=burgerSVG(22); burg.style.left=nx+'px'; burg.style.top=ny+'px';
+      burg.style.transition='top 3s ease-in, opacity 3s';
+      document.getElementById('bd-pet-layer').appendChild(burg);
+      requestAnimationFrame(()=>{ burg.style.top=(ny+170)+'px'; burg.style.opacity='0'; });
+      setTimeout(()=>burg.remove(),3000);
+    }
+  });
+}
+
+/* ─────────────── DAILY REWARD ─────────────── */
+function todayNum(){ return Math.floor(Date.now()/86400000); }
+function dailyAmount(streak){ return Math.floor(500 * Math.pow(1.25, Math.min(streak,30))); }
+function bdRenderDaily(){
+  const body=document.getElementById('bd-daily-body');
+  const today=todayNum();
+  const claimed = S.daily.lastDay===today;
+  const broke = today - S.daily.lastDay > 1;
+  const nextStreak = (S.daily.lastDay===today-1) ? S.daily.streak+1 : (claimed? S.daily.streak : 1);
+  const amount=dailyAmount(claimed?S.daily.streak:nextStreak);
+  const milestone = (nextStreak%7===0);
+  body.innerHTML=`
+    <div class="bd-row" style="justify-content:space-between;align-items:center;">
+      <div class="bd-sub" style="line-height:1.9;">
+        STREAK: <span style="color:#ffd56a">${claimed?S.daily.streak:(broke?0:S.daily.streak)}</span> DAYS<br>
+        ${claimed ? 'COME BACK TOMORROW FOR MORE.' : 'CLAIM '+fmt(amount)+' COINS'+(milestone?' + FREE COMMON EGG':'')}
+      </div>
+      <button class="bd-btn gold big" ${claimed?'disabled':''} onclick="bdClaimDaily()">${claimed?'CLAIMED':'CLAIM'}</button>
+    </div>`;
+}
+function bdClaimDaily(){
+  const today=todayNum();
+  if(S.daily.lastDay===today){ return; }
+  if(S.daily.lastDay===today-1) S.daily.streak++; else S.daily.streak=1;
+  S.daily.lastDay=today;
+  const amount=dailyAmount(S.daily.streak);
+  S.coins+=amount;
+  let msg='DAILY: +'+fmt(amount)+' COINS';
+  if(S.daily.streak%7===0){
+    // free common egg pet
+    const type=rollPet('common'); const pet={id:_uid++,type,born:Date.now()};
+    S.pets.list.push(pet);
+    if(S.pets.equipped.length<S.pets.slots) S.pets.equipped.push(pet.id);
+    msg+=' + FREE PET ('+(PETS[type].name||type)+')';
+    spawnPets(); bdRenderPets();
+  }
+  playSfx('legendary',{v:0.6}); toast(msg,'#ffd56a');
+  save(true); refreshTop(); bdRenderDaily();
+}
+
+/* ─────────────── SAVE SLOTS + CODES ─────────────── */
+function getSlots(){
+  try{ return JSON.parse(localStorage.getItem(SLOTS_KEY)) || [null,null,null]; }
+  catch(e){ return [null,null,null]; }
+}
+function setSlots(arr){ try{ localStorage.setItem(SLOTS_KEY, JSON.stringify(arr)); }catch(e){} }
+function encodeState(st){
+  try{ return 'BAD1.'+btoa(unescape(encodeURIComponent(JSON.stringify(st)))); }
+  catch(e){ return ''; }
+}
+function decodeState(code){
+  try{
+    code=code.trim();
+    if(code.startsWith('BAD1.')) code=code.slice(5);
+    return JSON.parse(decodeURIComponent(escape(atob(code))));
+  }catch(e){ return null; }
+}
+function bdRenderSlots(){
+  const slots=getSlots(); const el=document.getElementById('bd-slots');
+  el.innerHTML=slots.map((s,i)=>{
+    if(!s) return `<div class="bd-slotcard">
+      <div class="bd-row" style="justify-content:space-between;">
+        <span class="bd-sub">SLOT ${i+1} - EMPTY</span>
+        <button class="bd-btn gold" onclick="bdSlotSave(${i})">SAVE HERE</button>
+      </div></div>`;
+    const d=new Date(s.t);
+    return `<div class="bd-slotcard">
+      <div class="bd-row" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span class="bd-sub" style="line-height:1.8;">SLOT ${i+1}<br>${fmt(s.coins||0)} COINS, ${s.count||0} BADDIES<br>${d.toLocaleDateString()} ${d.toLocaleTimeString()}</span>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <button class="bd-btn gold" onclick="bdSlotSave(${i})">OVERWRITE</button>
+          <button class="bd-btn" onclick="bdSlotLoad(${i})">LOAD</button>
+          <button class="bd-btn" onclick="bdSlotCode(${i})">SHOW CODE</button>
+          <button class="bd-btn danger" onclick="bdSlotDelete(${i})">DELETE</button>
+        </div>
+      </div></div>`;
+  }).join('');
+}
+function bdSlotSave(i){
+  const slots=getSlots();
+  slots[i]={ t:Date.now(), coins:S.coins, count:S.baddies.length, code:encodeState(S) };
+  setSlots(slots);
+  playSfx('save',{v:0.6}); toast('SAVED TO SLOT '+(i+1),'#7CFF4A');
+  bdRenderSlots();
+}
+function bdSlotLoad(i){
+  const slots=getSlots(); const s=slots[i]; if(!s) return;
+  openModal(`<div style="text-align:center;">
+    <div class="bd-h">LOAD SLOT ${i+1}?</div>
+    <div class="bd-sub" style="margin-bottom:16px;">This overwrites your current game (auto saved separately in slots).</div>
+    <button class="bd-btn gold" onclick="bdSlotLoadConfirm(${i})">LOAD IT</button>
+    <button class="bd-btn" onclick="bdCloseModal()">CANCEL</button>
+  </div>`);
+}
+function bdSlotLoadConfirm(i){
+  const slots=getSlots(); const s=slots[i]; if(!s){ bdCloseModal(); return; }
+  const st=decodeState(s.code);
+  if(!st){ toast('SLOT CORRUPT'); bdCloseModal(); return; }
+  S=migrate(st); save(true);
+  applyLoaded(); bdCloseModal(); toast('LOADED SLOT '+(i+1),'#7CFF4A');
+}
+function bdSlotCode(i){
+  const slots=getSlots(); const s=slots[i]; if(!s) return;
+  openModal(`<div>
+    <div class="bd-h">SLOT ${i+1} TRANSFER CODE</div>
+    <div class="bd-sub" style="margin-bottom:10px;">Copy this and paste it on another device under TRANSFER CODE.</div>
+    <textarea readonly onclick="this.select()" style="width:100%;height:120px;font-family:inherit;font-size:7px;background:#080510;color:#7CFF4A;border:1px solid #1c5a1c;border-radius:5px;padding:8px;">${s.code}</textarea>
+    <button class="bd-btn gold" style="margin-top:10px;" onclick="bdCopyText(\`${s.code}\`)">COPY</button>
+  </div>`);
+}
+function bdSlotDelete(i){
+  const slots=getSlots(); slots[i]=null; setSlots(slots);
+  playSfx('delete',{v:0.5}); bdRenderSlots();
+}
+function bdExportCurrent(){
+  const code=encodeState(S);
+  openModal(`<div>
+    <div class="bd-h">CURRENT GAME CODE</div>
+    <div class="bd-sub" style="margin-bottom:10px;">Paste this on another device to transfer your progress.</div>
+    <textarea readonly onclick="this.select()" style="width:100%;height:130px;font-family:inherit;font-size:7px;background:#080510;color:#7CFF4A;border:1px solid #1c5a1c;border-radius:5px;padding:8px;">${code}</textarea>
+    <button class="bd-btn gold" style="margin-top:10px;" onclick="bdCopyText(\`${code}\`)">COPY</button>
+  </div>`);
+}
+function bdImportCode(){
+  const code=document.getElementById('bd-code-in').value;
+  if(!code.trim()){ toast('PASTE A CODE FIRST'); return; }
+  const st=decodeState(code);
+  if(!st){ toast('INVALID CODE'); return; }
+  S=migrate(st); save(true);
+  applyLoaded(); document.getElementById('bd-code-in').value='';
+  toast('CODE LOADED','#7CFF4A');
+}
+function bdCopyText(t){
+  try{ navigator.clipboard.writeText(t); toast('COPIED','#7CFF4A'); }
+  catch(e){ toast('COPY FAILED - SELECT MANUALLY'); }
+}
+function bdHardReset(){
+  openModal(`<div style="text-align:center;">
+    <div class="bd-h" style="color:#ff4d6d;">RESET EVERYTHING?</div>
+    <div class="bd-sub" style="margin-bottom:16px;">Wipes your current game. Save slots are kept.</div>
+    <button class="bd-btn danger" onclick="bdHardResetConfirm()">YES, WIPE</button>
+    <button class="bd-btn" onclick="bdCloseModal()">CANCEL</button>
+  </div>`);
+}
+function bdHardResetConfirm(){
+  S=defaultState(); save(true); applyLoaded(); bdCloseModal(); toast('GAME RESET');
+}
+function bdFullWipe(){
+  openModal(`<div style="text-align:center;">
+    <div class="bd-h" style="color:#ff4d6d;">WIPE EVERYTHING?</div>
+    <div class="bd-sub" style="margin-bottom:16px;">This deletes ALL save slots and your current game. There is no undo.</div>
+    <button class="bd-btn danger" onclick="bdFullWipeConfirm()">YES, DELETE EVERYTHING</button>
+    <button class="bd-btn" onclick="bdCloseModal()">CANCEL</button>
+  </div>`);
+}
+function bdFullWipeConfirm(){
+  try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem(SLOTS_KEY); }catch(e){}
+  S=defaultState(); save(true); applyLoaded(); bdCloseModal(); toast('ALL DATA WIPED','#ff4d6d');
+}
+
+/* ─────────────── REBIRTH ─────────────── */
+const REBIRTH_LABELS = ['Divine','Prismatic','Secret','Cosmic','Apex'];
+const REBIRTH_COLORS = ['#c9b0ff','#7df9ff','#ff4d6d','#2bd9d9','#7CFF4A'];
+function rebirthAvailable(){
+  const r=S.rebirths||0; if(r>=5) return false;
+  const req=REBIRTH_REQ[r]; // index of required rarity
+  return (S.maxRarityEver||0) >= req;
+}
+function doRebirth(){
+  if(!rebirthAvailable()){ toast('REBIRTH REQUIREMENTS NOT MET'); return; }
+  S.rebirths=(S.rebirths||0)+1;
+  // wipe: dice (keep only starter), plot, inventory, money, autoroll, potions
+  S.baddies=[];
+  S.dice=[0];
+  S.activeDie=0;
+  S.coins=0;
+  S.autoRoll=false;
+  S.potions=[];
+  S.upgrade=null;
+  S.crackUntil=0;
+  // keep: cursors, themes, rebirths, unlocked index, maxRarityEver, cappyBought, pets
+  save(true);
+  playSfx('mythic',{v:0.9});
+  const mult=rebirthMult();
+  openModal(`<div style="text-align:center;padding:8px;">
+    <div class="bd-h" style="color:#ffd56a;font-size:1.3em;">✦ REBIRTH ${S.rebirths} ✦</div>
+    <div class="bd-sub" style="margin:12px 0;line-height:2;">
+      You have been reborn.<br>
+      <span style="color:#7CFF4A">x${mult.toFixed(2)} LUCK &nbsp;·&nbsp; x${mult.toFixed(2)} MUTATION &nbsp;·&nbsp; x${mult.toFixed(2)} MONEY</span><br>
+      Your plot, dice and coins have been reset.<br>Cursors and themes were kept.
+    </div>
+    <button class="bd-btn gold big" onclick="bdCloseModal();applyLoaded();bdRenderRebirth();">CONTINUE</button>
+  </div>`);
+  applyLoaded(); bdRenderRebirth();
+}
+function bdRenderRebirth(){
+  const body=document.getElementById('bd-rebirth-body'); if(!body) return;
+  const r=S.rebirths||0;
+  const maxR=5;
+  const mult=rebirthMult();
+  let steps='';
+  for(let i=0;i<maxR;i++){
+    const done=r>i;
+    const active=r===i;
+    const req=REBIRTH_REQ[i];
+    const col=REBIRTH_COLORS[i];
+    const label=REBIRTH_LABELS[i];
+    const met=(S.maxRarityEver||0)>=req;
+    const statusIcon=done?'✔':'◯';
+    steps+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1a1020;opacity:${done?0.55:1}">
+      <span style="color:${done?'#7CFF4A':active&&met?col:'#444'};font-size:1.1em;">${statusIcon}</span>
+      <span style="color:${col};font-weight:700;min-width:80px;">REBIRTH ${i+1}</span>
+      <span class="bd-sub">Reach <span style="color:${col}">${label}</span> or higher</span>
+      ${done?'<span class="bd-sub" style="margin-left:auto;color:#7CFF4A;">DONE</span>':''}
+      ${!done&&met?`<span class="bd-sub" style="margin-left:auto;color:#ffd56a;">READY</span>`:''}
+    </div>`;
+  }
+  const canRebirth=rebirthAvailable();
+  body.innerHTML=`
+    <div class="bd-sub" style="margin-bottom:8px;line-height:1.9;">
+      REBIRTHS: <span style="color:#ffd56a">${r} / ${maxR}</span><br>
+      CURRENT BONUS: <span style="color:#7CFF4A">x${mult.toFixed(2)}</span> LUCK, MUTATION &amp; MONEY (additive per rebirth)<br>
+      <span style="color:#888">Rebirthing resets your plot, dice, coins, autoroll and potions. Keeps cursors, themes &amp; your index.</span>
+    </div>
+    <div style="margin-bottom:14px;">${steps}</div>
+    ${r<maxR?`<button class="bd-btn gold big" ${canRebirth?'':'disabled'} onclick="doRebirth()">
+      ${canRebirth?'✦ REBIRTH NOW':'REBIRTH LOCKED — ROLL '+REBIRTH_LABELS[r]+' OR HIGHER'}
+    </button>`:'<div class="bd-sub" style="color:#7CFF4A;text-align:center;">MAX REBIRTHS REACHED. YOU ARE ASCENDED.</div>'}
+  `;
+}
+
+/* ─────────────── INDEX ─────────────── */
+function bdRenderIndex(){
+  const grid=document.getElementById('bd-index-grid'); if(!grid) return;
+  const countEl=document.getElementById('bd-index-count');
+  // Sort by rarity index then name
+  const sorted=[...ROSTER].sort((a,b)=>{
+    const diff=(RAR_IDX[b.rarity]??0)-(RAR_IDX[a.rarity]??0);
+    return diff!==0?diff:a.key.localeCompare(b.key);
+  });
+  const total=sorted.length;
+  const seen=sorted.filter(e=>S.unlocked&&S.unlocked[e.key]).length;
+  if(countEl) countEl.textContent=seen+' / '+total+' DISCOVERED';
+  grid.innerHTML=sorted.map(entry=>{
+    const rm=rarMeta(entry.rarity);
+    const found=S.unlocked&&S.unlocked[entry.key];
+    const label=found?entry.key.replace(/baddie$/i,'').toUpperCase():'???';
+    const file=baddieImgFile(entry.key);
+    const initials=entry.key.replace(/baddie$/i,'').slice(0,2).toUpperCase()||'??';
+    const imgOrPh=found
+      ? `<img src="${file}" style="width:54px;height:54px;object-fit:contain;display:block;" onerror="this.outerHTML='<div style=\\'width:54px;height:54px;display:flex;align-items:center;justify-content:center;font-size:1.1em;font-weight:900;color:${encodeURIComponent(rm.col)}\\'>${initials}</div>'">`
+      : `<div style="width:54px;height:54px;display:flex;align-items:center;justify-content:center;font-size:1.5em;color:#333;">?</div>`;
+    return `<div ${found?`onclick="bdIndexShowFull('${entry.key}')" style="cursor:pointer;`:`style="`}width:76px;text-align:center;background:#0d0a18;border:1px solid ${found?rm.col:'#1a1025'};border-radius:8px;padding:6px 4px;${found?'':'filter:brightness(0.35) saturate(0.2);'}">
+      <div style="margin-bottom:4px;${found?'':''}">${imgOrPh}</div>
+      <div style="font-size:0.6em;color:${found?rm.col:'#444'};font-weight:700;word-break:break-word;line-height:1.2;">${label}</div>
+      <div style="font-size:0.52em;color:${found?rm.col+'99':'#333'};margin-top:2px;">${found?entry.rarity:''}</div>
+    </div>`;
+  }).join('');
+}
+function bdIndexShowFull(key){
+  const entry=ROSTER.find(e=>e.key===key); if(!entry) return;
+  const rm=rarMeta(entry.rarity);
+  const file=baddieImgFile(key);
+  const initials=key.replace(/baddie$/i,'').slice(0,2).toUpperCase()||'??';
+  const label=key.replace(/baddie$/i,'').toUpperCase();
+  playSfx('click',{v:0.4});
+  openModal(`
+    <div style="text-align:center;">
+      <img src="${file}" style="max-width:100%;max-height:320px;border-radius:8px;border:2px solid ${rm.col};box-shadow:0 0 24px ${rm.col}55;display:block;margin:0 auto 14px;"
+        onerror="this.outerHTML='<div style=\\'width:200px;height:200px;margin:0 auto 14px;border-radius:8px;border:2px solid ${rm.col};display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:900;color:${rm.col};background:radial-gradient(circle at 40% 35%, ${rm.col}33, #060409 80%);\\'>${initials}</div>'">
+      <div style="font-size:11px;letter-spacing:1px;color:#eee;margin-bottom:6px;">${label}</div>
+      <div style="font-size:9px;letter-spacing:1px;color:${rm.col};">${entry.rarity.toUpperCase()}</div>
+    </div>
+  `);
+}
+
+/* ─────────────── MODAL ─────────────── */
+function openModal(html){ document.getElementById('bd-modal-box').innerHTML=html; document.getElementById('bd-modal-ov').classList.add('on'); }
+function bdCloseModal(){ document.getElementById('bd-modal-ov').classList.remove('on'); }
+
+/* ─────────────── TABS ─────────────── */
+let _curTab='roll';
+function bdTab(t){
+  _curTab=t; playSfx('click',{v:0.3});
+  document.querySelectorAll('.bd-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+  document.querySelectorAll('.bd-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('bd-panel-'+t).classList.add('active');
+  if(t==='roll'){ bdRenderDieRow(); bdRenderRollInv(); }
+  if(t==='plot') bdRenderPlot();
+  if(t==='inv') bdRenderInv();
+  if(t==='shop') bdRenderShop();
+  if(t==='pets'){ bdRenderEggs(); bdRenderPets(); }
+  if(t==='index') bdRenderIndex();
+  if(t==='saves'){ bdRenderDaily(); bdRenderSlots(); bdRenderRebirth(); }
+}
+
+/* ─────────────── TEST / CHEAT MODE ─────────────── */
+/* Enable via code only: open the console and run  baddieTest()
+   or load the page with  ?test=1  in the URL, or set localStorage
+   baddie_testmode=1. There is intentionally no visible button.       */
+function bdToggleCheat(on){
+  S.test = on;
+  document.getElementById('bd-cheat').classList.toggle('on',on);
+  save(true);
+}
+window.baddieTest = function(on){
+  if(on===undefined) on=true;
+  localStorage.setItem('baddie_testmode', on?'1':'0');
+  bdToggleCheat(on);
+  if(on){ buildCheatSelects(); toast('TEST MODE ON','#7CFF4A'); }
+  return on?'TEST MODE ENABLED':'TEST MODE OFF';
+};
+function buildCheatSelects(){
+  const r=document.getElementById('bd-cheat-rar');
+  r.innerHTML=RARITIES.map(x=>`<option value="${x.key}">${x.key}</option>`).join('');
+  const m=document.getElementById('bd-cheat-mod');
+  m.innerHTML=MODIFIERS.map(x=>`<option value="${x.key}">${x.key} x${x.mult}</option>`).join('');
+}
+function bdCheatCoins(n){ S.coins+=n; save(true); refreshTop(); toast('+'+fmt(n)+' COINS','#7CFF4A'); }
+function bdCheatGive(){
+  const rar=document.getElementById('bd-cheat-rar').value;
+  const mod=document.getElementById('bd-cheat-mod').value;
+  const b=makeBaddie(rar,mod); save(true);
+  refreshTop(); bdRenderInv(); toast('GAVE '+rar+' '+mod,'#7CFF4A');
+}
+function bdCheatGiveEgg(k){ S.coins+=EGGS[k].cost; refreshTop(); bdOpenEgg(k); }
+function bdCheatAllDice(){ DICE.forEach(d=>{ if(!S.dice.includes(d.id)) S.dice.push(d.id); }); save(true); bdRenderDieRow(); if(_curTab==='shop') bdRenderShop(); toast('ALL DICE UNLOCKED','#7CFF4A'); }
+function bdCheatResetCrack(){ S.crackUntil=0; save(true); refreshBuffs(); toast('CRACK CD RESET','#7CFF4A'); }
+function bdCheatFinishUpgrade(){ if(S.upgrade){ S.upgrade.finish=Date.now(); finishUpgrade(); } toast('UPGRADE FINISHED','#7CFF4A'); }
+function bdCheatResetDaily(){ S.daily.lastDay=0; save(true); if(_curTab==='saves') bdRenderDaily(); toast('DAILY RESET','#7CFF4A'); }
+function bdCheatLuck(){ const v=parseFloat(document.getElementById('bd-cheat-luck').value)||1; _debugLuck=v; refreshBuffs(); toast('DEBUG LUCK x'+v,'#7CFF4A'); }
+function bdCheatClear(){ S.baddies=[]; S.upgrade=null; save(true); refreshTop(); bdRenderInv(); bdRenderPlot(); toast('BADDIES CLEARED'); }
+
+/* ─────────────── OFFLINE EARNINGS ─────────────── */
+function applyOffline(){
+  const elapsed=Date.now()-(S.lastSeen||Date.now());
+  if(elapsed<60000) return;
+  const capped=Math.min(elapsed,OFFLINE_CAP_MS);
+  const cps=plotIncomePerSec();
+  const gained=Math.floor(cps*(capped/1000)*OFFLINE_RATE);
+  if(gained>0){
+    S.coins+=gained;
+    setTimeout(()=>toast('WELCOME BACK: +'+fmt(gained)+' COINS WHILE AWAY','#ffd56a'),700);
+  }
+}
+
+/* ─────────────── APPLY LOADED (full re-render) ─────────────── */
+function applyLoaded(){
+  applyTheme(); applyCursor();
+  refreshTop(); refreshBuffs();
+  bdRenderDieRow(); bdRenderRollInv(); bdRenderPlot(); bdRenderInv();
+  bdRenderShop(); bdRenderEggs(); bdRenderPets(); bdRenderDaily(); bdRenderSlots();
+  spawnPets();
+  buildDD('bd-inv-sort-dd',[{value:'rar',label:'SORT: RARITY'},{value:'inc',label:'SORT: INCOME'},{value:'new',label:'SORT: NEWEST'}], _invSort, v=>{ _invSort=v; _invPage=0; bdRenderInv(); });
+  buildDD('bd-sell-rar-dd', RARITIES.map(r=>({value:r.key,label:r.key})), _sellRar, v=>{ _sellRar=v; });
+}
+
+/* ─────────────── INIT ─────────────── */
+function bdInit(){
+  load();
+  applyOffline();
+  bdBgInit(); bdFxInit();
+  document.querySelectorAll('.bd-coinslot').forEach(s=>{ s.innerHTML=coinSVG(13); });
+  // custom pixel cursor (this page does not load script.js, so move it here)
+  document.addEventListener('mousemove', e=>{
+    const c=document.getElementById('cursor'); if(c){ c.style.left=e.clientX+'px'; c.style.top=e.clientY+'px'; }
+    updateFollowPets(e.clientX, e.clientY);
+  });
+  // close popups when clicking elsewhere (not on a pet or the order menu)
+  document.addEventListener('click', e=>{
+    if(e.target.closest('.bd-pet') || e.target.closest('#bd-pet-orders')) return;
+    closeAllDD(null);
+    const m=document.getElementById('bd-pet-orders'); if(m) m.style.display='none';
+  });
+  autoDragInit();
+  rebuildRoster();
+  applyLoaded();
+  // test mode unlock check
+  const urlTest=/[?&]test=1/.test(location.search) || location.hash==='#test';
+  if(urlTest) localStorage.setItem('baddie_testmode','1');
+  if(localStorage.getItem('baddie_testmode')==='1' || S.test){ buildCheatSelects(); bdToggleCheat(true); }
+  // loops
+  setInterval(tick,250);
+  setInterval(()=>{ refreshBuffs(); if(_curTab==='plot') bdPlotLive(); },1000);
+  setInterval(movePets,3000);
+  setTimeout(movePets,400);
+  requestAnimationFrame(petAnimLoop);
+  window.addEventListener('beforeunload',()=>save(true));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){ _hiddenAt=Date.now(); save(true); }
+    else {
+      if(_hiddenAt){ const away=Math.min(Date.now()-_hiddenAt, OFFLINE_CAP_MS);
+        const g=Math.floor(plotIncomePerSec()*(away/1000));   // full rate for tabbed-out time
+        if(g>0){ S.coins+=g; refreshTop(); if(away>15000) toast('+'+fmt(g)+' WHILE TABBED OUT','#7CFF4A'); }
+        _hiddenAt=0; }
+      _lastTick=performance.now();
+    }
+  });
+  _lastTick=performance.now();
+}
+/* ─────────────── ANIMATED BACKDROP (theme aware) ─────────────── */
+const BG = { cv:null, ctx:null, W:0, H:0, t:0, mode:'nebula',
+  grad:['#1c0e2e','#0a0612','#050308'], pal:['#b15cff','#4aa3ff','#2bd9d9','#ff4d9d'],
+  pastel:false, texas:false, stars:[], orbs:[], cols:[], embers:[], cakes:[] };
+
+function colA(c,a){
+  if(!c) return 'rgba(255,255,255,'+a+')';
+  if(c[0]==='#'){ let h=c.slice(1); if(h.length===3) h=h.split('').map(x=>x+x).join('');
+    const n=parseInt(h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+  if(c.startsWith('hsl(')) return c.replace('hsl(','hsla(').replace(')',','+a+')');
+  return c;
+}
+function bgStar(ctx,cx,cy,pts,o,i){ ctx.beginPath(); for(let k=0;k<pts*2;k++){ const r=k%2?i:o;
+  const a=Math.PI/pts*k-Math.PI/2; ctx.lineTo(cx+Math.cos(a)*r, cy+Math.sin(a)*r); } ctx.closePath(); }
+function _newEmber(W,H,any){ return {x:Math.random()*W, y:any?Math.random()*H:H+10,
+  vy:-(Math.random()*0.8+0.4), vx:(Math.random()-.5)*0.3, r:Math.random()*2.2+1, life:Math.random()*0.6+0.4}; }
+function _newCake(W,H,any){ return {x:Math.random()*W, y:any?Math.random()*H:H+24,
+  vy:-(Math.random()*0.45+0.2), rot:Math.random()*6.28, vr:(Math.random()-.5)*0.03, s:Math.random()*0.7+0.7}; }
+function bgBuild(){
+  const W=BG.W||innerWidth, H=BG.H||innerHeight;
+  BG.stars=[]; const N=Math.min(170, Math.floor(W/8));
+  for(let i=0;i<N;i++) BG.stars.push({x:Math.random(),y:Math.random(),z:Math.random()*0.85+0.15,tw:Math.random()*6.28});
+  BG.orbs=[]; for(let i=0;i<6;i++) BG.orbs.push({x:Math.random(),y:Math.random(),
+    r:Math.random()*0.16+0.16, ci:i%BG.pal.length, vx:(Math.random()-.5)*0.00009, vy:(Math.random()-.5)*0.00009});
+  BG.cols=[]; const fs=16, n=Math.ceil(W/fs);
+  for(let i=0;i<n;i++) BG.cols.push({x:i*fs, y:Math.random()*H, sp:Math.random()*7+3});
+  BG.embers=[]; for(let i=0;i<70;i++) BG.embers.push(_newEmber(W,H,true));
+  BG.cakes=[]; for(let i=0;i<16;i++) BG.cakes.push(_newCake(W,H,true));
+}
+function bgConfigure(t){
+  BG.mode=t.mode||'nebula'; BG.grad=t.grad||['#1c0e2e','#0a0612','#050308'];
+  BG.pal=t.pal||['#b15cff','#4aa3ff','#2bd9d9','#ff4d9d']; BG.pastel=!!t.pastel; BG.texas=!!t.texas;
+  bgBuild(); bgPrime();
+  document.body.style.backgroundColor=BG.grad[BG.grad.length-1];
+  document.documentElement.style.setProperty('--bd-accent', t.accent||'#b15cff');
+  document.body.className=document.body.className.replace(/\bbd-theme-\S+/g,'').trim();
+  document.body.classList.add('bd-theme-'+t.id);
+}
+/* matrix mode draws on a translucent trail, so prime an opaque base
+   whenever the theme is (re)applied or the canvas is resized */
+function bgPrime(){ if(!BG.ctx) return; if(BG.mode==='matrix'){ BG.ctx.fillStyle='#000600'; BG.ctx.fillRect(0,0,BG.W,BG.H); } }
+function bdBgInit(){
+  BG.cv=document.getElementById('bd-bg'); if(!BG.cv) return; BG.ctx=BG.cv.getContext('2d');
+  const resize=()=>{ BG.W=BG.cv.width=innerWidth; BG.H=BG.cv.height=innerHeight; bgBuild(); bgPrime(); };
+  resize(); addEventListener('resize',resize);
+  requestAnimationFrame(bgFrame);
+}
+function bgBase(ctx,W,H){ const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,BG.grad[0]); g.addColorStop(0.55,BG.grad[1]||BG.grad[0]); g.addColorStop(1,BG.grad[2]||BG.grad[1]||BG.grad[0]);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+function bgFrame(){
+  const ctx=BG.ctx; if(!ctx) return;
+  if(document.hidden){ requestAnimationFrame(bgFrame); return; }
+  BG.t+=0.016; const W=BG.W, H=BG.H;
+  if(BG.mode==='matrix') bgMatrix(ctx,W,H);
+  else if(BG.mode==='embers') bgEmbers(ctx,W,H);
+  else if(BG.mode==='cupcakes') bgCupcakes(ctx,W,H);
+  else bgNebula(ctx,W,H);
+  requestAnimationFrame(bgFrame);
+}
+function bgNebula(ctx,W,H){
+  bgBase(ctx,W,H);
+  ctx.globalCompositeOperation='lighter';
+  BG.orbs.forEach(o=>{ o.x+=o.vx; o.y+=o.vy; if(o.x<-.3||o.x>1.3)o.vx*=-1; if(o.y<-.3||o.y>1.3)o.vy*=-1;
+    let col=BG.pal[o.ci]; let a0=0.34;
+    if(BG.pastel){ col='hsl('+((BG.t*40+o.ci*60)%360)+',95%,72%)'; a0=0.5; }
+    const R=o.r*Math.max(W,H)*(BG.pastel?1.25:1); const g=ctx.createRadialGradient(o.x*W,o.y*H,0,o.x*W,o.y*H,R);
+    g.addColorStop(0,colA(col,a0)); g.addColorStop(1,colA(col,0)); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); });
+  if(BG.texas){ ctx.fillStyle='rgba(255,255,255,0.07)'; bgStar(ctx,W*0.82,H*0.24,5,Math.min(W,H)*0.13,Math.min(W,H)*0.055); ctx.fill(); }
+  ctx.globalCompositeOperation='source-over';
+  BG.stars.forEach(s=>{ s.y-=s.z*0.0004; if(s.y<0){ s.y=1; s.x=Math.random(); }
+    ctx.globalAlpha=(0.4+0.6*Math.abs(Math.sin(BG.t*1.6+s.tw)))*s.z; ctx.fillStyle='#eaf2ff';
+    const r=s.z*1.9; ctx.fillRect(s.x*W,s.y*H,r,r); });
+  ctx.globalAlpha=1;
+}
+function bgMatrix(ctx,W,H){
+  ctx.fillStyle='rgba(0,8,0,0.12)'; ctx.fillRect(0,0,W,H);
+  ctx.font='15px monospace';
+  BG.cols.forEach(c=>{ const ch=String.fromCharCode(0x30A0+Math.floor(Math.random()*96));
+    ctx.fillStyle='rgba(190,255,190,0.92)'; ctx.fillText(ch,c.x,c.y);
+    ctx.fillStyle='rgba(0,255,90,0.5)'; ctx.fillText(String.fromCharCode(0x30A0+Math.floor(Math.random()*96)),c.x,c.y-16);
+    c.y+=c.sp; if(c.y>H+Math.random()*200){ c.y=0; c.sp=Math.random()*7+3; } });
+}
+function bgEmbers(ctx,W,H){
+  bgBase(ctx,W,H);
+  const g=ctx.createLinearGradient(0,H,0,H*0.5); g.addColorStop(0,'rgba(255,90,20,0.3)'); g.addColorStop(1,'rgba(255,90,20,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,H*0.5,W,H*0.5);
+  ctx.globalCompositeOperation='lighter';
+  BG.embers.forEach(e=>{ e.x+=e.vx; e.y+=e.vy; e.life-=0.004; if(e.y<-10||e.life<=0) Object.assign(e,_newEmber(W,H,false));
+    ctx.globalAlpha=Math.max(0,e.life); ctx.fillStyle='#ff9a3c'; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,6.28); ctx.fill(); });
+  ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
+}
+function bgCupcakes(ctx,W,H){
+  bgBase(ctx,W,H);
+  BG.cakes.forEach(c=>{ c.y+=c.vy; c.rot+=c.vr; if(c.y<-30) Object.assign(c,_newCake(W,H,false));
+    ctx.save(); ctx.translate(c.x,c.y); ctx.rotate(Math.sin(c.rot)*0.2); ctx.scale(c.s,c.s); ctx.globalAlpha=0.55;
+    ctx.fillStyle='#c8884a'; ctx.beginPath(); ctx.moveTo(-10,4); ctx.lineTo(10,4); ctx.lineTo(7,18); ctx.lineTo(-7,18); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#8a4a2a'; ctx.beginPath(); ctx.arc(0,2,11,Math.PI,0); ctx.fill();
+    ctx.fillStyle='#e84a64'; ctx.beginPath(); ctx.arc(0,-8,3,0,6.28); ctx.fill();
+    ctx.restore(); });
+  ctx.globalAlpha=1;
+}
+let _fxParts=[], _fxRun=false, _fxCv=null, _fxCtx=null;
+function bdFxInit(){
+  _fxCv=document.getElementById('bd-fx'); if(!_fxCv) return; _fxCtx=_fxCv.getContext('2d');
+  const r=()=>{ _fxCv.width=innerWidth; _fxCv.height=innerHeight; }; r(); addEventListener('resize',r);
+}
+function burst(x,y,color,count,power){
+  if(!_fxCtx) return;
+  for(let i=0;i<count;i++){ const a=Math.random()*6.28, sp=Math.random()*power+power*0.25;
+    _fxParts.push({x,y,vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-2, life:1, col:color,
+      sz:Math.random()*4+2, rot:Math.random()*6.28, vr:(Math.random()-.5)*.35, sh:Math.random()<.5?0:1}); }
+  if(!_fxRun){ _fxRun=true; requestAnimationFrame(fxFrame); }
+}
+function fxFrame(){
+  _fxCtx.clearRect(0,0,_fxCv.width,_fxCv.height);
+  for(const p of _fxParts){ p.vy+=0.13; p.vx*=0.99; p.x+=p.vx; p.y+=p.vy; p.life-=0.011; p.rot+=p.vr; }
+  _fxParts=_fxParts.filter(p=>p.life>0 && p.y<_fxCv.height+50);
+  for(const p of _fxParts){ _fxCtx.globalAlpha=Math.max(0,p.life); _fxCtx.fillStyle=p.col;
+    _fxCtx.save(); _fxCtx.translate(p.x,p.y); _fxCtx.rotate(p.rot);
+    if(p.sh===0) _fxCtx.fillRect(-p.sz/2,-p.sz/2,p.sz,p.sz*1.7);
+    else { _fxCtx.beginPath(); _fxCtx.arc(0,0,p.sz/2,0,6.28); _fxCtx.fill(); }
+    _fxCtx.restore(); }
+  _fxCtx.globalAlpha=1;
+  if(_fxParts.length) requestAnimationFrame(fxFrame); else _fxRun=false;
+}
+function flashScreen(color){ const f=document.getElementById('bd-flash'); if(!f) return;
+  f.style.setProperty('--fc',color); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+function shakeScreen(){ const w=document.getElementById('bd-wrap'); if(!w) return;
+  w.classList.remove('bd-shake'); void w.offsetWidth; w.classList.add('bd-shake'); setTimeout(()=>w.classList.remove('bd-shake'),520); }
+function bigBanner(html,color){ const b=document.getElementById('bd-banner'); if(!b) return;
+  b.innerHTML=html; b.style.color=color; b.style.textShadow='0 0 20px '+color;
+  b.classList.remove('go'); void b.offsetWidth; b.classList.add('go'); }
+function fxRing(x,y,col){ const d=document.createElement('div'); d.className='bd-fxring';
+  d.style.left=x+'px'; d.style.top=y+'px'; d.style.borderColor=col; d.style.boxShadow='0 0 22px '+col;
+  document.body.appendChild(d); setTimeout(()=>d.remove(),950); }
+function apexMatrixFX(){
+  const cv=document.createElement('canvas'); cv.width=innerWidth; cv.height=innerHeight;
+  cv.style.cssText='position:fixed;inset:0;z-index:9150;pointer-events:none;'; document.body.appendChild(cv);
+  const ctx=cv.getContext('2d'); const fs=16, n=Math.ceil(cv.width/fs); const cols=[];
+  for(let i=0;i<n;i++) cols.push(Math.random()*cv.height);
+  const start=performance.now();
+  (function f(now){ const life=(now-start)/2400; if(life>=1){ cv.remove(); return; }
+    ctx.fillStyle='rgba(0,10,0,0.12)'; ctx.fillRect(0,0,cv.width,cv.height); ctx.font='15px monospace';
+    const fade=life<0.7?1:(1-(life-0.7)/0.3);
+    for(let i=0;i<n;i++){ const ch=String.fromCharCode(0x30A0+(Math.random()*96|0));
+      ctx.fillStyle='rgba(124,255,74,'+(0.92*fade)+')'; ctx.fillText(ch, i*fs, cols[i]);
+      cols[i]+=15; if(cols[i]>cv.height) cols[i]=0; }
+    requestAnimationFrame(f);
+  })(performance.now());
+}
+/* extra-special reveal effects for the top tiers */
+function specialRollFX(idx,x,y){
+  if(idx>=12){ // Primordial - artsy pastel rainbow
+    const pal=['#ff8ad6','#ffd24a','#7CFF4A','#7df9ff','#b277ff','#ff5ec4'];
+    pal.forEach((c,i)=> setTimeout(()=>{ burst(x,y,c,46,9); flashScreen(c); }, i*95));
+    for(let r=0;r<3;r++) setTimeout(()=>fxRing(x,y,pal[(r*2)%pal.length]), r*170);
+  } else if(idx===11){ apexMatrixFX(); flashScreen('#7CFF4A'); }   // Apex - matrix
+  else if(idx===10){ fxRing(x,y,'#2bd9d9'); setTimeout(()=>fxRing(x,y,'#aef6ff'),160); burst(x,y,'#2bd9d9',130,11); }
+}
+
+/* ─────────────── CURSORS ─────────────── */
+function applyCursor(){ const c=curMeta(S.cursors.active); const el=document.getElementById('cursor'); if(el) el.innerHTML=c.svg; }
+function bdEquipCursor(id){ if(!S.cursors.owned.includes(id)) return; S.cursors.active=id; applyCursor();
+  playSfx('equip',{v:0.4}); save(true); bdRenderShop(); }
+function bdBuyCursor(id){ const c=curMeta(id); if(S.cursors.owned.includes(id)){ bdEquipCursor(id); return; }
+  if(S.coins<c.cost){ toast('NOT ENOUGH COINS'); return; }
+  S.coins-=c.cost; S.cursors.owned.push(id); S.cursors.active=id; applyCursor();
+  playSfx('save',{v:0.6}); toast('EQUIPPED '+c.name,'#ffd56a'); save(true); refreshTop(); bdRenderShop(); }
+
+/* ─────────────── THEMES ─────────────── */
+function applyTheme(){ bgConfigure(thmMeta(S.themes.active)); }
+function bdEquipTheme(id){ if(!S.themes.owned.includes(id)) return; S.themes.active=id; applyTheme();
+  playSfx('equip',{v:0.5}); save(true); bdRenderShop(); }
+function bdBuyTheme(id){ const t=thmMeta(id); if(S.themes.owned.includes(id)){ bdEquipTheme(id); return; }
+  if(S.coins<t.cost){ toast('NOT ENOUGH COINS'); return; }
+  S.coins-=t.cost; S.themes.owned.push(id); S.themes.active=id; applyTheme();
+  playSfx('save',{v:0.6}); toast(t.name.toUpperCase()+' THEME EQUIPPED',t.accent); save(true); refreshTop(); bdRenderShop(); }
+
+/* ─────────────── CUSTOM DROPDOWN ─────────────── */
+function buildDD(hostId, opts, value, onSel){
+  const host=document.getElementById(hostId); if(!host) return;
+  const cur=opts.find(o=>o.value===value)||opts[0];
+  host.className='bd-dd'; host.dataset.val=cur.value;
+  host.innerHTML=`<button class="bd-dd-btn" type="button"><span class="bd-dd-lbl">${cur.label}</span><span class="bd-dd-ar">&#9662;</span></button>
+    <div class="bd-dd-menu">${opts.map(o=>`<div class="bd-dd-opt${o.value===cur.value?' sel':''}" data-v="${o.value}">${o.label}</div>`).join('')}</div>`;
+  host.querySelector('.bd-dd-btn').onclick=e=>{ e.stopPropagation(); closeAllDD(host); host.classList.toggle('open'); };
+  host.querySelectorAll('.bd-dd-opt').forEach(op=>{ op.onclick=e=>{ e.stopPropagation(); const v=op.dataset.v;
+    host.dataset.val=v; host.querySelector('.bd-dd-lbl').textContent=(opts.find(o=>o.value===v)||{}).label||v;
+    host.querySelectorAll('.bd-dd-opt').forEach(x=>x.classList.toggle('sel',x.dataset.v===v));
+    host.classList.remove('open'); if(onSel) onSel(v); }; });
+}
+function closeAllDD(except){ document.querySelectorAll('.bd-dd.open').forEach(d=>{ if(d!==except) d.classList.remove('open'); }); }
+
+/* ─────────────── AUTO ROLL ─────────────── */
+let _autoOn=false, _autoCount=0, _autoT=null, _autoBusy=false;
+function bdAutoOpen(){ if(!S.autoRoll){ toast('BUY AUTO ROLL IN THE SHOP'); bdTab('shop'); return; }
+  document.getElementById('bd-auto').style.display='block'; }
+function bdAutoHide(){ _autoOn=false; if(_autoT) clearTimeout(_autoT); updateAutoBtn();
+  document.getElementById('bd-auto').style.display='none'; }
+function bdAutoToggle(){ if(!S.autoRoll){ toast('BUY AUTO ROLL'); return; }
+  _autoOn=!_autoOn; updateAutoBtn(); if(_autoOn && !_autoBusy) autoStep(); else if(!_autoOn && _autoT) clearTimeout(_autoT); }
+function updateAutoBtn(){ const b=document.getElementById('bd-auto-toggle'); if(b){ b.textContent=_autoOn?'STOP':'START'; b.classList.toggle('on',_autoOn); } }
+function autoStep(){
+  if(!_autoOn){ _autoBusy=false; return; }
+  _autoBusy=true;
+  const b=doOneRoll(); save(); refreshTop();
+  miniRoll(b, ()=>{
+    _autoCount++; const cEl=document.getElementById('bd-auto-count'); if(cEl) cEl.textContent=_autoCount+' ROLLS';
+    _lastRolls=[b].concat(_lastRolls).slice(0,40); if(_curTab==='roll') bdRenderRollInv();
+    if(_autoOn) _autoT=setTimeout(autoStep, 420); else _autoBusy=false;
+  });
+}
+function miniRoll(b, done){
+  const cyc=document.getElementById('bd-auto-cyc'), card=document.getElementById('bd-auto-card');
+  const spd=rollSpeed(); const iv=Math.max(22, Math.round(58/spd)); let ticks=0; const max=9;
+  card.className='bd-auto-card'; card.innerHTML='';
+  const allKeys=ROSTER.map(e=>e.key);
+  const t=setInterval(()=>{ ticks++;
+    cyc.textContent=rnd(allKeys.length?allKeys:['?????']).toUpperCase(); cyc.style.color=rnd(RARITIES).col;
+    if(ticks>=max){ clearInterval(t);
+      const rm=rarMeta(b.rarity);
+      cyc.textContent=baddieDisplayName(b.key).toUpperCase(); cyc.style.color=rm.col;
+      card.className='bd-auto-card bd-roll-land mod-'+b.modifier+' rar-'+b.rarity.toLowerCase(); card.style.setProperty('--rc',rm.col);
+      card.innerHTML=baddieVisual(b);
+      if(RAR_IDX[b.rarity]>=8){ playSfx('mythic',{v:0.5}); const r=document.getElementById('bd-auto').getBoundingClientRect(); burst(r.left+r.width/2,r.top+40,rm.col,70,8); shakeScreen(); }
+      else if(RAR_IDX[b.rarity]>=5){ playSfx('legendary',{v:0.4}); const r=document.getElementById('bd-auto').getBoundingClientRect(); burst(r.left+r.width/2,r.top+40,rm.col,40,7); }
+      else playSfx('pop',{v:0.25});
+      done();
+    }
+  }, iv);
+}
+function bdBuyAutoRoll(){ if(S.autoRoll){ bdAutoOpen(); return; }
+  const cost=10000; if(S.coins<cost){ toast('NOT ENOUGH COINS'); return; }
+  S.coins-=cost; S.autoRoll=true; playSfx('save',{v:0.6}); toast('AUTO ROLL UNLOCKED','#7CFF4A');
+  save(true); refreshTop(); bdRenderShop(); bdAutoOpen(); }
+/* drag the auto window by its header */
+function autoDragInit(){
+  const w=document.getElementById('bd-auto'), h=document.getElementById('bd-auto-head'); if(!w||!h) return;
+  let ox,oy,drag=false;
+  h.addEventListener('pointerdown',e=>{ if(e.target.tagName==='BUTTON') return; drag=true; const r=w.getBoundingClientRect();
+    ox=e.clientX-r.left; oy=e.clientY-r.top; h.setPointerCapture(e.pointerId); });
+  h.addEventListener('pointermove',e=>{ if(!drag) return; w.style.left=(e.clientX-ox)+'px'; w.style.top=(e.clientY-oy)+'px'; w.style.right='auto'; w.style.bottom='auto'; });
+  h.addEventListener('pointerup',()=>{ drag=false; });
+}
+
+/* ─────────────── PET DRAG + ORDERS ─────────────── */
+function attachPetInteract(el,id){
+  let downX,downY,moved,dragging;
+  el.addEventListener('pointerdown',e=>{ e.preventDefault(); downX=e.clientX; downY=e.clientY; moved=false; dragging=true;
+    const r=el.getBoundingClientRect(); el._offx=e.clientX-r.left; el._offy=e.clientY-r.top;
+    el.style.transition='none'; el._drag=true; try{ el.setPointerCapture(e.pointerId); }catch(_){ } });
+  el.addEventListener('pointermove',e=>{ if(!dragging) return;
+    if(Math.abs(e.clientX-downX)>4||Math.abs(e.clientY-downY)>4) moved=true;
+    el.style.left=(e.clientX-el._offx)+'px'; el.style.top=(e.clientY-el._offy)+'px'; });
+  el.addEventListener('pointerup',e=>{ dragging=false; el._drag=false; el.style.transition='';
+    const p=S.pets.list.find(x=>x.id===id);
+    if(moved){ if(p) p.pos={x:parseFloat(el.style.left),y:parseFloat(el.style.top)}; save(true); }
+    else openPetOrders(id, e.clientX, e.clientY); });
+}
+function openPetOrders(id,x,y){
+  const m=document.getElementById('bd-pet-orders'); const p=S.pets.list.find(z=>z.id===id); if(!p||!m) return;
+  const def=PETS[p.type];
+  m.innerHTML=`<div class="bd-po-h" style="color:${def.col}">${escapeHtml(def.name||p.type)}</div>
+    <button class="${p.mode==='move'?'on':''}" onclick="setPetMode(${id},'move')">MOVE</button>
+    <button class="${p.mode==='stay'?'on':''}" onclick="setPetMode(${id},'stay')">STAY</button>
+    <button class="${p.mode==='follow'?'on':''}" onclick="setPetMode(${id},'follow')">FOLLOW</button>`;
+  m.style.left=Math.min(x, innerWidth-140)+'px'; m.style.top=Math.min(y, innerHeight-150)+'px'; m.style.display='block';
+}
+function setPetMode(id,mode){
+  const p=S.pets.list.find(z=>z.id===id); const el=_petNodes[id];
+  if(p) p.mode=mode;
+  if(el){ el._mode=mode; if(mode==='stay' && p){ p.pos={x:parseFloat(el.style.left)||innerWidth/2, y:parseFloat(el.style.top)||innerHeight/2}; } }
+  save(true); document.getElementById('bd-pet-orders').style.display='none';
+  if(p) toast('PET: '+mode.toUpperCase(), PETS[p.type].col);
+}
+function updateFollowPets(x,y){
+  let i=0;
+  S.pets.equipped.forEach(id=>{ const el=_petNodes[id]; if(!el||el._mode!=='follow'||el._drag) return;
+    const off=36+i*34; i++;
+    el.style.transition='left .22s ease-out, top .22s ease-out, transform .3s';
+    el.style.left=(x+off)+'px'; el.style.top=(y+off-10)+'px';
+    el.style.transform = (x+off)<innerWidth/2?'scaleX(1)':'scaleX(-1)'; });
+}
+
+/* ─────────────── CHEATS (for console) ─────────────── */
+window.cheat = function(){
+  if(typeof S==='undefined'){ console.log('❌ Game not loaded yet'); return; }
+  S.coins += 1000000000;
+  save(true);
+  refreshTop();
+  toast('💰 +1,000,000,000 COINS','#ffd56a');
+  console.log('✅ Cheated! Total coins: '+(S.coins/1e9).toFixed(2)+'B');
+};
+
+window.petCheat = function(){
+  if(typeof S==='undefined'){ console.log('❌ Game not loaded yet'); return; }
+  if(typeof PETS==='undefined'){ console.log('❌ PETS not loaded yet'); return; }
+  const petTypes = Object.keys(PETS);
+  let added = 0;
+  petTypes.forEach(type=>{
+    const pet={ id:window._uid++, type, born:Date.now() };
+    S.pets.list.push(pet);
+    if(S.pets.equipped.length<S.pets.slots) S.pets.equipped.push(pet.id);
+    added++;
+  });
+  save(true);
+  bdRenderPets();
+  refreshBuffs();
+  spawnPets();
+  toast(`🐾 +${added} PETS!`,'#ff8ad6');
+  console.log(`✅ Added ${added} pets! Total: ${S.pets.list.length}`);
+};
+
+document.addEventListener('DOMContentLoaded', bdInit);
+</script>
+</body>
+</html>

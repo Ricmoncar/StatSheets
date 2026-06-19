@@ -1,0 +1,2455 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Glitch GIF Generator</title>
+    <script src="gifshot.min.js"></script>
+    <!-- Firebase (compat build so it works in this plain inline script) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root { --accent: #00ff00; }
+        html { background-color: #050505; }
+        #matrix {
+            position: fixed; inset: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none; opacity: 0.55;
+        }
+        body {
+            background-color: transparent;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            margin: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-shadow: 0 0 15px #00ff00;
+            margin-bottom: 24px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 920px;
+            gap: 20px;
+        }
+
+        textarea,
+        .canvas-wrapper {
+            flex: 1;
+            background-color: #000;
+            border: 1px solid #00ff00;
+            height: 350px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.15);
+        }
+
+        .canvas-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        textarea {
+            padding: 20px;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            resize: none;
+        }
+
+        textarea::placeholder { color: #005500; }
+
+        textarea:focus {
+            outline: none;
+            box-shadow: 0 0 25px rgba(0, 255, 0, 0.4);
+            border-color: #55ff55;
+        }
+
+        .panel {
+            margin-top: 22px;
+            width: 100%;
+            max-width: 920px;
+            background: #0c0f0c;
+            border: 1px solid #003300;
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-sizing: border-box;
+        }
+
+        .panel h2 {
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0 0 14px;
+            color: #44ff44;
+            border-bottom: 1px solid #062a06;
+            padding-bottom: 8px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px 22px;
+            align-items: center;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .field.inline { flex-direction: row; align-items: center; gap: 9px; }
+
+        input[type="range"] { accent-color: #00ff00; cursor: pointer; width: 150px; }
+        input[type="color"] {
+            width: 46px; height: 30px; padding: 0; border: 1px solid #00aa00;
+            background: #000; cursor: pointer; border-radius: 4px;
+        }
+        select {
+            background: #000; color: #00ff00; border: 1px solid #00aa00;
+            padding: 6px 8px; font-family: inherit; border-radius: 4px; cursor: pointer;
+        }
+        .val { color: #aaffaa; min-width: 26px; text-align: right; }
+
+        button {
+            background-color: #000;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 9px 16px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.82rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.15);
+        }
+        button:hover { background-color: #00ff00; color: #000; box-shadow: 0 0 16px #00ff00; }
+        button.alt { border-color: #00aa66; color: #00dd99; }
+        button.alt:hover { background:#00dd99; color:#000; }
+        button.on { background:#00ff00; color:#000; box-shadow: 0 0 14px #00ff00; }
+        button:disabled { border-color: #003300; color: #003300; cursor: not-allowed; box-shadow: none; background:#000; }
+
+        .seg { display:inline-flex; border:1px solid #00aa00; border-radius:4px; overflow:hidden; }
+        .seg button { border:none; border-radius:0; box-shadow:none; }
+        .seg button:not(:last-child){ border-right:1px solid #064006; }
+
+        .hint { font-size: 0.68rem; color: #4a7a4a; margin-top: 10px; line-height: 1.6; }
+        .hint code { color: #9fe89f; background:#041404; padding:1px 5px; border-radius:3px; }
+
+        #status { margin-top: 10px; font-size: 0.75rem; color: #8fe88f; min-height: 1em; }
+
+        #result { margin-top: 18px; display:none; flex-direction:column; align-items:center; gap:12px; }
+        #result img { max-width: 100%; border:1px solid #00aa00; border-radius:4px; background:#000; image-rendering:auto; }
+        .result-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+        .generate-row { margin-top: 18px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; justify-content:center; }
+        .big { padding: 12px 26px; font-size: 0.95rem; }
+
+        /* panels sit above the matrix with a slightly translucent backing */
+        .panel, .container textarea, .canvas-wrapper { background-color: rgba(8, 12, 8, 0.82); }
+        .panel { background: rgba(12, 15, 12, 0.86); }
+
+        /* ── Gallery ── */
+        .gallery-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+        .gallery-grid {
+            display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap:12px; margin-top:14px;
+        }
+        .gallery-item {
+            border:1px solid #064006; border-radius:6px; overflow:hidden; background:#000;
+            cursor:pointer; transition: box-shadow .15s ease, transform .15s ease; position:relative;
+        }
+        .gallery-item:hover { box-shadow:0 0 14px rgba(0,255,0,0.4); transform: translateY(-2px); }
+        .gallery-item img { width:100%; display:block; aspect-ratio:1; object-fit:contain; background:#000; }
+        .gallery-item .cap {
+            font-size:0.6rem; color:#7ad17a; padding:5px 6px; white-space:nowrap;
+            overflow:hidden; text-overflow:ellipsis; border-top:1px solid #062a06;
+        }
+        .gallery-empty { font-size:0.74rem; color:#4a7a4a; margin-top:12px; }
+        button.link { border-color:#00aaee; color:#33ddff; }
+        button.link:hover { background:#33ddff; color:#000; box-shadow:0 0 16px #33ddff; }
+
+        /* ── Tabs ── */
+        .tabbar { display:flex; gap:10px; margin-bottom:20px; }
+        .tabbar button { padding:10px 24px; font-size:0.9rem; letter-spacing:2px; border-radius:6px; }
+        #tabMatrixBtn.on { background:#00ff00; color:#000; box-shadow:0 0 14px #00ff00; }
+        #tabCrystalBtn { border-color:#a855f7; color:#d8b4fe; box-shadow:0 0 10px rgba(168,85,247,0.25); }
+        #tabCrystalBtn:hover, #tabCrystalBtn.on { background:#a855f7; color:#1a0533; box-shadow:0 0 18px #a855f7; }
+        .tab-content { display:none; width:100%; max-width:920px; flex-direction:column; align-items:center; }
+        .tab-content.active { display:flex; }
+
+        /* ── Crystal theme (on <body> when CRYSTAL tab active) ── */
+        body.theme-crystal { color:#e9d5ff; }
+        body.theme-crystal h1 { color:#f3e8ff; text-shadow:0 0 16px #a855f7, 0 0 34px #6b21a8; }
+
+        .crystal-wrap { width:100%; display:flex; flex-direction:column; align-items:center; }
+        #cInput {
+            width:100%; max-width:920px; background:rgba(10,4,24,0.85); border:1px solid #7c3aed; color:#e9d5ff;
+            height:170px; box-sizing:border-box; border-radius:10px; padding:16px;
+            font-family:Georgia,'Times New Roman',serif; font-size:1.1rem; line-height:1.5; resize:none;
+            box-shadow:0 0 18px rgba(124,58,237,0.2);
+        }
+        #cInput:focus { outline:none; border-color:#c084fc; box-shadow:0 0 26px rgba(192,132,252,0.4); }
+        #cInput::placeholder { color:#7c5aa8; }
+        .crystal-canvas-wrap {
+            width:100%; max-width:920px; min-height:240px; margin-top:18px;
+            display:flex; align-items:center; justify-content:center;
+            background:radial-gradient(circle at 50% 40%, rgba(58,22,96,0.5), rgba(10,4,24,0.7));
+            border:1px solid #4c1d95; border-radius:12px; overflow:hidden; padding:14px; box-sizing:border-box;
+        }
+        #cOutput { max-width:100%; max-height:440px; object-fit:contain; border-radius:6px; }
+        .crystal-panel {
+            margin-top:22px; width:100%; max-width:920px; box-sizing:border-box; padding:16px 20px; border-radius:10px;
+            background:linear-gradient(160deg, rgba(45,20,70,0.82), rgba(20,8,40,0.9));
+            border:1px solid #6d28d9; box-shadow:0 0 22px rgba(124,58,237,0.18);
+        }
+        .crystal-panel h2 { font-size:0.8rem; letter-spacing:2px; text-transform:uppercase; margin:0 0 14px; color:#c4b5fd; border-bottom:1px solid #4c1d95; padding-bottom:8px; }
+        .crystal-panel input[type="range"] { accent-color:#a855f7; }
+        .crystal-panel .field { color:#c4b5fd; }
+        button.cbtn { border-color:#a855f7; color:#d8b4fe; box-shadow:0 0 10px rgba(168,85,247,0.2); }
+        button.cbtn:hover { background:#a855f7; color:#1a0533; box-shadow:0 0 18px #a855f7; }
+        button.clink { border-color:#22d3ee; color:#67e8f9; }
+        button.clink:hover { background:#22d3ee; color:#06283d; box-shadow:0 0 16px #22d3ee; }
+        #cStatus { margin-top:10px; font-size:0.75rem; color:#d8b4fe; min-height:1em; }
+        #cResult { margin-top:18px; display:none; flex-direction:column; align-items:center; gap:12px; }
+        #cResult img { max-width:100%; border:1px solid #7c3aed; border-radius:6px; }
+
+        /* ── Clockwork theme (on <body> when CLOCKWORK tab active) ── */
+        #tabClockBtn { border-color:#d99a3a; color:#f0c674; box-shadow:0 0 10px rgba(217,154,58,0.25); }
+        #tabClockBtn:hover, #tabClockBtn.on { background:#d99a3a; color:#1a1206; box-shadow:0 0 18px #d99a3a; }
+        body.theme-clockwork { color:#f0c674; }
+        body.theme-clockwork h1 { color:#ffe1a8; text-shadow:0 0 16px #d99a3a, 0 0 32px #7a4a12; }
+
+        .clock-wrap { width:100%; display:flex; flex-direction:column; align-items:center; }
+        #cwInput {
+            width:100%; max-width:920px; background:rgba(22,14,4,0.85); border:1px solid #a86a22; color:#f0c674;
+            height:170px; box-sizing:border-box; border-radius:10px; padding:16px;
+            font-family:Georgia,'Times New Roman',serif; font-size:1.1rem; line-height:1.5; resize:none;
+            box-shadow:0 0 18px rgba(168,106,34,0.2);
+        }
+        #cwInput:focus { outline:none; border-color:#e0a94a; box-shadow:0 0 26px rgba(224,169,74,0.4); }
+        #cwInput::placeholder { color:#9a7430; }
+        .clock-canvas-wrap {
+            width:100%; max-width:920px; min-height:240px; margin-top:18px;
+            display:flex; align-items:center; justify-content:center;
+            background:radial-gradient(circle at 50% 42%, rgba(70,44,12,0.5), rgba(14,8,3,0.75));
+            border:1px solid #6b4416; border-radius:12px; overflow:hidden; padding:14px; box-sizing:border-box;
+        }
+        #cwOutput { max-width:100%; max-height:440px; object-fit:contain; border-radius:6px; }
+        .clock-panel {
+            margin-top:22px; width:100%; max-width:920px; box-sizing:border-box; padding:16px 20px; border-radius:10px;
+            background:linear-gradient(160deg, rgba(60,38,12,0.84), rgba(26,16,5,0.92));
+            border:1px solid #8a5a1e; box-shadow:0 0 22px rgba(168,106,34,0.18);
+        }
+        .clock-panel h2 { font-size:0.8rem; letter-spacing:2px; text-transform:uppercase; margin:0 0 14px; color:#f0c674; border-bottom:1px solid #6b4416; padding-bottom:8px; }
+        .clock-panel input[type="range"] { accent-color:#d99a3a; }
+        .clock-panel .field { color:#e0b873; }
+        button.cwbtn { border-color:#d99a3a; color:#f0c674; box-shadow:0 0 10px rgba(217,154,58,0.2); }
+        button.cwbtn:hover { background:#d99a3a; color:#1a1206; box-shadow:0 0 18px #d99a3a; }
+        button.cwlink { border-color:#e8b34a; color:#ffd277; }
+        button.cwlink:hover { background:#e8b34a; color:#2a1a06; box-shadow:0 0 16px #e8b34a; }
+        #cwStatus { margin-top:10px; font-size:0.75rem; color:#f0c674; min-height:1em; }
+        #cwResult { margin-top:18px; display:none; flex-direction:column; align-items:center; gap:12px; }
+        #cwResult img { max-width:100%; border:1px solid #a86a22; border-radius:6px; }
+        #cwFontName { color:#ffd277; font-size:0.68rem; }
+
+        /* ── Deep Sea theme (on <body> when DEEP SEA tab active) ── */
+        #tabDeepBtn { border-color:#6d5dfc; color:#b3a8ff; box-shadow:0 0 10px rgba(109,93,252,0.3); }
+        #tabDeepBtn:hover, #tabDeepBtn.on { background:#6d5dfc; color:#0a0420; box-shadow:0 0 18px #6d5dfc; }
+        body.theme-deep { color:#b9aaff; }
+        body.theme-deep h1 { color:#d9d2ff; text-shadow:0 0 16px #6d5dfc, 0 0 34px #1e1147, 0 0 52px #0a3d54; }
+
+        .deep-wrap { width:100%; display:flex; flex-direction:column; align-items:center; }
+        #dsInput {
+            width:100%; max-width:920px; background:rgba(8,4,26,0.88); border:1px solid #5b4bd6; color:#cfc6ff;
+            height:170px; box-sizing:border-box; border-radius:10px; padding:16px;
+            font-family:Georgia,'Times New Roman',serif; font-size:1.1rem; line-height:1.5; resize:none;
+            box-shadow:0 0 18px rgba(91,75,214,0.22);
+        }
+        #dsInput:focus { outline:none; border-color:#8b7bff; box-shadow:0 0 26px rgba(139,123,255,0.4); }
+        #dsInput::placeholder { color:#5b4f9a; }
+        .deep-canvas-wrap {
+            width:100%; max-width:920px; min-height:240px; margin-top:18px;
+            display:flex; align-items:center; justify-content:center;
+            background:radial-gradient(circle at 50% 30%, rgba(40,24,96,0.45), rgba(4,2,16,0.85) 70%);
+            border:1px solid #2c1f6b; border-radius:12px; overflow:hidden; padding:14px; box-sizing:border-box;
+        }
+        #dsOutput { max-width:100%; max-height:440px; object-fit:contain; border-radius:6px; }
+        .deep-panel {
+            margin-top:22px; width:100%; max-width:920px; box-sizing:border-box; padding:16px 20px; border-radius:10px;
+            background:linear-gradient(160deg, rgba(26,16,64,0.86), rgba(8,4,26,0.92));
+            border:1px solid #463aa0; box-shadow:0 0 22px rgba(91,75,214,0.18);
+        }
+        .deep-panel h2 { font-size:0.8rem; letter-spacing:2px; text-transform:uppercase; margin:0 0 14px; color:#b3a8ff; border-bottom:1px solid #2c1f6b; padding-bottom:8px; }
+        .deep-panel input[type="range"] { accent-color:#6d5dfc; }
+        .deep-panel .field { color:#a99cf0; }
+        button.dsbtn { border-color:#6d5dfc; color:#b3a8ff; box-shadow:0 0 10px rgba(109,93,252,0.2); }
+        button.dsbtn:hover { background:#6d5dfc; color:#0a0420; box-shadow:0 0 18px #6d5dfc; }
+        button.dslink { border-color:#22d3ee; color:#67e8f9; }
+        button.dslink:hover { background:#22d3ee; color:#06283d; box-shadow:0 0 16px #22d3ee; }
+        #dsStatus { margin-top:10px; font-size:0.75rem; color:#b3a8ff; min-height:1em; }
+        #dsResult { margin-top:18px; display:none; flex-direction:column; align-items:center; gap:12px; }
+        #dsResult img { max-width:100%; border:1px solid #5b4bd6; border-radius:6px; }
+
+        /* ── Ice Ouji theme (on <body> when ICE OUJI tab active) ── */
+        #tabIceBtn { border-color:#7dd3fc; color:#bae6fd; box-shadow:0 0 10px rgba(125,211,252,0.3); }
+        #tabIceBtn:hover, #tabIceBtn.on { background:#7dd3fc; color:#0a1a2e; box-shadow:0 0 18px #7dd3fc; }
+        body.theme-ice { color:#dbeafe; }
+        body.theme-ice h1 { color:#f0f9ff; text-shadow:0 0 16px #7dd3fc, 0 0 32px #1e40af, 0 0 6px #e8c06a; }
+
+        .ice-wrap { width:100%; display:flex; flex-direction:column; align-items:center; }
+        #ioInput {
+            width:100%; max-width:920px; background:rgba(8,18,38,0.86); border:1px solid #3b82c4; color:#e0f2fe;
+            height:170px; box-sizing:border-box; border-radius:10px; padding:16px;
+            font-family:Georgia,'Times New Roman',serif; font-size:1.1rem; line-height:1.5; resize:none;
+            box-shadow:0 0 18px rgba(125,211,252,0.2);
+        }
+        #ioInput:focus { outline:none; border-color:#bae6fd; box-shadow:0 0 26px rgba(186,230,253,0.4); }
+        .ice-canvas-wrap {
+            width:100%; max-width:920px; min-height:240px; margin-top:18px;
+            display:flex; align-items:center; justify-content:center;
+            background:radial-gradient(circle at 50% 32%, rgba(40,78,140,0.45), rgba(6,14,32,0.85) 72%);
+            border:1px solid #234a7a; border-radius:12px; overflow:hidden; padding:14px; box-sizing:border-box;
+        }
+        #ioOutput { max-width:100%; max-height:440px; object-fit:contain; border-radius:6px; }
+        .ice-panel {
+            margin-top:22px; width:100%; max-width:920px; box-sizing:border-box; padding:16px 20px; border-radius:10px;
+            background:linear-gradient(160deg, rgba(18,38,72,0.86), rgba(6,16,34,0.92));
+            border:1px solid #2f5f9e; box-shadow:0 0 22px rgba(125,211,252,0.16);
+        }
+        .ice-panel h2 { font-size:0.8rem; letter-spacing:2px; text-transform:uppercase; margin:0 0 14px; color:#bae6fd; border-bottom:1px solid #234a7a; padding-bottom:8px; }
+        .ice-panel h2::after { content:" ✦"; color:#e8c06a; }
+        .ice-panel input[type="range"] { accent-color:#7dd3fc; }
+        .ice-panel .field { color:#a9cdef; }
+        button.iobtn { border-color:#7dd3fc; color:#bae6fd; box-shadow:0 0 10px rgba(125,211,252,0.2); }
+        button.iobtn:hover { background:#7dd3fc; color:#0a1a2e; box-shadow:0 0 18px #7dd3fc; }
+        button.iolink { border-color:#e8c06a; color:#f3d894; }
+        button.iolink:hover { background:#e8c06a; color:#2a1f06; box-shadow:0 0 16px #e8c06a; }
+        #ioStatus { margin-top:10px; font-size:0.75rem; color:#bae6fd; min-height:1em; }
+        #ioResult { margin-top:18px; display:none; flex-direction:column; align-items:center; gap:12px; }
+        #ioResult img { max-width:100%; border:1px solid #3b82c4; border-radius:6px; }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="matrix" aria-hidden="true"></canvas>
+
+    <h1>// JUKO ENGINE //</h1>
+
+    <div class="tabbar">
+        <button id="tabMatrixBtn" class="on">◈ MATRIX</button>
+        <button id="tabCrystalBtn">◈ CRYSTAL</button>
+        <button id="tabClockBtn">◈ CLOCKWORK</button>
+        <button id="tabDeepBtn">◈ DEEP SEA</button>
+        <button id="tabIceBtn">◈ ICE OUJI</button>
+    </div>
+
+    <div id="tab-matrix" class="tab-content active">
+
+    <div class="container">
+        <textarea id="input"></textarea>
+        <div class="canvas-wrapper">
+            <canvas id="output" width="410" height="350"></canvas>
+        </div>
+    </div>
+
+    <!-- ── STYLING TOOLS (apply to selection or the whole dialogue) ── -->
+    <div class="panel">
+        <h2>Style Tools</h2>
+        <div class="row">
+            <div class="field inline">
+                Apply to
+                <span class="seg" id="applyMode">
+                    <button data-mode="selection" class="on">Selection</button>
+                    <button data-mode="all">Entire</button>
+                </span>
+            </div>
+
+            <div class="field inline">
+                Color
+                <input type="color" id="colorPick" value="#00ff00">
+                <button id="applyColor" class="alt">Apply</button>
+            </div>
+
+            <div class="field inline">
+                <button id="applyRainbow" class="alt">🌈 Rainbow!!!!</button>
+            </div>
+
+            <div class="field inline">
+                Animation
+                <select id="animSelect">
+                    <option value="none">None</option>
+                    <option value="wave">Wave</option>
+                    <option value="bounce">Bounce</option>
+                    <option value="shake">Shake</option>
+                    <option value="jitter">Jitter</option>
+                    <option value="wobble">Wobble</option>
+                    <option value="pulse">Pulse</option>
+                    <option value="float">Float</option>
+                    <option value="spin">Spin</option>
+                    <option value="drift">Drift</option>
+                    <option value="quake">Quake</option>
+                    <option value="swing">Swing</option>
+                </select>
+                <button id="applyAnim" class="alt">Apply</button>
+            </div>
+
+            <div class="field inline">
+                <button id="applyStable" class="alt" title="Freeze glitch/zalgo on this part">Steady (no glitch)</button>
+            </div>
+
+            <div class="field inline">
+                <button id="clearSel" class="alt">Clear styles</button>
+                <button id="resetAll" class="alt">Reset all</button>
+            </div>
+        </div>
+        <div class="hint">
+            <strong>How it works:</strong> set <em>Apply to</em> → <code>Selection</code>, highlight part of the text, then click a tool to style just that bit.
+            Set it to <code>Entire</code> to change the default for the whole dialogue.
+            Styles nest, and you can type the tags by hand too:
+            <code>[c=#ff0000]red[/c]</code> · <code>[rb]rainbow[/rb]</code> · <code>[a=wave]animated[/a]</code> · <code>[f=Impact]font[/f]</code> · <code>[stable]no glitch[/stable]</code>.
+            Leave everything untouched for the classic green matrix thinygy.
+        </div>
+    </div>
+
+    <!-- ── FONTS ── -->
+    <div class="panel">
+        <h2>Font</h2>
+        <div class="row">
+            <div class="field inline">
+                Font
+                <select id="fontSelect">
+                    <option value="&quot;Courier New&quot;, Courier, monospace">Courier New (default)</option>
+                    <option value="Consolas, &quot;Lucida Console&quot;, monospace">Consolas</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Impact, sans-serif">Impact</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="&quot;Times New Roman&quot;, serif">Times New Roman</option>
+                    <option value="&quot;Comic Sans MS&quot;, cursive">Comic Sans MS</option>
+                    <option value="Verdana, sans-serif">Verdana</option>
+                    <option value="&quot;Trebuchet MS&quot;, sans-serif">Trebuchet MS</option>
+                </select>
+                <button id="applyFont" class="alt">Apply</button>
+            </div>
+
+            <label class="field">Font Size <input type="range" id="fontSize" min="8" max="80" value="20"></label>
+
+            <div class="field inline">
+                Google Font
+                <input type="text" id="gfontName" placeholder="e.g. Press Start 2P" style="width:150px;background:#000;color:#0f0;border:1px solid #00aa00;border-radius:4px;padding:6px 8px;font-family:inherit;">
+                <button id="loadGFont" class="alt">Load</button>
+            </div>
+
+            <div class="field inline">
+                Upload font
+                <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2,font/*" style="font-size:0.7rem;max-width:180px;">
+            </div>
+        </div>
+        <div class="hint">
+            Pick a built-in font, type any <strong>Google Font</strong> name and hit Load, or upload a <code>.ttf/.otf/.woff</code> file - then <strong>Apply</strong> (respects the Selection/Entire toggle above). Per-part by hand: <code>[f=Font Name]styled[/f]</code>.
+        </div>
+    </div>
+
+    <!-- ── TWEAKS ── -->
+    <div class="panel">
+        <h2>Tweaks</h2>
+        <div class="row">
+            <label class="field">Glitch Intensity <input type="range" id="intensity" min="0" max="15" value="5"></label>
+            <label class="field">Zalgo Corruption <input type="range" id="zalgo" min="0" max="6" value="1"></label>
+            <label class="field">Animation Speed <input type="range" id="animSpeed" min="1" max="160" value="40"></label>
+            <label class="field">Animation Amount <input type="range" id="animAmp" min="0" max="22" value="6"></label>
+            <label class="field">Rainbow Speed <input type="range" id="rbSpeed" min="1" max="120" value="40"></label>
+            <label class="field">Rainbow Spread <input type="range" id="rbSpread" min="0" max="60" value="22"></label>
+            <label class="field">Glow <input type="range" id="glow" min="0" max="40" value="15"></label>
+        </div>
+    </div>
+
+    <div class="generate-row">
+        <label class="field inline" style="text-transform:uppercase;font-size:0.72rem;">
+            Frames <input type="range" id="frames" min="8" max="48" value="24" style="width:110px;"> <span class="val" id="framesVal">24</span>
+        </label>
+        <button id="recordBtn" class="big">Generate GIF</button>
+    </div>
+
+    <div id="result">
+        <img id="resultImg" alt="generated gif">
+        <div class="result-btns">
+            <button id="copyLinkBtn" class="link" title="Upload &amp; copy a link that auto-plays in Discord/Slack/etc.">📎 Copy Link</button>
+            <button id="downloadBtn" class="alt">⬇ Download</button>
+        </div>
+    </div>
+
+    <div id="status"></div>
+
+    </div><!-- /tab-matrix -->
+
+    <!-- ════════ CRYSTAL TAB - shimmering purple-cave dialogue ════════ -->
+    <div id="tab-crystal" class="tab-content">
+        <div class="crystal-wrap">
+            <textarea id="cInput"></textarea>
+
+            <div class="crystal-canvas-wrap">
+                <canvas id="cOutput" width="520" height="240"></canvas>
+            </div>
+
+            <div class="crystal-panel">
+                <h2>Crystal Tuning</h2>
+                <div class="row">
+                    <label class="field">Hue <input type="range" id="cHue" min="180" max="320" value="270"></label>
+                    <label class="field">Shimmer Speed <input type="range" id="cShimmerSpeed" min="0" max="120" value="45"></label>
+                    <label class="field">Shimmer Width <input type="range" id="cShimmerWidth" min="4" max="55" value="20"></label>
+                    <label class="field">Float <input type="range" id="cFloat" min="0" max="16" value="5"></label>
+                    <label class="field">Sparkles <input type="range" id="cSparkles" min="0" max="60" value="26"></label>
+                    <label class="field">Caustics <input type="range" id="cCaustics" min="0" max="9" value="5"></label>
+                    <label class="field">Glow <input type="range" id="cGlow" min="0" max="40" value="18"></label>
+                    <label class="field">Font Size <input type="range" id="cFontSize" min="14" max="56" value="30"></label>
+                </div>
+            </div>
+
+            <div class="generate-row">
+                <label class="field inline" style="text-transform:uppercase;font-size:0.72rem;color:#c4b5fd;">
+                    Frames <input type="range" id="cFrames" min="8" max="48" value="28" style="width:110px;"> <span class="val" id="cFramesVal" style="color:#e9d5ff;">28</span>
+                </label>
+                <button id="cRecordBtn" class="big cbtn">✦ Generate GIF</button>
+            </div>
+
+            <div id="cResult">
+                <img id="cResultImg" alt="crystal dialogue gif">
+                <div class="result-btns">
+                    <button id="cCopyLinkBtn" class="clink" title="Upload &amp; copy a link that auto-plays in Discord/Slack/etc.">📎 Copy Link</button>
+                    <button id="cDownloadBtn" class="cbtn">⬇ Download</button>
+                </div>
+            </div>
+
+            <div id="cStatus"></div>
+        </div>
+    </div>
+
+    <!-- ════════ CLOCKWORK TAB - mysterious brass clocks &amp; gears ════════ -->
+    <div id="tab-clockwork" class="tab-content">
+        <div class="clock-wrap">
+            <textarea id="cwInput"></textarea>
+
+            <div class="clock-canvas-wrap">
+                <canvas id="cwOutput" width="520" height="240"></canvas>
+            </div>
+
+            <div class="clock-panel">
+                <h2>Clockwork Tuning</h2>
+                <div class="row">
+                    <label class="field">Brass Tone <input type="range" id="cwTone" min="20" max="55" value="40"></label>
+                    <label class="field">Gear Speed <input type="range" id="cwGearSpeed" min="0" max="120" value="40"></label>
+                    <label class="field">Gears <input type="range" id="cwGears" min="0" max="10" value="6"></label>
+                    <label class="field">Clock Hands <input type="range" id="cwHandSpeed" min="0" max="120" value="32"></label>
+                    <label class="field">Tick <input type="range" id="cwTick" min="0" max="6" value="2"></label>
+                    <label class="field">Glow <input type="range" id="cwGlow" min="0" max="40" value="16"></label>
+                    <label class="field">Font Size <input type="range" id="cwFontSize" min="14" max="56" value="28"></label>
+                </div>
+                <div class="row" style="margin-top:12px;">
+                    <div class="field inline" style="color:#e0b873;">
+                        Upload font
+                        <input type="file" id="cwFontFile" accept=".ttf,.otf,.woff,.woff2,font/*" style="font-size:0.7rem;max-width:190px;">
+                        <span id="cwFontName">Font: Georgia (default)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="generate-row">
+                <label class="field inline" style="text-transform:uppercase;font-size:0.72rem;color:#e0b873;">
+                    Frames <input type="range" id="cwFrames" min="8" max="48" value="28" style="width:110px;"> <span class="val" id="cwFramesVal" style="color:#ffd277;">28</span>
+                </label>
+                <button id="cwRecordBtn" class="big cwbtn">⚙ Generate GIF</button>
+            </div>
+
+            <div id="cwResult">
+                <img id="cwResultImg" alt="clockwork dialogue gif">
+                <div class="result-btns">
+                    <button id="cwCopyLinkBtn" class="cwlink" title="Upload &amp; copy a link that auto-plays in Discord/Slack/etc.">📎 Copy Link</button>
+                    <button id="cwDownloadBtn" class="cwbtn">⬇ Download</button>
+                </div>
+            </div>
+
+            <div id="cwStatus"></div>
+        </div>
+    </div>
+
+    <!-- ════════ DEEP SEA TAB - the purple abyss ════════ -->
+    <div id="tab-deep" class="tab-content">
+        <div class="deep-wrap">
+            <textarea id="dsInput"></textarea>
+
+            <div class="deep-canvas-wrap">
+                <canvas id="dsOutput" width="520" height="240"></canvas>
+            </div>
+
+            <div class="deep-panel">
+                <h2>Abyss Tuning</h2>
+                <div class="row">
+                    <label class="field">Hue <input type="range" id="dsHue" min="220" max="300" value="265"></label>
+                    <label class="field">Bioluminescence <input type="range" id="dsBio" min="0" max="40" value="28"></label>
+                    <label class="field">Current <input type="range" id="dsDrift" min="0" max="120" value="40"></label>
+                    <label class="field">Bubbles <input type="range" id="dsBubbles" min="0" max="14" value="8"></label>
+                    <label class="field">Murk <input type="range" id="dsMurk" min="0" max="10" value="6"></label>
+                    <label class="field">Glow <input type="range" id="dsGlow" min="0" max="40" value="20"></label>
+                    <label class="field">Font Size <input type="range" id="dsFontSize" min="14" max="56" value="28"></label>
+                </div>
+            </div>
+
+            <div class="generate-row">
+                <label class="field inline" style="text-transform:uppercase;font-size:0.72rem;color:#a99cf0;">
+                    Frames <input type="range" id="dsFrames" min="8" max="48" value="28" style="width:110px;"> <span class="val" id="dsFramesVal" style="color:#cfc6ff;">28</span>
+                </label>
+                <button id="dsRecordBtn" class="big dsbtn">≈ Generate GIF</button>
+            </div>
+
+            <div id="dsResult">
+                <img id="dsResultImg" alt="deep sea dialogue gif">
+                <div class="result-btns">
+                    <button id="dsCopyLinkBtn" class="dslink" title="Upload &amp; copy a link that auto-plays in Discord/Slack/etc.">📎 Copy Link</button>
+                    <button id="dsDownloadBtn" class="dsbtn">⬇ Download</button>
+                </div>
+            </div>
+
+            <div id="dsStatus"></div>
+        </div>
+    </div>
+
+    <!-- ════════ ICE OUJI TAB - frozen royalty ════════ -->
+    <div id="tab-ice" class="tab-content">
+        <div class="ice-wrap">
+            <textarea id="ioInput"></textarea>
+
+            <div class="ice-canvas-wrap">
+                <canvas id="ioOutput" width="520" height="240"></canvas>
+            </div>
+
+            <div class="ice-panel">
+                <h2>Frost &amp; Filigree</h2>
+                <div class="row">
+                    <label class="field">Frost Hue <input type="range" id="ioHue" min="185" max="225" value="205"></label>
+                    <label class="field">Snowfall <input type="range" id="ioSnow" min="0" max="60" value="30"></label>
+                    <label class="field">Shimmer <input type="range" id="ioShimmer" min="0" max="120" value="40"></label>
+                    <label class="field">Sway <input type="range" id="ioSway" min="0" max="12" value="4"></label>
+                    <label class="field">Royal Gold <input type="range" id="ioGold" min="0" max="10" value="7"></label>
+                    <label class="field">Glow <input type="range" id="ioGlow" min="0" max="40" value="18"></label>
+                    <label class="field">Font Size <input type="range" id="ioFontSize" min="14" max="56" value="28"></label>
+                </div>
+            </div>
+
+            <div class="generate-row">
+                <label class="field inline" style="text-transform:uppercase;font-size:0.72rem;color:#a9cdef;">
+                    Frames <input type="range" id="ioFrames" min="8" max="48" value="28" style="width:110px;"> <span class="val" id="ioFramesVal" style="color:#e0f2fe;">28</span>
+                </label>
+                <button id="ioRecordBtn" class="big iobtn">❄ Generate GIF</button>
+            </div>
+
+            <div id="ioResult">
+                <img id="ioResultImg" alt="ice ouji dialogue gif">
+                <div class="result-btns">
+                    <button id="ioCopyLinkBtn" class="iolink" title="Upload &amp; copy a link that auto-plays in Discord/Slack/etc.">📎 Copy Link</button>
+                    <button id="ioDownloadBtn" class="iobtn">⬇ Download</button>
+                </div>
+            </div>
+
+            <div id="ioStatus"></div>
+        </div>
+    </div>
+
+    <!-- ── PUBLIC GALLERY ── -->
+    <div class="panel">
+        <div class="gallery-head">
+            <h2 style="margin:0;border:none;padding:0;">Gallery</h2>
+            <div class="field inline" style="gap:10px;">
+                <label class="field inline" style="font-size:0.68rem;">
+                    <input type="checkbox" id="shareToggle" checked style="accent-color:#00ff00;"> Share on Copy Link
+                </label>
+                <button id="refreshGallery" class="alt" style="font-size:0.7rem;padding:6px 12px;">↻ Refresh</button>
+            </div>
+        </div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+        <div class="gallery-empty" id="galleryEmpty">Loading recent creations…</div>
+        <div class="hint">Hit <strong>📎 Copy Link</strong> on a GIF to share it here for everyone. Click any tile to copy its link.</div>
+    </div>
+
+    <script>
+        const inputEl = document.getElementById('input');
+        const canvas = document.getElementById('output');
+        const ctx = canvas.getContext('2d');
+        const intensityEl = document.getElementById('intensity');
+        const zalgoEl = document.getElementById('zalgo');
+        const animSpeedEl = document.getElementById('animSpeed');
+        const animAmpEl = document.getElementById('animAmp');
+        const rbSpeedEl = document.getElementById('rbSpeed');
+        const rbSpreadEl = document.getElementById('rbSpread');
+        const glowEl = document.getElementById('glow');
+        const framesEl = document.getElementById('frames');
+        const framesVal = document.getElementById('framesVal');
+        const recordBtn = document.getElementById('recordBtn');
+        const statusEl = document.getElementById('status');
+
+        const DEFAULT_COLOR = '#00ff00';
+        const DEFAULT_FONT = '"Courier New", Courier, monospace';
+        const WRAP_WIDTH = 380;
+
+        const fontSelect = document.getElementById('fontSelect');
+        const fontSizeEl = document.getElementById('fontSize');
+
+        // ── Global (whole-dialogue) defaults - these reproduce the classic look ──
+        let globalColor = DEFAULT_COLOR;
+        let globalRainbow = false;
+        let globalAnim = 'none';
+        let globalFontCss = DEFAULT_FONT;
+        let applyMode = 'selection';
+        let curFontSize = 20;   // updated each frame from the slider
+
+        // first family of a CSS font string, unquoted (for the [f=..] tag)
+        function familyName(css) { return css.split(',')[0].trim().replace(/^["']|["']$/g, ''); }
+        // build a canvas font string for a glyph (per-part [f=] overrides the global font)
+        function fontStrFor(g) {
+            const fam = g.font ? ('"' + g.font + '", sans-serif') : globalFontCss;
+            return curFontSize + 'px ' + fam;
+        }
+
+        const leetMap = {
+            'a': '4', 'e': '3', 'i': '1', 'o': '0', 's': '5', 't': '7',
+            'A': '4', 'E': '3', 'I': '1', 'O': '0', 'S': '5', 'T': '7'
+        };
+        const glitchChars = '!<>-_\\\\/[]{} - =+*^?#_010101';
+        const zalgoChars = ['̍', '̎', '̄', '̅', '̿', '̑', '̆', '̐', '̕', '̛', '̧', '̨', '̴', '̵', '̶'];
+
+        let capturedFrames = [];
+        let isRecording = false;
+        let lastGifUrl = null;
+
+        // ── Animation library: each returns {dx, dy, rot, scale} for a glyph ──
+        const ANIMS = {
+            none:   () => ({}),
+            wave:   (t, c, sp, amp) => ({ dy: Math.sin(t * sp + c * 0.5) * amp }),
+            bounce: (t, c, sp, amp) => ({ dy: -Math.abs(Math.sin(t * sp + c * 0.5)) * amp }),
+            shake:  (t, c, sp, amp) => ({ dx: (Math.random() - 0.5) * amp, dy: (Math.random() - 0.5) * amp }),
+            jitter: (t, c, sp, amp) => ({ dx: (Math.random() - 0.5) * amp * 0.5, dy: (Math.random() - 0.5) * amp * 0.5 }),
+            wobble: (t, c, sp, amp) => ({ rot: Math.sin(t * sp + c * 0.4) * amp * 0.05 }),
+            pulse:  (t, c, sp, amp) => ({ scale: 1 + Math.sin(t * sp + c * 0.3) * amp * 0.03 }),
+            float:  (t, c, sp, amp) => ({ dy: Math.sin(t * sp * 0.7 + c * 0.3) * amp, dx: Math.cos(t * sp * 0.5 + c * 0.2) * amp * 0.5 }),
+            spin:   (t, c, sp, amp) => ({ rot: (t * sp + c * 0.5) }),
+            drift:  (t, c, sp, amp) => ({ dx: Math.sin(t * sp * 0.5 + c * 0.25) * amp }),
+            quake:  (t, c, sp, amp) => ({ dx: (Math.random() - 0.5) * amp * 2, dy: (Math.random() - 0.5) * amp * 2 }),
+            swing:  (t, c, sp, amp) => ({ rot: Math.sin(t * sp) * amp * 0.06, dx: Math.sin(t * sp) * amp }),
+        };
+
+        function applyZalgo(char, level) {
+            if (char === ' ' || char === '\n') return char;
+            let numZalgo = Math.floor(Math.random() * level);
+            let result = char;
+            for (let i = 0; i < numZalgo; i++) {
+                result += zalgoChars[Math.floor(Math.random() * zalgoChars.length)];
+            }
+            return result;
+        }
+
+        // ── Parse the markup tags into a flat list of styled glyphs ──
+        // Tags: [c=#hex]..[/c] [rb]..[/rb] [a=name]..[/a] [f=Font]..[/f] [stable]..[/stable]
+        const TAG_RE = /^\[(\/)?(c=#[0-9a-fA-F]{3,8}|c|rb|a=[a-z]+|a|stable|f=[^\]]+|f)\]/;
+        const STRIP_RE = /\[\/?(c=#[0-9a-fA-F]{3,8}|c|rb|a=[a-z]+|a|stable|f=[^\]]+|f)\]/g;
+        function parseMarkup(raw) {
+            const glyphs = [];
+            const st = { color: [], rainbow: 0, anim: [], stable: 0, font: [] };
+            let hasAnim = false;
+            let i = 0;
+            while (i < raw.length) {
+                const m = raw.slice(i).match(TAG_RE);
+                if (m) {
+                    const closing = m[1], body = m[2];
+                    if (body.indexOf('c=#') === 0) { if (!closing) st.color.push(body.slice(2)); }
+                    else if (body === 'c') { if (closing) st.color.pop(); }
+                    else if (body === 'rb') { st.rainbow += closing ? -1 : 1; }
+                    else if (body.indexOf('a=') === 0) { if (!closing) { st.anim.push(body.slice(2)); hasAnim = true; } }
+                    else if (body === 'a') { if (closing) st.anim.pop(); }
+                    else if (body.indexOf('f=') === 0) { if (!closing) st.font.push(body.slice(2)); }
+                    else if (body === 'f') { if (closing) st.font.pop(); }
+                    else if (body === 'stable') { st.stable += closing ? -1 : 1; }
+                    i += m[0].length;
+                    continue;
+                }
+                glyphs.push({
+                    ch: raw[i],
+                    color: st.color.length ? st.color[st.color.length - 1] : null,
+                    rainbow: st.rainbow > 0,
+                    anim: st.anim.length ? st.anim[st.anim.length - 1] : null,
+                    font: st.font.length ? st.font[st.font.length - 1] : null,
+                    stable: st.stable > 0
+                });
+                i++;
+            }
+            return { glyphs, hasAnim };
+        }
+
+        // ── Pixel-based word wrap (handles any font, proportional or mono) ──
+        function advanceOf(g) { ctx.font = fontStrFor(g); return ctx.measureText(g.ch).width; }
+        function layout(glyphs, maxWidth) {
+            const placed = [];
+            let line = 0, x = 0, gi = 0, maxW = 0;
+            let i = 0;
+            while (i < glyphs.length) {
+                const g = glyphs[i];
+                if (g.ch === '\n') { if (x > maxW) maxW = x; line++; x = 0; i++; continue; }
+                if (g.ch === ' ') {
+                    const w = advanceOf(g);
+                    if (x > 0 && x > maxWidth) { if (x > maxW) maxW = x; line++; x = 0; }
+                    placed.push({ g, line, x, w, gi: gi++, draw: false });
+                    x += w; i++; continue;
+                }
+                // measure this word (run of non-space chars)
+                let j = i; const ws = []; let wordW = 0;
+                while (j < glyphs.length && glyphs[j].ch !== ' ' && glyphs[j].ch !== '\n') { const w = advanceOf(glyphs[j]); ws.push(w); wordW += w; j++; }
+                if (wordW <= maxWidth && x > 0 && x + wordW > maxWidth) { if (x > maxW) maxW = x; line++; x = 0; }
+                for (let k = 0; k < ws.length; k++) {
+                    if (x > 0 && x + ws[k] > maxWidth) { if (x > maxW) maxW = x; line++; x = 0; }   // hard-break long words
+                    placed.push({ g: glyphs[i + k], line, x, w: ws[k], gi: gi++, draw: true });
+                    x += ws[k];
+                    if (x > maxW) maxW = x;
+                }
+                i = j;
+            }
+            if (x > maxW) maxW = x;
+            return { placed, lines: line + 1, width: maxW };
+        }
+
+        function corruptChar(ch, intensity, zalgoLevel) {
+            let c = ch;
+            if (leetMap[c] && Math.random() > 0.4) c = leetMap[c];
+            if (Math.random() * 100 < intensity && c !== ' ' && c !== '\n') {
+                c = glitchChars[Math.floor(Math.random() * glitchChars.length)];
+            }
+            if (zalgoLevel > 0) c = applyZalgo(c, zalgoLevel);
+            return c;
+        }
+
+        function generateFrame() {
+            if (window.JUKO_TAB && window.JUKO_TAB !== 'matrix' && !isRecording) return;   // idle on other tabs
+            const raw = inputEl.value;
+            const intensity = parseInt(intensityEl.value);
+            const zalgoLevel = parseInt(zalgoEl.value);
+            const animSpeed = parseInt(animSpeedEl.value) / 10;
+            const animAmp = parseInt(animAmpEl.value);
+            const rbSpeed = parseInt(rbSpeedEl.value);
+            const rbSpread = parseInt(rbSpreadEl.value);
+            const glow = parseInt(glowEl.value);
+            const t = performance.now() / 1000;
+
+            if (!raw) {
+                if (canvas.width !== 410 || canvas.height !== 350) { canvas.width = 410; canvas.height = 350; }
+                ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            curFontSize = parseInt(fontSizeEl.value);
+            const lineHeight = Math.round(curFontSize * 1.4);
+
+            const { glyphs, hasAnim } = parseMarkup(raw);
+            const animActive = hasAnim || globalAnim !== 'none';
+
+            const maxWidth = WRAP_WIDTH * (curFontSize / 20);
+            const { placed, lines, width } = layout(glyphs, maxWidth);
+
+            // padding (extra room so animated glyphs, descenders & glow don't clip)
+            const pad = Math.round(curFontSize * 0.55) + (animActive ? animAmp + 8 : 6) + Math.ceil(glow * 0.4);
+            const newW = Math.max(60, Math.ceil(width + pad * 2));
+            const newH = Math.max(60, Math.ceil(lines * lineHeight + pad * 2));
+            if (canvas.width !== newW || canvas.height !== newH) { canvas.width = newW; canvas.height = newH; }
+
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // whole-frame white flicker - only affects classic default-green glyphs
+            const frameFlash = Math.random() > 0.88;
+
+            for (const p of placed) {
+                if (!p.draw) continue;
+                const g = p.g;
+
+                // resolve effective style
+                let rainbow = g.rainbow || (!g.color && globalRainbow);
+                let color = g.color || globalColor;
+                const animName = g.anim || (globalAnim !== 'none' ? globalAnim : null);
+                const stable = g.stable;
+
+                let drawColor, blur = glow;
+                if (rainbow) {
+                    const hue = (t * rbSpeed * 6 + p.gi * rbSpread) % 360;
+                    drawColor = 'hsl(' + (hue < 0 ? hue + 360 : hue) + ',100%,58%)';
+                } else if (frameFlash && color.toLowerCase() === DEFAULT_COLOR) {
+                    drawColor = '#ffffff'; blur = Math.random() * 30 + 10;   // classic flash
+                } else {
+                    drawColor = color;
+                }
+
+                const char = stable ? g.ch : corruptChar(g.ch, intensity, zalgoLevel);
+
+                const cx = pad + p.x + p.w / 2;
+                const cy = pad + p.line * lineHeight + lineHeight / 2;
+
+                let off = {};
+                if (animName && ANIMS[animName]) off = ANIMS[animName](t, p.gi, animSpeed, animAmp);
+                const dx = off.dx || 0, dy = off.dy || 0, rot = off.rot || 0, scale = off.scale || 1;
+
+                ctx.save();
+                ctx.font = fontStrFor(g);
+                ctx.translate(cx + dx, cy + dy);
+                if (rot) ctx.rotate(rot);
+                if (scale !== 1) ctx.scale(scale, scale);
+                ctx.fillStyle = drawColor;
+                ctx.shadowColor = drawColor;
+                ctx.shadowBlur = blur;
+                ctx.fillText(char, 0, 0);
+                ctx.restore();
+            }
+
+            if (isRecording && capturedFrames.length < currentMaxFrames) {
+                capturedFrames.push(canvas.toDataURL('image/png'));
+                if (capturedFrames.length === currentMaxFrames) {
+                    isRecording = false;
+                    compileGIF();
+                }
+            }
+        }
+
+        let currentMaxFrames = 24;
+
+        function compileGIF() {
+            recordBtn.innerText = 'Compiling...';
+            setStatus('Compiling ' + capturedFrames.length + ' frames...');
+            gifshot.createGIF({
+                images: capturedFrames,
+                gifWidth: canvas.width,
+                gifHeight: canvas.height,
+                interval: 0.08,
+                numWorkers: 2,
+                sampleInterval: 1
+            }, function (obj) {
+                if (!obj.error) {
+                    if (lastGifUrl) URL.revokeObjectURL(lastGifUrl);
+                    lastGifUrl = obj.image;
+                    showResult(obj.image);
+                    setStatus('Done! Copy or download below.');
+                } else {
+                    setStatus('GIF generation failed: ' + (obj.errorMsg || 'try shorter text.'));
+                }
+                recordBtn.innerText = 'Generate GIF';
+                recordBtn.disabled = false;
+                capturedFrames = [];
+            });
+        }
+
+        const resultBox = document.getElementById('result');
+        const resultImg = document.getElementById('resultImg');
+        function showResult(dataUrl) {
+            resultImg.src = dataUrl;
+            resultBox.style.display = 'flex';
+        }
+        function setStatus(msg) { statusEl.textContent = msg; }
+
+        recordBtn.addEventListener('click', () => {
+            if (!inputEl.value.trim()) { setStatus('Type some text first!'); return; }
+            currentMaxFrames = parseInt(framesEl.value);
+            isRecording = true;
+            capturedFrames = [];
+            recordBtn.disabled = true;
+            recordBtn.innerText = 'Recording...';
+            setStatus('Recording ' + currentMaxFrames + ' frames...');
+        });
+
+        // ── Copy / download the generated GIF ──
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            if (!resultImg.src) return;
+            const a = document.createElement('a');
+            a.download = 'glitch-dialogue.gif';
+            a.href = resultImg.src;
+            a.click();
+        });
+
+
+        // ── Selection / global style tools ──
+        function wrapSelection(open, close) {
+            const s = inputEl.selectionStart, e = inputEl.selectionEnd;
+            const v = inputEl.value;
+            if (s === e) { setStatus('Select some text first (or switch "Apply to" → Entire).'); return false; }
+            inputEl.value = v.slice(0, s) + open + v.slice(s, e) + close + v.slice(e);
+            inputEl.selectionStart = s + open.length;
+            inputEl.selectionEnd = e + open.length;
+            inputEl.focus();
+            return true;
+        }
+
+        function refreshGlobalButtons() {
+            document.getElementById('applyRainbow').classList.toggle('on', applyMode === 'all' && globalRainbow);
+        }
+
+        // Apply-to toggle
+        document.getElementById('applyMode').addEventListener('click', (ev) => {
+            const b = ev.target.closest('button'); if (!b) return;
+            applyMode = b.dataset.mode;
+            [...ev.currentTarget.children].forEach(c => c.classList.toggle('on', c === b));
+            refreshGlobalButtons();
+        });
+
+        document.getElementById('applyColor').addEventListener('click', () => {
+            const hex = document.getElementById('colorPick').value;
+            if (applyMode === 'all') { globalColor = hex; globalRainbow = false; refreshGlobalButtons(); setStatus('Whole dialogue color set to ' + hex); }
+            else wrapSelection('[c=' + hex + ']', '[/c]');
+        });
+
+        document.getElementById('applyRainbow').addEventListener('click', () => {
+            if (applyMode === 'all') { globalRainbow = !globalRainbow; refreshGlobalButtons(); setStatus('Rainbow ' + (globalRainbow ? 'ON' : 'OFF') + ' for whole dialogue'); }
+            else wrapSelection('[rb]', '[/rb]');
+        });
+
+        document.getElementById('applyAnim').addEventListener('click', () => {
+            const name = document.getElementById('animSelect').value;
+            if (applyMode === 'all') { globalAnim = name; setStatus('Whole-dialogue animation: ' + name); }
+            else if (name === 'none') setStatus('Pick an animation to apply to a selection.');
+            else wrapSelection('[a=' + name + ']', '[/a]');
+        });
+
+        document.getElementById('applyStable').addEventListener('click', () => {
+            if (applyMode === 'all') { setStatus('"Steady" only applies to a selection. Use the Glitch slider for the whole dialogue.'); }
+            else wrapSelection('[stable]', '[/stable]');
+        });
+
+        document.getElementById('clearSel').addEventListener('click', () => {
+            const s = inputEl.selectionStart, e = inputEl.selectionEnd, v = inputEl.value;
+            if (s === e) { setStatus('Select the text whose tags you want to strip.'); return; }
+            const cleaned = v.slice(s, e).replace(STRIP_RE, '');
+            inputEl.value = v.slice(0, s) + cleaned + v.slice(e);
+            inputEl.selectionStart = s; inputEl.selectionEnd = s + cleaned.length;
+            inputEl.focus();
+        });
+
+        document.getElementById('resetAll').addEventListener('click', () => {
+            inputEl.value = inputEl.value.replace(STRIP_RE, '');
+            globalColor = DEFAULT_COLOR; globalRainbow = false; globalAnim = 'none'; globalFontCss = DEFAULT_FONT;
+            document.getElementById('animSelect').value = 'none';
+            document.getElementById('colorPick').value = DEFAULT_COLOR;
+            fontSelect.selectedIndex = 0;
+            fontSizeEl.value = 20; curFontSize = 20;
+            refreshGlobalButtons();
+            setStatus('Reset to the classic green glitch.');
+        });
+
+        // ── Fonts: pick built-in, load any Google Font, or upload a font file ──
+        function addFontOption(label, value) {
+            let opt = [...fontSelect.options].find(o => o.value === value);
+            if (!opt) { opt = document.createElement('option'); opt.value = value; opt.textContent = label; fontSelect.appendChild(opt); }
+            fontSelect.value = value;
+        }
+
+        document.getElementById('applyFont').addEventListener('click', () => {
+            const css = fontSelect.value;
+            if (applyMode === 'all') { globalFontCss = css; setStatus('Whole-dialogue font: ' + fontSelect.options[fontSelect.selectedIndex].text); }
+            else wrapSelection('[f=' + familyName(css) + ']', '[/f]');
+        });
+
+        // changing the dropdown applies live when in "Entire" mode
+        fontSelect.addEventListener('change', () => {
+            if (applyMode === 'all') { globalFontCss = fontSelect.value; setStatus('Whole-dialogue font: ' + fontSelect.options[fontSelect.selectedIndex].text); }
+        });
+
+        document.getElementById('loadGFont').addEventListener('click', async () => {
+            const name = document.getElementById('gfontName').value.trim();
+            if (!name) { setStatus('Type a Google Font name first.'); return; }
+            const href = 'https://fonts.googleapis.com/css2?family=' + name.trim().replace(/\s+/g, '+') + '&display=swap';
+            if (!document.querySelector('link[data-gf="' + name + '"]')) {
+                const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.dataset.gf = name; document.head.appendChild(l);
+            }
+            setStatus('Loading "' + name + '"...');
+            try {
+                await new Promise(r => setTimeout(r, 250));   // give the <link> a beat to register
+                await document.fonts.load('20px "' + name + '"');
+                await document.fonts.ready;
+                addFontOption(name, '"' + name + '", sans-serif');
+                if (applyMode === 'all') globalFontCss = fontSelect.value;
+                setStatus('Loaded Google Font "' + name + '". Hit Apply (or it\'s already live in Entire mode).');
+            } catch (err) { setStatus('Could not load "' + name + '" - check the spelling.'); }
+        });
+
+        document.getElementById('fontFile').addEventListener('change', async (ev) => {
+            const file = ev.target.files[0]; if (!file) return;
+            const name = (file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_ -]/g, '').trim()) || 'CustomFont';
+            setStatus('Loading "' + name + '"...');
+            try {
+                const buf = await file.arrayBuffer();
+                const ff = new FontFace(name, buf);
+                await ff.load();
+                document.fonts.add(ff);
+                addFontOption(name, '"' + name + '", sans-serif');
+                if (applyMode === 'all') globalFontCss = fontSelect.value;
+                setStatus('Loaded font "' + name + '". Hit Apply (or it\'s already live in Entire mode).');
+            } catch (err) { setStatus('Failed to load that font file.'); }
+        });
+
+        framesEl.addEventListener('input', () => framesVal.textContent = framesEl.value);
+
+        // Run engine loop at 12fps (keeps performance smooth and GIF sizes reasonable)
+        setInterval(generateFrame, 1000 / 12);
+    </script>
+
+    <!-- ════════ CLOUD: Cloudinary uploads + Firebase (gallery, shared fonts, settings) ════════ -->
+    <script>
+    (function () {
+        // ── Cloudinary (signed uploads, done client-side) ──
+        const CLOUD = 'duq37uaxf';
+        const API_KEY = '959326612136268';
+        const API_SECRET = 'cjSXtWmhgZfmH-Khk75bJM8Rl5Y';
+
+        // ── Firebase ──
+        const firebaseConfig = {
+            apiKey: "AIzaSyDqG2yoL9SMlLI6JpDUOOdtIuGkO2iEuhw",
+            authDomain: "juko-dea8f.firebaseapp.com",
+            projectId: "juko-dea8f",
+            storageBucket: "juko-dea8f.firebasestorage.app",
+            messagingSenderId: "671312075063",
+            appId: "1:671312075063:web:674f3836837b709d2ea2b2",
+            measurementId: "G-DRMTETLEDE"
+        };
+
+        let db = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+        } catch (e) {
+            console.warn('Firebase init failed - gallery/shared fonts disabled.', e);
+        }
+
+        // ── Cloudinary signed upload helper ──
+        async function sha1Hex(str) {
+            const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(str));
+            return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        async function cloudinaryUpload(blob, folder, filename) {
+            const ts = Math.round(Date.now() / 1000);
+            const signature = await sha1Hex(`folder=${folder}&timestamp=${ts}${API_SECRET}`);
+            const fd = new FormData();
+            fd.append('file', blob, filename || 'file');
+            fd.append('api_key', API_KEY);
+            fd.append('timestamp', ts);
+            fd.append('folder', folder);
+            fd.append('signature', signature);
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/auto/upload`, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.secure_url) return data.secure_url;
+            throw new Error((data.error && data.error.message) || 'Cloudinary upload failed');
+        }
+
+        // plain-text preview of the dialogue (tags stripped) for captions
+        function plainText() {
+            return inputEl.value.replace(STRIP_RE, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+        }
+
+        // ───────────────────────── COPY LINK (upload + share) ─────────────────────────
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const shareToggle = document.getElementById('shareToggle');
+        copyLinkBtn.addEventListener('click', async () => {
+            if (!resultImg.src) return;
+            const oldLabel = copyLinkBtn.textContent;
+            copyLinkBtn.disabled = true;
+            copyLinkBtn.textContent = '⏳ Uploading…';
+            setStatus('Uploading GIF…');
+            try {
+                const blob = await (await fetch(resultImg.src)).blob();
+                const url = await cloudinaryUpload(blob, 'juko/gifs', 'juko-' + Date.now() + '.gif');
+                try { await navigator.clipboard.writeText(url); } catch (_) {}
+                setStatus('✅ Link copied! Paste it in Discord/Slack and it plays animated: ' + url);
+
+                if (db && shareToggle.checked) {
+                    try {
+                        await db.collection('gifs').add({
+                            url, text: plainText(),
+                            w: canvas.width, h: canvas.height,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        loadGallery();
+                    } catch (e) { console.warn('Gallery save failed', e); }
+                }
+            } catch (err) {
+                setStatus('⚠ Upload failed: ' + err.message);
+            } finally {
+                copyLinkBtn.disabled = false;
+                copyLinkBtn.textContent = oldLabel;
+            }
+        });
+
+        // ───────────────────────── PUBLIC GALLERY ─────────────────────────
+        const galleryGrid = document.getElementById('galleryGrid');
+        const galleryEmpty = document.getElementById('galleryEmpty');
+        async function loadGallery() {
+            if (!db) { galleryEmpty.textContent = 'Gallery offline (Firebase unavailable).'; return; }
+            try {
+                const snap = await db.collection('gifs').orderBy('createdAt', 'desc').limit(40).get();
+                galleryGrid.innerHTML = '';
+                if (snap.empty) { galleryEmpty.style.display = 'block'; galleryEmpty.textContent = 'No GIFs yet - be the first! Generate one and hit 📎 Copy Link.'; return; }
+                galleryEmpty.style.display = 'none';
+                snap.forEach(doc => {
+                    const d = doc.data(); if (!d.url) return;
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
+                    item.title = 'Click to open';
+                    const img = document.createElement('img');
+                    img.loading = 'lazy'; img.src = d.url; img.alt = d.text || 'gif';
+                    const cap = document.createElement('div');
+                    cap.className = 'cap'; cap
+                    .textContent = d.text || '(no text)';
+                    item.appendChild(img); item.appendChild(cap);
+                    item.addEventListener('click', () => { window.open(d.url, '_blank', 'noopener'); });
+                    galleryGrid.appendChild(item);
+                });
+            } catch (e) {
+                console.warn('Gallery load failed', e);
+                galleryEmpty.textContent = 'Could not load gallery.';
+            }
+        }
+        document.getElementById('refreshGallery').addEventListener('click', loadGallery);
+
+        // ───────────────────────── SHARED FONTS (saved forever for everyone) ─────────────────────────
+        // When someone uploads a font, also push it to the cloud so it appears for all future visitors.
+        document.getElementById('fontFile').addEventListener('change', async (ev) => {
+            const file = ev.target.files[0];
+            if (!file || !db) return;
+            const name = (file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_ -]/g, '').trim()) || 'CustomFont';
+            try {
+                // skip if a font with this name is already shared
+                const existing = await db.collection('fonts').where('name', '==', name).limit(1).get();
+                if (!existing.empty) return;
+                const url = await cloudinaryUpload(file, 'juko/fonts', file.name);
+                await db.collection('fonts').add({
+                    name, url, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                setStatus('Font "' + name + '" shared - everyone can use it now.');
+            } catch (e) { console.warn('Font share failed', e); }
+        });
+
+        async function loadSharedFonts() {
+            if (!db) return;
+            try {
+                const snap = await db.collection('fonts').orderBy('createdAt', 'desc').limit(60).get();
+                snap.forEach(async doc => {
+                    const d = doc.data(); if (!d.name || !d.url) return;
+                    if ([...fontSelect.options].some(o => o.value === '"' + d.name + '", sans-serif')) return;
+                    try {
+                        const ff = new FontFace(d.name, 'url(' + d.url + ')');
+                        await ff.load();
+                        document.fonts.add(ff);
+                        const opt = document.createElement('option');
+                        opt.value = '"' + d.name + '", sans-serif';
+                        opt.textContent = d.name + ' (shared)';
+                        fontSelect.appendChild(opt);
+                    } catch (e) { /* font failed to load - skip */ }
+                });
+            } catch (e) { console.warn('Shared fonts load failed', e); }
+        }
+
+        // ───────────────────────── SETTINGS PERSISTENCE (localStorage) ─────────────────────────
+        const SETTINGS_KEY = 'juko-settings-v1';
+        const persistIds = ['intensity', 'zalgo', 'animSpeed', 'animAmp', 'rbSpeed', 'rbSpread', 'glow', 'frames', 'fontSize', 'input'];
+        function saveSettings() {
+            const data = {};
+            persistIds.forEach(id => { const el = document.getElementById(id); if (el) data[id] = el.value; });
+            try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); } catch (_) {}
+        }
+        function restoreSettings() {
+            let data; try { data = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch (_) { return; }
+            persistIds.forEach(id => {
+                if (data[id] == null) return;
+                const el = document.getElementById(id);
+                if (el) { el.value = data[id]; el.dispatchEvent(new Event('input', { bubbles: true })); }
+            });
+        }
+        persistIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.addEventListener('input', saveSettings); el.addEventListener('change', saveSettings); }
+        });
+
+        // ───────────────────────── MATRIX FALLING NUMBERS (non-laggy) ─────────────────────────
+        const mcanvas = document.getElementById('matrix');
+        const mctx = mcanvas.getContext('2d');
+        const FONT_SIZE = 16;
+        const MATRIX_PAL = {
+            green:   { glowS: '#00ff00', glowF: 'rgba(140,255,140,0.55)', dim: 'rgba(0,170,0,0.30)',  glyph: null, glyphChance: 0 },
+            crystal: { glowS: '#c084fc', glowF: 'rgba(216,180,254,0.55)', dim: 'rgba(150,90,210,0.30)', glyph: '✦', glyphChance: 0.12 },
+            clock:   { glowS: '#ffb347', glowF: 'rgba(255,200,120,0.50)', dim: 'rgba(180,120,40,0.28)', glyph: '⚙', glyphChance: 0.10 },
+            deep:    { glowS: '#67e8f9', glowF: 'rgba(150,210,255,0.45)', dim: 'rgba(90,80,190,0.24)',  glyph: '∘', glyphChance: 0.14 },
+            ice:     { glowS: '#bae6fd', glowF: 'rgba(224,242,255,0.55)', dim: 'rgba(120,170,220,0.26)', glyph: '❄', glyphChance: 0.12 }
+        };
+        let cols = 0, drops = [], glowCol = [];
+        function initMatrix() {
+            mcanvas.width = window.innerWidth;
+            mcanvas.height = window.innerHeight;
+            cols = Math.ceil(mcanvas.width / FONT_SIZE);
+            drops = new Array(cols).fill(0).map(() => Math.floor(Math.random() * (mcanvas.height / FONT_SIZE)));
+            glowCol = new Array(cols).fill(0).map(() => Math.random() < 0.16); // ~16% of columns glow
+        }
+        let lastDraw = 0;
+        function drawMatrix(ts) {
+            requestAnimationFrame(drawMatrix);
+            if (ts - lastDraw < 55) return;   // cap ~18fps → smooth & cheap
+            lastDraw = ts;
+            const cls = document.body.classList;
+            const theme = cls.contains('theme-clockwork') ? 'clock'
+                : cls.contains('theme-crystal') ? 'crystal'
+                : cls.contains('theme-deep') ? 'deep'
+                : cls.contains('theme-ice') ? 'ice' : 'green';
+            const pal = MATRIX_PAL[theme];
+            mctx.fillStyle = 'rgba(5,5,5,0.10)';   // fading trail
+            mctx.fillRect(0, 0, mcanvas.width, mcanvas.height);
+            mctx.font = FONT_SIZE + 'px monospace';
+            for (let i = 0; i < cols; i++) {
+                const ch = (pal.glyph && Math.random() < pal.glyphChance) ? pal.glyph
+                    : String.fromCharCode(48 + ((Math.random() * 10) | 0)); // 0-9
+                const x = i * FONT_SIZE, y = drops[i] * FONT_SIZE;
+                if (glowCol[i]) {
+                    mctx.shadowColor = pal.glowS; mctx.shadowBlur = 8;
+                    mctx.fillStyle = pal.glowF;
+                } else {
+                    mctx.shadowBlur = 0;
+                    mctx.fillStyle = pal.dim;
+                }
+                mctx.fillText(ch, x, y);
+                if (y > mcanvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+            mctx.shadowBlur = 0;
+        }
+        let mResizeT;
+        window.addEventListener('resize', () => { clearTimeout(mResizeT); mResizeT = setTimeout(initMatrix, 200); });
+        initMatrix();
+        requestAnimationFrame(drawMatrix);
+
+        // ── expose the cloud pipeline so the CRYSTAL tab can reuse it ──
+        window.jukoCloud = {
+            upload: cloudinaryUpload,
+            loadGallery,
+            async shareGif(blob, text, w, h) {
+                const url = await cloudinaryUpload(blob, 'juko/gifs', 'juko-' + Date.now() + '.gif');
+                if (db) {
+                    try {
+                        await db.collection('gifs').add({
+                            url, text: text || '',
+                            w: w || null, h: h || null,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        loadGallery();
+                    } catch (e) { console.warn('Gallery save failed', e); }
+                }
+                return url;
+            },
+            // share an uploaded font file so it's saved forever for everyone
+            async shareFont(file, name) {
+                if (!db) return;
+                try {
+                    const existing = await db.collection('fonts').where('name', '==', name).limit(1).get();
+                    if (!existing.empty) return;
+                    const url = await cloudinaryUpload(file, 'juko/fonts', file.name);
+                    await db.collection('fonts').add({
+                        name, url, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } catch (e) { console.warn('shareFont failed', e); }
+            }
+        };
+
+        // ───────────────────────── BOOT ─────────────────────────
+        restoreSettings();
+        loadSharedFonts();
+        loadGallery();
+    })();
+    </script>
+
+    <!-- ════════ TABS + CRYSTAL ENGINE ════════ -->
+    <script>
+    // ── Tab switching ──
+    (function () {
+        const tabs = {
+            matrix:    { btn: document.getElementById('tabMatrixBtn'),  panel: document.getElementById('tab-matrix') },
+            crystal:   { btn: document.getElementById('tabCrystalBtn'), panel: document.getElementById('tab-crystal') },
+            clockwork: { btn: document.getElementById('tabClockBtn'),   panel: document.getElementById('tab-clockwork') },
+            deep:      { btn: document.getElementById('tabDeepBtn'),    panel: document.getElementById('tab-deep') },
+            ice:       { btn: document.getElementById('tabIceBtn'),     panel: document.getElementById('tab-ice') }
+        };
+        window.JUKO_TAB = 'matrix';
+        function switchTab(name) {
+            window.JUKO_TAB = name;
+            for (const k in tabs) {
+                const on = k === name;
+                tabs[k].panel.classList.toggle('active', on);
+                tabs[k].btn.classList.toggle('on', on);
+            }
+            document.body.classList.toggle('theme-crystal', name === 'crystal');
+            document.body.classList.toggle('theme-clockwork', name === 'clockwork');
+            document.body.classList.toggle('theme-deep', name === 'deep');
+            document.body.classList.toggle('theme-ice', name === 'ice');
+        }
+        Object.keys(tabs).forEach(k => tabs[k].btn.addEventListener('click', () => switchTab(k)));
+    })();
+
+    // ── Crystal engine: shimmering purple-cave dialogue box ──
+    (function () {
+        const cInput = document.getElementById('cInput');
+        const canvas = document.getElementById('cOutput');
+        const ctx = canvas.getContext('2d');
+        const cHue = document.getElementById('cHue');
+        const cShSpeed = document.getElementById('cShimmerSpeed');
+        const cShWidth = document.getElementById('cShimmerWidth');
+        const cFloat = document.getElementById('cFloat');
+        const cSparkles = document.getElementById('cSparkles');
+        const cCaustics = document.getElementById('cCaustics');
+        const cGlow = document.getElementById('cGlow');
+        const cFontSize = document.getElementById('cFontSize');
+        const cFrames = document.getElementById('cFrames');
+        const cFramesVal = document.getElementById('cFramesVal');
+        const cRecordBtn = document.getElementById('cRecordBtn');
+        const cResult = document.getElementById('cResult');
+        const cResultImg = document.getElementById('cResultImg');
+        const cStatus = document.getElementById('cStatus');
+        const CRYSTAL_FONT = 'Georgia, "Times New Roman", serif';
+        const setC = (m) => { cStatus.textContent = m; };
+
+        // twinkle seeds (fixed so sparkles don't jump frame-to-frame)
+        const sparkles = Array.from({ length: 60 }, () => ({
+            x: Math.random(), y: Math.random(), ph: Math.random() * Math.PI * 2,
+            sz: 1 + Math.random() * 2.2, sp: 0.6 + Math.random() * 1.6
+        }));
+
+        function roundRect(x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+        function wrapLines(text, maxW) {
+            const out = [];
+            text.split('\n').forEach(para => {
+                const words = para.split(' ');
+                let cur = '';
+                words.forEach(w => {
+                    const test = cur ? cur + ' ' + w : w;
+                    if (ctx.measureText(test).width > maxW && cur) { out.push(cur); cur = w; }
+                    else cur = test;
+                });
+                out.push(cur);
+            });
+            return out.length ? out : [''];
+        }
+        function gem(x, y, s, hue) {
+            ctx.save();
+            ctx.translate(x, y); ctx.rotate(Math.PI / 4);
+            ctx.shadowColor = `hsl(${hue + 40},100%,78%)`; ctx.shadowBlur = 12;
+            const g = ctx.createLinearGradient(-s, -s, s, s);
+            g.addColorStop(0, `hsl(${hue + 40},100%,90%)`);
+            g.addColorStop(1, `hsl(${hue - 20},90%,62%)`);
+            ctx.fillStyle = g; ctx.fillRect(-s, -s, 2 * s, 2 * s);
+            ctx.restore();
+        }
+
+        let recording = false, frames = [], maxFrames = 28, lastUrl = null;
+
+        function draw() {
+            if (window.JUKO_TAB !== 'crystal' && !recording) return;
+            const t = performance.now() / 1000;
+            const hue = +cHue.value;
+            const shSpeed = +cShSpeed.value / 30;
+            const shW = Math.max(0.04, +cShWidth.value / 100);
+            const floatAmt = +cFloat.value;
+            const sparkleN = +cSparkles.value;
+            const causAmt = +cCaustics.value | 0;
+            const glow = +cGlow.value;
+            const fs = +cFontSize.value;
+
+            ctx.font = fs + 'px ' + CRYSTAL_FONT;
+            const maxTextW = 560;
+            const raw = cInput.value;
+            const lines = raw.trim() ? wrapLines(raw, maxTextW) : ['…'];
+            const lineH = Math.round(fs * 1.5);
+            let textW = 0;
+            for (const ln of lines) textW = Math.max(textW, ctx.measureText(ln).width);
+            const padX = 48, padY = 42;
+            const W = Math.max(360, Math.ceil(Math.min(maxTextW, textW) + padX * 2));
+            const H = Math.max(160, lines.length * lineH + padY * 2);
+            if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+            ctx.font = fs + 'px ' + CRYSTAL_FONT;   // restore after any resize
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+            // ── background: deep cave gradient + central glow ──
+            const bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, `hsl(${hue - 20},65%,8%)`);
+            bg.addColorStop(0.5, `hsl(${hue},58%,12%)`);
+            bg.addColorStop(1, `hsl(${hue + 15},70%,6%)`);
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+            const rg = ctx.createRadialGradient(W / 2, H / 2, 8, W / 2, H / 2, Math.max(W, H) * 0.7);
+            rg.addColorStop(0, `hsla(${hue + 10},80%,48%,0.22)`);
+            rg.addColorStop(1, 'hsla(0,0%,0%,0)');
+            ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+
+            // ── caustics: underwater light ribbons ──
+            if (causAmt > 0) {
+                ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = 1.3;
+                for (let i = 0; i < causAmt; i++) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = `hsla(${hue + 55},100%,82%,0.06)`;
+                    const yy = (i + 0.5) / causAmt * H;
+                    for (let x = 0; x <= W; x += 8) {
+                        const y = yy + Math.sin(x * 0.03 + t * shSpeed * 6 + i) * 9 + Math.sin(x * 0.011 - t) * 5;
+                        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // ── crystalline dialogue box ──
+            const m = 14, bx = m, by = m, bw = W - 2 * m, bh = H - 2 * m, r = 16;
+            const boxGrad = ctx.createLinearGradient(0, by, 0, by + bh);
+            boxGrad.addColorStop(0, `hsla(${hue},70%,26%,0.55)`);
+            boxGrad.addColorStop(1, `hsla(${hue + 20},80%,10%,0.72)`);
+            roundRect(bx, by, bw, bh, r); ctx.fillStyle = boxGrad; ctx.fill();
+            // glassy top sheen
+            roundRect(bx + 5, by + 5, bw - 10, bh * 0.42, r * 0.7);
+            const sheen = ctx.createLinearGradient(0, by, 0, by + bh * 0.45);
+            sheen.addColorStop(0, 'hsla(0,0%,100%,0.10)');
+            sheen.addColorStop(1, 'hsla(0,0%,100%,0)');
+            ctx.fillStyle = sheen; ctx.fill();
+            // shimmering border
+            const bGrad = ctx.createLinearGradient(bx, by, bx + bw, by + bh);
+            bGrad.addColorStop(0, `hsl(${hue + 70},90%,72%)`);
+            bGrad.addColorStop(0.5, `hsl(${(hue - 20 + 360) % 360},100%,84%)`);
+            bGrad.addColorStop(1, `hsl(${hue + 40},85%,62%)`);
+            roundRect(bx, by, bw, bh, r);
+            ctx.lineWidth = 2.5; ctx.strokeStyle = bGrad;
+            ctx.shadowColor = `hsl(${hue},100%,70%)`; ctx.shadowBlur = glow * (0.7 + 0.3 * Math.sin(t * 2));
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // ── text with a moving shimmer sweep + gentle float ──
+            const center = 0.05 + ((t * shSpeed * 0.4) % 1) * 0.9;
+            const a = Math.max(0.001, center - shW), b = Math.min(0.999, center + shW);
+            const baseCol = `hsl(${hue + 40},55%,84%)`;
+            const brightCol = `hsl(${(hue + 80) % 360},100%,98%)`;
+            const tg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+            tg.addColorStop(0, baseCol);
+            tg.addColorStop(a, baseCol);
+            tg.addColorStop(Math.min(0.998, Math.max(0.002, center)), brightCol);
+            tg.addColorStop(b, baseCol);
+            tg.addColorStop(1, baseCol);
+            ctx.fillStyle = tg;
+            ctx.shadowColor = `hsl(${hue + 30},100%,78%)`; ctx.shadowBlur = glow * 0.5;
+            const totalH = lines.length * lineH;
+            const y0 = by + bh / 2 - totalH / 2 + lineH / 2;
+            lines.forEach((ln, i) => {
+                const dy = Math.sin(t * shSpeed * 0.6 + i * 0.7) * floatAmt;
+                ctx.fillText(ln, W / 2, y0 + i * lineH + dy);
+            });
+            ctx.shadowBlur = 0;
+
+            // ── corner gems ──
+            [[bx, by], [bx + bw, by], [bx, by + bh], [bx + bw, by + bh]].forEach((p, i) => {
+                gem(p[0], p[1], 4 + 1.5 * Math.abs(Math.sin(t * 2 + i)), hue);
+            });
+
+            // ── twinkling sparkles ──
+            for (let i = 0; i < sparkleN && i < sparkles.length; i++) {
+                const s = sparkles[i];
+                const al = 0.35 + 0.65 * Math.sin(t * s.sp * shSpeed * 2 + s.ph);
+                if (al <= 0.03) continue;
+                const x = s.x * W, y = s.y * H, sz = s.sz * (0.8 + 0.4 * Math.sin(t + s.ph));
+                ctx.save();
+                ctx.globalAlpha = Math.min(1, al);
+                ctx.translate(x, y);
+                ctx.shadowColor = `hsl(${hue + 60},100%,86%)`; ctx.shadowBlur = 8;
+                ctx.fillStyle = `hsl(${hue + 60},100%,93%)`;
+                ctx.beginPath();
+                ctx.moveTo(0, -sz * 2.2); ctx.lineTo(sz * 0.5, 0); ctx.lineTo(0, sz * 2.2); ctx.lineTo(-sz * 0.5, 0); ctx.closePath(); ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(-sz * 2.2, 0); ctx.lineTo(0, sz * 0.5); ctx.lineTo(sz * 2.2, 0); ctx.lineTo(0, -sz * 0.5); ctx.closePath(); ctx.fill();
+                ctx.restore();
+            }
+
+            if (recording && frames.length < maxFrames) {
+                frames.push(canvas.toDataURL('image/png'));
+                if (frames.length === maxFrames) { recording = false; compile(); }
+            }
+        }
+
+        function compile() {
+            cRecordBtn.textContent = 'Compiling…';
+            setC('Compiling ' + frames.length + ' frames…');
+            gifshot.createGIF({
+                images: frames, gifWidth: canvas.width, gifHeight: canvas.height,
+                interval: 0.07, numWorkers: 2, sampleInterval: 1
+            }, function (obj) {
+                if (!obj.error) {
+                    if (lastUrl) URL.revokeObjectURL(lastUrl);
+                    lastUrl = obj.image;
+                    cResultImg.src = obj.image;
+                    cResult.style.display = 'flex';
+                    setC('Done! Copy or download below.');
+                } else {
+                    setC('GIF failed: ' + (obj.errorMsg || 'try shorter text.'));
+                }
+                cRecordBtn.textContent = '✦ Generate GIF';
+                cRecordBtn.disabled = false;
+                frames = [];
+            });
+        }
+
+        cRecordBtn.addEventListener('click', () => {
+            if (!cInput.value.trim()) { setC('Type some dialogue first!'); return; }
+            maxFrames = parseInt(cFrames.value);
+            recording = true; frames = [];
+            cRecordBtn.disabled = true; cRecordBtn.textContent = 'Recording…';
+            setC('Recording ' + maxFrames + ' frames…');
+        });
+        cFrames.addEventListener('input', () => cFramesVal.textContent = cFrames.value);
+
+        document.getElementById('cDownloadBtn').addEventListener('click', () => {
+            if (!cResultImg.src) return;
+            const a = document.createElement('a');
+            a.download = 'crystal-dialogue.gif'; a.href = cResultImg.src; a.click();
+        });
+
+        document.getElementById('cCopyLinkBtn').addEventListener('click', async function () {
+            if (!cResultImg.src) return;
+            const old = this.textContent;
+            this.disabled = true; this.textContent = '⏳ Uploading…';
+            setC('Uploading GIF…');
+            try {
+                if (!window.jukoCloud || !window.jukoCloud.shareGif) throw new Error('cloud pipeline unavailable');
+                const blob = await (await fetch(cResultImg.src)).blob();
+                const text = (cInput.value || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+                const url = await window.jukoCloud.shareGif(blob, text, canvas.width, canvas.height);
+                try { await navigator.clipboard.writeText(url); } catch (_) {}
+                setC('✅ Link copied! Plays animated when pasted in Discord/Slack: ' + url);
+            } catch (err) {
+                setC('⚠ Upload failed: ' + err.message);
+            } finally {
+                this.disabled = false; this.textContent = old;
+            }
+        });
+
+        setInterval(draw, 1000 / 12);
+    })();
+    </script>
+
+    <!-- ════════ CLOCKWORK ENGINE ════════ -->
+    <script>
+    (function () {
+        const cwInput = document.getElementById('cwInput');
+        const canvas = document.getElementById('cwOutput');
+        const ctx = canvas.getContext('2d');
+        const cwTone = document.getElementById('cwTone');
+        const cwGearSpeed = document.getElementById('cwGearSpeed');
+        const cwGears = document.getElementById('cwGears');
+        const cwHandSpeed = document.getElementById('cwHandSpeed');
+        const cwTick = document.getElementById('cwTick');
+        const cwGlow = document.getElementById('cwGlow');
+        const cwFontSize = document.getElementById('cwFontSize');
+        const cwFrames = document.getElementById('cwFrames');
+        const cwFramesVal = document.getElementById('cwFramesVal');
+        const cwRecordBtn = document.getElementById('cwRecordBtn');
+        const cwResult = document.getElementById('cwResult');
+        const cwResultImg = document.getElementById('cwResultImg');
+        const cwStatus = document.getElementById('cwStatus');
+        const cwFontFile = document.getElementById('cwFontFile');
+        const cwFontName = document.getElementById('cwFontName');
+        const setCW = (m) => { cwStatus.textContent = m; };
+
+        let currentFont = 'Georgia, "Times New Roman", serif';
+
+        // fixed gear seeds (position %, radius %, teeth, direction, glow?)
+        const gearSeeds = Array.from({ length: 10 }, (_, i) => ({
+            x: Math.random(), y: Math.random(),
+            R: 18 + Math.random() * 40, teeth: 8 + ((Math.random() * 8) | 0),
+            dir: Math.random() < 0.5 ? 1 : -1, glow: Math.random() < 0.25,
+            sp: 0.4 + Math.random() * 1.4
+        }));
+
+        function roundRect(x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+        function wrapLines(text, maxW) {
+            const out = [];
+            text.split('\n').forEach(para => {
+                const words = para.split(' ');
+                let cur = '';
+                words.forEach(w => {
+                    const test = cur ? cur + ' ' + w : w;
+                    if (ctx.measureText(test).width > maxW && cur) { out.push(cur); cur = w; }
+                    else cur = test;
+                });
+                out.push(cur);
+            });
+            return out.length ? out : [''];
+        }
+        function drawGear(cx, cy, R, teeth, rot, hue, alpha, glow) {
+            const inner = R * 0.74, hub = R * 0.32;
+            ctx.save();
+            ctx.translate(cx, cy); ctx.rotate(rot);
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = `hsl(${hue},70%,55%)`;
+            ctx.fillStyle = `hsla(${hue},60%,30%,0.5)`;
+            if (glow) { ctx.shadowColor = `hsl(${hue},90%,60%)`; ctx.shadowBlur = glow; }
+            const step = (Math.PI * 2) / teeth;
+            ctx.beginPath();
+            for (let i = 0; i < teeth; i++) {
+                const a = i * step;
+                ctx.lineTo(Math.cos(a) * inner, Math.sin(a) * inner);
+                ctx.lineTo(Math.cos(a + step * 0.14) * R, Math.sin(a + step * 0.14) * R);
+                ctx.lineTo(Math.cos(a + step * 0.36) * R, Math.sin(a + step * 0.36) * R);
+                ctx.lineTo(Math.cos(a + step * 0.5) * inner, Math.sin(a + step * 0.5) * inner);
+            }
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+            ctx.shadowBlur = 0;
+            // hub + center hole + spokes
+            ctx.beginPath(); ctx.arc(0, 0, hub, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, hub * 0.35, 0, Math.PI * 2); ctx.stroke();
+            for (let s = 0; s < 5; s++) {
+                const a = (s / 5) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * hub, Math.sin(a) * hub);
+                ctx.lineTo(Math.cos(a) * inner, Math.sin(a) * inner);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+        function drawClock(cx, cy, R, t, handSpeed, hue, alpha) {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = `hsl(${hue},60%,55%)`;
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, R * 0.9, 0, Math.PI * 2); ctx.stroke();
+            ctx.lineWidth = 1.2;
+            for (let i = 0; i < 60; i++) {
+                const a = (i / 60) * Math.PI * 2;
+                const r1 = R * 0.9, r2 = (i % 5 === 0) ? R * 0.79 : R * 0.85;
+                ctx.beginPath();
+                ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+                ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+                ctx.stroke();
+            }
+            ctx.fillStyle = `hsl(${hue},55%,60%)`;
+            ctx.font = Math.round(R * 0.15) + 'px Georgia, serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const rn = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+            for (let i = 0; i < 12; i++) {
+                const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+                ctx.fillText(rn[i], cx + Math.cos(a) * R * 0.69, cy + Math.sin(a) * R * 0.69);
+            }
+            const base = t * handSpeed * 0.1;
+            const hand = (ang, len, w, col) => {
+                ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(ang - Math.PI / 2) * len, cy + Math.sin(ang - Math.PI / 2) * len);
+                ctx.stroke();
+            };
+            hand(base * 0.5, R * 0.45, 4, `hsl(${hue},65%,58%)`);
+            hand(base * 1.3, R * 0.66, 3, `hsl(${hue},75%,64%)`);
+            hand(base * 3.0, R * 0.8, 1.5, `hsl(${hue + 12},90%,70%)`);
+            ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+            ctx.fillStyle = `hsl(${hue + 12},90%,70%)`; ctx.fill();
+            ctx.restore();
+        }
+
+        let recording = false, frames = [], maxFrames = 28, lastUrl = null;
+
+        function draw() {
+            if (window.JUKO_TAB !== 'clockwork' && !recording) return;
+            const t = performance.now() / 1000;
+            const hue = +cwTone.value;
+            const gearSp = +cwGearSpeed.value / 40;
+            const gearN = +cwGears.value | 0;
+            const handSp = +cwHandSpeed.value;
+            const tickAmt = +cwTick.value;
+            const glow = +cwGlow.value;
+            const fs = +cwFontSize.value;
+
+            ctx.font = fs + 'px ' + currentFont;
+            const maxTextW = 560;
+            const raw = cwInput.value;
+            const lines = raw.trim() ? wrapLines(raw, maxTextW) : ['…'];
+            const lineH = Math.round(fs * 1.5);
+            let textW = 0;
+            for (const ln of lines) textW = Math.max(textW, ctx.measureText(ln).width);
+            const padX = 54, padY = 46;
+            const W = Math.max(380, Math.ceil(Math.min(maxTextW, textW) + padX * 2));
+            const H = Math.max(180, lines.length * lineH + padY * 2);
+            if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+            ctx.font = fs + 'px ' + currentFont;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+            // ── warm cave-dark background + vignette ──
+            const bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, `hsl(${hue - 8},45%,9%)`);
+            bg.addColorStop(1, `hsl(${hue - 4},50%,4%)`);
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+            // ── rotating gears (ambient, behind) ──
+            for (let i = 0; i < gearN && i < gearSeeds.length; i++) {
+                const g = gearSeeds[i];
+                const gx = g.x * (W + 80) - 40, gy = g.y * (H + 80) - 40;
+                drawGear(gx, gy, g.R, g.teeth, t * gearSp * g.sp * g.dir, hue, 0.22, g.glow ? glow * 0.5 : 0);
+            }
+
+            // ── ghostly clock face behind the text ──
+            drawClock(W / 2, H / 2, Math.min(W, H) * 0.46, t, handSp, hue, 0.2);
+
+            // ── brass plaque dialogue box ──
+            const m = 14, bx = m, by = m, bw = W - 2 * m, bh = H - 2 * m, r = 12;
+            const boxGrad = ctx.createLinearGradient(0, by, 0, by + bh);
+            boxGrad.addColorStop(0, `hsla(${hue},55%,22%,0.62)`);
+            boxGrad.addColorStop(1, `hsla(${hue - 6},60%,8%,0.72)`);
+            roundRect(bx, by, bw, bh, r); ctx.fillStyle = boxGrad; ctx.fill();
+            // engraved double border
+            ctx.shadowColor = `hsl(${hue},90%,55%)`; ctx.shadowBlur = glow * (0.6 + 0.4 * (0.5 + 0.5 * Math.sin(t * 1.5)));
+            ctx.lineWidth = 2.5; ctx.strokeStyle = `hsl(${hue},75%,58%)`;
+            roundRect(bx, by, bw, bh, r); ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = 1; ctx.strokeStyle = `hsla(${hue},65%,45%,0.7)`;
+            roundRect(bx + 6, by + 6, bw - 12, bh - 12, r * 0.6); ctx.stroke();
+            // corner rivets
+            ctx.fillStyle = `hsl(${hue + 8},80%,62%)`;
+            [[bx + 12, by + 12], [bx + bw - 12, by + 12], [bx + 12, by + bh - 12], [bx + bw - 12, by + bh - 12]].forEach(p => {
+                ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, Math.PI * 2); ctx.fill();
+            });
+
+            // ── engraved text with a clock "tick" nudge ──
+            const tickPhase = Math.floor(t * (tickAmt > 0 ? 2 : 0));
+            const jr = (Math.sin(tickPhase * 12.9898) * 43758.5453) % 1;
+            const jx = tickAmt ? (jr - 0.5) * tickAmt * 0.6 : 0;
+            const jy = tickAmt ? ((Math.sin(tickPhase * 78.233) * 43758.5453 % 1) - 0.5) * tickAmt * 0.6 : 0;
+            const totalH = lines.length * lineH;
+            const y0 = by + bh / 2 - totalH / 2 + lineH / 2;
+            ctx.font = fs + 'px ' + currentFont;
+            lines.forEach((ln, i) => {
+                const yy = y0 + i * lineH + jy;
+                ctx.fillStyle = 'rgba(0,0,0,0.55)';                 // deboss shadow
+                ctx.fillText(ln, W / 2 + jx + 1, yy + 1);
+                ctx.shadowColor = `hsl(${hue},90%,55%)`; ctx.shadowBlur = glow * 0.5;
+                ctx.fillStyle = `hsl(${hue},78%,66%)`;             // brass face
+                ctx.fillText(ln, W / 2 + jx, yy);
+                ctx.shadowBlur = 0;
+            });
+
+            // ── two glowing foreground gears at opposite corners ──
+            drawGear(bx + 6, by + bh - 6, 16, 9, t * gearSp * 1.2, hue, 0.5, glow * 0.6);
+            drawGear(bx + bw - 6, by + 6, 13, 8, -t * gearSp * 1.6, hue, 0.5, glow * 0.6);
+
+            if (recording && frames.length < maxFrames) {
+                frames.push(canvas.toDataURL('image/png'));
+                if (frames.length === maxFrames) { recording = false; compile(); }
+            }
+        }
+
+        function compile() {
+            cwRecordBtn.textContent = 'Compiling…';
+            setCW('Compiling ' + frames.length + ' frames…');
+            gifshot.createGIF({
+                images: frames, gifWidth: canvas.width, gifHeight: canvas.height,
+                interval: 0.07, numWorkers: 2, sampleInterval: 1
+            }, function (obj) {
+                if (!obj.error) {
+                    if (lastUrl) URL.revokeObjectURL(lastUrl);
+                    lastUrl = obj.image;
+                    cwResultImg.src = obj.image;
+                    cwResult.style.display = 'flex';
+                    setCW('Done! Copy or download below.');
+                } else {
+                    setCW('GIF failed: ' + (obj.errorMsg || 'try shorter text.'));
+                }
+                cwRecordBtn.textContent = '⚙ Generate GIF';
+                cwRecordBtn.disabled = false;
+                frames = [];
+            });
+        }
+
+        cwRecordBtn.addEventListener('click', () => {
+            if (!cwInput.value.trim()) { setCW('Type some dialogue first!'); return; }
+            maxFrames = parseInt(cwFrames.value);
+            recording = true; frames = [];
+            cwRecordBtn.disabled = true; cwRecordBtn.textContent = 'Recording…';
+            setCW('Recording ' + maxFrames + ' frames…');
+        });
+        cwFrames.addEventListener('input', () => cwFramesVal.textContent = cwFrames.value);
+
+        // ── upload your own font (used instantly + shared forever) ──
+        cwFontFile.addEventListener('change', async (ev) => {
+            const file = ev.target.files[0]; if (!file) return;
+            const name = (file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_ -]/g, '').trim()) || 'ClockFont';
+            setCW('Loading "' + name + '"…');
+            try {
+                const buf = await file.arrayBuffer();
+                const ff = new FontFace(name, buf);
+                await ff.load();
+                document.fonts.add(ff);
+                currentFont = '"' + name + '", Georgia, serif';
+                cwFontName.textContent = 'Font: ' + name;
+                setCW('Loaded "' + name + '" - now engraving with it.');
+                if (window.jukoCloud && window.jukoCloud.shareFont) window.jukoCloud.shareFont(file, name);
+            } catch (e) { setCW('Failed to load that font file.'); }
+        });
+
+        document.getElementById('cwDownloadBtn').addEventListener('click', () => {
+            if (!cwResultImg.src) return;
+            const a = document.createElement('a');
+            a.download = 'clockwork-dialogue.gif'; a.href = cwResultImg.src; a.click();
+        });
+
+        document.getElementById('cwCopyLinkBtn').addEventListener('click', async function () {
+            if (!cwResultImg.src) return;
+            const old = this.textContent;
+            this.disabled = true; this.textContent = '⏳ Uploading…';
+            setCW('Uploading GIF…');
+            try {
+                if (!window.jukoCloud || !window.jukoCloud.shareGif) throw new Error('cloud pipeline unavailable');
+                const blob = await (await fetch(cwResultImg.src)).blob();
+                const text = (cwInput.value || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+                const url = await window.jukoCloud.shareGif(blob, text, canvas.width, canvas.height);
+                try { await navigator.clipboard.writeText(url); } catch (_) {}
+                setCW('✅ Link copied! Plays animated when pasted in Discord/Slack: ' + url);
+            } catch (err) {
+                setCW('⚠ Upload failed: ' + err.message);
+            } finally {
+                this.disabled = false; this.textContent = old;
+            }
+        });
+
+        setInterval(draw, 1000 / 12);
+    })();
+    </script>
+
+    <!-- ════════ DEEP SEA ENGINE ════════ -->
+    <script>
+    (function () {
+        const dsInput = document.getElementById('dsInput');
+        const canvas = document.getElementById('dsOutput');
+        const ctx = canvas.getContext('2d');
+        const dsHue = document.getElementById('dsHue');
+        const dsBio = document.getElementById('dsBio');
+        const dsDrift = document.getElementById('dsDrift');
+        const dsBubbles = document.getElementById('dsBubbles');
+        const dsMurk = document.getElementById('dsMurk');
+        const dsGlow = document.getElementById('dsGlow');
+        const dsFontSize = document.getElementById('dsFontSize');
+        const dsFrames = document.getElementById('dsFrames');
+        const dsFramesVal = document.getElementById('dsFramesVal');
+        const dsRecordBtn = document.getElementById('dsRecordBtn');
+        const dsResult = document.getElementById('dsResult');
+        const dsResultImg = document.getElementById('dsResultImg');
+        const dsStatus = document.getElementById('dsStatus');
+        const DEEP_FONT = 'Georgia, "Times New Roman", serif';
+        const setDS = (m) => { dsStatus.textContent = m; };
+
+        // fixed particle seeds
+        const snow = Array.from({ length: 70 }, () => ({
+            x: Math.random(), y: Math.random(), sp: 0.15 + Math.random() * 0.5,
+            sz: 0.5 + Math.random() * 1.3, drift: Math.random() * Math.PI * 2
+        }));
+        const motes = Array.from({ length: 40 }, () => ({
+            x: Math.random(), y: Math.random(), ph: Math.random() * Math.PI * 2,
+            sz: 1 + Math.random() * 2.3, sp: 0.4 + Math.random() * 1.1, cx: Math.random() * Math.PI * 2
+        }));
+        const bubbles = Array.from({ length: 14 }, () => ({
+            x: Math.random(), off: Math.random(), sp: 0.05 + Math.random() * 0.12,
+            sz: 1 + Math.random() * 3, wob: Math.random() * Math.PI * 2
+        }));
+
+        function roundRect(x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+        function wrapLines(text, maxW) {
+            const out = [];
+            text.split('\n').forEach(para => {
+                const words = para.split(' ');
+                let cur = '';
+                words.forEach(w => {
+                    const test = cur ? cur + ' ' + w : w;
+                    if (ctx.measureText(test).width > maxW && cur) { out.push(cur); cur = w; }
+                    else cur = test;
+                });
+                out.push(cur);
+            });
+            return out.length ? out : [''];
+        }
+
+        let recording = false, frames = [], maxFrames = 28, lastUrl = null;
+
+        function draw() {
+            if (window.JUKO_TAB !== 'deep' && !recording) return;
+            const t = performance.now() / 1000;
+            const hue = +dsHue.value;
+            const bioN = +dsBio.value | 0;
+            const driftSp = +dsDrift.value / 40;
+            const bubN = +dsBubbles.value | 0;
+            const murk = +dsMurk.value / 10;
+            const glow = +dsGlow.value;
+            const fs = +dsFontSize.value;
+
+            ctx.font = fs + 'px ' + DEEP_FONT;
+            const maxTextW = 560;
+            const raw = dsInput.value;
+            const lines = raw.trim() ? wrapLines(raw, maxTextW) : ['…'];
+            const lineH = Math.round(fs * 1.5);
+            let textW = 0;
+            for (const ln of lines) textW = Math.max(textW, ctx.measureText(ln).width);
+            const padX = 50, padY = 46;
+            const W = Math.max(380, Math.ceil(Math.min(maxTextW, textW) + padX * 2));
+            const H = Math.max(180, lines.length * lineH + padY * 2);
+            if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+            ctx.font = fs + 'px ' + DEEP_FONT;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+            // ── the void: dark gradient, darkest at the bottom ──
+            const bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, `hsl(${hue},55%,9%)`);
+            bg.addColorStop(0.55, `hsl(${hue - 6},65%,5%)`);
+            bg.addColorStop(1, `hsl(${hue - 12},75%,2%)`);
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+            // ── faint light filtering from far above ──
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const gr = ctx.createLinearGradient(0, 0, 0, H * 0.85);
+            gr.addColorStop(0, `hsla(${hue + 20},85%,62%,0.07)`);
+            gr.addColorStop(1, 'hsla(0,0%,0%,0)');
+            ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H * 0.85);
+            ctx.restore();
+
+            // ── marine snow drifting down ──
+            ctx.fillStyle = `hsla(${hue + 20},40%,82%,1)`;
+            for (let i = 0; i < snow.length; i++) {
+                const s = snow[i];
+                const y = ((s.y + t * s.sp * 0.03) % 1) * H;
+                const x = s.x * W + Math.sin(t * 0.3 + s.drift) * 8;
+                ctx.globalAlpha = 0.16;
+                ctx.beginPath(); ctx.arc(x, y, s.sz, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            // ── bioluminescent motes pulsing in the current ──
+            for (let i = 0; i < bioN && i < motes.length; i++) {
+                const mo = motes[i];
+                const x = (mo.x + Math.sin(t * driftSp * 0.5 + mo.cx) * 0.04) * W;
+                const y = (mo.y + Math.cos(t * driftSp * 0.4 + mo.ph) * 0.04) * H;
+                const al = 0.3 + 0.7 * Math.sin(t * mo.sp * driftSp * 2 + mo.ph);
+                if (al <= 0.05) continue;
+                ctx.save();
+                ctx.globalAlpha = Math.min(1, al);
+                ctx.shadowColor = `hsl(${hue + 45},100%,72%)`; ctx.shadowBlur = glow * 0.7;
+                ctx.fillStyle = `hsl(${hue + 50},100%,82%)`;
+                ctx.beginPath(); ctx.arc(x, y, mo.sz, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+
+            // ── softly breathing membrane dialogue box ──
+            const m = 14, bx = m, by = m, bw = W - 2 * m, bh = H - 2 * m, r = 18;
+            const boxGrad = ctx.createLinearGradient(0, by, 0, by + bh);
+            boxGrad.addColorStop(0, `hsla(${hue},60%,15%,0.42)`);
+            boxGrad.addColorStop(1, `hsla(${hue - 8},70%,6%,0.6)`);
+            roundRect(bx, by, bw, bh, r); ctx.fillStyle = boxGrad; ctx.fill();
+            const pulse = 0.5 + 0.5 * Math.sin(t * 1.2);
+            ctx.shadowColor = `hsl(${hue + 40},100%,66%)`; ctx.shadowBlur = glow * (0.8 + 0.6 * pulse);
+            ctx.lineWidth = 2; ctx.strokeStyle = `hsla(${hue + 30},90%,74%,0.85)`;
+            roundRect(bx, by, bw, bh, r); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // ── glowing text swaying in the current ──
+            ctx.fillStyle = `hsl(${hue + 48},90%,84%)`;
+            ctx.shadowColor = `hsl(${hue + 40},100%,70%)`; ctx.shadowBlur = glow * 0.7;
+            const totalH = lines.length * lineH;
+            const y0 = by + bh / 2 - totalH / 2 + lineH / 2;
+            lines.forEach((ln, i) => {
+                const dx = Math.sin(t * driftSp * 0.6 + i * 0.5) * 3;
+                const dy = Math.cos(t * driftSp * 0.4 + i * 0.4) * 1.5;
+                ctx.fillText(ln, W / 2 + dx, y0 + i * lineH + dy);
+            });
+            ctx.shadowBlur = 0;
+
+            // ── bubbles rising ──
+            ctx.strokeStyle = `hsla(${hue + 30},70%,86%,0.5)`; ctx.lineWidth = 1;
+            for (let i = 0; i < bubN && i < bubbles.length; i++) {
+                const b = bubbles[i];
+                const prog = (b.off + t * b.sp) % 1;
+                const y = H - prog * H;
+                const x = b.x * W + Math.sin(prog * Math.PI * 4 + b.wob) * 6;
+                ctx.beginPath(); ctx.arc(x, y, b.sz, 0, Math.PI * 2); ctx.stroke();
+            }
+
+            // ── vignette: the abyss closing in ──
+            const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.22, W / 2, H / 2, Math.max(W, H) * 0.75);
+            vg.addColorStop(0, 'hsla(0,0%,0%,0)');
+            vg.addColorStop(1, `hsla(${hue - 10},80%,2%,${0.5 + 0.45 * murk})`);
+            ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+            if (recording && frames.length < maxFrames) {
+                frames.push(canvas.toDataURL('image/png'));
+                if (frames.length === maxFrames) { recording = false; compile(); }
+            }
+        }
+
+        function compile() {
+            dsRecordBtn.textContent = 'Compiling…';
+            setDS('Compiling ' + frames.length + ' frames…');
+            gifshot.createGIF({
+                images: frames, gifWidth: canvas.width, gifHeight: canvas.height,
+                interval: 0.07, numWorkers: 2, sampleInterval: 1
+            }, function (obj) {
+                if (!obj.error) {
+                    if (lastUrl) URL.revokeObjectURL(lastUrl);
+                    lastUrl = obj.image;
+                    dsResultImg.src = obj.image;
+                    dsResult.style.display = 'flex';
+                    setDS('Done! Copy or download below.');
+                } else {
+                    setDS('GIF failed: ' + (obj.errorMsg || 'try shorter text.'));
+                }
+                dsRecordBtn.textContent = '≈ Generate GIF';
+                dsRecordBtn.disabled = false;
+                frames = [];
+            });
+        }
+
+        dsRecordBtn.addEventListener('click', () => {
+            if (!dsInput.value.trim()) { setDS('Type some dialogue first!'); return; }
+            maxFrames = parseInt(dsFrames.value);
+            recording = true; frames = [];
+            dsRecordBtn.disabled = true; dsRecordBtn.textContent = 'Recording…';
+            setDS('Recording ' + maxFrames + ' frames…');
+        });
+        dsFrames.addEventListener('input', () => dsFramesVal.textContent = dsFrames.value);
+
+        document.getElementById('dsDownloadBtn').addEventListener('click', () => {
+            if (!dsResultImg.src) return;
+            const a = document.createElement('a');
+            a.download = 'deep-sea-dialogue.gif'; a.href = dsResultImg.src; a.click();
+        });
+
+        document.getElementById('dsCopyLinkBtn').addEventListener('click', async function () {
+            if (!dsResultImg.src) return;
+            const old = this.textContent;
+            this.disabled = true; this.textContent = '⏳ Uploading…';
+            setDS('Uploading GIF…');
+            try {
+                if (!window.jukoCloud || !window.jukoCloud.shareGif) throw new Error('cloud pipeline unavailable');
+                const blob = await (await fetch(dsResultImg.src)).blob();
+                const text = (dsInput.value || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+                const url = await window.jukoCloud.shareGif(blob, text, canvas.width, canvas.height);
+                try { await navigator.clipboard.writeText(url); } catch (_) {}
+                setDS('✅ Link copied! Plays animated when pasted in Discord/Slack: ' + url);
+            } catch (err) {
+                setDS('⚠ Upload failed: ' + err.message);
+            } finally {
+                this.disabled = false; this.textContent = old;
+            }
+        });
+
+        setInterval(draw, 1000 / 12);
+    })();
+    </script>
+
+    <!-- ════════ ICE OUJI ENGINE ════════ -->
+    <script>
+    (function () {
+        const ioInput = document.getElementById('ioInput');
+        const canvas = document.getElementById('ioOutput');
+        const ctx = canvas.getContext('2d');
+        const ioHue = document.getElementById('ioHue');
+        const ioSnow = document.getElementById('ioSnow');
+        const ioShimmer = document.getElementById('ioShimmer');
+        const ioSway = document.getElementById('ioSway');
+        const ioGold = document.getElementById('ioGold');
+        const ioGlow = document.getElementById('ioGlow');
+        const ioFontSize = document.getElementById('ioFontSize');
+        const ioFrames = document.getElementById('ioFrames');
+        const ioFramesVal = document.getElementById('ioFramesVal');
+        const ioRecordBtn = document.getElementById('ioRecordBtn');
+        const ioResult = document.getElementById('ioResult');
+        const ioResultImg = document.getElementById('ioResultImg');
+        const ioStatus = document.getElementById('ioStatus');
+        const ICE_FONT = 'Georgia, "Times New Roman", serif';
+        const setIO = (m) => { ioStatus.textContent = m; };
+
+        const flakes = Array.from({ length: 60 }, () => ({
+            x: Math.random(), y: Math.random(), sp: 0.2 + Math.random() * 0.6,
+            sz: 0.8 + Math.random() * 2.2, drift: Math.random() * Math.PI * 2,
+            star: Math.random() < 0.35, spin: (Math.random() - 0.5) * 2
+        }));
+
+        function roundRect(x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+        function wrapLines(text, maxW) {
+            const out = [];
+            text.split('\n').forEach(para => {
+                const words = para.split(' ');
+                let cur = '';
+                words.forEach(w => {
+                    const test = cur ? cur + ' ' + w : w;
+                    if (ctx.measureText(test).width > maxW && cur) { out.push(cur); cur = w; }
+                    else cur = test;
+                });
+                out.push(cur);
+            });
+            return out.length ? out : [''];
+        }
+        // a six-armed snowflake
+        function snowflake(x, y, s, rot, alpha, hue) {
+            ctx.save();
+            ctx.translate(x, y); ctx.rotate(rot);
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = `hsl(${hue},70%,92%)`;
+            ctx.lineWidth = 1;
+            ctx.shadowColor = `hsl(${hue},90%,85%)`; ctx.shadowBlur = 4;
+            for (let a = 0; a < 6; a++) {
+                ctx.rotate(Math.PI / 3);
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -s); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -s * 0.6); ctx.lineTo(s * 0.28, -s * 0.82); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -s * 0.6); ctx.lineTo(-s * 0.28, -s * 0.82); ctx.stroke();
+            }
+            ctx.restore();
+        }
+        // royal gold corner filigree (drawn into the box from corner)
+        function flourish(x, y, rot, s, hue, gold, glow) {
+            ctx.save();
+            ctx.translate(x, y); ctx.rotate(rot);
+            ctx.strokeStyle = `hsla(45,82%,66%,${gold})`;
+            ctx.lineWidth = 1.6;
+            ctx.shadowColor = `hsla(45,90%,70%,${gold})`; ctx.shadowBlur = glow * 0.4;
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(s, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, s); ctx.stroke();
+            ctx.beginPath(); ctx.arc(s * 0.95, s * 0.95, s * 0.55, Math.PI, Math.PI * 1.62); ctx.stroke();
+            ctx.beginPath(); ctx.arc(s * 1.55, s * 0.28, s * 0.3, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = `hsla(48,92%,78%,${gold})`;
+            ctx.beginPath(); ctx.arc(0, 0, 2.4, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+        }
+
+        let recording = false, frames = [], maxFrames = 28, lastUrl = null;
+
+        function draw() {
+            if (window.JUKO_TAB !== 'ice' && !recording) return;
+            const t = performance.now() / 1000;
+            const hue = +ioHue.value;
+            const snowN = +ioSnow.value | 0;
+            const shimSp = +ioShimmer.value / 30;
+            const sway = +ioSway.value;
+            const gold = Math.min(1, +ioGold.value / 10);
+            const glow = +ioGlow.value;
+            const fs = +ioFontSize.value;
+
+            ctx.font = fs + 'px ' + ICE_FONT;
+            const maxTextW = 560;
+            const raw = ioInput.value;
+            const lines = raw.trim() ? wrapLines(raw, maxTextW) : ['…'];
+            const lineH = Math.round(fs * 1.5);
+            let textW = 0;
+            for (const ln of lines) textW = Math.max(textW, ctx.measureText(ln).width);
+            const padX = 56, padY = 48;
+            const W = Math.max(400, Math.ceil(Math.min(maxTextW, textW) + padX * 2));
+            const H = Math.max(190, lines.length * lineH + padY * 2);
+            if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+            ctx.font = fs + 'px ' + ICE_FONT;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+            // ── cold royal background ──
+            const bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, `hsl(${hue + 10},55%,14%)`);
+            bg.addColorStop(0.5, `hsl(${hue},60%,9%)`);
+            bg.addColorStop(1, `hsl(${hue - 8},65%,5%)`);
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+            // soft icy aurora glow up top
+            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+            const au = ctx.createLinearGradient(0, 0, 0, H * 0.7);
+            au.addColorStop(0, `hsla(${hue + 15},90%,70%,0.10)`);
+            au.addColorStop(1, 'hsla(0,0%,0%,0)');
+            ctx.fillStyle = au; ctx.fillRect(0, 0, W, H * 0.7);
+            ctx.restore();
+
+            // ── frosted royal plaque ──
+            const m = 15, bx = m, by = m, bw = W - 2 * m, bh = H - 2 * m, r = 16;
+            const boxGrad = ctx.createLinearGradient(0, by, 0, by + bh);
+            boxGrad.addColorStop(0, `hsla(${hue + 8},65%,42%,0.30)`);
+            boxGrad.addColorStop(0.5, `hsla(${hue},60%,24%,0.42)`);
+            boxGrad.addColorStop(1, `hsla(${hue - 6},65%,14%,0.5)`);
+            roundRect(bx, by, bw, bh, r); ctx.fillStyle = boxGrad; ctx.fill();
+            // frosted top sheen
+            roundRect(bx + 5, by + 5, bw - 10, bh * 0.4, r * 0.7);
+            const sheen = ctx.createLinearGradient(0, by, 0, by + bh * 0.45);
+            sheen.addColorStop(0, 'hsla(0,0%,100%,0.14)');
+            sheen.addColorStop(1, 'hsla(0,0%,100%,0)');
+            ctx.fillStyle = sheen; ctx.fill();
+            // shimmering ice border
+            const sweep = (t * shimSp * 0.4) % 1;
+            const brd = ctx.createLinearGradient(bx, by, bx + bw, by + bh);
+            brd.addColorStop(0, `hsl(${hue},80%,80%)`);
+            brd.addColorStop(Math.min(0.98, Math.max(0.02, sweep)), 'hsl(0,0%,100%)');
+            brd.addColorStop(1, `hsl(${hue + 10},75%,72%)`);
+            roundRect(bx, by, bw, bh, r);
+            ctx.lineWidth = 2.4; ctx.strokeStyle = brd;
+            ctx.shadowColor = `hsl(${hue},100%,82%)`; ctx.shadowBlur = glow * (0.7 + 0.3 * Math.sin(t * 1.6));
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            // gold inner accent line
+            if (gold > 0) {
+                ctx.lineWidth = 1; ctx.strokeStyle = `hsla(45,80%,64%,${gold * 0.8})`;
+                roundRect(bx + 7, by + 7, bw - 14, bh - 14, r * 0.6); ctx.stroke();
+                // corner filigree
+                const fs2 = Math.min(20, bw * 0.06);
+                flourish(bx + 4, by + 4, 0, fs2, hue, gold, glow);
+                flourish(bx + bw - 4, by + 4, Math.PI / 2, fs2, hue, gold, glow);
+                flourish(bx + bw - 4, by + bh - 4, Math.PI, fs2, hue, gold, glow);
+                flourish(bx + 4, by + bh - 4, -Math.PI / 2, fs2, hue, gold, glow);
+            }
+
+            // ── regal text: white core, icy glow, soft sway ──
+            const totalH = lines.length * lineH;
+            const y0 = by + bh / 2 - totalH / 2 + lineH / 2;
+            lines.forEach((ln, i) => {
+                const dx = Math.sin(t * shimSp * 0.5 + i * 0.5) * (sway * 0.4);
+                const dy = Math.cos(t * shimSp * 0.4 + i * 0.4) * (sway * 0.2);
+                const yy = y0 + i * lineH + dy;
+                ctx.shadowColor = `hsl(${hue},100%,75%)`; ctx.shadowBlur = glow * 0.8;
+                ctx.fillStyle = `hsl(${hue + 5},100%,96%)`;
+                ctx.fillText(ln, W / 2 + dx, yy);
+                ctx.shadowBlur = 0;
+            });
+
+            // ── drifting snow + frost sparkles (drawn on top) ──
+            for (let i = 0; i < snowN && i < flakes.length; i++) {
+                const f = flakes[i];
+                const y = ((f.y + t * f.sp * 0.04) % 1) * H;
+                const x = f.x * W + Math.sin(t * 0.4 + f.drift) * 10;
+                if (f.star) {
+                    snowflake(x, y, f.sz * 2.4, t * f.spin, 0.7, hue);
+                } else {
+                    ctx.globalAlpha = 0.5;
+                    ctx.fillStyle = `hsl(${hue},60%,95%)`;
+                    ctx.shadowColor = `hsl(${hue},90%,88%)`; ctx.shadowBlur = 4;
+                    ctx.beginPath(); ctx.arc(x, y, f.sz, 0, Math.PI * 2); ctx.fill();
+                    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+                }
+            }
+
+            if (recording && frames.length < maxFrames) {
+                frames.push(canvas.toDataURL('image/png'));
+                if (frames.length === maxFrames) { recording = false; compile(); }
+            }
+        }
+
+        function compile() {
+            ioRecordBtn.textContent = 'Compiling…';
+            setIO('Compiling ' + frames.length + ' frames…');
+            gifshot.createGIF({
+                images: frames, gifWidth: canvas.width, gifHeight: canvas.height,
+                interval: 0.07, numWorkers: 2, sampleInterval: 1
+            }, function (obj) {
+                if (!obj.error) {
+                    if (lastUrl) URL.revokeObjectURL(lastUrl);
+                    lastUrl = obj.image;
+                    ioResultImg.src = obj.image;
+                    ioResult.style.display = 'flex';
+                    setIO('Done! Copy or download below.');
+                } else {
+                    setIO('GIF failed: ' + (obj.errorMsg || 'try shorter text.'));
+                }
+                ioRecordBtn.textContent = '❄ Generate GIF';
+                ioRecordBtn.disabled = false;
+                frames = [];
+            });
+        }
+
+        ioRecordBtn.addEventListener('click', () => {
+            if (!ioInput.value.trim()) { setIO('Type some dialogue first!'); return; }
+            maxFrames = parseInt(ioFrames.value);
+            recording = true; frames = [];
+            ioRecordBtn.disabled = true; ioRecordBtn.textContent = 'Recording…';
+            setIO('Recording ' + maxFrames + ' frames…');
+        });
+        ioFrames.addEventListener('input', () => ioFramesVal.textContent = ioFrames.value);
+
+        document.getElementById('ioDownloadBtn').addEventListener('click', () => {
+            if (!ioResultImg.src) return;
+            const a = document.createElement('a');
+            a.download = 'ice-ouji-dialogue.gif'; a.href = ioResultImg.src; a.click();
+        });
+
+        document.getElementById('ioCopyLinkBtn').addEventListener('click', async function () {
+            if (!ioResultImg.src) return;
+            const old = this.textContent;
+            this.disabled = true; this.textContent = '⏳ Uploading…';
+            setIO('Uploading GIF…');
+            try {
+                if (!window.jukoCloud || !window.jukoCloud.shareGif) throw new Error('cloud pipeline unavailable');
+                const blob = await (await fetch(ioResultImg.src)).blob();
+                const text = (ioInput.value || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+                const url = await window.jukoCloud.shareGif(blob, text, canvas.width, canvas.height);
+                try { await navigator.clipboard.writeText(url); } catch (_) {}
+                setIO('✅ Link copied! Plays animated when pasted in Discord/Slack: ' + url);
+            } catch (err) {
+                setIO('⚠ Upload failed: ' + err.message);
+            } finally {
+                this.disabled = false; this.textContent = old;
+            }
+        });
+
+        setInterval(draw, 1000 / 12);
+    })();
+    </script>
+</body>
+
+</html>
