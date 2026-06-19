@@ -125,123 +125,109 @@ button.bd-btn.big{ font-size:11px; padding:14px 22px; }
 }
 @keyframes bd-rainbow { to{ background-position:300% 0; } }
 
-/* ── modifier visual effects on the picture ── */
-.mod-Silver .pic,.mod-Silver .ph{ filter:grayscale(.4) brightness(1.15) contrast(1.1); }
-.mod-Golden .pic,.mod-Golden .ph{ filter:sepia(.6) saturate(1.6) brightness(1.1); box-shadow:inset 0 0 24px #ffd56a99; }
-.mod-Wet .pic,.mod-Wet .ph{ filter:hue-rotate(160deg) brightness(1.05) contrast(1.1); }
-.mod-Emerald .pic,.mod-Emerald .ph{ filter:hue-rotate(80deg) saturate(1.5); box-shadow:inset 0 0 24px #2bff8899; }
-.mod-Diamond .pic,.mod-Diamond .ph{ filter:brightness(1.2) contrast(1.2); box-shadow:inset 0 0 26px #aee9ffcc; }
-.mod-Ruby .pic,.mod-Ruby .ph{ filter:saturate(1.8) hue-rotate(-20deg); box-shadow:inset 0 0 24px #ff3b5cbb; }
-.mod-Rainbow .pic,.mod-Rainbow .ph{ animation:bd-modhue 3s linear infinite; }
+/* ════════ MODIFIER VISUALS (reworked, clean + cooler) ════════ */
+/* Each modifier = a tasteful image filter + ONE clean animated overlay.
+   The overlay sits inside the card and is clipped to the rounded corners. */
 @keyframes bd-modhue { to{ filter:hue-rotate(360deg); } }
-.mod-Lovestruck .pic,.mod-Lovestruck .ph{ filter:saturate(1.4) brightness(1.05); box-shadow:inset 0 0 24px #ff5bb0aa; }
-.mod-Lunar .pic,.mod-Lunar .ph{ filter:brightness(.85) contrast(1.2) hue-rotate(200deg); box-shadow:inset 0 0 24px #6a8fffaa; }
-.mod-Solar .pic,.mod-Solar .ph{ filter:brightness(1.25) saturate(1.5); box-shadow:inset 0 0 30px #ffae3bcc; }
-.mod-Celestial .pic,.mod-Celestial .ph{ filter:brightness(1.1) contrast(1.1); box-shadow:inset 0 0 30px #c9a8ffcc; animation:bd-modhue 6s linear infinite; }
-.mod-Starstruck .pic,.mod-Starstruck .ph{ filter:brightness(1.15); box-shadow:inset 0 0 30px #ffe27acc; }
-.mod-Hellish .pic,.mod-Hellish .ph{ filter:saturate(1.6) contrast(1.3) hue-rotate(-30deg); box-shadow:inset 0 0 30px #ff2b00cc; animation:bd-pulse .8s infinite alternate; }
-.mod-Cappyfied .pic,.mod-Cappyfied .ph{ filter:saturate(1.5) brightness(1.2); box-shadow:inset 0 0 34px #ff66ddcc; animation:bd-modhue 2s linear infinite; }
+@keyframes bd-glint{ 0%{ transform:translateX(-130%) skewX(-18deg); } 60%,100%{ transform:translateX(230%) skewX(-18deg); } }
+@keyframes bd-shimmer{ 0%,100%{ opacity:.35; } 50%{ opacity:.9; } }
+@keyframes bd-floatup{ 0%{ transform:translateY(8%); opacity:0; } 20%{ opacity:1; } 100%{ transform:translateY(-115%); opacity:0; } }
+@keyframes bd-spin360{ to{ transform:rotate(360deg); } }
+@keyframes bd-breathe{ 0%,100%{ opacity:.25; } 50%{ opacity:.7; } }
 
-/* ── modifier flair overlays (particles/fx on top of the card) ── */
-@keyframes bd-sheen{ 0%{ background-position:140% -40%; } 100%{ background-position:-40% 140%; } }
-@keyframes bd-twinkle{ 0%,100%{ opacity:.2; transform:scale(.8); } 50%{ opacity:1; transform:scale(1.15); } }
-@keyframes bd-twinkle2{ 0%,100%{ opacity:.15; } 50%{ opacity:.95; } }
-@keyframes bd-drip{ 0%{ background-position:0 -6px,0 -6px,0 -6px,0 0; opacity:.85; } 100%{ background-position:0 80px,0 96px,0 64px,0 0; opacity:0; } }
-@keyframes bd-rise{ 0%{ background-position:0 100%,0 100%,0 100%; opacity:0; } 15%{ opacity:1; } 85%{ opacity:1; } 100%{ background-position:0 -10%,0 -28%,0 -16%; opacity:0; } }
-@keyframes bd-flash{ 0%,100%{ opacity:0; } 8%,12%{ opacity:1; } 50%{ opacity:0; } 58%,62%{ opacity:.9; } }
-@keyframes bd-rays{ to{ transform:rotate(360deg); } }
+/* base filters on the artwork */
+.mod-Silver .pic,.mod-Silver .ph{ filter:grayscale(.35) brightness(1.12) contrast(1.08); }
+.mod-Golden .pic,.mod-Golden .ph{ filter:sepia(.45) saturate(1.5) brightness(1.08); }
+.mod-Wet .pic,.mod-Wet .ph{ filter:brightness(1.05) contrast(1.08) saturate(1.15); }
+.mod-Emerald .pic,.mod-Emerald .ph{ filter:saturate(1.4) hue-rotate(8deg); }
+.mod-Diamond .pic,.mod-Diamond .ph{ filter:brightness(1.18) contrast(1.15); }
+.mod-Ruby .pic,.mod-Ruby .ph{ filter:saturate(1.6) brightness(1.05); }
+.mod-Rainbow .pic,.mod-Rainbow .ph{ animation:bd-modhue 4s linear infinite; }
+.mod-Lovestruck .pic,.mod-Lovestruck .ph{ filter:saturate(1.35) brightness(1.04); }
+.mod-Lunar .pic,.mod-Lunar .ph{ filter:brightness(.9) contrast(1.15) saturate(.9); }
+.mod-Solar .pic,.mod-Solar .ph{ filter:brightness(1.2) saturate(1.4); }
+.mod-Celestial .pic,.mod-Celestial .ph{ filter:brightness(1.08) contrast(1.08); animation:bd-modhue 8s linear infinite; }
+.mod-Starstruck .pic,.mod-Starstruck .ph{ filter:brightness(1.12) saturate(1.2); }
+.mod-Hellish .pic,.mod-Hellish .ph{ filter:saturate(1.5) contrast(1.2) brightness(1.05); }
+.mod-Cappyfied .pic,.mod-Cappyfied .ph{ filter:saturate(1.5) brightness(1.18); animation:bd-modhue 2.5s linear infinite; }
 
-/* Silver - metallic glint sweep */
-.mod-Silver::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
-  background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.7) 49%, rgba(255,255,255,.95) 50%, rgba(255,255,255,.7) 51%, transparent 65%);
-  background-size:260% 260%; mix-blend-mode:overlay; animation:bd-sheen 2.8s ease-in-out infinite; }
+/* a clean diagonal light bar that sweeps across "shiny" modifiers
+   (replaces the old messy multi-glint metals - one crisp swipe instead) */
+.mod-Silver::before,.mod-Golden::before,.mod-Diamond::before,
+.mod-Emerald::before,.mod-Ruby::before,.mod-Wet::before{
+  content:''; position:absolute; top:0; bottom:0; left:0; width:40%; pointer-events:none; z-index:3;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent);
+  mix-blend-mode:overlay; animation:bd-glint 3.2s ease-in-out infinite; }
+.mod-Golden::before{ background:linear-gradient(90deg, transparent, rgba(255,224,120,.9), transparent); }
+.mod-Emerald::before{ background:linear-gradient(90deg, transparent, rgba(140,255,190,.85), transparent); }
+.mod-Ruby::before{ background:linear-gradient(90deg, transparent, rgba(255,140,160,.85), transparent); }
+.mod-Wet::before{ background:linear-gradient(90deg, transparent, rgba(170,225,255,.8), transparent); animation-duration:4s; }
+.mod-Diamond::before{ animation-duration:2.4s; }
 
-/* Golden - coin sparkle glints */
-.mod-Golden::after{ content:''; position:absolute; width:3px; height:3px; border-radius:50%; background:#fff8d8; top:16%; left:18%;
-  box-shadow:0 0 6px 2px #ffe27a, 46px 12px 5px 1px #ffd56a, 20px 64px 4px 1px #fff8d8, 78px 46px 5px 1px #ffe27a, 60px 86px 4px 1px #ffd56a;
-  pointer-events:none; z-index:3; animation:bd-twinkle 1.6s ease-in-out infinite; }
+/* a soft colored inner edge-glow that breathes (gives each gem its hue) */
+.mod-Silver::after,.mod-Golden::after,.mod-Diamond::after,.mod-Emerald::after,
+.mod-Ruby::after,.mod-Lovestruck::after,.mod-Lunar::after{
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:2; border-radius:inherit;
+  animation:bd-breathe 2.6s ease-in-out infinite; }
+.mod-Silver::after{ box-shadow:inset 0 0 18px rgba(220,230,240,.7); }
+.mod-Golden::after{ box-shadow:inset 0 0 22px rgba(255,200,60,.75); }
+.mod-Diamond::after{ box-shadow:inset 0 0 22px rgba(170,233,255,.8); }
+.mod-Emerald::after{ box-shadow:inset 0 0 20px rgba(43,255,136,.7); }
+.mod-Ruby::after{ box-shadow:inset 0 0 20px rgba(255,59,92,.7); }
+.mod-Lovestruck::after{ box-shadow:inset 0 0 20px rgba(255,91,176,.7); }
+.mod-Lunar::after{ box-shadow:inset 0 0 22px rgba(120,150,255,.65); }
 
-/* Wet - dripping droplets + wet sheen */
-.mod-Wet::before{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
-  background:linear-gradient(115deg, transparent 40%, rgba(180,225,255,.5) 50%, transparent 60%);
-  background-size:240% 240%; mix-blend-mode:screen; animation:bd-sheen 3.4s ease-in-out infinite; }
-.mod-Wet::after{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:3;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(150,215,255,.9) 0 4px, transparent 5px),
-    radial-gradient(circle at 50% 0%, rgba(150,215,255,.9) 0 5px, transparent 6px),
-    radial-gradient(circle at 78% 0%, rgba(150,215,255,.9) 0 3px, transparent 4px),
-    linear-gradient(180deg, rgba(120,195,255,.3), transparent 35%);
-  mix-blend-mode:screen; animation:bd-drip 2.2s linear infinite; }
+/* Rainbow - prism shimmer sheen */
+.mod-Rainbow::before{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
+  background:linear-gradient(120deg, rgba(255,77,77,.25), rgba(255,176,40,.25), rgba(124,255,74,.25), rgba(74,163,255,.25), rgba(177,92,255,.25));
+  background-size:200% 200%; mix-blend-mode:screen; animation:bd-rainbow 4s linear infinite, bd-shimmer 2.5s ease-in-out infinite; }
 
-/* Emerald - gem sheen + facet sparkles */
-.mod-Emerald::before{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
-  background:linear-gradient(115deg, transparent 35%, rgba(140,255,180,.55) 49%, rgba(180,255,200,.8) 50%, rgba(140,255,180,.55) 51%, transparent 65%);
-  background-size:260% 260%; mix-blend-mode:overlay; animation:bd-sheen 3s ease-in-out infinite; }
-.mod-Emerald::after{ content:''; position:absolute; width:3px; height:3px; border-radius:50%; background:#d8ffe6; top:20%; left:22%;
-  box-shadow:0 0 5px 2px #2bff88, 42px 18px 4px 1px #7dffb0, 16px 60px 4px 1px #2bff88, 70px 50px 4px 1px #7dffb0;
-  pointer-events:none; z-index:3; animation:bd-twinkle2 2s ease-in-out infinite; }
+/* Lovestruck - rising hearts */
+.mod-Lovestruck::before{ content:'\2665 \2665 \2665'; position:absolute; left:0; right:0; bottom:0; text-align:center;
+  letter-spacing:14px; font-size:11px; color:#ff5bb0; pointer-events:none; z-index:3; text-shadow:0 0 6px #ff5bb0;
+  animation:bd-floatup 2.6s ease-in infinite; }
 
-/* Diamond - bright prismatic twinkle */
-.mod-Diamond::after{ content:''; position:absolute; width:3px; height:3px; border-radius:50%; background:#fff; top:12%; left:16%;
-  box-shadow:0 0 7px 2px #fff, 40px 8px 6px 1px #aee9ff, 70px 46px 5px 1px #fff, 12px 68px 5px 1px #aee9ff, 92px 86px 5px 1px #fff, 30px 96px 4px 1px #cdeaff;
-  pointer-events:none; z-index:3; animation:bd-twinkle 1.4s ease-in-out infinite; }
+/* Lunar - glowing moon in the corner + faint stars */
+.mod-Lunar::before{ content:''; position:absolute; width:20px; height:20px; border-radius:50%; top:7px; right:7px; pointer-events:none; z-index:3;
+  background:radial-gradient(circle at 38% 38%, #f2f6ff, #aab8ff 60%, transparent 72%); box-shadow:0 0 12px #9ab0ff;
+  animation:bd-shimmer 3s ease-in-out infinite; }
 
-/* Ruby - gem sheen + ember sparkle */
-.mod-Ruby::before{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
-  background:linear-gradient(115deg, transparent 35%, rgba(255,90,120,.55) 49%, rgba(255,140,160,.8) 50%, rgba(255,90,120,.55) 51%, transparent 65%);
-  background-size:260% 260%; mix-blend-mode:overlay; animation:bd-sheen 2.9s ease-in-out infinite; }
-.mod-Ruby::after{ content:''; position:absolute; width:3px; height:3px; border-radius:50%; background:#ffd8df; top:18%; left:20%;
-  box-shadow:0 0 5px 2px #ff3b5c, 44px 16px 4px 1px #ff7a90, 18px 62px 4px 1px #ff3b5c, 72px 52px 4px 1px #ff7a90;
-  pointer-events:none; z-index:3; animation:bd-twinkle2 1.8s ease-in-out infinite; }
+/* Solar - slow rotating warm rays */
+.mod-Solar::before{ content:''; position:absolute; inset:-35%; pointer-events:none; z-index:2; opacity:.45;
+  background:conic-gradient(from 0deg, transparent 0 16deg, rgba(255,180,60,.6) 18deg 22deg, transparent 24deg 40deg,
+    rgba(255,180,60,.6) 42deg 46deg, transparent 48deg 80deg, rgba(255,180,60,.6) 82deg 86deg, transparent 88deg 130deg,
+    rgba(255,180,60,.6) 132deg 136deg, transparent 138deg 200deg, rgba(255,180,60,.6) 202deg 206deg, transparent 208deg);
+  mix-blend-mode:screen; animation:bd-spin360 14s linear infinite; }
+.mod-Solar::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
+  box-shadow:inset 0 0 26px rgba(255,174,59,.7); animation:bd-breathe 2.2s ease-in-out infinite; }
 
-/* Rainbow - cycling colored sparkle dots */
-.mod-Rainbow::after{ content:''; position:absolute; width:3px; height:3px; border-radius:50%; background:#fff; top:14%; left:18%;
-  box-shadow:0 0 6px 2px #ff4d4d, 40px 10px 5px 1px #ffb028, 18px 60px 5px 1px #7CFF4A, 70px 48px 5px 1px #4aa3ff, 90px 84px 5px 1px #b15cff;
-  pointer-events:none; z-index:3; animation:bd-twinkle 1.3s ease-in-out infinite, bd-modhue 4s linear infinite; }
+/* Celestial - drifting aurora wash */
+.mod-Celestial::before{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:3; opacity:.5;
+  background:linear-gradient(120deg, rgba(170,140,255,.5), rgba(130,210,255,.5), rgba(255,150,230,.5), rgba(170,140,255,.5));
+  background-size:300% 300%; mix-blend-mode:screen; animation:bd-rainbow 6s linear infinite; }
+.mod-Celestial::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
+  background:radial-gradient(1.5px 1.5px at 22% 28%, #fff, transparent), radial-gradient(1.5px 1.5px at 68% 18%, #cfe6ff, transparent),
+    radial-gradient(1.5px 1.5px at 80% 64%, #fff, transparent), radial-gradient(1.5px 1.5px at 34% 76%, #e0d0ff, transparent);
+  animation:bd-shimmer 2s ease-in-out infinite; }
 
-/* Lovestruck - rising pink heart sparkles */
-.mod-Lovestruck::after{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:3;
-  background:
-    radial-gradient(circle at 22% 100%, rgba(255,110,170,.9) 0 4px, transparent 5px),
-    radial-gradient(circle at 52% 100%, rgba(255,150,190,.9) 0 3px, transparent 4px),
-    radial-gradient(circle at 78% 100%, rgba(255,110,170,.9) 0 4px, transparent 5px);
-  mix-blend-mode:screen; animation:bd-rise 2.6s ease-in infinite; }
+/* Starstruck - twinkling 4-point stars */
+.mod-Starstruck::before{ content:'\2726'; position:absolute; top:8px; left:9px; font-size:13px; color:#fff; text-shadow:0 0 8px #ffe27a;
+  pointer-events:none; z-index:3; animation:bd-shimmer 1.4s ease-in-out infinite; }
+.mod-Starstruck::after{ content:'\2726'; position:absolute; bottom:34px; right:11px; font-size:10px; color:#ffe27a; text-shadow:0 0 8px #ffe27a;
+  pointer-events:none; z-index:3; animation:bd-shimmer 1.8s ease-in-out infinite .6s; }
 
-/* Lunar - moon glow + twinkling stars */
-.mod-Lunar::before{ content:''; position:absolute; width:22px; height:22px; border-radius:50%; top:6px; right:6px; pointer-events:none; z-index:3;
-  background:radial-gradient(circle, rgba(200,220,255,.9), rgba(140,170,255,.3) 60%, transparent 75%);
-  animation:bd-twinkle2 3s ease-in-out infinite; }
-.mod-Lunar::after{ content:''; position:absolute; width:2px; height:2px; border-radius:50%; background:#dce8ff; top:24%; left:14%;
-  box-shadow:0 0 4px 1px #dce8ff, 50px 30px 3px 1px #fff, 20px 70px 3px 1px #dce8ff, 76px 60px 3px 1px #fff;
-  pointer-events:none; z-index:3; animation:bd-twinkle 2.2s ease-in-out infinite; }
+/* Hellish - flame glow from the bottom + rising embers */
+.mod-Hellish::before{ content:''; position:absolute; left:0; right:0; bottom:0; height:55%; pointer-events:none; z-index:3;
+  background:linear-gradient(0deg, rgba(255,70,0,.55), rgba(255,140,0,.18) 55%, transparent);
+  mix-blend-mode:screen; animation:bd-shimmer 1s ease-in-out infinite; }
+.mod-Hellish::after{ content:''; position:absolute; left:0; right:0; bottom:0; height:100%; pointer-events:none; z-index:3;
+  background:radial-gradient(2px 2px at 26% 90%, #ffae3b, transparent), radial-gradient(2px 2px at 54% 90%, #ff5a00, transparent),
+    radial-gradient(2px 2px at 78% 90%, #ffae3b, transparent);
+  mix-blend-mode:screen; animation:bd-floatup 1.9s ease-in infinite; }
 
-/* Solar - rotating sun rays */
-.mod-Solar::after{ content:''; position:absolute; inset:-30%; pointer-events:none; z-index:3; opacity:.5;
-  background:conic-gradient(from 0deg, transparent 0deg, rgba(255,180,60,.55) 4deg, transparent 14deg, transparent 40deg, rgba(255,180,60,.55) 44deg, transparent 54deg, transparent 80deg, rgba(255,180,60,.55) 84deg, transparent 94deg, transparent 130deg, rgba(255,180,60,.55) 134deg, transparent 144deg, transparent 220deg, rgba(255,180,60,.55) 224deg, transparent 234deg);
-  mix-blend-mode:screen; animation:bd-rays 9s linear infinite; }
-
-/* Celestial - aurora wash + twinkling stars */
-.mod-Celestial::before{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:3; opacity:.4;
-  background:linear-gradient(120deg, rgba(170,140,255,.5), rgba(130,210,255,.5), rgba(255,150,230,.5));
-  background-size:300% 300%; mix-blend-mode:overlay; animation:bd-modhue 5s linear infinite, bd-sheen 4s ease-in-out infinite; }
-.mod-Celestial::after{ content:''; position:absolute; width:2px; height:2px; border-radius:50%; background:#fff; top:10%; left:14%;
-  box-shadow:0 0 5px 1px #fff, 44px 12px 4px 1px #c9a8ff, 16px 56px 4px 1px #fff, 74px 50px 4px 1px #aee9ff, 92px 90px 4px 1px #fff;
-  pointer-events:none; z-index:3; animation:bd-twinkle 1.7s ease-in-out infinite; }
-
-/* Starstruck - flashing star bursts */
-.mod-Starstruck::after{ content:''; position:absolute; width:4px; height:4px; border-radius:50%; background:#fff; top:18%; left:24%;
-  box-shadow:0 0 8px 2px #fff, 48px 14px 7px 2px #ffe27a, 20px 66px 6px 2px #fff, 76px 56px 7px 2px #ffe27a;
-  pointer-events:none; z-index:3; animation:bd-flash 2.4s ease-in-out infinite; }
-
-/* Hellish - rising embers + flame glow */
-.mod-Hellish::before{ content:''; position:absolute; left:0; right:0; bottom:0; height:45%; pointer-events:none; z-index:3;
-  background:linear-gradient(0deg, rgba(255,60,0,.45), transparent); mix-blend-mode:screen; animation:bd-pulse .9s infinite alternate; }
-.mod-Hellish::after{ content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:3;
-  background:
-    radial-gradient(circle at 24% 100%, rgba(255,140,40,.95) 0 3px, transparent 4px),
-    radial-gradient(circle at 54% 100%, rgba(255,90,0,.95) 0 3px, transparent 4px),
-    radial-gradient(circle at 80% 100%, rgba(255,140,40,.95) 0 3px, transparent 4px);
-  mix-blend-mode:screen; animation:bd-rise 1.8s ease-in infinite; }
+/* Cappyfied - dreamy pink aura (milk drip handled separately) */
+.mod-Cappyfied::before{ content:''; position:absolute; inset:0; pointer-events:none; z-index:3; border-radius:inherit;
+  box-shadow:inset 0 0 30px rgba(255,102,221,.8); animation:bd-breathe 1.8s ease-in-out infinite; }
 
 /* upgrade glow tiers added to the baddie card border */
 .bd-baddie.up1{ box-shadow:0 0 10px #7CFF4A55; }
@@ -299,6 +285,10 @@ button.bd-btn.big{ font-size:11px; padding:14px 22px; }
 }
 .bd-slot:hover{ border-color:#5a3a80; color:#7a5aa0; }
 .bd-slot.full{ border-style:solid; padding:0; }
+.bd-slot.buy{ border-color:#3a5a20; color:#9bff6a; background:linear-gradient(160deg,#0c180a,#08110a); }
+.bd-slot.buy:hover{ border-color:#7CFF4A; color:#caffb0; box-shadow:0 0 16px #7CFF4A44; }
+.bd-slot-buy{ font-size:9px; letter-spacing:1px; text-align:center; line-height:1.7; }
+.bd-slot-buy b{ color:#ffd56a; font-size:8px; }
 
 /* ── inventory grid ── */
 #bd-inv-grid, #bd-roll-inv { display:flex; flex-wrap:wrap; gap:10px; }
@@ -359,7 +349,17 @@ button.bd-btn.big{ font-size:11px; padding:14px 22px; }
 /* isolate makes body a stacking context so the z-index:-2 canvas + z-index:-1 grid
    render ABOVE the site's body background instead of being hidden behind it */
 body{ background-color:#050308 !important; isolation:isolate; }
+/* hide the OS cursor everywhere so only the custom #cursor shows (no flicker back
+   to the system arrow/hand when hovering buttons, links or inputs) */
+html, body, body *{ cursor:none !important; }
 #bd-wrap{ position:relative; z-index:1; }
+/* per-cursor click effect particles */
+.bd-clickfx{ position:fixed; z-index:9300; pointer-events:none; transform:translate(-50%,-50%);
+  font-size:16px; will-change:transform,opacity; animation:bd-clickpop .6s ease-out forwards; }
+@keyframes bd-clickpop{ 0%{ transform:translate(-50%,-50%) scale(.4); opacity:1; } 100%{ transform:translate(-50%,-160%) scale(1.3); opacity:0; } }
+.bd-clickring{ position:fixed; z-index:9290; pointer-events:none; border-radius:50%; transform:translate(-50%,-50%);
+  border:2px solid var(--cc,#fff); width:8px; height:8px; animation:bd-clickring .5s ease-out forwards; }
+@keyframes bd-clickring{ 0%{ opacity:.9; width:8px; height:8px; } 100%{ opacity:0; width:54px; height:54px; } }
 
 /* faint moving grid + vignette over the nebula */
 body::before{ content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
@@ -507,20 +507,22 @@ button.bd-btn:hover:not(:disabled){ border-color:var(--bd-accent); }
 .bd-dd-opt:hover{ background:#1c1026; color:#fff; }
 .bd-dd-opt.sel{ color:var(--bd-accent); }
 
-/* auto-roll floating window */
-#bd-auto{ position:fixed; right:16px; bottom:16px; width:204px; z-index:8200; display:none;
+/* auto-roll floating window (drag by header, resize from corner) */
+#bd-auto{ position:fixed; right:16px; bottom:16px; width:214px; height:auto; min-width:170px; min-height:180px;
+  max-width:90vw; max-height:80vh; z-index:8200; display:none; resize:both; overflow:hidden;
   background:linear-gradient(160deg,#140c1e,#0a070e); border:1px solid var(--bd-accent); border-radius:10px;
-  box-shadow:0 12px 34px rgba(0,0,0,.65); overflow:hidden; }
-#bd-auto-head{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px;
+  box-shadow:0 12px 34px rgba(0,0,0,.65); display:none; }
+#bd-auto.shown{ display:flex; flex-direction:column; }
+#bd-auto-head{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; flex:0 0 auto;
   background:rgba(255,255,255,.05); cursor:grab; font-size:8px; letter-spacing:1px; color:#e6d6f5; }
 #bd-auto-head button{ font-family:inherit; font-size:7px; padding:4px 8px; margin-left:4px; border-radius:4px;
   background:#241803; color:#ffd56a; border:1px solid #6a4a10; cursor:pointer; }
 #bd-auto-toggle.on{ background:#2a0c10; color:#ff8a96; border-color:#5a1820; }
 .bd-auto-x{ background:#1a1024 !important; color:#999 !important; border-color:#3a2450 !important; }
-#bd-auto-card{ position:relative; width:96px; height:96px; margin:12px auto 6px; border-radius:8px; overflow:hidden;
-  border:2px solid var(--rc,#3a2450); background:#070509; }
-#bd-auto-card .pic,#bd-auto-card .ph{ height:96px; }
-#bd-auto-card .ph{ font-size:30px; }
+#bd-auto-card{ position:relative; flex:1 1 auto; width:auto; min-height:90px; margin:12px; border-radius:8px; overflow:hidden;
+  border:2px solid var(--rc,#3a2450); background:#070509; display:flex; align-items:center; justify-content:center; }
+#bd-auto-card .pic{ width:100%; height:100%; object-fit:contain; }
+#bd-auto-card .ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:30px; }
 #bd-auto-cyc{ text-align:center; font-size:8px; letter-spacing:1px; min-height:13px; color:#ccc; padding:0 6px; word-break:break-word; }
 #bd-auto-foot{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; font-size:6px; letter-spacing:1px; color:#7a6b90; }
 #bd-auto-count{ color:#7CFF4A; font-size:8px; }
@@ -572,7 +574,55 @@ button.bd-btn:hover:not(:disabled){ border-color:var(--bd-accent); }
 /* index locked tiles */
 .bd-baddie.bd-locked{ filter:brightness(.32) saturate(.4); }
 .bd-baddie.bd-locked .nm, .bd-baddie.bd-locked .rr{ color:#3a3a44 !important; }
-#bd-index-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+#bd-index-grid{ display:flex; flex-wrap:wrap; gap:12px; }
+.bd-idx-tile{ width:84px; text-align:center; background:#0d0a18; border:1px solid var(--rc,#1a1025);
+  border-radius:9px; padding:8px 5px 7px; position:relative; transition:transform .12s; }
+.bd-idx-tile.found{ cursor:pointer; box-shadow:0 0 8px color-mix(in srgb,var(--rc) 50%,transparent); animation:bd-rarglow 2.6s ease-in-out infinite; }
+.bd-idx-tile.found:hover{ transform:translateY(-3px); box-shadow:0 0 18px var(--rc); }
+.bd-idx-claim{ font-family:inherit; font-size:6px; letter-spacing:.5px; width:100%; margin-top:6px; padding:5px 2px;
+  border-radius:5px; background:linear-gradient(160deg,#1d2a08,#101806); color:#caffb0; border:1px solid #3a5a20; cursor:pointer;
+  animation:bd-goldpulse 1.8s ease-in-out infinite; }
+.bd-idx-claim:hover{ background:#26380c; border-color:#7CFF4A; color:#fff; }
+.bd-idx-claimed{ font-size:6px; letter-spacing:1px; color:#5a6a50; margin-top:6px; padding:4px 0; }
+
+/* ════════ BLACKJACK'S TABLE (styled after Blackjack's page) ════════ */
+.bj-card{ padding:0 !important; overflow:hidden; border-color:#1c3a5a !important; }
+.bj-felt{ position:relative; padding:26px 22px 30px; text-align:center;
+  background:
+    repeating-linear-gradient(60deg, rgba(255,120,20,.05) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(-60deg, rgba(255,120,20,.05) 0 1px, transparent 1px 20px),
+    radial-gradient(ellipse at 50% 38%, #16304f, #0e2138 55%, #081424); }
+.bj-felt::before{ content:''; position:absolute; left:50%; top:50%; width:230px; height:230px; transform:translate(-50%,-50%);
+  pointer-events:none; opacity:.07;
+  background:radial-gradient(circle at 50% 40%, #ff7814 0 38%, transparent 40%);
+  -webkit-mask:radial-gradient(circle at 50% 40%, #000 0 38%, transparent 40%); }
+.bj-title{ font-size:15px; letter-spacing:3px; font-weight:900; color:#ff8a3d;
+  text-shadow:0 0 14px rgba(255,120,20,.6); margin-bottom:6px; }
+.bj-sub{ font-size:7px; letter-spacing:1px; color:#9bc0e0; margin-bottom:18px; line-height:1.7; }
+.bj-area{ display:flex; flex-direction:column; gap:16px; margin-bottom:14px; }
+.bj-hand-block{ min-height:78px; }
+.bj-lbl{ font-size:8px; letter-spacing:2px; color:#cfe6ff; margin-bottom:8px; }
+.bj-lbl span{ color:#ff8a3d; font-weight:900; }
+.bj-cards{ display:flex; justify-content:center; gap:8px; flex-wrap:wrap; min-height:64px; align-items:center; }
+.bj-pcard{ width:46px; height:64px; border-radius:6px; background:linear-gradient(160deg,#fdfaf2,#e7ddc8);
+  border:1px solid #b8a87e; box-shadow:0 4px 10px rgba(0,0,0,.4); position:relative; display:flex;
+  align-items:center; justify-content:center; font-weight:900; font-size:18px; animation:bd-land .35s cubic-bezier(.2,1.4,.4,1); }
+.bj-pcard .bj-rank{ position:absolute; top:3px; left:4px; font-size:9px; line-height:1; }
+.bj-pcard .bj-rank.br{ top:auto; left:auto; bottom:3px; right:4px; transform:rotate(180deg); }
+.bj-pcard.red{ color:#c5283d; } .bj-pcard.blk{ color:#16304f; }
+.bj-pcard.back{ background:repeating-linear-gradient(45deg,#16304f 0 6px,#0e2138 6px 12px); border-color:#ff8a3d; }
+.bj-pcard.back::after{ content:'\2665'; color:#ff8a3d; opacity:.5; font-size:20px; }
+.bj-msg{ font-size:9px; letter-spacing:1px; color:#ffd56a; min-height:16px; margin-bottom:16px; }
+.bj-msg.win{ color:#7CFF4A; } .bj-msg.lose{ color:#ff6a6a; } .bj-msg.push{ color:#cfe6ff; }
+.bj-controls{ display:flex; flex-direction:column; gap:12px; align-items:center; }
+.bj-betrow{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:center; }
+.bj-betlbl{ font-size:8px; letter-spacing:2px; color:#9bc0e0; }
+#bj-bet{ font-family:inherit; font-size:10px; width:140px; text-align:center; padding:8px; border-radius:6px;
+  background:#081424; color:#ffd56a; border:1px solid #2a5a8a; }
+.bj-chip{ font-family:inherit; font-size:7px; letter-spacing:.5px; padding:7px 9px; border-radius:14px;
+  background:#102a44; color:#cfe6ff; border:1px solid #2a5a8a; cursor:pointer; }
+.bj-chip:hover{ background:#1a3e5e; border-color:#ff8a3d; color:#fff; }
+.bj-actrow{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
 </style>
 </head>
 <body>
@@ -624,6 +674,7 @@ button.bd-btn:hover:not(:disabled){ border-color:var(--bd-accent); }
     <button class="bd-tab" data-tab="shop" onclick="bdTab('shop')">SHOP</button>
     <button class="bd-tab" data-tab="pets" onclick="bdTab('pets')">PETS</button>
     <button class="bd-tab" data-tab="index" onclick="bdTab('index')">INDEX</button>
+    <button class="bd-tab" data-tab="bj" onclick="bdTab('bj')">BLACKJACK</button>
     <button class="bd-tab" data-tab="saves" onclick="bdTab('saves')">SAVES</button>
   </div>
 
@@ -691,7 +742,7 @@ button.bd-btn:hover:not(:disabled){ border-color:var(--bd-accent); }
     </div>
     <div class="bd-card">
       <div class="bd-h">POTIONS</div>
-      <div class="bd-sub" style="margin-bottom:12px;">Temporary buffs, 10 minutes each. They stack with one another and with duplicates of themselves (multiplied together).</div>
+      <div class="bd-sub" style="margin-bottom:12px;">Temporary buffs, 10 minutes each. Different types stack with one another, but only one of each type can be active at a time.</div>
       <div class="bd-row" id="bd-shop-pots"></div>
     </div>
     <div class="bd-card">
@@ -737,6 +788,43 @@ button.bd-btn:hover:not(:disabled){ border-color:var(--bd-accent); }
       </div>
       <div class="bd-sub" style="margin:10px 0 14px;">Every baddie you have ever rolled. Locked ones stay hidden until you find them.</div>
       <div id="bd-index-grid"></div>
+    </div>
+  </div>
+
+  <!-- BLACKJACK'S TABLE -->
+  <div class="bd-panel" id="bd-panel-bj">
+    <div class="bd-card bj-card">
+      <div class="bj-felt">
+        <div class="bj-title">BLACKJACK'S TABLE</div>
+        <div class="bj-sub">Beat the dealer to 21 without busting. Blackjack pays 3:2. Dealer stands on 17.</div>
+        <div class="bj-area">
+          <div class="bj-hand-block">
+            <div class="bj-lbl">DEALER <span id="bj-dealer-score"></span></div>
+            <div class="bj-cards" id="bj-dealer-cards"></div>
+          </div>
+          <div class="bj-hand-block">
+            <div class="bj-lbl">YOU <span id="bj-player-score"></span></div>
+            <div class="bj-cards" id="bj-player-cards"></div>
+          </div>
+        </div>
+        <div class="bj-msg" id="bj-msg">Place your bet and deal.</div>
+        <div class="bj-controls">
+          <div class="bj-betrow" id="bj-betrow">
+            <span class="bj-betlbl">BET</span>
+            <input id="bj-bet" type="text" inputmode="numeric" value="1000" />
+            <button class="bj-chip" onclick="bjBetAdd(1000)">+1K</button>
+            <button class="bj-chip" onclick="bjBetAdd(100000)">+100K</button>
+            <button class="bj-chip" onclick="bjBetAdd(10000000)">+10M</button>
+            <button class="bj-chip" onclick="bjBetMax()">MAX</button>
+            <button class="bj-chip" onclick="bjBetClear()">CLEAR</button>
+          </div>
+          <div class="bj-actrow">
+            <button class="bd-btn gold big" id="bj-deal" onclick="bjDeal()">DEAL</button>
+            <button class="bd-btn big" id="bj-hit" onclick="bjHit()" disabled>HIT</button>
+            <button class="bd-btn big" id="bj-stand" onclick="bjStand()" disabled>STAND</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -809,6 +897,7 @@ button.bd-btn:hover:not(:disabled){ border-color:var(--bd-accent); }
   <select id="bd-cheat-mod"></select>
   <button onclick="bdCheatGive()">GIVE BADDIE</button>
   <button onclick="bdCheatGiveEgg('common')">OPEN COMMON EGG FREE</button>
+  <button onclick="bdCheatGiveEgg('forest')">OPEN FOREST EGG FREE</button>
   <button onclick="bdCheatGiveEgg('prismatic')">OPEN PRISMATIC EGG FREE</button>
   <button onclick="bdCheatGiveEgg('cosmic')">OPEN COSMIC EGG FREE</button>
   <button onclick="bdCheatAllDice()">UNLOCK ALL DICE</button>
@@ -848,14 +937,14 @@ const RARITIES = [
   { key:'Epic',       col:'#b15cff', rate:8,     sell:65,     weight:200    },
   { key:'Legendary',  col:'#ffb028', rate:35,    sell:180,    weight:50     },
   { key:'Divine',     col:'#c9b0ff', rate:99,    sell:450,    weight:20     },
-  { key:'Mythic',     col:'#ff5ec4', rate:220,    sell:1100,   weight:7      },
-  { key:'Prismatic',  col:'#7df9ff', rate:400,   sell:2700,   weight:2.4    },
-  { key:'Sacred',     col:'#ffe08a', rate:580,   sell:6800,   weight:0.8    },
-  { key:'Secret',     col:'#ff4d6d', rate:1000,   sell:16000,  weight:0.26   },
-  { key:'Godly',      col:'#ff8a3d', rate:3000,  sell:40000,  weight:0.08   },
-  { key:'Cosmic',     col:'#2bd9d9', rate:5000,  sell:95000,  weight:0.022  },
-  { key:'Apex',       col:'#7CFF4A', rate:15000,  sell:230000, weight:0.0035 },
-  { key:'Primordial', col:'#ff2bd0', rate:16000, sell:600000, weight:0.0007 },
+  { key:'Mythic',     col:'#ff5ec4', rate:220,    sell:1100,   weight:10      },
+  { key:'Prismatic',  col:'#7df9ff', rate:400,   sell:2700,   weight:2    },
+  { key:'Sacred',     col:'#ffe08a', rate:600,   sell:6800,   weight:0.3    },
+  { key:'Secret',     col:'#ff4d6d', rate:2000,   sell:160000,  weight:0.1   },
+  { key:'Godly',      col:'#ff8a3d', rate:10000,  sell:400000,  weight:0.08   },
+  { key:'Cosmic',     col:'#2bd9d9', rate:40000,  sell:950000,  weight:0.022  },
+  { key:'Apex',       col:'#7CFF4A', rate:200000,  sell:550000, weight:0.00009 },
+  { key:'Primordial', col:'#ff2bd0', rate:250000, sell:600000, weight:0.00006 },
 ];
 const RAR_IDX = {}; RARITIES.forEach((r,i)=>RAR_IDX[r.key]=i);
 function rarMeta(key){ return RARITIES[RAR_IDX[key] ?? 0]; }
@@ -888,15 +977,15 @@ function modMeta(key){ return MODIFIERS[MOD_IDX[key] ?? 0]; }
 function _dieWeights(luck){ return RARITIES.map((r,i)=> r.weight * Math.pow(1+luck, i)); }
 const _DICE_DEF = [
   { name:'Wooden Die',     cost:0,           luck:0    },
-  { name:'Stone Die',      cost:15000,       luck:0.05 },
-  { name:'Iron Die',       cost:65000,       luck:0.10 },
-  { name:'Gold Die',       cost:220000,      luck:0.20 },
-  { name:'Crystal Die',    cost:1500000,     luck:0.30 },
-  { name:'Astral Die',     cost:7000000,     luck:0.40 },
-  { name:'Void Die',       cost:50000000,    luck:0.50 },
-  { name:'Celestial Die',  cost:600000000,   luck:0.60 },
-  { name:'Chaos Die',      cost:6000000000,  luck:0.70 },
-  { name:'Primordial Die', cost:100000000000, luck:1.00 },
+  { name:'Stone Die',      cost:15000,       luck:0.025 },
+  { name:'Iron Die',       cost:65000,       luck:0.05 },
+  { name:'Gold Die',       cost:220000,      luck:0.12 },
+  { name:'Crystal Die',    cost:2500000,     luck:0.18 },
+  { name:'Astral Die',     cost:75000000,     luck:0.25 },
+  { name:'Void Die',       cost:250000000,    luck:0.35 },
+  { name:'Celestial Die',  cost:2000000000,   luck:0.50 },
+  { name:'Chaos Die',      cost:45000000000,  luck:0.60 },
+  { name:'Primordial Die', cost:500000000000, luck:1.00 },
 ];
 const DICE = _DICE_DEF.map((d,i)=>{
   let weights = _dieWeights(d.luck);
@@ -943,32 +1032,51 @@ const PETS = {
   Bizzy:      { glyph:'\u{1F41D}', col:'#ffd24a', luck:4,    money:2,    behav:'fly',  name:'Bizzy' },
   Muffin:     { glyph:'\u{1F9C1}', col:'#e0a060', luck:3,    money:3,    behav:'hop'   },
   SHIMMY:     { glyph:'⭐',    col:'#fff27a', luck:5,    money:5,    behav:'star', shiny:true, special:true },
+  /* forest egg pets */
+  Fox:        { glyph:'\u{1F98A}', col:'#e08a3c', luck:1.3,  money:1.3,  behav:'dart',  name:'Fox' },
+  Deer:       { glyph:'\u{1F98C}', col:'#c9a06a', luck:1.35, money:1.4,  behav:'hop',   name:'Deer' },
+  Owl:        { glyph:'\u{1F989}', col:'#b8946a', luck:1.6,  money:1.3,  behav:'fly',   name:'Owl' },
+  Hedgehog:   { glyph:'\u{1F994}', col:'#9a7a52', luck:1.45, money:1.5,  behav:'creep', name:'Hedgehog' },
+  Mushroom:   { glyph:'\u{1F344}', col:'#d86a5a', luck:1.7,  money:1.7,  behav:'hop',   name:'Mushroom' },
+  Treant:     { glyph:'\u{1F333}', col:'#4faa5a', luck:2.2,  money:2.4,  behav:'prowl', name:'Treant', shiny:true },
 };
 const EGGS = {
   common:    { name:'Common Egg',    col:'#b8c0cc', cost:1000,     glyph:'\u{1F95A}', table:[
                 ['Dog',40],['Cat',40],['Goat',15],['Lizard',5] ] },
-  prismatic: { name:'Prismatic Egg', col:'#7df9ff', cost:25000000,   glyph:'\u{1F95A}', table:[
+  forest:    { name:'Forest Egg',    col:'#5fae5f', cost:150000,   glyph:'\u{1F95A}', table:[
+                ['Fox',30],['Deer',26],['Hedgehog',20],['Owl',14],['Mushroom',8],['Treant',2] ] },
+  prismatic: { name:'Prismatic Egg', col:'#7df9ff', cost:50000000,   glyph:'\u{1F95A}', table:[
                 ['Dragon',33.3],['Phoenix',33.3],['Pegasus',33.3],['Unicorn',0.1] ] },
-  cosmic:    { name:'Cosmic Egg',    col:'#2bd9d9', cost:5000000000,   glyph:'\u{1F95A}', table:[
+  cosmic:    { name:'Cosmic Egg',    col:'#2bd9d9', cost:2500000000,   glyph:'\u{1F95A}', table:[
                 ['CosmicFish',50],['Parasite',15],['ShooShi',10],['Tiki',10],
                 ['Kebab',9.9],['Bizzy',2.5],['Muffin',2.5],['SHIMMY',0.1] ] },
 };
 
 /* ─────────────── CONFIG: CURSORS ─────────────── */
 /* speed = roll-animation speed multiplier (higher is faster) */
+/* fx = click-burst {glyph, col, n} unique to each cursor */
+const _ARROW='2,1 2,17 6,13 9,19 12,17 9,11 15,11';
 const CURSORS = [
-  { id:'classic', name:'Classic Arrow', cost:0,       speed:1,    col:'#ffffff',
-    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;"><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="#fff"/><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
-  { id:'gold', name:'Gilded Arrow', cost:8000,         speed:1.15, col:'#ffd34a',
-    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 3px #ffb028);"><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="#ffd34a"/><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="#6a4a06" stroke-width="1.4" stroke-linejoin="round"/></svg>` },
-  { id:'gem', name:'Crystal Tip', cost:45000,          speed:1.3,  col:'#7fe9ff',
-    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 4px #4ec6e6);"><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="#aef6ff"/><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="#2188a6" stroke-width="1.4" stroke-linejoin="round"/></svg>` },
-  { id:'flame', name:'Flame Pointer', cost:200000,     speed:1.5,  col:'#ff7a1c',
-    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 5px #ff5a2b);"><defs><linearGradient id="curfl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe24a"/><stop offset="1" stop-color="#ff3b00"/></linearGradient></defs><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="url(#curfl)"/><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="#7a1800" stroke-width="1.3" stroke-linejoin="round"/></svg>` },
-  { id:'star', name:'Star Wand', cost:1000000,         speed:1.75, col:'#ffe24a',
-    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 6px #ffe24a);"><path d="M10 2 L12 8 L18 8 L13 12 L15 18 L10 14 L5 18 L7 12 L2 8 L8 8 Z" fill="#ffe24a" stroke="#a06a00" stroke-width="1" stroke-linejoin="round"/></svg>` },
-  { id:'void', name:'Void Cursor', cost:6000000,       speed:2.1,  col:'#c084ff',
-    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 7px #9a5bff);"><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="#7a3ac0"/><polygon points="2,1 2,17 6,13 9,19 12,17 9,11 15,11" fill="none" stroke="#e6d6ff" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
+  { id:'classic', name:'Classic Arrow', cost:0,       speed:1,    col:'#ffffff', fx:{glyph:'•',col:'#ffffff',n:5},
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;"><polygon points="${_ARROW}" fill="#fff"/><polygon points="${_ARROW}" fill="none" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
+  { id:'gold', name:'Gilded Arrow', cost:8000,         speed:1.15, col:'#ffd34a', fx:{glyph:'◆',col:'#ffd34a',n:6},
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 4px #ffb028);"><defs><linearGradient id="curgd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1b0"/><stop offset="1" stop-color="#e0941c"/></linearGradient></defs><polygon points="${_ARROW}" fill="url(#curgd)"/><polygon points="${_ARROW}" fill="none" stroke="#6a4a06" stroke-width="1.4" stroke-linejoin="round"/></svg>` },
+  { id:'gem', name:'Crystal Tip', cost:450000,          speed:1.3,  col:'#7fe9ff', fx:{glyph:'❖',col:'#aef6ff',n:6},
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 5px #4ec6e6);"><defs><linearGradient id="curgm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8fdff"/><stop offset="1" stop-color="#3fb8e0"/></linearGradient></defs><polygon points="${_ARROW}" fill="url(#curgm)"/><polygon points="${_ARROW}" fill="none" stroke="#2188a6" stroke-width="1.4" stroke-linejoin="round"/></svg>` },
+  { id:'flame', name:'Flame Pointer', cost:2000000,     speed:1.5,  col:'#ff7a1c', fx:{glyph:'🔥',col:'#ff5a2b',n:7},
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 6px #ff5a2b);"><defs><linearGradient id="curfl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe24a"/><stop offset="1" stop-color="#ff3b00"/></linearGradient></defs><polygon points="${_ARROW}" fill="url(#curfl)"/><polygon points="${_ARROW}" fill="none" stroke="#7a1800" stroke-width="1.3" stroke-linejoin="round"/></svg>` },
+  { id:'heart', name:'Sweetheart', cost:12000000,        speed:1.6,  col:'#ff5bb0', fx:{glyph:'♥',col:'#ff5bb0',n:8},
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 6px #ff5bb0);"><path d="M10 17 C2 11 3 4 8 4 C9.5 4 10 5.6 10 5.6 C10 5.6 10.5 4 12 4 C17 4 18 11 10 17 Z" fill="#ff7ac4" stroke="#a01860" stroke-width="1.1" stroke-linejoin="round"/></svg>` },
+  { id:'star', name:'Star Wand', cost:100000000,         speed:1.75, col:'#ffe24a', fx:{glyph:'✦',col:'#ffe24a',n:8},
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 7px #ffe24a);"><path d="M10 2 L12 8 L18 8 L13 12 L15 18 L10 14 L5 18 L7 12 L2 8 L8 8 Z" fill="#fff0a0" stroke="#a06a00" stroke-width="1" stroke-linejoin="round"/></svg>` },
+  { id:'void', name:'Void Cursor', cost:1000000000,       speed:2.1,  col:'#c084ff', fx:{glyph:'✧',col:'#b15cff',n:9},
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 8px #9a5bff);"><defs><radialGradient id="curvd" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#c79bff"/><stop offset="1" stop-color="#3a1070"/></radialGradient></defs><polygon points="${_ARROW}" fill="url(#curvd)"/><polygon points="${_ARROW}" fill="none" stroke="#e6d6ff" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
+  { id:'matrix', name:'Matrix Code', cost:8000000000,     speed:2.35, col:'#00ff66', fx:{glyph:'1',col:'#00ff66',n:10},
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 7px #00ff66);"><polygon points="${_ARROW}" fill="#0a2a12"/><polygon points="${_ARROW}" fill="none" stroke="#00ff66" stroke-width="1.6" stroke-linejoin="round"/></svg>` },
+  { id:'rainbow', name:'Prism Pointer', cost:50000000000, speed:2.6,  col:'#ff8ad6', fx:{glyph:'✨',col:'#ff8ad6',n:12},
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 8px #ff8ad6);"><defs><linearGradient id="currb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4d6d"/><stop offset=".5" stop-color="#7CFF4A"/><stop offset="1" stop-color="#4aa3ff"/></linearGradient></defs><polygon points="${_ARROW}" fill="url(#currb)"/><polygon points="${_ARROW}" fill="none" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>` },
+  { id:'cosmic', name:'Cosmic Comet', cost:600000000000,  speed:3,    col:'#2bd9d9', fx:{glyph:'☄',col:'#2bd9d9',n:14},
+    svg:`<svg viewBox="0 0 20 20" style="width:20px;height:20px;filter:drop-shadow(0 0 10px #2bd9d9);"><defs><radialGradient id="curcm" cx="0.4" cy="0.35" r="0.9"><stop offset="0" stop-color="#d6ffff"/><stop offset=".5" stop-color="#2bd9d9"/><stop offset="1" stop-color="#0a3a6a"/></radialGradient></defs><polygon points="${_ARROW}" fill="url(#curcm)"/><polygon points="${_ARROW}" fill="none" stroke="#eafcff" stroke-width="1.4" stroke-linejoin="round"/></svg>` },
 ];
 const CUR_IDX={}; CURSORS.forEach((c,i)=>CUR_IDX[c.id]=i);
 function curMeta(id){ return CURSORS[CUR_IDX[id] ?? 0] || CURSORS[0]; }
@@ -1003,9 +1111,14 @@ const THM_IDX={}; THEMES.forEach((t,i)=>THM_IDX[t.id]=i);
 function thmMeta(id){ return THEMES[THM_IDX[id] ?? 0] || THEMES[0]; }
 
 /* ─────────────── CONFIG: UPGRADE ─────────────── */
-const UPGRADE_MULT_PER_LVL = 1.18;
-const UPGRADE_MAX_LVL = 60;
-const UPGRADE_COOLDOWN = 60*1000;          // 1 minute
+const UPGRADE_MULT_PER_LVL = 1.25;         // stronger per-level buff
+const UPGRADE_MAX_LVL = 600;               // effectively uncapped (rarity-leveling caps at Cosmic)
+const UPGRADE_COOLDOWN = 60*1000;          // base 1 minute (grows +30s per level)
+const UPGRADE_CD_PER_LVL = 30*1000;        // each upgrade adds 30s to that baddie's next cooldown
+const MAX_UPGRADES = 2;                     // upgrade up to 2 baddies at once
+/* rarity leveling: reach these levels to bump rarity one tier (capped at Cosmic) */
+const RARITY_LEVEL_STEPS = [5,15,30,60,120,240,480];
+function rarityBumpsFor(level){ let n=0; for(const s of RARITY_LEVEL_STEPS){ if(level>=s) n++; else break; } return n; }
 function upgradeMult(level){ return Math.pow(UPGRADE_MULT_PER_LVL, level); }
 function upgradeCost(b){
   const base = rarMeta(b.rarity).sell;
@@ -1014,18 +1127,22 @@ function upgradeCost(b){
 
 /* ─────────────── CONFIG: CRACK / OVERDRIVE ─────────────── */
 const CRACK_DURATION = 5*60*1000;          // 5 min overdrive
-const CRACK_COOLDOWN = 30*60*1000;         // 30 min global
-const CRACK_MULT = 2;
+const CRACK_COOLDOWN = 10*60*1000;         // 10 min global
+const CRACK_MULT = 2.6;                     // slightly stronger overdrive
 const CRACK_MOD_CHANCE = 0.6;              // chance to gain a fresh modifier
 
-const PLOT_SIZE = 12;
+const PLOT_BASE = 12;                       // plots you start with
+const PLOT_MAX  = 40;                        // hard cap on total plots
+function plotCap(){ return Math.min(PLOT_MAX, PLOT_BASE + (S.plotsBought||0)); }
+function plotBuyCost(){ return Math.ceil(100000 * Math.pow(2.5, (S.plotsBought||0))); }
 const PET_SLOT_BASE_COST = 50000000;       // 50M for the 3rd slot, escalates hard
 const OFFLINE_CAP_MS = 4*60*60*1000;       // earn up to 4h offline
 const OFFLINE_RATE = 0.25;                 // closed-browser rate (tabbed-out is full)
 
 /* ─────────────── STATE ─────────────── */
-const SAVE_KEY  = 'baddie_save_v1';
-const SLOTS_KEY = 'baddie_slots_v1';
+/* v2: hard data reset for everyone (old v1 saves had money exploits) */
+const SAVE_KEY  = 'baddie_save_v2';
+const SLOTS_KEY = 'baddie_slots_v2';
 let S = null;
 let _uid = 1;
 
@@ -1037,7 +1154,9 @@ function defaultState(){
     activeDie: 0,
     potions: [],            // {type,level,mult,exp}
     pets: { list:[], equipped:[], slots:2 },
-    upgrade: null,          // {id, finish}
+    upgrades: [],           // up to MAX_UPGRADES active {id, finish}
+    plotsBought: 0,         // extra plots purchased (base PLOT_BASE)
+    claimed: {},            // index claim rewards collected (key -> true)
     crackUntil: 0,          // global cooldown ends
     daily: { lastDay:0, streak:0 },
     petSlotsBought: 0,
@@ -1067,6 +1186,10 @@ function migrate(s){
   if(typeof s.maxRarityEver!=='number') s.maxRarityEver=0;
   if(typeof s.cappyBought!=='number') s.cappyBought=0;
   if(!s.unlocked||typeof s.unlocked!=='object') s.unlocked={};
+  if(!s.claimed||typeof s.claimed!=='object') s.claimed={};
+  if(typeof s.plotsBought!=='number') s.plotsBought=0;
+  if(!Array.isArray(s.upgrades)){ s.upgrades = s.upgrade ? [s.upgrade] : []; }
+  delete s.upgrade;
   if(!Array.isArray(s.baddies)) s.baddies=[];
   if(!Array.isArray(s.dice)||!s.dice.length) s.dice=[0];
   s.baddies.forEach(b=>{ if(typeof b.varMul!=='number') b.varMul=1; });
@@ -1175,6 +1298,14 @@ function eggSVG(type,size){ size=size||30;
 <ellipse cx="24" cy="34" rx="19" ry="24" fill="url(#egcoG)" stroke="#8a7754" stroke-width="2"/>
 <ellipse cx="17" cy="22" rx="5" ry="7" fill="#fff" opacity=".4"/>
 <circle cx="30" cy="26" r="2.4" fill="#9c8a64"/><circle cx="18" cy="40" r="3" fill="#9c8a64"/><circle cx="32" cy="44" r="2" fill="#9c8a64"/><circle cx="24" cy="50" r="2.2" fill="#9c8a64"/></svg>`;
+  if(type==='forest') return `<svg viewBox="0 0 48 60" width="${size}" height="${size*1.25}">
+<defs><radialGradient id="egfoG" cx="40%" cy="34%" r="72%"><stop offset="0" stop-color="#bfe6a0"/><stop offset="1" stop-color="#3f7a3f"/></radialGradient></defs>
+<ellipse cx="24" cy="34" rx="19" ry="24" fill="url(#egfoG)" stroke="#2f5e2f" stroke-width="2"/>
+<ellipse cx="17" cy="22" rx="5" ry="7" fill="#fff" opacity=".3"/>
+<path d="M24 16 Q19 24 24 30 Q29 24 24 16Z" fill="#2f6e2f" opacity=".8"/>
+<path d="M14 38 Q20 32 24 38 Q20 44 14 38Z" fill="#2f6e2f" opacity=".7"/>
+<path d="M34 40 Q29 35 24 40 Q29 45 34 40Z" fill="#2f6e2f" opacity=".7"/>
+<circle cx="31" cy="26" r="1.6" fill="#d8ffb0"/><circle cx="18" cy="44" r="1.4" fill="#d8ffb0"/></svg>`;
   if(type==='prismatic') return `<svg viewBox="0 0 48 60" width="${size}" height="${size*1.25}">
 <defs><linearGradient id="egprG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#aef6ff"/><stop offset=".5" stop-color="#c79bff"/><stop offset="1" stop-color="#7df9ff"/></linearGradient></defs>
 <ellipse cx="24" cy="34" rx="19" ry="24" fill="url(#egprG)" stroke="#5fd6ff" stroke-width="2"/>
@@ -1207,8 +1338,12 @@ Bizzy:`<defs><filter id="bzAura"><feGaussianBlur stdDeviation="2"/></filter></de
 Muffin:`<path d="M16 33 L48 33 L43 58 L21 58Z" fill="#d96c12"/><path d="M23 33 L21 58 M30 33 L29 58 M37 33 L37 58 M44 33 L43 58" stroke="#5a1c02" stroke-width="2"/><rect x="14" y="30" width="36" height="5" rx="1" fill="#3a1000"/><path d="M15 31 Q15 11 32 11 Q49 11 49 31Z" fill="#7a3010"/><path d="M18 29 Q19 16 32 15 Q45 16 46 29Z" fill="#b05425"/><circle cx="25" cy="25" r="8" fill="#e8e4e0" stroke="#1a1208" stroke-width="1.3"/><circle cx="39" cy="25" r="8" fill="#e8e4e0" stroke="#1a1208" stroke-width="1.3"/><circle cx="26" cy="27" r="3.4" fill="#1a1208"/><circle cx="40" cy="27" r="3.4" fill="#1a1208"/>`,
 SHIMMY:`<g class="bd-spin-svg"><path d="M32 2 L36 14 L48 6 L42 18 L56 18 L44 26 L58 32 L44 38 L56 46 L42 46 L48 58 L36 50 L32 62 L28 50 L16 58 L22 46 L8 46 L20 38 L6 32 L20 26 L8 18 L22 18 L16 6 L28 14Z" fill="#fff27a" opacity=".25"/></g><path d="M32 8 L38 26 L57 26 L42 38 L48 56 L32 45 L16 56 L22 38 L7 26 L26 26Z" fill="#ffe24a" stroke="#ffb028" stroke-width="1.5"/><path d="M32 18 L35 28 L45 28 L37 34 L40 44 L32 38 L24 44 L27 34 L19 28 L29 28Z" fill="#fff7c0"/><circle cx="27" cy="30" r="1.8" fill="#a06a00"/><circle cx="37" cy="30" r="1.8" fill="#a06a00"/><path d="M28 35 Q32 38 36 35" stroke="#a06a00" stroke-width="1.4" fill="none"/>`,
 };
-function petSVG(type,size){ size=size||30; const m=PET_BODY[type]||PET_BODY.Dog;
-  return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" class="bd-petsvg">${m}</svg>`; }
+function petSVG(type,size){ size=size||30;
+  const m=PET_BODY[type];
+  if(m) return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" class="bd-petsvg">${m}</svg>`;
+  // no custom body art -> render the emoji glyph (forest pets etc.)
+  const def=PETS[type]||{}; const g=def.glyph||'❓';
+  return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" class="bd-petsvg"><text x="32" y="46" font-size="46" text-anchor="middle">${g}</text></svg>`; }
 
 /* ════════ PAGE-ACCURATE PET ART (ported 1:1 from the character pages) ════════ */
 let _jimmyHappyT=0, _jimmyBounceT=0;
@@ -1623,9 +1758,13 @@ function makeBaddie(rarKey, modKey){
   };
 }
 let _lastRolls=[];
+function ownsRarity(key){ return S.baddies.some(b=>b.rarity===key); }
 function doOneRoll(){
   const die = DICE[S.activeDie] || DICE[0];
-  const ri = pickRarityIndex(die.weights, totalLuck());
+  let ri = pickRarityIndex(die.weights, totalLuck());
+  // you may only ever hold ONE Apex and ONE Primordial - extra rolls cap at Cosmic
+  if(RARITIES[ri].key==='Primordial' && ownsRarity('Primordial')) ri=RAR_IDX['Cosmic'];
+  if(RARITIES[ri].key==='Apex' && ownsRarity('Apex')) ri=RAR_IDX['Cosmic'];
   const mod = pickModifier(totalModMult(), false);
   const b = makeBaddie(RARITIES[ri].key, mod);
   S.baddies.push(b);
@@ -1746,7 +1885,7 @@ function tick(){
   S.potions=S.potions.filter(p=>p.exp>Date.now());
   if(S.potions.length!==before){ dirty=true; refreshBuffs(); if(_curTab==='shop') bdRenderShop(); }
   // finish upgrade
-  if(S.upgrade && Date.now()>=S.upgrade.finish){ finishUpgrade(); dirty=true; }
+  if(S.upgrades && S.upgrades.some(u=>Date.now()>=u.finish)){ finishUpgrades(); dirty=true; }
   // overdrive end -> refresh visuals occasionally
   save();
   if(dirty) save(true);
@@ -1763,7 +1902,7 @@ function refreshBuffs(){
   if(lm>1.001) parts.push(`<span class="bd-buff luck">LUCK x${lm.toFixed(2)}</span>`);
   if(mod>1.001) parts.push(`<span class="bd-buff mod">MOD x${mod.toFixed(2)}</span>`);
   if(S.pets.equipped.length) parts.push(`<span class="bd-buff pet">${S.pets.equipped.length} PET(S)</span>`);
-  if(S.upgrade){ const left=S.upgrade.finish-Date.now(); if(left>0) parts.push(`<span class="bd-buff">UPGRADING ${fmtTime(left)}</span>`); }
+  (S.upgrades||[]).forEach(u=>{ const left=u.finish-Date.now(); if(left>0) parts.push(`<span class="bd-buff">UPGRADING ${fmtTime(left)}</span>`); });
   const ck=S.crackUntil-Date.now();
   if(ck>0) parts.push(`<span class="bd-buff">CRACK CD ${fmtTime(ck)}</span>`);
   el.innerHTML=parts.join('');
@@ -1813,14 +1952,18 @@ function bdBaddieClick(id){
   playSfx('click',{v:0.4});
   const rm=rarMeta(b.rarity), mm=modMeta(b.modifier);
   const upCost=upgradeCost(b);
-  const canUp = !S.upgrade && b.level<UPGRADE_MAX_LVL && S.coins>=upCost;
+  const ups=S.upgrades||[];
+  const upBusy = ups.find(u=>u.id===id);
+  const slotsFull = ups.length>=MAX_UPGRADES;
+  const atRarityCap = RAR_IDX[b.rarity]>=RAR_IDX['Cosmic'];
+  const canUp = !upBusy && !slotsFull && b.level<UPGRADE_MAX_LVL && S.coins>=upCost;
   const crackReady = Date.now()>=S.crackUntil;
   const over=b.overUntil>Date.now();
   const sellV=sellValue(b);
-  const upBusy = S.upgrade && S.upgrade.id===id;
+  const nextBump = RARITY_LEVEL_STEPS.find(s=>s>b.level && !atRarityCap);
   let upLabel = b.level>=UPGRADE_MAX_LVL ? 'MAX LEVEL'
-    : upBusy ? ('UPGRADING '+fmtTime(S.upgrade.finish-Date.now()))
-    : S.upgrade ? 'ANOTHER UPGRADE BUSY'
+    : upBusy ? ('UPGRADING '+fmtTime(upBusy.finish-Date.now()))
+    : slotsFull ? 'BOTH UPGRADE SLOTS BUSY'
     : ('UPGRADE  LV'+b.level+' to LV'+(b.level+1)+'  ['+fmt(upCost)+']');
   openModal(`
     <div style="text-align:center;">
@@ -1835,13 +1978,14 @@ function bdBaddieClick(id){
       </div>
       <div class="bd-sub" style="margin-bottom:14px;line-height:1.9;">
         LEVEL ${b.level} &nbsp; UPGRADE x${upgradeMult(b.level).toFixed(2)}<br>
+        ${atRarityCap?'<span style="color:#2bd9d9">RARITY MAXED (COSMIC) BY LEVELING</span>':nextBump?('NEXT RARITY BUMP AT <span style="color:'+rm.col+'">LV'+nextBump+'</span>'):''}<br>
         SELL VALUE ${fmt(sellV)} COINS
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <button class="bd-btn" ${b.placed?'':''} onclick="bdTogglePlace(${id})">${b.placed?'REMOVE FROM PLOT':'PLACE ON PLOT'}</button>
         <button class="bd-btn gold" ${canUp||upBusy?'':'disabled'} onclick="bdStartUpgrade(${id})">${upLabel}</button>
         <button class="bd-btn ${crackReady&&!over?'gold':''}" ${crackReady&&!over?'':'disabled'} onclick="bdCrack(${id})">
-          ${over?'IN OVERDRIVE ('+fmtTime(b.overUntil-Date.now())+')':crackReady?'CRACK (OVERDRIVE x2, 5MIN)':'CRACK ON COOLDOWN ('+fmtTime(S.crackUntil-Date.now())+')'}
+          ${over?'IN OVERDRIVE ('+fmtTime(b.overUntil-Date.now())+')':crackReady?'CRACK (OVERDRIVE x'+CRACK_MULT+', 5MIN)':'CRACK ON COOLDOWN ('+fmtTime(S.crackUntil-Date.now())+')'}
         </button>
         <button class="bd-btn danger" onclick="bdSellOne(${id})">SELL FOR ${fmt(sellV)}</button>
       </div>
@@ -1855,7 +1999,7 @@ function bdTogglePlace(id){
   const b=S.baddies.find(x=>x.id===id); if(!b) return;
   if(b.placed){ b.placed=false; b.slot=-1; }
   else {
-    if(placedCount()>=PLOT_SIZE){ toast('PLOT IS FULL ('+PLOT_SIZE+')'); return; }
+    if(placedCount()>=plotCap()){ toast('PLOT IS FULL ('+plotCap()+')'); return; }
     b.placed=true;
   }
   playSfx('equip',{v:0.5});
@@ -1865,10 +2009,10 @@ function bdAutoPlace(){
   // place the highest income baddies into the plot
   const sorted=[...S.baddies].sort((a,b)=>baddieRate(b)-baddieRate(a));
   S.baddies.forEach(b=>{ b.placed=false; b.slot=-1; });
-  sorted.slice(0,PLOT_SIZE).forEach(b=>b.placed=true);
+  sorted.slice(0,plotCap()).forEach(b=>b.placed=true);
   playSfx('equip',{v:0.5});
   save(true); refreshTop(); bdRenderPlot(); bdRenderInv();
-  toast('PLACED BEST '+Math.min(PLOT_SIZE,S.baddies.length)+' BADDIES','#7CFF4A');
+  toast('PLACED BEST '+Math.min(plotCap(),S.baddies.length)+' BADDIES','#7CFF4A');
 }
 function bdClearPlot(){
   S.baddies.forEach(b=>{ b.placed=false; b.slot=-1; });
@@ -1878,16 +2022,31 @@ function bdRenderPlot(){
   const grid=document.getElementById('bd-plot-grid');
   // sort by income (highest first) so the biggest earners land top-left
   const placed=S.baddies.filter(b=>b.placed).sort((a,b)=>baddieRate(b)-baddieRate(a));
+  const cap=plotCap();
   let html='';
-  for(let i=0;i<PLOT_SIZE;i++){
+  for(let i=0;i<cap;i++){
     const b=placed[i];
     if(b){ const rm=rarMeta(b.rarity);
       html+=`<div class="bd-slot full" style="--rc:${rm.col}">${baddieCard(b,'plot')}</div>`;
     } else html+=`<div class="bd-slot empty" onclick="bdTab('inv')"><span class="bd-slot-plus">+</span></div>`;
   }
+  // buy-plot tile (until cap of 40)
+  if(cap<PLOT_MAX){
+    const cost=plotBuyCost();
+    html+=`<div class="bd-slot buy" onclick="bdBuyPlot()" title="Expand your plot">
+      <span class="bd-slot-buy">+ PLOT<br><b>${fmt(cost)}</b></span></div>`;
+  }
   grid.innerHTML=html;
   _plotSig=plotSig();
   bdPlotIncLine();
+}
+function bdBuyPlot(){
+  if(plotCap()>=PLOT_MAX){ toast('MAX PLOTS REACHED ('+PLOT_MAX+')'); return; }
+  const cost=plotBuyCost();
+  if(S.coins<cost){ toast('NOT ENOUGH COINS'); return; }
+  S.coins-=cost; S.plotsBought=(S.plotsBought||0)+1;
+  playSfx('save',{v:0.6}); toast('NEW PLOT UNLOCKED ('+plotCap()+'/'+PLOT_MAX+')','#7CFF4A');
+  save(true); refreshTop(); bdRenderPlot();
 }
 /* signature of what is shown in the plot - only rebuild the DOM when this
    changes, so the modifier auras can glow smoothly instead of restarting
@@ -1897,7 +2056,7 @@ function plotSig(){ return S.baddies.filter(b=>b.placed).map(b=>b.id+':'+b.level
 function bdPlotIncLine(){
   const inc=document.getElementById('bd-plot-inc'); if(!inc) return;
   const n=S.baddies.filter(b=>b.placed).length;
-  inc.innerHTML=`${coinSVG(13)}<b>${fmt(plotIncomePerSec())}</b>/s &middot; ${n}/${PLOT_SIZE} placed`;
+  inc.innerHTML=`${coinSVG(13)}<b>${fmt(plotIncomePerSec())}</b>/s &middot; ${n}/${plotCap()} placed`;
 }
 function bdPlotLive(){
   if(plotSig()!==_plotSig){ bdRenderPlot(); return; }  // structural change -> full render
@@ -1905,23 +2064,42 @@ function bdPlotLive(){
 }
 
 /* ─────────────── UPGRADE ─────────────── */
+function upgradeCooldown(b){ return UPGRADE_COOLDOWN + (b.level||0)*UPGRADE_CD_PER_LVL; }
 function bdStartUpgrade(id){
   const b=S.baddies.find(x=>x.id===id); if(!b) return;
-  if(S.upgrade){ toast('ALREADY UPGRADING ANOTHER BADDIE'); return; }
+  if(!Array.isArray(S.upgrades)) S.upgrades=[];
+  if(S.upgrades.find(u=>u.id===id)){ toast('ALREADY UPGRADING THIS BADDIE'); return; }
+  if(S.upgrades.length>=MAX_UPGRADES){ toast('BOTH UPGRADE SLOTS BUSY'); return; }
   if(b.level>=UPGRADE_MAX_LVL){ toast('MAX LEVEL'); return; }
   const cost=upgradeCost(b);
   if(S.coins<cost){ toast('NOT ENOUGH COINS'); return; }
+  const cd=upgradeCooldown(b);
   S.coins-=cost;
-  S.upgrade={ id, finish:Date.now()+UPGRADE_COOLDOWN };
+  S.upgrades.push({ id, finish:Date.now()+cd });
   playSfx('save',{v:0.5});
-  toast('UPGRADING: 1 MIN','#ffd56a');
+  toast('UPGRADING: '+fmtTime(cd),'#ffd56a');
   save(true); refreshTop(); refreshBuffs(); bdCloseModal();
 }
-function finishUpgrade(){
-  if(!S.upgrade) return;
-  const b=S.baddies.find(x=>x.id===S.upgrade.id);
-  S.upgrade=null;
-  if(b){ b.level=(b.level||0)+1; playSfx('max',{v:0.5}); toast(baddieDisplayName(b.key)+' UPGRADED TO LV'+b.level,'#7CFF4A'); }
+function finishUpgrades(){
+  if(!Array.isArray(S.upgrades)||!S.upgrades.length) return;
+  const now=Date.now();
+  const done=S.upgrades.filter(u=>now>=u.finish);
+  S.upgrades=S.upgrades.filter(u=>now<u.finish);
+  done.forEach(u=>{
+    const b=S.baddies.find(x=>x.id===u.id); if(!b) return;
+    b.level=(b.level||0)+1;
+    // rarity leveling: bump rarity if this level crosses a step (cap Cosmic)
+    const cosmicIdx=RAR_IDX['Cosmic'];
+    if(RARITY_LEVEL_STEPS.includes(b.level) && RAR_IDX[b.rarity]<cosmicIdx){
+      b.rarity=RARITIES[RAR_IDX[b.rarity]+1].key;
+      S.unlocked[b.key]=true;
+      playSfx('mythic',{v:0.6});
+      toast(baddieDisplayName(b.key)+' ASCENDED TO '+b.rarity.toUpperCase()+'!',rarMeta(b.rarity).col);
+    } else {
+      playSfx('max',{v:0.5});
+      toast(baddieDisplayName(b.key)+' UPGRADED TO LV'+b.level,'#7CFF4A');
+    }
+  });
   save(true); refreshTop(); refreshBuffs();
   if(_curTab==='plot') bdRenderPlot();
   if(_curTab==='inv') bdRenderInv();
@@ -1935,7 +2113,7 @@ function bdCrack(id){
   b.overUntil=Date.now()+CRACK_DURATION;
   S.crackUntil=Date.now()+CRACK_COOLDOWN;
   playSfx('hexxed',{v:0.6});
-  let msg='OVERDRIVE x2 FOR 5 MIN';
+  let msg='OVERDRIVE x'+CRACK_MULT+' FOR 5 MIN';
   if(Math.random()<CRACK_MOD_CHANCE){
     const newMod=pickModifier(totalModMult()*1.5, false);
     b.modifier=newMod;
@@ -1955,7 +2133,7 @@ function bdSellOne(id){
   const i=S.baddies.findIndex(x=>x.id===id); if(i<0) return;
   const b=S.baddies[i];
   S.coins+=sellValue(b);
-  if(S.upgrade && S.upgrade.id===id) S.upgrade=null;
+  S.upgrades=(S.upgrades||[]).filter(u=>u.id!==id);
   S.baddies.splice(i,1);
   playSfx('delete',{v:0.5});
   save(true); refreshTop(); bdCloseModal(); bdRenderInv(); bdRenderPlot(); bdRenderRollInv();
@@ -1975,7 +2153,7 @@ function bdSellAllConfirm(){
   const keep=[]; let gained=0;
   S.baddies.forEach(b=>{ if(b.placed) keep.push(b); else gained+=sellValue(b); });
   S.baddies=keep;
-  if(S.upgrade && !S.baddies.find(b=>b.id===S.upgrade.id)) S.upgrade=null;
+  S.upgrades=(S.upgrades||[]).filter(u=>S.baddies.find(b=>b.id===u.id));
   S.coins+=gained;
   playSfx('delete',{v:0.6});
   toast('SOLD FOR '+fmt(gained),'#ffd56a');
@@ -1990,7 +2168,7 @@ function bdSellRarityAndBelow(){
   });
   if(!n){ toast('NOTHING MATCHED'); return; }
   S.baddies=keep;
-  if(S.upgrade && !S.baddies.find(b=>b.id===S.upgrade.id)) S.upgrade=null;
+  S.upgrades=(S.upgrades||[]).filter(u=>S.baddies.find(b=>b.id===u.id));
   S.coins+=gained;
   playSfx('delete',{v:0.6});
   toast('SOLD '+n+' FOR '+fmt(gained),'#ffd56a');
@@ -2072,12 +2250,12 @@ function bdRenderShop(){
   const pp=document.getElementById('bd-shop-pots');
   pp.innerHTML=Object.keys(POTIONS).map(type=>{
     const P=POTIONS[type];
-    const active=S.potions.filter(p=>p.type===type && p.exp>Date.now());
-    const stackTxt = active.length ? `<div class="bd-sub" style="color:${P.col};margin-top:4px;">ACTIVE x${active.reduce((m,p)=>m*p.mult,1).toFixed(2)} (${active.length})</div>` : '';
+    const active=S.potions.find(p=>p.type===type && p.exp>Date.now());
+    const stackTxt = active ? `<div class="bd-sub" style="color:${P.col};margin-top:4px;">ACTIVE x${active.mult} (${fmtTime(active.exp-Date.now())})</div>` : '';
     return `<div class="bd-shoptile" style="width:200px;">
       <div class="ic" style="color:${P.col}">${P.icon}</div>
       <div class="tn">${P.name}</div>
-      <div class="td">+${type} multiplier, 10 min. Stacks with itself and others.</div>
+      <div class="td">+${type} multiplier, 10 min. Only ONE of each potion type is active at a time - buying again replaces it.</div>
       ${P.levels.map((lv,i)=>`<button class="bd-btn" style="margin-bottom:4px;width:100%;" ${S.coins>=lv.cost?'':'disabled'} onclick="bdBuyPotion('${type}',${i})">LV${i+1} x${lv.mult} - ${fmt(lv.cost)}</button>`).join('')}
       ${stackTxt}
     </div>`;
@@ -2140,8 +2318,10 @@ function bdBuyPotion(type,lvl){
   const P=POTIONS[type]; const lv=P.levels[lvl];
   if(S.coins<lv.cost){ toast('NOT ENOUGH COINS'); return; }
   S.coins-=lv.cost;
+  // only ONE potion of each type may be active at once - buying replaces it
+  S.potions=S.potions.filter(p=>p.type!==type);
   S.potions.push({ type, level:lvl, mult:lv.mult, exp:Date.now()+POTION_DURATION });
-  playSfx('equip',{v:0.5}); toast(P.name+' LV'+(lvl+1)+' ACTIVE',P.col);
+  playSfx('equip',{v:0.5}); toast(P.name+' LV'+(lvl+1)+' ACTIVE (10 MIN)',P.col);
   save(true); refreshTop(); refreshBuffs(); bdRenderShop();
 }
 function bdCappyPrompt(cost){
@@ -2488,8 +2668,12 @@ function doRebirth(){
   S.coins=0;
   S.autoRoll=false;
   S.potions=[];
-  S.upgrade=null;
+  S.upgrades=[];
+  S.plotsBought=0;
   S.crackUntil=0;
+  // stop any running auto-roll loop (fixes autoroll surviving a rebirth)
+  _autoOn=false; if(typeof _autoT!=='undefined' && _autoT) clearTimeout(_autoT);
+  try{ bdAutoHide(); }catch(_){}
   // keep: cursors, themes, rebirths, unlocked index, maxRarityEver, cappyBought, pets
   save(true);
   playSfx('mythic',{v:0.9});
@@ -2536,7 +2720,7 @@ function bdRenderRebirth(){
     </div>
     <div style="margin-bottom:14px;">${steps}</div>
     ${r<maxR?`<button class="bd-btn gold big" ${canRebirth?'':'disabled'} onclick="doRebirth()">
-      ${canRebirth?'✦ REBIRTH NOW':'REBIRTH LOCKED — ROLL '+REBIRTH_LABELS[r]+' OR HIGHER'}
+      ${canRebirth?'✦ REBIRTH NOW':'REBIRTH LOCKED - ROLL '+REBIRTH_LABELS[r]+' OR HIGHER'}
     </button>`:'<div class="bd-sub" style="color:#7CFF4A;text-align:center;">MAX REBIRTHS REACHED. YOU ARE ASCENDED.</div>'}
   `;
 }
@@ -2556,18 +2740,39 @@ function bdRenderIndex(){
   grid.innerHTML=sorted.map(entry=>{
     const rm=rarMeta(entry.rarity);
     const found=S.unlocked&&S.unlocked[entry.key];
+    const claimed=S.claimed&&S.claimed[entry.key];
     const label=found?entry.key.replace(/baddie$/i,'').toUpperCase():'???';
     const file=baddieImgFile(entry.key);
     const initials=entry.key.replace(/baddie$/i,'').slice(0,2).toUpperCase()||'??';
+    const reward=indexClaimReward(entry.rarity);
     const imgOrPh=found
-      ? `<img src="${file}" style="width:54px;height:54px;object-fit:contain;display:block;" onerror="this.outerHTML='<div style=\\'width:54px;height:54px;display:flex;align-items:center;justify-content:center;font-size:1.1em;font-weight:900;color:${encodeURIComponent(rm.col)}\\'>${initials}</div>'">`
-      : `<div style="width:54px;height:54px;display:flex;align-items:center;justify-content:center;font-size:1.5em;color:#333;">?</div>`;
-    return `<div ${found?`onclick="bdIndexShowFull('${entry.key}')" style="cursor:pointer;`:`style="`}width:76px;text-align:center;background:#0d0a18;border:1px solid ${found?rm.col:'#1a1025'};border-radius:8px;padding:6px 4px;${found?'':'filter:brightness(0.35) saturate(0.2);'}">
-      <div style="margin-bottom:4px;${found?'':''}">${imgOrPh}</div>
+      ? `<img src="${file}" style="width:54px;height:54px;object-fit:contain;display:block;margin:0 auto;" onerror="this.outerHTML='<div style=\\'width:54px;height:54px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:1.1em;font-weight:900;color:${encodeURIComponent(rm.col)}\\'>${initials}</div>'">`
+      : `<div style="width:54px;height:54px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:1.5em;color:#333;">?</div>`;
+    const claimBtn = found && !claimed
+      ? `<button class="bd-idx-claim" onclick="event.stopPropagation();bdIndexClaim('${entry.key}')">CLAIM ${fmt(reward)}</button>`
+      : (found ? `<div class="bd-idx-claimed">CLAIMED</div>` : '');
+    return `<div class="bd-idx-tile${found?' found':''}" data-rar="${entry.rarity.toLowerCase()}"
+      ${found?`onclick="bdIndexShowFull('${entry.key}')"`:''}
+      style="--rc:${found?rm.col:'#1a1025'};${found?'':'filter:brightness(0.35) saturate(0.2);'}">
+      <div style="margin-bottom:4px;">${imgOrPh}</div>
       <div style="font-size:0.6em;color:${found?rm.col:'#444'};font-weight:700;word-break:break-word;line-height:1.2;">${label}</div>
       <div style="font-size:0.52em;color:${found?rm.col+'99':'#333'};margin-top:2px;">${found?entry.rarity:''}</div>
+      ${claimBtn}
     </div>`;
   }).join('');
+}
+/* one-time index reward: ~15x the coins/sec that rarity earns */
+function indexClaimReward(rarity){ return Math.max(15, Math.ceil(15 * rarMeta(rarity).rate)); }
+function bdIndexClaim(key){
+  if(!S.unlocked||!S.unlocked[key]){ return; }
+  if(!S.claimed) S.claimed={};
+  if(S.claimed[key]){ toast('ALREADY CLAIMED'); return; }
+  const entry=ROSTER.find(e=>e.key===key); if(!entry) return;
+  const reward=indexClaimReward(entry.rarity);
+  S.claimed[key]=true; S.coins+=reward;
+  playSfx('save',{v:0.6}); toast('+'+fmt(reward)+' COINS CLAIMED',rarMeta(entry.rarity).col);
+  burst(innerWidth/2, innerHeight*0.4, rarMeta(entry.rarity).col, 30, 6);
+  save(true); refreshTop(); bdRenderIndex();
 }
 function bdIndexShowFull(key){
   const entry=ROSTER.find(e=>e.key===key); if(!entry) return;
@@ -2584,6 +2789,105 @@ function bdIndexShowFull(key){
       <div style="font-size:9px;letter-spacing:1px;color:${rm.col};">${entry.rarity.toUpperCase()}</div>
     </div>
   `);
+}
+
+/* ─────────────── BLACKJACK'S TABLE ─────────────── */
+const _BJ_SUITS=[['♥','red'],['♦','red'],['♠','blk'],['♣','blk']];
+const _BJ_RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+let _bj={ deck:[], player:[], dealer:[], bet:0, inRound:false, hideHole:true };
+function bjBuildDeck(){ const d=[]; for(const [s,c] of _BJ_SUITS) for(const r of _BJ_RANKS) d.push({r,s,c});
+  for(let i=d.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; } return d; }
+function bjCardVal(r){ if(r==='A') return 11; if(r==='K'||r==='Q'||r==='J'||r==='10') return 10; return +r; }
+function bjHandValue(hand){ let v=0,aces=0; hand.forEach(c=>{ v+=bjCardVal(c.r); if(c.r==='A') aces++; });
+  while(v>21 && aces>0){ v-=10; aces--; } return v; }
+function bjIsBlackjack(hand){ return hand.length===2 && bjHandValue(hand)===21; }
+function bjParseBet(){ const el=document.getElementById('bj-bet'); let n=parseInt((el.value||'').replace(/[^0-9]/g,''),10); if(!n||n<0) n=0; return n; }
+function bjSetBet(n){ n=Math.max(0,Math.floor(n)); document.getElementById('bj-bet').value=String(n); }
+function bjBetAdd(n){ if(_bj.inRound) return; bjSetBet(Math.min(Math.floor(S.coins), bjParseBet()+n)); }
+function bjBetMax(){ if(_bj.inRound) return; bjSetBet(Math.floor(S.coins)); }
+function bjBetClear(){ if(_bj.inRound) return; bjSetBet(0); }
+function bjCardHTML(card, hidden){
+  if(hidden) return `<div class="bj-pcard back"></div>`;
+  return `<div class="bj-pcard ${card.c}">
+    <span class="bj-rank">${card.r}${card.s}</span>${card.r}${card.s}<span class="bj-rank br">${card.r}${card.s}</span></div>`;
+}
+function bjRender(){
+  const dc=document.getElementById('bj-dealer-cards'), pc=document.getElementById('bj-player-cards');
+  const ds=document.getElementById('bj-dealer-score'), ps=document.getElementById('bj-player-score');
+  if(!dc) return;
+  dc.innerHTML=_bj.dealer.map((c,i)=>bjCardHTML(c, _bj.hideHole && i===1)).join('');
+  pc.innerHTML=_bj.player.map(c=>bjCardHTML(c,false)).join('');
+  ps.textContent=_bj.player.length?('('+bjHandValue(_bj.player)+')'):'';
+  if(_bj.hideHole && _bj.dealer.length){ ds.textContent='('+bjCardVal(_bj.dealer[0].r)+'+?)'; }
+  else ds.textContent=_bj.dealer.length?('('+bjHandValue(_bj.dealer)+')'):'';
+}
+function bjButtons(playing){
+  document.getElementById('bj-deal').disabled=playing;
+  document.getElementById('bj-hit').disabled=!playing;
+  document.getElementById('bj-stand').disabled=!playing;
+  document.querySelectorAll('#bj-betrow input,#bj-betrow button').forEach(el=>el.disabled=playing);
+}
+function bjMsg(t,cls){ const m=document.getElementById('bj-msg'); m.textContent=t; m.className='bj-msg'+(cls?' '+cls:''); }
+function bjDeal(){
+  if(_bj.inRound) return;
+  const bet=bjParseBet();
+  if(bet<=0){ bjMsg('ENTER A BET FIRST'); return; }
+  if(bet>S.coins){ bjMsg('NOT ENOUGH COINS','lose'); return; }
+  S.coins-=bet; refreshTop(); save(true);
+  _bj.bet=bet; _bj.deck=bjBuildDeck(); _bj.player=[]; _bj.dealer=[]; _bj.hideHole=true; _bj.inRound=true;
+  _bj.player.push(_bj.deck.pop()); _bj.dealer.push(_bj.deck.pop());
+  _bj.player.push(_bj.deck.pop()); _bj.dealer.push(_bj.deck.pop());
+  playSfx('click',{v:0.4});
+  bjButtons(true); bjRender(); bjMsg('HIT or STAND. Bet '+fmt(bet)+'.');
+  // naturals
+  if(bjIsBlackjack(_bj.player) || bjIsBlackjack(_bj.dealer)){ _bj.hideHole=false; bjSettle(true); }
+}
+function bjHit(){
+  if(!_bj.inRound) return;
+  _bj.player.push(_bj.deck.pop()); playSfx('dicealt',{v:0.3});
+  bjRender();
+  if(bjHandValue(_bj.player)>21){ _bj.hideHole=false; bjRender(); bjFinish('lose','BUST! You lose '+fmt(_bj.bet)+'.'); }
+  else if(bjHandValue(_bj.player)===21){ bjStand(); }
+}
+function bjStand(){
+  if(!_bj.inRound) return;
+  _bj.hideHole=false; bjButtons(false);
+  // dealer draws to 17 (stands on all 17)
+  const draw=()=>{
+    bjRender();
+    if(bjHandValue(_bj.dealer)<17){ _bj.dealer.push(_bj.deck.pop()); playSfx('dicealt',{v:0.25}); setTimeout(draw,420); }
+    else bjSettle(false);
+  };
+  setTimeout(draw,300);
+}
+function bjSettle(checkNatural){
+  bjButtons(false); bjRender();
+  const pv=bjHandValue(_bj.player), dv=bjHandValue(_bj.dealer);
+  const pBJ=bjIsBlackjack(_bj.player), dBJ=bjIsBlackjack(_bj.dealer);
+  if(checkNatural && (pBJ||dBJ)){
+    if(pBJ&&dBJ){ bjFinish('push','Both blackjack. Push - bet returned.', _bj.bet); }
+    else if(pBJ){ bjFinish('win','BLACKJACK! Pays 3:2.', Math.floor(_bj.bet*2.5)); }
+    else { bjFinish('lose','Dealer blackjack. You lose '+fmt(_bj.bet)+'.'); }
+    return;
+  }
+  if(pv>21){ bjFinish('lose','BUST! You lose '+fmt(_bj.bet)+'.'); return; }
+  if(dv>21){ bjFinish('win','Dealer busts! You win '+fmt(_bj.bet)+'.', _bj.bet*2); return; }
+  if(pv>dv){ bjFinish('win','You win '+fmt(_bj.bet)+'!', _bj.bet*2); }
+  else if(pv<dv){ bjFinish('lose','Dealer wins. You lose '+fmt(_bj.bet)+'.'); }
+  else { bjFinish('push','Push - bet returned.', _bj.bet); }
+}
+function bjFinish(cls,msg,payout){
+  _bj.inRound=false; _bj.hideHole=false;
+  if(payout&&payout>0){ S.coins+=payout; if(cls==='win'){ playSfx('legendary',{v:0.5}); burst(innerWidth/2,innerHeight*0.4,'#ff8a3d',40,7); } }
+  else if(cls==='lose') playSfx('delete',{v:0.4});
+  refreshTop(); save(true); bjButtons(false); bjRender(); bjMsg(msg,cls);
+}
+function bjReset(){ _bj.player=[]; _bj.dealer=[]; _bj.inRound=false; _bj.hideHole=true; }
+function bdRenderBlackjack(){
+  if(!_bj.inRound) bjReset();
+  bjRender(); bjButtons(_bj.inRound);
+  if(!_bj.inRound) bjMsg('Place your bet and deal.');
+  const bet=document.getElementById('bj-bet'); if(bet && bjParseBet()>S.coins) bjSetBet(Math.floor(S.coins));
 }
 
 /* ─────────────── MODAL ─────────────── */
@@ -2603,6 +2907,7 @@ function bdTab(t){
   if(t==='shop') bdRenderShop();
   if(t==='pets'){ bdRenderEggs(); bdRenderPets(); }
   if(t==='index') bdRenderIndex();
+  if(t==='bj') bdRenderBlackjack();
   if(t==='saves'){ bdRenderDaily(); bdRenderSlots(); bdRenderRebirth(); }
 }
 
@@ -2638,10 +2943,10 @@ function bdCheatGive(){
 function bdCheatGiveEgg(k){ S.coins+=EGGS[k].cost; refreshTop(); bdOpenEgg(k); }
 function bdCheatAllDice(){ DICE.forEach(d=>{ if(!S.dice.includes(d.id)) S.dice.push(d.id); }); save(true); bdRenderDieRow(); if(_curTab==='shop') bdRenderShop(); toast('ALL DICE UNLOCKED','#7CFF4A'); }
 function bdCheatResetCrack(){ S.crackUntil=0; save(true); refreshBuffs(); toast('CRACK CD RESET','#7CFF4A'); }
-function bdCheatFinishUpgrade(){ if(S.upgrade){ S.upgrade.finish=Date.now(); finishUpgrade(); } toast('UPGRADE FINISHED','#7CFF4A'); }
+function bdCheatFinishUpgrade(){ (S.upgrades||[]).forEach(u=>u.finish=Date.now()); finishUpgrades(); toast('UPGRADES FINISHED','#7CFF4A'); }
 function bdCheatResetDaily(){ S.daily.lastDay=0; save(true); if(_curTab==='saves') bdRenderDaily(); toast('DAILY RESET','#7CFF4A'); }
 function bdCheatLuck(){ const v=parseFloat(document.getElementById('bd-cheat-luck').value)||1; _debugLuck=v; refreshBuffs(); toast('DEBUG LUCK x'+v,'#7CFF4A'); }
-function bdCheatClear(){ S.baddies=[]; S.upgrade=null; save(true); refreshTop(); bdRenderInv(); bdRenderPlot(); toast('BADDIES CLEARED'); }
+function bdCheatClear(){ S.baddies=[]; S.upgrades=[]; save(true); refreshTop(); bdRenderInv(); bdRenderPlot(); toast('BADDIES CLEARED'); }
 
 /* ─────────────── OFFLINE EARNINGS ─────────────── */
 function applyOffline(){
@@ -2678,6 +2983,8 @@ function bdInit(){
     const c=document.getElementById('cursor'); if(c){ c.style.left=e.clientX+'px'; c.style.top=e.clientY+'px'; }
     updateFollowPets(e.clientX, e.clientY);
   });
+  // per-cursor click burst
+  document.addEventListener('pointerdown', e=>{ cursorClickFX(e.clientX, e.clientY); });
   // close popups when clicking elsewhere (not on a pet or the order menu)
   document.addEventListener('click', e=>{
     if(e.target.closest('.bd-pet') || e.target.closest('#bd-pet-orders')) return;
@@ -2873,6 +3180,25 @@ function specialRollFX(idx,x,y){
 
 /* ─────────────── CURSORS ─────────────── */
 function applyCursor(){ const c=curMeta(S.cursors.active); const el=document.getElementById('cursor'); if(el) el.innerHTML=c.svg; }
+let _clickFxT=0;
+function cursorClickFX(x,y){
+  const now=performance.now(); if(now-_clickFxT<70) return; _clickFxT=now;  // throttle
+  const c=curMeta(S.cursors.active); const fx=c.fx||{glyph:'•',col:c.col||'#fff',n:5};
+  // expanding ring
+  const ring=document.createElement('div'); ring.className='bd-clickring';
+  ring.style.left=x+'px'; ring.style.top=y+'px'; ring.style.setProperty('--cc',fx.col);
+  document.body.appendChild(ring); setTimeout(()=>ring.remove(),520);
+  // scattered glyph particles
+  const n=fx.n||6;
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div'); p.className='bd-clickfx';
+    p.textContent=fx.glyph; p.style.color=fx.col; p.style.textShadow='0 0 6px '+fx.col;
+    const ang=(Math.PI*2*i/n)+Math.random()*0.6, dist=14+Math.random()*26;
+    p.style.left=(x+Math.cos(ang)*dist)+'px'; p.style.top=(y+Math.sin(ang)*dist)+'px';
+    p.style.fontSize=(10+Math.random()*8)+'px';
+    document.body.appendChild(p); setTimeout(()=>p.remove(),640);
+  }
+}
 function bdEquipCursor(id){ if(!S.cursors.owned.includes(id)) return; S.cursors.active=id; applyCursor();
   playSfx('equip',{v:0.4}); save(true); bdRenderShop(); }
 function bdBuyCursor(id){ const c=curMeta(id); if(S.cursors.owned.includes(id)){ bdEquipCursor(id); return; }
@@ -2907,9 +3233,9 @@ function closeAllDD(except){ document.querySelectorAll('.bd-dd.open').forEach(d=
 /* ─────────────── AUTO ROLL ─────────────── */
 let _autoOn=false, _autoCount=0, _autoT=null, _autoBusy=false;
 function bdAutoOpen(){ if(!S.autoRoll){ toast('BUY AUTO ROLL IN THE SHOP'); bdTab('shop'); return; }
-  document.getElementById('bd-auto').style.display='block'; }
+  document.getElementById('bd-auto').classList.add('shown'); }
 function bdAutoHide(){ _autoOn=false; if(_autoT) clearTimeout(_autoT); updateAutoBtn();
-  document.getElementById('bd-auto').style.display='none'; }
+  const a=document.getElementById('bd-auto'); if(a) a.classList.remove('shown'); }
 function bdAutoToggle(){ if(!S.autoRoll){ toast('BUY AUTO ROLL'); return; }
   _autoOn=!_autoOn; updateAutoBtn(); if(_autoOn && !_autoBusy) autoStep(); else if(!_autoOn && _autoT) clearTimeout(_autoT); }
 function updateAutoBtn(){ const b=document.getElementById('bd-auto-toggle'); if(b){ b.textContent=_autoOn?'STOP':'START'; b.classList.toggle('on',_autoOn); } }
