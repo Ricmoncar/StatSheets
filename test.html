@@ -193,8 +193,11 @@
         button.link:hover { background:#33ddff; color:#000; box-shadow:0 0 16px #33ddff; }
 
         /* ── Tabs ── */
-        .tabbar { display:flex; gap:10px; margin-bottom:20px; }
+        .tabbar { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
         .tabbar button { padding:10px 24px; font-size:0.9rem; letter-spacing:2px; border-radius:6px; }
+        #perfBtn { margin-left:auto; border-color:#ffae00; color:#ffcf66; box-shadow:0 0 10px rgba(255,174,0,0.22); }
+        #perfBtn:hover { background:#ffae00; color:#1a1000; box-shadow:0 0 16px #ffae00; }
+        #perfBtn.on { background:#ffae00; color:#1a1000; box-shadow:0 0 20px #ffae00; }
         #tabMatrixBtn.on { background:#00ff00; color:#000; box-shadow:0 0 14px #00ff00; }
         #tabCrystalBtn { border-color:#a855f7; color:#d8b4fe; box-shadow:0 0 10px rgba(168,85,247,0.25); }
         #tabCrystalBtn:hover, #tabCrystalBtn.on { background:#a855f7; color:#1a0533; box-shadow:0 0 18px #a855f7; }
@@ -351,6 +354,48 @@
         #ioStatus { margin-top:10px; font-size:0.75rem; color:#bae6fd; min-height:1em; }
         #ioResult { margin-top:18px; display:none; flex-direction:column; align-items:center; gap:12px; }
         #ioResult img { max-width:100%; border:1px solid #3b82c4; border-radius:6px; }
+
+        /* ── Alsace theme (on <body> when ALSACE tab active) - deep-blue hypno jester ── */
+        #tabAlsaceBtn { border-color:#4f7bdf; color:#bcd4ff; box-shadow:0 0 10px rgba(79,123,223,0.3); }
+        #tabAlsaceBtn:hover, #tabAlsaceBtn.on { background:#4f7bdf; color:#04081c; box-shadow:0 0 18px #4f7bdf; }
+        body.theme-alsace { color:#bcd4ff; }
+        body.theme-alsace h1 { color:#dbe6ff; text-shadow:0 0 16px #4f7bdf, 0 0 34px #1b3a8f, 0 0 52px #46d4ff; animation:az-h1-wooze 3.5s ease-in-out infinite; }
+        @keyframes az-h1-wooze { 0%,100%{ transform:skewX(0deg); } 25%{ transform:skewX(-2.5deg); } 50%{ transform:skewX(1.8deg); } 75%{ transform:skewX(-1deg); } }
+
+        .alsace-wrap { width:100%; display:flex; flex-direction:column; align-items:center; }
+        #azInput {
+            width:100%; max-width:920px; background:rgba(7,13,34,0.88); border:1px solid #3a5bb0; color:#cfe0ff;
+            height:170px; box-sizing:border-box; border-radius:10px; padding:16px;
+            font-family:Georgia,'Times New Roman',serif; font-size:1.1rem; line-height:1.5; resize:none;
+            box-shadow:0 0 18px rgba(79,123,223,0.22);
+        }
+        #azInput:focus { outline:none; border-color:#7fb0ff; box-shadow:0 0 26px rgba(127,176,255,0.4); }
+        #azInput::placeholder { color:#4a5f9a; }
+        .alsace-canvas-wrap {
+            width:100%; max-width:920px; min-height:240px; margin-top:18px;
+            display:flex; align-items:center; justify-content:center;
+            background:radial-gradient(circle at 50% 38%, rgba(28,42,110,0.5), rgba(3,5,15,0.85) 72%);
+            border:1px solid #24336b; border-radius:12px; overflow:hidden; padding:14px; box-sizing:border-box;
+        }
+        #azOutput { max-width:100%; max-height:440px; object-fit:contain; border-radius:6px; }
+        .alsace-panel {
+            margin-top:22px; width:100%; max-width:920px; box-sizing:border-box; padding:16px 20px; border-radius:10px;
+            background:linear-gradient(160deg, rgba(16,26,64,0.86), rgba(4,6,22,0.92));
+            border:1px solid #3a4aa0; box-shadow:0 0 22px rgba(79,123,223,0.18);
+        }
+        .alsace-panel h2 { font-size:0.8rem; letter-spacing:2px; text-transform:uppercase; margin:0 0 14px; color:#bcd4ff; border-bottom:1px solid #24336b; padding-bottom:8px; }
+        .alsace-panel h2::after { content:" \2666"; color:#46d4ff; }
+        .alsace-panel input[type="range"] { accent-color:#4f7bdf; }
+        .alsace-panel .field { color:#a9bcef; }
+        .alsace-panel select, .alsace-panel input[type="text"] { background:#040818; color:#cfe0ff; border:1px solid #3a5bb0; padding:6px 8px; font-family:inherit; border-radius:4px; }
+        button.azbtn { border-color:#4f7bdf; color:#bcd4ff; box-shadow:0 0 10px rgba(79,123,223,0.2); }
+        button.azbtn:hover { background:#4f7bdf; color:#04081c; box-shadow:0 0 18px #4f7bdf; }
+        button.azlink { border-color:#46d4ff; color:#8be3ff; }
+        button.azlink:hover { background:#46d4ff; color:#042029; box-shadow:0 0 16px #46d4ff; }
+        #azStatus { margin-top:10px; font-size:0.75rem; color:#bcd4ff; min-height:1em; }
+        #azResult { margin-top:18px; display:none; flex-direction:column; align-items:center; gap:12px; }
+        #azResult img { max-width:100%; border:1px solid #3a5bb0; border-radius:6px; }
+        #azFontName { color:#8be3ff; font-size:0.68rem; }
     </style>
 </head>
 
@@ -366,6 +411,8 @@
         <button id="tabClockBtn">◈ CLOCKWORK</button>
         <button id="tabDeepBtn">◈ DEEP SEA</button>
         <button id="tabIceBtn">◈ ICE OUJI</button>
+        <button id="tabAlsaceBtn">◈ ALSACE</button>
+        <button id="perfBtn" title="Trade live-preview smoothness for speed on slower machines. Generated GIFs are unaffected.">⚡ PERFORMANCE</button>
     </div>
 
     <div id="tab-matrix" class="tab-content active">
@@ -679,6 +726,72 @@
         </div>
     </div>
 
+    <!-- ════════ ALSACE TAB - deep-blue hypnotic jester dialogue ════════ -->
+    <div id="tab-alsace" class="tab-content">
+        <div class="alsace-wrap">
+            <textarea id="azInput" placeholder="Come closer... watch the spiral... what was it you wanted to say?"></textarea>
+
+            <div class="alsace-canvas-wrap">
+                <canvas id="azOutput" width="520" height="240"></canvas>
+            </div>
+
+            <div class="alsace-panel">
+                <h2>Hall of Spirals</h2>
+                <div class="row">
+                    <label class="field">Spiral Speed <input type="range" id="azSpin" min="0" max="120" value="40"></label>
+                    <label class="field">Spiral Arms <input type="range" id="azArms" min="2" max="6" value="3"></label>
+                    <label class="field">Hypno Depth <input type="range" id="azHypno" min="3" max="9" value="6"></label>
+                    <label class="field">Confusion Glitch <input type="range" id="azGlitch" min="0" max="10" value="3"></label>
+                    <label class="field">Jester Cards <input type="range" id="azGlyphs" min="0" max="20" value="10"></label>
+                    <label class="field">Woozy Float <input type="range" id="azWooze" min="0" max="14" value="5"></label>
+                    <label class="field">Glow <input type="range" id="azGlow" min="0" max="40" value="20"></label>
+                    <label class="field">Font Size <input type="range" id="azFontSize" min="14" max="56" value="30"></label>
+                </div>
+                <div class="row" style="margin-top:14px; border-top:1px solid #1b2a55; padding-top:14px;">
+                    <div class="field inline">
+                        Font
+                        <select id="azFontSelect">
+                            <option value="Georgia, &quot;Times New Roman&quot;, serif">Georgia (default)</option>
+                            <option value="&quot;Times New Roman&quot;, serif">Times New Roman</option>
+                            <option value="Impact, sans-serif">Impact</option>
+                            <option value="&quot;Courier New&quot;, monospace">Courier New</option>
+                            <option value="Arial, sans-serif">Arial</option>
+                            <option value="&quot;Trebuchet MS&quot;, sans-serif">Trebuchet MS</option>
+                            <option value="&quot;Comic Sans MS&quot;, cursive">Comic Sans MS</option>
+                        </select>
+                    </div>
+                    <div class="field inline">
+                        Google Font
+                        <input type="text" id="azGFont" placeholder="e.g. Cinzel" style="width:140px;">
+                        <button id="azLoadGFont" class="azbtn" style="font-size:0.72rem;padding:7px 12px;">Load</button>
+                    </div>
+                    <div class="field inline">
+                        Upload font
+                        <input type="file" id="azFontFile" accept=".ttf,.otf,.woff,.woff2,font/*" style="font-size:0.7rem;max-width:170px;">
+                    </div>
+                    <span id="azFontName">Font: Georgia (default)</span>
+                </div>
+            </div>
+
+            <div class="generate-row">
+                <label class="field inline" style="text-transform:uppercase;font-size:0.72rem;color:#a9bcef;">
+                    Frames <input type="range" id="azFrames" min="8" max="48" value="30" style="width:110px;"> <span class="val" id="azFramesVal" style="color:#dbe6ff;">30</span>
+                </label>
+                <button id="azRecordBtn" class="big azbtn">&#9670; Generate GIF</button>
+            </div>
+
+            <div id="azResult">
+                <img id="azResultImg" alt="alsace dialogue gif">
+                <div class="result-btns">
+                    <button id="azCopyLinkBtn" class="azlink" title="Upload &amp; copy a link that auto-plays in Discord/Slack/etc.">📎 Copy Link</button>
+                    <button id="azDownloadBtn" class="azbtn">⬇ Download</button>
+                </div>
+            </div>
+
+            <div id="azStatus"></div>
+        </div>
+    </div>
+
     <!-- ── PUBLIC GALLERY ── -->
     <div class="panel">
         <div class="gallery-head">
@@ -859,7 +972,12 @@
             const rbSpeed = parseInt(rbSpeedEl.value);
             const rbSpread = parseInt(rbSpreadEl.value);
             const glow = parseInt(glowEl.value);
-            const t = performance.now() / 1000;
+            // During recording use a uniform synthetic clock (one step per captured
+            // frame) so motion is perfectly even regardless of toDataURL cost, and
+            // recorded speed matches the GIF playback interval (0.08s).
+            const t = isRecording ? (capturedFrames.length * 0.08) : performance.now() / 1000;
+            if (document.hidden && !isRecording) return;   // sleep when tab/window is hidden (alt-tabbed)
+            if (!isRecording && window.jukoPerfSkip && window.jukoPerfSkip()) return;   // Performance Mode throttle
 
             if (!raw) {
                 if (canvas.width !== 410 || canvas.height !== 350) { canvas.width = 410; canvas.height = 350; }
@@ -950,8 +1068,8 @@
                 gifWidth: canvas.width,
                 gifHeight: canvas.height,
                 interval: 0.08,
-                numWorkers: 2,
-                sampleInterval: 1
+                numWorkers: 4,
+                sampleInterval: 8
             }, function (obj) {
                 if (!obj.error) {
                     if (lastGifUrl) URL.revokeObjectURL(lastGifUrl);
@@ -1298,41 +1416,50 @@
         const mcanvas = document.getElementById('matrix');
         const mctx = mcanvas.getContext('2d');
         const FONT_SIZE = 16;
+        // Render the full-screen backdrop into a half-size buffer and let CSS stretch
+        // it back up: ~4x cheaper pixel fill on old GPUs. Column count/spacing stay
+        // identical (internal font scales by the same factor), so only the numbers
+        // get a touch softer on this dim 0.55-opacity backdrop.
+        const MX_SCALE = 0.5;
+        const MX_FONT = FONT_SIZE * MX_SCALE;
         const MATRIX_PAL = {
             green:   { glowS: '#00ff00', glowF: 'rgba(140,255,140,0.55)', dim: 'rgba(0,170,0,0.30)',  glyph: null, glyphChance: 0 },
             crystal: { glowS: '#c084fc', glowF: 'rgba(216,180,254,0.55)', dim: 'rgba(150,90,210,0.30)', glyph: '✦', glyphChance: 0.12 },
             clock:   { glowS: '#ffb347', glowF: 'rgba(255,200,120,0.50)', dim: 'rgba(180,120,40,0.28)', glyph: '⚙', glyphChance: 0.10 },
             deep:    { glowS: '#67e8f9', glowF: 'rgba(150,210,255,0.45)', dim: 'rgba(90,80,190,0.24)',  glyph: '∘', glyphChance: 0.14 },
-            ice:     { glowS: '#bae6fd', glowF: 'rgba(224,242,255,0.55)', dim: 'rgba(120,170,220,0.26)', glyph: '❄', glyphChance: 0.12 }
+            ice:     { glowS: '#bae6fd', glowF: 'rgba(224,242,255,0.55)', dim: 'rgba(120,170,220,0.26)', glyph: '❄', glyphChance: 0.12 },
+            alsace:  { glowS: '#46d4ff', glowF: 'rgba(127,176,255,0.50)', dim: 'rgba(60,95,208,0.26)',  glyph: '♦', glyphChance: 0.14 }
         };
         let cols = 0, drops = [], glowCol = [];
         function initMatrix() {
-            mcanvas.width = window.innerWidth;
-            mcanvas.height = window.innerHeight;
-            cols = Math.ceil(mcanvas.width / FONT_SIZE);
-            drops = new Array(cols).fill(0).map(() => Math.floor(Math.random() * (mcanvas.height / FONT_SIZE)));
+            mcanvas.width = Math.max(1, Math.ceil(window.innerWidth * MX_SCALE));
+            mcanvas.height = Math.max(1, Math.ceil(window.innerHeight * MX_SCALE));
+            cols = Math.ceil(mcanvas.width / MX_FONT);
+            drops = new Array(cols).fill(0).map(() => Math.floor(Math.random() * (mcanvas.height / MX_FONT)));
             glowCol = new Array(cols).fill(0).map(() => Math.random() < 0.16); // ~16% of columns glow
         }
         let lastDraw = 0;
         function drawMatrix(ts) {
             requestAnimationFrame(drawMatrix);
-            if (ts - lastDraw < 55) return;   // cap ~18fps → smooth & cheap
+            if (window.JUKO_PERF) return;     // Performance Mode: backdrop fully off
+            if (ts - lastDraw < 66) return;   // cap ~15fps → smooth & cheap on old hardware
             lastDraw = ts;
             const cls = document.body.classList;
             const theme = cls.contains('theme-clockwork') ? 'clock'
                 : cls.contains('theme-crystal') ? 'crystal'
                 : cls.contains('theme-deep') ? 'deep'
-                : cls.contains('theme-ice') ? 'ice' : 'green';
+                : cls.contains('theme-ice') ? 'ice'
+                : cls.contains('theme-alsace') ? 'alsace' : 'green';
             const pal = MATRIX_PAL[theme];
             mctx.fillStyle = 'rgba(5,5,5,0.10)';   // fading trail
             mctx.fillRect(0, 0, mcanvas.width, mcanvas.height);
-            mctx.font = FONT_SIZE + 'px monospace';
+            mctx.font = MX_FONT + 'px monospace';
             for (let i = 0; i < cols; i++) {
                 const ch = (pal.glyph && Math.random() < pal.glyphChance) ? pal.glyph
                     : String.fromCharCode(48 + ((Math.random() * 10) | 0)); // 0-9
-                const x = i * FONT_SIZE, y = drops[i] * FONT_SIZE;
+                const x = i * MX_FONT, y = drops[i] * MX_FONT;
                 if (glowCol[i]) {
-                    mctx.shadowColor = pal.glowS; mctx.shadowBlur = 8;
+                    mctx.shadowColor = pal.glowS; mctx.shadowBlur = 8 * MX_SCALE;
                     mctx.fillStyle = pal.glowF;
                 } else {
                     mctx.shadowBlur = 0;
@@ -1397,7 +1524,8 @@
             crystal:   { btn: document.getElementById('tabCrystalBtn'), panel: document.getElementById('tab-crystal') },
             clockwork: { btn: document.getElementById('tabClockBtn'),   panel: document.getElementById('tab-clockwork') },
             deep:      { btn: document.getElementById('tabDeepBtn'),    panel: document.getElementById('tab-deep') },
-            ice:       { btn: document.getElementById('tabIceBtn'),     panel: document.getElementById('tab-ice') }
+            ice:       { btn: document.getElementById('tabIceBtn'),     panel: document.getElementById('tab-ice') },
+            alsace:    { btn: document.getElementById('tabAlsaceBtn'),  panel: document.getElementById('tab-alsace') }
         };
         window.JUKO_TAB = 'matrix';
         function switchTab(name) {
@@ -1411,8 +1539,40 @@
             document.body.classList.toggle('theme-clockwork', name === 'clockwork');
             document.body.classList.toggle('theme-deep', name === 'deep');
             document.body.classList.toggle('theme-ice', name === 'ice');
+            document.body.classList.toggle('theme-alsace', name === 'alsace');
         }
         Object.keys(tabs).forEach(k => tabs[k].btn.addEventListener('click', () => switchTab(k)));
+    })();
+
+    // ── Performance Mode: slashes live-page cost (backdrop off + preview throttled to
+    //    ~5fps). Recording is never throttled, so generated GIFs are byte-for-byte
+    //    identical in quality. Choice is remembered across visits. ──
+    (function () {
+        const btn = document.getElementById('perfBtn');
+        const mcanvas = document.getElementById('matrix');
+        let perfLast = 0;
+        window.JUKO_PERF = localStorage.getItem('jukoPerf') === '1';
+        // Returns true when the current live (non-recording) frame should be skipped.
+        // Only the active generator ever reaches this, so one shared clock is safe.
+        window.jukoPerfSkip = function () {
+            if (!window.JUKO_PERF) return false;
+            const n = performance.now();
+            if (n - perfLast < 200) return true;   // cap live preview at ~5fps
+            perfLast = n;
+            return false;
+        };
+        function apply() {
+            const on = window.JUKO_PERF;
+            btn.classList.toggle('on', on);
+            btn.textContent = on ? '⚡ PERFORMANCE: ON' : '⚡ PERFORMANCE';
+            if (mcanvas) mcanvas.style.display = on ? 'none' : '';   // kill the full-screen backdrop
+        }
+        btn.addEventListener('click', function () {
+            window.JUKO_PERF = !window.JUKO_PERF;
+            localStorage.setItem('jukoPerf', window.JUKO_PERF ? '1' : '0');
+            apply();
+        });
+        apply();
     })();
 
     // ── Crystal engine: shimmering purple-cave dialogue box ──
@@ -1481,7 +1641,9 @@
 
         function draw() {
             if (window.JUKO_TAB !== 'crystal' && !recording) return;
-            const t = performance.now() / 1000;
+            const t = recording ? (frames.length * 0.07) : performance.now() / 1000;
+            if (document.hidden && !recording) return;   // sleep when tab/window is hidden (alt-tabbed)
+            if (!recording && window.jukoPerfSkip && window.jukoPerfSkip()) return;   // Performance Mode throttle
             const hue = +cHue.value;
             const shSpeed = +cShSpeed.value / 30;
             const shW = Math.max(0.04, +cShWidth.value / 100);
@@ -1610,7 +1772,7 @@
             setC('Compiling ' + frames.length + ' frames…');
             gifshot.createGIF({
                 images: frames, gifWidth: canvas.width, gifHeight: canvas.height,
-                interval: 0.07, numWorkers: 2, sampleInterval: 1
+                interval: 0.07, numWorkers: 4, sampleInterval: 8
             }, function (obj) {
                 if (!obj.error) {
                     if (lastUrl) URL.revokeObjectURL(lastUrl);
@@ -1797,7 +1959,9 @@
 
         function draw() {
             if (window.JUKO_TAB !== 'clockwork' && !recording) return;
-            const t = performance.now() / 1000;
+            const t = recording ? (frames.length * 0.07) : performance.now() / 1000;
+            if (document.hidden && !recording) return;   // sleep when tab/window is hidden (alt-tabbed)
+            if (!recording && window.jukoPerfSkip && window.jukoPerfSkip()) return;   // Performance Mode throttle
             const hue = +cwTone.value;
             const gearSp = +cwGearSpeed.value / 40;
             const gearN = +cwGears.value | 0;
@@ -1888,7 +2052,7 @@
             setCW('Compiling ' + frames.length + ' frames…');
             gifshot.createGIF({
                 images: frames, gifWidth: canvas.width, gifHeight: canvas.height,
-                interval: 0.07, numWorkers: 2, sampleInterval: 1
+                interval: 0.07, numWorkers: 4, sampleInterval: 8
             }, function (obj) {
                 if (!obj.error) {
                     if (lastUrl) URL.revokeObjectURL(lastUrl);
@@ -2024,7 +2188,9 @@
 
         function draw() {
             if (window.JUKO_TAB !== 'deep' && !recording) return;
-            const t = performance.now() / 1000;
+            const t = recording ? (frames.length * 0.07) : performance.now() / 1000;
+            if (document.hidden && !recording) return;   // sleep when tab/window is hidden (alt-tabbed)
+            if (!recording && window.jukoPerfSkip && window.jukoPerfSkip()) return;   // Performance Mode throttle
             const hue = +dsHue.value;
             const bioN = +dsBio.value | 0;
             const driftSp = +dsDrift.value / 40;
@@ -2140,7 +2306,7 @@
             setDS('Compiling ' + frames.length + ' frames…');
             gifshot.createGIF({
                 images: frames, gifWidth: canvas.width, gifHeight: canvas.height,
-                interval: 0.07, numWorkers: 2, sampleInterval: 1
+                interval: 0.07, numWorkers: 4, sampleInterval: 8
             }, function (obj) {
                 if (!obj.error) {
                     if (lastUrl) URL.revokeObjectURL(lastUrl);
@@ -2283,7 +2449,9 @@
 
         function draw() {
             if (window.JUKO_TAB !== 'ice' && !recording) return;
-            const t = performance.now() / 1000;
+            const t = recording ? (frames.length * 0.07) : performance.now() / 1000;
+            if (document.hidden && !recording) return;   // sleep when tab/window is hidden (alt-tabbed)
+            if (!recording && window.jukoPerfSkip && window.jukoPerfSkip()) return;   // Performance Mode throttle
             const hue = +ioHue.value;
             const snowN = +ioSnow.value | 0;
             const shimSp = +ioShimmer.value / 30;
@@ -2396,7 +2564,7 @@
             setIO('Compiling ' + frames.length + ' frames…');
             gifshot.createGIF({
                 images: frames, gifWidth: canvas.width, gifHeight: canvas.height,
-                interval: 0.07, numWorkers: 2, sampleInterval: 1
+                interval: 0.07, numWorkers: 4, sampleInterval: 8
             }, function (obj) {
                 if (!obj.error) {
                     if (lastUrl) URL.revokeObjectURL(lastUrl);
@@ -2442,6 +2610,331 @@
                 setIO('✅ Link copied! Plays animated when pasted in Discord/Slack: ' + url);
             } catch (err) {
                 setIO('⚠ Upload failed: ' + err.message);
+            } finally {
+                this.disabled = false; this.textContent = old;
+            }
+        });
+
+        setInterval(draw, 1000 / 12);
+    })();
+    </script>
+
+    <!-- ════════ ALSACE ENGINE - deep-blue hypnotic jester dialogue ════════ -->
+    <script>
+    (function () {
+        const azInput = document.getElementById('azInput');
+        const canvas = document.getElementById('azOutput');
+        const ctx = canvas.getContext('2d');
+        const azSpin = document.getElementById('azSpin');
+        const azArms = document.getElementById('azArms');
+        const azHypno = document.getElementById('azHypno');
+        const azGlitch = document.getElementById('azGlitch');
+        const azGlyphs = document.getElementById('azGlyphs');
+        const azWooze = document.getElementById('azWooze');
+        const azGlow = document.getElementById('azGlow');
+        const azFontSize = document.getElementById('azFontSize');
+        const azFrames = document.getElementById('azFrames');
+        const azFramesVal = document.getElementById('azFramesVal');
+        const azRecordBtn = document.getElementById('azRecordBtn');
+        const azResult = document.getElementById('azResult');
+        const azResultImg = document.getElementById('azResultImg');
+        const azStatus = document.getElementById('azStatus');
+        const azFontSelect = document.getElementById('azFontSelect');
+        const azGFont = document.getElementById('azGFont');
+        const azLoadGFont = document.getElementById('azLoadGFont');
+        const azFontFile = document.getElementById('azFontFile');
+        const azFontName = document.getElementById('azFontName');
+        const setAZ = (m) => { azStatus.textContent = m; };
+
+        let currentFont = 'Georgia, "Times New Roman", serif';
+        const GLYPHS = ['?', '♠', '♣', '♦', '✦', '!'];   // ? spade club diamond sparkle !
+        let cards = null;   // drifting jester-card seeds (rebuilt on resize)
+
+        function roundRect(x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+        function wrapLines(text, maxW) {
+            const out = [];
+            text.split('\n').forEach(para => {
+                const words = para.split(' ');
+                let cur = '';
+                words.forEach(w => {
+                    const test = cur ? cur + ' ' + w : w;
+                    if (ctx.measureText(test).width > maxW && cur) { out.push(cur); cur = w; }
+                    else cur = test;
+                });
+                out.push(cur);
+            });
+            return out.length ? out : [''];
+        }
+        function spiral(cx, cy, rot, maxR, turns, steps) {
+            ctx.beginPath();
+            for (let i = 0; i <= steps; i++) {
+                const f = i / steps, th = f * turns * Math.PI * 2 + rot, r = f * maxR;
+                const x = cx + Math.cos(th) * r, y = cy + Math.sin(th) * r;
+                i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+            }
+        }
+
+        let recording = false, frames = [], maxFrames = 30, lastUrl = null;
+
+        function draw() {
+            if (window.JUKO_TAB !== 'alsace' && !recording) return;
+            const t = recording ? (frames.length * 0.07) : performance.now() / 1000;
+            if (document.hidden && !recording) return;   // sleep when tab/window is hidden (alt-tabbed)
+            if (!recording && window.jukoPerfSkip && window.jukoPerfSkip()) return;   // Performance Mode throttle
+            const spin = +azSpin.value / 40;
+            const arms = +azArms.value | 0;
+            const turns = +azHypno.value;
+            const glitchAmt = +azGlitch.value;
+            const glyphN = +azGlyphs.value | 0;
+            const wooze = +azWooze.value;
+            const glow = +azGlow.value;
+            const fs = +azFontSize.value;
+
+            ctx.font = fs + 'px ' + currentFont;
+            const maxTextW = 560;
+            const raw = azInput.value;
+            const lines = raw.trim() ? wrapLines(raw, maxTextW) : ['...'];
+            const lineH = Math.round(fs * 1.5);
+            let textW = 0;
+            for (const ln of lines) textW = Math.max(textW, ctx.measureText(ln).width);
+            const padX = 54, padY = 48;
+            const W = Math.max(380, Math.ceil(Math.min(maxTextW, textW) + padX * 2));
+            const H = Math.max(190, lines.length * lineH + padY * 2);
+            if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; cards = null; }
+            ctx.font = fs + 'px ' + currentFont;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+            // erratic jester time: mostly smooth, with sudden jolts of madness
+            const jolt = Math.sin(t * 0.9) * 0.5 + Math.sin(t * 2.3 + 1) * 0.3 + (Math.sin(t * 13) > 0.93 ? (Math.random() - 0.5) * 0.6 : 0);
+            const rot = t * spin * 0.5 + jolt * 0.35;
+
+            // ── deep-blue radial base ──
+            const bg = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.62);
+            bg.addColorStop(0, '#0c1740'); bg.addColorStop(0.55, '#070d22'); bg.addColorStop(1, '#03050f');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+            // ── harlequin diamond lattice (faint, scrolling) ──
+            ctx.save(); ctx.globalAlpha = 0.05;
+            const dsz = 46, ox = (t * 14) % (dsz * 2), oy = (t * 9) % (dsz * 2);
+            for (let yy = -dsz; yy < H + dsz; yy += dsz) {
+                for (let xx = -dsz; xx < W + dsz; xx += dsz * 2) {
+                    const px = xx + ((Math.floor((yy + dsz) / dsz) % 2) ? dsz : 0) + ox - dsz, py = yy + oy - dsz;
+                    ctx.fillStyle = ((xx + yy) / dsz) % 2 ? '#2f5fd0' : '#7fb0ff';
+                    ctx.beginPath();
+                    ctx.moveTo(px, py - dsz * 0.5); ctx.lineTo(px + dsz * 0.5, py);
+                    ctx.lineTo(px, py + dsz * 0.5); ctx.lineTo(px - dsz * 0.5, py); ctx.closePath(); ctx.fill();
+                }
+            }
+            ctx.restore();
+
+            // ── central hypnotic spiral (the eye of confusion) ──
+            const cx = W * 0.5, cy = H * 0.5, maxR = Math.hypot(W, H) * 0.55;
+            ctx.save(); ctx.lineCap = 'round';
+            for (let arm = 0; arm < arms; arm++) {
+                const armRot = rot + arm * (Math.PI * 2 / arms);
+                const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+                grad.addColorStop(0, 'rgba(120,180,255,0.45)');
+                grad.addColorStop(0.4, 'rgba(47,95,208,0.28)');
+                grad.addColorStop(1, 'rgba(10,24,56,0)');
+                ctx.strokeStyle = grad; ctx.lineWidth = 3;
+                spiral(cx, cy, armRot, maxR, turns, 360); ctx.stroke();
+            }
+            ctx.globalAlpha = 0.45; ctx.strokeStyle = '#46d4ff'; ctx.lineWidth = 1;
+            spiral(cx, cy, -rot * 1.5, maxR * 0.9, turns + 1, 360); ctx.stroke();
+            ctx.restore();
+
+            // ── drifting jester cards ──
+            if (!cards) cards = Array.from({ length: 20 }, () => ({
+                x: Math.random(), y: Math.random(),
+                vx: (Math.random() - 0.5) * 0.05, vy: (Math.random() - 0.5) * 0.05,
+                rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 1.4,
+                sz: 12 + Math.random() * 18, ch: GLYPHS[(Math.random() * GLYPHS.length) | 0], ph: Math.random() * 6
+            }));
+            ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            for (let i = 0; i < glyphN && i < cards.length; i++) {
+                const g = cards[i];
+                const gx = (((g.x + t * g.vx) % 1) + 1) % 1 * W;
+                const gy = (((g.y + t * g.vy) % 1) + 1) % 1 * H;
+                ctx.save(); ctx.translate(gx, gy); ctx.rotate(g.rot + t * g.vr);
+                ctx.globalAlpha = 0.13 + 0.05 * Math.sin(t * 1.4 + g.ph); ctx.fillStyle = '#7fb0ff';
+                ctx.font = 'bold ' + g.sz + 'px Georgia, serif';
+                ctx.fillText(g.ch, 0, 0); ctx.restore();
+            }
+            ctx.restore();
+
+            // ── confusion glitch: torn horizontal bars ──
+            if (glitchAmt > 0 && Math.sin(t * 5) > 0.9 - glitchAmt * 0.04) {
+                ctx.save();
+                const bars = 1 + (glitchAmt * 0.4 | 0);
+                for (let i = 0; i < bars; i++) {
+                    const by = Math.random() * H, bh = 2 + Math.random() * (4 + glitchAmt);
+                    ctx.globalAlpha = 0.05 + Math.random() * 0.1;
+                    ctx.fillStyle = Math.random() < 0.5 ? '#46d4ff' : '#7fb0ff';
+                    ctx.fillRect(0, by, W, bh);
+                }
+                ctx.restore();
+            }
+
+            // ── deep-blue glass dialogue box ──
+            const m = 14, bx = m, by = m, bw = W - 2 * m, bh = H - 2 * m, r = 14;
+            const boxGrad = ctx.createLinearGradient(0, by, 0, by + bh);
+            boxGrad.addColorStop(0, 'rgba(12,23,64,0.62)');
+            boxGrad.addColorStop(1, 'rgba(3,6,20,0.75)');
+            roundRect(bx, by, bw, bh, r); ctx.fillStyle = boxGrad; ctx.fill();
+            roundRect(bx + 5, by + 5, bw - 10, bh * 0.4, r * 0.7);
+            const sheen = ctx.createLinearGradient(0, by, 0, by + bh * 0.42);
+            sheen.addColorStop(0, 'rgba(127,176,255,0.10)'); sheen.addColorStop(1, 'rgba(127,176,255,0)');
+            ctx.fillStyle = sheen; ctx.fill();
+            // shimmering cyan border
+            ctx.shadowColor = '#46d4ff'; ctx.shadowBlur = glow * (0.6 + 0.4 * Math.sin(t * 2));
+            ctx.lineWidth = 2.5;
+            const bGrad = ctx.createLinearGradient(bx, by, bx + bw, by + bh);
+            bGrad.addColorStop(0, '#7fb0ff'); bGrad.addColorStop(0.5, '#46d4ff'); bGrad.addColorStop(1, '#2f5fd0');
+            ctx.strokeStyle = bGrad; roundRect(bx, by, bw, bh, r); ctx.stroke();
+            ctx.shadowBlur = 0;
+            // harlequin diamonds pulsing at the corners
+            [[bx, by], [bx + bw, by], [bx, by + bh], [bx + bw, by + bh]].forEach((p, i) => {
+                const s = 4 + 1.6 * Math.abs(Math.sin(t * 2 + i));
+                ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(Math.PI / 4);
+                ctx.fillStyle = '#7fb0ff'; ctx.shadowColor = '#46d4ff'; ctx.shadowBlur = 10;
+                ctx.fillRect(-s, -s, 2 * s, 2 * s); ctx.restore();
+            });
+            ctx.shadowBlur = 0;
+
+            // ── woozy text with an erratic RGB-split confusion glitch ──
+            const totalH = lines.length * lineH;
+            const y0 = by + bh / 2 - totalH / 2 + lineH / 2;
+            const split = (Math.sin(t * 7) > 0.72 - glitchAmt * 0.045) ? (2 + glitchAmt * 0.6) : 0;
+            ctx.font = fs + 'px ' + currentFont;
+            lines.forEach((ln, i) => {
+                const dy = Math.sin(t * spin * 0.6 + i * 0.7) * wooze;
+                const sk = Math.sin(t * 1.6 + i * 0.5) * 0.04 * Math.min(1, wooze / 4);
+                ctx.save();
+                ctx.translate(W / 2, y0 + i * lineH + dy);
+                ctx.transform(1, 0, sk, 1, 0, 0);   // gentle woozy slant
+                if (split > 0) {
+                    ctx.globalCompositeOperation = 'screen';
+                    ctx.fillStyle = 'rgba(70,212,255,0.55)'; ctx.fillText(ln, -split, 0);
+                    ctx.fillStyle = 'rgba(47,95,208,0.55)'; ctx.fillText(ln, split, 0);
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+                ctx.shadowColor = '#46d4ff'; ctx.shadowBlur = glow * 0.55;
+                ctx.fillStyle = '#bcd4ff';
+                ctx.fillText(ln, 0, 0);
+                ctx.restore();
+            });
+            ctx.shadowBlur = 0;
+
+            // ── brooding vignette ──
+            const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.3, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.6);
+            vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,8,0.55)');
+            ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+            if (recording && frames.length < maxFrames) {
+                frames.push(canvas.toDataURL('image/png'));
+                if (frames.length === maxFrames) { recording = false; compile(); }
+            }
+        }
+
+        function compile() {
+            azRecordBtn.textContent = 'Compiling…';
+            setAZ('Compiling ' + frames.length + ' frames…');
+            gifshot.createGIF({
+                images: frames, gifWidth: canvas.width, gifHeight: canvas.height,
+                interval: 0.07, numWorkers: 4, sampleInterval: 8
+            }, function (obj) {
+                if (!obj.error) {
+                    if (lastUrl) URL.revokeObjectURL(lastUrl);
+                    lastUrl = obj.image;
+                    azResultImg.src = obj.image;
+                    azResult.style.display = 'flex';
+                    setAZ('Done! Copy or download below.');
+                } else {
+                    setAZ('GIF failed: ' + (obj.errorMsg || 'try shorter text.'));
+                }
+                azRecordBtn.innerHTML = '&#9670; Generate GIF';
+                azRecordBtn.disabled = false;
+                frames = [];
+            });
+        }
+
+        azRecordBtn.addEventListener('click', () => {
+            if (!azInput.value.trim()) { setAZ('Type some dialogue first!'); return; }
+            maxFrames = parseInt(azFrames.value);
+            recording = true; frames = [];
+            azRecordBtn.disabled = true; azRecordBtn.textContent = 'Recording…';
+            setAZ('Recording ' + maxFrames + ' frames…');
+        });
+        azFrames.addEventListener('input', () => azFramesVal.textContent = azFrames.value);
+
+        // ── Fonts: pick a built-in, load any Google Font, or upload a file ──
+        azFontSelect.addEventListener('change', () => {
+            currentFont = azFontSelect.value;
+            azFontName.textContent = 'Font: ' + azFontSelect.options[azFontSelect.selectedIndex].text;
+        });
+
+        azLoadGFont.addEventListener('click', async () => {
+            const name = azGFont.value.trim();
+            if (!name) { setAZ('Type a Google Font name first.'); return; }
+            const href = 'https://fonts.googleapis.com/css2?family=' + name.replace(/\s+/g, '+') + '&display=swap';
+            if (!document.querySelector('link[data-azgf="' + name + '"]')) {
+                const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.dataset.azgf = name; document.head.appendChild(l);
+            }
+            setAZ('Loading "' + name + '"…');
+            try {
+                await new Promise(r => setTimeout(r, 250));
+                await document.fonts.load('30px "' + name + '"');
+                await document.fonts.ready;
+                currentFont = '"' + name + '", Georgia, serif';
+                azFontName.textContent = 'Font: ' + name;
+                setAZ('Loaded Google Font "' + name + '".');
+            } catch (err) { setAZ('Could not load "' + name + '" - check the spelling.'); }
+        });
+
+        azFontFile.addEventListener('change', async (ev) => {
+            const file = ev.target.files[0]; if (!file) return;
+            const name = (file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_ -]/g, '').trim()) || 'JesterFont';
+            setAZ('Loading "' + name + '"…');
+            try {
+                const buf = await file.arrayBuffer();
+                const ff = new FontFace(name, buf);
+                await ff.load();
+                document.fonts.add(ff);
+                currentFont = '"' + name + '", Georgia, serif';
+                azFontName.textContent = 'Font: ' + name;
+                setAZ('Loaded "' + name + '" - now whispering in it.');
+                if (window.jukoCloud && window.jukoCloud.shareFont) window.jukoCloud.shareFont(file, name);
+            } catch (e) { setAZ('Failed to load that font file.'); }
+        });
+
+        document.getElementById('azDownloadBtn').addEventListener('click', () => {
+            if (!azResultImg.src) return;
+            const a = document.createElement('a');
+            a.download = 'alsace-dialogue.gif'; a.href = azResultImg.src; a.click();
+        });
+
+        document.getElementById('azCopyLinkBtn').addEventListener('click', async function () {
+            if (!azResultImg.src) return;
+            const old = this.textContent;
+            this.disabled = true; this.textContent = '⏳ Uploading…';
+            setAZ('Uploading GIF…');
+            try {
+                if (!window.jukoCloud || !window.jukoCloud.shareGif) throw new Error('cloud pipeline unavailable');
+                const blob = await (await fetch(azResultImg.src)).blob();
+                const text = (azInput.value || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+                const url = await window.jukoCloud.shareGif(blob, text, canvas.width, canvas.height);
+                try { await navigator.clipboard.writeText(url); } catch (_) {}
+                setAZ('✅ Link copied! Plays animated when pasted in Discord/Slack: ' + url);
+            } catch (err) {
+                setAZ('⚠ Upload failed: ' + err.message);
             } finally {
                 this.disabled = false; this.textContent = old;
             }

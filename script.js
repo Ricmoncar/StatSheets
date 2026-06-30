@@ -1528,17 +1528,61 @@ const FIREBASE_CONFIG = {
   appId: "1:558910483943:web:c468342f15569a4cf0e142"
 };
 
+// ── Forced cache reset ──────────────────────────────────────────────────
+// Firestore's offline persistence caches everything in IndexedDB on-device.
+// If that cache gets stuck (flaky mobile connection, etc.) a visitor can be
+// stuck seeing stale data forever and their own writes never reach the
+// server. Bumping CACHE_RESET_VERSION wipes every visitor's local Firestore
+// cache + localStorage exactly once on their next load, then reloads so
+// Firestore re-initializes clean against the server.
+const CACHE_RESET_VERSION = 1;
+let _cacheResetting = false;
+(function () {
+  if (typeof localStorage === 'undefined' || typeof indexedDB === 'undefined') return;
+  if (localStorage.getItem('cache_reset_version') === String(CACHE_RESET_VERSION)) return;
+  _cacheResetting = true;
+  const finish = () => {
+    const perf = localStorage.getItem('perf_mode');
+    try { localStorage.clear(); } catch (e) {}
+    try {
+      if (perf !== null) localStorage.setItem('perf_mode', perf);
+      localStorage.setItem('cache_reset_version', String(CACHE_RESET_VERSION));
+    } catch (e) {}
+    location.reload();
+  };
+  try {
+    if (indexedDB.databases) {
+      indexedDB.databases().then(dbs => {
+        const targets = dbs.filter(d => /firestore/i.test(d.name || ''));
+        if (!targets.length) { finish(); return; }
+        let remaining = targets.length;
+        targets.forEach(d => {
+          const req = indexedDB.deleteDatabase(d.name);
+          req.onsuccess = req.onerror = req.onblocked = () => { if (--remaining <= 0) finish(); };
+        });
+      }).catch(finish);
+    } else {
+      // Older browsers without indexedDB.databases(): delete the known
+      // Firestore persistence DB name directly.
+      const req = indexedDB.deleteDatabase(`firestore/[DEFAULT]/${FIREBASE_CONFIG.projectId}/main`);
+      req.onsuccess = req.onerror = req.onblocked = finish;
+    }
+  } catch (e) { finish(); }
+})();
+
 let db = null;
-try {
-  firebase.initializeApp(FIREBASE_CONFIG);
-  db = firebase.firestore();
-  // Offline persistence: writes hit local cache instantly, so snapshots
-  // always reflect your own changes immediately even before server confirms
-  db.enablePersistence({ synchronizeTabs: true }).catch(err => {
-    if (err.code !== 'failed-precondition' && err.code !== 'unimplemented')
-      console.warn('Persistence error:', err);
-  });
-} catch (e) { console.error('Firebase init failed:', e); }
+if (!_cacheResetting) {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    // Offline persistence: writes hit local cache instantly, so snapshots
+    // always reflect your own changes immediately even before server confirms
+    db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+      if (err.code !== 'failed-precondition' && err.code !== 'unimplemented')
+        console.warn('Persistence error:', err);
+    });
+  } catch (e) { console.error('Firebase init failed:', e); }
+}
 
 // Track our own writes so onSnapshot doesn't re-render the screen we already updated
 let _lastSaveId = null;
@@ -2884,6 +2928,8 @@ const PATTERN_DEFS = {
   andy_goat:        { label: "Andy · Goat in Texas",         params: [] },
   shooshi_sushi:    { label: "Shoo Shi · Abyssal Sushi Bar",  params: [] },
   kardia_void:      { label: "Kardia · Heart of the Void",    params: [] },
+  jasmine_ribcage:  { label: "Jasmine · Human Heart",         params: [] },
+  cory_office:      { label: "Cory · Night Office",           params: [] },
   rook_slam:        { label: "Rook · Checkered Mayhem",       params: [] },
   starry_aero:      { label: "Starry · Aero Wishing Sky",     params: [] },
   haru_parasite:    { label: "Haru · The Watching Dark",   params: [] },
@@ -18581,6 +18627,1244 @@ function _stopKardiaOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// JASMINE -- a robot utterly convinced she is human. Her chest opens
+// like a reliquary: a polished CHROME ribcage, breathing gently, with a
+// real living ANATOMICAL HEART suspended inside it by cables plugged into
+// chrome sockets on the ribs and sternum -- fed and monitored by the
+// machine. Everything is lit electric MAGENTA: a rotating scan reticle,
+// drifting vital-sign readouts and a slow medical sweep glow behind the
+// cage. The cursor is a chrome TASER; zap the heart and it buzzes, jolts,
+// throws sparks and flashes electric-white. Cold machine, warm heart,
+// the quiet argument between them.
+// ════════════════════════════════════════════════════════════════
+const _JASMINE_RE = /^jasmine$/i;
+function _isJasmine(c) { return !!(c && c.name && _JASMINE_RE.test(c.name)); }
+function _jasHash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+
+function _jasRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// quadratic helpers for building tapered porcelain ribbons
+function _jasQuad(P0, P1, P2, u) {
+  const v = 1 - u;
+  return [v * v * P0[0] + 2 * v * u * P1[0] + u * u * P2[0], v * v * P0[1] + 2 * v * u * P1[1] + u * u * P2[1]];
+}
+function _jasQuadTan(P0, P1, P2, u) {
+  const dx = 2 * (1 - u) * (P1[0] - P0[0]) + 2 * u * (P2[0] - P1[0]);
+  const dy = 2 * (1 - u) * (P1[1] - P0[1]) + 2 * u * (P2[1] - P1[1]);
+  const L = Math.hypot(dx, dy) || 1;
+  return [dx / L, dy / L];
+}
+// a filled ribbon tapering from w0 (start) to w1 (end) along a quadratic
+function _jasRibbonPath(ctx, P0, P1, P2, w0, w1, N) {
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const u = i / N, p = _jasQuad(P0, P1, P2, u), tn = _jasQuadTan(P0, P1, P2, u);
+    const w = (w0 + (w1 - w0) * u) * 0.5, nx = -tn[1] * w, ny = tn[0] * w;
+    i ? ctx.lineTo(p[0] + nx, p[1] + ny) : ctx.moveTo(p[0] + nx, p[1] + ny);
+  }
+  for (let i = N; i >= 0; i--) {
+    const u = i / N, p = _jasQuad(P0, P1, P2, u), tn = _jasQuadTan(P0, P1, P2, u);
+    const w = (w0 + (w1 - w0) * u) * 0.5, nx = -tn[1] * w, ny = tn[0] * w;
+    ctx.lineTo(p[0] - nx, p[1] - ny);
+  }
+  ctx.closePath();
+}
+
+// one slender polished-chrome rib: tapered plate with real metal reflection
+// bands across its cross-section, a magenta environment kiss, a magenta
+// filigree spine and a sharp specular glint. Cold mirror-bright metal.
+function _jasRib(ctx, cx, sy, dir, len, droop, thick) {
+  const P0 = [cx + dir * 5, sy], P1 = [cx + dir * len * 0.6, sy - droop * 0.5], P2 = [cx + dir * len, sy + droop];
+  _jasRibbonPath(ctx, P0, P1, P2, thick, thick * 0.3, 26);
+  // chrome: reflection bands run along the rib's local cross-section normal
+  const mid = _jasQuad(P0, P1, P2, 0.5), tn = _jasQuadTan(P0, P1, P2, 0.5);
+  const nx = -tn[1], ny = tn[0];
+  const g = ctx.createLinearGradient(mid[0] - nx * thick, mid[1] - ny * thick, mid[0] + nx * thick, mid[1] + ny * thick);
+  g.addColorStop(0.00, '#0e0e12');
+  g.addColorStop(0.16, '#d2d5de');   // bright sky reflection
+  g.addColorStop(0.34, '#6b6e79');
+  g.addColorStop(0.50, '#24242c');   // dark horizon band
+  g.addColorStop(0.60, '#ff84ec');   // magenta environment kiss
+  g.addColorStop(0.74, '#8d909c');
+  g.addColorStop(0.90, '#eef0f6');   // bright ground bounce
+  g.addColorStop(1.00, '#0b0b0f');
+  ctx.fillStyle = g; ctx.fill();
+  // crisp polished edge
+  ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 0.8; ctx.stroke();
+  // magenta filigree along the spine
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(255,120,235,0.5)'; ctx.lineWidth = Math.max(0.8, thick * 0.07);
+  ctx.beginPath(); ctx.moveTo(P0[0], P0[1]); ctx.quadraticCurveTo(P1[0], P1[1], P2[0], P2[1]); ctx.stroke();
+  // a sharp specular glint near the spine end
+  const hl = _jasQuad(P0, P1, P2, 0.16);
+  ctx.save(); _jasRibbonPath(ctx, P0, P1, P2, thick, thick * 0.3, 18); ctx.clip();
+  const rg = ctx.createRadialGradient(hl[0], hl[1], 0, hl[0], hl[1], thick * 1.5);
+  rg.addColorStop(0, 'rgba(255,255,255,0.9)'); rg.addColorStop(0.5, 'rgba(255,170,240,0.3)'); rg.addColorStop(1, 'rgba(255,170,240,0)');
+  ctx.fillStyle = rg; ctx.fillRect(hl[0] - thick * 2, hl[1] - thick * 2, thick * 4, thick * 4); ctx.restore();
+}
+
+// a chrome rivet ringed in magenta where rib meets sternum
+function _jasBolt(ctx, x, y, r) {
+  ctx.strokeStyle = 'rgba(255,90,225,0.6)'; ctx.lineWidth = Math.max(0.8, r * 0.32);
+  ctx.beginPath(); ctx.arc(x, y, r * 1.15, 0, Math.PI * 2); ctx.stroke();
+  const g = ctx.createRadialGradient(x - r * 0.4, y - r * 0.45, 0, x, y, r);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(0.45, '#aeb1bd'); g.addColorStop(0.7, '#3a3b44'); g.addColorStop(1, '#161720');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(x - r * 0.32, y - r * 0.36, r * 0.2, 0, Math.PI * 2); ctx.fill();
+}
+
+function _jasBez(p, u) {  // p = absolute [x0,y0,c1x,c1y,c2x,c2y,x1,y1]
+  const v = 1 - u;
+  const x = v * v * v * p[0] + 3 * v * v * u * p[2] + 3 * v * u * u * p[4] + u * u * u * p[6];
+  const y = v * v * v * p[1] + 3 * v * v * u * p[3] + 3 * v * u * u * p[5] + u * u * u * p[7];
+  return [x, y];
+}
+// build a cubic between two anchor points, bowed by 'sag' (gravity droop)
+function _jasLink(ax, ay, bx, by, sag) {
+  return [ax, ay, ax + (bx - ax) * 0.3, ay + (by - ay) * 0.3 + sag, ax + (bx - ax) * 0.7, ay + (by - ay) * 0.7 + sag, bx, by];
+}
+
+// a real cable: dark braided core, chrome highlight thread, faint magenta
+// aura, and a charge of light running its length that swells on the beat.
+// (col 'red' = rose-magenta lifeline; otherwise electric magenta.)
+function _jasCable(ctx, ap, w, col, t, spd, ph, beat) {
+  ctx.lineCap = 'round';
+  const warm = col === 'red';
+  // faint outer aura so the cable feels live
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.beginPath(); ctx.moveTo(ap[0], ap[1]); ctx.bezierCurveTo(ap[2], ap[3], ap[4], ap[5], ap[6], ap[7]);
+  ctx.strokeStyle = warm ? 'rgba(255,90,170,0.10)' : 'rgba(255,80,225,0.10)'; ctx.lineWidth = w * 2.2; ctx.stroke();
+  ctx.restore();
+  // braided sheath: dark core + tinted body + a chrome highlight thread
+  ctx.beginPath(); ctx.moveTo(ap[0], ap[1]); ctx.bezierCurveTo(ap[2], ap[3], ap[4], ap[5], ap[6], ap[7]);
+  ctx.strokeStyle = '#150d16'; ctx.lineWidth = w; ctx.stroke();
+  ctx.strokeStyle = warm ? 'rgba(220,90,150,0.45)' : 'rgba(200,70,200,0.45)'; ctx.lineWidth = w * 0.62; ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = w * 0.16; ctx.stroke();   // chrome glint
+  // a charge of light gliding along, swelling on the beat
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const u = (t * spd + ph) % 1, pt = _jasBez(ap, u), r = (8 + beat * 9) * (w / 6);
+  const tone = warm ? '255,150,210' : '255,130,240';
+  const g = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], r);
+  g.addColorStop(0, `rgba(${tone},${(0.55 + beat * 0.4).toFixed(3)})`); g.addColorStop(1, `rgba(${tone},0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pt[0], pt[1], r, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// a chrome socket the cable physically plugs into: polished bezel, dark
+// recess, a lit magenta contact and two prongs. This is what the cable
+// connects TO -- mounted on the ribs and the sternum.
+function _jasPort(ctx, x, y, sc) {
+  ctx.save(); ctx.translate(x, y);
+  const R = 6.5 * sc;
+  const rg = ctx.createRadialGradient(-R * 0.3, -R * 0.3, 0, 0, 0, R);
+  rg.addColorStop(0, '#e9ebf1'); rg.addColorStop(0.6, '#7d808b'); rg.addColorStop(1, '#1a1b20');
+  ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.fillStyle = '#0d0810'; ctx.beginPath(); ctx.arc(0, 0, R * 0.62, 0, Math.PI * 2); ctx.fill();
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.7);
+  cg.addColorStop(0, 'rgba(255,150,245,0.95)'); cg.addColorStop(0.5, 'rgba(255,60,210,0.6)'); cg.addColorStop(1, 'rgba(255,60,210,0)');
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, R * 0.7, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = '#c9ccd4'; ctx.fillRect(-R * 0.34, -R * 0.12, R * 0.22, R * 0.24); ctx.fillRect(R * 0.12, -R * 0.12, R * 0.22, R * 0.24);
+  ctx.restore();
+}
+
+// the silhouette of a real heart: lumpy and asymmetric, apex pointing
+// down, two atrial humps at the base with a notch for the great vessels.
+function _jasHeartShape(ctx, cx, cy, s) {
+  ctx.beginPath();
+  ctx.moveTo(cx - 0.1 * s, cy + 1.05 * s);                                                   // apex
+  ctx.bezierCurveTo(cx - 0.7 * s, cy + 0.8 * s, cx - 0.95 * s, cy + 0.25 * s, cx - 0.8 * s, cy - 0.18 * s);  // right border, bulging
+  ctx.bezierCurveTo(cx - 0.72 * s, cy - 0.5 * s, cx - 0.48 * s, cy - 0.62 * s, cx - 0.26 * s, cy - 0.5 * s); // right atrium hump
+  ctx.bezierCurveTo(cx - 0.14 * s, cy - 0.42 * s, cx - 0.04 * s, cy - 0.46 * s, cx + 0.06 * s, cy - 0.56 * s); // notch for vessels
+  ctx.bezierCurveTo(cx + 0.2 * s, cy - 0.66 * s, cx + 0.46 * s, cy - 0.6 * s, cx + 0.56 * s, cy - 0.36 * s);  // left atrium hump
+  ctx.bezierCurveTo(cx + 0.74 * s, cy - 0.02 * s, cx + 0.5 * s, cy + 0.66 * s, cx - 0.1 * s, cy + 1.05 * s);  // left ventricle taper to apex
+  ctx.closePath();
+}
+
+// the great vessels rising from the base (behind the muscle): aorta arching
+// one way, pulmonary trunk the other, a venous cava in cooler indigo.
+function _jasVessels(ctx, cx, cy, s) {
+  ctx.lineCap = 'round';
+  const tube = (p, w, base, hi) => {
+    ctx.beginPath(); ctx.moveTo(cx + p[0] * s, cy + p[1] * s);
+    ctx.bezierCurveTo(cx + p[2] * s, cy + p[3] * s, cx + p[4] * s, cy + p[5] * s, cx + p[6] * s, cy + p[7] * s);
+    ctx.strokeStyle = base; ctx.lineWidth = w * s; ctx.stroke();
+    ctx.strokeStyle = hi; ctx.lineWidth = w * 0.5 * s; ctx.stroke();
+  };
+  tube([-0.46, -0.34, -0.52, -0.78, -0.5, -0.98, -0.5, -1.12], 0.17, '#473066', 'rgba(150,120,210,0.55)');   // superior vena cava (venous)
+  tube([-0.04, -0.45, -0.06, -1.08, -0.52, -1.12, -0.58, -0.72], 0.26, '#9a2236', 'rgba(220,90,110,0.7)');   // aorta (arches left)
+  tube([0.12, -0.46, 0.2, -0.98, 0.5, -0.94, 0.52, -0.56], 0.22, '#7a2150', 'rgba(210,90,150,0.6)');         // pulmonary trunk
+}
+
+// the heart itself -- a real anatomical heart: bulging myocardium, coronary
+// sulcus, coronary arteries snaking toward the apex, wet specular sheen. When
+// tased it buzzes, jitters, throws sparks and flashes electric-white.
+function _jasDrawHeart(ctx, cx0, cy0, s, beat, t) {
+  const PI2 = Math.PI * 2;
+  const shock = _jasShock;
+  const cx = cx0 + (shock > 0 ? (Math.random() - 0.5) * 9 * shock : 0);
+  const cy = cy0 + (shock > 0 ? (Math.random() - 0.5) * 9 * shock : 0);
+  const beatEff = shock > 0 ? Math.max(beat, (0.4 + 0.6 * Math.abs(Math.sin(t * 46))) * (0.6 + 0.4 * shock)) : beat;
+
+  ctx.save();
+  const sqx = 1 - beatEff * 0.05, sqy = 1 + beatEff * 0.04;   // systolic squeeze
+  ctx.translate(cx, cy); ctx.scale(sqx, sqy); ctx.translate(-cx, -cy);
+
+  // bloom (magenta, flares when tased)
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const gl = ctx.createRadialGradient(cx, cy, 0, cx, cy, s * 3);
+  gl.addColorStop(0, `rgba(255,150,235,${(0.14 + beatEff * 0.3 + shock * 0.4).toFixed(3)})`);
+  gl.addColorStop(0.5, `rgba(230,40,150,${(0.09 + beatEff * 0.22).toFixed(3)})`);
+  gl.addColorStop(1, 'rgba(230,40,150,0)');
+  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, s * 3, 0, PI2); ctx.fill();
+  ctx.restore();
+
+  // great vessels behind the muscle
+  _jasVessels(ctx, cx, cy - 0.04 * s, s);
+
+  // myocardium
+  _jasHeartShape(ctx, cx, cy, s);
+  const bg = ctx.createRadialGradient(cx - 0.3 * s, cy - 0.15 * s, 0.1 * s, cx + 0.12 * s, cy + 0.35 * s, 1.55 * s);
+  bg.addColorStop(0, '#e0556a'); bg.addColorStop(0.4, '#bc2f44'); bg.addColorStop(0.78, '#86182a'); bg.addColorStop(1, '#4a0a18');
+  ctx.fillStyle = bg; ctx.fill();
+  ctx.lineWidth = Math.max(1.4, s * 0.04); ctx.strokeStyle = 'rgba(56,8,18,0.85)'; ctx.stroke();
+
+  ctx.save(); _jasHeartShape(ctx, cx, cy, s); ctx.clip();
+  // coronary sulcus groove (separates atria from ventricles)
+  ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(64,8,20,0.5)'; ctx.lineWidth = s * 0.13;
+  ctx.beginPath(); ctx.moveTo(cx - 0.74 * s, cy - 0.12 * s);
+  ctx.bezierCurveTo(cx - 0.3 * s, cy - 0.34 * s, cx + 0.2 * s, cy - 0.28 * s, cx + 0.52 * s, cy - 0.22 * s);
+  ctx.stroke();
+  // soft muscle mottling
+  for (let i = 0; i < 5; i++) {
+    const mx = cx + (_jasHash(i * 2.1) - 0.45) * 1.3 * s, my = cy + (_jasHash(i * 3.7) + 0.05) * 0.9 * s, mr = (0.25 + _jasHash(i * 1.7) * 0.3) * s;
+    const mg = ctx.createRadialGradient(mx, my, 0, mx, my, mr);
+    mg.addColorStop(0, 'rgba(40,4,12,0)'); mg.addColorStop(1, 'rgba(40,4,12,0.28)');
+    ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(mx, my, mr, 0, PI2); ctx.fill();
+  }
+  // coronary arteries: dark vessel, brighter core, faint gold edge
+  const coro = (path, w) => {
+    ctx.beginPath(); path();
+    ctx.strokeStyle = '#5e0f1e'; ctx.lineWidth = w; ctx.stroke();
+    ctx.strokeStyle = 'rgba(210,70,92,0.7)'; ctx.lineWidth = w * 0.5; ctx.stroke();
+    ctx.strokeStyle = `rgba(255,200,140,${(0.22 + beatEff * 0.2).toFixed(3)})`; ctx.lineWidth = w * 0.16; ctx.stroke();
+  };
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  coro(() => { ctx.moveTo(cx + 0.02 * s, cy - 0.42 * s); ctx.bezierCurveTo(cx - 0.05 * s, cy - 0.05 * s, cx + 0.05 * s, cy + 0.45 * s, cx - 0.06 * s, cy + 0.92 * s); }, s * 0.045);  // LAD
+  coro(() => { ctx.moveTo(cx - 0.01 * s, cy + 0.05 * s); ctx.quadraticCurveTo(cx - 0.3 * s, cy + 0.12 * s, cx - 0.5 * s, cy + 0.4 * s); }, s * 0.03);   // diagonal
+  coro(() => { ctx.moveTo(cx + 0.0 * s, cy + 0.3 * s); ctx.quadraticCurveTo(cx + 0.28 * s, cy + 0.32 * s, cx + 0.4 * s, cy + 0.6 * s); }, s * 0.03);   // marginal
+  coro(() => { ctx.moveTo(cx - 0.66 * s, cy - 0.1 * s); ctx.bezierCurveTo(cx - 0.3 * s, cy - 0.28 * s, cx + 0.2 * s, cy - 0.22 * s, cx + 0.48 * s, cy - 0.16 * s); }, s * 0.035);  // circumflex
+
+  // wet specular sheen
+  ctx.globalCompositeOperation = 'lighter';
+  const sheen = (hx, hy, hr, a) => { const hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, hr); hg.addColorStop(0, `rgba(255,180,190,${a})`); hg.addColorStop(1, 'rgba(255,180,190,0)'); ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(hx, hy, hr, 0, PI2); ctx.fill(); };
+  sheen(cx - 0.34 * s, cy + 0.05 * s, s * 0.5, 0.33);
+  sheen(cx + 0.3 * s, cy - 0.3 * s, s * 0.3, 0.28);
+  sheen(cx - 0.5 * s, cy + 0.35 * s, s * 0.22, 0.22);
+
+  // tased: electric arcs crawling the muscle + an electric-white flash
+  if (shock > 0) {
+    ctx.strokeStyle = `rgba(255,185,255,${(0.7 * shock).toFixed(3)})`; ctx.lineWidth = Math.max(1, s * 0.03);
+    for (let k = 0; k < 4; k++) {
+      ctx.beginPath();
+      let ax = cx + (Math.random() - 0.5) * 1.4 * s, ay = cy + (Math.random() - 0.5) * 1.6 * s;
+      ctx.moveTo(ax, ay);
+      for (let j = 0; j < 4; j++) { ax += (Math.random() - 0.5) * 0.5 * s; ay += (Math.random() - 0.5) * 0.5 * s; ctx.lineTo(ax, ay); }
+      ctx.stroke();
+    }
+    ctx.fillStyle = `rgba(255,205,250,${(0.35 * shock).toFixed(3)})`;
+    ctx.fillRect(cx - 1.6 * s, cy - 1.6 * s, s * 3.2, s * 3.2);
+  }
+  ctx.restore();   // unclip
+  ctx.restore();   // unsqueeze
+}
+
+function _drawJasminePattern(canvas, ctx, W, H, t) {
+  const fresh = _drawJasminePattern._lt === undefined;
+  if (!fresh && t - _drawJasminePattern._lt < 0.033) return;   // 30fps cap
+  _drawJasminePattern._lt = t;
+  const PI2 = Math.PI * 2;
+  const sc = Math.min(W, H) / 560;
+  const cx = W * 0.5, cy = H * 0.47;
+  ctx.clearRect(0, 0, W, H);
+
+  // ── cached backdrop: warm ink + faint gold guilloche rosette + halo rings ──
+  if (!_drawJasminePattern._bg || _drawJasminePattern._w !== W || _drawJasminePattern._h !== H) {
+    _drawJasminePattern._w = W; _drawJasminePattern._h = H;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const s = cv.getContext('2d');
+    const vg = s.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.78);
+    vg.addColorStop(0, '#1a0e1c'); vg.addColorStop(0.5, '#0f0712'); vg.addColorStop(1, '#070409');
+    s.fillStyle = vg; s.fillRect(0, 0, W, H);
+    // guilloche: engine-turned rose curves, barely there
+    s.lineWidth = 0.7;
+    for (let ring = 0; ring < 3; ring++) {
+      const baseR = Math.min(W, H) * (0.16 + ring * 0.11);
+      const k = 5 + ring * 2, amp = baseR * (0.12 + ring * 0.02);
+      s.strokeStyle = `rgba(255,80,220,${(0.055 - ring * 0.012).toFixed(3)})`;
+      s.beginPath();
+      for (let i = 0; i <= 720; i++) {
+        const th = i / 720 * PI2;
+        const r = baseR + amp * Math.cos(k * th);
+        const x = cx + Math.cos(th) * r, y = cy + Math.sin(th) * r * 0.96;
+        i ? s.lineTo(x, y) : s.moveTo(x, y);
+      }
+      s.stroke();
+    }
+    // a couple of fine concentric gold rings
+    for (let i = 0; i < 2; i++) {
+      s.strokeStyle = 'rgba(255,80,220,0.06)'; s.lineWidth = 1;
+      s.beginPath(); s.ellipse(cx, cy, Math.min(W, H) * (0.30 + i * 0.05), Math.min(W, H) * (0.30 + i * 0.05) * 0.96, 0, 0, PI2); s.stroke();
+    }
+    _drawJasminePattern._bg = cv;
+    const vig = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.26, cx, cy, Math.max(W, H) * 0.74);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(0.7, 'rgba(4,2,6,0.2)'); vig.addColorStop(1, 'rgba(4,2,6,0.7)');
+    _drawJasminePattern._vig = vig;
+  }
+  ctx.drawImage(_drawJasminePattern._bg, 0, 0);
+
+  // ── techy mystery behind the cage: a rotating scan reticle + radar sweep ──
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(cx, cy);
+  const RR = Math.min(W, H) * 0.42;
+  // outer dashed ring + tick ring
+  ctx.save(); ctx.rotate(t * 0.04);
+  ctx.setLineDash([5, 11]); ctx.strokeStyle = 'rgba(255,90,225,0.16)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(0, 0, RR, 0, PI2); ctx.stroke(); ctx.setLineDash([]);
+  for (let i = 0; i < 48; i++) {
+    const a = i / 48 * PI2, big = i % 4 === 0, r0 = RR * 0.93, r1 = RR * (big ? 1.05 : 0.985);
+    ctx.strokeStyle = `rgba(255,130,238,${big ? 0.3 : 0.13})`; ctx.lineWidth = big ? 1.4 : 0.8;
+    ctx.beginPath(); ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1); ctx.stroke();
+  }
+  ctx.restore();
+  // counter-rotating arc segments + mid ring
+  ctx.save(); ctx.rotate(-t * 0.09);
+  ctx.strokeStyle = 'rgba(255,130,238,0.22)'; ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i++) { const a0 = i / 3 * PI2 + t * 0.2; ctx.beginPath(); ctx.arc(0, 0, RR * 0.72, a0, a0 + 0.5); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(255,90,225,0.13)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(0, 0, RR * 0.58, 0, PI2); ctx.stroke();
+  ctx.restore();
+  // a sweeping radar line, bright at its leading edge
+  ctx.save(); ctx.rotate(t * 0.5);
+  const sweepG = ctx.createLinearGradient(0, 0, RR, 0);
+  sweepG.addColorStop(0, 'rgba(255,120,235,0)'); sweepG.addColorStop(0.7, 'rgba(255,120,235,0.05)'); sweepG.addColorStop(1, 'rgba(255,170,245,0.4)');
+  ctx.strokeStyle = sweepG; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(RR, 0); ctx.stroke();
+  ctx.restore();
+  // a faint crosshair through the centre
+  ctx.strokeStyle = 'rgba(255,110,232,0.1)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-RR, 0); ctx.lineTo(RR, 0); ctx.moveTo(0, -RR); ctx.lineTo(0, RR); ctx.stroke();
+  ctx.restore();
+
+  // drifting readout glyphs (vital-sign data, mysterious)
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.font = ((11 * sc) | 0 || 11) + 'px monospace'; ctx.textAlign = 'center';
+  const _GLY = '01<>+=/[]{}*x%#';
+  for (let i = 0; i < 30; i++) {
+    const gx = _jasHash(i * 1.7) * W;
+    const gy = (((_jasHash(i * 2.3) * H + t * (10 + _jasHash(i * 4) * 16)) % H) + H) % H;
+    const fl = 0.3 + 0.7 * Math.abs(Math.sin(t * (1 + _jasHash(i * 5)) + i * 3));
+    ctx.fillStyle = `rgba(255,130,238,${(0.08 + fl * 0.2).toFixed(3)})`;
+    ctx.fillText(_GLY[(_jasHash(i * 9) * _GLY.length) | 0], gx, gy);
+  }
+  ctx.restore();
+
+  // ── heartbeat: lub-dub, slow and graceful ──
+  const cyc = t % 1.15;
+  let beat = 0;
+  if (cyc < 0.13) beat = Math.sin(cyc / 0.13 * Math.PI);
+  else if (cyc > 0.23 && cyc < 0.41) beat = 0.6 * Math.sin((cyc - 0.23) / 0.18 * Math.PI);
+  beat = Math.max(0, beat);
+  const breath = 1 + Math.sin(t * 0.6) * 0.012;   // the whole chest breathes
+
+  // ── soft drifting bokeh, deep behind everything ──
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 14; i++) {
+    const bx = (((_jasHash(i * 1.7) * W + Math.sin(t * 0.12 + i) * 30) % W) + W) % W;
+    const by = (((_jasHash(i * 2.9) * H - t * (6 + _jasHash(i * 4) * 10)) % H) + H) % H;
+    const br = (24 + _jasHash(i * 3.3) * 54) * sc;
+    const ba = 0.018 + 0.02 * (0.5 + 0.5 * Math.sin(t * 0.5 + i));
+    const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+    g.addColorStop(0, `rgba(255,120,235,${ba.toFixed(3)})`); g.addColorStop(1, 'rgba(255,120,235,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, br, 0, PI2); ctx.fill();
+  }
+  ctx.restore();
+
+  // ── faint, elegant heart-rate thread scrolling behind ──
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = 'rgba(255,120,225,0.20)'; ctx.lineWidth = 1.1;
+  const ekgY = H * 0.82, period = 300 * sc, scroll = t * 130 * sc;
+  ctx.beginPath();
+  for (let x = 0; x <= W; x += 5) {
+    const ph = (((x + scroll) % period) / period) - 0.5;
+    let y = ekgY;
+    y -= Math.exp(-Math.pow(ph * 20, 2)) * 34 * sc;
+    y += Math.exp(-Math.pow((ph + 0.06) * 50, 2)) * 8 * sc;
+    x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.stroke(); ctx.restore();
+
+  // ── slowly rotating filigree halo framing the heart ──
+  ctx.save(); ctx.translate(cx, cy - 14 * sc); ctx.globalCompositeOperation = 'lighter';
+  const haloR = 96 * sc * (1 + beat * 0.04);
+  ctx.rotate(t * 0.05);
+  ctx.strokeStyle = `rgba(255,90,225,${(0.14 + beat * 0.12).toFixed(3)})`; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(0, 0, haloR, haloR * 0.94, 0, 0, PI2); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0, 0, haloR * 1.14, haloR * 1.14 * 0.94, 0, 0, PI2); ctx.stroke();
+  const petals = 8;
+  for (let i = 0; i < petals; i++) {
+    const a = i / petals * PI2;
+    const ox = Math.cos(a) * haloR, oy = Math.sin(a) * haloR * 0.94;
+    ctx.beginPath(); ctx.ellipse(ox, oy, haloR * 0.16, haloR * 0.06, a, 0, PI2); ctx.stroke();
+  }
+  ctx.rotate(-t * 0.11);
+  ctx.strokeStyle = `rgba(255,150,240,${(0.10 + beat * 0.1).toFixed(3)})`;
+  ctx.beginPath();
+  for (let i = 0; i <= petals; i++) { const a = i / petals * PI2, r = haloR * 0.74; const px = Math.cos(a) * r, py = Math.sin(a) * r * 0.94; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+  ctx.closePath(); ctx.stroke();
+  ctx.restore();
+
+  // ── the breathing chest assembly ──
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(breath, breath); ctx.translate(-cx, -cy);
+
+  // ── sternum: a chrome spinal strut with magenta inlays ──
+  const stx = cx - 11 * sc, stw = 22 * sc, sty = cy - 150 * sc, sth = 290 * sc;
+  const sg = ctx.createLinearGradient(stx, 0, stx + stw, 0);
+  sg.addColorStop(0, '#15161a'); sg.addColorStop(0.16, '#cfd2db'); sg.addColorStop(0.5, '#3a3b44'); sg.addColorStop(0.84, '#cfd2db'); sg.addColorStop(1, '#121319');
+  ctx.fillStyle = sg; _jasRoundRect(ctx, stx, sty, stw, sth, 10 * sc); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,120,235,0.4)'; ctx.lineWidth = 1; ctx.stroke();
+  for (let i = 0; i < 7; i++) {
+    const yy = sty + sth * (i + 0.5) / 7;
+    ctx.strokeStyle = 'rgba(255,120,235,0.45)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(stx + 3 * sc, yy); ctx.lineTo(stx + stw - 3 * sc, yy); ctx.stroke();
+  }
+
+  // ── ribs, widest in the middle, drooping toward the bottom ──
+  const ribN = 7;
+  for (let i = 0; i < ribN; i++) {
+    const f = i / (ribN - 1);
+    const sy = cy - 150 * sc + f * 300 * sc;
+    const prof = Math.sin(f * Math.PI * 0.86 + 0.18);
+    const len = (90 + 152 * prof) * sc;
+    const droop = (28 + f * 120) * sc;
+    const thick = (15 - f * 4.6) * sc;
+    _jasRib(ctx, cx, sy, -1, len, droop, thick);
+    _jasRib(ctx, cx, sy, +1, len, droop, thick);
+    _jasBolt(ctx, cx, sy, 3.2 * sc);
+  }
+
+  // ── cables that physically suspend the heart from the chassis: each runs
+  //    from a point on the heart to a chrome socket bolted on a rib, drooping
+  //    under gravity. Drawn over the ribs (sockets sit ON them) and under the
+  //    heart (the heart-end tucks behind it), so it reads as truly plugged in. ──
+  const HCx = cx, HCy = cy - 14 * sc;
+  const hs = 44 * sc * (1 + beat * 0.08);
+  const links = [
+    { a: [HCx - hs * 0.5, HCy + hs * 0.2], b: [cx - 152 * sc, cy + 36 * sc], sag: 24 * sc, col: 'mag', w: 5, spd: 0.5, ph: 0.0 },
+    { a: [HCx + hs * 0.5, HCy + hs * 0.2], b: [cx + 152 * sc, cy + 36 * sc], sag: 24 * sc, col: 'mag', w: 5, spd: 0.5, ph: 0.5 },
+    { a: [HCx - hs * 0.38, HCy + hs * 0.42], b: [cx - 120 * sc, cy + 118 * sc], sag: 40 * sc, col: 'red', w: 4, spd: 0.42, ph: 0.3 },
+    { a: [HCx + hs * 0.38, HCy + hs * 0.42], b: [cx + 120 * sc, cy + 118 * sc], sag: 40 * sc, col: 'red', w: 4, spd: 0.42, ph: 0.8 },
+  ];
+  for (const lk of links) {
+    const ap = _jasLink(lk.a[0], lk.a[1], lk.b[0], lk.b[1], lk.sag);
+    _jasCable(ctx, ap, lk.w * sc, lk.col, t, lk.spd, lk.ph, beat);
+    _jasPort(ctx, lk.b[0], lk.b[1], sc);
+  }
+
+  // ── the heart, cradled in the upper cage (covers the cables' heart-ends) ──
+  _jasDrawHeart(ctx, HCx, HCy, hs, beat, t);
+
+  // ── aorta tubes: the heart hangs from a socket on the sternum top ──
+  const aL = _jasLink(HCx - hs * 0.16, HCy - hs * 0.5, cx - 4 * sc, cy - 144 * sc, -10 * sc);
+  const aR = _jasLink(HCx + hs * 0.16, HCy - hs * 0.5, cx + 4 * sc, cy - 144 * sc, -10 * sc);
+  _jasCable(ctx, aR, 5 * sc, 'mag', t, 0.45, 0.6, beat);
+  _jasCable(ctx, aL, 6 * sc, 'red', t, 0.4, 0.1, beat);
+  _jasPort(ctx, cx, cy - 150 * sc, sc);
+
+  ctx.restore();   // end breathing transform
+
+  // ── rising gold motes, the faintest glitter ──
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 40; i++) {
+    const dx = (((_jasHash(i * 1.3) * W + t * 5 * (_jasHash(i * 5) - 0.5) * 4) % W) + W) % W;
+    const dy = (((_jasHash(i * 2.1) * H - t * (8 + _jasHash(i * 7) * 12)) % H) + H) % H;
+    const tw = 0.3 + 0.7 * Math.abs(Math.sin(t * (0.5 + _jasHash(i * 4)) + i));
+    ctx.fillStyle = `rgba(255,130,235,${(0.04 + tw * 0.12).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(dx, dy, 0.5 + _jasHash(i * 6) * 1.1, 0, PI2); ctx.fill();
+  }
+  ctx.restore();
+
+  // ── a slow medical scan sweep passing over the whole reliquary ──
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const swY = (((t * 0.08) % 1.4) - 0.2) * H;
+  const swg = ctx.createLinearGradient(0, swY - 46 * sc, 0, swY + 46 * sc);
+  swg.addColorStop(0, 'rgba(255,90,225,0)'); swg.addColorStop(0.5, 'rgba(255,130,235,0.09)'); swg.addColorStop(1, 'rgba(255,90,225,0)');
+  ctx.fillStyle = swg; ctx.fillRect(0, swY - 46 * sc, W, 92 * sc);
+  ctx.strokeStyle = 'rgba(255,170,245,0.16)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, swY); ctx.lineTo(W, swY); ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = _drawJasminePattern._vig; ctx.fillRect(0, 0, W, H);
+
+  // expose the heart's viewport position so the taser overlay can strike it
+  if (_jasShock > 0) {
+    const r = canvas.getBoundingClientRect();
+    if (r.width && r.height) _jasHeartScreen = { x: r.left + 0.5 * r.width, y: r.top + ((0.47 * H - 14 * sc) / H) * r.height, rad: (44 * sc * 1.55) / H * r.height };
+  }
+}
+
+/* ── cursor: a chrome taser; zap the heart and it spasms ── */
+let _jasOverlayRafId = null;
+let _jasMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _jasMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _jasParts = [], _jasPrevT = 0, _jasTrailAcc = 0, _jasPulse = 0;
+let _jasShock = 0, _jasHeartScreen = null;   // taser-shock state + heart's on-screen position
+function _jasMouseMove(e) { _jasMX = e.clientX; _jasMY = e.clientY; }
+// where the heart sits in viewport pixels (from the pattern-canvas rect), and how big
+function _jasHeartHitTest() {
+  const pc = document.getElementById('pattern-canvas');
+  if (!pc) return null;
+  const r = pc.getBoundingClientRect();
+  if (!r.width || !r.height) return null;
+  const W = pc.width, H = pc.height, sc = Math.min(W, H) / 560;
+  return { x: r.left + 0.5 * r.width, y: r.top + ((0.47 * H - 14 * sc) / H) * r.height, rad: (44 * sc * 1.55) / H * r.height };
+}
+function _jasMouseDown() {
+  _jasPulse = 1;
+  const hit = _jasHeartHitTest();
+  if (hit) _jasHeartScreen = hit;
+  // tased the heart? jolt it
+  if (hit && Math.hypot(_jasMX - hit.x, _jasMY - hit.y) < hit.rad) {
+    _jasShock = 1;
+    for (let i = 0; i < 16; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 70 + Math.random() * 210;
+      _jasParts.push({ type: 'spark', x: hit.x, y: hit.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 0.8 + Math.random() * 1.8, life: 1, max: 0.4 + Math.random() * 0.5 });
+    }
+    _jasParts.push({ type: 'ring', x: hit.x, y: hit.y, life: 1, max: 0.7 });
+    if (typeof playSound === 'function') { try { playSound('click', { rate: 0.5, volume: 0.32 }); playSound('click', { rate: 1.5, volume: 0.18 }); } catch (e) {} }
+    return;
+  }
+  // ordinary click: petals + sparkles
+  _jasParts.push({ type: 'ring', x: _jasMX, y: _jasMY, life: 1, max: 0.9 });
+  for (let i = 0; i < 7; i++) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4, sp = 30 + Math.random() * 70;
+    _jasParts.push({ type: 'petal', x: _jasMX, y: _jasMY, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 3, sz: 3 + Math.random() * 3, life: 1, max: 1.1 + Math.random() * 0.6 });
+  }
+  for (let i = 0; i < 10; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 90;
+    _jasParts.push({ type: 'spark', x: _jasMX, y: _jasMY, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 0.6 + Math.random() * 1.2, life: 1, max: 0.6 + Math.random() * 0.4 });
+  }
+  if (typeof playSound === 'function') { try { playSound('click', { rate: 0.78 + Math.random() * 0.08, volume: 0.2 }); } catch (e) {} }
+}
+// the cursor: a yellow TASER 10 in side profile -- yellow polymer frame,
+// black textured grip, a black front cartridge bay with three vertical
+// probe slots, trigger. A magenta arc spits from the muzzle: a faint idle
+// spark, a furious continuous arc when charged (click pulse or heart-shock).
+function _jasTaser(ctx, x, y, t, charge) {
+  const PI2 = Math.PI * 2;
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(-0.2); ctx.scale(1.12, 1.12); ctx.translate(8, 0);  // muzzle ~ at cursor
+  const YEL_HI = '#ffe14a', YEL = '#f4c20e', YEL_LO = '#b8890a';
+
+  // charged muzzle glow
+  if (charge > 0.02) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const gg = ctx.createRadialGradient(-9, 0, 0, -9, 0, 30);
+    gg.addColorStop(0, `rgba(255,120,235,${(0.3 * charge).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,120,235,0)');
+    ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(-9, 0, 30, 0, PI2); ctx.fill(); ctx.restore();
+  }
+
+  // grip (black, hangs down-back from under the rear of the frame, tapered like
+  // a real pistol grip) -- drawn first so the body overlaps and hides its top
+  ctx.save(); ctx.translate(26, 11); ctx.rotate(0.28);
+  const gripGrad = ctx.createLinearGradient(-7, 0, 8, 0);
+  gripGrad.addColorStop(0, '#0c0c10'); gripGrad.addColorStop(0.5, '#3a3a42'); gripGrad.addColorStop(1, '#0e0e13');
+  ctx.fillStyle = gripGrad;
+  ctx.beginPath();
+  ctx.moveTo(-7, -5); ctx.lineTo(7.5, -6);
+  ctx.lineTo(5.5, 24);
+  ctx.quadraticCurveTo(5, 29, 0, 29);
+  ctx.quadraticCurveTo(-5, 29, -5.5, 24);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) { ctx.beginPath(); ctx.moveTo(-6, i * 5); ctx.lineTo(6, i * 5); ctx.stroke(); }
+  ctx.restore();
+
+  // main yellow body
+  ctx.lineJoin = 'round';
+  const bodyGrad = ctx.createLinearGradient(0, -11, 0, 11);
+  bodyGrad.addColorStop(0, YEL_HI); bodyGrad.addColorStop(0.45, YEL); bodyGrad.addColorStop(1, YEL_LO);
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.moveTo(-2, -10); ctx.lineTo(38, -11); ctx.lineTo(40, -3); ctx.lineTo(38, 7);
+  ctx.lineTo(30, 9); ctx.lineTo(28, 15); ctx.lineTo(21, 15); ctx.lineTo(19, 8); ctx.lineTo(-2, 8);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; _jasRoundRect(ctx, 22, -9.5, 13, 3, 1.5); ctx.fill();   // top rail slot
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(6, -3, 2.6, 0, PI2); ctx.fill();  // bolt-logo dot
+
+  // front cartridge bay (black with three vertical probe slots)
+  ctx.fillStyle = '#19191e'; _jasRoundRect(ctx, -9, -10, 15, 19, 2.5); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 0.6; ctx.stroke();
+  for (let i = 0; i < 3; i++) {
+    const sx = -7 + i * 4.6;
+    const sg2 = ctx.createLinearGradient(sx, -6, sx, 6);
+    sg2.addColorStop(0, '#34343c'); sg2.addColorStop(1, '#050507');
+    ctx.fillStyle = sg2; _jasRoundRect(ctx, sx, -6, 3, 12, 1.3); ctx.fill();
+  }
+
+  // trigger + power LED
+  ctx.strokeStyle = '#0e0e13'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(21, 8); ctx.lineTo(22, 14); ctx.stroke();
+  ctx.fillStyle = `rgba(255,90,225,${(0.5 + 0.5 * Math.abs(Math.sin(t * 6))).toFixed(3)})`;
+  ctx.beginPath(); ctx.arc(33, -6, 1.6, 0, PI2); ctx.fill();
+
+  // electric arc spitting out the muzzle (front-left)
+  const lvl = Math.max(charge, Math.sin(t * 26 + x * 0.1) > 0.55 ? 0.45 : 0);
+  if (lvl > 0) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const mx = -9;
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.strokeStyle = pass === 0 ? `rgba(255,130,240,${(0.9 * lvl).toFixed(3)})` : `rgba(255,255,255,${(0.8 * lvl).toFixed(3)})`;
+      ctx.lineWidth = pass === 0 ? 2 : 0.9;
+      ctx.beginPath(); ctx.moveTo(mx, -5);
+      for (let i = 1; i < 5; i++) { const f = i / 5; ctx.lineTo(mx - (3 + Math.random() * 8) * lvl, -5 + 10 * f + (Math.random() - 0.5) * 5 * lvl); }
+      ctx.lineTo(mx, 5); ctx.stroke();
+    }
+    const cg = ctx.createRadialGradient(mx - 5, 0, 0, mx - 5, 0, 11 * lvl + 4);
+    cg.addColorStop(0, `rgba(255,150,245,${(0.55 * lvl).toFixed(3)})`); cg.addColorStop(1, 'rgba(255,150,245,0)');
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(mx - 5, 0, 11 * lvl + 4, 0, PI2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+function _drawJasmineOverlay(canvas, ctx, W, H, t) {
+  const dt = _jasPrevT ? Math.min(t - _jasPrevT, 0.05) : 0.016; _jasPrevT = t;
+  const PI2 = Math.PI * 2;
+  ctx.clearRect(0, 0, W, H);
+  _jasPulse += (0 - _jasPulse) * Math.min(1, dt * 4);
+  if (_jasShock > 0) _jasShock = Math.max(0, _jasShock - dt / 1.3);   // shock fades over ~1.3s
+  // a fine, slow trail of gold dust
+  _jasTrailAcc += dt;
+  if (_jasTrailAcc > 0.04) {
+    _jasTrailAcc = 0;
+    _jasParts.push({ type: 'mote', x: _jasMX + (Math.random() - 0.5) * 5, y: _jasMY + (Math.random() - 0.5) * 5, vx: (Math.random() - 0.5) * 8, vy: 6 + Math.random() * 12, r: 0.5 + Math.random() * 1.1, life: 1, max: 0.8 + Math.random() * 0.6 });
+    if (_jasParts.length > 160) _jasParts.shift();
+  }
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const p of _jasParts) {
+    p.life -= dt / p.max; if (p.life <= 0) continue;
+    const al = Math.max(0, p.life);
+    if (p.type === 'ring') {
+      const rp = 1 - al, rr = 8 + rp * 96;
+      ctx.strokeStyle = `rgba(255,140,235,${(al * 0.52).toFixed(3)})`; ctx.lineWidth = 1.2 + al * 1.8;
+      ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, PI2); ctx.stroke();
+      ctx.strokeStyle = `rgba(255,80,210,${(al * 0.3).toFixed(3)})`; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.arc(p.x, p.y, rr * 0.72, 0, PI2); ctx.stroke();
+    } else if (p.type === 'petal') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 34 * dt; p.vx *= (1 - 0.5 * dt); p.rot += p.vr * dt;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = al;
+      ctx.fillStyle = 'rgba(255,150,240,0.85)';
+      ctx.beginPath(); ctx.ellipse(0, 0, p.sz, p.sz * 0.42, 0, 0, PI2); ctx.fill();
+      ctx.globalAlpha = 1; ctx.restore();
+    } else if (p.type === 'spark') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 40 * dt; p.vx *= (1 - 0.6 * dt);
+      ctx.fillStyle = `rgba(255,180,245,${(al * 0.85).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, PI2); ctx.fill();
+    } else {
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.fillStyle = `rgba(255,140,235,${(al * 0.55).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, PI2); ctx.fill();
+    }
+  }
+  _jasParts = _jasParts.filter(p => p.life > 0);
+  ctx.restore();
+  const bob = Math.sin(t * 2.4) * 1.3;
+  // taser-to-heart lightning while a shock is active
+  if (_jasShock > 0 && _jasHeartScreen) {
+    const ox = _jasMX - 8, oy = _jasMY + bob, hx = _jasHeartScreen.x, hy = _jasHeartScreen.y;
+    const dx = hx - ox, dy = hy - oy;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.strokeStyle = pass === 0 ? `rgba(255,120,240,${(0.85 * _jasShock).toFixed(3)})` : `rgba(255,255,255,${(0.7 * _jasShock).toFixed(3)})`;
+      ctx.lineWidth = pass === 0 ? 3 : 1.2;
+      ctx.beginPath(); ctx.moveTo(ox, oy);
+      for (let i = 1; i < 9; i++) { const f = i / 9, off = 1 - Math.abs(f - 0.5) * 2; ctx.lineTo(ox + dx * f + (Math.random() - 0.5) * 24 * off, oy + dy * f + (Math.random() - 0.5) * 24 * off); }
+      ctx.lineTo(hx, hy); ctx.stroke();
+    }
+    const bg = ctx.createRadialGradient(hx, hy, 0, hx, hy, 44 * _jasShock + 10);
+    bg.addColorStop(0, `rgba(255,170,250,${(0.5 * _jasShock).toFixed(3)})`); bg.addColorStop(1, 'rgba(255,170,250,0)');
+    ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(hx, hy, 44 * _jasShock + 10, 0, PI2); ctx.fill();
+    ctx.restore();
+    if (Math.random() < 0.7) { const a = Math.random() * PI2, sp = 60 + Math.random() * 170; _jasParts.push({ type: 'spark', x: hx, y: hy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 0.7 + Math.random() * 1.5, life: 1, max: 0.4 + Math.random() * 0.4 }); }
+  }
+  _jasTaser(ctx, _jasMX, _jasMY + bob, t, Math.max(_jasPulse, _jasShock));
+}
+function _startJasmineOverlay() {
+  _stopJasmineOverlay();
+  _jasParts = []; _jasPrevT = 0; _jasTrailAcc = 0; _jasPulse = 0; _jasShock = 0;
+  window.addEventListener('mousemove', _jasMouseMove);
+  window.addEventListener('mousedown', _jasMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'jasmine-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('jasmine-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    _drawJasmineOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _jasOverlayRafId = requestAnimationFrame(frame);
+  }
+  _jasOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopJasmineOverlay() {
+  if (_jasOverlayRafId) { cancelAnimationFrame(_jasOverlayRafId); _jasOverlayRafId = null; }
+  window.removeEventListener('mousemove', _jasMouseMove);
+  window.removeEventListener('mousedown', _jasMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('jasmine-overlay'); if (cv) cv.remove();
+  _jasParts = []; _jasShock = 0;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// CORY -- the night-shift security office (FNAF-inspired). The whole
+// room sits in TOTAL DARKNESS; the cursor is a flashlight you click to
+// switch on, throwing a soft circle of light that reveals whatever it
+// passes over: a humming desk fan, a flickering monitor, a cupcake,
+// crayon drawings, two doorways with door/light buttons -- and a bear
+// lurking in the right hall whose eyes never quite leave. Click again
+// and the dark swallows everything.
+// ════════════════════════════════════════════════════════════════
+const _CORY_RE = /^cory$/i;
+function _isCory(c) { return !!(c && c.name && _CORY_RE.test(c.name)); }
+function _coryRR(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function _coryH(n) { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); }
+function _coryQuad(ctx, p) { ctx.beginPath(); ctx.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]); ctx.closePath(); }
+// shared room layout so the office, glows and live props all agree
+function _coryLayout(W, H, sc) {
+  const deskTop = H * 0.70;
+  return {
+    deskTop,
+    bwL: W * 0.30, bwR: W * 0.70, bwT: H * 0.16, bwB: deskTop,
+    dwLx0: W * 0.115, dwLx1: W * 0.275, dwRx0: W * 0.725, dwRx1: W * 0.885, dwT: H * 0.17,
+    fan: [W * 0.30, deskTop - 2 * sc, 34 * sc],
+    mon: [W * 0.52, deskTop + 36 * sc, 104 * sc, 70 * sc],
+    cup: [W * 0.71, deskTop + 26 * sc, 18 * sc],
+    lbtnL: [W * 0.292, H * 0.42 + 45 * sc], lbtnR: [W * 0.708, H * 0.42 + 45 * sc],
+    eyes: [W * 0.80, H * 0.40]
+  };
+}
+// a reusable 128px grayscale noise tile for film grain
+function _coryNoiseTile() {
+  if (_coryNoiseTile._c) return _coryNoiseTile._c;
+  const n = document.createElement('canvas'); n.width = n.height = 128;
+  const nc = n.getContext('2d'), img = nc.createImageData(128, 128);
+  for (let i = 0; i < img.data.length; i += 4) { const v = (Math.random() * 255) | 0; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+  nc.putImageData(img, 0, 0); _coryNoiseTile._c = n; return n;
+}
+
+// an original shadow that lurks down a hall: a hunched humanoid silhouette
+// with two cold glowing eyes. 'lit' adds a faint rim when a hall light hits it.
+function _coryShadow(ctx, x, y, s, lit) {
+  const PI2 = Math.PI * 2;
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = lit ? '#15171b' : '#08090b';
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.52, s * 1.7);
+  ctx.quadraticCurveTo(-s * 0.74, -s * 0.1, -s * 0.36, -s * 0.66);
+  ctx.quadraticCurveTo(-s * 0.34, -s * 1.0, 0, -s * 1.02);
+  ctx.quadraticCurveTo(s * 0.34, -s * 1.0, s * 0.36, -s * 0.66);
+  ctx.quadraticCurveTo(s * 0.74, -s * 0.1, s * 0.52, s * 1.7);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, -s * 0.92, s * 0.34, 0, PI2); ctx.fill();
+  if (lit) { ctx.strokeStyle = 'rgba(120,132,144,0.22)'; ctx.lineWidth = 1.4; ctx.stroke(); }
+  // cold glowing eyes
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const g of [-1, 1]) {
+    const eg = ctx.createRadialGradient(g * s * 0.13, -s * 0.95, 0, g * s * 0.13, -s * 0.95, s * 0.17);
+    eg.addColorStop(0, 'rgba(220,245,255,0.95)'); eg.addColorStop(0.5, 'rgba(120,200,230,0.4)'); eg.addColorStop(1, 'rgba(120,200,230,0)');
+    ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(g * s * 0.13, -s * 0.95, s * 0.17, 0, PI2); ctx.fill();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+// one camera feed (cam 0..4), drawn inside the monitor's clipped screen
+function _coryCamFeed(ctx, w, h, t, cam) {
+  const PI2 = Math.PI * 2;
+  ctx.fillStyle = '#0a161a'; ctx.fillRect(-w / 2, -h / 2, w, h);
+  if (cam === 4) return;   // offline: monitor adds heavy static + SIGNAL LOST
+  ctx.strokeStyle = 'rgba(90,150,140,0.3)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-w / 2, h * 0.16); ctx.lineTo(w / 2, h * 0.16); ctx.stroke();
+  if (cam === 0 || cam === 3) {
+    for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * w * 0.16, -h / 2); ctx.lineTo(i * w * 0.5, h / 2); ctx.stroke(); }
+    ctx.strokeStyle = 'rgba(90,150,140,0.22)'; ctx.strokeRect(-w * 0.36, -h * 0.12, w * 0.16, h * 0.42); ctx.strokeRect(w * 0.2, -h * 0.12, w * 0.16, h * 0.42);
+    if (cam === 3) {   // a shadow creeping far down the east hall
+      const fx = Math.sin(t * 0.4) * w * 0.05;
+      ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.beginPath(); ctx.ellipse(fx, h * 0.05, w * 0.06, h * 0.2, 0, 0, PI2); ctx.fill();
+      ctx.fillStyle = 'rgba(200,245,255,0.6)'; ctx.beginPath(); ctx.arc(fx - w * 0.018, -h * 0.04, 1.3, 0, PI2); ctx.arc(fx + w * 0.018, -h * 0.04, 1.3, 0, PI2); ctx.fill();
+    }
+  } else if (cam === 1) {
+    ctx.fillStyle = 'rgba(40,60,55,0.5)';
+    ctx.fillRect(-w * 0.4, h * 0.0, w * 0.26, h * 0.18); ctx.fillRect(-w * 0.08, -h * 0.12, w * 0.22, h * 0.3); ctx.fillRect(w * 0.18, h * 0.02, w * 0.24, h * 0.16);
+    ctx.strokeStyle = 'rgba(90,150,140,0.22)'; ctx.strokeRect(-w * 0.08, -h * 0.12, w * 0.22, h * 0.3);
+  } else if (cam === 2) {
+    ctx.strokeStyle = 'rgba(90,150,140,0.3)'; ctx.strokeRect(-w * 0.32, -h * 0.26, w * 0.64, h * 0.52);
+    for (let i = 0; i < 6; i++) { const yy = -h * 0.22 + i * h * 0.08; ctx.beginPath(); ctx.moveTo(-w * 0.3, yy); ctx.lineTo(w * 0.3, yy); ctx.stroke(); }
+  }
+}
+
+// a humming desk fan; blades smeared into a motion-blurred disc
+function _coryFan(ctx, x, y, s, t) {
+  const PI2 = Math.PI * 2;
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = '#14130e'; ctx.beginPath(); ctx.ellipse(0, s * 0.95, s * 0.5, s * 0.14, 0, 0, PI2); ctx.fill();
+  ctx.fillStyle = '#26241c'; ctx.fillRect(-s * 0.08, 0, s * 0.16, s * 0.9);
+  // blades, several faded copies for motion blur
+  for (let g = 0; g < 5; g++) {
+    ctx.save(); ctx.rotate(t * 7 - g * 0.17);
+    ctx.fillStyle = g === 0 ? '#5a554b' : 'rgba(120,116,104,0.14)';
+    for (let i = 0; i < 4; i++) { ctx.rotate(PI2 / 4); ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(s * 0.5, -s * 0.36, s * 0.82, -s * 0.02); ctx.quadraticCurveTo(s * 0.46, s * 0.16, 0, 0); ctx.fill(); }
+    ctx.restore();
+  }
+  // hub
+  const hub = ctx.createRadialGradient(-s * 0.06, -s * 0.06, 0, 0, 0, s * 0.2); hub.addColorStop(0, '#8a8275'); hub.addColorStop(1, '#3a352c');
+  ctx.fillStyle = hub; ctx.beginPath(); ctx.arc(0, 0, s * 0.17, 0, PI2); ctx.fill();
+  // wire cage
+  ctx.strokeStyle = 'rgba(150,146,134,0.5)'; ctx.lineWidth = Math.max(1, s * 0.04);
+  for (let r = 0.3; r <= 0.9; r += 0.2) { ctx.beginPath(); ctx.arc(0, 0, s * r, 0, PI2); ctx.stroke(); }
+  ctx.lineWidth = Math.max(0.8, s * 0.025);
+  for (let i = 0; i < 12; i++) { const a = i / 12 * PI2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * s * 0.17, Math.sin(a) * s * 0.17); ctx.lineTo(Math.cos(a) * s * 0.9, Math.sin(a) * s * 0.9); ctx.stroke(); }
+  ctx.restore();
+}
+
+// a CRT camera monitor; shows feed 'cam', cycled by clicking it
+function _coryMonitor(ctx, x, y, w, h, t, cam) {
+  const PI2 = Math.PI * 2;
+  const NAMES = ['CAM 1 W.HALL', 'CAM 2 STORAGE', 'CAM 3 VENT', 'CAM 4 E.HALL', 'CAM 5 ----'];
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = '#0c0c0e'; ctx.fillRect(-6, h / 2, 12, 10); ctx.fillRect(-w * 0.28, h / 2 + 8, w * 0.56, 5);
+  ctx.fillStyle = '#0c0c0e'; _coryRR(ctx, -w / 2 - 7, -h / 2 - 7, w + 14, h + 16, 6); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.save(); _coryRR(ctx, -w / 2, -h / 2, w, h, 3); ctx.clip();
+  _coryCamFeed(ctx, w, h, t, cam);
+  // static (heavier when offline)
+  ctx.fillStyle = 'rgba(210,235,225,0.5)';
+  const n = cam === 4 ? 220 : 60, dens = cam === 4 ? 0.15 : 0.5;
+  for (let i = 0; i < n; i++) { if (Math.random() > dens) ctx.fillRect((Math.random() * w - w / 2) | 0, (Math.random() * h - h / 2) | 0, 1, 1); }
+  if (cam === 4) { ctx.fillStyle = 'rgba(255,120,120,0.6)'; ctx.font = 'bold ' + Math.max(9, h * 0.16) + 'px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('SIGNAL LOST', 0, 0); }
+  // scanlines + screen vignette
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'; for (let yy = -h / 2; yy < h / 2; yy += 3) ctx.fillRect(-w / 2, yy, w, 1.3);
+  const vg = ctx.createRadialGradient(0, 0, h * 0.2, 0, 0, w * 0.6); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = vg; ctx.fillRect(-w / 2, -h / 2, w, h);
+  // HUD
+  ctx.fillStyle = 'rgba(180,235,215,0.78)'; ctx.font = Math.max(7, h * 0.12) + 'px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(NAMES[cam], -w / 2 + 5, -h / 2 + 5);
+  if ((t * 1.5 | 0) % 2) { ctx.fillStyle = 'rgba(255,80,80,0.9)'; ctx.textAlign = 'right'; ctx.fillText('REC', w / 2 - 5, -h / 2 + 5); }
+  for (let i = 0; i < 5; i++) { ctx.fillStyle = i === cam ? 'rgba(180,255,220,0.95)' : 'rgba(120,160,150,0.4)'; ctx.beginPath(); ctx.arc(-w / 2 + 10 + i * 12, h / 2 - 8, 3, 0, PI2); ctx.fill(); }
+  ctx.fillStyle = 'rgba(160,220,205,0.5)'; ctx.font = Math.max(6, h * 0.1) + 'px monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+  ctx.fillText('CLICK >', w / 2 - 5, h / 2 - 4);
+  ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,0.045)'; ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2); ctx.lineTo(-w / 6, -h / 2); ctx.lineTo(-w / 2, h / 4); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// a steel security shutter that drops over a hallway when the door is closed
+function _coryShutter(ctx, W, H, sc, side) {
+  const L = _coryLayout(W, H, sc), x0 = side === 0 ? L.dwLx0 : L.dwRx0, x1 = side === 0 ? L.dwLx1 : L.dwRx1, T = L.dwT, B = L.deskTop;
+  const g = ctx.createLinearGradient(x0, 0, x1, 0); g.addColorStop(0, '#202327'); g.addColorStop(0.5, '#3c4046'); g.addColorStop(1, '#181b1e');
+  ctx.fillStyle = g; ctx.fillRect(x0, T, x1 - x0, B - T);
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.4 * sc;
+  for (let y = T + 12 * sc; y < B; y += 16 * sc) { ctx.beginPath(); ctx.moveTo(x0 + 2 * sc, y); ctx.lineTo(x1 - 2 * sc, y); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+  ctx.beginPath(); for (let y = T + 12 * sc; y < B; y += 16 * sc) { ctx.moveTo(x0 + 2 * sc, y - 1.4); ctx.lineTo(x1 - 2 * sc, y - 1.4); } ctx.stroke();
+  ctx.fillStyle = '#4a4e54'; ctx.fillRect(x0, T, 3 * sc, B - T); ctx.fillRect(x1 - 3 * sc, T, 3 * sc, B - T);
+  ctx.fillStyle = '#15171a'; _coryRR(ctx, (x0 + x1) / 2 - 9 * sc, (T + B) / 2 - 3 * sc, 18 * sc, 6 * sc, 2 * sc); ctx.fill();
+}
+
+// a chunky chocolate cupcake with big googly eyes that follow the flashlight
+function _coryCupcake(ctx, x, y, s, curX, curY) {
+  const PI2 = Math.PI * 2;
+  ctx.save(); ctx.translate(x, y);
+  const lcx = curX - x, lcy = curY - y;
+  // contact shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.beginPath(); ctx.ellipse(0, s * 0.9, s * 0.8, s * 0.16, 0, 0, PI2); ctx.fill();
+  // fluted brown wrapper
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(-s * 0.72, 0); ctx.lineTo(s * 0.72, 0); ctx.lineTo(s * 0.5, s * 0.82); ctx.lineTo(-s * 0.5, s * 0.82); ctx.closePath();
+  const wg = ctx.createLinearGradient(-s * 0.7, 0, s * 0.7, 0);
+  wg.addColorStop(0, '#3a2412'); wg.addColorStop(0.22, '#5a3a1e'); wg.addColorStop(0.5, '#6e4824'); wg.addColorStop(0.78, '#5a3a1e'); wg.addColorStop(1, '#3a2412');
+  ctx.fillStyle = wg; ctx.fill(); ctx.clip();
+  ctx.strokeStyle = 'rgba(28,14,5,0.6)'; ctx.lineWidth = 2.4;
+  for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(i * s * 0.2, 0); ctx.lineTo(i * s * 0.16, s * 0.82); ctx.stroke(); }
+  ctx.restore();
+  // dark rim
+  ctx.fillStyle = 'rgba(26,12,4,0.92)'; ctx.fillRect(-s * 0.75, -s * 0.05, s * 1.5, s * 0.09);
+  // lumpy chocolate frosting
+  const dg = ctx.createRadialGradient(-s * 0.2, -s * 0.52, s * 0.05, 0, -s * 0.18, s * 0.86);
+  dg.addColorStop(0, '#7e4d28'); dg.addColorStop(0.45, '#4e2c12'); dg.addColorStop(1, '#281505');
+  ctx.fillStyle = dg;
+  ctx.beginPath();
+  ctx.arc(-s * 0.36, -s * 0.12, s * 0.34, 0, PI2); ctx.arc(s * 0.36, -s * 0.12, s * 0.34, 0, PI2);
+  ctx.arc(0, -s * 0.44, s * 0.4, 0, PI2); ctx.arc(0, -s * 0.05, s * 0.44, 0, PI2);
+  ctx.fill();
+  // sprinkles
+  const spc = ['#e8d24a', '#5ad0e0', '#ff7bb0', '#9affa0'];
+  for (let i = 0; i < 8; i++) { ctx.save(); ctx.translate((_coryH(i * 3.1) - 0.5) * s * 1.15, -s * 0.22 - _coryH(i * 5.3) * s * 0.42); ctx.rotate(_coryH(i * 7) * 6.28); ctx.fillStyle = spc[i % 4]; ctx.fillRect(-s * 0.06, -s * 0.02, s * 0.12, s * 0.04); ctx.restore(); }
+  // googly eyes tracking the cursor
+  for (const sgn of [-1, 1]) {
+    const ex = sgn * s * 0.27, ey = -s * 0.16, er = s * 0.23;
+    ctx.fillStyle = '#efece6'; ctx.beginPath(); ctx.arc(ex, ey, er, 0, PI2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1.4; ctx.stroke();
+    let dx = lcx - ex, dy = lcy - ey; const d = Math.hypot(dx, dy) || 1, reach = Math.min(er * 0.42, d);
+    const px = ex + dx / d * reach, py = ey + dy / d * reach;
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(px, py, er * 0.56, 0, PI2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px + er * 0.18, py - er * 0.18, er * 0.17, 0, PI2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// a receding hallway doorway with a riveted steel frame + a DOOR/LIGHT
+// button pad on the pillar (dir -1 left, +1 right)
+function _coryDoorway(ctx, W, H, sc, dir) {
+  const PI2 = Math.PI * 2, L = _coryLayout(W, H, sc);
+  const x0 = dir < 0 ? L.dwLx0 : L.dwRx0, x1 = dir < 0 ? L.dwLx1 : L.dwRx1, T = L.dwT, B = L.deskTop;
+  const innerX = dir < 0 ? x1 - (x1 - x0) * 0.32 : x0 + (x1 - x0) * 0.32, fy = (T + B) / 2;
+  // hall: dark, with a faint far light so it has depth
+  const hg = ctx.createLinearGradient(x0, 0, x1, 0);
+  hg.addColorStop(0, dir < 0 ? '#000' : '#0a0d10'); hg.addColorStop(1, dir < 0 ? '#0a0d10' : '#000');
+  ctx.fillStyle = hg; ctx.fillRect(x0, T, x1 - x0, B - T);
+  const fl = ctx.createRadialGradient(innerX, fy, 0, innerX, fy, (x1 - x0) * 0.75);
+  fl.addColorStop(0, 'rgba(44,50,56,0.55)'); fl.addColorStop(1, 'rgba(44,50,56,0)');
+  ctx.fillStyle = fl; ctx.fillRect(x0, T, x1 - x0, B - T);
+  // hall perspective edges
+  ctx.strokeStyle = 'rgba(80,90,98,0.2)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, T); ctx.lineTo(innerX, fy); ctx.moveTo(x0, B); ctx.lineTo(innerX, fy); ctx.moveTo(x1, T); ctx.lineTo(innerX, fy); ctx.moveTo(x1, B); ctx.lineTo(innerX, fy); ctx.stroke();
+  // steel frame
+  const fw = 11 * sc;
+  ctx.fillStyle = '#23262b'; ctx.fillRect(x0 - fw * 0.5, T - fw, x1 - x0 + fw, fw);
+  for (const fx of [x0, x1]) {
+    const g = ctx.createLinearGradient(fx - fw * 0.5, 0, fx + fw * 0.5, 0);
+    g.addColorStop(0, '#15171a'); g.addColorStop(0.5, '#565b62'); g.addColorStop(1, '#15171a');
+    ctx.fillStyle = g; ctx.fillRect(fx - fw * 0.5, T - fw, fw, B - T + fw);
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'; for (let y = T; y < B; y += 30 * sc) { ctx.beginPath(); ctx.arc(x0, y, 1.3 * sc, 0, PI2); ctx.arc(x1, y, 1.3 * sc, 0, PI2); ctx.fill(); }
+  // button pad on the pillar
+  const lb = dir < 0 ? L.lbtnL : L.lbtnR, px = lb[0] - 15 * sc, py = H * 0.42;
+  ctx.fillStyle = '#16181b'; _coryRR(ctx, px, py, 30 * sc, 64 * sc, 5 * sc); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#2a1414'; _coryRR(ctx, px + 5 * sc, py + 6 * sc, 20 * sc, 22 * sc, 3 * sc); ctx.fill();    // DOOR
+  ctx.fillStyle = '#3a3216'; _coryRR(ctx, px + 5 * sc, py + 36 * sc, 20 * sc, 22 * sc, 3 * sc); ctx.fill();   // LIGHT
+}
+
+// the static office, built in one-point perspective: ceiling + floor + two
+// receding side walls + a back wall, two hallways, a desk in the foreground.
+function _coryDrawOffice(ctx, W, H, sc) {
+  const PI2 = Math.PI * 2, L = _coryLayout(W, H, sc);
+  const bwL = L.bwL, bwR = L.bwR, bwT = L.bwT, bwB = L.bwB, deskTop = L.deskTop;
+  ctx.fillStyle = '#070809'; ctx.fillRect(0, 0, W, H);
+  // ceiling
+  ctx.fillStyle = '#0e1013'; _coryQuad(ctx, [0, 0, W, 0, bwR, bwT, bwL, bwT]); ctx.fill();
+  ctx.fillStyle = '#191c20'; _coryQuad(ctx, [W * 0.45, 0, W * 0.55, 0, bwR - (bwR - bwL) * 0.4, bwT, bwL + (bwR - bwL) * 0.4, bwT]); ctx.fill();
+  // floor + receding boards
+  const fg = ctx.createLinearGradient(0, bwB, 0, H); fg.addColorStop(0, '#1a1712'); fg.addColorStop(1, '#0a0907');
+  ctx.fillStyle = fg; _coryQuad(ctx, [0, H, W, H, bwR, bwB, bwL, bwB]); ctx.fill();
+  ctx.strokeStyle = 'rgba(60,54,44,0.35)'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 10; i++) { ctx.beginPath(); ctx.moveTo(i / 10 * W, H); ctx.lineTo(bwL + (bwR - bwL) * (i / 10), bwB); ctx.stroke(); }
+  // side walls
+  let lwg = ctx.createLinearGradient(0, 0, bwL, 0); lwg.addColorStop(0, '#0c0e11'); lwg.addColorStop(1, '#1e2228');
+  ctx.fillStyle = lwg; _coryQuad(ctx, [0, 0, bwL, bwT, bwL, bwB, 0, H]); ctx.fill();
+  let rwg = ctx.createLinearGradient(W, 0, bwR, 0); rwg.addColorStop(0, '#0c0e11'); rwg.addColorStop(1, '#1e2228');
+  ctx.fillStyle = rwg; _coryQuad(ctx, [W, 0, bwR, bwT, bwR, bwB, W, H]); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) { const ty = bwT + (bwB - bwT) * (i / 5); ctx.beginPath(); ctx.moveTo(0, H * (i / 5)); ctx.lineTo(bwL, ty); ctx.moveTo(W, H * (i / 5)); ctx.lineTo(bwR, ty); ctx.stroke(); }
+  // back wall
+  const bwg = ctx.createLinearGradient(0, bwT, 0, bwB); bwg.addColorStop(0, '#272b31'); bwg.addColorStop(1, '#191c21');
+  ctx.fillStyle = bwg; ctx.fillRect(bwL, bwT, bwR - bwL, bwB - bwT);
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.strokeRect(bwL, bwT, bwR - bwL, bwB - bwT);
+  // ── back-wall dressing ──
+  const ww = bwR - bwL, wh = bwB - bwT;
+  // wainscoting (lower panel + trim)
+  ctx.fillStyle = 'rgba(255,255,255,0.02)'; ctx.fillRect(bwL, bwT + wh * 0.62, ww, wh * 0.38);
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(bwL, bwT + wh * 0.62); ctx.lineTo(bwR, bwT + wh * 0.62); ctx.stroke();
+  // water stains
+  for (const st of [[0.3, 0.18, 0.16], [0.82, 0.5, 0.12]]) { const g = ctx.createRadialGradient(bwL + ww * st[0], bwT + wh * st[1], 0, bwL + ww * st[0], bwT + wh * st[1], ww * st[2]); g.addColorStop(0, 'rgba(20,16,10,0.5)'); g.addColorStop(1, 'rgba(20,16,10,0)'); ctx.fillStyle = g; ctx.fillRect(bwL, bwT, ww, wh); }
+  // conduit pipe across the top with brackets
+  ctx.strokeStyle = '#3a3d42'; ctx.lineWidth = 5 * sc; ctx.beginPath(); ctx.moveTo(bwL + 6 * sc, bwT + wh * 0.1); ctx.lineTo(bwR - 6 * sc, bwT + wh * 0.1); ctx.stroke();
+  ctx.strokeStyle = '#15171a'; ctx.lineWidth = 2 * sc; for (let i = 1; i < 6; i++) { const px = bwL + ww * i / 6; ctx.beginPath(); ctx.moveTo(px, bwT + wh * 0.1 - 4 * sc); ctx.lineTo(px, bwT + wh * 0.1 + 6 * sc); ctx.stroke(); }
+  // dead caged ceiling bulb (faint warm core)
+  const bx = bwL + ww * 0.5, by = bwT + wh * 0.04;
+  ctx.strokeStyle = '#0a0b0d'; ctx.lineWidth = 1.5 * sc; ctx.beginPath(); ctx.moveTo(bx, bwT); ctx.lineTo(bx, by); ctx.stroke();
+  ctx.fillStyle = '#3a2e16'; ctx.beginPath(); ctx.arc(bx, by + 8 * sc, 7 * sc, 0, PI2); ctx.fill();
+  ctx.strokeStyle = '#26282c'; ctx.lineWidth = 1; for (let i = 0; i < 5; i++) { const a = Math.PI * (0.1 + i * 0.2); ctx.beginPath(); ctx.moveTo(bx + Math.cos(a) * 9 * sc, by + 8 * sc - Math.sin(a) * 9 * sc); ctx.lineTo(bx, by - 2 * sc); ctx.stroke(); }
+  // cork bulletin board with pinned notes
+  ctx.save(); ctx.translate(bwL + ww * 0.2, bwT + wh * 0.42);
+  ctx.fillStyle = '#0c0c0e'; ctx.fillRect(-ww * 0.16 - 2, -wh * 0.16 - 2, ww * 0.32 + 4, wh * 0.32 + 4);
+  ctx.fillStyle = '#5a4326'; ctx.fillRect(-ww * 0.16, -wh * 0.16, ww * 0.32, wh * 0.32);
+  for (const nt of [[-0.08, -0.07, -0.1, '#d8d2c0'], [0.06, -0.05, 0.08, '#c8d6d0'], [-0.03, 0.06, -0.05, '#e0d8b8'], [0.08, 0.07, 0.12, '#d0c8b0']]) { ctx.save(); ctx.translate(ww * nt[0], wh * nt[1]); ctx.rotate(nt[2]); ctx.fillStyle = nt[3]; ctx.fillRect(-ww * 0.05, -wh * 0.045, ww * 0.1, wh * 0.09); ctx.fillStyle = 'rgba(80,80,80,0.5)'; for (let l = 0; l < 3; l++) ctx.fillRect(-ww * 0.04, -wh * 0.025 + l * wh * 0.022, ww * 0.08, 1.2); ctx.fillStyle = '#b03030'; ctx.beginPath(); ctx.arc(0, -wh * 0.038, 1.8 * sc, 0, PI2); ctx.fill(); ctx.restore(); }
+  ctx.restore();
+  // "SMILE :)" poster
+  ctx.save(); ctx.translate(bwL + ww * 0.76, bwT + wh * 0.34);
+  ctx.fillStyle = '#0a0a0c'; ctx.fillRect(-ww * 0.13 - 2, -wh * 0.16 - 2, ww * 0.26 + 4, wh * 0.32 + 4);
+  ctx.fillStyle = '#cdb86a'; ctx.fillRect(-ww * 0.13, -wh * 0.16, ww * 0.26, wh * 0.32);
+  ctx.strokeStyle = '#2a2410'; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(0, -wh * 0.02, ww * 0.075, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  ctx.fillStyle = '#2a2410'; ctx.beginPath(); ctx.arc(-ww * 0.04, -wh * 0.06, 2.4 * sc, 0, PI2); ctx.arc(ww * 0.04, -wh * 0.06, 2.4 * sc, 0, PI2); ctx.fill();
+  ctx.font = 'bold ' + (ww * 0.05) + 'px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('SMILE', 0, wh * 0.1);
+  ctx.restore();
+  // wall clock (frozen near midnight)
+  ctx.save(); ctx.translate(bwL + ww * 0.5, bwT + wh * 0.32); const cr = ww * 0.05;
+  ctx.fillStyle = '#16181b'; ctx.beginPath(); ctx.arc(0, 0, cr * 1.18, 0, PI2); ctx.fill();
+  ctx.fillStyle = '#cdc6b4'; ctx.beginPath(); ctx.arc(0, 0, cr, 0, PI2); ctx.fill();
+  ctx.strokeStyle = '#222'; ctx.lineWidth = 1; for (let i = 0; i < 12; i++) { const a = i / 12 * PI2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * cr * 0.82, Math.sin(a) * cr * 0.82); ctx.lineTo(Math.cos(a) * cr * 0.95, Math.sin(a) * cr * 0.95); ctx.stroke(); }
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -cr * 0.5); ctx.moveTo(0, 0); ctx.lineTo(cr * 0.36, -cr * 0.18); ctx.stroke();
+  ctx.restore();
+  // small vent grille, upper-right
+  ctx.save(); ctx.translate(bwR - ww * 0.1, bwT + wh * 0.12);
+  ctx.fillStyle = '#101216'; ctx.fillRect(-ww * 0.05, -wh * 0.05, ww * 0.1, wh * 0.1);
+  ctx.strokeStyle = '#2c2f34'; ctx.lineWidth = 1.4; for (let i = 0; i < 4; i++) { const yy = -wh * 0.035 + i * wh * 0.026; ctx.beginPath(); ctx.moveTo(-ww * 0.04, yy); ctx.lineTo(ww * 0.04, yy); ctx.stroke(); }
+  ctx.restore();
+  // hallways + the shadow lurking in the right hall
+  _coryDoorway(ctx, W, H, sc, -1); _coryDoorway(ctx, W, H, sc, +1);
+  _coryShadow(ctx, L.eyes[0], L.eyes[1] + 14 * sc, 30 * sc, false);
+  // desk (perspective slab)
+  const dTopL = W * 0.08, dTopR = W * 0.92;
+  const dg = ctx.createLinearGradient(0, deskTop, 0, H); dg.addColorStop(0, '#3a3024'); dg.addColorStop(0.1, '#241d14'); dg.addColorStop(1, '#0c0a07');
+  ctx.fillStyle = dg; _coryQuad(ctx, [0, H, W, H, dTopR, deskTop, dTopL, deskTop]); ctx.fill();
+  ctx.strokeStyle = 'rgba(120,100,70,0.4)'; ctx.lineWidth = 2 * sc; ctx.beginPath(); ctx.moveTo(dTopL, deskTop); ctx.lineTo(dTopR, deskTop); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,0.16)'; ctx.lineWidth = 1; for (let i = 1; i < 5; i++) { const yy = deskTop + (H - deskTop) * (i / 5); ctx.beginPath(); ctx.moveTo(W * 0.02 * (5 - i), yy); ctx.lineTo(W - W * 0.02 * (5 - i), yy); ctx.stroke(); }
+  // static clutter (fan, monitor + cupcake are drawn live)
+  ctx.fillStyle = '#403a33'; _coryRR(ctx, W * 0.42 - 11 * sc, deskTop + 30 * sc, 22 * sc, 22 * sc, 3 * sc); ctx.fill();
+  ctx.fillStyle = '#1a1510'; ctx.beginPath(); ctx.ellipse(W * 0.42, deskTop + 30 * sc, 9 * sc, 3 * sc, 0, 0, PI2); ctx.fill();
+  ctx.save(); ctx.translate(W * 0.63, deskTop + 52 * sc); ctx.rotate(0.1); ctx.fillStyle = '#cabfa6'; ctx.fillRect(-18 * sc, -12 * sc, 36 * sc, 24 * sc); ctx.fillStyle = '#9a917e'; for (let i = 0; i < 4; i++) ctx.fillRect(-14 * sc, -8 * sc + i * 5 * sc, 28 * sc, 1.4); ctx.restore();
+  // a dead anglepoise lamp
+  ctx.strokeStyle = '#2a2a2e'; ctx.lineWidth = 3 * sc; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(W * 0.2, deskTop + 62 * sc); ctx.lineTo(W * 0.2, deskTop + 22 * sc); ctx.lineTo(W * 0.235, deskTop + 8 * sc); ctx.stroke();
+  ctx.fillStyle = '#1e1e22'; ctx.beginPath(); ctx.moveTo(W * 0.235, deskTop + 8 * sc); ctx.lineTo(W * 0.268, deskTop + 20 * sc); ctx.lineTo(W * 0.205, deskTop + 20 * sc); ctx.closePath(); ctx.fill();
+}
+
+// self-lit sources that pierce the dark + live feedback for the doors/lights
+function _coryGlows(ctx, W, H, t, sc) {
+  const PI2 = Math.PI * 2, L = _coryLayout(W, H, sc);
+  const buzz = (0.6 + 0.4 * Math.abs(Math.sin(t * 1.7))) * (Math.random() < 0.04 ? 0.25 : 1);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  // monitor glow
+  const m = ctx.createRadialGradient(L.mon[0], L.mon[1], 0, L.mon[0], L.mon[1], 120 * sc);
+  m.addColorStop(0, 'rgba(60,140,130,' + (0.16 * buzz).toFixed(3) + ')'); m.addColorStop(1, 'rgba(60,140,130,0)');
+  ctx.fillStyle = m; ctx.beginPath(); ctx.arc(L.mon[0], L.mon[1], 120 * sc, 0, PI2); ctx.fill();
+  const sides = [[0, L.lbtnL, L.dwLx0, L.dwLx1], [1, L.lbtnR, L.dwRx0, L.dwRx1]];
+  for (const sd of sides) {
+    const side = sd[0], lb = sd[1], x0 = sd[2], x1 = sd[3];
+    // LIGHT button: faint always, bright when on
+    const lon = _coryLightOn[side], lr = (lon ? 40 : 28) * sc;
+    let g = ctx.createRadialGradient(lb[0], lb[1], 0, lb[0], lb[1], lr);
+    g.addColorStop(0, 'rgba(255,210,95,' + ((lon ? 0.5 : 0.13) * buzz).toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,210,95,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(lb[0], lb[1], lr, 0, PI2); ctx.fill();
+    // DOOR button: red when closed + a status light on the shutter
+    if (_coryDoorClosed[side]) {
+      const dy = lb[1] - 28 * sc;
+      let gd = ctx.createRadialGradient(lb[0], dy, 0, lb[0], dy, 30 * sc);
+      gd.addColorStop(0, 'rgba(255,70,60,' + (0.4 * buzz).toFixed(3) + ')'); gd.addColorStop(1, 'rgba(255,70,60,0)');
+      ctx.fillStyle = gd; ctx.beginPath(); ctx.arc(lb[0], dy, 30 * sc, 0, PI2); ctx.fill();
+      const sx = (x0 + x1) / 2, sy = L.deskTop - 26 * sc;
+      ctx.fillStyle = 'rgba(255,80,70,' + (0.5 + 0.3 * Math.sin(t * 4)).toFixed(3) + ')'; ctx.beginPath(); ctx.arc(sx, sy, 2.4 * sc, 0, PI2); ctx.fill();
+    }
+    // hall light wash into an open hall
+    if (lon) {
+      const ccx = (x0 + x1) / 2, ccy = (L.dwT + L.deskTop) / 2, rr = (x1 - x0) * 0.8;
+      let gh = ctx.createRadialGradient(ccx, ccy, 0, ccx, ccy, rr);
+      gh.addColorStop(0, 'rgba(255,220,150,0.12)'); gh.addColorStop(1, 'rgba(255,220,150,0)');
+      ctx.fillStyle = gh; ctx.beginPath(); ctx.arc(ccx, ccy, rr, 0, PI2); ctx.fill();
+    }
+  }
+  // the shadow's eyes glint when the east door is open
+  if (!_coryDoorClosed[1] && Math.sin(t * 0.7) > -0.9) {
+    const ey = L.eyes[1] - 14 * sc;
+    ctx.fillStyle = 'rgba(220,245,255,' + (0.5 + 0.3 * Math.sin(t * 5)).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(L.eyes[0] - 4 * sc, ey, 2.4 * sc, 0, PI2); ctx.arc(L.eyes[0] + 4 * sc, ey, 2.4 * sc, 0, PI2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function _drawCoryPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawCoryPattern._lt === undefined;
+  if (!fresh && t - _drawCoryPattern._lt < 0.033) return;   // 30fps cap
+  _drawCoryPattern._lt = t;
+  const PI2 = Math.PI * 2, sc = Math.min(W, H) / 560, L = _coryLayout(W, H, sc);
+  ctx.clearRect(0, 0, W, H);
+
+  if (!_drawCoryPattern._scene || _drawCoryPattern._w !== W || _drawCoryPattern._h !== H) {
+    _drawCoryPattern._w = W; _drawCoryPattern._h = H;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    _coryDrawOffice(cv.getContext('2d'), W, H, sc);
+    _drawCoryPattern._scene = cv;
+    const dk = document.createElement('canvas'); dk.width = W; dk.height = H; _drawCoryPattern._dark = dk;
+  }
+  ctx.drawImage(_drawCoryPattern._scene, 0, 0);
+  _coryFan(ctx, L.fan[0], L.fan[1], L.fan[2], t);
+  _coryMonitor(ctx, L.mon[0], L.mon[1], L.mon[2], L.mon[3], t);
+
+  // darkness with a soft flashlight hole punched in it
+  const dark = _drawCoryPattern._dark, dctx = dark.getContext('2d');
+  dctx.clearRect(0, 0, W, H);
+  dctx.fillStyle = 'rgba(0,1,2,0.992)'; dctx.fillRect(0, 0, W, H);
+  const beam = _coryBeam;
+  let fx = -9999, fy = -9999, R = 0;
+  if (beam > 0.01) {
+    const r = canvas.getBoundingClientRect();
+    if (r.width && r.height) { fx = (_coryMX - r.left) / r.width * W; fy = (_coryMY - r.top) / r.height * H; }
+    R = (190 + 14 * Math.sin(t * 9)) * sc * (0.5 + 0.5 * beam);
+    dctx.globalCompositeOperation = 'destination-out';
+    const g = dctx.createRadialGradient(fx, fy, 0, fx, fy, R);
+    g.addColorStop(0, 'rgba(0,0,0,' + (1 * beam).toFixed(3) + ')');
+    g.addColorStop(0.35, 'rgba(0,0,0,' + (0.96 * beam).toFixed(3) + ')');
+    g.addColorStop(0.7, 'rgba(0,0,0,' + (0.55 * beam).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    dctx.fillStyle = g; dctx.beginPath(); dctx.arc(fx, fy, R, 0, PI2); dctx.fill();
+    dctx.globalCompositeOperation = 'source-over';
+  }
+  ctx.drawImage(dark, 0, 0);
+
+  // warm grade + dust motes drifting in the beam
+  if (beam > 0.01 && fx > -9999) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const wg = ctx.createRadialGradient(fx, fy, 0, fx, fy, R);
+    wg.addColorStop(0, 'rgba(255,236,188,' + (0.15 * beam).toFixed(3) + ')');
+    wg.addColorStop(0.5, 'rgba(255,206,150,' + (0.06 * beam).toFixed(3) + ')');
+    wg.addColorStop(1, 'rgba(255,206,150,0)');
+    ctx.fillStyle = wg; ctx.beginPath(); ctx.arc(fx, fy, R, 0, PI2); ctx.fill();
+    for (let i = 0; i < 40; i++) {
+      const mx = (((_coryH(i * 1.3) * W + t * 7 * (_coryH(i * 5) - 0.5)) % W) + W) % W;
+      const my = (((_coryH(i * 2.1) * H - t * (5 + _coryH(i * 7) * 8)) % H) + H) % H;
+      const d = Math.hypot(mx - fx, my - fy); if (d > R) continue;
+      const fall = 1 - d / R, tw = 0.4 + 0.6 * Math.abs(Math.sin(t * 2 + i));
+      ctx.fillStyle = 'rgba(255,240,200,' + (fall * tw * 0.5 * beam).toFixed(3) + ')';
+      ctx.beginPath(); ctx.arc(mx, my, (0.5 + _coryH(i * 6) * 1.2) * sc, 0, PI2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  _coryGlows(ctx, W, H, t, sc);
+
+  // cinematic vignette
+  const vg = ctx.createRadialGradient(W / 2, H * 0.52, Math.min(W, H) * 0.32, W / 2, H * 0.52, Math.max(W, H) * 0.72);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.6)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+  // animated film grain
+  const noise = _coryNoiseTile();
+  ctx.save(); ctx.globalAlpha = 0.05; ctx.globalCompositeOperation = 'lighter';
+  const ox = (Math.random() * 128) | 0, oy = (Math.random() * 128) | 0;
+  for (let x = -ox; x < W; x += 128) for (let y = -oy; y < H; y += 128) ctx.drawImage(noise, x, y);
+  ctx.restore();
+}
+
+/* ── cursor: a flashlight; click toggles the beam, lighting the room ── */
+let _coryOverlayRafId = null;
+let _coryMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
+let _coryMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
+let _coryOn = false, _coryBeam = 0, _coryPrevT = 0;
+function _coryMouseMove(e) { _coryMX = e.clientX; _coryMY = e.clientY; }
+function _coryMouseDown() {
+  _coryOn = !_coryOn;
+  if (typeof playSound === 'function') { try { playSound('click', { rate: _coryOn ? 1.2 : 0.7, volume: 0.25 }); } catch (e) {} }
+}
+function _coryFlashlight(ctx, x, y, t, beam) {
+  const PI2 = Math.PI * 2;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(0.5);   // body angles down-right, lens ~ at cursor
+  // a faint cone of light in the air, emitting from the lens (toward -x)
+  if (beam > 0.02) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const cone = ctx.createLinearGradient(-3, 0, -130, 0);
+    cone.addColorStop(0, 'rgba(255,232,180,' + (0.09 * beam).toFixed(3) + ')'); cone.addColorStop(1, 'rgba(255,232,180,0)');
+    ctx.fillStyle = cone; ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(-5, 5); ctx.lineTo(-130, 58); ctx.lineTo(-130, -58); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // barrel
+  const bg = ctx.createLinearGradient(0, -5.5, 0, 5.5);
+  bg.addColorStop(0, '#3a3d44'); bg.addColorStop(0.45, '#b7bcc6'); bg.addColorStop(0.55, '#d6dae2'); bg.addColorStop(1, '#1c1e22');
+  ctx.fillStyle = bg; _coryRR(ctx, 7, -5.5, 28, 11, 3); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 0.8; ctx.stroke();
+  // knurled grip
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(16 + i * 3, -5.5); ctx.lineTo(16 + i * 3, 5.5); ctx.stroke(); }
+  // tail cap
+  ctx.fillStyle = '#15171a'; _coryRR(ctx, 33, -4, 5, 8, 2); ctx.fill();
+  // head bezel
+  const hg = ctx.createLinearGradient(0, -8.5, 0, 8.5);
+  hg.addColorStop(0, '#4a4f58'); hg.addColorStop(0.5, '#cfd4dd'); hg.addColorStop(1, '#23262b');
+  ctx.fillStyle = hg; _coryRR(ctx, -7, -8.5, 15, 17, 3); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 0.8; ctx.stroke();
+  // lens
+  ctx.save(); ctx.translate(-3, 0);
+  if (beam > 0.02) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const lg = ctx.createRadialGradient(0, 0, 0, 0, 0, 22 * beam + 6);
+    lg.addColorStop(0, 'rgba(255,242,200,' + (0.8 * beam).toFixed(3) + ')'); lg.addColorStop(1, 'rgba(255,242,200,0)');
+    ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(0, 0, 22 * beam + 6, 0, PI2); ctx.fill(); ctx.restore();
+    const ig = ctx.createRadialGradient(0, 0, 0, 0, 0, 6); ig.addColorStop(0, '#fffdf2'); ig.addColorStop(1, '#f0c060');
+    ctx.fillStyle = ig;
+  } else { ctx.fillStyle = '#1a1c20'; }
+  ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 7, 0, 0, PI2); ctx.fill();
+  ctx.strokeStyle = beam > 0.02 ? 'rgba(180,140,60,0.5)' : 'rgba(80,84,92,0.5)'; ctx.lineWidth = 0.6;
+  ctx.beginPath(); ctx.ellipse(0, 0, 2.6, 4.2, 0, 0, PI2); ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+}
+function _drawCoryOverlay(canvas, ctx, W, H, t) {
+  const dt = _coryPrevT ? Math.min(t - _coryPrevT, 0.05) : 0.016; _coryPrevT = t;
+  _coryBeam += ((_coryOn ? 1 : 0) - _coryBeam) * Math.min(1, dt * 9);
+  ctx.clearRect(0, 0, W, H);
+  _coryFlashlight(ctx, _coryMX, _coryMY, t, _coryBeam);
+}
+function _startCoryOverlay() {
+  _stopCoryOverlay();
+  _coryMX = window.innerWidth / 2; _coryMY = window.innerHeight / 2; _coryOn = false; _coryBeam = 0; _coryPrevT = 0;
+  window.addEventListener('mousemove', _coryMouseMove);
+  window.addEventListener('mousedown', _coryMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'cory-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('cory-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    _drawCoryOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _coryOverlayRafId = requestAnimationFrame(frame);
+  }
+  _coryOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopCoryOverlay() {
+  if (_coryOverlayRafId) { cancelAnimationFrame(_coryOverlayRafId); _coryOverlayRafId = null; }
+  window.removeEventListener('mousemove', _coryMouseMove);
+  window.removeEventListener('mousedown', _coryMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('cory-overlay'); if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // ROOK — a single enormous rook piece with nothing behind the eyes,
 // SLAMMING itself down all over a checkered arena. It hops to a random
 // square, winds up, and crashes — cracking the board, kicking dust and
@@ -26234,6 +27518,8 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'andy_goat')      { _drawAndyPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'shooshi_sushi')  { _drawShooShiPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'kardia_void')    { _drawKardiaPattern(canvas, ctx, W, H, t);             return; }
+  if (type === 'jasmine_ribcage'){ _drawJasminePattern(canvas, ctx, W, H, t);            return; }
+  if (type === 'cory_office')    { _drawCoryPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'rook_slam')      { _drawRookPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'starry_aero')    { _drawStarryPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'haru_parasite')  { _drawHaruPattern(canvas, ctx, W, H, t);                return; }
@@ -26769,6 +28055,8 @@ function startBgAnim(type, params) {
   _drawShooShiOverlay._lt     = undefined;
   _drawKardiaPattern._lt      = undefined;
   _drawKardiaOverlay._lt      = undefined;
+  _drawJasminePattern._lt     = undefined;
+  _drawCoryPattern._lt        = undefined;
   _drawRookPattern._lt        = undefined;
   _drawStarryPattern._lt      = undefined;
   _drawHaruPattern._lt        = undefined;
@@ -26847,6 +28135,8 @@ function stopBgAnim() {
   _stopAndyOverlay();
   _stopShooShiOverlay();
   _stopKardiaOverlay();
+  _stopJasmineOverlay();
+  _stopCoryOverlay();
   _stopRookOverlay();
   _stopStarryOverlay();
   _stopBlackjackOverlay();
@@ -27144,6 +28434,7 @@ function openCharContextMenu(e, charId) {
   requestAnimationFrame(() => {
     const mw = menu.offsetWidth, mh = menu.offsetHeight;
     const x = (e.clientX + mw > window.innerWidth) ? e.clientX - mw : e.clientX;
+
     const y = (e.clientY + mh > window.innerHeight) ? e.clientY - mh : e.clientY;
     menu.style.left = x + 'px';
     menu.style.top = y + 'px';
@@ -27381,6 +28672,8 @@ function viewChar(id) {
   else if (_isAndy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e07b39'); }
   else if (_isShooShi(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b07be8'); }
   else if (_isKardia(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf5fd6'); }
+  else if (_isJasmine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff48c4'); }
+  else if (_isCory(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9b44a'); }
   else if (_isRook(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf4436'); }
   else if (_isStarry(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fcf'); }
   else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
@@ -27537,6 +28830,23 @@ function viewChar(id) {
       if (_av) _av.classList.remove('iris-pfp');
       if (_nm) { _nm.classList.remove('iris-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name')) _nm.removeAttribute('data-text'); }
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Jasmine: liquid-chrome reliquary UI chrome (brushed-metal panels rimmed
+  // in electric magenta, a chrome-and-magenta name, a polished portrait). ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isJasmine(c)) {
+      _cvRoot.classList.add('jasmine-ui');
+      if (_av) _av.classList.add('jasmine-pfp');
+      if (_nm) { _nm.classList.add('jasmine-name'); _nm.setAttribute('data-text', _nm.textContent || 'JASMINE'); }
+    } else {
+      _cvRoot.classList.remove('jasmine-ui');
+      if (_av) _av.classList.remove('jasmine-pfp');
+      if (_nm) _nm.classList.remove('jasmine-name');
     }
   }
 
@@ -28188,7 +29498,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -28200,7 +29510,7 @@ function viewChar(id) {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -28279,6 +29589,8 @@ function viewChar(id) {
   if (_isAndy(c))     _startAndyOverlay();
   if (_isShooShi(c))  _startShooShiOverlay();
   if (_isKardia(c))   _startKardiaOverlay();
+  if (_isJasmine(c))  _startJasmineOverlay();
+  if (_isCory(c))     _startCoryOverlay();
   if (_isRook(c))     _startRookOverlay();
   if (_isStarry(c))   _startStarryOverlay();
   if (_isHaru(c))     _startHaruOverlay();
@@ -31186,9 +32498,9 @@ const ROLE_LABELS = { dps: 'DPS', tank: 'TANK', assassin: 'ASSASSIN', support: '
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic', 'hexxed', 'duality', 'determined'];
 const RARITY_LABEL = { common: 'COMMON', rare: 'RARE', epic: 'EPIC', legendary: 'LEGENDARY', mythic: 'MYTHIC', hexxed: 'HEXXED', duality: 'DUALITY', determined: 'DETERMINED' };
 
-const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
+//const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
 
-//const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 10, mythic: 55, hexxed: 2, duality: 2, determined: 0 };
+const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 30, mythic: 55, hexxed: 2, duality: 2, determined: 0 };
 
 const PITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 68.9, mythic: 25, hexxed: 1, duality: 5, determined: 0.1 };
 
@@ -33617,7 +34929,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -33673,6 +34985,8 @@ window.addEventListener('resize', () => {
       if (_isAndy(c))     _startAndyOverlay();
       if (_isShooShi(c))  _startShooShiOverlay();
       if (_isKardia(c))   _startKardiaOverlay();
+      if (_isJasmine(c))  _startJasmineOverlay();
+      if (_isCory(c))     _startCoryOverlay();
       if (_isRook(c))     _startRookOverlay();
       if (_isStarry(c))   _startStarryOverlay();
       if (_isHaru(c))     _startHaruOverlay();

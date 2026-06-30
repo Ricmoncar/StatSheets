@@ -4214,6 +4214,93 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
+   JASMINE -- liquid-chrome reliquary. Panels are brushed metal
+   rimmed in a single thread of electric magenta; the name runs
+   like polished chrome under a magenta light; the portrait sits
+   in a mirror-bright ring haloed in magenta. Aura only.
+   ============================================================ */
+#char-view.jasmine-ui .panel {
+  --p-border: #ff48c4;
+  border-color: rgba(255,72,196,0.5);
+  background:
+    linear-gradient(180deg, rgba(60,62,72,0.55) 0%, rgba(0,0,0,0) 14%),
+    radial-gradient(120% 90% at 50% 0%, rgba(70,16,58,0.45), rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, rgba(16,12,18,0.97), rgba(6,4,8,0.99));
+  box-shadow:
+    0 0 26px rgba(255,72,196,0.16),
+    inset 0 1px 0 0 rgba(255,255,255,0.12),
+    inset 0 0 36px rgba(60,12,48,0.4),
+    inset 0 0 0 1px rgba(255,120,230,0.12);
+}
+/* a single hairline thread of magenta light along the top */
+#char-view.jasmine-ui .panel::before {
+  content: "";
+  position: absolute; left: 10%; right: 10%; top: 0; height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,130,235,0.9), transparent);
+  box-shadow: 0 0 10px rgba(255,90,220,0.75);
+}
+#char-view.jasmine-ui .panel-title {
+  color: #ffd0f3 !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  border-bottom-color: rgba(255,72,196,0.3);
+  text-shadow: 0 0 14px rgba(255,72,196,0.7);
+}
+#char-view.jasmine-ui .tab-btn { color: #8a5a86; }
+#char-view.jasmine-ui .tab-btn:hover { color: #ffbdec; text-shadow: 0 0 12px rgba(255,90,220,0.6); }
+#char-view.jasmine-ui .tab-btn.active {
+  color: #ffe3f7;
+  border-bottom-color: #ff48c4;
+  text-shadow: 0 0 16px rgba(255,72,196,0.9);
+}
+/* Name: polished chrome swept by a magenta light, breathing on a slow beat */
+.char-name-display.jasmine-name {
+  position: relative;
+  letter-spacing: 7px;
+  font-weight: normal;
+  background-image: linear-gradient(100deg, #6a6e7a 0%, #e8ebf2 26%, #ff7be6 46%, #ffffff 52%, #ff7be6 58%, #e8ebf2 74%, #6a6e7a 100%);
+  background-size: 260% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent !important;
+  filter: drop-shadow(0 0 12px rgba(255,72,196,0.5));
+  animation: jasmine-beat 2.8s ease-in-out infinite, jasmine-sheen 6s linear infinite;
+}
+.char-name-display.jasmine-name::before {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0;
+  -webkit-text-fill-color: rgba(255,90,220,0.16); color: rgba(255,90,220,0.16);
+  filter: blur(6px); z-index: -1; pointer-events: none;
+}
+@keyframes jasmine-beat {
+  0%, 12%, 100% { filter: drop-shadow(0 0 12px rgba(255,72,196,0.5)); }
+  5% { filter: drop-shadow(0 0 22px rgba(255,120,235,0.95)); }
+  9% { filter: drop-shadow(0 0 16px rgba(255,120,235,0.7)); }
+}
+@keyframes jasmine-sheen { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+/* Portrait: a mirror-bright ring haloed in magenta */
+.char-avatar-large.jasmine-pfp {
+  border-color: rgba(255,120,235,0.75) !important;
+  box-shadow:
+    0 0 24px rgba(255,72,196,0.5),
+    0 0 60px rgba(180,30,150,0.22),
+    inset 0 0 18px rgba(10,4,12,0.6);
+  overflow: visible;
+}
+.char-avatar-large.jasmine-pfp::after {
+  content: "";
+  position: absolute; inset: -7px; border-radius: inherit;
+  border: 1px solid rgba(255,150,240,0.45);
+  box-shadow: 0 0 14px rgba(255,120,235,0.5);
+  pointer-events: none;
+  animation: jasmine-halo 2.8s ease-in-out infinite;
+}
+@keyframes jasmine-halo {
+  0%, 12%, 100% { transform: scale(1); opacity: 0.5; }
+  5% { transform: scale(1.07); opacity: 0.9; }
+}
+
+/* ============================================================
    ROOK — a big dumb rook slamming around a chessboard. Checkered menus,
    a heavy stone-slab name and a board-tiled portrait. FUCK?
    ============================================================ */
