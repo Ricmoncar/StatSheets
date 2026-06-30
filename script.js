@@ -19661,6 +19661,9 @@ function _coryDrawOffice(ctx, W, H, sc) {
   ctx.fillStyle = '#1e1e22'; ctx.beginPath(); ctx.moveTo(W * 0.235, deskTop + 8 * sc); ctx.lineTo(W * 0.268, deskTop + 20 * sc); ctx.lineTo(W * 0.205, deskTop + 20 * sc); ctx.closePath(); ctx.fill();
 }
 
+// office light/door state per side (0 = left, 1 = right) — both start off/open
+let _coryLightOn = [false, false], _coryDoorClosed = [false, false];
+
 // self-lit sources that pierce the dark + live feedback for the doors/lights
 function _coryGlows(ctx, W, H, t, sc) {
   const PI2 = Math.PI * 2, L = _coryLayout(W, H, sc);
@@ -32498,9 +32501,9 @@ const ROLE_LABELS = { dps: 'DPS', tank: 'TANK', assassin: 'ASSASSIN', support: '
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic', 'hexxed', 'duality', 'determined'];
 const RARITY_LABEL = { common: 'COMMON', rare: 'RARE', epic: 'EPIC', legendary: 'LEGENDARY', mythic: 'MYTHIC', hexxed: 'HEXXED', duality: 'DUALITY', determined: 'DETERMINED' };
 
-//const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
+const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01, determined: 0.005 };
 
-const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 30, mythic: 55, hexxed: 2, duality: 2, determined: 0 };
+//const RARITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 30, mythic: 55, hexxed: 2, duality: 2, determined: 0 };
 
 const PITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 68.9, mythic: 25, hexxed: 1, duality: 5, determined: 0.1 };
 
