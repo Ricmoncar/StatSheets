@@ -1804,13 +1804,15 @@ let _themePendingKey       = null; // set when play() is blocked by autoplay pol
 const _themeTimestamps = new Map(); // charId -> seconds (session-only)
 const THEME_MAX_MB = 20;
 
-const CLOUDINARY_CLOUD = 'dhlik6lkn';
+const CLOUDINARY_CLOUD = 'dhdfz1iud';
 const CLOUDINARY_PRESET = 'statsheets';
 // Second, independent Cloudinary account used as a hot backup. Uploads are
 // mirrored to it at the SAME public_id, so if the primary ever fails to deliver
 // (outage or monthly-credit cap), the very same asset is served from here just
 // by swapping the cloud name in the URL.
-const CLOUDINARY_CLOUD_2 = 'dhdfz1iud';
+// (dhlik6lkn was the original primary; it got disabled for exceeding its
+// usage limit, so dhdfz1iud is now primary and dhlik6lkn sits here as backup.)
+const CLOUDINARY_CLOUD_2 = 'dhlik6lkn';
 const CLOUDINARY_PRESET_2 = 'statsheets';
 
 // rewrite a primary-account Cloudinary URL to point at the backup account

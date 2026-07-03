@@ -3,7 +3,7 @@
 // ============================================================
 
 // ── Cloudinary ────────────────────────────────────────────
-const CLOUDINARY_CLOUD  = 'dhlik6lkn';
+const CLOUDINARY_CLOUD  = 'dhdfz1iud';
 const CLOUDINARY_PRESET = 'statsheets';
 // Firestore hard cap is 1,048,576 bytes per document.
 // We route an image to Cloudinary if storing it inline would push the
