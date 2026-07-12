@@ -517,6 +517,27 @@ input[type=number] { -moz-appearance: textfield; }
   from { transform: scaleY(1); filter: brightness(calc(0.7 + var(--i) * 0.04)); }
   to { transform: scaleY(1.3); filter: brightness(calc(1.1 + var(--i) * 0.04)); }
 }
+
+/* NARA — always show a rainbow sheen over her filled stat bars, layered on
+   top of whatever tier coloring would normally apply underneath. */
+@keyframes naraStatRbw {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.stat-seg.fill-fg.nara-rbw-fill.on::before,
+.stat-seg.fill-fg.nara-rbw-fill.peak::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(90deg,
+    #ff5f5f, #ffb347, #fff35c, #6dff6d, #5cd1ff, #9a7bff, #ff7bf0, #ff5f5f);
+  background-size: 200% 100%;
+  mix-blend-mode: overlay;
+  opacity: 0.85;
+  animation: naraStatRbw 3s linear infinite;
+  pointer-events: none;
+}
 /* === TIER 0 (base) === */
 .stat-seg.on.hp   { background: #00cc66; border-color: #00aa55; }
 .stat-seg.on.atk  { background: #cc2222; border-color: #aa1111; }

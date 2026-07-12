@@ -2653,7 +2653,13 @@ function _renderStatSegsFrame(val, key) {
     document.getElementById(`e-${key}-segs`)
   ].filter(t => !!t);
 
+  // Nara always gets a rainbow overlay across her filled stat bars, on top of
+  // whatever tier styling would normally show — but only on the read-only
+  // character-view bars, not the editor's raw sliders.
+  const _naraRbw = _isNara(characters.find(x => x.id === currentId));
+
   targets.forEach(wrap => {
+    const isViewBars = wrap.id.startsWith('stat-segs-');
     // Initialize if empty or old DOM structure
     if (wrap.children.length !== SEG_COUNT || !wrap.children[0].classList.contains('stat-seg-wrap')) {
       wrap.innerHTML = Array.from({ length: SEG_COUNT }, (_, i) =>
@@ -2677,7 +2683,7 @@ function _renderStatSegsFrame(val, key) {
       const isOn = fillPct > 0;
 
       bg.className = `stat-seg ghost-bg ${key}`;
-      fg.className = `stat-seg fill-fg ${key}`;
+      fg.className = `stat-seg fill-fg ${key}${(_naraRbw && isViewBars) ? ' nara-rbw-fill' : ''}`;
 
       fg.style.clipPath = `polygon(0 0, ${fillPct}% 0, ${fillPct}% 100%, 0 100%)`;
 
@@ -30136,8 +30142,8 @@ function renderEditorForms() {
   const addBtn = document.getElementById('add-form-btn');
   const countEl = document.getElementById('forms-count');
   if (!wrap) return;
-  if (countEl) countEl.textContent = `(${_editorForms.length}/4)`;
-  if (addBtn) addBtn.disabled = _editorForms.length >= 4;
+  if (countEl) countEl.textContent = `(${_editorForms.length}/12)`;
+  if (addBtn) addBtn.disabled = _editorForms.length >= 12;
 
   if (!_editorForms.length) {
     wrap.innerHTML = `<div style="color:#3a3a3a;font-size:8px;letter-spacing:1px;padding:10px 0 4px;">NO ALTERNATE FORMS YET.</div>`;
@@ -30245,7 +30251,7 @@ function renderEditorForms() {
 }
 
 function addEditorForm() {
-  if (_editorForms.length >= 4) return;
+  if (_editorForms.length >= 12) return;
   _editorForms.push({
     name: '',
     avatar: null,
