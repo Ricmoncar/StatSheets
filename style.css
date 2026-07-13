@@ -1428,6 +1428,376 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 /* ============================================================
+   JUKO's "0∞" — corrupted/unhinged alt form. Stays HER green (this is
+   still Juko, just breaking down) with red/white as brief corruption
+   spikes, never the resting colour. The Code Garden chrome above
+   (.juko-ui) still applies; this stacks on top and cranks everything to
+   a permanent, never-settling breakdown: a shaking viewport, strobing
+   panel edges, a torn pfp frame, a name that never stops scrambling —
+   and (.juko-0inf-page) the glitch reaches past the character page
+   entirely, into the top nav and sidebar too.
+   ============================================================ */
+#char-view.juko-0inf {
+  animation: juko0-shake 0.22s steps(2, end) infinite;
+}
+@keyframes juko0-shake {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-1px, 1px); }
+  40%  { transform: translate(1px, -1px); }
+  60%  { transform: translate(-1px, 0); }
+  80%  { transform: translate(1px, 1px); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes juko0-shake-lite {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-1px, 0); }
+  50% { transform: translate(1px, 1px); }
+  75% { transform: translate(0, -1px); }
+}
+@keyframes juko0-strobe {
+  0%, 60%, 100% { color: var(--char-color, #4ade5a); }
+  68%           { color: #9bff3a; }              /* acid-lime spike */
+  76%           { color: #ffffff; }              /* blown-white spike */
+  84%           { color: var(--char-color, #4ade5a); }
+}
+@keyframes juko0-border-flicker {
+  0%, 60%, 100% { border-color: var(--char-color, #4ade5a); }
+  68% { border-color: #9bff3a; }                 /* acid-lime spike */
+  70% { border-color: var(--char-color, #4ade5a); }
+  82% { border-color: #ffffff; }                 /* blown-white spike */
+  84% { border-color: var(--char-color, #4ade5a); }
+  92% { border-color: transparent; }
+  93% { border-color: var(--char-color, #4ade5a); }
+}
+
+/* Panels: jagged strobing border instead of the calm borderless chrome */
+#char-view.juko-0inf .panel {
+  border: 1px solid var(--char-color, #4ade5a) !important;
+  animation: juko0-border-flicker 1.4s steps(1, end) infinite;
+}
+#char-view.juko-0inf .panel-title {
+  animation: juko0-strobe 0.9s steps(1, end) infinite;
+  text-shadow: 0 0 10px var(--char-color, #4ade5a), 0 0 2px #fff !important;
+}
+#char-view.juko-0inf .panel-title::after { animation: juko-header-sweep 0.8s linear infinite; }
+
+/* Tabs (STATS/STYLE/INFO/MUSIC/ABILITIES): flicker their frames + shudder */
+#char-view.juko-0inf .tab-btn {
+  animation: juko0-border-flicker 1.5s steps(1, end) infinite, juko0-shake-lite 0.5s steps(2, end) infinite;
+}
+#char-view.juko-0inf .tab-btn:nth-child(2) { animation-delay: -0.4s, -0.2s; }
+#char-view.juko-0inf .tab-btn:nth-child(3) { animation-delay: -0.8s, -0.35s; }
+#char-view.juko-0inf .tab-btn:nth-child(4) { animation-delay: -0.2s, -0.15s; }
+#char-view.juko-0inf .tab-btn:nth-child(5) { animation-delay: -1.1s, -0.45s; }
+#char-view.juko-0inf .tab-btn.active { animation: juko0-strobe 0.7s steps(1, end) infinite, juko0-shake-lite 0.4s steps(2, end) infinite; }
+/* CMP / EDIT / DEL action buttons shudder + flicker too */
+#char-view.juko-0inf .char-view-actions .btn,
+#char-view.juko-0inf .cv-actions .btn {
+  animation: juko0-shake-lite 0.5s steps(2, end) infinite;
+}
+/* Stat rows twitch out of alignment, staggered so they never sync */
+#char-view.juko-0inf .stat-row {
+  animation: juko0-shake-lite 0.45s steps(2, end) infinite;
+}
+#char-view.juko-0inf .stat-row:nth-child(2n) { animation-delay: -0.22s; }
+#char-view.juko-0inf .stat-row:nth-child(3n) { animation-delay: -0.34s; }
+/* Trait cards + inventory jitter as well */
+#char-view.juko-0inf .trait-card,
+#char-view.juko-0inf .inv-card {
+  animation: juko0-shake-lite 0.6s steps(2, end) infinite;
+}
+
+/* PFP: torn, static-riddled corrupted frame */
+#char-view.juko-0inf .char-avatar-large.juko-pfp {
+  animation: juko0-shake 0.18s steps(2, end) infinite;
+  filter: contrast(1.35) saturate(1.5);
+}
+#char-view.juko-0inf .char-avatar-large.juko-pfp::before {
+  animation: juko-pfp-scan 0.9s linear infinite;
+  opacity: 0.85;
+}
+#char-view.juko-0inf .char-avatar-large.juko-pfp::after {
+  border-color: var(--char-color, #4ade5a);
+  animation: juko0-border-flicker 0.7s steps(1, end) infinite;
+}
+#char-view.juko-0inf .juko-pfp-tag {
+  animation: juko0-strobe 0.5s steps(1, end) infinite, juko-tag-blink 0.4s steps(1, end) infinite;
+  text-shadow: 0 0 6px var(--char-color, #4ade5a), 0 0 12px rgba(74, 222, 90, 0.6);
+}
+
+/* NAME: never settles — permanent violent split + colour strobe. The split
+   ghosts are recoloured to the GREEN family (acid-lime + cyan), not red/cyan. */
+#char-view.juko-0inf .char-name-display.juko-name {
+  animation: juko0-strobe 0.5s steps(1, end) infinite;
+}
+#char-view.juko-0inf .char-name-display.juko-name::before {
+  color: #9bff3a !important;                 /* acid-lime ghost (was red) */
+  animation: juko-name-glitch-a 0.45s steps(2, end) infinite;
+  transform: translate(-4px, 0);
+  opacity: 0.95;
+}
+#char-view.juko-0inf .char-name-display.juko-name::after {
+  color: #2fe6ff !important;                 /* cyan ghost (green family) */
+  animation: juko-name-glitch-b 0.35s steps(2, end) infinite;
+  transform: translate(4px, 0);
+  opacity: 0.95;
+}
+
+/* ── .juko-0inf-page: the breakdown isn't contained to her page — the
+   WHOLE app UI (logo, top nav, sidebar) glitches while she's in this form. ── */
+body.juko-0inf-page #logo {
+  animation: juko0-strobe 1.1s steps(1, end) infinite, juko0-shake-lite 0.5s steps(2, end) infinite;
+}
+body.juko-0inf-page #header-btns .btn {
+  animation: juko0-border-flicker 1.8s steps(1, end) infinite, juko0-shake-lite 0.6s steps(2, end) infinite;
+  border: 1px solid var(--fg, #4ade5a);
+}
+body.juko-0inf-page #header-btns .btn:nth-child(2) { animation-delay: -0.3s, -0.2s; }
+body.juko-0inf-page #header-btns .btn:nth-child(3) { animation-delay: -0.6s, -0.4s; }
+body.juko-0inf-page #header-btns .btn:nth-child(4) { animation-delay: -0.9s, -0.1s; }
+body.juko-0inf-page #header-btns .btn:nth-child(5) { animation-delay: -1.2s, -0.5s; }
+body.juko-0inf-page #header-btns .btn:nth-child(6) { animation-delay: -0.15s, -0.35s; }
+body.juko-0inf-page #sidebar {
+  animation: juko0-shake-lite 0.7s steps(2, end) infinite;
+  border-color: #4ade5a;
+}
+body.juko-0inf-page #sidebar-title span:first-child {
+  animation: juko0-strobe 1.3s steps(1, end) infinite;
+}
+body.juko-0inf-page #sidebar-search {
+  animation: juko0-border-flicker 1.6s steps(1, end) infinite;
+}
+body.juko-0inf-page .char-entry {
+  animation: juko0-shake-lite 0.8s steps(2, end) infinite;
+}
+body.juko-0inf-page .char-entry:nth-child(2n) { animation-delay: -0.3s; }
+body.juko-0inf-page .char-entry:nth-child(3n) { animation-delay: -0.5s; }
+body.juko-0inf-page .char-entry.active {
+  animation: juko0-border-flicker 1s steps(1, end) infinite, juko0-shake-lite 0.5s steps(2, end) infinite;
+  border-left: 2px solid #4ade5a;
+}
+/* The entire app frame gets a slow drift-shudder so nothing is ever still */
+body.juko-0inf-page #app {
+  animation: juko0-shake-lite 1.1s steps(3, end) infinite;
+}
+/* Rare full-page green invert punch, driven purely by CSS, over everything */
+body.juko-0inf-page::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  pointer-events: none;
+  mix-blend-mode: difference;
+  background: #0a3a12;
+  opacity: 0;
+  animation: juko0-page-invert 5.5s steps(1, end) infinite;
+}
+@keyframes juko0-page-invert {
+  0%, 93%, 100% { opacity: 0; }
+  94% { opacity: 0.34; }
+  95% { opacity: 0; }
+  97% { opacity: 0.24; }
+  98% { opacity: 0; }
+}
+/* A faint scan/tear band that rolls down the whole page in CSS (complements
+   the canvas one, and keeps rolling even if the overlay canvas is scrolled). */
+body.juko-0inf-page::before {
+  content: "";
+  position: fixed;
+  left: 0; right: 0;
+  height: 42px;
+  z-index: 99997;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(120,255,120,0.10) 45%, rgba(230,255,230,0.14) 50%, rgba(120,255,120,0.10) 55%, transparent);
+  mix-blend-mode: screen;
+  animation: juko0-page-scan 2.6s linear infinite;
+}
+@keyframes juko0-page-scan {
+  0%   { top: -60px; }
+  100% { top: 100%; }
+}
+
+/* ── ATK/DEF/MAG/IQ read "∞" — big, bold, unmissable, with a soft pulsing
+   glow like the display is straining to render a number that doesn't fit.
+   Flashes acid-white briefly when JS swaps it to her real value. ── */
+.juko0-stat-inf {
+  display: inline-block;
+  font-size: 17px;
+  line-height: 1;
+  font-weight: bold;
+  vertical-align: -3px;
+  transform: scale(1.15);
+  transform-origin: right center;
+  text-shadow: 0 0 6px var(--char-color, #4ade5a), 0 0 14px rgba(74, 222, 90, 0.5);
+  animation: juko0-inf-pulse 1.8s ease-in-out infinite;
+}
+@keyframes juko0-inf-pulse {
+  0%, 100% { opacity: 0.85; text-shadow: 0 0 6px var(--char-color, #4ade5a), 0 0 14px rgba(74, 222, 90, 0.5); }
+  50%      { opacity: 1;    text-shadow: 0 0 12px var(--char-color, #4ade5a), 0 0 26px rgba(74, 222, 90, 0.8); }
+}
+.juko0-stat-inf.juko0-stat-flash {
+  animation: none;
+  opacity: 1;
+  color: #f2fff0;
+  text-shadow: 0 0 8px #ffffff, 0 0 18px #9bff3a;
+}
+
+/* Tier badge: [T∞] instead of [T5] — brighter + its own slow pulse so it
+   doesn't just look like a regular tier number. (JS only ever adds this class
+   to ATK/DEF/MAG/IQ's tier badges, never HP/SPD.) */
+.juko0-tier-inf {
+  color: var(--char-color, #4ade5a) !important;
+  font-size: 9px;
+  text-shadow: 0 0 6px var(--char-color, #4ade5a);
+  animation: juko0-inf-pulse 1.8s ease-in-out infinite;
+}
+
+/* Stat bar: a dedicated "infinite" style for ATK/DEF/MAG/IQ — always full,
+   scrolling diagonal shimmer, distinct from every numbered tier's fill. */
+.stat-seg.ghost-bg.juko0-inf-bg {
+  background: #04180a;
+  border-color: #0e3a1a;
+}
+.stat-seg.fill-fg.juko0-inf-fg {
+  background-image: repeating-linear-gradient(135deg,
+    #12481f 0px, #12481f 6px, #2fef5a 6px, #2fef5a 12px);
+  background-size: 200% 200%;
+  border-color: #8dffa8;
+  box-shadow: 0 0 6px rgba(74, 222, 90, 0.5);
+  animation: juko0-inf-shimmer 1.1s linear infinite, juko0-inf-barglow 1.8s ease-in-out infinite;
+  animation-delay: calc(var(--i2, 0) * -0.05s), calc(var(--i2, 0) * -0.05s);
+}
+@keyframes juko0-inf-shimmer {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: -48px 0%; }
+}
+@keyframes juko0-inf-barglow {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50%      { filter: brightness(1.4) saturate(1.5); }
+}
+
+/* ── Traits: rarity doesn't matter anymore in the breakdown — every trait
+   card (common through mythic, shimmyful or not) gets pulled into the same
+   corrupted green terminal look. High specificity (#char-view.juko-0inf …)
+   beats every rarity/shimmy rule's animation + box-shadow outright. ── */
+#char-view.juko-0inf .trait-chip {
+  --c-fg: #d9ffb0;
+  --c-bg: #04140a;
+  --c-border: #4ade5a;
+  --c-glow: rgba(74, 222, 90, 0.6);
+  background: linear-gradient(135deg, #04140a 0%, #000 130%);
+  border: 2px solid #4ade5a;
+  font-family: "Courier New", monospace;
+  box-shadow: 0 0 10px rgba(74, 222, 90, 0.3);
+  animation: juko0-trait-flicker 2.6s steps(1, end) infinite;
+}
+#char-view.juko-0inf .trait-chip:hover {
+  box-shadow: 0 0 22px rgba(155, 255, 58, 0.55), 0 6px 18px rgba(0, 0, 0, 0.6);
+}
+#char-view.juko-0inf .trait-chip::before,
+#char-view.juko-0inf .trait-chip::after {
+  display: none;   /* neutralize any rarity-specific sweep/shimmer overlays */
+}
+#char-view.juko-0inf .trait-chip-rarity {
+  border-color: #4ade5a;
+  color: #9bff3a;
+  background: rgba(0, 20, 8, 0.6);
+}
+#char-view.juko-0inf .trait-chip-name {
+  color: #d9ffb0;
+  animation: juko0-strobe 1.4s steps(1, end) infinite;
+}
+#char-view.juko-0inf .trait-chip-desc {
+  color: #9fd6a4;
+}
+#char-view.juko-0inf .trait-chip .shimmy-star {
+  color: #9bff3a;
+  text-shadow: 0 0 6px rgba(155, 255, 58, 0.9);
+}
+@keyframes juko0-trait-flicker {
+  0%, 88%, 100% { border-color: #4ade5a; box-shadow: 0 0 10px rgba(74, 222, 90, 0.3); }
+  90% { border-color: #9bff3a; box-shadow: 0 0 20px rgba(155, 255, 58, 0.65); }
+  92% { border-color: #4ade5a; box-shadow: 0 0 10px rgba(74, 222, 90, 0.3); }
+}
+/* Reroll/trigger buttons under the trait card follow suit */
+#char-view.juko-0inf .trait-trigger-btn {
+  border-color: #4ade5a;
+  color: #d9ffb0;
+  animation: juko0-border-flicker 1.8s steps(1, end) infinite;
+}
+
+/* ── Floating glitched-pfp "windows" — little corrupted OS dialogs showing her
+   0∞ portrait through broken filters, drifting + shuddering over the page. JS
+   creates/positions/refilters them; CSS owns the frame + drift + shake. ── */
+.juko0-win {
+  position: fixed;
+  z-index: 99990;
+  pointer-events: none;
+  background: #030b05;
+  border: 1px solid #4ade5a;
+  box-shadow: 0 0 14px rgba(74, 222, 90, 0.5), inset 0 0 8px rgba(74, 222, 90, 0.25);
+  overflow: hidden;
+  translate: 0 0;
+  rotate: 0deg;
+  scale: 1;
+  animation:
+    juko0-win-drift var(--jw-drift, 3s) ease-in-out var(--jw-delay, 0s) infinite alternate,
+    juko0-win-jitter 0.24s steps(3, jump-end) infinite,
+    juko0-win-flicker 2.2s steps(1, end) infinite var(--jw-delay, 0s);
+}
+.juko0-win-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 14px; padding: 0 4px;
+  background: linear-gradient(90deg, #0c3a18, #14622a);
+  border-bottom: 1px solid #4ade5a;
+}
+.juko0-win-title {
+  font-family: "Courier New", monospace;
+  font-size: 7px; letter-spacing: 1px; color: #d6ffcf;
+  animation: juko0-strobe 0.7s steps(1, end) infinite;
+}
+.juko0-win-x { font-family: "Courier New", monospace; font-size: 7px; color: #9bff3a; }
+.juko0-win-body { position: relative; line-height: 0; }
+.juko0-win-body img {
+  width: 100%; display: block;
+  image-rendering: auto;
+  mix-blend-mode: screen;
+}
+.juko0-win-body::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,0.35) 2px 3px);
+  pointer-events: none;
+}
+/* Slow wander — more waypoints + a wider range than before, so the windows
+   visibly crawl around rather than barely nudging in place. */
+@keyframes juko0-win-drift {
+  0%   { translate: 0px 0px;    rotate: 0deg; }
+  20%  { translate: -18px 13px; rotate: -2.8deg; }
+  45%  { translate: 15px -17px; rotate: 3deg; }
+  70%  { translate: -11px -9px; rotate: -1.8deg; }
+  100% { translate: 19px 11px;  rotate: 2.4deg; }
+}
+/* Fast stepped jitter (composites on top of the drift via the separate `scale`
+   property, so it doesn't fight the translate/rotate animation) — a constant
+   tiny shudder like the window can't hold its own shape. */
+@keyframes juko0-win-jitter {
+  0%, 100% { scale: 1 1; }
+  33%      { scale: 1.02 0.98; }
+  66%      { scale: 0.98 1.02; }
+}
+/* Signal-loss flicker — brief opacity/brightness drops + spikes. */
+@keyframes juko0-win-flicker {
+  0%, 78%, 100% { opacity: 1;    filter: none; }
+  80%           { opacity: 0.3;  filter: none; }
+  82%           { opacity: 1;    filter: none; }
+  88%           { opacity: 0.5;  filter: brightness(1.9) saturate(2.2); }
+  90%           { opacity: 1;    filter: none; }
+  94%           { opacity: 0.15; filter: none; }
+  95%           { opacity: 1;    filter: none; }
+}
+
+/* ============================================================
    LUCIFER · UNLEASHED — demonic, over-the-top form styling.
    Crimson + black, molten panels, a menacing flickering name, an
    infernal portrait. Only applied while the Unleashed form is active.

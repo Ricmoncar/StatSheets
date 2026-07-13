@@ -1342,6 +1342,7 @@ function _isShi(c) { return !!(c && c.name && _SHI_RE.test(c.name)); }
 let _shiOverlayRafId = null;
 let _shiX = 0, _shiY = 0, _shiTargX = 0, _shiTargY = 0, _shiVX = 0, _shiVY = 0;
 let _shiTrail = [], _shiPetals = [], _shiRings = [], _shiEmit = 0;
+let _shiSmoke = [];   // drifting deep blue/grey smoke puffs around the page vignette
 
 // ── Lunar — goddess of the moon. Elegant, calm, slightly melancholic; deep dark
 // blues, a luminous moon centerpiece over a quiet starfield, drifting clouds and
@@ -1373,8 +1374,21 @@ let _zoeParts = [], _zoeRings = [], _zoeEmit = 0;
 // ── Iris — starry, shimmyful, joyous magical-girl energy: a twinkling golden
 // sky full of sparkles, glitter, drifting hearts and shooting stars over a warm
 // magical twilight. Character-wide (matches "Iris"). ──
+// Generic: name of a character's currently active alt form ('' if on BASE).
+// Used by any per-form page-theme variant (Iris's Lady of the Stars, Juko's 0∞…).
+function _activeFormName(c) {
+  if (!c) return '';
+  const idx = c.activeFormIdx || 0;
+  if (!idx) return '';
+  const f = (c.altForms || [])[idx - 1];
+  return f ? (f.name || '') : '';
+}
 const _IRIS_RE = /^Iris$/i;
 function _isIris(c) { return !!(c && c.name && _IRIS_RE.test(c.name)); }
+// "Lady of the Stars!" — Iris's magical-girl transformation alt form. Same
+// scene, leveled up into a brighter pink/gold radiant palette.
+const _IRIS_STARS_FORM_RE = /lady\s+of\s+the\s+stars/i;
+function _isIrisStarsForm(c) { return _isIris(c) && _IRIS_STARS_FORM_RE.test(_activeFormName(c)); }
 let _irisOverlayRafId = null;
 let _irisX = 0, _irisY = 0, _irisTargX = 0, _irisTargY = 0, _irisVX = 0, _irisVY = 0;
 let _irisParts = [], _irisRings = [], _irisEmit = 0;
@@ -1413,6 +1427,46 @@ function _mbBurgerFx(x, y) {
 // ── Juko! — energetic programmer girl (green code-garden + cat-sprite cursor) ──
 const _JUKO_RE = /^Juko!?$/i;
 function _isJuko(c) { return !!(c && c.name && _JUKO_RE.test(c.name)); }
+// "0∞" — Juko's corrupted/unhinged alt form: the same Code Garden, but the
+// program has crashed into an infinite loop and is tearing itself apart.
+const _JUKO_0INF_RE = /0\s*.?\s*∞|infinity/i;
+function _isJuko0Inf(c) { return !!(_isJuko(c) && _JUKO_0INF_RE.test(_activeFormName(c))); }
+// PERF: memoized current-character lookup so the per-frame Juko draws don't each
+// run characters.find() several times a frame. Cached by currentId; the object
+// reference is stable so activeFormIdx is still read live off it.
+let _jukoCurCache = { id: undefined, c: null };
+function _jukoCurChar() {
+  if (_jukoCurCache.id !== currentId) _jukoCurCache = { id: currentId, c: characters.find(x => x.id === currentId) || null };
+  return _jukoCurCache.c;
+}
+// ── 0∞ timing: a 22-second slow-building INTRO (synced to the song's intro)
+// then the DROP into full breakdown. Severity 0→~0.55 across the intro (eased),
+// then 0.55→1 over the 6s after the drop. Prefers the actual song position so
+// the visual drop lands exactly on the beat drop; falls back to wall-clock. ──
+const _JUKO_0INF_INTRO = 22;      // seconds of build-up before the drop
+let _juko0InfStart = 0;           // performance.now() at form entry (wall-clock fallback)
+let _juko0InfActive = false;      // true while the 0∞ form is being viewed
+let _juko0InfWinRafId = null;     // rAF driving window/screen messing + glitch windows
+let _juko0InfWinList = [];        // floating glitched-pfp window elements
+let _juko0InfNextWin = 0;         // next glitch-window (re)spawn time
+let _juko0InfGlitchNext = 0;      // next teleport/re-filter tick for an existing window
+// One-time "BOOM" the instant the 22s intro breaks — a global (not a
+// canvas-attached prop!) because the overlay canvas gets torn down/recreated
+// on every unrelated re-render; only _startJuko0InfExtras (a genuine 0∞ entry)
+// may reset these, so the boom fires exactly once per entry, right at the drop.
+let _juko0InfBoomFired = false;
+let _juko0InfBoomT0 = undefined;
+let _juko0InfBoomCracks = null;
+function _juko0InfElapsed() {
+  const a = (typeof _themeAudio !== 'undefined') ? _themeAudio : null;
+  if (a && _jukoEnvKey === _JUKO_0INF_THEME_SRC && !a.paused && !a.ended && a.currentTime > 0.05) return a.currentTime;
+  return _juko0InfStart ? (performance.now() - _juko0InfStart) / 1000 : 0;
+}
+function _juko0InfSev(elapsed) {
+  if (elapsed < _JUKO_0INF_INTRO) { const p = elapsed / _JUKO_0INF_INTRO; return p * p * 0.55; }
+  return Math.min(1, 0.55 + (elapsed - _JUKO_0INF_INTRO) / 6 * 0.45);
+}
+function _juko0InfDropped(elapsed) { return elapsed >= _JUKO_0INF_INTRO; }
 let _jukoOverlayRafId = null;
 let _jukoX = 0, _jukoY = 0;
 let _jukoTargX = 0, _jukoTargY = 0;
@@ -1422,6 +1476,16 @@ let _jukoHappyT  = 0;             // decays after click (happy ^^ eyes + blush)
 let _jukoParticles = [];          // code-symbol burst on click
 // Single-char glyphs for the falling matrix rain (code-flavoured)
 const _JUKO_RAIN = '01{}()<>[];=+*/&|!?:.#%abcdefijklmnoprstuvwxyz01'.split('');
+// 0∞ chaos variant — the loop has crashed; rain corrupts into 0s, infinities
+// and broken/error glyphs the longer the form stays active.
+const _JUKO_RAIN_CHAOS = '0∞0∞0∞18X#%¤×÷≠¿?!∞0{}<>[]()∞0'.split('');
+// Runtime-exception strings that flash across the 0∞ crash.
+const _JUKO_0INF_ERRORS = [
+  'RangeError: 0 / ∞', 'STACK OVERFLOW', 'while(true){ }', 'SEGFAULT 0x00',
+  'NaN', 'undefined is not a function', 'HEAP CORRUPTED', '∞ != ∞',
+  'FATAL: loop unbounded', 'MEMORY LEAK 0x∞', 'core dumped', 'return 0;// ∞',
+  'ERR_INFINITE_RECURSION', 'kernel panic', 'null → ∞', 'SIGKILL',
+];
 // Multi-char tokens that puff out when you click the sprite
 const _JUKO_TOKENS = ['{', '}', ';', '<', '>', '/', '=', '(', ')', '[', ']', '*', '+', '&&', '=>', '!', '0', '1', 'fn', '//'];
 // Little code snippets that fade in/out across the background
@@ -1801,6 +1865,12 @@ let _themeFadeTimer = null;
 let _themeBarAutoHideTimer = null; // slides bar to peeked after 1.5 s
 let _themeBarLeaveTimer    = null; // hides bar again after mouse leaves
 let _themePendingKey       = null; // set when play() is blocked by autoplay policy
+// PERF/correctness guard: every playThemeForCharacter() call claims the next
+// generation number. A deferred doLoad() (fired after an async crossfade) checks
+// it's still the latest request before touching _themeAudio — otherwise a rapid
+// form switch (e.g. base → 0∞ → base) could let a stale, in-flight fade-out
+// finish LAST and stomp the correct track back to whatever it was loading before.
+let _themeLoadGen = 0;
 const _themeTimestamps = new Map(); // charId -> seconds (session-only)
 const THEME_MAX_MB = 20;
 
@@ -1963,7 +2033,11 @@ function _getFormTheme(c, formIdx) {
   // be changed via upload, and any uploaded song is ignored for playback. This
   // also guarantees the played audio is byte-identical to the file the reactivity
   // envelope analyses (sounds/juko.mp3), so currentTime stays perfectly aligned.
-  if (_isJuko(c)) return { url: _JUKO_THEME_SRC, name: "JUKO'S THEME", startAt: 0, _jukoLocked: true };
+  if (_isJuko(c)) {
+    // 0∞ form gets its own locked track (RAGE) so playback == the analysed file.
+    if (_isJuko0Inf(c)) return { url: _JUKO_0INF_THEME_SRC, name: "0 ∞", startAt: 0, _jukoLocked: true };
+    return { url: _JUKO_THEME_SRC, name: "JUKO'S THEME", startAt: 0, _jukoLocked: true };
+  }
   if (formIdx === 0) return (c.info && c.info.themeSong) || null;
   const af = (c.altForms || [])[formIdx - 1];
   return (af && af.themeSong) || null;
@@ -2011,8 +2085,13 @@ function playThemeForCharacter(charId, overrideSong = null) {
   _themeCurrentSong = song;  // Cache the song being played
   _themePaused = false;
   const forceReload = _themeReloadKeys.has(key);
+  const myGen = ++_themeLoadGen;   // claim this as the latest desired track
 
   const doLoad = () => {
+    // A newer playThemeForCharacter() call has already superseded this one
+    // (e.g. the user flipped forms again while this fade-out was still running)
+    // — don't let a stale load stomp whatever the latest call is doing.
+    if (myGen !== _themeLoadGen) return;
     // Only cache-bust after a fresh upload — otherwise let the browser cache the file
     // so repeat visits to the same character start playing instantly.
     const isFreshUpload = _themeReloadKeys.has(key);
@@ -2034,6 +2113,7 @@ function playThemeForCharacter(charId, overrideSong = null) {
     _themeAudio.load();
     _themeAudio.currentTime = startAt;
     _themeAudio.play().catch(err => {
+      if (myGen !== _themeLoadGen) return;   // superseded while play() was pending
       // Browser autoplay policy blocks play before any user interaction.
       // Store the key so the first click/keydown retries it.
       if (err && err.name === 'NotAllowedError') {
@@ -2642,11 +2722,14 @@ function _renderStatSegsFrame(val, key) {
   const exactFilled = Math.max(0, Math.min(100, pct)) / 100 * SEG_COUNT;
   const fullFilled = Math.floor(exactFilled);
 
+  // 0∞: ATK/DEF/MAG/IQ read as an infinite tier too, on the view page only.
+  const _juko0InfBar = _JUKO0_INF_STAT_KEYS.includes(key) && _isJuko0Inf(characters.find(x => x.id === currentId));
+
   const tierEl1 = document.getElementById(`tier-disp-${key}`);
   const tierEl2 = document.getElementById(`e-tier-disp-${key}`);
-  const tierText = tier > 0 ? `[T${tier}]` : '';
-  if (tierEl1) tierEl1.textContent = tierText;
-  if (tierEl2) tierEl2.textContent = tierText;
+  const tierText = _juko0InfBar ? '[T∞]' : (tier > 0 ? `[T${tier}]` : '');
+  if (tierEl1) { tierEl1.textContent = tierText; tierEl1.classList.toggle('juko0-tier-inf', _juko0InfBar); }
+  if (tierEl2) tierEl2.textContent = tier > 0 ? `[T${tier}]` : '';   // editor always shows the real tier
 
   const targets = [
     document.getElementById(`stat-segs-${key}`),
@@ -2660,6 +2743,27 @@ function _renderStatSegsFrame(val, key) {
 
   targets.forEach(wrap => {
     const isViewBars = wrap.id.startsWith('stat-segs-');
+    // 0∞ infinite bar: a dedicated always-full, shimmering style — replaces
+    // the normal tier-colour fill entirely (editor sliders stay untouched).
+    if (_juko0InfBar && isViewBars) {
+      if (wrap.children.length !== SEG_COUNT || !wrap.children[0].classList.contains('stat-seg-wrap')) {
+        wrap.innerHTML = Array.from({ length: SEG_COUNT }, (_, i) =>
+          `<div class="stat-seg-wrap" style="--i: ${i}; flex: 1; position: relative;">
+             <div class="stat-seg ghost-bg" style="position:absolute; inset:0;"></div>
+             <div class="stat-seg fill-fg" style="position:absolute; inset:0; z-index:1; transition: background 0.2s, filter 0.2s;"></div>
+           </div>`
+        ).join('');
+      }
+      for (let i = 0; i < SEG_COUNT; i++) {
+        const segWrap = wrap.children[i];
+        const bg = segWrap.children[0], fg = segWrap.children[1];
+        bg.className = `stat-seg ghost-bg ${key} juko0-inf-bg`;
+        fg.className = `stat-seg fill-fg ${key} juko0-inf-fg`;
+        fg.style.clipPath = 'polygon(0 0,100% 0,100% 100%,0 100%)';
+        fg.style.setProperty('--i2', i);
+      }
+      return;
+    }
     // Initialize if empty or old DOM structure
     if (wrap.children.length !== SEG_COUNT || !wrap.children[0].classList.contains('stat-seg-wrap')) {
       wrap.innerHTML = Array.from({ length: SEG_COUNT }, (_, i) =>
@@ -6695,6 +6799,7 @@ function _jukoNewBokeh(W, H, scatter) {
     ph: Math.random() * Math.PI * 2,
     pulse: 1,
     yellow: Math.random() < 0.4,        // light-yellow vs green orb
+    corrupt: Math.random() < 0.32,      // used only in 0∞ chaos mode → red/magenta orb
   };
 }
 
@@ -6750,18 +6855,32 @@ let _jukoAudioOnset = 0;      // smoothed onset/beat strength 0..1
 let _jukoAudioBase  = 0;      // slow baseline (running average loudness)
 let _jukoAudioBeat  = 0;      // AC-coupled punch: how far ABOVE baseline we are
 
-// Hardcoded local copy of Juko's theme, used ONLY for analysis (same-origin →
-// fetch+decode always works, no CORS guessing). Drop her song here as juko.mp3.
+// Hardcoded local copies of Juko's themes, used ONLY for analysis (same-origin →
+// fetch+decode always works, no CORS guessing). Base garden song + the 0∞ track.
 const _JUKO_THEME_SRC = 'sounds/juko.mp3';
+const _JUKO_0INF_THEME_SRC = 'sounds/juko-0inf.mp3';
+// Which track SHOULD be analysed right now. Prefers the track ACTUALLY loaded
+// on the shared theme-audio element (ground truth for what's really audible)
+// over the character's current form state — a crossfade takes ~800ms, so if we
+// only trusted "what form is she on", the reactive envelope (and 0∞ severity/
+// intro timing, which reads _themeAudio.currentTime) could briefly point at a
+// track that isn't what's actually playing yet, or already stopped playing.
+function _jukoDesiredThemeSrc() {
+  const a = (typeof _themeAudio !== 'undefined') ? _themeAudio : null;
+  const loaded = a && a.dataset && a.dataset.trackUrl;
+  if (loaded === _JUKO_0INF_THEME_SRC || loaded === _JUKO_THEME_SRC) return loaded;
+  return _isJuko0Inf(_jukoCurChar()) ? _JUKO_0INF_THEME_SRC : _JUKO_THEME_SRC;
+}
 function _jukoEnsureEnvelope() {
-  if (_jukoEnvKey === _JUKO_THEME_SRC) return;        // already loaded / loading
-  _jukoEnvKey = _JUKO_THEME_SRC; _jukoEnv = null; _jukoAudioReal = false;
+  const src = _jukoDesiredThemeSrc();
+  if (_jukoEnvKey === src) return;                    // already loaded / loading this track
+  _jukoEnvKey = src; _jukoEnv = null; _jukoAudioReal = false;
   try { if (!_jukoAC) _jukoAC = new (window.AudioContext || window.webkitAudioContext)(); }
   catch (e) { return; }
-  fetch(_JUKO_THEME_SRC)
+  fetch(src)
     .then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
     .then(buf => _jukoAC.decodeAudioData(buf))
-    .then(audioBuf => { _jukoEnv = _jukoBuildEnvelope(audioBuf); _jukoAudioReal = true; })
+    .then(audioBuf => { if (_jukoEnvKey === src) { _jukoEnv = _jukoBuildEnvelope(audioBuf); _jukoAudioReal = true; } })
     .catch(() => { /* file not present yet → ambient fallback */ });
 }
 
@@ -6824,6 +6943,21 @@ function _jukoSampleAudio(dt) {
                       base: +_jukoAudioBase.toFixed(3), beat: +_jukoAudioBeat.toFixed(3), onset: +_jukoAudioOnset.toFixed(3) };
 }
 
+// PERF: pre-rendered soft-orb sprite (radial gradient → transparent). Drawing a
+// cached sprite scaled + alpha'd is identical to building a fresh radial gradient
+// per orb per frame, but allocates nothing — big win for the bokeh + rain heads.
+function _jukoSoftSprite(rgb) {
+  const key = '_s_' + rgb;
+  if (_jukoSoftSprite[key]) return _jukoSoftSprite[key];
+  const S = 128, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  rg.addColorStop(0, `rgba(${rgb},1)`);
+  rg.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = rg; g.fillRect(0, 0, S, S);
+  return _jukoSoftSprite[key] = c;
+}
+
 function _drawJukoPattern(canvas, ctx, W, H, t) {
   // 30fps cap (matches the other heavy patterns)
   if (_drawJukoPattern._lt !== undefined && t - _drawJukoPattern._lt < 0.033) return;
@@ -6834,37 +6968,70 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   _jukoSampleAudio(dt);
   const aL = _jukoAudioLevel, aO = _jukoAudioOnset;   // 0..1 loudness / beat
 
-  if (canvas._jukoW !== W || canvas._jukoH !== H) {
-    canvas._jukoW = W; canvas._jukoH = H;
+  // 0∞ — the Code Garden has crashed into an infinite loop. Same bones, WAY
+  // glitchier: void-black base, corrupted green rain, screen tears, invert
+  // flashes, scanroll, error spew. A 22-second INTRO builds it up (looks almost
+  // like the normal garden, glitches creeping in) then the DROP breaks it wide
+  // open. `sev` 0→1 drives intensity; `dropped` gates the full-blown palette.
+  const chaos = _isJuko0Inf(_jukoCurChar());
+  const elapsed = chaos ? _juko0InfElapsed() : 0;
+  const sev = chaos ? _juko0InfSev(elapsed) : 0;       // severity 0..1 (eased intro → drop)
+  const dropped = chaos ? _juko0InfDropped(elapsed) : false;
+  const ramp = sev;                                    // (effect amounts scale with severity)
+
+  if (canvas._jukoW !== W || canvas._jukoH !== H || canvas._jukoChaos !== chaos) {
+    canvas._jukoW = W; canvas._jukoH = H; canvas._jukoChaos = chaos;
     canvas._jukoCols = null; canvas._jukoBokeh = null; canvas._jukoVign = null;
     canvas._jukoHRows = null; canvas._jukoSnips = null;
+    canvas._jukoDropped = false;   // re-arm the one-time DROP punch
   }
 
-  // 1 ── Editor-dark base with a faint green tint
+  // 1 ── Editor-dark base with a faint green tint. In 0∞ the garden ROTS from
+  //      that green toward a void black across the intro; the flicker only kicks
+  //      in after the drop.
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
-  ctx.fillStyle = '#08130c';
+  if (chaos) {
+    const mix = (a, b, f) => Math.round(a + (b - a) * f);
+    if (dropped && Math.random() < 0.08 + aO * 0.25 + sev * 0.1) {
+      ctx.fillStyle = `rgb(4,${18 + (Math.random() * 22) | 0},8)`;
+    } else {
+      ctx.fillStyle = `rgb(${mix(8, 1, sev)},${mix(19, 4, sev)},${mix(12, 1, sev)})`;
+    }
+  } else {
+    ctx.fillStyle = '#08130c';
+  }
   ctx.fillRect(0, 0, W, H);
 
-  // 2 ── Soft bokeh orbs drifting up (green + light-yellow) — warm, fun energy
+  // 2 ── Soft bokeh orbs drifting up (green + light-yellow) — warm, fun energy;
+  //      a chunk corrupt into jittering toxic-green orbs after the drop.
+  //      PERF: normal orbs use a cached sprite (no per-orb gradient alloc).
   if (!canvas._jukoBokeh) {
     canvas._jukoBokeh = Array.from({ length: 26 }, () => _jukoNewBokeh(W, H, true));
   }
   ctx.globalCompositeOperation = 'lighter';
   const bokehBoost = 1 + aL * 0.9;
+  const orbGreen = _jukoSoftSprite('86,214,116'), orbYellow = _jukoSoftSprite('224,236,128');
   for (const b of canvas._jukoBokeh) {
-    b.y -= b.vy * dt * bokehBoost;
-    b.x += Math.sin(t * b.sw + b.ph) * b.sa * dt;
+    const glitching = dropped && b.corrupt;
+    b.y -= b.vy * dt * bokehBoost * (glitching ? 1.8 + sev * 1.4 : 1);
+    b.x += Math.sin(t * b.sw + b.ph) * b.sa * dt + (glitching && Math.random() < 0.04 + sev * 0.1 ? (Math.random() - 0.5) * (60 + sev * 90) : 0);
     b.pulse = (0.45 + 0.55 * Math.sin(t * b.pf + b.ph)) * (1 + aL * 0.5);
     if (b.y < -b.r) Object.assign(b, _jukoNewBokeh(W, H, false));
-    const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-    g.addColorStop(0, b.yellow
-      ? `rgba(224,236,128,${0.16 * b.pulse})`
-      : `rgba(86,214,116,${0.15 * b.pulse})`);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    if (glitching) {
+      // corrupt orbs randomize colour per frame → keep the (rarer) gradient path
+      ctx.globalAlpha = 1;
+      const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+      g.addColorStop(0, `rgba(${Math.random() < 0.5 ? 120 : 200},255,${Math.random() < 0.5 ? 90 : 160},${(0.2 + sev * 0.2) * b.pulse})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.globalAlpha = (b.yellow ? 0.16 : 0.15) * b.pulse;
+      ctx.drawImage(b.yellow ? orbYellow : orbGreen, b.x - b.r, b.y - b.r, b.r * 2, b.r * 2);
+    }
   }
+  ctx.globalAlpha = 1;
 
   // 3 ── Horizontal code tickers, scrolling left BEHIND the vertical rain
   if (!canvas._jukoHRows) {
@@ -6913,27 +7080,29 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   }
   const cols = canvas._jukoCols;
 
-  // 5a — advance columns + paint additive bloom behind each falling head
+  // 5a — advance columns + paint additive bloom behind each falling head.
+  //      PERF: bloom is a cached sprite drawn with alpha (was a per-column
+  //      radial gradient allocated every frame — the single biggest hot spot).
   ctx.globalCompositeOperation = 'lighter';
   const rainBoost = 1 + aL * 1.3;                 // streams race on loud parts
+  const headGreen = _jukoSoftSprite('150,246,150'), headYellow = _jukoSoftSprite('232,248,168');
   for (const col of cols) {
-    col.y += col.spd * dt * rainBoost;
-    col.mut -= dt * (1 + aL * 1.6);               // glyphs churn faster with energy
+    col.y += col.spd * dt * rainBoost * (1 + sev * 0.35);
+    col.mut -= dt * (1 + aL * 1.6) * (1 + sev * 1.4);   // rain corrupts faster as it worsens
     if (col.mut <= 0) {
       col.mut = 0.04 + Math.random() * 0.2;
+      const charset = (chaos && Math.random() < sev) ? _JUKO_RAIN_CHAOS : _JUKO_RAIN;
       col.glyphs[Math.floor(Math.random() * col.glyphs.length)] =
-        _JUKO_RAIN[Math.floor(Math.random() * _JUKO_RAIN.length)];
+        charset[Math.floor(Math.random() * charset.length)];
     }
     const hy = col.y;
     if (hy > -18 && hy < H + 18) {
       const gA = (col.yellow ? 0.55 : 0.48) * Math.min(1, 0.5 + col.bright * 0.7);
-      const gr = ctx.createRadialGradient(col.x, hy, 0, col.x, hy, 14);
-      gr.addColorStop(0, col.yellow ? `rgba(232,248,168,${gA})` : `rgba(150,246,150,${gA})`);
-      gr.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = gr;
-      ctx.beginPath(); ctx.arc(col.x, hy, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = gA;
+      ctx.drawImage(col.yellow ? headYellow : headGreen, col.x - 14, hy - 14, 28, 28);
     }
   }
+  ctx.globalAlpha = 1;
 
   // 5b — glyph streams (per-column brightness; whole field pulses with the music)
   const cf = 0.8 + aL * 0.7;            // loudness → overall brightness
@@ -6951,16 +7120,30 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
       const idx = (((headCell - k) % gn) + gn) % gn;
       const ch = gl[idx];
       const f = 1 - k / col.len;                          // 1 head → 0 tail
-      if (k === 0) {
+      // Corruption flickers creep in with severity through the intro, then rage
+      // after the drop; the full acid palette only switches on once dropped.
+      const corruptGlyph = chaos && Math.random() < sev * 0.28;
+      if (corruptGlyph) {
+        ctx.fillStyle = Math.random() < 0.5
+          ? `rgba(120,255,60,${Math.min(1, (0.8 * f + 0.2) * br)})`                     // acid-green flare
+          : `rgba(255,255,255,${Math.min(1, (0.9 * f + 0.2) * br)})`;                   // blown-white flare
+      } else if (k === 0) {
         const ha = Math.min(1, 0.55 + br * 0.45);
-        if (headFlash > 0.35) ctx.fillStyle = `rgba(255,255,236,${Math.min(1, ha + headFlash * 0.5)})`;
+        if (dropped) ctx.fillStyle = `rgba(${140 + Math.random() * 60 | 0},255,${120 + Math.random() * 60 | 0},${Math.min(1, ha + 0.3)})`;
+        else if (headFlash > 0.35) ctx.fillStyle = `rgba(255,255,236,${Math.min(1, ha + headFlash * 0.5)})`;
         else ctx.fillStyle = col.yellow ? `rgba(247,252,205,${ha})` : `rgba(222,255,212,${ha})`;
       } else if (idx % 6 === 0) {
-        ctx.fillStyle = `rgba(228,238,120,${Math.min(1, (0.55 * f + 0.18) * br * cf)})`; // yellow keyword token
+        ctx.fillStyle = dropped
+          ? `rgba(180,255,80,${Math.min(1, (0.55 * f + 0.18) * br * cf)})`              // acid keyword token
+          : `rgba(228,238,120,${Math.min(1, (0.55 * f + 0.18) * br * cf)})`;            // yellow keyword token
       } else if (k <= 3) {
-        ctx.fillStyle = `rgba(150,238,140,${Math.min(1, (0.9 * f + 0.1) * br * cf)})`;   // fresh green near head
+        ctx.fillStyle = dropped
+          ? `rgba(90,255,110,${Math.min(1, (0.9 * f + 0.1) * br * cf)})`                // hot toxic-green near head
+          : `rgba(150,238,140,${Math.min(1, (0.9 * f + 0.1) * br * cf)})`;              // fresh green near head
       } else {
-        ctx.fillStyle = `rgba(54,194,90,${Math.min(1, 0.78 * f * br * cf)})`;           // deep green tail
+        ctx.fillStyle = dropped
+          ? `rgba(20,120,40,${Math.min(1, 0.78 * f * br * cf)})`                        // sickly deep-green tail
+          : `rgba(54,194,90,${Math.min(1, 0.78 * f * br * cf)})`;                       // deep green tail
       }
       ctx.fillText(ch, col.x, cy);
     }
@@ -6990,70 +7173,161 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'source-over';
 
   // 6.5 ── CHAOS: beat bloom + torn slices + channel-split jolts + data corruption.
-  //        Strong baseline jitter (wild even in silence); the music cranks it hard.
-  if (aO > 0.05) {
+  //        In 0∞ every effect is GATED BY `sev` so the intro barely glitches and
+  //        the drop unleashes everything. The heaviest self-copy effects (scramble,
+  //        vertical-hold, big scanroll) stay off until the drop for perf + build-up.
+  // One-time DROP punch: a bright expanding flash the instant the beat drops.
+  if (dropped && !canvas._jukoDropped) {
+    canvas._jukoDropped = true;
     ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = `rgba(130,245,150,${Math.min(0.42, aO * 0.3)})`;
+    ctx.fillStyle = 'rgba(150,255,150,0.5)';
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
   }
-  // Torn horizontal slices, displaced sideways with a chromatic tint
-  const glitchP = 0.2 + aO * 0.7 + aL * 0.22;
+
+  if (aO > 0.05 || (chaos && sev > 0.08)) {
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = chaos
+      ? `rgba(${40 + Math.random() * 60 | 0},255,${60 + Math.random() * 60 | 0},${Math.min(0.5, aO * 0.3 + sev * 0.14)})`
+      : `rgba(130,245,150,${Math.min(0.42, aO * 0.3)})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  // Torn horizontal slices — rare + gentle during the intro, ripping wide open
+  // after the drop.
+  const glitchP = chaos ? Math.min(0.99, 0.08 + sev * 0.9 + aO * 0.3) : (0.2 + aO * 0.7 + aL * 0.22);
   if (Math.random() < glitchP) {
-    const slices = 1 + Math.floor(Math.random() * (3 + aO * 6));
+    const slices = chaos ? 1 + Math.floor(Math.random() * (2 + sev * 12 + aO * 6)) : 1 + Math.floor(Math.random() * (3 + aO * 6));
     for (let i = 0; i < slices; i++) {
-      const sh = 4 + Math.random() * (26 + aL * 46);
+      const sh = 4 + Math.random() * (chaos ? 20 + aL * 60 + sev * 70 : 26 + aL * 46);
       const sy = Math.random() * Math.max(1, H - sh);
-      const dx = (Math.random() - 0.5) * (44 + aL * 110 + aO * 130);
+      const dx = (Math.random() - 0.5) * (chaos ? 40 + aL * 160 + aO * 180 + sev * 240 : 44 + aL * 110 + aO * 130);
       ctx.drawImage(canvas, 0, sy, W, sh, dx, sy, W, sh);
       ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = Math.random() < 0.5 ? 'rgba(40,255,120,0.14)' : 'rgba(236,244,120,0.12)';
+      if (chaos) {
+        ctx.fillStyle = Math.random() < 0.5 ? 'rgba(60,255,90,0.20)' : 'rgba(220,255,220,0.14)';
+      } else {
+        ctx.fillStyle = Math.random() < 0.5 ? 'rgba(40,255,120,0.14)' : 'rgba(236,244,120,0.12)';
+      }
       ctx.fillRect(dx, sy, W, sh);
       ctx.globalCompositeOperation = 'source-over';
     }
   }
-  // Channel-split ghost jolt on strong beats
-  if (aO > 0.42 && Math.random() < 0.6) {
-    const off = 3 + aO * 10;
+  // Block-displacement scramble — memory-corruption chunk-slam. Post-drop only.
+  if (dropped) {
+    const nb = 1 + Math.floor(Math.random() * (2 + sev * 6));
+    for (let i = 0; i < nb; i++) {
+      if (Math.random() > 0.3 + sev * 0.5) continue;
+      const bw = 40 + Math.random() * (W * 0.4), bh = 20 + Math.random() * (H * 0.3);
+      const sx = Math.random() * (W - bw), sy = Math.random() * (H - bh);
+      const ddx = (Math.random() - 0.5) * (60 + sev * 220), ddy = (Math.random() - 0.5) * (30 + sev * 120);
+      ctx.drawImage(canvas, sx, sy, bw, bh, sx + ddx, sy + ddy, bw, bh);
+    }
+  }
+  // Channel-split ghost jolt — a green chromatic-aberration smear that grows with
+  // severity (barely there in the intro, constant after the drop).
+  if ((chaos && sev > 0.06) || (aO > 0.42 && Math.random() < 0.6)) {
+    const off = chaos ? 3 + aO * 14 + Math.sin(t * 19) * (2 + sev * 8) : 3 + aO * 10;
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.45;
+    ctx.globalAlpha = chaos ? 0.12 + sev * 0.24 : 0.45;
     ctx.drawImage(canvas, off, 0);
+    if (dropped) { ctx.globalAlpha = 0.1 + sev * 0.16; ctx.drawImage(canvas, -off, Math.sin(t * 7) * sev * 4); }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   }
-  // Data-corruption blocks — bright garbled glyph clusters pop in
-  if (Math.random() < 0.14 + aL * 0.32) {
-    const nblk = 1 + Math.floor(Math.random() * 3);
+  // Data-corruption blocks — garbled glyph clusters, scaling in with severity.
+  if (Math.random() < (chaos ? sev * 0.8 : 0.14 + aL * 0.32)) {
+    const nblk = chaos ? 1 + Math.floor(Math.random() * (2 + sev * 8)) : 1 + Math.floor(Math.random() * 3);
     ctx.font = 'bold 13px "Courier New", monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let b = 0; b < nblk; b++) {
       const bx = Math.random() * W, by = Math.random() * H;
-      const bw = 3 + Math.floor(Math.random() * 6), bh = 1 + Math.floor(Math.random() * 4);
+      const bw = 3 + Math.floor(Math.random() * (dropped ? 12 : 6)), bh = 1 + Math.floor(Math.random() * (dropped ? 8 : 4));
+      const charset = dropped ? _JUKO_RAIN_CHAOS : _JUKO_RAIN;
       for (let yy = 0; yy < bh; yy++) for (let xx = 0; xx < bw; xx++) {
-        ctx.fillStyle = Math.random() < 0.5 ? 'rgba(184,255,172,0.92)' : 'rgba(238,246,150,0.85)';
-        ctx.fillText(_JUKO_RAIN[Math.floor(Math.random() * _JUKO_RAIN.length)], bx + xx * 11, by + yy * 13);
+        ctx.fillStyle = dropped
+          ? (Math.random() < 0.5 ? 'rgba(120,255,80,0.95)' : 'rgba(240,255,240,0.92)')
+          : (Math.random() < 0.5 ? 'rgba(184,255,172,0.92)' : 'rgba(238,246,150,0.85)');
+        ctx.fillText(charset[Math.floor(Math.random() * charset.length)], bx + xx * 11, by + yy * 13);
       }
     }
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
   }
+  // Error-message spew — runtime exceptions flash across the crash in mono type.
+  if (chaos && Math.random() < sev * 0.4) {
+    const msg = _JUKO_0INF_ERRORS[(Math.random() * _JUKO_0INF_ERRORS.length) | 0];
+    const fs = 12 + Math.random() * (14 + sev * 20);
+    ctx.font = `bold ${fs | 0}px "Courier New", monospace`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const ex = Math.random() * W * 0.7, ey = Math.random() * H;
+    const jitter = (Math.random() - 0.5) * 4;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillText(msg, ex + 2, ey + 2);       // shadow
+    ctx.fillStyle = Math.random() < 0.3 ? 'rgba(240,255,240,0.95)' : 'rgba(120,255,90,0.95)';
+    ctx.fillText(msg, ex + jitter, ey);
+    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  }
+  // Rolling VHS "tracking loss" bar — a bright band sweeps down the screen,
+  // dragging a smeared copy of the frame with it. Fades in with severity.
+  if (chaos && sev > 0.05) {
+    const rollY = ((t * (120 + sev * 260)) % (H + 120)) - 60;
+    const rh = 26 + sev * 44;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.3 + sev * 0.2;
+    ctx.drawImage(canvas, 0, Math.max(0, rollY - rh), W, rh, 0, rollY, W, rh);
+    ctx.globalAlpha = 0.08 + sev * 0.14;
+    ctx.fillStyle = 'rgba(150,255,150,0.5)';
+    ctx.fillRect(0, rollY - 1, W, 2);
+    ctx.restore();
+  }
+  // Vertical hold slip — the whole picture jumps + wraps. Post-drop only.
+  if (dropped && Math.random() < 0.02 + sev * 0.06) {
+    const shift = (Math.random() * H) | 0;
+    ctx.drawImage(canvas, 0, 0, W, H - shift, 0, shift, W, H - shift);
+    ctx.drawImage(canvas, 0, H - shift, W, shift, 0, 0, W, shift);
+  }
+  // Static noise grain — fades in with severity. PERF: cache the CanvasPattern.
+  if (chaos && sev > 0.03) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.26, 0.04 + Math.random() * 0.05 + sev * 0.14);
+    const ox = (Math.random() * 96) | 0, oy = (Math.random() * 96) | 0;
+    ctx.translate(-ox, -oy);
+    ctx.fillStyle = ctx._jukoNoisePat || (ctx._jukoNoisePat = ctx.createPattern(_exNoiseTile(), 'repeat'));
+    ctx.fillRect(ox, oy, W + 96, H + 96);
+    ctx.restore();
+  }
+  // Full-screen invert flash — softened + green-tinted so it's not blinding, and
+  // only once the crash is fully underway.
+  if (dropped && Math.random() < 0.03 + aO * 0.08 + sev * 0.04) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'difference';
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#146b28';
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
 
   // 6.6 ── Loudness makes the whole screen breathe (very visible reactivity)
-  if (aL > 0.04) {
+  if (aL > 0.04 || chaos) {
     ctx.globalCompositeOperation = 'lighter';
     const pg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.62);
-    pg.addColorStop(0, `rgba(72,212,112,${aL * 0.12})`);
+    pg.addColorStop(0, chaos ? `rgba(60,220,90,${aL * 0.14 + ramp * 0.06})` : `rgba(72,212,112,${aL * 0.12})`);
     pg.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = pg;
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  // 7 ── Vignette to frame the garden
-  if (!canvas._jukoVign) {
-    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.22, W / 2, H / 2, Math.max(W, H) * 0.72);
+  // 7 ── Vignette to frame the garden. (The BIG intro vignette + the swaying
+  //      green/yellow border that breaks out of it live on the page-wide
+  //      overlay canvas now — _drawJukoOverlay — so they cover the whole app,
+  //      not just this background. This is just the normal soft framing.)
+  if (!canvas._jukoVign || canvas._jukoVignChaos !== chaos) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * (chaos ? 0.16 : 0.22), W / 2, H / 2, Math.max(W, H) * 0.72);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,0.55)');
-    canvas._jukoVign = vg;
+    vg.addColorStop(chaos ? 0.7 : 1, chaos ? 'rgba(0,14,4,0.5)' : 'rgba(0,0,0,0.55)');
+    if (chaos) vg.addColorStop(1, 'rgba(0,0,0,0.85)');
+    canvas._jukoVign = vg; canvas._jukoVignChaos = chaos;
   }
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
@@ -7318,7 +7592,46 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1;
   ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
 
-  _jukoDrawSprite(ctx, _jukoX, _jukoY, t);
+  // 0∞ timing (shared with the pattern): severity + drop state.
+  const _o0inf = _isJuko0Inf(_jukoCurChar());
+  const _oElapsed = _o0inf ? _juko0InfElapsed() : 0;
+  const _oSev = _o0inf ? _juko0InfSev(_oElapsed) : 0;
+  const _oDrop = _o0inf ? _juko0InfDropped(_oElapsed) : false;
+
+  // The BOOM — the instant the 22s intro breaks. One-time, fires exactly once
+  // per 0∞ entry (see _juko0InfBoomFired comment for why it's a global, not a
+  // canvas prop). A shockwave ring + shatter cracks + a decaying flash, all
+  // fading over ~0.9s — visible proof the song just broke, not a literal blast.
+  if (_oDrop && !_juko0InfBoomFired) {
+    _juko0InfBoomFired = true;
+    _juko0InfBoomT0 = t;
+    _juko0InfBoomCracks = Array.from({ length: 9 }, () => ({
+      ang: Math.random() * Math.PI * 2,
+      jag: Array.from({ length: 4 }, () => (Math.random() - 0.5) * 40),
+    }));
+  }
+
+  // 0∞: the cursor companion glitches too — cyan + lime ghost double-renders
+  // (green family, NOT red) jittering off-position, like the sprite itself can't
+  // hold a single frame. Grows with severity (calm in the intro).
+  if (_o0inf && _oSev > 0.04) {
+    const amp = 3 + _oSev * 16;
+    const jx = (Math.random() - 0.5) * amp, jy = (Math.random() - 0.5) * amp;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.25 + _oSev * 0.3;
+    // cyan-shifted ghost (green → cyan, stays cool-green)
+    ctx.filter = 'hue-rotate(-45deg) saturate(2.4) brightness(1.3)';
+    _jukoDrawSprite(ctx, _jukoX - 5 - jx, _jukoY + jy * 0.6, t);
+    // lime-shifted ghost (green → yellow-green)
+    ctx.filter = 'hue-rotate(35deg) saturate(2.4) brightness(1.3)';
+    _jukoDrawSprite(ctx, _jukoX + 5 + jx, _jukoY - jy * 0.6, t);
+    ctx.filter = 'none';
+    ctx.restore();
+    _jukoDrawSprite(ctx, _jukoX + jx * 0.3, _jukoY + jy * 0.3, t);
+  } else {
+    _jukoDrawSprite(ctx, _jukoX, _jukoY, t);
+  }
 
   // ── Drive Juko's pfp / name reactive chrome ──
   // Push the live audio envelope into CSS custom props so the menus, avatar and
@@ -7346,6 +7659,211 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     if (glitchV !== last.x) { st.setProperty('--juko-glitch', glitchV.toFixed(2)); last.x = glitchV; }
   }
 
+  // 0∞ — this is the topmost layer in the whole app (z-index 9999), so this is
+  // where the breakdown reaches past the character page entirely: static, tears,
+  // RGB-split smear, error spew and a tracking bar drawn OVER the top nav, the
+  // sidebar, everything. Gated by severity so the intro barely touches the page
+  // and the drop tears the whole app apart.
+  if (_o0inf && _oSev > 0.03) {
+    const R = _oSev;
+    const beat = _jukoAudioOnset;
+    // static snow across the full viewport (fades in with severity). PERF: cached pattern.
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.18, 0.02 + Math.random() * 0.03 + R * 0.1);
+    const ox = (Math.random() * 96) | 0, oy = (Math.random() * 96) | 0;
+    ctx.translate(-ox, -oy);
+    ctx.fillStyle = ctx._jukoNoisePat || (ctx._jukoNoisePat = ctx.createPattern(_exNoiseTile(), 'repeat'));
+    ctx.fillRect(ox, oy, W + 96, H + 96);
+    ctx.restore();
+    // page-wide torn slices — cut straight through nav bar / sidebar / panels alike
+    if (Math.random() < 0.12 + R * 0.8) {
+      const slices = 1 + Math.floor(Math.random() * (1 + R * 8));
+      for (let i = 0; i < slices; i++) {
+        const sh = 6 + Math.random() * (30 + R * 50);
+        const sy = Math.random() * Math.max(1, H - sh);
+        const dx = (Math.random() - 0.5) * (30 + R * 220 + beat * 120);
+        ctx.drawImage(canvas, 0, sy, W, sh, dx, sy, W, sh);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = Math.random() < 0.5 ? 'rgba(74,222,90,0.12)' : 'rgba(230,255,230,0.08)';
+        ctx.fillRect(dx, sy, W, sh);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    }
+    // page-wide block-displacement — rip a chunk of the composited UI and shove it. Post-drop.
+    if (_oDrop && Math.random() < 0.25 + R * 0.5) {
+      const nb = 1 + Math.floor(Math.random() * (1 + R * 4));
+      for (let i = 0; i < nb; i++) {
+        const bw = 60 + Math.random() * (W * 0.5), bh = 24 + Math.random() * (H * 0.28);
+        const sx = Math.random() * (W - bw), sy = Math.random() * (H - bh);
+        const ddx = (Math.random() - 0.5) * (50 + R * 200), ddy = (Math.random() - 0.5) * (24 + R * 90);
+        ctx.drawImage(canvas, sx, sy, bw, bh, sx + ddx, sy + ddy, bw, bh);
+      }
+    }
+    // whole-viewport green chromatic smear (grows with severity)
+    ctx.globalCompositeOperation = 'lighter';
+    const off = 2 + Math.random() * (3 + R * 10);
+    ctx.globalAlpha = 0.06 + R * 0.14;
+    ctx.drawImage(canvas, off, 0);
+    ctx.globalAlpha = 0.05 + R * 0.1;
+    ctx.drawImage(canvas, -off, Math.sin(t * 9) * R * 3);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    // rolling tracking bar sweeping the whole page
+    const rollY = ((t * (140 + R * 240)) % (H + 100)) - 50, rh = 22 + R * 40;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.3 + R * 0.2;
+    ctx.drawImage(canvas, 0, Math.max(0, rollY - rh), W, rh, 0, rollY, W, rh);
+    ctx.globalAlpha = 0.08 + R * 0.14;
+    ctx.fillStyle = 'rgba(150,255,150,0.5)';
+    ctx.fillRect(0, rollY - 1, W, 2);
+    ctx.restore();
+    // error-message spew over the whole page
+    if (Math.random() < R * 0.4) {
+      const msg = _JUKO_0INF_ERRORS[(Math.random() * _JUKO_0INF_ERRORS.length) | 0];
+      const fs = 12 + Math.random() * (14 + R * 22);
+      ctx.font = `bold ${fs | 0}px "Courier New", monospace`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      const ex = Math.random() * W * 0.75, ey = Math.random() * H;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillText(msg, ex + 2, ey + 2);
+      ctx.fillStyle = Math.random() < 0.3 ? 'rgba(240,255,240,0.9)' : 'rgba(120,255,90,0.9)';
+      ctx.fillText(msg, ex, ey);
+      ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+    }
+    // rare, SOFTENED full-page green invert punch (post-drop, semi-transparent)
+    if (_oDrop && Math.random() < 0.012 + beat * 0.06 + R * 0.02) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'difference';
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = '#0a3a12';
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
+  }
+
+  // 0∞ — big black vignette wrapping the WHOLE PAGE (nav, sidebar, everything,
+  // since this canvas is the top z-index layer), heaviest right at entry, that
+  // slowly clears across the 22s intro. It "breaks" at the drop into a swaying
+  // green/yellow border — her real palette pushing back through the corruption.
+  if (_o0inf) {
+    ctx.globalCompositeOperation = 'source-over';
+    if (!_oDrop) {
+      const introP = Math.min(1, _oElapsed / _JUKO_0INF_INTRO);
+      const ease = introP * introP;
+      const innerR = Math.min(W, H) * (0.05 + ease * 0.4);
+      const outerR = Math.max(W, H) * (0.45 + ease * 0.55);
+      const edgeA = Math.max(0, 0.96 - ease * 0.9);
+      const coreA = Math.max(0, 0.82 - ease * 0.84);
+      const vg = ctx.createRadialGradient(W / 2, H / 2, innerR, W / 2, H / 2, outerR);
+      vg.addColorStop(0, `rgba(0,0,0,${coreA.toFixed(3)})`);
+      vg.addColorStop(0.6, `rgba(0,0,0,${(edgeA * 0.65).toFixed(3)})`);
+      vg.addColorStop(1, `rgba(0,0,0,${edgeA.toFixed(3)})`);
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      // Post-drop: a light residual frame, replaced as the main framing device
+      // by the swaying green/yellow border drawn below.
+      if (!canvas._jukoPageVign || canvas._jukoPageVignW !== W || canvas._jukoPageVignH !== H) {
+        const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.88);
+        g.addColorStop(0, 'rgba(0,0,0,0)');
+        g.addColorStop(1, 'rgba(0,10,3,0.28)');
+        canvas._jukoPageVign = g; canvas._jukoPageVignW = W; canvas._jukoPageVignH = H;
+      }
+      ctx.fillStyle = canvas._jukoPageVign;
+      ctx.fillRect(0, 0, W, H);
+
+      // Fast dedicated fade-in (1.3s) so the border is unmistakably there right
+      // after the drop, independent of the slower 6s severity ramp — severity
+      // only adds extra glow/width on top of an already-bold baseline.
+      const borderIn = Math.min(1, (_oElapsed - _JUKO_0INF_INTRO) / 1.3);
+      if (borderIn > 0.01) {
+        const aL2 = _jukoAudioLevel, aO2 = _jukoAudioOnset;
+        const swayAmt = 4 + aL2 * 12;
+        const swayX = Math.sin(t * 0.6) * swayAmt;
+        const swayY = Math.cos(t * 0.46) * swayAmt * 0.7;
+        const margin = 7 + Math.sin(t * 1.1) * 2;
+        const bw = (6 + aO2 * 8 + Math.sin(t * 2.3) * 1.2 + _oSev * 3) * borderIn;
+        const mixT = 0.5 + 0.5 * Math.sin(t * 0.85);            // green ↔ yellow blend
+        const rC = Math.round(74 + (234 - 74) * mixT);
+        const gC = Math.round(222 + (255 - 222) * mixT);
+        const bC = Math.round(90 + (176 - 90) * mixT);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.translate(swayX, swayY);
+        ctx.strokeStyle = `rgba(${rC},${gC},${bC},${(borderIn * (0.75 + aL2 * 0.25)).toFixed(3)})`;
+        ctx.lineWidth = Math.max(1, bw);
+        ctx.shadowColor = `rgba(${rC},${gC},${bC},0.95)`;
+        ctx.shadowBlur = (18 + aO2 * 18 + _oSev * 10) * borderIn;
+        ctx.strokeRect(margin, margin, W - margin * 2, H - margin * 2);
+        ctx.restore();
+      }
+    }
+  }
+
+  // ── THE BOOM — plays once, right as the vignette breaks. Not a literal
+  //    explosion: a concussive flash + an expanding shockwave ring + jagged
+  //    "shatter" cracks radiating out and fading, like the song itself cracked.
+  if (_juko0InfBoomT0 !== undefined) {
+    const age = t - _juko0InfBoomT0;
+    const BOOM_DUR = 0.9;
+    if (age > BOOM_DUR) {
+      _juko0InfBoomT0 = undefined;
+    } else {
+      const p = Math.max(0, age / BOOM_DUR);
+      const cx = W / 2, cy = H / 2;
+      const maxR = Math.hypot(W, H) * 0.58;
+
+      // Concussive flash — sharp attack, fast exponential decay.
+      const flashA = Math.pow(Math.max(0, 1 - p * 1.8), 2.4);
+      if (flashA > 0.01) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(200,255,190,${(flashA * 0.8).toFixed(3)})`;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
+
+      // Two staggered expanding shockwave rings.
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (let ringI = 0; ringI < 2; ringI++) {
+        const ringP = p * 1.25 - ringI * 0.22;
+        if (ringP <= 0 || ringP >= 1) continue;
+        const r = ringP * maxR;
+        const a = (1 - ringP) * 0.55;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(160,255,150,${a.toFixed(3)})`;
+        ctx.lineWidth = 7 * (1 - ringP) + 1;
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Jagged shatter cracks radiating from centre — fixed geometry (rolled
+      // once when the boom fired), only their alpha fades out.
+      if (_juko0InfBoomCracks && p < 0.4) {
+        const crackA = (1 - p / 0.4) * 0.75;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineWidth = 1.4;
+        for (const c of _juko0InfBoomCracks) {
+          ctx.strokeStyle = `rgba(210,255,200,${crackA.toFixed(3)})`;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          let x = cx, y = cy;
+          const segs = c.jag.length;
+          for (let s = 0; s < segs; s++) {
+            const rr = maxR * 0.85 * ((s + 1) / segs);
+            x = cx + Math.cos(c.ang) * rr + c.jag[s];
+            y = cy + Math.sin(c.ang) * rr + c.jag[(s + 1) % segs];
+            ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+  }
 }
 
 // ── Code-frame layer ──────────────────────────────────────────────────
@@ -7389,7 +7907,12 @@ function _drawJukoEqualizer(canvas, ctx, W, H, t) {
   ctx.clearRect(0, 0, W, H);
 
   const lvl = _jukoAudioLevel, beat = _jukoAudioBeat;
-  const eqH = Math.min(240, H * 0.26);            // max bar height
+  // 0∞: the meter loses its mind — bars slam to random full-height spikes
+  // regardless of the music, building through the intro then raging post-drop.
+  const _r = _drawJukoOverlay._root || (_drawJukoOverlay._root = document.getElementById('char-view'));
+  const chaos = !!(_r && _r.classList.contains('juko-0inf'));
+  const eqR = chaos ? _juko0InfSev(_juko0InfElapsed()) : 0;
+  const eqH = Math.min(240, H * (chaos ? 0.26 + eqR * 0.08 : 0.26));   // ceiling rises with severity
   const spacing = 6, barW = 2.6;
   const n = Math.max(8, Math.floor(W / spacing));
   let eq = _drawJukoEqualizer._eq;
@@ -7401,31 +7924,47 @@ function _drawJukoEqualizer(canvas, ctx, W, H, t) {
       ph:   Float32Array.from({ length: n }, () => Math.random() * Math.PI * 2),
       rnd:  Float32Array.from({ length: n }, () => 0.55 + Math.random() * 0.45),
     };
-    const g = ctx.createLinearGradient(0, H, 0, H - eqH);
-    g.addColorStop(0.0, '#06301a');
-    g.addColorStop(0.4, '#1c9c3d');
-    g.addColorStop(0.72, '#5cef4a');
-    g.addColorStop(1.0, '#eaffb0');
-    eq.grad = g;
   }
-  const kUp = Math.min(1, dt * 38), kDn = Math.min(1, dt * 9);   // fast attack, smooth release
+  // Rebuild the gradient each frame in chaos so it can flip acid/white; cache otherwise.
+  if (!eq.grad || chaos !== eq._chaos || eq._gradH !== H) {
+    const g = ctx.createLinearGradient(0, H, 0, H - eqH);
+    if (chaos) {
+      g.addColorStop(0.0, '#04220e');
+      g.addColorStop(0.4, '#2ad14a');
+      g.addColorStop(0.72, '#8dff5a');
+      g.addColorStop(1.0, '#f2fff0');
+    } else {
+      g.addColorStop(0.0, '#06301a');
+      g.addColorStop(0.4, '#1c9c3d');
+      g.addColorStop(0.72, '#5cef4a');
+      g.addColorStop(1.0, '#eaffb0');
+    }
+    eq.grad = g; eq._chaos = chaos; eq._gradH = H;
+  }
+  const kUp = Math.min(1, dt * (chaos ? 60 : 38)), kDn = Math.min(1, dt * (chaos ? 16 : 9));
   // solid graded bars
   ctx.fillStyle = eq.grad;
   for (let i = 0; i < n; i++) {
     const wave = 0.55 + 0.45 * Math.sin(t * eq.rate[i] + eq.ph[i]);
     const idle = 0.018 + 0.012 * Math.sin(t * 1.4 + i * 0.4);     // a sliver of life when silent
-    const target = Math.min(1, idle + (lvl * 0.5 + beat * 0.72) * wave * eq.rnd[i]);
+    let target = Math.min(1, idle + (lvl * 0.5 + beat * 0.72) * wave * eq.rnd[i]);
+    if (chaos) {
+      // random spikes slam bars to full height, independent of the music
+      if (Math.random() < 0.06 + eqR * 0.14) target = Math.min(1, 0.5 + Math.random() * (0.5 + eqR * 0.5));
+      target = Math.max(target, 0.12 + 0.28 * (0.5 + 0.5 * Math.sin(t * 9 + i * 0.9)) * (0.5 + eqR));
+    }
     eq.h[i] += (target > eq.h[i] ? kUp : kDn) * (target - eq.h[i]);
     const bh = eq.h[i] * eqH;
     if (bh < 1) continue;
-    ctx.fillRect(i * spacing + (spacing - barW) * 0.5, H - bh, barW, bh);
+    const jx = chaos ? (Math.random() - 0.5) * eqR * 4 : 0;
+    ctx.fillRect(i * spacing + (spacing - barW) * 0.5 + jx, H - bh, barW, bh);
   }
   // additive bright caps for a glowing top edge
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < n; i++) {
     const bh = eq.h[i] * eqH;
     if (bh < 6) continue;
-    ctx.fillStyle = `rgba(190,255,150,${Math.min(0.6, eq.h[i] * 0.75)})`;
+    ctx.fillStyle = chaos ? `rgba(210,255,180,${Math.min(0.8, eq.h[i] * 0.9)})` : `rgba(190,255,150,${Math.min(0.6, eq.h[i] * 0.75)})`;
     ctx.fillRect(i * spacing + (spacing - barW) * 0.5 - 0.4, H - bh, barW + 0.8, 2.4);
   }
   ctx.globalCompositeOperation = 'source-over';
@@ -7441,13 +7980,18 @@ function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
   if (!root || !root.classList.contains('juko-ui')) return;
 
   const beat = _jukoAudioBeat, lvl = _jukoAudioLevel;
+  const chaos = root.classList.contains('juko-0inf');
+  const cR = chaos ? _juko0InfSev(_juko0InfElapsed()) : 0;      // severity (shared intro→drop)
+  // Border code only corrupts into the chaos charset once things are worsening.
+  const frameCharset = (chaos && cR > 0.4) ? _JUKO_RAIN_CHAOS : _JUKO_RAIN;
 
   const panels = root.querySelectorAll('.panel');
   const cell = 19;                                  // bigger glyphs for the code border
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `bold ${cell - 3}px "Courier New", monospace`;
   ctx.globalCompositeOperation = 'lighter';
-  _drawJukoCodeFrame._comet = (_drawJukoCodeFrame._comet || 0) + dt * (55 + lvl * 130);
+  // comet accelerates as the crash deepens (calm during the intro)
+  _drawJukoCodeFrame._comet = (_drawJukoCodeFrame._comet || 0) + dt * (55 + lvl * 130) * (1 + cR * 1.6);
 
   for (let pi = 0; pi < panels.length; pi++) {
     const p = panels[pi];
@@ -7460,22 +8004,31 @@ function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
     }
     const cells = st.cells, N = cells.length;
     const head = (_drawJukoCodeFrame._comet / cell + pi * 7) % N;     // offset per panel
+    // whole-frame per-panel jitter offset — fades in with severity so the
+    // borders sit still through the intro then shudder after the drop.
+    const pjx = cR > 0 ? (Math.random() - 0.5) * cR * 10 : 0;
+    const pjy = cR > 0 ? (Math.random() - 0.5) * cR * 10 : 0;
     for (let i = 0; i < N; i++) {
       const c = cells[i];
-      c.mut -= dt;
-      if (c.mut <= 0) { c.ch = _JUKO_RAIN[(Math.random() * _JUKO_RAIN.length) | 0]; c.mut = 0.25 + Math.random() * 1.7; }
+      c.mut -= dt * (1 + cR * 2.2);                 // border code corrupts faster as it worsens
+      if (c.mut <= 0) { c.ch = frameCharset[(Math.random() * frameCharset.length) | 0]; c.mut = 0.25 + Math.random() * 1.7; }
       let d = Math.abs(i - head); if (d > N / 2) d = N - d;
       const comet = Math.max(0, 1 - d / 7);
       const flick = 0.8 + 0.2 * Math.sin(t * 7 + c.flick);
       let b = c.shade * flick * (0.3 + lvl * 0.28) + comet * (0.55 + beat * 0.65) + beat * 0.12;
+      if (cR > 0) b += cR * 0.45;                   // brighter, more-lit breakdown border
       if (b < 0.045) continue;
-      b = Math.min(1.2, b);
-      const w2 = comet * (0.5 + beat * 0.45);     // head whitens toward light-yellow
+      b = Math.min(1.3, b);
+      const w2 = comet * (0.5 + beat * 0.45);
       let cr, cg, cb;
-      if (c.warm) { cr = 205; cg = 255; cb = 135; } else { cr = 58; cg = 232; cb = 92; }
+      if (cR > 0 && Math.random() < cR * 0.3) { cr = 235; cg = 255; cb = 235; }  // white corruption glint
+      else if (c.warm) { cr = 205; cg = 255; cb = 135; } else { cr = 58; cg = 232; cb = 92; }
       cr = Math.min(255, cr + w2 * 175); cg = Math.min(255, cg + w2 * 22); cb = Math.min(255, cb + w2 * 120);
+      // per-glyph position jitter — fades in with severity
+      const gjx = cR > 0 ? (Math.random() - 0.5) * cR * 6 : 0;
+      const gjy = cR > 0 ? (Math.random() - 0.5) * cR * 6 : 0;
       ctx.fillStyle = `rgba(${cr | 0},${cg | 0},${cb | 0},${b.toFixed(3)})`;
-      ctx.fillText(c.ch, r.left + c.x, r.top + c.y);
+      ctx.fillText(c.ch, r.left + c.x + pjx + gjx, r.top + c.y + pjy + gjy);
     }
   }
   ctx.globalCompositeOperation = 'source-over';
@@ -7552,6 +8105,181 @@ function _stopJukoOverlay() {
   if (fr) fr.remove();
   const eqc = document.getElementById('juko-eq-overlay');
   if (eqc) eqc.remove();
+  // NOTE: do NOT touch _juko0InfActive / the 0∞ extras here. This function runs
+  // on EVERY viewChar re-render for Juko (stopBgAnim + _startJukoOverlay both
+  // call it), not just on a genuine form transition — tearing the extras down
+  // here was resetting the 22s intro on totally unrelated re-renders (equip,
+  // reroll, resize…). The 0∞ enter/exit lifecycle is owned exclusively by the
+  // chrome block in viewChar(), which only fires on an actual state change.
+}
+
+// ════════════════════════════════════════════════════════════════
+// 0∞ EXTRAS — window/screen messing + floating glitched-pfp windows.
+// Runs on its own rAF (separate from the heavy canvas overlays) so it's cheap:
+// it only writes a transform + repositions a handful of DOM nodes a few times a
+// second. Everything below the DROP (elapsed < 22s) stays calm and builds.
+// ════════════════════════════════════════════════════════════════
+let _juko0InfAvatar = null;
+let _juko0InfYank = { t0: -99, dur: 0.5, sx: 1, sy: 1, tx: 0, ty: 0, rot: 0 };
+// ATK/DEF/MAG/IQ read "∞" but glitch-flash to her real number now and then.
+const _JUKO0_INF_STAT_KEYS = ['atk', 'def', 'mag', 'iq'];
+let _juko0InfStatNext = 0;
+const _JUKO0_WIN_FILTERS = [
+  'invert(1) hue-rotate(90deg) saturate(3)',
+  'saturate(5) contrast(2.2) hue-rotate(40deg)',
+  'hue-rotate(140deg) brightness(1.5) contrast(1.6)',
+  'blur(1.5px) saturate(4) hue-rotate(-40deg)',
+  'contrast(3) invert(1) hue-rotate(120deg)',
+  'saturate(6) hue-rotate(200deg) brightness(1.3)',
+];
+
+function _startJuko0InfExtras(avatarUrl) {
+  _stopJuko0InfExtras();
+  _juko0InfAvatar = avatarUrl || null;
+  _juko0InfNextWin = 0;
+  _juko0InfGlitchNext = 0;
+  _juko0InfStatNext = 0;
+  _juko0InfBoomFired = false;
+  _juko0InfBoomT0 = undefined;
+  _juko0InfBoomCracks = null;
+  _juko0InfYank = { t0: -99, dur: 0.5, sx: 1, sy: 1, tx: 0, ty: 0, rot: 0 };
+  if (_juko0InfWinRafId == null) _juko0InfWinRafId = requestAnimationFrame(_juko0InfWinFrame);
+}
+
+function _stopJuko0InfExtras() {
+  if (_juko0InfWinRafId != null) { cancelAnimationFrame(_juko0InfWinRafId); _juko0InfWinRafId = null; }
+  // release the window-mess transform
+  const de = document.documentElement;
+  if (de) { de.style.transform = ''; de.style.transformOrigin = ''; }
+  for (const w of _juko0InfWinList) { try { w.remove(); } catch (e) {} }
+  _juko0InfWinList = [];
+}
+
+// Attempt to physically nudge/resize the real browser window. Modern browsers
+// block this for the main tab, so it silently no-ops there — the visual fake
+// below carries the effect regardless. Guarded + throttled so it can never spam.
+function _juko0InfPokeWindow() {
+  try {
+    const dx = (Math.random() - 0.5) * 80, dy = (Math.random() - 0.5) * 60;
+    const dw = (Math.random() - 0.5) * 60, dh = (Math.random() - 0.5) * 40;
+    if (typeof window.moveBy === 'function') window.moveBy(dx | 0, dy | 0);
+    if (typeof window.resizeBy === 'function') window.resizeBy(dw | 0, dh | 0);
+  } catch (e) { /* blocked — fine */ }
+}
+
+function _juko0InfSpawnWindow() {
+  if (!_juko0InfAvatar) return null;
+  const w = document.createElement('div');
+  w.className = 'juko0-win';
+  w.innerHTML =
+    `<div class="juko0-win-bar"><span class="juko0-win-title">juko.exe</span><span class="juko0-win-x">✕</span></div>` +
+    `<div class="juko0-win-body"><img src="${_juko0InfAvatar}" alt=""/></div>`;
+  document.body.appendChild(w);
+  _juko0InfWinList.push(w);
+  return w;
+}
+
+function _juko0InfPlaceWindow(w) {
+  const sz = 90 + Math.random() * 130;
+  const x = Math.random() * Math.max(1, window.innerWidth - sz);
+  const y = Math.random() * Math.max(1, window.innerHeight - sz);
+  w.style.width = sz + 'px';
+  w.style.left = x + 'px';
+  w.style.top = y + 'px';
+  w.style.setProperty('--jw-drift', (2.4 + Math.random() * 2.4).toFixed(2) + 's');
+  w.style.setProperty('--jw-delay', (-Math.random() * 3).toFixed(2) + 's');
+  const img = w.querySelector('img');
+  if (img) img.style.filter = _JUKO0_WIN_FILTERS[(Math.random() * _JUKO0_WIN_FILTERS.length) | 0];
+}
+
+function _juko0InfWinFrame(now) {
+  if (!_juko0InfActive) { _juko0InfWinRafId = null; return; }
+  const tt = now / 1000;
+  const elapsed = _juko0InfElapsed();
+  const sev = _juko0InfSev(elapsed);
+  const dropped = _juko0InfDropped(elapsed);
+
+  // ── Window / screen messing — occasional violent "yank" of the whole viewport
+  //    (fakes the window being grabbed, shoved and resized). Only after the drop.
+  const y = _juko0InfYank;
+  const age = tt - y.t0;
+  if (dropped && age > y.dur && Math.random() < 0.03 + sev * 0.05) {
+    // start a new yank
+    y.t0 = tt;
+    y.dur = 0.35 + Math.random() * 0.5;
+    y.sx = 1 + (Math.random() - 0.5) * (0.16 + sev * 0.22);
+    y.sy = 1 + (Math.random() - 0.5) * (0.16 + sev * 0.22);
+    y.tx = (Math.random() - 0.5) * (40 + sev * 120);
+    y.ty = (Math.random() - 0.5) * (30 + sev * 90);
+    y.rot = (Math.random() - 0.5) * (0.6 + sev * 1.6);
+    _juko0InfPokeWindow();
+  }
+  const de = document.documentElement;
+  if (de) {
+    if (age < y.dur) {
+      // ease out → in: snap to the yanked pose, then spring back to identity.
+      // (transform is compositor-cheap, and we clear it fully between yanks so
+      //  the root isn't perpetually transformed — good for perf.)
+      const p = age / y.dur;
+      const env = Math.sin(Math.PI * p);           // 0→1→0 over the yank
+      const sx = 1 + (y.sx - 1) * env, sy = 1 + (y.sy - 1) * env;
+      const tx = y.tx * env, ty = y.ty * env, rot = y.rot * env;
+      de.style.transformOrigin = '50% 50%';
+      de.style.transform = `translate(${tx.toFixed(2)}px,${ty.toFixed(2)}px) scale(${sx.toFixed(3)},${sy.toFixed(3)}) rotate(${rot.toFixed(3)}deg)`;
+    } else if (de.style.transform) {
+      de.style.transform = '';
+    }
+  }
+
+  // ── Floating glitched-pfp windows — build up in count as severity rises.
+  const wantCount = _juko0InfAvatar ? Math.round(sev * 5) : 0;   // 0 during early intro → up to 5
+  if (tt > _juko0InfNextWin) {
+    _juko0InfNextWin = tt + (dropped ? 0.5 + Math.random() * 0.9 : 1.4 + Math.random() * 1.6);
+    // grow/shrink the pool toward wantCount, and re-glitch an existing one
+    if (_juko0InfWinList.length < wantCount) {
+      const w = _juko0InfSpawnWindow();
+      if (w) {
+        _juko0InfPlaceWindow(w);
+        // Faint deep-pitched blip when a corrupted window pops in.
+        if (typeof playSound === 'function') { try { playSound('pop', { rate: 0.42 + Math.random() * 0.12, volume: 0.22 }); } catch (e) {} }
+      }
+    } else if (_juko0InfWinList.length > wantCount && _juko0InfWinList.length) {
+      const w = _juko0InfWinList.pop(); try { w.remove(); } catch (e) {}
+    } else if (_juko0InfWinList.length) {
+      _juko0InfPlaceWindow(_juko0InfWinList[(Math.random() * _juko0InfWinList.length) | 0]);
+    }
+  }
+
+  // ── Faster independent teleport/re-filter tick — on top of the CSS drift/
+  //    jitter, existing windows periodically hard-snap to a new spot + swap
+  //    their broken filter, like the corrupted feed keeps re-syncing.
+  if (tt > _juko0InfGlitchNext && _juko0InfWinList.length) {
+    _juko0InfGlitchNext = tt + (dropped ? 0.3 + Math.random() * 0.45 : 0.7 + Math.random() * 0.8);
+    const w = _juko0InfWinList[(Math.random() * _juko0InfWinList.length) | 0];
+    _juko0InfPlaceWindow(w);
+  }
+
+  // ── Stat glitch — ATK/DEF/MAG/IQ read "∞" but occasionally flash her real
+  //    number for a beat, like the display can't actually hold "infinite".
+  //    Rare + brief during the intro, more frequent/longer after the drop.
+  if (tt > _juko0InfStatNext) {
+    _juko0InfStatNext = tt + (dropped ? 0.5 + Math.random() * 1.1 : 1.6 + Math.random() * 2.4);
+    const key = _JUKO0_INF_STAT_KEYS[(Math.random() * _JUKO0_INF_STAT_KEYS.length) | 0];
+    const el = document.getElementById(`stat-num-${key}`);
+    if (el && el.dataset.real !== undefined && el.textContent === '∞') {
+      el.textContent = el.dataset.real;
+      el.classList.add('juko0-stat-flash');
+      const flashDur = 80 + Math.random() * (140 + sev * 200);
+      setTimeout(() => {
+        if (el.isConnected && el.dataset.real !== undefined) {
+          el.textContent = '∞';
+          el.classList.remove('juko0-stat-flash');
+        }
+      }, flashDur);
+    }
+  }
+
+  _juko0InfWinRafId = requestAnimationFrame(_juko0InfWinFrame);
 }
 /* ─────────────────────────────────────────────────────────────── */
 
@@ -25659,6 +26387,22 @@ function _shiNewFog(W, H) {
   return { x: Math.random() * W, y: Math.random() * H, r: 120 + Math.random() * 200,
     vx: (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 10), a: 0.04 + Math.random() * 0.05 };
 }
+// Page-wide smoke puff (deep blue ↔ grey) — placed mostly toward the edges
+// so it gathers where the vignette already darkens, rather than the centre.
+function _shiNewSmokePuff(W, H) {
+  const ang = Math.random() * Math.PI * 2;
+  const dist = 0.5 + Math.random() * 0.55;   // biased toward the outer half+
+  const x = W / 2 + Math.cos(ang) * dist * (W / 2);
+  const y = H / 2 + Math.sin(ang) * dist * (H / 2);
+  return {
+    x, y, r: 90 + Math.random() * 170,
+    vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.5) * 7,
+    mix: Math.random(),                 // 0 = deep blue, 1 = grey
+    ph: Math.random() * Math.PI * 2,
+    fs: 0.4 + Math.random() * 0.7,       // flicker speed
+    a: 0.09 + Math.random() * 0.11,
+  };
+}
 
 function _drawShiPattern(canvas, ctx, W, H, t) {
   if (_drawShiPattern._lt !== undefined && t - _drawShiPattern._lt < 0.033) return;
@@ -25769,11 +26513,72 @@ function _drawShiOverlay(canvas, ctx, W, H, t) {
   _drawShiOverlay._lt = t;
   ctx.clearRect(0, 0, W, H);
 
-  // Slow, graceful spring — elegant lag
+  // Slow, graceful spring — elegant lag. Updated BEFORE the vignette so the
+  // light-hole punch below tracks this frame's cursor position, not last
+  // frame's (the vignette needs the fresh _shiX/_shiY).
   const SPRING = 46, DAMP = 9;
   _shiVX += ((_shiTargX - _shiX) * SPRING - _shiVX * DAMP) * dt;
   _shiVY += ((_shiTargY - _shiY) * SPRING - _shiVY * DAMP) * dt;
   _shiX += _shiVX * dt; _shiY += _shiVY * dt;
+
+  // Page-wide dark vignette — this canvas is the top z-index layer (over the
+  // nav bar, sidebar, everything), so her cold melancholic frame wraps the
+  // WHOLE app, not just the background pattern behind the character panel.
+  // The app's base theme is already near-black, so a subtle darkening reads
+  // as invisible — this needs to be bold: it closes in much closer to centre
+  // and goes almost fully opaque at the true edges/corners to actually read.
+  if (!canvas._shiPageVign || canvas._shiPageVignW !== W || canvas._shiPageVignH !== H) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.12, W / 2, H / 2, Math.max(W, H) * 0.62);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(0.45, 'rgba(2,4,9,0.35)');
+    vg.addColorStop(1, 'rgba(1,2,6,0.92)');
+    canvas._shiPageVign = vg; canvas._shiPageVignW = W; canvas._shiPageVignH = H;
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = canvas._shiPageVign;
+  ctx.fillRect(0, 0, W, H);
+
+  // Deep blue/grey smoke drifting around the vignette — mostly gathered
+  // toward the edges, slow wander + gentle flicker, blended additively so
+  // overlapping puffs softly brighten. Drawn ON TOP of the vignette so the
+  // light-hole punch right after can clear both together in one pass.
+  if (!_shiSmoke.length || canvas._shiSmokeW !== W || canvas._shiSmokeH !== H) {
+    _shiSmoke = Array.from({ length: 13 }, () => _shiNewSmokePuff(W, H));
+    canvas._shiSmokeW = W; canvas._shiSmokeH = H;
+  }
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of _shiSmoke) {
+    p.x += p.vx * dt + Math.sin(t * 0.14 + p.ph) * 5 * dt;
+    p.y += p.vy * dt + Math.cos(t * 0.11 + p.ph) * 4 * dt;
+    if (p.x < -p.r) p.x = W + p.r; else if (p.x > W + p.r) p.x = -p.r;
+    if (p.y < -p.r) p.y = H + p.r; else if (p.y > H + p.r) p.y = -p.r;
+    const flick = 0.7 + 0.3 * Math.sin(t * p.fs + p.ph);
+    const rC = Math.round(38 + (92 - 38) * p.mix);
+    const gC = Math.round(52 + (94 - 52) * p.mix);
+    const bC = Math.round(94 + (100 - 94) * p.mix);
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+    g.addColorStop(0, `rgba(${rC},${gC},${bC},${(p.a * flick).toFixed(3)})`);
+    g.addColorStop(1, `rgba(${rC},${gC},${bC},0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  // Her soul-flame is a light source — it punches a soft hole through both
+  // the vignette AND the smoke wherever the cursor is, gently breathing, so
+  // the dark/smoke actually clears around her instead of sitting flat.
+  const lightPulse = 0.85 + 0.15 * Math.sin(t * 3);
+  const lightR = 150 * lightPulse;
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  const lg = ctx.createRadialGradient(_shiX, _shiY, 0, _shiX, _shiY, lightR);
+  lg.addColorStop(0, 'rgba(0,0,0,0.95)');
+  lg.addColorStop(0.55, 'rgba(0,0,0,0.55)');
+  lg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = lg;
+  ctx.beginPath(); ctx.arc(_shiX, _shiY, lightR, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
 
   _shiTrail.push({ x: _shiX, y: _shiY });
   if (_shiTrail.length > 22) _shiTrail.shift();
@@ -25833,13 +26638,49 @@ function _drawShiOverlay(canvas, ctx, W, H, t) {
   ctx.fillStyle = og; ctx.beginPath(); ctx.arc(_shiX, _shiY, pr * 2.6, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = 'rgba(236,246,255,0.9)'; ctx.beginPath(); ctx.arc(_shiX, _shiY, pr * 0.5, 0, Math.PI * 2); ctx.fill();
   ctx.globalCompositeOperation = 'source-over';
+
+  // Elegant blue border framing the WHOLE page — a refined double-line frame
+  // with small diamond corner accents, breathing softly (not swaying/jittering
+  // — she's calm and composed, not chaotic).
+  const breathe2 = 0.5 + 0.5 * Math.sin(t * 0.5);
+  const margin = 10;
+  const glowA = 0.32 + breathe2 * 0.22;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = `rgba(180,205,235,${glowA.toFixed(3)})`;
+  ctx.lineWidth = 1.4;
+  ctx.shadowColor = 'rgba(160,195,230,0.9)';
+  ctx.shadowBlur = 9 + breathe2 * 7;
+  ctx.strokeRect(margin, margin, W - margin * 2, H - margin * 2);
+  ctx.shadowBlur = 4;
+  ctx.strokeStyle = `rgba(224,238,252,${(glowA * 0.65).toFixed(3)})`;
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(margin + 4, margin + 4, W - (margin + 4) * 2, H - (margin + 4) * 2);
+  ctx.restore();
+
+  // Small diamond flourishes at each corner — a touch of quiet elegance.
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(212,230,250,${(0.5 + breathe2 * 0.3).toFixed(3)})`;
+  ctx.shadowColor = 'rgba(180,210,240,0.85)';
+  ctx.shadowBlur = 7;
+  const cs = 5 + breathe2 * 1.5;
+  const corners = [[margin, margin], [W - margin, margin], [margin, H - margin], [W - margin, H - margin]];
+  for (const [ccx, ccy] of corners) {
+    ctx.save();
+    ctx.translate(ccx, ccy);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillRect(-cs / 2, -cs / 2, cs, cs);
+    ctx.restore();
+  }
+  ctx.restore();
 }
 function _startShiOverlay() {
   _stopShiOverlay();
   _drawShiOverlay._lt = undefined;
   _shiX = _shiTargX = window.innerWidth * 0.5;
   _shiY = _shiTargY = window.innerHeight * 0.5;
-  _shiVX = _shiVY = 0; _shiTrail = []; _shiPetals = []; _shiRings = []; _shiEmit = 0;
+  _shiVX = _shiVY = 0; _shiTrail = []; _shiPetals = []; _shiRings = []; _shiEmit = 0; _shiSmoke = [];
   window.addEventListener('mousemove', _shiMouseMove);
   window.addEventListener('click', _shiClick);
   const cv = document.createElement('canvas');
@@ -26680,21 +27521,28 @@ function _stopZoeOverlay() {
 // IRIS — starry, shimmyful, joyous magical-girl sparkle.
 // ════════════════════════════════════════════════════════════════
 // Cached 4-point sparkle glint (warm gold/white) — drawn scaled for twinkle.
-function _irisSparkleSprite() {
-  if (_irisSparkleSprite._c) return _irisSparkleSprite._c;
+function _irisSparkleSprite(pink) {
+  const key = pink ? '_cPink' : '_c';
+  if (_irisSparkleSprite[key]) return _irisSparkleSprite[key];
   const s = document.createElement('canvas'); s.width = s.height = 32;
   const g = s.getContext('2d'); g.translate(16, 16);
   const rg = g.createRadialGradient(0, 0, 0, 0, 0, 10);
-  rg.addColorStop(0, 'rgba(255,251,215,1)');
-  rg.addColorStop(0.5, 'rgba(255,224,110,0.55)');
-  rg.addColorStop(1, 'rgba(255,200,80,0)');
+  if (pink) {
+    rg.addColorStop(0, 'rgba(255,253,235,1)');
+    rg.addColorStop(0.5, 'rgba(255,214,90,0.65)');
+    rg.addColorStop(1, 'rgba(255,185,40,0)');
+  } else {
+    rg.addColorStop(0, 'rgba(255,251,215,1)');
+    rg.addColorStop(0.5, 'rgba(255,224,110,0.55)');
+    rg.addColorStop(1, 'rgba(255,200,80,0)');
+  }
   g.fillStyle = rg; g.beginPath(); g.arc(0, 0, 10, 0, Math.PI * 2); g.fill();
-  g.fillStyle = 'rgba(255,252,228,0.95)';
+  g.fillStyle = pink ? 'rgba(255,251,225,0.98)' : 'rgba(255,252,228,0.95)';
   for (let k = 0; k < 4; k++) {
     g.beginPath(); g.moveTo(0, -15); g.lineTo(2, 0); g.lineTo(0, 4); g.lineTo(-2, 0); g.closePath(); g.fill();
     g.rotate(Math.PI / 2);
   }
-  return _irisSparkleSprite._c = s;
+  return _irisSparkleSprite[key] = s;
 }
 function _irisStarPath(ctx, R) {
   ctx.beginPath();
@@ -26728,16 +27576,16 @@ function _irisBurst(canvas, x, y) {
   }
 }
 // A glowing 5-point star with a sparkle halo (cheap: one sprite + two fills).
-function _irisDrawStar(ctx, x, y, sz, rot, alpha) {
-  const spr = _irisSparkleSprite();
+function _irisDrawStar(ctx, x, y, sz, rot, alpha, pink) {
+  const spr = _irisSparkleSprite(pink);
   ctx.globalCompositeOperation = 'lighter';
   ctx.globalAlpha = alpha * 0.6;
   const d = sz * 4.2; ctx.drawImage(spr, x - d / 2, y - d / 2, d, d);
   ctx.globalCompositeOperation = 'source-over';
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
   ctx.globalAlpha = alpha;
-  _irisStarPath(ctx, sz); ctx.fillStyle = '#ffd766'; ctx.fill();
-  _irisStarPath(ctx, sz * 0.52); ctx.fillStyle = '#fff4cf'; ctx.fill();
+  _irisStarPath(ctx, sz); ctx.fillStyle = pink ? '#ffe94d' : '#ffd766'; ctx.fill();
+  _irisStarPath(ctx, sz * 0.52); ctx.fillStyle = pink ? '#fffbe0' : '#fff4cf'; ctx.fill();
   ctx.restore();
   ctx.globalAlpha = 1;
 }
@@ -26749,23 +27597,83 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
   _drawIrisPattern._lt = t;
   if (fresh) canvas._irisShoot = null;   // shooting star uses absolute time → reset on (re)entry
 
-  if (canvas._irisW !== W || canvas._irisH !== H) {
-    canvas._irisW = W; canvas._irisH = H;
+  // "Lady of the Stars!" — Iris's magical-girl transformation alt form gets
+  // the same scene leveled up into a brighter, more radiant GOLD palette.
+  const transformed = _isIrisStarsForm(characters.find(x => x.id === currentId));
+
+  if (canvas._irisW !== W || canvas._irisH !== H || canvas._irisMode !== transformed) {
+    canvas._irisW = W; canvas._irisH = H; canvas._irisMode = transformed;
     canvas._irisBase = null; canvas._irisVign = null; canvas._irisStars = null;
     canvas._irisBig = null; canvas._irisMotes = null;
-    canvas._irisFalls = null; canvas._irisFrags = null;
+    canvas._irisFalls = null; canvas._irisFrags = null; canvas._irisPulses = null;
   }
   const shimmer = 0.5 + 0.5 * Math.sin(t * 1.1);
-  const spr = _irisSparkleSprite();
+  const spr = _irisSparkleSprite(transformed);
 
-  // 1 ── Warm magical twilight base (gold heart → plum edges)
+  // 1 ── Warm magical twilight base (gold heart → plum edges); transformed
+  //      into a blazing gold-heart cosmos for Lady of the Stars.
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   if (!canvas._irisBase) {
     const g = ctx.createRadialGradient(W * 0.5, H * 0.42, 0, W * 0.5, H * 0.42, Math.max(W, H) * 0.9);
-    g.addColorStop(0, '#3a2c12'); g.addColorStop(0.5, '#241433'); g.addColorStop(1, '#160a20');
+    if (transformed) {
+      g.addColorStop(0, '#7a5410'); g.addColorStop(0.5, '#3d2a18'); g.addColorStop(1, '#160e28');
+    } else {
+      g.addColorStop(0, '#3a2c12'); g.addColorStop(0.5, '#241433'); g.addColorStop(1, '#160a20');
+    }
     canvas._irisBase = g;
   }
   ctx.fillStyle = canvas._irisBase; ctx.fillRect(0, 0, W, H);
+
+  // 1.5 ── Transformation light-burst, magic circle & signature emblem
+  //        (Lady of the Stars only) — a summoning-circle of orbiting stars
+  //        ringing a pulsing emblem, radiant gold light rays behind it, and
+  //        slow expanding power-pulse rings.
+  if (transformed) {
+    const cx = W * 0.5, cy = H * 0.42;
+    ctx.globalCompositeOperation = 'lighter';
+    const spokes = 10, spin = t * 0.06;
+    for (let i = 0; i < spokes; i++) {
+      const ang = spin + i * (Math.PI * 2 / spokes);
+      const len = Math.max(W, H) * 0.8;
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang);
+      const rg = ctx.createLinearGradient(0, 0, len, 0);
+      rg.addColorStop(0, 'rgba(255,214,120,0.20)');
+      rg.addColorStop(1, 'rgba(255,214,120,0)');
+      ctx.fillStyle = rg;
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(len, -len * 0.09); ctx.lineTo(len, len * 0.09);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    // expanding power-pulse rings, spawned on a slow heartbeat
+    if (!canvas._irisPulses) canvas._irisPulses = [];
+    if (canvas._irisPulseNext === undefined || t > canvas._irisPulseNext) {
+      canvas._irisPulseNext = t + 2.4;
+      canvas._irisPulses.push({ r: 6, life: 1 });
+    }
+    for (let i = canvas._irisPulses.length - 1; i >= 0; i--) {
+      const p = canvas._irisPulses[i];
+      p.r += 85 * dt; p.life -= dt * 0.45;
+      if (p.life <= 0) { canvas._irisPulses.splice(i, 1); continue; }
+      ctx.strokeStyle = `rgba(255,222,140,${p.life * 0.4})`;
+      ctx.lineWidth = 2 + p.life * 3;
+      ctx.beginPath(); ctx.arc(cx, cy, p.r, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // magic summoning circle — a ring of small stars orbiting the emblem
+    const ringStars = 8, orbR = 78, orbSpin = t * 0.5;
+    for (let i = 0; i < ringStars; i++) {
+      const ang = orbSpin + i * (Math.PI * 2 / ringStars);
+      const ox = cx + Math.cos(ang) * orbR, oy = cy + Math.sin(ang) * orbR * 0.5;
+      _irisDrawStar(ctx, ox, oy, 6.5, ang, 0.7, true);
+    }
+
+    // signature emblem — the big pulsing star at the heart of the circle
+    const pr = 30 + Math.sin(t * 1.4) * 5;
+    _irisDrawStar(ctx, cx, cy, pr, t * 0.25, 0.55, true);
+    ctx.globalCompositeOperation = 'source-over';
+  }
 
   // 2 ── Twinkling star field
   if (!canvas._irisStars) {
@@ -26814,7 +27722,7 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
   // 5.5 ── Falling 5-point stars; some burst into smaller stars shooting out.
   // The cursor (read in canvas-local space) draws nearby stars toward your wand
   // and pops any it touches — interactive sparkle-catching.
-  if (!canvas._irisFalls) canvas._irisFalls = Array.from({ length: 10 }, () => _irisNewFall(W, H, true));
+  if (!canvas._irisFalls) canvas._irisFalls = Array.from({ length: transformed ? 16 : 10 }, () => _irisNewFall(W, H, true));
   if (!canvas._irisFrags) canvas._irisFrags = [];
   let mx = -99999, my = -99999;
   if (_irisOverlayRafId) { const rc = canvas.getBoundingClientRect(); mx = _irisTargX - rc.left; my = _irisTargY - rc.top; }
@@ -26831,22 +27739,22 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
     f.vy += (f.fall - f.vy) * dt * 1.1;
     if (f.explode && f.y >= f.explodeY) { _irisBurst(canvas, f.x, f.y); Object.assign(f, _irisNewFall(W, H, false)); continue; }
     if (f.y > H + 30 || f.y < -120 || f.x < -120 || f.x > W + 120) Object.assign(f, _irisNewFall(W, H, false));
-    _irisDrawStar(ctx, f.x, f.y, f.sz, f.rot, f.a);
+    _irisDrawStar(ctx, f.x, f.y, f.sz, f.rot, f.a, transformed);
   }
   for (let i = canvas._irisFrags.length - 1; i >= 0; i--) {
     const p = canvas._irisFrags[i];
     p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 70 * dt; p.vx *= 0.99; p.rot += p.vr * dt; p.life -= dt * 1.3;
     if (p.life <= 0) { canvas._irisFrags.splice(i, 1); continue; }
-    _irisDrawStar(ctx, p.x, p.y, p.sz, p.rot, Math.min(1, p.life) * 0.95);
+    _irisDrawStar(ctx, p.x, p.y, p.sz, p.rot, Math.min(1, p.life) * 0.95, transformed);
   }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
 
-  // 6 ── Occasional shooting star (re-entry safe)
+  // 6 ── Occasional shooting star (re-entry safe) — falls more often & brighter when transformed
   {
     let sh = canvas._irisShoot;
-    if (!sh || t < sh.born) canvas._irisShoot = sh = { next: t + 1.5 + Math.random() * 3, born: -99, dur: 0.9, x0: 0, y0: 0, ang: 0, len: 0 };
+    if (!sh || t < sh.born) canvas._irisShoot = sh = { next: t + 1.5 + Math.random() * (transformed ? 1.5 : 3), born: -99, dur: 0.9, x0: 0, y0: 0, ang: 0, len: 0 };
     if (t > sh.next) {
-      sh.born = t; sh.dur = 0.7 + Math.random() * 0.5; sh.next = t + 3 + Math.random() * 5;
+      sh.born = t; sh.dur = 0.7 + Math.random() * 0.5; sh.next = t + (transformed ? 1.4 + Math.random() * 2.4 : 3 + Math.random() * 5);
       sh.x0 = W * (0.08 + Math.random() * 0.6); sh.y0 = H * (0.04 + Math.random() * 0.3);
       sh.ang = Math.PI * (0.12 + Math.random() * 0.2); sh.len = Math.min(W, H) * (0.45 + Math.random() * 0.3);
     }
@@ -26857,7 +27765,8 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
       const trail = 80, tx = hx - Math.cos(sh.ang) * trail, ty = hy - Math.sin(sh.ang) * trail;
       const a = Math.sin(prog * Math.PI);
       const g = ctx.createLinearGradient(tx, ty, hx, hy);
-      g.addColorStop(0, 'rgba(255,240,180,0)'); g.addColorStop(1, `rgba(255,246,205,${a * 0.9})`);
+      if (transformed) { g.addColorStop(0, 'rgba(255,225,150,0)'); g.addColorStop(1, `rgba(255,240,200,${a * 0.9})`); }
+      else { g.addColorStop(0, 'rgba(255,240,180,0)'); g.addColorStop(1, `rgba(255,246,205,${a * 0.9})`); }
       ctx.globalCompositeOperation = 'lighter';
       ctx.strokeStyle = g; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
@@ -26869,7 +27778,7 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
   if (!canvas._irisVign) {
     const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.82);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(14,6,20,0.72)');
+    vg.addColorStop(1, transformed ? 'rgba(38,24,8,0.72)' : 'rgba(14,6,20,0.72)');
     canvas._irisVign = vg;
   }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
@@ -26893,6 +27802,8 @@ function _drawIrisOverlay(canvas, ctx, W, H, t) {
   _drawIrisOverlay._lt = t;
   ctx.clearRect(0, 0, W, H);
 
+  const transformed = _isIrisStarsForm(characters.find(x => x.id === currentId));
+
   const SPRING = 70, DAMP = 12;
   _irisVX += ((_irisTargX - _irisX) * SPRING - _irisVX * DAMP) * dt;
   _irisVY += ((_irisTargY - _irisY) * SPRING - _irisVY * DAMP) * dt;
@@ -26910,14 +27821,15 @@ function _drawIrisOverlay(canvas, ctx, W, H, t) {
       sz: 3 + Math.random() * 5, rot: 0, vr: 0, heart: false, grav: 24, tw: 2 + Math.random() * 4, ph: Math.random() * 6.28 });
   }
 
-  const spr = _irisSparkleSprite();
+  const spr = _irisSparkleSprite(transformed);
   // twinkle rings
   ctx.globalCompositeOperation = 'lighter';
   for (let i = _irisRings.length - 1; i >= 0; i--) {
     const r = _irisRings[i];
     r.r += 260 * dt; r.life -= dt * 1.3;
     if (r.life <= 0) { _irisRings.splice(i, 1); continue; }
-    ctx.strokeStyle = `rgba(255,235,150,${r.life * 0.5})`; ctx.lineWidth = 2 + r.life * 3;
+    ctx.strokeStyle = transformed ? `rgba(255,224,140,${r.life * 0.5})` : `rgba(255,235,150,${r.life * 0.5})`;
+    ctx.lineWidth = 2 + r.life * 3;
     ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
   }
   // particles
@@ -26936,16 +27848,30 @@ function _drawIrisOverlay(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'lighter';
   const pr = 14 + Math.sin(t * 4) * 2;
   const og = ctx.createRadialGradient(_irisX, _irisY, 0, _irisX, _irisY, pr * 2.6);
-  og.addColorStop(0, 'rgba(255,250,210,0.9)');
-  og.addColorStop(0.4, 'rgba(255,215,90,0.55)');
-  og.addColorStop(1, 'rgba(255,180,60,0)');
+  if (transformed) {
+    og.addColorStop(0, 'rgba(255,253,235,0.95)');
+    og.addColorStop(0.4, 'rgba(255,214,90,0.6)');
+    og.addColorStop(1, 'rgba(255,180,50,0)');
+  } else {
+    og.addColorStop(0, 'rgba(255,250,210,0.9)');
+    og.addColorStop(0.4, 'rgba(255,215,90,0.55)');
+    og.addColorStop(1, 'rgba(255,180,60,0)');
+  }
   ctx.fillStyle = og; ctx.beginPath(); ctx.arc(_irisX, _irisY, pr * 2.6, 0, Math.PI * 2); ctx.fill();
   ctx.save(); ctx.translate(_irisX, _irisY); ctx.rotate(t * 1.6);
   _irisStarPath(ctx, pr);
   const sg = ctx.createLinearGradient(0, -pr, 0, pr);
-  sg.addColorStop(0, 'rgba(255,250,225,0.98)'); sg.addColorStop(1, 'rgba(255,205,80,0.95)');
+  if (transformed) { sg.addColorStop(0, 'rgba(255,253,235,0.98)'); sg.addColorStop(1, 'rgba(255,205,80,0.95)'); }
+  else { sg.addColorStop(0, 'rgba(255,250,225,0.98)'); sg.addColorStop(1, 'rgba(255,205,80,0.95)'); }
   ctx.fillStyle = sg; ctx.fill();
   ctx.restore();
+
+  // Lady of the Stars — a twin star orbits the wand tip for extra flourish
+  if (transformed) {
+    const orbAng = t * 3, orbR = pr * 2.3;
+    const ox = _irisX + Math.cos(orbAng) * orbR, oy = _irisY + Math.sin(orbAng) * orbR;
+    _irisDrawStar(ctx, ox, oy, pr * 0.42, orbAng * 2, 0.85, true);
+  }
   ctx.globalCompositeOperation = 'source-over';
 }
 function _startIrisOverlay() {
@@ -28657,7 +29583,7 @@ function viewChar(id) {
   else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
   else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
   else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
-  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffd633'); }
+  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _isIrisStarsForm(c) ? '#ffe14d' : '#ffd633'); }
   else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
   else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
   else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
@@ -28701,6 +29627,23 @@ function viewChar(id) {
     const _nm = document.getElementById('cv-name');
     if (_isJuko(c)) {
       _cvRoot.classList.add('juko-ui');
+      const _0inf = _isJuko0Inf(c);
+      _cvRoot.classList.toggle('juko-0inf', _0inf);
+      // 0∞ goes beyond the character page — the WHOLE app UI (top nav,
+      // sidebar) glitches while she's in this form.
+      document.body.classList.toggle('juko-0inf-page', _0inf);
+      // Start/stop the 0∞ intro timer + glitch-window extras only on TRANSITION,
+      // so re-renders (tab switches etc.) don't restart the 22s build-up.
+      if (_0inf && !_juko0InfActive) {
+        _juko0InfActive = true;
+        _juko0InfStart = performance.now();
+        // Restart the RAGE track from 0 so the 22s intro → drop plays every entry.
+        try { _themeTimestamps.delete(_tsKey(c.id, c.activeFormIdx || 0)); } catch (e) {}
+        _startJuko0InfExtras(_cvAvatar ? _cldImg(_cvAvatar) : null);
+      } else if (!_0inf && _juko0InfActive) {
+        _juko0InfActive = false;
+        _stopJuko0InfExtras();
+      }
       _cvRoot.style.setProperty('--juko-glow', '0');
       _cvRoot.style.setProperty('--juko-onset', '0');
       _cvRoot.style.setProperty('--juko-glitch', '0');
@@ -28718,7 +29661,9 @@ function viewChar(id) {
       }
       if (_nm) { _nm.classList.add('juko-name'); _nm.setAttribute('data-text', _nm.textContent || 'JUKO!'); }
     } else {
-      _cvRoot.classList.remove('juko-ui');
+      _cvRoot.classList.remove('juko-ui', 'juko-0inf');
+      document.body.classList.remove('juko-0inf-page');
+      if (_juko0InfActive) { _juko0InfActive = false; _stopJuko0InfExtras(); }
       if (_av) { _av.classList.remove('juko-pfp'); const fx = _av.querySelector('.juko-pfp-fx'); if (fx) fx.remove(); }
       if (_nm) { _nm.classList.remove('juko-name'); _nm.removeAttribute('data-text'); }
     }
@@ -29481,6 +30426,9 @@ function viewChar(id) {
     { key: 'spd', label: 'SPD', icon: `<svg width="14" height="14" viewBox="0 0 10 10" style="margin-right:6px; flex-shrink: 0; color: var(--accent-yellow);"><path d="M6 0L2 5H5L4 10L9 4H5Z" fill="currentColor"/></svg>` },
     { key: 'iq',  label: 'IQ',  icon: `<svg width="14" height="14" viewBox="0 0 10 10" style="margin-right:6px; flex-shrink: 0; color: #00bbcc;"><path d="M4 2C3 2 2 3 2 4.5c0 1 .5 2 1.5 2.5C3 8.5 4 8.5 5 8.5c1 0 2 0 1.5-1.5C7.5 6.5 8 5.5 8 4.5 8 3 7 2 6 2c-.5 0-1 .2-1 .5C5 2.2 4.5 2 4 2zm1 .5V8M3.5 4C4 3.5 4.5 3.6 4.5 4.1M5.5 4C6 3.5 6.5 3.6 6.5 4.1M3.5 5.7C4 5.2 4.5 5.3 4.5 5.8M5.5 5.7C6 5.2 6.5 5.3 6.5 5.8" fill="none" stroke="currentColor" stroke-width="0.75" stroke-linecap="round"/></svg>` },
   ];
+  // 0∞: ATK/DEF/MAG/IQ read as infinite — the number occasionally glitches
+  // into her real value for a frame (driven by _juko0InfWinFrame).
+  const _0infStats = _isJuko0Inf(c);
   statsEl.innerHTML = stats.map(s => {
     const baseVal = c.stats[s.key] || 0;
     const effVal = effStats[s.key];
@@ -29492,6 +30440,10 @@ function viewChar(id) {
       const cls = diff > 0 ? 'pos' : 'neg';
       diffHtml = `<span class="eff-stat-diff ${cls}" data-tooltip="${tooltip}">(${sign}${diff})</span>`;
     }
+    const isInfStat = _0infStats && _JUKO0_INF_STAT_KEYS.includes(s.key);
+    const numHtml = isInfStat
+      ? `<span id="stat-num-${s.key}" class="juko0-stat-inf" data-real="${effVal}">∞</span>`
+      : effVal;
 
     return `<div class="stat-row">
       <div class="stat-label" style="display:flex;align-items:center;">
@@ -29499,7 +30451,7 @@ function viewChar(id) {
         <span id="tier-disp-${s.key}" style="margin-left:6px; font-size:8px; font-weight:bold; color:var(--accent-cyan); letter-spacing:1px;"></span>
       </div>
       <div class="stat-segs" id="stat-segs-${s.key}"></div>
-      <div class="stat-val">${effVal}${diffHtml}</div>
+      <div class="stat-val">${numHtml}${diffHtml}</div>
     </div>`;
   }).join('');
 
@@ -29520,7 +30472,8 @@ function viewChar(id) {
   } else {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
-  styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${pdef?.label || 'None'}</span></div>`;
+  const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
+  styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
   if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
