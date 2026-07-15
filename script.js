@@ -41,10 +41,21 @@ let _encStatusMap = {}; // keyed by UPPERCASE status name → { color, desc }
 // ── NARA rainbow ─────────────────────────────────────────────
 const _NARA_RE = /^NARA!+$/;
 function _isNara(c) { return !!(c && c.name && _NARA_RE.test(c.name)); }
+// "BLUE" — Nara's alt form: her rainbow turns to a gradient of blues and her
+// page becomes an animated ocean (fishes, a shark, rainbow rain, trident).
+const _NARA_BLUE_RE = /blue/i;
+function _isNaraBlue(c) { return _isNara(c) && _NARA_BLUE_RE.test(_activeFormName(c)); }
+let _naraBlueActive = false;   // set in viewChar — makes the chrome cycle blues
 let _naraCurrentColor = '#ffb3ba';
 let _naraRafId = null, _naraRafT = 0, _naraRafPrevTs = 0;
 
 function _naraHsl(t) {
+  if (_naraBlueActive) {
+    // stay within the blues: cyan (~190) ↔ deep blue (~232), gently oscillating
+    const hue = 211 + 21 * Math.sin(t * 0.9);
+    const lig = 66 + 8 * Math.sin(t * 0.6);
+    return `hsl(${hue.toFixed(1)},82%,${lig.toFixed(1)}%)`;
+  }
   const hue = ((t * 50) % 360 + 360) % 360; // 50°/s → ~7.2 s per full cycle
   return `hsl(${hue.toFixed(1)},80%,78%)`;
 }
@@ -2996,6 +3007,9 @@ const PATTERN_DEFS = {
   valkyrie_rain:    { label: "Valkyrie's Blood Rain",  params: [] },
   adam_ice:         { label: "Adam's ice thing",   params: [] },
   fury_fire:        { label: "Fury's Fire",            params: [] },
+  annie_blitz:      { label: "Annie · Blood & Blitz",   params: [] },
+  vikadan_casino:   { label: "Vikadan · Casino",        params: [] },
+  nara_ocean:       { label: "NARA! · BLUE Ocean",      params: [] },
   sorrow_fire:      { label: "Sorrow's Ashes",         params: [] },
   juko_code:        { label: "Juko's Code Garden",     params: [] },
   lucifer_unleashed:{ label: "Lucifer · Unleashed",    params: [] },
@@ -6512,7 +6526,7 @@ function _drawFuryOverlay(canvas, ctx, W, H, t, drawCompanion, flip) {
 }
 
 function _startFuryOverlay() {
-  _stopFuryOverlay();
+  _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay();
   _drawFuryOverlay._lt = undefined;
   _furyMuffinX = _furyMuffinTargX = window.innerWidth * 0.5;
   _furyMuffinY = _furyMuffinTargY = window.innerHeight * 0.5;
@@ -6549,6 +6563,1419 @@ function _stopFuryOverlay() {
   if (cv) cv.remove();
   _furyFlash = 0; _furyRings = [];
 }
+
+// ════════════════════════════════════════════════════════════════
+// ANNIE (AntiChrist) — primal blood demon. A BRIMSTONE (the sulfur glyph)
+// burns dead-centre inside a rotating summoning circle. Reality bleeds and
+// tears around it — then, her headline move: the circle overcharges and a
+// colossal BLOOD LASER erupts through the centre and SWEEPS across the whole
+// screen, shearing the world apart in its path. Void black + one blood red.
+// ════════════════════════════════════════════════════════════════
+const _ANNIE_RE = /^(annie|antichrist|the\s+antichrist)$/i;
+function _isAnnie(c) { return !!(c && c.name && _ANNIE_RE.test(c.name)); }
+const _ANNIE_RED = '161,15,20';      // rgb() triple — her blood red, reused everywhere below
+const _ANNIE_RED_HEX = '#a10f14';
+
+// ── Shared poker-card renderer (Annie's cursor = 6 of black clubs, Vikadan's
+//    = 6 of red clubs, plus his thrown cards). Draws a proper rounded white
+//    card with corner indices + a 6-pip club layout. ──
+function _cardRR(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+  else { ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+}
+function _drawClubPip(ctx, x, y, r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x, y - r * 0.52, r * 0.5, 0, Math.PI * 2); ctx.fill();          // top lobe
+  ctx.beginPath(); ctx.arc(x - r * 0.46, y + r * 0.12, r * 0.5, 0, Math.PI * 2); ctx.fill(); // left lobe
+  ctx.beginPath(); ctx.arc(x + r * 0.46, y + r * 0.12, r * 0.5, 0, Math.PI * 2); ctx.fill(); // right lobe
+  ctx.beginPath(); ctx.moveTo(x, y - r * 0.1); ctx.lineTo(x - r * 0.3, y + r * 0.85); ctx.lineTo(x + r * 0.3, y + r * 0.85); ctx.closePath(); ctx.fill(); // stem
+}
+// Draw a "6 of clubs" card centred at (cx,cy), width w, rotated rot radians.
+// suitColor: '#111' for black clubs, '#c81620' for red. glow: optional css color.
+function _drawPlayingCard(ctx, cx, cy, w, rot, rank, suitColor, glow) {
+  const h = w * 1.42, rad = w * 0.11;
+  ctx.save();
+  ctx.translate(cx, cy); ctx.rotate(rot || 0);
+  if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 16; }
+  _cardRR(ctx, -w / 2, -h / 2, w, h, rad);
+  ctx.fillStyle = '#f6f3ec'; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = Math.max(1, w * 0.028); ctx.strokeStyle = 'rgba(0,0,0,0.28)'; _cardRR(ctx, -w / 2, -h / 2, w, h, rad); ctx.stroke();
+  ctx.fillStyle = suitColor;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.round(w * 0.28)}px Georgia, "Times New Roman", serif`;
+  // two mirrored corner indices
+  for (let m = 0; m < 2; m++) {
+    ctx.save();
+    if (m) { ctx.translate(w / 2, h / 2); ctx.rotate(Math.PI); } else { ctx.translate(-w / 2, -h / 2); }
+    ctx.fillText(rank, w * 0.19, h * 0.15);
+    _drawClubPip(ctx, w * 0.19, h * 0.30, w * 0.085, suitColor);
+    ctx.restore();
+  }
+  // centre pip layout for a six: 2 columns × 3 rows
+  const pr = w * 0.15;
+  for (const px of [-w * 0.19, w * 0.19]) for (const py of [-h * 0.24, 0, h * 0.24]) _drawClubPip(ctx, px, py, pr, suitColor);
+  ctx.restore();
+}
+
+let _annieOverlayRafId = null;
+let _annieX = 0, _annieY = 0, _annieTargX = 0, _annieTargY = 0, _annieVX = 0, _annieVY = 0;
+let _annieRibbon = [];       // recent cursor positions → liquid blood-ribbon trail
+let _annieDrips = [];        // click: falling blood-drop particles
+let _annieSlashes = [];      // click: jagged claw-slash marks, fade fast
+let _annieClickFlash = 0, _annieClickRings = [], _annieStamp = null;
+
+function _annieMouseMove(e) {
+  _annieTargX = e.clientX; _annieTargY = e.clientY;
+}
+function _annieClick() {
+  _annieClickFlash = 1;
+  // a brimstone sigil STAMPS the spot — punches in big, then fades.
+  _annieStamp = { x: _annieX, y: _annieY, life: 1, rot: (Math.random() - 0.5) * 0.4 };
+  // two shockwave rings, staggered.
+  _annieClickRings.push({ x: _annieX, y: _annieY, r: 6, life: 1, spd: 520 });
+  _annieClickRings.push({ x: _annieX, y: _annieY, r: 2, life: 1, spd: 300 });
+  // a fan of jagged claw-slash marks radiating from the click point.
+  const base = Math.random() * Math.PI * 2;
+  for (let i = 0; i < 6; i++) {
+    const ang = base + i * (Math.PI * 2 / 6) + (Math.random() - 0.5) * 0.4;
+    _annieSlashes.push({ x: _annieX, y: _annieY, ang, len: 60 + Math.random() * 90, life: 1, w: 3 + Math.random() * 3 });
+  }
+  // blood flung outward, then gravity takes it.
+  for (let i = 0; i < 22; i++) {
+    const a = Math.random() * Math.PI * 2, s = 90 + Math.random() * 300;
+    _annieDrips.push({ x: _annieX, y: _annieY, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60, r: 2 + Math.random() * 4, life: 1 });
+  }
+}
+
+// ── BRIMSTONE (the alchemical sulfur glyph, à la TBOI): an upward triangle
+//    seated on a cross. Traced as three sub-strokes so it reads as one clean
+//    sigil. Unit space: ~1.0 = half the glyph height, apex up. ──
+function _annieBrimstoneStroke(ctx, cx, cy, s) {
+  // triangle (apex up)
+  ctx.beginPath();
+  ctx.moveTo(cx + 0.00 * s, cy - 1.00 * s);
+  ctx.lineTo(cx + 0.66 * s, cy - 0.02 * s);
+  ctx.lineTo(cx - 0.66 * s, cy - 0.02 * s);
+  ctx.closePath();
+  ctx.stroke();
+  // cross — vertical stem hanging from the triangle base
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 0.02 * s);
+  ctx.lineTo(cx, cy + 1.02 * s);
+  ctx.stroke();
+  // cross — horizontal bar
+  ctx.beginPath();
+  ctx.moveTo(cx - 0.46 * s, cy + 0.50 * s);
+  ctx.lineTo(cx + 0.46 * s, cy + 0.50 * s);
+  ctx.stroke();
+}
+
+// The full centrepiece: a rotating double summoning ring studded with runic
+// ticks + inverted triangles, orbiting blood embers, and the brimstone glyph
+// blazing at the core. `glow` (~0.3 rest → ~2 when overcharging) scales the
+// blaze so the beam charge can make it erupt.
+function _drawAnnieBrimstone(ctx, cx, cy, R, t, glow) {
+  const g = Math.max(0, glow);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  // core aura wash behind the glyph
+  const aura = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.25);
+  aura.addColorStop(0, `rgba(${_ANNIE_RED},${Math.min(0.85, 0.12 + g * 0.28).toFixed(3)})`);
+  aura.addColorStop(0.5, `rgba(${_ANNIE_RED},${Math.min(0.4, 0.05 + g * 0.12).toFixed(3)})`);
+  aura.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = aura;
+  ctx.beginPath(); ctx.arc(cx, cy, R * 1.25, 0, Math.PI * 2); ctx.fill();
+
+  const ringA = Math.min(1, 0.22 + g * 0.4);
+  ctx.strokeStyle = `rgba(${_ANNIE_RED},${ringA.toFixed(3)})`;
+  ctx.shadowColor = `rgba(${_ANNIE_RED},0.9)`;
+  ctx.shadowBlur = 10 + g * 18;
+
+  // outer ring + inner ring
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(cx, cy, R * 1.0, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, R * 0.82, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, R * 0.34, 0, Math.PI * 2); ctx.stroke();
+
+  // runic ticks between the two outer rings (rotating one way)
+  const rot = t * 0.12;
+  ctx.lineWidth = 1.4;
+  for (let i = 0; i < 24; i++) {
+    const a = rot + i * (Math.PI * 2 / 24);
+    const long = i % 2 === 0;
+    const r0 = R * 0.82, r1 = R * (long ? 1.0 : 0.92);
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+    ctx.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+    ctx.stroke();
+  }
+  // small inverted triangles orbiting the inner ring (rotating the other way)
+  const rot2 = -t * 0.2;
+  for (let i = 0; i < 6; i++) {
+    const a = rot2 + i * (Math.PI * 2 / 6);
+    const tx = cx + Math.cos(a) * R * 0.58, ty = cy + Math.sin(a) * R * 0.58;
+    const ts = R * 0.07;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty + ts);
+    ctx.lineTo(tx + ts * 0.9, ty - ts * 0.6);
+    ctx.lineTo(tx - ts * 0.9, ty - ts * 0.6);
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // the brimstone glyph — layered: wide red glow, then a white-hot core
+  const gs = R * 0.5;
+  ctx.lineWidth = 4 + g * 3;
+  ctx.strokeStyle = `rgba(${_ANNIE_RED},${Math.min(1, 0.4 + g * 0.5).toFixed(3)})`;
+  ctx.shadowBlur = 14 + g * 26;
+  _annieBrimstoneStroke(ctx, cx, cy, gs);
+  ctx.lineWidth = 1.5 + g * 1.5;
+  ctx.strokeStyle = `rgba(255,${Math.round(210 - g * 40)},${Math.round(210 - g * 40)},${Math.min(1, 0.5 + g * 0.5).toFixed(3)})`;
+  ctx.shadowBlur = 6 + g * 10;
+  _annieBrimstoneStroke(ctx, cx, cy, gs);
+
+  // orbiting blood embers
+  ctx.shadowBlur = 8;
+  for (let i = 0; i < 10; i++) {
+    const a = t * (0.4 + (i % 3) * 0.15) + i * (Math.PI * 2 / 10);
+    const orb = R * (0.9 + 0.12 * Math.sin(t * 1.3 + i));
+    const ex = cx + Math.cos(a) * orb, ey = cy + Math.sin(a) * orb;
+    const ea = 0.3 + 0.4 * Math.abs(Math.sin(t * 2 + i));
+    ctx.fillStyle = `rgba(${_ANNIE_RED},${(ea * (0.5 + g)).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(ex, ey, 1.6 + (i % 2), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── Reality tear: a RIFT torn into space — a jagged angular fracture that
+//    cracks open into a glowing void gap, with a searing white-hot seam and
+//    forking lightning branches at its tips. Also physically shoves a slice
+//    of the already-drawn scene sideways, so the canvas fabric itself looks
+//    sheared apart along the rift. ──
+function _annieNewTear(W, H) {
+  const ang = Math.random() * Math.PI * 2;
+  const ux = Math.cos(ang), uy = Math.sin(ang), px = -uy, py = ux;
+  // span the WHOLE page: length exceeds the diagonal and the centre sits near
+  // the middle, so the rift always crosses from one edge clean off the other.
+  const len = Math.hypot(W, H) * 1.3;
+  const cx0 = W * (0.35 + Math.random() * 0.3), cy0 = H * (0.35 + Math.random() * 0.3);
+  const segs = 12 + Math.floor(Math.random() * 5);
+  const pts = [];
+  for (let i = 0; i <= segs; i++) {
+    const f = i / segs;
+    const along = (f - 0.5) * len;
+    // sharp alternating zigzag laterally, tapering toward the ends
+    const taper = Math.sin(Math.PI * f);
+    const lat = (i === 0 || i === segs) ? 0 : ((i % 2) ? 1 : -1) * len * 0.022 * (0.5 + Math.random()) * taper;
+    pts.push([cx0 + ux * along + px * lat, cy0 + uy * along + py * lat]);
+  }
+  // forking lightning branches splitting off ALONG the rift (anchored at
+  // interior points so they land on-screen, not off at the far tips).
+  const forks = [];
+  const nfork = 5 + Math.floor(Math.random() * 4);
+  for (let k = 0; k < nfork; k++) {
+    const ai = 2 + Math.floor(Math.random() * (segs - 3));
+    let bx = pts[ai][0], by = pts[ai][1];
+    let ba = ang + (Math.random() < 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.8);
+    const fseg = 3 + Math.floor(Math.random() * 3), fl = 45 + Math.random() * 90, step = fl / fseg;
+    const fpts = [[bx, by]];
+    for (let j = 0; j < fseg; j++) { ba += (Math.random() - 0.5) * 0.8; bx += Math.cos(ba) * step; by += Math.sin(ba) * step; fpts.push([bx, by]); }
+    forks.push(fpts);
+  }
+  return {
+    pts, forks, ang, cx: cx0, cy: cy0, len, px, py, ph: Math.random() * 10,
+    // explicit open → hold → close envelope (seconds)
+    op: 0.45, ho: 1.0 + Math.random() * 0.8, cl: 0.5, age: 0,
+    shift: (Math.random() < 0.5 ? -1 : 1) * (16 + Math.random() * 30),
+    maxW: 7 + Math.random() * 12,
+  };
+}
+function _annieStrokePolyline(ctx, pts) {
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
+  ctx.stroke();
+}
+function _annieDrawTear(ctx, canvas, c, W, H, env) {
+  const flick = 0.82 + 0.18 * Math.sin((c.age + c.ph) * 47);
+  const e = env * flick;
+
+  // 1) SHEAR — clip a rotated band around the rift and shove the world across
+  //    it, so the scene physically splits along the tear.
+  const shift = c.shift * env;
+  if (Math.abs(shift) > 0.4) {
+    ctx.save();
+    ctx.translate(c.cx, c.cy); ctx.rotate(c.ang);
+    ctx.beginPath(); ctx.rect(-c.len / 2 - 24, -c.maxW * 2.2, c.len + 48, c.maxW * 4.4); ctx.clip();
+    ctx.rotate(-c.ang); ctx.translate(-c.cx, -c.cy);
+    ctx.drawImage(canvas, c.px * shift, c.py * shift);
+    ctx.restore();
+  }
+
+  const n = c.pts.length;
+  const top = [], bot = [];
+  for (let i = 0; i < n; i++) {
+    const f = i / (n - 1);
+    const w = c.maxW * env * Math.pow(Math.sin(Math.PI * f), 0.55);
+    top.push([c.pts[i][0] + c.px * w, c.pts[i][1] + c.py * w]);
+    bot.push([c.pts[i][0] - c.px * w, c.pts[i][1] - c.py * w]);
+  }
+
+  // 2) THE VOID GAP — a real dark opening (source-over darkens, unlike the old
+  //    black-on-lighter no-op), with an inner blood-red glow welling up.
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.beginPath();
+  ctx.moveTo(top[0][0], top[0][1]);
+  for (let i = 1; i < n; i++) ctx.lineTo(top[i][0], top[i][1]);
+  for (let i = n - 1; i >= 0; i--) ctx.lineTo(bot[i][0], bot[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = `rgba(2,0,0,${(env * 0.92).toFixed(3)})`;
+  ctx.fill();
+  // inner glow welling from the gap
+  ctx.globalCompositeOperation = 'lighter';
+  const mid = c.pts[(n / 2) | 0];
+  const ig = ctx.createRadialGradient(mid[0], mid[1], 0, mid[0], mid[1], c.len * 0.55);
+  ig.addColorStop(0, `rgba(${_ANNIE_RED},${(e * 0.5).toFixed(3)})`);
+  ig.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = ig; ctx.fill();
+  ctx.restore();
+
+  // 3) GLOWING LIPS — the torn edges, hot red with a big bloom.
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.shadowColor = `rgba(${_ANNIE_RED},0.95)`; ctx.shadowBlur = 16 + c.maxW;
+  ctx.strokeStyle = `rgba(${_ANNIE_RED},${(e * 0.9).toFixed(3)})`;
+  ctx.lineWidth = 2;
+  _annieStrokePolyline(ctx, top);
+  _annieStrokePolyline(ctx, bot);
+
+  // 4) SEARING SEAM — a blinding white-hot jagged line down the centre.
+  ctx.shadowColor = 'rgba(255,220,220,0.95)'; ctx.shadowBlur = 12;
+  ctx.strokeStyle = `rgba(255,${Math.round(232 * e + 10)},${Math.round(232 * e + 10)},${Math.min(1, e * 1.1).toFixed(3)})`;
+  ctx.lineWidth = 1.6 + env * 1.4;
+  _annieStrokePolyline(ctx, c.pts);
+
+  // 5) FORKING BRANCHES — thin lightning cracks splitting off the tips.
+  ctx.shadowColor = `rgba(${_ANNIE_RED},0.9)`; ctx.shadowBlur = 8;
+  for (const fp of c.forks) {
+    ctx.strokeStyle = `rgba(${_ANNIE_RED},${(e * 0.75).toFixed(3)})`;
+    ctx.lineWidth = 1.6; _annieStrokePolyline(ctx, fp);
+    ctx.strokeStyle = `rgba(255,230,230,${(e * 0.5).toFixed(3)})`;
+    ctx.lineWidth = 0.7; _annieStrokePolyline(ctx, fp);
+  }
+  ctx.restore();
+}
+
+// ── Blood splatter decal — an irregular blob with a couple of drip tails,
+//    like something was just struck. Appears, holds, fades. ──
+function _annieNewSplatter(W, H) {
+  const x = Math.random() * W, y = Math.random() * H * 0.85;
+  const blobs = Array.from({ length: 5 + Math.floor(Math.random() * 4) }, () => ({
+    dx: (Math.random() - 0.5) * 34, dy: (Math.random() - 0.5) * 24, r: 4 + Math.random() * 9,
+  }));
+  const drips = Array.from({ length: 2 + Math.floor(Math.random() * 3) }, () => ({
+    dx: (Math.random() - 0.5) * 20, len: 8 + Math.random() * 22,
+  }));
+  return { x, y, blobs, drips, life: 1, dur: 2.2 + Math.random() * 1.6 };
+}
+
+// Turbulent beam polygon along the local x-axis, centred, from -L..+L. The
+// half-width writhes so the laser looks like liquid fire, not a flat bar.
+function _annieBeamShape(ctx, L, half, turb, t, seed) {
+  const N = 54;
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const x = -L + (2 * L) * (i / N);
+    const w = half + turb * Math.sin(x * 0.03 + t * 22 + seed) + turb * 0.5 * Math.sin(x * 0.08 - t * 15 + seed);
+    (i === 0) ? ctx.moveTo(x, -w) : ctx.lineTo(x, -w);
+  }
+  for (let i = N; i >= 0; i--) {
+    const x = -L + (2 * L) * (i / N);
+    const w = half + turb * Math.sin(x * 0.03 + t * 22 + seed) + turb * 0.5 * Math.sin(x * 0.08 - t * 15 + seed);
+    ctx.lineTo(x, w);
+  }
+  ctx.closePath();
+}
+
+function _drawAnniePattern(canvas, ctx, W, H, t) {
+  if (_drawAnniePattern._lt !== undefined && t - _drawAnniePattern._lt < 0.033) return;
+  const dt = _drawAnniePattern._lt === undefined ? 0.016 : Math.min(t - _drawAnniePattern._lt, 0.05);
+  _drawAnniePattern._lt = t;
+
+  if (canvas._annieW !== W || canvas._annieH !== H) {
+    canvas._annieW = W; canvas._annieH = H;
+    canvas._annieTears = null; canvas._annieDripsBg = null; canvas._annieVign = null; canvas._annieSplats = null;
+    canvas._annieNextTear = 0; canvas._annieNextSplat = 0;
+    canvas._annieNextBeam = 4 + Math.random() * 4; canvas._annieBeam = null; canvas._annieSpray = [];
+  }
+  const cx = W / 2, cy = H / 2, DIAG = Math.hypot(W, H);
+  const sigilR = Math.min(W, H) * 0.19;
+
+  // Void black base.
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#030001'; ctx.fillRect(0, 0, W, H);
+
+  // Heartbeat — a two-beat pulse (lub-dub), driving the sigil + vignette.
+  const cyc = t % 1.1;
+  const lub = Math.exp(-Math.pow((cyc - 0.0) * 9, 2));
+  const dub = Math.exp(-Math.pow((cyc - 0.22) * 9, 2)) * 0.7;
+  const beat = Math.min(1, lub + dub);
+
+  // ── BRIMSTONE BEAM state machine — the headline move. Charge (circle
+  //    overcharges, energy converges) → FIRE (a colossal blood laser erupts
+  //    through the centre and sweeps across the whole screen, shearing it) →
+  //    fade. Compute phase up front so the centrepiece can blaze during it. ──
+  const CH = 1.1, FI = 1.5, FA = 0.55, BEAM_TOTAL = CH + FI + FA;
+  if (t > canvas._annieNextBeam && !canvas._annieBeam) {
+    const a0 = Math.random() * Math.PI * 2;
+    const sweep = (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.7);
+    canvas._annieBeam = {
+      t0: t, a0, a1: a0 + sweep,
+      motes: Array.from({ length: 30 }, () => ({ ang: Math.random() * Math.PI * 2, r0: sigilR * (2.5 + Math.random() * 3), spin: (Math.random() - 0.5) * 3 })),
+    };
+    canvas._annieNextBeam = t + BEAM_TOTAL + 5 + Math.random() * 6;
+  }
+  let beamGlow = 0, beam = null;   // beam = { angle, alpha, half } while visible
+  if (canvas._annieBeam) {
+    const b = canvas._annieBeam, age = t - b.t0;
+    if (age >= BEAM_TOTAL) { canvas._annieBeam = null; }
+    else if (age < CH) {
+      const cp = age / CH;
+      beamGlow = cp * cp * 1.7;
+      b._charge = cp;
+    } else if (age < CH + FI) {
+      const fp = (age - CH) / FI;
+      beamGlow = 1.7 + 0.3 * Math.sin(t * 45);
+      beam = { angle: b.a0 + (b.a1 - b.a0) * fp, alpha: Math.min(1, fp / 0.05), half: sigilR * 0.14 * (0.85 + 0.15 * Math.sin(t * 34)) };
+      b._charge = 0;
+    } else {
+      const gp = (age - CH - FI) / FA;
+      beamGlow = 1.7 * (1 - gp);
+      beam = { angle: b.a1, alpha: 1 - gp, half: sigilR * 0.14 * (1 - gp) + 2 };
+    }
+  }
+
+  // The BRIMSTONE centrepiece — dead centre, blazing on the heartbeat and
+  // erupting when the beam charges.
+  _drawAnnieBrimstone(ctx, cx, cy, sigilR, t, 0.32 + beat * 0.3 + beamGlow);
+
+  // Heartbeat bloom from centre.
+  ctx.globalCompositeOperation = 'lighter';
+  const hg = ctx.createRadialGradient(cx, cy, 0, cx, cy, DIAG * 0.5);
+  hg.addColorStop(0, `rgba(${_ANNIE_RED},${(0.12 + beat * 0.16 + beamGlow * 0.05).toFixed(3)})`);
+  hg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = hg; ctx.fillRect(0, 0, W, H);
+
+  // Reality tears — full-page rifts that open, hold, then close. Rare + at
+  // most one at a time so each one is an event, not ambient noise.
+  if (!canvas._annieTears) canvas._annieTears = [];
+  if (t > canvas._annieNextTear && canvas._annieTears.length === 0) {
+    canvas._annieNextTear = t + 4.5 + Math.random() * 5;
+    canvas._annieTears.push(_annieNewTear(W, H));
+  }
+  for (let i = canvas._annieTears.length - 1; i >= 0; i--) {
+    const c = canvas._annieTears[i];
+    c.age += dt;
+    const total = c.op + c.ho + c.cl;
+    if (c.age >= total) { canvas._annieTears.splice(i, 1); continue; }
+    // eased open → hold → close envelope for the gap width
+    let env;
+    if (c.age < c.op) { const x = c.age / c.op; env = 1 - Math.pow(1 - x, 3); }        // ease-out open
+    else if (c.age < c.op + c.ho) { env = 1; }                                          // hold
+    else { const x = (c.age - c.op - c.ho) / c.cl; env = 1 - x * x * x; }               // ease-in close
+    _annieDrawTear(ctx, canvas, c, W, H, env);
+  }
+
+  // Blood splatter decals — appear, hold, fade.
+  if (!canvas._annieSplats) canvas._annieSplats = [];
+  if (t > canvas._annieNextSplat) {
+    canvas._annieNextSplat = t + 1.8 + Math.random() * 2.4;
+    if (canvas._annieSplats.length < 4) canvas._annieSplats.push(_annieNewSplatter(W, H));
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  for (let i = canvas._annieSplats.length - 1; i >= 0; i--) {
+    const s = canvas._annieSplats[i];
+    s.life -= dt / s.dur;
+    if (s.life <= 0) { canvas._annieSplats.splice(i, 1); continue; }
+    const env = s.life > 0.85 ? (1 - s.life) / 0.15 : s.life;
+    ctx.fillStyle = `rgba(${_ANNIE_RED},${(env * 0.55).toFixed(3)})`;
+    for (const b of s.blobs) { ctx.beginPath(); ctx.arc(s.x + b.dx, s.y + b.dy, b.r, 0, Math.PI * 2); ctx.fill(); }
+    ctx.strokeStyle = `rgba(${_ANNIE_RED},${(env * 0.5).toFixed(3)})`;
+    ctx.lineWidth = 2;
+    for (const d of s.drips) { ctx.beginPath(); ctx.moveTo(s.x + d.dx, s.y); ctx.lineTo(s.x + d.dx, s.y + d.len); ctx.stroke(); }
+  }
+
+  // Blood rain — thin dark-red streaks falling.
+  if (!canvas._annieDripsBg) canvas._annieDripsBg = Array.from({ length: 40 }, () => _annieNewBgDrip(W, H, true));
+  for (const d of canvas._annieDripsBg) {
+    d.y += d.vy * dt;
+    if (d.y > H + 20) Object.assign(d, _annieNewBgDrip(W, H, false));
+    ctx.strokeStyle = `rgba(${_ANNIE_RED},${d.a})`;
+    ctx.lineWidth = d.w;
+    ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x, d.y - d.len); ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  const pg = ctx.createLinearGradient(0, H, 0, H - H * 0.1);
+  pg.addColorStop(0, `rgba(${_ANNIE_RED},0.4)`); pg.addColorStop(1, `rgba(${_ANNIE_RED},0)`);
+  ctx.fillStyle = pg; ctx.fillRect(0, H - H * 0.1, W, H * 0.1);
+
+  // ── Charge converging motes — during charge, energy spirals INTO the core
+  //    from all around, brightening as it arrives. ──
+  if (canvas._annieBeam && canvas._annieBeam._charge > 0) {
+    const cp = canvas._annieBeam._charge;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (const m of canvas._annieBeam.motes) {
+      const rr = m.r0 * (1 - cp * cp);
+      const ang = m.ang + m.spin * cp * 2;
+      const mx = cx + Math.cos(ang) * rr, my = cy + Math.sin(ang) * rr;
+      const near = 1 - rr / m.r0;
+      ctx.fillStyle = `rgba(255,${Math.round(120 + near * 120)},${Math.round(120 + near * 100)},${(0.3 + near * 0.6).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(mx, my, 1.4 + near * 2.4, 0, Math.PI * 2); ctx.fill();
+      // faint trailing streak toward the core
+      ctx.strokeStyle = `rgba(${_ANNIE_RED},${(0.2 + near * 0.4).toFixed(3)})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(cx + Math.cos(ang) * rr * 0.8, cy + Math.sin(ang) * rr * 0.8); ctx.stroke();
+    }
+    // building white-hot core
+    const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, sigilR * (0.2 + cp * 0.4));
+    core.addColorStop(0, `rgba(255,255,255,${(cp * 0.8).toFixed(3)})`);
+    core.addColorStop(0.4, `rgba(255,120,120,${(cp * 0.6).toFixed(3)})`);
+    core.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = core; ctx.beginPath(); ctx.arc(cx, cy, sigilR * (0.2 + cp * 0.4), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── THE BLOOD LASER — a colossal double-ended brimstone beam through the
+  //    centre, sweeping across the screen. Physically SHEARS the world along
+  //    its axis (drawImage displacement), then layers the turbulent laser +
+  //    a blinding core bloom + a screen-wide red flash + blood spray. ──
+  if (!canvas._annieSpray) canvas._annieSpray = [];
+  if (beam) {
+    const ang = beam.angle, ux = Math.cos(ang), uy = Math.sin(ang);
+    const half = beam.half, a = beam.alpha;
+
+    // 1) shear the already-rendered world across the beam axis
+    ctx.save();
+    ctx.translate(cx, cy); ctx.rotate(ang);
+    ctx.beginPath(); ctx.rect(-DIAG, -half * 2.4, DIAG * 2, half * 4.8); ctx.clip();
+    ctx.rotate(-ang); ctx.translate(-cx, -cy);
+    ctx.drawImage(canvas, -uy * 18 * a, ux * 18 * a);
+    ctx.restore();
+
+    // 2) the beam itself — layered turbulent laser
+    ctx.save();
+    ctx.translate(cx, cy); ctx.rotate(ang);
+    ctx.globalCompositeOperation = 'lighter';
+    // outer glow
+    ctx.shadowColor = `rgba(${_ANNIE_RED},0.95)`; ctx.shadowBlur = 40;
+    _annieBeamShape(ctx, DIAG, half * 3.4, half * 0.7, t, 1.3);
+    ctx.fillStyle = `rgba(${_ANNIE_RED},${(a * 0.28).toFixed(3)})`; ctx.fill();
+    ctx.shadowBlur = 0;
+    // body
+    _annieBeamShape(ctx, DIAG, half * 1.7, half * 0.5, t, 2.1);
+    ctx.fillStyle = `rgba(${_ANNIE_RED},${(a * 0.6).toFixed(3)})`; ctx.fill();
+    // hot core
+    _annieBeamShape(ctx, DIAG, half * 0.55, half * 0.22, t, 0.4);
+    ctx.fillStyle = `rgba(255,235,235,${(a * 0.95).toFixed(3)})`; ctx.fill();
+    ctx.restore();
+
+    // 3) blinding origin bloom
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const bl = ctx.createRadialGradient(cx, cy, 0, cx, cy, sigilR * 1.1);
+    bl.addColorStop(0, `rgba(255,255,255,${(a * 0.9).toFixed(3)})`);
+    bl.addColorStop(0.3, `rgba(255,130,130,${(a * 0.6).toFixed(3)})`);
+    bl.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = bl; ctx.beginPath(); ctx.arc(cx, cy, sigilR * 1.1, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // 4) blood spray flung off the beam
+    for (let k = 0; k < 3; k++) {
+      const along = (Math.random() - 0.5) * DIAG;
+      const px = cx + ux * along, py = cy + uy * along;
+      const perp = (Math.random() < 0.5 ? 1 : -1) * (80 + Math.random() * 260);
+      canvas._annieSpray.push({ x: px, y: py, vx: -uy * perp + ux * (Math.random() - 0.5) * 60, vy: ux * perp + uy * (Math.random() - 0.5) * 60, r: 1.5 + Math.random() * 3, life: 1 });
+    }
+
+    // 5) screen-wide red wash + a white flash spike right as it ignites
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(${_ANNIE_RED},${(a * 0.1).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+    const ignite = 1 - Math.min(1, (t - (canvas._annieBeam ? canvas._annieBeam.t0 + CH : t)) / 0.12);
+    if (ignite > 0) { ctx.fillStyle = `rgba(255,240,240,${(ignite * 0.35).toFixed(3)})`; ctx.fillRect(0, 0, W, H); }
+    ctx.restore();
+  }
+  // update + draw blood spray (persists briefly after the beam ends)
+  if (canvas._annieSpray.length) {
+    ctx.globalCompositeOperation = 'source-over';
+    for (let i = canvas._annieSpray.length - 1; i >= 0; i--) {
+      const s = canvas._annieSpray[i];
+      s.vy += 320 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt * 1.1;
+      if (s.life <= 0) { canvas._annieSpray.splice(i, 1); continue; }
+      ctx.fillStyle = `rgba(${_ANNIE_RED},${Math.min(0.9, s.life).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Vignette — near-total black at the edges. Nothing soft about her frame.
+  if (!canvas._annieVign) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.14, W / 2, H / 2, Math.max(W, H) * 0.68);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(0.5, 'rgba(3,0,1,0.5)');
+    vg.addColorStop(1, 'rgba(2,0,0,0.95)');
+    canvas._annieVign = vg;
+  }
+  ctx.fillStyle = canvas._annieVign; ctx.fillRect(0, 0, W, H);
+}
+function _annieNewBgDrip(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : -20 - Math.random() * 60,
+    vy: 220 + Math.random() * 340, len: 14 + Math.random() * 26, w: 1 + Math.random() * 1.4,
+    a: (0.25 + Math.random() * 0.35).toFixed(2) };
+}
+
+// ── Cursor companion: three curved talon-strokes fanned toward her motion,
+//    wreathed in black smoke, leaving a genuine stretched motion-smear (not
+//    fading dots) when she moves fast. Clicking = a violent strike: flash +
+//    shockwave + claw-slashes + flung blood. ──
+function _drawAnnieOverlay(canvas, ctx, W, H, t) {
+  if (_drawAnnieOverlay._lt !== undefined && t - _drawAnnieOverlay._lt < 0.033) return;
+  const dt = _drawAnnieOverlay._lt === undefined ? 0.016 : Math.min(t - _drawAnnieOverlay._lt, 0.05);
+  _drawAnnieOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  // Snappy, aggressive spring — she does NOT drift softly.
+  const SPRING = 190, DAMP = 15;
+  _annieVX += ((_annieTargX - _annieX) * SPRING - _annieVX * DAMP) * dt;
+  _annieVY += ((_annieTargY - _annieY) * SPRING - _annieVY * DAMP) * dt;
+  _annieX += _annieVX * dt; _annieY += _annieVY * dt;
+  const spd = Math.hypot(_annieVX, _annieVY);
+
+  // Liquid BLOOD RIBBON trail — a tapering ribbon of blood streaming off the
+  // cursor, thickest at the head, thinning to nothing at the tail. Reads as
+  // fluid, not a string of dots.
+  _annieRibbon.push({ x: _annieX, y: _annieY });
+  if (_annieRibbon.length > 18) _annieRibbon.shift();
+  const rn = _annieRibbon.length;
+  if (rn >= 3) {
+    const maxW = 3 + Math.min(1, spd / 700) * 7;
+    const top = [], bot = [];
+    for (let i = 0; i < rn; i++) {
+      const p = _annieRibbon[i];
+      const prev = _annieRibbon[Math.max(0, i - 1)], next = _annieRibbon[Math.min(rn - 1, i + 1)];
+      let dx = next.x - prev.x, dy = next.y - prev.y; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+      const nx = -dy, ny = dx, w = maxW * Math.pow(i / (rn - 1), 0.8);
+      top.push([p.x + nx * w, p.y + ny * w]); bot.push([p.x - nx * w, p.y - ny * w]);
+    }
+    const head = _annieRibbon[rn - 1], tail = _annieRibbon[0];
+    ctx.beginPath();
+    ctx.moveTo(top[0][0], top[0][1]);
+    for (let i = 1; i < rn; i++) ctx.lineTo(top[i][0], top[i][1]);
+    for (let i = rn - 1; i >= 0; i--) ctx.lineTo(bot[i][0], bot[i][1]);
+    ctx.closePath();
+    const bg = ctx.createLinearGradient(tail.x, tail.y, head.x, head.y);
+    bg.addColorStop(0, 'rgba(90,4,8,0)'); bg.addColorStop(0.5, `rgba(${_ANNIE_RED},0.55)`); bg.addColorStop(1, `rgba(${_ANNIE_RED},0.92)`);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.shadowColor = `rgba(${_ANNIE_RED},0.8)`; ctx.shadowBlur = 10;
+    ctx.fillStyle = bg; ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+
+  // Claw-slash marks from clicks — jagged double-stroke, fast fade.
+  for (let i = _annieSlashes.length - 1; i >= 0; i--) {
+    const s = _annieSlashes[i];
+    s.life -= dt * 3.0;
+    if (s.life <= 0) { _annieSlashes.splice(i, 1); continue; }
+    const ex = s.x + Math.cos(s.ang) * s.len, ey = s.y + Math.sin(s.ang) * s.len;
+    const perp = s.ang + Math.PI / 2;
+    ctx.strokeStyle = `rgba(${_ANNIE_RED},${(s.life * 0.85).toFixed(3)})`;
+    ctx.lineWidth = s.w; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,235,235,${(s.life * 0.45).toFixed(3)})`;
+    ctx.lineWidth = Math.max(0.6, s.w * 0.35);
+    ctx.beginPath();
+    ctx.moveTo(s.x + Math.cos(perp) * 2, s.y + Math.sin(perp) * 2);
+    ctx.lineTo(ex + Math.cos(perp) * 2, ey + Math.sin(perp) * 2);
+    ctx.stroke();
+  }
+
+  // Click shockwave rings (each with its own speed) + full-overlay flash.
+  for (let i = _annieClickRings.length - 1; i >= 0; i--) {
+    const r = _annieClickRings[i];
+    r.r += (r.spd || 340) * dt; r.life -= dt * 2.2;
+    if (r.life <= 0) { _annieClickRings.splice(i, 1); continue; }
+    ctx.strokeStyle = `rgba(${_ANNIE_RED},${(r.life * 0.85).toFixed(3)})`;
+    ctx.lineWidth = 5 * r.life + 0.5;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,230,230,${(r.life * 0.4).toFixed(3)})`;
+    ctx.lineWidth = 1.5 * r.life + 0.3;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+  }
+  // Brimstone STAMP burst — the sigil punches in large then shrinks + fades.
+  if (_annieStamp) {
+    _annieStamp.life -= dt * 1.8;
+    if (_annieStamp.life <= 0) _annieStamp = null;
+    else {
+      const L = _annieStamp.life, pop = 1 + (1 - L) * 1.4;   // scales up as it fades
+      const ss = 34 * pop;
+      ctx.save();
+      ctx.translate(_annieStamp.x, _annieStamp.y); ctx.rotate(_annieStamp.rot);
+      ctx.shadowColor = `rgba(${_ANNIE_RED},0.95)`; ctx.shadowBlur = 22 * L;
+      ctx.lineWidth = 4 * L + 1; ctx.strokeStyle = `rgba(${_ANNIE_RED},${(L * 0.9).toFixed(3)})`;
+      _annieBrimstoneStroke(ctx, 0, 0, ss);
+      ctx.shadowBlur = 8 * L; ctx.lineWidth = 1.6 * L + 0.4; ctx.strokeStyle = `rgba(255,235,235,${(L * 0.7).toFixed(3)})`;
+      _annieBrimstoneStroke(ctx, 0, 0, ss);
+      ctx.restore();
+    }
+  }
+  if (_annieClickFlash > 0.01) {
+    ctx.fillStyle = `rgba(255,235,235,${(_annieClickFlash * 0.22).toFixed(3)})`;
+    ctx.fillRect(0, 0, W, H);
+    _annieClickFlash -= dt * 3.5;
+  } else _annieClickFlash = 0;
+
+  // Blood drops — flung out on click, gravity takes them.
+  ctx.globalCompositeOperation = 'source-over';
+  for (let i = _annieDrips.length - 1; i >= 0; i--) {
+    const d = _annieDrips[i];
+    d.vy += 260 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.life -= dt * 0.85;
+    if (d.life <= 0) { _annieDrips.splice(i, 1); continue; }
+    ctx.fillStyle = `rgba(${_ANNIE_RED},${Math.min(0.9, d.life).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Black smoke wisp trailing the core.
+  ctx.globalCompositeOperation = 'source-over';
+  const wispA = 0.22 + 0.08 * Math.sin(t * 2.6);
+  const wg = ctx.createRadialGradient(_annieX, _annieY, 0, _annieX, _annieY, 24);
+  wg.addColorStop(0, `rgba(8,4,5,${wispA})`);
+  wg.addColorStop(1, 'rgba(8,4,5,0)');
+  ctx.fillStyle = wg; ctx.beginPath(); ctx.arc(_annieX, _annieY, 24, 0, Math.PI * 2); ctx.fill();
+
+  // The cursor — a 6 of clubs (BLACK), riding the pointer inside a pulsing
+  // red halo, tilting slightly with her motion.
+  const beat = 0.5 + 0.5 * Math.sin(t * 4.2);
+  ctx.globalCompositeOperation = 'lighter';
+  const cg = ctx.createRadialGradient(_annieX, _annieY, 0, _annieX, _annieY, 26 + beat * 6);
+  cg.addColorStop(0, `rgba(${_ANNIE_RED},${0.4 + beat * 0.2})`);
+  cg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(_annieX, _annieY, 26 + beat * 6, 0, Math.PI * 2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  const tilt = Math.max(-0.5, Math.min(0.5, _annieVX / 900)) + 0.14;
+  _drawPlayingCard(ctx, _annieX, _annieY, 30, tilt, '6', '#141414', `rgba(${_ANNIE_RED},0.9)`);
+}
+function _startAnnieOverlay() {
+  _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay();
+  _drawAnnieOverlay._lt = undefined;
+  _annieX = _annieTargX = window.innerWidth * 0.5;
+  _annieY = _annieTargY = window.innerHeight * 0.5;
+  _annieVX = 0; _annieVY = 0; _annieRibbon = []; _annieDrips = []; _annieSlashes = [];
+  _annieClickFlash = 0; _annieClickRings = []; _annieStamp = null;
+  window.addEventListener('mousemove', _annieMouseMove);
+  window.addEventListener('click', _annieClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'annie-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('annie-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawAnnieOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _annieOverlayRafId = requestAnimationFrame(frame);
+  }
+  _annieOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopAnnieOverlay() {
+  if (_annieOverlayRafId) { cancelAnimationFrame(_annieOverlayRafId); _annieOverlayRafId = null; }
+  window.removeEventListener('mousemove', _annieMouseMove);
+  window.removeEventListener('click', _annieClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('annie-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// VIKADAN — a cyan CASINO demon. His checkerboard floor stays, but the whole
+// table comes alive: drifting cards, spinning poker chips, giant suit
+// watermarks, jackpot glints. His cursor is the 6 of (red) clubs, and he
+// THROWS cards on click that fly out and pin themselves to the page edges.
+// ════════════════════════════════════════════════════════════════
+const _VIKADAN_RE = /^vikadan$/i;
+function _isVikadan(c) { return !!(c && c.name && _VIKADAN_RE.test(c.name)); }
+const _VIK_CYAN = '1,254,157';
+const _VIK_CYAN_HEX = '#01fe9d';
+const _VIK_RED = '#ff3d6e';
+const _VIK_SUITS = ['spade', 'heart', 'club', 'diamond'];
+const _VIK_RANKS = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6'];
+function _vikRedSuit(s) { return s === 'heart' || s === 'diamond'; }
+
+// suit glyph (all four), filled in `color`, radius r, centred at x,y
+function _vikSuit(ctx, x, y, r, suit, color) {
+  ctx.fillStyle = color;
+  if (suit === 'club') { _drawClubPip(ctx, x, y, r, color); return; }
+  if (suit === 'heart') {
+    ctx.beginPath();
+    ctx.moveTo(x, y + r * 0.9);
+    ctx.bezierCurveTo(x + r * 1.25, y - r * 0.25, x + r * 0.5, y - r * 1.05, x, y - r * 0.32);
+    ctx.bezierCurveTo(x - r * 0.5, y - r * 1.05, x - r * 1.25, y - r * 0.25, x, y + r * 0.9);
+    ctx.closePath(); ctx.fill(); return;
+  }
+  if (suit === 'diamond') {
+    ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.72, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r * 0.72, y);
+    ctx.closePath(); ctx.fill(); return;
+  }
+  // spade
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.bezierCurveTo(x + r * 1.15, y + r * 0.4, x + r * 0.45, y + r * 0.72, x, y + r * 0.36);
+  ctx.bezierCurveTo(x - r * 0.45, y + r * 0.72, x - r * 1.15, y + r * 0.4, x, y - r);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x, y + r * 0.1); ctx.lineTo(x - r * 0.32, y + r * 0.95); ctx.lineTo(x + r * 0.32, y + r * 0.95); ctx.closePath(); ctx.fill();
+}
+// a crisp WHITE poker card of any suit (thrown/stuck cards + can be reused)
+function _vikDrawWhiteCard(ctx, cx, cy, w, rot, rank, suit, alpha) {
+  const h = w * 1.42, rad = w * 0.11, col = _vikRedSuit(suit) ? '#d21f3c' : '#141414';
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  ctx.translate(cx, cy); ctx.rotate(rot || 0);
+  ctx.shadowColor = `rgba(${_VIK_CYAN},0.7)`; ctx.shadowBlur = 12;
+  _cardRR(ctx, -w / 2, -h / 2, w, h, rad); ctx.fillStyle = '#f6f3ec'; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = Math.max(1, w * 0.03); ctx.strokeStyle = _VIK_CYAN_HEX; _cardRR(ctx, -w / 2, -h / 2, w, h, rad); ctx.stroke();
+  ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.round(w * 0.27)}px Georgia, "Times New Roman", serif`;
+  for (let m = 0; m < 2; m++) {
+    ctx.save();
+    if (m) { ctx.translate(w / 2, h / 2); ctx.rotate(Math.PI); } else { ctx.translate(-w / 2, -h / 2); }
+    ctx.fillText(rank, w * 0.2, h * 0.15);
+    _vikSuit(ctx, w * 0.2, h * 0.31, w * 0.09, suit, col);
+    ctx.restore();
+  }
+  _vikSuit(ctx, 0, 0, w * 0.3, suit, col);
+  ctx.restore();
+}
+// ambient dark casino card floating over the felt
+function _vikDrawFloatCard(ctx, cd) {
+  const w = cd.w, h = w * 1.42, rad = w * 0.1;
+  const col = _vikRedSuit(cd.suit) ? _VIK_RED : _VIK_CYAN_HEX;
+  ctx.save();
+  ctx.globalAlpha = cd.alpha;
+  ctx.translate(cd.x, cd.y); ctx.rotate(cd.rot);
+  ctx.shadowColor = `rgba(${_VIK_CYAN},0.5)`; ctx.shadowBlur = 12;
+  _cardRR(ctx, -w / 2, -h / 2, w, h, rad); ctx.fillStyle = 'rgba(9,17,15,0.92)'; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = Math.max(1, w * 0.03); ctx.strokeStyle = col; _cardRR(ctx, -w / 2, -h / 2, w, h, rad); ctx.stroke();
+  _vikSuit(ctx, 0, 0, w * 0.3, cd.suit, col);
+  ctx.fillStyle = col; ctx.font = `bold ${Math.round(w * 0.22)}px Georgia, serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(cd.rank, -w * 0.33, -h * 0.35);
+  ctx.restore();
+}
+function _vikDrawChip(ctx, x, y, r, rot, color) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.shadowColor = color; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = 'rgba(8,15,14,0.92)'; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.5, r * 0.16);
+  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; ctx.beginPath(); ctx.arc(0, 0, r * 0.84, a - 0.26, a + 0.26); ctx.stroke(); }
+  ctx.lineWidth = Math.max(1, r * 0.07);
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.58, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+function _vikNewFloatCard(W, H) {
+  return { x: Math.random() * W, y: Math.random() * H, w: 26 + Math.random() * 20,
+    vx: (Math.random() - 0.5) * 26, vy: (Math.random() - 0.5) * 26, rot: Math.random() * 6.28,
+    vr: (Math.random() - 0.5) * 0.8, suit: _VIK_SUITS[(Math.random() * 4) | 0],
+    rank: _VIK_RANKS[(Math.random() * _VIK_RANKS.length) | 0], alpha: 0.4 + Math.random() * 0.3 };
+}
+function _vikNewChip(W, H) {
+  return { x: Math.random() * W, y: Math.random() * H, r: 14 + Math.random() * 14,
+    vx: (Math.random() - 0.5) * 20, vy: (Math.random() - 0.5) * 20, rot: Math.random() * 6.28,
+    vr: (Math.random() - 0.5) * 1.4, col: Math.random() < 0.6 ? _VIK_CYAN_HEX : '#ffffff' };
+}
+function _vikNewSpark(W, H) {
+  return { x: Math.random() * W, y: Math.random() * H, r: 1 + Math.random() * 2, ph: Math.random() * 6.28, spd: 1 + Math.random() * 2 };
+}
+
+function _drawVikadanPattern(canvas, ctx, W, H, t) {
+  if (_drawVikadanPattern._lt !== undefined && t - _drawVikadanPattern._lt < 0.033) return;
+  const dt = _drawVikadanPattern._lt === undefined ? 0.016 : Math.min(t - _drawVikadanPattern._lt, 0.05);
+  _drawVikadanPattern._lt = t;
+
+  if (canvas._vikW !== W || canvas._vikH !== H) {
+    canvas._vikW = W; canvas._vikH = H;
+    canvas._vikCards = null; canvas._vikChips = null; canvas._vikSparks = null; canvas._vikVign = null;
+  }
+
+  // 1) his animated checkerboard, kept exactly (#3b3b3b / #01fe9d, 32px, diagonal, 0.5)
+  const sz = 32, spd = 0.5;
+  if (!canvas._vikCheck) {
+    const pc = document.createElement('canvas'); pc.width = sz * 2; pc.height = sz * 2;
+    const pctx = pc.getContext('2d');
+    pctx.fillStyle = '#3b3b3b'; pctx.fillRect(0, 0, sz, sz); pctx.fillRect(sz, sz, sz, sz);
+    pctx.fillStyle = '#01fe9d'; pctx.fillRect(sz, 0, sz, sz); pctx.fillRect(0, sz, sz, sz);
+    canvas._vikCheck = ctx.createPattern(pc, 'repeat');
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  const off = (t * spd * 60) % (sz * 2);
+  ctx.save(); ctx.translate(off, off); ctx.fillStyle = canvas._vikCheck; ctx.fillRect(-sz * 2, -sz * 2, W + sz * 4, H + sz * 4); ctx.restore();
+  // gently knock back the bright checker so the casino overlays read on top
+  ctx.fillStyle = 'rgba(4,10,9,0.26)'; ctx.fillRect(0, 0, W, H);
+
+  // 2) giant drifting suit watermarks
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 4; i++) {
+    const px = W * (0.15 + 0.7 * (0.5 + 0.5 * Math.sin(t * 0.06 + i * 1.7)));
+    const py = H * (0.15 + 0.7 * (0.5 + 0.5 * Math.cos(t * 0.05 + i * 2.1)));
+    ctx.globalAlpha = 0.05 + 0.025 * Math.sin(t * 0.5 + i);
+    _vikSuit(ctx, px, py, Math.min(W, H) * 0.13, _VIK_SUITS[i], _VIK_CYAN_HEX);
+  }
+  ctx.restore(); ctx.globalAlpha = 1;
+
+  // 3) floating poker chips (behind cards)
+  if (!canvas._vikChips) canvas._vikChips = Array.from({ length: 5 }, () => _vikNewChip(W, H));
+  for (const ch of canvas._vikChips) {
+    ch.x += ch.vx * dt; ch.y += ch.vy * dt; ch.rot += ch.vr * dt;
+    if (ch.x < -40) ch.x = W + 40; else if (ch.x > W + 40) ch.x = -40;
+    if (ch.y < -40) ch.y = H + 40; else if (ch.y > H + 40) ch.y = -40;
+    _vikDrawChip(ctx, ch.x, ch.y, ch.r, ch.rot, ch.col);
+  }
+
+  // 4) drifting spinning cards
+  if (!canvas._vikCards) canvas._vikCards = Array.from({ length: 7 }, () => _vikNewFloatCard(W, H));
+  for (const cd of canvas._vikCards) {
+    cd.x += cd.vx * dt; cd.y += cd.vy * dt; cd.rot += cd.vr * dt;
+    if (cd.x < -60) cd.x = W + 60; else if (cd.x > W + 60) cd.x = -60;
+    if (cd.y < -80) cd.y = H + 80; else if (cd.y > H + 80) cd.y = -80;
+    _vikDrawFloatCard(ctx, cd);
+  }
+
+  // 5) jackpot glints
+  if (!canvas._vikSparks) canvas._vikSparks = Array.from({ length: 20 }, () => _vikNewSpark(W, H));
+  ctx.globalCompositeOperation = 'lighter';
+  for (const s of canvas._vikSparks) {
+    s.ph += dt * s.spd;
+    const a = Math.max(0, Math.sin(s.ph)) * 0.8;
+    if (a > 0.02) {
+      ctx.fillStyle = `rgba(${_VIK_CYAN},${a.toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(210,255,244,${(a * 0.7).toFixed(3)})`; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(s.x - s.r * 2.4, s.y); ctx.lineTo(s.x + s.r * 2.4, s.y); ctx.moveTo(s.x, s.y - s.r * 2.4); ctx.lineTo(s.x, s.y + s.r * 2.4); ctx.stroke();
+    }
+    if (Math.sin(s.ph) < -0.995) { s.x = Math.random() * W; s.y = Math.random() * H; }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 6) cyan vignette
+  if (!canvas._vikVign) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.72);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,16,12,0.58)');
+    canvas._vikVign = vg;
+  }
+  ctx.fillStyle = canvas._vikVign; ctx.fillRect(0, 0, W, H);
+}
+
+// ── Cursor: the 6 of clubs (RED). Click THROWS cards that fly out and pin to
+//    the page edges for a few seconds before fading. ──
+let _vikOverlayRafId = null;
+let _vikX = 0, _vikY = 0, _vikTargX = 0, _vikTargY = 0, _vikVX = 0, _vikVY = 0;
+let _vikThrown = [], _vikBursts = [];
+function _vikMouseMove(e) { _vikTargX = e.clientX; _vikTargY = e.clientY; }
+function _vikClick() {
+  _vikBursts.push({ x: _vikX, y: _vikY, r: 4, life: 1 });
+  const n = 1 + (Math.random() < 0.5 ? 1 : 0);
+  for (let i = 0; i < n; i++) {
+    // fling outward from screen centre through the cursor (toward an edge)
+    let ang = Math.atan2(_vikY - window.innerHeight / 2, _vikX - window.innerWidth / 2);
+    if (!isFinite(ang)) ang = Math.random() * Math.PI * 2;
+    ang += (Math.random() - 0.5) * 0.7;
+    const spd = 950 + Math.random() * 650;
+    _vikThrown.push({
+      x: _vikX, y: _vikY, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+      rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 26,
+      suit: _VIK_SUITS[(Math.random() * 4) | 0], rank: _VIK_RANKS[(Math.random() * _VIK_RANKS.length) | 0],
+      w: 30, stuck: false, stickLife: 0, life: 1,
+    });
+  }
+}
+function _drawVikadanOverlay(canvas, ctx, W, H, t) {
+  if (_drawVikadanOverlay._lt !== undefined && t - _drawVikadanOverlay._lt < 0.02) return;
+  const dt = _drawVikadanOverlay._lt === undefined ? 0.016 : Math.min(t - _drawVikadanOverlay._lt, 0.05);
+  _drawVikadanOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const SPRING = 150, DAMP = 14;
+  _vikVX += ((_vikTargX - _vikX) * SPRING - _vikVX * DAMP) * dt;
+  _vikVY += ((_vikTargY - _vikY) * SPRING - _vikVY * DAMP) * dt;
+  _vikX += _vikVX * dt; _vikY += _vikVY * dt;
+
+  // thrown cards — fly, then STICK to whichever edge they reach, hold, fade.
+  const m = 26;
+  for (let i = _vikThrown.length - 1; i >= 0; i--) {
+    const c = _vikThrown[i];
+    if (!c.stuck) {
+      c.vy += 120 * dt;                       // a little gravity while airborne
+      c.x += c.vx * dt; c.y += c.vy * dt; c.rot += c.vr * dt; c.vr *= 0.985;
+      let edge = null;
+      if (c.x < m) { c.x = m; edge = 'V'; } else if (c.x > W - m) { c.x = W - m; edge = 'V'; }
+      else if (c.y < m) { c.y = m; edge = 'H'; } else if (c.y > H - m) { c.y = H - m; edge = 'H'; }
+      if (edge) { c.stuck = true; c.stickLife = 3 + Math.random() * 2.5; c.vr = 0; c.rot = (edge === 'V' ? Math.PI / 2 : 0) + (Math.random() - 0.5) * 0.5; }
+    } else {
+      c.stickLife -= dt;
+      if (c.stickLife <= 0) { c.life -= dt * 1.6; if (c.life <= 0) { _vikThrown.splice(i, 1); continue; } }
+    }
+    _vikDrawWhiteCard(ctx, c.x, c.y, c.w, c.rot, c.rank, c.suit, Math.min(1, c.life));
+  }
+
+  // click burst — an expanding cyan ring
+  for (let i = _vikBursts.length - 1; i >= 0; i--) {
+    const b = _vikBursts[i];
+    b.r += 520 * dt; b.life -= dt * 2.2;
+    if (b.life <= 0) { _vikBursts.splice(i, 1); continue; }
+    ctx.strokeStyle = `rgba(${_VIK_CYAN},${(b.life * 0.8).toFixed(3)})`;
+    ctx.lineWidth = 3 * b.life + 0.5;
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // the cursor card — 6 of clubs, RED pips, cyan glow, tilting with motion.
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const halo = ctx.createRadialGradient(_vikX, _vikY, 0, _vikX, _vikY, 30);
+  halo.addColorStop(0, `rgba(${_VIK_CYAN},0.35)`); halo.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(_vikX, _vikY, 30, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  const tilt = Math.max(-0.5, Math.min(0.5, _vikVX / 900)) + 0.1;
+  _drawPlayingCard(ctx, _vikX, _vikY, 30, tilt, '6', _VIK_RED, `rgba(${_VIK_CYAN},0.9)`);
+}
+function _startVikadanOverlay() {
+  _stopVikadanOverlay(); _stopNaraOceanOverlay();
+  _drawVikadanOverlay._lt = undefined;
+  _vikX = _vikTargX = window.innerWidth * 0.5;
+  _vikY = _vikTargY = window.innerHeight * 0.5;
+  _vikVX = 0; _vikVY = 0; _vikThrown = []; _vikBursts = [];
+  window.addEventListener('mousemove', _vikMouseMove);
+  window.addEventListener('click', _vikClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'vikadan-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('vikadan-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawVikadanOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _vikOverlayRafId = requestAnimationFrame(frame);
+  }
+  _vikOverlayRafId = requestAnimationFrame(frame);
+}
+function _stopVikadanOverlay() {
+  if (_vikOverlayRafId) { cancelAnimationFrame(_vikOverlayRafId); _vikOverlayRafId = null; }
+  window.removeEventListener('mousemove', _vikMouseMove);
+  window.removeEventListener('click', _vikClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('vikadan-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// NARA! · BLUE — the ocean form. A light-blue→deep-blue gradient sea with
+// caustic light, rising bubbles and RAINBOW RAIN splashing the surface.
+// Googly-eyed fishes (many kinds) swim around and flee your cursor; a shark
+// hunts and eats them. Pick a fish up and fling it anywhere. Cursor = trident.
+// (Gradient/rain/bubbles live on the bg pattern canvas; the interactive
+//  creatures + trident live on the full-viewport overlay in window coords.)
+// ════════════════════════════════════════════════════════════════
+const _NARA_FISH_PALETTES = [
+  ['#ff8a3d', '#ffe0c4', '#d8551a'], ['#ffd93d', '#fff4c4', '#d8b01a'],
+  ['#ff5da2', '#ffd0e4', '#d81e78'], ['#3dd6ff', '#cff2ff', '#1e9fe0'],
+  ['#9a7bff', '#e0d4ff', '#5a3de0'], ['#5dff9a', '#d0ffe0', '#1ee066'],
+  ['#ff6b6b', '#ffd0d0', '#e02222'],
+];
+let _naraOceanRafId = null;
+let _naraOMX = -999, _naraOMY = -999, _naraOPMX = 0, _naraOPMY = 0, _naraOVX = 0, _naraOVY = 0;
+let _naraFish = [], _naraShark = null, _naraGrabbed = null, _naraChomps = [];
+
+function _naraNewFish(W, H, atEdge) {
+  const p = _NARA_FISH_PALETTES[(Math.random() * _NARA_FISH_PALETTES.length) | 0];
+  const size = 12 + Math.random() * 15;
+  const dir = Math.random() < 0.5 ? 1 : -1;
+  const surfaceY = H * 0.14;
+  return {
+    x: atEdge ? (dir > 0 ? -40 : W + 40) : Math.random() * W,
+    y: surfaceY + Math.random() * (H - surfaceY - 20),
+    vx: dir * (24 + Math.random() * 34), vy: 0, dir,
+    color: p[0], belly: p[1], fin: p[2], size, long: 1.5 + Math.random() * 0.9,
+    pattern: ['plain', 'stripe', 'spot'][(Math.random() * 3) | 0],
+    wig: Math.random() * 6.28, wigSpd: 7 + Math.random() * 5,
+    bob: Math.random() * 6.28, bobSpd: 0.8 + Math.random() * 1.2,
+    cruise: 22 + Math.random() * 30, grabbed: false, alive: true,
+    px: 0, py: 0,   // pupil jiggle velocity/offset
+    ex: 0, ey: 0,
+  };
+}
+function _naraDrawFish(ctx, f, t) {
+  const bw = f.size * f.long, bh = f.size;
+  const wig = Math.sin(t * f.wigSpd + f.wig);
+  ctx.save();
+  ctx.translate(f.x, f.y);
+  ctx.scale(f.dir, 1);
+  // tail
+  ctx.beginPath();
+  ctx.moveTo(-bw * 0.85, 0);
+  ctx.lineTo(-bw * 1.5, -bh * 0.8 + wig * bh * 0.35);
+  ctx.lineTo(-bw * 1.4, 0 + wig * bh * 0.2);
+  ctx.lineTo(-bw * 1.5, bh * 0.8 + wig * bh * 0.35);
+  ctx.closePath(); ctx.fillStyle = f.fin; ctx.fill();
+  // dorsal fin
+  ctx.beginPath(); ctx.moveTo(-bw * 0.3, -bh * 0.85); ctx.quadraticCurveTo(bw * 0.1, -bh * 1.7, bw * 0.5, -bh * 0.6); ctx.closePath();
+  ctx.fillStyle = f.fin; ctx.fill();
+  // body
+  ctx.beginPath(); ctx.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2); ctx.fillStyle = f.color; ctx.fill();
+  // belly
+  ctx.save(); ctx.beginPath(); ctx.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2); ctx.clip();
+  ctx.beginPath(); ctx.ellipse(0, bh * 0.55, bw, bh * 0.7, 0, 0, Math.PI * 2); ctx.fillStyle = f.belly; ctx.fill();
+  // pattern
+  if (f.pattern === 'stripe') {
+    ctx.fillStyle = f.fin;
+    for (let i = -1; i <= 2; i++) { ctx.globalAlpha = 0.5; ctx.fillRect(i * bw * 0.4 - bw * 0.05, -bh, bw * 0.12, bh * 2); }
+    ctx.globalAlpha = 1;
+  } else if (f.pattern === 'spot') {
+    ctx.fillStyle = f.fin; ctx.globalAlpha = 0.55;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc((_hashish(f.wig + i) - 0.5) * bw, (_hashish(f.bob + i) - 0.5) * bh, bh * 0.2, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  // side fin (flapping)
+  ctx.beginPath(); ctx.ellipse(bw * 0.05, bh * 0.4, bw * 0.32, bh * 0.24, 0.5 + wig * 0.2, 0, Math.PI * 2); ctx.fillStyle = f.fin; ctx.fill();
+  // GOOGLY EYE — white ball + a loose black pupil that dangles/jiggles
+  const eyeX = bw * 0.52, eyeY = -bh * 0.12, eyeR = f.size * 0.42;
+  ctx.beginPath(); ctx.arc(eyeX, eyeY, eyeR, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.stroke();
+  const px = eyeX + f.ex * eyeR * 0.4, py = eyeY + (f.ey * 0.4 + 0.35) * eyeR;
+  ctx.beginPath(); ctx.arc(px, py, eyeR * 0.5, 0, Math.PI * 2); ctx.fillStyle = '#111'; ctx.fill();
+  ctx.beginPath(); ctx.arc(px - eyeR * 0.15, py - eyeR * 0.15, eyeR * 0.15, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+  // little smile
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(bw * 0.7, bh * 0.15, bh * 0.3, -0.2, 1.2); ctx.stroke();
+  ctx.restore();
+}
+function _hashish(n) { const x = Math.sin(n * 12.9898) * 43758.5; return x - Math.floor(x); }
+
+function _naraNewShark(W, H) {
+  return { x: W * 0.5, y: H * 0.5, vx: 40, vy: 0, dir: 1, size: 46, wig: 0, target: null, eatFlash: 0, ex: 0, ey: 0 };
+}
+function _naraDrawShark(ctx, s, t) {
+  const bw = s.size * 2.0, bh = s.size;
+  const wig = Math.sin(t * 6 + s.wig);
+  ctx.save();
+  ctx.translate(s.x, s.y); ctx.scale(s.dir, 1);
+  const bodyCol = s.eatFlash > 0 ? '#8fa4b3' : '#6b7f8c', dark = '#4a5a66';
+  // tail
+  ctx.beginPath();
+  ctx.moveTo(-bw * 0.85, 0);
+  ctx.lineTo(-bw * 1.45, -bh * 1.1 + wig * bh * 0.3);
+  ctx.lineTo(-bw * 1.3, 0);
+  ctx.lineTo(-bw * 1.45, bh * 0.7 + wig * bh * 0.3);
+  ctx.closePath(); ctx.fillStyle = dark; ctx.fill();
+  // dorsal + pectoral fins
+  ctx.beginPath(); ctx.moveTo(-bw * 0.1, -bh * 0.9); ctx.lineTo(bw * 0.25, -bh * 1.75); ctx.lineTo(bw * 0.4, -bh * 0.7); ctx.closePath(); ctx.fillStyle = dark; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(bw * 0.2, bh * 0.5); ctx.lineTo(bw * 0.05, bh * 1.5); ctx.lineTo(bw * 0.55, bh * 0.7); ctx.closePath(); ctx.fillStyle = dark; ctx.fill();
+  // body
+  ctx.beginPath(); ctx.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2); ctx.fillStyle = bodyCol; ctx.fill();
+  // belly
+  ctx.save(); ctx.beginPath(); ctx.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2); ctx.clip();
+  ctx.beginPath(); ctx.ellipse(0, bh * 0.6, bw, bh * 0.75, 0, 0, Math.PI * 2); ctx.fillStyle = '#c8d4db'; ctx.fill();
+  ctx.restore();
+  // gill slashes
+  ctx.strokeStyle = dark; ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(bw * 0.3 + i * 7, 0, bh * 0.5, -0.7, 0.7); ctx.stroke(); }
+  // mouth + teeth
+  ctx.beginPath(); ctx.moveTo(bw * 0.55, bh * 0.3); ctx.quadraticCurveTo(bw * 1.02, bh * 0.35, bw * 0.98, bh * 0.02); ctx.lineTo(bw * 0.6, bh * 0.1); ctx.closePath();
+  ctx.fillStyle = '#3a1414'; ctx.fill();
+  ctx.fillStyle = '#fff';
+  for (let i = 0; i < 5; i++) { const tx = bw * (0.62 + i * 0.08); ctx.beginPath(); ctx.moveTo(tx, bh * 0.14); ctx.lineTo(tx + 3, bh * 0.14); ctx.lineTo(tx + 1.5, bh * 0.30); ctx.closePath(); ctx.fill(); }
+  // GOOGLY EYE (still silly)
+  const eyeX = bw * 0.55, eyeY = -bh * 0.25, eyeR = s.size * 0.26;
+  ctx.beginPath(); ctx.arc(eyeX, eyeY, eyeR, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.stroke();
+  const px = eyeX + s.ex * eyeR * 0.4, py = eyeY + (s.ey * 0.4 + 0.35) * eyeR;
+  ctx.beginPath(); ctx.arc(px, py, eyeR * 0.5, 0, Math.PI * 2); ctx.fillStyle = '#111'; ctx.fill();
+  ctx.restore();
+}
+// a blue sea trident, prongs up, riding the cursor
+function _naraDrawTrident(ctx, x, y, tilt, t) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(tilt);
+  ctx.shadowColor = 'rgba(90,200,255,0.9)'; ctx.shadowBlur = 12;
+  const grad = ctx.createLinearGradient(0, -34, 0, 26);
+  grad.addColorStop(0, '#bfefff'); grad.addColorStop(0.5, '#3aa0e6'); grad.addColorStop(1, '#1c5f9e');
+  ctx.strokeStyle = grad; ctx.fillStyle = grad;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // shaft
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 26); ctx.stroke();
+  // crossbar
+  ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-7, -6); ctx.lineTo(7, -6); ctx.stroke();
+  // three prongs
+  ctx.lineWidth = 3.4;
+  ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(0, -34); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-9, -6); ctx.lineTo(-9, -20); ctx.quadraticCurveTo(-9, -30, -3, -30); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(9, -6); ctx.lineTo(9, -20); ctx.quadraticCurveTo(9, -30, 3, -30); ctx.stroke();
+  // barbed tips
+  ctx.beginPath();
+  for (const px of [-9, 0, 9]) { ctx.moveTo(px, -34); ctx.lineTo(px - 3, -29); ctx.moveTo(px, -34); ctx.lineTo(px + 3, -29); }
+  ctx.lineWidth = 2; ctx.stroke();
+  // butt bead
+  ctx.beginPath(); ctx.arc(0, 27, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function _drawNaraOceanPattern(canvas, ctx, W, H, t) {
+  if (_drawNaraOceanPattern._lt !== undefined && t - _drawNaraOceanPattern._lt < 0.033) return;
+  const dt = _drawNaraOceanPattern._lt === undefined ? 0.016 : Math.min(t - _drawNaraOceanPattern._lt, 0.05);
+  _drawNaraOceanPattern._lt = t;
+
+  if (canvas._noW !== W || canvas._noH !== H) {
+    canvas._noW = W; canvas._noH = H;
+    canvas._noGrad = null; canvas._noBubbles = null; canvas._noDrops = null; canvas._noRipples = [];
+  }
+  const surfaceY = H * 0.12;
+
+  // gradient sea
+  if (!canvas._noGrad) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#7fdcff'); g.addColorStop(0.14, '#3aa8e6'); g.addColorStop(0.5, '#146bb0'); g.addColorStop(1, '#052a52');
+    canvas._noGrad = g;
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = canvas._noGrad; ctx.fillRect(0, 0, W, H);
+
+  // caustic light beams from the surface
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 5; i++) {
+    const bx = W * (i / 5) + Math.sin(t * 0.3 + i) * 60 + W * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(bx, surfaceY); ctx.lineTo(bx + 40, surfaceY); ctx.lineTo(bx + 120 + Math.sin(t * 0.2 + i) * 40, H); ctx.lineTo(bx + 20, H);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(180,240,255,${(0.03 + 0.02 * Math.sin(t * 0.7 + i)).toFixed(3)})`;
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // surface shimmer band
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(200,245,255,${(0.12 + 0.05 * Math.sin(t * 2)).toFixed(3)})`;
+  ctx.fillRect(0, 0, W, surfaceY);
+  ctx.strokeStyle = 'rgba(220,250,255,0.4)'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x <= W; x += 12) { const y = surfaceY + Math.sin(x * 0.03 + t * 2) * 3; x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+  ctx.stroke();
+  ctx.globalCompositeOperation = 'source-over';
+
+  // rising bubbles
+  if (!canvas._noBubbles) canvas._noBubbles = Array.from({ length: 34 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: 1 + Math.random() * 4, v: 14 + Math.random() * 30, ph: Math.random() * 6.28 }));
+  ctx.strokeStyle = 'rgba(210,245,255,0.4)'; ctx.lineWidth = 1;
+  for (const b of canvas._noBubbles) {
+    b.y -= b.v * dt; b.x += Math.sin(t * 1.5 + b.ph) * 8 * dt;
+    if (b.y < surfaceY) { b.y = H + 10; b.x = Math.random() * W; }
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // RAINBOW RAIN — coloured drops fall from the sky and splash the surface
+  if (!canvas._noDrops) canvas._noDrops = Array.from({ length: 26 }, () => _naraNewDrop(W, surfaceY));
+  ctx.globalCompositeOperation = 'lighter';
+  for (const d of canvas._noDrops) {
+    d.y += d.v * dt;
+    if (d.y >= surfaceY) {
+      // splash: a ripple + a couple of up-droplets, then respawn above
+      canvas._noRipples.push({ x: d.x, y: surfaceY, r: 2, life: 1, hue: d.hue });
+      Object.assign(d, _naraNewDrop(W, surfaceY));
+      continue;
+    }
+    ctx.strokeStyle = `hsla(${d.hue},95%,65%,0.9)`; ctx.lineWidth = d.w;
+    ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - d.vx * 0.03, d.y - d.len); ctx.stroke();
+  }
+  // ripples along the surface
+  for (let i = canvas._noRipples.length - 1; i >= 0; i--) {
+    const r = canvas._noRipples[i];
+    r.r += 90 * dt; r.life -= dt * 1.3;
+    if (r.life <= 0) { canvas._noRipples.splice(i, 1); continue; }
+    ctx.strokeStyle = `hsla(${r.hue},90%,70%,${(r.life * 0.7).toFixed(3)})`; ctx.lineWidth = 1.5 * r.life + 0.4;
+    ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r, r.r * 0.34, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // seabed glow
+  const sb = ctx.createLinearGradient(0, H - H * 0.12, 0, H);
+  sb.addColorStop(0, 'rgba(2,18,40,0)'); sb.addColorStop(1, 'rgba(1,10,26,0.6)');
+  ctx.fillStyle = sb; ctx.fillRect(0, H - H * 0.12, W, H * 0.12);
+}
+function _naraNewDrop(W, surfaceY) {
+  return { x: Math.random() * W, y: -Math.random() * surfaceY - 10, v: 420 + Math.random() * 320,
+    vx: (Math.random() - 0.5) * 30, len: 10 + Math.random() * 16, w: 1.5 + Math.random() * 1.5,
+    hue: Math.random() * 360 };
+}
+
+// ── Overlay: fishes + shark + trident, all in window coords ──
+function _naraOceanMouseMove(e) { _naraOMX = e.clientX; _naraOMY = e.clientY; }
+function _naraOceanMouseDown(e) {
+  _naraOMX = e.clientX; _naraOMY = e.clientY;
+  let best = null, bestD = 1e9;
+  for (const f of _naraFish) { if (!f.alive) continue; const d = Math.hypot(f.x - _naraOMX, f.y - _naraOMY); if (d < bestD) { bestD = d; best = f; } }
+  if (best && bestD < best.size * best.long + 30) { best.grabbed = true; _naraGrabbed = best; }
+}
+function _naraOceanMouseUp() {
+  if (_naraGrabbed) {
+    _naraGrabbed.grabbed = false;
+    _naraGrabbed.vx = _naraOVX * 0.9; _naraGrabbed.vy = _naraOVY * 0.9;   // fling
+    if (Math.abs(_naraGrabbed.vx) > 4) _naraGrabbed.dir = _naraGrabbed.vx > 0 ? 1 : -1;
+    _naraGrabbed = null;
+  }
+}
+function _drawNaraOceanOverlay(canvas, ctx, W, H, t) {
+  if (_drawNaraOceanOverlay._lt !== undefined && t - _drawNaraOceanOverlay._lt < 0.02) return;
+  const dt = _drawNaraOceanOverlay._lt === undefined ? 0.016 : Math.min(t - _drawNaraOceanOverlay._lt, 0.05);
+  _drawNaraOceanOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  // cursor velocity (for flinging fish)
+  _naraOVX = (_naraOMX - _naraOPMX) / Math.max(0.001, dt);
+  _naraOVY = (_naraOMY - _naraOPMY) / Math.max(0.001, dt);
+  _naraOPMX = _naraOMX; _naraOPMY = _naraOMY;
+  const surfaceY = H * 0.14, fleeR = 150;
+
+  // populate
+  if (_naraFish.length < 14 && Math.random() < 0.03) _naraFish.push(_naraNewFish(W, H, true));
+  if (!_naraShark) _naraShark = _naraNewShark(W, H);
+
+  // ── fishes ──
+  for (let i = _naraFish.length - 1; i >= 0; i--) {
+    const f = _naraFish[i];
+    if (!f.alive) { _naraFish.splice(i, 1); continue; }
+    if (f.grabbed) {
+      f.x += (_naraOMX - f.x) * Math.min(1, dt * 18);
+      f.y += (_naraOMY - f.y) * Math.min(1, dt * 18);
+      f.ex = Math.max(-1, Math.min(1, -_naraOVX / 300)); f.ey = Math.max(-1, Math.min(1, _naraOVY / 300 + 0.4));
+    } else {
+      // cruise + gentle bob
+      f.vx += (f.dir * f.cruise - f.vx) * Math.min(1, dt * 1.2);
+      f.vy = Math.sin(t * f.bobSpd + f.bob) * 14;
+      // flee cursor
+      const dx = f.x - _naraOMX, dy = f.y - _naraOMY, d = Math.hypot(dx, dy);
+      if (d < fleeR && d > 0.1) { const push = (fleeR - d) / fleeR * 900; f.vx += dx / d * push * dt; f.vy += dy / d * push * dt; if (Math.abs(dx) > 6) f.dir = dx > 0 ? 1 : -1; }
+      // flee shark
+      if (_naraShark) { const sx = f.x - _naraShark.x, sy = f.y - _naraShark.y, sd = Math.hypot(sx, sy); if (sd < 130 && sd > 0.1) { f.vx += sx / sd * 700 * dt; f.vy += sy / sd * 700 * dt; } }
+      f.x += f.vx * dt; f.y += f.vy * dt;
+      // eye settles with a bob (googly)
+      f.ex += ((Math.max(-1, Math.min(1, f.vx / 120))) - f.ex) * Math.min(1, dt * 6);
+      f.ey += (0 - f.ey) * Math.min(1, dt * 4) + Math.sin(t * 9 + f.wig) * 0.04;
+      // wrap horizontal, clamp vertical to the water
+      if (f.x < -60) f.x = W + 60; else if (f.x > W + 60) f.x = -60;
+      if (f.y < surfaceY) { f.y = surfaceY; f.vy = Math.abs(f.vy); }
+      if (f.y > H - 12) { f.y = H - 12; f.vy = -Math.abs(f.vy); }
+      if (Math.abs(f.vx) > 8) f.dir = f.vx > 0 ? 1 : -1;
+    }
+    _naraDrawFish(ctx, f, t);
+  }
+
+  // ── shark: hunt nearest fish, eat on contact, flinch from the trident ──
+  const s = _naraShark;
+  if (s) {
+    if (!s.target || !s.target.alive || s.target.grabbed) {
+      s.target = null; let bd = 1e9;
+      for (const f of _naraFish) { if (!f.alive || f.grabbed) continue; const d = Math.hypot(f.x - s.x, f.y - s.y); if (d < bd) { bd = d; s.target = f; } }
+    }
+    let ax = 0, ay = 0;
+    if (s.target) { const dx = s.target.x - s.x, dy = s.target.y - s.y, d = Math.hypot(dx, dy) || 1; ax = dx / d; ay = dy / d;
+      if (d < s.size * 1.1) { // CHOMP
+        s.target.alive = false; s.eatFlash = 1;
+        for (let k = 0; k < 12; k++) { const a = Math.random() * 6.28, sp = 40 + Math.random() * 120; _naraChomps.push({ x: s.target.x, y: s.target.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 2 + Math.random() * 3, life: 1, col: s.target.color }); }
+        s.target = null;
+      }
+    } else { ax = Math.cos(t * 0.3); ay = Math.sin(t * 0.4) * 0.4; }
+    // trident scare
+    const tdx = s.x - _naraOMX, tdy = s.y - _naraOMY, td = Math.hypot(tdx, tdy);
+    if (td < 170 && td > 0.1) { ax += tdx / td * 2.2; ay += tdy / td * 2.2; }
+    const spd = 78;
+    s.vx += (ax * spd - s.vx) * Math.min(1, dt * 1.6);
+    s.vy += (ay * spd - s.vy) * Math.min(1, dt * 1.6);
+    s.x += s.vx * dt; s.y += s.vy * dt;
+    if (s.x < -120) s.x = W + 120; else if (s.x > W + 120) s.x = -120;
+    if (s.y < surfaceY + 20) { s.y = surfaceY + 20; s.vy = Math.abs(s.vy); }
+    if (s.y > H - 20) { s.y = H - 20; s.vy = -Math.abs(s.vy); }
+    if (Math.abs(s.vx) > 8) s.dir = s.vx > 0 ? 1 : -1;
+    s.ex += ((Math.max(-1, Math.min(1, s.vx / 120))) - s.ex) * Math.min(1, dt * 6);
+    s.eatFlash = Math.max(0, s.eatFlash - dt * 2);
+    _naraDrawShark(ctx, s, t);
+  }
+
+  // chomp particles
+  for (let i = _naraChomps.length - 1; i >= 0; i--) {
+    const c = _naraChomps[i];
+    c.vy += 240 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.life -= dt * 1.4;
+    if (c.life <= 0) { _naraChomps.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, c.life); ctx.fillStyle = c.col;
+    ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // trident cursor (hidden until the mouse has moved onto the page)
+  if (_naraOMX > -900) {
+    const tilt = Math.max(-0.5, Math.min(0.5, _naraOVX / 1400)) + (_naraGrabbed ? 0.25 : 0);
+    _naraDrawTrident(ctx, _naraOMX, _naraOMY, tilt, t);
+  }
+}
+function _startNaraOceanOverlay() {
+  _stopNaraOceanOverlay();
+  _drawNaraOceanOverlay._lt = undefined;
+  _naraOMX = _naraOPMX = window.innerWidth * 0.5; _naraOMY = _naraOPMY = window.innerHeight * 0.5;
+  _naraOVX = 0; _naraOVY = 0;
+  _naraFish = Array.from({ length: 12 }, () => _naraNewFish(window.innerWidth, window.innerHeight, false));
+  _naraShark = _naraNewShark(window.innerWidth, window.innerHeight);
+  _naraGrabbed = null; _naraChomps = [];
+  window.addEventListener('mousemove', _naraOceanMouseMove);
+  window.addEventListener('mousedown', _naraOceanMouseDown);
+  window.addEventListener('mouseup', _naraOceanMouseUp);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'nara-ocean-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('nara-ocean-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    _drawNaraOceanOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _naraOceanRafId = requestAnimationFrame(frame);
+  }
+  _naraOceanRafId = requestAnimationFrame(frame);
+}
+function _stopNaraOceanOverlay() {
+  if (_naraOceanRafId) { cancelAnimationFrame(_naraOceanRafId); _naraOceanRafId = null; }
+  window.removeEventListener('mousemove', _naraOceanMouseMove);
+  window.removeEventListener('mousedown', _naraOceanMouseDown);
+  window.removeEventListener('mouseup', _naraOceanMouseUp);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('nara-ocean-overlay'); if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
 
 // ── Jimmy's MUFFIN CURSOR — the googly-eyed muffin (moved here from Fury),
 // springing after the pointer with cheery sparkles on click. No fire. ──
@@ -28411,6 +29838,9 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'valkyrie_rain')  { _drawValkyriePattern(canvas, ctx, W, H, t);            return; }
   if (type === 'adam_ice')       { _drawAdamPattern(canvas, ctx, W, H, t, params);       return; }
   if (type === 'fury_fire')      { _drawFuryPattern(canvas, ctx, W, H, t);               return; }
+  if (type === 'annie_blitz')    { _drawAnniePattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'vikadan_casino') { _drawVikadanPattern(canvas, ctx, W, H, t);            return; }
+  if (type === 'nara_ocean')     { _drawNaraOceanPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'sorrow_fire')    { _drawSorrowPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'juko_code')      { _drawJukoPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'lucifer_unleashed') { _drawLuciferPattern(canvas, ctx, W, H, t);         return; }
@@ -28919,6 +30349,12 @@ function startBgAnim(type, params) {
   _drawAdamOverlay._lt        = undefined;
   _drawFuryPattern._lt        = undefined;
   _drawFuryOverlay._lt        = undefined;
+  _drawAnniePattern._lt       = undefined;
+  _drawAnnieOverlay._lt       = undefined;
+  _drawVikadanPattern._lt     = undefined;
+  _drawVikadanOverlay._lt     = undefined;
+  _drawNaraOceanPattern._lt   = undefined;
+  _drawNaraOceanOverlay._lt   = undefined;
   _drawJukoPattern._lt        = undefined;
   _drawJukoOverlay._lt        = undefined;
   _drawLuciferPattern._lt     = undefined;
@@ -29029,6 +30465,7 @@ function stopBgAnim() {
   _stopValkyrieOverlay();
   _stopAdamOverlay();
   _stopFuryOverlay();
+  _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay();
   _stopJukoOverlay();
   _stopLuciferOverlay();
   _stopDivineOverlay();
@@ -29465,6 +30902,9 @@ function viewChar(id) {
 
   const avatarEl = document.getElementById('cv-avatar');
   const _naraMode = _isNara(c);
+  // BLUE form: recolour the rainbow chrome to blues + tag char-view for CSS.
+  _naraBlueActive = _isNaraBlue(c);
+  { const _cvB = document.getElementById('char-view'); if (_cvB) _cvB.classList.toggle('nara-blue', _naraBlueActive); }
   if (_cvAvatar) {
     avatarEl.innerHTML = `<img src="${_cldImg(_cvAvatar)}" onerror="_cldImgError(this)"/>`;
   } else if (_naraMode) {
@@ -29569,56 +31009,58 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); }
-  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); }
-  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); }
+  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); }
+  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
-  else if (_isDivine(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#f4cf6a'); }
-  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
-  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
-  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
-  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
-  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _isIrisStarsForm(c) ? '#ffe14d' : '#ffd633'); }
-  else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
-  else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
-  else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
-  else if (_isAlsace(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#4f7bdf'); }
-  else if (_isJeckely(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c23b46'); }
-  else if (_isMimzy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fc0'); }
-  else if (_isOmen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c92d77'); }
-  else if (_isEx(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e0e0e0'); }
-  else if (_isRiegen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8a2a'); }
-  else if (_isLorraine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9a93f'); }
-  else if (_isSimmer(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#59c9f2'); }
-  else if (_isOmenBartender(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8a13c'); }
-  else if (_isOmenJanitor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#6fb6a0'); }
-  else if (_isGonela(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a8285c'); }
-  else if (_isJustin(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9c1212'); }
-  else if (_isAnti(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b06ad6'); }
-  else if (_isLeonor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#dcdcdc'); }
-  else if (_isCuckoo(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c4a24e'); }
-  else if (_isLayla(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5fe6c8'); }
-  else if (_isPawn(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c9a44e'); }
-  else if (_isAstra(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8fa6e8'); }
-  else if (_isJihau(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff6ec7'); }
-  else if (_isAndy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e07b39'); }
-  else if (_isShooShi(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b07be8'); }
-  else if (_isKardia(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf5fd6'); }
-  else if (_isJasmine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff48c4'); }
-  else if (_isCory(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9b44a'); }
-  else if (_isRook(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf4436'); }
-  else if (_isStarry(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fcf'); }
-  else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
-  else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
-  else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
-  else if (_isClassicGhost(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d8c46a'); }
-  else if (_isClassic(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8e8e8'); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAnnie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ANNIE_RED_HEX); }
+  else if (_isVikadan(c))  { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _VIK_CYAN_HEX); }
+  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
+  else if (_isDivine(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#f4cf6a'); }
+  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
+  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
+  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
+  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
+  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _isIrisStarsForm(c) ? '#ffe14d' : '#ffd633'); }
+  else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
+  else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
+  else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
+  else if (_isAlsace(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#4f7bdf'); }
+  else if (_isJeckely(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c23b46'); }
+  else if (_isMimzy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fc0'); }
+  else if (_isOmen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c92d77'); }
+  else if (_isEx(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e0e0e0'); }
+  else if (_isRiegen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8a2a'); }
+  else if (_isLorraine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9a93f'); }
+  else if (_isSimmer(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#59c9f2'); }
+  else if (_isOmenBartender(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8a13c'); }
+  else if (_isOmenJanitor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#6fb6a0'); }
+  else if (_isGonela(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a8285c'); }
+  else if (_isJustin(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9c1212'); }
+  else if (_isAnti(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b06ad6'); }
+  else if (_isLeonor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#dcdcdc'); }
+  else if (_isCuckoo(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c4a24e'); }
+  else if (_isLayla(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5fe6c8'); }
+  else if (_isPawn(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c9a44e'); }
+  else if (_isAstra(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8fa6e8'); }
+  else if (_isJihau(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff6ec7'); }
+  else if (_isAndy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e07b39'); }
+  else if (_isShooShi(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b07be8'); }
+  else if (_isKardia(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf5fd6'); }
+  else if (_isJasmine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff48c4'); }
+  else if (_isCory(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9b44a'); }
+  else if (_isRook(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf4436'); }
+  else if (_isStarry(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fcf'); }
+  else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
+  else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
+  else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
+  else if (_isClassicGhost(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d8c46a'); }
+  else if (_isClassic(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8e8e8'); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
   {
@@ -30328,6 +31770,38 @@ function viewChar(id) {
     }
   }
 
+  // ── Annie (AntiChrist) — black + blood-red UI chrome. Sharp, cold, no ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isAnnie(c)) {
+      _cvRoot.classList.add('annie-ui');
+      if (_av) _av.classList.add('annie-pfp');
+      if (_nm) _nm.classList.add('annie-name');
+    } else {
+      _cvRoot.classList.remove('annie-ui');
+      if (_av) _av.classList.remove('annie-pfp');
+      if (_nm) _nm.classList.remove('annie-name');
+    }
+  }
+
+  // ── Vikadan — cyan casino UI chrome (neon felt panels, card/suit motifs) ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isVikadan(c)) {
+      _cvRoot.classList.add('vikadan-ui');
+      if (_av) _av.classList.add('vikadan-pfp');
+      if (_nm) _nm.classList.add('vikadan-name');
+    } else {
+      _cvRoot.classList.remove('vikadan-ui');
+      if (_av) _av.classList.remove('vikadan-pfp');
+      if (_nm) _nm.classList.remove('vikadan-name');
+    }
+  }
+
   // ── Classic — UNDERTALE dialogue-box UI chrome for ALL his forms (white
   // pixel-box panels, a glitch-split name, a soul-marked portrait, and stats
   // that are permanently corrupted). The Determination. form goes red. ──
@@ -30461,11 +31935,11 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
-  if (_isNara(c)) {
+  if (_isNara(c) && !_isNaraBlue(c)) {
     // Nara has no "pattern" panel — the Style tab is just her blank paint canvas.
     if (_stPanel) _stPanel.style.display = 'none';
     styleEl.innerHTML = '';
@@ -30474,7 +31948,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -30499,8 +31973,10 @@ function viewChar(id) {
       `<div style="font-size:7.5px;letter-spacing:1px;color:#8a6038;margin-top:5px;">cut clean in half with a fast swing &#9876;</div>`;
   }
   stopBgAnim();
-  if (ptype !== 'none' && !_isNara(c)) startBgAnim(ptype, c.pattern?.params || {});  // Nara keeps the canvas blank to paint on
-  if (_isNara(c)) _startNaraPaint(); else _stopNaraPaint();
+  // Paint teardown/setup must run BEFORE startBgAnim so a base→BLUE switch
+  // un-pins the pattern canvas before the ocean is sized onto it.
+  if (_isNara(c) && !_isNaraBlue(c)) _startNaraPaint(); else _stopNaraPaint();
+  if (ptype !== 'none' && (!_isNara(c) || _isNaraBlue(c))) startBgAnim(ptype, c.pattern?.params || {});  // Nara(base) keeps the canvas blank to paint on; BLUE runs the ocean
   if (!_perfMode) {   // performance mode skips all cursor-companion overlays
   if (_isKatie(c))    _startKatieOverlay();    // start AFTER stopBgAnim so it isn't killed
   if (_isBlackjack(c)) _startBlackjackOverlay();
@@ -30509,6 +31985,9 @@ function viewChar(id) {
   if (_isValkyrie(c)) _startValkyrieOverlay();
   if (_isAdam(c))     _startAdamOverlay();
   if (_isFury(c))     _startFuryOverlay();
+  if (_isAnnie(c))    _startAnnieOverlay();
+  if (_isVikadan(c))  _startVikadanOverlay();
+  if (_isNaraBlue(c)) _startNaraOceanOverlay();
   if (_isSorrow(c))   _startSorrowOverlay();
   if (_isJimmy(c))    _startJimmyCursorOverlay();
   if (_isJuko(c))     _startJukoOverlay();
@@ -35893,7 +37372,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -35905,6 +37384,9 @@ window.addEventListener('resize', () => {
       if (_isValkyrie(c)) _startValkyrieOverlay();
       if (_isAdam(c))     _startAdamOverlay();
       if (_isFury(c))     _startFuryOverlay();
+      if (_isAnnie(c))    _startAnnieOverlay();
+      if (_isVikadan(c))  _startVikadanOverlay();
+      if (_isNaraBlue(c)) _startNaraOceanOverlay();
       if (_isSorrow(c))   _startSorrowOverlay();
       if (_isJimmy(c))    _startJimmyCursorOverlay();
       if (_isJuko(c))     _startJukoOverlay();

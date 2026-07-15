@@ -538,6 +538,28 @@ input[type=number] { -moz-appearance: textfield; }
   animation: naraStatRbw 3s linear infinite;
   pointer-events: none;
 }
+
+/* NARA! · BLUE form — the rainbow chrome becomes a gradient of blues, and the
+   panels go translucent so the ocean scene shows through behind them. */
+@keyframes naraBlueText   { 0%{color:#bfe9ff} 25%{color:#79c4ff} 50%{color:#3f8dff} 75%{color:#6fd8ff} 100%{color:#bfe9ff} }
+@keyframes naraBlueBorder { 0%{border-color:#bfe9ff} 25%{border-color:#79c4ff} 50%{border-color:#3f8dff} 75%{border-color:#6fd8ff} 100%{border-color:#bfe9ff} }
+@keyframes naraBlueBg     { 0%{background-color:#bfe9ff} 25%{background-color:#79c4ff} 50%{background-color:#3f8dff} 75%{background-color:#6fd8ff} 100%{background-color:#bfe9ff} }
+#char-view.nara-blue .nara-rainbow        { animation: naraBlueText 3s linear infinite !important; }
+#char-view.nara-blue .nara-rainbow-border { animation: naraBlueBorder 3s linear infinite !important; }
+#char-view.nara-blue .nara-rainbow-band,
+#char-view.nara-blue .nara-rainbow-dot    { animation: naraBlueBg 3s linear infinite !important; }
+#char-view.nara-blue .nara-rainbow-all    { animation: naraBlueText 3s linear infinite, naraBlueBorder 3s linear infinite !important; }
+#char-view.nara-blue .stat-seg.fill-fg.nara-rbw-fill.on::before,
+#char-view.nara-blue .stat-seg.fill-fg.nara-rbw-fill.peak::before {
+  background: linear-gradient(90deg, #bfe9ff, #6fd8ff, #3f8dff, #2f6fe0, #6fd8ff, #bfe9ff);
+  background-size: 200% 100%;
+}
+#char-view.nara-blue .panel {
+  background: linear-gradient(180deg, rgba(8,32,58,0.68), rgba(2,16,36,0.76));
+  border-color: #3fa8e6;
+  box-shadow: 0 0 18px rgba(60,168,230,0.35), inset 0 0 22px rgba(0,30,60,0.4);
+}
+#char-view.nara-blue .panel-title { color: #9fe0ff !important; text-shadow: 0 0 10px rgba(80,190,255,0.8); }
 /* === TIER 0 (base) === */
 .stat-seg.on.hp   { background: #00cc66; border-color: #00aa55; }
 .stat-seg.on.atk  { background: #cc2222; border-color: #aa1111; }
@@ -5264,6 +5286,234 @@ body.nara-no-select, body.nara-no-select * {
 /* stat fill bars glow like embers */
 #char-view.fury-ui .stat-fill, #char-view.fury-ui .stat-seg.on {
   box-shadow: 0 0 8px rgba(255,50,12,0.5);
+}
+
+/* ============================================================
+   ANNIE (AntiChrist) — primal blood demon. Void black + one deep,
+   saturated blood red. No warmth like Fury's embers — a heartbeat
+   instead: a fast, sudden two-beat pulse (lub-dub), then stillness.
+   Sharp edges everywhere, nothing soft.
+   ============================================================ */
+#char-view.annie-ui .panel {
+  --p-border: #a10f14;
+  border-color: #a10f14;
+  /* slightly translucent so the centred Brimstone sigil glowing behind the
+     panels bleeds through — the mark burns underneath everything */
+  background: linear-gradient(180deg, rgba(6,0,1,0.86), rgba(2,0,0,0.9));
+  box-shadow:
+    0 0 22px rgba(161,15,20,0.4),
+    inset 0 0 24px rgba(20,0,1,0.6),
+    inset 0 0 2px rgba(255,60,60,0.35);
+  animation: annie-heartbeat 1.1s ease-in-out infinite;
+}
+@keyframes annie-heartbeat {
+  0%   { border-color: #4a0509; box-shadow: 0 0 14px rgba(161,15,20,0.28), inset 0 0 20px rgba(20,0,1,0.55), inset 0 0 2px rgba(255,60,60,0.2); }
+  8%   { border-color: #e21b22; box-shadow: 0 0 34px rgba(210,20,25,0.7), inset 0 0 26px rgba(40,0,2,0.7), inset 0 0 3px rgba(255,90,90,0.55); }
+  16%  { border-color: #4a0509; box-shadow: 0 0 14px rgba(161,15,20,0.28), inset 0 0 20px rgba(20,0,1,0.55), inset 0 0 2px rgba(255,60,60,0.2); }
+  22%  { border-color: #c81620; box-shadow: 0 0 26px rgba(200,20,25,0.55), inset 0 0 24px rgba(35,0,2,0.65), inset 0 0 3px rgba(255,80,80,0.45); }
+  30%, 100% { border-color: #4a0509; box-shadow: 0 0 14px rgba(161,15,20,0.28), inset 0 0 20px rgba(20,0,1,0.55), inset 0 0 2px rgba(255,60,60,0.2); }
+}
+/* a hairline crack of red light along the bottom edge — a wound, not a glow */
+#char-view.annie-ui .panel::before {
+  content: "";
+  position: absolute; left: 6%; right: 6%; bottom: 0; height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(225,20,25,0.8) 30%, rgba(255,120,120,0.9) 50%, rgba(225,20,25,0.8) 70%, transparent);
+  filter: blur(0.5px);
+  animation: annie-heartbeat 1.1s ease-in-out infinite;
+  opacity: 0.85;
+}
+/* a huge, near-invisible inverted cross watermarked into each panel — you
+   only really notice it once you're looking for it */
+#char-view.annie-ui .panel::after {
+  content: "\2020";
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%,-50%) rotate(180deg);
+  font-size: min(50vh, 320px);
+  line-height: 1;
+  color: rgba(161,15,20,0.05);
+  pointer-events: none;
+  z-index: 0;
+}
+/* Reality flinch — the whole page rips its composure once in a while: a
+   hard, brief skew-jolt, like she just moved through the frame itself. */
+#char-view.annie-ui {
+  animation: annie-reality-flinch 6.5s ease-in-out infinite;
+}
+@keyframes annie-reality-flinch {
+  0%, 96%, 100% { transform: none; filter: none; }
+  96.4% { transform: translate(6px,-2px) skewX(-2deg); filter: contrast(1.1) saturate(1.2); }
+  96.8% { transform: translate(-5px,2px) skewX(2deg); }
+  97.2% { transform: translate(3px,-1px) skewX(-1deg); }
+  97.6%, 100% { transform: none; filter: none; }
+}
+#char-view.annie-ui .panel-title {
+  color: #e21b22 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(161,15,20,0.5);
+  text-shadow: 0 0 10px rgba(200,15,20,0.9), 0 1px 0 rgba(0,0,0,0.9);
+}
+#char-view.annie-ui .tab-btn { color: #5a0c10; }
+#char-view.annie-ui .tab-btn:hover { color: #ff4a4a; text-shadow: 0 0 10px rgba(225,20,25,0.85); }
+#char-view.annie-ui .tab-btn.active {
+  color: #e21b22;
+  border-bottom-color: #a10f14;
+  text-shadow: 0 0 14px rgba(210,20,25,0.9);
+}
+/* Name: struck through by her own violence — a hard, sudden flinch on a
+   beat, not a smooth glow. Reads as an attack landing, not decoration. */
+.char-name-display.annie-name {
+  color: #d4141a !important;
+  font-size: 23px;
+  letter-spacing: 5px;
+  text-shadow:
+    0 0 8px rgba(200,15,20,0.9),
+    0 0 22px rgba(140,8,10,0.6),
+    0 2px 0 rgba(0,0,0,0.9);
+  animation: annie-name-flinch 3.4s steps(1, end) infinite;
+}
+@keyframes annie-name-flinch {
+  0%, 91%, 100% { transform: translate(0,0); color: #d4141a; }
+  92% { transform: translate(-3px,1px); color: #ff3838; text-shadow: 0 0 16px rgba(255,40,40,1), 0 0 34px rgba(200,10,10,0.8), 2px 0 0 rgba(0,220,220,0.35), -2px 0 0 rgba(255,0,0,0.35); }
+  93% { transform: translate(3px,-1px); }
+  94% { transform: translate(0,0); color: #d4141a; text-shadow: 0 0 8px rgba(200,15,20,0.9), 0 0 22px rgba(140,8,10,0.6), 0 2px 0 rgba(0,0,0,0.9); }
+}
+/* Portrait: a stark black/red frame with a single blood drip bleeding down
+   from the bottom edge — patient, inevitable. */
+.char-avatar-large.annie-pfp {
+  border-color: #a10f14 !important;
+  box-shadow: 0 0 26px rgba(161,15,20,0.5), inset 0 0 18px rgba(10,0,0,0.7);
+  animation: annie-pfp-beat 1.1s ease-in-out infinite;
+}
+@keyframes annie-pfp-beat {
+  0%, 30%, 100% { box-shadow: 0 0 16px rgba(161,15,20,0.32), inset 0 0 16px rgba(10,0,0,0.65); border-color: #5a0c10; }
+  8%            { box-shadow: 0 0 36px rgba(210,20,25,0.65), inset 0 0 20px rgba(20,0,1,0.75); border-color: #e21b22; }
+}
+.char-avatar-large.annie-pfp::after {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: -10px; width: 3px; height: 10px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #c8141a, #6a0509);
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 0 6px rgba(200,15,20,0.8);
+  pointer-events: none;
+  animation: annie-drip-fall 2.6s linear infinite;
+}
+@keyframes annie-drip-fall {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(0) scaleY(0.6); }
+  10%  { opacity: 1; }
+  85%  { opacity: 1; transform: translateX(-50%) translateY(14px) scaleY(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(18px) scaleY(1); }
+}
+/* traits & stats: same heartbeat, no soft haze — she doesn't linger */
+#char-view.annie-ui .trait-chip,
+#char-view.annie-ui .stat-row {
+  position: relative;
+  animation: annie-underbeat 1.1s ease-in-out infinite;
+}
+@keyframes annie-underbeat {
+  0%, 30%, 100% { box-shadow: 0 0 10px rgba(161,15,20,0.26), inset 0 0 14px rgba(10,0,0,0.4); }
+  8%            { box-shadow: 0 0 22px rgba(210,20,25,0.5), inset 0 0 16px rgba(20,0,1,0.5); }
+}
+#char-view.annie-ui .stat-fill, #char-view.annie-ui .stat-seg.on {
+  box-shadow: 0 0 8px rgba(200,15,20,0.55);
+}
+
+/* ============================================================
+   VIKADAN — a neon CYAN casino. Dark felt panels ringed in glowing
+   cyan, a suit-motif shimmer, a flickering marquee name, and a
+   portrait framed like a dealt card. --char-color is cyan.
+   ============================================================ */
+#char-view.vikadan-ui .panel {
+  --p-border: #01fe9d;
+  border-color: #01fe9d;
+  background: linear-gradient(180deg, rgba(4,20,17,0.9), rgba(2,10,9,0.93));
+  box-shadow:
+    0 0 20px rgba(1,254,157,0.35),
+    inset 0 0 24px rgba(0,40,32,0.55),
+    inset 0 0 2px rgba(120,255,220,0.5);
+  animation: vik-neon 2.4s ease-in-out infinite;
+}
+@keyframes vik-neon {
+  0%, 100% { border-color: #06b478; box-shadow: 0 0 14px rgba(1,254,157,0.28), inset 0 0 20px rgba(0,36,29,0.5), inset 0 0 2px rgba(120,255,220,0.4); }
+  50%      { border-color: #2bffb9; box-shadow: 0 0 30px rgba(1,254,157,0.55), inset 0 0 26px rgba(0,50,40,0.6), inset 0 0 3px rgba(160,255,235,0.7); }
+}
+/* a subtle running "marquee" of light along the top edge of each panel */
+#char-view.vikadan-ui .panel::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(1,254,157,0.9), transparent);
+  background-size: 40% 100%;
+  animation: vik-marquee 3s linear infinite;
+}
+@keyframes vik-marquee { 0% { background-position: -60% 0; } 100% { background-position: 160% 0; } }
+/* faint suit watermark tucked in the corner of each panel */
+#char-view.vikadan-ui .panel::after {
+  content: "\2663";   /* club */
+  position: absolute; right: 10px; bottom: 6px;
+  font-size: 40px; line-height: 1;
+  color: rgba(1,254,157,0.06);
+  pointer-events: none;
+}
+#char-view.vikadan-ui .panel-title {
+  color: #2bffb9 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(1,254,157,0.4);
+  text-shadow: 0 0 12px rgba(1,254,157,0.85);
+}
+#char-view.vikadan-ui .tab-btn { color: #0a6b52; }
+#char-view.vikadan-ui .tab-btn:hover { color: #7dffdc; text-shadow: 0 0 12px rgba(1,254,157,0.8); }
+#char-view.vikadan-ui .tab-btn.active {
+  color: #2bffb9;
+  border-bottom-color: #01fe9d;
+  text-shadow: 0 0 14px rgba(1,254,157,0.9);
+}
+/* Name: a casino marquee — bright cyan with a bulb-flicker */
+.char-name-display.vikadan-name {
+  color: #01fe9d !important;
+  font-size: 23px;
+  letter-spacing: 5px;
+  text-shadow: 0 0 10px rgba(1,254,157,0.95), 0 0 26px rgba(1,254,157,0.6), 0 2px 0 rgba(0,20,16,0.8);
+  animation: vik-name-flicker 4s steps(1, end) infinite;
+}
+@keyframes vik-name-flicker {
+  0%, 100%   { opacity: 1; }
+  91%, 93%   { opacity: 1; }
+  92%        { opacity: 0.45; text-shadow: 0 0 6px rgba(1,254,157,0.6); }
+  96%        { opacity: 0.7; }
+  97%        { opacity: 1; text-shadow: 0 0 16px rgba(1,254,157,1), 0 0 32px rgba(1,254,157,0.7); }
+}
+/* Portrait: framed like a dealt card, cyan glow + shimmer */
+.char-avatar-large.vikadan-pfp {
+  border-color: #01fe9d !important;
+  box-shadow: 0 0 26px rgba(1,254,157,0.5), inset 0 0 18px rgba(0,40,32,0.6);
+  animation: vik-neon 2.4s ease-in-out infinite;
+}
+.char-avatar-large.vikadan-pfp::after {
+  content: "\2663\2666";   /* club + diamond corner flourish */
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  font-size: 15px; letter-spacing: 3px;
+  color: #2bffb9;
+  text-shadow: 0 0 10px rgba(1,254,157,0.9);
+  pointer-events: none;
+}
+/* traits & stats — cyan neon edge glow */
+#char-view.vikadan-ui .trait-chip,
+#char-view.vikadan-ui .stat-row {
+  position: relative;
+  animation: vik-underglow 2.6s ease-in-out infinite;
+}
+@keyframes vik-underglow {
+  0%, 100% { box-shadow: 0 0 10px rgba(1,254,157,0.22), inset 0 0 14px rgba(0,30,24,0.4); }
+  50%      { box-shadow: 0 0 20px rgba(1,254,157,0.42), inset 0 0 16px rgba(0,44,35,0.5); }
+}
+#char-view.vikadan-ui .stat-fill, #char-view.vikadan-ui .stat-seg.on {
+  box-shadow: 0 0 8px rgba(1,254,157,0.6);
 }
 
 /* ============================================================
