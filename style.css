@@ -560,6 +560,56 @@ input[type=number] { -moz-appearance: textfield; }
   box-shadow: 0 0 18px rgba(60,168,230,0.35), inset 0 0 22px rgba(0,30,60,0.4);
 }
 #char-view.nara-blue .panel-title { color: #9fe0ff !important; text-shadow: 0 0 10px rgba(80,190,255,0.8); }
+
+/* NARA! · WHITE form — angel of judgement: white/gold chrome. */
+@keyframes naraWhiteText   { 0%{color:#fffbe8} 50%{color:#f2d67a} 100%{color:#fffbe8} }
+@keyframes naraWhiteBorder { 0%{border-color:#fffbe8} 50%{border-color:#e6c24a} 100%{border-color:#fffbe8} }
+@keyframes naraWhiteBg     { 0%{background-color:#fffbe8} 50%{background-color:#f2d67a} 100%{background-color:#fffbe8} }
+#char-view.nara-white .nara-rainbow        { animation: naraWhiteText 3.4s ease-in-out infinite !important; }
+#char-view.nara-white .nara-rainbow-border { animation: naraWhiteBorder 3.4s ease-in-out infinite !important; }
+#char-view.nara-white .nara-rainbow-band,
+#char-view.nara-white .nara-rainbow-dot    { animation: naraWhiteBg 3.4s ease-in-out infinite !important; }
+#char-view.nara-white .nara-rainbow-all    { animation: naraWhiteText 3.4s ease-in-out infinite, naraWhiteBorder 3.4s ease-in-out infinite !important; }
+#char-view.nara-white .stat-seg.fill-fg.nara-rbw-fill.on::before,
+#char-view.nara-white .stat-seg.fill-fg.nara-rbw-fill.peak::before {
+  background: linear-gradient(90deg, #fffbe8, #ffe9a8, #f2d67a, #d9a83a, #ffe9a8, #fffbe8);
+  background-size: 200% 100%;
+}
+#char-view.nara-white .panel {
+  background: linear-gradient(180deg, rgba(48,38,14,0.66), rgba(20,14,4,0.78));
+  border-color: #e6c24a;
+  box-shadow: 0 0 20px rgba(245,214,122,0.4), inset 0 0 22px rgba(60,44,12,0.4), inset 0 0 2px rgba(255,244,200,0.5);
+  animation: naraWhitePanel 3.4s ease-in-out infinite;
+}
+@keyframes naraWhitePanel {
+  0%, 100% { border-color: #caa64e; box-shadow: 0 0 14px rgba(245,214,122,0.3), inset 0 0 20px rgba(50,38,10,0.4), inset 0 0 2px rgba(255,244,200,0.4); }
+  50%      { border-color: #ffe9a8; box-shadow: 0 0 30px rgba(255,238,180,0.6), inset 0 0 24px rgba(70,52,16,0.5), inset 0 0 3px rgba(255,250,225,0.75); }
+}
+#char-view.nara-white .panel-title { color: #ffe9a8 !important; text-shadow: 0 0 12px rgba(245,214,122,0.9); letter-spacing: 4px; }
+#char-view.nara-white .char-name-display {
+  text-shadow: 0 0 12px rgba(255,240,190,0.95), 0 0 30px rgba(230,190,80,0.65), 0 2px 0 rgba(40,28,8,0.7);
+}
+
+/* NARA! · Green!! form — light green / teal chrome over the dream-space. */
+@keyframes naraGreenText   { 0%{color:#b8ffd9} 33%{color:#5ee6b8} 66%{color:#4ecfd9} 100%{color:#b8ffd9} }
+@keyframes naraGreenBorder { 0%{border-color:#b8ffd9} 33%{border-color:#3ecf9a} 66%{border-color:#3db8c9} 100%{border-color:#b8ffd9} }
+@keyframes naraGreenBg     { 0%{background-color:#b8ffd9} 33%{background-color:#5ee6b8} 66%{background-color:#4ecfd9} 100%{background-color:#b8ffd9} }
+#char-view.nara-green .nara-rainbow        { animation: naraGreenText 3s linear infinite !important; }
+#char-view.nara-green .nara-rainbow-border { animation: naraGreenBorder 3s linear infinite !important; }
+#char-view.nara-green .nara-rainbow-band,
+#char-view.nara-green .nara-rainbow-dot    { animation: naraGreenBg 3s linear infinite !important; }
+#char-view.nara-green .nara-rainbow-all    { animation: naraGreenText 3s linear infinite, naraGreenBorder 3s linear infinite !important; }
+#char-view.nara-green .stat-seg.fill-fg.nara-rbw-fill.on::before,
+#char-view.nara-green .stat-seg.fill-fg.nara-rbw-fill.peak::before {
+  background: linear-gradient(90deg, #b8ffd9, #5ee6b8, #2fae7d, #3db8c9, #5ee6b8, #b8ffd9);
+  background-size: 200% 100%;
+}
+#char-view.nara-green .panel {
+  background: linear-gradient(180deg, rgba(10,38,30,0.72), rgba(4,20,18,0.8));
+  border-color: #3ecf9a;
+  box-shadow: 0 0 18px rgba(80,220,170,0.35), inset 0 0 22px rgba(0,40,32,0.4);
+}
+#char-view.nara-green .panel-title { color: #8dffcb !important; text-shadow: 0 0 10px rgba(90,230,180,0.8); }
 /* === TIER 0 (base) === */
 .stat-seg.on.hp   { background: #00cc66; border-color: #00aa55; }
 .stat-seg.on.atk  { background: #cc2222; border-color: #aa1111; }

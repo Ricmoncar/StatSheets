@@ -46,10 +46,35 @@ function _isNara(c) { return !!(c && c.name && _NARA_RE.test(c.name)); }
 const _NARA_BLUE_RE = /blue/i;
 function _isNaraBlue(c) { return _isNara(c) && _NARA_BLUE_RE.test(_activeFormName(c)); }
 let _naraBlueActive = false;   // set in viewChar — makes the chrome cycle blues
+// "WHITE" — an angel of judgement: white/gold chrome + a heavenly, menacing
+// scene (a seraphic halo of eyes, god-rays, hovering swords of judgement).
+const _NARA_WHITE_RE = /white/i;
+function _isNaraWhite(c) { return _isNara(c) && _NARA_WHITE_RE.test(_activeFormName(c)); }
+let _naraWhiteActive = false;
+// "Green!!" — a goofy googly-eyed UFO cruising an OMORI-dreamworld space
+// (purples/blacks); your cursor is a laser gun that can shoot it.
+const _NARA_GREEN_RE = /green/i;
+function _isNaraGreen(c) { return _isNara(c) && _NARA_GREEN_RE.test(_activeFormName(c)); }
+let _naraGreenActive = false;
+// any Nara form that replaces paint-mode with a full themed background/overlay
+function _isNaraThemedForm(c) { return _isNaraBlue(c) || _isNaraWhite(c) || _isNaraGreen(c); }
 let _naraCurrentColor = '#ffb3ba';
 let _naraRafId = null, _naraRafT = 0, _naraRafPrevTs = 0;
 
 function _naraHsl(t) {
+  if (_naraGreenActive) {
+    // light green ↔ teal, bright and playful
+    const hue = 152 + 24 * Math.sin(t * 0.85);
+    const lig = 64 + 9 * Math.sin(t * 0.6);
+    return `hsl(${hue.toFixed(1)},74%,${lig.toFixed(1)}%)`;
+  }
+  if (_naraWhiteActive) {
+    // radiant white ↔ gold — lightness stays high, saturation breathes so it
+    // shifts from blinding white to divine gold.
+    const sat = 42 + 40 * (0.5 + 0.5 * Math.sin(t * 0.7));
+    const lig = 82 + 8 * Math.sin(t * 0.5);
+    return `hsl(46,${sat.toFixed(1)}%,${lig.toFixed(1)}%)`;
+  }
   if (_naraBlueActive) {
     // stay within the blues: cyan (~190) ↔ deep blue (~232), gently oscillating
     const hue = 211 + 21 * Math.sin(t * 0.9);
@@ -864,7 +889,40 @@ function _naraRainGrad(g, x0, y0, x1, y1, hueOff, t, a) {
   }
   return lg;
 }
-function _naraDrawEdges(g, w, h, t) {
+// themed variants of the border ribbon gradient (same shape, one palette)
+function _naraBlueGrad(g, x0, y0, x1, y1, hueOff, t, a) {
+  const lg = g.createLinearGradient(x0, y0, x1, y1);
+  for (let s = 0; s <= 6; s++) {
+    const f = s / 6;
+    const hue = 196 + 46 * (0.5 + 0.5 * Math.sin(f * Math.PI * 2 + hueOff * Math.PI / 180 + t * 1.2));
+    const lig = 60 + 22 * (0.5 + 0.5 * Math.sin(f * Math.PI * 2 + t * 0.9));
+    lg.addColorStop(f, `hsla(${hue.toFixed(0)},88%,${lig.toFixed(0)}%,${a})`);
+  }
+  return lg;
+}
+function _naraGoldGrad(g, x0, y0, x1, y1, hueOff, t, a) {
+  const lg = g.createLinearGradient(x0, y0, x1, y1);
+  for (let s = 0; s <= 6; s++) {
+    const f = s / 6;
+    const m = 0.5 + 0.5 * Math.sin(f * Math.PI * 2 + hueOff * Math.PI / 180 + t * 1.1);   // 0 gold → 1 white
+    const sat = 92 - m * 84, lig = 68 + m * 28;
+    lg.addColorStop(f, `hsla(48,${sat.toFixed(0)}%,${lig.toFixed(0)}%,${a})`);
+  }
+  return lg;
+}
+function _naraForestGrad(g, x0, y0, x1, y1, hueOff, t, a) {
+  const lg = g.createLinearGradient(x0, y0, x1, y1);
+  for (let s = 0; s <= 6; s++) {
+    const f = s / 6;
+    // forest greens: deep pine ↔ bright leaf, flowing
+    const hue = 122 + 30 * (0.5 + 0.5 * Math.sin(f * Math.PI * 2 + hueOff * Math.PI / 180 + t * 1.15));
+    const lig = 30 + 30 * (0.5 + 0.5 * Math.sin(f * Math.PI * 2 + t * 0.85));
+    lg.addColorStop(f, `hsla(${hue.toFixed(0)},72%,${lig.toFixed(0)}%,${a})`);
+  }
+  return lg;
+}
+function _naraDrawEdges(g, w, h, t, gradFn) {
+  gradFn = gradFn || _naraRainGrad;   // base Nara = rainbow; forms pass a themed palette
   const base = Math.max(12, Math.min(w, h) * 0.022);
   const amp = base * 0.6, step = 7;
   g.save();
@@ -876,19 +934,19 @@ function _naraDrawEdges(g, w, h, t) {
     // top
     g.beginPath(); g.moveTo(0, 0); g.lineTo(w, 0);
     for (let x = w; x >= 0; x -= step) g.lineTo(x, tk + amp * Math.sin(x * 0.011 + t * 1.3 + ph));
-    g.closePath(); g.fillStyle = _naraRainGrad(g, 0, 0, w, 0, 0, t, a); g.fill();
+    g.closePath(); g.fillStyle = gradFn(g, 0, 0, w, 0, 0, t, a); g.fill();
     // bottom
     g.beginPath(); g.moveTo(0, h); g.lineTo(w, h);
     for (let x = w; x >= 0; x -= step) g.lineTo(x, h - tk - amp * Math.sin(x * 0.011 - t * 1.15 + ph));
-    g.closePath(); g.fillStyle = _naraRainGrad(g, 0, 0, w, 0, 180, t, a); g.fill();
+    g.closePath(); g.fillStyle = gradFn(g, 0, 0, w, 0, 180, t, a); g.fill();
     // left
     g.beginPath(); g.moveTo(0, 0); g.lineTo(0, h);
     for (let y = h; y >= 0; y -= step) g.lineTo(tk + amp * Math.sin(y * 0.011 + t * 1.1 + ph), y);
-    g.closePath(); g.fillStyle = _naraRainGrad(g, 0, 0, 0, h, 90, t, a); g.fill();
+    g.closePath(); g.fillStyle = gradFn(g, 0, 0, 0, h, 90, t, a); g.fill();
     // right
     g.beginPath(); g.moveTo(w, 0); g.lineTo(w, h);
     for (let y = h; y >= 0; y -= step) g.lineTo(w - tk - amp * Math.sin(y * 0.011 - t * 1.25 + ph), y);
-    g.closePath(); g.fillStyle = _naraRainGrad(g, 0, 0, 0, h, 270, t, a); g.fill();
+    g.closePath(); g.fillStyle = gradFn(g, 0, 0, 0, h, 270, t, a); g.fill();
   }
   g.restore();
 }
@@ -3010,6 +3068,8 @@ const PATTERN_DEFS = {
   annie_blitz:      { label: "Annie · Blood & Blitz",   params: [] },
   vikadan_casino:   { label: "Vikadan · Casino",        params: [] },
   nara_ocean:       { label: "NARA! · BLUE Ocean",      params: [] },
+  nara_white:       { label: "NARA! · WHITE Judgement", params: [] },
+  nara_green:       { label: "NARA! · Green!! UFO",     params: [] },
   sorrow_fire:      { label: "Sorrow's Ashes",         params: [] },
   juko_code:        { label: "Juko's Code Garden",     params: [] },
   lucifer_unleashed:{ label: "Lucifer · Unleashed",    params: [] },
@@ -6526,7 +6586,7 @@ function _drawFuryOverlay(canvas, ctx, W, H, t, drawCompanion, flip) {
 }
 
 function _startFuryOverlay() {
-  _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay();
+  _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay();
   _drawFuryOverlay._lt = undefined;
   _furyMuffinX = _furyMuffinTargX = window.innerWidth * 0.5;
   _furyMuffinY = _furyMuffinTargY = window.innerHeight * 0.5;
@@ -7268,7 +7328,7 @@ function _drawAnnieOverlay(canvas, ctx, W, H, t) {
   _drawPlayingCard(ctx, _annieX, _annieY, 30, tilt, '6', '#141414', `rgba(${_ANNIE_RED},0.9)`);
 }
 function _startAnnieOverlay() {
-  _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay();
+  _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay();
   _drawAnnieOverlay._lt = undefined;
   _annieX = _annieTargX = window.innerWidth * 0.5;
   _annieY = _annieTargY = window.innerHeight * 0.5;
@@ -7558,7 +7618,7 @@ function _drawVikadanOverlay(canvas, ctx, W, H, t) {
   _drawPlayingCard(ctx, _vikX, _vikY, 30, tilt, '6', _VIK_RED, `rgba(${_VIK_CYAN},0.9)`);
 }
 function _startVikadanOverlay() {
-  _stopVikadanOverlay(); _stopNaraOceanOverlay();
+  _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay();
   _drawVikadanOverlay._lt = undefined;
   _vikX = _vikTargX = window.innerWidth * 0.5;
   _vikY = _vikTargY = window.innerHeight * 0.5;
@@ -7934,6 +7994,9 @@ function _drawNaraOceanOverlay(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
+  // Nara's signature wavy screen-border, in blue tones
+  _naraDrawEdges(ctx, W, H, t, _naraBlueGrad);
+
   // trident cursor (hidden until the mouse has moved onto the page)
   if (_naraOMX > -900) {
     const tilt = Math.max(-0.5, Math.min(0.5, _naraOVX / 1400)) + (_naraGrabbed ? 0.25 : 0);
@@ -7941,7 +8004,7 @@ function _drawNaraOceanOverlay(canvas, ctx, W, H, t) {
   }
 }
 function _startNaraOceanOverlay() {
-  _stopNaraOceanOverlay();
+  _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay();
   _drawNaraOceanOverlay._lt = undefined;
   _naraOMX = _naraOPMX = window.innerWidth * 0.5; _naraOMY = _naraOPMY = window.innerHeight * 0.5;
   _naraOVX = 0; _naraOVY = 0;
@@ -7974,6 +8037,933 @@ function _stopNaraOceanOverlay() {
   window.removeEventListener('mouseup', _naraOceanMouseUp);
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('nara-ocean-overlay'); if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// NARA! · WHITE — the ANGEL OF JUDGEMENT. Blinding light from above rots into
+// an ominous dark-gold below; a seraphic halo ringed with watching eyes turns
+// overhead, swords of judgement hover point-down, feathers fall. Every so
+// often JUDGEMENT descends — a colossal pillar of light + a plunging sword.
+// Cursor = a sword of judgement; click to SMITE a pillar of light down.
+// ════════════════════════════════════════════════════════════════
+const _NARA_GOLD = '232,216,168';   // pale, cold heavenly gold (distinct from Divine's warm hue)
+let _naraWhiteRafId = null;
+let _naraWMX = -999, _naraWMY = -999, _naraWPMX = 0, _naraWPMY = 0, _naraWVX = 0, _naraWVY = 0;
+let _naraGazes = [];                 // click bursts — rings of opening eyes
+
+// ── one EYE — the dominant motif. (x,y) centre, radius r; the iris/pupil look
+//    toward (lookX,lookY) in [-1..1]; `open` 0..1 drives blinking; `rot` orients
+//    the almond. Biblically-accurate angels are covered in these. ──
+function _naraEye(ctx, x, y, r, lookX, lookY, open, rot, hue) {
+  r = Math.max(0.5, r || 0);          // guard: never a negative/NaN radius
+  open = Math.max(0.03, open);
+  const h = r * 0.64 * open;
+  ctx.save();
+  ctx.translate(x, y); if (rot) ctx.rotate(rot);
+  // GLOW HALO around the whole eye (additive, on the dark scene) so a
+  // rainbow-iris eye actually reads as glowing.
+  if (hue != null && open > 0.3) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.8);
+    halo.addColorStop(0, `hsla(${hue},100%,60%,0.5)`);
+    halo.addColorStop(0.5, `hsla(${hue},100%,55%,0.22)`);
+    halo.addColorStop(1, `hsla(${hue},100%,50%,0)`);
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(0, 0, r * 1.8, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  // sclera
+  ctx.beginPath(); ctx.ellipse(0, 0, r, h, 0, 0, Math.PI * 2); ctx.fillStyle = '#fbfaf2'; ctx.fill();
+  if (open > 0.34) {
+    const ix = Math.max(-1, Math.min(1, lookX)) * r * 0.38;
+    const iy = Math.max(-1, Math.min(1, lookY)) * h * 0.5;
+    const ir = Math.min(r * 0.66, h * 1.3);
+    // IRIS — solid (source-over) so the colour is actually visible on the sclera
+    const ig = ctx.createRadialGradient(ix - ir * 0.25, iy - ir * 0.25, 0, ix, iy, ir);
+    if (hue == null) { ig.addColorStop(0, '#efd98a'); ig.addColorStop(0.7, '#c8a544'); ig.addColorStop(1, '#8a6a24'); }
+    else { ig.addColorStop(0, `hsl(${hue},100%,82%)`); ig.addColorStop(0.5, `hsl(${hue},100%,55%)`); ig.addColorStop(1, `hsl(${hue},90%,34%)`); }
+    ctx.beginPath(); ctx.arc(ix, iy, ir, 0, Math.PI * 2); ctx.fillStyle = ig; ctx.fill();
+    // a thin bright rim on the iris for the "glow" pop
+    if (hue != null) { ctx.strokeStyle = `hsla(${hue},100%,75%,0.9)`; ctx.lineWidth = Math.max(0.8, ir * 0.12); ctx.beginPath(); ctx.arc(ix, iy, ir * 0.92, 0, Math.PI * 2); ctx.stroke(); }
+    // pupil + catchlight
+    ctx.beginPath(); ctx.arc(ix, iy, ir * 0.48, 0, Math.PI * 2); ctx.fillStyle = '#080602'; ctx.fill();
+    ctx.beginPath(); ctx.arc(ix - ir * 0.24, iy - ir * 0.28, ir * 0.16, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(150,120,55,0.55)'; ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.ellipse(0, 0, r, h, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+
+// ── an OPHANIM wheel — "a wheel within a wheel," gyroscopic interlocking rings
+//    covered in eyes, turning. gx/gy = shared gaze direction; blink 0..1. ──
+function _naraWheel(ctx, cx, cy, R, t, spin, nEyes, gx, gy, blink) {
+  ctx.save();
+  // faint radiant core
+  ctx.globalCompositeOperation = 'lighter';
+  const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.2);
+  cg.addColorStop(0, 'rgba(255,250,232,0.26)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(cx, cy, R * 1.2, 0, Math.PI * 2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.shadowColor = `rgba(${_NARA_GOLD},0.8)`; ctx.shadowBlur = 10;
+  ctx.strokeStyle = 'rgba(244,232,190,0.85)';
+  // flat concentric rings
+  ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(cx, cy, R * 0.64, 0, Math.PI * 2); ctx.stroke();
+  // gyroscopic perpendicular rings — squash oscillates so they read as spinning in 3D
+  const sq1 = Math.abs(Math.sin(t * spin * 0.5)) * 0.92 + 0.07;
+  const sq2 = Math.abs(Math.cos(t * spin * 0.5)) * 0.92 + 0.07;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.ellipse(cx, cy, R, R * sq1, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(cx, cy, R * sq2, R, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.shadowBlur = 0;
+  // spokes
+  ctx.strokeStyle = 'rgba(230,216,168,0.35)'; ctx.lineWidth = 1;
+  for (let i = 0; i < 12; i++) { const a = t * spin + i * Math.PI / 6; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * R * 0.64, cy + Math.sin(a) * R * 0.64); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke(); }
+  // eyes around the rim — each iris glowing a different rainbow hue, cycling
+  const er = R * 0.15;
+  for (let i = 0; i < nEyes; i++) {
+    const a = t * spin * 0.6 + i * (Math.PI * 2 / nEyes);
+    const ex = cx + Math.cos(a) * R, ey = cy + Math.sin(a) * R;
+    const bl = Math.sin(t * 1.1 + i * 1.7);
+    const open = blink * (bl > -0.55 ? 1 : Math.max(0.05, 1 - (-0.55 - bl) / 0.45));
+    _naraEye(ctx, ex, ey, er, gx, gy, open, a + Math.PI / 2, (i * (360 / nEyes) + t * 55) % 360);
+  }
+  ctx.restore();
+}
+
+// ── a pale feathered wing (covered with a couple of eyes), fanned from (x,y) ──
+// a single detailed feather pointing along +y from its quill at (0,0):
+// a curved vane (bezier), a central shaft, and fine barb lines.
+function _naraFeather(ctx, len, w) {
+  ctx.save();
+  // a warm gold glow behind the vane so it reads as a distinct silhouette
+  // against ANY background luminosity (the plain white fill used to vanish
+  // against the form's pale sky — this is the fix).
+  ctx.shadowColor = 'rgba(224,196,120,0.6)';
+  ctx.shadowBlur = Math.max(3, w * 0.7);
+  const grad = ctx.createLinearGradient(0, 0, 0, len);
+  grad.addColorStop(0, 'rgba(255,254,248,1)');
+  grad.addColorStop(0.55, 'rgba(248,238,208,0.98)');
+  grad.addColorStop(1, 'rgba(198,168,96,0.7)');
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(w, len * 0.32, w * 0.6, len * 0.87, 0, len);
+  ctx.bezierCurveTo(-w * 0.6, len * 0.87, -w, len * 0.32, 0, 0);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.shadowBlur = 0;
+  // a defined mid-tone edge — always visible, light sky or dark
+  ctx.strokeStyle = 'rgba(150,118,52,0.65)'; ctx.lineWidth = Math.max(0.6, w * 0.06);
+  ctx.stroke();
+  // shaft (rachis)
+  ctx.strokeStyle = 'rgba(150,118,52,0.7)'; ctx.lineWidth = Math.max(0.5, w * 0.1);
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, len * 0.95); ctx.stroke();
+  // barbs
+  ctx.strokeStyle = 'rgba(160,132,64,0.4)'; ctx.lineWidth = 0.6;
+  for (let k = 1; k <= 3; k++) { const yy = len * (0.22 + k * 0.2), ww = w * (1 - k * 0.22); ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(ww, yy + len * 0.05); ctx.moveTo(0, yy); ctx.lineTo(-ww, yy + len * 0.05); ctx.stroke(); }
+  ctx.restore();
+}
+// a grand angel wing in the CLASSIC silhouette. Skeleton: the leading edge
+// starts at the shoulder (0,0) and rises outward to the wingtip at
+// (size, -size*0.52); feathers HANG DOWNWARD from that edge, short coverts at
+// the shoulder growing into long primaries at the tip, each fanning a little
+// more outward. `dir` = +1 draws a wing extending right, -1 extending left.
+// (canvas coords: +y is down; _naraFeather draws its vane along +y, so a
+//  rotation of 0 = feather hanging straight down.)
+function _naraWingEdge(size, u) {
+  // quadratic-ish rising arc; slight overshoot dips the very tip back down
+  const ex = size * (0.06 + u * 0.97);
+  const ey = -size * 0.55 * Math.sin(u * Math.PI * 0.62);
+  return [ex, ey];
+}
+function _naraWing(ctx, x, y, size, dir, flex, t, nFeath) {
+  nFeath = nFeath || 18;
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(dir, 1);
+  // soft radiance behind the wing (centred on the mid-vane)
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const gl = ctx.createRadialGradient(size * 0.5, -size * 0.1, 0, size * 0.5, -size * 0.1, size * 1.1);
+  gl.addColorStop(0, 'rgba(255,250,228,0.13)'); gl.addColorStop(1, 'rgba(255,250,228,0)');
+  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(size * 0.5, -size * 0.1, size * 1.1, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // feathers hang from the leading edge. Draw tip→base so the short coverts
+  // near the body overlap the long primaries — classic layering.
+  for (let i = nFeath; i >= 0; i--) {
+    const u = i / nFeath;                                   // 0 shoulder → 1 tip
+    const [ex, ey] = _naraWingEdge(size, u);
+    // coverts → primaries: length grows toward the tip
+    const len = size * (0.34 + 0.66 * Math.pow(u, 1.25));
+    const w = len * (0.2 - u * 0.06);                       // primaries slimmer
+    // hang straight down at the shoulder, fanning outward toward the tip;
+    // a gentle live sway + flap flex. (+rot swings the tip outward, +x.)
+    const rot = -(u * 0.85 + 0.08) + Math.sin(t * 1.1 + u * 3.2) * 0.045 - flex * 0.12;
+    ctx.save(); ctx.translate(ex, ey); ctx.rotate(rot);
+    _naraFeather(ctx, len, w);
+    ctx.restore();
+  }
+  // downy shoulder tuft covering the quill roots at the wing base
+  ctx.save();
+  ctx.shadowColor = 'rgba(224,196,120,0.55)'; ctx.shadowBlur = size * 0.06;
+  ctx.strokeStyle = 'rgba(150,118,52,0.5)'; ctx.lineWidth = 1;
+  ctx.fillStyle = 'rgba(253,250,240,0.97)';
+  ctx.beginPath(); ctx.ellipse(size * 0.12, -size * 0.01, size * 0.2, size * 0.14, -0.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.stroke();
+  ctx.shadowBlur = size * 0.05;
+  ctx.fillStyle = 'rgba(240,235,220,0.85)';
+  ctx.beginPath(); ctx.ellipse(size * 0.3, -size * 0.12, size * 0.17, size * 0.11, -0.55, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.stroke();
+  ctx.restore();
+  // eyes riding the leading edge (biblically-accurate) — rainbow, glowing
+  for (let k = 0; k < 4; k++) {
+    const u = 0.2 + k * 0.2;
+    const [ex, ey] = _naraWingEdge(size, u);
+    _naraEye(ctx, ex, ey + size * 0.1, size * 0.075, 0, 0.2, 0.8 + 0.2 * Math.sin(t * 1.7 + k), 0, (t * 42 + k * 80) % 360);
+  }
+  ctx.restore();
+}
+
+function _drawNaraWhitePattern(canvas, ctx, W, H, t) {
+  if (_drawNaraWhitePattern._lt !== undefined && t - _drawNaraWhitePattern._lt < 0.033) return;
+  const dt = _drawNaraWhitePattern._lt === undefined ? 0.016 : Math.min(t - _drawNaraWhitePattern._lt, 0.05);
+  _drawNaraWhitePattern._lt = t;
+
+  if (canvas._nwW !== W || canvas._nwH !== H) {
+    canvas._nwW = W; canvas._nwH = H;
+    canvas._nwGrad = null; canvas._nwVign = null; canvas._nwFeathers = null; canvas._nwMotes = null; canvas._nwStars = null;
+    canvas._nwNextGaze = 5 + Math.random() * 5; canvas._nwGaze = null;
+    canvas._nwBolts = []; canvas._nwNextBolt = 1 + Math.random() * 2;
+  }
+  const cx = W / 2, hy = H * 0.42, R = Math.max(1, Math.min(W, H) * 0.2);   // guard: R > 0 even if the canvas is momentarily 0×0
+
+  // COLD bone-white → ashen gradient (deliberately NOT Divine's warm gold):
+  // blinding light above, oppressive ash below.
+  if (!canvas._nwGrad) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#f8f8f4'); g.addColorStop(0.34, '#dcd8ca'); g.addColorStop(0.68, '#8f8a78'); g.addColorStop(1, '#2b271e');
+    canvas._nwGrad = g;
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = canvas._nwGrad; ctx.fillRect(0, 0, W, H);
+
+  // ── gaze + synchronized blink + THE GAZE event ──
+  // EVERY eye on the page tracks YOUR cursor (converted into this canvas's
+  // space); when the cursor is elsewhere they wander in unison. During THE
+  // GAZE they all snap to one direction and the Great Eye opens.
+  let mx = null, my = null;
+  if (_naraWMX > -900) {
+    const rc = canvas.getBoundingClientRect();
+    if (rc.width > 0) { mx = (_naraWMX - rc.left) * (W / rc.width); my = (_naraWMY - rc.top) * (H / rc.height); }
+  }
+  let gx = Math.sin(t * 0.25) * 0.55, gy = Math.cos(t * 0.19) * 0.45;
+  let bp = t % 5.5, blinkAll = bp < 0.2 ? Math.min(1, Math.abs(bp - 0.1) / 0.1) : 1;   // all eyes blink together
+  let greatOpen = 0, gazeRing = 0, flash = 0, gazing = 0;
+  if (t > canvas._nwNextGaze && !canvas._nwGaze) {
+    canvas._nwNextGaze = t + 8 + Math.random() * 7;
+    const a = Math.random() * Math.PI * 2;
+    canvas._nwGaze = { t0: t, dur: 2.4, gx: Math.cos(a), gy: Math.sin(a) };
+  }
+  if (canvas._nwGaze) {
+    const g = canvas._nwGaze, age = t - g.t0, p = age / g.dur;
+    if (p >= 1) { canvas._nwGaze = null; }
+    else {
+      const focus = Math.min(1, p / 0.18);
+      gx = gx * (1 - focus) + g.gx * focus; gy = gy * (1 - focus) + g.gy * focus;
+      greatOpen = Math.sin(Math.PI * Math.min(1, p));
+      gazeRing = p; gazing = focus;
+      blinkAll = Math.max(blinkAll, focus);   // NOTHING blinks while it judges
+      if (p < 0.16) flash = (1 - p / 0.16) * 0.28;
+    }
+  }
+  // per-eye look: at the cursor normally; forced to the gaze direction during
+  // THE GAZE; wandering when the cursor is off-page.
+  const lookAt = (ex, ey) => {
+    if (gazing > 0.5 || mx == null) return [gx, gy];
+    return [Math.max(-1, Math.min(1, (mx - ex) / 260)), Math.max(-1, Math.min(1, (my - ey) / 260))];
+  };
+
+  // ── FIRMAMENT — faint twinkling stars scattered through the upper sky ──
+  if (!canvas._nwStars) canvas._nwStars = Array.from({ length: 40 }, () => ({ x: Math.random() * W, y: Math.random() * H * 0.55, r: 0.5 + Math.random() * 1.3, ph: Math.random() * 6.28, sp: 1 + Math.random() * 2.4 }));
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const s of canvas._nwStars) {
+    const a = Math.max(0, Math.sin(t * s.sp + s.ph)) * 0.6;
+    if (a < 0.03) continue;
+    ctx.fillStyle = `rgba(255,252,238,${a.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    if (a > 0.4) { ctx.strokeStyle = `rgba(255,252,238,${(a * 0.5).toFixed(3)})`; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(s.x - s.r * 3, s.y); ctx.lineTo(s.x + s.r * 3, s.y); ctx.moveTo(s.x, s.y - s.r * 3); ctx.lineTo(s.x, s.y + s.r * 3); ctx.stroke(); }
+  }
+  ctx.restore();
+
+  // ── COLOSSAL SUNBURST MANDALA — a cathedral-window ring of long/short rays
+  //    slowly counter-rotating behind the whole composition ──
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.translate(cx, hy);
+  for (const [nRay, rot, r0, r1, aa] of [[36, t * 0.02, R * 2.5, R * 3.6, 0.05], [24, -t * 0.014, R * 2.9, R * 4.6, 0.035]]) {
+    ctx.fillStyle = `rgba(${_NARA_GOLD},${aa})`;
+    for (let i = 0; i < nRay; i++) {
+      const a = rot + i * (Math.PI * 2 / nRay), hw = Math.PI / nRay * 0.42;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a - hw) * r0, Math.sin(a - hw) * r0);
+      ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+      ctx.lineTo(Math.cos(a + hw) * r0, Math.sin(a + hw) * r0);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // backdrop SERAPH wings behind the wheels — a raised upper pair + grand
+  // lower pair, breathing (six-winged silhouette, layered).
+  const flapA = 0.4 + 0.5 * Math.sin(t * 0.8);
+  const flapB = 0.4 + 0.5 * Math.sin(t * 0.8 + 1.4);
+  // upper pair (smaller, higher, tucked behind the halo)
+  _naraWing(ctx, cx - R * 0.24, hy - R * 0.62, R * 1.15, -1, flapB, t, 13);
+  _naraWing(ctx, cx + R * 0.24, hy - R * 0.62, R * 1.15, 1, flapB, t, 13);
+  // grand lower pair, spread wide
+  _naraWing(ctx, cx - R * 0.34, hy + R * 0.06, R * 1.95, -1, flapA, t, 22);
+  _naraWing(ctx, cx + R * 0.34, hy + R * 0.06, R * 1.95, 1, flapA, t, 22);
+
+  // slow radiance pulses breathing outward from the core (no state needed)
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 3; k++) {
+    const ph = ((t * 0.28 + k / 3) % 1);
+    const rr = Math.max(0, ph * Math.max(0, W, H) * 0.75);
+    ctx.strokeStyle = `rgba(${_NARA_GOLD},${((1 - ph) * 0.16).toFixed(3)})`; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, hy, rr, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.restore();
+
+  // rings of eyes encircling the wheels (biblically-accurate: eyes everywhere),
+  // each iris glowing a rainbow hue that flows around the ring
+  for (const [rad, n, sp, hoff] of [[R * 1.55, 16, 0.06, 0], [R * 2.15, 22, -0.04, 120]]) {
+    for (let i = 0; i < n; i++) {
+      const a = t * sp + i * (Math.PI * 2 / n);
+      const ex = cx + Math.cos(a) * rad, ey = hy + Math.sin(a) * rad * 0.9;
+      const bl = Math.sin(t * 1.0 + i * 1.3);
+      const open = blinkAll * (bl > -0.5 ? 1 : Math.max(0.05, 1 - (-0.5 - bl) / 0.5));
+      const [lx, ly] = lookAt(ex, ey);
+      // eyes are drawn unrotated so their pupils truly point at the cursor
+      _naraEye(ctx, ex, ey, R * 0.1, lx, ly, open, 0, (i * (360 / n) + t * 50 + hoff) % 360);
+    }
+  }
+
+  // ── COMET ORBITERS — bright sparks racing along the outer eye-ring orbit,
+  //    dragging a fading tail behind them ──
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 3; k++) {
+    const sp = 0.55 + k * 0.18, a0 = t * sp + k * 2.1, orad = R * (1.82 + k * 0.16);
+    for (let s = 0; s < 9; s++) {
+      const a = a0 - s * 0.045;
+      const px = cx + Math.cos(a) * orad, py = hy + Math.sin(a) * orad * 0.9;
+      const fa = (1 - s / 9) * 0.7;
+      ctx.fillStyle = s === 0 ? `rgba(255,255,250,${fa})` : `rgba(${_NARA_GOLD},${(fa * 0.7).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(px, py, s === 0 ? 3 : 2 * (1 - s / 9) + 0.4, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // SERAPHIC FIRE — "the burning ones": pale-gold flame tongues licking around
+  // the central wheel, flickering.
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const nF = 30;
+  for (let i = 0; i < nF; i++) {
+    const a = i * (Math.PI * 2 / nF) + t * 0.2;
+    const flick = 0.5 + 0.5 * Math.sin(t * 6 + i * 2.3);
+    const r0 = R * 1.02, r1 = R * (1.12 + flick * 0.16);
+    const mx = cx + Math.cos(a) * (r0 + r1) / 2, my = hy + Math.sin(a) * (r0 + r1) / 2;
+    const fg = ctx.createRadialGradient(mx, my, 0, mx, my, R * 0.12);
+    fg.addColorStop(0, `rgba(255,246,214,${(0.35 * flick).toFixed(3)})`); fg.addColorStop(1, 'rgba(255,200,90,0)');
+    ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(mx, my, R * 0.12, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  // the OPHANIM — interlocking eye-covered wheels, each rim's eyes tracking
+  // the cursor from that wheel's own position
+  { const [lx, ly] = lookAt(cx - R * 1.35, hy - R * 0.25); _naraWheel(ctx, cx - R * 1.35, hy - R * 0.25, R * 0.56, t, -0.6, 8, lx, ly, blinkAll); }
+  { const [lx, ly] = lookAt(cx + R * 1.35, hy + R * 0.3);  _naraWheel(ctx, cx + R * 1.35, hy + R * 0.3, R * 0.62, t, 0.7, 8, lx, ly, blinkAll); }
+  { const [lx, ly] = lookAt(cx, hy);                       _naraWheel(ctx, cx, hy, R, t, 0.4, 12, lx, ly, blinkAll); }
+
+  // THE GREAT EYE at the core (opens during THE GAZE — judgement watches)
+  if (greatOpen > 0.02) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const bloom = ctx.createRadialGradient(cx, hy, 0, cx, hy, R * 1.6);
+    bloom.addColorStop(0, `rgba(255,252,240,${(greatOpen * 0.5).toFixed(3)})`); bloom.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = bloom; ctx.beginPath(); ctx.arc(cx, hy, R * 1.6, 0, Math.PI * 2); ctx.fill();
+    // CREPUSCULAR RAYS — long shafts of judgement-light wheeling out from the
+    // Great Eye while it is open
+    ctx.translate(cx, hy);
+    const nRay = 16, rrot = t * 0.35;
+    ctx.fillStyle = `rgba(255,250,230,${(greatOpen * 0.12).toFixed(3)})`;
+    for (let i = 0; i < nRay; i++) {
+      const a = rrot + i * (Math.PI * 2 / nRay), hw = 0.05 + 0.03 * Math.sin(t * 2 + i);
+      const far = Math.max(W, H);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a - hw) * R * 0.7, Math.sin(a - hw) * R * 0.7);
+      ctx.lineTo(Math.cos(a) * far, Math.sin(a) * far);
+      ctx.lineTo(Math.cos(a + hw) * R * 0.7, Math.sin(a + hw) * R * 0.7);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    { const [lx, ly] = lookAt(cx, hy); _naraEye(ctx, cx, hy, R * 0.62, gazing > 0.5 ? gx : lx, gazing > 0.5 ? gy : ly, greatOpen, 0, (t * 70) % 360); }
+    // solemn DOUBLE shock ring
+    if (gazeRing > 0) {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (const lag of [0, 0.12]) {
+        const p2 = Math.max(0, gazeRing - lag);
+        const rr = Math.max(0, p2 * Math.max(0, W, H) * 0.7);
+        ctx.strokeStyle = `rgba(${_NARA_GOLD},${((1 - p2) * 0.6).toFixed(3)})`; ctx.lineWidth = 3 * (1 - p2) + 0.5;
+        ctx.beginPath(); ctx.arc(cx, hy, rr, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  // falling feathers + cool dust motes
+  if (!canvas._nwFeathers) canvas._nwFeathers = Array.from({ length: 14 }, () => _naraNewFeather(W, H, true));
+  for (const f of canvas._nwFeathers) {
+    f.y += f.vy * dt; f.x += Math.sin(t * f.sw + f.ph) * f.sa * dt; f.rot += f.vr * dt;
+    if (f.y > H + 20) Object.assign(f, _naraNewFeather(W, H, false));
+    _naraDrawFeather(ctx, f);
+  }
+  if (!canvas._nwMotes) canvas._nwMotes = Array.from({ length: 22 }, () => ({ x: Math.random() * W, y: Math.random() * H, v: 10 + Math.random() * 22, r: 0.6 + Math.random() * 1.6, ph: Math.random() * 6.28 }));
+  ctx.globalCompositeOperation = 'lighter';
+  for (const m of canvas._nwMotes) {
+    m.y -= m.v * dt; m.x += Math.sin(t + m.ph) * 6 * dt;
+    if (m.y < -6) { m.y = H + 6; m.x = Math.random() * W; }
+    ctx.fillStyle = `rgba(250,248,235,${(0.3 + 0.25 * Math.sin(t * 3 + m.ph)).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // ── WHITE THUNDER down the LEFT & RIGHT sides — jagged, branching, flashing ──
+  if (!canvas._nwBolts) canvas._nwBolts = [];
+  if (t > canvas._nwNextBolt) {
+    canvas._nwNextBolt = t + 0.7 + Math.random() * 2.2;
+    canvas._nwBolts.push(_naraNewBolt(W, H, Math.random() < 0.5 ? 0 : 1, t));
+    if (Math.random() < 0.4) canvas._nwBolts.push(_naraNewBolt(W, H, Math.random() < 0.5 ? 0 : 1, t));
+  }
+  let washL = 0, washR = 0;
+  for (let i = canvas._nwBolts.length - 1; i >= 0; i--) {
+    const b = canvas._nwBolts[i];
+    const age = t - b.t0;
+    if (age > b.dur) { canvas._nwBolts.splice(i, 1); continue; }
+    // strobing flicker that fades over the bolt's short life
+    const strobe = (Math.sin(age * 90) > -0.2 ? 1 : 0.25) * Math.max(0, 1 - age / b.dur);
+    if (strobe <= 0.02) continue;
+    if (b.pts[0][0] < W / 2) washL = Math.max(washL, strobe); else washR = Math.max(washR, strobe);
+    _naraDrawBolt(ctx, b, strobe);
+  }
+  // each strike lights up its whole side of the sky for its flicker
+  if (washL > 0.03 || washR > 0.03) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    if (washL > 0.03) {
+      const wg = ctx.createLinearGradient(0, 0, W * 0.3, 0);
+      wg.addColorStop(0, `rgba(205,225,255,${(washL * 0.16).toFixed(3)})`); wg.addColorStop(1, 'rgba(205,225,255,0)');
+      ctx.fillStyle = wg; ctx.fillRect(0, 0, W * 0.3, H);
+    }
+    if (washR > 0.03) {
+      const wg = ctx.createLinearGradient(W, 0, W * 0.7, 0);
+      wg.addColorStop(0, `rgba(205,225,255,${(washR * 0.16).toFixed(3)})`); wg.addColorStop(1, 'rgba(205,225,255,0)');
+      ctx.fillStyle = wg; ctx.fillRect(W * 0.7, 0, W * 0.3, H);
+    }
+    ctx.restore();
+  }
+
+  // gaze flash (overexposure when the great eye opens)
+  if (flash > 0.001) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(255,253,246,${flash.toFixed(3)})`; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+
+  // ashen weight below + cold vignette
+  const bg = ctx.createLinearGradient(0, H - H * 0.24, 0, H);
+  bg.addColorStop(0, 'rgba(24,20,12,0)'); bg.addColorStop(1, 'rgba(16,13,7,0.6)');
+  ctx.fillStyle = bg; ctx.fillRect(0, H - H * 0.24, W, H * 0.24);
+  if (!canvas._nwVign) {
+    const vg = ctx.createRadialGradient(cx, hy, Math.min(W, H) * 0.22, cx, hy, Math.max(W, H) * 0.82);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(14,11,6,0.6)');
+    canvas._nwVign = vg;
+  }
+  ctx.fillStyle = canvas._nwVign; ctx.fillRect(0, 0, W, H);
+}
+function _naraNewFeather(W, H, scatter) {
+  return { x: Math.random() * W, y: scatter ? Math.random() * H : -20 - Math.random() * 40,
+    vy: 16 + Math.random() * 26, sz: 8 + Math.random() * 10, rot: Math.random() * 6.28,
+    vr: (Math.random() - 0.5) * 1.4, sw: 0.5 + Math.random() * 1.0, sa: 10 + Math.random() * 18, ph: Math.random() * 6.28 };
+}
+function _naraDrawFeather(ctx, f) {
+  ctx.save();
+  ctx.translate(f.x, f.y); ctx.rotate(f.rot);
+  ctx.fillStyle = 'rgba(255,250,235,0.9)';
+  ctx.beginPath(); ctx.ellipse(0, 0, f.sz * 0.32, f.sz, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(200,168,90,0.6)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, -f.sz); ctx.lineTo(0, f.sz); ctx.stroke();
+  ctx.restore();
+}
+// a jagged branching lightning bolt confined to one side margin of the screen
+function _naraNewBolt(W, H, side, t0) {
+  const margin = W * 0.16;
+  const x0 = side === 0 ? W * (0.015 + Math.random() * 0.06) : W * (0.925 + Math.random() * 0.06);
+  const segs = 9 + (Math.random() * 6 | 0);
+  const endY = H * (0.45 + Math.random() * 0.5);
+  const pts = [[x0, -12]]; let x = x0;
+  for (let i = 1; i <= segs; i++) {
+    const y = -12 + (endY + 12) * (i / segs);
+    x += (Math.random() - 0.5) * margin * 0.55;
+    x = side === 0 ? Math.min(margin, Math.max(2, x)) : Math.max(W - margin, Math.min(W - 2, x));   // stay in the side margin
+    pts.push([x, y]);
+  }
+  // a few branch forks off the main channel
+  const branches = [];
+  const nb = 2 + (Math.random() * 3 | 0);
+  for (let k = 0; k < nb; k++) {
+    const bi = 2 + (Math.random() * (pts.length - 3) | 0);
+    let bx = pts[bi][0], by = pts[bi][1];
+    const bp = [[bx, by]], bs = 3 + (Math.random() * 3 | 0), dir = Math.random() < 0.5 ? -1 : 1;
+    for (let j = 0; j < bs; j++) { bx += dir * margin * 0.28 + (Math.random() - 0.5) * margin * 0.3; by += H * (0.03 + Math.random() * 0.04); bp.push([bx, by]); }
+    branches.push(bp);
+  }
+  return { pts, branches, t0, dur: 0.28 + Math.random() * 0.22 };
+}
+function _naraDrawBolt(ctx, b, a) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const stroke = (pts, wide) => { ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.lineWidth = wide; ctx.stroke(); };
+  // wide soft glow
+  ctx.shadowColor = 'rgba(220,240,255,0.95)'; ctx.shadowBlur = 18;
+  ctx.strokeStyle = `rgba(150,200,255,${(a * 0.5).toFixed(3)})`;
+  stroke(b.pts, 6);
+  // blue-white body
+  ctx.strokeStyle = `rgba(200,228,255,${(a * 0.85).toFixed(3)})`;
+  stroke(b.pts, 3);
+  for (const br of b.branches) stroke(br, 2);
+  // white-hot core
+  ctx.shadowBlur = 6;
+  ctx.strokeStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+  stroke(b.pts, 1.3);
+  for (const br of b.branches) stroke(br, 0.9);
+  ctx.restore();
+}
+
+// ── Overlay: an EYE cursor that watches, + click bursts a ring of eyes ──
+function _naraWhiteMouseMove(e) { _naraWMX = e.clientX; _naraWMY = e.clientY; }
+function _naraWhiteClick(e) {
+  _naraWMX = e.clientX; _naraWMY = e.clientY;
+  _naraGazes.push({ x: _naraWMX, y: _naraWMY, life: 1, n: 6 + (Math.random() * 4 | 0) });
+}
+function _drawNaraWhiteOverlay(canvas, ctx, W, H, t) {
+  if (_drawNaraWhiteOverlay._lt !== undefined && t - _drawNaraWhiteOverlay._lt < 0.02) return;
+  const dt = _drawNaraWhiteOverlay._lt === undefined ? 0.016 : Math.min(t - _drawNaraWhiteOverlay._lt, 0.05);
+  _drawNaraWhiteOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  _naraWVX = (_naraWMX - _naraWPMX) / Math.max(0.001, dt);
+  _naraWVY = (_naraWMY - _naraWPMY) / Math.max(0.001, dt);
+  _naraWPMX = _naraWMX; _naraWPMY = _naraWMY;
+
+  // click GAZE bursts — a ring of eyes opens, stares outward, blinks shut.
+  for (let i = _naraGazes.length - 1; i >= 0; i--) {
+    const g = _naraGazes[i];
+    g.life -= dt * 1.2;
+    if (g.life <= 0) { _naraGazes.splice(i, 1); continue; }
+    const grow = 1 - g.life, open = Math.min(1, g.life / 0.75);
+    const rad = 20 + grow * 60;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    // a shaft of judgement-light descending from the top of the screen
+    const bw = 10 + grow * 26;
+    const bg2 = ctx.createLinearGradient(g.x - bw, 0, g.x + bw, 0);
+    bg2.addColorStop(0, 'rgba(255,250,230,0)'); bg2.addColorStop(0.5, `rgba(255,250,230,${(g.life * 0.5).toFixed(3)})`); bg2.addColorStop(1, 'rgba(255,250,230,0)');
+    ctx.fillStyle = bg2; ctx.fillRect(g.x - bw, 0, bw * 2, g.y + 6);
+    // radiant ring
+    ctx.strokeStyle = `rgba(${_NARA_GOLD},${(g.life * 0.6).toFixed(3)})`; ctx.lineWidth = 2 * g.life + 0.4;
+    ctx.beginPath(); ctx.arc(g.x, g.y, rad + 14, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    // the eyes, looking outward — rainbow glowing irises
+    for (let k = 0; k < g.n; k++) {
+      const a = k * (Math.PI * 2 / g.n) + grow * 0.6;
+      const ex = g.x + Math.cos(a) * rad, ey = g.y + Math.sin(a) * rad;
+      _naraEye(ctx, ex, ey, 9, Math.cos(a), Math.sin(a), open, a + Math.PI / 2, (k * (360 / g.n) + t * 90) % 360);
+    }
+  }
+
+  // Nara's signature wavy screen-border, in yellow/white tones
+  _naraDrawEdges(ctx, W, H, t, _naraGoldGrad);
+
+  if (_naraWMX > -900) {
+    const beat = 0.5 + 0.5 * Math.sin(t * 3);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = `rgba(${_NARA_GOLD},0.9)`; ctx.shadowBlur = 8;
+    // rotating RUNIC RETICLE — two counter-rotating tick rings around the eye
+    for (const [rr, n, sp] of [[22 + beat * 2, 12, 1.1], [30 + beat * 2, 8, -0.7]]) {
+      ctx.strokeStyle = `rgba(${_NARA_GOLD},${(0.4 + beat * 0.3).toFixed(3)})`; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(_naraWMX, _naraWMY, rr, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < n; i++) {
+        const a = t * sp + i * (Math.PI * 2 / n);
+        ctx.beginPath();
+        ctx.moveTo(_naraWMX + Math.cos(a) * (rr - 3), _naraWMY + Math.sin(a) * (rr - 3));
+        ctx.lineTo(_naraWMX + Math.cos(a) * (rr + 3), _naraWMY + Math.sin(a) * (rr + 3));
+        ctx.stroke();
+      }
+    }
+    // three tiny satellite eyes orbiting the reticle, also watching your motion
+    const slx = Math.max(-1, Math.min(1, _naraWVX / 500)), sly = Math.max(-1, Math.min(1, _naraWVY / 500));
+    ctx.restore();
+    for (let k = 0; k < 3; k++) {
+      const a = t * 0.9 + k * (Math.PI * 2 / 3);
+      _naraEye(ctx, _naraWMX + Math.cos(a) * 40, _naraWMY + Math.sin(a) * 40, 5.5, slx, sly, 0.85 + 0.15 * Math.sin(t * 2 + k), 0, (t * 90 + k * 120) % 360);
+    }
+    // the cursor itself — an EYE whose pupil looks toward where it's moving,
+    // its iris glowing through the rainbow
+    _naraEye(ctx, _naraWMX, _naraWMY, 13, slx, sly, 1, 0, (t * 90) % 360);
+  }
+}
+function _startNaraWhiteOverlay() {
+  _stopNaraWhiteOverlay(); _stopNaraGreenOverlay();
+  _drawNaraWhiteOverlay._lt = undefined;
+  _naraWMX = _naraWPMX = window.innerWidth * 0.5; _naraWMY = _naraWPMY = window.innerHeight * 0.5;
+  _naraWVX = 0; _naraWVY = 0; _naraGazes = [];
+  window.addEventListener('mousemove', _naraWhiteMouseMove);
+  window.addEventListener('click', _naraWhiteClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'nara-white-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('nara-white-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    _drawNaraWhiteOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _naraWhiteRafId = requestAnimationFrame(frame);
+  }
+  _naraWhiteRafId = requestAnimationFrame(frame);
+}
+function _stopNaraWhiteOverlay() {
+  if (_naraWhiteRafId) { cancelAnimationFrame(_naraWhiteRafId); _naraWhiteRafId = null; }
+  window.removeEventListener('mousemove', _naraWhiteMouseMove);
+  window.removeEventListener('click', _naraWhiteClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('nara-white-overlay'); if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// NARA! · Green!! — a goofy UFO with googly eyes and a little :3 face
+// cruising across an OMORI-dreamworld space (deep purples/blacks, soft
+// nebulas, drifting sketchy stars). Your cursor is a little laser gun that
+// auto-aims at the saucer; shooting it makes it tumble and pull a ＞－＜ face.
+// ════════════════════════════════════════════════════════════════
+let _naraGreenRafId = null;
+let _naraGMX = -999, _naraGMY = -999, _naraGVX = 0, _naraGVY = 0, _naraGPMX = 0, _naraGPMY = 0;
+let _naraUfo = null, _naraLasers = [], _naraHitSparks = [], _naraGunKick = 0;
+
+function _drawNaraGreenPattern(canvas, ctx, W, H, t) {
+  if (_drawNaraGreenPattern._lt !== undefined && t - _drawNaraGreenPattern._lt < 0.033) return;
+  const dt = _drawNaraGreenPattern._lt === undefined ? 0.016 : Math.min(t - _drawNaraGreenPattern._lt, 0.05);
+  _drawNaraGreenPattern._lt = t;
+
+  if (canvas._ngW !== W || canvas._ngH !== H) {
+    canvas._ngW = W; canvas._ngH = H;
+    canvas._ngGrad = null; canvas._ngStars = null; canvas._ngWhiteStars = null; canvas._ngNebulas = null; canvas._ngSparks = null; canvas._ngVign = null;
+  }
+
+  // OMORI dreamworld sky: near-black violet → deep purple
+  if (!canvas._ngGrad) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0b0413'); g.addColorStop(0.45, '#1c0b30'); g.addColorStop(0.8, '#2c1247'); g.addColorStop(1, '#160825');
+    canvas._ngGrad = g;
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = canvas._ngGrad; ctx.fillRect(0, 0, W, H);
+
+  // soft nebula blobs — muted magenta/violet/indigo washes, now brighter and easier to see
+  if (!canvas._ngNebulas) canvas._ngNebulas = Array.from({ length: 6 }, (_, i) => ({
+    x: Math.random() * W, y: Math.random() * H, r: Math.min(W, H) * (0.22 + Math.random() * 0.24),
+    hue: [285, 310, 260, 275, 330, 250][i], vx: (Math.random() - 0.5) * 3.2, ph: Math.random() * 6.28,
+  }));
+  ctx.globalCompositeOperation = 'screen';
+  for (const n of canvas._ngNebulas) {
+    n.x += n.vx * dt; if (n.x < -n.r) n.x = W + n.r; else if (n.x > W + n.r) n.x = -n.r;
+    const a = 0.16 + 0.10 * Math.sin(t * 0.35 + n.ph);
+    const ng = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+    ng.addColorStop(0, `hsla(${n.hue},70%,58%,${a.toFixed(3)})`);
+    ng.addColorStop(0.55, `hsla(${n.hue},65%,42%,${(a * 0.55).toFixed(3)})`);
+    ng.addColorStop(1, `hsla(${n.hue},70%,28%,0)`);
+    ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // OMORI-style sketchy 4-point stars (little sparkle diamonds), twinkling
+  if (!canvas._ngStars) canvas._ngStars = Array.from({ length: 46 }, () => ({
+    x: Math.random() * W, y: Math.random() * H, s: 1.5 + Math.random() * 4,
+    ph: Math.random() * 6.28, sp: 0.8 + Math.random() * 2, big: Math.random() < 0.22,
+  }));
+  for (const s of canvas._ngStars) {
+    const tw = 0.35 + 0.65 * Math.max(0, Math.sin(t * s.sp + s.ph));
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.fillStyle = `rgba(255,255,255,${(tw * 0.95).toFixed(3)})`;
+    if (s.big) {
+      // 4-point sparkle: two thin overlapping diamonds
+      const L = s.s * 2.6, w2 = s.s * 0.5;
+      ctx.beginPath(); ctx.moveTo(0, -L); ctx.lineTo(w2, 0); ctx.lineTo(0, L); ctx.lineTo(-w2, 0); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-L, 0); ctx.lineTo(0, w2); ctx.lineTo(L, 0); ctx.lineTo(0, -w2); ctx.closePath(); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.arc(0, 0, s.s * 0.55, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // extra field of twinkling white stars in the far background (cheap, low-overhead)
+  if (!canvas._ngWhiteStars) canvas._ngWhiteStars = Array.from({ length: 70 }, () => ({
+    x: Math.random() * W, y: Math.random() * H * 0.78, r: 0.45 + Math.random() * 1.1,
+    ph: Math.random() * 6.28, sp: 0.4 + Math.random() * 1.1, big: Math.random() < 0.1,
+  }));
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  for (const s of canvas._ngWhiteStars) {
+    const tw = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(t * s.sp + s.ph));
+    const alpha = 0.14 + 0.36 * tw;
+    const size = s.big ? s.r * 1.25 : s.r * (0.85 + 0.2 * tw);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(s.x, s.y, size, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  // drifting up-floaty dream sparks
+  if (!canvas._ngSparks) canvas._ngSparks = Array.from({ length: 18 }, () => ({ x: Math.random() * W, y: Math.random() * H, v: 6 + Math.random() * 14, ph: Math.random() * 6.28 }));
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of canvas._ngSparks) {
+    p.y -= p.v * dt; p.x += Math.sin(t * 0.8 + p.ph) * 8 * dt;
+    if (p.y < -6) { p.y = H + 6; p.x = Math.random() * W; }
+    ctx.fillStyle = `hsla(${290 + 40 * Math.sin(p.ph)},80%,70%,${(0.25 + 0.2 * Math.sin(t * 2 + p.ph)).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // a big serene crescent planet low in the sky, OMORI-purple
+  {
+    const px = W * 0.78, py = H * 0.74, pr = Math.min(W, H) * 0.16;
+    ctx.save();
+    ctx.fillStyle = '#3a1a5e';
+    ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#241040';
+    ctx.beginPath(); ctx.arc(px - pr * 0.28, py - pr * 0.2, pr * 0.92, 0, Math.PI * 2); ctx.fill();
+    // thin glowing ring
+    ctx.strokeStyle = 'rgba(210,160,255,0.35)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(px, py, pr * 1.5, pr * 0.4, -0.35, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // vignette
+  if (!canvas._ngVign) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(6,2,12,0.62)');
+    canvas._ngVign = vg;
+  }
+  ctx.fillStyle = canvas._ngVign; ctx.fillRect(0, 0, W, H);
+}
+
+// ── the UFO: classic saucer + glass dome, googly eyes and a :3 face inside.
+//    When hit: tumbles (spins), face becomes ＞－＜, dome flashes. ──
+function _naraNewUfo(W, H) {
+  return { x: -80, y: H * 0.3, dir: 1, spd: 60 + Math.random() * 40,
+    bobPh: Math.random() * 6.28, rot: 0, rotV: 0, hitT: 0, ex: 0, ey: 0 };
+}
+function _naraDrawUfo(ctx, u, t) {
+  const S = 68;   // half-width of the saucer
+  ctx.save();
+  ctx.translate(u.x, u.y);
+  ctx.rotate(u.rot);
+  const hit = u.hitT > 0;
+  // under-glow beam flicker
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const bg = ctx.createRadialGradient(0, S * 0.5, 0, 0, S * 0.5, S * 1.4);
+  bg.addColorStop(0, `rgba(140,255,190,${0.16 + 0.06 * Math.sin(t * 7)})`); bg.addColorStop(1, 'rgba(140,255,190,0)');
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(0, S * 0.5, S * 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // glass dome
+  ctx.beginPath(); ctx.arc(0, -S * 0.34, S * 0.62, Math.PI, 0);
+  ctx.closePath();
+  ctx.fillStyle = hit ? 'rgba(255,214,224,0.5)' : 'rgba(190,244,255,0.42)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(230,252,255,0.8)'; ctx.lineWidth = 1.6; ctx.stroke();
+  // the little pilot face inside the dome
+  ctx.save();
+  ctx.translate(0, -S * 0.5);
+  if (!hit) {
+    // googly eyes — white ball + wandering pupil
+    for (const exo of [-S * 0.26, S * 0.26]) {
+      const eyeR = S * 0.19;
+      ctx.beginPath(); ctx.arc(exo, -S * 0.05, eyeR, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1; ctx.stroke();
+      const pupilR = S * 0.095;
+      ctx.beginPath(); ctx.arc(exo + u.ex * S * 0.06, -S * 0.05 + (u.ey * 0.06 + 0.05) * S, pupilR, 0, Math.PI * 2); ctx.fillStyle = '#111'; ctx.fill();
+    }
+    // :3 mouth — two little bumps
+    ctx.strokeStyle = '#2a1436'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(-S * 0.09, S * 0.14, S * 0.09, 0.15, Math.PI - 0.15); ctx.stroke();
+    ctx.beginPath(); ctx.arc(S * 0.09, S * 0.14, S * 0.09, 0.15, Math.PI - 0.15); ctx.stroke();
+  } else {
+    // ＞－＜ — squeezed-shut angry-cry face
+    ctx.strokeStyle = '#3a1420'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    for (const [exo, flip] of [[-S * 0.26, 1], [S * 0.26, -1]]) {
+      ctx.beginPath();
+      ctx.moveTo(exo - S * 0.12 * flip, -S * 0.14);
+      ctx.lineTo(exo + S * 0.1 * flip, -S * 0.03);
+      ctx.lineTo(exo - S * 0.12 * flip, S * 0.08);
+      ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(-S * 0.1, S * 0.16); ctx.lineTo(S * 0.1, S * 0.16); ctx.stroke();
+  }
+  ctx.restore();
+  // saucer body
+  const grad = ctx.createLinearGradient(0, -S * 0.3, 0, S * 0.42);
+  grad.addColorStop(0, hit ? '#ffd9e2' : '#cfd9e8'); grad.addColorStop(0.55, '#8d9ab0'); grad.addColorStop(1, '#5a6478');
+  ctx.beginPath(); ctx.ellipse(0, 0, S, S * 0.34, 0, 0, Math.PI * 2);
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.strokeStyle = 'rgba(240,248,255,0.6)'; ctx.lineWidth = 1.4; ctx.stroke();
+  // rim lights blinking in sequence
+  for (let i = 0; i < 5; i++) {
+    const lx = -S * 0.72 + i * S * 0.36;
+    const on = Math.sin(t * 6 - i * 1.1) > 0.2;
+    ctx.beginPath(); ctx.ellipse(lx, S * 0.12, S * 0.07, S * 0.05, 0, 0, Math.PI * 2);
+    ctx.fillStyle = on ? '#8dffb8' : '#3f5a50';
+    if (on) { ctx.shadowColor = '#8dffb8'; ctx.shadowBlur = 8; }
+    ctx.fill(); ctx.shadowBlur = 0;
+  }
+  ctx.restore();
+}
+
+function _naraGreenMouseMove(e) { _naraGMX = e.clientX; _naraGMY = e.clientY; }
+function _naraGreenClick() {
+  if (_naraGMX < -900 || !_naraUfo) return;
+  // fire a laser bolt from the gun muzzle toward the saucer (auto-aim)
+  const ang = Math.atan2(_naraUfo.y - _naraGMY, _naraUfo.x - _naraGMX);
+  const spd = 900;
+  _naraLasers.push({ x: _naraGMX + Math.cos(ang) * 22, y: _naraGMY + Math.sin(ang) * 22, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, life: 1.4 });
+  _naraGunKick = 1;
+}
+function _drawNaraGreenOverlay(canvas, ctx, W, H, t) {
+  if (_drawNaraGreenOverlay._lt !== undefined && t - _drawNaraGreenOverlay._lt < 0.02) return;
+  const dt = _drawNaraGreenOverlay._lt === undefined ? 0.016 : Math.min(t - _drawNaraGreenOverlay._lt, 0.05);
+  _drawNaraGreenOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  _naraGVX = (_naraGMX - _naraGPMX) / Math.max(0.001, dt);
+  _naraGVY = (_naraGMY - _naraGPMY) / Math.max(0.001, dt);
+  _naraGPMX = _naraGMX; _naraGPMY = _naraGMY;
+
+  // ── UFO cruising across the page, bobbing; tumbles while hit ──
+  if (!_naraUfo) _naraUfo = _naraNewUfo(W, H);
+  const u = _naraUfo;
+  u.x += u.dir * u.spd * dt;
+  u.y += Math.sin(t * 1.2 + u.bobPh) * 18 * dt;
+  if (u.dir > 0 && u.x > W + 90) { u.x = -90; u.y = H * (0.12 + Math.random() * 0.5); u.spd = 60 + Math.random() * 40; }
+  if (u.dir < 0 && u.x < -90) { u.x = W + 90; u.y = H * (0.12 + Math.random() * 0.5); u.spd = 60 + Math.random() * 40; }
+  // tumble physics — spun up by hits, springs back upright
+  u.rotV += (-u.rot * 14 - u.rotV * 3.2) * dt;
+  u.rot += u.rotV * dt;
+  u.hitT = Math.max(0, u.hitT - dt);
+  // googly pupils drift toward the gun
+  if (_naraGMX > -900) {
+    u.ex += (Math.max(-1, Math.min(1, (_naraGMX - u.x) / 300)) - u.ex) * Math.min(1, dt * 4);
+    u.ey += (Math.max(-1, Math.min(1, (_naraGMY - u.y) / 300)) - u.ey) * Math.min(1, dt * 4);
+  }
+  _naraDrawUfo(ctx, u, t);
+
+  // ── laser bolts ──
+  for (let i = _naraLasers.length - 1; i >= 0; i--) {
+    const L = _naraLasers[i];
+    L.x += L.vx * dt; L.y += L.vy * dt; L.life -= dt;
+    const d = Math.hypot(L.x - u.x, L.y - u.y);
+    if (d < 40) {   // HIT!
+      _naraLasers.splice(i, 1);
+      u.hitT = 1.6;
+      u.rotV += (Math.random() < 0.5 ? -1 : 1) * (7 + Math.random() * 5);
+      u.spd = 40 + Math.random() * 100; // random new flight speed after a hit
+      for (let k = 0; k < 10; k++) { const a = Math.random() * 6.28, s = 60 + Math.random() * 160; _naraHitSparks.push({ x: u.x, y: u.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.7, hue: 100 + Math.random() * 60 }); }
+      continue;
+    }
+    if (L.life <= 0 || L.x < -40 || L.x > W + 40 || L.y < -40 || L.y > H + 40) { _naraLasers.splice(i, 1); continue; }
+    const ang = Math.atan2(L.vy, L.vx);
+    ctx.save();
+    ctx.translate(L.x, L.y); ctx.rotate(ang);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = '#7dffb0'; ctx.shadowBlur = 10;
+    ctx.fillStyle = 'rgba(140,255,180,0.95)';
+    ctx.beginPath(); ctx.ellipse(0, 0, 13, 2.6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(240,255,246,0.95)';
+    ctx.beginPath(); ctx.ellipse(3, 0, 6, 1.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  // hit sparks
+  for (let i = _naraHitSparks.length - 1; i >= 0; i--) {
+    const s = _naraHitSparks[i];
+    s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 140 * dt; s.life -= dt;
+    if (s.life <= 0) { _naraHitSparks.splice(i, 1); continue; }
+    ctx.fillStyle = `hsla(${s.hue},90%,66%,${Math.min(1, s.life * 2).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(s.x, s.y, 2.2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Nara's signature wavy screen-border, in forest green tones
+  _naraDrawEdges(ctx, W, H, t, _naraForestGrad);
+
+  // ── the laser-gun cursor — a chunky little ray-gun aiming at the UFO ──
+  if (_naraGMX > -900) {
+    _naraGunKick = Math.max(0, _naraGunKick - dt * 5);
+    const aim = Math.atan2(u.y - _naraGMY, u.x - _naraGMX);
+    ctx.save();
+    ctx.translate(_naraGMX, _naraGMY);
+    ctx.rotate(aim);
+    ctx.translate(-_naraGunKick * 6, 0);          // recoil kick along the barrel
+    const flip = Math.abs(aim) > Math.PI / 2;     // keep the grip downward
+    if (flip) ctx.scale(1, -1);
+    // barrel
+    ctx.fillStyle = '#37474f'; ctx.strokeStyle = '#8fd8c0'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(2, -4, 18, 8, 3); else ctx.rect(2, -4, 18, 8); ctx.fill(); ctx.stroke();
+    // muzzle ring + tip glow
+    ctx.beginPath(); ctx.arc(21, 0, 3.4, 0, Math.PI * 2); ctx.fillStyle = '#8dffb8'; ctx.shadowColor = '#8dffb8'; ctx.shadowBlur = 8 + _naraGunKick * 14; ctx.fill(); ctx.shadowBlur = 0;
+    // body + fins
+    ctx.fillStyle = '#546e7a';
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-8, -6, 12, 12, 3); else ctx.rect(-8, -6, 12, 12); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#8dffb8';
+    ctx.beginPath(); ctx.moveTo(-2, -6); ctx.lineTo(3, -10); ctx.lineTo(7, -6); ctx.closePath(); ctx.fill();
+    // grip
+    ctx.fillStyle = '#37474f';
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-7, 4, 6, 12, 2); else ctx.rect(-7, 4, 6, 12); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+}
+function _startNaraGreenOverlay() {
+  _stopNaraGreenOverlay();
+  _drawNaraGreenOverlay._lt = undefined;
+  _naraGMX = _naraGPMX = window.innerWidth * 0.5; _naraGMY = _naraGPMY = window.innerHeight * 0.5;
+  _naraGVX = 0; _naraGVY = 0;
+  _naraUfo = _naraNewUfo(window.innerWidth, window.innerHeight);
+  _naraLasers = []; _naraHitSparks = []; _naraGunKick = 0;
+  window.addEventListener('mousemove', _naraGreenMouseMove);
+  window.addEventListener('click', _naraGreenClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'nara-green-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('nara-green-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    _drawNaraGreenOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _naraGreenRafId = requestAnimationFrame(frame);
+  }
+  _naraGreenRafId = requestAnimationFrame(frame);
+}
+function _stopNaraGreenOverlay() {
+  if (_naraGreenRafId) { cancelAnimationFrame(_naraGreenRafId); _naraGreenRafId = null; }
+  window.removeEventListener('mousemove', _naraGreenMouseMove);
+  window.removeEventListener('click', _naraGreenClick);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('nara-green-overlay'); if (cv) cv.remove();
 }
 /* ─────────────────────────────────────────────────────────────── */
 
@@ -29841,6 +30831,8 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'annie_blitz')    { _drawAnniePattern(canvas, ctx, W, H, t);              return; }
   if (type === 'vikadan_casino') { _drawVikadanPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'nara_ocean')     { _drawNaraOceanPattern(canvas, ctx, W, H, t);          return; }
+  if (type === 'nara_white')     { _drawNaraWhitePattern(canvas, ctx, W, H, t);          return; }
+  if (type === 'nara_green')     { _drawNaraGreenPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'sorrow_fire')    { _drawSorrowPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'juko_code')      { _drawJukoPattern(canvas, ctx, W, H, t);               return; }
   if (type === 'lucifer_unleashed') { _drawLuciferPattern(canvas, ctx, W, H, t);         return; }
@@ -30355,6 +31347,10 @@ function startBgAnim(type, params) {
   _drawVikadanOverlay._lt     = undefined;
   _drawNaraOceanPattern._lt   = undefined;
   _drawNaraOceanOverlay._lt   = undefined;
+  _drawNaraWhitePattern._lt   = undefined;
+  _drawNaraWhiteOverlay._lt   = undefined;
+  _drawNaraGreenPattern._lt   = undefined;
+  _drawNaraGreenOverlay._lt   = undefined;
   _drawJukoPattern._lt        = undefined;
   _drawJukoOverlay._lt        = undefined;
   _drawLuciferPattern._lt     = undefined;
@@ -30465,7 +31461,7 @@ function stopBgAnim() {
   _stopValkyrieOverlay();
   _stopAdamOverlay();
   _stopFuryOverlay();
-  _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay();
+  _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay();
   _stopJukoOverlay();
   _stopLuciferOverlay();
   _stopDivineOverlay();
@@ -30904,7 +31900,9 @@ function viewChar(id) {
   const _naraMode = _isNara(c);
   // BLUE form: recolour the rainbow chrome to blues + tag char-view for CSS.
   _naraBlueActive = _isNaraBlue(c);
-  { const _cvB = document.getElementById('char-view'); if (_cvB) _cvB.classList.toggle('nara-blue', _naraBlueActive); }
+  _naraWhiteActive = _isNaraWhite(c);
+  _naraGreenActive = _isNaraGreen(c);
+  { const _cvB = document.getElementById('char-view'); if (_cvB) { _cvB.classList.toggle('nara-blue', _naraBlueActive); _cvB.classList.toggle('nara-white', _naraWhiteActive); _cvB.classList.toggle('nara-green', _naraGreenActive); } }
   if (_cvAvatar) {
     avatarEl.innerHTML = `<img src="${_cldImg(_cvAvatar)}" onerror="_cldImgError(this)"/>`;
   } else if (_naraMode) {
@@ -31009,58 +32007,58 @@ function viewChar(id) {
   }
 
   // Set color on the view root for all panels to inherit
-  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); }
-  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); }
-  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  if (_naraMode) { _startNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); }
+  else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); }
+  else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isAnnie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ANNIE_RED_HEX); }
   else if (_isVikadan(c))  { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _VIK_CYAN_HEX); }
-  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
-  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
-  else if (_isDivine(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#f4cf6a'); }
-  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
-  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
-  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
-  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
-  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _isIrisStarsForm(c) ? '#ffe14d' : '#ffd633'); }
-  else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
-  else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
-  else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
-  else if (_isAlsace(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#4f7bdf'); }
-  else if (_isJeckely(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c23b46'); }
-  else if (_isMimzy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fc0'); }
-  else if (_isOmen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c92d77'); }
-  else if (_isEx(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e0e0e0'); }
-  else if (_isRiegen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8a2a'); }
-  else if (_isLorraine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9a93f'); }
-  else if (_isSimmer(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#59c9f2'); }
-  else if (_isOmenBartender(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8a13c'); }
-  else if (_isOmenJanitor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#6fb6a0'); }
-  else if (_isGonela(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a8285c'); }
-  else if (_isJustin(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9c1212'); }
-  else if (_isAnti(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b06ad6'); }
-  else if (_isLeonor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#dcdcdc'); }
-  else if (_isCuckoo(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c4a24e'); }
-  else if (_isLayla(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5fe6c8'); }
-  else if (_isPawn(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c9a44e'); }
-  else if (_isAstra(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8fa6e8'); }
-  else if (_isJihau(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff6ec7'); }
-  else if (_isAndy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e07b39'); }
-  else if (_isShooShi(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b07be8'); }
-  else if (_isKardia(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf5fd6'); }
-  else if (_isJasmine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff48c4'); }
-  else if (_isCory(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9b44a'); }
-  else if (_isRook(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf4436'); }
-  else if (_isStarry(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fcf'); }
-  else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
-  else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
-  else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
-  else if (_isClassicGhost(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d8c46a'); }
-  else if (_isClassic(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8e8e8'); }
-  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
+  else if (_isDivine(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#f4cf6a'); }
+  else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
+  else if (_isLunar(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8aa8de'); }
+  else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
+  else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
+  else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _isIrisStarsForm(c) ? '#ffe14d' : '#ffd633'); }
+  else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
+  else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
+  else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
+  else if (_isAlsace(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#4f7bdf'); }
+  else if (_isJeckely(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c23b46'); }
+  else if (_isMimzy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fc0'); }
+  else if (_isOmen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c92d77'); }
+  else if (_isEx(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e0e0e0'); }
+  else if (_isRiegen(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8a2a'); }
+  else if (_isLorraine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9a93f'); }
+  else if (_isSimmer(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#59c9f2'); }
+  else if (_isOmenBartender(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8a13c'); }
+  else if (_isOmenJanitor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#6fb6a0'); }
+  else if (_isGonela(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a8285c'); }
+  else if (_isJustin(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9c1212'); }
+  else if (_isAnti(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b06ad6'); }
+  else if (_isLeonor(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#dcdcdc'); }
+  else if (_isCuckoo(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c4a24e'); }
+  else if (_isLayla(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5fe6c8'); }
+  else if (_isPawn(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#c9a44e'); }
+  else if (_isAstra(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#8fa6e8'); }
+  else if (_isJihau(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff6ec7'); }
+  else if (_isAndy(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e07b39'); }
+  else if (_isShooShi(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#b07be8'); }
+  else if (_isKardia(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf5fd6'); }
+  else if (_isJasmine(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff48c4'); }
+  else if (_isCory(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9b44a'); }
+  else if (_isRook(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf4436'); }
+  else if (_isStarry(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fcf'); }
+  else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
+  else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
+  else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
+  else if (_isClassicGhost(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d8c46a'); }
+  else if (_isClassic(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e8e8e8'); }
+  else { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
 
   // ── Juko-only reactive UI chrome: glowing tabs, special pfp, glitching name ──
   {
@@ -31935,11 +32933,11 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
-  if (_isNara(c) && !_isNaraBlue(c)) {
+  if (_isNara(c) && !_isNaraThemedForm(c)) {
     // Nara has no "pattern" panel — the Style tab is just her blank paint canvas.
     if (_stPanel) _stPanel.style.display = 'none';
     styleEl.innerHTML = '';
@@ -31948,7 +32946,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -31975,8 +32973,8 @@ function viewChar(id) {
   stopBgAnim();
   // Paint teardown/setup must run BEFORE startBgAnim so a base→BLUE switch
   // un-pins the pattern canvas before the ocean is sized onto it.
-  if (_isNara(c) && !_isNaraBlue(c)) _startNaraPaint(); else _stopNaraPaint();
-  if (ptype !== 'none' && (!_isNara(c) || _isNaraBlue(c))) startBgAnim(ptype, c.pattern?.params || {});  // Nara(base) keeps the canvas blank to paint on; BLUE runs the ocean
+  if (_isNara(c) && !_isNaraThemedForm(c)) _startNaraPaint(); else _stopNaraPaint();
+  if (ptype !== 'none' && (!_isNara(c) || _isNaraThemedForm(c))) startBgAnim(ptype, c.pattern?.params || {});  // Nara(base) keeps the canvas blank to paint on; BLUE/WHITE run their themes
   if (!_perfMode) {   // performance mode skips all cursor-companion overlays
   if (_isKatie(c))    _startKatieOverlay();    // start AFTER stopBgAnim so it isn't killed
   if (_isBlackjack(c)) _startBlackjackOverlay();
@@ -31988,6 +32986,8 @@ function viewChar(id) {
   if (_isAnnie(c))    _startAnnieOverlay();
   if (_isVikadan(c))  _startVikadanOverlay();
   if (_isNaraBlue(c)) _startNaraOceanOverlay();
+  if (_isNaraWhite(c)) _startNaraWhiteOverlay();
+  if (_isNaraGreen(c)) _startNaraGreenOverlay();
   if (_isSorrow(c))   _startSorrowOverlay();
   if (_isJimmy(c))    _startJimmyCursorOverlay();
   if (_isJuko(c))     _startJukoOverlay();
@@ -35200,6 +36200,18 @@ function buildTraitPassives(c) {
       });
       return;
     }
+    // CAPITALIST — scale non-HP/non-IQ main stats from the character treasury
+    if (key === 'capitalist') {
+      const active = !!(c.traitStacks || {})['capitalist:active'];
+      const goldAmount = Number(c.gold || 0);
+      const multiplier = Math.max(0, goldAmount / 90000);
+      if (active && multiplier > 0) {
+        ['atk', 'def', 'mag', 'spd'].forEach(stat => {
+          out.push({ stat, op: 'mul', value: multiplier, _src: key });
+        });
+      }
+      return;
+    }
     // DETERMINATION — MERCYFUL grants stat passives; check forced state override first
     if (key === 'determination') {
       const forced = (stacks['determination:state'] || '');
@@ -35411,6 +36423,23 @@ function renderTraitsDisplay(c) {
           ${sitButtons}
           <div class="duality-toggle-row">
             <button class="duality-toggle" onclick="toggleDuality('${key}',event)" title="Switch between HEAVENLY and HELLFORGED">☯</button>
+          </div>
+          <button class="trait-chip-remove" onclick="removeTrait('${key}', event)" title="Remove trait">✕</button>
+        </div>`;
+    }
+    if (key === 'capitalist') {
+      const active = !!((c.traitStacks || {})['capitalist:active']);
+      const goldAmount = Number(c.gold || 0);
+      const multiplier = Math.max(0, goldAmount / 90000);
+      const goldLabel = formatGold(goldAmount);
+      return `
+        <div class="trait-chip rar-hexxed${active ? ' capitalist-active' : ''}" data-trait="${key}">
+          <div class="trait-chip-rarity">${RARITY_LABEL[rarity]}</div>
+          <div class="trait-chip-name">${_escHtml(_applyCharName(t.name, c))}</div>
+          <div class="trait-chip-desc">${_renderDescWithStatuses(_applyCharName(t.desc, c))}</div>
+          <div class="trait-triggers">
+            <div style="font-size:7px;color:#aaa;letter-spacing:1px;margin-bottom:4px;">TREASURY ${goldLabel} G · SCALE x${multiplier.toFixed(2)}</div>
+            <button class="trait-trigger-btn" onclick="toggleCapitalistTrait(event)" data-tooltip="Use this character's treasury to calculate the capitalist trait bonus.">${active ? 'DEACTIVATE' : 'ACTIVATE'}</button>
           </div>
           <button class="trait-chip-remove" onclick="removeTrait('${key}', event)" title="Remove trait">✕</button>
         </div>`;
@@ -35974,6 +37003,29 @@ function removePerfectSoul(idx, ev) {
   saveData(c);
   updateLiveStats(c);
   renderTraitsDisplay(c);
+}
+
+function toggleCapitalistTrait(ev) {
+  if (ev) ev.stopPropagation();
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  const goldAmount = Math.max(0, Number(c.gold || 0));
+  const multiplier = Math.max(0, goldAmount / 90000);
+  c.traitStacks = c.traitStacks || {};
+  const isActive = !!c.traitStacks['capitalist:active'];
+  if (isActive) {
+    delete c.traitStacks['capitalist:active'];
+    saveData(c);
+    updateLiveStats(c);
+    renderTraitsDisplay(c);
+    notify('CAPITALIST DEACTIVATED', 'warning');
+    return;
+  }
+  c.traitStacks['capitalist:active'] = true;
+  saveData(c);
+  updateLiveStats(c);
+  renderTraitsDisplay(c);
+  notify(`CAPITALIST ACTIVATED · x${multiplier.toFixed(2)} FROM ${formatGold(goldAmount)} G`, 'ok');
 }
 
 function toggleTraitTrigger(triggerKey, ev) {
@@ -37372,7 +38424,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -37387,6 +38439,8 @@ window.addEventListener('resize', () => {
       if (_isAnnie(c))    _startAnnieOverlay();
       if (_isVikadan(c))  _startVikadanOverlay();
       if (_isNaraBlue(c)) _startNaraOceanOverlay();
+      if (_isNaraWhite(c)) _startNaraWhiteOverlay();
+      if (_isNaraGreen(c)) _startNaraGreenOverlay();
       if (_isSorrow(c))   _startSorrowOverlay();
       if (_isJimmy(c))    _startJimmyCursorOverlay();
       if (_isJuko(c))     _startJukoOverlay();

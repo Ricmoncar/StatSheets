@@ -3703,9 +3703,9 @@ const TRAITS = {
   // ── NEW HEXXED ────────────────────────────────────────────────
   capitalist: {
     name: 'Capitalist', rarity: 'hexxed',
-    desc: '1 gold = 1 all non-hp stats. Gain x2 gold from all sources, lose 50% gold on defeat, shops are 90% cheaper.',
+    desc: '90000 gold = 1 all non-hp & non-IQ stats. Gain x2 gold from all sources, lose 50% gold on defeat, shops are 90% cheaper.',
     passive: [],
-    notes: 'Non-HP stats = current gold total. x2 gold income. Lose 50% gold on defeat. 90% shop discount.',
+    notes: 'Non-HP & Non-IQ stats = current gold total. x2 gold income. Lose 50% gold on defeat. 90% shop discount.',
   },
 
   communist: {
