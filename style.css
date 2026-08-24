@@ -13221,3 +13221,57 @@ text.lb-cl-glitch-svg {
 .form-trait-select:focus { border-color: var(--accent-cyan); color: var(--fg); }
 .form-trait-select optgroup { color: var(--accent-yellow); font-size: 7px; }
 .form-trait-select option { color: #ccc; background: #080808; }
+
+/* Roll target chooser — shown when a character has alternate forms */
+#roll-form-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 10000;
+  opacity: 0; transition: opacity 0.18s ease;
+}
+#roll-form-overlay.open { opacity: 1; }
+#roll-form-modal {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.97);
+  z-index: 10001;
+  width: min(420px, 92vw);
+  max-height: 84vh;
+  background: #000;
+  border: 3px solid var(--fg);
+  display: flex; flex-direction: column;
+  opacity: 0; transition: opacity 0.18s ease, transform 0.18s ease;
+}
+#roll-form-modal.open { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+#roll-form-modal::before {
+  content: ''; position: absolute;
+  right: -6px; bottom: -6px;
+  width: 100%; height: 100%;
+  border: 2px solid var(--shadow);
+  z-index: -1;
+}
+#roll-form-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 2px solid #2a2a2a;
+  font-size: 10px; letter-spacing: 3px;
+  color: var(--accent-yellow);
+  background: #080808;
+  flex-shrink: 0;
+}
+#roll-form-body { overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.roll-form-row {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+  width: 100%;
+  font-family: var(--font-main);
+  text-align: left;
+  background: #070707;
+  border: 1px solid #1c1c1c;
+  border-left: 3px solid #2a2a2a;
+  padding: 12px 14px;
+  cursor: none;
+  transition: border-color 0.14s, background 0.14s;
+}
+.roll-form-row:hover { background: #0d0d0d; border-color: #3a3a3a; border-left-color: var(--accent-yellow); }
+.roll-form-row.active { border-left-color: var(--accent-cyan); }
+.roll-form-name { font-size: 9px; letter-spacing: 2px; color: #ddd; }
+.roll-form-trait { font-size: 7px; letter-spacing: 1px; color: #555; }

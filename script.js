@@ -33703,35 +33703,6 @@ function updateFormStatBar(formIdx, key, val) {
   if (el) el.innerHTML = _formStatBarHTML(+val || 1, key);
 }
 
-// Trait <option>s for a form's picker, grouped by rarity.
-const _FORM_TRAIT_RARITIES = ['common', 'rare', 'epic', 'legendary', 'mythic', 'duality', 'hexxed'];
-function _formTraitLabel(t, key) {
-  return (t && (t.name || (t.heavenly && t.heavenly.name))) || key;
-}
-function _formTraitOptions(selected) {
-  let html = `<option value=""${selected ? '' : ' selected'}>— INHERIT FROM BASE —</option>`;
-  const seen = new Set();
-  const groups = _FORM_TRAIT_RARITIES.slice();
-  Object.keys(TRAITS).forEach(k => { const r = TRAITS[k].rarity; if (r && !groups.includes(r)) groups.push(r); });
-  for (const rar of groups) {
-    const keys = Object.keys(TRAITS)
-      .filter(k => TRAITS[k].rarity === rar && !seen.has(k))
-      .sort((a, b) => _formTraitLabel(TRAITS[a], a).localeCompare(_formTraitLabel(TRAITS[b], b)));
-    if (!keys.length) continue;
-    html += `<optgroup label="${rar.toUpperCase()}">`;
-    for (const k of keys) {
-      seen.add(k);
-      html += `<option value="${k}"${selected === k ? ' selected' : ''}>${escHtml(_formTraitLabel(TRAITS[k], k))}</option>`;
-    }
-    html += '</optgroup>';
-  }
-  return html;
-}
-function setFormTrait(i, key) {
-  if (!_editorForms[i]) return;
-  _editorForms[i].trait = key || null;
-}
-
 function renderEditorForms() {
   const wrap = document.getElementById('e-forms-list');
   const addBtn = document.getElementById('add-form-btn');
@@ -33806,12 +33777,10 @@ function renderEditorForms() {
               placeholder="e.g. Awakened, Final Boss..."
               oninput="_editorForms[${i}].name=this.value"
               class="form-name-input"/>
-            <label style="font-size:7px;letter-spacing:2px;color:#444;display:block;margin:12px 0 5px;">FORM TRAIT</label>
-            <select class="form-trait-select" onchange="setFormTrait(${i}, this.value)">
-              ${_formTraitOptions(f.trait)}
-            </select>
-            <div style="font-size:7px;letter-spacing:1px;color:#333;margin-top:8px;line-height:1.8;">
-              Inherits the base form's traits<br>unless you name one here.
+            <div style="font-size:7px;letter-spacing:1px;color:#333;margin-top:10px;line-height:1.8;">
+              ${(f.traits && f.traits.length)
+        ? `Trait: <span style="color:#888;">${escHtml(f.traits.map(k => (TRAITS[k] && TRAITS[k].name) || k).join(', '))}</span><br>Reroll it from the ROLL button.`
+        : `No trait of its own —<br>inherits the base form's.`}
             </div>
           </div>
         </div>
@@ -33973,7 +33942,8 @@ function showEditor(id) {
       stats: { hp: f.stats?.hp || 50, atk: f.stats?.atk || 10, def: f.stats?.def || 10, mag: f.stats?.mag || 10, spd: f.stats?.spd || 10, iq: f.stats?.iq || 50 },
       substats: _fullSubstats(f.substats),
       themeSong: f.themeSong || null,
-      trait: f.trait || null,
+      traits: Array.isArray(f.traits) ? f.traits.slice() : null,
+      shimmyfulTraits: Array.isArray(f.shimmyfulTraits) ? f.shimmyfulTraits.slice() : null,
     }));
     renderEditorForms();
     const ptype = c.pattern?.type || 'none';
@@ -34238,7 +34208,7 @@ function saveCharacter() {
       stats: { hp: +f.stats.hp || 1, atk: +f.stats.atk || 1, def: +f.stats.def || 1, mag: +f.stats.mag || 1, spd: +f.stats.spd || 1, iq: +f.stats.iq || 50 },
       substats: _fullSubstats(f.substats, true),
       ...(f.themeSong ? { themeSong: f.themeSong } : {}),
-      ...(f.trait ? { trait: f.trait } : {}),
+      ...(Array.isArray(f.traits) ? { traits: f.traits, shimmyfulTraits: f.shimmyfulTraits || [] } : {}),
     })),
     activeFormIdx: existing.activeFormIdx || 0,
     info: existing.info || {},
@@ -36121,7 +36091,8 @@ const PITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 68.9, mythic: 25,
 
 
 function isShimmyful(c, key) {
-  return !!(c.shimmyfulTraits && c.shimmyfulTraits.includes(key));
+  const o = _traitOwner(c);
+  return !!(o && o.shimmyfulTraits && o.shimmyfulTraits.includes(key));
 }
 
 // Returns the shimmyful definition for a key (picks correct table by rarity)
@@ -36559,19 +36530,25 @@ getEffectiveStats = function (c) {
 // ============================================================
 // RENDER TRAITS IN CHARACTER VIEW
 // ============================================================
-// The traits a character has RIGHT NOW. An alternate form may name a trait of
-// its own, which stands in place of the base form's for as long as that form
-// is active; a form that names none inherits the base list.
-// Stat-isolation clones set _rawTraits to ask for the literal array instead.
-function _formTraits(c) {
-  if (!c) return [];
-  if (c._rawTraits) return c.traits || [];
-  const idx = c.activeFormIdx || 0;
+// Traits are rolled per form. Whoever owns the trait list for a given form is
+// either the character itself (base) or the alt-form object. A form that has
+// never been rolled for has no list of its own and falls back to the base, so
+// nothing changes for characters that predate this.
+// Stat-isolation clones set _rawTraits to force the literal arrays on `c`.
+function _traitOwner(c, formIdx) {
+  if (!c || c._rawTraits) return c;
+  const idx = formIdx == null ? (c.activeFormIdx || 0) : formIdx;
   if (idx > 0) {
     const f = (c.altForms || [])[idx - 1];
-    if (f && f.trait && TRAITS[f.trait]) return [f.trait];
+    if (f && Array.isArray(f.traits)) return f;
   }
-  return c.traits || [];
+  return c;
+}
+
+// The traits the character has RIGHT NOW, for the form on screen.
+function _formTraits(c) {
+  if (!c) return [];
+  return _traitOwner(c).traits || [];
 }
 
 function renderTraitsDisplay(c) {
@@ -37228,8 +37205,9 @@ function removeTrait(key, ev) {
   if (ev) ev.stopPropagation();
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
-  c.traits = (c.traits || []).filter(k => k !== key);
-  c.shimmyfulTraits = (c.shimmyfulTraits || []).filter(k => k !== key);
+  const _own = _traitOwner(c);
+  _own.traits = (_own.traits || []).filter(k => k !== key);
+  _own.shimmyfulTraits = (_own.shimmyfulTraits || []).filter(k => k !== key);
   if (c.dualityState) delete c.dualityState[key];
   if (key === 'missingno') delete c.missingNoRolls;
   if (key === 'glitch') delete c.glitchRolls;
@@ -37412,9 +37390,71 @@ function toggleAutoRollShimmy() {
   if (btn) btn.classList.toggle('active', _autoRollStopShimmy);
 }
 
+// Which form the next roll belongs to. 0 is the base form.
+let _rollFormIdx = 0;
+let _rollRevealTimers = [];   // staggered card reveals, cancellable mid-deal
+
+// Rolling for a character with alternate forms asks which one first; a
+// character with none rolls straight onto its base, as it always did.
 function rollTraits() {
   if (!currentId) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
   if (_rollInProgress) return;
+  const c = characters.find(x => x.id === currentId);
+  if (c && (c.altForms || []).length) { openRollFormChooser(); return; }
+  rollTraitsFor(0);
+}
+
+function openRollFormChooser() {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  closeRollFormChooser();
+  const forms = c.altForms || [];
+  const rows = [{ name: _isClassic(c) ? 'GHOST' : 'BASE', idx: 0 }]
+    .concat(forms.map((f, i) => ({ name: f.name || `FORM ${i + 1}`, idx: i + 1 })));
+
+  const ov = document.createElement('div');
+  ov.id = 'roll-form-overlay';
+  ov.onclick = closeRollFormChooser;
+  const md = document.createElement('div');
+  md.id = 'roll-form-modal';
+  md.innerHTML =
+    `<div id="roll-form-header"><span>ROLL FOR WHICH FORM?</span>` +
+    `<button class="btn-info" onclick="closeRollFormChooser()">&#10005;</button></div>` +
+    `<div id="roll-form-body">` +
+    rows.map(r => {
+      // ask the form itself whether it owns a list — _traitOwner falls back to
+      // the character, which would make every form look like it had one
+      const f = r.idx > 0 ? (c.altForms || [])[r.idx - 1] : null;
+      const own = !!(f && Array.isArray(f.traits));
+      const keys = (own ? f.traits : (c.traits || []));
+      const label = keys.length
+        ? keys.map(k => (TRAITS[k] && TRAITS[k].name) || k).join(', ')
+        : 'no traits';
+      const note = r.idx > 0 && !own ? ' (inherits base)' : '';
+      return `<button class="roll-form-row${r.idx === (c.activeFormIdx || 0) ? ' active' : ''}" onclick="rollTraitsFor(${r.idx})">
+          <span class="roll-form-name">${escHtml(r.name)}</span>
+          <span class="roll-form-trait">${escHtml(label)}${note}</span>
+        </button>`;
+    }).join('') +
+    `</div>`;
+  document.body.appendChild(ov);
+  document.body.appendChild(md);
+  requestAnimationFrame(() => { ov.classList.add('open'); md.classList.add('open'); });
+  playSound('characterclick', { volume: 0.5 });
+}
+
+function closeRollFormChooser() {
+  const ov = document.getElementById('roll-form-overlay');
+  const md = document.getElementById('roll-form-modal');
+  if (ov) ov.remove();
+  if (md) md.remove();
+}
+
+function rollTraitsFor(formIdx) {
+  closeRollFormChooser();
+  if (!currentId) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
+  if (_rollInProgress) return;
+  _rollFormIdx = formIdx || 0;
   _rollInProgress = true;
 
   // Pity: increment, cap at 100, check if this is the pity roll
@@ -37428,6 +37468,9 @@ function rollTraits() {
   const actions = document.getElementById('roll-phase-actions');
   const cardsWrap = document.getElementById('trait-hand-cards');
 
+  const _rc = characters.find(x => x.id === currentId);
+  const _rf = _rollFormIdx > 0 ? ((_rc.altForms || [])[_rollFormIdx - 1] || {}) : null;
+  const _rfName = _rf ? (_rf.name || `FORM ${_rollFormIdx}`) : null;
   if (isPityRoll) {
     title.textContent = 'PITY ROLL!';
     sub.textContent = 'Guaranteed legendary or better.';
@@ -37435,6 +37478,7 @@ function rollTraits() {
     title.textContent = 'DRAWING YOUR HAND...';
     sub.innerHTML = '&nbsp;';
   }
+  if (_rfName) sub.textContent = `for ${_rfName.toUpperCase()}`;
   overlay.classList.add('open');
   // Disable REROLL during animation so you can't stack rolls; AUTO + CANCEL stay live
   const rerollBtn = document.getElementById('reroll-hand-btn');
@@ -37497,9 +37541,12 @@ function rollTraits() {
   );
 
   // Lock each card staggered
+  _rollRevealTimers.forEach(clearTimeout);
+  _rollRevealTimers = [];
   [1400, 1950, 2500].forEach((delay, i) => {
-    setTimeout(() => {
+    _rollRevealTimers.push(setTimeout(() => {
       clearInterval(timers[i]);
+      if (!currentHand) return;          // roll was cancelled mid-deal
       const handItem = currentHand[i];
       const key = handItem.key;
       const t = TRAITS[key];
@@ -37598,12 +37645,12 @@ function rollTraits() {
             } else {
               title.textContent = 'AUTO-ROLLING...';
               sub.textContent = 'Nothing notable. Rolling again...';
-              setTimeout(() => { if (_autoRollMode && !document.hidden) rollTraits(); }, 320);
+              setTimeout(() => { if (_autoRollMode && !document.hidden) rollTraitsFor(_rollFormIdx); }, 320);
             }
           }
         }, interactDelay);
       }
-    }, delay);
+    }, delay));
   });
 }
 
@@ -37746,7 +37793,7 @@ function removeAbsorbedStats(absorbId, ev) {
 }
 
 function rerollHand() {
-  rollTraits();
+  rollTraitsFor(_rollFormIdx);
 }
 
 function pickTraitFromHand(handItem) {
@@ -37754,13 +37801,17 @@ function pickTraitFromHand(handItem) {
   const shimmyful = !!handItem.shimmyful;
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
-  c.traits = c.traits || [];
-  c.shimmyfulTraits = c.shimmyfulTraits || [];
+  // `tgt` owns the trait list being rolled into: the character for the base
+  // form, or the alt-form object for any other. Everything keyed by trait key
+  // (stacks, triggers, duality, history) stays on the character and is shared.
+  const tgt = _rollFormIdx > 0 ? ((c.altForms || [])[_rollFormIdx - 1] || c) : c;
+  tgt.traits = tgt.traits || [];
+  tgt.shimmyfulTraits = tgt.shimmyfulTraits || [];
 
   // "Bravest of the Brave" mythic: grants bonus traits
   if (key === 'brave') {
-    c.traits = ['brave'];
-    c.shimmyfulTraits = shimmyful ? ['brave'] : [];
+    tgt.traits = ['brave'];
+    tgt.shimmyfulTraits = shimmyful ? ['brave'] : [];
     const seen = new Set(['brave']);
     if (shimmyful) {
       // Guaranteed 3 additional rare/epic traits — one is guaranteed epic.
@@ -37773,33 +37824,33 @@ function pickTraitFromHand(handItem) {
         const k = epicPool[Math.floor(Math.random() * epicPool.length)];
         if (!seen.has(k)) {
           seen.add(k);
-          c.traits.push(k);
+          tgt.traits.push(k);
           rolledEpic = true;
         }
       }
 
       // Roll 2 more rare/epic traits
-      while (c.traits.length < 4) {
+      while (tgt.traits.length < 4) {
         const k = rareEpicPool[Math.floor(Math.random() * rareEpicPool.length)];
         if (!seen.has(k)) {
           seen.add(k);
-          c.traits.push(k);
+          tgt.traits.push(k);
         }
       }
     } else {
       // Guaranteed 2 additional rare/epic traits
       const rareEpicPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'rare' || t.rarity === 'epic').map(([k]) => k);
-      while (c.traits.length < 3) {
+      while (tgt.traits.length < 3) {
         const k = rareEpicPool[Math.floor(Math.random() * rareEpicPool.length)];
         if (!seen.has(k)) {
           seen.add(k);
-          c.traits.push(k);
+          tgt.traits.push(k);
         }
       }
     }
   } else if (key === 'girlyopscurse') {
-    c.traits = ['girlyopscurse'];
-    c.shimmyfulTraits = shimmyful ? ['girlyopscurse'] : [];
+    tgt.traits = ['girlyopscurse'];
+    tgt.shimmyfulTraits = shimmyful ? ['girlyopscurse'] : [];
     const seen = new Set(['girlyopscurse']);
     const commonPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'common').map(([k]) => k);
     const rarePool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'rare').map(([k]) => k);
@@ -37810,16 +37861,16 @@ function pickTraitFromHand(handItem) {
         const k = commonPool[Math.floor(Math.random() * commonPool.length)];
         if (!seen.has(k)) {
           seen.add(k);
-          c.traits.push(k);
-          c.shimmyfulTraits.push(k);
+          tgt.traits.push(k);
+          tgt.shimmyfulTraits.push(k);
         }
       }
       while (seen.size < 6) {
         const k = rarePool[Math.floor(Math.random() * rarePool.length)];
         if (!seen.has(k)) {
           seen.add(k);
-          c.traits.push(k);
-          c.shimmyfulTraits.push(k);
+          tgt.traits.push(k);
+          tgt.shimmyfulTraits.push(k);
         }
       }
     } else {
@@ -37828,9 +37879,9 @@ function pickTraitFromHand(handItem) {
         const k = commonPool[Math.floor(Math.random() * commonPool.length)];
         if (!seen.has(k)) {
           seen.add(k);
-          c.traits.push(k);
+          tgt.traits.push(k);
           if (Math.random() < 0.25) {
-            c.shimmyfulTraits.push(k);
+            tgt.shimmyfulTraits.push(k);
           }
         }
       }
@@ -37838,26 +37889,26 @@ function pickTraitFromHand(handItem) {
         const k = rarePool[Math.floor(Math.random() * rarePool.length)];
         if (!seen.has(k)) {
           seen.add(k);
-          c.traits.push(k);
+          tgt.traits.push(k);
           if (Math.random() < 0.25) {
-            c.shimmyfulTraits.push(k);
+            tgt.shimmyfulTraits.push(k);
           }
         }
       }
     }
   } else if (key === 'onlyatraitor') {
-    c.traits = ['onlyatraitor'];
-    c.shimmyfulTraits = shimmyful ? ['onlyatraitor'] : [];
+    tgt.traits = ['onlyatraitor'];
+    tgt.shimmyfulTraits = shimmyful ? ['onlyatraitor'] : [];
     const seen = new Set(['onlyatraitor']);
     const legPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'legendary').map(([k]) => k);
     const count = shimmyful ? 3 : 2;
-    while (c.traits.length < count + 1) {
+    while (tgt.traits.length < count + 1) {
       const k = legPool[Math.floor(Math.random() * legPool.length)];
-      if (!seen.has(k)) { seen.add(k); c.traits.push(k); }
+      if (!seen.has(k)) { seen.add(k); tgt.traits.push(k); }
     }
   } else if (key === 'woetothee') {
-    c.traits = ['woetothee'];
-    c.shimmyfulTraits = shimmyful ? ['woetothee'] : [];
+    tgt.traits = ['woetothee'];
+    tgt.shimmyfulTraits = shimmyful ? ['woetothee'] : [];
     const seen = new Set(['woetothee']);
     const legShimmyPool = Object.keys(SHIMMYFUL_LEGENDARY_TRAITS).filter(k => k !== 'woetothee');
     const count = shimmyful ? 2 : 1;
@@ -37866,14 +37917,14 @@ function pickTraitFromHand(handItem) {
       const k = legShimmyPool[Math.floor(Math.random() * legShimmyPool.length)];
       if (!seen.has(k) && TRAITS[k]) {
         seen.add(k);
-        c.traits.push(k);
-        if (!c.shimmyfulTraits.includes(k)) c.shimmyfulTraits.push(k);
+        tgt.traits.push(k);
+        if (!tgt.shimmyfulTraits.includes(k)) tgt.shimmyfulTraits.push(k);
         added++;
       }
     }
   } else {
-    c.traits = [key];
-    c.shimmyfulTraits = shimmyful ? [key] : [];
+    tgt.traits = [key];
+    tgt.shimmyfulTraits = shimmyful ? [key] : [];
     // Initialize duality state
     if (TRAITS[key]?.rarity === 'duality') {
       c.dualityState = c.dualityState || {};
@@ -37888,10 +37939,13 @@ function pickTraitFromHand(handItem) {
     }
   }
 
-  // Reset triggers/stacks for the new selection
-  c.traitTriggers = {};
-  c.traitStacks = {};
-  c.traits.forEach(k => {
+  // Reset triggers/stacks for the new selection. These are keyed by trait key
+  // and shared across forms, so only the keys this roll touches are re-seeded —
+  // wiping the lot would clear another form's cultivation progress.
+  c.traitTriggers = c.traitTriggers || {};
+  c.traitStacks = c.traitStacks || {};
+  tgt.traits.forEach(k => {
+    delete c.traitTriggers[k];
     const t = TRAITS[k];
     if (t?.cultivation) c.traitStacks[k] = t.cultivation.defaultStacks || 0;
   });
@@ -37906,7 +37960,7 @@ function pickTraitFromHand(handItem) {
   }
 
   let updatedSeen = false;
-  c.traits.forEach(k => {
+  tgt.traits.forEach(k => {
     if (TRAITS[k] && !seenTraits.includes(k)) {
       seenTraits.push(k);
       updatedSeen = true;
@@ -37925,6 +37979,8 @@ function pickTraitFromHand(handItem) {
 function closeTraitRoll(cancelled = false) {
   if (cancelled) playSound('cancel', { volume: 0.75 });
   document.getElementById('trait-roll-overlay').classList.remove('open');
+  _rollRevealTimers.forEach(clearTimeout);
+  _rollRevealTimers = [];
   currentHand = null;
   _rollInProgress = false;
 }
