@@ -3090,7 +3090,7 @@ const PATTERN_DEFS = {
   helios_sun:       { label: "Helios · Solar Wrath",   params: [] },
   zoe_garden:       { label: "Zoe · Living Garden",    params: [] },
   iris_starlight:   { label: "Iris · Shimmerlight",    params: [] },
-  ember_arcana:     { label: "Ember · Arcane Sanctum", params: [] },
+  amber_arcana:     { label: "Amber · Arcane Sanctum", params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
@@ -15822,7 +15822,7 @@ const _OB_GARNISH = [
 ];
 const _OB_BOTTLES = [
   { name: 'BORDEAUX',  col: '#c92d77', lit: '#ff5fa8' },
-  { name: 'EMBER',     col: '#ff8a2a', lit: '#ffc06a' },
+  { name: 'AMBER',     col: '#ff8a2a', lit: '#ffc06a' },
   { name: 'STARDUST',  col: '#59c9f2', lit: '#a5e6ff' },
   { name: 'VENOM',     col: '#5cc457', lit: '#9fe89a' },
   { name: 'MOONSHINE', col: '#e8e8f0', lit: '#ffffff' },
@@ -30854,7 +30854,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'helios_sun')     { _drawHeliosPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'zoe_garden')     { _drawZoePattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'iris_starlight') { _drawIrisPattern(canvas, ctx, W, H, t);                return; }
-  if (type === 'ember_arcana') { _drawEmberPattern(canvas, ctx, W, H, t);                  return; }
+  if (type === 'amber_arcana') { _drawAmberPattern(canvas, ctx, W, H, t);                  return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
@@ -31390,6 +31390,8 @@ function startBgAnim(type, params) {
   _drawZoeOverlay._lt         = undefined;
   _drawIrisPattern._lt        = undefined;
   _drawIrisOverlay._lt        = undefined;
+  _drawAmberPattern._lt       = undefined;
+  _drawAmberOverlay._lt       = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -31482,7 +31484,7 @@ function stopBgAnim() {
   _stopHeliosOverlay();
   _stopZoeOverlay();
   _stopIrisOverlay();
-  _stopEmberOverlay();
+  _stopAmberOverlay();
   _stopMbOverlay();
   _stopSorrowOverlay();
   _stopEmporiumOverlay();
@@ -32028,7 +32030,7 @@ function viewChar(id) {
   else if (_isHelios(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffab1f'); }
   else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
   else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _isIrisStarsForm(c) ? '#ffe14d' : '#ffd633'); }
-  else if (_isEmber(c))    {  _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _EMBER_HEX); }
+  else if (_isAmber(c))    {  _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _AMBER_HEX); }
   else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
   else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
   else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
@@ -32234,23 +32236,21 @@ function viewChar(id) {
     }
   }
 
-  // ── Ember — goddess-of-magic UI chrome: violet sanctum panels rimmed in a
+  // ── Amber — goddess-of-magic UI chrome: violet sanctum panels rimmed in a
   // slow magenta glow, a name that shimmers like candlelight on rose gold, and
   // a portrait ringed in turning moonrunes. Warm, never harsh. ──
   {
     const _cvRoot = document.getElementById('char-view');
     const _av = document.getElementById('cv-avatar');
     const _nm = document.getElementById('cv-name');
-    const _pc = document.getElementById('pattern-canvas');
-    if (_isEmber(c)) {
-      _cvRoot.classList.add('ember-ui');
-      if (_av) _av.classList.add('ember-pfp');
-      if (_nm) { _nm.classList.add('ember-name'); _nm.setAttribute('data-text', _nm.textContent || 'EMBER'); }
-      if (_pc) _pc.style.opacity = '0.85';
+    if (_isAmber(c)) {
+      _cvRoot.classList.add('amber-ui');
+      if (_av) _av.classList.add('amber-pfp');
+      if (_nm) { _nm.classList.add('amber-name'); _nm.setAttribute('data-text', _nm.textContent || 'AMBER'); }
     } else {
-      _cvRoot.classList.remove('ember-ui');
-      if (_av) _av.classList.remove('ember-pfp');
-      if (_nm) _nm.classList.remove('ember-name');
+      _cvRoot.classList.remove('amber-ui');
+      if (_av) _av.classList.remove('amber-pfp');
+      if (_nm) _nm.classList.remove('amber-name');
     }
   }
 
@@ -32958,7 +32958,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isEmber(c) ? 'ember_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -32971,7 +32971,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'ember_arcana' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -33033,7 +33033,7 @@ function viewChar(id) {
   if (_isHelios(c))   _startHeliosOverlay();
   if (_isZoe(c))      _startZoeOverlay();
   if (_isIris(c))     _startIrisOverlay();
-  if (_isEmber(c))    _startEmberOverlay();
+  if (_isAmber(c))    _startAmberOverlay();
   if (_isMb(c))       _startMbOverlay();
   if (_isEmporium(c)) _startEmporiumOverlay();
   if (_isAlsace(c))   { _alsMaskOff = _isAlsaceMaskOff(c); _startAlsaceOverlay(); }
@@ -38450,7 +38450,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isEmber(c) ? 'ember_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -40719,7 +40719,7 @@ function toggleMobileToC() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// EMBER — the GODDESS OF MAGIC. Her sanctum is a warm violet night lit from
+// AMBER — the GODDESS OF MAGIC. Her sanctum is a warm violet night lit from
 // within: great counter-rotating rings of moonrunes turning slowly overhead,
 // candle-warm motes drifting between faint ley-lines, and runes rising like
 // sparks that never burn. Nothing here lunges or flashes — the whole scene
@@ -40727,18 +40727,18 @@ function toggleMobileToC() {
 // and a click blooms a summoning circle that opens, turns once, and fades.
 // Magenta and violet, warm rose for the light. Calm, and quietly glorious.
 // ════════════════════════════════════════════════════════════════
-const _EMBER_RE = /^ember$/i;
-function _isEmber(c) { return !!(c && c.name && _EMBER_RE.test(c.name)); }
-const _EMBER_MAGENTA = '236,106,217';   // rgb() triples, reused throughout
-const _EMBER_VIOLET  = '157,78,221';
-const _EMBER_ROSE    = '255,206,236';   // the warm highlight that keeps it gentle
-const _EMBER_HEX     = '#ec6ad9';
+const _AMBER_RE = /^amber$/i;
+function _isAmber(c) { return !!(c && c.name && _AMBER_RE.test(c.name)); }
+const _AMBER_MAGENTA = '236,106,217';   // rgb() triples, reused throughout
+const _AMBER_VIOLET  = '157,78,221';
+const _AMBER_ROSE    = '255,206,236';   // the warm highlight that keeps it gentle
+const _AMBER_HEX     = '#ec6ad9';
 
 // ── Moonrunes ────────────────────────────────────────────────────
 // Drawn rather than typed, so they never depend on a font being present.
 // Each glyph is a stave with branch strokes hung off it, seeded by index —
 // the same seed always yields the same rune, so the sanctum is consistent.
-function _emberRune(ctx, x, y, h, seed, color, lw) {
+function _amberRune(ctx, x, y, h, seed, color, lw) {
   const rnd = n => { const v = Math.sin(seed * 127.1 + n * 311.7) * 43758.5453; return v - Math.floor(v); };
   ctx.strokeStyle = color;
   ctx.lineWidth = lw || 1.6;
@@ -40763,42 +40763,42 @@ function _emberRune(ctx, x, y, h, seed, color, lw) {
 }
 
 // Cached rune sprites — a rune is drawn once and blitted after that.
-const _emberRuneCache = {};
-function _emberRuneSprite(seed, rgb, glow) {
+const _amberRuneCache = {};
+function _amberRuneSprite(seed, rgb, glow) {
   const key = seed + '|' + rgb + '|' + (glow ? 1 : 0);
-  if (_emberRuneCache[key]) return _emberRuneCache[key];
+  if (_amberRuneCache[key]) return _amberRuneCache[key];
   const S = 44;
   const cv = document.createElement('canvas');
   cv.width = cv.height = S;
   const c = cv.getContext('2d');
   if (glow) { c.shadowColor = `rgba(${rgb},0.85)`; c.shadowBlur = 9; }
-  _emberRune(c, S / 2, S / 2, S * 0.6, seed, `rgb(${rgb})`, 2);
-  _emberRuneCache[key] = cv;
+  _amberRune(c, S / 2, S / 2, S * 0.6, seed, `rgb(${rgb})`, 2);
+  _amberRuneCache[key] = cv;
   return cv;
 }
 
 // Soft warm mote — one cached sprite instead of a gradient per particle.
-let _emberMoteSprite = null;
-function _emberGetMoteSprite() {
-  if (_emberMoteSprite) return _emberMoteSprite;
+let _amberMoteSprite = null;
+function _amberGetMoteSprite() {
+  if (_amberMoteSprite) return _amberMoteSprite;
   const S = 40, cv = document.createElement('canvas');
   cv.width = cv.height = S;
   const c = cv.getContext('2d');
   const g = c.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
-  g.addColorStop(0, `rgba(${_EMBER_ROSE},0.95)`);
-  g.addColorStop(0.35, `rgba(${_EMBER_MAGENTA},0.45)`);
-  g.addColorStop(1, `rgba(${_EMBER_VIOLET},0)`);
+  g.addColorStop(0, `rgba(${_AMBER_ROSE},0.95)`);
+  g.addColorStop(0.35, `rgba(${_AMBER_MAGENTA},0.45)`);
+  g.addColorStop(1, `rgba(${_AMBER_VIOLET},0)`);
   c.fillStyle = g; c.fillRect(0, 0, S, S);
-  _emberMoteSprite = cv;
+  _amberMoteSprite = cv;
   return cv;
 }
 
 // A ring of runes standing upright around a circle, turning slowly.
-function _emberRuneRing(ctx, cx, cy, r, count, ang, scale, rgb, alpha) {
+function _amberRuneRing(ctx, cx, cy, r, count, ang, scale, rgb, alpha) {
   for (let i = 0; i < count; i++) {
     const a = ang + i * (Math.PI * 2 / count);
     const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
-    const spr = _emberRuneSprite(i * 7 + count, rgb, true);
+    const spr = _amberRuneSprite(i * 7 + count, rgb, true);
     const d = 44 * scale;
     ctx.save();
     ctx.translate(x, y);
@@ -40811,16 +40811,16 @@ function _emberRuneRing(ctx, cx, cy, r, count, ang, scale, rgb, alpha) {
 }
 
 // ── Background: the Sanctum ──────────────────────────────────────
-function _drawEmberPattern(canvas, ctx, W, H, t) {
-  const fresh = _drawEmberPattern._lt === undefined;
-  if (!fresh && t - _drawEmberPattern._lt < 0.033) return;
-  const dt = fresh ? 0.016 : Math.min(t - _drawEmberPattern._lt, 0.05);
-  _drawEmberPattern._lt = t;
+function _drawAmberPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawAmberPattern._lt === undefined;
+  if (!fresh && t - _drawAmberPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawAmberPattern._lt, 0.05);
+  _drawAmberPattern._lt = t;
 
-  if (canvas._embW !== W || canvas._embH !== H) {
-    canvas._embW = W; canvas._embH = H;
-    canvas._embBase = null; canvas._embVign = null;
-    canvas._embMotes = null; canvas._embRunes = null;
+  if (canvas._ambW !== W || canvas._ambH !== H) {
+    canvas._ambW = W; canvas._ambH = H;
+    canvas._ambBase = null; canvas._ambVign = null;
+    canvas._ambMotes = null; canvas._ambRunes = null;
   }
 
   const cx = W * 0.5, cy = H * 0.44;
@@ -40829,15 +40829,15 @@ function _drawEmberPattern(canvas, ctx, W, H, t) {
   // 1 ── Warm violet night, lit from the middle outward
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
-  if (!canvas._embBase) {
+  if (!canvas._ambBase) {
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.92);
     g.addColorStop(0, '#4d1655');
     g.addColorStop(0.32, '#2e0e42');
     g.addColorStop(0.66, '#1a0729');
     g.addColorStop(1, '#0a0313');
-    canvas._embBase = g;
+    canvas._ambBase = g;
   }
-  ctx.fillStyle = canvas._embBase;
+  ctx.fillStyle = canvas._ambBase;
   ctx.fillRect(0, 0, W, H);
 
   // 2 ── Two great veils of light drifting across each other, very slowly
@@ -40848,7 +40848,7 @@ function _drawEmberPattern(canvas, ctx, W, H, t) {
     const vy = cy + Math.sin(ph * 0.8) * H * 0.2;
     const rad = Math.max(W, H) * (0.36 + i * 0.12);
     const g = ctx.createRadialGradient(vx, vy, 0, vx, vy, rad);
-    const rgb = i ? _EMBER_VIOLET : _EMBER_MAGENTA;
+    const rgb = i ? _AMBER_VIOLET : _AMBER_MAGENTA;
     g.addColorStop(0, `rgba(${rgb},${(0.11 + breath * 0.05).toFixed(3)})`);
     g.addColorStop(1, `rgba(${rgb},0)`);
     ctx.fillStyle = g;
@@ -40868,9 +40868,9 @@ function _drawEmberPattern(canvas, ctx, W, H, t) {
       ctx.rotate(spin + i * (Math.PI * 2 / spokes));
       const g = ctx.createLinearGradient(inner, 0, len, 0);
       const a = 0.026 + breath * 0.014;
-      g.addColorStop(0, `rgba(${_EMBER_ROSE},0)`);     // fades in and out at both ends
-      g.addColorStop(0.3, `rgba(${_EMBER_ROSE},${a.toFixed(3)})`);
-      g.addColorStop(1, `rgba(${_EMBER_MAGENTA},0)`);
+      g.addColorStop(0, `rgba(${_AMBER_ROSE},0)`);     // fades in and out at both ends
+      g.addColorStop(0.3, `rgba(${_AMBER_ROSE},${a.toFixed(3)})`);
+      g.addColorStop(1, `rgba(${_AMBER_MAGENTA},0)`);
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.moveTo(inner, -inner * 0.2); ctx.lineTo(len, -len * 0.17);
@@ -40884,16 +40884,16 @@ function _drawEmberPattern(canvas, ctx, W, H, t) {
   //      each on its own faint circle. This is the centrepiece.
   const R = Math.min(W, H);
   const rings = [
-    { r: R * 0.42, n: 20, sp:  0.028, sc: 0.95, rgb: _EMBER_VIOLET,  a: 0.42 },
-    { r: R * 0.29, n: 14, sp: -0.044, sc: 0.78, rgb: _EMBER_MAGENTA, a: 0.52 },
-    { r: R * 0.17, n:  9, sp:  0.066, sc: 0.60, rgb: _EMBER_ROSE,    a: 0.60 }
+    { r: R * 0.42, n: 20, sp:  0.028, sc: 0.95, rgb: _AMBER_VIOLET,  a: 0.42 },
+    { r: R * 0.29, n: 14, sp: -0.044, sc: 0.78, rgb: _AMBER_MAGENTA, a: 0.52 },
+    { r: R * 0.17, n:  9, sp:  0.066, sc: 0.60, rgb: _AMBER_ROSE,    a: 0.60 }
   ];
   for (const ring of rings) {
     ctx.globalCompositeOperation = 'lighter';
     ctx.strokeStyle = `rgba(${ring.rgb},${(0.16 + breath * 0.10).toFixed(3)})`;
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(cx, cy, ring.r, 0, Math.PI * 2); ctx.stroke();
-    _emberRuneRing(ctx, cx, cy, ring.r, ring.n, t * ring.sp, ring.sc, ring.rgb,
+    _amberRuneRing(ctx, cx, cy, ring.r, ring.n, t * ring.sp, ring.sc, ring.rgb,
       ring.a + breath * 0.22);
   }
 
@@ -40902,24 +40902,24 @@ function _drawEmberPattern(canvas, ctx, W, H, t) {
     const hr = R * 0.34 * (0.94 + breath * 0.1);
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, hr);
     g.addColorStop(0, `rgba(255,224,236,${(0.22 + breath * 0.09).toFixed(3)})`);   // warm rose, not white
-    g.addColorStop(0.16, `rgba(${_EMBER_ROSE},${(0.18 + breath * 0.08).toFixed(3)})`);
-    g.addColorStop(0.44, `rgba(${_EMBER_MAGENTA},${(0.15 + breath * 0.07).toFixed(3)})`);
-    g.addColorStop(0.72, `rgba(${_EMBER_VIOLET},${(0.05 + breath * 0.02).toFixed(3)})`);
-    g.addColorStop(1, `rgba(${_EMBER_VIOLET},0)`);
+    g.addColorStop(0.16, `rgba(${_AMBER_ROSE},${(0.18 + breath * 0.08).toFixed(3)})`);
+    g.addColorStop(0.44, `rgba(${_AMBER_MAGENTA},${(0.15 + breath * 0.07).toFixed(3)})`);
+    g.addColorStop(0.72, `rgba(${_AMBER_VIOLET},${(0.05 + breath * 0.02).toFixed(3)})`);
+    g.addColorStop(1, `rgba(${_AMBER_VIOLET},0)`);
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(cx, cy, hr, 0, Math.PI * 2); ctx.fill();
   }
 
   // 4 ── Motes of warm light, with ley-lines drawn between near neighbours
-  if (!canvas._embMotes) {
+  if (!canvas._ambMotes) {
     const n = Math.round(Math.min(46, (W * H) / 26000));
-    canvas._embMotes = Array.from({ length: n }, () => ({
+    canvas._ambMotes = Array.from({ length: n }, () => ({
       x: Math.random() * W, y: Math.random() * H,
       vx: (Math.random() - 0.5) * 7, vy: -(4 + Math.random() * 9),
       sz: 2 + Math.random() * 4, ph: Math.random() * 6.28, tw: 0.5 + Math.random() * 1.1
     }));
   }
-  const motes = canvas._embMotes;
+  const motes = canvas._ambMotes;
   for (const m of motes) {
     m.x += m.vx * dt; m.y += m.vy * dt;
     if (m.y < -30) { m.y = H + 20; m.x = Math.random() * W; }
@@ -40935,13 +40935,13 @@ function _drawEmberPattern(canvas, ctx, W, H, t) {
       const d2 = dx * dx + dy * dy;
       if (d2 > LINK * LINK) continue;
       const near = 1 - Math.sqrt(d2) / LINK;
-      ctx.strokeStyle = `rgba(${_EMBER_MAGENTA},${(near * 0.20).toFixed(3)})`;
+      ctx.strokeStyle = `rgba(${_AMBER_MAGENTA},${(near * 0.20).toFixed(3)})`;
       ctx.beginPath();
       ctx.moveTo(motes[i].x, motes[i].y); ctx.lineTo(motes[j].x, motes[j].y);
       ctx.stroke();
     }
   }
-  const moteSpr = _emberGetMoteSprite();
+  const moteSpr = _amberGetMoteSprite();
   for (const m of motes) {
     const a = 0.35 + 0.45 * Math.sin(t * m.tw + m.ph);
     ctx.globalAlpha = Math.max(0, a);
@@ -40951,10 +40951,10 @@ function _drawEmberPattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1;
 
   // 5 ── Runes rising like sparks, turning gently as they go
-  if (!canvas._embRunes) canvas._embRunes = [];
-  const runes = canvas._embRunes;
-  if (canvas._embNext === undefined || t > canvas._embNext) {
-    canvas._embNext = t + 0.6 + Math.random() * 1.1;
+  if (!canvas._ambRunes) canvas._ambRunes = [];
+  const runes = canvas._ambRunes;
+  if (canvas._ambNext === undefined || t > canvas._ambNext) {
+    canvas._ambNext = t + 0.6 + Math.random() * 1.1;
     if (runes.length < 22) {
       runes.push({
         x: Math.random() * W, y: H + 30,
@@ -40975,7 +40975,7 @@ function _drawEmberPattern(canvas, ctx, W, H, t) {
     // fade in off the bottom, fade out towards the top
     const up = 1 - r.y / (H + 60);
     const fade = Math.min(1, up * 3.2) * Math.min(1, (1 - up) * 3.2 + 0.12);
-    const spr = _emberRuneSprite(r.seed, _EMBER_ROSE, true);
+    const spr = _amberRuneSprite(r.seed, _AMBER_ROSE, true);
     const d = 44 * r.sz;
     ctx.save();
     ctx.translate(r.x, r.y); ctx.rotate(r.rot);
@@ -40987,55 +40987,55 @@ function _drawEmberPattern(canvas, ctx, W, H, t) {
 
   // 6 ── Vignette, to settle the edges back into the dark
   ctx.globalCompositeOperation = 'source-over';
-  if (!canvas._embVign) {
+  if (!canvas._ambVign) {
     const g = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.28, cx, cy, Math.max(W, H) * 0.78);
     g.addColorStop(0, 'rgba(8,3,16,0)');
     g.addColorStop(0.55, 'rgba(8,3,16,0.32)');
     g.addColorStop(1, 'rgba(8,3,16,0.88)');
-    canvas._embVign = g;
+    canvas._ambVign = g;
   }
-  ctx.fillStyle = canvas._embVign;
+  ctx.fillStyle = canvas._ambVign;
   ctx.fillRect(0, 0, W, H);
 }
 
 // ── Cursor: an arcane focus, and circles that bloom where you click ──
-let _emberX = 0, _emberY = 0, _emberTargX = 0, _emberTargY = 0, _emberVX = 0, _emberVY = 0;
-let _emberTrail = [], _emberBlooms = [], _emberEmit = 0, _emberOverlayRafId = null;
+let _amberX = 0, _amberY = 0, _amberTargX = 0, _amberTargY = 0, _amberVX = 0, _amberVY = 0;
+let _amberTrail = [], _amberBlooms = [], _amberEmit = 0, _amberOverlayRafId = null;
 
-function _emberMouseMove(e) { _emberTargX = e.clientX; _emberTargY = e.clientY; }
-function _emberClick() {
+function _amberMouseMove(e) { _amberTargX = e.clientX; _amberTargY = e.clientY; }
+function _amberClick() {
   // a summoning circle opens, turns once, and closes again
-  _emberBlooms.push({ x: _emberX, y: _emberY, r: 10, life: 1, spin: Math.random() * 6.28,
+  _amberBlooms.push({ x: _amberX, y: _amberY, r: 10, life: 1, spin: Math.random() * 6.28,
     dir: Math.random() < 0.5 ? -1 : 1, n: 8 + Math.floor(Math.random() * 5) });
   for (let i = 0; i < 16; i++) {
     const a = Math.random() * Math.PI * 2, s = 30 + Math.random() * 90;
-    _emberTrail.push({ x: _emberX, y: _emberY, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+    _amberTrail.push({ x: _amberX, y: _amberY, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
       life: 1, sz: 2 + Math.random() * 4, ph: Math.random() * 6.28, tw: 1 + Math.random() * 2.5 });
   }
 }
 
-function _drawEmberOverlay(canvas, ctx, W, H, t) {
-  if (_drawEmberOverlay._lt !== undefined && t - _drawEmberOverlay._lt < 0.033) return;
-  const dt = _drawEmberOverlay._lt === undefined ? 0.016 : Math.min(t - _drawEmberOverlay._lt, 0.05);
-  _drawEmberOverlay._lt = t;
+function _drawAmberOverlay(canvas, ctx, W, H, t) {
+  if (_drawAmberOverlay._lt !== undefined && t - _drawAmberOverlay._lt < 0.033) return;
+  const dt = _drawAmberOverlay._lt === undefined ? 0.016 : Math.min(t - _drawAmberOverlay._lt, 0.05);
+  _drawAmberOverlay._lt = t;
   ctx.clearRect(0, 0, W, H);
 
   // Softer spring than the frantic characters use — she glides, never snaps.
   const SPRING = 48, DAMP = 11;
-  _emberVX += ((_emberTargX - _emberX) * SPRING - _emberVX * DAMP) * dt;
-  _emberVY += ((_emberTargY - _emberY) * SPRING - _emberVY * DAMP) * dt;
-  _emberX += _emberVX * dt; _emberY += _emberVY * dt;
-  const spd = Math.hypot(_emberVX, _emberVY);
+  _amberVX += ((_amberTargX - _amberX) * SPRING - _amberVX * DAMP) * dt;
+  _amberVY += ((_amberTargY - _amberY) * SPRING - _amberVY * DAMP) * dt;
+  _amberX += _amberVX * dt; _amberY += _amberVY * dt;
+  const spd = Math.hypot(_amberVX, _amberVY);
 
   // trailing motes
-  _emberEmit += dt * (7 + spd * 0.035);
-  while (_emberEmit > 1) {
-    _emberEmit -= 1;
-    if (_emberTrail.length > 200) break;
+  _amberEmit += dt * (7 + spd * 0.035);
+  while (_amberEmit > 1) {
+    _amberEmit -= 1;
+    if (_amberTrail.length > 200) break;
     const a = Math.random() * Math.PI * 2, s = 4 + Math.random() * 14;
-    _emberTrail.push({
-      x: _emberX + (Math.random() - 0.5) * 10, y: _emberY + (Math.random() - 0.5) * 10,
-      vx: Math.cos(a) * s - _emberVX * 0.04, vy: Math.sin(a) * s - _emberVY * 0.04 - 10,
+    _amberTrail.push({
+      x: _amberX + (Math.random() - 0.5) * 10, y: _amberY + (Math.random() - 0.5) * 10,
+      vx: Math.cos(a) * s - _amberVX * 0.04, vy: Math.sin(a) * s - _amberVY * 0.04 - 10,
       life: 1, sz: 2 + Math.random() * 4, ph: Math.random() * 6.28, tw: 1 + Math.random() * 2.5
     });
   }
@@ -41043,35 +41043,35 @@ function _drawEmberOverlay(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'lighter';
 
   // summoning circles from clicks
-  for (let i = _emberBlooms.length - 1; i >= 0; i--) {
-    const b = _emberBlooms[i];
+  for (let i = _amberBlooms.length - 1; i >= 0; i--) {
+    const b = _amberBlooms[i];
     b.r += (150 - b.r * 0.9) * dt * 2.4;      // opens fast, then eases wide
     b.spin += b.dir * dt * 0.9;
     b.life -= dt * 0.55;
-    if (b.life <= 0) { _emberBlooms.splice(i, 1); continue; }
+    if (b.life <= 0) { _amberBlooms.splice(i, 1); continue; }
     const e = Math.max(0, b.life);
-    ctx.strokeStyle = `rgba(${_EMBER_MAGENTA},${(e * 0.5).toFixed(3)})`;
+    ctx.strokeStyle = `rgba(${_AMBER_MAGENTA},${(e * 0.5).toFixed(3)})`;
     ctx.lineWidth = 1 + e * 1.6;
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = `rgba(${_EMBER_ROSE},${(e * 0.28).toFixed(3)})`;
+    ctx.strokeStyle = `rgba(${_AMBER_ROSE},${(e * 0.28).toFixed(3)})`;
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.72, 0, Math.PI * 2); ctx.stroke();
-    _emberRuneRing(ctx, b.x, b.y, b.r * 0.86, b.n, b.spin, 0.62, _EMBER_ROSE, e * 0.75);
+    _amberRuneRing(ctx, b.x, b.y, b.r * 0.86, b.n, b.spin, 0.62, _AMBER_ROSE, e * 0.75);
     const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-    g.addColorStop(0, `rgba(${_EMBER_MAGENTA},${(e * 0.16).toFixed(3)})`);
-    g.addColorStop(1, `rgba(${_EMBER_VIOLET},0)`);
+    g.addColorStop(0, `rgba(${_AMBER_MAGENTA},${(e * 0.16).toFixed(3)})`);
+    g.addColorStop(1, `rgba(${_AMBER_VIOLET},0)`);
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
   }
 
   // trail
-  const spr = _emberGetMoteSprite();
-  for (let i = _emberTrail.length - 1; i >= 0; i--) {
-    const p = _emberTrail[i];
+  const spr = _amberGetMoteSprite();
+  for (let i = _amberTrail.length - 1; i >= 0; i--) {
+    const p = _amberTrail[i];
     p.x += p.vx * dt; p.y += p.vy * dt;
     p.vy -= 8 * dt;                            // her sparks drift upward, not down
     p.vx *= 0.985; p.vy *= 0.985;
     p.life -= dt * 0.55;
-    if (p.life <= 0) { _emberTrail.splice(i, 1); continue; }
+    if (p.life <= 0) { _amberTrail.splice(i, 1); continue; }
     ctx.globalAlpha = Math.min(1, p.life) * (0.5 + 0.5 * Math.sin(t * p.tw + p.ph));
     const d = p.sz * 5;
     ctx.drawImage(spr, p.x - d / 2, p.y - d / 2, d, d);
@@ -41081,59 +41081,59 @@ function _drawEmberOverlay(canvas, ctx, W, H, t) {
   // the focus itself: a warm core inside a slowly turning rune ring
   const pulse = 0.5 + 0.5 * Math.sin(t * 1.6);
   const cr = 9 + pulse * 1.6;
-  const og = ctx.createRadialGradient(_emberX, _emberY, 0, _emberX, _emberY, cr * 3.4);
+  const og = ctx.createRadialGradient(_amberX, _amberY, 0, _amberX, _amberY, cr * 3.4);
   og.addColorStop(0, `rgba(255,240,250,0.95)`);
-  og.addColorStop(0.3, `rgba(${_EMBER_MAGENTA},0.55)`);
-  og.addColorStop(1, `rgba(${_EMBER_VIOLET},0)`);
+  og.addColorStop(0.3, `rgba(${_AMBER_MAGENTA},0.55)`);
+  og.addColorStop(1, `rgba(${_AMBER_VIOLET},0)`);
   ctx.fillStyle = og;
-  ctx.beginPath(); ctx.arc(_emberX, _emberY, cr * 3.4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(_amberX, _amberY, cr * 3.4, 0, Math.PI * 2); ctx.fill();
 
-  ctx.strokeStyle = `rgba(${_EMBER_ROSE},${(0.5 + pulse * 0.3).toFixed(3)})`;
+  ctx.strokeStyle = `rgba(${_AMBER_ROSE},${(0.5 + pulse * 0.3).toFixed(3)})`;
   ctx.lineWidth = 1.2;
-  ctx.beginPath(); ctx.arc(_emberX, _emberY, cr * 2.1, 0, Math.PI * 2); ctx.stroke();
-  _emberRuneRing(ctx, _emberX, _emberY, cr * 2.1, 5, t * 0.5, 0.4, _EMBER_ROSE, 0.55 + pulse * 0.3);
+  ctx.beginPath(); ctx.arc(_amberX, _amberY, cr * 2.1, 0, Math.PI * 2); ctx.stroke();
+  _amberRuneRing(ctx, _amberX, _amberY, cr * 2.1, 5, t * 0.5, 0.4, _AMBER_ROSE, 0.55 + pulse * 0.3);
 
   ctx.fillStyle = `rgba(255,244,252,${(0.85 + pulse * 0.15).toFixed(3)})`;
-  ctx.beginPath(); ctx.arc(_emberX, _emberY, cr * 0.42, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(_amberX, _amberY, cr * 0.42, 0, Math.PI * 2); ctx.fill();
 
   ctx.globalCompositeOperation = 'source-over';
 }
 
-function _startEmberOverlay() {
-  _stopEmberOverlay();
-  _drawEmberOverlay._lt = undefined;
-  _emberX = _emberTargX = window.innerWidth * 0.5;
-  _emberY = _emberTargY = window.innerHeight * 0.5;
-  _emberVX = _emberVY = 0;
-  _emberTrail = []; _emberBlooms = []; _emberEmit = 0;
-  window.addEventListener('mousemove', _emberMouseMove);
-  window.addEventListener('click', _emberClick);
+function _startAmberOverlay() {
+  _stopAmberOverlay();
+  _drawAmberOverlay._lt = undefined;
+  _amberX = _amberTargX = window.innerWidth * 0.5;
+  _amberY = _amberTargY = window.innerHeight * 0.5;
+  _amberVX = _amberVY = 0;
+  _amberTrail = []; _amberBlooms = []; _amberEmit = 0;
+  window.addEventListener('mousemove', _amberMouseMove);
+  window.addEventListener('click', _amberClick);
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = 'none';
   const cv = document.createElement('canvas');
-  cv.id = 'ember-overlay';
+  cv.id = 'amber-overlay';
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
   cv.width = window.innerWidth; cv.height = window.innerHeight;
   document.body.appendChild(cv);
   const t0 = performance.now();
   function frame(now) {
-    const cv2 = document.getElementById('ember-overlay');
+    const cv2 = document.getElementById('amber-overlay');
     if (!cv2) return;
     if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
       cv2.width = window.innerWidth; cv2.height = window.innerHeight;
     }
-    _drawEmberOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
-    _emberOverlayRafId = requestAnimationFrame(frame);
+    _drawAmberOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _amberOverlayRafId = requestAnimationFrame(frame);
   }
-  _emberOverlayRafId = requestAnimationFrame(frame);
+  _amberOverlayRafId = requestAnimationFrame(frame);
 }
-function _stopEmberOverlay() {
-  if (_emberOverlayRafId) { cancelAnimationFrame(_emberOverlayRafId); _emberOverlayRafId = null; }
-  window.removeEventListener('mousemove', _emberMouseMove);
-  window.removeEventListener('click', _emberClick);
+function _stopAmberOverlay() {
+  if (_amberOverlayRafId) { cancelAnimationFrame(_amberOverlayRafId); _amberOverlayRafId = null; }
+  window.removeEventListener('mousemove', _amberMouseMove);
+  window.removeEventListener('click', _amberClick);
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = '';
-  const cv = document.getElementById('ember-overlay');
+  const cv = document.getElementById('amber-overlay');
   if (cv) cv.remove();
 }
 /* ─────────────────────────────────────────────────────────────── */
