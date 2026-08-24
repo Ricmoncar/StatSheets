@@ -31392,6 +31392,7 @@ function startBgAnim(type, params) {
   _drawIrisOverlay._lt        = undefined;
   _drawAmberPattern._lt       = undefined;
   _drawAmberOverlay._lt       = undefined;
+  _drawAmberFrame._lt         = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -40998,9 +40999,130 @@ function _drawAmberPattern(canvas, ctx, W, H, t) {
   ctx.fillRect(0, 0, W, H);
 }
 
+// ── In front of the GUI: the sanctum's own frame ─────────────────
+// Every panel is bound in an inscribed border — corner flourishes, runes
+// standing along its edge, and one mote of light making a slow circuit of
+// the perimeter. Spell-glyphs bloom over the page between times and
+// dissolve upward. This layer sits above the panels but under the cursor.
+let _amberGlyphs = [];
+
+// Walk the perimeter of a rect: s in [0,1) returns a point along it.
+function _amberPerim(x, y, w, h, s) {
+  const per = 2 * (w + h);
+  let d = (((s % 1) + 1) % 1) * per;
+  if (d < w) return [x + d, y];
+  d -= w;
+  if (d < h) return [x + w, y + d];
+  d -= h;
+  if (d < w) return [x + w - d, y + h];
+  d -= w;
+  return [x, y + h - d];
+}
+
+function _drawAmberFrame(canvas, ctx, W, H, t) {
+  if (_drawAmberFrame._lt !== undefined && t - _drawAmberFrame._lt < 0.033) return;
+  const dt = _drawAmberFrame._lt === undefined ? 0.016 : Math.min(t - _drawAmberFrame._lt, 0.05);
+  _drawAmberFrame._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const root = document.getElementById('char-view');
+  if (!root || !root.classList.contains('amber-ui')) return;
+
+  const breath = 0.5 + 0.5 * Math.sin(t * 0.35);   // the same slow pulse as the sanctum
+  ctx.globalCompositeOperation = 'lighter';
+
+  const panels = root.querySelectorAll('.panel');
+  for (let pi = 0; pi < panels.length; pi++) {
+    const r = panels[pi].getBoundingClientRect();
+    if (r.width < 40 || r.bottom < -60 || r.top > H + 60) continue;   // hidden / off-screen
+    const pad = 5;
+    const x = r.left - pad, y = r.top - pad, w = r.width + pad * 2, h = r.height + pad * 2;
+
+    // the inscribed line itself, breathing
+    ctx.strokeStyle = `rgba(${_AMBER_MAGENTA},${(0.14 + breath * 0.12).toFixed(3)})`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+
+    // corner flourishes — a bracket with a bound-ring inside it
+    ctx.strokeStyle = `rgba(${_AMBER_ROSE},${(0.26 + breath * 0.2).toFixed(3)})`;
+    ctx.lineWidth = 1.4;
+    const L = 13;
+    for (const [ax, ay, sx, sy] of [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]]) {
+      ctx.beginPath();
+      ctx.moveTo(ax + sx * L, ay); ctx.lineTo(ax, ay); ctx.lineTo(ax, ay + sy * L);
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(ax + sx * 5.5, ay + sy * 5.5, 2.1, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // runes standing along the edge, drifting round it almost imperceptibly
+    const nR = Math.max(6, Math.min(16, Math.round((w + h) / 90)));
+    for (let i = 0; i < nR; i++) {
+      const [px, py] = _amberPerim(x, y, w, h, i / nR + t * 0.006 + pi * 0.13);
+      const spr = _amberRuneSprite(i * 13 + pi, _AMBER_ROSE, true);
+      const d = 17;
+      ctx.globalAlpha = 0.2 + breath * 0.18;
+      ctx.drawImage(spr, px - d / 2, py - d / 2, d, d);
+    }
+    ctx.globalAlpha = 1;
+
+    // one mote of light making a slow circuit, with a short tail behind it
+    const cs = (t * 0.05 + pi * 0.37) % 1;
+    ctx.strokeStyle = `rgba(${_AMBER_ROSE},0.42)`;
+    ctx.lineWidth = 1.6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let k = 0; k <= 9; k++) {
+      const [tx, ty] = _amberPerim(x, y, w, h, cs - k * 0.005);
+      if (k === 0) ctx.moveTo(tx, ty); else ctx.lineTo(tx, ty);
+    }
+    ctx.stroke();
+    const [mx, my] = _amberPerim(x, y, w, h, cs);
+    const g = ctx.createRadialGradient(mx, my, 0, mx, my, 20);
+    g.addColorStop(0, 'rgba(255,240,250,0.8)');
+    g.addColorStop(0.32, `rgba(${_AMBER_MAGENTA},0.38)`);
+    g.addColorStop(1, `rgba(${_AMBER_VIOLET},0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(mx, my, 20, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // spell-glyphs surfacing over the page, holding, and dissolving upward
+  if (_drawAmberFrame._next === undefined || t > _drawAmberFrame._next) {
+    _drawAmberFrame._next = t + 1.6 + Math.random() * 2.4;
+    if (_amberGlyphs.length < 7) {
+      const rr = root.getBoundingClientRect();
+      _amberGlyphs.push({
+        x: rr.left + Math.random() * Math.max(80, rr.width),
+        y: Math.max(40, rr.top) + Math.random() * Math.max(80, Math.min(rr.height, H - 80)),
+        seed: (Math.random() * 900) | 0, sz: 1 + Math.random() * 1.1,
+        rot: (Math.random() - 0.5) * 0.3, life: 0
+      });
+    }
+  }
+  for (let i = _amberGlyphs.length - 1; i >= 0; i--) {
+    const gl = _amberGlyphs[i];
+    gl.life += dt * 0.34;
+    gl.y -= dt * 7;
+    if (gl.life >= 1) { _amberGlyphs.splice(i, 1); continue; }
+    const a = Math.sin(gl.life * Math.PI);          // in, hold, out
+    const d = 44 * gl.sz;
+    ctx.save();
+    ctx.translate(gl.x, gl.y); ctx.rotate(gl.rot);
+    ctx.globalAlpha = a * 0.4;
+    ctx.drawImage(_amberRuneSprite(gl.seed, _AMBER_ROSE, true), -d / 2, -d / 2, d, d);
+    ctx.globalAlpha = a * 0.26;                     // a ring opening as it surfaces
+    ctx.strokeStyle = `rgba(${_AMBER_MAGENTA},1)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, d * (0.4 + gl.life * 0.28), 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+}
+
 // ── Cursor: an arcane focus, and circles that bloom where you click ──
 let _amberX = 0, _amberY = 0, _amberTargX = 0, _amberTargY = 0, _amberVX = 0, _amberVY = 0;
 let _amberTrail = [], _amberBlooms = [], _amberEmit = 0, _amberOverlayRafId = null;
+let _amberPath = [];       // recent cursor positions, stroked as a ribbon of light
 
 function _amberMouseMove(e) { _amberTargX = e.clientX; _amberTargY = e.clientY; }
 function _amberClick() {
@@ -41041,6 +41163,24 @@ function _drawAmberOverlay(canvas, ctx, W, H, t) {
   }
 
   ctx.globalCompositeOperation = 'lighter';
+
+  // a ribbon of light drawn through where the focus has just been
+  _amberPath.push({ x: _amberX, y: _amberY });
+  if (_amberPath.length > 26) _amberPath.shift();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // two passes: a wide violet bloom, then a bright rose core inside it
+  for (const pass of [{ w: 13, a: 0.16, rgb: _AMBER_MAGENTA }, { w: 3.4, a: 0.75, rgb: _AMBER_ROSE }]) {
+    for (let i = 1; i < _amberPath.length; i++) {
+      const f = i / _amberPath.length;           // tapers and fades towards the tail
+      ctx.strokeStyle = `rgba(${pass.rgb},${(f * f * pass.a).toFixed(3)})`;
+      ctx.lineWidth = f * pass.w;
+      ctx.beginPath();
+      ctx.moveTo(_amberPath[i - 1].x, _amberPath[i - 1].y);
+      ctx.lineTo(_amberPath[i].x, _amberPath[i].y);
+      ctx.stroke();
+    }
+  }
 
   // summoning circles from clicks
   for (let i = _amberBlooms.length - 1; i >= 0; i--) {
@@ -41093,6 +41233,23 @@ function _drawAmberOverlay(canvas, ctx, W, H, t) {
   ctx.beginPath(); ctx.arc(_amberX, _amberY, cr * 2.1, 0, Math.PI * 2); ctx.stroke();
   _amberRuneRing(ctx, _amberX, _amberY, cr * 2.1, 5, t * 0.5, 0.4, _AMBER_ROSE, 0.55 + pulse * 0.3);
 
+  // two triangles turning against each other — a focus, not just a dot
+  ctx.strokeStyle = `rgba(${_AMBER_MAGENTA},${(0.42 + pulse * 0.3).toFixed(3)})`;
+  ctx.lineWidth = 1;
+  for (const dir of [1, -1]) {
+    ctx.save();
+    ctx.translate(_amberX, _amberY);
+    ctx.rotate(dir * t * 0.35 + (dir < 0 ? Math.PI / 3 : 0));
+    ctx.beginPath();
+    for (let i = 0; i < 3; i++) {
+      const a = i * (Math.PI * 2 / 3) - Math.PI / 2;
+      const px = Math.cos(a) * cr * 1.55, py = Math.sin(a) * cr * 1.55;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.restore();
+  }
+
   ctx.fillStyle = `rgba(255,244,252,${(0.85 + pulse * 0.15).toFixed(3)})`;
   ctx.beginPath(); ctx.arc(_amberX, _amberY, cr * 0.42, 0, Math.PI * 2); ctx.fill();
 
@@ -41105,11 +41262,19 @@ function _startAmberOverlay() {
   _amberX = _amberTargX = window.innerWidth * 0.5;
   _amberY = _amberTargY = window.innerHeight * 0.5;
   _amberVX = _amberVY = 0;
-  _amberTrail = []; _amberBlooms = []; _amberEmit = 0;
+  _amberTrail = []; _amberBlooms = []; _amberEmit = 0; _amberPath = [];
+  _amberGlyphs = []; _drawAmberFrame._lt = undefined; _drawAmberFrame._next = undefined;
   window.addEventListener('mousemove', _amberMouseMove);
   window.addEventListener('click', _amberClick);
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = 'none';
+  // Frame layer — above the panels (z-index 30) but below the cursor.
+  const fr = document.createElement('canvas');
+  fr.id = 'amber-frame-overlay';
+  fr.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:30;pointer-events:none;';
+  fr.width = window.innerWidth; fr.height = window.innerHeight;
+  document.body.appendChild(fr);
+  // Cursor layer — on top of everything.
   const cv = document.createElement('canvas');
   cv.id = 'amber-overlay';
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
@@ -41117,12 +41282,20 @@ function _startAmberOverlay() {
   document.body.appendChild(cv);
   const t0 = performance.now();
   function frame(now) {
+    const tt = (now - t0) / 1000;
+    const fr2 = document.getElementById('amber-frame-overlay');
+    if (fr2) {
+      if (fr2.width !== window.innerWidth || fr2.height !== window.innerHeight) {
+        fr2.width = window.innerWidth; fr2.height = window.innerHeight;
+      }
+      _drawAmberFrame(fr2, fr2.getContext('2d'), fr2.width, fr2.height, tt);
+    }
     const cv2 = document.getElementById('amber-overlay');
     if (!cv2) return;
     if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
       cv2.width = window.innerWidth; cv2.height = window.innerHeight;
     }
-    _drawAmberOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _drawAmberOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, tt);
     _amberOverlayRafId = requestAnimationFrame(frame);
   }
   _amberOverlayRafId = requestAnimationFrame(frame);
@@ -41135,6 +41308,8 @@ function _stopAmberOverlay() {
   if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('amber-overlay');
   if (cv) cv.remove();
+  const fr = document.getElementById('amber-frame-overlay');
+  if (fr) fr.remove();
 }
 /* ─────────────────────────────────────────────────────────────── */
 
