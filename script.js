@@ -31575,48 +31575,121 @@ function buildCharEntry(c, contextFolderId) {
     else { playSound('characterchange', { volume: 0.7 }); viewChar(c.id); }
   });
 
-  // Drag and drop
+  // Drag and drop — see the drag helpers above renderSidebar()
   el.setAttribute('draggable', 'true');
   el.dataset.charId = c.id;
   el.addEventListener('dragstart', e => {
+    _dragKind = 'char'; _dragId = c.id;
     e.dataTransfer.setData('text/plain', c.id);
     e.dataTransfer.effectAllowed = 'move';
-    el.classList.add('dragging');
+    // deferred so the drag image is the solid row, not the faded one
+    requestAnimationFrame(() => el.classList.add('dragging'));
   });
-  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+  el.addEventListener('dragend', () => {
+    el.classList.remove('dragging');
+    _clearDropTarget(); _dragKind = null; _dragId = null;
+  });
   el.addEventListener('dragover', e => {
-    e.preventDefault();
-    document.querySelectorAll('.char-entry').forEach(x => x.classList.remove('drag-over'));
-    el.classList.add('drag-over');
+    if (_dragKind !== 'char') return;          // folder drags pass straight through
+    e.preventDefault(); e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    const r = el.getBoundingClientRect();
+    _setDropTarget(el, (e.clientY - r.top) < r.height / 2 ? 'drop-before' : 'drop-after');
   });
   el.addEventListener('drop', e => {
-    e.preventDefault();
-    document.querySelectorAll('.char-entry').forEach(x => x.classList.remove('drag-over', 'dragging'));
-    const fromId = e.dataTransfer.getData('text/plain');
-    const toId = c.id;
-    if (fromId === toId) return;
-    const arr = [...characters];
-    const fromIdx = arr.findIndex(x => x.id === fromId);
-    const toIdx = arr.findIndex(x => x.id === toId);
-    if (fromIdx < 0 || toIdx < 0) return;
-    const [moved] = arr.splice(fromIdx, 1);
-    // If dropped into a folder context, assign that folder
-    if (contextFolderId !== null) moved.folderId = contextFolderId;
-    else moved.folderId = null;
-    const insertAt = arr.findIndex(x => x.id === toId);
-    arr.splice(insertAt, 0, moved);
-    arr.forEach((ch, i) => { ch.order = i; });
-    characters = arr;
-    renderSidebar();
-    arr.forEach(ch => db.collection('characters').doc(ch.id).update({ order: ch.order, folderId: ch.folderId || null }).catch(() => { }));
+    if (_dragKind === 'folder') return;
+    e.preventDefault(); e.stopPropagation();
+    const after = !!(_dropTarget && _dropTarget.el === el && _dropTarget.cls === 'drop-after');
+    _clearDropTarget();
+    moveCharacter(_dragId || e.dataTransfer.getData('text/plain'), c.id, after, contextFolderId);
   });
 
   return el;
 }
 
+// ============================================================
+// SIDEBAR DRAG AND DROP
+// One highlighted drop target at a time, tracked in a variable rather than
+// re-scanned out of the DOM. The old code ran querySelectorAll('.char-entry')
+// on every dragover tick, which with a hundred-odd characters meant hundreds
+// of class writes per second and made dragging stutter badly.
+// ============================================================
+let _dragKind = null;      // 'char' | 'folder' — what is being dragged
+let _dragId = null;
+let _dropTarget = null;    // { el, cls }
+
+function _setDropTarget(el, cls) {
+  if (_dropTarget && _dropTarget.el === el && _dropTarget.cls === cls) return;   // no churn
+  if (_dropTarget) _dropTarget.el.classList.remove(_dropTarget.cls);
+  _dropTarget = el ? { el, cls } : null;
+  if (el) el.classList.add(cls);
+}
+function _clearDropTarget() { _setDropTarget(null, null); }
+
+// Write only the rows whose order or folder actually moved, in one batch.
+// The old code pushed an update for every character on every single drop.
+function _commitCharOrder(arr, prev) {
+  arr.forEach((ch, i) => { ch.order = i; });
+  characters = arr;
+  renderSidebar();
+  if (!db) return;                       // no Firestore: order lives in memory only
+  const batch = db.batch();
+  let n = 0;
+  for (const ch of arr) {
+    const p = prev.get(ch.id);
+    const fid = ch.folderId || null;
+    if (!p || p.order !== ch.order || p.folderId !== fid) {
+      batch.update(db.collection('characters').doc(ch.id), { order: ch.order, folderId: fid });
+      n++;
+    }
+  }
+  if (n) batch.commit().catch(err => { console.error('Reorder write failed:', err); notify('REORDER FAILED', 'err'); });
+}
+
+// Move `fromId` to sit before/after `toId`, optionally re-homing it into a folder.
+function moveCharacter(fromId, toId, after, folderId) {
+  if (!fromId || fromId === toId) return;
+  const prev = new Map(characters.map(c => [c.id, { order: c.order, folderId: c.folderId || null }]));
+  const arr = [...characters];
+  const fromIdx = arr.findIndex(x => x.id === fromId);
+  if (fromIdx < 0) return;
+  const [moved] = arr.splice(fromIdx, 1);
+  const toIdx = arr.findIndex(x => x.id === toId);
+  if (toIdx < 0) return;
+  moved.folderId = folderId != null ? folderId : null;
+  arr.splice(after ? toIdx + 1 : toIdx, 0, moved);
+  _commitCharOrder(arr, prev);
+}
+
+// Move a folder before/after another and renumber. Folders load with
+// orderBy('order'), so persisting the index is all that's needed.
+function moveFolder(fromId, toId, after) {
+  if (!fromId || fromId === toId) return;
+  const arr = [...folders];
+  const fromIdx = arr.findIndex(f => f.id === fromId);
+  if (fromIdx < 0) return;
+  const [moved] = arr.splice(fromIdx, 1);
+  const toIdx = arr.findIndex(f => f.id === toId);
+  if (toIdx < 0) return;
+  arr.splice(after ? toIdx + 1 : toIdx, 0, moved);
+  const prev = new Map(folders.map(f => [f.id, f.order]));
+  arr.forEach((f, i) => { f.order = i; });
+  folders = arr;
+  renderSidebar();
+  if (!db) return;
+  const batch = db.batch();
+  let n = 0;
+  for (const f of arr) {
+    if (prev.get(f.id) !== f.order) { batch.update(db.collection('folders').doc(f.id), { order: f.order }); n++; }
+  }
+  if (n) batch.commit().catch(err => { console.error('Folder reorder failed:', err); notify('REORDER FAILED', 'err'); });
+}
+
 function renderSidebar() {
   const list = document.getElementById('char-list');
   if (!list) return;
+  // A re-render throws away the elements a drag was pointing at
+  _dropTarget = null;
   list.innerHTML = '';
 
   // Search mode: flat filtered list, no folder grouping
@@ -31663,28 +31736,60 @@ function renderSidebar() {
       contents.appendChild(buildCharEntry(c, folder.id));
     });
 
-    // Make folder header + contents drop targets (for dragging chars INTO this folder)
     const header = folderEl.querySelector('.folder-header');
+
+    // The header is itself draggable, to reorder folders.
+    header.setAttribute('draggable', 'true');
+    header.addEventListener('dragstart', e => {
+      _dragKind = 'folder'; _dragId = folder.id;
+      e.dataTransfer.setData('text/plain', 'folder:' + folder.id);
+      e.dataTransfer.effectAllowed = 'move';
+      e.stopPropagation();
+      requestAnimationFrame(() => folderEl.classList.add('dragging'));
+    });
+    header.addEventListener('dragend', () => {
+      folderEl.classList.remove('dragging');
+      _clearDropTarget(); _dragKind = null; _dragId = null;
+    });
+
+    // …and a drop target: for a folder drag it reorders, for a character drag
+    // it re-homes that character into this folder.
     [header, contents].forEach(zone => {
       zone.addEventListener('dragover', e => {
         e.preventDefault();
         e.stopPropagation();
-        folderEl.classList.add('folder-drag-over');
-      });
-      zone.addEventListener('dragleave', e => {
-        if (!folderEl.contains(e.relatedTarget)) folderEl.classList.remove('folder-drag-over');
+        if (_dragKind === 'folder') {
+          if (zone !== header || folder.id === _dragId) return;
+          const r = header.getBoundingClientRect();
+          _setDropTarget(header, (e.clientY - r.top) < r.height / 2 ? 'drop-before' : 'drop-after');
+        } else {
+          _setDropTarget(folderEl, 'folder-drag-over');
+        }
       });
       zone.addEventListener('drop', e => {
         e.preventDefault();
         e.stopPropagation();
-        folderEl.classList.remove('folder-drag-over');
-        document.querySelectorAll('.char-entry').forEach(x => x.classList.remove('drag-over', 'dragging'));
-        const fromId = e.dataTransfer.getData('text/plain');
+        if (_dragKind === 'folder') {
+          const after = !!(_dropTarget && _dropTarget.el === header && _dropTarget.cls === 'drop-after');
+          _clearDropTarget();
+          moveFolder(_dragId, folder.id, after);
+          return;
+        }
+        _clearDropTarget();
+        const fromId = _dragId || e.dataTransfer.getData('text/plain');
         const ch = characters.find(x => x.id === fromId);
         if (!ch || ch.folderId === folder.id) return;
-        ch.folderId = folder.id;
-        saveData(ch);
-        renderSidebar();
+        // drop onto the folder body = land at the end of that folder
+        const prev = new Map(characters.map(x => [x.id, { order: x.order, folderId: x.folderId || null }]));
+        const arr = [...characters];
+        const fromIdx = arr.findIndex(x => x.id === fromId);
+        if (fromIdx < 0) return;
+        const [moved] = arr.splice(fromIdx, 1);
+        moved.folderId = folder.id;
+        let last = -1;
+        arr.forEach((x, i) => { if (x.folderId === folder.id) last = i; });
+        arr.splice(last + 1, 0, moved);
+        _commitCharOrder(arr, prev);
       });
     });
   });
@@ -33598,6 +33703,35 @@ function updateFormStatBar(formIdx, key, val) {
   if (el) el.innerHTML = _formStatBarHTML(+val || 1, key);
 }
 
+// Trait <option>s for a form's picker, grouped by rarity.
+const _FORM_TRAIT_RARITIES = ['common', 'rare', 'epic', 'legendary', 'mythic', 'duality', 'hexxed'];
+function _formTraitLabel(t, key) {
+  return (t && (t.name || (t.heavenly && t.heavenly.name))) || key;
+}
+function _formTraitOptions(selected) {
+  let html = `<option value=""${selected ? '' : ' selected'}>— INHERIT FROM BASE —</option>`;
+  const seen = new Set();
+  const groups = _FORM_TRAIT_RARITIES.slice();
+  Object.keys(TRAITS).forEach(k => { const r = TRAITS[k].rarity; if (r && !groups.includes(r)) groups.push(r); });
+  for (const rar of groups) {
+    const keys = Object.keys(TRAITS)
+      .filter(k => TRAITS[k].rarity === rar && !seen.has(k))
+      .sort((a, b) => _formTraitLabel(TRAITS[a], a).localeCompare(_formTraitLabel(TRAITS[b], b)));
+    if (!keys.length) continue;
+    html += `<optgroup label="${rar.toUpperCase()}">`;
+    for (const k of keys) {
+      seen.add(k);
+      html += `<option value="${k}"${selected === k ? ' selected' : ''}>${escHtml(_formTraitLabel(TRAITS[k], k))}</option>`;
+    }
+    html += '</optgroup>';
+  }
+  return html;
+}
+function setFormTrait(i, key) {
+  if (!_editorForms[i]) return;
+  _editorForms[i].trait = key || null;
+}
+
 function renderEditorForms() {
   const wrap = document.getElementById('e-forms-list');
   const addBtn = document.getElementById('add-form-btn');
@@ -33672,8 +33806,12 @@ function renderEditorForms() {
               placeholder="e.g. Awakened, Final Boss..."
               oninput="_editorForms[${i}].name=this.value"
               class="form-name-input"/>
-            <div style="font-size:7px;letter-spacing:1px;color:#333;margin-top:10px;line-height:1.8;">
-              Traits &amp; passive abilities<br>are shared across all forms.
+            <label style="font-size:7px;letter-spacing:2px;color:#444;display:block;margin:12px 0 5px;">FORM TRAIT</label>
+            <select class="form-trait-select" onchange="setFormTrait(${i}, this.value)">
+              ${_formTraitOptions(f.trait)}
+            </select>
+            <div style="font-size:7px;letter-spacing:1px;color:#333;margin-top:8px;line-height:1.8;">
+              Inherits the base form's traits<br>unless you name one here.
             </div>
           </div>
         </div>
@@ -33835,6 +33973,7 @@ function showEditor(id) {
       stats: { hp: f.stats?.hp || 50, atk: f.stats?.atk || 10, def: f.stats?.def || 10, mag: f.stats?.mag || 10, spd: f.stats?.spd || 10, iq: f.stats?.iq || 50 },
       substats: _fullSubstats(f.substats),
       themeSong: f.themeSong || null,
+      trait: f.trait || null,
     }));
     renderEditorForms();
     const ptype = c.pattern?.type || 'none';
@@ -34099,6 +34238,7 @@ function saveCharacter() {
       stats: { hp: +f.stats.hp || 1, atk: +f.stats.atk || 1, def: +f.stats.def || 1, mag: +f.stats.mag || 1, spd: +f.stats.spd || 1, iq: +f.stats.iq || 50 },
       substats: _fullSubstats(f.substats, true),
       ...(f.themeSong ? { themeSong: f.themeSong } : {}),
+      ...(f.trait ? { trait: f.trait } : {}),
     })),
     activeFormIdx: existing.activeFormIdx || 0,
     info: existing.info || {},
@@ -34946,7 +35086,7 @@ function getEffectiveStats(c) {
   effResilience = Math.min(effResilience, 50);
 
   // Handle Paradox trait: swap highest and lowest main stats
-  const hasPaRadox = c.traits && c.traits.includes('paradox');
+  const hasPaRadox = _formTraits(c).includes('paradox');
   if (hasPaRadox) {
     const mainStats = [
       { name: 'hp', val: effHp },
@@ -34977,7 +35117,7 @@ function getEffectiveStats(c) {
   }
 
   // Handle Glitch trait: apply stored random multipliers to all stats
-  const hasGlitch = c.traits && c.traits.includes('glitch');
+  const hasGlitch = _formTraits(c).includes('glitch');
   if (hasGlitch && c.glitchRolls) {
     effHp = Math.max(1, Math.round(effHp * c.glitchRolls.hp));
     effAtk = Math.max(1, Math.round(effAtk * c.glitchRolls.atk));
@@ -34987,7 +35127,7 @@ function getEffectiveStats(c) {
   }
 
   // Handle Determination trait: ATK bonus per defeat in HATRED mode, DEF bonus per spare in MERCYFUL mode
-  const hasDetermination = c.traits && c.traits.includes('determination');
+  const hasDetermination = _formTraits(c).includes('determination');
   if (hasDetermination && c.traitStacks) {
     const stacks = c.traitStacks;
     const deaths = stacks['determination:deaths'] || 0;
@@ -35044,7 +35184,7 @@ function renderSubstatsDisplay(c, effStats) {
   ];
 
   // Sanity: base 80 for perfectsoul owners (−5/soul), 100 otherwise. Items can add/subtract.
-  const _hasPerfectSoul = c.traits && c.traits.includes('perfectsoul');
+  const _hasPerfectSoul = _formTraits(c).includes('perfectsoul');
   let _sanityItemDelta = 0;
   let _sanityItemLines = '';
   (c.inventory || []).filter(i => i.equipped).forEach(item => {
@@ -36201,7 +36341,7 @@ function updatePityDisplay() {
 // TRAIT EFFECT APPLICATION (extends getEffectiveStats)
 // ============================================================
 function getActiveTraits(c) {
-  return (c.traits || []).map(key => ({ key, def: TRAITS[key] })).filter(x => x.def);
+  return _formTraits(c).map(key => ({ key, def: TRAITS[key] })).filter(x => x.def);
 }
 
 function buildTraitPassives(c) {
@@ -36368,7 +36508,7 @@ function _traitPassivesToMods(passives) {
 }
 
 getEffectiveStats = function (c) {
-  if (!c.traits || !c.traits.length) return _origGetEffectiveStats(c);
+  if (!_formTraits(c).length) return _origGetEffectiveStats(c);
 
   const passives = buildTraitPassives(c);
   const traitMods = _traitPassivesToMods(passives);
@@ -36419,10 +36559,25 @@ getEffectiveStats = function (c) {
 // ============================================================
 // RENDER TRAITS IN CHARACTER VIEW
 // ============================================================
+// The traits a character has RIGHT NOW. An alternate form may name a trait of
+// its own, which stands in place of the base form's for as long as that form
+// is active; a form that names none inherits the base list.
+// Stat-isolation clones set _rawTraits to ask for the literal array instead.
+function _formTraits(c) {
+  if (!c) return [];
+  if (c._rawTraits) return c.traits || [];
+  const idx = c.activeFormIdx || 0;
+  if (idx > 0) {
+    const f = (c.altForms || [])[idx - 1];
+    if (f && f.trait && TRAITS[f.trait]) return [f.trait];
+  }
+  return c.traits || [];
+}
+
 function renderTraitsDisplay(c) {
   const wrap = document.getElementById('cv-traits');
   if (!wrap) return;
-  const traits = (c.traits || []);
+  const traits = _formTraits(c);
   const cultivationBtn = document.getElementById('btn-cultivation');
 
   // Hide / show cultivation button
@@ -36783,7 +36938,8 @@ function buildTraitTooltip(c, key) {
 
   // Show concrete stat deltas this trait contributes RIGHT NOW.
   const baseNoTrait = JSON.parse(JSON.stringify(c));
-  baseNoTrait.traits = (baseNoTrait.traits || []).filter(k => k !== key);
+  baseNoTrait._rawTraits = true;
+  baseNoTrait.traits = _formTraits(c).filter(k => k !== key);
   const withTrait = c;
   const a = _origGetEffectiveStats(baseNoTrait); // raw base
   // To isolate THIS trait's effect, build full eff with and without
@@ -37779,7 +37935,7 @@ function closeTraitRoll(cancelled = false) {
 function openCultivationWindow() {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
-  const traits = (c.traits || []).filter(k => TRAITS[k]?.cultivation);
+  const traits = _formTraits(c).filter(k => TRAITS[k]?.cultivation);
   if (!traits.length) { notify('NO SCALING TRAITS ACTIVE', 'err'); return; }
   const body = document.getElementById('cultivation-body');
   c.traitStacks = c.traitStacks || {};
@@ -37851,12 +38007,14 @@ function setStacks(key, val) {
 function refreshCultivationPreviews() {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
-  const traits = (c.traits || []).filter(k => TRAITS[k]?.cultivation);
+  const traits = _formTraits(c).filter(k => TRAITS[k]?.cultivation);
   const without = JSON.parse(JSON.stringify(c));
+  without._rawTraits = true;
   without.traitStacks = {};
   const baseStats = getEffectiveStats(without);
   traits.forEach(key => {
     const single = JSON.parse(JSON.stringify(c));
+    single._rawTraits = true;
     single.traits = [key];
     single.traitTriggers = {};
     const eff = getEffectiveStats(single);
@@ -38663,7 +38821,7 @@ function buildTierChipTooltip(charId) {
   }
 
   // Traits
-  const traitKeys = (c.traits || []).filter(k => TRAITS[k]);
+  const traitKeys = _formTraits(c).filter(k => TRAITS[k]);
   if (traitKeys.length) {
     html += `<div style="border-top:1px solid #1a1a1a;padding-top:7px;display:flex;flex-direction:column;gap:6px;">`;
     traitKeys.forEach(k => {
@@ -41544,6 +41702,7 @@ const SOUL_DEFAULT = {
   innerAngle: 0,
   innerSize: 0.45,
   innerOffsetY: 0,          // nudge the nested soul up or down
+  innerMonster: false,      // flip the nested soul, independently of the outer one
   // outline
   outline: false,
   outlineColor: '#000000',
@@ -41732,8 +41891,9 @@ function buildSoulSVG(soul, px) {
     const innerPaint = _soulPaint(defs, 'soulinner-' + uid, soul.innerFill, soul.innerColors, soul.innerAngle);
     const sc = Math.max(0.15, Math.min(0.85, Number(soul.innerSize) || 0.45));
     const iy = (SOUL_CY + (Number(soul.innerOffsetY) || 0)).toFixed(2);
+    const iSpin = soul.innerMonster ? '<g transform="rotate(180 20 18)">' : '<g>';
     contents += `<g transform="translate(${SOUL_CX} ${iy}) scale(${sc}) translate(${-SOUL_CX} ${-SOUL_CY})">` +
-      `<rect x="0" y="0" width="40" height="36" fill="${innerPaint}" clip-path="url(#${clipId})"/></g>`;
+      `${iSpin}<rect x="0" y="0" width="40" height="36" fill="${innerPaint}" clip-path="url(#${clipId})"/></g></g>`;
   }
   // Hue cycling rides on the paint only, so outline and cracks keep their colour
   if (soul.cycle) contents = `<g class="soul-cycle">${contents}</g>`;
@@ -41780,7 +41940,7 @@ function _soulDesc(soul) {
   const bits = [];
   bits.push((SOUL_FILL_MODES.find(m => m[0] === soul.fill) || SOUL_FILL_MODES[0])[1]);
   if (soul.cycle) bits.push('CYCLING');
-  if (soul.inner) bits.push('NESTED');
+  if (soul.inner) bits.push(soul.innerMonster ? 'NESTED MONSTER' : 'NESTED');
   if (soul.outline) bits.push('OUTLINED');
   if (soul.cracked) bits.push('CRACKED');
   if (soul.monster) bits.push('MONSTER');
@@ -42137,6 +42297,7 @@ function buildSoulEditorBody() {
         </div>
         ${_soulSliderCtl('INNER SIZE', 'innerSize', s.innerSize, 0.15, 0.85, 0.05)}
         ${_soulSliderCtl('INNER VERTICAL NUDGE', 'innerOffsetY', s.innerOffsetY, -6, 6, 0.5)}
+        ${_soulToggleCtl('INNER IS A MONSTER SOUL', 'innerMonster', s.innerMonster)}
       </div>
     </div>
 

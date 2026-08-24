@@ -13193,3 +13193,31 @@ text.lb-cl-glitch-svg {
   .char-name-display.amber-name::after,
   .char-avatar-large.amber-pfp::after { animation: none; }
 }
+
+/* Sidebar drag: a single insertion line shows exactly where the row will land,
+   instead of the old ambiguous whole-row highlight. */
+.char-entry.drop-before,
+.folder-header.drop-before { box-shadow: 0 -2px 0 var(--accent-yellow, #ffff00); }
+.char-entry.drop-after,
+.folder-header.drop-after  { box-shadow: 0  2px 0 var(--accent-yellow, #ffff00); }
+.folder-group.dragging { opacity: 0.45; }
+.folder-header { cursor: none; }
+.folder-header:hover .folder-name { text-shadow: 0 0 8px currentColor; }
+
+/* Per-form trait picker in the character editor */
+.form-trait-select {
+  font-family: var(--font-main);
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: #bbb;
+  background: #080808;
+  border: 1px solid #1e1e1e;
+  width: 100%;
+  padding: 7px 8px;
+  outline: none;
+  cursor: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+.form-trait-select:focus { border-color: var(--accent-cyan); color: var(--fg); }
+.form-trait-select optgroup { color: var(--accent-yellow); font-size: 7px; }
+.form-trait-select option { color: #ccc; background: #080808; }
