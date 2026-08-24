@@ -33116,6 +33116,8 @@ function switchTab(tab, btn) {
   document.getElementById('tab-abilities').style.display  = tab === 'abilities' ? '' : 'none';
   if (tab === 'music')     renderThemeTab();
   if (tab === 'abilities') renderAbilitiesTab();
+  // Amber casts a circle that the new tab's content arrives through
+  if (typeof _amberCastOnTab === 'function') _amberCastOnTab();
 
   // Omen Bartender visibility toggle
   const gcv = document.getElementById('omenbar-game');
@@ -41005,6 +41007,7 @@ function _drawAmberPattern(canvas, ctx, W, H, t) {
 // the perimeter. Spell-glyphs bloom over the page between times and
 // dissolve upward. This layer sits above the panels but under the cursor.
 let _amberGlyphs = [];
+let _amberCasts = [];      // summoning circles fired when the tab changes
 
 // Walk the perimeter of a rect: s in [0,1) returns a point along it.
 function _amberPerim(x, y, w, h, s) {
@@ -41019,6 +41022,22 @@ function _amberPerim(x, y, w, h, s) {
   return [x, y + h - d];
 }
 
+// Fired by switchTab when Amber is the character on screen.
+function _amberCastOnTab() {
+  const root = document.getElementById('char-view');
+  if (!root || !root.classList.contains('amber-ui')) return;
+  const r = root.getBoundingClientRect();
+  const cx = r.left + r.width * 0.5;
+  const cy = Math.max(90, Math.min(window.innerHeight - 90, r.top + Math.min(r.height, window.innerHeight) * 0.42));
+  _amberCasts.push({
+    x: cx, y: cy,
+    r0: Math.max(90, Math.min(r.width, window.innerWidth) * 0.2),
+    r1: Math.max(120, Math.min(r.width, window.innerWidth) * 0.3),
+    n: 12, spin: Math.random() * 6.28, life: 1
+  });
+  if (_amberCasts.length > 3) _amberCasts.shift();
+}
+
 function _drawAmberFrame(canvas, ctx, W, H, t) {
   if (_drawAmberFrame._lt !== undefined && t - _drawAmberFrame._lt < 0.033) return;
   const dt = _drawAmberFrame._lt === undefined ? 0.016 : Math.min(t - _drawAmberFrame._lt, 0.05);
@@ -41031,7 +41050,64 @@ function _drawAmberFrame(canvas, ctx, W, H, t) {
   const breath = 0.5 + 0.5 * Math.sin(t * 0.35);   // the same slow pulse as the sanctum
   ctx.globalCompositeOperation = 'lighter';
 
+  const rootRect = root.getBoundingClientRect();
+
+  // ── firelight moving through the room ──
+  // One warm pass drifting across the page every twenty seconds. Amber and
+  // low enough not to touch the palette — it reads as warmth, not colour.
+  {
+    const wp = (t % 20) / 20;
+    const wx = rootRect.left - 240 + wp * (rootRect.width + 480);
+    const wy = rootRect.top + rootRect.height * (0.34 + 0.2 * Math.sin(t * 0.1));
+    const wg = ctx.createRadialGradient(wx, wy, 0, wx, wy, 360);
+    wg.addColorStop(0, `rgba(255,198,142,${(0.05 + breath * 0.018).toFixed(3)})`);
+    wg.addColorStop(0.5, 'rgba(255,168,150,0.018)');
+    wg.addColorStop(1, `rgba(${_AMBER_VIOLET},0)`);
+    ctx.fillStyle = wg;
+    ctx.beginPath(); ctx.arc(wx, wy, 360, 0, Math.PI * 2); ctx.fill();
+  }
+
   const panels = root.querySelectorAll('.panel');
+
+  // ── constellations ──
+  // Nearby panels are wired corner-to-corner along their shortest reach, with
+  // light running the wire. The UI reads as one circuit rather than a stack.
+  {
+    const boxes = [];
+    for (const el of panels) {
+      const r = el.getBoundingClientRect();
+      if (r.width < 40 || r.bottom < -60 || r.top > H + 60) continue;
+      boxes.push(r);
+    }
+    const LINK = 420;
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const A = boxes[i], B = boxes[j];
+        const ac = [[A.left, A.top], [A.right, A.top], [A.left, A.bottom], [A.right, A.bottom]];
+        const bc = [[B.left, B.top], [B.right, B.top], [B.left, B.bottom], [B.right, B.bottom]];
+        let best = null, bd = Infinity;
+        for (const a of ac) for (const b of bc) {
+          const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+          if (d < bd) { bd = d; best = [a, b]; }
+        }
+        if (!best || bd > LINK || bd < 4) continue;
+        const near = 1 - bd / LINK;
+        const [a, b] = best;
+        ctx.strokeStyle = `rgba(${_AMBER_MAGENTA},${(near * 0.16 + breath * 0.05).toFixed(3)})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+        // light running the wire
+        const ph = ((t * 0.18 + (i * 3 + j) * 0.19) % 1);
+        const lx = a[0] + (b[0] - a[0]) * ph, ly = a[1] + (b[1] - a[1]) * ph;
+        const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, 13);
+        lg.addColorStop(0, `rgba(${_AMBER_ROSE},${(0.55 * near).toFixed(3)})`);
+        lg.addColorStop(1, `rgba(${_AMBER_MAGENTA},0)`);
+        ctx.fillStyle = lg;
+        ctx.beginPath(); ctx.arc(lx, ly, 13, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+
   for (let pi = 0; pi < panels.length; pi++) {
     const r = panels[pi].getBoundingClientRect();
     if (r.width < 40 || r.bottom < -60 || r.top > H + 60) continue;   // hidden / off-screen
@@ -41059,9 +41135,19 @@ function _drawAmberFrame(canvas, ctx, W, H, t) {
     for (let i = 0; i < nR; i++) {
       const [px, py] = _amberPerim(x, y, w, h, i / nR + t * 0.006 + pi * 0.13);
       const spr = _amberRuneSprite(i * 13 + pi, _AMBER_ROSE, true);
-      const d = 17;
-      ctx.globalAlpha = 0.2 + breath * 0.18;
-      ctx.drawImage(spr, px - d / 2, py - d / 2, d, d);
+      // runes notice the cursor: they brighten, swell, and turn to face it
+      const near = Math.max(0, 1 - Math.hypot(px - _amberX, py - _amberY) / 165);
+      const ease = near * near;
+      const d = 17 * (1 + ease * 0.55);
+      ctx.save();
+      ctx.translate(px, py);
+      if (ease > 0.01) {
+        const face = Math.atan2(_amberY - py, _amberX - px) + Math.PI / 2;
+        ctx.rotate(face * ease);          // eases back upright as the cursor leaves
+      }
+      ctx.globalAlpha = 0.2 + breath * 0.18 + ease * 0.62;
+      ctx.drawImage(spr, -d / 2, -d / 2, d, d);
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
 
@@ -41083,6 +41169,31 @@ function _drawAmberFrame(canvas, ctx, W, H, t) {
     g.addColorStop(1, `rgba(${_AMBER_VIOLET},0)`);
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(mx, my, 20, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // ── the cast ──
+  // Changing tabs opens a circle across the whole panel area, which the new
+  // content arrives through.
+  for (let i = _amberCasts.length - 1; i >= 0; i--) {
+    const k = _amberCasts[i];
+    k.life -= dt * 0.62;
+    if (k.life <= 0) { _amberCasts.splice(i, 1); continue; }
+    const e = k.life;                       // 1 → 0
+    const grow = 1 - e;                     // 0 → 1
+    const rad = k.r0 + grow * k.r1;
+    ctx.strokeStyle = `rgba(${_AMBER_MAGENTA},${(e * 0.45).toFixed(3)})`;
+    ctx.lineWidth = 1 + e * 2;
+    ctx.beginPath(); ctx.arc(k.x, k.y, rad, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = `rgba(${_AMBER_ROSE},${(e * 0.26).toFixed(3)})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(k.x, k.y, rad * 0.78, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(k.x, k.y, rad * 0.4, 0, Math.PI * 2); ctx.stroke();
+    _amberRuneRing(ctx, k.x, k.y, rad * 0.89, k.n, k.spin + grow * 0.8, 0.72, _AMBER_ROSE, e * 0.7);
+    const cg = ctx.createRadialGradient(k.x, k.y, 0, k.x, k.y, rad);
+    cg.addColorStop(0, `rgba(${_AMBER_ROSE},${(e * 0.1).toFixed(3)})`);
+    cg.addColorStop(1, `rgba(${_AMBER_VIOLET},0)`);
+    ctx.fillStyle = cg;
+    ctx.beginPath(); ctx.arc(k.x, k.y, rad, 0, Math.PI * 2); ctx.fill();
   }
 
   // spell-glyphs surfacing over the page, holding, and dissolving upward
@@ -41119,13 +41230,79 @@ function _drawAmberFrame(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'source-over';
 }
 
+// Her grimoire: two covers hinged at a spine. `open` runs 0 (shut, a rune on
+// the cover) to 1 (spread, ruled pages showing, loose leaves riffling).
+function _amberDrawBook(ctx, x, y, s, rot, open, t) {
+  const w = 13 * s, h = 17 * s;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+
+  // glow first, additively, so the covers can sit solid on top of it
+  ctx.globalCompositeOperation = 'lighter';
+  const gl = ctx.createRadialGradient(0, 0, 0, 0, 0, h * 1.9);
+  gl.addColorStop(0, `rgba(${_AMBER_ROSE},${(0.22 + open * 0.34).toFixed(3)})`);
+  gl.addColorStop(1, `rgba(${_AMBER_VIOLET},0)`);
+  ctx.fillStyle = gl;
+  ctx.beginPath(); ctx.arc(0, 0, h * 1.9, 0, Math.PI * 2); ctx.fill();
+
+  ctx.globalCompositeOperation = 'source-over';
+  for (const dir of [-1, 1]) {
+    ctx.save();
+    ctx.rotate(dir * (0.05 + open * 0.8));
+    const left = dir < 0 ? -w : 0;
+    ctx.fillStyle = `rgba(58,20,74,0.92)`;                      // cover
+    ctx.strokeStyle = `rgba(${_AMBER_ROSE},0.8)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.rect(left, -h / 2, w, h); ctx.fill(); ctx.stroke();
+    if (open > 0.05) {                                          // the page face
+      ctx.fillStyle = `rgba(255,238,250,${(0.13 * open).toFixed(3)})`;
+      ctx.fillRect(left + 1.5, -h / 2 + 1.5, w - 3, h - 3);
+      ctx.strokeStyle = `rgba(${_AMBER_MAGENTA},${(0.62 * open).toFixed(3)})`;
+      ctx.lineWidth = 0.8;
+      for (let i = 0; i < 4; i++) {                             // ruled lines of script
+        const ly = -h / 2 + 4 + i * (h - 8) / 3.2;
+        ctx.beginPath();
+        ctx.moveTo(left + 3, ly); ctx.lineTo(left + w - 3, ly);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  if (open > 0.12) {                                            // loose leaves riffling
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = `rgba(255,240,250,${(0.45 * open).toFixed(3)})`;
+    ctx.lineWidth = 0.9;
+    for (let i = 0; i < 3; i++) {
+      const ph = ((t * 2.6 + i * 0.34) % 1);
+      ctx.save();
+      ctx.rotate(-(0.05 + open * 0.8) + ph * (0.1 + open * 1.6));
+      ctx.beginPath();
+      ctx.moveTo(0, -h / 2 + 1); ctx.lineTo(w - 2, -h / 2 + 2.5);
+      ctx.lineTo(w - 2, h / 2 - 2.5); ctx.lineTo(0, h / 2 - 1);
+      ctx.stroke();
+      ctx.restore();
+    }
+  } else {                                                      // the sigil on a shut cover
+    ctx.globalCompositeOperation = 'lighter';
+    _amberRune(ctx, 0, 0, h * 0.52, 41, `rgba(${_AMBER_ROSE},0.85)`, 1.2);
+  }
+
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.restore();
+}
+
 // ── Cursor: an arcane focus, and circles that bloom where you click ──
 let _amberX = 0, _amberY = 0, _amberTargX = 0, _amberTargY = 0, _amberVX = 0, _amberVY = 0;
 let _amberTrail = [], _amberBlooms = [], _amberEmit = 0, _amberOverlayRafId = null;
 let _amberPath = [];       // recent cursor positions, stroked as a ribbon of light
+// her grimoire drifts alongside the focus and opens when she casts
+let _amberBookX = 0, _amberBookY = 0, _amberBookVX = 0, _amberBookVY = 0, _amberBookOpen = 0;
 
 function _amberMouseMove(e) { _amberTargX = e.clientX; _amberTargY = e.clientY; }
 function _amberClick() {
+  _amberBookOpen = 1;                       // the grimoire falls open to cast
   // a summoning circle opens, turns once, and closes again
   _amberBlooms.push({ x: _amberX, y: _amberY, r: 10, life: 1, spin: Math.random() * 6.28,
     dir: Math.random() < 0.5 ? -1 : 1, n: 8 + Math.floor(Math.random() * 5) });
@@ -41218,6 +41395,19 @@ function _drawAmberOverlay(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
+  // the grimoire, drifting a little behind and above the focus
+  {
+    const bx = _amberX - 44, by = _amberY - 30 + Math.sin(t * 1.15) * 3.5;
+    const BS = 58, BD = 11;                 // a slower spring than the focus — it trails
+    _amberBookVX += ((bx - _amberBookX) * BS - _amberBookVX * BD) * dt;
+    _amberBookVY += ((by - _amberBookY) * BS - _amberBookVY * BD) * dt;
+    _amberBookX += _amberBookVX * dt; _amberBookY += _amberBookVY * dt;
+    _amberBookOpen = Math.max(0, _amberBookOpen - dt * 0.55);
+    const lean = Math.max(-0.4, Math.min(0.4, -_amberBookVX * 0.0016));
+    _amberDrawBook(ctx, _amberBookX, _amberBookY, 1.3,
+      Math.sin(t * 0.7) * 0.09 + lean, _amberBookOpen, t);
+  }
+
   // the focus itself: a warm core inside a slowly turning rune ring
   const pulse = 0.5 + 0.5 * Math.sin(t * 1.6);
   const cr = 9 + pulse * 1.6;
@@ -41262,8 +41452,11 @@ function _startAmberOverlay() {
   _amberX = _amberTargX = window.innerWidth * 0.5;
   _amberY = _amberTargY = window.innerHeight * 0.5;
   _amberVX = _amberVY = 0;
+  _amberBookX = _amberX - 44; _amberBookY = _amberY - 30;
+  _amberBookVX = _amberBookVY = 0; _amberBookOpen = 0;
   _amberTrail = []; _amberBlooms = []; _amberEmit = 0; _amberPath = [];
-  _amberGlyphs = []; _drawAmberFrame._lt = undefined; _drawAmberFrame._next = undefined;
+  _amberGlyphs = []; _amberCasts = [];
+  _drawAmberFrame._lt = undefined; _drawAmberFrame._next = undefined;
   window.addEventListener('mousemove', _amberMouseMove);
   window.addEventListener('click', _amberClick);
   const _arrow = document.getElementById('cursor');
