@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=65">
+  <link rel="stylesheet" href="style.css?v=66">
 </head>
 
 <body>
@@ -418,6 +418,20 @@
                 <input type="text" id="cv-info-owner" class="info-owner-input"
                        placeholder="Unknown" maxlength="48"
                        oninput="saveInfoField('owner', this.value)" />
+              </div>
+
+              <!-- SOUL -->
+              <div class="info-section">
+                <div class="info-section-hd">SOUL</div>
+                <div class="soul-band" onclick="openSoulEditor()" title="Click to edit this character's SOUL">
+                  <div class="soul-band-render" id="cv-soul-render"></div>
+                  <div class="soul-band-meta">
+                    <div class="info-tiny-label">SOUL TYPE</div>
+                    <div class="soul-band-name" id="cv-soul-name">Vessel</div>
+                    <div class="soul-band-desc" id="cv-soul-desc">SOLID</div>
+                    <button class="soul-band-btn" onclick="event.stopPropagation();openSoulEditor()">✎ EDIT SOUL</button>
+                  </div>
+                </div>
               </div>
 
               <!-- IDENTITY -->
@@ -1040,6 +1054,23 @@
     </div>
   </div>
 
+  <!-- SOUL EDITOR MODAL -->
+  <div id="soul-modal-overlay" onclick="closeSoulEditor()"></div>
+  <div id="soul-modal">
+    <div id="soul-modal-header">
+      <span>SOUL</span>
+      <button class="btn-info" onclick="closeSoulEditor()">✕</button>
+    </div>
+    <div id="soul-modal-body">
+      <div id="soul-stage">
+        <div id="soul-preview"></div>
+        <div id="soul-stage-name">Vessel</div>
+        <div id="soul-stage-desc">SOLID</div>
+      </div>
+      <div id="soul-controls"></div>
+    </div>
+  </div>
+
   <!-- POWER LEVEL MODAL -->
   <div id="power-modal-overlay" onclick="closePowerModal()"></div>
   <div id="power-modal">
@@ -1273,7 +1304,7 @@
   <input type="file" id="voiceclaim-file-input" accept="audio/*" style="display:none;" onchange="onVoiceClaimFileSelected(this)">
 
   <script src="traits.js?v=1"></script>
-  <script src="script.js?v=94"></script>
+  <script src="script.js?v=95"></script>
 
   <!-- ── Character Chat Modal ────────────────────────────── -->
   <div id="char-chat-overlay" onclick="closeCharChat()"></div>

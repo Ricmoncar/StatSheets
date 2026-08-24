@@ -31996,7 +31996,8 @@ function viewChar(id) {
       wrap.dataset.mode = 'edit';
     }
   });
-  // Render media link rows
+  // Render soul + media link rows
+  renderSoul();
   renderInfoLinks('soundtrack');
   renderInfoLinks('voiceclaims');
   // Owner subtitle in stats tab
@@ -40690,4 +40691,492 @@ function toggleMobileToC() {
     if (open) backdrop.classList.add('open');
     else      backdrop.classList.remove('open');
   }
+}
+
+// ============================================================
+// INFO TAB — SOUL
+// Undertale-style pixel soul with layered, composable options:
+// fill mode, inner soul, outline, crack, glow, pulse, monster flip.
+// Every option is independent — they all stack.
+// ============================================================
+
+// Classic 40x36 pixel-heart geometry (same shape as the empty-state heart)
+const SOUL_ROWS = [
+  [4, 0, 12, 4], [24, 0, 12, 4],
+  [0, 4, 18, 4], [22, 4, 18, 4],
+  [0, 8, 40, 4],
+  [0, 12, 40, 4],
+  [2, 16, 36, 4],
+  [4, 20, 32, 4],
+  [8, 24, 24, 4],
+  [12, 28, 16, 4],
+  [16, 32, 8, 4]
+];
+// Area centroid of the shape — scaling about this keeps layers visually concentric
+const SOUL_CX = 20, SOUL_CY = 15.44;
+
+const SOUL_DEFAULT = {
+  name: 'Vessel',
+  // body
+  fill: 'solid',            // solid | split | gradient | stripes | checker
+  color: '#9e9e9e',
+  color2: '#ffffff',
+  angle: 0,
+  // soul-inside-a-soul
+  inner: false,
+  innerFill: 'solid',
+  innerColor: '#ffffff',
+  innerColor2: '#9e9e9e',
+  innerAngle: 0,
+  innerSize: 0.45,
+  // outline
+  outline: false,
+  outlineColor: '#000000',
+  outlineWidth: 2,
+  // extras
+  cracked: false,
+  crackColor: '#000000',
+  crackSpread: 45,          // how far the shards drift apart
+  monster: false,           // upside-down monster soul
+  glow: 12,
+  pulse: false
+};
+
+const SOUL_FILL_MODES = [
+  ['solid', 'SOLID'], ['split', 'SPLIT'], ['gradient', 'BLEND'],
+  ['stripes', 'STRIPES'], ['checker', 'CHECKER']
+];
+
+const SOUL_PRESETS = [
+  { name: 'Vessel', color: '#9e9e9e', monster: false },
+  { name: 'Determination', color: '#ff0000', monster: false },
+  { name: 'Bravery', color: '#ff8000', monster: false },
+  { name: 'Justice', color: '#ffff00', monster: false },
+  { name: 'Kindness', color: '#00c000', monster: false },
+  { name: 'Patience', color: '#00ffff', monster: false },
+  { name: 'Integrity', color: '#0000ff', monster: false },
+  { name: 'Perseverance', color: '#d400d4', monster: false },
+  { name: 'Monster', color: '#ffffff', monster: true }
+];
+
+let _soulUid = 0;
+let _soulSaveTimer = null;
+let _soulDirty = false;
+
+// Read-only view of a character's soul, with defaults filled in
+function _soulOf(c) {
+  return Object.assign({}, SOUL_DEFAULT, (c && c.info && c.info.soul) || {});
+}
+
+// Live, writable soul for the character being viewed (materializes defaults)
+function _soulCurrent() {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return null;
+  c.info = c.info || {};
+  c.info.soul = Object.assign({}, SOUL_DEFAULT, c.info.soul || {});
+  return c.info.soul;
+}
+
+// ── SVG builder ──────────────────────────────────────────────
+function _soulRects() {
+  return SOUL_ROWS.map(r => `<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}"/>`).join('');
+}
+
+// Returns a paint value ("#rgb" or "url(#id)") and pushes any needed <defs>
+function _soulPaint(defs, id, mode, a, b, angle) {
+  a = a || '#000000'; b = b || '#000000';
+  const ang = Number(angle) || 0;
+  const rot = `gradientTransform="rotate(${ang} 0.5 0.5)"`;
+  if (mode === 'split') {
+    defs.push(`<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0" ${rot}>` +
+      `<stop offset="50%" stop-color="${a}"/><stop offset="50%" stop-color="${b}"/></linearGradient>`);
+  } else if (mode === 'gradient') {
+    defs.push(`<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0" ${rot}>` +
+      `<stop offset="0%" stop-color="${a}"/><stop offset="100%" stop-color="${b}"/></linearGradient>`);
+  } else if (mode === 'stripes') {
+    defs.push(`<linearGradient id="${id}" x1="0" y1="0" x2="0.2" y2="0" spreadMethod="repeat" ${rot}>` +
+      `<stop offset="0%" stop-color="${a}"/><stop offset="50%" stop-color="${a}"/>` +
+      `<stop offset="50%" stop-color="${b}"/><stop offset="100%" stop-color="${b}"/></linearGradient>`);
+  } else if (mode === 'checker') {
+    defs.push(`<pattern id="${id}" width="8" height="8" patternUnits="userSpaceOnUse">` +
+      `<rect width="8" height="8" fill="${a}"/>` +
+      `<rect width="4" height="4" fill="${b}"/><rect x="4" y="4" width="4" height="4" fill="${b}"/></pattern>`);
+  } else {
+    return a;   // solid
+  }
+  return `url(#${id})`;
+}
+
+// Fracture pattern for a shattered soul: five shards radiating from an
+// off-centre impact point. Each boundary zig-zags twice on its way out so the
+// breaks read as fractures instead of pie slices. Hand-tuned, not random —
+// the same soul always shatters the same way.
+const SOUL_FRACTURE = {
+  origin: [18, 13],
+  reach: 48,
+  rays: [
+    { a: -74, j1:  2.4, j2: -1.7 },
+    { a:  -6, j1: -2.7, j2:  2.1 },
+    { a:  58, j1:  1.9, j2: -2.5 },
+    { a: 128, j1: -2.1, j2:  1.6 },
+    { a: 199, j1:  2.5, j2: -1.9 }
+  ],
+  // per-shard twist, multiplied by spread — opens each gap towards the rim
+  twist: [1.4, -1.1, 0.9, -1.5, 1.2]
+};
+
+// Returns [{ points, tf }] — a polygon per shard plus the transform that
+// nudges it away from the impact point by `spread` user units.
+function _soulShards(spread) {
+  const [ox, oy] = SOUL_FRACTURE.origin;
+  const rays = SOUL_FRACTURE.rays, R = SOUL_FRACTURE.reach;
+  // point at angle `a`, distance `r` from origin, pushed `off` sideways
+  const pt = (a, r, off) => {
+    const rad = a * Math.PI / 180, dx = Math.cos(rad), dy = Math.sin(rad);
+    return [ox + dx * r - dy * off, oy + dy * r + dx * off];
+  };
+  const spine = rays.map(r => [pt(r.a, 7.5, r.j1), pt(r.a, 16, r.j2), pt(r.a, R, 0)]);
+
+  return rays.map((ray, i) => {
+    const n = (i + 1) % rays.length;
+    const a0 = ray.a;
+    let a1 = rays[n].a;
+    while (a1 <= a0) a1 += 360;
+    // sample the far arc so consecutive shards butt together with no gap
+    const steps = Math.max(2, Math.ceil((a1 - a0) / 30));
+    const arc = [];
+    for (let k = 1; k < steps; k++) arc.push(pt(a0 + (a1 - a0) * k / steps, R, 0));
+
+    const poly = [[ox, oy], ...spine[i], ...arc, ...spine[n].slice().reverse()];
+    const mid = (a0 + a1) / 2 * Math.PI / 180;
+    return {
+      points: poly.map(p => p[0].toFixed(2) + ',' + p[1].toFixed(2)).join(' '),
+      tf: `translate(${(Math.cos(mid) * spread).toFixed(2)} ${(Math.sin(mid) * spread).toFixed(2)}) ` +
+        `rotate(${(SOUL_FRACTURE.twist[i] * spread * 0.8).toFixed(2)} ${ox} ${oy})`
+    };
+  });
+}
+
+function buildSoulSVG(soul, px) {
+  const uid = 's' + (++_soulUid);
+  const clipId = 'soulclip-' + uid;
+  const rects = _soulRects();
+  const defs = [`<clipPath id="${clipId}">${rects}</clipPath>`];
+
+  // The soul's own paint: body plus the nested soul, if any. Kept as one
+  // fragment so a shattered soul breaks every layer along the same lines.
+  const bodyPaint = _soulPaint(defs, 'soulbody-' + uid, soul.fill, soul.color, soul.color2, soul.angle);
+  let contents = `<rect x="0" y="0" width="40" height="36" fill="${bodyPaint}" clip-path="url(#${clipId})"/>`;
+
+  // Soul inside the soul — the clip scales with the group, so it stays heart-shaped
+  if (soul.inner) {
+    const innerPaint = _soulPaint(defs, 'soulinner-' + uid, soul.innerFill, soul.innerColor, soul.innerColor2, soul.innerAngle);
+    const sc = Math.max(0.15, Math.min(0.85, Number(soul.innerSize) || 0.45));
+    contents += `<g transform="translate(${SOUL_CX} ${SOUL_CY}) scale(${sc}) translate(${-SOUL_CX} ${-SOUL_CY})">` +
+      `<rect x="0" y="0" width="40" height="36" fill="${innerPaint}" clip-path="url(#${clipId})"/></g>`;
+  }
+
+  // Outline — the same shape scaled up, sitting behind the paint
+  const outlineLayer = soul.outline
+    ? `<g transform="translate(${SOUL_CX} ${SOUL_CY}) ` +
+      `scale(${(1 + (Number(soul.outlineWidth) || 2) * 0.028).toFixed(4)}) ` +
+      `translate(${-SOUL_CX} ${-SOUL_CY})" fill="${soul.outlineColor}">${rects}</g>`
+    : '';
+
+  let body = '';
+
+  if (soul.cracked) {
+    // Shattered: the shape is cut into shards that drift apart along the
+    // fracture lines, each carrying its own outline so the pieces stay whole.
+    // A plate of crack colour sits behind them all, so the widening gaps read
+    // as fractures rather than holes punched through to the background.
+    const spread = 0.15 + Math.max(0, Math.min(100, Number(soul.crackSpread ?? 45))) / 100 * 1.5;
+    body += `<rect x="0" y="0" width="40" height="36" fill="${soul.crackColor}" clip-path="url(#${clipId})"/>`;
+    _soulShards(spread).forEach((sh, i) => {
+      const sid = `soulshard-${uid}-${i}`;
+      defs.push(`<clipPath id="${sid}"><polygon points="${sh.points}"/></clipPath>`);
+      body += `<g transform="${sh.tf}"><g clip-path="url(#${sid})">${outlineLayer}${contents}</g></g>`;
+    });
+  } else {
+    body += outlineLayer + contents;
+  }
+
+  const glow = Math.max(0, Number(soul.glow) || 0);
+  const g1 = glow * px / 300;
+  const style = glow > 0
+    ? `filter:drop-shadow(0 0 ${g1.toFixed(2)}px ${soul.color}) drop-shadow(0 0 ${(g1 * 2).toFixed(2)}px ${soul.color});`
+    : '';
+  const spin = soul.monster ? ` transform="rotate(180 20 18)"` : '';
+
+  return `<svg class="soul-svg${soul.pulse ? ' beat' : ''}" viewBox="0 0 40 36" ` +
+    `width="${px}" height="${Math.round(px * 0.9)}" style="${style}" xmlns="http://www.w3.org/2000/svg">` +
+    `<defs>${defs.join('')}</defs><g${spin}>${body}</g></svg>`;
+}
+
+function _soulDesc(soul) {
+  const bits = [];
+  bits.push((SOUL_FILL_MODES.find(m => m[0] === soul.fill) || SOUL_FILL_MODES[0])[1]);
+  if (soul.inner) bits.push('NESTED');
+  if (soul.outline) bits.push('OUTLINED');
+  if (soul.cracked) bits.push('CRACKED');
+  if (soul.monster) bits.push('MONSTER');
+  return bits.join(' · ');
+}
+
+// ── Info-tab band ────────────────────────────────────────────
+function renderSoul() {
+  const host = document.getElementById('cv-soul-render');
+  if (!host) return;
+  const c = characters.find(x => x.id === currentId);
+  const soul = _soulOf(c);
+  host.innerHTML = buildSoulSVG(soul, 72);
+  const nameEl = document.getElementById('cv-soul-name');
+  if (nameEl) {
+    nameEl.textContent = soul.name || 'Vessel';
+    nameEl.style.color = soul.color;
+    nameEl.style.textShadow = `0 0 14px ${soul.color}`;
+  }
+  const descEl = document.getElementById('cv-soul-desc');
+  if (descEl) descEl.textContent = _soulDesc(soul);
+}
+
+// ── Editor ───────────────────────────────────────────────────
+function openSoulEditor() {
+  if (!characters.find(x => x.id === currentId)) return;
+  _soulCurrent();
+  buildSoulEditorBody();
+  document.getElementById('soul-modal-overlay').classList.add('open');
+  document.getElementById('soul-modal').classList.add('open');
+  document.addEventListener('keydown', _soulEscHandler);
+  playSound('characterclick', { volume: 0.5 });
+}
+
+function closeSoulEditor() {
+  document.getElementById('soul-modal-overlay').classList.remove('open');
+  document.getElementById('soul-modal').classList.remove('open');
+  document.removeEventListener('keydown', _soulEscHandler);
+  // Flush a pending debounced save. Opening the editor without touching
+  // anything must not write, so this only fires when something changed.
+  const c = characters.find(x => x.id === currentId);
+  if (c && _soulDirty) { clearTimeout(_soulSaveTimer); _soulDirty = false; saveData(c); }
+}
+
+function _soulEscHandler(e) { if (e.key === 'Escape') closeSoulEditor(); }
+
+function _soulPersist() {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  _soulDirty = true;
+  clearTimeout(_soulSaveTimer);
+  _soulSaveTimer = setTimeout(() => { _soulDirty = false; saveData(c); }, 600);
+}
+
+function soulSet(key, val) {
+  const s = _soulCurrent();
+  if (!s) return;
+  s[key] = val;
+  _soulSyncUI();
+  _soulPersist();
+}
+
+function soulToggle(key) {
+  const s = _soulCurrent();
+  if (!s) return;
+  s[key] = !s[key];
+  _soulSyncUI();
+  _soulPersist();
+  playSound('click', { volume: 0.35 });
+}
+
+function soulSetName(val) { soulSet('name', String(val).slice(0, 32)); }
+
+function soulPreset(idx) {
+  const p = SOUL_PRESETS[idx];
+  const s = _soulCurrent();
+  if (!p || !s) return;
+  s.name = p.name;
+  s.color = p.color;
+  s.monster = !!p.monster;
+  _soulSyncUI();
+  _soulPersist();
+  playSound('characterchange', { volume: 0.4 });
+}
+
+function soulReset() {
+  const c = characters.find(x => x.id === currentId);
+  if (!c) return;
+  c.info = c.info || {};
+  c.info.soul = Object.assign({}, SOUL_DEFAULT);
+  buildSoulEditorBody();
+  _soulPersist();
+  playSound('cancel', { volume: 0.5 });
+  notify('SOUL RESET', 'ok');
+}
+
+// Which conditional control rows are relevant for the current config
+function _soulWhen(s, when) {
+  const angled = m => m === 'split' || m === 'gradient' || m === 'stripes';
+  switch (when) {
+    case 'dual':       return s.fill !== 'solid';
+    case 'angle':      return angled(s.fill);
+    case 'inner':      return !!s.inner;
+    case 'innerdual':  return !!s.inner && s.innerFill !== 'solid';
+    case 'innerangle': return !!s.inner && angled(s.innerFill);
+    case 'outline':    return !!s.outline;
+    case 'cracked':    return !!s.cracked;
+    default:           return true;
+  }
+}
+
+function _soulNumLabel(key, val) {
+  if (key === 'angle' || key === 'innerAngle') return val + '°';
+  if (key === 'innerSize') return Math.round(val * 100) + '%';
+  return String(val);
+}
+
+// Re-paints previews and pushes state into the already-built controls.
+// Never rebuilds the DOM, so focus and in-progress drags survive.
+function _soulSyncUI() {
+  const s = _soulCurrent();
+  if (!s) return;
+
+  const pv = document.getElementById('soul-preview');
+  if (pv) pv.innerHTML = buildSoulSVG(s, 150);
+  const sn = document.getElementById('soul-stage-name');
+  if (sn) { sn.textContent = s.name || 'Vessel'; sn.style.color = s.color; sn.style.textShadow = `0 0 16px ${s.color}`; }
+  const sd = document.getElementById('soul-stage-desc');
+  if (sd) sd.textContent = _soulDesc(s);
+  renderSoul();
+
+  const root = document.getElementById('soul-controls');
+  if (!root) return;
+  root.querySelectorAll('[data-soul-dot]').forEach(el => { el.style.background = s[el.dataset.soulDot]; });
+  root.querySelectorAll('[data-soul-hex]').forEach(el => { el.textContent = String(s[el.dataset.soulHex]).toUpperCase(); });
+  root.querySelectorAll('[data-soul-num]').forEach(el => { el.textContent = _soulNumLabel(el.dataset.soulNum, s[el.dataset.soulNum]); });
+  root.querySelectorAll('[data-soul-group]').forEach(g => {
+    const k = g.dataset.soulGroup;
+    g.querySelectorAll('[data-soul-val]').forEach(b => b.classList.toggle('active', b.dataset.soulVal === s[k]));
+  });
+  root.querySelectorAll('[data-soul-toggle]').forEach(b => {
+    const on = !!s[b.dataset.soulToggle];
+    b.classList.toggle('on', on);
+    const box = b.querySelector('.soul-toggle-box');
+    if (box) box.textContent = on ? '✕' : '';
+  });
+  root.querySelectorAll('[data-soul-when]').forEach(el => {
+    el.classList.toggle('soul-hidden', !_soulWhen(s, el.dataset.soulWhen));
+  });
+  // Push values back into raw inputs (presets/reset change them), but never
+  // stomp the control the user is currently typing in or dragging.
+  root.querySelectorAll('[data-soul-input]').forEach(el => {
+    if (document.activeElement === el) return;
+    el.value = s[el.dataset.soulInput];
+  });
+}
+
+// ── Control markup helpers ───────────────────────────────────
+function _soulWheelCtl(label, key, val) {
+  return `<div class="soul-ctl">
+      <div class="soul-ctl-label">${label}</div>
+      <label class="soul-wheel">
+        <span class="soul-wheel-dot" data-soul-dot="${key}" style="background:${val}"></span>
+        <input type="color" value="${val}" data-soul-input="${key}" oninput="soulSet('${key}', this.value)"/>
+      </label>
+      <div class="soul-hex" data-soul-hex="${key}">${String(val).toUpperCase()}</div>
+    </div>`;
+}
+
+function _soulModesCtl(label, key, val, modes) {
+  return `<div class="soul-ctl soul-ctl-wide">
+      <div class="soul-ctl-label">${label}</div>
+      <div class="soul-btn-row" data-soul-group="${key}">${modes.map(m =>
+    `<button class="soul-mode-btn${val === m[0] ? ' active' : ''}" data-soul-val="${m[0]}" onclick="soulSet('${key}','${m[0]}')">${m[1]}</button>`
+  ).join('')}</div>
+    </div>`;
+}
+
+function _soulSliderCtl(label, key, val, min, max, step) {
+  return `<div class="soul-ctl soul-ctl-wide">
+      <div class="soul-ctl-label">${label} <span class="soul-num" data-soul-num="${key}">${_soulNumLabel(key, val)}</span></div>
+      <input type="range" min="${min}" max="${max}" step="${step}" value="${val}"
+             data-soul-input="${key}" oninput="soulSet('${key}', parseFloat(this.value))"/>
+    </div>`;
+}
+
+function _soulToggleCtl(label, key, val) {
+  return `<button class="soul-toggle${val ? ' on' : ''}" data-soul-toggle="${key}" onclick="soulToggle('${key}')">` +
+    `<span class="soul-toggle-box">${val ? '✕' : ''}</span>${label}</button>`;
+}
+
+function buildSoulEditorBody() {
+  const s = _soulCurrent();
+  const root = document.getElementById('soul-controls');
+  if (!s || !root) return;
+
+  const hide = w => _soulWhen(s, w) ? '' : ' soul-hidden';
+
+  root.innerHTML = `
+    <div class="soul-group">
+      <div class="soul-group-hd">NAME</div>
+      <input type="text" class="soul-name-input" maxlength="32" placeholder="Vessel"
+             value="${_esc(s.name)}" data-soul-input="name" oninput="soulSetName(this.value)"/>
+      <div class="soul-preset-row">${SOUL_PRESETS.map((p, i) =>
+    `<button class="soul-preset" onclick="soulPreset(${i})" title="${_esc(p.name)}">
+           <span class="soul-preset-dot${p.monster ? ' monster' : ''}" style="background:${p.color}"></span>${_esc(p.name).toUpperCase()}
+         </button>`).join('')}</div>
+    </div>
+
+    <div class="soul-group">
+      <div class="soul-group-hd">BODY</div>
+      ${_soulModesCtl('FILL STYLE', 'fill', s.fill, SOUL_FILL_MODES)}
+      <div class="soul-ctl-row">
+        ${_soulWheelCtl('COLOR', 'color', s.color)}
+        <div data-soul-when="dual" class="soul-cond${hide('dual')}">${_soulWheelCtl('SECOND COLOR', 'color2', s.color2)}</div>
+      </div>
+      <div data-soul-when="angle" class="soul-cond${hide('angle')}">
+        ${_soulSliderCtl('ANGLE', 'angle', s.angle, 0, 360, 15)}
+      </div>
+    </div>
+
+    <div class="soul-group">
+      <div class="soul-group-hd">SOUL WITHIN</div>
+      ${_soulToggleCtl('NESTED SOUL', 'inner', s.inner)}
+      <div data-soul-when="inner" class="soul-cond${hide('inner')}">
+        ${_soulModesCtl('INNER FILL', 'innerFill', s.innerFill, SOUL_FILL_MODES)}
+        <div class="soul-ctl-row">
+          ${_soulWheelCtl('INNER COLOR', 'innerColor', s.innerColor)}
+          <div data-soul-when="innerdual" class="soul-cond${hide('innerdual')}">${_soulWheelCtl('INNER SECOND', 'innerColor2', s.innerColor2)}</div>
+        </div>
+        <div data-soul-when="innerangle" class="soul-cond${hide('innerangle')}">
+          ${_soulSliderCtl('INNER ANGLE', 'innerAngle', s.innerAngle, 0, 360, 15)}
+        </div>
+        ${_soulSliderCtl('INNER SIZE', 'innerSize', s.innerSize, 0.15, 0.85, 0.05)}
+      </div>
+    </div>
+
+    <div class="soul-group">
+      <div class="soul-group-hd">OUTLINE</div>
+      ${_soulToggleCtl('OUTLINED SOUL', 'outline', s.outline)}
+      <div data-soul-when="outline" class="soul-cond${hide('outline')}">
+        <div class="soul-ctl-row">${_soulWheelCtl('OUTLINE COLOR', 'outlineColor', s.outlineColor)}</div>
+        ${_soulSliderCtl('THICKNESS', 'outlineWidth', s.outlineWidth, 1, 6, 1)}
+      </div>
+    </div>
+
+    <div class="soul-group soul-group-last">
+      <div class="soul-group-hd">NATURE</div>
+      <div class="soul-toggle-row">
+        ${_soulToggleCtl('MONSTER SOUL (UPSIDE DOWN)', 'monster', s.monster)}
+        ${_soulToggleCtl('CRACKED', 'cracked', s.cracked)}
+        ${_soulToggleCtl('HEARTBEAT', 'pulse', s.pulse)}
+      </div>
+      <div data-soul-when="cracked" class="soul-cond${hide('cracked')}">
+        <div class="soul-ctl-row">${_soulWheelCtl('CRACK COLOR', 'crackColor', s.crackColor)}</div>
+        ${_soulSliderCtl('SHATTER', 'crackSpread', s.crackSpread, 0, 100, 5)}
+      </div>
+      ${_soulSliderCtl('GLOW', 'glow', s.glow, 0, 40, 1)}
+      <button class="soul-reset-btn" onclick="soulReset()">RESET TO VESSEL</button>
+    </div>`;
+
+  _soulSyncUI();
 }
