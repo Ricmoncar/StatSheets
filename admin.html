@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>ADMIN — STATSHEETS</title>
+<title>ADMIN: STATSHEETS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
@@ -359,7 +359,7 @@ let _pending = null;
 let _hasUnsavedChanges = false;
 
 // ════════════════════════════════════════════════════════════
-// AUTH — btoa('maxshimmy') === 'bWF4c2hpbW15'
+// AUTH: btoa('maxshimmy') === 'bWF4c2hpbW15'
 // ════════════════════════════════════════════════════════════
 (function bootstrap() {
   if (sessionStorage.getItem('_adm') === '1') unlock();
@@ -695,7 +695,7 @@ function _doRemoveAll(key, statusId) {
 
 function wipeAllEveryone() {
   if (!confirm(`⚠ WIPE ALL TRAITS FROM ALL ${characters.length} CHARACTERS?`)) return;
-  if (!confirm('SECOND CONFIRMATION — THIS CANNOT BE UNDONE.')) return;
+  if (!confirm('SECOND CONFIRMATION: THIS CANNOT BE UNDONE.')) return;
   const updates = characters.map(c => {
     const u = JSON.parse(JSON.stringify(c));
     u.traits = [];
@@ -722,10 +722,10 @@ function renderOverview() {
     const s = c.stats || {};
     const traitHtml = traits.length
       ? traits.map(k => `<span class="chip${shimmy.includes(k) ? ' shimmy' : ''}" style="margin:2px 2px;">${_esc(k)}${shimmy.includes(k) ? ' ✦' : ''}</span>`).join('')
-      : '<span style="color:#252525;">—</span>';
+      : '<span style="color:#252525;">-</span>';
     const shimHtml = shimmy.length
       ? shimmy.map(k => `<span style="color:var(--shimmy);font-size:8px;">${_esc(k)}</span>`).join('<span style="color:#333;"> · </span>')
-      : '<span style="color:#252525;">—</span>';
+      : '<span style="color:#252525;">-</span>';
     const statsHtml = `<span class="stat-color-hp">${s.hp||0}</span><span style="color:#333;"> / </span><span class="stat-color-atk">${s.atk||0}</span><span style="color:#333;"> / </span><span class="stat-color-def">${s.def||0}</span><span style="color:#333;"> / </span><span class="stat-color-mag">${s.mag||0}</span><span style="color:#333;"> / </span><span class="stat-color-spd">${s.spd||0}</span>`;
     return `<tr>
       <td style="white-space:nowrap;">

@@ -501,7 +501,7 @@ function genId() { return Date.now().toString(36) + Math.random().toString(36).s
 // Progressively reduces size until the base64 dataUrl fits
 // comfortably inside a Firestore document (< ~700KB string).
 // ============================================================
-const MAX_B64_LEN = 720000; // ~540KB actual data — leaves headroom for doc overhead
+const MAX_B64_LEN = 720000; // ~540KB actual data: leaves headroom for doc overhead
 
 function resizeAndCompress(file, maxDim, quality) {
   return new Promise((resolve, reject) => {
@@ -543,7 +543,7 @@ async function compressToFit(file) {
     const dataUrl = await resizeAndCompress(file, dim, q);
     if (dataUrl.length <= MAX_B64_LEN) return dataUrl;
   }
-  // Last resort — very small
+  // Last resort: very small
   return resizeAndCompress(file, 380, 0.28);
 }
 
@@ -696,7 +696,7 @@ async function uploadFiles(files) {
       notify('IMAGE ADDED!', 'ok');
     } catch(e) {
       console.error('upload error:', e);
-      notify(`${valid[i].name}: FAILED — ${e.message}`, 'err');
+      notify(`${valid[i].name}: FAILED, ${e.message}`, 'err');
     }
     await delay(180); // let the bar flash 100% briefly
     setProgress(false, 0);

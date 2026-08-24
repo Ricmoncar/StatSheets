@@ -32,7 +32,7 @@ html, body {
   cursor: none;
 }
 
-/* CUSTOM CURSOR — Undertale arrow */
+/* CUSTOM CURSOR: Undertale arrow */
 #cursor {
   position: fixed; top: 0; left: 0;
   width: 20px; height: 20px;
@@ -339,7 +339,7 @@ body::before {
 .field select { cursor: none; }
 .field select option { background: #111; color: #fff; }
 
-/* RANGE — shared between .field and .form-stat-block */
+/* RANGE: shared between .field and .form-stat-block */
 .field input[type=range],
 .form-stat-block input[type=range] {
   -webkit-appearance: none;
@@ -455,7 +455,7 @@ input[type=number] { -moz-appearance: textfield; }
 }
 .stat-num-input:focus { border-color: #555; }
 
-/* STAT BARS — SEGMENTED PIXEL STYLE */
+/* STAT BARS: SEGMENTED PIXEL STYLE */
 .stat-row {
   display: grid;
   grid-template-columns: 86px 1fr 80px;
@@ -518,7 +518,7 @@ input[type=number] { -moz-appearance: textfield; }
   to { transform: scaleY(1.3); filter: brightness(calc(1.1 + var(--i) * 0.04)); }
 }
 
-/* NARA — always show a rainbow sheen over her filled stat bars, layered on
+/* NARA: always show a rainbow sheen over her filled stat bars, layered on
    top of whatever tier coloring would normally apply underneath. */
 @keyframes naraStatRbw {
   0%   { background-position: 0% 50%; }
@@ -539,7 +539,7 @@ input[type=number] { -moz-appearance: textfield; }
   pointer-events: none;
 }
 
-/* NARA! · BLUE form — the rainbow chrome becomes a gradient of blues, and the
+/* NARA! · BLUE form: the rainbow chrome becomes a gradient of blues, and the
    panels go translucent so the ocean scene shows through behind them. */
 @keyframes naraBlueText   { 0%{color:#bfe9ff} 25%{color:#79c4ff} 50%{color:#3f8dff} 75%{color:#6fd8ff} 100%{color:#bfe9ff} }
 @keyframes naraBlueBorder { 0%{border-color:#bfe9ff} 25%{border-color:#79c4ff} 50%{border-color:#3f8dff} 75%{border-color:#6fd8ff} 100%{border-color:#bfe9ff} }
@@ -561,7 +561,7 @@ input[type=number] { -moz-appearance: textfield; }
 }
 #char-view.nara-blue .panel-title { color: #9fe0ff !important; text-shadow: 0 0 10px rgba(80,190,255,0.8); }
 
-/* NARA! · WHITE form — angel of judgement: white/gold chrome. */
+/* NARA! · WHITE form, angel of judgement: white/gold chrome. */
 @keyframes naraWhiteText   { 0%{color:#fffbe8} 50%{color:#f2d67a} 100%{color:#fffbe8} }
 @keyframes naraWhiteBorder { 0%{border-color:#fffbe8} 50%{border-color:#e6c24a} 100%{border-color:#fffbe8} }
 @keyframes naraWhiteBg     { 0%{background-color:#fffbe8} 50%{background-color:#f2d67a} 100%{background-color:#fffbe8} }
@@ -590,7 +590,7 @@ input[type=number] { -moz-appearance: textfield; }
   text-shadow: 0 0 12px rgba(255,240,190,0.95), 0 0 30px rgba(230,190,80,0.65), 0 2px 0 rgba(40,28,8,0.7);
 }
 
-/* NARA! · Green!! form — light green / teal chrome over the dream-space. */
+/* NARA! · Green!! form: light green / teal chrome over the dream-space. */
 @keyframes naraGreenText   { 0%{color:#b8ffd9} 33%{color:#5ee6b8} 66%{color:#4ecfd9} 100%{color:#b8ffd9} }
 @keyframes naraGreenBorder { 0%{border-color:#b8ffd9} 33%{border-color:#3ecf9a} 66%{border-color:#3db8c9} 100%{border-color:#b8ffd9} }
 @keyframes naraGreenBg     { 0%{background-color:#b8ffd9} 33%{background-color:#5ee6b8} 66%{background-color:#4ecfd9} 100%{background-color:#b8ffd9} }
@@ -617,7 +617,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.on.mag  { background: #aa11aa; border-color: #880088; }
 .stat-seg.on.spd  { background: #bbbb00; border-color: #999900; }
 .stat-seg.on.iq   { background: #00cc99; border-color: #00aa77; }
-/* Peak tip — Tier 0 */
+/* Peak tip: Tier 0 */
 .stat-seg.peak.hp   { background: #00ff88; border-color: #00ffaa; box-shadow: 0 0 6px #00ff8899; }
 .stat-seg.peak.atk  { background: #ff4444; border-color: #ff7777; box-shadow: 0 0 6px #ff333399; }
 .stat-seg.peak.def  { background: #3377ff; border-color: #66aaff; box-shadow: 0 0 6px #3377ff99; }
@@ -626,7 +626,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.peak.iq   { background: #00ffcc; border-color: #aaffee; box-shadow: 0 0 6px #00ffcc99; }
 .stat-seg.ghost.iq  { background: transparent; border-color: #00cc9933; }
 
-/* === TIER 1 — hue-shifted: green→lime, red→orange, blue→sky, purple→violet, yellow→amber === */
+/* === TIER 1, hue-shifted: green→lime, red→orange, blue→sky, purple→violet, yellow→amber === */
 .stat-seg.on.hp.tier-1   { background: #66ee00; border-color: #55cc00; }
 .stat-seg.on.atk.tier-1  { background: #ff6600; border-color: #dd5500; }
 .stat-seg.on.def.tier-1  { background: #00aaee; border-color: #0088cc; }
@@ -652,7 +652,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.tier-2.mag   { background: #110022; border-color: #1a0033; }
 .stat-seg.ghost.tier-2.spd   { background: #221a00; border-color: #332200; }
 
-/* === TIER 2 — further hue-shifted: lime→teal, orange→pink-red, sky→cyan, violet→magenta, amber→gold === */
+/* === TIER 2, further hue-shifted: lime→teal, orange→pink-red, sky→cyan, violet→magenta, amber→gold === */
 .stat-seg.on.hp.tier-2   { background: #00ddcc; border-color: #00bbaa; }
 .stat-seg.on.atk.tier-2  { background: #ff1177; border-color: #cc0055; }
 .stat-seg.on.def.tier-2  { background: #00eeff; border-color: #00ccdd; }
@@ -672,7 +672,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-2   { background: #22001a; border-color: #330022; }
 .stat-seg.ghost.spd.tier-2   { background: #1a1500; border-color: #2a2200; }
 
-/* === TIER 3 — ATK is Bordeaux, others continue the shift === */
+/* === TIER 3: ATK is Bordeaux, others continue the shift === */
 .stat-seg.on.hp.tier-3   { background: #00ccff; border-color: #00aaaa; }
 .stat-seg.on.atk.tier-3  { background: #800020; border-color: #600018; } /* BORDEAUX */
 .stat-seg.on.def.tier-3  { background: #4444ff; border-color: #3333cc; }
@@ -686,7 +686,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.peak.spd.tier-3 { background: #ffcc33; border-color: #ffee77; box-shadow: 0 0 12px #ffaa00; }
 .stat-seg.peak.iq.tier-3  { background: #44ddff; border-color: #aaeeff; box-shadow: 0 0 12px #00bbff; }
 
-/* === TIER 4 — REFINED (Deeper, richer base colors with warmth) === */
+/* === TIER 4: REFINED (Deeper, richer base colors with warmth) === */
 .stat-seg.on.hp.tier-4   { background: #007744; border-color: #00bb66; }
 .stat-seg.on.atk.tier-4  { background: #991122; border-color: #cc2233; }
 .stat-seg.on.def.tier-4  { background: #113388; border-color: #2255bb; }
@@ -705,7 +705,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-4   { background: #150022; border-color: #220033; }
 .stat-seg.ghost.spd.tier-4   { background: #1a1400; border-color: #2a2000; }
 
-/* === TIER 5 — VIVID (Luminous gem-adjacent hues) === */
+/* === TIER 5: VIVID (Luminous gem-adjacent hues) === */
 .stat-seg.on.hp.tier-5   { background: #00bb55; border-color: #00ee77; }
 .stat-seg.on.atk.tier-5  { background: #cc1133; border-color: #ff3355; }
 .stat-seg.on.def.tier-5  { background: #1155cc; border-color: #3388ff; }
@@ -724,7 +724,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-5   { background: #1a0033; border-color: #280044; }
 .stat-seg.ghost.spd.tier-5   { background: #221a00; border-color: #332800; }
 
-/* === TIER 6 — LUSTROUS (Polished, softly radiant metallic feel) === */
+/* === TIER 6: LUSTROUS (Polished, softly radiant metallic feel) === */
 .stat-seg.on.hp.tier-6   { background: #00cc66; border-color: #44ffaa; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
 .stat-seg.on.atk.tier-6  { background: #ee1144; border-color: #ff5577; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
 .stat-seg.on.def.tier-6  { background: #2266ee; border-color: #66aaff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
@@ -743,7 +743,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-6   { background: #1f0033; border-color: #2e004d; }
 .stat-seg.ghost.spd.tier-6   { background: #2a2200; border-color: #3d3200; }
 
-/* === TIER 7 — DIGITAL / MATRIX (neon cyber overload) === */
+/* === TIER 7: DIGITAL / MATRIX (neon cyber overload) === */
 .stat-seg.on.hp.tier-7   { background: #003300; border-color: #00ff41; }
 .stat-seg.on.atk.tier-7  { background: #330000; border-color: #ff2244; }
 .stat-seg.on.def.tier-7  { background: #000033; border-color: #00aaff; }
@@ -757,7 +757,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.peak.spd.tier-7 { background: #332200; border-color: #ffee77; box-shadow: 0 0 12px #ffcc00, 0 0 24px rgba(255,204,0,0.5); }
 .stat-seg.peak.iq.tier-7  { background: #003344; border-color: #66ffff; box-shadow: 0 0 12px #00eeff, 0 0 24px rgba(0,238,255,0.5); }
 
-/* === TIER 5 — PLASMA === */
+/* === TIER 5: PLASMA === */
 .stat-seg.on.hp.tier-8   { background: #ff00aa; border-color: #cc0088; }
 .stat-seg.on.atk.tier-8  { background: #ff6600; border-color: #dd4400; }
 .stat-seg.on.def.tier-8  { background: #00ffcc; border-color: #00ddaa; }
@@ -776,7 +776,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-8   { background: #220022; border-color: #330033; }
 .stat-seg.ghost.spd.tier-8   { background: #221a00; border-color: #332a00; }
 
-/* === TIER 6 — VOID (Dark energy, inset glow) === */
+/* === TIER 6: VOID (Dark energy, inset glow) === */
 .stat-seg.on.hp.tier-9   { background: #003344; border-color: #00ccff; box-shadow: inset 0 0 8px #00ccff; }
 .stat-seg.on.atk.tier-9  { background: #440000; border-color: #ff0000; box-shadow: inset 0 0 8px #ff0000; }
 .stat-seg.on.def.tier-9  { background: #001133; border-color: #0088ff; box-shadow: inset 0 0 8px #0088ff; }
@@ -795,7 +795,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-9   { background: #1a0022; border-color: #280033; }
 .stat-seg.ghost.spd.tier-9   { background: #1a1a00; border-color: #282800; }
 
-/* === TIER 7 — CELESTIAL (Prismatic gradient aurora) === */
+/* === TIER 7: CELESTIAL (Prismatic gradient aurora) === */
 .stat-seg.on.hp.tier-10   { background: linear-gradient(135deg, #00ff88, #00ccff); border-color: #00ffcc; }
 .stat-seg.on.atk.tier-10  { background: linear-gradient(135deg, #ff0000, #ff8800); border-color: #ff4400; }
 .stat-seg.on.def.tier-10  { background: linear-gradient(135deg, #0088ff, #cc00ff); border-color: #6644ff; }
@@ -814,7 +814,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-10   { background: #1a001a; border-color: #2a002a; }
 .stat-seg.ghost.spd.tier-10   { background: #1a1a00; border-color: #2a2a00; }
 
-/* === TIER 8 — TRANSCENDENT (God-tier, animated breathing glow) === */
+/* === TIER 8: TRANSCENDENT (God-tier, animated breathing glow) === */
 .stat-seg.on.hp.tier-11   { background: #ffffff; border-color: #aaffdd; box-shadow: 0 0 8px #00ff88; }
 .stat-seg.on.atk.tier-11  { background: #ffffff; border-color: #ffccaa; box-shadow: 0 0 8px #ff4400; }
 .stat-seg.on.def.tier-11  { background: #ffffff; border-color: #aaccff; box-shadow: 0 0 8px #0088ff; }
@@ -834,7 +834,7 @@ input[type=number] { -moz-appearance: textfield; }
 @keyframes seg-pulse-spd { from{box-shadow:0 0 20px #fff,0 0 40px #ffff00;} to{box-shadow:0 0 35px #fff,0 0 70px #ffff00,0 0 100px rgba(255,255,0,0.6);} }
 @keyframes seg-pulse-iq  { from{box-shadow:0 0 20px #fff,0 0 40px #00bbcc;} to{box-shadow:0 0 35px #fff,0 0 70px #00bbcc,0 0 100px rgba(0,187,204,0.6);} }
 
-/* === TIER 9 — INFERNAL (Lava / Magma / Embers) === */
+/* === TIER 9: INFERNAL (Lava / Magma / Embers) === */
 .stat-seg.on.hp.tier-12   { background: #ff2200; border-color: #ff5500; box-shadow: inset 0 0 10px #aa1100; }
 .stat-seg.on.atk.tier-12  { background: #dd0000; border-color: #ff1100; box-shadow: inset 0 0 10px #880000; }
 .stat-seg.on.def.tier-12  { background: #ffaa00; border-color: #ffcc00; box-shadow: inset 0 0 10px #aa6600; }
@@ -853,7 +853,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-12   { background: #220011; border-color: #33001a; }
 .stat-seg.ghost.spd.tier-12   { background: #332a00; border-color: #443a00; }
 
-/* === TIER 10 — COSMIC (Deep Space Nebula) === */
+/* === TIER 10: COSMIC (Deep Space Nebula) === */
 .stat-seg.on.hp.tier-13   { background: #110044; border-color: #4400aa; box-shadow: 0 0 10px #4400aa; }
 .stat-seg.on.atk.tier-13  { background: #220033; border-color: #770088; box-shadow: 0 0 10px #770088; }
 .stat-seg.on.def.tier-13  { background: #001144; border-color: #0044bb; box-shadow: 0 0 10px #0044bb; }
@@ -872,7 +872,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-13   { background: #0a001a; border-color: #11002a; }
 .stat-seg.ghost.spd.tier-13   { background: #0a0a1a; border-color: #11112a; }
 
-/* === TIER 11 — CRYSTALLINE (Faceted Jewel Tones) === */
+/* === TIER 11: CRYSTALLINE (Faceted Jewel Tones) === */
 .stat-seg.on.hp.tier-14   { background: linear-gradient(180deg, #00ffa0, #006640); border-color: #00ffa0; border-top-color: #ffffff; }
 .stat-seg.on.atk.tier-14  { background: linear-gradient(180deg, #ff2255, #660011); border-color: #ff2255; border-top-color: #ffffff; }
 .stat-seg.on.def.tier-14  { background: linear-gradient(180deg, #22aaff, #003366); border-color: #22aaff; border-top-color: #ffffff; }
@@ -891,7 +891,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-14   { background: #22001a; border-color: #440033; }
 .stat-seg.ghost.spd.tier-14   { background: #221a00; border-color: #443300; }
 
-/* === TIER 15 — IRIDESCENT (Animated oil-slick color sweep — hues shift across the bar) === */
+/* === TIER 15: IRIDESCENT (Animated oil-slick color sweep: hues shift across the bar) === */
 @keyframes irid-sweep { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
 .stat-seg.on.hp.tier-15   { background:linear-gradient(90deg,#00ff88,#00ffcc,#0088ff,#aa00ff,#00ff88); background-size:400% 100%; animation:irid-sweep 3s linear infinite; border-color:#aaffee; }
 .stat-seg.on.atk.tier-15  { background:linear-gradient(90deg,#ff2244,#ff8800,#ffff00,#ff00aa,#ff2244); background-size:400% 100%; animation:irid-sweep 3s linear infinite; border-color:#ffaacc; }
@@ -911,7 +911,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-15   { background:#180018; border-color:#280028; }
 .stat-seg.ghost.spd.tier-15   { background:#1a1800; border-color:#2a2500; }
 
-/* === TIER 16 — CIRCUIT TRACE (Diagonal PCB-style stripe pattern — like circuit board traces) === */
+/* === TIER 16: CIRCUIT TRACE (Diagonal PCB-style stripe pattern: like circuit board traces) === */
 .stat-seg.on.hp.tier-16   { background:repeating-linear-gradient(45deg,#001a08 0px,#001a08 4px,#00cc55 4px,#00cc55 6px); border-color:#00cc55; }
 .stat-seg.on.atk.tier-16  { background:repeating-linear-gradient(45deg,#1a0500 0px,#1a0500 4px,#cc3300 4px,#cc3300 6px); border-color:#cc3300; }
 .stat-seg.on.def.tier-16  { background:repeating-linear-gradient(45deg,#000d22 0px,#000d22 4px,#0077dd 4px,#0077dd 6px); border-color:#0077dd; }
@@ -930,7 +930,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-16   { background:#0b001a; border-color:#150022; }
 .stat-seg.ghost.spd.tier-16   { background:#151100; border-color:#2a2200; }
 
-/* === TIER 17 — MOLTEN (Dark body, pulsing inner fire glow — like hot lava from below) === */
+/* === TIER 17: MOLTEN (Dark body, pulsing inner fire glow: like hot lava from below) === */
 @keyframes molten-hp  { 0%,100%{box-shadow:inset 0 0 6px #ff4400,0 0 8px #cc2200;}  50%{box-shadow:inset 0 0 14px #ff6600,0 0 20px #ff4400,0 0 32px rgba(255,68,0,0.4);} }
 @keyframes molten-atk { 0%,100%{box-shadow:inset 0 0 6px #ff0000,0 0 8px #aa0000;}  50%{box-shadow:inset 0 0 14px #ff3300,0 0 20px #ff0000,0 0 32px rgba(255,0,0,0.4);} }
 @keyframes molten-def { 0%,100%{box-shadow:inset 0 0 6px #ffaa00,0 0 8px #bb7700;}  50%{box-shadow:inset 0 0 14px #ffcc00,0 0 20px #ffaa00,0 0 32px rgba(255,170,0,0.4);} }
@@ -955,7 +955,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-17   { background:#0d0005; border-color:#220011; }
 .stat-seg.ghost.spd.tier-17   { background:#0d0d00; border-color:#222200; }
 
-/* === TIER 18 — HOLOGRAPHIC (All stats become an animated full-spectrum rainbow foil) === */
+/* === TIER 18: HOLOGRAPHIC (All stats become an animated full-spectrum rainbow foil) === */
 @keyframes holo-shift { 0%{background-position:0% 50%} 100%{background-position:300% 50%} }
 .stat-seg.on.hp.tier-18   { background:linear-gradient(45deg,#ff0000,#ff8800,#ffff00,#00ff88,#0088ff,#aa00ff,#ff0088,#ff0000); background-size:400% 100%; animation:holo-shift 3s linear infinite; border-color:rgba(255,255,255,0.5); }
 .stat-seg.on.atk.tier-18  { background:linear-gradient(55deg,#ff0088,#ff0000,#ff8800,#ffff00,#00ff88,#0088ff,#aa00ff,#ff0088); background-size:400% 100%; animation:holo-shift 3s linear infinite; border-color:rgba(255,255,255,0.5); }
@@ -975,7 +975,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-18   { background:#111111; border-color:#222222; }
 .stat-seg.ghost.spd.tier-18   { background:#111111; border-color:#222222; }
 
-/* === TIER 19 — PHANTOM (Near-transparent aura — bars feel immaterial, made of light) === */
+/* === TIER 19: PHANTOM (Near-transparent aura: bars feel immaterial, made of light) === */
 .stat-seg.on.hp.tier-19   { background:rgba(0,255,136,0.08); border-color:#00ff88; box-shadow:0 0 10px #00ff88,0 0 20px rgba(0,255,136,0.3); }
 .stat-seg.on.atk.tier-19  { background:rgba(255,34,68,0.08); border-color:#ff2244; box-shadow:0 0 10px #ff2244,0 0 20px rgba(255,34,68,0.3); }
 .stat-seg.on.def.tier-19  { background:rgba(0,136,255,0.08); border-color:#0088ff; box-shadow:0 0 10px #0088ff,0 0 20px rgba(0,136,255,0.3); }
@@ -994,7 +994,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-19   { background:rgba(204,0,255,0.03); border-color:rgba(204,0,255,0.15); }
 .stat-seg.ghost.spd.tier-19   { background:rgba(255,204,0,0.03); border-color:rgba(255,204,0,0.15); }
 
-/* === TIER 20 — GILDED (Metallic sheen — animated highlight sweeps across a deep metallic base) === */
+/* === TIER 20: GILDED (Metallic sheen: animated highlight sweeps across a deep metallic base) === */
 @keyframes gild-sweep { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 .stat-seg.on.hp.tier-20   { background:linear-gradient(90deg,#004422,#00aa44,#eeffcc,#00aa44,#004422); background-size:300% 100%; border-color:#aaffbb; animation:gild-sweep 3s ease-in-out infinite; }
 .stat-seg.on.atk.tier-20  { background:linear-gradient(90deg,#441100,#bb3300,#ffddbb,#bb3300,#441100); background-size:300% 100%; border-color:#ffccaa; animation:gild-sweep 3s ease-in-out infinite; }
@@ -1014,7 +1014,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-20   { background:#1a0022; border-color:#2e003d; }
 .stat-seg.ghost.spd.tier-20   { background:#221100; border-color:#3d2200; }
 
-/* === TIER 21 — TOXIC (Corrosive acid — all stats corrupted into a sickly poison green) === */
+/* === TIER 21: TOXIC (Corrosive acid: all stats corrupted into a sickly poison green) === */
 .stat-seg.on.hp.tier-21   { background:linear-gradient(180deg,#001a00,#003300,#00aa00); border-color:#00ff22; box-shadow:inset 0 0 8px #00ff22,0 0 6px #00aa00; }
 .stat-seg.on.atk.tier-21  { background:linear-gradient(180deg,#001a00,#003300,#77cc00); border-color:#aaff00; box-shadow:inset 0 0 8px #aaff00,0 0 6px #77cc00; }
 .stat-seg.on.def.tier-21  { background:linear-gradient(180deg,#001100,#003300,#22aa44); border-color:#55ff44; box-shadow:inset 0 0 8px #55ff44,0 0 6px #22aa44; }
@@ -1033,7 +1033,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-21   { background:#111100; border-color:#222200; }
 .stat-seg.ghost.spd.tier-21   { background:#001100; border-color:#002211; }
 
-/* === TIER 22 — SCANLINES (Fine CRT horizontal banding — like looking at an old monitor) === */
+/* === TIER 22: SCANLINES (Fine CRT horizontal banding: like looking at an old monitor) === */
 .stat-seg.on.hp.tier-22   { background:repeating-linear-gradient(0deg,#00ff88 0px,#00ff88 1px,#006633 1px,#006633 4px); border-color:#00ff88; }
 .stat-seg.on.atk.tier-22  { background:repeating-linear-gradient(0deg,#ff4400 0px,#ff4400 1px,#660000 1px,#660000 4px); border-color:#ff4400; }
 .stat-seg.on.def.tier-22  { background:repeating-linear-gradient(0deg,#0099ff 0px,#0099ff 1px,#001144 1px,#001144 4px); border-color:#0099ff; }
@@ -1052,7 +1052,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-22   { background:#1a0022; border-color:#280033; }
 .stat-seg.ghost.spd.tier-22   { background:#1a1a00; border-color:#282800; }
 
-/* === TIER 23 — PULSE SCAN (Animated moving bright stripe — like a radar or medical scanner) === */
+/* === TIER 23: PULSE SCAN (Animated moving bright stripe: like a radar or medical scanner) === */
 @keyframes pulse-scan { 0%{background-position:0 -150%,0 0} 100%{background-position:0 250%,0 0} }
 .stat-seg.on.hp.tier-23   { background:linear-gradient(0deg,transparent 35%,rgba(0,255,136,0.85) 50%,transparent 65%) no-repeat,linear-gradient(180deg,#001a0a,#003315); background-size:100% 300%,100% 100%; animation:pulse-scan 1.5s linear infinite; border-color:#00ff88; }
 .stat-seg.on.atk.tier-23  { background:linear-gradient(0deg,transparent 35%,rgba(255,68,0,0.85) 50%,transparent 65%) no-repeat,linear-gradient(180deg,#1a0500,#330a00); background-size:100% 300%,100% 100%; animation:pulse-scan 1.5s linear infinite; border-color:#ff4400; }
@@ -1072,7 +1072,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-23   { background:#150022; border-color:#22002a; }
 .stat-seg.ghost.spd.tier-23   { background:#1a1500; border-color:#2a2200; }
 
-/* === TIER 24 — OVERFLOW (Chromatic aberration — RGB channels split, reality breaking) === */
+/* === TIER 24: OVERFLOW (Chromatic aberration: RGB channels split, reality breaking) === */
 .stat-seg.on.hp.tier-24   { background:#dfffee; border-color:#00ff88; box-shadow:-2px 0 0 #ff0000,2px 0 0 #0000ff,0 0 12px #00ff88; }
 .stat-seg.on.atk.tier-24  { background:#ffeeee; border-color:#ff4400; box-shadow:-2px 0 0 #00ff00,2px 0 0 #0000ff,0 0 12px #ff4400; }
 .stat-seg.on.def.tier-24  { background:#eeeeff; border-color:#0088ff; box-shadow:-2px 0 0 #ff0000,2px 0 0 #00ff00,0 0 12px #0088ff; }
@@ -1092,7 +1092,7 @@ input[type=number] { -moz-appearance: textfield; }
 .stat-seg.ghost.mag.tier-24   { background:#15001a; border-color:#22002a; }
 .stat-seg.ghost.spd.tier-24   { background:#1a1500; border-color:#2a2200; }
 
-/* === TIER 25 — NULL (Reality-breaking pure void with sharp outlines) === */
+/* === TIER 25: NULL (Reality-breaking pure void with sharp outlines) === */
 .stat-seg.on.hp.tier-25   { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
 .stat-seg.on.atk.tier-25  { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
 .stat-seg.on.def.tier-25  { background: #000000; border: 1px solid #ffffff; box-shadow: 0 0 30px #ffffff; color: #ffffff; }
@@ -1171,7 +1171,7 @@ input[type=number] { -moz-appearance: textfield; }
   min-height: 400px; gap: 28px; text-align: center;
 }
 
-/* Pixel heart drawn as SVG — no emoji */
+/* Pixel heart drawn as SVG: no emoji */
 .empty-heart {
   animation: float 2.5s ease-in-out infinite;
 }
@@ -1304,7 +1304,7 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 /* ============================================================
-   JUKO! — reactive UI chrome (section headers glow + pulse to the
+   JUKO!: reactive UI chrome (section headers glow + pulse to the
    music, special pfp, glitching name). Driven by JS custom props:
      --juko-glow   (0..1) overall loudness
      --juko-onset  (0..1) beat transients
@@ -1322,7 +1322,7 @@ input[type=number] { -moz-appearance: textfield; }
 /* Juko's panel boxes: frame is permanently her color and the glow swells with
    the music (the corner notch inherits --p-border automatically). */
 #char-view.juko-ui .panel {
-  /* No solid frame at all — the streaming-code layer (canvas) IS the border. */
+  /* No solid frame at all: the streaming-code layer (canvas) IS the border. */
   border-color: transparent;
   box-shadow: none;
 }
@@ -1414,7 +1414,7 @@ input[type=number] { -moz-appearance: textfield; }
   100% { background-position: 0 -16px; }
 }
 
-/* PFP — always-on, music-INDEPENDENT flourish: a holographic sheen that
+/* PFP, always-on, music-INDEPENDENT flourish: a holographic sheen that
    sweeps diagonally across the portrait on a fixed timer, plus a blinking
    "</>" code tag in the bottom-right corner. Runs regardless of audio. */
 .char-avatar-large.juko-pfp .juko-pfp-fx {
@@ -1500,12 +1500,12 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 /* ============================================================
-   JUKO's "0∞" — corrupted/unhinged alt form. Stays HER green (this is
+   JUKO's "0∞": corrupted/unhinged alt form. Stays HER green (this is
    still Juko, just breaking down) with red/white as brief corruption
    spikes, never the resting colour. The Code Garden chrome above
    (.juko-ui) still applies; this stacks on top and cranks everything to
    a permanent, never-settling breakdown: a shaking viewport, strobing
-   panel edges, a torn pfp frame, a name that never stops scrambling —
+   panel edges, a torn pfp frame, a name that never stops scrambling: 
    and (.juko-0inf-page) the glitch reaches past the character page
    entirely, into the top nav and sidebar too.
    ============================================================ */
@@ -1597,7 +1597,7 @@ input[type=number] { -moz-appearance: textfield; }
   text-shadow: 0 0 6px var(--char-color, #4ade5a), 0 0 12px rgba(74, 222, 90, 0.6);
 }
 
-/* NAME: never settles — permanent violent split + colour strobe. The split
+/* NAME: never settles, permanent violent split + colour strobe. The split
    ghosts are recoloured to the GREEN family (acid-lime + cyan), not red/cyan. */
 #char-view.juko-0inf .char-name-display.juko-name {
   animation: juko0-strobe 0.5s steps(1, end) infinite;
@@ -1615,7 +1615,7 @@ input[type=number] { -moz-appearance: textfield; }
   opacity: 0.95;
 }
 
-/* ── .juko-0inf-page: the breakdown isn't contained to her page — the
+/* ── .juko-0inf-page: the breakdown isn't contained to her page: the
    WHOLE app UI (logo, top nav, sidebar) glitches while she's in this form. ── */
 body.juko-0inf-page #logo {
   animation: juko0-strobe 1.1s steps(1, end) infinite, juko0-shake-lite 0.5s steps(2, end) infinite;
@@ -1689,7 +1689,7 @@ body.juko-0inf-page::before {
   100% { top: 100%; }
 }
 
-/* ── ATK/DEF/MAG/IQ read "∞" — big, bold, unmissable, with a soft pulsing
+/* ── ATK/DEF/MAG/IQ read "∞": big, bold, unmissable, with a soft pulsing
    glow like the display is straining to render a number that doesn't fit.
    Flashes acid-white briefly when JS swaps it to her real value. ── */
 .juko0-stat-inf {
@@ -1714,7 +1714,7 @@ body.juko-0inf-page::before {
   text-shadow: 0 0 8px #ffffff, 0 0 18px #9bff3a;
 }
 
-/* Tier badge: [T∞] instead of [T5] — brighter + its own slow pulse so it
+/* Tier badge: [T∞] instead of [T5], brighter + its own slow pulse so it
    doesn't just look like a regular tier number. (JS only ever adds this class
    to ATK/DEF/MAG/IQ's tier badges, never HP/SPD.) */
 .juko0-tier-inf {
@@ -1724,7 +1724,7 @@ body.juko-0inf-page::before {
   animation: juko0-inf-pulse 1.8s ease-in-out infinite;
 }
 
-/* Stat bar: a dedicated "infinite" style for ATK/DEF/MAG/IQ — always full,
+/* Stat bar: a dedicated "infinite" style for ATK/DEF/MAG/IQ: always full,
    scrolling diagonal shimmer, distinct from every numbered tier's fill. */
 .stat-seg.ghost-bg.juko0-inf-bg {
   background: #04180a;
@@ -1748,7 +1748,7 @@ body.juko-0inf-page::before {
   50%      { filter: brightness(1.4) saturate(1.5); }
 }
 
-/* ── Traits: rarity doesn't matter anymore in the breakdown — every trait
+/* ── Traits: rarity doesn't matter anymore in the breakdown: every trait
    card (common through mythic, shimmyful or not) gets pulled into the same
    corrupted green terminal look. High specificity (#char-view.juko-0inf …)
    beats every rarity/shimmy rule's animation + box-shadow outright. ── */
@@ -1798,7 +1798,7 @@ body.juko-0inf-page::before {
   animation: juko0-border-flicker 1.8s steps(1, end) infinite;
 }
 
-/* ── Floating glitched-pfp "windows" — little corrupted OS dialogs showing her
+/* ── Floating glitched-pfp "windows": little corrupted OS dialogs showing her
    0∞ portrait through broken filters, drifting + shuddering over the page. JS
    creates/positions/refilters them; CSS owns the frame + drift + shake. ── */
 .juko0-win {
@@ -1841,7 +1841,7 @@ body.juko-0inf-page::before {
   background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,0.35) 2px 3px);
   pointer-events: none;
 }
-/* Slow wander — more waypoints + a wider range than before, so the windows
+/* Slow wander: more waypoints + a wider range than before, so the windows
    visibly crawl around rather than barely nudging in place. */
 @keyframes juko0-win-drift {
   0%   { translate: 0px 0px;    rotate: 0deg; }
@@ -1851,14 +1851,14 @@ body.juko-0inf-page::before {
   100% { translate: 19px 11px;  rotate: 2.4deg; }
 }
 /* Fast stepped jitter (composites on top of the drift via the separate `scale`
-   property, so it doesn't fight the translate/rotate animation) — a constant
+   property, so it doesn't fight the translate/rotate animation): a constant
    tiny shudder like the window can't hold its own shape. */
 @keyframes juko0-win-jitter {
   0%, 100% { scale: 1 1; }
   33%      { scale: 1.02 0.98; }
   66%      { scale: 0.98 1.02; }
 }
-/* Signal-loss flicker — brief opacity/brightness drops + spikes. */
+/* Signal-loss flicker: brief opacity/brightness drops + spikes. */
 @keyframes juko0-win-flicker {
   0%, 78%, 100% { opacity: 1;    filter: none; }
   80%           { opacity: 0.3;  filter: none; }
@@ -1870,13 +1870,13 @@ body.juko-0inf-page::before {
 }
 
 /* ============================================================
-   LUCIFER · UNLEASHED — demonic, over-the-top form styling.
+   LUCIFER · UNLEASHED: demonic, over-the-top form styling.
    Crimson + black, molten panels, a menacing flickering name, an
    infernal portrait. Only applied while the Unleashed form is active.
    --char-color is forced to crimson by the JS view branch.
    ============================================================ */
 /* Molten panels: dark glassy fill, glowing crimson frame that pulses
-   (we animate border-color only — cheap — and keep the glow static). */
+   (we animate border-color only: cheap: and keep the glow static). */
 #char-view.lucifer-ui .panel {
   --p-border: #c1110b;
   border-color: #c1110b;
@@ -1897,7 +1897,7 @@ body.juko-0inf-page::before {
   position: absolute; inset: 0;
   pointer-events: none;
   background: radial-gradient(120% 80% at 50% 115%, rgba(255,80,30,0.22), transparent 62%);
-  mix-blend-mode: screen;   /* only adds light — never darkens the panel content */
+  mix-blend-mode: screen;   /* only adds light, never darkens the panel content */
   animation: luc-breathe 2.6s ease-in-out infinite;
 }
 @keyframes luc-breathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
@@ -1983,7 +1983,7 @@ body.juko-0inf-page::before {
 }
 
 /* ============================================================
-   DIVINE — goddess of LIGHT. The radiant mirror of Lucifer:
+   DIVINE: goddess of LIGHT. The radiant mirror of Lucifer:
    same grand presence, but heavenly. Luminous gold/white panels,
    a holy glowing name, a haloed portrait. --char-color is warm gold.
    ============================================================ */
@@ -2074,7 +2074,7 @@ body.juko-0inf-page::before {
 }
 
 /* ============================================================
-   NARA — PAINT STUDIO. Pastel-rainbow page background everywhere
+   NARA: PAINT STUDIO. Pastel-rainbow page background everywhere
    except the Style tab, which is a blank white canvas you paint
    on. Pencil cursor + translucent rainbow screen frame; floating
    R/G/B/water buckets you dip the pencil into to mix colour.
@@ -2109,7 +2109,7 @@ body.nara-no-select, body.nara-no-select * {
 #char-view.nara-paint-ui .panel:nth-of-type(3) { animation-delay: -2.8s; }
 #char-view.nara-paint-ui .panel:nth-of-type(4) { animation-delay: -4.2s; }
 #char-view.nara-paint-ui .panel:nth-of-type(5) { animation-delay: -5.6s; }
-/* Brighten the whole box on hover — bigger, bolder glow */
+/* Brighten the whole box on hover: bigger, bolder glow */
 #char-view.nara-paint-ui .panel:hover {
   filter: brightness(1.7) saturate(1.5);
   transform: translateY(-2px);
@@ -2129,7 +2129,7 @@ body.nara-no-select, body.nara-no-select * {
   50%      { filter: brightness(1.45); }
 }
 
-/* Floating bucket palette — bottom centre */
+/* Floating bucket palette: bottom centre */
 .nara-palette {
   position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
   display: flex; flex-direction: column; gap: 10px; z-index: 9999;
@@ -2260,7 +2260,7 @@ body.nara-no-select, body.nara-no-select * {
 .nara-cv-live { font-size: 7.5px; letter-spacing: 1px; color: #7ee787; margin-left: auto; white-space: nowrap; }
 
 /* ============================================================
-   ✨DIVA✨ — erratic rainbow-virus UI chrome: glitching rainbow
+   ✨DIVA✨, erratic rainbow-virus UI chrome: glitching rainbow
    panel borders + a glitching, RGB-split rainbow name.
    ============================================================ */
 @keyframes divaBorder {
@@ -2307,7 +2307,7 @@ body.nara-no-select, body.nara-no-select * {
 .char-name-display.diva-name::after  { color: #00ffff; animation: divaGlitchB 1.1s steps(2) infinite; }
 
 /* ============================================================
-   EVELYNN — elegant blood-moon UI chrome: deep crimson panels,
+   EVELYNN, elegant blood-moon UI chrome: deep crimson panels,
    softly glowing crimson name.
    ============================================================ */
 #char-view.evelynn-ui .panel {
@@ -2323,7 +2323,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   OLIVER TIMBERWOOD — wild-west UI chrome: aged dark-wood panels,
+   OLIVER TIMBERWOOD, wild-west UI chrome: aged dark-wood panels,
    a gold lantern-lit sheriff name with a slight flicker.
    ============================================================ */
 #char-view.oliver-ui .panel {
@@ -2338,7 +2338,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   SPRUCE — lavish white-rose UI chrome: ivory panels, a softly
+   SPRUCE, lavish white-rose UI chrome: ivory panels, a softly
    glowing pearl-white name.
    ============================================================ */
 #char-view.spruce-ui .panel {
@@ -2353,7 +2353,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   MOMO — foggy grey-wasteland UI chrome: ashen panels, a pale
+   MOMO, foggy grey-wasteland UI chrome: ashen panels, a pale
    name with a faint crimson (hat-gem) glow.
    ============================================================ */
 #char-view.momo-ui .panel {
@@ -2368,7 +2368,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   RONNETTE — "I Can't Fix You": scorched-orange industrial UI,
+   RONNETTE: "I Can't Fix You": scorched-orange industrial UI,
    charred panels and a flickering ember name.
    ============================================================ */
 #char-view.ronnette-ui .panel {
@@ -2388,7 +2388,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   MIAMI — glossy Frutiger Aero: aqua glass panels, a glossy
+   MIAMI, glossy Frutiger Aero: aqua glass panels, a glossy
    chrome-blue name with a sweeping shine.
    ============================================================ */
 #char-view.miami-ui .panel {
@@ -2409,7 +2409,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   JONI — leafy jungle UI chrome: deep-green foliage panels and
+   JONI, leafy jungle UI chrome: deep-green foliage panels and
    a lush green, softly swaying name.
    ============================================================ */
 #char-view.joni-ui .panel {
@@ -2474,9 +2474,9 @@ body.nara-no-select, body.nara-no-select * {
 .nara-read-clr:hover { filter: brightness(1.5); }
 
 /* ============================================================
-   THE SHI — god of death. Silent, mysterious, VERY elegant.
+   THE SHI: god of death. Silent, mysterious, VERY elegant.
    Blue / white / gray, beauty-in-death. Restrained, refined,
-   slow breathing glows — nothing loud. --char-color is pale ice.
+   slow breathing glows: nothing loud. --char-color is pale ice.
    ============================================================ */
 /* Frost-pale panels: dark glassy fill, thin luminous edge, gentle glow */
 #char-view.shi-ui .panel {
@@ -2509,7 +2509,7 @@ body.nara-no-select, body.nara-no-select * {
   text-shadow: 0 0 16px rgba(165,200,230,0.8);
 }
 
-/* Name: serene, spaced, ethereal — a slow breathing glow + soft blurred echo.
+/* Name: serene, spaced, ethereal, a slow breathing glow + soft blurred echo.
    No glitch; elegance through restraint and stillness. */
 .char-name-display.shi-name {
   position: relative;
@@ -2532,7 +2532,7 @@ body.nara-no-select, body.nara-no-select * {
   z-index: -1;
 }
 
-/* Portrait: a quiet spectral frame — pale glow + thin inner line, slow breath */
+/* Portrait: a quiet spectral frame, pale glow + thin inner line, slow breath */
 .char-avatar-large.shi-pfp {
   border-color: rgba(174,208,234,0.6) !important;
   box-shadow: 0 0 24px rgba(130,170,210,0.38), inset 0 0 20px rgba(70,100,135,0.4);
@@ -2557,7 +2557,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   LUNAR — goddess of the moon. Elegant, calm, slightly melancholic.
+   LUNAR: goddess of the moon. Elegant, calm, slightly melancholic.
    Deep dark blues with silver moonlight. --char-color is moon-blue.
    ============================================================ */
 #char-view.lunar-ui .panel {
@@ -2590,7 +2590,7 @@ body.nara-no-select, body.nara-no-select * {
   text-shadow: 0 0 16px rgba(135,170,230,0.85);
 }
 
-/* Name: silver, spaced, calm — a slow moonlight shimmer sweeps across it */
+/* Name: silver, spaced, calm, a slow moonlight shimmer sweeps across it */
 .char-name-display.lunar-name {
   position: relative;
   color: #dce6fb !important;
@@ -2644,7 +2644,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   EMPORIUM — opulent gold gun-range. Brushed-gold panels, an
+   EMPORIUM: opulent gold gun-range. Brushed-gold panels, an
    engraved metallic name with a fast shine sweep, gilded portrait.
    ============================================================ */
 #char-view.emporium-ui .panel {
@@ -2729,7 +2729,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   ALSACE — dark jester of confusion. Deep-blue spiral panels, a
+   ALSACE: dark jester of confusion. Deep-blue spiral panels, a
    woozy RGB-split glitching name, a spinning hypno-spiral portrait.
    ============================================================ */
 #char-view.alsace-ui .panel {
@@ -2835,7 +2835,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 @keyframes alsace-pfp-spin { to { transform: rotate(360deg); } }
 
-/* Alsace · MASK OFF — the menus darken to a heavy near-black gradient */
+/* Alsace · MASK OFF: the menus darken to a heavy near-black gradient */
 #char-view.alsace-ui.alsace-maskoff .panel {
   --p-border: rgba(60,90,170,0.5);
   border-color: rgba(60,90,170,0.45);
@@ -2859,7 +2859,7 @@ body.nara-no-select, body.nara-no-select * {
 #char-view.alsace-ui.alsace-maskoff .char-name-display.alsace-name::after { animation-duration: 0.7s; }
 
 /* ============================================================
-   JECKELY — tense theatre-jester. Black/crimson panels, a nervously
+   JECKELY: tense theatre-jester. Black/crimson panels, a nervously
    flickering theatrical name, a spotlit portrait on a failing stage light.
    ============================================================ */
 #char-view.jeckely-ui .panel {
@@ -2941,7 +2941,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   MIMZY — soft sweet-jester. Pink-tinted panels, a tender glowing
+   MIMZY: soft sweet-jester. Pink-tinted panels, a tender glowing
    name with a petal-pink shine sweep, a blossom-framed portrait.
    ============================================================ */
 #char-view.mimzy-ui .panel {
@@ -3033,7 +3033,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   BIZZY — a warm, busy beehive. Honeycomb-meshed golden panels,
+   BIZZY: a warm, busy beehive. Honeycomb-meshed golden panels,
    a honey-glowing name, and a comb-framed portrait.
    ============================================================ */
 #char-view.bizzy-ui .panel {
@@ -3048,7 +3048,7 @@ body.nara-no-select, body.nara-no-select * {
     inset 0 0 30px rgba(90,54,0,0.22);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
   /* The comb-flow animation is always *applied* but paused, so the panel's
-     paint layer stays stable — this avoids the brief blank flash that happened
+     paint layer stays stable: this avoids the brief blank flash that happened
      when an animation was added/removed on hover. */
   animation: bizzy-comb-flow 3s linear infinite;
   animation-play-state: paused;
@@ -3143,7 +3143,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   OMEN — the ringmaster. Dark, elegant theatre: deep bordeaux velvet
+   OMEN: the ringmaster. Dark, elegant theatre: deep bordeaux velvet
    panels, a magenta-lit name and a spotlit portrait. (BASE FORM ONLY.)
    ============================================================ */
 #char-view.omen-ui .panel {
@@ -3224,7 +3224,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   EX — monochrome glitch broadcast. Grey static panels, a
+   EX: monochrome glitch broadcast. Grey static panels, a
    black/white split-ghost name that twitches, and a portrait
    that flickers like bad reception. Edgy but lighthearted.
    ============================================================ */
@@ -3338,7 +3338,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   RIEGEN — the phoenix. Charred panels lit from below by embers,
+   RIEGEN: the phoenix. Charred panels lit from below by embers,
    a flame-gradient name that flickers like a living fire, and a
    smouldering ember-ringed portrait.
    ============================================================ */
@@ -3431,7 +3431,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   LORRAINE — golden Victorian lady, strong and protective.
+   LORRAINE: golden Victorian lady, strong and protective.
    Antique-gold damask panels with a double gilt frame, a regal
    golden name with a stately shine, and an ornately framed
    portrait. Fancy, but built like a tank.
@@ -3496,7 +3496,7 @@ body.nara-no-select, body.nara-no-select * {
   50%      { background-position: -135% 0; }
 }
 
-/* Portrait: gilt cameo frame — layered gold rings + a slow turning band */
+/* Portrait: gilt cameo frame, layered gold rings + a slow turning band */
 .char-avatar-large.lorraine-pfp {
   border-color: rgba(217,169,63,0.75) !important;
   box-shadow:
@@ -3526,7 +3526,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   SIMMER — the little starry prince of a space-water kingdom.
+   SIMMER: the little starry prince of a space-water kingdom.
    Deep sea-sky panels with a cyan shimmer and drifting star
    specks, a star-bright name with a golden crown-glint sweep,
    and a tide-ringed portrait.
@@ -3596,7 +3596,7 @@ body.nara-no-select, body.nara-no-select * {
   50%      { background-position: -130% 0; }
 }
 
-/* Portrait: a tide-pool ring — cyan glow, rising-light sheen + slow halo */
+/* Portrait: a tide-pool ring, cyan glow, rising-light sheen + slow halo */
 .char-avatar-large.simmer-pfp {
   border-color: rgba(89,201,242,0.7) !important;
   box-shadow: 0 0 26px rgba(89,201,242,0.45), inset 0 0 22px rgba(110,220,255,0.3);
@@ -3624,7 +3624,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   OMEN · BARTENDER — the ringmaster works the bar. Speakeasy
+   OMEN · BARTENDER: the ringmaster works the bar. Speakeasy
    panels of warm amber over bordeaux, a buzzing neon-sign name,
    and a lamplit portrait. (Form-specific.)
    ============================================================ */
@@ -3717,7 +3717,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   OMEN · JANITOR — grimy fluorescent restroom. Cold tiled panels
+   OMEN · JANITOR: grimy fluorescent restroom. Cold tiled panels
    with a damp green cast, a flickering institutional name, and a
    portrait behind a grubby tiled frame. --char-color is mop teal.
    ============================================================ */
@@ -3786,7 +3786,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   GONELA — Mexican frontier lawman: fast & strong. Deep navy-blue
+   GONELA, Mexican frontier lawman: fast & strong. Deep navy-blue
    panels banded with a serape stripe, wine-glowing borders, a name
    that dashes like a quick-draw. Wine #701345 / blue #222742.
    ============================================================ */
@@ -3858,7 +3858,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   JUSTIN — cotton field beneath a blood-red apocalyptic sky.
+   JUSTIN: cotton field beneath a blood-red apocalyptic sky.
    Charred-crimson panels lit by a dying sun, a name like dried
    blood, and a portrait framed in scorched red. --char-color crimson.
    ============================================================ */
@@ -3931,7 +3931,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   ANTI — a good demon, at peace. Calm violet panels with a soft
+   ANTI: a good demon, at peace. Calm violet panels with a soft
    breathing halo-glow, a serene gently-floating name, and a portrait
    crowned by a faint halo. --char-color soft violet.
    ============================================================ */
@@ -4016,7 +4016,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   LEONOR — Mexican, monochrome. Black panels edged in white with a
+   LEONOR: Mexican, monochrome. Black panels edged in white with a
    papel-picado scallop, white ornate text, and a portrait crowned by
    a little flower. Strictly greyscale. --char-color soft white.
    ============================================================ */
@@ -4079,7 +4079,7 @@ body.nara-no-select, body.nara-no-select * {
 @keyframes leonor-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 /* ============================================================
-   CUCKOO — elegant, mysterious clockwork. Deep midnight panels with
+   CUCKOO: elegant, mysterious clockwork. Deep midnight panels with
    a brass filigree edge, an ivory serif-feel name with a slow shimmer,
    and a portrait ringed in brass with a turning gear at the corner.
    --char-color antique brass.
@@ -4146,7 +4146,7 @@ body.nara-no-select, body.nara-no-select * {
 @keyframes cuckoo-gear-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 /* ============================================================
-   LAYLA — the sea bunny under the aurora. Panels glow like deep
+   LAYLA: the sea bunny under the aurora. Panels glow like deep
    water lit from above, the name shimmers through aurora hues, and
    the portrait drifts with a soft bioluminescent halo. Ethereal.
    ============================================================ */
@@ -4208,7 +4208,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   PAWN — the playable board. Onyx & ivory marble panels banded in
+   PAWN: the playable board. Onyx & ivory marble panels banded in
    gold, a name engraved in pale stone, and a portrait framed like a
    board square. Stately, regal, grandmaster's-study energy.
    ============================================================ */
@@ -4273,7 +4273,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   ASTRA — the dreaming blue. Panels of deep periwinkle dusk, a name
+   ASTRA: the dreaming blue. Panels of deep periwinkle dusk, a name
    that drifts with a soft starlight gleam, and a portrait haloed in
    quiet astral glow. Still, luminous, a little melancholic.
    ============================================================ */
@@ -4335,7 +4335,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   JIHAU — the funky vaporwave mall. Neon-bordered panels over a faint
+   JIHAU: the funky vaporwave mall. Neon-bordered panels over a faint
    grid, a chrome-holographic name that drifts through pink↔cyan, and a
    portrait ringed in magenta/cyan glow. Aesthetic. A E S T H E T I C.
    ============================================================ */
@@ -4408,7 +4408,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   ANDY THE GOAT — a goat. in texas. Dusty burnt-orange leather panels,
+   ANDY THE GOAT: a goat. in texas. Dusty burnt-orange leather panels,
    a branded-sign name with a warm glow, a lone-star portrait. Howdy.
    ============================================================ */
 #char-view.andy-ui .panel {
@@ -4471,7 +4471,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   SHOO SHI — the abyssal octopus sushi chef. Deep-purple lacquer
+   SHOO SHI: the abyssal octopus sushi chef. Deep-purple lacquer
    panels lit by neon-magenta, a glowing 寿司-sign name and an
    ink-ringed portrait with a little sushi tag. Irasshai!
    ============================================================ */
@@ -4534,7 +4534,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   KARDIA — the heart of the void. Grave, elegant chrome: obsidian
+   KARDIA: the heart of the void. Grave, elegant chrome: obsidian
    panels rimmed in a single thread of magenta light, a hairline
    filigree edge, a name that breathes on a slow heartbeat behind a
    faint echo, and a portrait haloed like the core itself. Aura only.
@@ -4621,7 +4621,7 @@ body.nara-no-select, body.nara-no-select * {
   0%, 12%, 100% { transform: scale(1); opacity: 0.5; }
   5% { transform: scale(1.08); opacity: 0.9; }
 }
-/* Void border framing the whole page — a glowing magenta frame that
+/* Void border framing the whole page: a glowing magenta frame that
    darkens the edges into the void and pulses on the heartbeat */
 #kardia-frame {
   position: fixed;
@@ -4649,7 +4649,7 @@ body.nara-no-select, body.nara-no-select * {
   5% { box-shadow: 0 0 40px rgba(232,110,220,0.85), inset 0 0 4px rgba(255,210,250,0.9), inset 0 0 90px rgba(4,0,10,0.7), 0 0 0 13px rgba(3,0,8,0.5); border-color: rgba(255,150,240,0.85); }
 }
 /* Fried-on-hover: pointing at any menu element fries it the same way the
-   background is fried — crushed contrast, blown saturation, RGB split */
+   background is fried: crushed contrast, blown saturation, RGB split */
 #char-view.kardia-ui .tab-btn,
 #char-view.kardia-ui .panel,
 #char-view.kardia-ui .panel-title,
@@ -4667,7 +4667,7 @@ body.nara-no-select, body.nara-no-select * {
     drop-shadow(1.6px 0 0 rgba(255,40,120,0.6))
     drop-shadow(-1.6px 0 0 rgba(50,200,255,0.5));
 }
-/* the portrait — fry the image itself on hover (high-specificity + !important
+/* the portrait: fry the image itself on hover (high-specificity + !important
    so nothing on the avatar can override it) */
 #char-view.kardia-ui .char-avatar-large.kardia-pfp:hover img {
   filter:
@@ -4764,7 +4764,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   ROOK — a big dumb rook slamming around a chessboard. Checkered menus,
+   ROOK: a big dumb rook slamming around a chessboard. Checkered menus,
    a heavy stone-slab name and a board-tiled portrait. FUCK?
    ============================================================ */
 #char-view.rook-ui .panel {
@@ -4837,9 +4837,9 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   STARRY — Frutiger Aero wishing sky. Glossy pink-and-white glass
+   STARRY: Frutiger Aero wishing sky. Glossy pink-and-white glass
    panels, a soft candy name with a shimmer, and a portrait haloed like
-   a bubble — with golden star accents and blue/green glints. ✦
+   a bubble: with golden star accents and blue/green glints. ✦
    ============================================================ */
 #char-view.starry-ui .panel {
   --p-border: #ff8fcf;
@@ -4917,7 +4917,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   BLACKJACK — electric argyle. Deep-navy panels with an orange &
+   BLACKJACK: electric argyle. Deep-navy panels with an orange &
    blue diamond rule, a blue-to-orange name and a diamond-marked
    portrait. ◆
    ============================================================ */
@@ -5008,7 +5008,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   SNAPS — reptilian scales. Deep-emerald glassy panels, an iridescent
+   SNAPS: reptilian scales. Deep-emerald glassy panels, an iridescent
    serpentine name and a scaled portrait. 🐍
    ============================================================ */
 #char-view.snaps-ui .panel {
@@ -5049,7 +5049,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   KATIE — her pond. Deep-teal water panels, an aqua name and a
+   KATIE: her pond. Deep-teal water panels, an aqua name and a
    lily-marked portrait, with a koi-orange glint. 🪷
    ============================================================ */
 #char-view.katie-ui .panel {
@@ -5099,7 +5099,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   VALKYRIE — blood rain. Near-black steel panels with a crimson rule,
+   VALKYRIE: blood rain. Near-black steel panels with a crimson rule,
    a steel-to-blood name and a sword-marked portrait. ⚔
    ============================================================ */
 #char-view.valkyrie-ui .panel {
@@ -5138,7 +5138,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   ADAM — his ice. Frosted cyan-on-dark panels, a glacial name and a
+   ADAM: his ice. Frosted cyan-on-dark panels, a glacial name and a
    snowflake-marked portrait. ❄
    ============================================================ */
 #char-view.adam-ui .panel {
@@ -5177,7 +5177,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   LEON — falling fire swords. Charcoal-and-ember panels with a molten
+   LEON: falling fire swords. Charcoal-and-ember panels with a molten
    rule, a steel-to-flame name and a blade-marked portrait. ⚔
    ============================================================ */
 #char-view.leon-ui .panel {
@@ -5217,7 +5217,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   FURY — the FIRE DICTATOR. Maxed-out molten chrome: panels forged
+   FURY: the FIRE DICTATOR. Maxed-out molten chrome: panels forged
    in lava with a violently pulsing ember border, a roaring name that
    shudders & flares, and a portrait wreathed in flame. Aura: total.
    ============================================================ */
@@ -5266,7 +5266,7 @@ body.nara-no-select, body.nara-no-select * {
   border-bottom-color: #ff3b10;
   text-shadow: 0 0 16px rgba(255,80,20,0.95);
 }
-/* Name: a roaring tyrant — big blood-orange, flaring & shuddering */
+/* Name: a roaring tyrant, big blood-orange, flaring & shuddering */
 .char-name-display.fury-name {
   color: #ff3b10 !important;
   font-size: 23px;
@@ -5306,7 +5306,7 @@ body.nara-no-select, body.nara-no-select * {
   animation: fury-crown-flicker 0.5s steps(2) infinite;
 }
 @keyframes fury-crown-flicker { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
-/* a living smoulder around Fury's traits & stat rows — no border, just
+/* a living smoulder around Fury's traits & stat rows: no border, just
    a soft ember underglow flickering like coals, with a heat-haze sheen
    that drifts across. */
 #char-view.fury-ui .trait-chip,
@@ -5339,8 +5339,8 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   ANNIE (AntiChrist) — primal blood demon. Void black + one deep,
-   saturated blood red. No warmth like Fury's embers — a heartbeat
+   ANNIE (AntiChrist): primal blood demon. Void black + one deep,
+   saturated blood red. No warmth like Fury's embers: a heartbeat
    instead: a fast, sudden two-beat pulse (lub-dub), then stillness.
    Sharp edges everywhere, nothing soft.
    ============================================================ */
@@ -5348,7 +5348,7 @@ body.nara-no-select, body.nara-no-select * {
   --p-border: #a10f14;
   border-color: #a10f14;
   /* slightly translucent so the centred Brimstone sigil glowing behind the
-     panels bleeds through — the mark burns underneath everything */
+     panels bleeds through: the mark burns underneath everything */
   background: linear-gradient(180deg, rgba(6,0,1,0.86), rgba(2,0,0,0.9));
   box-shadow:
     0 0 22px rgba(161,15,20,0.4),
@@ -5363,7 +5363,7 @@ body.nara-no-select, body.nara-no-select * {
   22%  { border-color: #c81620; box-shadow: 0 0 26px rgba(200,20,25,0.55), inset 0 0 24px rgba(35,0,2,0.65), inset 0 0 3px rgba(255,80,80,0.45); }
   30%, 100% { border-color: #4a0509; box-shadow: 0 0 14px rgba(161,15,20,0.28), inset 0 0 20px rgba(20,0,1,0.55), inset 0 0 2px rgba(255,60,60,0.2); }
 }
-/* a hairline crack of red light along the bottom edge — a wound, not a glow */
+/* a hairline crack of red light along the bottom edge: a wound, not a glow */
 #char-view.annie-ui .panel::before {
   content: "";
   position: absolute; left: 6%; right: 6%; bottom: 0; height: 2px;
@@ -5373,7 +5373,7 @@ body.nara-no-select, body.nara-no-select * {
   animation: annie-heartbeat 1.1s ease-in-out infinite;
   opacity: 0.85;
 }
-/* a huge, near-invisible inverted cross watermarked into each panel — you
+/* a huge, near-invisible inverted cross watermarked into each panel: you
    only really notice it once you're looking for it */
 #char-view.annie-ui .panel::after {
   content: "\2020";
@@ -5386,7 +5386,7 @@ body.nara-no-select, body.nara-no-select * {
   pointer-events: none;
   z-index: 0;
 }
-/* Reality flinch — the whole page rips its composure once in a while: a
+/* Reality flinch, the whole page rips its composure once in a while: a
    hard, brief skew-jolt, like she just moved through the frame itself. */
 #char-view.annie-ui {
   animation: annie-reality-flinch 6.5s ease-in-out infinite;
@@ -5412,7 +5412,7 @@ body.nara-no-select, body.nara-no-select * {
   border-bottom-color: #a10f14;
   text-shadow: 0 0 14px rgba(210,20,25,0.9);
 }
-/* Name: struck through by her own violence — a hard, sudden flinch on a
+/* Name: struck through by her own violence, a hard, sudden flinch on a
    beat, not a smooth glow. Reads as an attack landing, not decoration. */
 .char-name-display.annie-name {
   color: #d4141a !important;
@@ -5431,7 +5431,7 @@ body.nara-no-select, body.nara-no-select * {
   94% { transform: translate(0,0); color: #d4141a; text-shadow: 0 0 8px rgba(200,15,20,0.9), 0 0 22px rgba(140,8,10,0.6), 0 2px 0 rgba(0,0,0,0.9); }
 }
 /* Portrait: a stark black/red frame with a single blood drip bleeding down
-   from the bottom edge — patient, inevitable. */
+   from the bottom edge: patient, inevitable. */
 .char-avatar-large.annie-pfp {
   border-color: #a10f14 !important;
   box-shadow: 0 0 26px rgba(161,15,20,0.5), inset 0 0 18px rgba(10,0,0,0.7);
@@ -5458,7 +5458,7 @@ body.nara-no-select, body.nara-no-select * {
   85%  { opacity: 1; transform: translateX(-50%) translateY(14px) scaleY(1); }
   100% { opacity: 0; transform: translateX(-50%) translateY(18px) scaleY(1); }
 }
-/* traits & stats: same heartbeat, no soft haze — she doesn't linger */
+/* traits & stats: same heartbeat, no soft haze, she doesn't linger */
 #char-view.annie-ui .trait-chip,
 #char-view.annie-ui .stat-row {
   position: relative;
@@ -5473,7 +5473,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   VIKADAN — a neon CYAN casino. Dark felt panels ringed in glowing
+   VIKADAN: a neon CYAN casino. Dark felt panels ringed in glowing
    cyan, a suit-motif shimmer, a flickering marquee name, and a
    portrait framed like a dealt card. --char-color is cyan.
    ============================================================ */
@@ -5523,7 +5523,7 @@ body.nara-no-select, body.nara-no-select * {
   border-bottom-color: #01fe9d;
   text-shadow: 0 0 14px rgba(1,254,157,0.9);
 }
-/* Name: a casino marquee — bright cyan with a bulb-flicker */
+/* Name: a casino marquee, bright cyan with a bulb-flicker */
 .char-name-display.vikadan-name {
   color: #01fe9d !important;
   font-size: 23px;
@@ -5552,7 +5552,7 @@ body.nara-no-select, body.nara-no-select * {
   text-shadow: 0 0 10px rgba(1,254,157,0.9);
   pointer-events: none;
 }
-/* traits & stats — cyan neon edge glow */
+/* traits & stats: cyan neon edge glow */
 #char-view.vikadan-ui .trait-chip,
 #char-view.vikadan-ui .stat-row {
   position: relative;
@@ -5567,7 +5567,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   HARU — parasitical, mysterious, overwhelming. Infected
+   HARU: parasitical, mysterious, overwhelming. Infected
    purple panels whose borders pulse like veins, a name that
    breathes unevenly in the dark, and a portrait something is
    watching from inside.
@@ -5608,7 +5608,7 @@ body.nara-no-select, body.nara-no-select * {
   text-shadow: 0 0 16px rgba(216,63,160,0.8);
 }
 
-/* Name: breathes unevenly — swells with the heartbeat, magenta undertow */
+/* Name: breathes unevenly, swells with the heartbeat, magenta undertow */
 .char-name-display.haru-name {
   position: relative;
   color: #b44fe8 !important;
@@ -5654,7 +5654,7 @@ body.nara-no-select, body.nara-no-select * {
   50%      { background-position: -135% 0; }
 }
 
-/* Portrait: something inside is looking back — veined glow + slit ring */
+/* Portrait: something inside is looking back, veined glow + slit ring */
 .char-avatar-large.haru-pfp {
   border-color: rgba(162,63,224,0.65) !important;
   box-shadow: 0 0 24px rgba(162,63,224,0.4), inset 0 0 24px rgba(80,20,120,0.45);
@@ -5687,7 +5687,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   CLASSIC — every panel is an UNDERTALE dialogue box: pure
+   CLASSIC, every panel is an UNDERTALE dialogue box: pure
    black with a thick white pixel border. His name splits and
    glitches, his portrait carries the SOUL, and his stats are
    corrupted beyond reading. The Determination. form turns the
@@ -5716,7 +5716,7 @@ body.nara-no-select, body.nara-no-select * {
   border-bottom-color: #fff;
   text-shadow: none;
 }
-/* Determination. — the boxes go red and mean, beating with the kill
+/* Determination.: the boxes go red and mean, beating with the kill
    floor's heart: pulsing border, breathing blood-glow, scanlines */
 #char-view.classic-ui.classic-det .panel {
   --p-border: #ff1a1a;
@@ -5774,7 +5774,7 @@ body.nara-no-select, body.nara-no-select * {
   text-shadow: 3px 0 0 rgba(255,255,255,0.35), -3px 0 0 rgba(120,0,0,0.8), 0 0 14px rgba(255,26,26,0.5);
 }
 
-/* Name: white pixel text that SPLITS — red/dark ghost slices snap apart */
+/* Name: white pixel text that SPLITS, red/dark ghost slices snap apart */
 .char-name-display.classic-name {
   position: relative;
   color: #f8f8f8 !important;
@@ -5813,7 +5813,7 @@ body.nara-no-select, body.nara-no-select * {
   86%      { opacity: 0; }
 }
 
-/* Portrait: a white pixel frame carrying the SOUL — it glitch-skips */
+/* Portrait: a white pixel frame carrying the SOUL, it glitch-skips */
 .char-avatar-large.classic-pfp {
   border-color: #f8f8f8 !important;
   border-radius: 0;
@@ -5856,7 +5856,7 @@ body.nara-no-select, body.nara-no-select * {
   50%      { transform: scale(1.16); }
 }
 
-/* Stats: corrupted beyond reading — values jitter, bars spasm */
+/* Stats: corrupted beyond reading, values jitter, bars spasm */
 #char-view.classic-ui .stat-val {
   color: #ff2a2a !important;
   text-shadow: 2px 0 0 rgba(255,255,255,0.4), -2px 0 0 rgba(120,0,0,0.85);
@@ -5876,7 +5876,7 @@ body.nara-no-select, body.nara-no-select * {
   66%      { transform: translate(1.5px,0); }
 }
 
-/* ── Classic · SAVE — Asriel's rainbow. The whole menu sways and leaves
+/* ── Classic · SAVE: Asriel's rainbow. The whole menu sways and leaves
    rainbow afterimages; borders, name and portrait all run rainbow. ── */
 #char-view.classic-save .panel {
   border: 3px solid transparent !important;
@@ -5914,7 +5914,7 @@ body.nara-no-select, body.nara-no-select * {
   color: #fff; text-shadow: 0 0 10px rgba(180,120,255,0.8);
 }
 
-/* name — rainbow text, swaying, with chromatic ghost shadows */
+/* name: rainbow text, swaying, with chromatic ghost shadows */
 #char-view.classic-save .char-name-display.classic-name {
   background-image: linear-gradient(90deg, #ff4d4d, #ffd24d, #4dff7a, #4dd2ff, #b84dff, #ff4d4d);
   background-size: 300% 100%;
@@ -5930,7 +5930,7 @@ body.nara-no-select, body.nara-no-select * {
   66% { transform: translate(3px,0); filter: drop-shadow(3px 0 0 rgba(255,60,60,0.4)) drop-shadow(-8px 0 0 rgba(60,170,255,0.45)); }
 }
 
-/* portrait — rainbow frame, swaying, chromatic ghosts */
+/* portrait: rainbow frame, swaying, chromatic ghosts */
 #char-view.classic-save .char-avatar-large.classic-pfp {
   border: 3px solid transparent !important;
   border-radius: 0;
@@ -6023,7 +6023,7 @@ body.nara-no-select, body.nara-no-select * {
   66% { transform: translate(1.5px,-0.5px) rotate(0.5deg); }
 }
 
-/* ── Classic · GHOST — somber, melancholic. Pale dusty-gold dialogue
+/* ── Classic · GHOST: somber, melancholic. Pale dusty-gold dialogue
    boxes with a faint glow that breathes slowly, and a washed-out name
    that flickers like a fading spirit. ──────────────────────────── */
 #char-view.classic-ghost .panel {
@@ -6052,7 +6052,7 @@ body.nara-no-select, body.nara-no-select * {
   border-bottom-color: #c4b878;
   text-shadow: 0 0 12px rgba(210,190,110,0.6);
 }
-/* name — a faded spirit: washed pale gold, slowly flickering + drifting */
+/* name, a faded spirit: washed pale gold, slowly flickering + drifting */
 #char-view.classic-ghost .char-name-display.classic-name {
   color: #e6ddc0 !important;
   text-shadow: 0 0 10px rgba(214,201,138,0.55), 0 0 22px rgba(160,150,100,0.3);
@@ -6071,7 +6071,7 @@ body.nara-no-select, body.nara-no-select * {
   0%, 100% { transform: translate(0,0); }
   50% { transform: translate(0,-1.5px); }
 }
-/* portrait — pale dusty frame, faintly desaturated, soft gold glow */
+/* portrait: pale dusty frame, faintly desaturated, soft gold glow */
 #char-view.classic-ghost .char-avatar-large.classic-pfp {
   border-color: #b3a878 !important;
   box-shadow: inset 0 0 0 2px #060608, inset 0 0 0 3.5px #b3a878, 0 0 16px rgba(190,170,90,0.22);
@@ -6089,7 +6089,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   HELIOS — god of the sun. Strong, intimidating, aggressive,
+   HELIOS: god of the sun. Strong, intimidating, aggressive,
    voracious. Molten gold / white-hot, fast fierce pulses.
    --char-color is blazing amber-gold.
    ============================================================ */
@@ -6132,7 +6132,7 @@ body.nara-no-select, body.nara-no-select * {
   text-shadow: 0 0 16px rgba(255,170,40,0.9);
 }
 
-/* Name: big, blazing, radiant — fierce fast pulse with a white-hot core glow */
+/* Name: big, blazing, radiant, fierce fast pulse with a white-hot core glow */
 .char-name-display.helios-name {
   position: relative;
   color: #ffd24a !important;
@@ -6179,7 +6179,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   ZOE — spirit of life. Warm, lush, alive: verdant greens with
+   ZOE: spirit of life. Warm, lush, alive: verdant greens with
    soft floral accents, gentle blooming pulses. --char-color is
    fresh life-green.
    ============================================================ */
@@ -6269,7 +6269,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   IRIS — starry, shimmyful, joyous magical-girl. Golden yellow
+   IRIS: starry, shimmyful, joyous magical-girl. Golden yellow
    with sparkle and a touch of pink, bright cheerful glow.
    --char-color is bright star-gold.
    ============================================================ */
@@ -6362,7 +6362,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   MOUSEBURGER — magical-boy knight. Serious, melancholic, but warm:
+   MOUSEBURGER: magical-boy knight. Serious, melancholic, but warm:
    ember / crimson over a charred dusk. --char-color is ember-red.
    ============================================================ */
 #char-view.mb-ui .panel {
@@ -6395,7 +6395,7 @@ body.nara-no-select, body.nara-no-select * {
   text-shadow: 0 0 16px rgba(255,150,75,0.85);
 }
 
-/* Name: ember-gold, serious — a slow restrained glow + faint warm echo
+/* Name: ember-gold, serious, a slow restrained glow + faint warm echo
    (no sparkle sweep; this one broods) */
 .char-name-display.mb-name {
   position: relative;
@@ -6587,7 +6587,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 .btn-info:hover { background: var(--accent-cyan); color: #000; }
 
-/* Radar toggle override — uses ? not italic i */
+/* Radar toggle override: uses ? not italic i */
 .radar-toggle-btn {
   font-family: inherit !important;
   font-style: normal !important;
@@ -6775,7 +6775,7 @@ body.nara-no-select, body.nara-no-select * {
 .top    { transform: rotateX( 90deg) translateZ(30px); }
 .bottom { transform: rotateX(-90deg) translateZ(30px); }
 
-/* Smooth Continuous Tumble — linear timing, fine keyframes, no stalling */
+/* Smooth Continuous Tumble: linear timing, fine keyframes, no stalling */
 .cube.tumble {
   animation: dice-tumble 1.8s infinite linear;
   transition: none;
@@ -7217,7 +7217,7 @@ body.nara-no-select, body.nara-no-select * {
   border: 1px dashed #2a2a2a;
 }
 
-/* TRAIT CHIP — shared base */
+/* TRAIT CHIP: shared base */
 .trait-chip {
   position: relative;
   padding: 12px 14px;
@@ -7309,7 +7309,7 @@ body.nara-no-select, body.nara-no-select * {
   50%     { box-shadow: 0 0 18px rgba(201,139,255,0.55), inset 0 0 12px rgba(138,63,255,0.25); }
 }
 
-/* LEGENDARY — clean gold sweep + breathing glow */
+/* LEGENDARY: clean gold sweep + breathing glow */
 .trait-chip.rar-legendary,
 .codex-entry.rar-legendary {
   --c-fg: var(--rar-legendary-fg);
@@ -7337,7 +7337,7 @@ body.nara-no-select, body.nara-no-select * {
   50%      { box-shadow: 0 0 30px rgba(255,222,0,0.72), inset 0 0 22px rgba(255,200,0,0.28); }
 }
 
-/* MYTHIC — steady solar heat, no rotation */
+/* MYTHIC: steady solar heat, no rotation */
 .trait-chip.rar-mythic,
 .codex-entry.rar-mythic {
   --c-fg: var(--rar-mythic-fg);
@@ -7385,7 +7385,7 @@ body.nara-no-select, body.nara-no-select * {
   50%      { opacity: 1;   transform: scale(1.1); }
 }
 
-/* SHIMMYFUL — soft green outer ring + star */
+/* SHIMMYFUL: soft green outer ring + star */
 .trait-chip.shimmyful {
   box-shadow:
     0 0 0 3px #000,
@@ -7421,7 +7421,7 @@ body.nara-no-select, body.nara-no-select * {
   50%       { opacity: 1;   transform: scale(1.3)  rotate(15deg); }
 }
 
-/* LEGENDARY SHIMMYFUL — gold/amber outer ring */
+/* LEGENDARY SHIMMYFUL: gold/amber outer ring */
 .trait-chip.shimmyful.shimmy-leg {
   box-shadow:
     0 0 0 3px #000,
@@ -7446,7 +7446,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 .hand-card.shimmyful .hand-card-rarity::after { content: none; }
 
-/* Legendary shimmyful hand card — gold ring */
+/* Legendary shimmyful hand card: gold ring */
 .hand-card.shimmyful.shimmy-leg {
   box-shadow:
     0 0 0 3px #000,
@@ -7457,7 +7457,7 @@ body.nara-no-select, body.nara-no-select * {
              hand-card-deal 0.55s cubic-bezier(0.2,0.8,0.2,1.05) both;
 }
 
-/* RARE SHIMMYFUL — blue outer ring */
+/* RARE SHIMMYFUL: blue outer ring */
 .trait-chip.shimmyful.shimmy-rare {
   box-shadow:
     0 0 0 3px #000,
@@ -7479,7 +7479,7 @@ body.nara-no-select, body.nara-no-select * {
   0%, 100% { opacity: 0.75; transform: scale(1)   rotate(5deg); }
   50%       { opacity: 1;   transform: scale(1.2)  rotate(-15deg); }
 }
-/* Rare shimmyful hand card — blue ring */
+/* Rare shimmyful hand card: blue ring */
 .hand-card.shimmyful.shimmy-rare {
   box-shadow:
     0 0 0 3px #000,
@@ -7490,7 +7490,7 @@ body.nara-no-select, body.nara-no-select * {
              hand-card-deal 0.55s cubic-bezier(0.2,0.8,0.2,1.05) both;
 }
 
-/* MYTHIC SHIMMYFUL — orange/flame outer ring */
+/* MYTHIC SHIMMYFUL: orange/flame outer ring */
 .trait-chip.shimmyful.shimmy-mythic {
   box-shadow:
     0 0 0 3px #000,
@@ -7512,7 +7512,7 @@ body.nara-no-select, body.nara-no-select * {
   0%, 100% { opacity: 0.8;  transform: scale(1)    rotate(0deg); }
   50%       { opacity: 1;   transform: scale(1.3)  rotate(18deg); }
 }
-/* Mythic shimmyful hand card — orange ring */
+/* Mythic shimmyful hand card: orange ring */
 .hand-card.shimmyful.shimmy-mythic {
   box-shadow:
     0 0 0 3px #000,
@@ -7523,7 +7523,7 @@ body.nara-no-select, body.nara-no-select * {
              hand-card-deal 0.55s cubic-bezier(0.2,0.8,0.2,1.05) both;
 }
 
-/* EPIC SHIMMYFUL — purple outer ring */
+/* EPIC SHIMMYFUL: purple outer ring */
 .trait-chip.shimmyful.shimmy-epic {
   box-shadow:
     0 0 0 3px #000,
@@ -7545,7 +7545,7 @@ body.nara-no-select, body.nara-no-select * {
   0%, 100% { opacity: 0.75; transform: scale(1)   rotate(-8deg); }
   50%       { opacity: 1;   transform: scale(1.2)  rotate(12deg); }
 }
-/* Epic shimmyful hand card — purple ring */
+/* Epic shimmyful hand card: purple ring */
 .hand-card.shimmyful.shimmy-epic {
   box-shadow:
     0 0 0 3px #000,
@@ -7570,7 +7570,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   INFO TAB — character dossier v2
+   INFO TAB: character dossier v2
    ============================================================ */
 .info-dossier {
   padding: 0 !important;
@@ -8044,7 +8044,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 .info-add-link-btn:hover { opacity: 0.9; }
 
-/* HEXXED — slow void pulse + drifting wisp + chromatic glitch */
+/* HEXXED: slow void pulse + drifting wisp + chromatic glitch */
 .trait-chip.rar-hexxed,
 .codex-entry.rar-hexxed {
   --c-fg: var(--rar-hexxed-fg);
@@ -8591,7 +8591,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   DUALITY RARITY — heavenly/hellforged toggle
+   DUALITY RARITY: heavenly/hellforged toggle
    ============================================================ */
 
 /* --- Shared chip base --- */
@@ -8630,7 +8630,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 .trait-chip.rar-duality.duality-heavenly .trait-chip-desc { color: #1a3070; }
 
-/* Aurora sweep — blazing bright */
+/* Aurora sweep: blazing bright */
 .trait-chip.rar-duality.duality-heavenly::before {
   content: '';
   position: absolute;
@@ -8687,7 +8687,7 @@ body.nara-no-select, body.nara-no-select * {
   }
 }
 
-/* Heavenly hover — blinding divine burst */
+/* Heavenly hover: blinding divine burst */
 .trait-chip.rar-duality.duality-heavenly:hover {
   transform: translateY(-5px) scale(1.015);
   filter: brightness(1.1);
@@ -8778,7 +8778,7 @@ body.nara-no-select, body.nara-no-select * {
   }
 }
 
-/* Hellforged hover — inferno erupts */
+/* Hellforged hover: inferno erupts */
 .trait-chip.rar-duality.duality-hellforged:hover {
   filter: brightness(1.18) saturate(1.25);
   box-shadow:
@@ -8854,7 +8854,7 @@ body.nara-no-select, body.nara-no-select * {
 .codex-leg.rar-duality     { color: #88c8ff; border-color: #88c8ff; }
 
 /* ============================================================
-   DETERMINED RARITY — heartbeat evolving trait
+   DETERMINED RARITY: heartbeat evolving trait
    ============================================================ */
 
 /* Base determined chip */
@@ -8955,7 +8955,7 @@ body.nara-no-select, body.nara-no-select * {
   }
 }
 
-/* HATRED evolution — absolute terror */
+/* HATRED evolution: absolute terror */
 .trait-chip.rar-determined.det-hatred {
   background: linear-gradient(135deg, #030000 0%, #060000 50%, #030000 100%);
   border-color: #ff0000;
@@ -9011,7 +9011,7 @@ body.nara-no-select, body.nara-no-select * {
   filter: brightness(1.45) saturate(1.6);
 }
 
-/* MERCYFUL evolution — brilliant rainbow */
+/* MERCYFUL evolution: brilliant rainbow */
 .trait-chip.rar-determined.det-mercyful {
   color: #fff;
   border-width: 3px;
@@ -9234,13 +9234,13 @@ body.nara-no-select, body.nara-no-select * {
 .codex-leg.rar-determined     { color: #ff3333; border-color: #aa0000; }
 
 /* ============================================================
-   DUALITY CODEX — glitching split title + dual entries
+   DUALITY CODEX: glitching split title + dual entries
    ============================================================ */
 
 /* Legend bar pills */
 .duality-leg-pill { border-color: #446688; }
 
-/* Glitching pill — same chromatic aberration as codex title */
+/* Glitching pill: same chromatic aberration as codex title */
 .du-pill-glitch {
   position: relative;
   color: transparent;
@@ -9273,7 +9273,7 @@ body.nara-no-select, body.nara-no-select * {
   45%     { color: #ee2222; border-color: #990000; text-shadow: 0 0 4px rgba(230,0,0,0.5); }
 }
 
-/* Glitching split title in codex body — chromatic aberration snap */
+/* Glitching split title in codex body: chromatic aberration snap */
 .duality-split-tag {
   position: relative;
   color: transparent;
@@ -9310,7 +9310,7 @@ body.nara-no-select, body.nara-no-select * {
   92%,100% { opacity: 1; text-shadow: 0 0 10px rgba(100,200,255,0.85); transform: translate(0,0); }
 }
 @keyframes du-tag-hf {
-  /* HEAVENLY visible — hidden */
+  /* HEAVENLY visible: hidden */
   0%,37.5% { opacity: 0; text-shadow: none; transform: translate(0,0); }
   /* Chromatic aberration snap in */
   38.5%   { opacity: 0.5; text-shadow: 5px 0 rgba(255,0,80,0.85), -5px 0 rgba(0,255,220,0.85); transform: translate(3px,0); }
@@ -9324,7 +9324,7 @@ body.nara-no-select, body.nara-no-select * {
   90%,100% { opacity: 0; text-shadow: none; transform: translate(0,0); }
 }
 
-/* Duality codex entry — split heavenly/hellforged layout */
+/* Duality codex entry: split heavenly/hellforged layout */
 .codex-duality-entry {
   display: flex !important;
   flex-direction: row !important;
@@ -9366,7 +9366,7 @@ body.nara-no-select, body.nara-no-select * {
 }
 
 /* ============================================================
-   DETERMINED CODEX — heartbeat section
+   DETERMINED CODEX: heartbeat section
    ============================================================ */
 .det-codex-section {
   position: relative;
@@ -9374,7 +9374,7 @@ body.nara-no-select, body.nara-no-select * {
   isolation: isolate;
   animation: det-section-beat 2.4s ease-in-out infinite;
 }
-/* Blood-red scanline overlay — behind content via negative z-index */
+/* Blood-red scanline overlay: behind content via negative z-index */
 .det-codex-section::before {
   content: '';
   position: absolute;
@@ -9389,7 +9389,7 @@ body.nara-no-select, body.nara-no-select * {
   pointer-events: none;
   z-index: -1;
 }
-/* Pulsing inner soul radiance — behind content */
+/* Pulsing inner soul radiance: behind content */
 .det-codex-section::after {
   content: '';
   position: absolute;
@@ -9850,7 +9850,7 @@ body.nara-no-select, body.nara-no-select * {
   border-color: #222;
   box-shadow: none;
   transform: none !important;
-  height: 240px; /* fixed — prevents desc length changes from shifting layout */
+  height: 240px; /* fixed, prevents desc length changes from shifting layout */
 }
 .hand-card.rolling:hover { transform: none; box-shadow: none; }
 .hand-card.rolling .hand-card-rarity { color: #444; }
@@ -9869,7 +9869,7 @@ body.nara-no-select, body.nara-no-select * {
    ============================================================ */
 
 /* ============================================================
-   MOBILE ELEMENTS — hidden on desktop
+   MOBILE ELEMENTS: hidden on desktop
    ============================================================ */
 #mobile-topbar  { display: none; }
 #mobile-backdrop { display: none; }
@@ -9948,7 +9948,7 @@ body.nara-no-select, body.nara-no-select * {
   }
   body.drawer-open #sidebar { left: 0; }
 
-  /* Backdrop — starts at 275px so it never overlaps the sidebar
+  /* Backdrop: starts at 275px so it never overlaps the sidebar
      (iOS Safari backdrop-filter eats touch events even behind higher z-index) */
   #mobile-backdrop {
     display: none;
@@ -9980,7 +9980,7 @@ body.nara-no-select, body.nara-no-select * {
     cursor: pointer;
     touch-action: manipulation;
   }
-  /* Disable slide transform — it shifts the element right as you tap, causing misses */
+  /* Disable slide transform: it shifts the element right as you tap, causing misses */
   .char-entry:hover { transform: none; }
   .char-entry-actions { display: none; }
 
@@ -10048,7 +10048,7 @@ body.nara-no-select, body.nara-no-select * {
     overflow-y: auto;
     box-sizing: border-box;
   }
-  /* gold & settings already use min(Xpx, 94vw) — just cap height */
+  /* gold & settings already use min(Xpx, 94vw): just cap height */
   #gold-modal      { max-height: 88vh; }
   #gold-modal-body { max-height: 52vh; }
   #trait-codex-body { max-height: 62vh; }
@@ -10076,7 +10076,7 @@ body.nara-no-select, body.nara-no-select * {
   }
 
   /* ---- Notifs below the top bar ---- */
-  /* bottom: auto unsets the desktop bottom:20px — without it #notif spans
+  /* bottom: auto unsets the desktop bottom:20px, without it #notif spans
      the full screen height as an invisible z-9999 overlay that eats all taps */
   #notif { top: 60px; left: 8px; right: 8px; bottom: auto; }
 
@@ -10630,14 +10630,14 @@ text.lb-cl-glitch-svg {
   box-shadow: 0 0 6px var(--char-color, #ffff00)55;
 }
 
-/* ── Classic's form chips — each always wears its own identity ── */
+/* ── Classic's form chips: each always wears its own identity ── */
 .form-chip.classic-chip { position: relative; overflow: hidden; border-radius: 0; }
 .form-chip.classic-chip .form-chip-tx {
   position: relative; z-index: 1;
   background-clip: text; -webkit-background-clip: text;
 }
 
-/* GHOST — ghostly gray, faintly flickering and drifting */
+/* GHOST: ghostly gray, faintly flickering and drifting */
 .form-chip.classic-chip-ghost {
   border-color: #555;
   background: #0a0a0a;
@@ -10666,7 +10666,7 @@ text.lb-cl-glitch-svg {
   50% { transform: translateY(-1px); }
 }
 
-/* DETERMINATION — red & dark red, glimmering */
+/* DETERMINATION: red & dark red, glimmering */
 .form-chip.classic-chip-det {
   border-color: #8d0d0d;
   background: linear-gradient(180deg, #1a0202, #0a0000);
@@ -10692,7 +10692,7 @@ text.lb-cl-glitch-svg {
   100% { background-position: -130% 0; }
 }
 
-/* SAVE — Asriel rainbow aura: one gradient border that scrolls, swaying */
+/* SAVE, Asriel rainbow aura: one gradient border that scrolls, swaying */
 .form-chip.classic-chip-save {
   border: 1px solid transparent;
   background:
@@ -10813,7 +10813,7 @@ text.lb-cl-glitch-svg {
 }
 .form-avatar-zone:hover .form-avatar-overlay { opacity: 1; }
 
-/* Stat blocks inside a form card — mirrors the main editor layout */
+/* Stat blocks inside a form card: mirrors the main editor layout */
 .form-stats-section {
   display: flex;
   flex-direction: column;
@@ -10851,7 +10851,7 @@ text.lb-cl-glitch-svg {
   margin-top: 4px;
 }
 
-/* Substats grid — 3 columns, all 9 substats */
+/* Substats grid: 3 columns, all 9 substats */
 .form-substats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -10865,7 +10865,7 @@ text.lb-cl-glitch-svg {
 }
 
 /* ============================================================
-   HEIGHT CHART — FULL SCREEN
+   HEIGHT CHART: FULL SCREEN
    ============================================================ */
 #hc-overlay { display: none; }
 
@@ -10971,7 +10971,7 @@ text.lb-cl-glitch-svg {
   pointer-events: none; z-index: 0; border-radius: 50%;
 }
 
-/* BLAZE — char-colored fire pool at feet, embers rise */
+/* BLAZE: char-colored fire pool at feet, embers rise */
 .hc-aura-el.hc-aura-blaze {
   background: radial-gradient(ellipse 70% 28% at 50% 100%,
     color-mix(in srgb, var(--hc-char-color, #ff6020) 55%, transparent) 0%,
@@ -10990,7 +10990,7 @@ text.lb-cl-glitch-svg {
   to   { filter: drop-shadow(0 0 10px var(--hc-char-color, #ff8c00)) drop-shadow(0 0 20px var(--hc-char-color, #ff4000)); }
 }
 
-/* SHADOW — char-colored mist rising from below */
+/* SHADOW: char-colored mist rising from below */
 .hc-aura-el.hc-aura-shadow {
   background: radial-gradient(ellipse 68% 55% at 50% 88%,
     color-mix(in srgb, var(--hc-char-color, #9030d0) 45%, transparent) 0%,
@@ -11009,7 +11009,7 @@ text.lb-cl-glitch-svg {
   to   { filter: drop-shadow(0 0 13px var(--hc-char-color, #c040ff)) drop-shadow(0 0 26px var(--hc-char-color, #5010a0)); }
 }
 
-/* VOID — slow breath, subtle scale, deep char-colored mass */
+/* VOID: slow breath, subtle scale, deep char-colored mass */
 .hc-aura-el.hc-aura-void {
   background: radial-gradient(ellipse 78% 55% at 50% 68%,
     color-mix(in srgb, var(--hc-char-color, #5010a0) 50%, transparent) 0%,
@@ -11028,7 +11028,7 @@ text.lb-cl-glitch-svg {
   to   { filter: drop-shadow(0 0 16px var(--hc-char-color, #9030ff)) drop-shadow(0 0 30px var(--hc-char-color, #4010a0)); }
 }
 
-/* GHOST — sprite phases in and out; does not go fully invisible */
+/* GHOST: sprite phases in and out; does not go fully invisible */
 .hc-aura-el.hc-aura-ghost {
   background: radial-gradient(ellipse 80% 70% at 50% 55%,
     color-mix(in srgb, var(--hc-char-color, #b0d0ff) 10%, transparent) 0%,
@@ -11046,7 +11046,7 @@ text.lb-cl-glitch-svg {
   45%, 55%           { opacity: .28; filter: drop-shadow(0 0 14px var(--hc-char-color, #d0e8ff)); }
 }
 
-/* CRIMSON — char-colored blood pool at feet, drops fall DOWN */
+/* CRIMSON: char-colored blood pool at feet, drops fall DOWN */
 .hc-aura-el.hc-aura-crimson {
   background: radial-gradient(ellipse 78% 18% at 50% 100%,
     color-mix(in srgb, var(--hc-char-color, #cc0015) 55%, transparent) 0%,
@@ -11065,7 +11065,7 @@ text.lb-cl-glitch-svg {
   to   { filter: drop-shadow(0 0 11px var(--hc-char-color, #ff0020)) drop-shadow(0 0 24px var(--hc-char-color, #800010)); }
 }
 
-/* HAZE — smooth rainbow hue-rotate on sprite only, no spinning background */
+/* HAZE: smooth rainbow hue-rotate on sprite only, no spinning background */
 .hc-aura-el.hc-aura-haze { background: none; }
 .hc-char-wrap[data-aura="haze"] .hc-char-sprite,
 .hc-char-wrap[data-aura="haze"] .hc-char-svg { animation: hc-glow-haze 6.0s linear infinite; }
@@ -11079,7 +11079,7 @@ text.lb-cl-glitch-svg {
   100% { filter: hue-rotate(360deg) drop-shadow(0 0 7px rgba(255,80,80,.70)); }
 }
 
-/* STATIC — broken signal; grayscale flicker at monitor-interference cadence */
+/* STATIC: broken signal; grayscale flicker at monitor-interference cadence */
 .hc-aura-el.hc-aura-static { background: none; }
 .hc-char-wrap[data-aura="static"] .hc-char-sprite,
 .hc-char-wrap[data-aura="static"] .hc-char-svg { animation: hc-glow-static 0.18s steps(3, start) infinite; }
@@ -11089,7 +11089,7 @@ text.lb-cl-glitch-svg {
   66%  { filter: grayscale(.7)  contrast(1.4) brightness(1.6) drop-shadow(0 0 6px rgba(230,230,230,.8)); }
 }
 
-/* NEON — crisp char-color edge glow, no atmospheric, tight pulsing */
+/* NEON: crisp char-color edge glow, no atmospheric, tight pulsing */
 .hc-aura-el.hc-aura-neon { background: none; }
 .hc-char-wrap[data-aura="neon"] .hc-char-sprite,
 .hc-char-wrap[data-aura="neon"] .hc-char-svg { animation: hc-glow-neon 1.5s ease-in-out infinite alternate; }
@@ -11098,7 +11098,7 @@ text.lb-cl-glitch-svg {
   to   { filter: drop-shadow(0 0 4px var(--hc-char-color, #fff)) drop-shadow(0 0 12px var(--hc-char-color, #fff)) drop-shadow(0 0 26px var(--hc-char-color, #fff)); }
 }
 
-/* REAPER — normal most of the time; periodically flashes to near-silhouette with char-color edge flare */
+/* REAPER: normal most of the time; periodically flashes to near-silhouette with char-color edge flare */
 .hc-aura-el.hc-aura-reaper {
   background: radial-gradient(ellipse 65% 35% at 50% 96%,
     rgba(0,0,0,.65) 0%, rgba(0,0,0,.22) 55%, transparent 100%);
@@ -11111,7 +11111,7 @@ text.lb-cl-glitch-svg {
   90%            { filter: brightness(.05) drop-shadow(0 0 16px var(--hc-char-color, #ff4040)) drop-shadow(0 0 28px var(--hc-char-color, #ff0000)); opacity: .85; }
 }
 
-/* SOFT — gentle breathe around the exact selection glow */
+/* SOFT: gentle breathe around the exact selection glow */
 .hc-aura-el.hc-aura-soft { background: none; }
 .hc-char-wrap[data-aura="soft"] .hc-char-sprite,
 .hc-char-wrap[data-aura="soft"] .hc-char-svg { animation: hc-glow-soft 4.0s ease-in-out infinite alternate; }
@@ -11128,7 +11128,7 @@ text.lb-cl-glitch-svg {
   0%   { transform: translateY(0)     scale(1);   opacity: .9; }
   100% { transform: translateY(-65px) scale(0.1); opacity: 0; }
 }
-/* Drip (crimson — fall DOWN) */
+/* Drip (crimson: fall DOWN) */
 .hc-ap-crimson { width: 3px; height: 6px; border-radius: 1px 1px 3px 3px; background: var(--hc-char-color, #cc0015); box-shadow: 0 0 4px var(--hc-char-color, #800008); animation: hc-particle-drip linear infinite; }
 @keyframes hc-particle-drip {
   0%   { transform: translateY(0)    scale(1);   opacity: .9; }
@@ -11293,7 +11293,7 @@ text.lb-cl-glitch-svg {
 .hc-imp-tag { font-size: 6px; color: #353535; letter-spacing: 1px; white-space: nowrap; }
 .hc-imp-empty { padding: 24px 16px; font-size: 7px; color: #222; text-align: center; letter-spacing: 1px; }
 
-/* ── Height chart — mobile ── */
+/* ── Height chart: mobile ── */
 @media (max-width: 700px) {
   #hc-modal { display: none; flex-direction: column; }
 
@@ -11467,7 +11467,7 @@ text.lb-cl-glitch-svg {
   box-shadow: 0 0 10px var(--bar-accent);
 }
 
-/* ── Song info (clickable — opens MUSIC tab) ─────────────────── */
+/* ── Song info (clickable: opens MUSIC tab) ─────────────────── */
 #theme-bar-info {
   flex: 1;
   min-width: 0;
@@ -11783,7 +11783,7 @@ text.lb-cl-glitch-svg {
   background: #111;
 }
 
-/* Dropdown panel — hidden until .open */
+/* Dropdown panel: hidden until .open */
 #sfx-panel {
   position: absolute;
   right: 0;
@@ -11939,7 +11939,7 @@ text.lb-cl-glitch-svg {
   border: 1px dashed #1e1e1e;
 }
 
-/* ── Character passive rows (legacy stub — replaced by .char-passive-entry below) ── */
+/* ── Character passive rows (legacy stub: replaced by .char-passive-entry below) ── */
 .char-passive-row { display: flex; gap: 8px; margin-bottom: 7px; align-items: stretch; }
 
 /* ── Ability Cards ── */
@@ -12571,7 +12571,7 @@ text.lb-cl-glitch-svg {
   overflow: hidden;
 }
 
-/* — sidebar (conversation list) — */
+/*: sidebar (conversation list): */
 #chat-sidebar {
   width: 170px;
   flex-shrink: 0;
@@ -12634,7 +12634,7 @@ text.lb-cl-glitch-svg {
   letter-spacing: 0;
 }
 
-/* — main thread area — */
+/*: main thread area: */
 #chat-main {
   flex: 1;
   display: flex;
@@ -12692,7 +12692,7 @@ text.lb-cl-glitch-svg {
   word-break: break-word;
 }
 
-/* — input row — */
+/*: input row: */
 #chat-input-row {
   display: flex;
   align-items: center;
@@ -12743,7 +12743,7 @@ text.lb-cl-glitch-svg {
 
 
 /* ============================================================
-   SOUL — info-tab band + editor modal
+   SOUL: info-tab band + editor modal
    ============================================================ */
 
 .soul-svg { display: block; image-rendering: pixelated; overflow: visible; }
@@ -13065,7 +13065,7 @@ text.lb-cl-glitch-svg {
   background: linear-gradient(90deg, #ff0000, #ff8000, #ffff00, #00c000, #00ffff, #0000ff, #d400d4) !important;
 }
 
-/* Animated hue cycle — rides on the paint layer only, so an outline and
+/* Animated hue cycle: rides on the paint layer only, so an outline and
    cracks keep the colours they were given */
 .soul-cycle { animation: soulHue 7s linear infinite; }
 @keyframes soulHue {
@@ -13078,7 +13078,7 @@ text.lb-cl-glitch-svg {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   AMBER — goddess of magic. Violet sanctum chrome lit warm from within:
+   AMBER: goddess of magic. Violet sanctum chrome lit warm from within:
    panels rimmed in a slow magenta glow, a name that shimmers like
    candlelight on rose gold, a portrait ringed in turning moonrunes.
    ════════════════════════════════════════════════════════════════ */
@@ -13222,7 +13222,7 @@ text.lb-cl-glitch-svg {
 .form-trait-select optgroup { color: var(--accent-yellow); font-size: 7px; }
 .form-trait-select option { color: #ccc; background: #080808; }
 
-/* Roll target chooser — shown when a character has alternate forms */
+/* Roll target chooser: shown when a character has alternate forms */
 #roll-form-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.8);

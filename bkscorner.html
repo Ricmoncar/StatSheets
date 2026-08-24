@@ -559,18 +559,18 @@
       </div>
 
       <div class="bk-field">
-        <label class="bk-label">DESCRIPTION <span class="opt">— what should the art be?</span></label>
+        <label class="bk-label">DESCRIPTION <span class="opt">: what should the art be?</span></label>
         <textarea class="bk-textarea" id="bk-f-desc"></textarea>
       </div>
 
       <div class="bk-field">
-        <label class="bk-label">CHARACTERS <span class="opt">— tap to add</span></label>
+        <label class="bk-label">CHARACTERS <span class="opt">: tap to add</span></label>
         <input type="text" class="bk-input bk-charsearch" id="bk-charsearch" autocomplete="off" oninput="renderCharPick(this.value)"/>
         <div class="bk-charpick" id="bk-charpick"></div>
       </div>
 
       <div class="bk-field">
-        <label class="bk-label">REFERENCE IMAGES <span class="opt">— optional, pick as many as you like</span></label>
+        <label class="bk-label">REFERENCE IMAGES <span class="opt">: optional, pick as many as you like</span></label>
         <div class="bk-drop" id="bk-ref-drop">
           DROP IMAGES HERE OR CLICK TO BROWSE
           <input type="file" id="bk-ref-input" accept="image/*" multiple style="display:none;" onchange="onRefSelect(event)"/>
@@ -618,7 +618,7 @@
       </div>
 
       <div class="bk-field">
-        <label class="bk-label">LINK TO CHARACTERS <span class="opt">— optional · syncs to their Gallery page · pick as many as you like</span></label>
+        <label class="bk-label">LINK TO CHARACTERS <span class="opt">: optional · syncs to their Gallery page · pick as many as you like</span></label>
         <input type="text" class="bk-input bk-charsearch" id="bk-galup-charsearch" autocomplete="off" oninput="renderGalUpCharPick(this.value)"/>
         <div class="bk-charpick" id="bk-galup-charpick"></div>
       </div>
@@ -949,7 +949,7 @@ function closeCreate() {
   document.getElementById('bk-create-overlay').classList.remove('open');
 }
 
-// generic character picker — reused by request create, gallery upload, gallery edit
+// generic character picker: reused by request create, gallery upload, gallery edit
 function renderCharPickInto(wrapId, selSet, filterStr, toggleFn) {
   const wrap = document.getElementById(wrapId);
   if (!wrap) return;
@@ -1130,7 +1130,7 @@ function renderDetail() {
   const resultHtml = result
     ? `<div class="bk-result-wrap" onclick="openLightbox('result',0)"><img src="${result.dataUrl}" alt="finished art"/></div>`
     : (done
-        ? `<div class="bk-result-empty">COMPLETED — UPLOAD THE FINISHED ART BELOW</div>`
+        ? `<div class="bk-result-empty">COMPLETED: UPLOAD THE FINISHED ART BELOW</div>`
         : `<div class="bk-result-empty">MARK THIS REQUEST COMPLETED TO UPLOAD THE FINISHED ART</div>`);
 
   document.getElementById('bk-detail-body').innerHTML = `
@@ -1475,10 +1475,10 @@ function renderGalDetail() {
     </div>
 
     <div class="bk-field">
-      <label class="bk-label">LINKED CHARACTERS <span class="opt">— tap to toggle · syncs to their Gallery page</span></label>
+      <label class="bk-label">LINKED CHARACTERS <span class="opt">: tap to toggle · syncs to their Gallery page</span></label>
       <input type="text" class="bk-input bk-charsearch" id="bk-galdet-charsearch" autocomplete="off" oninput="renderGalDetCharPick(this.value)"/>
       <div class="bk-charpick" id="bk-galdet-charpick"></div>
-      <div class="bk-sync-note">${linked ? `Linked to <b>${linked}</b> character${linked !== 1 ? 's' : ''} — this image appears on ${linked !== 1 ? 'their' : 'its'} Gallery page${linked !== 1 ? 's' : ''}.` : 'Not linked to any character. Link some to push this image into the main Gallery.'}</div>
+      <div class="bk-sync-note">${linked ? `Linked to <b>${linked}</b> character${linked !== 1 ? 's' : ''}: this image appears on ${linked !== 1 ? 'their' : 'its'} Gallery page${linked !== 1 ? 's' : ''}.` : 'Not linked to any character. Link some to push this image into the main Gallery.'}</div>
     </div>
 
     <div class="bk-detail-actions">
@@ -1500,7 +1500,7 @@ function toggleGalDetChar(id) {
   const note = document.querySelector('#bk-galdet-body .bk-sync-note');
   const n = _galEditChars.size;
   if (note) note.innerHTML = n
-    ? `Linked to <b>${n}</b> character${n !== 1 ? 's' : ''} — this image appears on ${n !== 1 ? 'their' : 'its'} Gallery page${n !== 1 ? 's' : ''}.`
+    ? `Linked to <b>${n}</b> character${n !== 1 ? 's' : ''}: this image appears on ${n !== 1 ? 'their' : 'its'} Gallery page${n !== 1 ? 's' : ''}.`
     : 'Not linked to any character. Link some to push this image into the main Gallery.';
 }
 async function saveGalDetail() {

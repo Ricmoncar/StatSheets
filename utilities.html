@@ -546,23 +546,23 @@
   .gs-tab:hover { color:#555; background:rgba(255,255,255,.04); }
   .gs-tab.active::after { opacity:1; }
   .gs-tab-icon { font-size:12px; letter-spacing:0; flex-shrink:0; line-height:1; }
-  /* NMT — violet */
+  /* NMT: violet */
   .gs-nmt:hover:not(.active) { color:rgba(155,92,240,.55); border-color:rgba(155,92,240,.2); }
   .gs-nmt.active { color:#9b5cf0; border-color:rgba(155,92,240,.4); background:rgba(155,92,240,.07); box-shadow:0 0 18px rgba(155,92,240,.09); }
   .gs-nmt::after { background:#9b5cf0; box-shadow:0 0 10px rgba(155,92,240,.7); }
-  /* Final Hour — crimson */
+  /* Final Hour: crimson */
   .gs-fh:hover:not(.active) { color:rgba(180,20,30,.55); border-color:rgba(180,20,30,.22); }
   .gs-fh.active { color:#cc2233; border-color:rgba(180,20,30,.4); background:rgba(180,20,30,.07); box-shadow:0 0 18px rgba(180,20,30,.1); }
   .gs-fh::after { background:#cc2233; box-shadow:0 0 10px rgba(180,20,30,.7); }
-  /* AUT (Beyond Limits) — gold */
+  /* AUT (Beyond Limits): gold */
   .gs-fg:hover:not(.active) { color:rgba(220,155,0,.55); border-color:rgba(220,155,0,.22); }
   .gs-fg.active { color:#e0961a; border-color:rgba(220,150,0,.4); background:rgba(220,150,0,.07); box-shadow:0 0 18px rgba(220,150,0,.09); }
   .gs-fg::after { background:#e0961a; box-shadow:0 0 10px rgba(220,150,0,.7); }
-  /* LoL — Runeterra blue */
+  /* LoL: Runeterra blue */
   .gs-lol:hover:not(.active) { color:rgba(0,180,220,.55); border-color:rgba(0,180,220,.22); }
   .gs-lol.active { color:#00b4de; border-color:rgba(0,180,220,.4); background:rgba(0,180,220,.07); box-shadow:0 0 18px rgba(0,180,220,.09); }
   .gs-lol::after { background:#00b4de; box-shadow:0 0 10px rgba(0,180,220,.7); }
-  /* CRTL (Control) — emerald */
+  /* CRTL (Control): emerald */
   .gs-crtl:hover:not(.active) { color:rgba(54,201,138,.55); border-color:rgba(54,201,138,.22); }
   .gs-crtl.active { color:#36c98a; border-color:rgba(54,201,138,.4); background:rgba(54,201,138,.07); box-shadow:0 0 18px rgba(54,201,138,.09); }
   .gs-crtl::after { background:#36c98a; box-shadow:0 0 10px rgba(54,201,138,.7); }
@@ -805,7 +805,7 @@
         <button class="btn sm lb-view-btn" onclick="setLbView('lines',this)">LINES</button>
       </div>
     </div>
-    <!-- Stat selector — hidden in heatmap/scatter/bubble modes -->
+    <!-- Stat selector: hidden in heatmap/scatter/bubble modes -->
     <div id="lb-stat-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
       <button class="btn sm lb-stat-btn accent" onclick="selectLeaderboardStat('avg',this)">BALANCED</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('hp',this)">HP</button>
@@ -824,7 +824,7 @@
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('lifesteal',this)">LIFESTEAL</button>
       <button class="btn sm lb-stat-btn" onclick="selectLeaderboardStat('cooldown_red',this)">CDR</button>
     </div>
-    <!-- Axis selectors — shown only in scatter / bubble modes -->
+    <!-- Axis selectors: shown only in scatter / bubble modes -->
     <div id="lb-axis-row" style="display:none;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;">
       <span class="lb-axis-lbl">X</span>
       <select id="lb-x-sel" class="lb-axis-sel" onchange="renderLeaderboard()">
@@ -1087,7 +1087,7 @@
       <button class="btn sm" onclick="hcOpenImportPicker()">IMPORT</button>
       <button class="btn sm" onclick="hcSortByHeight()">SORT ↑</button>
       <div id="hc-zoom-controls">
-        <button class="btn sm" onclick="hcAdjustZoom(-0.25)">−</button>
+        <button class="btn sm" onclick="hcAdjustZoom(-0.25)">-</button>
         <span id="hc-zoom-label">100%</span>
         <button class="btn sm" onclick="hcAdjustZoom(0.25)">+</button>
       </div>
@@ -1198,7 +1198,7 @@ function gsSelect(key) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  NO MORE TIME — ABILITY BUILDER
+//  NO MORE TIME: ABILITY BUILDER
 // ══════════════════════════════════════════════════════════════
 let _nmtData      = {};
 let _nmtSel       = null;
@@ -1544,7 +1544,7 @@ function _nmtFlush() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  FINAL HOUR — HORROR ASYMMETRICAL
+//  FINAL HOUR: HORROR ASYMMETRICAL
 // ══════════════════════════════════════════════════════════════
 let _fhData = {}, _fhSel = null, _fhMode = 'view', _fhListening = false, _fhAnimFrame = null;
 
@@ -1878,7 +1878,7 @@ function _fhRenderEdit() {
             <div style="margin-bottom:8px;">
               <div style="font-size:6px;letter-spacing:3px;color:#7a6000;margin-bottom:5px;">CHARACTER</div>
               <select class="compat-sel" style="width:100%;" onchange="fhSetSpecialLmsChar(${i},this.value)">
-                <option value="">— NONE —</option>${charOpts}
+                <option value="">: NONE: </option>${charOpts}
               </select>
             </div>
             <div style="margin-bottom:8px;">
@@ -1909,7 +1909,7 @@ function _fhRenderEdit() {
       <button class="btn sm" onclick="fhAddSpecialLms()" style="margin-top:2px;">+ SPECIAL LMS</button>
     </div>
     ${(()=>{
-      /* Incoming Special LMS entries — other characters who linked to _fhSel */
+      /* Incoming Special LMS entries: other characters who linked to _fhSel */
       const incomingEdit = [];
       Object.keys(_fhData).forEach(oid=>{
         if(oid===_fhSel) return;
@@ -2091,7 +2091,7 @@ function _fhUpdateMiniPlayer() {
 
 async function _fhCloudUpload(file, publicId, btnEl, onSuccess) {
   if (!file) return;
-  if (file.size > 20*1024*1024) { if(typeof notify==='function') notify('File too large — max 20 MB','err'); return; }
+  if (file.size > 20*1024*1024) { if(typeof notify==='function') notify('File too large: max 20 MB','err'); return; }
   if (btnEl) { btnEl.textContent='UPLOADING...'; btnEl.disabled=true; }
   try {
     const url = await _uploadMedia(file, 'video', publicId);
@@ -2212,7 +2212,7 @@ function _fhScheduleSaveChar(charId) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  CRTL (CONTROL) — ENTITIES & CLASSES
+//  CRTL (CONTROL): ENTITIES & CLASSES
 // ══════════════════════════════════════════════════════════════
 let _crtlData = {}, _crtlSel = null, _crtlMode = 'view', _crtlListening = false;
 
@@ -2409,7 +2409,7 @@ function _crtlRenderEdit() {
       </div>
     ` : `
       <div class="nmt-section">
-        <div class="nmt-section-title">HP <span style="color:#555;">(50 – 300)</span></div>
+        <div class="nmt-section-title">HP <span style="color:#555;">(50 - 300)</span></div>
         <div class="crtl-hp-row">
           <input class="crtl-hp-range" type="range" min="50" max="300" step="5" value="${d.hp}" oninput="crtlSetHp(this.value)"/>
           <span class="crtl-hp-val" id="crtl-hp-val">${d.hp} HP</span>
@@ -2463,7 +2463,7 @@ function _crtlFlush() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  BEYOND LIMITS — FIGHTING GAME
+//  BEYOND LIMITS: FIGHTING GAME
 // ══════════════════════════════════════════════════════════════
 let _fgData = {}, _fgSel = null, _fgMode = 'view', _fgListening = false, _fgAnimFrame = null;
 
@@ -2706,7 +2706,7 @@ function _fgFlush(){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  LEAGUE OF LEGENDS — KIT BUILDER
+//  LEAGUE OF LEGENDS: KIT BUILDER
 // ══════════════════════════════════════════════════════════════
 let _lolData = {}, _lolSel = null, _lolMode = 'view', _lolListening = false, _lolAnimFrame = null;
 
@@ -2716,7 +2716,7 @@ const _LOL_RESOURCES = ['mana','energy','fury','heat','none'];
 const _LOL_RES_LBLS  = {mana:'MANA',energy:'ENERGY',fury:'FURY',heat:'HEAT',none:'NONE'};
 const _LOL_RES_COLS  = {mana:'#4a9eff',energy:'#ffdd33',fury:'#ff4433',heat:'#ff7722',none:'#444444'};
 const _LOL_SLOTS     = ['passive','q','w','e','r'];
-const _LOL_SLOT_LBLS = {passive:'PASSIVE',q:'Q',w:'W',e:'E',r:'R — ULTIMATE'};
+const _LOL_SLOT_LBLS = {passive:'PASSIVE',q:'Q',w:'W',e:'E',r:'R: ULTIMATE'};
 const _LOL_DEFAULTS  = {passive:'#a0a0a0',q:'#4a9eff',w:'#44cc88',e:'#ffcc44',r:'#e8a030'};
 const _LOL_STAT_KEYS  = ['hp','mana','ad','as','armor','mr','ms','range'];
 // short labels for view card bars
@@ -2726,12 +2726,12 @@ const _LOL_STAT_NAMES = {hp:'HEALTH',mana:'MANA',ad:'ATTACK DAMAGE',as:'ATTACK S
 const _LOL_STAT_STEP  = {hp:1,mana:1,ad:0.1,as:0.001,armor:0.1,mr:0.1,ms:1,range:1};
 const _LOL_STAT_MAX   = {hp:3000,mana:1500,ad:150,as:2.5,armor:150,mr:150,ms:500,range:750};
 const _LOL_STAT_HINT_BASE = {
-  hp:'avg ~580–650',mana:'varies ~300–800',ad:'avg ~48–68',as:'avg ~0.600–0.700',
-  armor:'avg ~21–38',mr:'avg ~30–40',ms:'avg ~325–355',range:'melee ~150 · ranged ~525'
+  hp:'avg ~580-650',mana:'varies ~300-800',ad:'avg ~48-68',as:'avg ~0.600-0.700',
+  armor:'avg ~21-38',mr:'avg ~30-40',ms:'avg ~325-355',range:'melee ~150 · ranged ~525'
 };
 const _LOL_STAT_HINT_GROW = {
-  hp:'avg ~85–100',mana:'avg ~40–55',ad:'avg ~2.5–4.5',as:'avg ~1–3.5% per lvl',
-  armor:'avg ~3.5–5.5',mr:'avg ~0.5–2.5',ms:'usually 0',range:'usually 0'
+  hp:'avg ~85-100',mana:'avg ~40-55',ad:'avg ~2.5-4.5',as:'avg ~1-3.5% per lvl',
+  armor:'avg ~3.5-5.5',mr:'avg ~0.5-2.5',ms:'usually 0',range:'usually 0'
 };
 const _LOL_ITEM_STAT_MAP = {
   FlatHPPoolMod:'hp', FlatMPPoolMod:'mana', FlatPhysicalDamageMod:'ad',
@@ -3324,7 +3324,7 @@ function compatClear() {
 }
 
 function _compatHash(str) {
-  // FNV-1a 32-bit hash — deterministic, well-distributed
+  // FNV-1a 32-bit hash: deterministic, well-distributed
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
     h ^= str.charCodeAt(i);
@@ -3352,7 +3352,7 @@ function testCompat() {
 
   let score = localStorage.getItem(lsKey);
   if (score === null) {
-    score = _compatHash(lsKey) % 101;  // 0–100 range
+    score = _compatHash(lsKey) % 101;  // 0-100 range
     localStorage.setItem(lsKey, score);
   } else {
     score = parseInt(score);

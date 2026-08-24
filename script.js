@@ -15,7 +15,7 @@ function _updatePerfBtn() {
     b.classList.toggle('on', _perfMode);
     b.innerHTML = _perfMode ? '⚡ PERF: ON' : '⚡ PERF';
     b.title = _perfMode
-      ? 'Performance mode is ON — animated backgrounds & custom cursors are off. Click to turn off.'
+      ? 'Performance mode is ON: animated backgrounds & custom cursors are off. Click to turn off.'
       : 'Performance mode: turn off heavy animated backgrounds & custom cursors if the site lags.';
   });
 }
@@ -41,17 +41,17 @@ let _encStatusMap = {}; // keyed by UPPERCASE status name → { color, desc }
 // ── NARA rainbow ─────────────────────────────────────────────
 const _NARA_RE = /^NARA!+$/;
 function _isNara(c) { return !!(c && c.name && _NARA_RE.test(c.name)); }
-// "BLUE" — Nara's alt form: her rainbow turns to a gradient of blues and her
+// "BLUE": Nara's alt form: her rainbow turns to a gradient of blues and her
 // page becomes an animated ocean (fishes, a shark, rainbow rain, trident).
 const _NARA_BLUE_RE = /blue/i;
 function _isNaraBlue(c) { return _isNara(c) && _NARA_BLUE_RE.test(_activeFormName(c)); }
-let _naraBlueActive = false;   // set in viewChar — makes the chrome cycle blues
-// "WHITE" — an angel of judgement: white/gold chrome + a heavenly, menacing
+let _naraBlueActive = false;   // set in viewChar: makes the chrome cycle blues
+// "WHITE", an angel of judgement: white/gold chrome + a heavenly, menacing
 // scene (a seraphic halo of eyes, god-rays, hovering swords of judgement).
 const _NARA_WHITE_RE = /white/i;
 function _isNaraWhite(c) { return _isNara(c) && _NARA_WHITE_RE.test(_activeFormName(c)); }
 let _naraWhiteActive = false;
-// "Green!!" — a goofy googly-eyed UFO cruising an OMORI-dreamworld space
+// "Green!!": a goofy googly-eyed UFO cruising an OMORI-dreamworld space
 // (purples/blacks); your cursor is a laser gun that can shoot it.
 const _NARA_GREEN_RE = /green/i;
 function _isNaraGreen(c) { return _isNara(c) && _NARA_GREEN_RE.test(_activeFormName(c)); }
@@ -69,7 +69,7 @@ function _naraHsl(t) {
     return `hsl(${hue.toFixed(1)},74%,${lig.toFixed(1)}%)`;
   }
   if (_naraWhiteActive) {
-    // radiant white ↔ gold — lightness stays high, saturation breathes so it
+    // radiant white ↔ gold: lightness stays high, saturation breathes so it
     // shifts from blinding white to divine gold.
     const sat = 42 + 40 * (0.5 + 0.5 * Math.sin(t * 0.7));
     const lig = 82 + 8 * Math.sin(t * 0.5);
@@ -269,7 +269,7 @@ function _naraLoadDrawing() {
   img.src = data;
 }
 
-// ════ NARA — global, real-time COLLABORATIVE canvases (Firestore) ════
+// ════ NARA: global, real-time COLLABORATIVE canvases (Firestore) ════
 // Multiple shared canvases everyone paints on together; strokes + live cursors
 // sync via Firestore. Each painting is the replay of its stroke documents.
 // Falls back to a single local (localStorage) canvas when there is no db.
@@ -535,7 +535,7 @@ function _naraClearCanvas() {
   _naraCollab.myUndo.push({ type: 'clear', strokes: snap });   // Ctrl+Z restores it all
   _naraCollab.myRedo.length = 0;
 }
-// collaborative undo/redo — acts on YOUR own strokes + your clears
+// collaborative undo/redo: acts on YOUR own strokes + your clears
 function _naraUndo() {
   if (!_naraCollab.myUndo.length) return;
   const a = _naraCollab.myUndo.pop();
@@ -682,7 +682,7 @@ function _naraOnStyleTab() {
   return !!st && st.style.display !== 'none';
 }
 
-// floating bucket palette — dip the pencil in one to start absorbing its colour
+// floating bucket palette: dip the pencil in one to start absorbing its colour
 function _naraBuildPalette() {
   if (document.getElementById('nara-palette')) return;
   const pal = document.createElement('div'); pal.id = 'nara-palette'; pal.className = 'nara-palette';
@@ -798,7 +798,7 @@ function _naraCanvasXY(clientX, clientY) {
   const ct = document.getElementById('content'); const r = ct.getBoundingClientRect();
   return { x: clientX - r.left, y: clientY - r.top };
 }
-// mouse wheel resizes the brush — Style tab only
+// mouse wheel resizes the brush: Style tab only
 function _naraWheel(e) {
   if (!_naraOnStyleTab()) return;
   e.preventDefault();
@@ -818,7 +818,7 @@ function _naraPointerDown(e) {
   const al = _naraActiveLayer(); if (al && al.locked) return;   // can't draw on a locked layer
   if (_naraPaint.down) return;                 // already drawing → ignore palm / 2nd pointer
   e.preventDefault();                          // stop drag-selecting / scrolling
-  // Capture this pointer so EVERY move/up for it routes here — vital for pens,
+  // Capture this pointer so EVERY move/up for it routes here: vital for pens,
   // which otherwise drop events or get hijacked by Windows-Ink/scroll gestures.
   try { e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); } catch (_) {}
   _naraPaint.pid = e.pointerId;
@@ -960,7 +960,7 @@ function _naraDrawSizeRing(g, x, y, size) {
   g.lineWidth = 0.8; g.strokeStyle = 'rgba(255,255,255,0.9)'; g.stroke();
   g.restore();
 }
-// the pencil/brush — bristle tip pinned exactly on the cursor point
+// the pencil/brush: bristle tip pinned exactly on the cursor point
 function _naraDrawBrush(g, x, y) {
   const col = _naraPaintColor();
   g.save();
@@ -1001,7 +1001,7 @@ function _naraPaintTick(ts) {
   if (!_naraPaint.prevTs) _naraPaint.prevTs = ts;
   const dt = Math.min((ts - _naraPaint.prevTs) / 1000, 0.05); _naraPaint.prevTs = ts; _naraPaint.t += dt;
 
-  // dip mixing — while the pencil sits in a bucket, absorb that colour (~2s to full)
+  // dip mixing: while the pencil sits in a bucket, absorb that colour (~2s to full)
   if (_naraPaint.dip) {
     const k = 1 - Math.exp(-dt / 0.6);
     _naraPaint.rF += (_naraPaint.dip[0] - _naraPaint.rF) * k;
@@ -1012,7 +1012,7 @@ function _naraPaintTick(ts) {
   const onStyle = _naraOnStyleTab();
 
   // On the Style tab, stop the browser from treating a pen/touch drag as a
-  // scroll/pan gesture (which cancels the stroke) — essential for drawing tablets.
+  // scroll/pan gesture (which cancels the stroke): essential for drawing tablets.
   const ct = document.getElementById('content');
   if (ct) {
     const want = onStyle ? 'none' : '';
@@ -1252,7 +1252,7 @@ function _furyMuffinClick() {
       life: 1, r: 2.5 + Math.random() * 4.5, hue: Math.random() * 45 });
   }
 }
-// Fury's ERUPTION — a tyrant's wrath: shockwaves, screen flash, a gout of fire
+// Fury's ERUPTION: a tyrant's wrath: shockwaves, screen flash, a gout of fire
 function _furyEruptClick() {
   _furyChipBlue = !_furyChipBlue;   // flip the chip's colour each click
   _furyMuffinBounceT = 1.0;
@@ -1271,7 +1271,7 @@ function _furyEruptClick() {
   if (typeof playSound === 'function') { try { playSound('click', { rate: 0.6 + Math.random() * 0.15, volume: 0.6 }); } catch (e) {} }
 }
 
-// a flaming IRON CROWN — Fury's menacing cursor (the fire dictator)
+// a flaming IRON CROWN: Fury's menacing cursor (the fire dictator)
 let _furyCEmbers = [];   // embers spiralling into the cursor
 let _furyChipBlue = false;   // chip flips red <-> blue on every click
 const _FURY_CHIP = {
@@ -1335,13 +1335,13 @@ function _furyDrawChip(ctx, x, y, t) {
   ctx.restore();
 }
 
-// ── Sorrow — exactly Fury's fire, but monochrome and pouring DOWN from above,
+// ── Sorrow: exactly Fury's fire, but monochrome and pouring DOWN from above,
 // with a googly-eyed kebab cursor instead of the muffin. (Reuses Fury's draw.) ──
 const _SORROW_RE = /^Sorrow$/i;
 function _isSorrow(c) { return !!(c && c.name && _SORROW_RE.test(c.name)); }
 let _sorrowOverlayRafId = null;
 
-// ── Lucifer · UNLEASHED — form-specific demonic style (the devil, strongest
+// ── Lucifer · UNLEASHED: form-specific demonic style (the devil, strongest
 // by far). Only fires when Lucifer's ACTIVE form is "Unleashed"; the base form
 // and every other form keep their normal styling. ──
 const _LUCIFER_RE = /^Lucifer$/i;
@@ -1357,10 +1357,10 @@ let _luciferX = 0, _luciferY = 0, _luciferTargX = 0, _luciferTargY = 0, _lucifer
 let _luciferEmbers = [], _luciferRings = [], _luciferFlareT = 0, _luciferEmit = 0;
 const _LUCIFER_RUNES = 'ΩΨΣΦΛΞΔΘ†‡'.split('');
 
-// ── Divine — goddess of LIGHT. The radiant counterpart to Lucifer: same grand
+// ── Divine: goddess of LIGHT. The radiant counterpart to Lucifer: same grand
 // scale, but heavenly instead of infernal. A luminous sky, a giant rotating
 // sun-mandala halo, ascending light-glyphs, god-rays from above, drifting
-// motes, and rare descending sunbeams — gold / white / warm. A radiant cursor
+// motes, and rare descending sunbeams: gold / white / warm. A radiant cursor
 // orb of light. Character-wide (matches "Divine"). ──
 const _DIVINE_RE = /^Divine$/i;
 function _isDivine(c) { return !!(c && c.name && _DIVINE_RE.test(c.name)); }
@@ -1369,7 +1369,7 @@ let _divineX = 0, _divineY = 0, _divineTargX = 0, _divineTargY = 0, _divineVX = 
 let _divineMotes = [], _divineRings = [], _divineFlareT = 0, _divineEmit = 0;
 const _DIVINE_GLYPHS = '✦✧✶✷❋✺✵⁂'.split('');
 
-// ── Jimmy — he's just Fury's googly-eyed muffin, but BIG and sitting on the
+// ── Jimmy: he's just Fury's googly-eyed muffin, but BIG and sitting on the
 // page background (a bit to the right), watching your cursor. No fire, no
 // overlay companion: the muffin IS the background. Pattern-only, character-wide
 // (matches "Jimmy"). Eyes track the real pointer wherever it goes. ──
@@ -1380,7 +1380,7 @@ let _jimmyMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
 let _jimmyMouseHooked = false;
 let _jimmyHover = false;          // cursor inside the muffin's hit ellipse
 let _jimmyHappyT = 0;            // 0→1 happy ramp (hover + click)
-let _jimmyBounceT = 0;          // decays after a click — squish anim
+let _jimmyBounceT = 0;          // decays after a click: squish anim
 let _jimmyEmitBurst = 0;        // # of crumb sparkles queued by the last click
 let _jimmySparkles = [];        // flying crumb particles (canvas coords)
 let _jimmyLastDraw = 0;         // perf.now() of last Jimmy frame (gates the click hit-test)
@@ -1403,7 +1403,7 @@ function _jimmyHookMouse() {
   });
 }
 
-// ── The Shi — god of death. Silent, mysterious, VERY elegant: a pale soul
+// ── The Shi: god of death. Silent, mysterious, VERY elegant: a pale soul
 // garden (drifting petals, rising spirit-wisps, a cold moon) in blue/white/gray.
 // Beauty in death. Character-wide (matches "The Shi" / "Shi"). ──
 const _SHI_RE = /^(the\s+)?shi$/i;
@@ -1413,7 +1413,7 @@ let _shiX = 0, _shiY = 0, _shiTargX = 0, _shiTargY = 0, _shiVX = 0, _shiVY = 0;
 let _shiTrail = [], _shiPetals = [], _shiRings = [], _shiEmit = 0;
 let _shiSmoke = [];   // drifting deep blue/grey smoke puffs around the page vignette
 
-// ── Lunar — goddess of the moon. Elegant, calm, slightly melancholic; deep dark
+// ── Lunar: goddess of the moon. Elegant, calm, slightly melancholic; deep dark
 // blues, a luminous moon centerpiece over a quiet starfield, drifting clouds and
 // the occasional slow shooting star. Character-wide (matches "Lunar"). ──
 const _LUNAR_RE = /^Lunar$/i;
@@ -1422,7 +1422,7 @@ let _lunarOverlayRafId = null;
 let _lunarX = 0, _lunarY = 0, _lunarTargX = 0, _lunarTargY = 0, _lunarVX = 0, _lunarVY = 0;
 let _lunarDust = [], _lunarRings = [], _lunarEmit = 0;
 
-// ── Helios — god of the sun. Strong, intimidating, aggressive, voracious: a
+// ── Helios: god of the sun. Strong, intimidating, aggressive, voracious: a
 // blazing central sun firing long rotating rays, throbbing corona, solar flares
 // and rising sparks in gold/white-hot. Character-wide (matches "Helios"). ──
 const _HELIOS_RE = /^Helios$/i;
@@ -1431,7 +1431,7 @@ let _heliosOverlayRafId = null;
 let _heliosX = 0, _heliosY = 0, _heliosTargX = 0, _heliosTargY = 0, _heliosVX = 0, _heliosVY = 0;
 let _heliosSparks = [], _heliosRings = [], _heliosFlareT = 0, _heliosEmit = 0;
 
-// ── Zoe — spirit of life. Warm, lush, alive: an enchanted glowing garden of
+// ── Zoe: spirit of life. Warm, lush, alive: an enchanted glowing garden of
 // blooming flowers, drifting petals, rising pollen and swaying grass in greens
 // and soft florals. Character-wide (matches "Zoe"). ──
 const _ZOE_RE = /^Zoe$/i;
@@ -1440,7 +1440,7 @@ let _zoeOverlayRafId = null;
 let _zoeX = 0, _zoeY = 0, _zoeTargX = 0, _zoeTargY = 0, _zoeVX = 0, _zoeVY = 0;
 let _zoeParts = [], _zoeRings = [], _zoeEmit = 0;
 
-// ── Iris — starry, shimmyful, joyous magical-girl energy: a twinkling golden
+// ── Iris, starry, shimmyful, joyous magical-girl energy: a twinkling golden
 // sky full of sparkles, glitter, drifting hearts and shooting stars over a warm
 // magical twilight. Character-wide (matches "Iris"). ──
 // Generic: name of a character's currently active alt form ('' if on BASE).
@@ -1454,7 +1454,7 @@ function _activeFormName(c) {
 }
 const _IRIS_RE = /^Iris$/i;
 function _isIris(c) { return !!(c && c.name && _IRIS_RE.test(c.name)); }
-// "Lady of the Stars!" — Iris's magical-girl transformation alt form. Same
+// "Lady of the Stars!": Iris's magical-girl transformation alt form. Same
 // scene, leveled up into a brighter pink/gold radiant palette.
 const _IRIS_STARS_FORM_RE = /lady\s+of\s+the\s+stars/i;
 function _isIrisStarsForm(c) { return _isIris(c) && _IRIS_STARS_FORM_RE.test(_activeFormName(c)); }
@@ -1467,9 +1467,9 @@ function _irisUpdateShimmyDisplay() {
   if (el) el.textContent = _irisShimmyCount;
 }
 
-// ── Mouseburger — a magical BOY; tougher, serious, a touch melancholic (Iris's
+// ── Mouseburger: a magical BOY; tougher, serious, a touch melancholic (Iris's
 // husband). Cool indigo midnight, sharp crystalline sparkles, a lone star and a
-// slow comet — with a few stray burgers drifting by (never the main plate). ──
+// slow comet: with a few stray burgers drifting by (never the main plate). ──
 const _MB_RE = /^Mouseburger$/i;
 function _isMb(c) { return !!(c && c.name && _MB_RE.test(c.name)); }
 let _mbOverlayRafId = null;
@@ -1493,10 +1493,10 @@ function _mbBurgerFx(x, y) {
   }
 }
 
-// ── Juko! — energetic programmer girl (green code-garden + cat-sprite cursor) ──
+// ── Juko!: energetic programmer girl (green code-garden + cat-sprite cursor) ──
 const _JUKO_RE = /^Juko!?$/i;
 function _isJuko(c) { return !!(c && c.name && _JUKO_RE.test(c.name)); }
-// "0∞" — Juko's corrupted/unhinged alt form: the same Code Garden, but the
+// "0∞": Juko's corrupted/unhinged alt form: the same Code Garden, but the
 // program has crashed into an infinite loop and is tearing itself apart.
 const _JUKO_0INF_RE = /0\s*.?\s*∞|infinity/i;
 function _isJuko0Inf(c) { return !!(_isJuko(c) && _JUKO_0INF_RE.test(_activeFormName(c))); }
@@ -1519,7 +1519,7 @@ let _juko0InfWinRafId = null;     // rAF driving window/screen messing + glitch 
 let _juko0InfWinList = [];        // floating glitched-pfp window elements
 let _juko0InfNextWin = 0;         // next glitch-window (re)spawn time
 let _juko0InfGlitchNext = 0;      // next teleport/re-filter tick for an existing window
-// One-time "BOOM" the instant the 22s intro breaks — a global (not a
+// One-time "BOOM" the instant the 22s intro breaks: a global (not a
 // canvas-attached prop!) because the overlay canvas gets torn down/recreated
 // on every unrelated re-render; only _startJuko0InfExtras (a genuine 0∞ entry)
 // may reset these, so the boom fires exactly once per entry, right at the drop.
@@ -1545,7 +1545,7 @@ let _jukoHappyT  = 0;             // decays after click (happy ^^ eyes + blush)
 let _jukoParticles = [];          // code-symbol burst on click
 // Single-char glyphs for the falling matrix rain (code-flavoured)
 const _JUKO_RAIN = '01{}()<>[];=+*/&|!?:.#%abcdefijklmnoprstuvwxyz01'.split('');
-// 0∞ chaos variant — the loop has crashed; rain corrupts into 0s, infinities
+// 0∞ chaos variant: the loop has crashed; rain corrupts into 0s, infinities
 // and broken/error glyphs the longer the form stays active.
 const _JUKO_RAIN_CHAOS = '0∞0∞0∞18X#%¤×÷≠¿?!∞0{}<>[]()∞0'.split('');
 // Runtime-exception strings that flash across the 0∞ crash.
@@ -1578,7 +1578,7 @@ function _jukoClick() {
       rot: (Math.random() - 0.5) * Math.PI, vr: (Math.random() - 0.5) * 9,
       life: 1, sz: 11 + Math.random() * 11,
       ch:  _JUKO_TOKENS[Math.floor(Math.random() * _JUKO_TOKENS.length)],
-      // ~55% green, ~45% light-yellow — her two signature tones
+      // ~55% green, ~45% light-yellow: her two signature tones
       hue: Math.random() < 0.55 ? 100 + Math.random() * 40 : 52 + Math.random() * 10,
     });
   }
@@ -1722,7 +1722,7 @@ let _lastSaveId = null;
 let _lastSaveTime = 0;
 const SELF_WRITE_WINDOW = 8000; // ms
 
-function loadData() { characters = []; } // no-op — data comes from Firestore
+function loadData() { characters = []; } // no-op: data comes from Firestore
 
 function _stripUndefined(obj) {
   if (obj === null || typeof obj !== 'object') {
@@ -1776,7 +1776,7 @@ async function migrateLocalStorage() {
     const local = JSON.parse(stored);
     if (!local?.length) return;
     const snap = await db.collection('characters').limit(1).get();
-    if (!snap.empty) return; // Firestore already has data — skip
+    if (!snap.empty) return; // Firestore already has data: skip
     const batch = db.batch();
     local.forEach((c, i) => {
       if (!c.createdAt) c.createdAt = Date.now() + i;
@@ -1891,7 +1891,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (_themeAudio) {
     _themeAudio.loop = false; // Handled manually so startAt is respected on every loop
     _themeAudio.addEventListener('ended', _onThemeEnded);
-    // Safety net for playback — cascade through fallbacks so music never dies:
+    // Safety net for playback, cascade through fallbacks so music never dies:
     //   1) optimized transcode fails → original file (same account)
     //   2) primary account fails     → the same file on the backup account
     _themeAudio.addEventListener('error', () => {
@@ -1902,7 +1902,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (alt && stage !== '2') { a.dataset.bkStage = '2'; reload(alt); return; }
     });
     // Top-level `let` does NOT become a window property in a non-module script,
-    // so window._themeAudio was permanently undefined — which silently disabled
+    // so window._themeAudio was permanently undefined: which silently disabled
     // every music-reactive effect that read it (Juko's, etc.). Expose it here.
     window._themeAudio = _themeAudio;
   }
@@ -1936,7 +1936,7 @@ let _themeBarLeaveTimer    = null; // hides bar again after mouse leaves
 let _themePendingKey       = null; // set when play() is blocked by autoplay policy
 // PERF/correctness guard: every playThemeForCharacter() call claims the next
 // generation number. A deferred doLoad() (fired after an async crossfade) checks
-// it's still the latest request before touching _themeAudio — otherwise a rapid
+// it's still the latest request before touching _themeAudio: otherwise a rapid
 // form switch (e.g. base → 0∞ → base) could let a stale, in-flight fade-out
 // finish LAST and stomp the correct track back to whatever it was loading before.
 let _themeLoadGen = 0;
@@ -1989,19 +1989,19 @@ async function _cldUploadTo(cloud, preset, file, resourceType, pid) {
 async function _uploadMedia(file, resourceType /* 'image' | 'video' */, publicId) {
   // shared id so the asset lands at the same path on BOTH accounts (enables the swap fallback)
   const pid = publicId || ('uploads/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));
-  // 1. Cloudinary (primary) — and mirror to the backup account in the background
+  // 1. Cloudinary (primary): and mirror to the backup account in the background
   try {
     const url = await _cldUploadTo(CLOUDINARY_CLOUD, CLOUDINARY_PRESET, file, resourceType, pid);
     _cldUploadTo(CLOUDINARY_CLOUD_2, CLOUDINARY_PRESET_2, file, resourceType, pid).catch(() => {}); // best-effort mirror
     return url;
   } catch (err) {
-    console.warn('[Upload] Cloudinary primary failed — trying backup account:', err.message);
+    console.warn('[Upload] Cloudinary primary failed, trying backup account:', err.message);
   }
   // 2. Cloudinary (backup account)
   try {
     return await _cldUploadTo(CLOUDINARY_CLOUD_2, CLOUDINARY_PRESET_2, file, resourceType, pid);
   } catch (err) {
-    console.warn('[Upload] Cloudinary backup failed — falling back to ImageKit:', err.message);
+    console.warn('[Upload] Cloudinary backup failed, falling back to ImageKit:', err.message);
   }
 
   // 3. ImageKit (final fallback)
@@ -2024,8 +2024,8 @@ async function _uploadMedia(file, resourceType /* 'image' | 'video' */, publicId
 }
 // ── Cloudinary delivery optimization (transparent bandwidth savings) ──────────
 // Inserts a transformation into a Cloudinary delivery URL so files come down
-// smaller. Anything that ISN'T a plain Cloudinary upload URL — ImageKit, data:
-// URIs, local files, or already-transformed URLs — passes straight through
+// smaller. Anything that ISN'T a plain Cloudinary upload URL, ImageKit, data:
+// URIs, local files, or already-transformed URLs: passes straight through
 // unchanged, so these are always safe to wrap around any src. The visual/audio
 // result is intended to be indistinguishable; audio also has a hard fallback to
 // the untouched file if a transform ever fails (see theme-audio 'error' handler).
@@ -2098,7 +2098,7 @@ function _themeFadeIn() {
 // Returns the theme song for a specific form index (0 = base)
 function _getFormTheme(c, formIdx) {
   if (!c) return null;
-  // Juko's theme is permanently hardcoded to the bundled local file — it cannot
+  // Juko's theme is permanently hardcoded to the bundled local file: it cannot
   // be changed via upload, and any uploaded song is ignored for playback. This
   // also guarantees the played audio is byte-identical to the file the reactivity
   // envelope analyses (sounds/juko.mp3), so currentTime stays perfectly aligned.
@@ -2136,7 +2136,7 @@ function playThemeForCharacter(charId, overrideSong = null) {
   console.log('[THEME] playThemeForCharacter called:', { charId, formIdx, overrideSong, usingCached: (!overrideSong && _themeCurrentCharId === key), songFromChar: _getFormTheme(c, formIdx) });
 
   if (!song || !song.url) {
-    // No theme for this form — fade out if we were playing something else
+    // No theme for this form: fade out if we were playing something else
     if (_themeCurrentCharId) {
       _themeTimestamps.set(_themeCurrentCharId, _themeAudio.currentTime);
       _themeFadeOut(() => { _themeAudio.pause(); _themeCurrentCharId = null; _themeCurrentSong = null; _hideThemeBar(); });
@@ -2159,9 +2159,9 @@ function playThemeForCharacter(charId, overrideSong = null) {
   const doLoad = () => {
     // A newer playThemeForCharacter() call has already superseded this one
     // (e.g. the user flipped forms again while this fade-out was still running)
-    // — don't let a stale load stomp whatever the latest call is doing.
+    //: don't let a stale load stomp whatever the latest call is doing.
     if (myGen !== _themeLoadGen) return;
-    // Only cache-bust after a fresh upload — otherwise let the browser cache the file
+    // Only cache-bust after a fresh upload: otherwise let the browser cache the file
     // so repeat visits to the same character start playing instantly.
     const isFreshUpload = _themeReloadKeys.has(key);
     if (isFreshUpload) _themeReloadKeys.delete(key);
@@ -2208,10 +2208,10 @@ function playThemeForCharacter(charId, overrideSong = null) {
 
 // ── Background preloader ──────────────────────────────────────
 // Creates real Audio objects with preload='metadata' so the browser actually
-// fills its audio buffer — far more effective than a fetch for reducing playback lag.
+// fills its audio buffer: far more effective than a fetch for reducing playback lag.
 // We keep the objects alive in a Map so GC doesn't drop them before they finish.
 const _themePreloadCache = new Set();   // URLs already preloaded this session
-const _themePreloadAudios = new Map();  // url → Audio — keep-alive references
+const _themePreloadAudios = new Map();  // url → Audio: keep-alive references
 let _themePreloadQueue = [];
 let _themePreloadTimer = null;
 
@@ -2238,13 +2238,13 @@ function _kickPreloadQueue() {
     const url = _themePreloadQueue.shift();
     if (!url || _themePreloadCache.has(url)) { _kickPreloadQueue(); return; }
     _themePreloadCache.add(url);
-    // Real Audio element — browser primes its audio pipeline, not just HTTP cache
+    // Real Audio element: browser primes its audio pipeline, not just HTTP cache
     const a = new Audio();
     a.preload = 'metadata'; // downloads header + usually first few seconds
     a.src = _cldAudio(url);   // preload the optimized version too
     _themePreloadAudios.set(url, a); // prevent GC
     _kickPreloadQueue();
-  }, 500); // 500 ms stagger — fast enough to preload all chars in ~10 s
+  }, 500); // 500 ms stagger: fast enough to preload all chars in ~10 s
 }
 
 function toggleThemePlayback() {
@@ -2366,7 +2366,7 @@ function renderThemeTab() {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
 
-  // Juko's theme is hardcoded and cannot be changed — show a locked notice
+  // Juko's theme is hardcoded and cannot be changed: show a locked notice
   // instead of the upload controls so nothing can overwrite it.
   if (_isJuko(c)) {
     container.innerHTML =
@@ -2404,7 +2404,7 @@ async function onThemeFileSelected(input) {
   if (!file) return;
 
   if (file.size > THEME_MAX_MB * 1024 * 1024) {
-    notify(`File too large — max ${THEME_MAX_MB} MB`, 'err');
+    notify(`File too large: max ${THEME_MAX_MB} MB`, 'err');
     return;
   }
 
@@ -2421,7 +2421,7 @@ async function onThemeFileSelected(input) {
     const url = rawUrl + (rawUrl.includes('?') ? '&' : '?') + 'v=' + Date.now();
     const songData = { url, name: file.name.replace(/\.[^/.]+$/, '') };
 
-    // Capture previous song (if any) before overwriting — useful for verification
+    // Capture previous song (if any) before overwriting: useful for verification
     const prevSong = _getFormTheme(c, formIdx);
 
     console.log('[UPLOAD] New theme uploaded:', { url: rawUrl, cachebustedUrl: url, songData, prevSong });
@@ -2469,7 +2469,7 @@ async function onThemeFileSelected(input) {
       if (prevSong && prevSong.url) {
         const prevInfo = await fetchHash(prevSong.url);
         if (newInfo && prevInfo && newInfo.hash === prevInfo.hash) {
-          console.warn('[VERIFY] Uploaded file bytes equal to previous file — CDN or upload may not have updated resource.');
+          console.warn('[VERIFY] Uploaded file bytes equal to previous file: CDN or upload may not have updated resource.');
         }
       }
     } catch (e) {
@@ -2505,7 +2505,7 @@ function clearThemeSong(formIdx) {
   renderThemeTab();
 }
 
-// ── Theme bar UI (mini-player — only visible while something is playing) ──────
+// ── Theme bar UI (mini-player: only visible while something is playing) ──────
 function _showThemeBar(title, charName, charColor) {
   document.getElementById('theme-bar-title').textContent = title;
   const charEl = document.getElementById('theme-bar-char');
@@ -2591,7 +2591,7 @@ function _initThemeBarHover() {
 function _unlockAutoplay() {
   if (!_themePendingKey) return;
   _themePendingKey = null;
-  // Just resume whatever is loaded — if the user clicked a different character,
+  // Just resume whatever is loaded: if the user clicked a different character,
   // viewChar → playThemeForCharacter will fire in the same gesture's bubble phase
   // and handle switching cleanly. We only need to unlock the audio context here.
   _themeAudio.play().catch(() => {});
@@ -2806,13 +2806,13 @@ function _renderStatSegsFrame(val, key) {
   ].filter(t => !!t);
 
   // Nara always gets a rainbow overlay across her filled stat bars, on top of
-  // whatever tier styling would normally show — but only on the read-only
+  // whatever tier styling would normally show: but only on the read-only
   // character-view bars, not the editor's raw sliders.
   const _naraRbw = _isNara(characters.find(x => x.id === currentId));
 
   targets.forEach(wrap => {
     const isViewBars = wrap.id.startsWith('stat-segs-');
-    // 0∞ infinite bar: a dedicated always-full, shimmering style — replaces
+    // 0∞ infinite bar: a dedicated always-full, shimmering style, replaces
     // the normal tier-colour fill entirely (editor sliders stay untouched).
     if (_juko0InfBar && isViewBars) {
       if (wrap.children.length !== SEG_COUNT || !wrap.children[0].classList.contains('stat-seg-wrap')) {
@@ -3354,7 +3354,7 @@ function _bzDrawBee(ctx, s, wf, queen) {
   // soft golden aura
   ctx.globalAlpha = 0.09 + wf * 0.05; ctx.fillStyle = '#ffd23a';
   ctx.beginPath(); ctx.arc(0, 0, 16, 0, PI2); ctx.fill();
-  // wings — upper + lower pairs, translucent blue-white, blurred by flap
+  // wings: upper + lower pairs, translucent blue-white, blurred by flap
   ctx.globalAlpha = 0.32 + wf * 0.16; ctx.fillStyle = '#e9f5ff';
   ctx.beginPath(); ctx.ellipse(-1, -ws, 10, 4.3, -0.42, 0, PI2); ctx.fill();
   ctx.beginPath(); ctx.ellipse( 4, -ws * 0.8, 7.4, 3, 0.28, 0, PI2); ctx.fill();
@@ -3400,7 +3400,7 @@ function _bzDrawBee(ctx, s, wf, queen) {
   ctx.restore();
 }
 
-// The original, simpler bee model — paler wings, flatter body. Kept around
+// The original, simpler bee model: paler wings, flatter body. Kept around
 // for variety. Also faces +x. s=scale, wf=wing-flap 0..1.
 function _bzDrawBeeOld(ctx, s, wf) {
   const PI2 = Math.PI * 2;
@@ -3460,20 +3460,20 @@ function _bzBeeAt(ctx, b, W, H, t) {
     };
     sc = 0.7; flap = Math.abs(Math.sin(t * 30 + b * 2));
   } else if (b === 5) {
-    // the queen — large, slow, majestic drift
+    // the queen: large, slow, majestic drift
     const cx = W * (0.3 + 0.4 * sx), cy = H * (0.3 + 0.35 * sy);
     const f = 0.022 + 0.01 * sy, ph = b * 2.1;
     pos = tt => [cx + Math.cos(tt * f * PI2 + ph) * W * 0.18,
                  cy + Math.sin(tt * f * PI2 * 1.3 + ph) * H * 0.14];
     sc = 1.18; flap = Math.abs(Math.sin(t * 16 + b)); queen = true;
   } else if (b === 6) {
-    // flower inspector — hovers over a slowly drifting spot, bobbing in place
+    // flower inspector: hovers over a slowly drifting spot, bobbing in place
     const cx = W * (0.2 + 0.6 * sx), cy = H * (0.25 + 0.5 * sy), ph = b * 1.9;
     pos = tt => [cx + Math.sin(tt * 0.13 + ph) * W * 0.06 + Math.cos(tt * 2.2) * 8,
                  cy + Math.cos(tt * 0.11 + ph) * H * 0.05 + Math.sin(tt * 3.1) * 10];
     sc = 0.74; flap = Math.abs(Math.sin(t * 28 + b));
   } else if (b === 7) {
-    // loop-de-loop — tight fast loops riding on a wide slow drift
+    // loop-de-loop: tight fast loops riding on a wide slow drift
     const cx = W * (0.2 + 0.6 * sx), cy = H * (0.2 + 0.55 * sy), ph = b * 2.4;
     pos = tt => {
       const dcx = cx + Math.sin(tt * 0.07 + ph) * W * 0.18;
@@ -3482,7 +3482,7 @@ function _bzBeeAt(ctx, b, W, H, t) {
     };
     sc = 0.76; flap = Math.abs(Math.sin(t * 26 + b));
   } else if (b === 8) {
-    // commuter — cruises straight across the screen and wraps around
+    // commuter: cruises straight across the screen and wraps around
     const speed = W * 0.11 * (0.8 + sx * 0.5), yBase = H * (0.15 + 0.7 * sy), ph = b * 1.1;
     pos = tt => [((tt * speed + sx * W) % (W + 120)) - 60,
                  yBase + Math.sin(tt * 1.5 + ph) * 22];
@@ -3511,7 +3511,7 @@ function _bizzyConnectAudio() {
   // IMPORTANT: We deliberately do NOT use createMediaElementSource here.
   // That API permanently hijacks the audio element and, combined with CORS
   // restrictions on Cloudinary URLs, causes the element to output silence
-  // forever — breaking playback for every character visited after Bizzy.
+  // forever: breaking playback for every character visited after Bizzy.
   // Instead we track play/pause state via events and simulate the pulse.
   if (_bizzyAudioListening) return;
   _bizzyAudioListening = true;
@@ -3553,7 +3553,7 @@ function _bizzyPulseColor(c) {
   const pr=Math.min(255,Math.round(r*bright));
   const pg=Math.min(255,Math.round(g*bright));
   const pb=Math.min(255,Math.round(b*bright));
-  // Only touch the DOM when the rounded colour actually changes — writing
+  // Only touch the DOM when the rounded colour actually changes: writing
   // --char-color every frame forces a full style recalc of every panel/glow
   // that references it. The value repeats across most frames, so this skips
   // the vast majority of those restyles with no visible difference.
@@ -3603,7 +3603,7 @@ function _bizzyRafTick(ts) {
   _bizzyRafId = requestAnimationFrame(_bizzyRafTick);
 }
 
-/* ── Cursor bee — a bee that chases the pointer with a lazy buzz, ──
+/* ── Cursor bee: a bee that chases the pointer with a lazy buzz, ──
    leaving a honey trail and bursting pollen/petals on click. ───── */
 function _bzAngLerp(a, b, f) {
   const PI2 = Math.PI * 2;
@@ -3637,7 +3637,7 @@ function _bzDrawCursor(ctx, W, H, t) {
   _bzBeeY += (ty - _bzBeeY) * sm;
 
   // Stay upright always: face TOWARD the cursor (with a deadzone so it
-  // doesn't flutter), and add only a small clamped tilt — never flips over.
+  // doesn't flutter), and add only a small clamped tilt: never flips over.
   const dx = _bzMX - _bzBeeX, dy = _bzMY - _bzBeeY;
   if (dx >  20) _bzBeeFace = 1;
   else if (dx < -20) _bzBeeFace = -1;
@@ -3672,7 +3672,7 @@ function _bzDrawCursor(ctx, W, H, t) {
   }
   _bzBursts = _bzBursts.filter(b => b.life > 0);
 
-  // The lead bee — upright, facing the cursor with a small tilt
+  // The lead bee: upright, facing the cursor with a small tilt
   ctx.save();
   ctx.translate(_bzBeeX, _bzBeeY);
   ctx.rotate(_bzBeeTilt);
@@ -3681,7 +3681,7 @@ function _bzDrawCursor(ctx, W, H, t) {
   ctx.restore();
 
   // A small swarm orbiting the pointer (mix of old + new models). They stay
-  // upright too — facing their direction of travel without flipping over.
+  // upright too: facing their direction of travel without flipping over.
   const ORB = 4;
   for (let i = 0; i < ORB; i++) {
     const dir = (i % 2 === 0) ? 1 : -1;
@@ -3791,13 +3791,13 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
   }
   ctx.restore();
 
-  // ── Honeycomb (flat-top hexagons) — the gentle old pulse, mixed ──
+  // ── Honeycomb (flat-top hexagons): the gentle old pulse, mixed ──
   //    with a few dim shimmering honey-filled cells ──
   const R   = 20;
   const csx = R * 1.5;
   const csy = R * Math.sqrt(3);
 
-  // Cache the hex Path2D — same shape every cell, translated per cell
+  // Cache the hex Path2D: same shape every cell, translated per cell
   if (!_drawBizzyPattern._hex) {
     const p = new Path2D();
     const hr = R * 0.87;
@@ -3811,7 +3811,7 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
   }
   const hexPath = _drawBizzyPattern._hex;
 
-  // lineWidth is constant for every cell — set it once instead of per cell.
+  // lineWidth is constant for every cell: set it once instead of per cell.
   ctx.lineWidth = 0.95;
   for (let col = -1; col * csx < W + csx; col++) {
     for (let row = -1; row * csy < H + csy; row++) {
@@ -3819,7 +3819,7 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
       const cy = row * csy + (col & 1 ? csy * 0.5 : 0);
       const ph = (Math.sin(t * 0.55 + col * 0.71 + row * 1.13) + 1) * 0.5;
       const honey = _bzHash(col * 13 + row * 7, 1);   // stable per cell
-      // Translate / untranslate instead of save()/restore() per cell — same
+      // Translate / untranslate instead of save()/restore() per cell: same
       // result, but skips ~2000 state-stack push/pops per frame.
       ctx.translate(cx, cy);
       if (honey > 0.84) {
@@ -3891,7 +3891,7 @@ function _drawBizzyPattern(canvas, ctx, W, H, t) {
   }
 }
 
-/* ── BLACKJACK — casino card scatter ────────────────────────── */
+/* ── BLACKJACK: casino card scatter ────────────────────────── */
 function _bjHash(i, n) {
   const v = Math.sin(i * 127.1 + n * 311.7 + i * n * 17.3) * 43758.5453;
   return v - Math.floor(v);
@@ -3938,7 +3938,7 @@ function _drawBjHeart(ctx, cx, cy, r, t) {
   _bjHeartPath(ctx, cx, cy, r);
   ctx.shadowBlur = 26 + pulse * 14; ctx.shadowColor = 'rgba(255,255,255,0.95)';
   ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = Math.max(3, r * 0.12); ctx.stroke();
-  // crisp white→gray gradient outline on top (single, clean — no dupes)
+  // crisp white→gray gradient outline on top (single, clean: no dupes)
   const og = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
   og.addColorStop(0, '#ffffff'); og.addColorStop(0.5, '#d2d6dc'); og.addColorStop(1, '#8b9098');
   _bjHeartPath(ctx, cx, cy, r);
@@ -4012,7 +4012,7 @@ function _drawBlackjackPattern(canvas, ctx, W, H, t) {
   for (let i = 0; i < N; i++) {
     const h = n => _bjHash(i, n);
 
-    const cw    = 44 + h(0) * 24;           // 44–68 px wide
+    const cw    = 44 + h(0) * 24;           // 44-68 px wide
     const ch    = cw * 1.45;
     const speed = 12 + h(1) * 26;           // px/s  (slow mournful drift)
     const rotB  = (h(2) - 0.5) * 0.85;     // base tilt (≈ ±24°)
@@ -4037,7 +4037,7 @@ function _drawBlackjackPattern(canvas, ctx, W, H, t) {
     ctx.rotate(rot);
     ctx.globalAlpha = aCard;
 
-    // Drop shadow — hard offset rect (no shadowBlur, much faster)
+    // Drop shadow: hard offset rect (no shadowBlur, much faster)
     ctx.globalAlpha = aCard * 0.38;
     ctx.fillStyle = '#000';
     ctx.beginPath(); _bjRRect(ctx, -cw*0.5+4, -ch*0.5+5, cw, ch, cr); ctx.fill();
@@ -4089,13 +4089,13 @@ function _drawBlackjackPattern(canvas, ctx, W, H, t) {
       ctx.beginPath(); _bjRRect(ctx, -cw*0.5+pad, -ch*0.5+pad, cw-pad*2, ch-pad*2, cr*0.5); ctx.stroke();
 
       const mr = cw * 0.22;
-      // Left half — blue
+      // Left half: blue
       ctx.save();
       ctx.beginPath(); ctx.rect(-cw, -ch, cw, ch*2); ctx.clip();
       _bjHeartPath(ctx, 0, 0, mr);
       ctx.fillStyle='rgba(0,175,218,0.80)'; ctx.fill();
       ctx.restore();
-      // Right half — orange
+      // Right half: orange
       ctx.save();
       ctx.beginPath(); ctx.rect(0, -ch, cw, ch*2); ctx.clip();
       _bjHeartPath(ctx, 0, 0, mr);
@@ -4160,7 +4160,7 @@ function _drawBlackjackPattern(canvas, ctx, W, H, t) {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
-/* ── KATIE — lily pond ────────────────────────────────────────── */
+/* ── KATIE: lily pond ────────────────────────────────────────── */
 function _katieHook(cv) {
   _katieUnhook();
   _katieHookCv = cv;
@@ -4204,7 +4204,7 @@ function _drawKatiePad(ctx, cx, cy, rx, ry, rot, t, idx) {
   ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fill();
   ctx.restore();
 
-  // Pad body (ellipse with V notch) — flat fill (no createRadialGradient per pad)
+  // Pad body (ellipse with V notch): flat fill (no createRadialGradient per pad)
   ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0, 0, rx, 0.35, Math.PI*2-0.35); ctx.lineTo(0,0);
   ctx.fillStyle = '#3a8c3a'; ctx.fill();
   ctx.strokeStyle = 'rgba(70,150,50,0.45)'; ctx.lineWidth = 0.8; ctx.stroke();
@@ -4224,13 +4224,13 @@ function _drawKatiePad(ctx, cx, cy, rx, ry, rot, t, idx) {
 function _drawKatieFlower(ctx, cx, cy, r, t, idx) {
   const bob = Math.sin(t * 0.5 + idx * 2.1) * 1.5;
   ctx.save(); ctx.translate(cx, cy + bob);
-  // Flat petal fill — no createRadialGradient per petal (5 × ~6 flowers = ~30 gradients saved)
+  // Flat petal fill: no createRadialGradient per petal (5 × ~6 flowers = ~30 gradients saved)
   for (let p = 0; p < 5; p++) {
     ctx.save(); ctx.rotate((p/5) * Math.PI*2);
     ctx.beginPath(); ctx.ellipse(0, -r*0.65, r*0.3, r*0.52, 0, 0, Math.PI*2);
     ctx.fillStyle = 'rgba(255,185,210,0.9)'; ctx.fill(); ctx.restore();
   }
-  // Centre — wide stroke halo instead of shadowBlur
+  // Centre: wide stroke halo instead of shadowBlur
   ctx.beginPath(); ctx.arc(0, 0, r*0.38, 0, Math.PI*2);
   ctx.fillStyle = 'rgba(255,200,50,0.18)'; ctx.fill();
   ctx.beginPath(); ctx.arc(0, 0, r*0.28, 0, Math.PI*2);
@@ -4319,7 +4319,7 @@ function _drawKatieFrog(ctx, x, y, ang, spd, t) {
     ctx.beginPath(); ctx.ellipse(ex, ey, ER, ER*0.92, 0, 0, Math.PI*2);
     ctx.fillStyle = '#8ab4c8'; ctx.fill();
 
-    // Square/rectangular pupil — matches the toy exactly
+    // Square/rectangular pupil: matches the toy exactly
     if (blink) {
       ctx.save();
       ctx.beginPath(); ctx.moveTo(ex-ER*0.6, ey); ctx.lineTo(ex+ER*0.6, ey);
@@ -4358,7 +4358,7 @@ function _drawKatieFrog(ctx, x, y, ang, spd, t) {
 function _startKatieOverlay() {
   _stopKatieOverlay();
 
-  // Fixed-position canvas on document.body — z-index:9999 puts it
+  // Fixed-position canvas on document.body, z-index:9999 puts it
   // above every panel. clientX/Y map directly to canvas coordinates.
   const cv = document.createElement('canvas');
   cv.id = 'katie-frog-overlay';
@@ -4375,7 +4375,7 @@ function _startKatieOverlay() {
   _katieTargY  = _katieFrogY;
   _katieFrogAng = 0;
 
-  // Track raw client coordinates — no getBoundingClientRect needed
+  // Track raw client coordinates: no getBoundingClientRect needed
   _katieUnhook();
   _katieHookCv = cv;
   _katieParts = [];
@@ -4404,7 +4404,7 @@ function _startKatieOverlay() {
     prevMs = now;
     const t = (now - t0) / 1000;
 
-    // Spring physics — lags behind cursor, chasing feel
+    // Spring physics: lags behind cursor, chasing feel
     const SPRING = 130, DAMP = 14;
     _katieFrogVX += ((_katieTargX - _katieFrogX) * SPRING - _katieFrogVX * DAMP) * dt;
     _katieFrogVY += ((_katieTargY - _katieFrogY) * SPRING - _katieFrogVY * DAMP) * dt;
@@ -4445,10 +4445,10 @@ function _drawKatiePattern(canvas, ctx, W, H, t) {
   if (_drawKatiePattern._lt !== undefined && t - _drawKatiePattern._lt < 0.033) return;
   _drawKatiePattern._lt = t;
 
-  // Background pond only — frog is on the overlay canvas
+  // Background pond only: frog is on the overlay canvas
   ctx.clearRect(0, 0, W, H);
 
-  // ── Water base — cache gradient, only rebuild on resize ──
+  // ── Water base: cache gradient, only rebuild on resize ──
   if (!_drawKatiePattern._wg || _drawKatiePattern._wgW !== W || _drawKatiePattern._wgH !== H) {
     const wg = ctx.createLinearGradient(W*0.1, 0, W*0.9, H);
     wg.addColorStop(0,   '#0b2d3e');
@@ -4460,7 +4460,7 @@ function _drawKatiePattern(canvas, ctx, W, H, t) {
   }
   ctx.fillStyle = _drawKatiePattern._wg; ctx.fillRect(0, 0, W, H);
 
-  // Surface ripple lines — fewer rows, coarser x-step (same visual at distance)
+  // Surface ripple lines: fewer rows, coarser x-step (same visual at distance)
   ctx.save();
   for (let row = 0; row < 10; row++) {
     const ry0 = (row / 10) * H;
@@ -4577,7 +4577,7 @@ function _drawLeonSword(ctx, x, yCG, ang) {
   ctx.restore();
 }
 
-// a sword made entirely of fire — additive flame shaped like a blade
+// a sword made entirely of fire: additive flame shaped like a blade
 function _drawLeonFireSword(ctx, x, y, ang, t, seed, alpha) {
   const PI2 = Math.PI * 2;
   ctx.save();
@@ -4602,7 +4602,7 @@ function _drawLeonFireSword(ctx, x, y, ang, t, seed, alpha) {
   blade(8 * fl(1), L * 0.95, 'rgba(255,90,0,0.5)', 1.3);
   blade(5 * fl(2), L * 0.9, 'rgba(255,160,20,0.55)', 2.1);
   blade(2.6 * fl(3), L * 0.82, 'rgba(255,235,130,0.75)', 3.0);
-  // crossguard — a horizontal flame burst
+  // crossguard: a horizontal flame burst
   ctx.save(); ctx.rotate(Math.PI / 2);
   blade(4.5, 17, 'rgba(255,120,0,0.5)', 5); ctx.scale(1, -1); blade(4.5, 17, 'rgba(255,120,0,0.5)', 6);
   ctx.restore();
@@ -4661,7 +4661,7 @@ function _drawLeonPattern(canvas, ctx, W, H, t, params) {
   for (let i = 0; i < N; i++) {
     const h     = n => _leonH(i, n);
     const x     = h(0) * W;
-    const speed = 420 + h(1) * 320;       // 420–740 px/s
+    const speed = 420 + h(1) * 320;       // 420-740 px/s
     const ang   = (h(2) - 0.5) * 0.18;   // ±5°
     const cyc   = H + 95;
     const yCG   = (t * speed + h(3) * cyc) % cyc - 66; // blade tip enters first
@@ -4722,7 +4722,7 @@ function _drawLeonFire(ctx, W, H, t) {
   ctx.fillStyle = _drawLeonFire._bg;
   ctx.fillRect(0, 0, W, H);
 
-  // ── Flame tongues — additive blending ────────────────────
+  // ── Flame tongues: additive blending ────────────────────
   // Overlapping flames ADD colour: dense centre → bright white-orange,
   // sparse edges → dim red.  Each flame uses low alpha; brightness
   // comes from layering, not individual opacity.
@@ -4743,7 +4743,7 @@ function _drawLeonFire(ctx, W, H, t) {
     ctx.fill();
   };
 
-  // Layer 1 — tall dark-red back flames
+  // Layer 1: tall dark-red back flames
   for (let f = 0; f < 16; f++) {
     const h0 = _leonH(f, 0), h1 = _leonH(f, 1), h2 = _leonH(f, 2);
     const x0  = (f + 0.5) / 16 * W;
@@ -4751,7 +4751,7 @@ function _drawLeonFire(ctx, W, H, t) {
     flame(x0, (70+h0*55)*flk, 30+h1*20, (h2-0.5)*14, 'rgba(155,15,0,0.13)');
   }
 
-  // Layer 2 — mid orange flames
+  // Layer 2: mid orange flames
   for (let f = 0; f < 22; f++) {
     const h0 = _leonH(f+50,0), h1 = _leonH(f+50,1), h2 = _leonH(f+50,2);
     const x0  = (f + 0.5 + h2*0.3) / 22 * W;
@@ -4759,7 +4759,7 @@ function _drawLeonFire(ctx, W, H, t) {
     flame(x0, (42+h0*36)*flk, 20+h1*14, (h2-0.5)*10, 'rgba(255,65,0,0.10)');
   }
 
-  // Layer 3 — bright orange/yellow cores
+  // Layer 3: bright orange/yellow cores
   for (let f = 0; f < 18; f++) {
     const h0 = _leonH(f+120,0), h1 = _leonH(f+120,1), h2 = _leonH(f+120,2);
     const x0  = (f + 0.5 + h2*0.4) / 18 * W;
@@ -4767,7 +4767,7 @@ function _drawLeonFire(ctx, W, H, t) {
     flame(x0, (24+h0*28)*flk, 13+h1*11, (h2-0.5)*7, 'rgba(255,145,0,0.13)');
   }
 
-  // Layer 4 — hot white-yellow tips (spiky, fast)
+  // Layer 4: hot white-yellow tips (spiky, fast)
   for (let f = 0; f < 12; f++) {
     const h0 = _leonH(f+200,0), h1 = _leonH(f+200,1), h2 = _leonH(f+200,2);
     const x0  = (f + 0.5 + h2*0.5) / 12 * W;
@@ -4905,7 +4905,7 @@ function _snapsH(i, j, n) {
 }
 
 function _drawSnapsPattern(canvas, ctx, W, H, t) {
-  // 30fps cap — ambient background doesn't need 60fps
+  // 30fps cap: ambient background doesn't need 60fps
   if (_drawSnapsPattern._lt !== undefined && t - _drawSnapsPattern._lt < 0.033) return;
   _drawSnapsPattern._lt = t;
 
@@ -4920,7 +4920,7 @@ function _drawSnapsPattern(canvas, ctx, W, H, t) {
   const cols = Math.ceil(W / HW) + 2;
   const rows = Math.ceil(H / HH) + 2;
 
-  // Cache the hex Path2D — built once, reused every frame
+  // Cache the hex Path2D: built once, reused every frame
   if (!_drawSnapsPattern._path || _drawSnapsPattern._pathR !== r) {
     const p = new Path2D();
     for (let k = 0; k < 6; k++) {
@@ -4960,12 +4960,12 @@ function _drawSnapsPattern(canvas, ctx, W, H, t) {
       ctx.save();
       ctx.translate(x, y);
 
-      // Flat fill — no radial gradient (eliminates ~400 gradient objects/frame)
+      // Flat fill: no radial gradient (eliminates ~400 gradient objects/frame)
       const g = Math.round(10 + shimmer * 44 + spark * 95);
       ctx.fillStyle = `rgb(4,${g},5)`;
       ctx.fill(hexPath);
 
-      // Edge glow — wide semi-transparent halo + sharp bright edge
+      // Edge glow: wide semi-transparent halo + sharp bright edge
       // (replaces shadowBlur which is very expensive)
       const eBright = Math.round(75 + glow * 180);
       if (spark > 0) {
@@ -4997,7 +4997,7 @@ function _drawSnapsPattern(canvas, ctx, W, H, t) {
     }
   }
 
-  // Vignette — cached, only rebuilt on resize
+  // Vignette: cached, only rebuilt on resize
   if (!_drawSnapsPattern._vg || _drawSnapsPattern._vgW !== W || _drawSnapsPattern._vgH !== H) {
     const vg = ctx.createRadialGradient(W*.5, H*.5, Math.min(W,H)*.28, W*.5, H*.5, Math.min(W,H)*.88);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
@@ -5173,7 +5173,7 @@ function _drawValkyriePattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1;
 }
 
-// Overlay canvas (z-index:9999): feathers, motes, mist — above UI
+// Overlay canvas (z-index:9999): feathers, motes, mist, above UI
 function _drawValkyrieOverlay(canvas, ctx, W, H, t) {
   if (_drawValkyrieOverlay._lt !== undefined && t - _drawValkyrieOverlay._lt < 0.033) return;
   _drawValkyrieOverlay._lt = t;
@@ -5248,7 +5248,7 @@ function _drawValkyrieOverlay(canvas, ctx, W, H, t) {
 
   ctx.globalAlpha = 1;
 
-  // ── crimson mist veil (slightly lower — bottom 12%) ───────────
+  // ── crimson mist veil (slightly lower: bottom 12%) ───────────
   if (!canvas._vkMistGrad || canvas._vkW !== W || canvas._vkH !== H) {
     canvas._vkW = W; canvas._vkH = H;
     const g = ctx.createLinearGradient(0, H * 0.88, 0, H);
@@ -5285,7 +5285,7 @@ function _vkRose(ctx, x, y, s, t) {
   ctx.strokeStyle = '#2f5d2a'; ctx.lineWidth = s * 0.12; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(0, s * 0.4); ctx.quadraticCurveTo(s * 0.22, s * 1.15, s * 0.05, s * 1.8); ctx.stroke();
   ctx.fillStyle = '#356b2e'; ctx.beginPath(); ctx.ellipse(s * 0.3, s * 1.1, s * 0.3, s * 0.14, 0.6, 0, 6.283); ctx.fill();
-  // bloom — layered spiral petals
+  // bloom: layered spiral petals
   ctx.rotate(Math.sin(t * 1.6) * 0.06);
   ctx.shadowColor = 'rgba(200,20,50,0.7)'; ctx.shadowBlur = s * 0.7;
   for (let layer = 3; layer >= 1; layer--) {
@@ -5471,7 +5471,7 @@ function _drawAdamPattern(canvas, ctx, W, H, t, params) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('♥', 0, ch * 0.04);
 
-  // Corner pips — top-left
+  // Corner pips: top-left
   const fSm = Math.round(cw * 0.21);
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
   ctx.font = `bold ${fSm}px monospace`;
@@ -5479,7 +5479,7 @@ function _drawAdamPattern(canvas, ctx, W, H, t, params) {
   ctx.font = `${fSm}px serif`;
   ctx.fillText('♥',  -cw*0.5 + cw*0.09, -ch*0.5 + ch*0.04 + fSm + 1);
 
-  // Corner pips — bottom-right (rotated 180°)
+  // Corner pips: bottom-right (rotated 180°)
   ctx.save(); ctx.rotate(Math.PI);
   ctx.font = `bold ${fSm}px monospace`;
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
@@ -5693,7 +5693,7 @@ function _bjTopHat(ctx, x, y, s, tip) {
   ctx.strokeStyle = '#34384060'; ctx.lineWidth = 1; ctx.stroke();
   // top
   ctx.fillStyle = '#1f232a'; ctx.beginPath(); ctx.ellipse(0, -s * 1.3, s * 0.6, s * 0.17, 0, 0, 6.283); ctx.fill();
-  // band — blue → orange
+  // band: blue → orange
   const bg = ctx.createLinearGradient(-s * 0.6, 0, s * 0.6, 0);
   bg.addColorStop(0, '#1f8fe0'); bg.addColorStop(1, '#ff801e');
   ctx.fillStyle = bg; ctx.fillRect(-s * 0.6, -s * 0.36, s * 1.2, s * 0.22);
@@ -5891,7 +5891,7 @@ function _stopSnapsOverlay() {
 const _FURY_CHAN_XF = [0.10, 0.30, 0.52, 0.72, 0.90];
 
 function _furyNewFirePtcl(W, H, scatter) {
-  // ~28% are wide "base" particles — large, slow, spread across full width
+  // ~28% are wide "base" particles: large, slow, spread across full width
   const isBase = Math.random() < 0.28;
   const cx = isBase
     ? W * (0.04 + Math.random() * 0.92)
@@ -5952,7 +5952,7 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
 
-  // ── marching CADENCE — a steady BOOM-boom footfall — plus the ROAR ──
+  // ── marching CADENCE: a steady BOOM-boom footfall: plus the ROAR ──
   const _roar = t % 9, _shk = _roar < 0.5 ? (0.5 - _roar) * 2 : 0;
   const _cadP = t % 1.5;
   const _stomp = Math.max(Math.exp(-_cadP * 26), _cadP > 0.26 ? 0.55 * Math.exp(-(_cadP - 0.26) * 26) : 0);
@@ -5963,7 +5963,7 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
     ctx.translate(sx, sy);
   }
 
-  // Smouldering glow — wide floor haze + per-channel radial pools
+  // Smouldering glow: wide floor haze + per-channel radial pools
   if (!canvas._furyBaseGrads) {
     canvas._furyBaseGrads = _FURY_CHAN_XF.map(xf => {
       const cx = xf * W, r = Math.min(W, H) * 0.24;
@@ -5983,7 +5983,7 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1; ctx.fillStyle = canvas._furyFloorGrad; ctx.fillRect(0, 0, W, H);
   for (const g of canvas._furyBaseGrads) { ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
 
-  // Waving bright red peek from the very bottom — pulsing heat signal
+  // Waving bright red peek from the very bottom: pulsing heat signal
   if (!canvas._furyBottomPeek) {
     const bp = ctx.createLinearGradient(0, H, 0, H - H * 0.13);
     bp.addColorStop(0,    'rgba(255,50,0,1.0)');
@@ -5994,7 +5994,7 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = Math.max(0.05, 0.40 + 0.28 * Math.sin(t * 2.2) + 0.12 * Math.sin(t * 5.0 + 1.4));
   ctx.fillStyle = canvas._furyBottomPeek; ctx.fillRect(0, 0, W, H);
 
-  // Fire particles — additive blending creates natural crimson glow where they overlap
+  // Fire particles: additive blending creates natural crimson glow where they overlap
   if (!canvas._furyFirePtcls) {
     canvas._furyFirePtcls = Array.from({ length: 280 }, (_, i) => _furyNewFirePtcl(W, H, i < 220));
   }
@@ -6131,7 +6131,7 @@ function _drawFuryPattern(canvas, ctx, W, H, t) {
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  // ── the tyrant's ROAR — a screen-wide flare every ~9s ──
+  // ── the tyrant's ROAR: a screen-wide flare every ~9s ──
   {
     const roar = t % 9;
     if (roar < 0.7) {
@@ -6204,10 +6204,10 @@ function _furyDrawMuffin(ctx, x, y, t) {
   // Eyes are the star; dome is the chocolate top connected to the cup
   const eyeR = 14, eyeOX = 18, eyeY = 0;
   const cupTW = 19, cupBW = 14, cupH = 22;
-  const cupTopY = eyeY + eyeR;      // 14 — cup rim at eye bottoms
+  const cupTopY = eyeY + eyeR;      // 14: cup rim at eye bottoms
   const cupBotY = cupTopY + cupH;   // 36
   const domeR   = 16;
-  const domeY   = cupTopY - domeR;  // -2 — dome bottom flush with cup top, no gap
+  const domeY   = cupTopY - domeR;  // -2: dome bottom flush with cup top, no gap
 
   // 1 ── Orange cup with dark vertical stripes
   ctx.save();
@@ -6237,7 +6237,7 @@ function _furyDrawMuffin(ctx, x, y, t) {
   ctx.lineTo(cupTW + 1, cupTopY + 4);  ctx.lineTo(-cupTW - 1, cupTopY + 4);
   ctx.closePath(); ctx.fill();
 
-  // 2 ── Chocolate dome — bottom flush with cup top, top pokes above eyes
+  // 2 ── Chocolate dome: bottom flush with cup top, top pokes above eyes
   const dg = ctx.createRadialGradient(-domeR * 0.28, domeY - domeR * 0.28, 2, 0, domeY, domeR * 1.05);
   dg.addColorStop(0,    '#b05425');
   dg.addColorStop(0.40, '#7a3010');
@@ -6245,7 +6245,7 @@ function _furyDrawMuffin(ctx, x, y, t) {
   ctx.beginPath(); ctx.arc(0, domeY, domeR, 0, Math.PI * 2);
   ctx.fillStyle = dg; ctx.fill();
 
-  // 3 ── White googly eyes — drawn on top of dome, comically large
+  // 3 ── White googly eyes: drawn on top of dome, comically large
   for (let s = -1; s <= 1; s += 2) {
     const ex = s * eyeOX;
     const er = eyeR + happy * 1.5;
@@ -6296,7 +6296,7 @@ function _furyDrawMuffin(ctx, x, y, t) {
 }
 
 // a row of licking flame tongues along +x (0..len), reaching toward -y.
-// opt: { a: alpha multiplier, crimson: true } — crimson = deep blood-red palette
+// opt: { a: alpha multiplier, crimson: true }, crimson = deep blood-red palette
 function _furyFlameTongues(ctx, len, t, seed, baseH, opt) {
   const a = (opt && opt.a != null) ? opt.a : 1;
   const pal = (opt && opt.crimson)
@@ -6418,7 +6418,7 @@ function _furyFlameBorder(ctx, W, H, t) {
   edge(W - bd * 0.8, 0, bd * 0.8, H, W, 0, W - bd * 0.8, 0, a * 0.8);    // right
 
   // tall, thin, soft flame wisps rising only from the bottom (gradient-faded).
-  // One shared vertical gradient (anchored at the bottom) for all wisps — they
+  // One shared vertical gradient (anchored at the bottom) for all wisps: they
   // all start at H, so it reads the same but skips ~30 gradient allocations.
   const n = Math.max(8, Math.ceil(W / 46));
   const wg = ctx.createLinearGradient(0, H, 0, H - bd * 2.2);
@@ -6533,7 +6533,7 @@ function _drawFuryOverlay(canvas, ctx, W, H, t, drawCompanion, flip) {
 
   if (flip) ctx.restore();   // upright again for the cursor companion + sparkles
 
-  // Muffin — spring physics (floaty lag, slower than Katie's frog)
+  // Muffin: spring physics (floaty lag, slower than Katie's frog)
   const SPRING = 75, DAMP = 9;
   _furyMuffinVX += ((_furyMuffinTargX - _furyMuffinX) * SPRING - _furyMuffinVX * DAMP) * dt;
   _furyMuffinVY += ((_furyMuffinTargY - _furyMuffinY) * SPRING - _furyMuffinVY * DAMP) * dt;
@@ -6626,15 +6626,15 @@ function _stopFuryOverlay() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// ANNIE (AntiChrist) — primal blood demon. A BRIMSTONE (the sulfur glyph)
+// ANNIE (AntiChrist): primal blood demon. A BRIMSTONE (the sulfur glyph)
 // burns dead-centre inside a rotating summoning circle. Reality bleeds and
-// tears around it — then, her headline move: the circle overcharges and a
+// tears around it, then, her headline move: the circle overcharges and a
 // colossal BLOOD LASER erupts through the centre and SWEEPS across the whole
 // screen, shearing the world apart in its path. Void black + one blood red.
 // ════════════════════════════════════════════════════════════════
 const _ANNIE_RE = /^(annie|antichrist|the\s+antichrist)$/i;
 function _isAnnie(c) { return !!(c && c.name && _ANNIE_RE.test(c.name)); }
-const _ANNIE_RED = '161,15,20';      // rgb() triple — her blood red, reused everywhere below
+const _ANNIE_RED = '161,15,20';      // rgb() triple: her blood red, reused everywhere below
 const _ANNIE_RED_HEX = '#a10f14';
 
 // ── Shared poker-card renderer (Annie's cursor = 6 of black clubs, Vikadan's
@@ -6692,7 +6692,7 @@ function _annieMouseMove(e) {
 }
 function _annieClick() {
   _annieClickFlash = 1;
-  // a brimstone sigil STAMPS the spot — punches in big, then fades.
+  // a brimstone sigil STAMPS the spot: punches in big, then fades.
   _annieStamp = { x: _annieX, y: _annieY, life: 1, rot: (Math.random() - 0.5) * 0.4 };
   // two shockwave rings, staggered.
   _annieClickRings.push({ x: _annieX, y: _annieY, r: 6, life: 1, spd: 520 });
@@ -6721,12 +6721,12 @@ function _annieBrimstoneStroke(ctx, cx, cy, s) {
   ctx.lineTo(cx - 0.66 * s, cy - 0.02 * s);
   ctx.closePath();
   ctx.stroke();
-  // cross — vertical stem hanging from the triangle base
+  // cross: vertical stem hanging from the triangle base
   ctx.beginPath();
   ctx.moveTo(cx, cy - 0.02 * s);
   ctx.lineTo(cx, cy + 1.02 * s);
   ctx.stroke();
-  // cross — horizontal bar
+  // cross: horizontal bar
   ctx.beginPath();
   ctx.moveTo(cx - 0.46 * s, cy + 0.50 * s);
   ctx.lineTo(cx + 0.46 * s, cy + 0.50 * s);
@@ -6787,7 +6787,7 @@ function _drawAnnieBrimstone(ctx, cx, cy, R, t, glow) {
     ctx.stroke();
   }
 
-  // the brimstone glyph — layered: wide red glow, then a white-hot core
+  // the brimstone glyph, layered: wide red glow, then a white-hot core
   const gs = R * 0.5;
   ctx.lineWidth = 4 + g * 3;
   ctx.strokeStyle = `rgba(${_ANNIE_RED},${Math.min(1, 0.4 + g * 0.5).toFixed(3)})`;
@@ -6811,7 +6811,7 @@ function _drawAnnieBrimstone(ctx, cx, cy, R, t, glow) {
   ctx.restore();
 }
 
-// ── Reality tear: a RIFT torn into space — a jagged angular fracture that
+// ── Reality tear: a RIFT torn into space, a jagged angular fracture that
 //    cracks open into a glowing void gap, with a searing white-hot seam and
 //    forking lightning branches at its tips. Also physically shoves a slice
 //    of the already-drawn scene sideways, so the canvas fabric itself looks
@@ -6863,7 +6863,7 @@ function _annieDrawTear(ctx, canvas, c, W, H, env) {
   const flick = 0.82 + 0.18 * Math.sin((c.age + c.ph) * 47);
   const e = env * flick;
 
-  // 1) SHEAR — clip a rotated band around the rift and shove the world across
+  // 1) SHEAR: clip a rotated band around the rift and shove the world across
   //    it, so the scene physically splits along the tear.
   const shift = c.shift * env;
   if (Math.abs(shift) > 0.4) {
@@ -6884,7 +6884,7 @@ function _annieDrawTear(ctx, canvas, c, W, H, env) {
     bot.push([c.pts[i][0] - c.px * w, c.pts[i][1] - c.py * w]);
   }
 
-  // 2) THE VOID GAP — a real dark opening (source-over darkens, unlike the old
+  // 2) THE VOID GAP: a real dark opening (source-over darkens, unlike the old
   //    black-on-lighter no-op), with an inner blood-red glow welling up.
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
@@ -6904,7 +6904,7 @@ function _annieDrawTear(ctx, canvas, c, W, H, env) {
   ctx.fillStyle = ig; ctx.fill();
   ctx.restore();
 
-  // 3) GLOWING LIPS — the torn edges, hot red with a big bloom.
+  // 3) GLOWING LIPS: the torn edges, hot red with a big bloom.
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -6914,13 +6914,13 @@ function _annieDrawTear(ctx, canvas, c, W, H, env) {
   _annieStrokePolyline(ctx, top);
   _annieStrokePolyline(ctx, bot);
 
-  // 4) SEARING SEAM — a blinding white-hot jagged line down the centre.
+  // 4) SEARING SEAM: a blinding white-hot jagged line down the centre.
   ctx.shadowColor = 'rgba(255,220,220,0.95)'; ctx.shadowBlur = 12;
   ctx.strokeStyle = `rgba(255,${Math.round(232 * e + 10)},${Math.round(232 * e + 10)},${Math.min(1, e * 1.1).toFixed(3)})`;
   ctx.lineWidth = 1.6 + env * 1.4;
   _annieStrokePolyline(ctx, c.pts);
 
-  // 5) FORKING BRANCHES — thin lightning cracks splitting off the tips.
+  // 5) FORKING BRANCHES: thin lightning cracks splitting off the tips.
   ctx.shadowColor = `rgba(${_ANNIE_RED},0.9)`; ctx.shadowBlur = 8;
   for (const fp of c.forks) {
     ctx.strokeStyle = `rgba(${_ANNIE_RED},${(e * 0.75).toFixed(3)})`;
@@ -6931,7 +6931,7 @@ function _annieDrawTear(ctx, canvas, c, W, H, env) {
   ctx.restore();
 }
 
-// ── Blood splatter decal — an irregular blob with a couple of drip tails,
+// ── Blood splatter decal: an irregular blob with a couple of drip tails,
 //    like something was just struck. Appears, holds, fades. ──
 function _annieNewSplatter(W, H) {
   const x = Math.random() * W, y = Math.random() * H * 0.85;
@@ -6980,13 +6980,13 @@ function _drawAnniePattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = '#030001'; ctx.fillRect(0, 0, W, H);
 
-  // Heartbeat — a two-beat pulse (lub-dub), driving the sigil + vignette.
+  // Heartbeat: a two-beat pulse (lub-dub), driving the sigil + vignette.
   const cyc = t % 1.1;
   const lub = Math.exp(-Math.pow((cyc - 0.0) * 9, 2));
   const dub = Math.exp(-Math.pow((cyc - 0.22) * 9, 2)) * 0.7;
   const beat = Math.min(1, lub + dub);
 
-  // ── BRIMSTONE BEAM state machine — the headline move. Charge (circle
+  // ── BRIMSTONE BEAM state machine: the headline move. Charge (circle
   //    overcharges, energy converges) → FIRE (a colossal blood laser erupts
   //    through the centre and sweeps across the whole screen, shearing it) →
   //    fade. Compute phase up front so the centrepiece can blaze during it. ──
@@ -7020,7 +7020,7 @@ function _drawAnniePattern(canvas, ctx, W, H, t) {
     }
   }
 
-  // The BRIMSTONE centrepiece — dead centre, blazing on the heartbeat and
+  // The BRIMSTONE centrepiece: dead centre, blazing on the heartbeat and
   // erupting when the beam charges.
   _drawAnnieBrimstone(ctx, cx, cy, sigilR, t, 0.32 + beat * 0.3 + beamGlow);
 
@@ -7031,7 +7031,7 @@ function _drawAnniePattern(canvas, ctx, W, H, t) {
   hg.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = hg; ctx.fillRect(0, 0, W, H);
 
-  // Reality tears — full-page rifts that open, hold, then close. Rare + at
+  // Reality tears: full-page rifts that open, hold, then close. Rare + at
   // most one at a time so each one is an event, not ambient noise.
   if (!canvas._annieTears) canvas._annieTears = [];
   if (t > canvas._annieNextTear && canvas._annieTears.length === 0) {
@@ -7051,7 +7051,7 @@ function _drawAnniePattern(canvas, ctx, W, H, t) {
     _annieDrawTear(ctx, canvas, c, W, H, env);
   }
 
-  // Blood splatter decals — appear, hold, fade.
+  // Blood splatter decals: appear, hold, fade.
   if (!canvas._annieSplats) canvas._annieSplats = [];
   if (t > canvas._annieNextSplat) {
     canvas._annieNextSplat = t + 1.8 + Math.random() * 2.4;
@@ -7070,7 +7070,7 @@ function _drawAnniePattern(canvas, ctx, W, H, t) {
     for (const d of s.drips) { ctx.beginPath(); ctx.moveTo(s.x + d.dx, s.y); ctx.lineTo(s.x + d.dx, s.y + d.len); ctx.stroke(); }
   }
 
-  // Blood rain — thin dark-red streaks falling.
+  // Blood rain: thin dark-red streaks falling.
   if (!canvas._annieDripsBg) canvas._annieDripsBg = Array.from({ length: 40 }, () => _annieNewBgDrip(W, H, true));
   for (const d of canvas._annieDripsBg) {
     d.y += d.vy * dt;
@@ -7084,7 +7084,7 @@ function _drawAnniePattern(canvas, ctx, W, H, t) {
   pg.addColorStop(0, `rgba(${_ANNIE_RED},0.4)`); pg.addColorStop(1, `rgba(${_ANNIE_RED},0)`);
   ctx.fillStyle = pg; ctx.fillRect(0, H - H * 0.1, W, H * 0.1);
 
-  // ── Charge converging motes — during charge, energy spirals INTO the core
+  // ── Charge converging motes: during charge, energy spirals INTO the core
   //    from all around, brightening as it arrives. ──
   if (canvas._annieBeam && canvas._annieBeam._charge > 0) {
     const cp = canvas._annieBeam._charge;
@@ -7110,7 +7110,7 @@ function _drawAnniePattern(canvas, ctx, W, H, t) {
     ctx.restore();
   }
 
-  // ── THE BLOOD LASER — a colossal double-ended brimstone beam through the
+  // ── THE BLOOD LASER: a colossal double-ended brimstone beam through the
   //    centre, sweeping across the screen. Physically SHEARS the world along
   //    its axis (drawImage displacement), then layers the turbulent laser +
   //    a blinding core bloom + a screen-wide red flash + blood spray. ──
@@ -7127,7 +7127,7 @@ function _drawAnniePattern(canvas, ctx, W, H, t) {
     ctx.drawImage(canvas, -uy * 18 * a, ux * 18 * a);
     ctx.restore();
 
-    // 2) the beam itself — layered turbulent laser
+    // 2) the beam itself: layered turbulent laser
     ctx.save();
     ctx.translate(cx, cy); ctx.rotate(ang);
     ctx.globalCompositeOperation = 'lighter';
@@ -7181,7 +7181,7 @@ function _drawAnniePattern(canvas, ctx, W, H, t) {
   }
   ctx.globalCompositeOperation = 'source-over';
 
-  // Vignette — near-total black at the edges. Nothing soft about her frame.
+  // Vignette: near-total black at the edges. Nothing soft about her frame.
   if (!canvas._annieVign) {
     const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.14, W / 2, H / 2, Math.max(W, H) * 0.68);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
@@ -7207,14 +7207,14 @@ function _drawAnnieOverlay(canvas, ctx, W, H, t) {
   _drawAnnieOverlay._lt = t;
   ctx.clearRect(0, 0, W, H);
 
-  // Snappy, aggressive spring — she does NOT drift softly.
+  // Snappy, aggressive spring: she does NOT drift softly.
   const SPRING = 190, DAMP = 15;
   _annieVX += ((_annieTargX - _annieX) * SPRING - _annieVX * DAMP) * dt;
   _annieVY += ((_annieTargY - _annieY) * SPRING - _annieVY * DAMP) * dt;
   _annieX += _annieVX * dt; _annieY += _annieVY * dt;
   const spd = Math.hypot(_annieVX, _annieVY);
 
-  // Liquid BLOOD RIBBON trail — a tapering ribbon of blood streaming off the
+  // Liquid BLOOD RIBBON trail: a tapering ribbon of blood streaming off the
   // cursor, thickest at the head, thinning to nothing at the tail. Reads as
   // fluid, not a string of dots.
   _annieRibbon.push({ x: _annieX, y: _annieY });
@@ -7245,7 +7245,7 @@ function _drawAnnieOverlay(canvas, ctx, W, H, t) {
   }
   ctx.globalCompositeOperation = 'lighter';
 
-  // Claw-slash marks from clicks — jagged double-stroke, fast fade.
+  // Claw-slash marks from clicks: jagged double-stroke, fast fade.
   for (let i = _annieSlashes.length - 1; i >= 0; i--) {
     const s = _annieSlashes[i];
     s.life -= dt * 3.0;
@@ -7275,7 +7275,7 @@ function _drawAnnieOverlay(canvas, ctx, W, H, t) {
     ctx.lineWidth = 1.5 * r.life + 0.3;
     ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
   }
-  // Brimstone STAMP burst — the sigil punches in large then shrinks + fades.
+  // Brimstone STAMP burst: the sigil punches in large then shrinks + fades.
   if (_annieStamp) {
     _annieStamp.life -= dt * 1.8;
     if (_annieStamp.life <= 0) _annieStamp = null;
@@ -7298,7 +7298,7 @@ function _drawAnnieOverlay(canvas, ctx, W, H, t) {
     _annieClickFlash -= dt * 3.5;
   } else _annieClickFlash = 0;
 
-  // Blood drops — flung out on click, gravity takes them.
+  // Blood drops: flung out on click, gravity takes them.
   ctx.globalCompositeOperation = 'source-over';
   for (let i = _annieDrips.length - 1; i >= 0; i--) {
     const d = _annieDrips[i];
@@ -7316,7 +7316,7 @@ function _drawAnnieOverlay(canvas, ctx, W, H, t) {
   wg.addColorStop(1, 'rgba(8,4,5,0)');
   ctx.fillStyle = wg; ctx.beginPath(); ctx.arc(_annieX, _annieY, 24, 0, Math.PI * 2); ctx.fill();
 
-  // The cursor — a 6 of clubs (BLACK), riding the pointer inside a pulsing
+  // The cursor: a 6 of clubs (BLACK), riding the pointer inside a pulsing
   // red halo, tilting slightly with her motion.
   const beat = 0.5 + 0.5 * Math.sin(t * 4.2);
   ctx.globalCompositeOperation = 'lighter';
@@ -7366,7 +7366,7 @@ function _stopAnnieOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// VIKADAN — a cyan CASINO demon. His checkerboard floor stays, but the whole
+// VIKADAN: a cyan CASINO demon. His checkerboard floor stays, but the whole
 // table comes alive: drifting cards, spinning poker chips, giant suit
 // watermarks, jackpot glints. His cursor is the 6 of (red) clubs, and he
 // THROWS cards on click that fly out and pin themselves to the page edges.
@@ -7580,7 +7580,7 @@ function _drawVikadanOverlay(canvas, ctx, W, H, t) {
   _vikVY += ((_vikTargY - _vikY) * SPRING - _vikVY * DAMP) * dt;
   _vikX += _vikVX * dt; _vikY += _vikVY * dt;
 
-  // thrown cards — fly, then STICK to whichever edge they reach, hold, fade.
+  // thrown cards: fly, then STICK to whichever edge they reach, hold, fade.
   const m = 26;
   for (let i = _vikThrown.length - 1; i >= 0; i--) {
     const c = _vikThrown[i];
@@ -7598,7 +7598,7 @@ function _drawVikadanOverlay(canvas, ctx, W, H, t) {
     _vikDrawWhiteCard(ctx, c.x, c.y, c.w, c.rot, c.rank, c.suit, Math.min(1, c.life));
   }
 
-  // click burst — an expanding cyan ring
+  // click burst: an expanding cyan ring
   for (let i = _vikBursts.length - 1; i >= 0; i--) {
     const b = _vikBursts[i];
     b.r += 520 * dt; b.life -= dt * 2.2;
@@ -7608,7 +7608,7 @@ function _drawVikadanOverlay(canvas, ctx, W, H, t) {
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
   }
 
-  // the cursor card — 6 of clubs, RED pips, cyan glow, tilting with motion.
+  // the cursor card: 6 of clubs, RED pips, cyan glow, tilting with motion.
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   const halo = ctx.createRadialGradient(_vikX, _vikY, 0, _vikX, _vikY, 30);
@@ -7655,7 +7655,7 @@ function _stopVikadanOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// NARA! · BLUE — the ocean form. A light-blue→deep-blue gradient sea with
+// NARA! · BLUE: the ocean form. A light-blue→deep-blue gradient sea with
 // caustic light, rising bubbles and RAINBOW RAIN splashing the surface.
 // Googly-eyed fishes (many kinds) swim around and flee your cursor; a shark
 // hunts and eats them. Pick a fish up and fling it anywhere. Cursor = trident.
@@ -7724,7 +7724,7 @@ function _naraDrawFish(ctx, f, t) {
   ctx.restore();
   // side fin (flapping)
   ctx.beginPath(); ctx.ellipse(bw * 0.05, bh * 0.4, bw * 0.32, bh * 0.24, 0.5 + wig * 0.2, 0, Math.PI * 2); ctx.fillStyle = f.fin; ctx.fill();
-  // GOOGLY EYE — white ball + a loose black pupil that dangles/jiggles
+  // GOOGLY EYE: white ball + a loose black pupil that dangles/jiggles
   const eyeX = bw * 0.52, eyeY = -bh * 0.12, eyeR = f.size * 0.42;
   ctx.beginPath(); ctx.arc(eyeX, eyeY, eyeR, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
   ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.stroke();
@@ -7857,7 +7857,7 @@ function _drawNaraOceanPattern(canvas, ctx, W, H, t) {
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
   }
 
-  // RAINBOW RAIN — coloured drops fall from the sky and splash the surface
+  // RAINBOW RAIN: coloured drops fall from the sky and splash the surface
   if (!canvas._noDrops) canvas._noDrops = Array.from({ length: 26 }, () => _naraNewDrop(W, surfaceY));
   ctx.globalCompositeOperation = 'lighter';
   for (const d of canvas._noDrops) {
@@ -8042,18 +8042,18 @@ function _stopNaraOceanOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// NARA! · WHITE — the ANGEL OF JUDGEMENT. Blinding light from above rots into
+// NARA! · WHITE: the ANGEL OF JUDGEMENT. Blinding light from above rots into
 // an ominous dark-gold below; a seraphic halo ringed with watching eyes turns
 // overhead, swords of judgement hover point-down, feathers fall. Every so
-// often JUDGEMENT descends — a colossal pillar of light + a plunging sword.
+// often JUDGEMENT descends: a colossal pillar of light + a plunging sword.
 // Cursor = a sword of judgement; click to SMITE a pillar of light down.
 // ════════════════════════════════════════════════════════════════
 const _NARA_GOLD = '232,216,168';   // pale, cold heavenly gold (distinct from Divine's warm hue)
 let _naraWhiteRafId = null;
 let _naraWMX = -999, _naraWMY = -999, _naraWPMX = 0, _naraWPMY = 0, _naraWVX = 0, _naraWVY = 0;
-let _naraGazes = [];                 // click bursts — rings of opening eyes
+let _naraGazes = [];                 // click bursts: rings of opening eyes
 
-// ── one EYE — the dominant motif. (x,y) centre, radius r; the iris/pupil look
+// ── one EYE: the dominant motif. (x,y) centre, radius r; the iris/pupil look
 //    toward (lookX,lookY) in [-1..1]; `open` 0..1 drives blinking; `rot` orients
 //    the almond. Biblically-accurate angels are covered in these. ──
 function _naraEye(ctx, x, y, r, lookX, lookY, open, rot, hue) {
@@ -8080,7 +8080,7 @@ function _naraEye(ctx, x, y, r, lookX, lookY, open, rot, hue) {
     const ix = Math.max(-1, Math.min(1, lookX)) * r * 0.38;
     const iy = Math.max(-1, Math.min(1, lookY)) * h * 0.5;
     const ir = Math.min(r * 0.66, h * 1.3);
-    // IRIS — solid (source-over) so the colour is actually visible on the sclera
+    // IRIS: solid (source-over) so the colour is actually visible on the sclera
     const ig = ctx.createRadialGradient(ix - ir * 0.25, iy - ir * 0.25, 0, ix, iy, ir);
     if (hue == null) { ig.addColorStop(0, '#efd98a'); ig.addColorStop(0.7, '#c8a544'); ig.addColorStop(1, '#8a6a24'); }
     else { ig.addColorStop(0, `hsl(${hue},100%,82%)`); ig.addColorStop(0.5, `hsl(${hue},100%,55%)`); ig.addColorStop(1, `hsl(${hue},90%,34%)`); }
@@ -8096,7 +8096,7 @@ function _naraEye(ctx, x, y, r, lookX, lookY, open, rot, hue) {
   ctx.restore();
 }
 
-// ── an OPHANIM wheel — "a wheel within a wheel," gyroscopic interlocking rings
+// ── an OPHANIM wheel: "a wheel within a wheel," gyroscopic interlocking rings
 //    covered in eyes, turning. gx/gy = shared gaze direction; blink 0..1. ──
 function _naraWheel(ctx, cx, cy, R, t, spin, nEyes, gx, gy, blink) {
   ctx.save();
@@ -8111,7 +8111,7 @@ function _naraWheel(ctx, cx, cy, R, t, spin, nEyes, gx, gy, blink) {
   // flat concentric rings
   ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
   ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(cx, cy, R * 0.64, 0, Math.PI * 2); ctx.stroke();
-  // gyroscopic perpendicular rings — squash oscillates so they read as spinning in 3D
+  // gyroscopic perpendicular rings: squash oscillates so they read as spinning in 3D
   const sq1 = Math.abs(Math.sin(t * spin * 0.5)) * 0.92 + 0.07;
   const sq2 = Math.abs(Math.cos(t * spin * 0.5)) * 0.92 + 0.07;
   ctx.lineWidth = 1.6;
@@ -8121,7 +8121,7 @@ function _naraWheel(ctx, cx, cy, R, t, spin, nEyes, gx, gy, blink) {
   // spokes
   ctx.strokeStyle = 'rgba(230,216,168,0.35)'; ctx.lineWidth = 1;
   for (let i = 0; i < 12; i++) { const a = t * spin + i * Math.PI / 6; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * R * 0.64, cy + Math.sin(a) * R * 0.64); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke(); }
-  // eyes around the rim — each iris glowing a different rainbow hue, cycling
+  // eyes around the rim: each iris glowing a different rainbow hue, cycling
   const er = R * 0.15;
   for (let i = 0; i < nEyes; i++) {
     const a = t * spin * 0.6 + i * (Math.PI * 2 / nEyes);
@@ -8140,7 +8140,7 @@ function _naraFeather(ctx, len, w) {
   ctx.save();
   // a warm gold glow behind the vane so it reads as a distinct silhouette
   // against ANY background luminosity (the plain white fill used to vanish
-  // against the form's pale sky — this is the fix).
+  // against the form's pale sky: this is the fix).
   ctx.shadowColor = 'rgba(224,196,120,0.6)';
   ctx.shadowBlur = Math.max(3, w * 0.7);
   const grad = ctx.createLinearGradient(0, 0, 0, len);
@@ -8154,7 +8154,7 @@ function _naraFeather(ctx, len, w) {
   ctx.closePath();
   ctx.fillStyle = grad; ctx.fill();
   ctx.shadowBlur = 0;
-  // a defined mid-tone edge — always visible, light sky or dark
+  // a defined mid-tone edge: always visible, light sky or dark
   ctx.strokeStyle = 'rgba(150,118,52,0.65)'; ctx.lineWidth = Math.max(0.6, w * 0.06);
   ctx.stroke();
   // shaft (rachis)
@@ -8189,7 +8189,7 @@ function _naraWing(ctx, x, y, size, dir, flex, t, nFeath) {
   ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(size * 0.5, -size * 0.1, size * 1.1, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
   // feathers hang from the leading edge. Draw tip→base so the short coverts
-  // near the body overlap the long primaries — classic layering.
+  // near the body overlap the long primaries: classic layering.
   for (let i = nFeath; i >= 0; i--) {
     const u = i / nFeath;                                   // 0 shoulder → 1 tip
     const [ex, ey] = _naraWingEdge(size, u);
@@ -8213,7 +8213,7 @@ function _naraWing(ctx, x, y, size, dir, flex, t, nFeath) {
   ctx.fillStyle = 'rgba(240,235,220,0.85)';
   ctx.beginPath(); ctx.ellipse(size * 0.3, -size * 0.12, size * 0.17, size * 0.11, -0.55, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.stroke();
   ctx.restore();
-  // eyes riding the leading edge (biblically-accurate) — rainbow, glowing
+  // eyes riding the leading edge (biblically-accurate): rainbow, glowing
   for (let k = 0; k < 4; k++) {
     const u = 0.2 + k * 0.2;
     const [ex, ey] = _naraWingEdge(size, u);
@@ -8281,7 +8281,7 @@ function _drawNaraWhitePattern(canvas, ctx, W, H, t) {
     return [Math.max(-1, Math.min(1, (mx - ex) / 260)), Math.max(-1, Math.min(1, (my - ey) / 260))];
   };
 
-  // ── FIRMAMENT — faint twinkling stars scattered through the upper sky ──
+  // ── FIRMAMENT: faint twinkling stars scattered through the upper sky ──
   if (!canvas._nwStars) canvas._nwStars = Array.from({ length: 40 }, () => ({ x: Math.random() * W, y: Math.random() * H * 0.55, r: 0.5 + Math.random() * 1.3, ph: Math.random() * 6.28, sp: 1 + Math.random() * 2.4 }));
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const s of canvas._nwStars) {
@@ -8293,7 +8293,7 @@ function _drawNaraWhitePattern(canvas, ctx, W, H, t) {
   }
   ctx.restore();
 
-  // ── COLOSSAL SUNBURST MANDALA — a cathedral-window ring of long/short rays
+  // ── COLOSSAL SUNBURST MANDALA: a cathedral-window ring of long/short rays
   //    slowly counter-rotating behind the whole composition ──
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   ctx.translate(cx, hy);
@@ -8310,7 +8310,7 @@ function _drawNaraWhitePattern(canvas, ctx, W, H, t) {
   }
   ctx.restore();
 
-  // backdrop SERAPH wings behind the wheels — a raised upper pair + grand
+  // backdrop SERAPH wings behind the wheels: a raised upper pair + grand
   // lower pair, breathing (six-winged silhouette, layered).
   const flapA = 0.4 + 0.5 * Math.sin(t * 0.8);
   const flapB = 0.4 + 0.5 * Math.sin(t * 0.8 + 1.4);
@@ -8345,7 +8345,7 @@ function _drawNaraWhitePattern(canvas, ctx, W, H, t) {
     }
   }
 
-  // ── COMET ORBITERS — bright sparks racing along the outer eye-ring orbit,
+  // ── COMET ORBITERS: bright sparks racing along the outer eye-ring orbit,
   //    dragging a fading tail behind them ──
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (let k = 0; k < 3; k++) {
@@ -8360,7 +8360,7 @@ function _drawNaraWhitePattern(canvas, ctx, W, H, t) {
   }
   ctx.restore();
 
-  // SERAPHIC FIRE — "the burning ones": pale-gold flame tongues licking around
+  // SERAPHIC FIRE: "the burning ones": pale-gold flame tongues licking around
   // the central wheel, flickering.
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const nF = 30;
@@ -8375,19 +8375,19 @@ function _drawNaraWhitePattern(canvas, ctx, W, H, t) {
   }
   ctx.restore();
 
-  // the OPHANIM — interlocking eye-covered wheels, each rim's eyes tracking
+  // the OPHANIM: interlocking eye-covered wheels, each rim's eyes tracking
   // the cursor from that wheel's own position
   { const [lx, ly] = lookAt(cx - R * 1.35, hy - R * 0.25); _naraWheel(ctx, cx - R * 1.35, hy - R * 0.25, R * 0.56, t, -0.6, 8, lx, ly, blinkAll); }
   { const [lx, ly] = lookAt(cx + R * 1.35, hy + R * 0.3);  _naraWheel(ctx, cx + R * 1.35, hy + R * 0.3, R * 0.62, t, 0.7, 8, lx, ly, blinkAll); }
   { const [lx, ly] = lookAt(cx, hy);                       _naraWheel(ctx, cx, hy, R, t, 0.4, 12, lx, ly, blinkAll); }
 
-  // THE GREAT EYE at the core (opens during THE GAZE — judgement watches)
+  // THE GREAT EYE at the core (opens during THE GAZE: judgement watches)
   if (greatOpen > 0.02) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     const bloom = ctx.createRadialGradient(cx, hy, 0, cx, hy, R * 1.6);
     bloom.addColorStop(0, `rgba(255,252,240,${(greatOpen * 0.5).toFixed(3)})`); bloom.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = bloom; ctx.beginPath(); ctx.arc(cx, hy, R * 1.6, 0, Math.PI * 2); ctx.fill();
-    // CREPUSCULAR RAYS — long shafts of judgement-light wheeling out from the
+    // CREPUSCULAR RAYS: long shafts of judgement-light wheeling out from the
     // Great Eye while it is open
     ctx.translate(cx, hy);
     const nRay = 16, rrot = t * 0.35;
@@ -8433,7 +8433,7 @@ function _drawNaraWhitePattern(canvas, ctx, W, H, t) {
   }
   ctx.globalCompositeOperation = 'source-over';
 
-  // ── WHITE THUNDER down the LEFT & RIGHT sides — jagged, branching, flashing ──
+  // ── WHITE THUNDER down the LEFT & RIGHT sides: jagged, branching, flashing ──
   if (!canvas._nwBolts) canvas._nwBolts = [];
   if (t > canvas._nwNextBolt) {
     canvas._nwNextBolt = t + 0.7 + Math.random() * 2.2;
@@ -8557,7 +8557,7 @@ function _drawNaraWhiteOverlay(canvas, ctx, W, H, t) {
   _naraWVY = (_naraWMY - _naraWPMY) / Math.max(0.001, dt);
   _naraWPMX = _naraWMX; _naraWPMY = _naraWMY;
 
-  // click GAZE bursts — a ring of eyes opens, stares outward, blinks shut.
+  // click GAZE bursts: a ring of eyes opens, stares outward, blinks shut.
   for (let i = _naraGazes.length - 1; i >= 0; i--) {
     const g = _naraGazes[i];
     g.life -= dt * 1.2;
@@ -8574,7 +8574,7 @@ function _drawNaraWhiteOverlay(canvas, ctx, W, H, t) {
     ctx.strokeStyle = `rgba(${_NARA_GOLD},${(g.life * 0.6).toFixed(3)})`; ctx.lineWidth = 2 * g.life + 0.4;
     ctx.beginPath(); ctx.arc(g.x, g.y, rad + 14, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
-    // the eyes, looking outward — rainbow glowing irises
+    // the eyes, looking outward: rainbow glowing irises
     for (let k = 0; k < g.n; k++) {
       const a = k * (Math.PI * 2 / g.n) + grow * 0.6;
       const ex = g.x + Math.cos(a) * rad, ey = g.y + Math.sin(a) * rad;
@@ -8589,7 +8589,7 @@ function _drawNaraWhiteOverlay(canvas, ctx, W, H, t) {
     const beat = 0.5 + 0.5 * Math.sin(t * 3);
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     ctx.shadowColor = `rgba(${_NARA_GOLD},0.9)`; ctx.shadowBlur = 8;
-    // rotating RUNIC RETICLE — two counter-rotating tick rings around the eye
+    // rotating RUNIC RETICLE: two counter-rotating tick rings around the eye
     for (const [rr, n, sp] of [[22 + beat * 2, 12, 1.1], [30 + beat * 2, 8, -0.7]]) {
       ctx.strokeStyle = `rgba(${_NARA_GOLD},${(0.4 + beat * 0.3).toFixed(3)})`; ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.arc(_naraWMX, _naraWMY, rr, 0, Math.PI * 2); ctx.stroke();
@@ -8608,7 +8608,7 @@ function _drawNaraWhiteOverlay(canvas, ctx, W, H, t) {
       const a = t * 0.9 + k * (Math.PI * 2 / 3);
       _naraEye(ctx, _naraWMX + Math.cos(a) * 40, _naraWMY + Math.sin(a) * 40, 5.5, slx, sly, 0.85 + 0.15 * Math.sin(t * 2 + k), 0, (t * 90 + k * 120) % 360);
     }
-    // the cursor itself — an EYE whose pupil looks toward where it's moving,
+    // the cursor itself: an EYE whose pupil looks toward where it's moving,
     // its iris glowing through the rainbow
     _naraEye(ctx, _naraWMX, _naraWMY, 13, slx, sly, 1, 0, (t * 90) % 360);
   }
@@ -8646,7 +8646,7 @@ function _stopNaraWhiteOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// NARA! · Green!! — a goofy UFO with googly eyes and a little :3 face
+// NARA! · Green!!, a goofy UFO with googly eyes and a little :3 face
 // cruising across an OMORI-dreamworld space (deep purples/blacks, soft
 // nebulas, drifting sketchy stars). Your cursor is a little laser gun that
 // auto-aims at the saucer; shooting it makes it tumble and pull a ＞－＜ face.
@@ -8674,7 +8674,7 @@ function _drawNaraGreenPattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = canvas._ngGrad; ctx.fillRect(0, 0, W, H);
 
-  // soft nebula blobs — muted magenta/violet/indigo washes, now brighter and easier to see
+  // soft nebula blobs: muted magenta/violet/indigo washes, now brighter and easier to see
   if (!canvas._ngNebulas) canvas._ngNebulas = Array.from({ length: 6 }, (_, i) => ({
     x: Math.random() * W, y: Math.random() * H, r: Math.min(W, H) * (0.22 + Math.random() * 0.24),
     hue: [285, 310, 260, 275, 330, 250][i], vx: (Math.random() - 0.5) * 3.2, ph: Math.random() * 6.28,
@@ -8791,7 +8791,7 @@ function _naraDrawUfo(ctx, u, t) {
   ctx.save();
   ctx.translate(0, -S * 0.5);
   if (!hit) {
-    // googly eyes — white ball + wandering pupil
+    // googly eyes: white ball + wandering pupil
     for (const exo of [-S * 0.26, S * 0.26]) {
       const eyeR = S * 0.19;
       ctx.beginPath(); ctx.arc(exo, -S * 0.05, eyeR, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
@@ -8799,12 +8799,12 @@ function _naraDrawUfo(ctx, u, t) {
       const pupilR = S * 0.095;
       ctx.beginPath(); ctx.arc(exo + u.ex * S * 0.06, -S * 0.05 + (u.ey * 0.06 + 0.05) * S, pupilR, 0, Math.PI * 2); ctx.fillStyle = '#111'; ctx.fill();
     }
-    // :3 mouth — two little bumps
+    // :3 mouth, two little bumps
     ctx.strokeStyle = '#2a1436'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.arc(-S * 0.09, S * 0.14, S * 0.09, 0.15, Math.PI - 0.15); ctx.stroke();
     ctx.beginPath(); ctx.arc(S * 0.09, S * 0.14, S * 0.09, 0.15, Math.PI - 0.15); ctx.stroke();
   } else {
-    // ＞－＜ — squeezed-shut angry-cry face
+    // ＞－＜: squeezed-shut angry-cry face
     ctx.strokeStyle = '#3a1420'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
     for (const [exo, flip] of [[-S * 0.26, 1], [S * 0.26, -1]]) {
       ctx.beginPath();
@@ -8860,7 +8860,7 @@ function _drawNaraGreenOverlay(canvas, ctx, W, H, t) {
   u.y += Math.sin(t * 1.2 + u.bobPh) * 18 * dt;
   if (u.dir > 0 && u.x > W + 90) { u.x = -90; u.y = H * (0.12 + Math.random() * 0.5); u.spd = 60 + Math.random() * 40; }
   if (u.dir < 0 && u.x < -90) { u.x = W + 90; u.y = H * (0.12 + Math.random() * 0.5); u.spd = 60 + Math.random() * 40; }
-  // tumble physics — spun up by hits, springs back upright
+  // tumble physics: spun up by hits, springs back upright
   u.rotV += (-u.rot * 14 - u.rotV * 3.2) * dt;
   u.rot += u.rotV * dt;
   u.hitT = Math.max(0, u.hitT - dt);
@@ -8908,7 +8908,7 @@ function _drawNaraGreenOverlay(canvas, ctx, W, H, t) {
   // Nara's signature wavy screen-border, in forest green tones
   _naraDrawEdges(ctx, W, H, t, _naraForestGrad);
 
-  // ── the laser-gun cursor — a chunky little ray-gun aiming at the UFO ──
+  // ── the laser-gun cursor: a chunky little ray-gun aiming at the UFO ──
   if (_naraGMX > -900) {
     _naraGunKick = Math.max(0, _naraGunKick - dt * 5);
     const aim = Math.atan2(u.y - _naraGMY, u.x - _naraGMX);
@@ -8968,7 +8968,7 @@ function _stopNaraGreenOverlay() {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
-// ── Jimmy's MUFFIN CURSOR — the googly-eyed muffin (moved here from Fury),
+// ── Jimmy's MUFFIN CURSOR: the googly-eyed muffin (moved here from Fury),
 // springing after the pointer with cheery sparkles on click. No fire. ──
 let _jimmyCursorRafId = null;
 function _startJimmyCursorOverlay() {
@@ -9030,7 +9030,7 @@ function _stopJimmyCursorOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// SORROW — Fury, but monochrome and upside-down, with a kebab cursor.
+// SORROW: Fury, but monochrome and upside-down, with a kebab cursor.
 // ════════════════════════════════════════════════════════════════
 // Pattern: draw Fury flipped vertically (fire falls from above), then strip the
 // colour with one cheap 'saturation' blend pass (the canvas is opaque).
@@ -9049,7 +9049,7 @@ function _drawSorrowPattern(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'source-over';
 }
 
-// Googly-eyed durum (döner wrap) cursor — same bounce/eyes as the muffin.
+// Googly-eyed durum (döner wrap) cursor: same bounce/eyes as the muffin.
 function _sorrowDrawDurum(ctx, x, y, t) {
   const bT = _furyMuffinBounceT;
   const sq = bT > 0 ? Math.sin(bT * Math.PI * 3.2) * bT * 0.42 : 0;
@@ -9149,7 +9149,7 @@ function _sorrowNoCompanion() {}   // the durum is drawn separately so it can ke
 function _drawSorrowOverlay(canvas, ctx, W, H, t) {
   const prev = _drawFuryOverlay._lt;
   _drawFuryOverlay(canvas, ctx, W, H, t, _sorrowNoCompanion, true);   // flip ambient fire; no companion yet
-  if (_drawFuryOverlay._lt === prev) return;    // Fury capped this frame — nothing redrawn
+  if (_drawFuryOverlay._lt === prev) return;    // Fury capped this frame: nothing redrawn
   // fully desaturate the ambient fire + sparkles
   let buf = canvas._srBuf;
   if (!buf || buf.width !== W || buf.height !== H) {
@@ -9160,7 +9160,7 @@ function _drawSorrowOverlay(canvas, ctx, W, H, t) {
   ctx.clearRect(0, 0, W, H);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   ctx.filter = 'grayscale(1)'; ctx.drawImage(buf, 0, 0); ctx.filter = 'none';
-  // draw the durum on top, only lightly desaturated — its bread & meat keep colour
+  // draw the durum on top, only lightly desaturated: its bread & meat keep colour
   ctx.save();
   ctx.filter = 'grayscale(0.42)';
   _sorrowDrawDurum(ctx, _furyMuffinX, _furyMuffinY, t);
@@ -9202,7 +9202,7 @@ function _stopSorrowOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-//  JUKO! — Code Garden background + chibi cat-sprite cursor companion
+//  JUKO!: Code Garden background + chibi cat-sprite cursor companion
 //  Palette: deep editor green-black, vivid greens, light-yellow accents.
 // ════════════════════════════════════════════════════════════════
 function _jukoNewBokeh(W, H, scatter) {
@@ -9279,7 +9279,7 @@ const _JUKO_THEME_SRC = 'sounds/juko.mp3';
 const _JUKO_0INF_THEME_SRC = 'sounds/juko-0inf.mp3';
 // Which track SHOULD be analysed right now. Prefers the track ACTUALLY loaded
 // on the shared theme-audio element (ground truth for what's really audible)
-// over the character's current form state — a crossfade takes ~800ms, so if we
+// over the character's current form state: a crossfade takes ~800ms, so if we
 // only trusted "what form is she on", the reactive envelope (and 0∞ severity/
 // intro timing, which reads _themeAudio.currentTime) could briefly point at a
 // track that isn't what's actually playing yet, or already stopped playing.
@@ -9340,11 +9340,11 @@ function _jukoSampleAudio(dt) {
     onset  = Math.max(0, Math.sin(tt * 6.3)) * 0.3;
   }
   if (!playing) { target = 0; onset = 0; }
-  // Fast attack so peaks land on time, smoother release — minimises perceived lag.
+  // Fast attack so peaks land on time, smoother release: minimises perceived lag.
   _jukoAudioLevel += (target - _jukoAudioLevel) * Math.min(1, dt * (target > _jukoAudioLevel ? 30 : 14));
   _jukoAudioOnset  = Math.max(_jukoAudioOnset * (1 - Math.min(1, dt * 7)), onset);  // fast attack, slow release
 
-  // ── AC-coupled "beat" — the key to VISIBLE reactivity ──────────────────
+  // ── AC-coupled "beat": the key to VISIBLE reactivity ──────────────────
   // Raw loudness (RMS) is too smooth: during a song it just sits at a steady
   // bright value, so a glow tied to it looks pinned on and barely moves. We
   // instead track a slow baseline and react to how far ABOVE it we are right
@@ -9363,7 +9363,7 @@ function _jukoSampleAudio(dt) {
 
 // PERF: pre-rendered soft-orb sprite (radial gradient → transparent). Drawing a
 // cached sprite scaled + alpha'd is identical to building a fresh radial gradient
-// per orb per frame, but allocates nothing — big win for the bokeh + rain heads.
+// per orb per frame, but allocates nothing: big win for the bokeh + rain heads.
 function _jukoSoftSprite(rgb) {
   const key = '_s_' + rgb;
   if (_jukoSoftSprite[key]) return _jukoSoftSprite[key];
@@ -9386,7 +9386,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   _jukoSampleAudio(dt);
   const aL = _jukoAudioLevel, aO = _jukoAudioOnset;   // 0..1 loudness / beat
 
-  // 0∞ — the Code Garden has crashed into an infinite loop. Same bones, WAY
+  // 0∞: the Code Garden has crashed into an infinite loop. Same bones, WAY
   // glitchier: void-black base, corrupted green rain, screen tears, invert
   // flashes, scanroll, error spew. A 22-second INTRO builds it up (looks almost
   // like the normal garden, glitches creeping in) then the DROP breaks it wide
@@ -9421,7 +9421,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   }
   ctx.fillRect(0, 0, W, H);
 
-  // 2 ── Soft bokeh orbs drifting up (green + light-yellow) — warm, fun energy;
+  // 2 ── Soft bokeh orbs drifting up (green + light-yellow): warm, fun energy;
   //      a chunk corrupt into jittering toxic-green orbs after the drop.
   //      PERF: normal orbs use a cached sprite (no per-orb gradient alloc).
   if (!canvas._jukoBokeh) {
@@ -9489,7 +9489,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
     ctx.fillText(sp.txt, sp.x, sp.y);
   }
 
-  // 5 ── Matrix code rain — dense green streams, glowing heads with additive
+  // 5 ── Matrix code rain: dense green streams, glowing heads with additive
   //      bloom, per-column brightness, scrolling light-yellow "keyword" tokens.
   const cellH = 15, colW = 11;
   if (!canvas._jukoCols) {
@@ -9498,9 +9498,9 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   }
   const cols = canvas._jukoCols;
 
-  // 5a — advance columns + paint additive bloom behind each falling head.
+  // 5a: advance columns + paint additive bloom behind each falling head.
   //      PERF: bloom is a cached sprite drawn with alpha (was a per-column
-  //      radial gradient allocated every frame — the single biggest hot spot).
+  //      radial gradient allocated every frame: the single biggest hot spot).
   ctx.globalCompositeOperation = 'lighter';
   const rainBoost = 1 + aL * 1.3;                 // streams race on loud parts
   const headGreen = _jukoSoftSprite('150,246,150'), headYellow = _jukoSoftSprite('232,248,168');
@@ -9522,7 +9522,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // 5b — glyph streams (per-column brightness; whole field pulses with the music)
+  // 5b: glyph streams (per-column brightness; whole field pulses with the music)
   const cf = 0.8 + aL * 0.7;            // loudness → overall brightness
   const headFlash = aO;                 // beat → heads flare white-hot
   ctx.globalCompositeOperation = 'source-over';
@@ -9611,7 +9611,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
   }
-  // Torn horizontal slices — rare + gentle during the intro, ripping wide open
+  // Torn horizontal slices: rare + gentle during the intro, ripping wide open
   // after the drop.
   const glitchP = chaos ? Math.min(0.99, 0.08 + sev * 0.9 + aO * 0.3) : (0.2 + aO * 0.7 + aL * 0.22);
   if (Math.random() < glitchP) {
@@ -9631,7 +9631,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
       ctx.globalCompositeOperation = 'source-over';
     }
   }
-  // Block-displacement scramble — memory-corruption chunk-slam. Post-drop only.
+  // Block-displacement scramble: memory-corruption chunk-slam. Post-drop only.
   if (dropped) {
     const nb = 1 + Math.floor(Math.random() * (2 + sev * 6));
     for (let i = 0; i < nb; i++) {
@@ -9642,7 +9642,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
       ctx.drawImage(canvas, sx, sy, bw, bh, sx + ddx, sy + ddy, bw, bh);
     }
   }
-  // Channel-split ghost jolt — a green chromatic-aberration smear that grows with
+  // Channel-split ghost jolt: a green chromatic-aberration smear that grows with
   // severity (barely there in the intro, constant after the drop).
   if ((chaos && sev > 0.06) || (aO > 0.42 && Math.random() < 0.6)) {
     const off = chaos ? 3 + aO * 14 + Math.sin(t * 19) * (2 + sev * 8) : 3 + aO * 10;
@@ -9653,7 +9653,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   }
-  // Data-corruption blocks — garbled glyph clusters, scaling in with severity.
+  // Data-corruption blocks: garbled glyph clusters, scaling in with severity.
   if (Math.random() < (chaos ? sev * 0.8 : 0.14 + aL * 0.32)) {
     const nblk = chaos ? 1 + Math.floor(Math.random() * (2 + sev * 8)) : 1 + Math.floor(Math.random() * 3);
     ctx.font = 'bold 13px "Courier New", monospace';
@@ -9671,7 +9671,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
     }
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
   }
-  // Error-message spew — runtime exceptions flash across the crash in mono type.
+  // Error-message spew: runtime exceptions flash across the crash in mono type.
   if (chaos && Math.random() < sev * 0.4) {
     const msg = _JUKO_0INF_ERRORS[(Math.random() * _JUKO_0INF_ERRORS.length) | 0];
     const fs = 12 + Math.random() * (14 + sev * 20);
@@ -9684,7 +9684,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
     ctx.fillText(msg, ex + jitter, ey);
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
   }
-  // Rolling VHS "tracking loss" bar — a bright band sweeps down the screen,
+  // Rolling VHS "tracking loss" bar: a bright band sweeps down the screen,
   // dragging a smeared copy of the frame with it. Fades in with severity.
   if (chaos && sev > 0.05) {
     const rollY = ((t * (120 + sev * 260)) % (H + 120)) - 60;
@@ -9698,13 +9698,13 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
     ctx.fillRect(0, rollY - 1, W, 2);
     ctx.restore();
   }
-  // Vertical hold slip — the whole picture jumps + wraps. Post-drop only.
+  // Vertical hold slip: the whole picture jumps + wraps. Post-drop only.
   if (dropped && Math.random() < 0.02 + sev * 0.06) {
     const shift = (Math.random() * H) | 0;
     ctx.drawImage(canvas, 0, 0, W, H - shift, 0, shift, W, H - shift);
     ctx.drawImage(canvas, 0, H - shift, W, shift, 0, 0, W, shift);
   }
-  // Static noise grain — fades in with severity. PERF: cache the CanvasPattern.
+  // Static noise grain: fades in with severity. PERF: cache the CanvasPattern.
   if (chaos && sev > 0.03) {
     ctx.save();
     ctx.globalAlpha = Math.min(0.26, 0.04 + Math.random() * 0.05 + sev * 0.14);
@@ -9714,7 +9714,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
     ctx.fillRect(ox, oy, W + 96, H + 96);
     ctx.restore();
   }
-  // Full-screen invert flash — softened + green-tinted so it's not blinding, and
+  // Full-screen invert flash: softened + green-tinted so it's not blinding, and
   // only once the crash is fully underway.
   if (dropped && Math.random() < 0.03 + aO * 0.08 + sev * 0.04) {
     ctx.save();
@@ -9738,7 +9738,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
 
   // 7 ── Vignette to frame the garden. (The BIG intro vignette + the swaying
   //      green/yellow border that breaks out of it live on the page-wide
-  //      overlay canvas now — _drawJukoOverlay — so they cover the whole app,
+  //      overlay canvas now: _drawJukoOverlay: so they cover the whole app,
   //      not just this background. This is just the normal soft framing.)
   if (!canvas._jukoVign || canvas._jukoVignChaos !== chaos) {
     const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * (chaos ? 0.16 : 0.22), W / 2, H / 2, Math.max(W, H) * 0.72);
@@ -9762,7 +9762,7 @@ function _jukoDrawSprite(ctx, x, y, t) {
   const happy = _jukoHappyT > 0 ? Math.min(1, _jukoHappyT) : 0;
   // Gentle lean toward horizontal motion
   const lean = Math.max(-0.26, Math.min(0.26, _jukoVX / 900));
-  // Periodic blink (skipped while happy — eyes are ^^ then)
+  // Periodic blink (skipped while happy: eyes are ^^ then)
   const cyc = t % 3.4;
   const blinkClose = cyc < 0.16 ? (1 - Math.abs(cyc - 0.08) / 0.08) : 0;
 
@@ -9776,7 +9776,7 @@ function _jukoDrawSprite(ctx, x, y, t) {
   const aL = _jukoAudioLevel, aO = _jukoAudioOnset;   // music drives glow/LEDs
 
   // ── Tail: a glowing "code cable" (drawn first, so the head sits over its root).
-  // Unique twist — it's not fur, it's a data cable made of code glyphs tipped with
+  // Unique twist: it's not fur, it's a data cable made of code glyphs tipped with
   // a little plug + LED. It WHIPS out behind motion and curls into a spiral when
   // idle, and its wiggle/glow swell with the music.
   {
@@ -9806,7 +9806,7 @@ function _jukoDrawSprite(ctx, x, y, t) {
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
     ctx.stroke();
     ctx.restore();
-    // main cable — tapering, dark base → bright tip
+    // main cable: tapering, dark base → bright tip
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (let i = 1; i < pts.length; i++) {
       const f = i / pts.length;
@@ -9847,7 +9847,7 @@ function _jukoDrawSprite(ctx, x, y, t) {
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  // ── Cat ears (behind head) — big and perky
+  // ── Cat ears (behind head): big and perky
   for (const s of [-1, 1]) {
     ctx.beginPath();
     ctx.moveTo(s * 4, -R * 0.80);
@@ -9870,7 +9870,7 @@ function _jukoDrawSprite(ctx, x, y, t) {
   ctx.fillStyle = hg; ctx.fill();
   ctx.strokeStyle = 'rgba(18,68,34,0.5)'; ctx.lineWidth = 1.4; ctx.stroke();
 
-  // ── Headphones (cat-ear-headphone vibe — her programmer music gear)
+  // ── Headphones (cat-ear-headphone vibe: her programmer music gear)
   ctx.lineCap = 'round';
   ctx.strokeStyle = '#2b332c'; ctx.lineWidth = 5.5;                 // band over the top
   ctx.beginPath(); ctx.arc(0, 1, R + 4, Math.PI, Math.PI * 2); ctx.stroke();
@@ -9900,7 +9900,7 @@ function _jukoDrawSprite(ctx, x, y, t) {
   for (const s of [-1, 1]) {
     const ex = s * eyeOX;
     if (happy > 0.1) {
-      // Happy ^^ — upward arcs
+      // Happy ^^: upward arcs
       ctx.strokeStyle = '#12331c'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.arc(ex, eyeY + 2, eyeR * 0.95, Math.PI * 1.18, Math.PI * 1.82);
@@ -9913,7 +9913,7 @@ function _jukoDrawSprite(ctx, x, y, t) {
       ctx.beginPath(); ctx.arc(0, 0, eyeR, 0, Math.PI * 2);
       ctx.fillStyle = '#f4fff0'; ctx.fill();
       ctx.restore();
-      // Reactive pupil — idle wander blended with velocity direction (like Fury's muffin)
+      // Reactive pupil: idle wander blended with velocity direction (like Fury's muffin)
       const mvSpd = Math.hypot(_jukoVX, _jukoVY);
       const vf = Math.min(1, mvSpd / 300);
       let pdx = Math.sin(t * 1.2 + s * 0.8) * eyeR * 0.32 * (1 - vf);
@@ -9949,7 +9949,7 @@ function _jukoDrawSprite(ctx, x, y, t) {
   ctx.beginPath();
   ctx.moveTo(eyeOX + eyeR + 2.4, eyeY); ctx.lineTo(R - 1, eyeY - 1); ctx.stroke();
 
-  // ── Mouth — :3 cat smile (wider when happy)
+  // ── Mouth,3 cat smile (wider when happy)
   const my = eyeY + eyeR + 5.5;
   const mw = 4 + happy * 2;
   ctx.strokeStyle = '#12331c'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
@@ -9989,7 +9989,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
 
   _jukoBounceT = Math.max(0, _jukoBounceT - dt * 3.0);
   _jukoHappyT  = Math.max(0, _jukoHappyT  - dt);
-  // Bump to the beat — strong onsets give Juko a little squish-bounce
+  // Bump to the beat: strong onsets give Juko a little squish-bounce
   if (_jukoAudioOnset > 0.5) _jukoBounceT = Math.max(_jukoBounceT, (_jukoAudioOnset - 0.5) * 1.1);
 
   // Code-symbol burst from clicks
@@ -10016,10 +10016,10 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
   const _oSev = _o0inf ? _juko0InfSev(_oElapsed) : 0;
   const _oDrop = _o0inf ? _juko0InfDropped(_oElapsed) : false;
 
-  // The BOOM — the instant the 22s intro breaks. One-time, fires exactly once
+  // The BOOM: the instant the 22s intro breaks. One-time, fires exactly once
   // per 0∞ entry (see _juko0InfBoomFired comment for why it's a global, not a
   // canvas prop). A shockwave ring + shatter cracks + a decaying flash, all
-  // fading over ~0.9s — visible proof the song just broke, not a literal blast.
+  // fading over ~0.9s: visible proof the song just broke, not a literal blast.
   if (_oDrop && !_juko0InfBoomFired) {
     _juko0InfBoomFired = true;
     _juko0InfBoomT0 = t;
@@ -10029,7 +10029,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     }));
   }
 
-  // 0∞: the cursor companion glitches too — cyan + lime ghost double-renders
+  // 0∞: the cursor companion glitches too, cyan + lime ghost double-renders
   // (green family, NOT red) jittering off-position, like the sprite itself can't
   // hold a single frame. Grows with severity (calm in the intro).
   if (_o0inf && _oSev > 0.04) {
@@ -10077,7 +10077,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     if (glitchV !== last.x) { st.setProperty('--juko-glitch', glitchV.toFixed(2)); last.x = glitchV; }
   }
 
-  // 0∞ — this is the topmost layer in the whole app (z-index 9999), so this is
+  // 0∞: this is the topmost layer in the whole app (z-index 9999), so this is
   // where the breakdown reaches past the character page entirely: static, tears,
   // RGB-split smear, error spew and a tracking bar drawn OVER the top nav, the
   // sidebar, everything. Gated by severity so the intro barely touches the page
@@ -10093,7 +10093,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     ctx.fillStyle = ctx._jukoNoisePat || (ctx._jukoNoisePat = ctx.createPattern(_exNoiseTile(), 'repeat'));
     ctx.fillRect(ox, oy, W + 96, H + 96);
     ctx.restore();
-    // page-wide torn slices — cut straight through nav bar / sidebar / panels alike
+    // page-wide torn slices: cut straight through nav bar / sidebar / panels alike
     if (Math.random() < 0.12 + R * 0.8) {
       const slices = 1 + Math.floor(Math.random() * (1 + R * 8));
       for (let i = 0; i < slices; i++) {
@@ -10107,7 +10107,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
         ctx.globalCompositeOperation = 'source-over';
       }
     }
-    // page-wide block-displacement — rip a chunk of the composited UI and shove it. Post-drop.
+    // page-wide block-displacement: rip a chunk of the composited UI and shove it. Post-drop.
     if (_oDrop && Math.random() < 0.25 + R * 0.5) {
       const nb = 1 + Math.floor(Math.random() * (1 + R * 4));
       for (let i = 0; i < nb; i++) {
@@ -10159,10 +10159,10 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     }
   }
 
-  // 0∞ — big black vignette wrapping the WHOLE PAGE (nav, sidebar, everything,
+  // 0∞: big black vignette wrapping the WHOLE PAGE (nav, sidebar, everything,
   // since this canvas is the top z-index layer), heaviest right at entry, that
   // slowly clears across the 22s intro. It "breaks" at the drop into a swaying
-  // green/yellow border — her real palette pushing back through the corruption.
+  // green/yellow border: her real palette pushing back through the corruption.
   if (_o0inf) {
     ctx.globalCompositeOperation = 'source-over';
     if (!_oDrop) {
@@ -10191,7 +10191,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
       ctx.fillRect(0, 0, W, H);
 
       // Fast dedicated fade-in (1.3s) so the border is unmistakably there right
-      // after the drop, independent of the slower 6s severity ramp — severity
+      // after the drop, independent of the slower 6s severity ramp: severity
       // only adds extra glow/width on top of an already-bold baseline.
       const borderIn = Math.min(1, (_oElapsed - _JUKO_0INF_INTRO) / 1.3);
       if (borderIn > 0.01) {
@@ -10218,7 +10218,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     }
   }
 
-  // ── THE BOOM — plays once, right as the vignette breaks. Not a literal
+  // ── THE BOOM: plays once, right as the vignette breaks. Not a literal
   //    explosion: a concussive flash + an expanding shockwave ring + jagged
   //    "shatter" cracks radiating out and fading, like the song itself cracked.
   if (_juko0InfBoomT0 !== undefined) {
@@ -10231,7 +10231,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
       const cx = W / 2, cy = H / 2;
       const maxR = Math.hypot(W, H) * 0.58;
 
-      // Concussive flash — sharp attack, fast exponential decay.
+      // Concussive flash: sharp attack, fast exponential decay.
       const flashA = Math.pow(Math.max(0, 1 - p * 1.8), 2.4);
       if (flashA > 0.01) {
         ctx.save();
@@ -10257,7 +10257,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
       }
       ctx.restore();
 
-      // Jagged shatter cracks radiating from centre — fixed geometry (rolled
+      // Jagged shatter cracks radiating from centre: fixed geometry (rolled
       // once when the boom fired), only their alpha fades out.
       if (_juko0InfBoomCracks && p < 0.4) {
         const crackA = (1 - p / 0.4) * 0.75;
@@ -10325,7 +10325,7 @@ function _drawJukoEqualizer(canvas, ctx, W, H, t) {
   ctx.clearRect(0, 0, W, H);
 
   const lvl = _jukoAudioLevel, beat = _jukoAudioBeat;
-  // 0∞: the meter loses its mind — bars slam to random full-height spikes
+  // 0∞: the meter loses its mind, bars slam to random full-height spikes
   // regardless of the music, building through the intro then raging post-drop.
   const _r = _drawJukoOverlay._root || (_drawJukoOverlay._root = document.getElementById('char-view'));
   const chaos = !!(_r && _r.classList.contains('juko-0inf'));
@@ -10422,7 +10422,7 @@ function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
     }
     const cells = st.cells, N = cells.length;
     const head = (_drawJukoCodeFrame._comet / cell + pi * 7) % N;     // offset per panel
-    // whole-frame per-panel jitter offset — fades in with severity so the
+    // whole-frame per-panel jitter offset: fades in with severity so the
     // borders sit still through the intro then shudder after the drop.
     const pjx = cR > 0 ? (Math.random() - 0.5) * cR * 10 : 0;
     const pjy = cR > 0 ? (Math.random() - 0.5) * cR * 10 : 0;
@@ -10442,7 +10442,7 @@ function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
       if (cR > 0 && Math.random() < cR * 0.3) { cr = 235; cg = 255; cb = 235; }  // white corruption glint
       else if (c.warm) { cr = 205; cg = 255; cb = 135; } else { cr = 58; cg = 232; cb = 92; }
       cr = Math.min(255, cr + w2 * 175); cg = Math.min(255, cg + w2 * 22); cb = Math.min(255, cb + w2 * 120);
-      // per-glyph position jitter — fades in with severity
+      // per-glyph position jitter: fades in with severity
       const gjx = cR > 0 ? (Math.random() - 0.5) * cR * 6 : 0;
       const gjy = cR > 0 ? (Math.random() - 0.5) * cR * 6 : 0;
       ctx.fillStyle = `rgba(${cr | 0},${cg | 0},${cb | 0},${b.toFixed(3)})`;
@@ -10466,20 +10466,20 @@ function _startJukoOverlay() {
   _jukoParticles = [];
   window.addEventListener('mousemove', _jukoMouseMove);
   window.addEventListener('click', _jukoClick);
-  // Equalizer layer — appended inside #content (z-index:0) so it sits BEHIND
+  // Equalizer layer, appended inside #content (z-index:0) so it sits BEHIND
   // #char-view (z-index:1) and its panels, peeking out only around the boxes.
   const eqc = document.createElement('canvas');
   eqc.id = 'juko-eq-overlay';
   eqc.style.cssText = 'position:fixed;left:0;bottom:0;width:100vw;height:100vh;z-index:0;pointer-events:none;';
   eqc.width = window.innerWidth; eqc.height = window.innerHeight;
   (document.getElementById('content') || document.body).appendChild(eqc);
-  // Code-frame layer (panel borders rendered as code) — below the sprite.
+  // Code-frame layer (panel borders rendered as code): below the sprite.
   const fr = document.createElement('canvas');
   fr.id = 'juko-frame-overlay';
   fr.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:30;pointer-events:none;';
   fr.width = window.innerWidth; fr.height = window.innerHeight;
   document.body.appendChild(fr);
-  // Cursor companion / particles layer — on top of everything.
+  // Cursor companion / particles layer: on top of everything.
   const cv = document.createElement('canvas');
   cv.id = 'juko-code-overlay';
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
@@ -10525,14 +10525,14 @@ function _stopJukoOverlay() {
   if (eqc) eqc.remove();
   // NOTE: do NOT touch _juko0InfActive / the 0∞ extras here. This function runs
   // on EVERY viewChar re-render for Juko (stopBgAnim + _startJukoOverlay both
-  // call it), not just on a genuine form transition — tearing the extras down
+  // call it), not just on a genuine form transition: tearing the extras down
   // here was resetting the 22s intro on totally unrelated re-renders (equip,
   // reroll, resize…). The 0∞ enter/exit lifecycle is owned exclusively by the
   // chrome block in viewChar(), which only fires on an actual state change.
 }
 
 // ════════════════════════════════════════════════════════════════
-// 0∞ EXTRAS — window/screen messing + floating glitched-pfp windows.
+// 0∞ EXTRAS: window/screen messing + floating glitched-pfp windows.
 // Runs on its own rAF (separate from the heavy canvas overlays) so it's cheap:
 // it only writes a transform + repositions a handful of DOM nodes a few times a
 // second. Everything below the DROP (elapsed < 22s) stays calm and builds.
@@ -10574,7 +10574,7 @@ function _stopJuko0InfExtras() {
 }
 
 // Attempt to physically nudge/resize the real browser window. Modern browsers
-// block this for the main tab, so it silently no-ops there — the visual fake
+// block this for the main tab, so it silently no-ops there: the visual fake
 // below carries the effect regardless. Guarded + throttled so it can never spam.
 function _juko0InfPokeWindow() {
   try {
@@ -10582,7 +10582,7 @@ function _juko0InfPokeWindow() {
     const dw = (Math.random() - 0.5) * 60, dh = (Math.random() - 0.5) * 40;
     if (typeof window.moveBy === 'function') window.moveBy(dx | 0, dy | 0);
     if (typeof window.resizeBy === 'function') window.resizeBy(dw | 0, dh | 0);
-  } catch (e) { /* blocked — fine */ }
+  } catch (e) { /* blocked: fine */ }
 }
 
 function _juko0InfSpawnWindow() {
@@ -10617,7 +10617,7 @@ function _juko0InfWinFrame(now) {
   const sev = _juko0InfSev(elapsed);
   const dropped = _juko0InfDropped(elapsed);
 
-  // ── Window / screen messing — occasional violent "yank" of the whole viewport
+  // ── Window / screen messing: occasional violent "yank" of the whole viewport
   //    (fakes the window being grabbed, shoved and resized). Only after the drop.
   const y = _juko0InfYank;
   const age = tt - y.t0;
@@ -10637,7 +10637,7 @@ function _juko0InfWinFrame(now) {
     if (age < y.dur) {
       // ease out → in: snap to the yanked pose, then spring back to identity.
       // (transform is compositor-cheap, and we clear it fully between yanks so
-      //  the root isn't perpetually transformed — good for perf.)
+      //  the root isn't perpetually transformed: good for perf.)
       const p = age / y.dur;
       const env = Math.sin(Math.PI * p);           // 0→1→0 over the yank
       const sx = 1 + (y.sx - 1) * env, sy = 1 + (y.sy - 1) * env;
@@ -10649,7 +10649,7 @@ function _juko0InfWinFrame(now) {
     }
   }
 
-  // ── Floating glitched-pfp windows — build up in count as severity rises.
+  // ── Floating glitched-pfp windows: build up in count as severity rises.
   const wantCount = _juko0InfAvatar ? Math.round(sev * 5) : 0;   // 0 during early intro → up to 5
   if (tt > _juko0InfNextWin) {
     _juko0InfNextWin = tt + (dropped ? 0.5 + Math.random() * 0.9 : 1.4 + Math.random() * 1.6);
@@ -10668,7 +10668,7 @@ function _juko0InfWinFrame(now) {
     }
   }
 
-  // ── Faster independent teleport/re-filter tick — on top of the CSS drift/
+  // ── Faster independent teleport/re-filter tick: on top of the CSS drift/
   //    jitter, existing windows periodically hard-snap to a new spot + swap
   //    their broken filter, like the corrupted feed keeps re-syncing.
   if (tt > _juko0InfGlitchNext && _juko0InfWinList.length) {
@@ -10677,7 +10677,7 @@ function _juko0InfWinFrame(now) {
     _juko0InfPlaceWindow(w);
   }
 
-  // ── Stat glitch — ATK/DEF/MAG/IQ read "∞" but occasionally flash her real
+  // ── Stat glitch: ATK/DEF/MAG/IQ read "∞" but occasionally flash her real
   //    number for a beat, like the display can't actually hold "infinite".
   //    Rare + brief during the intro, more frequent/longer after the drop.
   if (tt > _juko0InfStatNext) {
@@ -10702,7 +10702,7 @@ function _juko0InfWinFrame(now) {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// LUCIFER · UNLEASHED — demonic hellscape (background) + hellfire cursor
+// LUCIFER · UNLEASHED: demonic hellscape (background) + hellfire cursor
 // ════════════════════════════════════════════════════════════════
 function _lucNewEmber(W, H, scatter) {
   return { x: Math.random() * W, y: scatter ? Math.random() * H : H + Math.random() * 40,
@@ -10716,7 +10716,7 @@ function _lucNewRune(W, H, scatter) {
     sz: 14 + Math.random() * 26, a: 0.3 + Math.random() * 0.5, pf: 0.6 + Math.random() * 1.6,
     ph: Math.random() * 6.28, ch: _LUCIFER_RUNES[(Math.random() * _LUCIFER_RUNES.length) | 0] };
 }
-// Cached soft ember sprite — drawImage'd per ember instead of building a fresh
+// Cached soft ember sprite: drawImage'd per ember instead of building a fresh
 // radial gradient each one (far cheaper for hundreds of additive embers).
 function _lucEmberSprite() {
   if (_lucEmberSprite._c) return _lucEmberSprite._c;
@@ -10816,7 +10816,7 @@ function _lucDrawBolt(canvas, ctx, W, H, t) {
 }
 
 function _drawLuciferPattern(canvas, ctx, W, H, t) {
-  const fresh = _drawLuciferPattern._lt === undefined;   // (re)entry — clock t just reset to 0
+  const fresh = _drawLuciferPattern._lt === undefined;   // (re)entry: clock t just reset to 0
   if (!fresh && t - _drawLuciferPattern._lt < 0.033) return;
   const dt = fresh ? 0.016 : Math.min(t - _drawLuciferPattern._lt, 0.05);
   _drawLuciferPattern._lt = t;
@@ -11008,7 +11008,7 @@ function _stopLuciferOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// DIVINE — goddess of light. Radiant heaven (background) + light cursor.
+// DIVINE: goddess of light. Radiant heaven (background) + light cursor.
 // The luminous mirror of Lucifer: grand sun-mandala, ascending glyphs,
 // god-rays from above, drifting motes, rare descending sunbeams.
 // ════════════════════════════════════════════════════════════════
@@ -11053,7 +11053,7 @@ function _divDrawHalo(ctx, cx, cy, R, t, glow) {
   ctx.translate(cx, cy);
   ctx.globalCompositeOperation = 'lighter';
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  // radiant rays (sunburst) — counter to demonic; slow spin
+  // radiant rays (sunburst): counter to demonic; slow spin
   ctx.save();
   ctx.rotate(-t * 0.05);
   const rays = 24;
@@ -11237,11 +11237,11 @@ function _drawDivinePattern(canvas, ctx, W, H, t) {
     canvas._divCore = null; canvas._divRay = null;
   }
   const pulse = 0.5 + 0.5 * Math.sin(t * 1.4);
-  // Slow, gentle breathing of overall brightness — she swells brighter and
+  // Slow, gentle breathing of overall brightness: she swells brighter and
   // softer over ~13s rather than blazing at a constant blinding white.
   const bright = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * 0.48));
 
-  // 1 ── Heaven base (warm, luminous — but not blinding white)
+  // 1 ── Heaven base (warm, luminous: but not blinding white)
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   if (!canvas._divBase) {
     const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -11304,7 +11304,7 @@ function _drawDivinePattern(canvas, ctx, W, H, t) {
   // 6 ── Rare descending sunbeam
   _divDrawBeam(canvas, ctx, W, H, t);
 
-  // 6.5 ── Descending feathers of light — her unique blessing
+  // 6.5 ── Descending feathers of light: her unique blessing
   if (!canvas._divFeathers) { canvas._divFeathers = []; canvas._divFeatherEmit = 0.8; }
   canvas._divFeatherEmit -= dt;
   if (canvas._divFeatherEmit <= 0 && canvas._divFeathers.length < 6) {
@@ -11380,7 +11380,7 @@ function _div4Star(ctx, cx, cy, R, t, ph) {
   ctx.restore();
 }
 
-// Her sword IS the cursor — a white-and-gold blade, golden winged hilt.
+// Her sword IS the cursor: a white-and-gold blade, golden winged hilt.
 // Drawn with the blade TIP at the hotspot (x,y), pointing up-left like a
 // pointer; the ornate hilt + fluttering wings trail down-right. `lean` tilts
 // it slightly with cursor motion so it feels alive.
@@ -11412,7 +11412,7 @@ function _divDrawSword(ctx, x, y, t, lean) {
   ctx.strokeStyle = 'rgba(214,176,86,0.6)'; ctx.lineWidth = 0.7;
   ctx.beginPath(); ctx.moveTo(0, 3); ctx.lineTo(0, guardY - 4); ctx.stroke();
 
-  // ── WINGS at the guard — little white feathers that flutter ──
+  // ── WINGS at the guard: little white feathers that flutter ──
   for (const dir of [-1, 1]) {
     ctx.save();
     ctx.translate(dir * 5, guardY - 1);
@@ -11436,21 +11436,21 @@ function _divDrawSword(ctx, x, y, t, lean) {
   }
   ctx.shadowBlur = 0;
 
-  // ── CROSS-GUARD — golden bar with rounded end-orbs ──
+  // ── CROSS-GUARD: golden bar with rounded end-orbs ──
   ctx.fillStyle = '#f3c655'; ctx.strokeStyle = '#9c6f1d'; ctx.lineWidth = 0.8;
   ctx.beginPath(); ctx.rect(-10.5, guardY, 21, 4.2); ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#ffd96b';
   ctx.beginPath(); ctx.arc(-10.5, guardY + 2, 2.2, 0, 6.28); ctx.arc(10.5, guardY + 2, 2.2, 0, 6.28); ctx.fill();
   ctx.strokeStyle = '#9c6f1d'; ctx.lineWidth = 0.6; ctx.stroke();
 
-  // ── GRIP — wrapped golden handle ──
+  // ── GRIP: wrapped golden handle ──
   const gripTop = guardY + 4.2, gripLen = 12;
   ctx.fillStyle = '#cda43d';
   ctx.beginPath(); ctx.rect(-2.1, gripTop, 4.2, gripLen); ctx.fill();
   ctx.strokeStyle = '#86601a'; ctx.lineWidth = 0.6;
   for (let g = 0; g < 4; g++) { ctx.beginPath(); ctx.moveTo(-2.1, gripTop + 1.5 + g * 2.7); ctx.lineTo(2.1, gripTop + 0.5 + g * 2.7); ctx.stroke(); }
 
-  // ── POMMEL — golden orb with a bright gem ──
+  // ── POMMEL: golden orb with a bright gem ──
   const py = gripTop + gripLen + 2.4;
   ctx.fillStyle = '#ffd96b'; ctx.strokeStyle = '#9c6f1d'; ctx.lineWidth = 0.8;
   ctx.beginPath(); ctx.arc(0, py, 3.1, 0, 6.28); ctx.fill(); ctx.stroke();
@@ -11494,7 +11494,7 @@ function _drawDivineOverlay(canvas, ctx, W, H, t) {
     _divineRings.push({ x: _divineX, y: _divineY, r: 6, life: 1, idle: true });
     _drawDivineOverlay._ringT = 1.5;
   }
-  // radiant rings — each one starts DARK and brightens toward white as it
+  // radiant rings: each one starts DARK and brightens toward white as it
   // expands outward, then softly fades at the end of its life.
   for (let i = _divineRings.length - 1; i >= 0; i--) {
     const rg = _divineRings[i];
@@ -11534,7 +11534,7 @@ function _drawDivineOverlay(canvas, ctx, W, H, t) {
 
   // the classic 4-point star shimmy at the center
   _div4Star(ctx, _divineTargX, _divineTargY, 6, t, Math.random() * 6.28);
-  // her sword — pinned to the real pointer, tilting with motion
+  // her sword: pinned to the real pointer, tilting with motion
   ctx.globalCompositeOperation = 'source-over';
   const lean = Math.max(-0.45, Math.min(0.45, (_divineTargX - _divineX) * 0.012));
   _divDrawSword(ctx, _divineTargX, _divineTargY, t, lean);
@@ -11548,7 +11548,7 @@ function _startDivineOverlay() {
   _divineMotes = []; _divineRings = [];
   window.addEventListener('mousemove', _divineMouseMove);
   window.addEventListener('click', _divineClick);
-  // hide the default arrow cursor — her sword takes its place
+  // hide the default arrow cursor: her sword takes its place
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = 'none';
   const cv = document.createElement('canvas');
@@ -11581,7 +11581,7 @@ function _stopDivineOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// AETHER — a dark, eerie forest at night. Cached painterly tree trunks
+// AETHER: a dark, eerie forest at night. Cached painterly tree trunks
 // framing a black void, a misty teal-green floor, drifting fog, glowing
 // fireflies / a will-o'-wisp, and rare pale eyes in the dark. The cursor
 // is a red targeting crosshair. Character-wide (matches "Aether").
@@ -11656,7 +11656,7 @@ function _aetherTrunk(g, W, H, o) {
   const tg = g.createLinearGradient(0, topY, 0, baseY);
   tg.addColorStop(0, _aRGBA(o.light, 0.16)); tg.addColorStop(0.55, 'rgba(0,0,0,0)');
   g.fillStyle = tg; g.fillRect(o.x - o.botW * 1.3, topY, o.botW * 2.6, baseY - topY);
-  // subtle blood — a reddish stain bleeding DOWN the bark, tinted into the wood
+  // subtle blood: a reddish stain bleeding DOWN the bark, tinted into the wood
   if (o.blood) {
     const br = _aetherRng((o.seed || 1) + 99);
     const cx = o.x + (br() - 0.5) * o.botW * 0.18;
@@ -11713,7 +11713,7 @@ function _aetherGround(g, W, H) {
 function _aetherBuildForest(W, H) {
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  // night base — a touch of cold sky filtering through the canopy at the top
+  // night base: a touch of cold sky filtering through the canopy at the top
   const bg = g.createLinearGradient(0, 0, 0, H);
   bg.addColorStop(0, '#10161a'); bg.addColorStop(0.4, '#0a0f11'); bg.addColorStop(1, '#0a0f0c');
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
@@ -11729,7 +11729,7 @@ function _aetherBuildForest(W, H) {
   // ── big LIT trunks framing the void (left cluster + the prominent right one) ──
   _aetherTrunk(g, W, H, { x: 0.13 * W, topW: 0.085 * W, botW: 0.15 * W, base: [60, 54, 44], light: [104, 92, 70], dark: [22, 19, 13], lean: -W * 0.015, seed: 3, branches: true });
   _aetherTrunk(g, W, H, { x: -0.02 * W, topW: 0.09 * W, botW: 0.14 * W, base: [50, 47, 42], light: [86, 80, 68], dark: [18, 16, 12], lean: W * 0.01, seed: 5, branches: true });
-  // the big warm trunk on the right (like the reference) — carries the subtle blood
+  // the big warm trunk on the right (like the reference): carries the subtle blood
   _aetherTrunk(g, W, H, { x: 0.74 * W, topW: 0.11 * W, botW: 0.19 * W, base: [66, 50, 40], light: [112, 86, 64], dark: [26, 18, 13], lean: W * 0.025, seed: 7, branches: true, blood: true });
   _aetherTrunk(g, W, H, { x: 0.95 * W, topW: 0.10 * W, botW: 0.16 * W, base: [54, 50, 44], light: [92, 84, 72], dark: [20, 18, 14], lean: 0, seed: 11, branches: true });
 
@@ -11750,7 +11750,7 @@ function _drawAetherPattern(canvas, ctx, W, H, t) {
   }
   ctx.drawImage(canvas._aetherBg, 0, 0);
 
-  // light vignette — just darkens the corners a touch (keeps the side trunks lit)
+  // light vignette: just darkens the corners a touch (keeps the side trunks lit)
   const vg = ctx.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.3, W / 2, H * 0.5, Math.max(W, H) * 0.9);
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.32)');
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
@@ -11814,7 +11814,7 @@ function _drawAetherPattern(canvas, ctx, W, H, t) {
   }
 
   // the wedding ring lives on the FOREST layer (so the panels occlude it),
-  // in this canvas's pixel space — physics + draw here, not on the overlay
+  // in this canvas's pixel space: physics + draw here, not on the overlay
   _aetherUpdateRing(dt, W, H);
   _aetherDrawRing(ctx, t);
 }
@@ -11873,7 +11873,7 @@ function _aetherDrawRing(ctx, t) {
   ctx.beginPath(); ctx.arc(0, 0, r.R, 0, 6.2832); ctx.stroke();
   ctx.lineWidth = moving ? 1.1 : 0.9; ctx.strokeStyle = `rgba(160,120,48,${a * 0.7})`;
   ctx.beginPath(); ctx.arc(0, 0, r.R * 0.66, 0, 6.2832); ctx.stroke();
-  // diamond gem — twinkles every so often to catch the eye
+  // diamond gem: twinkles every so often to catch the eye
   const tw = moving ? 0.95 : 0.4 + 0.6 * Math.pow(Math.abs(Math.sin(t * 1.5)), 4);
   ctx.shadowColor = 'rgba(255,255,255,0.9)'; ctx.shadowBlur = moving ? 8 : 3 + 6 * tw;
   ctx.fillStyle = `rgba(255,255,255,${tw})`;
@@ -11892,7 +11892,7 @@ function _drawAetherCrosshair(ctx, x, y, t) {
 
   const R = 15 * (1 + Math.sin(t * 2.5) * 0.045);    // gentle breathing
 
-  // contracting lock-on ring from a shot — wide, then snaps onto the reticle (slow, tense)
+  // contracting lock-on ring from a shot: wide, then snaps onto the reticle (slow, tense)
   for (const s of _aetherShock) {
     const p = Math.max(0, s.life);                   // 1 → 0
     const rr = R * 1.05 + p * 80;
@@ -11903,7 +11903,7 @@ function _drawAetherCrosshair(ctx, x, y, t) {
 
   // main ring
   ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(0, 0, R, 0, 6.2832); ctx.stroke();
-  // N/E/S/W ticks — the inner gap breathes open & closed
+  // N/E/S/W ticks: the inner gap breathes open & closed
   const gap = R * (0.42 + 0.14 * Math.sin(t * 3));
   for (let k = 0; k < 4; k++) {
     const a = k * Math.PI / 2, cx = Math.cos(a), sy = Math.sin(a);
@@ -11917,7 +11917,7 @@ function _drawAetherCrosshair(ctx, x, y, t) {
   ctx.beginPath(); ctx.arc(0, 0, R + op * 16, 0, 6.2832); ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // SHOT brackets — snap inward as the recoil settles (only while firing)
+  // SHOT brackets: snap inward as the recoil settles (only while firing)
   if (fire > 0.01) {
     const spread = R + 10 + fire * 26, bl = 6 + fire * 4;
     ctx.globalAlpha = Math.min(1, fire * 1.4); ctx.lineWidth = 2;
@@ -11947,7 +11947,7 @@ function _drawAetherOverlay(canvas, ctx, W, H, t) {
     if (_aetherShock[i].life <= 0) _aetherShock.splice(i, 1);
   }
   // (the wedding ring is drawn on the forest layer in _drawAetherPattern,
-  //  so the panels occlude it — not here on the top overlay)
+  //  so the panels occlude it: not here on the top overlay)
   // faint held-breath sway → tension
   const swX = Math.sin(t * 0.8) * 1.1 + Math.sin(t * 2.1 + 1) * 0.5;
   const swY = Math.cos(t * 0.62) * 0.9 + Math.cos(t * 1.7) * 0.4;
@@ -11989,12 +11989,12 @@ function _stopAetherOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// EMPORIUM — an elegant, fast, metallic gold gun range. The background is
+// EMPORIUM: an elegant, fast, metallic gold gun range. The background is
 // brushed gunmetal with rotating art-deco rays, a sweeping shimmer band and
 // drifting golden targets (coins / medallions / gems). The cursor is a GUN
 // you switch between a REVOLVER, a SNIPER and a ROCKET LAUNCHER (right-click
 // or 1 / 2 / 3). Each fires differently and scars the background: bullet
-// holes, sniper cracks, rocket scorch craters — and shatters the targets.
+// holes, sniper cracks, rocket scorch craters: and shatters the targets.
 // Character-wide (matches "Emporium").
 // ════════════════════════════════════════════════════════════════
 const _EMPORIUM_RE = /^Emporium$/i;
@@ -12042,13 +12042,13 @@ function _empKey(e) {
 
 function _empAddDecal(d) { _empDecals.push(d); if (_empDecals.length > 110) _empDecals.shift(); }
 
-// break VFX — scales up with the chain, and differs per weapon
+// break VFX: scales up with the chain, and differs per weapon
 function _empBreakFx(x, y, col, chain, opt) {
   const power = Math.min(6, Math.max(1, chain));
   const style = (opt && opt.style) || 'rev';
 
   if (style === 'snipe') {
-    // clean cut — thin slivers slide apart perpendicular to the beam
+    // clean cut: thin slivers slide apart perpendicular to the beam
     const cut = (opt && opt.ang != null ? opt.ang : 0) + Math.PI / 2;
     const n = 6 + power * 2;
     const bits = [];
@@ -12059,14 +12059,14 @@ function _empBreakFx(x, y, col, chain, opt) {
     _empAddDecal({ type: 'slivers', x, y, life: 1, bits, col: _EMP_LIGHT });
     _empAddDecal({ type: 'burst', x, y, life: 1, r: 14 + power * 9, col: _EMP_LIGHT });
   } else if (style === 'rkt') {
-    // fiery disintegration — embers arc out and fall, plus a fire flash
+    // fiery disintegration: embers arc out and fall, plus a fire flash
     const n = 10 + power * 3;
     const bits = [];
     for (let i = 0; i < n; i++) bits.push({ a: Math.random() * Math.PI * 2, sp: (40 + Math.random() * 110) * (1 + power * 0.12), vy0: -30 - Math.random() * 50, sz: 2 + Math.random() * 3 });
     _empAddDecal({ type: 'embers', x, y, life: 1, bits });
     _empAddDecal({ type: 'burst', x, y, life: 1, r: 18 + power * 12, col: '#ff7a2a' });
   } else {
-    // revolver — golden shard burst + ring
+    // revolver: golden shard burst + ring
     const n = 8 + power * 3;
     const bits = [];
     for (let i = 0; i < n; i++) bits.push({ a: Math.random() * Math.PI * 2, sp: (30 + Math.random() * 70) * (1 + power * 0.2), sz: (2 + Math.random() * 4) * (1 + power * 0.14), rot: Math.random() * 6 });
@@ -12081,7 +12081,7 @@ function _empKillTarget(idx, chain = 1, opt) {
   const tg = _empTargets[idx];
   if (!tg) return;
   _empBreakFx(tg.x, tg.y, tg.col, chain, opt);
-  // same SFX as a click, pitched up high — rising further with the chain
+  // same SFX as a click, pitched up high: rising further with the chain
   if (typeof playSound === 'function') playSound('click', { rate: 1.5 + Math.min(2, chain * 0.18) + Math.random() * 0.4, volume: 0.5 });
   _empTargets.splice(idx, 1);
 }
@@ -12097,7 +12097,7 @@ function _empExplode(x, y) {
   }
 }
 
-// You simply point — every shot lands exactly where the muzzle (cursor) is.
+// You simply point: every shot lands exactly where the muzzle (cursor) is.
 function _empKillNear(x, y, rad) {
   let hit = false;
   for (let i = _empTargets.length - 1; i >= 0; i--) {
@@ -12113,12 +12113,12 @@ function _empFire(cx, cy) {
   const a = _empCurAng, dx = Math.cos(a), dy = Math.sin(a);
 
   if (_empGun === 0) {
-    // REVOLVER — fires a real travelling bullet that ricochets off whatever it
+    // REVOLVER: fires a real travelling bullet that ricochets off whatever it
     // breaks (random new direction, DOUBLE speed each time → endless chain)
     _empFlash = 1; _empRecoil = Math.min(2.2, _empRecoil + 1); _empCyl += Math.PI / 3;
     _empShots.push({ kind: 'bullet', x: cx, y: cy, dx, dy, spd: 1500, bounces: 0, dist: 0, trail: [] });
   } else if (_empGun === 1) {
-    // SNIPER — instant hitscan beam FORWARD out of the barrel; pierces everything in line
+    // SNIPER: instant hitscan beam FORWARD out of the barrel; pierces everything in line
     _empFlash = 1.6; _empRecoil = Math.min(3.2, _empRecoil + 2.3);
     _empTracers.push({ x0: cx, y0: cy, x1: cx + dx * 3000, y1: cy + dy * 3000, life: 1, w: 4 });
     let any = false, chain = 0;
@@ -12134,7 +12134,7 @@ function _empFire(cx, cy) {
     }
     if (!any) _empAddDecal({ type: 'crack', x: cx + dx * 240, y: cy + dy * 240, life: 1, r: 30, seed: Math.random() * 6 });
   } else {
-    // ROCKET — launches forward and flies downrange until it hits something or lands
+    // ROCKET: launches forward and flies downrange until it hits something or lands
     _empFlash = 0.9; _empRecoil = Math.min(2.4, _empRecoil + 1.4); _empShake = Math.max(_empShake, 0.3);
     _empShots.push({ kind: 'rkt', x: cx, y: cy, dx, dy, spd: 900, dist: 0, smoke: [] });
   }
@@ -12411,7 +12411,7 @@ function _empDrawDecal(ctx, x, y, d, s) {
     ctx.globalAlpha = a * 0.5; ctx.fillStyle = d.col || _EMP_LIGHT;
     ctx.beginPath(); ctx.arc(x, y, rr * 0.28, 0, Math.PI * 2); ctx.fill();
   } else if (d.type === 'slivers') {
-    // sniper: the coin is cleanly cut — thin slivers slide apart along the cut
+    // sniper: the coin is cleanly cut, thin slivers slide apart along the cut
     const spread = (1 - a) * 80 * s;
     ctx.globalAlpha = a; ctx.fillStyle = d.col || _EMP_LIGHT;
     ctx.shadowColor = _EMP_GOLD; ctx.shadowBlur = 8;
@@ -12428,7 +12428,7 @@ function _empDrawDecal(ctx, x, y, d, s) {
     ctx.moveTo(x - Math.cos(cl) * 34 * s, y - Math.sin(cl) * 34 * s);
     ctx.lineTo(x + Math.cos(cl) * 34 * s, y + Math.sin(cl) * 34 * s); ctx.stroke();
   } else if (d.type === 'embers') {
-    // rocket: fiery disintegration — embers arc out and fall, cooling to red
+    // rocket: fiery disintegration, embers arc out and fall, cooling to red
     const p = 1 - a;
     for (const b of d.bits) {
       const ex = x + Math.cos(b.a) * b.sp * p * s;
@@ -12529,7 +12529,7 @@ function _drawEmporiumOverlay(canvas, ctx, W, H, t) {
         _empAddDecal({ type: 'burst', x: p.x, y: p.y, life: 1, r: 9 + p.bounces * 3, col: _EMP_LIGHT });
         if (p.bounces > 16) { _empShots.splice(i, 1); continue; }
       }
-      // draw streak + bullet — heats up (gold → white → orange) and grows as it chains
+      // draw streak + bullet: heats up (gold → white → orange) and grows as it chains
       const hot = Math.min(1, p.bounces / 8);
       const core = p.bounces === 0 ? _EMP_GOLD : `rgb(255,${Math.round(243 - hot * 70)},${Math.round(192 - hot * 150)})`;
       ctx.save();
@@ -12548,7 +12548,7 @@ function _drawEmporiumOverlay(canvas, ctx, W, H, t) {
       continue;
     }
 
-    // travelling rockets — fly downrange, detonate on a target / max range / edge
+    // travelling rockets: fly downrange, detonate on a target / max range / edge
     const step = p.spd * dt;
     p.x += p.dx * step; p.y += p.dy * step; p.dist += step;
     let boom = false;
@@ -12769,7 +12769,7 @@ function _stopEmporiumOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// ALSACE — a dark, erratic jester of confusion. The whole screen is a deep-blue
+// ALSACE: a dark, erratic jester of confusion. The whole screen is a deep-blue
 // hall of hypnotic spirals that breathe and jolt, drifting harlequin diamonds
 // and floating jester glyphs (? ♠ ♣). The cursor is a spinning hypno-spiral
 // medallion with jester bells that leaves erratic doubled afterimages; clicking
@@ -12777,7 +12777,7 @@ function _stopEmporiumOverlay() {
 // ════════════════════════════════════════════════════════════════
 const _ALSACE_RE = /^Alsace$/i;
 function _isAlsace(c) { return !!(c && c.name && _ALSACE_RE.test(c.name)); }
-// "MASK OFF" alt form — the spiral goes wild, the world darkens, black thunder
+// "MASK OFF" alt form: the spiral goes wild, the world darkens, black thunder
 function _isAlsaceMaskOff(c) {
   if (!_isAlsace(c)) return false;
   const idx = c.activeFormIdx || 0;
@@ -12832,15 +12832,15 @@ function _drawAlsacePattern(canvas, ctx, W, H, t) {
   const dt = fresh ? 0.016 : Math.min(t - _drawAlsacePattern._lt, 0.05);
   _drawAlsacePattern._lt = t;
 
-  const mo = _alsMaskOff;            // MASK OFF — wild, dark, thunderous
-  // erratic time — mostly smooth, with sudden jolts of madness (violent when MASK OFF)
+  const mo = _alsMaskOff;            // MASK OFF: wild, dark, thunderous
+  // erratic time: mostly smooth, with sudden jolts of madness (violent when MASK OFF)
   const jolt = Math.sin(t * 0.9) * 0.5 + Math.sin(t * 2.3 + 1) * 0.3 + (Math.sin(t * 13.0) > 0.93 ? (Math.random() - 0.5) * 0.6 : 0);
   const wild = mo
     ? Math.sin(t * 5.7) * 1.4 + Math.sin(t * 9.3 + 2) * 0.9 + (Math.random() - 0.5) * 0.5     // jittery, uncontrollable
     : 0;
   const spin = t * (mo ? 0.5 : 0.22) + jolt * 0.35 + wild;
 
-  // base — deep blue, or near-black when MASK OFF
+  // base: deep blue, or near-black when MASK OFF
   const bg = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.62);
   if (mo) { bg.addColorStop(0, '#070b1c'); bg.addColorStop(0.55, '#03040a'); bg.addColorStop(1, '#000002'); }
   else { bg.addColorStop(0, '#0c1740'); bg.addColorStop(0.55, _ALS_DEEP); bg.addColorStop(1, '#03050f'); }
@@ -12883,7 +12883,7 @@ function _drawAlsacePattern(canvas, ctx, W, H, t) {
   }
   ctx.restore();
 
-  // central hypnotic double spiral — the eye of confusion
+  // central hypnotic double spiral: the eye of confusion
   const cx = W * 0.5, cy = H * 0.5, maxR = Math.hypot(W, H) * 0.55;
   ctx.save();
   ctx.lineCap = 'round';
@@ -12918,7 +12918,7 @@ function _drawAlsacePattern(canvas, ctx, W, H, t) {
   }
   ctx.restore();
 
-  // occasional confusion glitch — torn horizontal bars
+  // occasional confusion glitch: torn horizontal bars
   if (Math.sin(t * 5.0) > 0.88) {
     ctx.save();
     const bars = 3;
@@ -13110,10 +13110,10 @@ function _stopAlsaceOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// JECKELY — a tense, spooky theatre-jester. On a black stage under a flickering
+// JECKELY: a tense, spooky theatre-jester. On a black stage under a flickering
 // spotlight sits an ornate red-and-gold jack-in-the-box, OPEN and EMPTY (the
 // dread: nothing springs out). The cursor is a monochrome drama mask that flips
-// between comedy (smiling) and tragedy (sad) with every click — each click also
+// between comedy (smiling) and tragedy (sad) with every click: each click also
 // "winds the crank", trembling the box. Matches "Jeckely".
 // ════════════════════════════════════════════════════════════════
 const _JECKELY_RE = /^Jeckely$/i;
@@ -13140,7 +13140,7 @@ function _jkClick() {
 
 // ── the ornate, open, EMPTY jack-in-the-box ──
 function _jkDrawBox(ctx, cx, cy, S, t) {
-  // a slow, smooth, uneasy sway — no jitter
+  // a slow, smooth, uneasy sway: no jitter
   const ox = Math.sin(t * 0.7) * 2.4 + Math.sin(t * 0.23) * 1.2;
   const oy = Math.sin(t * 1.1 + 1) * 1.3;
   ctx.save();
@@ -13163,7 +13163,7 @@ function _jkDrawBox(ctx, cx, cy, S, t) {
   ctx.fillStyle = g;
   ctx.beginPath(); ctx.moveTo(...FRt); ctx.lineTo(...FRb); ctx.lineTo(...BRb); ctx.lineTo(...BRt); ctx.closePath(); ctx.fill();
 
-  // open top — dark empty interior (the dread: nothing inside)
+  // open top, dark empty interior (the dread: nothing inside)
   const ig = ctx.createLinearGradient(0, FLt[1], 0, BLt[1]);
   ig.addColorStop(0, '#1a0606'); ig.addColorStop(1, '#000');
   ctx.fillStyle = ig;
@@ -13239,7 +13239,7 @@ function _jkDrawBox(ctx, cx, cy, S, t) {
   const il = A(A(BLt, [(LRt[0] - BLt[0]) * 0.16, (LLt[1] - BLt[1]) * 0.16]), [0, 0]);
   ctx.strokeRect(il[0], il[1], (BRt[0] - BLt[0]) * 0.7, (LLt[1] - BLt[1]) * 0.7);
 
-  // crank on the right side — turns when you wind it
+  // crank on the right side: turns when you wind it
   const rcx = w / 2 + BK[0] * 0.5, rcy = BK[1] * 0.5 + h * 0.06;
   ctx.strokeStyle = _JK_GOLD; ctx.lineWidth = Math.max(3, S * 0.07); ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(w / 2 + BK[0] * 0.5 - S * 0.1, rcy); ctx.lineTo(rcx + S * 0.32, rcy); ctx.stroke();
@@ -13268,7 +13268,7 @@ function _drawJeckelyPattern(canvas, ctx, W, H, t) {
   // black stage
   ctx.fillStyle = '#050406'; ctx.fillRect(0, 0, W, H);
 
-  // monochrome harlequin lattice — alternating BLACK & WHITE diamonds
+  // monochrome harlequin lattice: alternating BLACK & WHITE diamonds
   ctx.save();
   const ds = 80, sc = (t * 3) % ds;
   for (let yy = -ds; yy < H + ds; yy += ds) {
@@ -13350,16 +13350,16 @@ function _drawJeckelyPattern(canvas, ctx, W, H, t) {
   _jkDrawBox(ctx, W * 0.5, H * 0.60, Math.min(W, H) * 0.17, t);
   ctx.restore();
 
-  // heavy vignette — tense, closing in
+  // heavy vignette: tense, closing in
   const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.28, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.6);
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.82)');
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
 }
 
-// ── the monochrome comedy/tragedy mask cursor — clean theatre-mask line art ──
+// ── the monochrome comedy/tragedy mask cursor: clean theatre-mask line art ──
 function _jkDrawMask(ctx, x, y, expr, t, flip) {
   const W = 19, H = 28;
-  const sm = expr * 2 - 1;                    // +1 comedy … −1 tragedy
+  const sm = expr * 2 - 1;                    // +1 comedy … -1 tragedy
   const fw = 1 - flip * 0.45;                 // brief horizontal squash on a flip
   ctx.save();
   ctx.translate(x, y);
@@ -13431,7 +13431,7 @@ function _drawJeckelyOverlay(canvas, ctx, W, H, t) {
   _jkExpr += ((_jkHappy ? 1 : 0) - _jkExpr) * Math.min(1, dt * 9);
   _jkFlip = Math.max(0, _jkFlip - dt * 4);
 
-  // click ripples — pale, theatrical
+  // click ripples: pale, theatrical
   for (let i = _jkRipples.length - 1; i >= 0; i--) {
     const r = _jkRipples[i]; r.life -= dt * 1.3;
     if (r.life <= 0) { _jkRipples.splice(i, 1); continue; }
@@ -13480,10 +13480,10 @@ function _stopJeckelyOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// MIMZY — the soft, sweet jester. A dreamy white-and-pink world of blooming
+// MIMZY: the soft, sweet jester. A dreamy white-and-pink world of blooming
 // pink flowers and drifting petals. The cursor is a little pink blossom, and a
 // pale white jester's hand reaches up from below, VERY slowly creeping after
-// the cursor — always grasping, never quite catching it. Matches "Mimzy".
+// the cursor: always grasping, never quite catching it. Matches "Mimzy".
 // ════════════════════════════════════════════════════════════════
 const _MIMZY_RE = /^Mimzy$/i;
 function _isMimzy(c) { return !!(c && c.name && _MIMZY_RE.test(c.name)); }
@@ -13585,7 +13585,7 @@ function _drawMimzyPattern(canvas, ctx, W, H, t) {
   }
   ctx.restore();
 
-  // seed flowers (framed around the edges — a garden along the bottom and a few
+  // seed flowers (framed around the edges: a garden along the bottom and a few
   // in the corners, away from the centre panels), petals & sparkles
   if (!canvas._mzFlowers || canvas._mzW !== W || canvas._mzH !== H) {
     canvas._mzW = W; canvas._mzH = H;
@@ -13626,7 +13626,7 @@ function _drawMimzyPattern(canvas, ctx, W, H, t) {
     ctx.restore();
   }
 
-  // interactive blossoms — they bloom, spin & shed petals when the cursor nears
+  // interactive blossoms: they bloom, spin & shed petals when the cursor nears
   for (const fl of canvas._mzFlowers) {
     const d = Math.hypot(fl.x - cpx, fl.y - cpy);
     const near = Math.max(0, 1 - d / 160);
@@ -13717,7 +13717,7 @@ function _mzDrawHand(ctx, ax, ay, hx, hy, ang, t) {
   _mzFlower(ctx, wristx + nx * 10, wristy + ny * 10, 6, t * 0.4, _MZ_PINK_D, _MZ_PINK_L, 1);
   _mzFlower(ctx, wristx - nx * 14, wristy - ny * 14, 4.6, -t * 0.5, _MZ_PINK, _MZ_PINK_L, 1);
 
-  // the hand itself — palm at wrist, fingers reaching toward the cursor (+x local)
+  // the hand itself: palm at wrist, fingers reaching toward the cursor (+x local)
   ctx.translate(hx, hy); ctx.rotate(ang);
   const grasp = 0.5 + 0.5 * Math.sin(t * 0.7);          // slow open/close
   // palm
@@ -13822,12 +13822,12 @@ function _stopMimzyOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// OMEN — the ringmaster. A dark, elegant theatre: deep bordeaux velvet
+// OMEN: the ringmaster. A dark, elegant theatre: deep bordeaux velvet
 // curtains framing a shadowed stage, two slowly sweeping spotlights, a
 // perspective stage floor and drifting dust in the light. The cursor is a
 // little magic wand that twinkles, trails sparkles and casts a DIFFERENT
 // spell on every click (starburst → ripple → confetti → fountain → swirl).
-// BASE FORM ONLY — alt forms fall back to their own pattern.
+// BASE FORM ONLY: alt forms fall back to their own pattern.
 // ════════════════════════════════════════════════════════════════
 const _OMEN_RE = /^Omen$/i;
 function _isOmen(c) {
@@ -14028,7 +14028,7 @@ let _omEmitAcc = 0;
 let _omScanCanvas = null;   // cached CRT scanline tile
 let _omNoiseCanvas = null;  // cached CRT grain tile
 
-// Lazily build the tiny CRT tiles (scanlines + grain) — one-time cost.
+// Lazily build the tiny CRT tiles (scanlines + grain): one-time cost.
 function _omScanTile() {
   if (_omScanCanvas) return _omScanCanvas;
   const c = document.createElement('canvas'); c.width = 2; c.height = 3;
@@ -14256,7 +14256,7 @@ function _stopOmenOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// EX — a monochrome, glitchy broadcast that's edgy but a little playful.
+// EX: a monochrome, glitchy broadcast that's edgy but a little playful.
 // A black-and-white screen full of datamosh tear bands, drifting glitch
 // glyphs (a mix of harsh ▓ █ </> and cheeky :) <3 XD OK), static grain
 // and the odd flash. The cursor is a glitchy arrow that jitters, splits
@@ -14311,7 +14311,7 @@ function _drawExPattern(canvas, ctx, W, H, t) {
   ctx.fillRect(ox, oy, W + 96, H + 96);
   ctx.restore();
 
-  // datamosh tear bands — re-roll ~9 times a second
+  // datamosh tear bands: re-roll ~9 times a second
   const tick = Math.floor(t * 9);
   for (let b = 0; b < 7; b++) {
     if (_exHash(b * 7 + tick * 3.1) < 0.4) continue;       // sometimes off
@@ -14501,7 +14501,7 @@ function _stopExOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// RIEGEN — the phoenix. A dark ember sky where a great firebird soars,
+// RIEGEN: the phoenix. A dark ember sky where a great firebird soars,
 // flapping and trailing flame, on an endless cycle of death and rebirth:
 // every so often it burns out into a burst of ash and embers, then
 // re-ignites in a flash and rises again. Burning feathers drift down,
@@ -14696,7 +14696,7 @@ function _drawRiegenPattern(canvas, ctx, W, H, t) {
     scale = 1.6 * (1 - k * 0.85);
     glow = -k;
   } else if (ph > 0.86 && ph <= 0.92) {
-    alive = false;                              // ash — no bird
+    alive = false;                              // ash: no bird
   } else if (ph > 0.92) {
     // rebirth: blaze back in
     const k = (ph - 0.92) / 0.08;
@@ -14909,9 +14909,9 @@ function _stopRiegenOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// LORRAINE — a golden Victorian lady, strong and protective. A stately
+// LORRAINE: a golden Victorian lady, strong and protective. A stately
 // parlour of antique gold: damask wallpaper, an ornate gilt frame,
-// meshing brass clockwork gears — and her tank heart: a heavy brass
+// meshing brass clockwork gears, and her tank heart: a heavy brass
 // rhino automaton that patrols the parlour floor, armour plates riveted,
 // chimney puffing steam, amber eye aglow. The cursor is an ornate brass
 // gear-medallion; clicking casts a protective golden ward (expanding
@@ -14924,7 +14924,7 @@ function _isLorraine(c) { return !!(c && c.name && _LORRAINE_RE.test(c.name)); }
 let _loPuff = 0;          // set by clicks; the rhino huffs extra steam
 let _loDamaskCanvas = null;
 
-// Cached damask wallpaper tile — drawn once, pattern-filled after.
+// Cached damask wallpaper tile: drawn once, pattern-filled after.
 function _loDamaskTile() {
   if (_loDamaskCanvas) return _loDamaskCanvas;
   const S = 84, c = document.createElement('canvas'); c.width = S; c.height = S;
@@ -15010,7 +15010,7 @@ function _loDrawRhino(ctx, s, step, t, puff) {
   // far legs
   leg(-32, Math.PI, true); leg(26, 0, true);
 
-  // body hull — heavy rounded armour
+  // body hull: heavy rounded armour
   const hull = ctx.createLinearGradient(0, -34, 0, 26);
   hull.addColorStop(0, '#c79b3a');
   hull.addColorStop(0.45, '#9c7427');
@@ -15074,7 +15074,7 @@ function _loDrawRhino(ctx, s, step, t, puff) {
   ctx.fillStyle = '#a8842e';
   ctx.beginPath(); ctx.arc(-58 + tw * 0.3, 17.5, 2.6, 0, PI2); ctx.fill();
 
-  // head — lowered armoured wedge with face plate
+  // head: lowered armoured wedge with face plate
   ctx.save();
   ctx.translate(48, -8);
   ctx.rotate(0.16 + Math.sin(step * 0.5) * 0.02);
@@ -15353,7 +15353,7 @@ function _drawLorraineOverlay(canvas, ctx, W, H, t) {
   ctx.beginPath(); ctx.arc(0, 0, 4.2, 0, PI2); ctx.fill();
   ctx.fillStyle = 'rgba(255,240,190,0.9)';
   ctx.beginPath(); ctx.arc(-1.1, -1.1, 1.3, 0, PI2); ctx.fill();
-  // little crown atop the medallion — she IS a lady
+  // little crown atop the medallion: she IS a lady
   ctx.fillStyle = '#f0cd6e'; ctx.strokeStyle = 'rgba(90,66,18,0.8)'; ctx.lineWidth = 0.7;
   ctx.beginPath();
   ctx.moveTo(-5.5, -16); ctx.lineTo(-5, -21.5) ; ctx.lineTo(-2.6, -17.5);
@@ -15398,12 +15398,12 @@ function _stopLorraineOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// SIMMER — the little starry prince of a space-water kingdom. The sky IS
+// SIMMER: the little starry prince of a space-water kingdom. The sky IS
 // the sea: stars twinkle and wobble through the current, cyan caustic
 // ribbons sway like light through water, constellation fish swim by,
 // bubbles carry stardust up to the surface, and his coral-spire castle
 // glows at the bottom with golden star windows. The cursor is his royal
-// star — crowned, bobbing, orbited by two little cyan companion stars —
+// star: crowned, bobbing, orbited by two little cyan companion stars: 
 // and every click casts a princely spell: water ripple → starburst →
 // bubble fountain.
 // ════════════════════════════════════════════════════════════════
@@ -15727,7 +15727,7 @@ function _drawSimmerOverlay(canvas, ctx, W, H, t) {
   halo.addColorStop(1, 'rgba(160,230,255,0)');
   ctx.fillStyle = halo;
   ctx.beginPath(); ctx.arc(0, 0, 26, 0, PI2); ctx.fill();
-  // the prince's star — warm white-gold 5-point
+  // the prince's star: warm white-gold 5-point
   ctx.shadowColor = '#bfeaff'; ctx.shadowBlur = 10;
   ctx.fillStyle = '#fdf6dc';
   _omStarPath(ctx, 0, 0, 13 * tw + 2, 5.4, 5, t * 0.4);
@@ -15795,7 +15795,7 @@ function _stopSimmerOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// OMEN · BARTENDER FORM — the ringmaster works the bar. A full cocktail-
+// OMEN · BARTENDER FORM: the ringmaster works the bar. A full cocktail-
 // mixing minigame in the spirit of the old flash game "The Perfect Mix":
 // an order ticket asks for a precise blend, you hold a bottle to pour it
 // into the glass, fill to the tick marks, then SERVE. Accuracy is graded
@@ -16168,7 +16168,7 @@ function _obGameDown(e) {
 }
 function _obGameUp() { _obDown = false; _obPourIdx = -1; }
 
-// draw one standing bottle (origin = bottom center) — silhouette varies
+// draw one standing bottle (origin = bottom center): silhouette varies
 // by index: 0 round-shoulder, 1 square gin, 2 bulb flask.
 function _obDrawBottle(ctx, b, hover) {
   const c = _OB_BOTTLES[b];
@@ -16422,7 +16422,7 @@ function _obDrawGlass(ctx, L, t) {
     ctx.restore();
   }
 
-  // ice cubes — float at the surface, or sit at the bottom of an empty glass
+  // ice cubes: float at the surface, or sit at the bottom of an empty glass
   if (_obIceCubes.length && !_obShakeMode) {
     ctx.save();
     _obGlassClipPath(ctx, L, G); ctx.clip();
@@ -16734,7 +16734,7 @@ function _drawOmenBarGame(ctx, W, t) {
     const c = _OB_BOTTLES[_obPourIdx];
     // place the bottle so its MOUTH lands just above the glass centre:
     // local mouth is at (0,-90); after rotate(rot) it sits at
-    // (px + 90·sin(rot), py − 90·cos(rot)).
+    // (px + 90·sin(rot), py - 90·cos(rot)).
     const rot = 2.35 + Math.sin(t * 7) * 0.02;
     const mouthX = L.gx - 2, mouthY = GG.gTop - 26;
     const px = mouthX - 90 * Math.sin(rot);
@@ -16807,7 +16807,7 @@ function _drawOmenBarGame(ctx, W, t) {
       const got = _obPoured(p.i);
       ctx.fillStyle = Math.abs(got - p.amt) <= 0.18 ? '#2e8a4a' : (got > p.amt ? '#b03030' : '#9a9088');
       ctx.textAlign = 'right';
-      ctx.fillText(got <= 0.02 ? '—' : got.toFixed(1), bx + BW - 14, ly);
+      ctx.fillText(got <= 0.02 ? '-' : got.toFixed(1), bx + BW - 14, ly);
       ctx.textAlign = 'left';
       ly += 19;
     }
@@ -16995,9 +16995,9 @@ function _stopOmenBarOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// OMEN · JANITOR — the ringmaster's other job. A grimy fluorescent-lit
+// OMEN · JANITOR: the ringmaster's other job. A grimy fluorescent-lit
 // bathroom; the cursor is a MOP, and messes ooze across the floor (and
-// over the menus). Scrub them away by mopping over them — keep the mop
+// over the menus). Scrub them away by mopping over them: keep the mop
 // rinsed at the bucket. Different spills have different toughness, and
 // "CAPPY'S SPECIAL" (it looks just like Cappy's milk) is a nightmare to
 // get up. Only on Omen's JANITOR alt-form.
@@ -17048,7 +17048,7 @@ function _ojBlob(ctx, x, y, r, m) {
   for (let i = 0; i < N; i++) { const cu = P(i), nx = P(i + 1); ctx.quadraticCurveTo(cu[0], cu[1], (cu[0] + nx[0]) / 2, (cu[1] + nx[1]) / 2); }
   ctx.closePath();
 }
-// a fresh random wait before this liquid next appears — tougher = rarer
+// a fresh random wait before this liquid next appears: tougher = rarer
 function _ojTypeInterval(i) { return (4.5 + Math.random() * 6) * _OJ_TYPES[i].tough; }
 function _ojSpawnMess(W, H, typeIdx) {
   const type = (typeIdx == null) ? (Math.random() * 4) | 0 : typeIdx;
@@ -17237,7 +17237,7 @@ function _ojDrawMess(ctx, mess, t) {
   _ojBlob(ctx, mess.x + 2, mess.y + 3, r * 1.04, mess.m);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill();
   if (T.hard) {
-    // CAPPY'S SPECIAL — milk: satellites, creamy body, bubbles, sheen
+    // CAPPY'S SPECIAL, milk: satellites, creamy body, bubbles, sheen
     for (const s of mess.sat) {
       _ojBlob(ctx, mess.x + Math.cos(s.a) * s.d * a, mess.y + Math.sin(s.a) * s.d * a, s.rr * (0.5 + a * 0.5), s.m);
       ctx.fillStyle = _ojRGBA('#fdfdf6', 0.6 + 0.32 * a); ctx.fill();
@@ -17300,7 +17300,7 @@ function _drawOmenJanitorOverlay(sctx, fctx, W, H, t) {
     _ojSpawnTimers[i] -= dt;
     if (_ojSpawnTimers[i] <= 0) {
       if (_ojMesses.length < 9) { _ojSpawnMess(W, H, i); _ojSpawnTimers[i] = _ojTypeInterval(i); }
-      else _ojSpawnTimers[i] = 1.5;   // floor's full — try again shortly
+      else _ojSpawnTimers[i] = 1.5;   // floor's full: try again shortly
     }
   }
 
@@ -17379,7 +17379,7 @@ function _drawOmenJanitorOverlay(sctx, fctx, W, H, t) {
   fctx.fillStyle = '#bfe8c4'; fctx.fillText(`CLEANED ${_ojCleaned}`, 16, H - 19);
   if (_ojStreak > 1) { fctx.font = '7px "Press Start 2P", monospace'; fctx.fillStyle = '#ffd27a'; fctx.fillText(`STREAK x${_ojStreak}`, 16, H - 6); }
 
-  // ── floating praise message — pixel font, big, above the mop ──
+  // ── floating praise message: pixel font, big, above the mop ──
   if (_ojMsgT > 0) {
     _ojMsgT -= dt;
     const a = Math.min(1, _ojMsgT / 0.4);
@@ -17488,7 +17488,7 @@ function _stopOmenJanitorOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// GONELA — a Mexican lawman: blistering fast and bull strong. A
+// GONELA, a Mexican lawman: blistering fast and bull strong. A
 // nocturnal frontier under a wine-and-blue sky, papel-picado bunting,
 // mesas and cacti, with speed-blurs tearing across. The cursor is a
 // spinning marshal STAR that smears wine/blue afterimages as it moves
@@ -17500,7 +17500,7 @@ function _isGonela(c) { return !!(c && c.name && _GONELA_RE.test(c.name)); }
 function _gnHash(i) { const v = Math.sin(i * 73.13 + 4.7) * 43758.5453; return v - Math.floor(v); }
 const _GN_WINE = '#701345', _GN_WINE_LT = '#d6457a', _GN_BLUE = '#222742', _GN_BLUE_LT = '#4d7fc4', _GN_GOLD = '#e8c24a';
 
-// the marshal star badge — ball-tipped, wine body, gold rim, blue ring
+// the marshal star badge: ball-tipped, wine body, gold rim, blue ring
 function _gnBadge(ctx, x, y, R, rot, alpha, glow) {
   const PI2 = Math.PI * 2;
   ctx.save();
@@ -17810,9 +17810,9 @@ function _stopGonelaOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// JUSTIN — a cotton field under a blood-red apocalyptic sky. A dying
+// JUSTIN: a cotton field under a blood-red apocalyptic sky. A dying
 // blood-sun behind ash clouds, bare dead trees, crows, drifting cotton
-// and falling ash. The cursor is a SCYTHE: swing it (click) to reap —
+// and falling ash. The cursor is a SCYTHE: swing it (click) to reap, 
 // it bursts white cotton, grey ash and dark blood. Character-wide
 // (matches "Justin").
 // ════════════════════════════════════════════════════════════════
@@ -17911,7 +17911,7 @@ function _drawJustinPattern(canvas, ctx, W, H, t) {
       s.lineCap = 'butt';
     };
     tree(W * 0.14, horiz, 70, 1); tree(W * 0.86, horiz, 88, 7); tree(W * 0.66, horiz, 54, 13);
-    // cotton field — bake just the STALKS; the bolls are live & harvestable
+    // cotton field: bake just the STALKS; the bolls are live & harvestable
     const ROWS = 6, bolls = [];
     for (let r = 0; r < ROWS; r++) {
       const f = r / (ROWS - 1);
@@ -18098,7 +18098,7 @@ function _jScythe(ctx, x, y, rot, scale) {
   ctx.beginPath(); ctx.moveTo(1, 1); ctx.quadraticCurveTo(19, 34, 27, 72); ctx.stroke();
   // grip nub
   ctx.fillStyle = '#3a2412'; ctx.beginPath(); ctx.arc(20, 48, 3.4, 0, Math.PI * 2); ctx.fill();
-  // blade — a steel hook curling from the neck, tip pointing down-left
+  // blade: a steel hook curling from the neck, tip pointing down-left
   ctx.beginPath();
   ctx.moveTo(0, -3);
   ctx.quadraticCurveTo(-50, -16, -68, 16);    // spine out to the tip
@@ -18272,7 +18272,7 @@ function _stopJustinOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// ANTI — a GOOD demon. Demonic, but utterly at peace: a tranquil
+// ANTI: a GOOD demon. Demonic, but utterly at peace: a tranquil
 // violet underworld at night, a dark haloed moon, a slowly turning
 // pentagram drawn in soft light, drifting soul-orbs and candle-wisps,
 // gentle rising embers and curling incense. The cursor is a calm
@@ -18287,7 +18287,7 @@ function _anHash(i) { const v = Math.sin(i * 67.31 + 8.1) * 43758.5453; return v
 function _anPentagram(ctx, cx, cy, R, rot) {
   ctx.beginPath();
   for (let i = 0; i <= 5; i++) {
-    const a = rot - Math.PI / 2 + i * (Math.PI * 4 / 5);   // {5/2} star — skip a point each step
+    const a = rot - Math.PI / 2 + i * (Math.PI * 4 / 5);   // {5/2} star: skip a point each step
     const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R;
     i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
   }
@@ -18507,7 +18507,7 @@ function _anMouseMove(e) { _anMX = e.clientX; _anMY = e.clientY; }
 function _anMouseDown() {
   const x = _anMX, y = _anMY, PI2 = Math.PI * 2;
   const push = p => { _anParts.push(p); if (_anParts.length > 170) _anParts.shift(); };
-  // peaceful blooming rings — violet, then red
+  // peaceful blooming rings: violet, then red
   push({ type: 'ring', x, y, col: '206,140,236', life: 1, max: 0.9 });
   push({ type: 'ring', x, y, col: '226,74,108', life: 1, max: 1.1, delay: 0.12 });
   // a soft sigil blooms and fades
@@ -18565,7 +18565,7 @@ function _drawAntiOverlay(canvas, ctx, W, H, t) {
       ctx.fillStyle = og; ctx.fillRect(p.x - p.r * 2.4, p.y - p.r * 2.4, p.r * 4.8, p.r * 4.8);
       ctx.fillStyle = `rgba(255,250,255,${al.toFixed(3)})`;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.34, 0, PI2); ctx.fill();
-    } else {   // mote — soft drifting ember/petal, violet → red
+    } else {   // mote: soft drifting ember/petal, violet → red
       p.vy += 24 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= (1 - 0.9 * dt);
       const r = p.hue, R = (170 + r * 56) | 0, G = (100 - r * 28) | 0, B = (212 - r * 110) | 0;
       ctx.fillStyle = `rgba(${R},${G},${B},${(al * 0.72).toFixed(3)})`;
@@ -18612,10 +18612,10 @@ function _stopAntiOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// LEONOR — Mexican, in monochrome. A black-and-white Día de los
+// LEONOR: Mexican, in monochrome. A black-and-white Día de los
 // Muertos: a full wall of ornate talavera tiles, papel-picado bunting
 // (top, bottom & side strands), a slowly turning marigold rosette and
-// drifting petals — all in greys & white. The cursor is a turning
+// drifting petals: all in greys & white. The cursor is a turning
 // marigold that trails petals and blooms marigolds on click.
 // Character-wide (matches "Leonor").
 // ════════════════════════════════════════════════════════════════
@@ -18623,7 +18623,7 @@ const _LEONOR_RE = /^Leonor$/i;
 function _isLeonor(c) { return !!(c && c.name && _LEONOR_RE.test(c.name)); }
 function _leHash(i) { const v = Math.sin(i * 57.93 + 2.4) * 43758.5453; return v - Math.floor(v); }
 
-// a marigold (cempasúchil) in monochrome — layered ruffled petals
+// a marigold (cempasúchil) in monochrome: layered ruffled petals
 function _leMarigold(ctx, x, y, r, rot, alpha) {
   const PI2 = Math.PI * 2;
   for (let ring = 3; ring >= 0; ring--) {
@@ -18865,7 +18865,7 @@ function _drawLeonorOverlay(canvas, ctx, W, H, t) {
   }
   _leParts = _leParts.filter(p => p.life > 0);
 
-  // ── the marigold cursor — a white flower that slowly turns ──
+  // ── the marigold cursor: a white flower that slowly turns ──
   const bob = Math.sin(t * 1.8) * 1.6;
   ctx.save();
   ctx.shadowColor = 'rgba(255,255,255,0.45)'; ctx.shadowBlur = 9;
@@ -18907,7 +18907,7 @@ function _stopLeonorOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// CUCKOO — elegant & mysterious clockwork. A vast faint clock dial
+// CUCKOO: elegant & mysterious clockwork. A vast faint clock dial
 // with moving hands, meshing brass gears turning in the dark, a slow
 // swinging pendulum, drifting dust and the occasional unsettling
 // time-skip. The cursor is an ornate pocket watch; clicking ripples
@@ -19046,7 +19046,7 @@ function _drawCuckooPattern(canvas, ctx, W, H, t) {
     ctx.translate(cx, cy);
     _cuHand(ctx, hour, R * 0.5, 4.5, 'rgba(232,226,207,0.4)', 1);
     _cuHand(ctx, minute, R * 0.74, 3, 'rgba(232,226,207,0.4)', 1);
-    // second hand — thin, with a counterweight tail
+    // second hand: thin, with a counterweight tail
     ctx.save(); ctx.rotate(sec);
     ctx.strokeStyle = `rgba(214,120,90,${(0.5 + breathe * 0.2).toFixed(3)})`; ctx.lineWidth = 1.4;
     ctx.beginPath(); ctx.moveTo(0, R * 0.16); ctx.lineTo(0, -R * 0.82); ctx.stroke();
@@ -19216,7 +19216,7 @@ function _stopCuckooOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// LAYLA — a sea bunny adrift under an ethereal aurora. Curtains of
+// LAYLA: a sea bunny adrift under an ethereal aurora. Curtains of
 // green-teal-violet light shimmer over a deep dark ocean, mirrored in
 // rippling reflections on the water, with bioluminescent plankton
 // drifting up, slow bubbles rising and faint sea bunnies gliding in
@@ -19249,7 +19249,7 @@ function _laSeaBunny(ctx, x, y, s, alpha, glow) {
     ctx.fillStyle = 'rgba(30,46,66,0.85)';
     ctx.beginPath(); ctx.ellipse(dx, -s * 1.28, s * 0.18, s * 0.2, 0, 0, PI2); ctx.fill();
   }
-  // fuzzy body — a cluster of soft white lobes
+  // fuzzy body: a cluster of soft white lobes
   ctx.fillStyle = '#fbffff';
   ctx.beginPath(); ctx.ellipse(0, 0, s, s * 0.82, 0, 0, PI2); ctx.fill();
   ctx.fillStyle = 'rgba(244,251,255,0.9)';
@@ -19262,7 +19262,7 @@ function _laSeaBunny(ctx, x, y, s, alpha, glow) {
   for (const dx of [-s * 0.16, s * 0.16]) {
     ctx.beginPath(); ctx.ellipse(dx, s * 0.66, s * 0.16, s * 0.34, 0, 0, PI2); ctx.fill();
   }
-  // face — two little dark eyes
+  // face: two little dark eyes
   ctx.fillStyle = 'rgba(36,50,70,0.9)';
   ctx.beginPath(); ctx.arc(-s * 0.3, s * 0.04, s * 0.11, 0, PI2); ctx.fill();
   ctx.beginPath(); ctx.arc(s * 0.3, s * 0.04, s * 0.11, 0, PI2); ctx.fill();
@@ -19270,7 +19270,7 @@ function _laSeaBunny(ctx, x, y, s, alpha, glow) {
   ctx.globalAlpha = 1;
 }
 
-// a glowing bioluminescent jellyfish — pulsing bell + trailing tentacles
+// a glowing bioluminescent jellyfish: pulsing bell + trailing tentacles
 function _laJelly(ctx, x, y, s, t, col, alpha, ph) {
   const PI2 = Math.PI * 2;
   const pulse = 0.5 + 0.5 * Math.sin(t * 1.3 + ph);
@@ -19375,7 +19375,7 @@ function _drawLaylaPattern(canvas, ctx, W, H, t) {
   seab.addColorStop(1, 'rgba(60,210,185,0)');
   ctx.fillStyle = seab; ctx.fillRect(0, H * 0.74, W, H * 0.26);
 
-  // drifting bioluminescent glow blooms — pools of colored light
+  // drifting bioluminescent glow blooms: pools of colored light
   for (let i = 0; i < 11; i++) {
     const sd = i * 0.83 + 0.5;
     const bx = _laHash(i * 3.3) * W + Math.sin(t * 0.16 + i) * 34;
@@ -19443,7 +19443,7 @@ function _drawLaylaPattern(canvas, ctx, W, H, t) {
   ctx.fillStyle = _drawLaylaPattern._vig; ctx.fillRect(0, 0, W, H);
 }
 
-// the aurora curtains — shared by background (mul=1). Draws bands of
+// the aurora curtains: shared by background (mul=1). Draws bands of
 // light with descending curtain streaks, additively blended.
 function _laAurora(ctx, W, hY, t, mul) {
   const top = hY * 0.08, region = hY * 0.82;
@@ -19598,10 +19598,10 @@ function _stopLaylaOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// PAWN — a living, PLAYABLE marble chess board. The board sits in
+// PAWN: a living, PLAYABLE marble chess board. The board sits in
 // the background under the UI, slate & ivory squares in a gold frame,
 // and quietly plays itself: pieces glide square to square, captures
-// burst into gold dust. But it's yours to touch — click a piece to
+// burst into gold dust. But it's yours to touch: click a piece to
 // lift it (legal destinations light up), click again to set it down,
 // capturing whatever stands there. The cursor is a glowing gold pawn.
 // Self-play pauses while you play, then resumes. Character-wide.
@@ -19931,7 +19931,7 @@ function _stopPawnOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// ASTRA — a still, dreaming blue. Soft layered dunes of periwinkle
+// ASTRA: a still, dreaming blue. Soft layered dunes of periwinkle
 // fade through a grain-flecked haze; crystals twinkle like a sky of
 // quiet stars; a band of luminous water shimmers and ripples low in
 // the frame, with glowing spores drifting down and slender reeds
@@ -20237,7 +20237,7 @@ function _stopAstraOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// JIHAU — a funky vaporwave mall. A neon sun sinks behind a checker-
+// JIHAU: a funky vaporwave mall. A neon sun sinks behind a checker-
 // tile shopping floor that scrolls toward you, palms and Greek columns
 // and a golden dolphin fountain and a little CRT drift like mall decor,
 // katakana and ¥/$ glyphs rain down, sparkles twinkle and the whole
@@ -20443,7 +20443,7 @@ function _drawJihauPattern(canvas, ctx, W, H, t) {
     const flo = s.createLinearGradient(0, horizonY, 0, H);
     flo.addColorStop(0, '#3a1f63'); flo.addColorStop(1, '#160a33');
     s.fillStyle = flo; s.fillRect(0, horizonY, W, H - horizonY);
-    // the sun — a classic synthwave disc that dissolves into stripes
+    // the sun: a classic synthwave disc that dissolves into stripes
     const sunX = W * 0.5, sunY = horizonY - Math.min(W, H) * 0.02, sunR = Math.min(W, H) * 0.22;
     // outer glow first (behind the disc)
     const gl = s.createRadialGradient(sunX, sunY, sunR * 0.5, sunX, sunY, sunR * 2.0);
@@ -20479,7 +20479,7 @@ function _drawJihauPattern(canvas, ctx, W, H, t) {
   }
   ctx.drawImage(_drawJihauPattern._sc, 0, 0);
 
-  // ── scrolling checker-tile mall floor (continuous — never resets) ──
+  // ── scrolling checker-tile mall floor (continuous: never resets) ──
   const tile = Math.max(22, Math.floor(Math.min(W, H) / 15));
   const totalY = t * 26;                 // pixels scrolled so far
   const off = totalY % tile;             // 0..tile, the sub-tile offset
@@ -20519,7 +20519,7 @@ function _drawJihauPattern(canvas, ctx, W, H, t) {
   }
   ctx.restore();
 
-  // ── scattered ground props — draggable; the held one lifts on top ──
+  // ── scattered ground props: draggable; the held one lifts on top ──
   const propList = _jhProps(W, H);
   propList.sort((a, b) => a.y - b.y);
   for (const p of propList) { if (p !== _jhHeld) _jhDrawOne(ctx, p, t, false); }
@@ -20723,11 +20723,11 @@ function _stopJihauOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// ANDY THE GOAT — a goat. in texas. that's it. that's the vibe. a
+// ANDY THE GOAT: a goat. in texas. that's it. that's the vibe. a
 // burnt-orange sunset over red mesas, saguaros, a bobbing oil pumpjack,
 // tumbleweeds rolling by and goats milling in the dust under a lone
-// star. The cursor is Andy himself — a goat head in a cowboy hat and
-// shades — who HEADBUTTS on click, kicking dust, grass and a big BAAH!
+// star. The cursor is Andy himself: a goat head in a cowboy hat and
+// shades: who HEADBUTTS on click, kicking dust, grass and a big BAAH!
 // Character-wide (matches "Andy" / "Andy the Goat").
 // ════════════════════════════════════════════════════════════════
 const _ANDY_RE = /^Andy( the Goat)?$/i;
@@ -20832,7 +20832,7 @@ function _drawAndyPattern(canvas, ctx, W, H, t) {
     s.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rad = (i % 2 === 0) ? 11 : 4.6; const px = Math.cos(a) * rad, py = Math.sin(a) * rad; i ? s.lineTo(px, py) : s.moveTo(px, py); } s.closePath(); s.fill(); s.restore();
     // faint stars
     for (let i = 0; i < 26; i++) { s.fillStyle = `rgba(255,250,230,${(0.2 + _agHash(i) * 0.4).toFixed(3)})`; s.beginPath(); s.arc(_agHash(i * 1.7) * W, _agHash(i * 2.3 + 1) * horizonY * 0.55, 0.6 + _agHash(i * 3.1) * 1, 0, PI2); s.fill(); }
-    // mesas — three reddish layers, far→near
+    // mesas: three reddish layers, far→near
     const mesaCols = ['#7d4a48', '#8f4f44', '#a55a48'];
     for (let layer = 0; layer < 3; layer++) {
       s.fillStyle = mesaCols[layer];
@@ -21055,11 +21055,11 @@ function _stopAndyOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// SHOO SHI — a black-and-purple octopus who runs an abyssal kaiten-zushi
+// SHOO SHI: a black-and-purple octopus who runs an abyssal kaiten-zushi
 // (conveyor-belt sushi bar) at the bottom of a deep purple ocean. A
 // neon 寿司 sign hums over a steady belt of little plates carrying
 // nigiri & maki, rising bubbles, drifting paper lanterns and swaying
-// kelp, while Shoo Shi himself works the counter — eight tentacles
+// kelp, while Shoo Shi himself works the counter: eight tentacles
 // waving, one holding a fresh nigiri he bobs to the beat. The cursor is
 // a chibi Shoo Shi in a chef's toque pinching a sushi in his chopsticks;
 // click and he SLINGS the sushi with a squirt of ink, a soy-sauce
@@ -21087,7 +21087,7 @@ function _ssNigiri(ctx, x, y, s, kind) {
   _jhRound(ctx, -s * 0.6, -s * 0.12, s * 1.2, s * 0.5, s * 0.2); ctx.fill(); ctx.stroke();   // rice
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(-s * 0.4 + i * s * 0.26, s * 0.2, s * 0.05, 0, 7); ctx.fill(); }
-  if (kind === 2) {   // tamago — yellow block + nori band
+  if (kind === 2) {   // tamago: yellow block + nori band
     ctx.fillStyle = '#f4d35e'; ctx.lineWidth = Math.max(1.4, s * 0.04);
     _jhRound(ctx, -s * 0.62, -s * 0.52, s * 1.24, s * 0.46, s * 0.08); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#1c1330'; ctx.fillRect(-s * 0.12, -s * 0.54, s * 0.24, s * 0.52);
@@ -21102,7 +21102,7 @@ function _ssNigiri(ctx, x, y, s, kind) {
   }
   ctx.restore();
 }
-// maki: end-on roll — nori ring, rice, filling, sesame
+// maki: end-on roll, nori ring, rice, filling, sesame
 function _ssMaki(ctx, x, y, s, kind) {
   ctx.save(); ctx.translate(x, y);
   ctx.fillStyle = '#20122e'; ctx.strokeStyle = _SS_INK; ctx.lineWidth = Math.max(1.4, s * 0.04);
@@ -21122,7 +21122,7 @@ function _ssBeltItem(ctx, x, y, w, id) {
   if (_ssHash(id) < 0.5) _ssNigiri(ctx, x, y - w * 0.16 + bob, s, (_ssHash(id * 2.3) * 4) | 0);
   else { const k = (_ssHash(id * 3.1) * 3) | 0; _ssMaki(ctx, x - s * 0.5, y - w * 0.12 + bob, s * 0.8, k); _ssMaki(ctx, x + s * 0.5, y - w * 0.12 + bob, s * 0.8, k); }
 }
-// the chef himself — a big black-purple octopus behind the counter
+// the chef himself: a big black-purple octopus behind the counter
 function _ssOcto(ctx, x, y, s, t) {
   ctx.save(); ctx.translate(x, y); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
   // tentacles draping down (behind the mantle)
@@ -21438,12 +21438,12 @@ function _stopShooShiOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// KARDIA — the heart of the void. Restrained and grave: a near-black
+// KARDIA: the heart of the void. Restrained and grave: a near-black
 // abyss with a single luminous core (kardía, "heart") that pulses on a
 // slow, deliberate beat, sending silent rings out into the dark. Long
 // silk veils of magenta and violet drift across it like drapery, a thin
 // rotating filigree sigil encircles the core, and fine stardust falls
-// inward, drawn home. No noise, no text — only aura. The cursor is a
+// inward, drawn home. No noise, no text: only aura. The cursor is a
 // small graceful void-heart trailing motes; a click answers with one
 // slow heartbeat ring and a soft bloom. Character-wide (matches "Kardia").
 // ════════════════════════════════════════════════════════════════
@@ -21451,7 +21451,7 @@ const _KARDIA_RE = /^kardia$/i;
 function _isKardia(c) { return !!(c && c.name && _KARDIA_RE.test(c.name)); }
 function _kdHash(i) { const v = Math.sin(i * 43.71 + 5.9) * 43758.5453; return v - Math.floor(v); }
 
-// an elegant luminous core — a soft void-heart. beat ∈ [0,1] swells it.
+// an elegant luminous core: a soft void-heart. beat ∈ [0,1] swells it.
 function _kdCore(ctx, x, y, r, beat, t) {
   const PI2 = Math.PI * 2;
   ctx.save(); ctx.translate(x, y);
@@ -21662,7 +21662,7 @@ function _kdMouseDown() {
   if (typeof playSound === 'function') { try { playSound('click', { rate: 0.55 + Math.random() * 0.1, volume: 0.26 }); } catch (e) {} }
 }
 
-// the cursor — a banana, but a graceful one, haloed in void-light (inside joke)
+// the cursor: a banana, but a graceful one, haloed in void-light (inside joke)
 function _kdBanana(ctx, x, y, s, t, squish) {
   const PI2 = Math.PI * 2;
   ctx.save(); ctx.translate(x, y);
@@ -22815,7 +22815,7 @@ function _coryDrawOffice(ctx, W, H, sc) {
   ctx.fillStyle = '#1e1e22'; ctx.beginPath(); ctx.moveTo(W * 0.235, deskTop + 8 * sc); ctx.lineTo(W * 0.268, deskTop + 20 * sc); ctx.lineTo(W * 0.205, deskTop + 20 * sc); ctx.closePath(); ctx.fill();
 }
 
-// office light/door state per side (0 = left, 1 = right) — both start off/open
+// office light/door state per side (0 = left, 1 = right): both start off/open
 let _coryLightOn = [false, false], _coryDoorClosed = [false, false];
 
 // self-lit sources that pierce the dark + live feedback for the doors/lights
@@ -23022,10 +23022,10 @@ function _stopCoryOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// ROOK — a single enormous rook piece with nothing behind the eyes,
+// ROOK: a single enormous rook piece with nothing behind the eyes,
 // SLAMMING itself down all over a checkered arena. It hops to a random
-// square, winds up, and crashes — cracking the board, kicking dust and
-// debris, jolting the screen — and every time it lands a little comic
+// square, winds up, and crashes: cracking the board, kicking dust and
+// debris, jolting the screen: and every time it lands a little comic
 // speech bubble pops beside it asking, simply, "FUCK?". The cursor is a
 // smaller rook that does the exact same thing on click. Character-wide
 // (matches "Rook").
@@ -23035,7 +23035,7 @@ function _isRook(c) { return !!(c && c.name && _ROOK_RE.test(c.name)); }
 function _rkHash(i) { const v = Math.sin(i * 37.41 + 1.7) * 43758.5453; return v - Math.floor(v); }
 const _RK_INK = '#16110a';
 
-// the rook piece itself — a crenellated castle tower. style: 'dark'|'light'
+// the rook piece itself: a crenellated castle tower. style: 'dark'|'light'
 function _rkRook(ctx, x, y, s, style, squash) {
   ctx.save(); ctx.translate(x, y);
   const sx = 1 + (squash || 0) * 0.22, sy = 1 - (squash || 0) * 0.22;
@@ -23313,9 +23313,9 @@ function _stopRookOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// STARRY — Frutiger Aero meets a wishing sky. A glossy pink-and-white
+// STARRY: Frutiger Aero meets a wishing sky. A glossy pink-and-white
 // dream: big translucent aqua swooshes, glassy bubbles rising and
-// wobbling, soft bokeh and a gentle lens flare — and over all of it,
+// wobbling, soft bokeh and a gentle lens flare: and over all of it,
 // golden stars twinkle and the odd shooting star streaks past. Blue and
 // green only as accents. The cursor is a glossy gold star trailing
 // sparkles and bubbles; click pops a shower of bubbles and stars.
@@ -23573,12 +23573,12 @@ function _stopStarryOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// HARU — mysterious, overwhelming, parasitical. A near-black void where
+// HARU: mysterious, overwhelming, parasitical. A near-black void where
 // purple tendrils creep in from every edge, infected veins pulse to a
-// slow heartbeat, and eyes open in the dark to WATCH the cursor — every
+// slow heartbeat, and eyes open in the dark to WATCH the cursor: every
 // so often the whole room dims and one enormous eye opens to stare.
 // The cursor is a clawed iris... and it is being hunted: a segmented
-// parasite slithers after it, and if it catches you it LATCHES ON —
+// parasite slithers after it, and if it catches you it LATCHES ON: 
 // wrestle the mouse (or click) to tear it off. Clicks burst jagged
 // magenta cracks and spores. Matches "Haru".
 // ════════════════════════════════════════════════════════════════
@@ -23587,18 +23587,18 @@ function _isHaru(c) { return !!(c && c.name && _HARU_RE.test(c.name)); }
 
 function _hrHash(i) { const v = Math.sin(i * 61.17 + 9.3) * 43758.5453; return v - Math.floor(v); }
 
-// shared cursor position (window coords) — the pattern's eyes read these
+// shared cursor position (window coords): the pattern's eyes read these
 let _hrMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
 let _hrMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
 
-// shared dread-state — the overlay measures how close the parasite is,
+// shared dread-state: the overlay measures how close the parasite is,
 // and EVERYTHING reacts: the heart races, the flesh swells, eyes widen.
 let _hrThreat = 0;        // 0..1 parasite proximity (1 = latched)
-let _hrFlinch = 0;        // click shockwave — the infestation recoils
+let _hrFlinch = 0;        // click shockwave: the infestation recoils
 let _hrInfection = 0;     // grows while latched; goo claims the corners
 let _hrHbPhase = 0, _hrHbLast = 0;
 
-// irregular double-thump heartbeat, 0..1 — accelerates with threat
+// irregular double-thump heartbeat, 0..1: accelerates with threat
 function _hrBeat() {
   const now = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
   if (_hrHbLast === 0) _hrHbLast = now;
@@ -23611,7 +23611,7 @@ function _hrBeat() {
   return Math.min(1, th1 + th2);
 }
 
-// one VOID eye at (cx,cy): a ragged dark socket — murky iris rings around
+// one VOID eye at (cx,cy): a ragged dark socket, murky iris rings around
 // a black tear. No gloss, no glint; it's a hole, not a light. Each eye's
 // lids are irregular via seed.
 function _hrDrawEye(ctx, cx, cy, sz, open01, lookA, glow, seed) {
@@ -23638,7 +23638,7 @@ function _hrDrawEye(ctx, cx, cy, sz, open01, lookA, glow, seed) {
   lid();
   ctx.fillStyle = '#040108';
   ctx.fill();
-  // dull bruised rim — no gloss
+  // dull bruised rim: no gloss
   ctx.strokeStyle = `rgba(118,32,92,${(0.30 + glow * 0.22).toFixed(3)})`;
   ctx.lineWidth = 1;
   ctx.stroke();
@@ -23820,7 +23820,7 @@ function _drawHaruPattern(canvas, ctx, W, H, t) {
       ctx.fillStyle = `rgba(255,150,220,${(0.2 + (ph / 0.82) * 0.5).toFixed(3)})`;
       ctx.beginPath(); ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.22 + 0.4, 0, PI2); ctx.fill();
     } else if (pu.lastPh < 0.82) {
-      // POP — spurt
+      // POP: spurt
       for (let s = 0; s < 6; s++) {
         const a = Math.random() * PI2, sp = 40 + Math.random() * 90;
         _drawHaruPattern._spurts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1 });
@@ -23938,7 +23938,7 @@ function _drawHaruPattern(canvas, ctx, W, H, t) {
     }
   }
 
-  // ── vignette breathing — the dark closes in when it hunts ──
+  // ── vignette breathing: the dark closes in when it hunts ──
   ctx.save();
   ctx.globalAlpha = 0.55 + hb * 0.25 + threat * 0.3;
   ctx.fillStyle = _drawHaruPattern._vig; ctx.fillRect(0, 0, W, H);
@@ -24058,14 +24058,14 @@ function _drawHaruOverlay(canvas, ctx, W, H, t) {
                         life: 1, max: 0.5, r: 1.4 + Math.random() * 2.2 });
       }
     }
-  } else {                                            // stunned — writhes, then re-hunts
+  } else {                                            // stunned: writhes, then re-hunts
     _hrWormCool -= dt;
     head.x += Math.sin(t * 4.2) * 90 * dt;
     head.y += Math.cos(t * 3.7) * 90 * dt;
     if (_hrWormCool <= 0) _hrWormState = 'chase';
   }
 
-  // threat: how close the hunt is — drives the heartbeat + the whole room
+  // threat: how close the hunt is, drives the heartbeat + the whole room
   {
     const dHead = Math.hypot(head.x - _hrMX, head.y - _hrMY);
     const target = _hrWormState === 'latched' ? 1 : Math.max(0, 1 - dHead / 460);
@@ -24251,7 +24251,7 @@ function _drawHaruOverlay(canvas, ctx, W, H, t) {
   ctx.save();
   ctx.translate(_hrMX + (latched ? Math.sin(t * 31) * 2.2 : 0), _hrMY + (latched ? Math.cos(t * 37) * 2.2 : 0));
   ctx.scale(csc, csc);
-  // claw ring — claws twitch harder when it's near
+  // claw ring: claws twitch harder when it's near
   ctx.fillStyle = '#1c0828';
   ctx.strokeStyle = 'rgba(150,45,180,0.7)';
   ctx.lineWidth = 1;
@@ -24345,11 +24345,11 @@ function _stopHaruOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// CLASSIC — his stats are corrupted beyond reading (always glitched),
+// CLASSIC: his stats are corrupted beyond reading (always glitched),
 // his menus are UNDERTALE dialogue boxes, his base form is GHOST.
 // The "Determination." form: an intense, intimidating red killing
-// floor — a giant beating pixel SOUL, pixel knives raining, slashes
-// ripping across the dark, 9999s climbing — and the cursor is a
+// floor: a giant beating pixel SOUL, pixel knives raining, slashes
+// ripping across the dark, 9999s climbing: and the cursor is a
 // faithful pixel replica of the Real Knife. Clicking SLASHES.
 // ════════════════════════════════════════════════════════════════
 const _CLASSIC_RE = /^Classic$/i;
@@ -24375,7 +24375,7 @@ function _isClassicGhost(c) {
 
 function _clHash(a, b) { const v = Math.sin(a * 127.1 + (b || 0) * 311.7 + 17.7) * 43758.5453; return v - Math.floor(v); }
 
-/* ── the Real Knife — EXACT replica of the reference sprite ───────
+/* ── the Real Knife: EXACT replica of the reference sprite ───────
    28×28 cells extracted pixel-for-pixel from the image: diagonal,
    tip at the bottom-left, mottled blade, grey-violet guard. Drawn
    unrotated so the pixels stay perfectly crisp. ──────────────────── */
@@ -24428,7 +24428,7 @@ function _clKnife() {
   _clKnifeCv = cv; return cv;
 }
 
-/* "9999" as UT-style pixel text — black inside, red outline, cached */
+/* "9999" as UT-style pixel text: black inside, red outline, cached */
 let _cd9999Cv = null;
 function _cd9999() {
   if (_cd9999Cv) return _cd9999Cv;
@@ -24454,7 +24454,7 @@ function _cd9999() {
   _cd9999Cv = cv; return cv;
 }
 
-/* a sleek glowing red dagger for the background (NOT the Real Knife) —
+/* a sleek glowing red dagger for the background (NOT the Real Knife): 
    horizontal, tip pointing +X, glow baked into the sprite */
 let _cdKnifeGCv = null;
 function _cdKnifeGlow() {
@@ -24506,7 +24506,7 @@ function _cdGlowKnifeDraw(ctx, sc, glow) {
   }
 }
 
-/* a tapered crescent slash — whisper-thin tail, hot wide head, with a
+/* a tapered crescent slash: whisper-thin tail, hot wide head, with a
    ghosting echo arc and impact lines bursting off the head near the
    end of the sweep (`prog` = 0..1 sweep progress) */
 function _cdSlashArc(ctx, sx, sy, R, a0, sweep, env, prog) {
@@ -24563,7 +24563,7 @@ function _cdSlashArc(ctx, sx, sy, R, a0, sweep, env, prog) {
   ctx.lineJoin = 'miter';
 }
 
-/* the wound a slash leaves behind — a RIP IN REALITY: a lens-shaped tear
+/* the wound a slash leaves behind, a RIP IN REALITY: a lens-shaped tear
    that opens onto a void, white-hot edges cooling to red, determination
    light pouring out, score-marks scraped past each tip, sealing as it
    heals (al 1→0). Drawn in local space rotated to the cut angle. */
@@ -24631,7 +24631,7 @@ function _cdDrawWound(ctx, x, y, a, L, al) {
           y + Math.sin(a) * h * 2 * fr + Math.cos(a) * w * 0.7];
 }
 
-/* red noise, masked so it creeps in from the edges — rebuilt on resize */
+/* red noise, masked so it creeps in from the edges: rebuilt on resize */
 function _cdNoiseGradCv(W, H) {
   const c = _cdNoiseGradCv;
   if (c._cv && c._w === W && c._h === H) return c._cv;
@@ -24678,7 +24678,7 @@ function _cdPerim(u, W, H, inset) {
   return { x: inset, y: H - inset - d, a: 0 };
 }
 
-/* ── "Determination." — the red killing floor ───────────────────── */
+/* ── "Determination.": the red killing floor ───────────────────── */
 let _cdBg = null;
 let _cdShakeT = 0, _cdCombo = 0, _cdComboT = 0;
 let _cdChargeAmt = 0, _cdPrevMX = 0, _cdPrevMY = 0;
@@ -24821,7 +24821,7 @@ function _drawClassicDetPattern(canvas, ctx, W, H, t) {
   }
   ctx.stroke();
 
-  // ── meteors — fast red streaks tearing down the sky ──
+  // ── meteors: fast red streaks tearing down the sky ──
   for (let i = 0; i < 4; i++) {
     const sd = _clHash(i * 73);
     const cyc3 = 2.6 + sd * 2.2;
@@ -24839,7 +24839,7 @@ function _drawClassicDetPattern(canvas, ctx, W, H, t) {
     ctx.beginPath(); ctx.moveTo(mxp + 0.45 * 16, myp - 16); ctx.lineTo(mxp, myp); ctx.stroke();
   }
 
-  // ── THE STORM — every so often the whole cage turns on you and fires ──
+  // ── THE STORM: every so often the whole cage turns on you and fires ──
   const EV = 17, evT = (t + 8) % EV, stormSeed = Math.floor((t + 8) / EV);
   const inStorm = evT < 2.0;
   const ctrX = W * 0.5, ctrY = H * 0.45;
@@ -24873,7 +24873,7 @@ function _drawClassicDetPattern(canvas, ctx, W, H, t) {
     }
   }
 
-  // ── the blade cage — glowing knives ringing the dark; a wave of
+  // ── the blade cage: glowing knives ringing the dark; a wave of
   //    light travels around the ring, they thrust on the beat, and
   //    during the storm they launch one by one into the centre ──
   const cageBackIn = inStorm ? 1 : (evT < 2.6 ? Math.min(1, (evT - 2.0) / 0.6) : 1);
@@ -24915,7 +24915,7 @@ function _drawClassicDetPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // ── volleys — squads of glowing knives streak across in formation ──
+  // ── volleys: squads of glowing knives streak across in formation ──
   for (let v = 0; v < 2; v++) {
     const cyc2 = 3.6 + _clHash(v * 19) * 1.8;
     const phr = t / cyc2 + _clHash(v * 3);
@@ -24947,7 +24947,7 @@ function _drawClassicDetPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // ── hunters — knives that take aim at YOU and fire ──
+  // ── hunters: knives that take aim at YOU and fire ──
   _cdBg.spawnIn -= dt;
   if (_cdBg.spawnIn <= 0 && _cdBg.hunt.length < 3) {
     _cdBg.spawnIn = 2.2 + _clHash(t * 7.3) * 2.2;
@@ -25031,7 +25031,7 @@ function _drawClassicDetPattern(canvas, ctx, W, H, t) {
         _cdBg.fx.push({ type: 'dmg', x: S2.sx, y: S2.sy - 16,
                         vy: -170 - _clHash(seed + 2) * 90, y0: S2.sy - 6,
                         sc: 0.45 + _clHash(seed + 4) * 0.45, life: 1, max: 1.15, delay: 0.13 });
-        // the cut LANDS — flash and sparks off the end of the arc
+        // the cut LANDS: flash and sparks off the end of the arc
         const ha = S2.a0 + 1.8 * S2.dir;
         const hx2 = S2.sx + Math.cos(ha) * S2.R, hy2 = S2.sy + Math.sin(ha) * S2.R;
         _cdBg.fx.push({ type: 'flash', x: hx2, y: hy2, life: 1, max: 0.18, delay: 0.12 });
@@ -25067,7 +25067,7 @@ function _drawClassicDetPattern(canvas, ctx, W, H, t) {
                         vy: 26 + Math.random() * 30, life: 1, max: 0.6 });
       }
     } else if (f.type === 'dmg') {
-      // UT damage popup — pops up, falls, bounces once
+      // UT damage popup: pops up, falls, bounces once
       f.vy += 760 * dt; f.y += f.vy * dt;
       if (f.y > f.y0 && f.vy > 0) { f.y = f.y0; f.vy *= -0.42; }
       const n9 = _cd9999();
@@ -25122,7 +25122,7 @@ function _drawClassicDetPattern(canvas, ctx, W, H, t) {
     ctx.globalAlpha = 1;
   }
 
-  // rare glitch tear — slices of the frame shear sideways for a beat
+  // rare glitch tear: slices of the frame shear sideways for a beat
   {
     const gs = Math.floor(t * 2.3);
     if (_clHash(gs * 11) > 0.93) {
@@ -25177,7 +25177,7 @@ function _cdMouseDown() {
   const boost = 1 + cb * 0.05 + charge * 0.7;
   _cdSwing = 1; _cdSwingDir = -_cdSwingDir; _cdFlash = 1;
   const push = p => { _cdParts.push(p); if (_cdParts.length > 170) _cdParts.shift(); };
-  // the SLASH — a tapered crescent sweeping with the swing
+  // the SLASH: a tapered crescent sweeping with the swing
   push({ type: 'slash', x, y, R: (52 + Math.random() * 30) * boost, a0: Math.random() * PI2,
          dir: _cdSwingDir, life: 1, max: 0.22 + charge * 0.06 });
   // white impact flash
@@ -25185,11 +25185,11 @@ function _cdMouseDown() {
   // shockwave ring (a second one when the chain or charge runs hot)
   push({ type: 'ring', x, y, life: 1, max: 0.34 });
   if (cb >= 5 || charge > 0.5) push({ type: 'ring', x, y, life: 1, max: 0.4, delay: 0.08 });
-  // a lingering cut mark — a real wound now
+  // a lingering cut mark: a real wound now
   const cutA = -Math.PI / 4 + (Math.random() - 0.5) * 0.8;
   const cutL = (50 + Math.random() * 50) * boost;
   push({ type: 'cut', x, y, a: cutA, L: cutL, life: 1, max: 1.1 });
-  // UT damage popup — pixel 9999, pops up and bounces
+  // UT damage popup: pixel 9999, pops up and bounces
   push({ type: 'dmg', x: x + (Math.random() - 0.5) * 26, y: y - 20, vy: -190, y0: y - 10,
          sc: 0.5 + charge * 0.3, life: 1, max: 1.0 });
   // red sparks
@@ -25219,7 +25219,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
   // smooth breathing for overlay effects (matches the pattern)
   const pulse = 0.5 + 0.5 * Math.sin(t * 1.15);
 
-  // holding the blade still gathers power — embers spiral in
+  // holding the blade still gathers power: embers spiral in
   {
     const moved = Math.hypot(_cdMX - _cdPrevMX, _cdMY - _cdPrevMY);
     _cdPrevMX = _cdMX; _cdPrevMY = _cdMY;
@@ -25241,7 +25241,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
     ctx.strokeRect(-12, -12, W + 24, H + 24);
   }
 
-  // ── THE LIVING FRAME — the page itself bleeds and hums ──
+  // ── THE LIVING FRAME: the page itself bleeds and hums ──
   {
     const ets = performance.now() / 1000;
     const ep = 0.5 + 0.5 * Math.sin(ets * 1.15);   // smooth breathing
@@ -25270,7 +25270,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
       ctx.strokeRect(ins, ins, W - ins * 2, H - ins * 2);
     }
 
-    // UT corner brackets — double-struck, thumping, glitch-twitching
+    // UT corner brackets: double-struck, thumping, glitch-twitching
     const arm = 20 + ep * 4;
     const gseed = (ets * 31) | 0;
     const gj = _clHash(gseed) > 0.82 ? (_clHash(gseed, 2) - 0.5) * 4 : 0;
@@ -25297,7 +25297,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
       }
     }
 
-    // two tracers racing the perimeter — they SPARK when they collide
+    // two tracers racing the perimeter: they SPARK when they collide
     if (!_cdNotches.length) for (let i = 0; i < 10; i++) _cdNotches.push({ u: _clHash(i * 17), f: 0 });
     const us = [(((t * 0.055) % 1) + 1) % 1, (((t * -0.055 + 0.5) % 1) + 1) % 1];
     const dCross = Math.abs((((us[0] - us[1] + 0.5) % 1) + 1) % 1 - 0.5);
@@ -25329,7 +25329,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
         if (d2 < 0.012) n2.f = 1;
       }
     }
-    // X-shaped claw scars on the frame — they flare as the current passes
+    // X-shaped claw scars on the frame: they flare as the current passes
     for (const n2 of _cdNotches) {
       n2.f = Math.max(0, n2.f - dt * 2.6);
       const p2 = _cdPerim(n2.u, W, H, 3);
@@ -25434,7 +25434,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
                         life: 1, max: 0.7, r: 1.2 + Math.random() });
       }
     } else if (p.type === 'dmg') {
-      // UT damage popup — pixel 9999 pops up, falls, bounces once
+      // UT damage popup: pixel 9999 pops up, falls, bounces once
       p.vy += 760 * dt; p.y += p.vy * dt;
       if (p.y > p.y0 && p.vy > 0) { p.y = p.y0; p.vy *= -0.42; }
       const n9 = _cd9999();
@@ -25483,7 +25483,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
   }
   _cdParts = _cdParts.filter(p => p.life > 0);
 
-  // ── ELEGANCE — bokeh, drifting petals, a gleam passing over the page ──
+  // ── ELEGANCE: bokeh, drifting petals, a gleam passing over the page ──
   {
     // soft red bokeh motes, breathing as they rise
     for (let i = 0; i < 6; i++) {
@@ -25498,7 +25498,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
       ctx.fillStyle = bg3;
       ctx.fillRect(bx3 - br, by3 - br, br * 2, br * 2);
     }
-    // petals of burnt determination, falling and fluttering over the UI —
+    // petals of burnt determination, falling and fluttering over the UI: 
     // a whole drift of them, layered by depth (far ones small and faint)
     for (let i = 0; i < 42; i++) {
       const sd = _clHash(i * 131), sd2 = _clHash(i * 67);
@@ -25523,7 +25523,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
       ctx.stroke();
       ctx.restore();
     }
-    // golden petals drifting among the red — rarer, with a faint glow
+    // golden petals drifting among the red: rarer, with a faint glow
     for (let i = 0; i < 14; i++) {
       const sd = _clHash(i * 197 + 13), sd2 = _clHash(i * 89 + 5);
       const depth = 0.4 + _clHash(i * 53 + 9) * 0.6;
@@ -25573,7 +25573,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
       ctx.beginPath(); ctx.moveTo(-bw * 0.55, -H * 1.6); ctx.lineTo(-bw * 0.55, H * 1.6); ctx.stroke();
       ctx.restore();
     }
-    // red grain noise crawling over the menus — smooth gentle pulse
+    // red grain noise crawling over the menus: smooth gentle pulse
     {
       const smoothPulse = 0.5 + 0.5 * Math.sin(t * 0.8);
       ctx.globalAlpha = 0.18 + smoothPulse * 0.08;
@@ -25581,7 +25581,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
       ctx.fillRect(0, 0, W, H);
       ctx.globalAlpha = 1;
     }
-    // red vignette around the borders — creeps inward and darkens with the heartbeat
+    // red vignette around the borders: creeps inward and darkens with the heartbeat
     const vig = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.25, W * 0.5, H * 0.5, Math.max(W, H) * 0.68);
     vig.addColorStop(0, 'rgba(0,0,0,0)');
     vig.addColorStop(0.6, `rgba(160,4,8,${(0.08 + pulse * 0.12).toFixed(3)})`);
@@ -25590,11 +25590,11 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // ── the Real Knife, tip at the pointer — unrotated, pixel-crisp ──
+  // ── the Real Knife, tip at the pointer: unrotated, pixel-crisp ──
   const kn = _clKnife();
   const swingK = _cdSwing > 0 ? Math.sin(_cdSwing * Math.PI) : 0;
   const swingRot = swingK * _cdSwingDir * -0.9;
-  // red light pooling under the blade — swells as power gathers
+  // red light pooling under the blade: swells as power gathers
   {
     const gr = 46 + Math.sin(t * 2.7) * 8 + swingK * 34 + _cdChargeAmt * 32;
     const gg = ctx.createRadialGradient(_cdMX, _cdMY, 0, _cdMX, _cdMY, gr);
@@ -25624,7 +25624,7 @@ function _drawClassicDetOverlay(canvas, ctx, W, H, t) {
   ctx.drawImage(kn, -4, -kn.height + 4);        // tip (bottom-left of sprite) at the pointer
   ctx.restore();
 
-  // combo pips burning under the cursor — one per chained hit
+  // combo pips burning under the cursor: one per chained hit
   if (_cdCombo > 1) {
     const n = Math.min(_cdCombo, 8);
     for (let i = 0; i < n; i++) {
@@ -25674,7 +25674,7 @@ function _stopClassicDetOverlay() {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   CLASSIC · SAVE — Asriel's rainbow. A chunky pixel rainbow sky that
+   CLASSIC · SAVE: Asriel's rainbow. A chunky pixel rainbow sky that
    flows and ripples from a glowing core, drifting pixel stars and
    star-bullets, and a rainbow knife cursor that swings and trails
    rainbow afterimages. Every pulse is SMOOTH. ──────────────────── */
@@ -25754,7 +25754,7 @@ function _drawClassicSavePattern(canvas, ctx, W, H, t) {
     ctx.fillRect(sx | 0, sy | 0, sz + 1, sz + 1);
   }
 
-  // ── drifting pixel star-bullets (Asriel) — slow, rainbow-tinted ──
+  // ── drifting pixel star-bullets (Asriel): slow, rainbow-tinted ──
   for (let i = 0; i < 9; i++) {
     const sd = _clHash(i * 41.7);
     const sxp = ((sd + t * 0.012 * (0.6 + sd)) % 1) * (W + 60) - 30;
@@ -25794,7 +25794,7 @@ function _csStar(ctx, x, y, r, rot, style, glow) {
   ctx.restore();
 }
 
-/* the rainbow knife — the pixel knife sprite recoloured to a shifting
+/* the rainbow knife: the pixel knife sprite recoloured to a shifting
    rainbow gradient, built into a shared offscreen each call */
 let _csKnifeBuf = null;
 function _csTintKnife(hueDeg) {
@@ -25977,11 +25977,11 @@ function _stopClassicSaveOverlay() {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   CLASSIC · GHOST — Classic's base form. Somber and melancholic: a
+   CLASSIC · GHOST: Classic's base form. Somber and melancholic: a
    dim, cold dusk; golden-yellow petals drifting down through pale
    light; slow rising ghost-wisps; and a faded white SOUL for a cursor
    that bobs and leaves a quiet ghost-trail. Everything is slow and
-   soft — grief, not menace. ─────────────────────────────────────── */
+   soft: grief, not menace. ─────────────────────────────────────── */
 function _cgPetal(ctx, ps, fill, stroke) {
   ctx.beginPath();
   ctx.moveTo(0, -ps);
@@ -26109,7 +26109,7 @@ function _drawClassicGhostPattern(canvas, ctx, W, H, t) {
     ctx.beginPath(); ctx.arc(dx, dy, 0.7 + (sd % 1.2), 0, PI2); ctx.fill();
   }
 
-  // ── the yellow petals — the heart of it, drifting down, fluttering ──
+  // ── the yellow petals: the heart of it, drifting down, fluttering ──
   for (let i = 0; i < 60; i++) {
     const sd = _clHash(i * 131.7), sd2 = _clHash(i * 71.3);
     const depth = 0.35 + _clHash(i * 41.9) * 0.65;
@@ -26304,7 +26304,7 @@ function _stopClassicGhostOverlay() {
   _cgParts = []; _cgHist = [];
 }
 
-/* ── Classic's stats are corrupted — you can never read them ────── */
+/* ── Classic's stats are corrupted: you can never read them ────── */
 let _clGlitchInt = null;
 const _CL_GLYPHS = '▓▒░█▌▐■□#%&@!?<>/\\|0123456789*';
 function _clGlitchStr(n) {
@@ -26325,7 +26325,7 @@ function _startClassicStatGlitch() {
       el.style.opacity = r < 0.45 ? '0' : '1';
       el.style.filter = r > 0.86 ? `invert(1) hue-rotate(${(Math.random() * 360) | 0}deg)` : '';
     });
-    // the overall LEVEL badge is corrupted too — keeps the " LEVEL" suffix
+    // the overall LEVEL badge is corrupted too: keeps the " LEVEL" suffix
     const plLabel = document.querySelector('.cv-pl-label');
     if (plLabel) {
       if (plLabel.dataset.cllen === undefined) {
@@ -26357,7 +26357,7 @@ function _stopClassicStatGlitch() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// CAPPY — the screen is filled with white milk: gooey metaball blobs that
+// CAPPY, the screen is filled with white milk: gooey metaball blobs that
 // flow toward the cursor (viscous, sloshing). The cursor is a glowing blue
 // Star of David. Character-wide (matches "Cappy").
 // ════════════════════════════════════════════════════════════════
@@ -26514,7 +26514,7 @@ function _stopCappyOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// ✨DIVA!!!!!!!✨ — an erratic internet VIRUS. Datamosh glitch, corrupted
+// ✨DIVA!!!!!!!✨: an erratic internet VIRUS. Datamosh glitch, corrupted
 // rainbow glyph rain, flickering virus pop-ups, RGB-split everything, and a
 // chaotic glitching cursor that spews corrupted characters. Pure chaos.
 // ════════════════════════════════════════════════════════════════
@@ -26527,7 +26527,7 @@ let _divaTrail = [];
 const _DIVA_GLYPHS = '01█▓▒░@#$%&*<>/\\|=+アイウエオΩ✨♥☣☢★◆01'.split('');
 function _divaCh() { return _DIVA_GLYPHS[(Math.random() * _DIVA_GLYPHS.length) | 0]; }
 const _DIVA_POP_TXT = ['✨ U WON! ✨', 'WARNING!!!', 'FREE RAM', '( ͡° ͜ʖ ͡°)', 'SYSTEM ERROR', 'CLICK HERE!!', '>:3', '♥ DIVA ♥', 'ERROR 404', '01101001', 'VIRUS :3', 'UwU', 'HIII!!!', 'DOWNLOAD?', 'NICE PC :3', '>w<', '☣ INFECTED ☣', '100% REAL', 'meow >:3', 'i SEE u'];
-// red/cyan-split white text — the classic glitch look
+// red/cyan-split white text: the classic glitch look
 function _divaGlitchText(ctx, txt, x, y, jit) {
   ctx.fillStyle = 'rgba(255,0,90,0.85)'; ctx.fillText(txt, x - jit, y);
   ctx.fillStyle = 'rgba(0,255,255,0.85)'; ctx.fillText(txt, x + jit, y);
@@ -26697,7 +26697,7 @@ function _stopDivaOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// EVELYNN — elegant & gothic. A large, beautiful blood moon hangs at the
+// EVELYNN: elegant & gothic. A large, beautiful blood moon hangs at the
 // middle-top over a deep crimson night: twinkling stars, dark clouds drifting
 // across the moon, falling rose petals, a pulsing corona, and rising crimson
 // mist. The cursor is a slowly-turning red rose that trails petals.
@@ -26736,14 +26736,14 @@ function _evBuildSky(W, H, mx, my, R) {
   const hg = g.createRadialGradient(mx, my, R * 0.5, mx, my, Math.max(W, H) * 0.6);
   hg.addColorStop(0, 'rgba(150,20,18,0.5)'); hg.addColorStop(0.4, 'rgba(90,12,12,0.18)'); hg.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = hg; g.fillRect(0, 0, W, H);
-  // moon disc — coppery blood moon with a glowing refraction limb
+  // moon disc: coppery blood moon with a glowing refraction limb
   const mg = g.createRadialGradient(mx - R * 0.2, my - R * 0.2, R * 0.05, mx, my, R);
   mg.addColorStop(0, '#f0895a'); mg.addColorStop(0.4, '#d2492a'); mg.addColorStop(0.7, '#9f2218');
   mg.addColorStop(0.92, '#6c0f0f'); mg.addColorStop(1, '#c2381f');
   g.beginPath(); g.arc(mx, my, R, 0, 6.2832); g.fillStyle = mg; g.fill();
   g.save(); g.beginPath(); g.arc(mx, my, R, 0, 6.2832); g.clip();
   const rng = _aetherRng(7771);
-  // big soft maria (lunar "seas") — clusters of overlapping dark blobs
+  // big soft maria (lunar "seas"): clusters of overlapping dark blobs
   for (let s = 0; s < 5; s++) {
     const a = rng() * 6.2832, rr = rng() * R * 0.6, sx = mx + Math.cos(a) * rr, sy = my + Math.sin(a) * rr;
     const blobs = 4 + (rng() * 4 | 0);
@@ -26961,7 +26961,7 @@ function _stopEvelynnOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// OLIVER TIMBERWOOD — the (drunk, mysterious) sheriff of the wild west. A dusty
+// OLIVER TIMBERWOOD: the (drunk, mysterious) sheriff of the wild west. A dusty
 // sunset desert: a low sun, layered mesas, saguaro cacti, a lone silhouette, a
 // fence, rolling tumbleweeds, blowing dust, heat-shimmer, and a gentle DRUNKEN
 // sway over it all. A white rose blooms in each of the four corners. The cursor
@@ -26974,7 +26974,7 @@ let _olMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
 let _olMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
 let _olX = _olMX, _olY = _olMY, _olDust = [], _olSpark = [];
 function _olRR(g, x, y, w, h, r) { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); g.fill(); }
-// a proper saguaro — slim trunk + two arms whose elbows connect to it
+// a proper saguaro: slim trunk + two arms whose elbows connect to it
 function _olCactus(g, x, baseY, h, col) {
   g.fillStyle = col;
   const w = Math.max(6, h * 0.11), aw = w * 0.82;   // slimmer trunk + arm thickness
@@ -27037,7 +27037,7 @@ function _olBuildSky(W, H, horizon) {
 function _olBuildFg(W, H, horizon) {
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  // mesas — atmospheric perspective (far = hazy/light, near = dark)
+  // mesas: atmospheric perspective (far = hazy/light, near = dark)
   _olMesa(g, W, H, horizon + H * 0.012, '#9a5238', 11, H * 0.085);
   _olMesa(g, W, H, horizon + H * 0.05, '#5e3020', 23, H * 0.15);
   _olMesa(g, W, H, horizon + H * 0.1, '#371b0f', 41, H * 0.12);
@@ -27068,7 +27068,7 @@ function _olBird(g, x, y, s, flap) {
 }
 function _olTumble(g, x, y, r, rot) {
   g.save(); g.translate(x, y); g.rotate(rot); g.lineCap = 'round';
-  // woven inner tangle — curved strands threading through the centre
+  // woven inner tangle: curved strands threading through the centre
   for (let i = 0; i < 20; i++) {
     const a1 = i * 0.97, a2 = a1 + 1.7 + (i % 3) * 0.4;
     const r1 = r * (0.45 + (i % 4) * 0.13), r2 = r * (0.55 + (i % 5) * 0.09);
@@ -27087,7 +27087,7 @@ function _olTumble(g, x, y, r, rot) {
 // a white corner rose (cream petals + a couple leaves), gently swaying
 function _olTumble(g, x, y, r, rot) {
   g.save(); g.translate(x, y); g.rotate(rot); g.lineCap = 'round';
-  // woven inner tangle — curved strands threading through the centre
+  // woven inner tangle: curved strands threading through the centre
   for (let i = 0; i < 20; i++) {
     const a1 = i * 0.97, a2 = a1 + 1.7 + (i % 3) * 0.4;
     const r1 = r * (0.45 + (i % 4) * 0.13), r2 = r * (0.55 + (i % 5) * 0.09);
@@ -27178,7 +27178,7 @@ function _drawOliverPattern(canvas, ctx, W, H, t) {
     _olBird(ctx, b.x, b.y, b.s, Math.sin(t * 6 + b.ph));
   }
   ctx.restore();
-  // 4 ── FOREGROUND (mesas/ground/cacti/fence) — occludes the rays & birds
+  // 4 ── FOREGROUND (mesas/ground/cacti/fence): occludes the rays & birds
   ctx.drawImage(canvas._olFg, -10, -10, W + 20, H + 20);
 
   // heat shimmer rising off the desert floor (in front of the mesas)
@@ -27317,7 +27317,7 @@ function _stopOliverOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// SPRUCE — Oliver's right-hand lady, taken to the EXTREME, and all about white
+// SPRUCE: Oliver's right-hand lady, taken to the EXTREME, and all about white
 // roses. A dramatic twilight overflowing with lush white roses on every edge, a
 // giant central white rose, a heavy petal blizzard, drifting pollen sparkles,
 // and a grand white-rose cursor that showers petals.
@@ -27498,7 +27498,7 @@ function _stopSpruceOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// MOMO — a foggy grey wasteland with crows wheeling overhead and a distinctive
+// MOMO: a foggy grey wasteland with crows wheeling overhead and a distinctive
 // red top hat (butterfly wings, a red gem, gold trim) lying on the ground. The
 // cursor is a crow that flies after the pointer, shedding the odd feather.
 // ════════════════════════════════════════════════════════════════
@@ -27508,8 +27508,8 @@ let _momoOverlayRafId = null;
 let _moMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
 let _moMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
 let _moX = _moMX, _moY = _moMY, _moFeathers = [];
-// a wing in local space, rooted at the shoulder (0,0), sweeping BACKWARD (−x)
-// and slightly up — a broad raven blade ending in splayed primary feathers.
+// a wing in local space, rooted at the shoulder (0,0), sweeping BACKWARD (-x)
+// and slightly up: a broad raven blade ending in splayed primary feathers.
 // The caller rotates this around the shoulder to flap it.
 function _moWing(ctx, s, col) {
   ctx.fillStyle = col;
@@ -27531,32 +27531,32 @@ function _moWing(ctx, s, col) {
   }
 }
 // a handsome flying crow (side view, facing +x). flap in [-1,1]: +1 downstroke
-// (wings sweep DOWN), −1 upstroke (wings sweep UP). faceLeft flips; tilt banks.
+// (wings sweep DOWN), -1 upstroke (wings sweep UP). faceLeft flips; tilt banks.
 function _moCrow(ctx, x, y, s, flap, faceLeft, tilt, alpha) {
   ctx.save();
   ctx.globalAlpha = alpha == null ? 1 : alpha;
   ctx.translate(x, y); if (tilt) ctx.rotate(tilt); if (faceLeft) ctx.scale(-1, 1);
   const col = '#0d0d10';
   const shX = s * 0.12, shY = -s * 0.26;
-  // FAR wing — behind the body, dimmer, a hair behind in phase
+  // FAR wing: behind the body, dimmer, a hair behind in phase
   ctx.save(); ctx.globalAlpha *= 0.5; ctx.translate(shX - s * 0.08, shY - s * 0.04); ctx.rotate(flap * 0.7 - 0.04); _moWing(ctx, s * 0.94, col); ctx.restore();
   ctx.fillStyle = col;
-  // TAIL — a clean wedge of a few feathers angled back
+  // TAIL: a clean wedge of a few feathers angled back
   ctx.save(); ctx.translate(-s * 0.78, -s * 0.02); ctx.rotate(0.08);
   ctx.beginPath(); ctx.moveTo(0, -s * 0.28); ctx.lineTo(-s * 1.25, -s * 0.05); ctx.lineTo(-s * 1.22, s * 0.16); ctx.lineTo(0, s * 0.26); ctx.closePath(); ctx.fill();
   ctx.restore();
-  // BODY — chunky, slightly nose-up
+  // BODY: chunky, slightly nose-up
   ctx.beginPath(); ctx.ellipse(0, 0, s * 1.05, s * 0.5, -0.1, 0, 6.2832); ctx.fill();
   // BREAST sweeping up into the neck
   ctx.beginPath(); ctx.moveTo(s * 0.45, s * 0.1); ctx.quadraticCurveTo(s * 1.0, s * 0.0, s * 1.02, -s * 0.42);
   ctx.quadraticCurveTo(s * 0.7, -s * 0.3, s * 0.4, -s * 0.2); ctx.closePath(); ctx.fill();
   // HEAD
   ctx.beginPath(); ctx.arc(s * 1.05, -s * 0.46, s * 0.29, 0, 6.2832); ctx.fill();
-  // BEAK — long, pointed, slight downward set
+  // BEAK: long, pointed, slight downward set
   ctx.beginPath(); ctx.moveTo(s * 1.28, -s * 0.56); ctx.lineTo(s * 1.92, -s * 0.4); ctx.lineTo(s * 1.3, -s * 0.3); ctx.closePath(); ctx.fill();
   // EYE glint
   ctx.fillStyle = 'rgba(165,165,175,0.75)'; ctx.beginPath(); ctx.arc(s * 1.12, -s * 0.5, s * 0.05, 0, 6.2832); ctx.fill();
-  // NEAR wing — over the body, full flap
+  // NEAR wing: over the body, full flap
   ctx.fillStyle = col;
   ctx.save(); ctx.translate(shX, shY); ctx.rotate(flap * 0.78); _moWing(ctx, s, col); ctx.restore();
   ctx.restore();
@@ -27679,7 +27679,7 @@ function _drawMomoPattern(canvas, ctx, W, H, t) {
     fg.addColorStop(0, `rgba(206,204,205,${f.a})`); fg.addColorStop(1, 'rgba(206,204,205,0)');
     ctx.save(); ctx.translate(f.x, f.y); ctx.scale(1, 0.5); ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(0, 0, f.r, 0, 6.2832); ctx.fill(); ctx.restore();
   }
-  // crows wheeling around — each on its own gentle arc, banking into the turns,
+  // crows wheeling around: each on its own gentle arc, banking into the turns,
   // gliding now and then; distant ones fade into the fog
   for (const cr of canvas._moCrows) {
     cr.x += cr.vx * dt;
@@ -27757,9 +27757,9 @@ function _stopMomoOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// RONNETTE — "I Can't Fix You" (Living Tombstone / Mangle vibes): a fiery
-// ORANGE scene strewn with dark silhouettes of robot scrap — tangled wires,
-// claws, gears, endoskeleton hands — with white flickering flames, glowing
+// RONNETTE: "I Can't Fix You" (Living Tombstone / Mangle vibes): a fiery
+// ORANGE scene strewn with dark silhouettes of robot scrap: tangled wires,
+// claws, gears, endoskeleton hands: with white flickering flames, glowing
 // eyes peering from the junk, sparks, and a failing-light flicker. The cursor
 // is a wrench (you can't fix it) trailing sparks.
 // ════════════════════════════════════════════════════════════════
@@ -27841,19 +27841,19 @@ function _roFlame(ctx, x, baseY, w, h, t, seed, col) {
 }
 // A deliberately composed silhouette: a ragged dark "ceiling" and "floor" of
 // broken machinery frame the scene, cables drape from the ceiling, and a few
-// bold claws/cogs reach in from the corners — leaving a clean centre for fire.
+// bold claws/cogs reach in from the corners: leaving a clean centre for fire.
 function _roBuildScraps(W, H) {
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d'); const S = Math.min(W, H);
   g.fillStyle = _RO_DARK;
-  // CEILING — ragged dark band, dipping low at the corners
+  // CEILING: ragged dark band, dipping low at the corners
   g.beginPath(); g.moveTo(0, 0); g.lineTo(W, 0); g.lineTo(W, H * 0.24);
   g.bezierCurveTo(W * 0.86, H * 0.1, W * 0.8, H * 0.18, W * 0.7, H * 0.08);
   g.bezierCurveTo(W * 0.62, H * 0.15, W * 0.56, H * 0.05, W * 0.5, H * 0.07);
   g.bezierCurveTo(W * 0.43, H * 0.05, W * 0.37, H * 0.13, W * 0.3, H * 0.06);
   g.bezierCurveTo(W * 0.22, H * 0.14, W * 0.14, H * 0.08, W * 0.05, H * 0.16);
   g.lineTo(0, H * 0.24); g.closePath(); g.fill();
-  // FLOOR — low ragged ground with mounds in the corners
+  // FLOOR: low ragged ground with mounds in the corners
   g.beginPath(); g.moveTo(0, H); g.lineTo(W, H); g.lineTo(W, H * 0.8);
   g.bezierCurveTo(W * 0.86, H * 0.98, W * 0.8, H * 0.88, W * 0.7, H * 0.98);
   g.bezierCurveTo(W * 0.6, H * 0.93, W * 0.5, H * 1.0, W * 0.4, H * 0.96);
@@ -27879,7 +27879,7 @@ function _roBuildScraps(W, H) {
   _roCable(g, W * 0.94, H * 0.74, H * 0.2, -1, S * 0.014, 701);
   return c;
 }
-// the broken animatronic head hanging & swaying from a cable — the centerpiece.
+// the broken animatronic head hanging & swaying from a cable: the centerpiece.
 // Fox-ish skull, bent ears, a dangling jaw, severed neck wires, a glowing eye.
 function _roMangleHead(ctx, t, W, H) {
   const ax = W * 0.5, ay = -H * 0.03, L = H * 0.3;
@@ -28050,7 +28050,7 @@ function _stopRonnetteOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// MIAMI — full Frutiger Aero: glossy blue skies, turquoise water and lush green,
+// MIAMI, full Frutiger Aero: glossy blue skies, turquoise water and lush green,
 // fluffy clouds, a bright sun with god-rays, glassy rising bubbles, drifting
 // bokeh, swaying grass, and sparkles. The cursor is a glossy water bubble that
 // trails bubbles and pops into a ripple on click.
@@ -28228,7 +28228,7 @@ function _stopMiamiOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// JONI — a lush jungle (canopy, big leaves, hanging vines, god-rays, fireflies,
+// JONI: a lush jungle (canopy, big leaves, hanging vines, god-rays, fireflies,
 // mist). Bananas lie on the floor; the cursor is a hand that PICKS one up, and
 // clicking PEELS it open strip by strip, then EATS it. They respawn.
 // ════════════════════════════════════════════════════════════════
@@ -28239,7 +28239,7 @@ let _joMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
 let _joMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
 let _joBananas = [], _joHeld = null, _joEatFx = [], _joRespawnT = 0;
 // ── jungle scene helpers ──
-// a big banana/tropical leaf — a paddle blade with a midrib and side veins
+// a big banana/tropical leaf: a paddle blade with a midrib and side veins
 function _joFrond(g, x, baseY, len, ang, col) {
   g.save(); g.translate(x, baseY); g.rotate(ang);
   const wid = len * 0.34; g.fillStyle = col;
@@ -28500,7 +28500,7 @@ function _stopJoniOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// JIMMY — Fury's muffin, supersized, sitting on the page background and
+// JIMMY: Fury's muffin, supersized, sitting on the page background and
 // following your cursor with its big googly eyes. Pattern-only.
 // ════════════════════════════════════════════════════════════════
 // A big muffin whose pupils point at the cursor. (cx,cy) = muffin centre in
@@ -28579,7 +28579,7 @@ function _drawJimmyMuffin(ctx, cx, cy, t, scale, curX, curY) {
   ctx.beginPath(); ctx.arc(0, domeY, domeR, 0, Math.PI * 2);
   ctx.fillStyle = dg; ctx.fill();
 
-  // 3 ── Big googly eyes — pupils aim straight at the cursor (grow when happy)
+  // 3 ── Big googly eyes: pupils aim straight at the cursor (grow when happy)
   for (let sgn = -1; sgn <= 1; sgn += 2) {
     const ex = sgn * eyeOX;
     const er = eyeR + happy * 1.6;
@@ -28623,7 +28623,7 @@ function _drawJimmyPattern(canvas, ctx, W, H, t) {
   _jimmyHookMouse();
 
   // Pin the canvas FIXED to the #content rect every frame so Jimmy stays put
-  // (and fully covers) while the sheet scrolls — same idiom as Divine.
+  // (and fully covers) while the sheet scrolls: same idiom as Divine.
   let rLeft = 0, rTop = 0;
   const _ct = document.getElementById('content');
   if (_ct) {
@@ -28638,7 +28638,7 @@ function _drawJimmyPattern(canvas, ctx, W, H, t) {
   W = canvas.width; H = canvas.height;
   ctx.clearRect(0, 0, W, H);
 
-  // muffin placement — big and brought up toward the top, a bit to the right
+  // muffin placement: big and brought up toward the top, a bit to the right
   const mx = W * 0.66;
   const my = H * 0.26;
   const scale = Math.max(4.6, Math.min(W, H) / 95);   // BIG, sane on small screens
@@ -28665,7 +28665,7 @@ function _drawJimmyPattern(canvas, ctx, W, H, t) {
   bg.addColorStop(1,    '#150e07');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-  // 2 ── RED BINARY RAIN — falling from above, semi-transparent, BEHIND the muffin
+  // 2 ── RED BINARY RAIN: falling from above, semi-transparent, BEHIND the muffin
   _drawJimmyBinary(canvas, ctx, W, H, dt);
 
   // gentle warm glow centred on the muffin (over the rain, under the muffin)
@@ -28712,7 +28712,7 @@ function _drawJimmyPattern(canvas, ctx, W, H, t) {
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
 }
 
-// Red 0/1 streams pouring down the page — sparse, semi-transparent, persistent
+// Red 0/1 streams pouring down the page: sparse, semi-transparent, persistent
 // per-column state cached on the canvas so the digits don't flicker every frame.
 function _drawJimmyBinary(canvas, ctx, W, H, dt) {
   const lineH = 17, colW = 18;
@@ -28758,7 +28758,7 @@ function _drawJimmyBinary(canvas, ctx, W, H, dt) {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// THE SHI — god of death. Silent, mysterious, elegant soul garden.
+// THE SHI: god of death. Silent, mysterious, elegant soul garden.
 // ════════════════════════════════════════════════════════════════
 function _shiSoulSprite() {
   if (_shiSoulSprite._c) return _shiSoulSprite._c;
@@ -28805,7 +28805,7 @@ function _shiNewFog(W, H) {
   return { x: Math.random() * W, y: Math.random() * H, r: 120 + Math.random() * 200,
     vx: (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 10), a: 0.04 + Math.random() * 0.05 };
 }
-// Page-wide smoke puff (deep blue ↔ grey) — placed mostly toward the edges
+// Page-wide smoke puff (deep blue ↔ grey): placed mostly toward the edges
 // so it gathers where the vignette already darkens, rather than the centre.
 function _shiNewSmokePuff(W, H) {
   const ang = Math.random() * Math.PI * 2;
@@ -28931,7 +28931,7 @@ function _drawShiOverlay(canvas, ctx, W, H, t) {
   _drawShiOverlay._lt = t;
   ctx.clearRect(0, 0, W, H);
 
-  // Slow, graceful spring — elegant lag. Updated BEFORE the vignette so the
+  // Slow, graceful spring: elegant lag. Updated BEFORE the vignette so the
   // light-hole punch below tracks this frame's cursor position, not last
   // frame's (the vignette needs the fresh _shiX/_shiY).
   const SPRING = 46, DAMP = 9;
@@ -28939,11 +28939,11 @@ function _drawShiOverlay(canvas, ctx, W, H, t) {
   _shiVY += ((_shiTargY - _shiY) * SPRING - _shiVY * DAMP) * dt;
   _shiX += _shiVX * dt; _shiY += _shiVY * dt;
 
-  // Page-wide dark vignette — this canvas is the top z-index layer (over the
+  // Page-wide dark vignette: this canvas is the top z-index layer (over the
   // nav bar, sidebar, everything), so her cold melancholic frame wraps the
   // WHOLE app, not just the background pattern behind the character panel.
   // The app's base theme is already near-black, so a subtle darkening reads
-  // as invisible — this needs to be bold: it closes in much closer to centre
+  // as invisible, this needs to be bold: it closes in much closer to centre
   // and goes almost fully opaque at the true edges/corners to actually read.
   if (!canvas._shiPageVign || canvas._shiPageVignW !== W || canvas._shiPageVignH !== H) {
     const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.12, W / 2, H / 2, Math.max(W, H) * 0.62);
@@ -28956,7 +28956,7 @@ function _drawShiOverlay(canvas, ctx, W, H, t) {
   ctx.fillStyle = canvas._shiPageVign;
   ctx.fillRect(0, 0, W, H);
 
-  // Deep blue/grey smoke drifting around the vignette — mostly gathered
+  // Deep blue/grey smoke drifting around the vignette: mostly gathered
   // toward the edges, slow wander + gentle flicker, blended additively so
   // overlapping puffs softly brighten. Drawn ON TOP of the vignette so the
   // light-hole punch right after can clear both together in one pass.
@@ -28983,7 +28983,7 @@ function _drawShiOverlay(canvas, ctx, W, H, t) {
   }
   ctx.restore();
 
-  // Her soul-flame is a light source — it punches a soft hole through both
+  // Her soul-flame is a light source: it punches a soft hole through both
   // the vignette AND the smoke wherever the cursor is, gently breathing, so
   // the dark/smoke actually clears around her instead of sitting flat.
   const lightPulse = 0.85 + 0.15 * Math.sin(t * 3);
@@ -29057,9 +29057,9 @@ function _drawShiOverlay(canvas, ctx, W, H, t) {
   ctx.fillStyle = 'rgba(236,246,255,0.9)'; ctx.beginPath(); ctx.arc(_shiX, _shiY, pr * 0.5, 0, Math.PI * 2); ctx.fill();
   ctx.globalCompositeOperation = 'source-over';
 
-  // Elegant blue border framing the WHOLE page — a refined double-line frame
+  // Elegant blue border framing the WHOLE page: a refined double-line frame
   // with small diamond corner accents, breathing softly (not swaying/jittering
-  // — she's calm and composed, not chaotic).
+  //: she's calm and composed, not chaotic).
   const breathe2 = 0.5 + 0.5 * Math.sin(t * 0.5);
   const margin = 10;
   const glowA = 0.32 + breathe2 * 0.22;
@@ -29076,7 +29076,7 @@ function _drawShiOverlay(canvas, ctx, W, H, t) {
   ctx.strokeRect(margin + 4, margin + 4, W - (margin + 4) * 2, H - (margin + 4) * 2);
   ctx.restore();
 
-  // Small diamond flourishes at each corner — a touch of quiet elegance.
+  // Small diamond flourishes at each corner: a touch of quiet elegance.
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.fillStyle = `rgba(212,230,250,${(0.5 + breathe2 * 0.3).toFixed(3)})`;
@@ -29128,7 +29128,7 @@ function _stopShiOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// LUNAR — goddess of the moon. Calm, elegant, melancholic moonlight.
+// LUNAR: goddess of the moon. Calm, elegant, melancholic moonlight.
 // ════════════════════════════════════════════════════════════════
 function _lunarStarSprite() {
   if (_lunarStarSprite._c) return _lunarStarSprite._c;
@@ -29215,7 +29215,7 @@ function _drawLunarPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // 3 ── The Moon (centerpiece) — glow halo + lit disc + soft craters
+  // 3 ── The Moon (centerpiece): glow halo + lit disc + soft craters
   if (!canvas._lunMoonGlow) {
     const g = ctx.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 3.6);
     g.addColorStop(0, 'rgba(150,180,225,0.5)');
@@ -29239,7 +29239,7 @@ function _drawLunarPattern(canvas, ctx, W, H, t) {
   ctx.strokeStyle = 'rgba(228,238,252,0.35)'; ctx.lineWidth = 1.4;
   ctx.beginPath(); ctx.arc(mx, my, mr, Math.PI * 1.05, Math.PI * 1.75); ctx.stroke();
 
-  // 4 ── Drifting clouds (pass over the moon, dim it slightly) — melancholic
+  // 4 ── Drifting clouds (pass over the moon, dim it slightly): melancholic
   if (!canvas._lunClouds) canvas._lunClouds = Array.from({ length: 4 }, () => _lunarNewCloud(W, H));
   ctx.globalCompositeOperation = 'source-over';
   for (const c of canvas._lunClouds) {
@@ -29406,7 +29406,7 @@ function _stopLunarOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// HELIOS — god of the sun. Aggressive, voracious, blinding sun rays.
+// HELIOS: god of the sun. Aggressive, voracious, blinding sun rays.
 // ════════════════════════════════════════════════════════════════
 function _heliosSparkSprite() {
   if (_heliosSparkSprite._c) return _heliosSparkSprite._c;
@@ -29476,7 +29476,7 @@ function _drawHeliosPattern(canvas, ctx, W, H, t) {
   }
   ctx.fillStyle = canvas._helBase; ctx.fillRect(0, 0, W, H);
 
-  // 2 ── Strong rotating sun rays (two layers — bold long spears + a dense fan)
+  // 2 ── Strong rotating sun rays (two layers: bold long spears + a dense fan)
   ctx.globalCompositeOperation = 'lighter';
   _heliosRays(ctx, cx, cy, rayLen, t, 26, 0, 0.09, 0.8);
   _heliosRays(ctx, cx, cy, rayLen, t, 10, 0.4, -0.05, 0.35);   // long bright spears, counter-spin
@@ -29656,7 +29656,7 @@ function _stopHeliosOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// ZOE — spirit of life. A living, blooming, glowing garden.
+// ZOE: spirit of life. A living, blooming, glowing garden.
 // ════════════════════════════════════════════════════════════════
 // Cached soft petal sprites in several flower hues (drawImage, tint baked in).
 function _zoePetalSprites() {
@@ -29936,9 +29936,9 @@ function _stopZoeOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// IRIS — starry, shimmyful, joyous magical-girl sparkle.
+// IRIS: starry, shimmyful, joyous magical-girl sparkle.
 // ════════════════════════════════════════════════════════════════
-// Cached 4-point sparkle glint (warm gold/white) — drawn scaled for twinkle.
+// Cached 4-point sparkle glint (warm gold/white): drawn scaled for twinkle.
 function _irisSparkleSprite(pink) {
   const key = pink ? '_cPink' : '_c';
   if (_irisSparkleSprite[key]) return _irisSparkleSprite[key];
@@ -30015,7 +30015,7 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
   _drawIrisPattern._lt = t;
   if (fresh) canvas._irisShoot = null;   // shooting star uses absolute time → reset on (re)entry
 
-  // "Lady of the Stars!" — Iris's magical-girl transformation alt form gets
+  // "Lady of the Stars!": Iris's magical-girl transformation alt form gets
   // the same scene leveled up into a brighter, more radiant GOLD palette.
   const transformed = _isIrisStarsForm(characters.find(x => x.id === currentId));
 
@@ -30043,7 +30043,7 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
   ctx.fillStyle = canvas._irisBase; ctx.fillRect(0, 0, W, H);
 
   // 1.5 ── Transformation light-burst, magic circle & signature emblem
-  //        (Lady of the Stars only) — a summoning-circle of orbiting stars
+  //        (Lady of the Stars only): a summoning-circle of orbiting stars
   //        ringing a pulsing emblem, radiant gold light rays behind it, and
   //        slow expanding power-pulse rings.
   if (transformed) {
@@ -30079,7 +30079,7 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
       ctx.beginPath(); ctx.arc(cx, cy, p.r, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // magic summoning circle — a ring of small stars orbiting the emblem
+    // magic summoning circle: a ring of small stars orbiting the emblem
     const ringStars = 8, orbR = 78, orbSpin = t * 0.5;
     for (let i = 0; i < ringStars; i++) {
       const ang = orbSpin + i * (Math.PI * 2 / ringStars);
@@ -30087,7 +30087,7 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
       _irisDrawStar(ctx, ox, oy, 6.5, ang, 0.7, true);
     }
 
-    // signature emblem — the big pulsing star at the heart of the circle
+    // signature emblem: the big pulsing star at the heart of the circle
     const pr = 30 + Math.sin(t * 1.4) * 5;
     _irisDrawStar(ctx, cx, cy, pr, t * 0.25, 0.55, true);
     ctx.globalCompositeOperation = 'source-over';
@@ -30139,7 +30139,7 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
 
   // 5.5 ── Falling 5-point stars; some burst into smaller stars shooting out.
   // The cursor (read in canvas-local space) draws nearby stars toward your wand
-  // and pops any it touches — interactive sparkle-catching.
+  // and pops any it touches: interactive sparkle-catching.
   if (!canvas._irisFalls) canvas._irisFalls = Array.from({ length: transformed ? 16 : 10 }, () => _irisNewFall(W, H, true));
   if (!canvas._irisFrags) canvas._irisFrags = [];
   let mx = -99999, my = -99999;
@@ -30167,7 +30167,7 @@ function _drawIrisPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
 
-  // 6 ── Occasional shooting star (re-entry safe) — falls more often & brighter when transformed
+  // 6 ── Occasional shooting star (re-entry safe): falls more often & brighter when transformed
   {
     let sh = canvas._irisShoot;
     if (!sh || t < sh.born) canvas._irisShoot = sh = { next: t + 1.5 + Math.random() * (transformed ? 1.5 : 3), born: -99, dur: 0.9, x0: 0, y0: 0, ang: 0, len: 0 };
@@ -30284,7 +30284,7 @@ function _drawIrisOverlay(canvas, ctx, W, H, t) {
   ctx.fillStyle = sg; ctx.fill();
   ctx.restore();
 
-  // Lady of the Stars — a twin star orbits the wand tip for extra flourish
+  // Lady of the Stars: a twin star orbits the wand tip for extra flourish
   if (transformed) {
     const orbAng = t * 3, orbR = pr * 2.3;
     const ox = _irisX + Math.cos(orbAng) * orbR, oy = _irisY + Math.sin(orbAng) * orbR;
@@ -30327,7 +30327,7 @@ function _stopIrisOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
-// MOUSEBURGER — magical boy. Cool, serious, melancholic midnight; with
+// MOUSEBURGER: magical boy. Cool, serious, melancholic midnight; with
 // a few stray burgers drifting by (never the main plate).
 // ════════════════════════════════════════════════════════════════
 function _mbSparkleSprite() {
@@ -30476,7 +30476,7 @@ function _drawMbPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // 2.5 ── Constellations — brighter stars linked into a quiet star-map. The
+  // 2.5 ── Constellations: brighter stars linked into a quiet star-map. The
   // signature: a structured, brooding night sky, not loose glitter like Iris.
   if (!canvas._mbConst) {
     const N = 22, cs = [];
@@ -30505,7 +30505,7 @@ function _drawMbPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // 2.7 ── A sword spelled out in the stars — his star-sign as Iris's knight
+  // 2.7 ── A sword spelled out in the stars: his star-sign as Iris's knight
   if (!canvas._mbSwordC) {
     const cx0 = W * 0.2, cy0 = H * 0.5, s0 = Math.min(W, H) * 0.34;
     const norm = [[0, 1.0], [0, 0.84], [-0.34, 0.78], [0.34, 0.78], [0, 0.46], [0, 0.0]];
@@ -30564,8 +30564,8 @@ function _drawMbPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // 6 ── Stray drifting burgers (subtle easter egg — never the main plate)
-  // (one of them is Iris's crown) — and you can SLICE a burger clean in half by
+  // 6 ── Stray drifting burgers (subtle easter egg: never the main plate)
+  // (one of them is Iris's crown): and you can SLICE a burger clean in half by
   // swinging the blade through it fast enough (the crown is spared).
   if (!canvas._mbBurgers) canvas._mbBurgers = Array.from({ length: 4 }, (_, i) => { const b = _mbNewBurger(W, H); b.crown = (i === 0); return b; });
   if (!canvas._mbHalves) canvas._mbHalves = [];
@@ -30657,7 +30657,7 @@ function _mbClick() {
     _mbParts.push({ x: _mbX, y: _mbY, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1,
       sz: 4 + Math.random() * 5, grav: 45, tw: 1.5 + Math.random() * 3, ph: Math.random() * 6.28 });
   }
-  // a big burger flung from the blade — swing back through it to slice it!
+  // a big burger flung from the blade: swing back through it to slice it!
   const a = Math.random() * Math.PI * 2, s = 95 + Math.random() * 130;
   _mbParts.push({ kind: 'burger', x: _mbX, y: _mbY, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 75, life: 1, decay: 0.32,
     sz: 1.0 + Math.random() * 0.55, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 4, grav: 210, cuttable: true, cutArm: 0.22 });
@@ -30701,7 +30701,7 @@ function _drawMbOverlay(canvas, ctx, W, H, t) {
     ctx.strokeStyle = `rgba(255,180,108,${r.life * 0.5})`; ctx.lineWidth = 2 + r.life * 3;
     ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
   }
-  // sword slashes — a bright crescent swing afterimage
+  // sword slashes: a bright crescent swing afterimage
   for (let i = _mbSlashes.length - 1; i >= 0; i--) {
     const s = _mbSlashes[i];
     s.life -= dt * 2.6;
@@ -30753,7 +30753,7 @@ function _drawMbOverlay(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // constellation thread — a glowing line woven through the cursor's path, with
+  // constellation thread: a glowing line woven through the cursor's path, with
   // small star nodes brightening toward the head (his signature mechanic)
   _mbThread.push({ x: _mbX, y: _mbY });
   if (_mbThread.length > 16) _mbThread.shift();
@@ -30820,7 +30820,7 @@ function drawPattern(canvas, type, params, t) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
 
-  // Special: Bizzy's bee pattern — always overrides stored type
+  // Special: Bizzy's bee pattern: always overrides stored type
   if (type === 'bizzy_bees')     { _drawBizzyPattern(canvas, ctx, W, H, t);         return; }
   if (type === 'blackjack_neon') { _drawBlackjackPattern(canvas, ctx, W, H, t);      return; }
   if (type === 'katie_pond')     { _drawKatiePattern(canvas, ctx, W, H, t);          return; }
@@ -30888,7 +30888,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'classic_save')   { _drawClassicSavePattern(canvas, ctx, W, H, t);         return; }
   if (type === 'classic_ghost')  { _drawClassicGhostPattern(canvas, ctx, W, H, t);        return; }
 
-  // Static noise: handle BEFORE clearRect — skip frames cost only a drawImage
+  // Static noise: handle BEFORE clearRect, skip frames cost only a drawImage
   if (type === 'static_noise') {
     const spd = params.speed || 15;
     const sz = params.size || 4;
@@ -31328,7 +31328,7 @@ function startBgAnim(type, params) {
   if (_perfMode) { canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); return; }
   canvas._matrixCols = null; canvas._matrixW = 0; canvas._diamonds = null; canvas._pixels = null; canvas._stars = null; canvas._noiseFrame = 0; canvas._noiseBuf = null;
 
-  // Reset 30fps cap timestamps — each pattern stores _lt relative to its own
+  // Reset 30fps cap timestamps: each pattern stores _lt relative to its own
   // t0 (which resets to 0 on every startBgAnim call). Without this reset,
   // _lt from the previous session (e.g. 3.5s) causes every frame to be skipped
   // until t catches back up, giving a multi-second blank delay on re-entry.
@@ -31575,7 +31575,7 @@ function buildCharEntry(c, contextFolderId) {
     else { playSound('characterchange', { volume: 0.7 }); viewChar(c.id); }
   });
 
-  // Drag and drop — see the drag helpers above renderSidebar()
+  // Drag and drop: see the drag helpers above renderSidebar()
   el.setAttribute('draggable', 'true');
   el.dataset.charId = c.id;
   el.addEventListener('dragstart', e => {
@@ -31614,7 +31614,7 @@ function buildCharEntry(c, contextFolderId) {
 // on every dragover tick, which with a hundred-odd characters meant hundreds
 // of class writes per second and made dragging stutter badly.
 // ============================================================
-let _dragKind = null;      // 'char' | 'folder' — what is being dragged
+let _dragKind = null;      // 'char' | 'folder': what is being dragged
 let _dragId = null;
 let _dropTarget = null;    // { el, cls }
 
@@ -31991,7 +31991,7 @@ function viewChar(id) {
   document.getElementById('empty-state').style.display = 'none';
   const cv = document.getElementById('char-view');
   if (!cv.classList.contains('active')) {
-    // First reveal — play the entry animation (doesn't scroll reset because
+    // First reveal: play the entry animation (doesn't scroll reset because
     // the view wasn't taking up any space before).
     cv.classList.add('active');
   }
@@ -32182,7 +32182,7 @@ function viewChar(id) {
       _cvRoot.classList.add('juko-ui');
       const _0inf = _isJuko0Inf(c);
       _cvRoot.classList.toggle('juko-0inf', _0inf);
-      // 0∞ goes beyond the character page — the WHOLE app UI (top nav,
+      // 0∞ goes beyond the character page: the WHOLE app UI (top nav,
       // sidebar) glitches while she's in this form.
       document.body.classList.toggle('juko-0inf-page', _0inf);
       // Start/stop the 0∞ intro timer + glitch-window extras only on TRANSITION,
@@ -32222,7 +32222,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Lucifer · Unleashed — demonic UI chrome (infernal panels, hellish pfp,
+  // ── Lucifer · Unleashed: demonic UI chrome (infernal panels, hellish pfp,
   // menacing glitching name). Only while the Unleashed form is active. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32242,7 +32242,7 @@ function viewChar(id) {
     }
   }
 
-  // ── The Shi — elegant soul-garden UI chrome (frost-pale panels, ethereal
+  // ── The Shi: elegant soul-garden UI chrome (frost-pale panels, ethereal
   // breathing name, spectral portrait). Character-wide. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32262,7 +32262,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Lunar — moonlit UI chrome (deep-blue panels, silver breathing name,
+  // ── Lunar: moonlit UI chrome (deep-blue panels, silver breathing name,
   // moonlit portrait). Character-wide. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32282,7 +32282,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Helios — blazing solar UI chrome (molten-gold panels, fierce radiant
+  // ── Helios: blazing solar UI chrome (molten-gold panels, fierce radiant
   // name, sun-forged portrait). Character-wide. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32302,7 +32302,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Zoe — living-garden UI chrome (verdant panels, blooming name, leafy
+  // ── Zoe: living-garden UI chrome (verdant panels, blooming name, leafy
   // portrait). Character-wide. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32322,7 +32322,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Iris — shimmyful magical-girl UI chrome (golden sparkle panels, twinkling
+  // ── Iris: shimmyful magical-girl UI chrome (golden sparkle panels, twinkling
   // name, starlit portrait). Character-wide. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32342,7 +32342,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Amber — goddess-of-magic UI chrome: violet sanctum panels rimmed in a
+  // ── Amber, goddess-of-magic UI chrome: violet sanctum panels rimmed in a
   // slow magenta glow, a name that shimmers like candlelight on rose gold, and
   // a portrait ringed in turning moonrunes. Warm, never harsh. ──
   {
@@ -32377,7 +32377,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Mouseburger — cool magical-boy UI chrome (indigo panels, serious silver
+  // ── Mouseburger: cool magical-boy UI chrome (indigo panels, serious silver
   // name, midnight portrait). Character-wide. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32397,7 +32397,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Divine — radiant goddess-of-light UI chrome (luminous gold panels, holy
+  // ── Divine: radiant goddess-of-light UI chrome (luminous gold panels, holy
   // glowing name, haloed portrait). The heavenly mirror of Lucifer. Placed last
   // so its name data-text is never stripped by an earlier block. Character-wide. ──
   {
@@ -32425,7 +32425,7 @@ function viewChar(id) {
     }
   }
 
-  // ── ✨DIVA✨ — erratic rainbow-virus UI chrome (glitching rainbow panels +
+  // ── ✨DIVA✨: erratic rainbow-virus UI chrome (glitching rainbow panels +
   // a glitching, RGB-split rainbow name). ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32439,7 +32439,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Emporium — opulent gold gun-range UI chrome (brushed-gold panels, engraved
+  // ── Emporium: opulent gold gun-range UI chrome (brushed-gold panels, engraved
   // metallic name, framed portrait). Character-wide. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32459,7 +32459,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Alsace — dark jester UI chrome (deep-blue spiral panels, woozy glitching
+  // ── Alsace: dark jester UI chrome (deep-blue spiral panels, woozy glitching
   // name, hypno-spiral portrait). Character-wide. Placed after Emporium so its
   // name data-text survives. ──
   {
@@ -32482,7 +32482,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Jeckely — tense theatre-jester UI chrome (black/crimson panels, a
+  // ── Jeckely: tense theatre-jester UI chrome (black/crimson panels, a
   // nervously flickering name, spotlit portrait). Character-wide. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32502,7 +32502,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Mimzy — soft sweet-jester UI chrome (pink-tinted panels, a tender glowing
+  // ── Mimzy: soft sweet-jester UI chrome (pink-tinted panels, a tender glowing
   // name with a petal-pink shimmer, blossom-framed portrait). Character-wide. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32522,7 +32522,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Bizzy — warm honeycomb UI chrome (golden hive panels with a hexagon
+  // ── Bizzy: warm honeycomb UI chrome (golden hive panels with a hexagon
   // mesh, a honey-glowing name, and a comb-framed portrait). Placed last among
   // the opacity-setting blocks so the brighter pattern survives. ──
   {
@@ -32543,7 +32543,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Omen — dark-theatre UI chrome (deep bordeaux velvet panels, a magenta
+  // ── Omen: dark-theatre UI chrome (deep bordeaux velvet panels, a magenta
   // ringmaster name and a spotlit portrait). BASE FORM ONLY. Placed last among
   // the opacity-setting blocks. ──
   {
@@ -32564,7 +32564,7 @@ function viewChar(id) {
     }
   }
 
-  // ── EX — monochrome glitch UI chrome (grey static panels, an RGB-split-less
+  // ── EX: monochrome glitch UI chrome (grey static panels, an RGB-split-less
   // black/white glitching name and a flickering portrait). Placed last among
   // the opacity-setting blocks. ──
   {
@@ -32585,7 +32585,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Riegen — phoenix UI chrome (charred ember panels, a flame-lit name and
+  // ── Riegen: phoenix UI chrome (charred ember panels, a flame-lit name and
   // a smouldering portrait). Placed last among the opacity-setting blocks. ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32605,7 +32605,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Lorraine — gilded Victorian UI chrome (antique-gold damask panels, a
+  // ── Lorraine: gilded Victorian UI chrome (antique-gold damask panels, a
   // regal golden name and an ornately framed portrait). Placed last among the
   // opacity-setting blocks. ──
   {
@@ -32626,7 +32626,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Simmer — starry-prince UI chrome (deep sea-sky panels with a cyan
+  // ── Simmer: starry-prince UI chrome (deep sea-sky panels with a cyan
   // shimmer, a star-bright name and a tide-ringed portrait). Placed last
   // among the opacity-setting blocks. ──
   {
@@ -32647,7 +32647,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Omen · BARTENDER — speakeasy UI chrome (warm amber-on-bordeaux bar
+  // ── Omen · BARTENDER: speakeasy UI chrome (warm amber-on-bordeaux bar
   // panels, a neon-sign name and a lamplit portrait). Form-specific. Placed
   // last among the opacity-setting blocks. ──
   {
@@ -32862,7 +32862,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Haru — parasitic-void UI chrome (infected purple panels with a pulsing
+  // ── Haru: parasitic-void UI chrome (infected purple panels with a pulsing
   // vein border, an unsettling breathing name and a watched portrait). Placed
   // last among the opacity-setting blocks. ──
   {
@@ -32883,7 +32883,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Fury — the fire dictator: molten infernal UI chrome ──
+  // ── Fury, the fire dictator: molten infernal UI chrome ──
   {
     const _cvRoot = document.getElementById('char-view');
     const _av = document.getElementById('cv-avatar');
@@ -32899,7 +32899,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Annie (AntiChrist) — black + blood-red UI chrome. Sharp, cold, no ──
+  // ── Annie (AntiChrist): black + blood-red UI chrome. Sharp, cold, no ──
   {
     const _cvRoot = document.getElementById('char-view');
     const _av = document.getElementById('cv-avatar');
@@ -32915,7 +32915,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Vikadan — cyan casino UI chrome (neon felt panels, card/suit motifs) ──
+  // ── Vikadan: cyan casino UI chrome (neon felt panels, card/suit motifs) ──
   {
     const _cvRoot = document.getElementById('char-view');
     const _av = document.getElementById('cv-avatar');
@@ -32931,7 +32931,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Classic — UNDERTALE dialogue-box UI chrome for ALL his forms (white
+  // ── Classic: UNDERTALE dialogue-box UI chrome for ALL his forms (white
   // pixel-box panels, a glitch-split name, a soul-marked portrait, and stats
   // that are permanently corrupted). The Determination. form goes red. ──
   {
@@ -32960,7 +32960,7 @@ function viewChar(id) {
     }
   }
 
-  // ── Evelynn — elegant blood-moon UI chrome (deep crimson panels + a softly
+  // ── Evelynn: elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32969,7 +32969,7 @@ function viewChar(id) {
     else { _cvRoot.classList.remove('evelynn-ui'); if (_nm) _nm.classList.remove('evelynn-name'); }
   }
 
-  // ── Oliver — wild-west UI chrome (aged dark-wood panels + a gold, lantern-lit
+  // ── Oliver: wild-west UI chrome (aged dark-wood panels + a gold, lantern-lit
   // sheriff name). ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -32978,7 +32978,7 @@ function viewChar(id) {
     else { _cvRoot.classList.remove('oliver-ui'); if (_nm) _nm.classList.remove('oliver-name'); }
   }
 
-  // ── Spruce — lavish white-rose UI chrome (ivory panels + glowing white name). ──
+  // ── Spruce: lavish white-rose UI chrome (ivory panels + glowing white name). ──
   {
     const _cvRoot = document.getElementById('char-view');
     const _nm = document.getElementById('cv-name');
@@ -32986,7 +32986,7 @@ function viewChar(id) {
     else { _cvRoot.classList.remove('spruce-ui'); if (_nm) _nm.classList.remove('spruce-name'); }
   }
 
-  // ── Momo — foggy grey-wasteland UI chrome (ashen panels + a pale, crimson-lit name). ──
+  // ── Momo: foggy grey-wasteland UI chrome (ashen panels + a pale, crimson-lit name). ──
   {
     const _cvRoot = document.getElementById('char-view');
     const _nm = document.getElementById('cv-name');
@@ -32994,7 +32994,7 @@ function viewChar(id) {
     else { _cvRoot.classList.remove('momo-ui'); if (_nm) _nm.classList.remove('momo-name'); }
   }
 
-  // ── Ronnette — scorched-orange industrial UI chrome (charred panels + a
+  // ── Ronnette: scorched-orange industrial UI chrome (charred panels + a
   // flickering ember name). ──
   {
     const _cvRoot = document.getElementById('char-view');
@@ -33003,7 +33003,7 @@ function viewChar(id) {
     else { _cvRoot.classList.remove('ronnette-ui'); if (_nm) _nm.classList.remove('ronnette-name'); }
   }
 
-  // ── Miami — glossy Frutiger-Aero UI chrome (aqua glass panels + a chrome-blue name). ──
+  // ── Miami: glossy Frutiger-Aero UI chrome (aqua glass panels + a chrome-blue name). ──
   {
     const _cvRoot = document.getElementById('char-view');
     const _nm = document.getElementById('cv-name');
@@ -33011,7 +33011,7 @@ function viewChar(id) {
     else { _cvRoot.classList.remove('miami-ui'); if (_nm) _nm.classList.remove('miami-name'); }
   }
 
-  // ── Joni — leafy jungle UI chrome (green foliage panels + a leafy name). ──
+  // ── Joni: leafy jungle UI chrome (green foliage panels + a leafy name). ──
   {
     const _cvRoot = document.getElementById('char-view');
     const _nm = document.getElementById('cv-name');
@@ -33029,7 +33029,7 @@ function viewChar(id) {
     { key: 'spd', label: 'SPD', icon: `<svg width="14" height="14" viewBox="0 0 10 10" style="margin-right:6px; flex-shrink: 0; color: var(--accent-yellow);"><path d="M6 0L2 5H5L4 10L9 4H5Z" fill="currentColor"/></svg>` },
     { key: 'iq',  label: 'IQ',  icon: `<svg width="14" height="14" viewBox="0 0 10 10" style="margin-right:6px; flex-shrink: 0; color: #00bbcc;"><path d="M4 2C3 2 2 3 2 4.5c0 1 .5 2 1.5 2.5C3 8.5 4 8.5 5 8.5c1 0 2 0 1.5-1.5C7.5 6.5 8 5.5 8 4.5 8 3 7 2 6 2c-.5 0-1 .2-1 .5C5 2.2 4.5 2 4 2zm1 .5V8M3.5 4C4 3.5 4.5 3.6 4.5 4.1M5.5 4C6 3.5 6.5 3.6 6.5 4.1M3.5 5.7C4 5.2 4.5 5.3 4.5 5.8M5.5 5.7C6 5.2 6.5 5.3 6.5 5.8" fill="none" stroke="currentColor" stroke-width="0.75" stroke-linecap="round"/></svg>` },
   ];
-  // 0∞: ATK/DEF/MAG/IQ read as infinite — the number occasionally glitches
+  // 0∞: ATK/DEF/MAG/IQ read as infinite, the number occasionally glitches
   // into her real value for a frame (driven by _juko0InfWinFrame).
   const _0infStats = _isJuko0Inf(c);
   statsEl.innerHTML = stats.map(s => {
@@ -33069,7 +33069,7 @@ function viewChar(id) {
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
   if (_isNara(c) && !_isNaraThemedForm(c)) {
-    // Nara has no "pattern" panel — the Style tab is just her blank paint canvas.
+    // Nara has no "pattern" panel: the Style tab is just her blank paint canvas.
     if (_stPanel) _stPanel.style.display = 'none';
     styleEl.innerHTML = '';
   } else {
@@ -33085,7 +33085,7 @@ function viewChar(id) {
     });
   }
   }
-  // Iris-only "shimmy counter" — tally of falling stars popped with the cursor
+  // Iris-only "shimmy counter": tally of falling stars popped with the cursor
   if (_isIris(c)) {
     styleEl.innerHTML +=
       `<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,210,90,0.25);font-size:9px;letter-spacing:2px;line-height:1.8;color:#ffe08a;">` +
@@ -33236,7 +33236,7 @@ function switchTab(tab, btn) {
   }
 }
 
-// Jump to a tab by name — used by the mini-player bar click
+// Jump to a tab by name: used by the mini-player bar click
 function switchTabById(tab) {
   const btn = document.getElementById('tab-btn-' + tab);
   if (btn) switchTab(tab, btn);
@@ -33291,7 +33291,7 @@ function inlineMarkdown(raw) {
 }
 
 function renderMarkdown(raw) {
-  if (!raw || !raw.trim()) return '<span style="opacity:0.2;font-size:7px;letter-spacing:1px;">— empty —</span>';
+  if (!raw || !raw.trim()) return '<span style="opacity:0.2;font-size:7px;letter-spacing:1px;">: empty: </span>';
   const lines = raw.split('\n');
   let html = '', inList = false;
   for (const line of lines) {
@@ -33331,7 +33331,7 @@ function toggleInfoPreview(key) {
 }
 
 // ============================================================
-// INFO TAB — media links
+// INFO TAB: media links
 // ============================================================
 function _esc(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -33408,7 +33408,7 @@ async function onVoiceClaimFileSelected(input) {
   const file = input.files[0];
   input.value = '';
   if (file == null) return;
-  if (file.size > THEME_MAX_MB * 1024 * 1024) { notify(`File too large — max ${THEME_MAX_MB} MB`, 'err'); return; }
+  if (file.size > THEME_MAX_MB * 1024 * 1024) { notify(`File too large: max ${THEME_MAX_MB} MB`, 'err'); return; }
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
   const idx = _vcUploadIdx;
@@ -33426,7 +33426,7 @@ async function onVoiceClaimFileSelected(input) {
     notify('Voice clip added', 'ok');
   } catch (err) {
     console.warn('[VoiceClaim] upload failed:', err);
-    notify('Upload failed — try again', 'err');
+    notify('Upload failed: try again', 'err');
   }
 }
 function clearVoiceClaimAudio(idx) {
@@ -33526,7 +33526,7 @@ function updateInfoLink(key, idx, field, val) {
 }
 
 // ============================================================
-// ALTERNATE FORMS — view-side
+// ALTERNATE FORMS: view-side
 // ============================================================
 // Sync just the avatar element to whichever form is active (used on remote updates)
 function _syncAvatarEl(c) {
@@ -33590,7 +33590,7 @@ function switchForm(idx) {
 }
 
 // ============================================================
-// ALTERNATE FORMS — editor-side
+// ALTERNATE FORMS: editor-side
 // ============================================================
 
 // Build a full substats object from a partial source; coerceNumbers=true rounds to numbers
@@ -33780,7 +33780,7 @@ function renderEditorForms() {
             <div style="font-size:7px;letter-spacing:1px;color:#333;margin-top:10px;line-height:1.8;">
               ${(f.traits && f.traits.length)
         ? `Trait: <span style="color:#888;">${escHtml(f.traits.map(k => (TRAITS[k] && TRAITS[k].name) || k).join(', '))}</span><br>Reroll it from the ROLL button.`
-        : `No trait of its own —<br>inherits the base form's.`}
+        : `No trait of its own: <br>inherits the base form's.`}
             </div>
           </div>
         </div>
@@ -34265,13 +34265,13 @@ async function deleteCurrent() { if (currentId) deleteChar(currentId); }
 
 function randomizeHeart() {
   const colors = [
-    '#ff0000', // Red — Determination
-    '#64a4ecff', // Aqua — Patience
-    '#f7912bff', // Orange — Bravery
-    '#001affff', // Blue — Integrity
-    '#7338e0ff', // Purple — Perseverance
-    '#21da21ff', // Green — Kindness
-    '#ffff00', // Yellow — Justice
+    '#ff0000', // Red: Determination
+    '#64a4ecff', // Aqua: Patience
+    '#f7912bff', // Orange: Bravery
+    '#001affff', // Blue: Integrity
+    '#7338e0ff', // Purple: Perseverance
+    '#21da21ff', // Green: Kindness
+    '#ffff00', // Yellow: Justice
   ];
   const solid = document.getElementById('heart-solid');
   const overlay = document.getElementById('heart-split-overlay');
@@ -34356,7 +34356,7 @@ document.addEventListener('mouseover', function (e) {
     tooltip.style.display = 'none';
   });
 
-  // On touch devices mouseleave never fires — hide on any subsequent tap
+  // On touch devices mouseleave never fires: hide on any subsequent tap
   document.addEventListener('touchstart', () => {
     tooltip.style.display = 'none';
   }, { passive: true });
@@ -34399,8 +34399,8 @@ function rollDice() {
 
   // Ease-out scramble: starts fast (~50ms gaps), stretches to ~400ms by the end
   const duration = 2200; // total roll duration in ms
-  const minInterval = 45; // fastest scramble gap (ms) — start of roll
-  const maxInterval = 380; // slowest scramble gap (ms) — just before landing
+  const minInterval = 45; // fastest scramble gap (ms): start of roll
+  const maxInterval = 380; // slowest scramble gap (ms): just before landing
 
   const startTime = performance.now();
   let lastFlip = startTime;
@@ -34579,7 +34579,7 @@ function rollStatusEffect() {
 
   if (typeof playSound === 'function') playSound('diceroll', { rate: 0.9 + Math.random() * 0.2, volume: 0.7 });
 
-  // Fixed 55ms interval, 40 ticks (~2.2s) — identical pattern to rollCrit
+  // Fixed 55ms interval, 40 ticks (~2.2s): identical pattern to rollCrit
   let ticks = 0;
   let skipNext = 0; // how many ticks to hold the current preview (slows apparent speed)
 
@@ -34728,7 +34728,7 @@ function loadSuggestions() {
   db.collection('suggestions').orderBy('createdAt', 'desc').limit(40).get()
     .then(snap => {
       if (snap.empty) {
-        list.innerHTML = '<div style="font-size:8px;color:#333;padding:8px 0;letter-spacing:1px;">NO SUGGESTIONS YET — BE THE FIRST.</div>';
+        list.innerHTML = '<div style="font-size:8px;color:#333;padding:8px 0;letter-spacing:1px;">NO SUGGESTIONS YET: BE THE FIRST.</div>';
         return;
       }
 
@@ -34756,7 +34756,7 @@ function loadSuggestions() {
             <div class="sugg-card-desc">${s.desc}</div>
             ${s.effect ? `<div class="sugg-card-effect"><span class="sugg-effect-label">STAT IDEA</span>${s.effect}</div>` : ''}
             <div class="sugg-card-footer">
-              <span style="color:#444;">${s.submitter ? '— ' + s.submitter : '— Anonymous'}</span>
+              <span style="color:#444;">${s.submitter ? '- ' + s.submitter : ': Anonymous'}</span>
               <span style="color:#333;">${date}</span>
             </div>
           </div>`;
@@ -34823,7 +34823,7 @@ function toggleRadarChart() {
   }
 }
 
-// Animated radar state — tracks interpolated effective stat values per character
+// Animated radar state: tracks interpolated effective stat values per character
 const _radarAnim = { charId: null, current: null, target: null, frame: null };
 const RADAR_KEYS = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'];
 
@@ -34884,7 +34884,7 @@ function _drawRadarFrame(svg, c, effVals) {
   const pts = arr => arr.map(p => p.join(',')).join(' ');
 
   // Outer ring = Mountain Level cap (STAT_HARD_MAX).
-  // Below the cap: sqrt curve so weaker characters aren't invisibly tiny —
+  // Below the cap: sqrt curve so weaker characters aren't invisibly tiny: 
   //   athlete-level (~5% of cap) appears at ~22% of the ring rather than 5%.
   //   Mountain-level still hits the ring exactly.
   // Past the cap: log2-compressed so the shape grows but slows down fast.
@@ -34918,7 +34918,7 @@ function _drawRadarFrame(svg, c, effVals) {
     return `<circle cx="${dx}" cy="${dy}" r="3.5" fill="${COLS[RADAR_KEYS[i]]}" stroke="#000" stroke-width="1"/>`;
   }).join('');
 
-  // ── Labels (static positions — don't animate) ───────────────
+  // ── Labels (static positions: don't animate) ───────────────
   const labelR = 1.26;
   const labels = RADAR_KEYS.map((k, i) => {
     const [lx, ly] = cartesian(i, labelR);
@@ -35000,7 +35000,7 @@ function getEffectiveStats(c) {
   };
 
   // For base characters, locked substats are always 0 (they're fully derived from main stats).
-  // For alt forms, the user can set them freely — those values become the starting base.
+  // For alt forms, the user can set them freely: those values become the starting base.
   if (!_activeAltForm) {
     const lockedSubstats = ['crit_rate', 'crit_dmg', 'status_res', 'resilience', 'true_dmg', 'lifesteal', 'cooldown_red'];
     lockedSubstats.forEach(key => subBase[key] = 0);
@@ -35153,7 +35153,7 @@ function renderSubstatsDisplay(c, effStats) {
     { key: 'cooldown_red', label: 'COOLDOWN RED.', color: '#00aaff', icon: '<svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1"/><path d="M5 2 L5 5 L7 7" fill="none" stroke="currentColor" stroke-width="1"/></svg>', title: 'Reduces skill cooldowns. +1% CDR per 20 SPEED. Max 40% without items.' },
   ];
 
-  // Sanity: base 80 for perfectsoul owners (−5/soul), 100 otherwise. Items can add/subtract.
+  // Sanity: base 80 for perfectsoul owners (-5/soul), 100 otherwise. Items can add/subtract.
   const _hasPerfectSoul = _formTraits(c).includes('perfectsoul');
   let _sanityItemDelta = 0;
   let _sanityItemLines = '';
@@ -35322,7 +35322,7 @@ function toggleEquip(itemId) {
     saveData(c);
     renderInventory(c);
     updateLiveStats(c);
-    // Trait tooltips are lazily cached — invalidate so the next hover recomputes
+    // Trait tooltips are lazily cached: invalidate so the next hover recomputes
     // with the new item stats included in getEffectiveStats
     document.querySelectorAll('.trait-chip[data-trait]').forEach(chip => {
       delete chip.dataset.tooltip;
@@ -35805,20 +35805,20 @@ if (document.getElementById('stat-checker-rows')) {
 // HOW TO ADD A NEW TRAIT
 // ============================================================
 //
-// Quick template — paste inside the TRAITS object and fill in the fields:
+// Quick template, paste inside the TRAITS object and fill in the fields:
 //
 //   traitKey: {
 //     name: 'Display Name',    // text shown on the trait chip in the UI
-//     rarity: 'common',        // controls chip color — see RARITIES below
+//     rarity: 'common',        // controls chip color: see RARITIES below
 //     desc: 'What it does.',   // short description shown on the chip / hover
-//     passive: [],             // stat modifiers — always include, even if empty
+//     passive: [],             // stat modifiers, always include, even if empty
 //
 //     // ── optional fields ──
 //     notes: 'DM note.',       // extra note shown in the stat panel (no UI chip)
-//     situational: [...],      // in-fight toggle buttons — see SITUATIONAL below
-//     cultivation: {...},      // permanent stackable counter — see CULTIVATION
-//     heavenly:   {...},       // duality traits only — heavenly form data
-//     hellforged: {...},       // duality traits only — hellforged form data
+//     situational: [...],      // in-fight toggle buttons, see SITUATIONAL below
+//     cultivation: {...},      // permanent stackable counter, see CULTIVATION
+//     heavenly:   {...},       // duality traits only, heavenly form data
+//     hellforged: {...},       // duality traits only, hellforged form data
 //   },
 //
 // ── RARITIES ─────────────────────────────────────────────────────────────────
@@ -35828,7 +35828,7 @@ if (document.getElementById('stat-checker-rows')) {
 //   'legendary'  yellow / gold chip
 //   'mythic'     orange / red gradient chip
 //   'hexxed'     dark purple / black chip  (almost never rolled normally)
-//   'duality'    split chip — requires both heavenly:{} and hellforged:{} blocks
+//   'duality'    split chip, requires both heavenly:{} and hellforged:{} blocks
 //   'determined' special evolving heartbeat chip
 //
 // ── PASSIVE FORMAT ────────────────────────────────────────────────────────────
@@ -35848,7 +35848,7 @@ if (document.getElementById('stat-checker-rows')) {
 //     'true_dmg'     'cooldown_red' 'dexterity'    'resilience'
 //     'status_res'   'all_sub'      (targets every substat at once)
 //
-//   derived passive — scales from another stat:
+//   derived passive, scales from another stat:
 //     { op:'derived', stat:'atk', from:'hp', per:50, perValue:1, cap:200 }
 //     → +1 ATK for every 50 HP, capped at +200 ATK.
 //     Use perPct instead of perValue for percentage scaling.
@@ -35859,7 +35859,7 @@ if (document.getElementById('stat-checker-rows')) {
 //     {
 //       id:      'unique-key',           // MUST be unique across ALL traits
 //       label:   'Button label',         // text on the toggle button
-//       desc:    'Optional tooltip.',    // optional — shows on hover
+//       desc:    'Optional tooltip.',    // optional: shows on hover
 //       passive: [{ stat:'atk', op:'pct', value:20 }],
 //     },
 //   ]
@@ -35882,7 +35882,7 @@ if (document.getElementById('stat-checker-rows')) {
 //   // situational: [...] is optional and shared between both sides
 //
 // ── NOTES ─────────────────────────────────────────────────────────────────────
-//   notes:  shown in small text below the stat panel — use for DM rulings,
+//   notes:  shown in small text below the stat panel, use for DM rulings,
 //           per-hit or per-kill mechanics, things that don't have a direct
 //           stat value, or anything that needs a longer explanation.
 //
@@ -35893,7 +35893,7 @@ if (document.getElementById('stat-checker-rows')) {
 
 
 // ============================================================
-// TRAIT ROLES — used by the codex to group traits within each rarity
+// TRAIT ROLES: used by the codex to group traits within each rarity
 // Values: 'dps' | 'tank' | 'assassin' | 'support' | 'scaling' | 'utility'
 // ============================================================
 const TRAIT_ROLES = {
@@ -36321,7 +36321,7 @@ function buildTraitPassives(c) {
   const triggers = c.traitTriggers || {};
   const stacks = c.traitStacks || {};
   getActiveTraits(c).forEach(({ key, def }) => {
-    // DUALITY — use heavenly or hellforged passive set based on current state
+    // DUALITY: use heavenly or hellforged passive set based on current state
     if (def.rarity === 'duality') {
       const state = (c.dualityState || {})[key] || 'heavenly';
       const sd = def[state] || def;
@@ -36340,7 +36340,7 @@ function buildTraitPassives(c) {
       });
       return;
     }
-    // CAPITALIST — scale non-HP/non-IQ main stats from the character treasury
+    // CAPITALIST: scale non-HP/non-IQ main stats from the character treasury
     if (key === 'capitalist') {
       const active = !!(c.traitStacks || {})['capitalist:active'];
       const goldAmount = Number(c.gold || 0);
@@ -36352,7 +36352,7 @@ function buildTraitPassives(c) {
       }
       return;
     }
-    // DETERMINATION — MERCYFUL grants stat passives; check forced state override first
+    // DETERMINATION: MERCYFUL grants stat passives; check forced state override first
     if (key === 'determination') {
       const forced = (stacks['determination:state'] || '');
       const kills_ = (stacks['determination:kills'] || 0);
@@ -36376,7 +36376,7 @@ function buildTraitPassives(c) {
       }
       return;
     }
-    // MISSING NO. — apply stored random stat multipliers
+    // MISSING NO.: apply stored random stat multipliers
     if (key === 'missingno') {
       const rolls = c.missingNoRolls;
       if (rolls) {
@@ -36386,7 +36386,7 @@ function buildTraitPassives(c) {
       }
       return;
     }
-    // AT THOUSAND DOORS — apply compounded permanent stat multipliers
+    // AT THOUSAND DOORS: apply compounded permanent stat multipliers
     if (key === 'thousanddoors') {
       const accum = c.thousandDoorsAccum;
       if (accum) {
@@ -36396,7 +36396,7 @@ function buildTraitPassives(c) {
       }
       return;
     }
-    // ANOTHER, AND ANOTHER — apply stored randomized stats (rerolled on button press)
+    // ANOTHER, AND ANOTHER: apply stored randomized stats (rerolled on button press)
     if (key === 'anotherandanother') {
       const drunk = c.drunkStats;
       if (drunk) {
@@ -36407,7 +36407,7 @@ function buildTraitPassives(c) {
       }
       // still fall through to pick up the 15-drink situational button
     }
-    // I WANT A PERFECT SOUL — apply absorbed soul stats as flat additions
+    // I WANT A PERFECT SOUL: apply absorbed soul stats as flat additions
     if (key === 'perfectsoul') {
       const data = c.perfectSoulData;
       if (data && data.souls && data.souls.length) {
@@ -36570,7 +36570,7 @@ function renderTraitsDisplay(c) {
     const t = TRAITS[key];
     if (!t) return '';
     const rarity = t.rarity;
-    // DUALITY — heavenly/hellforged toggle chip
+    // DUALITY: heavenly/hellforged toggle chip
     if (rarity === 'duality') {
       const duState = (c.dualityState || {})[key] || 'heavenly';
       const duDef = t[duState] || t;
@@ -36605,7 +36605,7 @@ function renderTraitsDisplay(c) {
           <button class="trait-chip-remove" onclick="removeTrait('${key}', event)" title="Remove trait">✕</button>
         </div>`;
     }
-    // DETERMINATION — evolving chip with state buttons + counters
+    // DETERMINATION: evolving chip with state buttons + counters
     if (key === 'determination') {
       const stacks_ = c.traitStacks || {};
       const kills = stacks_['determination:kills'] || 0;
@@ -36756,7 +36756,7 @@ function renderTraitsDisplay(c) {
 }
 
 function renderTraitSituationals(c, key) {
-  // MISSING NO. — custom reroll button instead of normal situationals
+  // MISSING NO.: custom reroll button instead of normal situationals
   if (key === 'missingno') {
     const rolls = c.missingNoRolls;
     let rollDisplay = '';
@@ -36764,9 +36764,9 @@ function renderTraitSituationals(c, key) {
       const parts = ['hp', 'atk', 'def', 'mag', 'spd'].map(s => `${s.toUpperCase()} x${(rolls[s] ?? 1).toFixed(2)}`).join(' &nbsp; ');
       rollDisplay = `<div style="font-size:7px;color:#aaa;letter-spacing:1px;margin-bottom:4px;">${parts}</div>`;
     }
-    return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollMissingNo(event)" data-tooltip="Randomize all stats between x0.5–x3 (x0.25–x5.5 for SHIMMYFUL). Simulates the start-of-battle chaos roll.">&#9889; REROLL STATS</button></div>`;
+    return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollMissingNo(event)" data-tooltip="Randomize all stats between x0.5-x3 (x0.25-x5.5 for SHIMMYFUL). Simulates the start-of-battle chaos roll.">&#9889; REROLL STATS</button></div>`;
   }
-  // GLITCH — custom reroll button
+  // GLITCH: custom reroll button
   if (key === 'glitch') {
     const rolls = c.glitchRolls;
     const shimmy = isShimmyful(c, key);
@@ -36776,9 +36776,9 @@ function renderTraitSituationals(c, key) {
       const parts = ['hp', 'atk', 'def', 'mag', 'spd'].map(s => `${s.toUpperCase()} x${(rolls[s] ?? 1).toFixed(2)}`).join(' &nbsp; ');
       rollDisplay = `<div style="font-size:7px;color:#aaa;letter-spacing:1px;margin-bottom:4px;">${parts}</div>`;
     }
-    return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollGlitch(event)" data-tooltip="Randomize all stats between x0.01–x${maxVal}. Simulates a round-start Glitch roll.">&#9889; REROLL STATS</button></div>`;
+    return `<div class="trait-triggers">${rollDisplay}<button class="trait-trigger-btn" onclick="rollGlitch(event)" data-tooltip="Randomize all stats between x0.01-x${maxVal}. Simulates a round-start Glitch roll.">&#9889; REROLL STATS</button></div>`;
   }
-  // AT THOUSAND DOORS — custom ROLL ENCOUNTER button
+  // AT THOUSAND DOORS: custom ROLL ENCOUNTER button
   if (key === 'thousanddoors') {
     const accum = c.thousandDoorsAccum || {};
     const shimmy = isShimmyful(c, key);
@@ -36797,7 +36797,7 @@ function renderTraitSituationals(c, key) {
     const resetBtn = hasAccum ? `<button class="trait-trigger-btn" onclick="resetThousandDoors(event)" data-tooltip="Reset all stat multipliers back to x1.00.">&#8635; RESET</button>` : '';
     return `<div class="trait-triggers">${display}<button class="trait-trigger-btn" onclick="rollThousandDoors(event)" data-tooltip="Roll a random stat multiplier for a random stat. Results compound and are permanent.">&#9889; ROLL ENCOUNTER</button>${undoBtn}${resetBtn}</div>`;
   }
-  // ANOTHER, AND ANOTHER — custom reroll ATK/MAG and DEF/HP buttons
+  // ANOTHER, AND ANOTHER: custom reroll ATK/MAG and DEF/HP buttons
   if (key === 'anotherandanother') {
     const drunk = c.drunkStats || {};
     let display = '';
@@ -36821,7 +36821,7 @@ function renderTraitSituationals(c, key) {
     }
     return `<div class="trait-triggers">${display}<button class="trait-trigger-btn" onclick="rollAnotherandAnother('atkmag', event)" data-tooltip="Randomize ATK and MAG (bias toward lower values). Simulates landing a hit.">&#9889; REROLL ATK/MAG</button><button class="trait-trigger-btn" onclick="rollAnotherandAnother('defhp', event)" data-tooltip="Randomize DEF and HP (bias toward lower values). Simulates taking a hit.">&#9889; REROLL DEF/HP</button>${sitBtns}</div>`;
   }
-  // I WANT A PERFECT SOUL — soul absorber
+  // I WANT A PERFECT SOUL: soul absorber
   if (key === 'perfectsoul') {
     const data = c.perfectSoulData || { souls: [], history: [] };
     const souls = data.souls || [];
@@ -36860,7 +36860,7 @@ function renderTraitSituationals(c, key) {
       pickerHeader = `<button class="ps-select-btn" onclick="togglePsPicker(event)">+ SELECT CHARACTER &#9660;</button>`;
     }
 
-    // Picker dropdown (when open) — use data-name + this.dataset.name to avoid quote-escaping bugs in onclick
+    // Picker dropdown (when open): use data-name + this.dataset.name to avoid quote-escaping bugs in onclick
     let pickerDropdown = '';
     if (_psPickerOpen) {
       const charRows = (typeof characters !== 'undefined' ? characters : []).map(ch => {
@@ -36874,7 +36874,7 @@ function renderTraitSituationals(c, key) {
 
     const hasHistory = data.history && data.history.length > 0;
     const hasSouls = souls.length > 0;
-    const rangeHint = shimmy ? '55–90%' : '40–80%';
+    const rangeHint = shimmy ? '55-90%' : '40-80%';
     const undoBtn = hasHistory ? `<button class="trait-trigger-btn" onclick="undoPerfectSoul(event)" data-tooltip="Undo the last absorption.">${svgUndo} UNDO</button>` : '';
     const resetBtn = hasSouls ? `<button class="trait-trigger-btn" onclick="resetPerfectSoul(event)" data-tooltip="Remove all absorbed souls.">${svgReset} RESET</button>` : '';
     return `<div class="trait-triggers ps-panel">${soulList}<div class="ps-picker-wrap">${pickerHeader}${pickerDropdown}</div><div class="ps-action-row"><button class="trait-trigger-btn" onclick="absorbPerfectSoul(event)" data-tooltip="Roll ${rangeHint} of the selected character's stats and absorb permanently.">${svgBolt} ABSORB SOUL</button>${undoBtn}${resetBtn}</div></div>`;
@@ -37245,7 +37245,7 @@ function openTraitCodex() {
     const countTotal = allOfRarity.length;
     const countSeen = seenOfRarity.length;
 
-    // DUALITY — glitching title, entries show both heavenly and hellforged sides
+    // DUALITY: glitching title, entries show both heavenly and hellforged sides
     if (rar === 'duality') {
       return `
         <div class="codex-section rar-duality">
@@ -37274,7 +37274,7 @@ function openTraitCodex() {
         </div>`;
     }
 
-    // DETERMINED — pulsing section with evolution path display
+    // DETERMINED: pulsing section with evolution path display
     if (rar === 'determined') {
       return `
         <div class="codex-section rar-determined det-codex-section">
@@ -37422,7 +37422,7 @@ function openRollFormChooser() {
     `<button class="btn-info" onclick="closeRollFormChooser()">&#10005;</button></div>` +
     `<div id="roll-form-body">` +
     rows.map(r => {
-      // ask the form itself whether it owns a list — _traitOwner falls back to
+      // ask the form itself whether it owns a list: _traitOwner falls back to
       // the character, which would make every form look like it had one
       const f = r.idx > 0 ? (c.altForms || [])[r.idx - 1] : null;
       const own = !!(f && Array.isArray(f.traits));
@@ -37567,7 +37567,7 @@ function rollTraitsFor(formIdx) {
       else if (t.rarity === 'mythic') playSound('mythic', { volume: 0.85 });
       else if (t.rarity === 'legendary') playSound('legendary', { volume: 0.8 });
 
-      // SHIMMYFUL reveal — fires 400ms after the base reveal
+      // SHIMMYFUL reveal: fires 400ms after the base reveal
       if (handItem.shimmyful) {
         setTimeout(() => {
           const isLegShimmy = t.rarity === 'legendary';
@@ -37814,7 +37814,7 @@ function pickTraitFromHand(handItem) {
     tgt.shimmyfulTraits = shimmyful ? ['brave'] : [];
     const seen = new Set(['brave']);
     if (shimmyful) {
-      // Guaranteed 3 additional rare/epic traits — one is guaranteed epic.
+      // Guaranteed 3 additional rare/epic traits: one is guaranteed epic.
       const epicPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'legendary').map(([k]) => k);
       const rareEpicPool = Object.entries(TRAITS).filter(([, t]) => t.rarity === 'legendary' || t.rarity === 'legendary').map(([k]) => k);
 
@@ -37940,7 +37940,7 @@ function pickTraitFromHand(handItem) {
   }
 
   // Reset triggers/stacks for the new selection. These are keyed by trait key
-  // and shared across forms, so only the keys this roll touches are re-seeded —
+  // and shared across forms, so only the keys this roll touches are re-seeded: 
   // wiping the lot would clear another form's cultivation progress.
   c.traitTriggers = c.traitTriggers || {};
   c.traitStacks = c.traitStacks || {};
@@ -38121,7 +38121,7 @@ updateLiveStats = function (c) {
 let _abilityEditorIdx = null;        // null = new ability, number = editing existing
 let _abilityEditorImageDataURL = null; // base64 image for current editor session
 
-/* Type palette — bg/border/text + icon displayed on card and picker */
+/* Type palette: bg/border/text + icon displayed on card and picker */
 const AB_TYPE_COLORS = {
   ACTIVE:   { bg: 'rgba(0,255,255,0.06)',   border: 'rgba(0,255,255,0.3)',    text: '#00ffff', icon: '⚡︎', iconColor: '#ffffff' },
   PASSIVE:  { bg: 'rgba(160,80,255,0.07)',  border: 'rgba(160,80,255,0.35)',  text: '#cc99ff', icon: '◈',  iconColor: '#cc99ff' },
@@ -38615,7 +38615,7 @@ if (sidebarList && db) {
       const c = characters.find(x => x.id === currentId);
       if (c) {
         if (!isSelf) {
-          // Remote update — refresh the viewed character
+          // Remote update: refresh the viewed character
           console.log('[FIRESTORE] Listener update (remote):', c.id, 'Theme:', c.info?.themeSong);
           updateGoldDisplay(c);
           updateLiveStats(c);
@@ -38629,7 +38629,7 @@ if (sidebarList && db) {
           console.log('[FIRESTORE] Listener update (self-write):', c.id, 'Theme:', c.info?.themeSong);
         }
       } else {
-        // Character missing from snapshot — only treat as a real deletion
+        // Character missing from snapshot: only treat as a real deletion
         // if it wasn't just saved by us (guards against pre-confirmation snapshots)
         if (currentId === _lastSaveId && Date.now() - _lastSaveTime < SELF_WRITE_WINDOW) return;
         currentId = null; stopBgAnim();
@@ -38657,7 +38657,7 @@ if (sidebarList && db) {
   }, () => { });
 
 } else if (sidebarList) {
-  // No Firebase — silent localStorage fallback
+  // No Firebase: silent localStorage fallback
   loadData();
   renderSidebar();
   if (characters.length) viewChar(characters[0].id);
@@ -38885,7 +38885,7 @@ function buildTierChipTooltip(charId) {
       const rarity = TRAITS[k].rarity;
       const col = RAR_COL[rarity] || '#aaa';
       html += `<div>
-        <div style="color:${col};font-size:7px;letter-spacing:1px;margin-bottom:2px;">${(RARITY_LABEL[rarity] || rarity).toUpperCase()} — ${t.name}</div>
+        <div style="color:${col};font-size:7px;letter-spacing:1px;margin-bottom:2px;">${(RARITY_LABEL[rarity] || rarity).toUpperCase()}: ${t.name}</div>
         <div style="color:#888;font-size:6px;letter-spacing:0.5px;line-height:1.5;">${t.desc}</div>
       </div>`;
     });
@@ -38898,7 +38898,7 @@ function buildTierChipTooltip(charId) {
 function initTierList() {
   if (!document.getElementById('tier-list-wrap')) return;
   if (db) {
-    // On utilities page there's no #char-list — spin up a dedicated characters listener.
+    // On utilities page there's no #char-list: spin up a dedicated characters listener.
     if (!document.getElementById('char-list')) {
       db.collection('characters').onSnapshot(snap => {
         characters = snap.docs.map(d => d.data()).sort((a, b) => {
@@ -38927,7 +38927,7 @@ function initTierList() {
     });
     return;
   }
-  // No Firebase — localStorage fallback (single list)
+  // No Firebase: localStorage fallback (single list)
   try { const s = localStorage.getItem('tierlist_v1'); if (s) _tierData = { S: [], A: [], B: [], C: [], D: [], F: [], ...JSON.parse(s) }; } catch (e) { }
   if (!characters.length) { setTimeout(initTierList, 600); return; }
   renderTierList();
@@ -39353,7 +39353,7 @@ function _renderLbRadar(wrap, chars) {
     bg += `<text x="${lx.toFixed(1)}" y="${(ly+11).toFixed(1)}" text-anchor="${anchor}" fill="#181826" font-size="6">${maxVal.toFixed(0)}</text>`;
   });
 
-  // No SVG filter — too slow with many elements
+  // No SVG filter: too slow with many elements
   const polys = subset.map(c => {
     const origIdx = chars.indexOf(c);
     const cl = _lbIsClassic(c);
@@ -39424,7 +39424,7 @@ function _renderLbBars(wrap, chars) {
   }).join('');
 
   const sLbl = _LB_STAT_LABELS[stat] || stat;
-  // No inner scroll container — just extend the page naturally, scroll like everything else
+  // No inner scroll container: just extend the page naturally, scroll like everything else
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="lb-chart-svg">
     ${defs}
     <rect width="${W}" height="${H}" fill="#050508"/>
@@ -39555,7 +39555,7 @@ function _renderLbLines(wrap, chars) {
 }
 
 // ── [kept for potential future use] ──────────────────────────
-// Returns [r,g,b] array — 7-stop vivid scale
+// Returns [r,g,b] array: 7-stop vivid scale
 function _lbHeatColor(t) {
   const stops = [
     [0,    [4,   4,  18]],
@@ -40315,7 +40315,7 @@ function _hcHash(str, n) {
   return ((h >>> 0) % 10000) / 10000;
 }
 
-// 'soft' is excluded from the cycle — it has its own DEFAULT button
+// 'soft' is excluded from the cycle: it has its own DEFAULT button
 const HC_AURAS = [null, 'blaze', 'shadow', 'void', 'ghost', 'crimson', 'haze', 'static', 'neon', 'reaper'];
 // dot color shown on the AURA button when an aura is active (soft uses entry.color dynamically)
 const HC_AURA_DOT = { blaze:'#ff6020', shadow:'#9030d0', void:'#5010a0', ghost:'#b0d0ff', crimson:'#cc0015', haze:'#ff80ff', static:'#aaa', neon:'#f0f0f0', reaper:'#220000' };
@@ -40717,7 +40717,7 @@ function _hcMaybeRedetectBounds(entry) {
         }
       }
     }
-    if (botRow < 0) return; // fully opaque or can't detect — leave as-is
+    if (botRow < 0) return; // fully opaque or can't detect: leave as-is
 
     const topFrac = topRow / analyseH;
     const botFrac = (botRow + 1) / analyseH;
@@ -40908,11 +40908,11 @@ function sendChatMsg() {
 
   const msg = { text, ts: Date.now() };
 
-  // Use arrayUnion for atomic append — won't clobber other senders' messages
+  // Use arrayUnion for atomic append: won't clobber other senders' messages
   db.collection('characters').doc(_chatRecipId).update({
     [`chats.${senderId}`]: firebase.firestore.FieldValue.arrayUnion(msg)
   }).catch(() => {
-    // Field doesn't exist yet — fall back to merge update
+    // Field doesn't exist yet: fall back to merge update
     const recip    = characters.find(c => c.id === _chatRecipId);
     const existing = recip?.chats?.[senderId] || [];
     db.collection('characters').doc(_chatRecipId).update({
@@ -40936,10 +40936,10 @@ function toggleMobileToC() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// AMBER — the GODDESS OF MAGIC. Her sanctum is a warm violet night lit from
+// AMBER: the GODDESS OF MAGIC. Her sanctum is a warm violet night lit from
 // within: great counter-rotating rings of moonrunes turning slowly overhead,
 // candle-warm motes drifting between faint ley-lines, and runes rising like
-// sparks that never burn. Nothing here lunges or flashes — the whole scene
+// sparks that never burn. Nothing here lunges or flashes: the whole scene
 // breathes. Her cursor is a small arcane focus wrapped in its own rune ring,
 // and a click blooms a summoning circle that opens, turns once, and fades.
 // Magenta and violet, warm rose for the light. Calm, and quietly glorious.
@@ -40953,7 +40953,7 @@ const _AMBER_HEX     = '#ec6ad9';
 
 // ── Moonrunes ────────────────────────────────────────────────────
 // Drawn rather than typed, so they never depend on a font being present.
-// Each glyph is a stave with branch strokes hung off it, seeded by index —
+// Each glyph is a stave with branch strokes hung off it, seeded by index: 
 // the same seed always yields the same rune, so the sanctum is consistent.
 function _amberRune(ctx, x, y, h, seed, color, lw) {
   const rnd = n => { const v = Math.sin(seed * 127.1 + n * 311.7) * 43758.5453; return v - Math.floor(v); };
@@ -40979,7 +40979,7 @@ function _amberRune(ctx, x, y, h, seed, color, lw) {
   }
 }
 
-// Cached rune sprites — a rune is drawn once and blitted after that.
+// Cached rune sprites: a rune is drawn once and blitted after that.
 const _amberRuneCache = {};
 function _amberRuneSprite(seed, rgb, glow) {
   const key = seed + '|' + rgb + '|' + (glow ? 1 : 0);
@@ -40994,7 +40994,7 @@ function _amberRuneSprite(seed, rgb, glow) {
   return cv;
 }
 
-// Soft warm mote — one cached sprite instead of a gradient per particle.
+// Soft warm mote: one cached sprite instead of a gradient per particle.
 let _amberMoteSprite = null;
 function _amberGetMoteSprite() {
   if (_amberMoteSprite) return _amberMoteSprite;
@@ -41216,7 +41216,7 @@ function _drawAmberPattern(canvas, ctx, W, H, t) {
 }
 
 // ── In front of the GUI: the sanctum's own frame ─────────────────
-// Every panel is bound in an inscribed border — corner flourishes, runes
+// Every panel is bound in an inscribed border: corner flourishes, runes
 // standing along its edge, and one mote of light making a slow circuit of
 // the perimeter. Spell-glyphs bloom over the page between times and
 // dissolve upward. This layer sits above the panels but under the cursor.
@@ -41268,7 +41268,7 @@ function _drawAmberFrame(canvas, ctx, W, H, t) {
 
   // ── firelight moving through the room ──
   // One warm pass drifting across the page every twenty seconds. Amber and
-  // low enough not to touch the palette — it reads as warmth, not colour.
+  // low enough not to touch the palette: it reads as warmth, not colour.
   {
     const wp = (t % 20) / 20;
     const wx = rootRect.left - 240 + wp * (rootRect.width + 480);
@@ -41333,7 +41333,7 @@ function _drawAmberFrame(canvas, ctx, W, H, t) {
     ctx.lineWidth = 1;
     ctx.strokeRect(x, y, w, h);
 
-    // corner flourishes — a bracket with a bound-ring inside it
+    // corner flourishes: a bracket with a bound-ring inside it
     ctx.strokeStyle = `rgba(${_AMBER_ROSE},${(0.26 + breath * 0.2).toFixed(3)})`;
     ctx.lineWidth = 1.4;
     const L = 13;
@@ -41533,7 +41533,7 @@ function _drawAmberOverlay(canvas, ctx, W, H, t) {
   _drawAmberOverlay._lt = t;
   ctx.clearRect(0, 0, W, H);
 
-  // Softer spring than the frantic characters use — she glides, never snaps.
+  // Softer spring than the frantic characters use: she glides, never snaps.
   const SPRING = 48, DAMP = 11;
   _amberVX += ((_amberTargX - _amberX) * SPRING - _amberVX * DAMP) * dt;
   _amberVY += ((_amberTargY - _amberY) * SPRING - _amberVY * DAMP) * dt;
@@ -41612,7 +41612,7 @@ function _drawAmberOverlay(canvas, ctx, W, H, t) {
   // the grimoire, drifting a little behind and above the focus
   {
     const bx = _amberX - 44, by = _amberY - 30 + Math.sin(t * 1.15) * 3.5;
-    const BS = 58, BD = 11;                 // a slower spring than the focus — it trails
+    const BS = 58, BD = 11;                 // a slower spring than the focus: it trails
     _amberBookVX += ((bx - _amberBookX) * BS - _amberBookVX * BD) * dt;
     _amberBookVY += ((by - _amberBookY) * BS - _amberBookVY * BD) * dt;
     _amberBookX += _amberBookVX * dt; _amberBookY += _amberBookVY * dt;
@@ -41637,7 +41637,7 @@ function _drawAmberOverlay(canvas, ctx, W, H, t) {
   ctx.beginPath(); ctx.arc(_amberX, _amberY, cr * 2.1, 0, Math.PI * 2); ctx.stroke();
   _amberRuneRing(ctx, _amberX, _amberY, cr * 2.1, 5, t * 0.5, 0.4, _AMBER_ROSE, 0.55 + pulse * 0.3);
 
-  // two triangles turning against each other — a focus, not just a dot
+  // two triangles turning against each other: a focus, not just a dot
   ctx.strokeStyle = `rgba(${_AMBER_MAGENTA},${(0.42 + pulse * 0.3).toFixed(3)})`;
   ctx.lineWidth = 1;
   for (const dir of [1, -1]) {
@@ -41675,13 +41675,13 @@ function _startAmberOverlay() {
   window.addEventListener('click', _amberClick);
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = 'none';
-  // Frame layer — above the panels (z-index 30) but below the cursor.
+  // Frame layer: above the panels (z-index 30) but below the cursor.
   const fr = document.createElement('canvas');
   fr.id = 'amber-frame-overlay';
   fr.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:30;pointer-events:none;';
   fr.width = window.innerWidth; fr.height = window.innerHeight;
   document.body.appendChild(fr);
-  // Cursor layer — on top of everything.
+  // Cursor layer: on top of everything.
   const cv = document.createElement('canvas');
   cv.id = 'amber-overlay';
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
@@ -41721,10 +41721,10 @@ function _stopAmberOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ============================================================
-// INFO TAB — SOUL
+// INFO TAB: SOUL
 // Undertale-style pixel soul with layered, composable options:
 // fill mode, colour palette, inner soul, outline, crack, glow,
-// pulse, monster flip. Every option is independent — they all stack.
+// pulse, monster flip. Every option is independent: they all stack.
 // ============================================================
 
 // Classic 40x36 pixel-heart geometry (same shape as the empty-state heart)
@@ -41739,7 +41739,7 @@ const SOUL_ROWS = [
   [12, 28, 16, 4],
   [16, 32, 8, 4]
 ];
-// Area centroid of the shape — scaling about this keeps layers visually concentric
+// Area centroid of the shape: scaling about this keeps layers visually concentric
 const SOUL_CX = 20, SOUL_CY = 15.44;
 
 const SOUL_MAX_COLORS = 8;
@@ -41865,7 +41865,7 @@ function _soulPaint(defs, id, mode, colors, angle) {
   } else if (mode === 'stripes') {
     grad(bands(), (0.1 * n).toFixed(3), true);
   } else if (mode === 'checker') {
-    // (row + col) % n — a plain checkerboard at two colours, diagonal bands beyond
+    // (row + col) % n: a plain checkerboard at two colours, diagonal bands beyond
     const cell = 4, tile = cell * n;
     let cells = '';
     for (let r = 0; r < n; r++) {
@@ -41883,7 +41883,7 @@ function _soulPaint(defs, id, mode, colors, angle) {
 
 // Fracture pattern for a shattered soul: five shards radiating from an
 // off-centre impact point. Each boundary zig-zags twice on its way out so the
-// breaks read as fractures instead of pie slices. Hand-tuned, not random —
+// breaks read as fractures instead of pie slices. Hand-tuned, not random: 
 // the same soul always shatters the same way.
 const SOUL_FRACTURE = {
   origin: [18, 13],
@@ -41895,11 +41895,11 @@ const SOUL_FRACTURE = {
     { a: 128, j1: -2.1, j2:  1.6 },
     { a: 199, j1:  2.5, j2: -1.9 }
   ],
-  // per-shard twist, multiplied by spread — opens each gap towards the rim
+  // per-shard twist, multiplied by spread: opens each gap towards the rim
   twist: [1.4, -1.1, 0.9, -1.5, 1.2]
 };
 
-// Returns [{ points, tf }] — a polygon per shard plus the transform that
+// Returns [{ points, tf }]: a polygon per shard plus the transform that
 // nudges it away from the impact point by `spread` user units.
 function _soulShards(spread) {
   const [ox, oy] = SOUL_FRACTURE.origin;
@@ -41942,7 +41942,7 @@ function buildSoulSVG(soul, px) {
   const bodyPaint = _soulPaint(defs, 'soulbody-' + uid, soul.fill, soul.colors, soul.angle);
   let contents = `<rect x="0" y="0" width="40" height="36" fill="${bodyPaint}" clip-path="url(#${clipId})"/>`;
 
-  // Soul inside the soul — the clip scales with the group, so it stays heart-shaped
+  // Soul inside the soul: the clip scales with the group, so it stays heart-shaped
   if (soul.inner) {
     const innerPaint = _soulPaint(defs, 'soulinner-' + uid, soul.innerFill, soul.innerColors, soul.innerAngle);
     const sc = Math.max(0.15, Math.min(0.85, Number(soul.innerSize) || 0.45));
@@ -41954,7 +41954,7 @@ function buildSoulSVG(soul, px) {
   // Hue cycling rides on the paint only, so outline and cracks keep their colour
   if (soul.cycle) contents = `<g class="soul-cycle">${contents}</g>`;
 
-  // Outline — the same shape scaled up, sitting behind the paint
+  // Outline: the same shape scaled up, sitting behind the paint
   const outlineLayer = soul.outline
     ? `<g transform="translate(${SOUL_CX} ${(SOUL_CY + (Number(soul.outlineOffsetY) || 0)).toFixed(2)}) ` +
       `scale(${(1 + (Number(soul.outlineWidth) || 2) * 0.028).toFixed(4)}) ` +
@@ -42104,7 +42104,7 @@ function soulRemoveColor(scope, idx) {
 }
 
 // Pick a colour for a freshly added palette slot: a step around the wheel from
-// the last one, or — when that one has no hue to rotate (white, black, grey) —
+// the last one, or: when that one has no hue to rotate (white, black, grey): 
 // a fresh hue chosen by position, so you never get a duplicate swatch.
 function _soulNextColor(pal) {
   const last = pal[pal.length - 1];

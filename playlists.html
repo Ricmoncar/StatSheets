@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>STATSHEETS — PLAYLISTS</title>
+<title>STATSHEETS: PLAYLISTS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
@@ -485,7 +485,7 @@ html, body {
   height: 100%; background: #aaa; border-radius: 2px; pointer-events: none;
 }
 
-/* Mobile back button — hidden on desktop */
+/* Mobile back button: hidden on desktop */
 #pl-mob-back { display: none; }
 
 /* ============================================================
@@ -647,8 +647,8 @@ html, body {
   <div id="pl-now-info">
     <img id="pl-now-art" src="" alt="">
     <div id="pl-now-text">
-      <div id="pl-now-title">—</div>
-      <div id="pl-now-by">—</div>
+      <div id="pl-now-title">-</div>
+      <div id="pl-now-by">-</div>
     </div>
   </div>
 
@@ -724,7 +724,7 @@ html, body {
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
 /* ============================================================
-   PLAYLISTS — JavaScript
+   PLAYLISTS: JavaScript
    ============================================================ */
 const _PL_CLOUD  = 'dhdfz1iud';
 const _PL_PRESET = 'statsheets';
@@ -746,7 +746,7 @@ async function _plUpload(file, resourceType, publicId) {
     if (data.error) throw new Error(data.error.message);
     return data.secure_url;
   } catch (err) {
-    console.warn('[playlists] Cloudinary failed — falling back to ImageKit:', err.message);
+    console.warn('[playlists] Cloudinary failed, falling back to ImageKit:', err.message);
   }
   const fname = publicId
     ? publicId.split('/').pop() + (resourceType === 'video' ? '.mp3' : '')
@@ -1017,7 +1017,7 @@ function _plSongRow(song, i) {
     </div>
     <div class="pl-song-idx">${idxCell}</div>
     <div class="pl-song-title" onclick="plPlay(${i})">${_e(song.title||'Untitled')}</div>
-    <div class="pl-song-dur">${song.duration ? _fmt(song.duration) : '—'}</div>
+    <div class="pl-song-dur">${song.duration ? _fmt(song.duration) : '-'}</div>
     <button class="pl-song-del" onclick="plDelSong(${i})" title="Remove">✕</button>
   </div>`;
 }
@@ -1147,7 +1147,7 @@ function plNext() {
   if (!_plQueue.length) return;
   const newIdx = _plQIdx + 1;
   if (newIdx >= _plQueue.length) {
-    // End of queue — re-shuffle for a fresh order instead of repeating
+    // End of queue: re-shuffle for a fresh order instead of repeating
     if (_plShuffle && _plData?.songs?.length > 1) {
       const all = _plData.songs.map((_,i) => i);
       for (let i = all.length-1; i > 0; i--) {
@@ -1370,7 +1370,7 @@ async function plAudioFiles(input) {
       _plRenderMain();
     } catch(err) {
       console.error('Audio upload error:', err);
-      _plToast('✗ UPLOAD FAILED — ' + (err.message||'unknown error').slice(0,30));
+      _plToast('✗ UPLOAD FAILED: ' + (err.message||'unknown error').slice(0,30));
     }
   }
 }

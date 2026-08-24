@@ -8,20 +8,20 @@ const GUIDE = `// ============================================================
 // HOW TO ADD A NEW TRAIT
 // ============================================================
 //
-// Quick template — paste inside the TRAITS object and fill in the fields:
+// Quick template, paste inside the TRAITS object and fill in the fields:
 //
 //   traitKey: {
 //     name: 'Display Name',    // text shown on the trait chip in the UI
-//     rarity: 'common',        // controls chip color — see RARITIES below
+//     rarity: 'common',        // controls chip color: see RARITIES below
 //     desc: 'What it does.',   // short description shown on the chip / hover
-//     passive: [],             // stat modifiers — always include, even if empty
+//     passive: [],             // stat modifiers, always include, even if empty
 //
 //     // ── optional fields ──
 //     notes: 'DM note.',       // extra note shown in the stat panel (no UI chip)
-//     situational: [...],      // in-fight toggle buttons — see SITUATIONAL below
-//     cultivation: {...},      // permanent stackable counter — see CULTIVATION
-//     heavenly:   {...},       // duality traits only — heavenly form data
-//     hellforged: {...},       // duality traits only — hellforged form data
+//     situational: [...],      // in-fight toggle buttons, see SITUATIONAL below
+//     cultivation: {...},      // permanent stackable counter, see CULTIVATION
+//     heavenly:   {...},       // duality traits only, heavenly form data
+//     hellforged: {...},       // duality traits only, hellforged form data
 //   },
 //
 // ── RARITIES ─────────────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ const GUIDE = `// ============================================================
 //   'legendary'  yellow / gold chip
 //   'mythic'     orange / red gradient chip
 //   'hexxed'     dark purple / black chip  (almost never rolled normally)
-//   'duality'    split chip — requires both heavenly:{} and hellforged:{} blocks
+//   'duality'    split chip, requires both heavenly:{} and hellforged:{} blocks
 //   'determined' special evolving heartbeat chip
 //
 // ── PASSIVE FORMAT ────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ const GUIDE = `// ============================================================
 //     'true_dmg'     'cooldown_red' 'dexterity'    'resilience'
 //     'status_res'   'all_sub'      (targets every substat at once)
 //
-//   derived passive — scales from another stat:
+//   derived passive, scales from another stat:
 //     { op:'derived', stat:'atk', from:'hp', per:50, perValue:1, cap:200 }
 //     → +1 ATK for every 50 HP, capped at +200 ATK.
 //     Use perPct instead of perValue for percentage scaling.
@@ -62,7 +62,7 @@ const GUIDE = `// ============================================================
 //     {
 //       id:      'unique-key',           // MUST be unique across ALL traits
 //       label:   'Button label',         // text on the toggle button
-//       desc:    'Optional tooltip.',    // optional — shows on hover
+//       desc:    'Optional tooltip.',    // optional: shows on hover
 //       passive: [{ stat:'atk', op:'pct', value:20 }],
 //     },
 //   ]
@@ -85,7 +85,7 @@ const GUIDE = `// ============================================================
 //   // situational: [...] is optional and shared between both sides
 //
 // ── NOTES ─────────────────────────────────────────────────────────────────────
-//   notes:  shown in small text below the stat panel — use for DM rulings,
+//   notes:  shown in small text below the stat panel, use for DM rulings,
 //           per-hit or per-kill mechanics, things that don't have a direct
 //           stat value, or anything that needs a longer explanation.
 //
@@ -114,7 +114,7 @@ function parseFields(body) {
     // Skip spaces immediately after ':'
     while (i < n && (body[i] === ' ' || body[i] === '\t')) i++;
 
-    // Read value — tracks bracket depth and string contents
+    // Read value: tracks bracket depth and string contents
     const valueStart = i;
     let depth = 0;
     let inStr = false;
@@ -131,7 +131,7 @@ function parseFields(body) {
       if (c === "'" || c === '"' || c === '`') { inStr = true; strCh = c; i++; continue; }
       if (c === '{' || c === '[' || c === '(') { depth++; i++; continue; }
       if (c === '}' || c === ']' || c === ')') {
-        if (depth === 0) break; // escaped the body — safety guard
+        if (depth === 0) break; // escaped the body: safety guard
         depth--;
         i++;
         continue;
@@ -152,7 +152,7 @@ function parseFields(body) {
 function expandTrait(line) {
   // Matches:   <indent><key>   :   {<body>},
   const m = line.match(/^(\s*)([A-Za-z_]\w*)\s*:\s*\{([\s\S]*)\},?\s*$/);
-  if (!m) return [line]; // can't parse — return original
+  if (!m) return [line]; // can't parse: return original
 
   const indent = m[1]; // e.g. '  '
   const key    = m[2]; // e.g. 'favored'
@@ -212,7 +212,7 @@ function reformatBody(body) {
       continue;
     }
 
-    // Section comment headers — keep, ensure blank line before
+    // Section comment headers: keep, ensure blank line before
     if (trimmed.startsWith('//')) {
       if (!prevBlankOrComment) out.push('');
       out.push(line);
@@ -280,7 +280,7 @@ let content = fs.readFileSync(FILE, 'utf8');
 const hadCRLF = content.includes('\r\n');
 if (hadCRLF) content = content.replace(/\r\n/g, '\n');
 
-// Find the old TRAITS comment block — use a fragment robust to CRLF vs LF
+// Find the old TRAITS comment block: use a fragment robust to CRLF vs LF
 const oldCommentIdx = content.indexOf('// TRAITS SYSTEM');
 if (oldCommentIdx === -1) throw new Error('Could not find TRAITS SYSTEM comment in file');
 // Back up to include the preceding === line

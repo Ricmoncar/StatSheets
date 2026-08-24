@@ -1,5 +1,5 @@
 // ============================================================
-// ENCYCLOPÆDIA — encyclopedia.js
+// ENCYCLOPÆDIA: encyclopedia.js
 // ============================================================
 
 // ── Cloudinary ────────────────────────────────────────────
@@ -428,7 +428,7 @@ function updateNav() {
   prev.disabled = (encIdx <= 0);
   next.disabled = (encIdx >= list.length - 1);
   if (list.length === 0) {
-    info.textContent = '— —';
+    info.textContent = ': ';
   } else {
     info.textContent = `${encIdx + 1}  /  ${list.length}`;
   }
@@ -1290,7 +1290,7 @@ async function handleNpcImgUpload(e) {
     reader.readAsDataURL(file);
   });
 
-  // Reuse the same doc-size check — NPC images live in the same enc/data doc
+  // Reuse the same doc-size check: NPC images live in the same enc/data doc
   const oldImg    = _npcEditing ? (encNpcs.find(x => x.id === _npcEditing)?.image || '') : '';
   const docJson   = JSON.stringify({ places: encPlaces, statuses: encStatuses, memories: encMemories, npcs: encNpcs });
   const estimated = docJson.length - oldImg.length + dataUrl.length;
@@ -1304,7 +1304,7 @@ async function handleNpcImgUpload(e) {
       encNotify('IMAGE UPLOADED ✓', 'ok');
     } catch (err) {
       console.error('[Cloudinary] upload error:', err);
-      encNotify('UPLOAD FAILED — TRY A SMALLER IMAGE', 'err');
+      encNotify('UPLOAD FAILED: TRY A SMALLER IMAGE', 'err');
       return;
     }
   }
@@ -1525,7 +1525,7 @@ async function _uploadToCloudinary(dataUrl) {
     if (!json.secure_url) throw new Error(json.error?.message || 'No URL returned');
     return json.secure_url;
   } catch (err) {
-    console.warn('[encyclopedia] Cloudinary failed — falling back to ImageKit:', err.message);
+    console.warn('[encyclopedia] Cloudinary failed, falling back to ImageKit:', err.message);
   }
 
   // 2. ImageKit fallback
@@ -1563,7 +1563,7 @@ async function handleEncImgUpload(type, event) {
       encNotify('IMAGE UPLOADED ✓', 'ok');
     } catch (err) {
       console.error('[Cloudinary] upload error:', err);
-      encNotify('UPLOAD FAILED — TRY A SMALLER IMAGE', 'err');
+      encNotify('UPLOAD FAILED: TRY A SMALLER IMAGE', 'err');
       return;
     }
   }

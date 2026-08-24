@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>STATSHEETS — ENCYCLOPÆDIA</title>
+<title>STATSHEETS: ENCYCLOPÆDIA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Cinzel:wght@400;600&family=Cinzel+Decorative:wght@400;700&display=swap" rel="stylesheet"/>
@@ -165,7 +165,7 @@ body {
   overflow: hidden;
   position: relative;
 }
-/* Stacked pages — left side */
+/* Stacked pages: left side */
 #enc-left::before {
   content: '';
   position: absolute;
@@ -338,7 +338,7 @@ body {
   overflow: hidden;
   position: relative;
 }
-/* Stacked pages — right side */
+/* Stacked pages: right side */
 #enc-right::before {
   content: '';
   position: absolute;
@@ -564,7 +564,7 @@ body {
 }
 
 /* ============================================================
-   CHARACTERS — HERO LAYOUT
+   CHARACTERS: HERO LAYOUT
    ============================================================ */
 .enc-char-hero {
   display: flex;
@@ -1121,7 +1121,7 @@ body {
 }
 .enc-status-orb.orb-star { clip-path: polygon(50% 3%, 61% 38%, 98% 38%, 68% 59%, 79% 95%, 50% 73%, 21% 95%, 32% 59%, 2% 38%, 39% 38%); background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(0,0,0,0.3)); }
 
-/* Per-shape inner styling — use shape-matching clip-paths and add per-shape sheen */
+/* Per-shape inner styling: use shape-matching clip-paths and add per-shape sheen */
 .enc-status-orb.orb-rounded-square::after { content:''; position:absolute; inset:6px; border-radius:10px; background: radial-gradient(circle at 30% 30%, rgba(255,240,210,0.28), rgba(160,120,60,0.08)); mix-blend-mode: overlay; }
 .enc-status-orb.orb-square::after { content:''; position:absolute; inset:6px; border-radius:4px; background: repeating-linear-gradient(45deg, rgba(255,240,210,0.09) 0 6px, rgba(0,0,0,0) 6px 12px); mix-blend-mode: overlay; }
 
@@ -1306,7 +1306,7 @@ body {
    MEMORIES
    ============================================================ */
 
-/* — mode toggle + search controls — */
+/*: mode toggle + search controls: */
 #enc-mem-controls {
   padding: 10px 12px 8px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -1364,7 +1364,7 @@ body {
   color: rgba(255,255,255,0.22);
 }
 
-/* — character group headers in TOC — */
+/*: character group headers in TOC: */
 .enc-mem-char-hd {
   display: flex;
   align-items: center;
@@ -1420,7 +1420,7 @@ body {
   padding: 0 0 4px 0;
 }
 
-/* — character picker in memory modal — */
+/*: character picker in memory modal: */
 .em-char-picker {
   display: flex;
   flex-wrap: wrap;
@@ -1846,7 +1846,7 @@ body {
 }
 
 @media (max-width: 700px) {
-  /* Body stays overflow:hidden — the book handles its own scroll */
+  /* Body stays overflow:hidden, the book handles its own scroll */
   body { overflow: hidden; }
 
   /* ── Compact masthead ── */
@@ -2114,7 +2114,7 @@ body {
         </div>
         <div id="enc-footer-nav">
           <button class="enc-nav-btn" id="enc-prev-btn" onclick="encNav('prev')" disabled>&#8592; PREV</button>
-          <div id="enc-page-info">— —</div>
+          <div id="enc-page-info">: </div>
           <button class="enc-nav-btn" id="enc-next-btn" onclick="encNav('next')" disabled>NEXT &#8594;</button>
         </div>
       </div>
@@ -2328,7 +2328,7 @@ body {
       <div class="enc-two-col">
         <div class="enc-field">
           <label>ARC / SAGA</label>
-          <input type="text" id="em-arc" placeholder="e.g. Arc I — The Beginning" maxlength="80"/>
+          <input type="text" id="em-arc" placeholder="e.g. Arc I: The Beginning" maxlength="80"/>
         </div>
         <div class="enc-field">
           <label>IN-UNIVERSE DATE</label>
@@ -2336,7 +2336,7 @@ body {
         </div>
       </div>
       <div class="enc-field">
-        <label>CHARACTERS <span style="opacity:0.4;font-size:5.5px">(OPTIONAL — link this chapter to characters)</span></label>
+        <label>CHARACTERS <span style="opacity:0.4;font-size:5.5px">(OPTIONAL: link this chapter to characters)</span></label>
         <div id="em-char-picker" class="em-char-picker"></div>
       </div>
       <div class="enc-field">
