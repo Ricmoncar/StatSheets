@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>&nbsp;</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #000; --fg: #fff; --dim: #555; --faint: #262626;
+    --leg: #ffe14a; --myt: #ffd86a; --hex: #c46aff; --du: #ffe9a8;
+    --ok: #6ee06e; --no: #ff4a4a;
+    --f: 'Press Start 2P', 'Courier New', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--fg); font-family: var(--f); }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; font-size: 12px; line-height: 1.9;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 9; pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+  }
+  main { width: min(560px, 100%); }
+
+  /* ── gate ── */
+  #gate { text-align: center; }
+  #gate label { display: block; font-size: 8px; letter-spacing: 4px; color: var(--faint); margin-bottom: 22px; }
+  #code {
+    font-family: var(--f); font-size: 13px; letter-spacing: 3px; text-align: center;
+    color: var(--fg); background: #050505; border: 2px solid #1a1a1a;
+    width: 100%; padding: 16px 14px; outline: none;
+    transition: border-color 0.18s;
+  }
+  #code:focus { border-color: #333; }
+  #gate.bad #code { border-color: var(--no); animation: shake 0.32s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); } 40% { transform: translateX(7px); }
+    60% { transform: translateX(-4px); } 80% { transform: translateX(4px); }
+  }
+  #msg { font-size: 8px; letter-spacing: 2px; color: var(--no); margin-top: 18px; min-height: 14px; }
+
+  /* ── panel ── */
+  #panel { display: none; }
+  #panel.open { display: block; animation: fade 0.3s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  h1 { font-size: 13px; letter-spacing: 4px; color: var(--leg); margin-bottom: 8px; }
+  .sub { font-size: 8px; letter-spacing: 1.5px; color: var(--dim); line-height: 2.1; margin-bottom: 30px; }
+
+  .group { border: 1px solid #1a1a1a; background: #060606; padding: 20px; margin-bottom: 14px; }
+  .group h2 { font-size: 9px; letter-spacing: 3px; color: var(--fg); margin-bottom: 6px; }
+  .group p { font-size: 7.5px; letter-spacing: 1px; color: var(--dim); line-height: 2.1; margin-bottom: 16px; }
+
+  .tiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  .tier {
+    font-family: var(--f); font-size: 8px; letter-spacing: 1.5px;
+    color: var(--dim); background: #030303; border: 1px solid #1c1c1c;
+    padding: 14px 6px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
+  }
+  .tier:hover { color: #ccc; border-color: #383838; }
+  .tier.on { color: #000; background: var(--leg); border-color: var(--leg); font-weight: bold; }
+
+  .toggle {
+    font-family: var(--f); font-size: 8px; letter-spacing: 2px;
+    display: flex; align-items: center; gap: 11px; width: 100%;
+    color: var(--dim); background: #030303; border: 1px solid #1c1c1c;
+    padding: 15px 14px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
+  }
+  .toggle:hover { color: #ccc; border-color: #383838; }
+  .toggle.on { color: var(--hex); border-color: var(--hex); }
+  .box {
+    width: 13px; height: 13px; flex-shrink: 0; border: 1px solid currentColor;
+    display: flex; align-items: center; justify-content: center; font-size: 8px; line-height: 1;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 7.5px; letter-spacing: 1px; }
+  th, td { text-align: right; padding: 6px 4px; border-bottom: 1px solid #131313; }
+  th:first-child, td:first-child { text-align: left; color: var(--dim); }
+  th { color: var(--faint); font-weight: normal; }
+  td { font-variant-numeric: tabular-nums; }
+  .r-leg { color: var(--leg); } .r-myt { color: var(--myt); }
+  .r-hex { color: var(--hex); } .r-du { color: var(--du); }
+
+  .note { font-size: 7px; letter-spacing: 1px; color: #3a3a3a; line-height: 2.2; margin-top: 22px; }
+  .note b { color: var(--dim); font-weight: normal; }
+  a { color: var(--dim); }
+  #state { font-size: 8px; letter-spacing: 2px; color: var(--ok); margin-top: 18px; min-height: 14px; }
+</style>
+</head>
+<body>
+<main>
+
+  <form id="gate" autocomplete="off">
+    <label for="code">ENTER CODE</label>
+    <input id="code" type="password" autocomplete="off" spellcheck="false" autofocus/>
+    <div id="msg"></div>
+  </form>
+
+  <section id="panel">
+    <h1>FORTUNE</h1>
+    <p class="sub">
+      Stored in this browser only. Nothing is written to the shared data,
+      and nobody else's rolls change.
+    </p>
+
+    <div class="group">
+      <h2>RARITY WEIGHT</h2>
+      <p>Multiplies the odds of legendary, mythic, hexxed and duality. Pity rolls are untouched.</p>
+      <div class="tiers" id="tiers">
+        <button type="button" class="tier" data-t="0">OFF</button>
+        <button type="button" class="tier" data-t="1">I</button>
+        <button type="button" class="tier" data-t="2">II</button>
+        <button type="button" class="tier" data-t="3">III</button>
+      </div>
+      <table>
+        <thead><tr><th>RARITY</th><th>BASE</th><th>NOW</th></tr></thead>
+        <tbody id="odds"></tbody>
+      </table>
+    </div>
+
+    <div class="group">
+      <h2>SHIMMYFUL</h2>
+      <p>Every eligible roll comes up shimmyful. Hexxed and duality have no shimmyful form, so they are unaffected.</p>
+      <button type="button" class="toggle" id="shimmy">
+        <span class="box"></span><span>ALWAYS SHIMMYFUL</span>
+      </button>
+    </div>
+
+    <div id="state"></div>
+
+    <p class="note">
+      <b>This is a lock, not a vault.</b> The source of this page is public, so anyone
+      who reads it can see a setting exists and set it themselves. What it does guarantee
+      is that the effect is local: it never touches Firestore, so no one else is affected
+      by yours and you are not affected by theirs.
+      <br><br>
+      <a href="index.html">back</a>
+    </p>
+  </section>
+
+</main>
+
+<script>
+  // SHA-256 of the code, so the code itself is not in the repository.
+  const CODE_HASH = '225335728959aa12a8badbd54ad31b7e2699ef3377b1c361568220cf93d4c93c';
+
+  const FORTUNE_KEY = 'ss_fortune';
+  const SHIMMY_KEY = 'ss_shimmy_all';
+  const BASE = { legendary: 1.5, mythic: 0.13, hexxed: 0.02, duality: 0.01 };
+  const TIERS = {
+    0: null,
+    1: { legendary: 6,  mythic: 12,  hexxed: 20,  duality: 25 },
+    2: { legendary: 14, mythic: 40,  hexxed: 80,  duality: 100 },
+    3: { legendary: 30, mythic: 120, hexxed: 300, duality: 400 },
+  };
+  const CLS = { legendary: 'r-leg', mythic: 'r-myt', hexxed: 'r-hex', duality: 'r-du' };
+
+  const $ = id => document.getElementById(id);
+
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  const getTier = () => Math.max(0, Math.min(3, parseInt(localStorage.getItem(FORTUNE_KEY), 10) || 0));
+  const getShimmy = () => localStorage.getItem(SHIMMY_KEY) === '1';
+
+  function paint() {
+    const t = getTier(), sh = getShimmy(), mult = TIERS[t];
+    document.querySelectorAll('.tier').forEach(b => b.classList.toggle('on', +b.dataset.t === t));
+    const sw = $('shimmy');
+    sw.classList.toggle('on', sh);
+    sw.querySelector('.box').textContent = sh ? 'X' : '';
+
+    $('odds').innerHTML = Object.keys(BASE).map(r => {
+      const now = mult ? +(BASE[r] * mult[r]).toFixed(4) : BASE[r];
+      return `<tr><td>${r.toUpperCase()}</td><td>${BASE[r]}</td>` +
+             `<td class="${mult ? CLS[r] : ''}">${now}</td></tr>`;
+    }).join('');
+
+    const bits = [];
+    if (t) bits.push('FORTUNE ' + 'I'.repeat(t));
+    if (sh) bits.push('SHIMMYFUL');
+    $('state').textContent = bits.length ? bits.join(' + ') + ' ACTIVE' : 'ALL OFF';
+    $('state').style.color = bits.length ? 'var(--ok)' : 'var(--dim)';
+  }
+
+  $('gate').addEventListener('submit', async e => {
+    e.preventDefault();
+    const gate = $('gate');
+    const ok = (await sha256($('code').value.trim())) === CODE_HASH;
+    if (!ok) {
+      gate.classList.remove('bad');
+      void gate.offsetWidth;
+      gate.classList.add('bad');
+      $('msg').textContent = 'NO.';
+      $('code').select();
+      return;
+    }
+    gate.style.display = 'none';
+    $('panel').classList.add('open');
+    paint();
+  });
+
+  document.querySelectorAll('.tier').forEach(b => b.addEventListener('click', () => {
+    localStorage.setItem(FORTUNE_KEY, b.dataset.t);
+    paint();
+  }));
+  $('shimmy').addEventListener('click', () => {
+    localStorage.setItem(SHIMMY_KEY, getShimmy() ? '0' : '1');
+    paint();
+  });
+</script>
+</body>
+</html>

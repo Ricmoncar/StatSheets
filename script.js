@@ -36086,6 +36086,56 @@ const RARITY_WEIGHTS = { common: 60, rare: 30, epic: 18.4, legendary: 1.5, mythi
 
 const PITY_WEIGHTS = { common: 0, rare: 0, epic: 0, legendary: 68.9, mythic: 25, hexxed: 1, duality: 5, determined: 0.1 };
 
+// ============================================================
+// FORTUNE
+// Local luck settings, unlocked by a code on a page nothing links to.
+// Both live in localStorage, so they only ever affect this browser: no other
+// player's rolls change, and nothing is written to the shared Firestore data.
+// ============================================================
+const FORTUNE_KEY = 'ss_fortune';
+const SHIMMY_KEY = 'ss_shimmy_all';
+
+// multipliers applied to the base weight of each rarity
+const FORTUNE_TIERS = {
+  1: { legendary: 6,  mythic: 12,  hexxed: 20,  duality: 25 },
+  2: { legendary: 14, mythic: 40,  hexxed: 80,  duality: 100 },
+  3: { legendary: 30, mythic: 120, hexxed: 300, duality: 400 },
+};
+
+function _readFortune() {
+  try { return Math.max(0, Math.min(3, parseInt(localStorage.getItem(FORTUNE_KEY), 10) || 0)); }
+  catch (e) { return 0; }
+}
+function _readShimmyAll() {
+  try { return localStorage.getItem(SHIMMY_KEY) === '1'; } catch (e) { return false; }
+}
+
+let _fortune = _readFortune();
+let _shimmyAll = _readShimmyAll();
+
+// another tab (the code page) can change these while this one is open
+window.addEventListener('storage', e => {
+  if (e.key === FORTUNE_KEY) _fortune = _readFortune();
+  if (e.key === SHIMMY_KEY) _shimmyAll = _readShimmyAll();
+});
+
+// The odds a roll actually uses right now.
+function activeRarityWeights() {
+  const mult = FORTUNE_TIERS[_fortune];
+  if (!mult) return RARITY_WEIGHTS;
+  const w = Object.assign({}, RARITY_WEIGHTS);
+  for (const k in mult) w[k] = +(RARITY_WEIGHTS[k] * mult[k]).toFixed(4);
+  return w;
+}
+
+// Shown on the roll overlay so a rigged roll never looks like a fair one.
+function _fortuneLabel() {
+  const bits = [];
+  if (_fortune) bits.push('FORTUNE ' + 'I'.repeat(_fortune));
+  if (_shimmyAll) bits.push('SHIMMYFUL');
+  return bits.join(' + ');
+}
+
 
 // ── SHIMMYFUL data now in traits.js ──
 
@@ -36179,7 +36229,7 @@ function rollOneTrait(rarityOverride, weights) {
 }
 
 function rollHand(isPityRoll) {
-  const weights = isPityRoll ? PITY_WEIGHTS : null;
+  const weights = isPityRoll ? PITY_WEIGHTS : activeRarityWeights();
   const seen = new Set();
   const hand = [];
   let tries = 0;
@@ -36188,7 +36238,8 @@ function rollHand(isPityRoll) {
     if (!seen.has(k)) {
       seen.add(k);
       const _r = TRAITS[k]?.rarity;
-      const shimmyful = (_r === 'common' && Math.random() < 0.01) || (_r === 'legendary' && Math.random() < 0.05) || (_r === 'mythic' && Math.random() < 0.10) || (_r === 'rare' && Math.random() < 0.01) || (_r === 'epic' && Math.random() < 0.01);
+      const _sh = _shimmyAll ? 1 : 0;   // FORTUNE: force every eligible roll shimmyful
+      const shimmyful = (_r === 'common' && Math.random() < (_sh || 0.01)) || (_r === 'legendary' && Math.random() < (_sh || 0.05)) || (_r === 'mythic' && Math.random() < (_sh || 0.10)) || (_r === 'rare' && Math.random() < (_sh || 0.01)) || (_r === 'epic' && Math.random() < (_sh || 0.01));
       //const shimmyful = (_r === 'common' && Math.random() < 1) || (_r === 'legendary' && Math.random() < 1) || (_r === 'mythic' && Math.random() < 1) || (_r === 'rare' && Math.random() < 1) || (_r === 'epic' && Math.random() < 1);
 //findme
       hand.push({ key: k, shimmyful });
@@ -37251,7 +37302,7 @@ function openTraitCodex() {
         <div class="codex-section rar-duality">
           <div class="codex-section-title">
             <span class="codex-rar-tag duality-split-tag" data-h="HEAVENLY (${countSeen}/${countTotal})" data-hf="HELLFORGED (${countSeen}/${countTotal})">HELLFORGED (${countSeen}/${countTotal})</span>
-            <span class="codex-rar-chance">${RARITY_WEIGHTS[rar]}% chance</span>
+            <span class="codex-rar-chance">${activeRarityWeights()[rar]}% chance</span>
           </div>
           <div class="codex-list">
             ${seenOfRarity.map(([k, t]) => `
@@ -37280,7 +37331,7 @@ function openTraitCodex() {
         <div class="codex-section rar-determined det-codex-section">
           <div class="codex-section-title">
             <span class="codex-rar-tag rar-determined det-codex-tag">DETERMINED (${countSeen}/${countTotal})</span>
-            <span class="codex-rar-chance">${RARITY_WEIGHTS[rar]}% chance</span>
+            <span class="codex-rar-chance">${activeRarityWeights()[rar]}% chance</span>
           </div>
           <div class="codex-list">
             ${seenOfRarity.map(([k, t]) => `
@@ -37330,7 +37381,7 @@ function openTraitCodex() {
       <div class="codex-section rar-${rar}">
         <div class="codex-section-title">
           <span class="codex-rar-tag rar-${rar}">${RARITY_LABEL[rar]} (${countSeen}/${countTotal})</span>
-          <span class="codex-rar-chance">${RARITY_WEIGHTS[rar]}% chance</span>
+          <span class="codex-rar-chance">${activeRarityWeights()[rar]}% chance</span>
         </div>
         <div class="codex-list">
           ${groupedHtml}
@@ -37479,6 +37530,9 @@ function rollTraitsFor(formIdx) {
     sub.innerHTML = '&nbsp;';
   }
   if (_rfName) sub.textContent = `for ${_rfName.toUpperCase()}`;
+  const _fl = _fortuneLabel();
+  if (_fl) sub.textContent = (sub.textContent || '').trim().replace(/^\u00a0$/, '')
+    ? sub.textContent + '  \u00b7  ' + _fl : _fl;
   overlay.classList.add('open');
   // Disable REROLL during animation so you can't stack rolls; AUTO + CANCEL stay live
   const rerollBtn = document.getElementById('reroll-hand-btn');
