@@ -4503,7 +4503,7 @@ const TRAITS = {
 
   terminal_velocity: {
     name: 'Terminal Velocity', rarity: 'mythic',
-    desc: 'SPD has no ceiling. Every 100 SPD grants +100 True Damage.',
+    desc: 'You accelerate and never stop accelerating. Every 100 SPD grants +100 True Damage.',
     passive: [{ stat: 'spd', op: 'mul', value: 2 }, { op: 'derived', stat: 'true_dmg', from: 'spd', per: 100, perValue: 100 }],
   },
 
@@ -4515,7 +4515,7 @@ const TRAITS = {
 
   long_noon: {
     name: 'The Long Noon', rarity: 'mythic',
-    desc: 'The round limit is removed. +5% all main stats every round, forever, no cap.',
+    desc: 'The day refuses to end. +5% all main stats every round, forever, no cap.',
     passive: [],
     cultivation: { label: 'Rounds Endured', perStack: [{ stat: 'all_main', op: 'pct', value: 5 }], defaultStacks: 0, maxStacks: 999 },
   },
@@ -4602,14 +4602,14 @@ const TRAITS = {
 
   choir_invisible: {
     name: 'Choir Invisible', rarity: 'mythic',
-    desc: 'Every ally who has fallen in your party this run fights beside you at 30% of their stats.',
+    desc: 'Every ally who has ever fallen beside you fights on at 30% of their stats.',
     passive: [],
     notes: 'Summons fallen allies at 30% stats. No direct self stat impact.',
   },
 
   heirloom: {
     name: 'Heirloom', rarity: 'mythic',
-    desc: 'Permanently inherit the trait of the last character you viewed before this fight.',
+    desc: 'Permanently inherit the trait of another character of your choosing.',
     passive: [],
     notes: 'Copies a trait from another character on pick.',
   },
@@ -4618,15 +4618,16 @@ const TRAITS = {
   // ---- addendum: hexxed ----
   hx_unmaking: {
     name: 'The Unmaking', rarity: 'hexxed',
-    desc: 'Every enemy you defeat has one of its traits deleted from the codex for the rest of the run. Nobody can roll it again.',
+    desc: 'Every enemy you defeat has one of its traits struck from the codex. Nobody can roll it again.',
     passive: [],
-    notes: 'Removes traits from the run-wide pool permanently.',
+    notes: 'Removes traits from the codex permanently.',
   },
 
   hx_godless: {
     name: 'Godless Machine', rarity: 'hexxed',
-    desc: 'Your stats ignore every cap, tier and ceiling in the game. x10 all main stats. You can no longer be healed by anything.',
+    desc: 'Nothing divine made you, so nothing divine can reach you. x10 all main stats. x2 ATK and DEF against spirits. You can no longer be healed by anything.',
     passive: [{ stat: 'all_main', op: 'mul', value: 10 }],
+    situational: [{ id: 'ca-godless-spirit', label: 'Fighting a spirit (x2 ATK and DEF)', passive: [{ stat: 'atk', op: 'mul', value: 2 }, { stat: 'def', op: 'mul', value: 2 }] }],
   },
 
   hx_ouroboros: {
