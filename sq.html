@@ -88,6 +88,9 @@
   .note b { color: var(--dim); font-weight: normal; }
   a { color: var(--dim); }
   #state { font-size: 8px; letter-spacing: 2px; color: var(--ok); margin-top: 18px; min-height: 14px; }
+  #health { font-size: 7.5px; letter-spacing: 1px; line-height: 2.1; color: var(--dim); margin-top: 10px; }
+  #health.bad { color: var(--no); }
+  #health.good { color: var(--ok); }
 </style>
 </head>
 <body>
@@ -130,6 +133,7 @@
     </div>
 
     <div id="state"></div>
+    <div id="health"></div>
 
     <p class="note">
       <b>This is a lock, not a vault.</b> The source of this page is public, so anyone
@@ -203,7 +207,35 @@
     gate.style.display = 'none';
     $('panel').classList.add('open');
     paint();
+    health();
   });
+
+  // Setting a flag here does nothing if the app on this host is still serving
+  // an older script.js, which is exactly what a slow deploy looks like. Ask the
+  // app what it is running rather than assuming it is current.
+  async function health() {
+    const el = $('health');
+    el.className = '';
+    el.textContent = 'checking the app on this host...';
+    try {
+      const page = await (await fetch('index.html', { cache: 'no-store' })).text();
+      const m = page.match(/script\.js\?v=(\d+)/);
+      const src = await (await fetch('script.js?probe=' + Date.now(), { cache: 'no-store' })).text();
+      const ok = src.indexOf('activeRarityWeights') !== -1;
+      const shim = src.indexOf('_shimmyAll') !== -1;
+      if (ok && shim) {
+        el.className = 'good';
+        el.textContent = 'App is up to date (script.js?v=' + (m ? m[1] : '?') + '). Settings will apply on your next roll.';
+      } else {
+        el.className = 'bad';
+        el.textContent = 'This host is still serving an older script.js, so these settings will do nothing yet. '
+          + 'Wait for the deploy to finish, then hard reload the app (Ctrl+Shift+R).';
+      }
+    } catch (err) {
+      el.className = '';
+      el.textContent = 'Could not check the app from here (' + err.message + ').';
+    }
+  }
 
   document.querySelectorAll('.tier').forEach(b => b.addEventListener('click', () => {
     localStorage.setItem(FORTUNE_KEY, b.dataset.t);
