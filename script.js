@@ -1500,6 +1500,9 @@ function _isJuko(c) { return !!(c && c.name && _JUKO_RE.test(c.name)); }
 // program has crashed into an infinite loop and is tearing itself apart.
 const _JUKO_0INF_RE = /0\s*.?\s*∞|infinity/i;
 function _isJuko0Inf(c) { return !!(_isJuko(c) && _JUKO_0INF_RE.test(_activeFormName(c))); }
+// "1": the form after the crash. Matched exactly so nothing like "1st" trips it.
+const _JUKO_1_RE = /^\s*1\s*$/;
+function _isJuko1(c) { return !!(_isJuko(c) && _JUKO_1_RE.test(_activeFormName(c))); }
 // PERF: memoized current-character lookup so the per-frame Juko draws don't each
 // run characters.find() several times a frame. Cached by currentId; the object
 // reference is stable so activeFormIdx is still read live off it.
@@ -2105,6 +2108,7 @@ function _getFormTheme(c, formIdx) {
   if (_isJuko(c)) {
     // 0∞ form gets its own locked track (RAGE) so playback == the analysed file.
     if (_isJuko0Inf(c)) return { url: _JUKO_0INF_THEME_SRC, name: "0 ∞", startAt: 0, _jukoLocked: true };
+    if (_isJuko1(c)) return { url: _JUKO_1_THEME_SRC, name: 'UNIVERSAL COLLAPSE', startAt: 0, _jukoLocked: true };
     return { url: _JUKO_THEME_SRC, name: "JUKO'S THEME", startAt: 0, _jukoLocked: true };
   }
   if (formIdx === 0) return (c.info && c.info.themeSong) || null;
@@ -2369,9 +2373,13 @@ function renderThemeTab() {
   // Juko's theme is hardcoded and cannot be changed: show a locked notice
   // instead of the upload controls so nothing can overwrite it.
   if (_isJuko(c)) {
+    // name whichever track this form is locked to, rather than always saying
+    // JUKO'S THEME: 0 infinity and 1 have their own
+    const _jt = _getFormTheme(c, c.activeFormIdx || 0);
+    const _jn = (_jt && _jt.name) || "JUKO'S THEME";
     container.innerHTML =
       `<div class="juko-music-locked" style="padding:26px 18px;text-align:center;">
-        <div style="font-size:13px;letter-spacing:3px;color:var(--char-color,#4ade5a);text-shadow:0 0 14px var(--char-color,#4ade5a);">♪ JUKO'S THEME ♪</div>
+        <div style="font-size:13px;letter-spacing:3px;color:var(--char-color,#4ade5a);text-shadow:0 0 14px var(--char-color,#4ade5a);">♪ ${escHtml(_jn)} ♪</div>
         <div style="font-size:9px;letter-spacing:1.5px;color:#9fd6a4;margin-top:12px;line-height:1.9;">
           NO! GO AWAY!!! DON'T CHANGE MY MUSIC!!!!<br>
           It's locked! <span style="color:#eaffb0;">it can't be changed or removed.</span>
@@ -9277,6 +9285,7 @@ let _jukoAudioBeat  = 0;      // AC-coupled punch: how far ABOVE baseline we are
 // fetch+decode always works, no CORS guessing). Base garden song + the 0∞ track.
 const _JUKO_THEME_SRC = 'sounds/juko.mp3';
 const _JUKO_0INF_THEME_SRC = 'sounds/juko-0inf.mp3';
+const _JUKO_1_THEME_SRC = 'sounds/juko-1.mp3';
 // Which track SHOULD be analysed right now. Prefers the track ACTUALLY loaded
 // on the shared theme-audio element (ground truth for what's really audible)
 // over the character's current form state: a crossfade takes ~800ms, so if we
@@ -9286,8 +9295,11 @@ const _JUKO_0INF_THEME_SRC = 'sounds/juko-0inf.mp3';
 function _jukoDesiredThemeSrc() {
   const a = (typeof _themeAudio !== 'undefined') ? _themeAudio : null;
   const loaded = a && a.dataset && a.dataset.trackUrl;
-  if (loaded === _JUKO_0INF_THEME_SRC || loaded === _JUKO_THEME_SRC) return loaded;
-  return _isJuko0Inf(_jukoCurChar()) ? _JUKO_0INF_THEME_SRC : _JUKO_THEME_SRC;
+  if (loaded === _JUKO_0INF_THEME_SRC || loaded === _JUKO_THEME_SRC || loaded === _JUKO_1_THEME_SRC) return loaded;
+  const _jc = _jukoCurChar();
+  if (_isJuko0Inf(_jc)) return _JUKO_0INF_THEME_SRC;
+  if (_isJuko1(_jc)) return _JUKO_1_THEME_SRC;
+  return _JUKO_THEME_SRC;
 }
 function _jukoEnsureEnvelope() {
   const src = _jukoDesiredThemeSrc();
