@@ -13515,3 +13515,120 @@ text.lb-cl-glitch-svg {
   .char-name-display.mahogany-name,
   .char-name-display.mahogany-name::after { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   'KURIO': the colour taken out of everything. Panels of near nothing
+   with one cold line of light along the edge, the same way his flowers
+   are read. Nothing here is brighter than it has to be.
+   ════════════════════════════════════════════════════════════════ */
+#char-view.kurio-ui .panel {
+  --p-border: rgba(208,200,220,0.42);
+  border-color: rgba(208,200,220,0.2);
+  background: linear-gradient(180deg, rgba(11,9,16,0.95), rgba(2,2,4,0.97));
+  box-shadow:
+    0 0 30px rgba(0,0,0,0.85),
+    inset 0 1px 0 rgba(208,200,220,0.09),
+    inset 0 0 40px rgba(0,0,0,0.7);
+  animation: kur-breathe 21s ease-in-out infinite;
+}
+@keyframes kur-breathe {
+  0%, 100% { border-color: rgba(208,200,220,0.14); }
+  50%      { border-color: rgba(208,200,220,0.36); }
+}
+#char-view.kurio-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(208,200,220,0.05), transparent 22%),
+    radial-gradient(120% 60% at 50% 118%, rgba(0,0,0,0.7), transparent 60%),
+    radial-gradient(90% 50% at 8% -10%, rgba(130,122,144,0.08), transparent 62%);
+}
+#char-view.kurio-ui .panel-title {
+  color: #ded8ea !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  border-bottom-color: rgba(208,200,220,0.26);
+  text-shadow: 0 0 12px rgba(208,200,220,0.5), 0 0 28px rgba(130,122,144,0.35);
+}
+#char-view.kurio-ui .tab-btn { color: #6a6478; }
+#char-view.kurio-ui .tab-btn:hover {
+  color: #ded8ea;
+  text-shadow: 0 0 12px rgba(208,200,220,0.6);
+}
+#char-view.kurio-ui .tab-btn.active {
+  color: #f2eefa;
+  border-bottom-color: rgba(208,200,220,0.75);
+  text-shadow: 0 0 16px rgba(208,200,220,0.7);
+}
+#char-view.kurio-ui .trait-chip {
+  border-color: rgba(208,200,220,0.22);
+  box-shadow: inset 0 1px 0 rgba(208,200,220,0.06), inset 0 0 18px rgba(0,0,0,0.6);
+}
+
+/* Name: it comes up out of the black and goes back into it */
+.char-name-display.kurio-name {
+  position: relative;
+  color: #cec7dc !important;
+  letter-spacing: 7px;
+  text-shadow: 0 0 12px rgba(208,200,220,0.45), 0 0 32px rgba(0,0,0,0.9);
+  animation: kur-name 21s ease-in-out infinite;
+}
+@keyframes kur-name {
+  0%, 100% { text-shadow: 0 0 8px rgba(130,122,144,0.4), 0 0 26px rgba(0,0,0,0.9); }
+  50%      { text-shadow: 0 0 18px rgba(232,228,244,0.75), 0 0 40px rgba(130,122,144,0.4); }
+}
+.char-name-display.kurio-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(100deg, transparent 40%, rgba(246,243,255,0.85) 50%, transparent 60%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: kur-sweep 11s ease-in-out infinite;
+}
+@keyframes kur-sweep {
+  0%, 100% { background-position: 140% 0; }
+  50%      { background-position: -140% 0; }
+}
+
+/* Portrait: lit only around the rim, the way the flowers are */
+.char-avatar-large.kurio-pfp {
+  position: relative;
+  border-color: rgba(208,200,220,0.5) !important;
+  box-shadow: 0 0 26px rgba(0,0,0,0.9), inset 0 0 30px rgba(0,0,0,0.85);
+  animation: kur-breathe 21s ease-in-out infinite;
+}
+.char-avatar-large.kurio-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(208,200,220,0.12), transparent 30%),
+    radial-gradient(circle at 50% 116%, rgba(0,0,0,0.75), transparent 60%);
+}
+/* the dark closing in from every corner of the frame */
+.char-avatar-large.kurio-pfp::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 100%,   rgba(0,0,0,0.7), transparent 36%),
+    radial-gradient(circle at 100% 100%, rgba(0,0,0,0.68), transparent 34%),
+    radial-gradient(circle at 100% 0%,   rgba(0,0,0,0.5), transparent 30%),
+    radial-gradient(circle at 0% 0%,     rgba(130,122,144,0.12), transparent 28%);
+  animation: kur-close 21s ease-in-out infinite;
+}
+@keyframes kur-close {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.62; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #char-view.kurio-ui .panel,
+  .char-avatar-large.kurio-pfp,
+  .char-avatar-large.kurio-pfp::after,
+  .char-name-display.kurio-name,
+  .char-name-display.kurio-name::after { animation: none; }
+}
