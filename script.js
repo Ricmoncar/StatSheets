@@ -3104,6 +3104,7 @@ const PATTERN_DEFS = {
   kurio_nightgarden: { label: "'KURIO' · Night Garden", params: [] },
   actarius_mycelium: { label: "Actarius · Nightwood", params: [] },
   ball_checks:      { label: "BALL · Checks", params: [] },
+  oblitus_void:     { label: "OBLITUS · The Void", params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
@@ -30877,6 +30878,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'kurio_nightgarden') { _drawKurioPattern(canvas, ctx, W, H, t);           return; }
   if (type === 'actarius_mycelium') { _drawActariusPattern(canvas, ctx, W, H, t);        return; }
   if (type === 'ball_checks') { _drawBallPattern(canvas, ctx, W, H, t);                   return; }
+  if (type === 'oblitus_void') { _drawOblitusPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
@@ -31426,6 +31428,8 @@ function startBgAnim(type, params) {
   _drawActariusOverlay._lt    = undefined;
   _drawBallPattern._lt        = undefined;
   _drawBallOverlay._lt        = undefined;
+  _drawOblitusPattern._lt     = undefined;
+  _drawOblitusOverlay._lt     = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -31523,6 +31527,7 @@ function stopBgAnim() {
   _stopMahoganyOverlay();
   _stopKurioOverlay();
   _stopBallOverlay();
+  _stopOblitusOverlay();
   _stopMbOverlay();
   _stopActariusOverlay();
   _stopSorrowOverlay();
@@ -32180,6 +32185,7 @@ function viewChar(id) {
   else if (_isKurio(c))    {     _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _KUR_HEX); }
   else if (_isActarius(c)) {      _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ACT_HEX); }
   else if (_isBall(c))     {       _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _BALL_HEX); }
+  else if (_isOblitus(c)) {        _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _OBL_HEX); }
   else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
   else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
   else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
@@ -32382,6 +32388,22 @@ function viewChar(id) {
       if (_av) _av.classList.remove('iris-pfp');
       if (_nm) { _nm.classList.remove('iris-name'); if (!_nmHasNameSkin(_nm)) _nm.removeAttribute('data-text'); }
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── OBLITUS: panels as glass out in the dark, lit only round their edge. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isOblitus(c)) {
+      _cvRoot.classList.add('oblitus-ui');
+      if (_av) _av.classList.add('oblitus-pfp');
+      if (_nm) { _nm.classList.add('oblitus-name'); _nm.setAttribute('data-text', _nm.textContent || 'OBLITUS'); }
+    } else {
+      _cvRoot.classList.remove('oblitus-ui');
+      if (_av) _av.classList.remove('oblitus-pfp');
+      if (_nm) _nm.classList.remove('oblitus-name');
     }
   }
 
@@ -33191,7 +33213,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -33204,7 +33226,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -33272,6 +33294,7 @@ function viewChar(id) {
   if (_isKurio(c))    _startKurioOverlay();
   if (_isActarius(c)) _startActariusOverlay();
   if (_isBall(c))     _startBallOverlay();
+  if (_isOblitus(c))  _startOblitusOverlay();
   if (_isMb(c))       _startMbOverlay();
   if (_isEmporium(c)) _startEmporiumOverlay();
   if (_isAlsace(c))   { _alsMaskOff = _isAlsaceMaskOff(c); _startAlsaceOverlay(); }
@@ -38865,7 +38888,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -41132,6 +41155,492 @@ function toggleMobileToC() {
     else      backdrop.classList.remove('open');
   }
 }
+
+// ════════════════════════════════════════════════════════════════
+// OBLITUS - the Void, and one ship out in it. Her name is Latin for
+// forgotten, so the page is built around an absence rather than around
+// a light: a hole sits out in the field with nothing inside it, and the
+// stars behind it are bent around its edge instead of passing through.
+// That bending is the whole trick. A black circle painted over a
+// starfield reads as a sticker; stars that go around it read as a
+// depth. Purple and black almost entirely, and the only white is the
+// stars, the cockpit and what the guns throw.
+// Kept cold and blue leaning on purpose, so she reads nothing like
+// Amber, whose violet is warm and lit from inside.
+// ════════════════════════════════════════════════════════════════
+const _OBL_RE = /^["']?\s*OBLITUS\s*["']?$/i;
+function _isOblitus(c) { return !!(c && c.name && _OBL_RE.test(c.name)); }
+const _OBL_VIOLET = '124,72,214';    // hers, cold and blue leaning
+const _OBL_DEEP   = '58,22,110';     // what the nebula is made of
+const _OBL_PALE   = '198,176,255';
+const _OBL_WHITE  = '240,238,255';
+const _OBL_HEX    = '#9a72e6';
+
+function _oblRnd(seed) {
+  const v = Math.sin(seed * 68.19 + 31.41) * 41217.37;
+  return v - Math.floor(v);
+}
+
+// ── A cloud, built once ──────────────────────────────────────────
+// Soft blobs piled up additively. Cheaper and better looking than any noise
+// I could evaluate per frame, and it only has to be turned and drifted after.
+function _oblNebulaSprite(px, seed, rgb) {
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const g = c.getContext('2d');
+  g.globalCompositeOperation = 'lighter';
+  const R = px / 2;
+  for (let i = 0; i < 46; i++) {
+    const a = _oblRnd(seed + i * 3.7) * 6.283185;
+    const d = Math.pow(_oblRnd(seed + i * 5.3), 0.7) * R * 0.72;
+    const x = R + Math.cos(a) * d, y = R + Math.sin(a) * d * 0.72;
+    const r = R * (0.1 + _oblRnd(seed + i * 7.9) * 0.3);
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    const al = 0.035 + _oblRnd(seed + i * 11.1) * 0.05;
+    gr.addColorStop(0, `rgba(${rgb},${al.toFixed(3)})`);
+    gr.addColorStop(0.5, `rgba(${rgb},${(al * 0.4).toFixed(3)})`);
+    gr.addColorStop(1, `rgba(${rgb},0)`);
+    g.fillStyle = gr;
+    g.beginPath();
+    g.arc(x, y, r, 0, 6.283185);
+    g.fill();
+  }
+  return c;
+}
+
+// the rim of the hole, and the dark that sits inside it
+function _oblVoidSprite(px) {
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const g = c.getContext('2d');
+  const R = px / 2;
+  const core = R * 0.3;
+  // the glow that gathers just outside the edge
+  const gr = g.createRadialGradient(R, R, core * 0.9, R, R, R);
+  gr.addColorStop(0, `rgba(${_OBL_PALE},0.5)`);
+  gr.addColorStop(0.06, `rgba(${_OBL_VIOLET},0.34)`);
+  gr.addColorStop(0.3, `rgba(${_OBL_DEEP},0.14)`);
+  gr.addColorStop(1, `rgba(${_OBL_DEEP},0)`);
+  g.fillStyle = gr;
+  g.fillRect(0, 0, px, px);
+  // and nothing at all inside it
+  g.globalCompositeOperation = 'destination-out';
+  const hole = g.createRadialGradient(R, R, core * 0.82, R, R, core * 1.02);
+  hole.addColorStop(0, 'rgba(0,0,0,1)');
+  hole.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = hole;
+  g.beginPath();
+  g.arc(R, R, core * 1.02, 0, 6.283185);
+  g.fill();
+  g.globalCompositeOperation = 'source-over';
+  g.fillStyle = '#000';
+  g.beginPath();
+  g.arc(R, R, core * 0.84, 0, 6.283185);
+  g.fill();
+  return c;
+}
+
+// ── The field ────────────────────────────────────────────────────
+function _drawOblitusPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawOblitusPattern._lt === undefined;
+  if (!fresh && t - _drawOblitusPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawOblitusPattern._lt, 0.05);
+  _drawOblitusPattern._lt = t;
+
+  if (canvas._oblW !== W || canvas._oblH !== H) {
+    canvas._oblW = W; canvas._oblH = H;
+    canvas._oblBase = null; canvas._oblNeb = null; canvas._oblStars = null;
+    canvas._oblVoid = null; canvas._oblDebris = null; canvas._oblVign = null;
+  }
+
+  // 1 ── black, with the barest violet left in it
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  if (!canvas._oblBase) {
+    canvas._oblBase = document.createElement('canvas');
+    canvas._oblBase.width = W; canvas._oblBase.height = H;
+    const bx = canvas._oblBase.getContext('2d');
+    const g = bx.createRadialGradient(W * 0.68, H * 0.36, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.85);
+    g.addColorStop(0, '#0d0518');
+    g.addColorStop(0.42, '#08030f');
+    g.addColorStop(1, '#020006');
+    bx.fillStyle = g;
+    bx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(canvas._oblBase, 0, 0);
+
+  const VX = W * 0.72, VY = H * 0.34;
+  const CORE = Math.min(W, H) * 0.115;
+  const LENS = CORE * 3.6;
+
+  // 2 ── the nebula, turning slowly enough that you only notice over minutes
+  if (!canvas._oblNeb) {
+    const M = 90;                                  // room to slide inside
+    const sheet = document.createElement('canvas');
+    sheet.width = W + M * 2; sheet.height = H + M * 2;
+    const sx = sheet.getContext('2d');
+    sx.globalCompositeOperation = 'lighter';
+    const px = Math.ceil(Math.max(W, H) * 0.8);
+    const parts = [
+      { s: _oblNebulaSprite(px, 3.1, _OBL_VIOLET),  x: 0.28, y: 0.6,  r: 0,   sc: 1 },
+      { s: _oblNebulaSprite(px, 9.7, _OBL_DEEP),    x: 0.74, y: 0.3,  r: 2,   sc: 1.15 },
+      { s: _oblNebulaSprite(px, 15.3, _OBL_VIOLET), x: 0.55, y: 0.86, r: 4,   sc: 0.85 },
+    ];
+    for (const n of parts) {
+      const w = n.s.width * n.sc;
+      sx.save();
+      sx.translate(M + W * n.x, M + H * n.y);
+      sx.rotate(n.r);
+      sx.drawImage(n.s, -w / 2, -w / 2, w, w);
+      sx.restore();
+    }
+    canvas._oblNeb = sheet; canvas._oblNebM = M;
+  }
+  {
+    const M = canvas._oblNebM;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.5 + 0.1 * (0.5 - 0.5 * Math.cos(t * 0.05));
+    ctx.drawImage(canvas._oblNeb,
+      -M + Math.sin(t * 0.018) * M * 0.7, -M + Math.cos(t * 0.013) * M * 0.7);
+    ctx.globalAlpha = 1;
+  }
+
+  // 3 ── stars, at three depths, and bent around the hole rather than through
+  if (!canvas._oblStars) {
+    canvas._oblStars = [];
+    const n = Math.round(Math.min(430, (W * H) / 4200));
+    for (let i = 0; i < n; i++) {
+      const depth = _oblRnd(i * 2.7);
+      canvas._oblStars.push({
+        x: _oblRnd(i * 3.1) * W, y: _oblRnd(i * 5.9) * H,
+        sz: 0.35 + depth * depth * 1.5,
+        v: 1.5 + depth * 7,
+        ph: _oblRnd(i * 7.3) * 6.283,
+        tw: 0.3 + _oblRnd(i * 11.7) * 1.3,
+        pale: _oblRnd(i * 13.1) < 0.3,
+      });
+    }
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const pass of [0, 1]) {
+    ctx.beginPath();
+    for (const s of canvas._oblStars) {
+      if ((s.pale ? 1 : 0) !== pass) continue;
+      s.x -= s.v * dt;
+      if (s.x < -4) { s.x = W + 4; s.y = Math.random() * H; }
+      let x = s.x, y = s.y;
+      const dx = x - VX, dy = y - VY;
+      const d = Math.hypot(dx, dy);
+      if (d < LENS) {
+        // pushed out around the edge, and gone entirely behind it
+        const u = 1 - d / LENS;
+        const nd = d + u * u * LENS * 0.42;
+        if (nd < CORE * 1.02) continue;
+        x = VX + dx / (d || 1) * nd;
+        y = VY + dy / (d || 1) * nd;
+      }
+      const a = 0.35 + 0.65 * (0.5 - 0.5 * Math.cos(t * s.tw + s.ph));
+      const r = s.sz * (0.6 + a * 0.4);
+      ctx.moveTo(x + r, y);
+      ctx.arc(x, y, r, 0, 6.283185);
+    }
+    ctx.fillStyle = pass ? `rgba(${_OBL_PALE},0.75)` : `rgba(${_OBL_WHITE},0.85)`;
+    ctx.fill();
+  }
+
+  // 4 ── the hole itself
+  if (!canvas._oblVoid) canvas._oblVoid = _oblVoidSprite(Math.ceil(CORE / 0.3) * 2);
+  {
+    const sp = canvas._oblVoid;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.save();
+    ctx.translate(VX, VY);
+    ctx.rotate(t * 0.03);
+    ctx.drawImage(sp, -sp.width / 2, -sp.height / 2);
+    ctx.restore();
+    // a thread of light being drawn round the rim
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = `rgba(${_OBL_PALE},0.3)`;
+    ctx.lineWidth = 1.2;
+    for (let i = 0; i < 3; i++) {
+      const a0 = t * (0.4 + i * 0.17) + i * 2.1;
+      ctx.beginPath();
+      ctx.arc(VX, VY, CORE * (1.1 + i * 0.13), a0, a0 + 0.7 + i * 0.3);
+      ctx.stroke();
+    }
+  }
+
+  // 5 ── things that were lost out here, still turning
+  if (!canvas._oblDebris) {
+    canvas._oblDebris = [];
+    for (let i = 0; i < 9; i++) {
+      const n = 5 + Math.floor(_oblRnd(i * 17.3) * 4);
+      const pts = [];
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * 6.283185;
+        const r = 0.5 + _oblRnd(i * 19.1 + k * 3.3) * 0.6;
+        pts.push([Math.cos(a) * r, Math.sin(a) * r]);
+      }
+      canvas._oblDebris.push({
+        x: _oblRnd(i * 23.7) * W, y: _oblRnd(i * 29.3) * H,
+        sz: 5 + _oblRnd(i * 31.1) * 16,
+        vx: -6 - _oblRnd(i * 37.7) * 14, vy: (_oblRnd(i * 41.3) - 0.5) * 6,
+        rot: _oblRnd(i * 43.9) * 6.283, vr: (_oblRnd(i * 47.1) - 0.5) * 0.5,
+        pts,
+      });
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  for (const d of canvas._oblDebris) {
+    d.x += d.vx * dt; d.y += d.vy * dt; d.rot += d.vr * dt;
+    if (d.x < -60) { d.x = W + 60; d.y = Math.random() * H; }
+    if (d.y < -60) d.y = H + 60; else if (d.y > H + 60) d.y = -60;
+    ctx.save();
+    ctx.translate(d.x, d.y);
+    ctx.rotate(d.rot);
+    ctx.beginPath();
+    d.pts.forEach((p, i) => i ? ctx.lineTo(p[0] * d.sz, p[1] * d.sz)
+                              : ctx.moveTo(p[0] * d.sz, p[1] * d.sz));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(6,3,12,0.92)';
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${_OBL_VIOLET},0.4)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 6 ── and the edges give out
+  if (!canvas._oblVign) {
+    canvas._oblVign = document.createElement('canvas');
+    canvas._oblVign.width = W; canvas._oblVign.height = H;
+    const vx = canvas._oblVign.getContext('2d');
+    const g = vx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.3,
+                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.76);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.62, 'rgba(1,0,4,0.34)');
+    g.addColorStop(1, 'rgba(1,0,4,0.82)');
+    vx.fillStyle = g;
+    vx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(canvas._oblVign, 0, 0);
+}
+
+// ── Her ship, and what it throws ─────────────────────────────────
+let _oblOverlayRafId = null;
+let _oblX = 0, _oblY = 0, _oblTX = 0, _oblTY = 0, _oblVX = 0, _oblVY = 0;
+let _oblAim = 0, _oblBolts = [], _oblWash = [], _oblDust = [], _oblKick = 0;
+
+function _oblMouseMove(e) { _oblTX = e.clientX; _oblTY = e.clientY; }
+
+function _oblClick() {
+  const c = Math.cos(_oblAim), s = Math.sin(_oblAim);
+  for (const off of [-9, 9]) {            // one off each wing
+    _oblBolts.push({
+      x: _oblX + c * 12 - s * off, y: _oblY + s * 12 + c * off,
+      vx: c * 1150, vy: s * 1150, a: _oblAim, life: 1,
+    });
+  }
+  _oblKick = 1;
+}
+
+// The hull: dark, with the light only on its edges and in the glass, so it
+// reads as a solid thing out in front of a lit field rather than a sprite.
+function _oblShip(ctx, sc, thrust) {
+  ctx.beginPath();
+  ctx.moveTo(16 * sc, 0);
+  ctx.lineTo(2 * sc, -5.4 * sc);
+  ctx.lineTo(-9 * sc, -4.6 * sc);
+  ctx.lineTo(-13 * sc, -1.6 * sc);
+  ctx.lineTo(-13 * sc, 1.6 * sc);
+  ctx.lineTo(-9 * sc, 4.6 * sc);
+  ctx.lineTo(2 * sc, 5.4 * sc);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(11,5,22,0.96)';
+  ctx.fill();
+  ctx.strokeStyle = `rgba(${_OBL_PALE},0.85)`;
+  ctx.lineWidth = 1.1;
+  ctx.stroke();
+
+  ctx.beginPath();                          // wings swept back off the hull
+  for (const sg of [-1, 1]) {
+    ctx.moveTo(1 * sc, sg * 4.4 * sc);
+    ctx.lineTo(-6 * sc, sg * 14 * sc);
+    ctx.lineTo(-13 * sc, sg * 13 * sc);
+    ctx.lineTo(-10 * sc, sg * 4.6 * sc);
+    ctx.closePath();
+  }
+  ctx.fillStyle = 'rgba(8,4,18,0.95)';
+  ctx.fill();
+  ctx.strokeStyle = `rgba(${_OBL_VIOLET},0.85)`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.beginPath();                          // the glass, the one warm thing on her
+  ctx.ellipse(5 * sc, 0, 4 * sc, 2.3 * sc, 0, 0, 6.283185);
+  ctx.fillStyle = `rgba(${_OBL_WHITE},0.9)`;
+  ctx.fill();
+
+  if (thrust > 0.02) {                      // and the burn, as long as she is moving
+    const L = (9 + thrust * 26) * sc;
+    const g = ctx.createLinearGradient(-13 * sc, 0, -13 * sc - L, 0);
+    g.addColorStop(0, `rgba(${_OBL_WHITE},${(0.85 * thrust).toFixed(3)})`);
+    g.addColorStop(0.3, `rgba(${_OBL_VIOLET},${(0.6 * thrust).toFixed(3)})`);
+    g.addColorStop(1, `rgba(${_OBL_DEEP},0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-12 * sc, -3.4 * sc);
+    ctx.lineTo(-13 * sc - L, 0);
+    ctx.lineTo(-12 * sc, 3.4 * sc);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function _drawOblitusOverlay(canvas, ctx, W, H, t) {
+  if (_drawOblitusOverlay._lt !== undefined && t - _drawOblitusOverlay._lt < 0.016) return;
+  const dt = _drawOblitusOverlay._lt === undefined ? 0.016 : Math.min(t - _drawOblitusOverlay._lt, 0.05);
+  _drawOblitusOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+
+  // dust going by nearer than the page, so there is something in front of it
+  if (!_oblDust.length) {
+    for (let i = 0; i < 26; i++) {
+      const near = i > 19;
+      _oblDust.push({
+        x: _oblRnd(i * 4.7 + 1) * W,
+        y: ((i + _oblRnd(i * 6.1 + 3)) / 26) * H,
+        v: near ? 130 + _oblRnd(i * 8.9) * 150 : 26 + _oblRnd(i * 8.9) * 60,
+        sz: near ? 1.4 + _oblRnd(i * 10.3) * 1.6 : 0.5 + _oblRnd(i * 10.3) * 1,
+        a: near ? 0.3 : 0.6,
+      });
+    }
+  }
+  for (const d of _oblDust) {
+    d.x -= d.v * dt;
+    if (d.x < -20) { d.x = W + 20; d.y = Math.random() * H; }
+    ctx.beginPath();
+    // the fast ones stretch, which is most of what says how fast they are going
+    if (d.v > 110) {
+      ctx.moveTo(d.x, d.y);
+      ctx.lineTo(d.x + d.v * 0.035, d.y);
+      ctx.strokeStyle = `rgba(${_OBL_PALE},${d.a.toFixed(2)})`;
+      ctx.lineWidth = d.sz;
+      ctx.stroke();
+    } else {
+      ctx.arc(d.x, d.y, d.sz, 0, 6.283185);
+      ctx.fillStyle = `rgba(${_OBL_WHITE},${d.a.toFixed(2)})`;
+      ctx.fill();
+    }
+  }
+
+  const SPRING = 58, DAMP = 12;
+  _oblVX += ((_oblTX - _oblX) * SPRING - _oblVX * DAMP) * dt;
+  _oblVY += ((_oblTY - _oblY) * SPRING - _oblVY * DAMP) * dt;
+  _oblX += _oblVX * dt; _oblY += _oblVY * dt;
+  const spd = Math.hypot(_oblVX, _oblVY);
+  if (spd > 22) {                            // she points where she is going
+    const want = Math.atan2(_oblVY, _oblVX);
+    let d = want - _oblAim;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    _oblAim += d * Math.min(1, dt * 7);
+  }
+  _oblKick = Math.max(0, _oblKick - dt * 4);
+
+  // what the guns threw
+  for (let i = _oblBolts.length - 1; i >= 0; i--) {
+    const b = _oblBolts[i];
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    b.life -= dt * 0.8;
+    if (b.life <= 0 || b.x < -60 || b.x > W + 60 || b.y < -60 || b.y > H + 60) {
+      if (b.life <= 0) _oblWash.push({ x: b.x, y: b.y, r: 3, life: 1 });
+      _oblBolts.splice(i, 1);
+      continue;
+    }
+    const e = Math.min(1, b.life * 1.4);
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.a);
+    const g = ctx.createLinearGradient(-26, 0, 8, 0);
+    g.addColorStop(0, `rgba(${_OBL_VIOLET},0)`);
+    g.addColorStop(0.6, `rgba(${_OBL_VIOLET},${(e * 0.7).toFixed(3)})`);
+    g.addColorStop(1, `rgba(${_OBL_WHITE},${e.toFixed(3)})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(-26, -1.5, 34, 3);
+    ctx.restore();
+  }
+
+  // and where it gave out
+  for (let i = _oblWash.length - 1; i >= 0; i--) {
+    const w = _oblWash[i];
+    w.r += 150 * dt; w.life -= dt * 1.8;
+    if (w.life <= 0) { _oblWash.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.arc(w.x, w.y, w.r, 0, 6.283185);
+    ctx.strokeStyle = `rgba(${_OBL_PALE},${(w.life * 0.4).toFixed(3)})`;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+
+  // ── the ship ──
+  const thrust = Math.min(1, spd * 0.0016) + _oblKick * 0.5;
+  ctx.save();
+  ctx.translate(_oblX, _oblY);
+  ctx.rotate(_oblAim);
+  // the light she is putting out, which is how she reads against the black
+  const gl = ctx.createRadialGradient(0, 0, 0, 0, 0, 46);
+  gl.addColorStop(0, `rgba(${_OBL_VIOLET},${(0.24 + thrust * 0.2).toFixed(3)})`);
+  gl.addColorStop(1, `rgba(${_OBL_DEEP},0)`);
+  ctx.fillStyle = gl;
+  ctx.fillRect(-46, -46, 92, 92);
+  ctx.globalCompositeOperation = 'source-over';
+  _oblShip(ctx, 1.15, thrust);
+  ctx.restore();
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function _startOblitusOverlay() {
+  _stopOblitusOverlay();
+  _drawOblitusOverlay._lt = undefined;
+  _oblX = _oblTX = window.innerWidth * 0.5;
+  _oblY = _oblTY = window.innerHeight * 0.5;
+  _oblVX = _oblVY = 0; _oblAim = 0; _oblKick = 0;
+  _oblBolts = []; _oblWash = []; _oblDust = [];
+  window.addEventListener('mousemove', _oblMouseMove);
+  window.addEventListener('click', _oblClick);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'oblitus-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('oblitus-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+      _oblDust = [];
+    }
+    _drawOblitusOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _oblOverlayRafId = requestAnimationFrame(frame);
+  }
+  _oblOverlayRafId = requestAnimationFrame(frame);
+}
+
+function _stopOblitusOverlay() {
+  if (_oblOverlayRafId) { cancelAnimationFrame(_oblOverlayRafId); _oblOverlayRafId = null; }
+  window.removeEventListener('mousemove', _oblMouseMove);
+  window.removeEventListener('click', _oblClick);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('oblitus-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
 // BALL - light green and dark green checks, everywhere, and a lettuce

@@ -13853,3 +13853,119 @@ text.lb-cl-glitch-svg {
   .char-name-display.ball-name,
   .char-name-display.ball-name::after { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   OBLITUS: glass out in the dark. The panels are all but black and
+   read by the violet along their edge, the same way her ship does,
+   and the only white on the page is where a star would be.
+   ════════════════════════════════════════════════════════════════ */
+#char-view.oblitus-ui .panel {
+  --p-border: rgba(198,176,255,0.6);
+  border-color: rgba(124,72,214,0.6);
+  background: linear-gradient(180deg, rgba(11,5,24,0.94), rgba(2,0,7,0.97));
+  box-shadow:
+    0 0 32px rgba(124,72,214,0.34),
+    inset 0 1px 0 rgba(198,176,255,0.14),
+    inset 0 0 44px rgba(58,22,110,0.4);
+  animation: obl-drift 19s ease-in-out infinite;
+}
+@keyframes obl-drift {
+  0%, 100% { border-color: rgba(58,22,110,0.7); }
+  50%      { border-color: rgba(198,176,255,0.6); }
+}
+#char-view.oblitus-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(198,176,255,0.06), transparent 24%),
+    radial-gradient(120% 60% at 84% -12%, rgba(124,72,214,0.22), transparent 62%),
+    radial-gradient(110% 55% at 10% 116%, rgba(58,22,110,0.3), transparent 60%);
+}
+#char-view.oblitus-ui .panel-title {
+  color: #e6ddff !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  border-bottom-color: rgba(124,72,214,0.4);
+  text-shadow: 0 0 12px rgba(154,114,230,0.9), 0 0 30px rgba(58,22,110,0.8);
+}
+#char-view.oblitus-ui .tab-btn { color: #5f4a8c; }
+#char-view.oblitus-ui .tab-btn:hover {
+  color: #e6ddff;
+  text-shadow: 0 0 12px rgba(154,114,230,0.9);
+}
+#char-view.oblitus-ui .tab-btn.active {
+  color: #ffffff;
+  border-bottom-color: rgba(198,176,255,0.9);
+  text-shadow: 0 0 16px rgba(198,176,255,0.95);
+}
+#char-view.oblitus-ui .trait-chip {
+  border-color: rgba(124,72,214,0.32);
+  box-shadow: inset 0 1px 0 rgba(198,176,255,0.08), inset 0 0 20px rgba(58,22,110,0.35);
+}
+
+/* Name: a long way off, with light going across it */
+.char-name-display.oblitus-name {
+  position: relative;
+  color: #c3aef5 !important;
+  letter-spacing: 8px;
+  text-shadow: 0 0 14px rgba(124,72,214,0.9), 0 0 36px rgba(58,22,110,0.85);
+  animation: obl-name 19s ease-in-out infinite;
+}
+@keyframes obl-name {
+  0%, 100% { text-shadow: 0 0 10px rgba(58,22,110,0.85), 0 0 26px rgba(4,1,10,0.8); }
+  50%      { text-shadow: 0 0 20px rgba(240,238,255,0.8), 0 0 46px rgba(124,72,214,0.8); }
+}
+.char-name-display.oblitus-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(100deg, transparent 40%, rgba(255,255,255,0.9) 50%, transparent 60%);
+  background-size: 320% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: obl-sweep 12s ease-in-out infinite;
+}
+@keyframes obl-sweep {
+  0%, 100% { background-position: 142% 0; }
+  50%      { background-position: -142% 0; }
+}
+
+/* Portrait: a porthole, dark inside and lit on the rim */
+.char-avatar-large.oblitus-pfp {
+  position: relative;
+  border-color: rgba(198,176,255,0.62) !important;
+  box-shadow: 0 0 30px rgba(124,72,214,0.6), inset 0 0 30px rgba(2,0,7,0.85);
+  animation: obl-drift 19s ease-in-out infinite;
+}
+.char-avatar-large.oblitus-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(198,176,255,0.12), transparent 32%),
+    radial-gradient(circle at 76% 14%, rgba(124,72,214,0.3), transparent 54%);
+}
+/* the dark of the field closing round it */
+.char-avatar-large.oblitus-pfp::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 100%,   rgba(1,0,4,0.72), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(1,0,4,0.66), transparent 34%),
+    radial-gradient(circle at 8% 6%,     rgba(240,238,255,0.16), transparent 22%);
+  animation: obl-close 19s ease-in-out infinite;
+}
+@keyframes obl-close {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #char-view.oblitus-ui .panel,
+  .char-avatar-large.oblitus-pfp,
+  .char-avatar-large.oblitus-pfp::after,
+  .char-name-display.oblitus-name,
+  .char-name-display.oblitus-name::after { animation: none; }
+}
