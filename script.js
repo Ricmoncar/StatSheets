@@ -41354,9 +41354,9 @@ function _kurLoosePetal(ctx, p, A, G) {
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(p.rot);
-  ctx.scale(1, 0.35 + 0.65 * Math.abs(Math.cos(p.flip)));   // it turns edge on as it falls
-  ctx.beginPath();
-  _kurPetal(ctx, p.kind, 0, 0, p.sz, p.sz * 0.42, 0.2);
+  ctx.scale(1, 0.46 + 0.54 * Math.abs(Math.cos(p.flip)));   // it turns edge on as it falls
+  ctx.beginPath();                          // and never so far that it is a sliver
+  _kurPetal(ctx, p.kind, 0, 0, p.sz, p.sz * 0.5, 0.2);
   ctx.fillStyle = `rgba(6,5,10,${(A * 0.9).toFixed(3)})`;
   ctx.fill();
   ctx.strokeStyle = `rgba(${_KUR_SILVER},${(A * 0.42 * G).toFixed(3)})`;
@@ -41366,6 +41366,63 @@ function _kurLoosePetal(ctx, p, A, G) {
 }
 
 const _KUR_KINDS = ['round', 'pointed', 'quill', 'recurved', 'cupped'];
+
+// What falls in front of the page falls at three distances. The near ones are
+// large, fast and barely there, the far ones small, slow and sharp: that
+// spread is the whole trick, since a single size at a single speed reads as
+// weather rather than as depth. Nothing here is opaque enough to lose text
+// behind it, which is what keeps it elegant instead of merely busy.
+const _KUR_BANDS = [
+  { n: 15, sz: [10, 21], vy: [9, 17],  a: 0.40, g: 1,    sway: 7,  vr: 0.5,  rock: 0.16 },
+  { n: 10, sz: [23, 41], vy: [17, 30], a: 0.28, g: 0.86, sway: 11, vr: 0.34, rock: 0.3 },
+  { n: 4,  sz: [50, 86], vy: [33, 52], a: 0.15, g: 0.55, sway: 17, vr: 0.16, rock: 0.42 },
+];
+
+function _kurSeedFore() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const out = [];
+  let k = 0;
+  for (const b of _KUR_BANDS) {
+    for (let i = 0; i < b.n; i++, k++) {
+      out.push({
+        x: _kurRnd(k * 4.4 + 1) * W,
+        y: ((i + _kurRnd(k * 6.2 + 3)) / b.n) * (H + 200) - 100,
+        vx: (_kurRnd(k * 8.1 + 5) - 0.5) * 15,
+        vy: b.vy[0] + _kurRnd(k * 10.7 + 7) * (b.vy[1] - b.vy[0]),
+        spin: _kurRnd(k * 12.3 + 9) * 6.283,
+        rot: 0,
+        vr: (_kurRnd(k * 14.9 + 11) - 0.5) * b.vr,
+        flip: _kurRnd(k * 16.5 + 13) * 6.283,
+        vf: 0.3 + _kurRnd(k * 18.1 + 15) * 0.55,
+        sz: b.sz[0] + _kurRnd(k * 20.3 + 17) * (b.sz[1] - b.sz[0]),
+        kind: _KUR_KINDS[Math.floor(_kurRnd(k * 22.7 + 19) * 5)],
+        a: b.a, g: b.g, sway: b.sway, rock: b.rock,
+      });
+    }
+  }
+  return out;
+}
+
+// and a few whole flowers cross in front of everything, not behind it
+function _kurSeedForeBlooms() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const out = [];
+  for (let i = 0; i < 4; i++) {
+    out.push({
+      x: ((i + 0.12 + _kurRnd(i * 31.7 + 2) * 0.76) / 4) * W,
+      y: ((i + _kurRnd(i * 37.3 + 4)) / 4) * (H + 320) - 160,
+      vx: (_kurRnd(i * 41.9 + 6) - 0.5) * 11,
+      vy: 6 + _kurRnd(i * 43.1 + 8) * 9,
+      R: 62 + _kurRnd(i * 47.3 + 10) * 66,
+      sp: (i * 3 + 1) % 10,           // never the same flower twice in view
+      seed: i * 11.3 + 4.1,
+      rot: _kurRnd(i * 59.1 + 14) * 6.283,
+      vr: (_kurRnd(i * 61.7 + 16) - 0.5) * 0.13,
+      ph: _kurRnd(i * 67.3 + 18) * 6.283,
+    });
+  }
+  return out;
+}
 
 // ── The garden behind the page ───────────────────────────────────
 function _kurFarSprite(f) {
@@ -41581,6 +41638,7 @@ function _drawKurioPattern(canvas, ctx, W, H, t) {
 let _kurOverlayRafId = null;
 let _kurX = 0, _kurY = 0, _kurTX = 0, _kurTY = 0, _kurVX = 0, _kurVY = 0;
 let _kurAim = 0, _kurBlooms = [], _kurLoose = [], _kurFore = [], _kurWaves = [];
+let _kurForeBlooms = [];
 
 function _kurMouseMove(e) { _kurTX = e.clientX; _kurTY = e.clientY; }
 
@@ -41603,29 +41661,47 @@ function _drawKurioOverlay(canvas, ctx, W, H, t) {
   ctx.clearRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over';
 
-  // petals crossing nearer than the panels, so there is something in front of
-  // the page as well as behind it
-  if (!_kurFore.length) {
-    for (let i = 0; i < 7; i++) {
-      _kurFore.push({
-        x: _kurRnd(i * 4.4) * W, y: _kurRnd(i * 6.2) * H,
-        vx: (_kurRnd(i * 8.1) - 0.5) * 16, vy: 7 + _kurRnd(i * 10.7) * 12,
-        rot: _kurRnd(i * 12.3) * 6.283, vr: (_kurRnd(i * 14.9) - 0.5) * 0.5,
-        flip: _kurRnd(i * 16.5) * 6.283, vf: 0.35 + _kurRnd(i * 18.1) * 0.6,
-        sz: 22 + _kurRnd(i * 20.3) * 24,
-        kind: _KUR_KINDS[Math.floor(_kurRnd(i * 22.7) * 5)],
-      });
-    }
-  }
-  for (const p of _kurFore) {
-    p.x += (p.vx + Math.sin(t * 0.4 + p.flip) * 9) * dt;
+  // Everything from here to the cursor falls in front of the page rather than
+  // behind it, panels and sidebar and all, since this layer sits over them.
+  if (!_kurFore.length) _kurFore = _kurSeedFore();
+  if (!_kurForeBlooms.length) _kurForeBlooms = _kurSeedForeBlooms();
+
+  // a petal in still air rocks as much as it turns, so it does both
+  const fall = (p) => {
+    p.x += (p.vx + Math.sin(t * 0.4 + p.flip) * p.sway) * dt;
     p.y += p.vy * dt;
-    p.rot += p.vr * dt;
+    p.spin += p.vr * dt;
     p.flip += p.vf * dt;
-    if (p.y > H + 70) { p.y = -70; p.x = Math.random() * W; }
-    if (p.x < -70) p.x = W + 70; else if (p.x > W + 70) p.x = -70;
-    _kurLoosePetal(ctx, p, 0.42, 0.85);
+    p.rot = p.spin + Math.sin(p.flip * 0.7) * p.rock;
+    const m = p.sz * 2 + 40;
+    if (p.y > H + m) { p.y = -m; p.x = Math.random() * W; }
+    if (p.x < -m) p.x = W + m; else if (p.x > W + m) p.x = -m;
+    _kurLoosePetal(ctx, p, p.a, p.g);
+  };
+
+  let fi = 0;
+  for (; fi < _KUR_BANDS[0].n; fi++) fall(_kurFore[fi]);
+
+  // the flowers go between the far petals and the near ones, so they are
+  // clearly in front of the page and clearly behind the closest of the fall
+  for (const b of _kurForeBlooms) {
+    b.rot += b.vr * dt;
+    b.x += (b.vx + Math.sin(t * 0.21 + b.ph) * 5) * dt;
+    b.y += b.vy * dt;
+    const m = b.R * 1.4;
+    if (b.y > H + m) { b.y = -m; b.x = Math.random() * W; }
+    if (b.x < -m) b.x = W + m; else if (b.x > W + m) b.x = -m;
+    _kurMidSprite(b, 1);
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.rot - b._bakedRot);
+    ctx.globalAlpha = 0.17 + 0.06 * (0.5 - 0.5 * Math.cos(t * 0.15 + b.ph));
+    ctx.drawImage(b._sprite, -b._px / 2, -b._px / 2);
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
+
+  for (; fi < _kurFore.length; fi++) fall(_kurFore[fi]);
 
   const SPRING = 68, DAMP = 13;
   _kurVX += ((_kurTX - _kurX) * SPRING - _kurVX * DAMP) * dt;
@@ -41765,7 +41841,7 @@ function _startKurioOverlay() {
   _kurX = _kurTX = window.innerWidth * 0.5;
   _kurY = _kurTY = window.innerHeight * 0.5;
   _kurVX = _kurVY = 0; _kurAim = 0;
-  _kurBlooms = []; _kurLoose = []; _kurFore = []; _kurWaves = [];
+  _kurBlooms = []; _kurLoose = []; _kurFore = []; _kurWaves = []; _kurForeBlooms = [];
   window.addEventListener('mousemove', _kurMouseMove);
   window.addEventListener('click', _kurClick);
   const _arrow = document.getElementById('cursor');
@@ -41781,7 +41857,7 @@ function _startKurioOverlay() {
     if (!cv2) return;
     if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
       cv2.width = window.innerWidth; cv2.height = window.innerHeight;
-      _kurFore = [];
+      _kurFore = []; _kurForeBlooms = [];
     }
     _drawKurioOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
     _kurOverlayRafId = requestAnimationFrame(frame);
