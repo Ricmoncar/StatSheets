@@ -13399,3 +13399,124 @@ text.lb-cl-glitch-svg {
   .char-name-display.lele-name,
   .char-name-display.lele-name::after { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   'MAHOGANY' and MAPLE: dark wood grown over with rose. Panels of deep
+   grain rimmed in oxblood, a name that opens and closes like a bloom.
+   ════════════════════════════════════════════════════════════════ */
+#char-view.mahogany-ui .panel {
+  --p-border: rgba(180,75,75,0.5);
+  border-color: rgba(110,31,42,0.6);
+  background: linear-gradient(180deg, rgba(42,20,16,0.94), rgba(16,9,7,0.96));
+  box-shadow:
+    0 0 26px rgba(110,31,42,0.34),
+    inset 0 1px 0 rgba(217,160,91,0.1),
+    inset 0 0 34px rgba(60,25,18,0.5);
+  animation: mah-bloom 17s ease-in-out infinite;
+}
+@keyframes mah-bloom {
+  0%, 100% { border-color: rgba(110,31,42,0.5); }
+  50%      { border-color: rgba(180,75,75,0.8); }
+}
+#char-view.mahogany-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(217,160,91,0.07), transparent 26%),
+    radial-gradient(120% 62% at 12% 116%, rgba(110,31,42,0.3), transparent 62%),
+    radial-gradient(110% 55% at 92% -12%, rgba(180,75,75,0.14), transparent 60%);
+}
+#char-view.mahogany-ui .panel-title {
+  color: #f0c4bd !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(180,75,75,0.32);
+  text-shadow: 0 0 14px rgba(180,75,75,0.8), 0 0 30px rgba(110,31,42,0.7);
+}
+#char-view.mahogany-ui .tab-btn { color: #7a4a44; }
+#char-view.mahogany-ui .tab-btn:hover {
+  color: #f0c4bd;
+  text-shadow: 0 0 12px rgba(180,75,75,0.85);
+}
+#char-view.mahogany-ui .tab-btn.active {
+  color: #ffd9d1;
+  border-bottom-color: rgba(180,75,75,0.9);
+  text-shadow: 0 0 16px rgba(180,75,75,0.9);
+}
+
+/* Name: rose opening and closing, with candlelight moving over it */
+.char-name-display.mahogany-name {
+  position: relative;
+  color: #d98a80 !important;
+  letter-spacing: 6px;
+  text-shadow: 0 0 14px rgba(180,75,75,0.85), 0 0 34px rgba(110,31,42,0.8);
+  animation: mah-name-open 17s ease-in-out infinite;
+}
+@keyframes mah-name-open {
+  0%, 100% { text-shadow: 0 0 10px rgba(110,31,42,0.8), 0 0 22px rgba(60,20,16,0.6); }
+  50%      { text-shadow: 0 0 18px rgba(232,160,168,0.95), 0 0 44px rgba(180,75,75,0.7); }
+}
+.char-name-display.mahogany-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(100deg, transparent 38%, rgba(255,226,206,0.8) 50%, transparent 62%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: mah-name-sweep 8s ease-in-out infinite;
+}
+@keyframes mah-name-sweep {
+  0%, 100% { background-position: 135% 0; }
+  50%      { background-position: -135% 0; }
+}
+
+/* Portrait: held in bramble, lit low and warm */
+.char-avatar-large.mahogany-pfp {
+  position: relative;
+  border-color: rgba(180,75,75,0.62) !important;
+  box-shadow: 0 0 30px rgba(110,31,42,0.6), inset 0 0 26px rgba(30,14,10,0.7);
+  animation: mah-bloom 17s ease-in-out infinite;
+}
+.char-avatar-large.mahogany-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(217,160,91,0.12), transparent 36%),
+    radial-gradient(circle at 50% 112%, rgba(110,31,42,0.42), transparent 62%);
+}
+/* thorn shadow gathering in the corners of the frame */
+.char-avatar-large.mahogany-pfp::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 100%,   rgba(20,9,8,0.6), transparent 34%),
+    radial-gradient(circle at 100% 100%, rgba(20,9,8,0.55), transparent 32%),
+    radial-gradient(circle at 0% 0%,     rgba(110,31,42,0.28), transparent 28%);
+  animation: mah-thorn 17s ease-in-out infinite;
+}
+@keyframes mah-thorn {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+#char-view.mahogany-ui .stat-fill,
+#char-view.mahogany-ui .stat-seg.on {
+  background: linear-gradient(90deg, #6e1f2a, #c96b63);
+  box-shadow: 0 0 10px rgba(180,75,75,0.6);
+}
+#char-view.mahogany-ui .trait-chip {
+  border-color: rgba(180,75,75,0.34);
+  box-shadow: inset 0 1px 0 rgba(217,160,91,0.08), inset 0 0 16px rgba(60,25,18,0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #char-view.mahogany-ui .panel,
+  .char-avatar-large.mahogany-pfp,
+  .char-avatar-large.mahogany-pfp::after,
+  .char-name-display.mahogany-name,
+  .char-name-display.mahogany-name::after { animation: none; }
+}
