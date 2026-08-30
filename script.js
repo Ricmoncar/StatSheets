@@ -41470,6 +41470,136 @@ function _drawMahoganyOverlay(canvas, ctx, W, H, t) {
   _mahDrawBow(ctx, _mahX, _mahY, _mahAim, 18, _mahDraw);
 }
 
+
+// ── A carved frame around the page itself ───────────────────────
+// Not part of the background: it sits at the edge of the viewport above the
+// panels, so the whole page reads as something mounted in wood. Static, drawn
+// once and again only on resize, so it costs nothing per frame.
+function _mahLeaf(ctx, x, y, ang, len) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(len * 0.5, -len * 0.42, len, 0);
+  ctx.quadraticCurveTo(len * 0.5, len * 0.42, 0, 0);
+  ctx.closePath();
+  ctx.fillStyle = `rgba(${_MAH_BLOOD},0.5)`;
+  ctx.fill();
+  ctx.strokeStyle = `rgba(${_MAH_AMBER},0.45)`;
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.beginPath();                       // the vein
+  ctx.moveTo(0, 0); ctx.lineTo(len * 0.9, 0);
+  ctx.strokeStyle = `rgba(${_MAH_AMBER},0.3)`;
+  ctx.lineWidth = 0.6;
+  ctx.stroke();
+  ctx.restore();
+}
+
+// one corner, drawn into the top left and mirrored into the other three
+function _mahCorner(ctx, B) {
+  const R = B * 3.4;
+  ctx.lineCap = 'round';
+  // the scroll: a vine turning out of the corner along both edges
+  for (const pass of [{ w: 4.4, c: 'rgba(18,8,6,0.95)' },
+                      { w: 2.2, c: `rgba(${_MAH_BLOOD},0.75)` },
+                      { w: 1, c: `rgba(${_MAH_AMBER},0.72)` }]) {
+    ctx.strokeStyle = pass.c;
+    ctx.lineWidth = pass.w;
+    ctx.beginPath();
+    ctx.moveTo(B * 0.62, R);
+    ctx.bezierCurveTo(B * 0.62, B * 1.5, B * 1.5, B * 0.62, R, B * 0.62);
+    ctx.stroke();
+    ctx.beginPath();                     // an inner curl, tighter
+    ctx.moveTo(B * 1.5, R * 0.92);
+    ctx.bezierCurveTo(B * 1.5, B * 2.3, B * 2.3, B * 1.5, R * 0.92, B * 1.5);
+    ctx.stroke();
+  }
+  // leaves set along the outer scroll
+  _mahLeaf(ctx, B * 0.62, R * 0.62, -0.42, B * 0.78);
+  _mahLeaf(ctx, B * 0.62, R * 0.34, -0.36, B * 0.6);
+  _mahLeaf(ctx, R * 0.62, B * 0.62, -1.15, B * 0.78);
+  _mahLeaf(ctx, R * 0.34, B * 0.62, -1.21, B * 0.6);
+  // and a rose where the curl closes
+  const rr = Math.max(4, Math.round(B * 0.3));
+  const spr = _mahRoseSprite(rr, _MAH_ROSE, 2);
+  const d = rr * 3.2;
+  ctx.globalAlpha = 0.92;
+  ctx.drawImage(spr, B * 0.92 - d / 2, B * 0.92 - d / 2, d, d);
+  ctx.globalAlpha = 1;
+}
+
+function _drawMahoganyFrame(canvas, ctx, W, H) {
+  ctx.clearRect(0, 0, W, H);
+  const B = Math.max(20, Math.min(36, Math.min(W, H) * 0.04));
+
+  // the band: a bevel from near black at the outside to lit wood at the inside
+  const bands = [
+    { x: 0, y: 0, w: W, h: B, gx: 0, gy: 0, gx2: 0, gy2: B },
+    { x: 0, y: H - B, w: W, h: B, gx: 0, gy: H, gx2: 0, gy2: H - B },
+    { x: 0, y: 0, w: B, h: H, gx: 0, gy: 0, gx2: B, gy2: 0 },
+    { x: W - B, y: 0, w: B, h: H, gx: W, gy: 0, gx2: W - B, gy2: 0 },
+  ];
+  for (const b of bands) {
+    const g = ctx.createLinearGradient(b.gx, b.gy, b.gx2, b.gy2);
+    g.addColorStop(0, '#0b0605');
+    g.addColorStop(0.45, '#2b1611');
+    g.addColorStop(0.86, '#43221a');
+    g.addColorStop(1, '#31180f');
+    ctx.fillStyle = g;
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+  }
+
+  // grain running the length of each band
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 26; i++) {
+    const off = (i / 26) * B;
+    ctx.strokeStyle = `rgba(${_MAH_AMBER},${(0.015 + _mahRnd(i * 4.1) * 0.035).toFixed(3)})`;
+    ctx.lineWidth = 0.5 + _mahRnd(i * 2.7) * 1.1;
+    ctx.beginPath();
+    ctx.moveTo(0, off); ctx.lineTo(W, off + (_mahRnd(i) - 0.5) * 5);
+    ctx.moveTo(0, H - off); ctx.lineTo(W, H - off + (_mahRnd(i + 9) - 0.5) * 5);
+    ctx.moveTo(off, 0); ctx.lineTo(off + (_mahRnd(i + 3) - 0.5) * 5, H);
+    ctx.moveTo(W - off, 0); ctx.lineTo(W - off + (_mahRnd(i + 5) - 0.5) * 5, H);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // an inlay line just inside the wood, and a hairline at the very edge
+  ctx.strokeStyle = `rgba(${_MAH_AMBER},0.5)`;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(B - 0.5, B - 0.5, W - B * 2 + 1, H - B * 2 + 1);
+  ctx.strokeStyle = `rgba(${_MAH_BLOOD},0.55)`;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(B - 4.5, B - 4.5, W - B * 2 + 9, H - B * 2 + 9);
+  ctx.strokeStyle = 'rgba(10,5,4,0.9)';
+  ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+
+  // the four corners, one drawing mirrored around
+  const corners = [
+    { x: 0, y: 0, sx: 1, sy: 1 },
+    { x: W, y: 0, sx: -1, sy: 1 },
+    { x: 0, y: H, sx: 1, sy: -1 },
+    { x: W, y: H, sx: -1, sy: -1 },
+  ];
+  for (const c of corners) {
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.scale(c.sx, c.sy);
+    _mahCorner(ctx, B);
+    ctx.restore();
+  }
+
+  // the page sits a little deeper than the frame
+  const sh = ctx.createLinearGradient(0, B, 0, B + 26);
+  sh.addColorStop(0, 'rgba(6,3,2,0.55)');
+  sh.addColorStop(1, 'rgba(6,3,2,0)');
+  ctx.fillStyle = sh;
+  ctx.fillRect(B, B, W - B * 2, 26);
+}
+
 function _startMahoganyOverlay() {
   _stopMahoganyOverlay();
   _drawMahoganyOverlay._lt = undefined;
@@ -41481,6 +41611,13 @@ function _startMahoganyOverlay() {
   window.addEventListener('click', _mahClick);
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = 'none';
+  const fr = document.createElement('canvas');
+  fr.id = 'mahogany-frame-overlay';
+  fr.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:30;pointer-events:none;';
+  fr.width = window.innerWidth; fr.height = window.innerHeight;
+  document.body.appendChild(fr);
+  _drawMahoganyFrame(fr, fr.getContext('2d'), fr.width, fr.height);
+
   const cv = document.createElement('canvas');
   cv.id = 'mahogany-overlay';
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
@@ -41488,6 +41625,11 @@ function _startMahoganyOverlay() {
   document.body.appendChild(cv);
   const t0 = performance.now();
   function frame(now) {
+    const fr2 = document.getElementById('mahogany-frame-overlay');
+    if (fr2 && (fr2.width !== window.innerWidth || fr2.height !== window.innerHeight)) {
+      fr2.width = window.innerWidth; fr2.height = window.innerHeight;
+      _drawMahoganyFrame(fr2, fr2.getContext('2d'), fr2.width, fr2.height);
+    }
     const cv2 = document.getElementById('mahogany-overlay');
     if (!cv2) return;
     if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
@@ -41507,6 +41649,8 @@ function _stopMahoganyOverlay() {
   if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('mahogany-overlay');
   if (cv) cv.remove();
+  const fr = document.getElementById('mahogany-frame-overlay');
+  if (fr) fr.remove();
 }
 /* ─────────────────────────────────────────────────────────────── */
 

@@ -13503,11 +13503,6 @@ text.lb-cl-glitch-svg {
   50%      { opacity: 1; }
 }
 
-#char-view.mahogany-ui .stat-fill,
-#char-view.mahogany-ui .stat-seg.on {
-  background: linear-gradient(90deg, #6e1f2a, #c96b63);
-  box-shadow: 0 0 10px rgba(180,75,75,0.6);
-}
 #char-view.mahogany-ui .trait-chip {
   border-color: rgba(180,75,75,0.34);
   box-shadow: inset 0 1px 0 rgba(217,160,91,0.08), inset 0 0 16px rgba(60,25,18,0.45);
