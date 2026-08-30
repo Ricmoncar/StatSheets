@@ -13750,3 +13750,106 @@ text.lb-cl-glitch-svg {
   .char-name-display.actarius-name,
   .char-name-display.actarius-name::after { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   BALL: green on green. The checks carry onto the panels as well as
+   sitting behind them, faintly, so nothing on the page is off the board.
+   ════════════════════════════════════════════════════════════════ */
+#char-view.ball-ui .panel {
+  --p-border: rgba(164,217,90,0.75);
+  border-color: rgba(164,217,90,0.6);
+  background:
+    repeating-conic-gradient(
+      rgba(20,52,18,0.34) 0% 25%, rgba(120,180,66,0.16) 0% 50%) 0 0 / 34px 34px,
+    linear-gradient(180deg, rgba(22,54,20,0.95), rgba(9,26,9,0.97));
+  box-shadow:
+    0 0 24px rgba(44,107,42,0.5),
+    inset 0 1px 0 rgba(164,217,90,0.2);
+  animation: ball-bob 6s ease-in-out infinite;
+}
+@keyframes ball-bob {
+  0%, 100% { border-color: rgba(44,107,42,0.7); }
+  50%      { border-color: rgba(164,217,90,0.9); }
+}
+#char-view.ball-ui .panel-title {
+  color: #f0ffc8 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(164,217,90,0.42);
+  text-shadow: 0 2px 0 rgba(8,26,8,0.95), 0 0 10px rgba(8,26,8,0.9);
+}
+#char-view.ball-ui .tab-btn {
+  color: #cfe89a;
+  text-shadow: 0 1px 0 rgba(8,26,8,0.95), 0 0 8px rgba(8,26,8,0.9);
+}
+#char-view.ball-ui .tab-btn:hover {
+  color: #f6ffe0;
+  text-shadow: 0 1px 0 rgba(8,26,8,0.95), 0 0 12px rgba(8,26,8,0.95);
+}
+#char-view.ball-ui .tab-btn.active {
+  color: #ffffff;
+  border-bottom-color: rgba(240,255,200,0.95);
+  text-shadow: 0 1px 0 rgba(8,26,8,0.95), 0 0 14px rgba(8,26,8,0.95);
+}
+#char-view.ball-ui .trait-chip {
+  border-color: rgba(164,217,90,0.4);
+  box-shadow: inset 0 1px 0 rgba(226,247,176,0.12);
+}
+
+/* Name: green on green, with light rolling over it */
+.char-name-display.ball-name {
+  position: relative;
+  color: #f4ffd8 !important;
+  letter-spacing: 6px;
+  text-shadow: 0 2px 0 rgba(8,26,8,0.95), 0 0 14px rgba(8,26,8,0.95), 0 0 30px rgba(8,26,8,0.8);
+  animation: ball-name 6s ease-in-out infinite;
+}
+@keyframes ball-name {
+  0%, 100% { text-shadow: 0 2px 0 rgba(8,26,8,0.95), 0 0 12px rgba(8,26,8,0.9); }
+  50%      { text-shadow: 0 2px 0 rgba(8,26,8,0.95), 0 0 12px rgba(8,26,8,0.9), 0 0 26px rgba(226,247,176,0.75); }
+}
+.char-name-display.ball-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(100deg, transparent 38%, rgba(244,255,214,0.9) 50%, transparent 62%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: ball-sweep 7s ease-in-out infinite;
+}
+@keyframes ball-sweep {
+  0%, 100% { background-position: 136% 0; }
+  50%      { background-position: -136% 0; }
+}
+
+/* Portrait: on the board like everything else */
+.char-avatar-large.ball-pfp {
+  position: relative;
+  border-color: rgba(164,217,90,0.8) !important;
+  box-shadow: 0 0 24px rgba(44,107,42,0.65), inset 0 0 22px rgba(9,26,9,0.6);
+  animation: ball-bob 6s ease-in-out infinite;
+}
+.char-avatar-large.ball-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    repeating-conic-gradient(
+      rgba(20,52,18,0.3) 0% 25%, rgba(164,217,90,0.14) 0% 50%) 0 0 / 26px 26px;
+}
+.char-avatar-large.ball-pfp::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(226,247,176,0.22), transparent 42%),
+    radial-gradient(circle at 78% 108%, rgba(9,26,9,0.6), transparent 46%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #char-view.ball-ui .panel,
+  .char-avatar-large.ball-pfp,
+  .char-name-display.ball-name,
+  .char-name-display.ball-name::after { animation: none; }
+}

@@ -3103,6 +3103,7 @@ const PATTERN_DEFS = {
   mahogany_thorns:  { label: "'MAHOGANY' · Thornwood", params: [] },
   kurio_nightgarden: { label: "'KURIO' · Night Garden", params: [] },
   actarius_mycelium: { label: "Actarius · Nightwood", params: [] },
+  ball_checks:      { label: "BALL · Checks", params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
@@ -30875,6 +30876,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'mahogany_thorns') { _drawMahoganyPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'kurio_nightgarden') { _drawKurioPattern(canvas, ctx, W, H, t);           return; }
   if (type === 'actarius_mycelium') { _drawActariusPattern(canvas, ctx, W, H, t);        return; }
+  if (type === 'ball_checks') { _drawBallPattern(canvas, ctx, W, H, t);                   return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
@@ -31422,6 +31424,8 @@ function startBgAnim(type, params) {
   _drawKurioOverlay._lt       = undefined;
   _drawActariusPattern._lt    = undefined;
   _drawActariusOverlay._lt    = undefined;
+  _drawBallPattern._lt        = undefined;
+  _drawBallOverlay._lt        = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -31518,6 +31522,7 @@ function stopBgAnim() {
   _stopLeleOverlay();
   _stopMahoganyOverlay();
   _stopKurioOverlay();
+  _stopBallOverlay();
   _stopMbOverlay();
   _stopActariusOverlay();
   _stopSorrowOverlay();
@@ -32174,6 +32179,7 @@ function viewChar(id) {
   else if (_isMahogany(c)) {    _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _MAH_HEX); }
   else if (_isKurio(c))    {     _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _KUR_HEX); }
   else if (_isActarius(c)) {      _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ACT_HEX); }
+  else if (_isBall(c))     {       _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _BALL_HEX); }
   else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
   else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
   else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
@@ -32376,6 +32382,22 @@ function viewChar(id) {
       if (_av) _av.classList.remove('iris-pfp');
       if (_nm) { _nm.classList.remove('iris-name'); if (!_nmHasNameSkin(_nm)) _nm.removeAttribute('data-text'); }
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── BALL: green on green, checks on the panels as well as behind them. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isBall(c)) {
+      _cvRoot.classList.add('ball-ui');
+      if (_av) _av.classList.add('ball-pfp');
+      if (_nm) { _nm.classList.add('ball-name'); _nm.setAttribute('data-text', _nm.textContent || 'BALL'); }
+    } else {
+      _cvRoot.classList.remove('ball-ui');
+      if (_av) _av.classList.remove('ball-pfp');
+      if (_nm) _nm.classList.remove('ball-name');
     }
   }
 
@@ -33169,7 +33191,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -33182,7 +33204,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -33249,6 +33271,7 @@ function viewChar(id) {
   if (_isMahogany(c)) _startMahoganyOverlay();
   if (_isKurio(c))    _startKurioOverlay();
   if (_isActarius(c)) _startActariusOverlay();
+  if (_isBall(c))     _startBallOverlay();
   if (_isMb(c))       _startMbOverlay();
   if (_isEmporium(c)) _startEmporiumOverlay();
   if (_isAlsace(c))   { _alsMaskOff = _isAlsaceMaskOff(c); _startAlsaceOverlay(); }
@@ -38842,7 +38865,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -41111,6 +41134,422 @@ function toggleMobileToC() {
 }
 
 // ════════════════════════════════════════════════════════════════
+// BALL - light green and dark green checks, everywhere, and a lettuce
+// you can actually throw. The ball lives above the whole interface and
+// obeys nothing on the page: gravity, walls, and whatever the panels
+// happen to be in the way of. Grab it and it comes with you, let go
+// while moving and it goes where you flung it.
+// The only fiddly part is the grabbing. His layer cannot take clicks
+// or it would swallow every button underneath, so the page keeps
+// letting clicks through and the ball listens on the way down instead,
+// stopping the event only on the frames where it was actually caught.
+// ════════════════════════════════════════════════════════════════
+const _BALL_RE = /^["']?\s*BALL\s*["']?$/i;
+function _isBall(c) { return !!(c && c.name && _BALL_RE.test(c.name)); }
+const _BALL_LIGHT = '#a4d95a';
+const _BALL_DARK  = '#2c6b2a';
+const _BALL_HEX   = '#a4d95a';
+
+function _ballRnd(seed) {
+  const v = Math.sin(seed * 57.31 + 19.17) * 24631.71;
+  return v - Math.floor(v);
+}
+
+// ── A lettuce, drawn round, at the origin ────────────────────────
+// Ruffles rather than a circle, rings of leaf inside the outline, and a ribbed
+// heart, which between them are what stop it reading as a green ball.
+function _ballLettuce(ctx, r, spin, A) {
+  const N = 74;
+  ctx.save();
+  ctx.globalAlpha = A === undefined ? 1 : A;
+  ctx.save();
+  ctx.rotate(spin);
+
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const a = (i / N) * 6.283185;
+    const rr = r * (1 + 0.082 * Math.sin(a * 9) + 0.03 * Math.sin(a * 19 + 1.1));
+    const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.closePath();
+  const g = ctx.createRadialGradient(-r * 0.3, -r * 0.34, r * 0.05, 0, 0, r * 1.14);
+  g.addColorStop(0, '#e6f7b4');
+  g.addColorStop(0.36, '#b6e468');
+  g.addColorStop(0.72, '#5da437');
+  g.addColorStop(1, '#28601f');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(26,72,22,0.9)';
+  ctx.lineWidth = Math.max(1, r * 0.05);
+  ctx.stroke();
+
+  // leaves folded over each other, each a slightly different ruffle
+  for (let ring = 0; ring < 3; ring++) {
+    const base = r * (0.8 - ring * 0.21);
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const a = (i / N) * 6.283185;
+      const q = base * (1 + 0.1 * Math.sin(a * (8 - ring) + ring * 1.9));
+      const x = Math.cos(a) * q, y = Math.sin(a) * q;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = `rgba(38,95,32,${(0.55 - ring * 0.12).toFixed(2)})`;
+    ctx.lineWidth = Math.max(0.8, r * 0.032);
+    ctx.stroke();
+  }
+
+  // ribs running out of the heart
+  ctx.beginPath();
+  for (let i = 0; i < 11; i++) {
+    const a = (i / 11) * 6.283185;
+    ctx.moveTo(Math.cos(a) * r * 0.1, Math.sin(a) * r * 0.1);
+    ctx.quadraticCurveTo(Math.cos(a + 0.34) * r * 0.54, Math.sin(a + 0.34) * r * 0.54,
+                         Math.cos(a) * r * 0.95, Math.sin(a) * r * 0.95);
+  }
+  ctx.strokeStyle = 'rgba(232,248,186,0.45)';
+  ctx.lineWidth = Math.max(0.7, r * 0.03);
+  ctx.stroke();
+  ctx.restore();
+
+  // the shine does not turn with it, so it reads as a ball with a light on it
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.34, -r * 0.4, r * 0.3, r * 0.19, -0.6, 0, 6.283185);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fill();
+  ctx.restore();
+}
+
+// ── Checks, everywhere ───────────────────────────────────────────
+function _drawBallPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawBallPattern._lt === undefined;
+  if (!fresh && t - _drawBallPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawBallPattern._lt, 0.05);
+  _drawBallPattern._lt = t;
+
+  if (canvas._balW !== W || canvas._balH !== H) {
+    canvas._balW = W; canvas._balH = H;
+    canvas._balPat = null; canvas._balLeaves = null; canvas._balVign = null;
+  }
+
+  // one tile, repeated, which is the whole board in a single fill
+  if (!canvas._balPat) {
+    const S = 58;
+    const tc = document.createElement('canvas');
+    tc.width = tc.height = S * 2;
+    const g = tc.getContext('2d');
+    g.fillStyle = _BALL_LIGHT;
+    g.fillRect(0, 0, S * 2, S * 2);
+    g.fillStyle = _BALL_DARK;
+    g.fillRect(0, 0, S, S);
+    g.fillRect(S, S, S, S);
+    canvas._balPat = ctx.createPattern(tc, 'repeat');
+    canvas._balS = S;
+  }
+  const S = canvas._balS;
+  const ox = (t * 7) % (S * 2), oy = (t * 4.5) % (S * 2);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.save();
+  ctx.translate(-ox, -oy);
+  ctx.fillStyle = canvas._balPat;
+  ctx.fillRect(0, 0, W + S * 2, H + S * 2);
+  ctx.restore();
+
+  // a band of light going across the board, so it is not simply a flat grid
+  {
+    const cx = ((t * 0.09) % 1.6 - 0.3) * W;
+    const g = ctx.createLinearGradient(cx - W * 0.3, 0, cx + W * 0.3, H);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // loose leaves going by behind everything
+  if (!canvas._balLeaves) {
+    canvas._balLeaves = [];
+    for (let i = 0; i < 14; i++) {
+      canvas._balLeaves.push({
+        x: _ballRnd(i * 3.1) * W, y: _ballRnd(i * 5.3) * H,
+        r: 14 + _ballRnd(i * 7.7) * 30,
+        vx: (_ballRnd(i * 11.3) - 0.5) * 26, vy: 9 + _ballRnd(i * 13.9) * 20,
+        spin: _ballRnd(i * 17.1) * 6.283, vs: (_ballRnd(i * 19.3) - 0.5) * 1.1,
+        a: 0.13 + _ballRnd(i * 23.7) * 0.14,
+      });
+    }
+  }
+  for (const l of canvas._balLeaves) {
+    l.x += l.vx * dt; l.y += l.vy * dt; l.spin += l.vs * dt;
+    if (l.y > H + l.r * 2) { l.y = -l.r * 2; l.x = Math.random() * W; }
+    if (l.x < -l.r * 2) l.x = W + l.r * 2; else if (l.x > W + l.r * 2) l.x = -l.r * 2;
+    ctx.save();
+    ctx.translate(l.x, l.y);
+    _ballLettuce(ctx, l.r, l.spin, l.a);
+    ctx.restore();
+  }
+
+  // and the corners come down, or the checks fight everything on the page
+  if (!canvas._balVign) {
+    canvas._balVign = document.createElement('canvas');
+    canvas._balVign.width = W; canvas._balVign.height = H;
+    const vx = canvas._balVign.getContext('2d');
+    const g = vx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.26,
+                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.72);
+    g.addColorStop(0, 'rgba(10,30,10,0)');
+    g.addColorStop(0.62, 'rgba(10,30,10,0.3)');
+    g.addColorStop(1, 'rgba(8,24,8,0.66)');
+    vx.fillStyle = g;
+    vx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(canvas._balVign, 0, 0);
+}
+
+// ── The ball, and the cursor that throws it ──────────────────────
+let _ballOverlayRafId = null;
+let _ballCX = 0, _ballCY = 0, _ballTX = 0, _ballTY = 0, _ballCVX = 0, _ballCVY = 0;
+let _ballObj = null, _ballHeld = false, _ballThrew = false;
+let _ballGrabX = 0, _ballGrabY = 0, _ballSamples = [], _ballRects = [], _ballRectAt = 0;
+let _ballPuff = [];
+
+const _BALL_G = 2100, _BALL_REST = 0.74, _BALL_AIR = 0.3, _BALL_FRIC = 3.4;
+
+function _ballMouseMove(e) {
+  _ballTX = e.clientX; _ballTY = e.clientY;
+  if (_ballHeld) _ballSamples.push({ t: performance.now() / 1000, x: e.clientX, y: e.clientY });
+  if (_ballSamples.length > 8) _ballSamples.shift();
+}
+
+// The three below run on the way down, before anything on the page sees them,
+// and only stop the event when the ball was actually under the pointer. Any
+// other click carries on to whatever it was aimed at.
+function _ballDown(e) {
+  if (!_ballObj) return;
+  const dx = e.clientX - _ballObj.x, dy = e.clientY - _ballObj.y;
+  const reach = _ballObj.r * 1.15;
+  if (dx * dx + dy * dy > reach * reach) return;
+  _ballHeld = true;
+  _ballGrabX = dx; _ballGrabY = dy;
+  _ballObj.vx = _ballObj.vy = 0;
+  _ballSamples = [{ t: performance.now() / 1000, x: e.clientX, y: e.clientY }];
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function _ballUp(e) {
+  if (!_ballHeld) return;
+  _ballHeld = false;
+  _ballThrew = true;
+  // it leaves at whatever speed your hand was doing, over the last moment of
+  // the drag rather than the last frame, which a flick would otherwise miss
+  const n = _ballSamples.length;
+  if (n >= 2) {
+    const s1 = _ballSamples[n - 1];
+    let s0 = _ballSamples[0];
+    for (let i = n - 2; i >= 0; i--) { s0 = _ballSamples[i]; if (s1.t - s0.t > 0.07) break; }
+    const d = Math.max(0.016, s1.t - s0.t);
+    const cl = (v) => Math.max(-3400, Math.min(3400, v));
+    _ballObj.vx = cl((s1.x - s0.x) / d);
+    _ballObj.vy = cl((s1.y - s0.y) / d);
+    _ballObj.vspin = _ballObj.vx / _ballObj.r * 0.8;
+  }
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function _ballClickBlock(e) {
+  if (!_ballThrew) return;
+  _ballThrew = false;
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+// what the ball is allowed to bounce off, refreshed rarely because reading it
+// forces the page to lay itself out again
+function _ballCollectRects() {
+  const out = [];
+  document.querySelectorAll('#header, #sidebar, #char-view .panel').forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (r.width < 30 || r.height < 20) return;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return;
+    out.push({ l: r.left, t: r.top, r: r.right, b: r.bottom });
+  });
+  return out;
+}
+
+function _ballHitRect(b, R) {
+  const cx = Math.max(R.l, Math.min(b.x, R.r));
+  const cy = Math.max(R.t, Math.min(b.y, R.b));
+  let dx = b.x - cx, dy = b.y - cy;
+  let d2 = dx * dx + dy * dy;
+  if (d2 > b.r * b.r) return;
+  if (d2 > 0.001) {
+    const d = Math.sqrt(d2), nx = dx / d, ny = dy / d;
+    b.x = cx + nx * b.r; b.y = cy + ny * b.r;
+    const vn = b.vx * nx + b.vy * ny;
+    if (vn < 0) {
+      b.vx -= (1 + _BALL_REST) * vn * nx;
+      b.vy -= (1 + _BALL_REST) * vn * ny;
+      b.vspin += vn * 0.004;
+    }
+  } else {
+    // it got inside: put it out through whichever wall is closest
+    const left = b.x - R.l, right = R.r - b.x, up = b.y - R.t, down = R.b - b.y;
+    const m = Math.min(left, right, up, down);
+    if (m === left)       { b.x = R.l - b.r; b.vx = -Math.abs(b.vx) * _BALL_REST; }
+    else if (m === right) { b.x = R.r + b.r; b.vx = Math.abs(b.vx) * _BALL_REST; }
+    else if (m === up)    { b.y = R.t - b.r; b.vy = -Math.abs(b.vy) * _BALL_REST; }
+    else                  { b.y = R.b + b.r; b.vy = Math.abs(b.vy) * _BALL_REST; }
+  }
+}
+
+function _drawBallOverlay(canvas, ctx, W, H, t) {
+  if (_drawBallOverlay._lt !== undefined && t - _drawBallOverlay._lt < 0.016) return;
+  const dt = _drawBallOverlay._lt === undefined ? 0.016 : Math.min(t - _drawBallOverlay._lt, 0.04);
+  _drawBallOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+
+  if (!_ballObj) _ballObj = { x: W * 0.5, y: H * 0.3, vx: 190, vy: 0, r: 46, spin: 0, vspin: 0 };
+  const b = _ballObj;
+  if (t - _ballRectAt > 0.4) { _ballRects = _ballCollectRects(); _ballRectAt = t; }
+
+  if (_ballHeld) {
+    const tx = _ballTX - _ballGrabX, ty = _ballTY - _ballGrabY;
+    b.vx = (tx - b.x) / Math.max(dt, 0.004);
+    b.vy = (ty - b.y) / Math.max(dt, 0.004);
+    b.x = tx; b.y = ty;
+    b.vspin += (b.vx / b.r * 0.5 - b.vspin) * Math.min(1, dt * 5);
+  } else {
+    b.vy += _BALL_G * dt;
+    b.vx -= b.vx * _BALL_AIR * dt;
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+
+    if (b.x - b.r < 0)      { b.x = b.r;     b.vx = Math.abs(b.vx) * _BALL_REST; b.vspin = -b.vspin * 0.6; }
+    else if (b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * _BALL_REST; b.vspin = -b.vspin * 0.6; }
+    if (b.y - b.r < 0)      { b.y = b.r;     b.vy = Math.abs(b.vy) * _BALL_REST; }
+    else if (b.y + b.r > H) {
+      b.y = H - b.r;
+      if (Math.abs(b.vy) < 110) b.vy = 0;          // it settles instead of buzzing
+      else {
+        if (b.vy > 260) for (let k = 0; k < 5; k++)  // and it kicks up leaf when it lands
+          _ballPuff.push({ x: b.x + (Math.random() - 0.5) * b.r, y: H - 4,
+            vx: (Math.random() - 0.5) * 190, vy: -60 - Math.random() * 150,
+            r: 3 + Math.random() * 6, spin: Math.random() * 6.28,
+            vs: (Math.random() - 0.5) * 9, life: 1 });
+        b.vy = -Math.abs(b.vy) * _BALL_REST;
+      }
+      b.vx -= b.vx * _BALL_FRIC * dt;              // and rolls rather than slides
+      b.vspin += (b.vx / b.r - b.vspin) * Math.min(1, dt * 9);
+    }
+    for (const R of _ballRects) _ballHitRect(b, R);
+  }
+  b.spin += b.vspin * dt;
+
+  for (let i = _ballPuff.length - 1; i >= 0; i--) {
+    const p = _ballPuff[i];
+    p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    p.spin += p.vs * dt; p.life -= dt * 1.1;
+    if (p.life <= 0) { _ballPuff.splice(i, 1); continue; }
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    _ballLettuce(ctx, p.r, p.spin, Math.min(1, p.life) * 0.85);
+    ctx.restore();
+  }
+
+  // a shadow under it, tighter and darker the closer to the floor it is
+  {
+    const gap = Math.max(0, Math.min(1, (H - (b.y + b.r)) / 300));
+    ctx.save();
+    ctx.globalAlpha = 0.3 * (1 - gap);
+    ctx.fillStyle = '#12300f';
+    ctx.beginPath();
+    ctx.ellipse(b.x, H - 7, b.r * (1.05 - gap * 0.35), b.r * 0.2 * (1 - gap * 0.4), 0, 0, 6.283185);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  if (_ballHeld) {
+    ctx.beginPath();                                // it knows it has been picked up
+    ctx.arc(0, 0, b.r * 1.16, 0, 6.283185);
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  _ballLettuce(ctx, b.r, b.spin, 1);
+  ctx.restore();
+
+  // ── the cursor, a smaller one of the same thing ──
+  const SPRING = 90, DAMP = 15;
+  _ballCVX += ((_ballTX - _ballCX) * SPRING - _ballCVX * DAMP) * dt;
+  _ballCVY += ((_ballTY - _ballCY) * SPRING - _ballCVY * DAMP) * dt;
+  _ballCX += _ballCVX * dt; _ballCY += _ballCVY * dt;
+  const spd = Math.hypot(_ballCVX, _ballCVY);
+  ctx.save();
+  ctx.translate(_ballCX, _ballCY);
+  if (spd > 40) {                                   // squashes along the way it is going
+    ctx.rotate(Math.atan2(_ballCVY, _ballCVX));
+    ctx.scale(1 + Math.min(0.3, spd * 0.00035), 1 - Math.min(0.22, spd * 0.00026));
+    ctx.rotate(-Math.atan2(_ballCVY, _ballCVX));
+  }
+  _ballLettuce(ctx, 15, -_ballCX * 0.006, 1);
+  ctx.restore();
+}
+
+function _startBallOverlay() {
+  _stopBallOverlay();
+  _drawBallOverlay._lt = undefined;
+  _ballCX = _ballTX = window.innerWidth * 0.5;
+  _ballCY = _ballTY = window.innerHeight * 0.5;
+  _ballCVX = _ballCVY = 0;
+  _ballObj = null; _ballHeld = false; _ballThrew = false;
+  _ballSamples = []; _ballRects = []; _ballRectAt = -9; _ballPuff = [];
+  window.addEventListener('mousemove', _ballMouseMove);
+  window.addEventListener('mousedown', _ballDown, true);
+  window.addEventListener('mouseup', _ballUp, true);
+  window.addEventListener('click', _ballClickBlock, true);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'ball-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('ball-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+      _ballRectAt = -9;
+    }
+    _drawBallOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _ballOverlayRafId = requestAnimationFrame(frame);
+  }
+  _ballOverlayRafId = requestAnimationFrame(frame);
+}
+
+function _stopBallOverlay() {
+  if (_ballOverlayRafId) { cancelAnimationFrame(_ballOverlayRafId); _ballOverlayRafId = null; }
+  window.removeEventListener('mousemove', _ballMouseMove);
+  window.removeEventListener('mousedown', _ballDown, true);
+  window.removeEventListener('mouseup', _ballUp, true);
+  window.removeEventListener('click', _ballClickBlock, true);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('ball-overlay');
+  if (cv) cv.remove();
+  _ballObj = null; _ballHeld = false; _ballPuff = [];
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // Actarius - a mushroom forest at night, and every light in it comes
 // from something growing. The trick with bioluminescence is that the
 // light lives UNDER the cap, in the gills, so the cap itself is always
@@ -43123,12 +43562,27 @@ function _drawMahoganyFrame(canvas, ctx, W0, H0) {
   const iw = W - B * 2, ih = H - B * 2;
   const vr = Math.hypot(iw, ih) * 0.5;
   for (const c of [[B, B], [B + iw, B], [B, B + ih], [B + iw, B + ih]]) {
-    const g = ctx.createRadialGradient(c[0], c[1], 0, c[0], c[1], vr * 0.62);
-    g.addColorStop(0, 'rgba(5,2,2,0.6)');
-    g.addColorStop(0.45, 'rgba(5,2,2,0.22)');
-    g.addColorStop(1, 'rgba(5,2,2,0)');
+    const g = ctx.createRadialGradient(c[0], c[1], 0, c[0], c[1], vr * 0.78);
+    g.addColorStop(0, 'rgba(4,1,1,0.72)');
+    g.addColorStop(0.34, 'rgba(4,1,1,0.42)');
+    g.addColorStop(0.68, 'rgba(4,1,1,0.14)');
+    g.addColorStop(1, 'rgba(4,1,1,0)');
     ctx.fillStyle = g;
     ctx.fillRect(B, B, iw, ih);
+  }
+  // and the whole of it falls off toward its own edge, so the middle of the
+  // page is the only part fully in the light
+  {
+    ctx.save();
+    ctx.translate(B + iw / 2, B + ih / 2);
+    ctx.scale(1, ih / iw);
+    const g = ctx.createRadialGradient(0, 0, iw * 0.2, 0, 0, iw * 0.66);
+    g.addColorStop(0, 'rgba(4,1,1,0)');
+    g.addColorStop(0.62, 'rgba(4,1,1,0.16)');
+    g.addColorStop(1, 'rgba(4,1,1,0.34)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-iw / 2, -iw / 2, iw, iw);
+    ctx.restore();
   }
   ctx.restore();
 }
@@ -43256,6 +43710,72 @@ function _leleBuildFrost(W, H) {
 }
 
 // ── Background: black water under ice ────────────────────────────
+
+// The mark that stands in the middle of his page: a burst of rays off a
+// bright point, a dense collar of short ticks close in, and eight spokes
+// that run the whole way out. Built once into a sprite, since none of it
+// changes; only how brightly it is showing does.
+const _LELE_SIGIL = '150,158,208';
+function _leleSigilSprite(R) {
+  const px = Math.ceil(R * 2) + 4;
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const g = c.getContext('2d');
+  g.translate(px / 2, px / 2);
+  g.lineCap = 'butt';
+
+  // the collar: many very short ticks packed close around the centre
+  g.beginPath();
+  for (let i = 0; i < 64; i++) {
+    const a = (i / 64) * 6.283185;
+    const r0 = R * (0.125 + _leleRnd(i * 3.1) * 0.012);
+    const r1 = r0 + R * (0.035 + _leleRnd(i * 5.7) * 0.03);
+    g.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+    g.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+  }
+  g.strokeStyle = `rgba(${_LELE_SIGIL},0.62)`;
+  g.lineWidth = 1;
+  g.stroke();
+
+  // the burst: segments at every angle, starting and stopping at their own
+  // radii, which is what stops it reading as a plain wheel of spokes
+  for (const pass of [0, 1]) {
+    g.beginPath();
+    for (let i = 0; i < 84; i++) {
+      if (i % 2 !== pass) continue;
+      const a = (i / 84) * 6.283185 + _leleRnd(i * 2.3) * 0.05;
+      const r0 = R * (0.2 + _leleRnd(i * 7.1) * 0.42);
+      const r1 = Math.min(R * 0.99, r0 + R * (0.08 + _leleRnd(i * 11.3) * 0.34));
+      g.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+      g.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+    }
+    g.strokeStyle = `rgba(${_LELE_SIGIL},${pass ? 0.4 : 0.66})`;
+    g.lineWidth = pass ? 1 : 1.6;
+    g.stroke();
+  }
+
+  // eight spokes carrying the whole way out, the cardinals furthest
+  g.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * 6.283185;
+    const r1 = R * (i % 2 === 0 ? 1 : 0.9);
+    g.moveTo(Math.cos(a) * R * 0.05, Math.sin(a) * R * 0.05);
+    g.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+  }
+  g.strokeStyle = `rgba(${_LELE_SIGIL},0.8)`;
+  g.lineWidth = 1.4;
+  g.stroke();
+
+  // and the point it all comes off
+  g.beginPath();
+  g.arc(0, 0, R * 0.02, 0, 6.283185);
+  g.fillStyle = `rgba(226,230,255,0.95)`;
+  g.fill();
+  g.fillStyle = `rgba(${_LELE_SIGIL},0.85)`;
+  g.fillRect(R * 0.03, -R * 0.012, R * 0.05, R * 0.024);
+  return c;
+}
+
 function _drawLelePattern(canvas, ctx, W, H, t) {
   const fresh = _drawLelePattern._lt === undefined;
   if (!fresh && t - _drawLelePattern._lt < 0.033) return;
@@ -43266,7 +43786,7 @@ function _drawLelePattern(canvas, ctx, W, H, t) {
     canvas._lelW = W; canvas._lelH = H;
     canvas._lelBase = null; canvas._lelVign = null;
     canvas._lelFrost = null; canvas._lelMotes = null; canvas._lelCracks = null;
-    canvas._lelBuckets = null;
+    canvas._lelBuckets = null; canvas._lelSigil = null;
   }
 
   // one slow breath: the cold closes in and eases off, about 26s a cycle
@@ -43404,7 +43924,17 @@ function _drawLelePattern(canvas, ctx, W, H, t) {
     ctx.beginPath(); ctx.arc(m.x, m.y, m.sz, 0, Math.PI * 2); ctx.fill();
   }
 
-  // 6 ── close the edges back down into the dark
+  // 6 ── the mark, standing in the middle of it and breathing with the cold
+  if (!canvas._lelSigil) canvas._lelSigil = _leleSigilSprite(Math.min(W, H) * 0.34);
+  {
+    const sp = canvas._lelSigil;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.5 + breath * 0.4;
+    ctx.drawImage(sp, W * 0.5 - sp.width / 2, H * 0.5 - sp.height / 2);
+    ctx.globalAlpha = 1;
+  }
+
+  // 7 ── close the edges back down into the dark
   ctx.globalCompositeOperation = 'source-over';
   if (!canvas._lelVign) {
     const g = ctx.createRadialGradient(W * 0.5, H * 0.45, Math.min(W, H) * 0.3,
