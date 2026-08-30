@@ -41072,8 +41072,8 @@ function _mahRnd(seed) {
 
 // ── A rose, cached: petals ringed outward from a dark heart ──────
 const _mahRoseCache = {};
-function _mahRoseSprite(px, rgb, seed) {
-  const key = px + '|' + rgb + '|' + (seed % 5);
+function _mahRoseSprite(px, rgb, seed, dark) {
+  const key = px + '|' + rgb + '|' + (seed % 5) + (dark ? '|d' : '');
   if (_mahRoseCache[key]) return _mahRoseCache[key];
   const S = Math.ceil(px * 3.2);   // outer petals reach ~1.5x, plus stroke
   const cv = document.createElement('canvas');
@@ -41092,22 +41092,25 @@ function _mahRoseSprite(px, rgb, seed) {
       c.beginPath();
       // a cupped petal rather than a flat disc, so the bloom reads at size
       c.ellipse(0, 0, rr * 0.52, rr * 0.72, 0, 0, Math.PI * 2);
-      c.fillStyle = `rgba(${rgb},${shade.toFixed(2)})`;
+      c.fillStyle = dark ? `rgba(6,3,5,${(0.88 + ring * 0.03).toFixed(2)})`
+                         : `rgba(${rgb},${shade.toFixed(2)})`;
       c.fill();
-      c.strokeStyle = `rgba(20,8,10,0.5)`;
-      c.lineWidth = 0.8;
+      // a black flower has no fill to read by, so its edge carries the light
+      c.strokeStyle = dark ? `rgba(${rgb},${(0.16 + ring * 0.06).toFixed(2)})`
+                           : 'rgba(20,8,10,0.5)';
+      c.lineWidth = dark ? 1 : 0.8;
       c.stroke();
-      // light catching the outer edge of the petal
       c.beginPath();
       c.ellipse(0, -rr * 0.18, rr * 0.34, rr * 0.3, 0, 0, Math.PI * 2);
-      c.fillStyle = `rgba(${_MAH_PETAL},${(0.05 + ring * 0.045).toFixed(2)})`;
+      c.fillStyle = dark ? `rgba(${_MAH_AMBER},${(0.018 + ring * 0.012).toFixed(2)})`
+                         : `rgba(${_MAH_PETAL},${(0.05 + ring * 0.045).toFixed(2)})`;
       c.fill();
       c.restore();
     }
   }
   c.beginPath();                                   // the heart stays dark
   c.arc(0, 0, px * 0.24, 0, Math.PI * 2);
-  c.fillStyle = 'rgba(28,8,12,0.85)';
+  c.fillStyle = dark ? 'rgba(0,0,0,0.95)' : 'rgba(28,8,12,0.85)';
   c.fill();
   _mahRoseCache[key] = cv;
   return cv;
@@ -41156,7 +41159,8 @@ function _mahBuildBrambles(W, H) {
   out.forEach((v, i) => {
     if (v.w < 3 || _mahRnd(i * 13 + 1) > 0.42) return;
     const p = v.pts[v.pts.length - 1];
-    blooms.push({ x: p[0], y: p[1], r: 13 + _mahRnd(i * 5) * 17, seed: i, ph: _mahRnd(i * 3) * 6.28 });
+    blooms.push({ x: p[0], y: p[1], r: 13 + _mahRnd(i * 5) * 17, seed: i,
+      ph: _mahRnd(i * 3) * 6.28, dark: _mahRnd(i * 23 + 7) < 0.4 });
   });
   return { vines: out, blooms };
 }
@@ -41254,7 +41258,8 @@ function _drawMahoganyPattern(canvas, ctx, W, H, t) {
       const open = 0.65 + 0.35 * Math.sin(t * 0.22 + b.ph);
       const r = b.r * (0.7 + open * 0.3) * grow;
       if (r < 3) continue;
-      const spr = _mahRoseSprite(Math.round(b.r), b.seed % 2 ? _MAH_BLOOD : _MAH_ROSE, b.seed);
+      const spr = _mahRoseSprite(Math.round(b.r),
+        b.dark ? _MAH_ROSE : (b.seed % 2 ? _MAH_BLOOD : _MAH_ROSE), b.seed, b.dark);
       const d = r * 3.2;           // same scale the sprite was built at
       ctx.globalAlpha = 0.4 + open * 0.28;
       ctx.drawImage(spr, b.x - d / 2, b.y - d / 2, d, d);
@@ -41500,38 +41505,55 @@ function _mahLeaf(ctx, x, y, ang, len) {
 // one corner, drawn into the top left and mirrored into the other three
 function _mahCorner(ctx, B) {
   const R = B * 3.4;
+  const M = B * 0.5;                     // the centreline of the band
   ctx.lineCap = 'round';
-  // the scroll: a vine turning out of the corner along both edges
+  // the scroll runs down the middle of the band and turns the corner
   for (const pass of [{ w: 4.4, c: 'rgba(18,8,6,0.95)' },
                       { w: 2.2, c: `rgba(${_MAH_BLOOD},0.75)` },
                       { w: 1, c: `rgba(${_MAH_AMBER},0.72)` }]) {
     ctx.strokeStyle = pass.c;
     ctx.lineWidth = pass.w;
     ctx.beginPath();
-    ctx.moveTo(B * 0.62, R);
-    ctx.bezierCurveTo(B * 0.62, B * 1.5, B * 1.5, B * 0.62, R, B * 0.62);
-    ctx.stroke();
-    ctx.beginPath();                     // an inner curl, tighter
-    ctx.moveTo(B * 1.5, R * 0.92);
-    ctx.bezierCurveTo(B * 1.5, B * 2.3, B * 2.3, B * 1.5, R * 0.92, B * 1.5);
+    ctx.moveTo(M, R);
+    ctx.bezierCurveTo(M, B * 1.35, B * 1.35, M, R, M);
     ctx.stroke();
   }
-  // leaves set along the outer scroll
-  _mahLeaf(ctx, B * 0.62, R * 0.62, -0.42, B * 0.78);
-  _mahLeaf(ctx, B * 0.62, R * 0.34, -0.36, B * 0.6);
-  _mahLeaf(ctx, R * 0.62, B * 0.62, -1.15, B * 0.78);
-  _mahLeaf(ctx, R * 0.34, B * 0.62, -1.21, B * 0.6);
-  // and a rose where the curl closes
+  // leaves sit on the band, alternating sides of the scroll
+  _mahLeaf(ctx, M, R * 0.78, -1.05, B * 0.62);
+  _mahLeaf(ctx, M, R * 0.5, -0.3, B * 0.5);
+  _mahLeaf(ctx, R * 0.78, M, -0.52, B * 0.62);
+  _mahLeaf(ctx, R * 0.5, M, -1.27, B * 0.5);
+  // a black flower centred exactly on the corner of the band
   const rr = Math.max(4, Math.round(B * 0.3));
-  const spr = _mahRoseSprite(rr, _MAH_ROSE, 2);
+  const spr = _mahRoseSprite(rr, _MAH_ROSE, 2, true);
   const d = rr * 3.2;
-  ctx.globalAlpha = 0.92;
-  ctx.drawImage(spr, B * 0.92 - d / 2, B * 0.92 - d / 2, d, d);
+  ctx.globalAlpha = 0.95;
+  ctx.drawImage(spr, M - d / 2, M - d / 2, d, d);
   ctx.globalAlpha = 1;
 }
 
-function _drawMahoganyFrame(canvas, ctx, W, H) {
-  ctx.clearRect(0, 0, W, H);
+// The site header is sticky, opaque and sits above this layer, so a band drawn
+// at y=0 is invisible behind it. Start the frame under whatever chrome is
+// pinned to the top instead, and the whole frame reads.
+function _mahTopInset() {
+  let top = 0;
+  for (const sel of ['#header', '#mobile-topbar']) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width > 100 && r.top <= 2 && r.height > 0) top = Math.max(top, r.bottom);
+  }
+  return Math.round(Math.min(top, 160));
+}
+
+function _drawMahoganyFrame(canvas, ctx, W0, H0) {
+  ctx.clearRect(0, 0, W0, H0);
+  const T = _mahTopInset();
+  ctx.save();
+  ctx.translate(0, T);
+  const W = W0, H = H0 - T;
   const B = Math.max(20, Math.min(36, Math.min(W, H) * 0.04));
 
   // the band: a bevel from near black at the outside to lit wood at the inside
@@ -41592,12 +41614,54 @@ function _drawMahoganyFrame(canvas, ctx, W, H) {
     ctx.restore();
   }
 
+  // a black flower set at the middle of each run of the frame
+  {
+    const rr = Math.max(4, Math.round(B * 0.26));
+    const spr = _mahRoseSprite(rr, _MAH_ROSE, 4, true);
+    const d = rr * 3.2;
+    const mids = [[W * 0.5, B * 0.5], [W * 0.5, H - B * 0.5],
+                  [B * 0.5, H * 0.5], [W - B * 0.5, H * 0.5]];
+    ctx.globalAlpha = 0.9;
+    for (const mp of mids) {
+      // a short spur of vine either side, so it is set into the frame
+      ctx.strokeStyle = `rgba(${_MAH_AMBER},0.45)`;
+      ctx.lineWidth = 1;
+      const horiz = mp[1] < B || mp[1] > H - B;
+      ctx.beginPath();
+      if (horiz) { ctx.moveTo(mp[0] - B * 1.5, mp[1]); ctx.lineTo(mp[0] + B * 1.5, mp[1]); }
+      else { ctx.moveTo(mp[0], mp[1] - B * 1.5); ctx.lineTo(mp[0], mp[1] + B * 1.5); }
+      ctx.stroke();
+      for (const sgn of [-1, 1]) {
+        _mahLeaf(ctx, horiz ? mp[0] + sgn * B * 0.75 : mp[0],
+                      horiz ? mp[1] : mp[1] + sgn * B * 0.75,
+                 horiz ? (sgn > 0 ? -0.35 : Math.PI + 0.35) : (sgn > 0 ? 1.22 : -1.22),
+                 B * 0.5);
+      }
+      ctx.drawImage(spr, mp[0] - d / 2, mp[1] - d / 2, d, d);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   // the page sits a little deeper than the frame
   const sh = ctx.createLinearGradient(0, B, 0, B + 26);
   sh.addColorStop(0, 'rgba(6,3,2,0.55)');
   sh.addColorStop(1, 'rgba(6,3,2,0)');
   ctx.fillStyle = sh;
   ctx.fillRect(B, B, W - B * 2, 26);
+
+  // Corner shading, a vignette: the light falls off into the corners so the
+  // frame sits over something with depth rather than a flat panel.
+  const iw = W - B * 2, ih = H - B * 2;
+  const vr = Math.hypot(iw, ih) * 0.5;
+  for (const c of [[B, B], [B + iw, B], [B, B + ih], [B + iw, B + ih]]) {
+    const g = ctx.createRadialGradient(c[0], c[1], 0, c[0], c[1], vr * 0.62);
+    g.addColorStop(0, 'rgba(5,2,2,0.6)');
+    g.addColorStop(0.45, 'rgba(5,2,2,0.22)');
+    g.addColorStop(1, 'rgba(5,2,2,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(B, B, iw, ih);
+  }
+  ctx.restore();
 }
 
 function _startMahoganyOverlay() {
