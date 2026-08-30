@@ -41497,6 +41497,44 @@ function _drawActariusPattern(canvas, ctx, W, H, t) {
 let _actOverlayRafId = null;
 let _actX = 0, _actY = 0, _actTX = 0, _actTY = 0, _actVX = 0, _actVY = 0;
 let _actGrow = [], _actTrail = [], _actFore = [], _actHaloBig = null;
+// Everything planted lives on two canvases rather than in a list. A mushroom
+// that has finished coming up never changes again, so it is stamped down once
+// and after that the whole field, however much of it there is, costs two
+// draws. That is what makes the clicking unlimited: the hundredth mushroom is
+// as cheap as the first, and memory is two canvases whatever you do.
+let _actPlantBody = null, _actPlantGlow = null, _actPlantCount = 0;
+
+function _actPlantSurfaces(W, H) {
+  if (_actPlantBody && _actPlantBody.width === W && _actPlantBody.height === H) return;
+  const ob = _actPlantBody, og = _actPlantGlow;
+  _actPlantBody = document.createElement('canvas');
+  _actPlantBody.width = W; _actPlantBody.height = H;
+  _actPlantGlow = document.createElement('canvas');
+  _actPlantGlow.width = W; _actPlantGlow.height = H;
+  // a window resize should not cost you the wood you planted
+  if (ob) _actPlantBody.getContext('2d').drawImage(ob, 0, 0);
+  if (og) _actPlantGlow.getContext('2d').drawImage(og, 0, 0);
+}
+
+function _actPlant(m) {
+  const bc = _actPlantBody.getContext('2d');
+  bc.save();
+  bc.translate(m.x, m.y);
+  _actShroom(bc, m.sp, m.h, 1, 1, m.seed, 1);
+  bc.restore();
+  // Light that adds up runs away: four hundred pools summed turned the whole
+  // wood into one flat blue sheet. Taking the brighter of the two instead
+  // means density plateaus at what a single mushroom throws, so a crowd reads
+  // as a crowd of lit things rather than as a lamp.
+  const gc = _actPlantGlow.getContext('2d');
+  gc.save();
+  gc.globalCompositeOperation = 'lighten';
+  const r = m.h * 1.5;
+  gc.globalAlpha = 0.5;
+  gc.drawImage(_actHaloBig, m.x - r, m.y - r * 0.9, r * 2, r * 2);
+  gc.restore();
+  _actPlantCount++;
+}
 
 function _actMouseMove(e) { _actTX = e.clientX; _actTY = e.clientY; }
 
@@ -41506,9 +41544,8 @@ function _actClick(e) {
     sp: Math.floor(Math.random() * 5),
     seed: Math.random() * 100,
     h: 54 + Math.random() * 46,
-    age: 0, burst: false,
+    age: 0,
   });
-  if (_actGrow.length > 6) _actGrow.shift();
 }
 
 function _actSeedFore() {
@@ -41540,6 +41577,7 @@ function _drawActariusOverlay(canvas, ctx, W, H, t) {
 
   if (!_actHaloBig) _actHaloBig = _actHaloSprite(150);
   if (!_actFore.length) _actFore = _actSeedFore();
+  _actPlantSurfaces(W, H);
 
   // spores drifting up in front of the page, near ones large and faint
   for (const s of _actFore) {
@@ -41562,18 +41600,23 @@ function _drawActariusOverlay(canvas, ctx, W, H, t) {
   const spd = Math.hypot(_actVX, _actVY);
 
   // what a click grew: it comes up out of the ground, stands, and lets go
+  // the field already planted: two draws, whatever is standing in it
+  if (_actPlantCount) {
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.6 + 0.24 * (0.5 - 0.5 * Math.cos(t * 0.8));
+    ctx.drawImage(_actPlantGlow, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(_actPlantBody, 0, 0);
+  }
+
+  // and the ones still on their way up, which is the only part that animates
   ctx.globalCompositeOperation = 'source-over';
   for (let i = _actGrow.length - 1; i >= 0; i--) {
     const m = _actGrow[i];
     m.age += dt;
-    let grow, A;
-    if (m.age < 0.75)      { const u = m.age / 0.75; grow = 1 - Math.pow(1 - u, 3); A = Math.min(1, u * 3); }
-    else if (m.age < 2.60) { grow = 1; A = 1; }
-    else if (m.age < 3.60) { const u = (m.age - 2.6); grow = 1; A = 1 - u; }
-    else { _actGrow.splice(i, 1); continue; }
-    if (m.age >= 2.60 && !m.burst) {
-      m.burst = true;
-      for (let k = 0; k < 16; k++) {
+    if (m.age >= 0.75) {              // fully up: it throws its spores and stays
+      for (let k = 0; k < 13; k++) {
         _actTrail.push({
           x: m.x + (Math.random() - 0.5) * m.h * 0.7,
           y: m.y - m.h * (0.85 + Math.random() * 0.2),
@@ -41582,7 +41625,14 @@ function _drawActariusOverlay(canvas, ctx, W, H, t) {
           grn: Math.random() < 0.55,
         });
       }
+      if (_actTrail.length > 420) _actTrail.splice(0, _actTrail.length - 420);
+      _actPlant(m);
+      _actGrow.splice(i, 1);
+      continue;
     }
+    const u = m.age / 0.75;
+    const grow = 1 - Math.pow(1 - u, 3);
+    const A = Math.min(1, u * 3);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const r = m.h * 1.5;
@@ -41643,6 +41693,7 @@ function _startActariusOverlay() {
   _actY = _actTY = window.innerHeight * 0.5;
   _actVX = _actVY = 0;
   _actGrow = []; _actTrail = []; _actFore = [];
+  _actPlantBody = _actPlantGlow = null; _actPlantCount = 0;
   window.addEventListener('mousemove', _actMouseMove);
   window.addEventListener('click', _actClick);
   const _arrow = document.getElementById('cursor');
@@ -41674,6 +41725,7 @@ function _stopActariusOverlay() {
   if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('actarius-overlay');
   if (cv) cv.remove();
+  _actPlantBody = _actPlantGlow = null; _actPlantCount = 0;
 }
 /* ─────────────────────────────────────────────────────────────── */
 
