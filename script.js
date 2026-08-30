@@ -3102,6 +3102,7 @@ const PATTERN_DEFS = {
   lele_cold:        { label: "Lele · Cold Embrace",   params: [] },
   mahogany_thorns:  { label: "'MAHOGANY' · Thornwood", params: [] },
   kurio_nightgarden: { label: "'KURIO' · Night Garden", params: [] },
+  actarius_mycelium: { label: "Actarius · Nightwood", params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
@@ -30873,6 +30874,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'lele_cold') { _drawLelePattern(canvas, ctx, W, H, t);                      return; }
   if (type === 'mahogany_thorns') { _drawMahoganyPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'kurio_nightgarden') { _drawKurioPattern(canvas, ctx, W, H, t);           return; }
+  if (type === 'actarius_mycelium') { _drawActariusPattern(canvas, ctx, W, H, t);        return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
@@ -31418,6 +31420,8 @@ function startBgAnim(type, params) {
   _drawMahoganyOverlay._lt    = undefined;
   _drawKurioPattern._lt       = undefined;
   _drawKurioOverlay._lt       = undefined;
+  _drawActariusPattern._lt    = undefined;
+  _drawActariusOverlay._lt    = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -31515,6 +31519,7 @@ function stopBgAnim() {
   _stopMahoganyOverlay();
   _stopKurioOverlay();
   _stopMbOverlay();
+  _stopActariusOverlay();
   _stopSorrowOverlay();
   _stopEmporiumOverlay();
   _stopAlsaceOverlay();
@@ -32168,6 +32173,7 @@ function viewChar(id) {
   else if (_isLele(c))     {   _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _LELE_HEX); }
   else if (_isMahogany(c)) {    _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _MAH_HEX); }
   else if (_isKurio(c))    {     _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _KUR_HEX); }
+  else if (_isActarius(c)) {      _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ACT_HEX); }
   else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
   else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
   else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
@@ -32370,6 +32376,23 @@ function viewChar(id) {
       if (_av) _av.classList.remove('iris-pfp');
       if (_nm) { _nm.classList.remove('iris-name'); if (!_nmHasNameSkin(_nm)) _nm.removeAttribute('data-text'); }
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Actarius: panels lit the way his mushrooms are, from underneath and
+  // from the edge, never from the middle. Blue glass with green under it. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isActarius(c)) {
+      _cvRoot.classList.add('actarius-ui');
+      if (_av) _av.classList.add('actarius-pfp');
+      if (_nm) { _nm.classList.add('actarius-name'); _nm.setAttribute('data-text', _nm.textContent || 'ACTARIUS'); }
+    } else {
+      _cvRoot.classList.remove('actarius-ui');
+      if (_av) _av.classList.remove('actarius-pfp');
+      if (_nm) _nm.classList.remove('actarius-name');
     }
   }
 
@@ -33146,7 +33169,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -33159,7 +33182,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -33225,6 +33248,7 @@ function viewChar(id) {
   if (_isLele(c))     _startLeleOverlay();
   if (_isMahogany(c)) _startMahoganyOverlay();
   if (_isKurio(c))    _startKurioOverlay();
+  if (_isActarius(c)) _startActariusOverlay();
   if (_isMb(c))       _startMbOverlay();
   if (_isEmporium(c)) _startEmporiumOverlay();
   if (_isAlsace(c))   { _alsMaskOff = _isAlsaceMaskOff(c); _startAlsaceOverlay(); }
@@ -38818,7 +38842,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -41085,6 +41109,573 @@ function toggleMobileToC() {
     else      backdrop.classList.remove('open');
   }
 }
+
+// ════════════════════════════════════════════════════════════════
+// Actarius - a mushroom forest at night, and every light in it comes
+// from something growing. The trick with bioluminescence is that the
+// light lives UNDER the cap, in the gills, so the cap itself is always
+// the darkest thing in the frame and the ground under it is the
+// brightest. Get that the wrong way round and it reads as lamps on
+// sticks. Blue is what the forest is made of and green is what it
+// breathes out: the caps and the air are his blue, the spores coming
+// up off the gills are the green.
+// His cursor is a wisp, and a click grows a mushroom where it lands.
+// ════════════════════════════════════════════════════════════════
+const _ACT_RE = /^["']?\s*ACTARIUS\s*["']?$/i;
+function _isActarius(c) { return !!(c && c.name && _ACT_RE.test(c.name)); }
+const _ACT_BLUE  = '46,64,214';     // his blue, what the forest is made of
+const _ACT_LUME  = '104,152,255';   // the blue that actually gives light
+const _ACT_GREEN = '164,240,168';   // the green it breathes out
+const _ACT_HEX   = '#5f83ff';
+
+function _actRnd(seed) {
+  const v = Math.sin(seed * 91.37 + 23.71) * 37219.53;
+  return v - Math.floor(v);
+}
+
+// capW and capH are fractions of the whole height, uc is how far the underside
+// sags (negative turns the cap up into a cup), gill is how much light it gives
+const _ACT_SPECIES = [
+  { capW: 0.42, capH: 0.32, uc: 0.07,  stemW: 0.052, bend: 0.10, spots: 7,  gill: 0.95 },
+  { capW: 0.60, capH: 0.19, uc: 0.02,  stemW: 0.042, bend: 0.06, spots: 0,  gill: 1.1  },
+  { capW: 0.29, capH: 0.44, uc: 0.11,  stemW: 0.048, bend: 0.15, spots: 4,  gill: 0.7  },
+  { capW: 0.52, capH: 0.15, uc: -0.13, stemW: 0.058, bend: 0.05, spots: 0,  gill: 1.2  },
+  { capW: 0.35, capH: 0.30, uc: 0.09,  stemW: 0.072, bend: 0.07, spots: 10, gill: 0.6  },
+];
+
+// One mushroom, standing on the origin and growing up out of it.
+function _actShroom(ctx, sp, h0, A, G, seed, grow) {
+  const S = _ACT_SPECIES[sp % _ACT_SPECIES.length];
+  const g = grow === undefined ? 1 : Math.max(0.001, grow);
+  const h = h0 * g;
+  const w = h * S.capW * (0.35 + 0.65 * g);   // the cap opens as it comes up
+  const ch = h * S.capH;
+  const sw = h0 * S.stemW * 1.45;
+  const bend = (_actRnd(seed) - 0.5) * 2 * S.bend * h;
+  const ty = -h, tx = bend;
+  const lw = Math.max(0.4, h0 * 0.007);
+
+  // the stem, a tapered ribbon with a little lean in it
+  ctx.beginPath();
+  ctx.moveTo(-sw * 1.45, 0);
+  ctx.quadraticCurveTo(-sw * 0.86 + bend * 0.45, ty * 0.5, tx - sw * 0.56, ty);
+  ctx.lineTo(tx + sw * 0.56, ty);
+  ctx.quadraticCurveTo(sw * 0.86 + bend * 0.45, ty * 0.5, sw * 1.45, 0);
+  ctx.closePath();
+  const sg = ctx.createLinearGradient(0, ty, 0, 0);
+  const lit = Math.min(1, G);
+  sg.addColorStop(0, `rgba(${(7 + 63 * lit) | 0},${(10 + 84 * lit) | 0},${(28 + 158 * lit) | 0},${(A * 0.95).toFixed(3)})`);
+  sg.addColorStop(0.42, `rgba(${(7 + 19 * lit) | 0},${(10 + 25 * lit) | 0},${(28 + 68 * lit) | 0},${(A * 0.95).toFixed(3)})`);
+  sg.addColorStop(1, `rgba(6,8,24,${(A * 0.95).toFixed(3)})`);
+  ctx.fillStyle = sg;
+  ctx.fill();
+  ctx.strokeStyle = `rgba(${_ACT_LUME},${(A * 0.3 * G).toFixed(3)})`;
+  ctx.lineWidth = lw;
+  ctx.stroke();
+
+  // The light, under the cap where it belongs. This goes down before the cap
+  // does, so the cap covers its top edge and the glow only spills downward.
+  const gd = h * (0.035 + S.gill * 0.05);
+  const uy = ty + S.uc * h;                   // where the underside of the cap runs
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.beginPath();
+  ctx.moveTo(tx - w * 0.97, ty);
+  ctx.quadraticCurveTo(tx, uy + gd * 2.2, tx + w * 0.97, ty);
+  ctx.quadraticCurveTo(tx, uy, tx - w * 0.97, ty);
+  ctx.closePath();
+  const gg = ctx.createLinearGradient(0, uy - gd * 0.6, 0, uy + gd * 2.2);
+  gg.addColorStop(0, `rgba(${_ACT_LUME},${(A * 0.95 * G).toFixed(3)})`);
+  gg.addColorStop(0.4, `rgba(${_ACT_GREEN},${(A * 0.5 * G).toFixed(3)})`);
+  gg.addColorStop(1, `rgba(${_ACT_BLUE},0)`);
+  ctx.fillStyle = gg;
+  ctx.fill();
+  ctx.restore();
+
+  // gills, only where there is room to see them
+  if (w > 13) {
+    const n = Math.min(20, Math.max(6, Math.round(w * 0.42)));
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {          // a fan out of the throat to the rim
+      const u = (i + 0.5) / n * 2 - 1;
+      ctx.moveTo(tx, uy + gd * 1.7);
+      ctx.lineTo(tx + u * w * 0.95, uy + gd * 0.5 * (1 - u * u));
+    }
+    ctx.strokeStyle = `rgba(6,9,26,${(A * 0.55).toFixed(3)})`;
+    ctx.lineWidth = Math.max(0.4, w * 0.018);
+    ctx.stroke();
+  }
+
+  // and the cap over the top of it, the darkest thing in the picture
+  ctx.beginPath();
+  ctx.moveTo(tx - w, ty);
+  ctx.bezierCurveTo(tx - w * 0.94, ty - ch * 1.18, tx + w * 0.94, ty - ch * 1.18, tx + w, ty);
+  ctx.quadraticCurveTo(tx, ty + S.uc * h, tx - w, ty);
+  ctx.closePath();
+  const cg = ctx.createLinearGradient(0, ty - ch, 0, ty + ch * 0.4);
+  cg.addColorStop(0, `rgba(34,44,132,${(A * 0.97).toFixed(3)})`);
+  cg.addColorStop(0.55, `rgba(17,22,74,${(A * 0.97).toFixed(3)})`);
+  cg.addColorStop(1, `rgba(7,9,30,${(A * 0.97).toFixed(3)})`);
+  ctx.fillStyle = cg;
+  ctx.fill();
+  ctx.strokeStyle = `rgba(${_ACT_LUME},${(A * 0.46 * G).toFixed(3)})`;
+  ctx.lineWidth = lw;
+  ctx.stroke();
+
+  // spots, which are the only part of the cap that is lit
+  if (S.spots && w > 9) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath();
+    for (let i = 0; i < S.spots; i++) {
+      const u = _actRnd(seed * 3.1 + i * 7.7);
+      const v = _actRnd(seed * 5.3 + i * 11.3);
+      const sx = tx + (u * 2 - 1) * w * 0.78;
+      const sy = ty - ch * (0.16 + Math.sin(u * Math.PI) * 0.72) - v * ch * 0.1;
+      const sr = Math.max(0.7, w * (0.045 + v * 0.045));
+      ctx.moveTo(sx + sr, sy);
+      ctx.arc(sx, sy, sr, 0, 6.283185);
+    }
+    ctx.fillStyle = `rgba(${_ACT_GREEN},${(A * 0.5 * G).toFixed(3)})`;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// The halo is its own sprite so it can breathe without anything being redrawn.
+// one soft band of fog, stretched to wherever it is needed
+function _actFogSprite() {
+  const px = 256, py = 96;
+  const c = document.createElement('canvas');
+  c.width = px; c.height = py;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(px / 2, py / 2, 0, px / 2, py / 2, px / 2);
+  gr.addColorStop(0, `rgba(${_ACT_LUME},0.5)`);
+  gr.addColorStop(0.4, `rgba(${_ACT_LUME},0.22)`);
+  gr.addColorStop(0.75, `rgba(${_ACT_BLUE},0.06)`);
+  gr.addColorStop(1, `rgba(${_ACT_BLUE},0)`);
+  g.fillStyle = gr;
+  g.save();
+  g.translate(px / 2, py / 2);
+  g.scale(1, py / px);
+  g.translate(-px / 2, -px / 2);
+  g.fillRect(0, 0, px, px);
+  g.restore();
+  return c;
+}
+
+function _actHaloSprite(r) {
+  const px = Math.max(8, Math.ceil(r * 2));
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(px / 2, px / 2, 0, px / 2, px / 2, px / 2);
+  gr.addColorStop(0, `rgba(${_ACT_LUME},0.5)`);
+  gr.addColorStop(0.22, `rgba(${_ACT_LUME},0.22)`);
+  gr.addColorStop(0.52, `rgba(${_ACT_BLUE},0.09)`);
+  gr.addColorStop(1, `rgba(${_ACT_BLUE},0)`);
+  g.fillStyle = gr;
+  g.fillRect(0, 0, px, px);
+  return c;
+}
+
+// A clump, baked once. Mushrooms come up in clumps, and a field of evenly
+// spaced singles is the fastest way to make a forest look planted.
+function _actClumpSprite(cl) {
+  let maxH = 0, maxX = 0;
+  for (const m of cl.ms) {
+    maxH = Math.max(maxH, m.h);
+    maxX = Math.max(maxX, Math.abs(m.dx) + m.h * 0.7);
+  }
+  const px = Math.ceil(maxX * 2 + 24), py = Math.ceil(maxH * 1.45 + 24);
+  const c = document.createElement('canvas');
+  c.width = px; c.height = py;
+  const g = c.getContext('2d');
+  g.translate(px / 2, py - 12);
+  // the short ones first, so the tall ones stand in front of them
+  for (const m of [...cl.ms].sort((a, b) => a.h - b.h)) {
+    g.save();
+    g.translate(m.dx, 0);
+    _actShroom(g, m.sp, m.h, 1, cl.glow === undefined ? 1 : cl.glow, m.seed);
+    g.restore();
+  }
+  cl._sprite = c;
+  cl._px = px; cl._py = py;
+  cl._baseY = py - 12;
+  return c;
+}
+
+// ── The forest ───────────────────────────────────────────────────
+function _drawActariusPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawActariusPattern._lt === undefined;
+  if (!fresh && t - _drawActariusPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawActariusPattern._lt, 0.05);
+  _drawActariusPattern._lt = t;
+
+  if (canvas._actW !== W || canvas._actH !== H) {
+    canvas._actW = W; canvas._actH = H;
+    canvas._actSky = null; canvas._actVign = null; canvas._actHalo = null;
+    canvas._actTrees = null; canvas._actClumps = null;
+    canvas._actSpores = null; canvas._actMist = null;
+  }
+
+  // 1 ── night, with the forest floor swallowing the bottom of it
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  if (!canvas._actSky) {
+    canvas._actSky = document.createElement('canvas');
+    canvas._actSky.width = W; canvas._actSky.height = H;
+    const sx = canvas._actSky.getContext('2d');
+    const g = sx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#04060f');
+    g.addColorStop(0.34, '#070c24');
+    g.addColorStop(0.66, '#091033');
+    g.addColorStop(0.86, '#060a1e');
+    g.addColorStop(1, '#02030a');
+    sx.fillStyle = g;
+    sx.fillRect(0, 0, W, H);
+    // a breath of green sitting on the horizon, where the field is thickest
+    const hg = sx.createRadialGradient(W * 0.5, H * 0.78, 0, W * 0.5, H * 0.78, Math.max(W, H) * 0.5);
+    hg.addColorStop(0, `rgba(${_ACT_GREEN},0.06)`);
+    hg.addColorStop(0.45, `rgba(${_ACT_BLUE},0.05)`);
+    hg.addColorStop(1, 'rgba(0,0,0,0)');
+    sx.globalCompositeOperation = 'lighter';
+    sx.fillStyle = hg;
+    sx.fillRect(0, 0, W, H);
+    canvas._actHalo = _actHaloSprite(180);
+    canvas._actFog = _actFogSprite();
+  }
+  ctx.drawImage(canvas._actSky, 0, 0);
+
+  // 2 ── the trees, which here are simply mushrooms that got the light first
+  if (!canvas._actTrees) {
+    canvas._actTrees = [];
+    for (let i = 0; i < 3; i++) {
+      const h = H * (0.48 + _actRnd(i * 7 + 3) * 0.2);
+      canvas._actTrees.push({
+        x: W * ((i + 0.04 + _actRnd(i * 11 + 5) * 0.92) / 3),
+        y: H * (0.94 + _actRnd(i * 13 + 7) * 0.12),
+        ms: [{ dx: 0, h: h, sp: [2, 0, 1][i], seed: i * 3.3 + 1.7 }],
+        ph: _actRnd(i * 17 + 9) * 6.283,
+        sway: 0.004 + _actRnd(i * 19) * 0.005,
+        glow: 0.3,
+      });
+    }
+    for (const tr of canvas._actTrees) _actClumpSprite(tr);
+  }
+  for (const tr of canvas._actTrees) {
+    ctx.save();
+    ctx.translate(tr.x, tr.y);
+    ctx.rotate(Math.sin(t * 0.11 + tr.ph) * tr.sway);
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(tr._sprite, -tr._px / 2, -tr._baseY);
+    ctx.restore();
+  }
+
+  // 3 ── mist lying along the floor, moving slower than anything else
+  if (!canvas._actMist) {
+    canvas._actMist = [];
+    for (let i = 0; i < 5; i++) {
+      canvas._actMist.push({
+        y: H * (0.56 + i * 0.1 + _actRnd(i * 23) * 0.05),
+        x: _actRnd(i * 29) * W, h: H * (0.05 + _actRnd(i * 31) * 0.07),
+        v: 5 + _actRnd(i * 37) * 11, a: 0.05 + _actRnd(i * 41) * 0.05,
+      });
+    }
+  }
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const m of canvas._actMist) {
+    m.x += m.v * dt;
+    if (m.x > W * 1.5) m.x = -W * 0.5;
+    const bw = W * 1.1, bh = m.h * 7;
+    ctx.globalAlpha = m.a * 1.15;
+    ctx.drawImage(canvas._actFog, m.x - bw / 2, m.y - bh / 2, bw, bh);
+  }
+  ctx.restore();
+
+  // 4 ── the field itself, in clumps, nearer ones lower and larger
+  if (!canvas._actClumps) {
+    canvas._actClumps = [];
+    for (let i = 0; i < 15; i++) {
+      const depth = _actRnd(i * 5 + 2);                 // 0 far, 1 near
+      const base = 26 + depth * depth * 128;
+      const n = 1 + Math.floor(_actRnd(i * 43 + 3) * 3.4);
+      const ms = [];
+      for (let k = 0; k < n; k++) {
+        ms.push({
+          dx: (_actRnd(i * 47 + k * 13) - 0.5) * base * 1.1,
+          h: base * (0.5 + _actRnd(i * 53 + k * 17) * 0.7),
+          sp: Math.floor(_actRnd(i * 59 + k * 19) * 5),
+          seed: i * 7.1 + k * 2.9 + 0.6,
+        });
+      }
+      canvas._actClumps.push({
+        x: W * ((i % 5 + 0.08 + _actRnd(i * 61) * 0.84) / 5),
+        y: H * (0.6 + depth * 0.42),
+        depth, ms,
+        ph: _actRnd(i * 67) * 6.283,
+        sway: 0.008 + _actRnd(i * 71) * 0.014,
+        pulse: 0.7 + _actRnd(i * 73) * 0.9,
+      });
+    }
+    canvas._actClumps.sort((a, b) => a.depth - b.depth);
+    for (const cl of canvas._actClumps) _actClumpSprite(cl);
+  }
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const cl of canvas._actClumps) {
+    // the pool of light it throws on the ground under it
+    const r = (60 + cl.depth * 190);
+    const p = 0.5 - 0.5 * Math.cos(t * cl.pulse * 0.42 + cl.ph);
+    ctx.globalAlpha = (0.22 + cl.depth * 0.3) * (0.68 + p * 0.32);
+    ctx.drawImage(canvas._actHalo, cl.x - r, cl.y - r * 0.92, r * 2, r * 2);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  for (const cl of canvas._actClumps) {
+    ctx.save();
+    ctx.translate(cl.x, cl.y);
+    ctx.rotate(Math.sin(t * 0.23 + cl.ph) * cl.sway);
+    ctx.globalAlpha = 0.62 + cl.depth * 0.38;
+    ctx.drawImage(cl._sprite, -cl._px / 2, -cl._baseY);
+    ctx.restore();
+  }
+
+  // 5 ── spores coming up off the gills, which is where the green lives
+  if (!canvas._actSpores) {
+    canvas._actSpores = [];
+    for (let i = 0; i < 90; i++) {
+      canvas._actSpores.push({
+        x: _actRnd(i * 3.7) * W, y: _actRnd(i * 5.9) * H,
+        vy: -4 - _actRnd(i * 7.3) * 15,
+        sz: 0.6 + _actRnd(i * 9.7) * 1.9,
+        ph: _actRnd(i * 11.3) * 6.283,
+        sp: 0.5 + _actRnd(i * 13.9) * 1.3,
+        grn: _actRnd(i * 17.1) < 0.45,
+      });
+    }
+  }
+  for (const s of canvas._actSpores) {
+    s.y += s.vy * dt;
+    s.x += Math.sin(t * 0.4 + s.ph) * 7 * dt;
+    if (s.y < -12) { s.y = H + 12; s.x = Math.random() * W; }
+    if (s.x < -12) s.x = W + 12; else if (s.x > W + 12) s.x = -12;
+  }
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const green of [true, false]) {   // batched by colour, two fills for ninety
+    ctx.beginPath();
+    for (const s of canvas._actSpores) {
+      if (s.grn !== green) continue;
+      const r = s.sz * (0.25 + 0.75 * (0.5 - 0.5 * Math.cos(t * s.sp + s.ph)));
+      ctx.moveTo(s.x + r, s.y);
+      ctx.arc(s.x, s.y, r, 0, 6.283185);
+    }
+    ctx.fillStyle = green ? `rgba(${_ACT_GREEN},0.5)` : `rgba(${_ACT_LUME},0.5)`;
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 6 ── and the dark closing in at the edges
+  if (!canvas._actVign) {
+    canvas._actVign = document.createElement('canvas');
+    canvas._actVign.width = W; canvas._actVign.height = H;
+    const vx = canvas._actVign.getContext('2d');
+    const g = vx.createRadialGradient(W * 0.5, H * 0.6, Math.min(W, H) * 0.26,
+                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.74);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.6, 'rgba(1,2,8,0.32)');
+    g.addColorStop(1, 'rgba(1,2,8,0.8)');
+    vx.fillStyle = g;
+    vx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(canvas._actVign, 0, 0);
+}
+
+// ── In front of the page: spores, and his wisp ───────────────────
+let _actOverlayRafId = null;
+let _actX = 0, _actY = 0, _actTX = 0, _actTY = 0, _actVX = 0, _actVY = 0;
+let _actGrow = [], _actTrail = [], _actFore = [], _actHaloBig = null;
+
+function _actMouseMove(e) { _actTX = e.clientX; _actTY = e.clientY; }
+
+function _actClick(e) {
+  _actGrow.push({
+    x: e.clientX, y: e.clientY,
+    sp: Math.floor(Math.random() * 5),
+    seed: Math.random() * 100,
+    h: 54 + Math.random() * 46,
+    age: 0, burst: false,
+  });
+  if (_actGrow.length > 6) _actGrow.shift();
+}
+
+function _actSeedFore() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const out = [];
+  for (let i = 0; i < 34; i++) {
+    const near = i > 25;
+    out.push({
+      x: _actRnd(i * 4.1 + 1) * W,
+      y: ((i + _actRnd(i * 6.7 + 3)) / 34) * (H + 80) - 40,
+      vy: -(near ? 26 + _actRnd(i * 8.3) * 26 : 7 + _actRnd(i * 8.3) * 15),
+      sz: near ? 2.6 + _actRnd(i * 10.1) * 3.4 : 0.8 + _actRnd(i * 10.1) * 1.8,
+      a: near ? 0.3 : 0.6,
+      ph: _actRnd(i * 12.9 + 5) * 6.283,
+      sp: 0.5 + _actRnd(i * 14.3) * 1.4,
+      grn: _actRnd(i * 16.7) < 0.45,
+      sway: near ? 22 : 10,
+    });
+  }
+  return out;
+}
+
+function _drawActariusOverlay(canvas, ctx, W, H, t) {
+  if (_drawActariusOverlay._lt !== undefined && t - _drawActariusOverlay._lt < 0.016) return;
+  const dt = _drawActariusOverlay._lt === undefined ? 0.016 : Math.min(t - _drawActariusOverlay._lt, 0.05);
+  _drawActariusOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+
+  if (!_actHaloBig) _actHaloBig = _actHaloSprite(150);
+  if (!_actFore.length) _actFore = _actSeedFore();
+
+  // spores drifting up in front of the page, near ones large and faint
+  for (const s of _actFore) {
+    s.y += s.vy * dt;
+    s.x += Math.sin(t * 0.35 + s.ph) * s.sway * dt;
+    if (s.y < -20) { s.y = H + 20; s.x = Math.random() * W; }
+    if (s.x < -20) s.x = W + 20; else if (s.x > W + 20) s.x = -20;
+    const tw = 0.25 + 0.75 * (0.5 - 0.5 * Math.cos(t * s.sp + s.ph));
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.sz * tw, 0, 6.283185);
+    ctx.fillStyle = s.grn ? `rgba(${_ACT_GREEN},${(s.a * tw).toFixed(3)})`
+                          : `rgba(${_ACT_LUME},${(s.a * tw).toFixed(3)})`;
+    ctx.fill();
+  }
+
+  const SPRING = 66, DAMP = 13;
+  _actVX += ((_actTX - _actX) * SPRING - _actVX * DAMP) * dt;
+  _actVY += ((_actTY - _actY) * SPRING - _actVY * DAMP) * dt;
+  _actX += _actVX * dt; _actY += _actVY * dt;
+  const spd = Math.hypot(_actVX, _actVY);
+
+  // what a click grew: it comes up out of the ground, stands, and lets go
+  ctx.globalCompositeOperation = 'source-over';
+  for (let i = _actGrow.length - 1; i >= 0; i--) {
+    const m = _actGrow[i];
+    m.age += dt;
+    let grow, A;
+    if (m.age < 0.75)      { const u = m.age / 0.75; grow = 1 - Math.pow(1 - u, 3); A = Math.min(1, u * 3); }
+    else if (m.age < 2.60) { grow = 1; A = 1; }
+    else if (m.age < 3.60) { const u = (m.age - 2.6); grow = 1; A = 1 - u; }
+    else { _actGrow.splice(i, 1); continue; }
+    if (m.age >= 2.60 && !m.burst) {
+      m.burst = true;
+      for (let k = 0; k < 16; k++) {
+        _actTrail.push({
+          x: m.x + (Math.random() - 0.5) * m.h * 0.7,
+          y: m.y - m.h * (0.85 + Math.random() * 0.2),
+          vx: (Math.random() - 0.5) * 46, vy: -14 - Math.random() * 44,
+          sz: 1.2 + Math.random() * 2.4, life: 1,
+          grn: Math.random() < 0.55,
+        });
+      }
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const r = m.h * 1.5;
+    ctx.globalAlpha = A * 0.75 * grow;
+    ctx.drawImage(_actHaloBig, m.x - r, m.y - r * 0.9, r * 2, r * 2);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    _actShroom(ctx, m.sp, m.h, A, 1.15, m.seed, grow);
+    ctx.restore();
+  }
+
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _actTrail.length - 1; i >= 0; i--) {
+    const s = _actTrail[i];
+    s.x += s.vx * dt; s.y += s.vy * dt;
+    s.vy += 16 * dt; s.vx *= 0.96;
+    s.life -= dt * 0.62;
+    if (s.life <= 0) { _actTrail.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.sz * s.life, 0, 6.283185);
+    ctx.fillStyle = s.grn ? `rgba(${_ACT_GREEN},${(s.life * 0.7).toFixed(3)})`
+                          : `rgba(${_ACT_LUME},${(s.life * 0.7).toFixed(3)})`;
+    ctx.fill();
+  }
+
+  // ── the wisp, which is the only thing here that is only light ──
+  const bob = Math.sin(t * 2.1) * 1.6;
+  const pulse = 0.72 + 0.28 * (0.5 - 0.5 * Math.cos(t * 2.6));
+  const hr = 34 + spd * 0.012;
+  ctx.globalAlpha = 0.62 * pulse;
+  ctx.drawImage(_actHaloBig, _actX - hr, _actY + bob - hr, hr * 2, hr * 2);
+  ctx.globalAlpha = 1;
+  // a few motes turning around it, faster when he is moving
+  for (let i = 0; i < 5; i++) {
+    const a = t * (1.1 + i * 0.29) + i * 1.257;
+    const rr = 7 + i * 2.4 + Math.sin(t * 1.7 + i) * 2;
+    ctx.beginPath();
+    ctx.arc(_actX + Math.cos(a) * rr, _actY + bob + Math.sin(a) * rr * 0.62, 1 + (i % 2) * 0.5, 0, 6.283185);
+    ctx.fillStyle = (i % 2) ? `rgba(${_ACT_GREEN},0.8)` : `rgba(${_ACT_LUME},0.85)`;
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(_actX, _actY + bob, 3.4 * pulse, 0, 6.283185);
+  ctx.fillStyle = 'rgba(226,240,255,0.95)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(_actX, _actY + bob, 6.5 * pulse, 0, 6.283185);
+  ctx.fillStyle = `rgba(${_ACT_LUME},0.4)`;
+  ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function _startActariusOverlay() {
+  _stopActariusOverlay();
+  _drawActariusOverlay._lt = undefined;
+  _actX = _actTX = window.innerWidth * 0.5;
+  _actY = _actTY = window.innerHeight * 0.5;
+  _actVX = _actVY = 0;
+  _actGrow = []; _actTrail = []; _actFore = [];
+  window.addEventListener('mousemove', _actMouseMove);
+  window.addEventListener('click', _actClick);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'actarius-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('actarius-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+      _actFore = [];
+    }
+    _drawActariusOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _actOverlayRafId = requestAnimationFrame(frame);
+  }
+  _actOverlayRafId = requestAnimationFrame(frame);
+}
+
+function _stopActariusOverlay() {
+  if (_actOverlayRafId) { cancelAnimationFrame(_actOverlayRafId); _actOverlayRafId = null; }
+  window.removeEventListener('mousemove', _actMouseMove);
+  window.removeEventListener('click', _actClick);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('actarius-overlay');
+  if (cv) cv.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
 // 'KURIO' - a garden with the light taken out of it. The room is black

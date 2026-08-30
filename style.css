@@ -13632,3 +13632,121 @@ text.lb-cl-glitch-svg {
   .char-name-display.kurio-name,
   .char-name-display.kurio-name::after { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   Actarius: lit the way his mushrooms are, from underneath and along
+   the edge, never from the middle. Blue glass with green under it,
+   and everything on a slow pulse, because that is what glowing things
+   in a wood actually do.
+   ════════════════════════════════════════════════════════════════ */
+#char-view.actarius-ui .panel {
+  --p-border: rgba(104,152,255,0.6);
+  border-color: rgba(46,64,214,0.62);
+  background: linear-gradient(180deg, rgba(9,14,44,0.94), rgba(3,5,16,0.97));
+  box-shadow:
+    0 0 30px rgba(46,64,214,0.34),
+    inset 0 1px 0 rgba(104,152,255,0.16),
+    inset 0 -22px 34px rgba(46,64,214,0.16);
+  animation: act-glow 13s ease-in-out infinite;
+}
+@keyframes act-glow {
+  0%, 100% { border-color: rgba(46,64,214,0.5);  box-shadow: 0 0 22px rgba(46,64,214,0.26), inset 0 1px 0 rgba(104,152,255,0.12), inset 0 -22px 34px rgba(46,64,214,0.12); }
+  50%      { border-color: rgba(104,152,255,0.8); box-shadow: 0 0 40px rgba(46,64,214,0.5),  inset 0 1px 0 rgba(164,240,168,0.2),  inset 0 -22px 40px rgba(46,64,214,0.26); }
+}
+/* the light collects along the bottom edge, the way it does under a cap */
+#char-view.actarius-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(104,152,255,0.08), transparent 20%),
+    radial-gradient(130% 56% at 50% 118%, rgba(164,240,168,0.14), transparent 66%),
+    radial-gradient(100% 50% at 8% -10%, rgba(46,64,214,0.18), transparent 62%);
+}
+#char-view.actarius-ui .panel-title {
+  color: #cfe6ff !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(104,152,255,0.36);
+  text-shadow: 0 0 12px rgba(104,152,255,0.85), 0 0 26px rgba(46,64,214,0.7);
+}
+#char-view.actarius-ui .tab-btn { color: #4a5f96; }
+#char-view.actarius-ui .tab-btn:hover {
+  color: #cfe6ff;
+  text-shadow: 0 0 12px rgba(104,152,255,0.9);
+}
+#char-view.actarius-ui .tab-btn.active {
+  color: #e6ffe9;
+  border-bottom-color: rgba(164,240,168,0.85);
+  text-shadow: 0 0 14px rgba(164,240,168,0.9), 0 0 30px rgba(104,152,255,0.7);
+}
+#char-view.actarius-ui .trait-chip {
+  border-color: rgba(104,152,255,0.34);
+  box-shadow: inset 0 1px 0 rgba(164,240,168,0.09), inset 0 -8px 16px rgba(46,64,214,0.22);
+}
+
+/* Name: blue with the green coming through it, the same as the spores */
+.char-name-display.actarius-name {
+  position: relative;
+  color: #9dbcff !important;
+  letter-spacing: 6px;
+  text-shadow: 0 0 14px rgba(104,152,255,0.9), 0 0 34px rgba(46,64,214,0.8);
+  animation: act-name 13s ease-in-out infinite;
+}
+@keyframes act-name {
+  0%, 100% { text-shadow: 0 0 10px rgba(46,64,214,0.8), 0 0 24px rgba(10,16,60,0.7); }
+  50%      { text-shadow: 0 0 20px rgba(164,240,168,0.8), 0 0 44px rgba(104,152,255,0.8); }
+}
+.char-name-display.actarius-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(100deg, transparent 38%, rgba(214,255,220,0.9) 50%, transparent 62%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: act-sweep 9s ease-in-out infinite;
+}
+@keyframes act-sweep {
+  0%, 100% { background-position: 138% 0; }
+  50%      { background-position: -138% 0; }
+}
+
+/* Portrait: lit from below, like everything else that grows here */
+.char-avatar-large.actarius-pfp {
+  position: relative;
+  border-color: rgba(104,152,255,0.66) !important;
+  box-shadow: 0 0 30px rgba(46,64,214,0.6), inset 0 -18px 30px rgba(46,64,214,0.35);
+  animation: act-glow 13s ease-in-out infinite;
+}
+.char-avatar-large.actarius-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(104,152,255,0.1), transparent 30%),
+    radial-gradient(circle at 50% 118%, rgba(164,240,168,0.3), transparent 62%);
+}
+/* spore light gathering along the lower rim */
+.char-avatar-large.actarius-pfp::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 106%, rgba(104,152,255,0.34), transparent 34%),
+    radial-gradient(circle at 84% 108%, rgba(164,240,168,0.26), transparent 32%),
+    radial-gradient(circle at 100% 0%,  rgba(3,5,16,0.6), transparent 32%);
+  animation: act-spore 13s ease-in-out infinite;
+}
+@keyframes act-spore {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #char-view.actarius-ui .panel,
+  .char-avatar-large.actarius-pfp,
+  .char-avatar-large.actarius-pfp::after,
+  .char-name-display.actarius-name,
+  .char-name-display.actarius-name::after { animation: none; }
+}
