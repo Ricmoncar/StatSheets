@@ -3099,6 +3099,7 @@ const PATTERN_DEFS = {
   zoe_garden:       { label: "Zoe · Living Garden",    params: [] },
   iris_starlight:   { label: "Iris · Shimmerlight",    params: [] },
   amber_arcana:     { label: "Amber · Arcane Sanctum", params: [] },
+  lele_cold:        { label: "Lele · Cold Embrace",   params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
@@ -30867,6 +30868,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'zoe_garden')     { _drawZoePattern(canvas, ctx, W, H, t);                 return; }
   if (type === 'iris_starlight') { _drawIrisPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'amber_arcana') { _drawAmberPattern(canvas, ctx, W, H, t);                  return; }
+  if (type === 'lele_cold') { _drawLelePattern(canvas, ctx, W, H, t);                      return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
@@ -31405,6 +31407,9 @@ function startBgAnim(type, params) {
   _drawAmberPattern._lt       = undefined;
   _drawAmberOverlay._lt       = undefined;
   _drawAmberFrame._lt         = undefined;
+  _drawLelePattern._lt        = undefined;
+  _drawLeleOverlay._lt        = undefined;
+  _drawLeleFrame._lt          = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -31498,6 +31503,7 @@ function stopBgAnim() {
   _stopZoeOverlay();
   _stopIrisOverlay();
   _stopAmberOverlay();
+  _stopLeleOverlay();
   _stopMbOverlay();
   _stopSorrowOverlay();
   _stopEmporiumOverlay();
@@ -32149,6 +32155,7 @@ function viewChar(id) {
   else if (_isZoe(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#5cc457'); }
   else if (_isIris(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _isIrisStarsForm(c) ? '#ffe14d' : '#ffd633'); }
   else if (_isAmber(c))    {  _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _AMBER_HEX); }
+  else if (_isLele(c))     {   _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _LELE_HEX); }
   else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
   else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
   else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
@@ -32351,6 +32358,23 @@ function viewChar(id) {
       if (_av) _av.classList.remove('iris-pfp');
       if (_nm) { _nm.classList.remove('iris-name'); if (!_nm.classList.contains('juko-name') && !_nm.classList.contains('lucifer-name') && !_nm.classList.contains('shi-name') && !_nm.classList.contains('lunar-name') && !_nm.classList.contains('helios-name') && !_nm.classList.contains('zoe-name')) _nm.removeAttribute('data-text'); }
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Lele: the cold takes the interface too. Frosted glass panels rimmed in
+  // pale ice, a name breathing cold, and a portrait rimed at the edges. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isLele(c)) {
+      _cvRoot.classList.add('lele-ui');
+      if (_av) _av.classList.add('lele-pfp');
+      if (_nm) { _nm.classList.add('lele-name'); _nm.setAttribute('data-text', _nm.textContent || 'LELE'); }
+    } else {
+      _cvRoot.classList.remove('lele-ui');
+      if (_av) _av.classList.remove('lele-pfp');
+      if (_nm) _nm.classList.remove('lele-name');
     }
   }
 
@@ -33076,7 +33100,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -33089,7 +33113,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -33152,6 +33176,7 @@ function viewChar(id) {
   if (_isZoe(c))      _startZoeOverlay();
   if (_isIris(c))     _startIrisOverlay();
   if (_isAmber(c))    _startAmberOverlay();
+  if (_isLele(c))     _startLeleOverlay();
   if (_isMb(c))       _startMbOverlay();
   if (_isEmporium(c)) _startEmporiumOverlay();
   if (_isAlsace(c))   { _alsMaskOff = _isAlsaceMaskOff(c); _startAlsaceOverlay(); }
@@ -38733,7 +38758,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -41000,6 +41025,485 @@ function toggleMobileToC() {
     else      backdrop.classList.remove('open');
   }
 }
+
+// ════════════════════════════════════════════════════════════════
+// LELE - a Dreamling, and the dark embrace of the cold. The room is
+// black water under ice: an indigo heart far below, pale light coming
+// down through a frozen surface, and frost growing inward from every
+// edge on a slow breath, closing around the page and easing off again.
+// Nothing here is hostile. The cold arrives the way sleep does.
+// His cursor is a shard that leaves frost crystallising behind it, and
+// a click blooms a ring of ice that grows dendrites and thaws.
+// ════════════════════════════════════════════════════════════════
+const _LELE_RE = /^lele$/i;
+function _isLele(c) { return !!(c && c.name && _LELE_RE.test(c.name)); }
+const _LELE_INDIGO = '53,34,164';     // his own accent, kept for the depths
+const _LELE_ICE    = '122,196,232';
+const _LELE_FROST  = '207,232,245';
+const _LELE_HEX    = '#8fc9e8';       // legible cold for titles and glows
+
+// deterministic noise so the frost is the same shape every visit
+function _leleRnd(seed) {
+  const v = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+// ── Frost dendrites ──────────────────────────────────────────────
+// Branches carry the distance they sit at from their anchor, so the whole
+// field can be revealed outward from the edges by a single number.
+function _leleGrowFrost(x, y, ang, len, depth, dist, seed, out, curl) {
+  if (depth <= 0 || len < 2 || out.length >= out._cap) return;
+  const x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
+  out.push({ x1: x, y1: y, x2, y2, d: dist + len, w: depth });
+  // the stem carries on, and needles come off it at a repeated shallow angle:
+  // that regularity is what separates frost from a bare branch
+  _leleGrowFrost(x2, y2, ang + curl + (_leleRnd(seed * 1.7) - 0.5) * 0.24,
+    len * 0.88, depth - 1, dist + len, seed * 3 + 1, out, curl);
+  if (depth <= 1) return;
+  for (const side of [-1, 1]) {
+    const sd = seed * 5 + (side > 0 ? 31 : 61) + depth;
+    if (_leleRnd(sd) < 0.22) continue;
+    _leleGrowFrost(x2, y2, ang + side * (0.52 + _leleRnd(sd + 3) * 0.16),
+      len * (0.46 + _leleRnd(sd + 7) * 0.16), depth - 2, dist + len, sd + 1, out, curl * 0.6);
+  }
+}
+
+function _leleBuildFrost(W, H) {
+  const out = [];
+  out._cap = 0;
+  const per = Math.max(4, Math.round(Math.min(W, H) / 78));    // anchors per edge
+  const edges = [
+    { n: Math.round(W / 95) + 2, ax: i => (i + 0.5) * (W / (Math.round(W / 95) + 2)), ay: () => 0,  ang: Math.PI / 2 },
+    { n: Math.round(W / 95) + 2, ax: i => (i + 0.5) * (W / (Math.round(W / 95) + 2)), ay: () => H,  ang: -Math.PI / 2 },
+    { n: per + 2, ax: () => 0, ay: i => (i + 0.5) * (H / (per + 2)), ang: 0 },
+    { n: per + 2, ax: () => W, ay: i => (i + 0.5) * (H / (per + 2)), ang: Math.PI },
+  ];
+  let seed = 1;
+  for (const e of edges) {
+    for (let i = 0; i < e.n; i++) {
+      const jitter = (_leleRnd(seed * 7.3) - 0.5) * 1.25;
+      const curl = (_leleRnd(seed * 11.9) - 0.5) * 0.17;
+      out._cap = out.length + 380;                 // this fern's share
+      _leleGrowFrost(e.ax(i), e.ay(i), e.ang + jitter,
+        Math.min(W, H) * (0.05 + _leleRnd(seed * 2.1) * 0.028), 9, 0, seed, out, curl);
+      seed += 13;
+    }
+  }
+  let max = 0;
+  for (const b of out) if (b.d > max) max = b.d;
+  return { branches: out, max };
+}
+
+// ── Background: black water under ice ────────────────────────────
+function _drawLelePattern(canvas, ctx, W, H, t) {
+  const fresh = _drawLelePattern._lt === undefined;
+  if (!fresh && t - _drawLelePattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawLelePattern._lt, 0.05);
+  _drawLelePattern._lt = t;
+
+  if (canvas._lelW !== W || canvas._lelH !== H) {
+    canvas._lelW = W; canvas._lelH = H;
+    canvas._lelBase = null; canvas._lelVign = null;
+    canvas._lelFrost = null; canvas._lelMotes = null; canvas._lelCracks = null;
+    canvas._lelBuckets = null;
+  }
+
+  // one slow breath: the cold closes in and eases off, about 26s a cycle
+  const breath = 0.5 - 0.5 * Math.cos(t * 0.24);
+
+  // 1 ── the ground: pale light above, indigo depth below, near black at the floor
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  if (!canvas._lelBase) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0d1a2c');
+    g.addColorStop(0.34, '#0a1024');
+    g.addColorStop(0.72, '#0a0a22');
+    g.addColorStop(1, '#04050e');
+    canvas._lelBase = g;
+  }
+  ctx.fillStyle = canvas._lelBase;
+  ctx.fillRect(0, 0, W, H);
+
+  // the indigo heart, sunk well below centre so the page reads as depth
+  {
+    const cx = W * 0.5, cy = H * 0.74, r = Math.max(W, H) * 0.6;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, `rgba(${_LELE_INDIGO},${(0.2 + breath * 0.07).toFixed(3)})`);
+    g.addColorStop(0.55, `rgba(${_LELE_INDIGO},0.07)`);
+    g.addColorStop(1, `rgba(${_LELE_INDIGO},0)`);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // 2 ── light coming down through a frozen surface
+  {
+    ctx.globalCompositeOperation = 'lighter';
+    const shafts = 5;
+    for (let i = 0; i < shafts; i++) {
+      const ph = t * 0.02 + i * 1.7;
+      const x = W * ((i + 0.5) / shafts) + Math.sin(ph) * W * 0.06;
+      const w = W * 0.12;
+      const g = ctx.createLinearGradient(0, 0, 0, H * 0.78);
+      const a = 0.022 + 0.011 * Math.sin(t * 0.3 + i);
+      g.addColorStop(0, `rgba(${_LELE_ICE},0)`);
+      g.addColorStop(0.22, `rgba(${_LELE_ICE},${a.toFixed(3)})`);
+      g.addColorStop(1, `rgba(${_LELE_ICE},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(x - w * 0.35, 0); ctx.lineTo(x + w * 0.35, 0);
+      ctx.lineTo(x + w * 1.5, H * 0.78); ctx.lineTo(x - w * 1.5, H * 0.78);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // 3 ── fractures in the black ice, surfacing and fading
+  if (!canvas._lelCracks) {
+    const n = 7;
+    canvas._lelCracks = Array.from({ length: n }, (_, i) => {
+      const sx = _leleRnd(i * 9.1) * W, sy = _leleRnd(i * 4.7) * H;
+      const pts = [[sx, sy]];
+      let a = _leleRnd(i * 2.3) * Math.PI * 2;
+      for (let k = 0; k < 5; k++) {
+        a += (_leleRnd(i * 5 + k) - 0.5) * 1.1;
+        const l = Math.min(W, H) * (0.05 + _leleRnd(i + k) * 0.07);
+        const p = pts[pts.length - 1];
+        pts.push([p[0] + Math.cos(a) * l, p[1] + Math.sin(a) * l]);
+      }
+      return { pts, ph: _leleRnd(i * 3.7) * 6.28 };
+    });
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+  for (const cr of canvas._lelCracks) {
+    const a = Math.max(0, Math.sin(t * 0.11 + cr.ph)) * 0.3;
+    if (a < 0.004) continue;
+    ctx.strokeStyle = `rgba(${_LELE_ICE},${a.toFixed(3)})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    cr.pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.stroke();
+  }
+
+  // 4 ── the embrace: frost growing inward from every edge, breathing
+  if (!canvas._lelFrost) canvas._lelFrost = _leleBuildFrost(W, H);
+  {
+    const { branches, max } = canvas._lelFrost;
+    const reach = max * (0.34 + breath * 0.5);
+    ctx.globalCompositeOperation = 'lighter';
+    const AB = 6, WB = 4;                             // alpha and width buckets
+    const buckets = canvas._lelBuckets || (canvas._lelBuckets =
+      Array.from({ length: AB * WB }, () => []));
+    for (const bk of buckets) bk.length = 0;
+    for (const b of branches) {
+      if (b.d > reach) continue;
+      const edge = 1 - b.d / max;
+      const fade = Math.min(1, (reach - b.d) / (max * 0.22));
+      const a = 0.07 + edge * 0.34 * fade;
+      const ai = Math.min(AB - 1, Math.max(0, Math.round((a / 0.41) * (AB - 1))));
+      const wi = Math.min(WB - 1, (b.w / 3) | 0);
+      buckets[wi * AB + ai].push(b);
+    }
+    for (let wi = 0; wi < WB; wi++) {
+      for (let ai = 0; ai < AB; ai++) {
+        const list = buckets[wi * AB + ai];
+        if (!list.length) continue;
+        ctx.strokeStyle = `rgba(${_LELE_FROST},${(0.07 + (ai / (AB - 1)) * 0.34).toFixed(3)})`;
+        ctx.lineWidth = 0.35 + (wi * 3 + 1) * 0.16;
+        ctx.beginPath();
+        for (const b of list) { ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); }
+        ctx.stroke();
+      }
+    }
+  }
+
+  // 5 ── snow settling, and a few slow bubbles rising under the ice
+  if (!canvas._lelMotes) {
+    const n = Math.round(Math.min(70, (W * H) / 18000));
+    canvas._lelMotes = Array.from({ length: n }, (_, i) => ({
+      x: Math.random() * W, y: Math.random() * H,
+      up: i % 7 === 0,
+      v: 5 + Math.random() * 14,
+      drift: (Math.random() - 0.5) * 9,
+      sz: 0.7 + Math.random() * 1.9,
+      ph: Math.random() * 6.28, tw: 0.4 + Math.random() * 0.9
+    }));
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const m of canvas._lelMotes) {
+    m.y += (m.up ? -m.v * 0.45 : m.v) * dt;
+    m.x += Math.sin(t * 0.3 + m.ph) * m.drift * dt;
+    if (m.y > H + 8) { m.y = -8; m.x = Math.random() * W; }
+    if (m.y < -8) { m.y = H + 8; m.x = Math.random() * W; }
+    const a = 0.25 + 0.35 * Math.sin(t * m.tw + m.ph);
+    if (a <= 0) continue;
+    ctx.fillStyle = m.up ? `rgba(${_LELE_ICE},${(a * 0.5).toFixed(3)})`
+                         : `rgba(${_LELE_FROST},${a.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(m.x, m.y, m.sz, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // 6 ── close the edges back down into the dark
+  ctx.globalCompositeOperation = 'source-over';
+  if (!canvas._lelVign) {
+    const g = ctx.createRadialGradient(W * 0.5, H * 0.45, Math.min(W, H) * 0.3,
+                                       W * 0.5, H * 0.5, Math.max(W, H) * 0.8);
+    g.addColorStop(0, 'rgba(2,3,10,0)');
+    g.addColorStop(1, 'rgba(2,3,10,0.8)');
+    canvas._lelVign = g;
+  }
+  ctx.fillStyle = canvas._lelVign;
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1;
+}
+
+// ── Cursor: a shard, and frost that forms where it has been ──────
+let _leleX = 0, _leleY = 0, _leleTX = 0, _leleTY = 0, _leleVX = 0, _leleVY = 0;
+let _leleTrail = [], _leleBursts = [], _leleEmit = 0, _leleOverlayRafId = null;
+
+function _leleMouseMove(e) { _leleTX = e.clientX; _leleTY = e.clientY; }
+function _leleClick() {
+  const spokes = 9 + ((Math.random() * 4) | 0);
+  const arms = [];
+  for (let i = 0; i < spokes; i++) {
+    const a = (i / spokes) * Math.PI * 2 + Math.random() * 0.2;
+    arms.push({ a, len: 0.6 + Math.random() * 0.5 });
+  }
+  _leleBursts.push({ x: _leleX, y: _leleY, r: 8, life: 1, arms });
+  for (let i = 0; i < 18; i++) {
+    const a = Math.random() * Math.PI * 2, s = 40 + Math.random() * 130;
+    _leleTrail.push({ x: _leleX, y: _leleY, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+      life: 1, sz: 1 + Math.random() * 2.4, spin: Math.random() * 6.28 });
+  }
+}
+
+function _drawLeleOverlay(canvas, ctx, W, H, t) {
+  if (_drawLeleOverlay._lt !== undefined && t - _drawLeleOverlay._lt < 0.033) return;
+  const dt = _drawLeleOverlay._lt === undefined ? 0.016 : Math.min(t - _drawLeleOverlay._lt, 0.05);
+  _drawLeleOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  // he drifts rather than snaps: cold is patient
+  const SPRING = 44, DAMP = 11;
+  _leleVX += ((_leleTX - _leleX) * SPRING - _leleVX * DAMP) * dt;
+  _leleVY += ((_leleTY - _leleY) * SPRING - _leleVY * DAMP) * dt;
+  _leleX += _leleVX * dt; _leleY += _leleVY * dt;
+  const spd = Math.hypot(_leleVX, _leleVY);
+
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+
+  // frost forming where the shard has passed
+  _leleEmit += dt * (6 + spd * 0.03);
+  while (_leleEmit > 1) {
+    _leleEmit -= 1;
+    if (_leleTrail.length > 190) break;
+    _leleTrail.push({ x: _leleX + (Math.random() - 0.5) * 9, y: _leleY + (Math.random() - 0.5) * 9,
+      vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10,
+      life: 1, sz: 1 + Math.random() * 2.2, spin: Math.random() * 6.28 });
+  }
+  for (let i = _leleTrail.length - 1; i >= 0; i--) {
+    const p = _leleTrail[i];
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.94; p.vy *= 0.94;
+    p.life -= dt * 0.5;
+    if (p.life <= 0) { _leleTrail.splice(i, 1); continue; }
+    const a = Math.min(1, p.life);
+    // each speck is a tiny six-armed crystal rather than a dot
+    ctx.strokeStyle = `rgba(${_LELE_FROST},${(a * 0.6).toFixed(3)})`;
+    ctx.lineWidth = 0.9;
+    const r = p.sz * (1.6 - a * 0.5);
+    ctx.beginPath();
+    for (let k = 0; k < 3; k++) {
+      const ang = p.spin + k * (Math.PI / 3);
+      ctx.moveTo(p.x - Math.cos(ang) * r, p.y - Math.sin(ang) * r);
+      ctx.lineTo(p.x + Math.cos(ang) * r, p.y + Math.sin(ang) * r);
+    }
+    ctx.stroke();
+  }
+
+  // clicks bloom a ring of ice that throws dendrites and thaws
+  for (let i = _leleBursts.length - 1; i >= 0; i--) {
+    const b = _leleBursts[i];
+    b.r += (150 - b.r * 0.85) * dt * 2.1;
+    b.life -= dt * 0.6;
+    if (b.life <= 0) { _leleBursts.splice(i, 1); continue; }
+    const e = Math.max(0, b.life);
+    ctx.strokeStyle = `rgba(${_LELE_ICE},${(e * 0.45).toFixed(3)})`;
+    ctx.lineWidth = 1 + e * 1.6;
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = `rgba(${_LELE_FROST},${(e * 0.5).toFixed(3)})`;
+    ctx.lineWidth = 1;
+    for (const arm of b.arms) {
+      const L = b.r * arm.len;
+      const x1 = b.x + Math.cos(arm.a) * b.r * 0.25, y1 = b.y + Math.sin(arm.a) * b.r * 0.25;
+      const x2 = b.x + Math.cos(arm.a) * (b.r * 0.25 + L), y2 = b.y + Math.sin(arm.a) * (b.r * 0.25 + L);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      for (const side of [-1, 1]) {          // barbs, so it reads as frost not a star
+        const mx = x1 + (x2 - x1) * 0.55, my = y1 + (y2 - y1) * 0.55;
+        const ba = arm.a + side * 0.7, bl = L * 0.3;
+        ctx.beginPath(); ctx.moveTo(mx, my);
+        ctx.lineTo(mx + Math.cos(ba) * bl, my + Math.sin(ba) * bl); ctx.stroke();
+      }
+    }
+  }
+
+  // the shard itself
+  const pulse = 0.5 + 0.5 * Math.sin(t * 1.2);
+  const r = 11 + pulse * 1.4;
+  const g = ctx.createRadialGradient(_leleX, _leleY, 0, _leleX, _leleY, r * 3.2);
+  g.addColorStop(0, 'rgba(236,250,255,0.9)');
+  g.addColorStop(0.32, `rgba(${_LELE_ICE},0.42)`);
+  g.addColorStop(1, `rgba(${_LELE_INDIGO},0)`);
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(_leleX, _leleY, r * 3.2, 0, Math.PI * 2); ctx.fill();
+
+  ctx.save();
+  ctx.translate(_leleX, _leleY);
+  ctx.rotate(t * 0.22 + Math.atan2(_leleVY, _leleVX) * 0.12);
+  const kite = [[0, -r * 1.5], [r * 0.62, 0], [0, r * 1.5], [-r * 0.62, 0]];
+  ctx.beginPath();
+  kite.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+  ctx.closePath();
+  const fg = ctx.createLinearGradient(0, -r, 0, r);
+  fg.addColorStop(0, `rgba(${_LELE_FROST},0.85)`);
+  fg.addColorStop(1, `rgba(${_LELE_ICE},0.35)`);
+  ctx.fillStyle = fg; ctx.fill();
+  ctx.strokeStyle = `rgba(240,252,255,${(0.6 + pulse * 0.3).toFixed(3)})`;
+  ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -r * 1.5); ctx.lineTo(0, r * 1.5);
+  ctx.strokeStyle = `rgba(255,255,255,${(0.28 + pulse * 0.2).toFixed(3)})`;
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// ── In front of the GUI: frost taking the panels at the corners ──
+function _drawLeleFrame(canvas, ctx, W, H, t) {
+  if (_drawLeleFrame._lt !== undefined && t - _drawLeleFrame._lt < 0.05) return;
+  _drawLeleFrame._lt = t;
+  ctx.clearRect(0, 0, W, H);
+
+  const root = document.getElementById('char-view');
+  if (!root || !root.classList.contains('lele-ui')) return;
+
+  const breath = 0.5 - 0.5 * Math.cos(t * 0.24);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+
+  const panels = root.querySelectorAll('.panel');
+  for (let pi = 0; pi < panels.length; pi++) {
+    const el = panels[pi];
+    const r = el.getBoundingClientRect();
+    if (r.width < 40 || r.bottom < -60 || r.top > H + 60) continue;
+
+    // frost creeps along each edge from both corners, meeting in the middle
+    const grow = 0.16 + breath * 0.5;
+    const runs = [
+      { x: r.left, y: r.top, dx: 1, dy: 0, len: r.width },
+      { x: r.right, y: r.top, dx: -1, dy: 0, len: r.width },
+      { x: r.left, y: r.bottom, dx: 1, dy: 0, len: r.width },
+      { x: r.right, y: r.bottom, dx: -1, dy: 0, len: r.width },
+      { x: r.left, y: r.top, dx: 0, dy: 1, len: r.height },
+      { x: r.left, y: r.bottom, dx: 0, dy: -1, len: r.height },
+      { x: r.right, y: r.top, dx: 0, dy: 1, len: r.height },
+      { x: r.right, y: r.bottom, dx: 0, dy: -1, len: r.height },
+    ];
+    runs.forEach((run, ri) => {
+      const reach = run.len * grow;
+      // the rime along the edge, faint: the needles are what should read
+      ctx.strokeStyle = `rgba(${_LELE_FROST},${(0.05 + breath * 0.08).toFixed(3)})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(run.x, run.y);
+      ctx.lineTo(run.x + run.dx * reach, run.y + run.dy * reach);
+      ctx.stroke();
+      // needles at irregular spacing, swept back toward the corner they grew
+      // from and forked, so they read as frost rather than ruler ticks
+      const inx = run.dy !== 0 ? (run.x < r.left + r.width / 2 ? 1 : -1) : 0;
+      const iny = run.dx !== 0 ? (run.y < r.top + r.height / 2 ? 1 : -1) : 0;
+      let d = 4;
+      let k = 0;
+      while (d < reach) {
+        const sd = pi * 131 + ri * 17 + k * 7;
+        const px = run.x + run.dx * d, py = run.y + run.dy * d;
+        const taper = Math.max(0, 1 - d / run.len);
+        const base = (4 + 11 * taper) * (0.45 + _leleRnd(sd) * 1.05);
+        for (let f = 0; f < 2; f++) {
+          const lean = (0.35 + _leleRnd(sd + f * 3) * 0.55) * (f ? 0.5 : 1);
+          const nl = base * (f ? 0.55 : 1);
+          ctx.strokeStyle = `rgba(${_LELE_ICE},${((0.07 + taper * 0.26 * breath) * (f ? 0.7 : 1)).toFixed(3)})`;
+          ctx.lineWidth = f ? 0.7 : 1;
+          ctx.beginPath();
+          ctx.moveTo(px, py);
+          ctx.lineTo(px + inx * nl - run.dx * nl * lean, py + iny * nl - run.dy * nl * lean);
+          ctx.stroke();
+        }
+        d += 5 + _leleRnd(sd + 11) * 16;
+        k++;
+      }
+    });
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function _startLeleOverlay() {
+  _stopLeleOverlay();
+  _drawLeleOverlay._lt = undefined; _drawLeleFrame._lt = undefined;
+  _leleX = _leleTX = window.innerWidth * 0.5;
+  _leleY = _leleTY = window.innerHeight * 0.5;
+  _leleVX = _leleVY = 0; _leleTrail = []; _leleBursts = []; _leleEmit = 0;
+  window.addEventListener('mousemove', _leleMouseMove);
+  window.addEventListener('click', _leleClick);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = 'none';
+
+  const fr = document.createElement('canvas');
+  fr.id = 'lele-frame-overlay';
+  fr.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:30;pointer-events:none;';
+  fr.width = window.innerWidth; fr.height = window.innerHeight;
+  document.body.appendChild(fr);
+
+  const cv = document.createElement('canvas');
+  cv.id = 'lele-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+
+  const t0 = performance.now();
+  function frame(now) {
+    const tt = (now - t0) / 1000;
+    const fr2 = document.getElementById('lele-frame-overlay');
+    if (fr2) {
+      if (fr2.width !== window.innerWidth || fr2.height !== window.innerHeight) {
+        fr2.width = window.innerWidth; fr2.height = window.innerHeight;
+      }
+      _drawLeleFrame(fr2, fr2.getContext('2d'), fr2.width, fr2.height, tt);
+    }
+    const cv2 = document.getElementById('lele-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawLeleOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, tt);
+    _leleOverlayRafId = requestAnimationFrame(frame);
+  }
+  _leleOverlayRafId = requestAnimationFrame(frame);
+}
+
+function _stopLeleOverlay() {
+  if (_leleOverlayRafId) { cancelAnimationFrame(_leleOverlayRafId); _leleOverlayRafId = null; }
+  window.removeEventListener('mousemove', _leleMouseMove);
+  window.removeEventListener('click', _leleClick);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('lele-overlay');
+  if (cv) cv.remove();
+  const fr = document.getElementById('lele-frame-overlay');
+  if (fr) fr.remove();
+}
+/* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
 // AMBER: the GODDESS OF MAGIC. Her sanctum is a warm violet night lit from
