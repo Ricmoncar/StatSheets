@@ -3105,6 +3105,8 @@ const PATTERN_DEFS = {
   actarius_mycelium: { label: "Actarius · Nightwood", params: [] },
   ball_checks:      { label: "BALL · Checks", params: [] },
   oblitus_void:     { label: "OBLITUS · The Void", params: [] },
+  tobu_ward:        { label: "Tobu · Practice Hall", params: [] },
+  lala_ward:        { label: "Lala · Practice Hall", params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
@@ -31625,6 +31627,8 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'actarius_mycelium') { _drawActariusPattern(canvas, ctx, W, H, t);        return; }
   if (type === 'ball_checks') { _drawBallPattern(canvas, ctx, W, H, t);                   return; }
   if (type === 'oblitus_void') { _drawOblitusPattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'tobu_ward') { _drawTobuPattern(canvas, ctx, W, H, t);                     return; }
+  if (type === 'lala_ward') { _drawLalaPattern(canvas, ctx, W, H, t);                     return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
@@ -32176,6 +32180,8 @@ function startBgAnim(type, params) {
   _drawBallOverlay._lt        = undefined;
   _drawOblitusPattern._lt     = undefined;
   _drawOblitusOverlay._lt     = undefined;
+  _drawTobuPattern._lt        = undefined;
+  _drawLalaPattern._lt        = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -32274,6 +32280,8 @@ function stopBgAnim() {
   _stopKurioOverlay();
   _stopBallOverlay();
   _stopOblitusOverlay();
+  _stopTobuOverlay();
+  _stopLalaOverlay();
   _stopMbOverlay();
   _stopActariusOverlay();
   _stopSorrowOverlay();
@@ -32932,6 +32940,8 @@ function viewChar(id) {
   else if (_isActarius(c)) {      _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ACT_HEX); }
   else if (_isBall(c))     {       _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _BALL_HEX); }
   else if (_isOblitus(c)) {        _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _OBL_HEX); }
+  else if (_isTobu(c))     {         _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _KIN_TOBU.hex); }
+  else if (_isLala(c))     {         _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _KIN_LALA.hex); }
   else if (_isSpruce(c))   {         _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _SPR_HEX); }
   else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
   else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
@@ -33135,6 +33145,25 @@ function viewChar(id) {
       if (_av) _av.classList.remove('iris-pfp');
       if (_nm) { _nm.classList.remove('iris-name'); if (!_nmHasNameSkin(_nm)) _nm.removeAttribute('data-text'); }
       if (_pc && !_isLuciferUnleashed(c) && !_isShi(c) && !_isLunar(c) && !_isHelios(c) && !_isZoe(c)) _pc.style.opacity = '';
+    }
+  }
+
+  // ── Tobu and Lala: the same chrome twice, a palette apart, because they
+  // are the same two rooms with the same two people learning in them. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    for (const [is, k, fb] of [[_isTobu(c), 'tobu', 'TOBU'], [_isLala(c), 'lala', 'LALA']]) {
+      if (is) {
+        _cvRoot.classList.add(k + '-ui');
+        if (_av) _av.classList.add(k + '-pfp');
+        if (_nm) { _nm.classList.add(k + '-name'); _nm.setAttribute('data-text', _nm.textContent || fb); }
+      } else {
+        _cvRoot.classList.remove(k + '-ui');
+        if (_av) _av.classList.remove(k + '-pfp');
+        if (_nm) _nm.classList.remove(k + '-name');
+      }
     }
   }
 
@@ -33968,7 +33997,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -33981,7 +34010,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -34050,6 +34079,8 @@ function viewChar(id) {
   if (_isActarius(c)) _startActariusOverlay();
   if (_isBall(c))     _startBallOverlay();
   if (_isOblitus(c))  _startOblitusOverlay();
+  if (_isTobu(c))     _startTobuOverlay();
+  if (_isLala(c))     _startLalaOverlay();
   if (_isMb(c))       _startMbOverlay();
   if (_isEmporium(c)) _startEmporiumOverlay();
   if (_isAlsace(c))   { _alsMaskOff = _isAlsaceMaskOff(c); _startAlsaceOverlay(); }
@@ -39643,7 +39674,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -41910,6 +41941,584 @@ function toggleMobileToC() {
     else      backdrop.classList.remove('open');
   }
 }
+
+// ════════════════════════════════════════════════════════════════
+// TOBU and LALA - two rookie healers, and one engine between them.
+// They are siblings, so the family resemblance had better be structural
+// rather than approximate: it is the same practice hall, the same
+// hand drawn sigils, the same cast, and only the palette and what they
+// are holding differ. Change the room and both of them change.
+// Rookie is the part that makes it worth drawing. Nothing here is
+// compass work: every circle is a polyline with a wobble on it, half
+// the practice sigils on the floor are unfinished or scribbled out,
+// and about one cast in five simply fizzles.
+// ════════════════════════════════════════════════════════════════
+const _TOBU_RE = /^["']?\s*TOBU\s*["']?$/i;
+const _LALA_RE = /^["']?\s*LALA\s*["']?$/i;
+function _isTobu(c) { return !!(c && c.name && _TOBU_RE.test(c.name)); }
+function _isLala(c) { return !!(c && c.name && _LALA_RE.test(c.name)); }
+
+function _kinRnd(seed) {
+  const v = Math.sin(seed * 84.13 + 27.59) * 33917.29;
+  return v - Math.floor(v);
+}
+
+// warm is the ink of the sigils, cool is the second colour in them, glow is
+// what the magic actually gives off, and tool is what they are holding.
+const _KIN_TOBU = {
+  key: 'tobu',
+  warm: '244,196,110', cool: '138,196,120', glow: '255,240,206',
+  hex: '#f0c46e', seed: 3,
+  sky: ['#241a0e', '#3b2a17', '#442f18', '#1c1208'],
+  lamp: '255,226,158',
+};
+const _KIN_LALA = {
+  key: 'lala',
+  warm: '246,170,198', cool: '150,206,236', glow: '255,238,248',
+  hex: '#f2a8c4', seed: 11,
+  sky: ['#1b1226', '#2c1c3a', '#35213f', '#140d1c'],
+  lamp: '236,196,236',
+};
+
+// ── A hand drawn ring ────────────────────────────────────────────
+// Not an arc. An arc is a machine's circle and these two are learning.
+function _kinRing(g, r, seed, wob, from, to) {
+  const segs = Math.max(18, Math.round(r * 0.7));
+  const a0 = from === undefined ? 0 : from;
+  const a1 = to === undefined ? 6.283185 : to;
+  g.beginPath();
+  for (let i = 0; i <= segs; i++) {
+    const a = a0 + (a1 - a0) * (i / segs);
+    const rr = r * (1 + Math.sin(a * 3 + seed) * wob + Math.sin(a * 7.3 + seed * 2.1) * wob * 0.55);
+    const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+    i ? g.lineTo(x, y) : g.moveTo(x, y);
+  }
+}
+
+// a mark around the rim: strokes hung off a stave, never the same twice
+function _kinGlyph(g, x, y, sz, a, seed) {
+  g.save();
+  g.translate(x, y);
+  g.rotate(a);
+  g.beginPath();
+  g.moveTo(0, -sz); g.lineTo(0, sz);
+  const n = 2 + Math.floor(_kinRnd(seed) * 3);
+  for (let i = 0; i < n; i++) {
+    const u = -sz + (i + 0.6) * (2 * sz / (n + 0.4));
+    const s = _kinRnd(seed + i * 3.7) < 0.5 ? -1 : 1;
+    const l = sz * (0.4 + _kinRnd(seed + i * 5.3) * 0.5);
+    g.moveTo(0, u);
+    g.lineTo(s * l, u - l * 0.6);
+  }
+  g.stroke();
+  g.restore();
+}
+
+// ── One sigil, baked ─────────────────────────────────────────────
+// state 0 finished, 1 abandoned part way, 2 given up on and crossed out.
+function _kinSigilSprite(px, seed, cfg, state) {
+  const d = Math.ceil(px * 2.5);
+  const c = document.createElement('canvas');
+  c.width = c.height = d;
+  const g = c.getContext('2d');
+  g.translate(d / 2, d / 2);
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  const wob = 0.016 + _kinRnd(seed) * 0.02;
+  const stop = state === 1 ? 6.283185 * (0.4 + _kinRnd(seed * 3.1) * 0.4) : 6.283185;
+  const A = state === 2 ? 0.34 : 1;
+
+  g.strokeStyle = `rgba(${cfg.warm},${(0.85 * A).toFixed(2)})`;
+  g.lineWidth = Math.max(1, px * 0.035);
+  _kinRing(g, px * 0.94, seed, wob, 0, stop);
+  g.stroke();
+  g.strokeStyle = `rgba(${cfg.cool},${(0.6 * A).toFixed(2)})`;
+  g.lineWidth = Math.max(0.8, px * 0.022);
+  _kinRing(g, px * 0.8, seed + 1.7, wob * 1.3, 0, stop);
+  g.stroke();
+
+  // the marks round the rim, and they stop where the ring stopped
+  const n = 6 + Math.floor(_kinRnd(seed * 2.3) * 4);
+  g.strokeStyle = `rgba(${cfg.warm},${(0.8 * A).toFixed(2)})`;
+  g.lineWidth = Math.max(0.8, px * 0.024);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 6.283185;
+    if (a > stop - 0.15) continue;
+    _kinGlyph(g, Math.cos(a) * px * 0.87, Math.sin(a) * px * 0.87,
+              px * 0.1, a + 1.5708, seed + i * 7.1);
+  }
+
+  // and the figure inside it, which is where they usually go wrong
+  if (state !== 1 || _kinRnd(seed * 5.9) < 0.5) {
+    const pts = 3 + Math.floor(_kinRnd(seed * 7.7) * 3);
+    const skip = pts === 4 ? 1 : 2;
+    g.beginPath();
+    for (let i = 0; i <= pts; i++) {
+      const a = ((i * skip) % pts) / pts * 6.283185 - 1.5708;
+      const rr = px * 0.62 * (1 + Math.sin(a * 2 + seed) * wob * 2);
+      const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    }
+    g.strokeStyle = `rgba(${cfg.cool},${(0.7 * A).toFixed(2)})`;
+    g.lineWidth = Math.max(0.8, px * 0.026);
+    g.stroke();
+  }
+
+  if (state === 2) {                       // scribbled out and moved on from
+    g.strokeStyle = `rgba(${cfg.warm},0.5)`;
+    g.lineWidth = Math.max(1.4, px * 0.05);
+    g.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const y0 = -px * 0.7 + i * px * 0.45;
+      g.moveTo(-px * (0.8 + _kinRnd(seed + i) * 0.2), y0);
+      g.lineTo(px * (0.8 + _kinRnd(seed + i * 2) * 0.2), y0 + px * (0.3 + _kinRnd(seed + i * 3) * 0.3));
+    }
+    g.stroke();
+  }
+  return c;
+}
+
+// ── The practice hall ────────────────────────────────────────────
+function _drawKinPattern(canvas, ctx, W, H, t, cfg) {
+  const K = '_kin' + cfg.key;
+  const st = canvas[K] || (canvas[K] = {});
+  if (st.W !== W || st.H !== H) {
+    st.W = W; st.H = H;
+    st.sky = null; st.floor = null; st.big = null; st.motes = null; st.vign = null;
+    st.halo = null;
+  }
+
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+
+  // 1 ── the room, lit from above the way a hall with high windows is
+  if (!st.sky) {
+    st.sky = document.createElement('canvas');
+    st.sky.width = W; st.sky.height = H;
+    const sx = st.sky.getContext('2d');
+    const g = sx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, cfg.sky[0]);
+    g.addColorStop(0.38, cfg.sky[1]);
+    g.addColorStop(0.74, cfg.sky[2]);
+    g.addColorStop(1, cfg.sky[3]);
+    sx.fillStyle = g;
+    sx.fillRect(0, 0, W, H);
+    const lg = sx.createRadialGradient(W * 0.5, -H * 0.12, 0, W * 0.5, H * 0.2, Math.max(W, H) * 0.7);
+    lg.addColorStop(0, `rgba(${cfg.lamp},0.26)`);
+    lg.addColorStop(0.42, `rgba(${cfg.lamp},0.07)`);
+    lg.addColorStop(1, `rgba(${cfg.lamp},0)`);
+    sx.globalCompositeOperation = 'lighter';
+    sx.fillStyle = lg;
+    sx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(st.sky, 0, 0);
+
+  // 2 ── the floor they have been practising on, laid out on a grid so it
+  //      reads as a worked surface and not as clutter
+  if (!st.floor) {
+    st.floor = document.createElement('canvas');
+    st.floor.width = W; st.floor.height = H;
+    const fx = st.floor.getContext('2d');
+    const cols = 4, rows = 2;
+    let k = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let cI = 0; cI < cols; cI++, k++) {
+        const sd = cfg.seed + k * 13.7;
+        const q = _kinRnd(sd * 1.3);
+        const state = q < 0.34 ? 0 : q < 0.7 ? 1 : 2;
+        const px = Math.min(W, H) * (0.055 + _kinRnd(sd * 2.7) * 0.045);
+        const x = W * ((cI + 0.18 + _kinRnd(sd * 3.1) * 0.64) / cols);
+        const y = H * (0.2 + r * 0.52 + _kinRnd(sd * 5.1) * 0.22);
+        const sp = _kinSigilSprite(px, sd, cfg, state);
+        fx.save();
+        fx.translate(x, y);
+        fx.rotate((_kinRnd(sd * 7.3) - 0.5) * 0.5);
+        fx.globalAlpha = state === 2 ? 0.2 : 0.3;
+        fx.drawImage(sp, -sp.width / 2, -sp.height / 2);
+        fx.restore();
+      }
+    }
+  }
+  ctx.drawImage(st.floor, 0, 0);
+
+  // 3 ── and the one they are actually working on, turning slowly and lit
+  if (!st.big) st.big = _kinSigilSprite(Math.min(W, H) * 0.23, cfg.seed + 101, cfg, 0);
+  {
+    const br = 0.5 - 0.5 * Math.cos(t * 0.5);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.translate(W * 0.5, H * 0.54);
+    ctx.rotate(t * 0.06);
+    ctx.globalAlpha = 0.5 + br * 0.3;
+    ctx.drawImage(st.big, -st.big.width / 2, -st.big.height / 2);
+    ctx.restore();
+    // the light it is sitting in, painted once and only dimmed after
+    if (!st.halo) {
+      const r = Math.min(W, H) * 0.42;
+      const hc = document.createElement('canvas');
+      hc.width = hc.height = Math.ceil(r * 2);
+      const hx = hc.getContext('2d');
+      const gl = hx.createRadialGradient(r, r, 0, r, r, r);
+      gl.addColorStop(0, `rgba(${cfg.glow},0.2)`);
+      gl.addColorStop(0.4, `rgba(${cfg.warm},0.075)`);
+      gl.addColorStop(1, `rgba(${cfg.warm},0)`);
+      hx.fillStyle = gl;
+      hx.fillRect(0, 0, r * 2, r * 2);
+      st.halo = hc;
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.6 + br * 0.4;
+    ctx.drawImage(st.halo, W * 0.5 - st.halo.width / 2, H * 0.54 - st.halo.height / 2);
+    ctx.restore();
+  }
+
+  // 4 ── motes coming up off all of it, and some of them give out
+  if (!st.motes) {
+    st.motes = [];
+    for (let i = 0; i < 60; i++) {
+      st.motes.push({
+        x: _kinRnd(i * 3.9 + cfg.seed) * W, y: _kinRnd(i * 6.1) * H,
+        vy: -8 - _kinRnd(i * 8.3) * 20, sz: 0.7 + _kinRnd(i * 10.9) * 1.8,
+        ph: _kinRnd(i * 12.7) * 6.283, tw: 0.5 + _kinRnd(i * 14.3) * 1.3,
+        cool: _kinRnd(i * 16.1) < 0.4,
+      });
+    }
+  }
+  const dt = 0.033;
+  ctx.globalCompositeOperation = 'lighter';
+  for (const pass of [true, false]) {
+    ctx.beginPath();
+    for (const m of st.motes) {
+      if (m.cool !== pass) continue;
+      const r = m.sz * (0.3 + 0.7 * (0.5 - 0.5 * Math.cos(t * m.tw + m.ph)));
+      ctx.moveTo(m.x + r, m.y);
+      ctx.arc(m.x, m.y, r, 0, 6.283185);
+    }
+    ctx.fillStyle = pass ? `rgba(${cfg.cool},0.5)` : `rgba(${cfg.glow},0.55)`;
+    ctx.fill();
+  }
+  for (const m of st.motes) {
+    m.y += m.vy * dt;
+    m.x += Math.sin(t * 0.4 + m.ph) * 9 * dt;
+    if (m.y < -8) { m.y = H + 8; m.x = Math.random() * W; }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 5 ── the edges
+  if (!st.vign) {
+    st.vign = document.createElement('canvas');
+    st.vign.width = W; st.vign.height = H;
+    const vx = st.vign.getContext('2d');
+    const g = vx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.26,
+                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.74);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.62, 'rgba(6,3,8,0.32)');
+    g.addColorStop(1, 'rgba(4,2,6,0.8)');
+    vx.fillStyle = g;
+    vx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(st.vign, 0, 0);
+}
+
+// ── What they are holding ────────────────────────────────────────
+// A wand for him, a book for her. Same size, same weight in the hand.
+function _kinWand(ctx, cfg, t) {
+  ctx.beginPath();
+  ctx.moveTo(-16, 16); ctx.lineTo(9, -9);
+  ctx.strokeStyle = '#6a4a2e';
+  ctx.lineWidth = 4.4;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(122,88,54,0.9)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  for (const s of [-1, 1]) {                 // a leaf bound to it, badly
+    ctx.save();
+    ctx.translate(-2, 2);
+    ctx.rotate(s * 1.1 - 0.7);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(4, -5, 0, -11);
+    ctx.quadraticCurveTo(-4, -5, 0, 0);
+    ctx.fillStyle = `rgba(${cfg.cool},0.9)`;
+    ctx.fill();
+    ctx.restore();
+  }
+  const p = 0.7 + 0.3 * (0.5 - 0.5 * Math.cos(t * 3));
+  ctx.beginPath();
+  ctx.arc(11, -11, 4.4 * p, 0, 6.283185);
+  ctx.fillStyle = `rgba(${cfg.glow},0.95)`;
+  ctx.fill();
+}
+
+function _kinBook(ctx, cfg, t) {
+  const flap = Math.sin(t * 2.2) * 0.16;
+  ctx.save();
+  ctx.rotate(-0.2);
+  for (const s of [-1, 1]) {                 // two covers, opened out
+    ctx.save();
+    ctx.scale(s, 1);
+    ctx.rotate(flap * s);
+    ctx.beginPath();
+    ctx.moveTo(0, -13);
+    ctx.lineTo(17, -10);
+    ctx.lineTo(17, 11);
+    ctx.lineTo(0, 13);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(250,246,252,0.96)';
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${cfg.warm},0.9)`;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.beginPath();                         // lines of writing on the page
+    for (let i = 0; i < 3; i++) {
+      ctx.moveTo(4, -6 + i * 6);
+      ctx.lineTo(13, -6 + i * 6);
+    }
+    ctx.strokeStyle = `rgba(${cfg.warm},0.45)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.beginPath();                           // the spine
+  ctx.moveTo(0, -13); ctx.lineTo(0, 13);
+  ctx.strokeStyle = `rgba(${cfg.warm},0.9)`;
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+  ctx.restore();
+  const p = 0.7 + 0.3 * (0.5 - 0.5 * Math.cos(t * 3));
+  ctx.beginPath();
+  ctx.arc(0, -18, 3.6 * p, 0, 6.283185);
+  ctx.fillStyle = `rgba(${cfg.glow},0.95)`;
+  ctx.fill();
+}
+
+// ── The cast ─────────────────────────────────────────────────────
+const _KIN = {};
+function _kinState(cfg) {
+  return _KIN[cfg.key] || (_KIN[cfg.key] = {
+    raf: null, x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0,
+    casts: [], motes: [], fore: [], lt: undefined,
+  });
+}
+
+function _kinCast(cfg, x, y) {
+  const S = _kinState(cfg);
+  S.casts.push({
+    x, y, age: 0, seed: Math.random() * 100,
+    r: 54 + Math.random() * 26,
+    // about one in five gets away from them, which is the whole point of
+    // being a rookie: it is not that the magic is weak, it is that it slips
+    fizzle: Math.random() < 0.22,
+    spent: false,
+  });
+  if (S.casts.length > 6) S.casts.shift();
+}
+
+function _drawKinOverlay(canvas, ctx, W, H, t, cfg) {
+  const S = _kinState(cfg);
+  if (S.lt !== undefined && t - S.lt < 0.016) return;
+  const dt = S.lt === undefined ? 0.016 : Math.min(t - S.lt, 0.04);
+  S.lt = t;
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+
+  const SPRING = 64, DAMP = 13;
+  S.vx += ((S.tx - S.x) * SPRING - S.vx * DAMP) * dt;
+  S.vy += ((S.ty - S.y) * SPRING - S.vy * DAMP) * dt;
+  S.x += S.vx * dt; S.y += S.vy * dt;
+  const spd = Math.hypot(S.vx, S.vy);
+
+  // ── what they have cast ──
+  for (let i = S.casts.length - 1; i >= 0; i--) {
+    const c = S.casts[i];
+    c.age += dt;
+    const LIFE = c.fizzle ? 1.1 : 2.2;
+    if (c.age > LIFE) { S.casts.splice(i, 1); continue; }
+
+    // it draws itself in, ring first, then the marks
+    const draw = Math.min(1, c.age / 0.42);
+    let A = 1, wob = 0;
+    if (c.fizzle) {
+      // it gets most of the way and then loses its nerve
+      const u = Math.max(0, (c.age - 0.34) / 0.3);
+      A = c.age < 0.34 ? 1 : Math.max(0, 1 - u);
+      wob = c.age > 0.3 ? Math.sin(c.age * 90) * 3.5 * u : 0;
+      if (c.age > 0.42 && !c.spent) {
+        c.spent = true;
+        for (let k = 0; k < 12; k++) {         // and puffs out
+          const a = Math.random() * 6.283;
+          S.motes.push({ x: c.x, y: c.y, vx: Math.cos(a) * 70, vy: Math.sin(a) * 70 - 30,
+            sz: 1.4 + Math.random() * 2, life: 1, cool: true, grav: 150 });
+        }
+      }
+    } else {
+      A = c.age < 1.5 ? 1 : Math.max(0, 1 - (c.age - 1.5) / 0.7);
+      if (c.age > 0.42 && !c.spent) {
+        c.spent = true;
+        for (let k = 0; k < 22; k++) {         // and it gives up its light
+          const a = Math.random() * 6.283;
+          const s = 40 + Math.random() * 130;
+          S.motes.push({ x: c.x + Math.cos(a) * c.r * 0.6, y: c.y + Math.sin(a) * c.r * 0.6,
+            vx: Math.cos(a) * s * 0.3, vy: -30 - Math.random() * 90,
+            sz: 1.2 + Math.random() * 2.4, life: 1, cool: Math.random() < 0.4, grav: -12 });
+        }
+      }
+    }
+    if (A <= 0.004) continue;
+    const R = c.r * (0.5 + draw * 0.5);
+    ctx.save();
+    ctx.translate(c.x + wob, c.y);
+    ctx.rotate(c.age * 0.7);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = A;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = `rgba(${cfg.warm},0.95)`;
+    ctx.lineWidth = 2.4;
+    _kinRing(ctx, R, c.seed, 0.03, 0, 6.283185 * draw);
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(${cfg.cool},0.8)`;
+    ctx.lineWidth = 1.6;
+    _kinRing(ctx, R * 0.76, c.seed + 2.1, 0.04, 0, 6.283185 * draw);
+    ctx.stroke();
+    const n = 8;
+    ctx.strokeStyle = `rgba(${cfg.glow},0.9)`;
+    ctx.lineWidth = 1.6;
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * 6.283185;
+      if (a > 6.283185 * draw - 0.2) continue;
+      _kinGlyph(ctx, Math.cos(a) * R * 0.88, Math.sin(a) * R * 0.88, R * 0.1, a + 1.5708, c.seed + k * 5.7);
+    }
+    if (!c.fizzle && c.age > 0.42) {           // the pulse that says it took
+      const u = Math.min(1, (c.age - 0.42) / 0.5);
+      ctx.globalAlpha = A * (1 - u) * 0.85;
+      ctx.beginPath();
+      ctx.arc(0, 0, R * (1 + u * 1.5), 0, 6.283185);
+      ctx.strokeStyle = `rgba(${cfg.glow},1)`;
+      ctx.lineWidth = 1 + (1 - u) * 4;
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ── loose light ──
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = S.motes.length - 1; i >= 0; i--) {
+    const m = S.motes[i];
+    m.vy += m.grav * dt;
+    m.x += m.vx * dt; m.y += m.vy * dt;
+    m.vx *= 0.985;
+    m.life -= dt * 0.85;
+    if (m.life <= 0) { S.motes.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.sz * m.life, 0, 6.283185);
+    ctx.fillStyle = m.cool ? `rgba(${cfg.cool},${(m.life * 0.8).toFixed(3)})`
+                           : `rgba(${cfg.glow},${(m.life * 0.85).toFixed(3)})`;
+    ctx.fill();
+  }
+
+  // a few going by in front of the page, so it has depth as well
+  if (!S.fore.length) {
+    for (let i = 0; i < 14; i++) {
+      S.fore.push({
+        x: _kinRnd(i * 5.3 + cfg.seed) * W, y: ((i + _kinRnd(i * 7.1)) / 14) * H,
+        vy: -14 - _kinRnd(i * 9.7) * 34, sz: 1 + _kinRnd(i * 11.3) * 2.4,
+        ph: _kinRnd(i * 13.9) * 6.283, tw: 0.6 + _kinRnd(i * 15.1) * 1.2,
+        cool: _kinRnd(i * 17.7) < 0.4,
+      });
+    }
+  }
+  for (const m of S.fore) {
+    m.y += m.vy * dt;
+    m.x += Math.sin(t * 0.5 + m.ph) * 12 * dt;
+    if (m.y < -10) { m.y = H + 10; m.x = Math.random() * W; }
+    const r = m.sz * (0.3 + 0.7 * (0.5 - 0.5 * Math.cos(t * m.tw + m.ph)));
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, r, 0, 6.283185);
+    ctx.fillStyle = m.cool ? `rgba(${cfg.cool},0.45)` : `rgba(${cfg.glow},0.5)`;
+    ctx.fill();
+  }
+
+  // ── the tool, held out in front and lagging a little ──
+  const gl = ctx.createRadialGradient(S.x, S.y, 0, S.x, S.y, 44);
+  gl.addColorStop(0, `rgba(${cfg.glow},0.16)`);
+  gl.addColorStop(1, `rgba(${cfg.warm},0)`);
+  ctx.fillStyle = gl;
+  ctx.fillRect(S.x - 44, S.y - 44, 88, 88);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.save();
+  ctx.translate(S.x, S.y);
+  ctx.rotate(Math.max(-0.4, Math.min(0.4, -S.vx * 0.0012)) + Math.sin(t * 1.3) * 0.05);
+  if (cfg.key === 'tobu') _kinWand(ctx, cfg, t); else _kinBook(ctx, cfg, t);
+  ctx.restore();
+}
+
+function _startKinOverlay(cfg) {
+  _stopKinOverlay(cfg);
+  const S = _kinState(cfg);
+  S.lt = undefined;
+  S.x = S.tx = window.innerWidth * 0.5;
+  S.y = S.ty = window.innerHeight * 0.5;
+  S.vx = S.vy = 0;
+  S.casts = []; S.motes = []; S.fore = [];
+  S.move = (e) => { S.tx = e.clientX; S.ty = e.clientY; };
+  S.click = (e) => _kinCast(cfg, e.clientX, e.clientY);
+  window.addEventListener('mousemove', S.move);
+  window.addEventListener('click', S.click);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = cfg.key + '-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById(cfg.key + '-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+      S.fore = [];
+    }
+    _drawKinOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000, cfg);
+    S.raf = requestAnimationFrame(frame);
+  }
+  S.raf = requestAnimationFrame(frame);
+}
+
+function _stopKinOverlay(cfg) {
+  const S = _kinState(cfg);
+  if (S.raf) { cancelAnimationFrame(S.raf); S.raf = null; }
+  if (S.move) window.removeEventListener('mousemove', S.move);
+  if (S.click) window.removeEventListener('click', S.click);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById(cfg.key + '-overlay');
+  if (cv) cv.remove();
+  S.casts = []; S.motes = [];
+}
+
+// ── and the two of them, which is only ever a palette apart ──────
+function _drawTobuPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawTobuPattern._lt === undefined;
+  if (!fresh && t - _drawTobuPattern._lt < 0.033) return;
+  _drawTobuPattern._lt = t;
+  _drawKinPattern(canvas, ctx, W, H, t, _KIN_TOBU);
+}
+function _drawLalaPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawLalaPattern._lt === undefined;
+  if (!fresh && t - _drawLalaPattern._lt < 0.033) return;
+  _drawLalaPattern._lt = t;
+  _drawKinPattern(canvas, ctx, W, H, t, _KIN_LALA);
+}
+function _startTobuOverlay() { _startKinOverlay(_KIN_TOBU); }
+function _stopTobuOverlay()  { _stopKinOverlay(_KIN_TOBU); }
+function _startLalaOverlay() { _startKinOverlay(_KIN_LALA); }
+function _stopLalaOverlay()  { _stopKinOverlay(_KIN_LALA); }
+/* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
 // OBLITUS - the Void, and one ship out in it. Her name is Latin for
