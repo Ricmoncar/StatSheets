@@ -27416,9 +27416,13 @@ function _sprRoseSprite(px, seed, dim) {
     g.restore();
   }
 
-  const rings = [
-    { n: 9, len: px * 1.0,  wid: px * 0.5,  push: px * 0.2,  sh: 0.78, sp: 0 },
-    { n: 8, len: px * 0.78, wid: px * 0.44, push: px * 0.15, sh: 0.87, sp: 0.4 },
+  const small = px < 11;
+  const rings = small ? [
+    { n: 7, len: px * 1.0,  wid: px * 0.56, push: px * 0.16, sh: 0.98, sp: 0 },
+    { n: 5, len: px * 0.6,  wid: px * 0.44, push: px * 0.08, sh: 1,    sp: 0.5 },
+  ] : [
+    { n: 9, len: px * 1.0,  wid: px * 0.5,  push: px * 0.2,  sh: 0.88, sp: 0 },
+    { n: 8, len: px * 0.78, wid: px * 0.44, push: px * 0.15, sh: 0.93, sp: 0.4 },
     { n: 6, len: px * 0.56, wid: px * 0.38, push: px * 0.1,  sh: 0.94, sp: 0.9 },
     { n: 5, len: px * 0.36, wid: px * 0.32, push: px * 0.06, sh: 1,    sp: 1.4 },
   ];
@@ -27434,9 +27438,11 @@ function _sprRoseSprite(px, seed, dim) {
       _sprPetalPath(g, rg.len, rg.wid);
       g.fillStyle = gr;
       g.fill();
-      g.strokeStyle = `rgba(${Math.round(150 * v)},${Math.round(132 * v)},${Math.round(128 * v)},0.4)`;
-      g.lineWidth = Math.max(0.4, px * 0.022);
-      g.stroke();
+      if (!small) {
+        g.strokeStyle = `rgba(${Math.round(150 * v)},${Math.round(132 * v)},${Math.round(128 * v)},0.4)`;
+        g.lineWidth = Math.max(0.4, px * 0.022);
+        g.stroke();
+      }
       g.restore();
     }
   }
@@ -27456,110 +27462,88 @@ function _sprRose(ctx, x, y, px, seed, alpha, dim) {
   if (alpha !== undefined && alpha < 1) ctx.globalAlpha = 1;
 }
 
-// ── A thicket: bramble, leaves and roses, baked as one band ──────
-function _sprThicketSprite(W, H, band, seed) {
-  const SH = Math.ceil(H * 1.62);
-  const c = document.createElement('canvas');
-  c.width = W; c.height = SH;
-  const g = c.getContext('2d');
-  const dark = band === 0 ? 0.2 : band === 1 ? 0.42 : 1;
-  const stems = 30 + band * 22;
-
-  g.lineCap = 'round';
-  const tips = [], joints = [];
-  for (let i = 0; i < stems; i++) {
-    const x0 = (i / stems + _sprRnd(seed + i * 3.1) * 0.06) * W;
-    let x = x0, y = SH, a = -1.5708 + (_sprRnd(seed + i * 5.7) - 0.5) * 0.7;
-    const segs = 6 + Math.floor(_sprRnd(seed + i * 7.3) * 7);
-    const len = H * (0.05 + _sprRnd(seed + i * 11.1) * 0.055);
-    g.beginPath();
-    g.moveTo(x, y);
-    for (let k = 0; k < segs; k++) {
-      a += (_sprRnd(seed + i * 13 + k * 2.7) - 0.5) * 0.8;
-      const nx = x + Math.cos(a) * len, ny = y + Math.sin(a) * len;
-      g.quadraticCurveTo(x + Math.cos(a - 0.4) * len * 0.6, y + Math.sin(a - 0.4) * len * 0.6, nx, ny);
-      x = nx; y = ny;
-      if (k === segs - 1) tips.push([x, y, i]);
-      else if (k >= segs * 0.45) joints.push([x, y, i]);
-      if (_sprRnd(seed + i * 17 + k) < 0.42) {         // a leaf off the joint
-        g.save();
-        g.translate(x, y);
-        g.rotate(a + (_sprRnd(seed + i + k) - 0.5) * 2);
-        const lv = 0.5 + _sprRnd(seed + i * 3 + k * 5) * 0.5;
-        _sprLeaf(g, len * 0.46, len * 0.17,
-          `rgba(${Math.round(48 * lv * dark + 10)},${Math.round(84 * lv * dark + 16)},${Math.round(44 * lv * dark + 10)},${(0.85 * dark + 0.1).toFixed(2)})`);
-        g.restore();
-        g.beginPath();
-        g.moveTo(x, y);
-      }
-    }
-    g.strokeStyle = `rgba(${Math.round(34 * dark + 12)},${Math.round(52 * dark + 11)},${Math.round(30 * dark + 12)},${(0.8 * dark + 0.12).toFixed(2)})`;
-    g.lineWidth = 0.8 + band * 0.7;
-    g.stroke();
+// ── The walk ─────────────────────────────────────────────────────
+// The first two attempts at her garden were tangles: canes at random angles
+// with roses hung off them wherever a cane happened to end. Organic, and
+// unreadable, because nothing in it repeated. This is the opposite approach.
+// It is a pergola: the same arch, seven times, each one further away and
+// smaller by a fixed ratio, with the roses set at even intervals along every
+// hoop. All of the order comes from the repetition and the perspective, and
+// all of the interest comes from the light at the far end of it.
+function _sprArchPoints(vx, vy, s, HW, BASE, RISE) {
+  const xl = vx - HW * s, xr = vx + HW * s;
+  const yb = vy + BASE * s;
+  const ys = vy - RISE * s * 0.12;          // where the arch leaves the upright
+  const yc = vy - RISE * s;                 // and the height of its crown
+  const pts = [];
+  for (let i = 0; i <= 7; i++) pts.push([xl, yb + (ys - yb) * (i / 7)]);
+  for (let i = 1; i <= 14; i++) {
+    const u = i / 14, v = 1 - u;
+    pts.push([
+      v * v * v * xl + 3 * v * v * u * xl + 3 * v * u * u * xr + u * u * u * xr,
+      v * v * v * ys + 3 * v * v * u * yc + 3 * v * u * u * yc + u * u * u * ys,
+    ]);
   }
-
-  // a head of two or three, the way they actually come
-  const R0 = 5 + band * 5.5;
-  const A0 = dark * 0.72 + 0.28;
-  const cluster = (x, y, sd, scale) => {
-    const n = 1 + Math.floor(_sprRnd(sd * 1.7) * 2);
-    for (let k = 0; k < n; k++) {
-      const a = _sprRnd(sd + k * 3.1) * 6.283185;
-      const d = k === 0 ? 0 : R0 * scale * (0.8 + _sprRnd(sd + k * 5.7) * 0.8);
-      _sprRose(g, x + Math.cos(a) * d, y + Math.sin(a) * d,
-               R0 * scale * (0.72 + _sprRnd(sd + k * 7.3) * 0.5),
-               sd + k * 11, A0, band < 2);
-    }
-  };
-  for (let i = 0; i < tips.length; i++) {
-    if (_sprRnd(seed + i * 41.3) > 0.34) continue;      // not every cane blooms
-    cluster(tips[i][0], tips[i][1], seed + i * 13.7, 0.85 + _sprRnd(seed + i * 3.9) * 0.6);
-  }
-  for (let i = 0; i < joints.length; i++) {
-    if (_sprRnd(seed + i * 47.9) > 0.1) continue;
-    cluster(joints[i][0], joints[i][1], seed + 500 + i * 17.3, 0.5 + _sprRnd(seed + i * 5.1) * 0.4);
-  }
-  return c;
+  for (let i = 1; i <= 7; i++) pts.push([xr, ys + (yb - ys) * (i / 7)]);
+  return pts;
 }
 
-// ── The arbour over the top of the page ──────────────────────────
-function _sprArchSprite(W, H) {
-  const h = Math.ceil(H * 0.34);
+function _sprWalkSprite(W, H) {
   const c = document.createElement('canvas');
-  c.width = W; c.height = h;
+  c.width = W; c.height = H;
   const g = c.getContext('2d');
-  const sag = h * 0.62;
-  g.lineCap = 'round';
-  // three ropes of vine crossing the top, each hanging a little lower
-  for (let r = 0; r < 3; r++) {
-    const drop = sag * (0.5 + r * 0.26);
-    g.beginPath();
-    g.moveTo(-20, -10 + r * 6);
-    for (let i = 0; i <= 24; i++) {
-      const u = i / 24;
-      const x = -20 + u * (W + 40);
-      const y = -10 + r * 6 + Math.sin(u * Math.PI) * drop
-              + Math.sin(u * 9 + r * 2) * h * 0.03;
-      g.lineTo(x, y);
+  const vx = W * 0.5, vy = H * 0.46;
+  const HW = W * 0.66, BASE = H * 0.72, RISE = H * 0.62;
+  const N = 7;
+  const scales = [];
+  for (let i = 0; i < N; i++) scales.push(Math.pow(0.74, i));
+
+  // the path underfoot, running away from you between the hoops
+  g.beginPath();
+  for (const side of [-1, 1]) {
+    for (let i = N - 1; i >= 0; i--) {
+      const s = scales[i];
+      const x = vx + side * HW * s, y = vy + BASE * s;
+      i === N - 1 ? g.moveTo(x, y) : g.lineTo(x, y);
     }
-    g.strokeStyle = `rgba(46,74,42,${(0.6 - r * 0.12).toFixed(2)})`;
-    g.lineWidth = 4.5 - r;
+  }
+  g.strokeStyle = 'rgba(214,186,196,0.14)';
+  g.lineWidth = 1.4;
+  g.stroke();
+
+  // furthest first, so the near hoops stand in front of the far ones
+  for (let i = N - 1; i >= 0; i--) {
+    const s = scales[i];
+    const near = 1 - i / (N - 1);                 // 0 far, 1 near
+    const pts = _sprArchPoints(vx, vy, s, HW, BASE, RISE);
+    const w = Math.max(1.8, 15 * s);
+    const dim = 0.3 + near * 0.7;
+
+    g.beginPath();
+    pts.forEach((q, k) => k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]));
+    g.lineCap = 'round';
+    const far = 1 - near;
+    g.strokeStyle = `rgba(${Math.round(10 + far * 62)},${Math.round(17 + far * 74)},${Math.round(9 + far * 58)},${(0.97 - far * 0.42).toFixed(2)})`;
+    g.lineWidth = w;
     g.stroke();
-    // and what hangs off it
-    const n = 9 + r * 3;
-    for (let i = 0; i < n; i++) {
-      const u = (i + 0.5) / n;
-      const x = -20 + u * (W + 40);
-      const y = -10 + r * 6 + Math.sin(u * Math.PI) * drop + Math.sin(u * 9 + r * 2) * h * 0.03;
-      const hang = h * (0.06 + _sprRnd(r * 31 + i * 7.7) * 0.16);
-      g.beginPath();
-      g.moveTo(x, y);
-      g.quadraticCurveTo(x + hang * 0.3, y + hang * 0.6, x, y + hang);
-      g.strokeStyle = `rgba(46,74,42,${(0.5 - r * 0.1).toFixed(2)})`;
-      g.lineWidth = 2;
-      g.stroke();
-      _sprRose(g, x, y + hang, (13 - r * 3) * (0.7 + _sprRnd(r * 41 + i * 3.3) * 0.6),
-               r * 13 + i, 0.9 - r * 0.18, r > 0);
+    g.strokeStyle = `rgba(${_SPR_LEAF},${(0.5 - far * 0.28).toFixed(2)})`;
+    g.lineWidth = w * 0.38;
+    g.stroke();
+
+    // roses at even steps along the hoop, which is where the order comes from
+    const rr = Math.max(3.4, 18 * s);
+    const step = 2;
+    for (let k = 1; k < pts.length - 1; k += step) {
+      const q = pts[k];
+      const sd = i * 37 + k * 5.3;
+      if (i > 3 && k % 4 !== 1) continue;         // the far ones carry fewer
+      g.save();
+      g.translate(q[0], q[1]);
+      g.rotate(_sprRnd(sd) * 6.283185);
+      _sprLeaf(g, rr * 1.7, rr * 0.6, `rgba(${Math.round(26 + (1 - near) * 40)},${Math.round(48 + (1 - near) * 46)},${Math.round(24 + (1 - near) * 34)},${(0.9 - (1 - near) * 0.3).toFixed(2)})`);
+      g.restore();
+      _sprRose(g, q[0], q[1], rr * (0.82 + _sprRnd(sd * 1.7) * 0.36), sd,
+               0.9 + near * 0.1, false);
     }
   }
   return c;
@@ -27574,9 +27558,8 @@ function _drawSprucePattern(canvas, ctx, W, H, t) {
 
   if (canvas._sprW !== W || canvas._sprH !== H) {
     canvas._sprW = W; canvas._sprH = H;
-    canvas._sprSky = null; canvas._sprBands = null; canvas._sprArch = null;
-    canvas._sprShaft = null; canvas._sprPetals = null; canvas._sprMotes = null;
-    canvas._sprVign = null;
+    canvas._sprSky = null; canvas._sprWalk = null; canvas._sprShaft = null;
+    canvas._sprPetals = null; canvas._sprMotes = null; canvas._sprVign = null;
   }
 
   ctx.save();
@@ -27584,21 +27567,23 @@ function _drawSprucePattern(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
 
-  // 1 ── dusk: wine at the floor, a warm bloom high where the light gets in
+  // 1 ── dusk, with the light waiting at the end of the walk
   if (!canvas._sprSky) {
     canvas._sprSky = document.createElement('canvas');
     canvas._sprSky.width = W; canvas._sprSky.height = H;
     const sx = canvas._sprSky.getContext('2d');
     const g = sx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#2a1024');
-    g.addColorStop(0.34, '#43162e');
-    g.addColorStop(0.68, '#5a1e35');
-    g.addColorStop(1, '#1d0a18');
+    g.addColorStop(0, '#24091f');
+    g.addColorStop(0.42, '#3d1329');
+    g.addColorStop(0.74, '#4d182f');
+    g.addColorStop(1, '#180716');
     sx.fillStyle = g;
     sx.fillRect(0, 0, W, H);
-    const cg = sx.createRadialGradient(W * 0.5, -H * 0.1, 0, W * 0.5, H * 0.1, Math.max(W, H) * 0.72);
-    cg.addColorStop(0, `rgba(${_SPR_GOLD},0.3)`);
-    cg.addColorStop(0.4, `rgba(${_SPR_GOLD},0.09)`);
+    const cg = sx.createRadialGradient(W * 0.5, H * 0.46, 0, W * 0.5, H * 0.46, Math.max(W, H) * 0.46);
+    cg.addColorStop(0, `rgba(255,240,214,0.62)`);
+    cg.addColorStop(0.09, `rgba(${_SPR_GOLD},0.3)`);
+    cg.addColorStop(0.34, `rgba(${_SPR_GOLD},0.09)`);
+    cg.addColorStop(0.62, `rgba(${_SPR_GOLD},0.03)`);
     cg.addColorStop(1, `rgba(${_SPR_GOLD},0)`);
     sx.globalCompositeOperation = 'lighter';
     sx.fillStyle = cg;
@@ -27606,61 +27591,45 @@ function _drawSprucePattern(canvas, ctx, W, H, t) {
   }
   ctx.drawImage(canvas._sprSky, 0, 0);
 
-  // 2 ── light coming down through the arbour, one sprite leaned over and over
+  // 2 ── the pergola, built once
+  if (!canvas._sprWalk) canvas._sprWalk = _sprWalkSprite(W, H);
+  ctx.drawImage(canvas._sprWalk, 0, 0);
+
+  // 3 ── light coming down through it, leaning the way the walk runs
   if (!canvas._sprShaft) {
-    const sw = Math.ceil(W * 0.3), sh = Math.ceil(H);
+    const sw = Math.ceil(W * 0.26), sh = Math.ceil(H);
     const s = document.createElement('canvas');
     s.width = sw; s.height = sh;
     const g = s.getContext('2d');
     const gr = g.createLinearGradient(0, 0, 0, sh);
-    gr.addColorStop(0, `rgba(${_SPR_GOLD},0.16)`);
-    gr.addColorStop(0.5, `rgba(${_SPR_GOLD},0.06)`);
+    gr.addColorStop(0, `rgba(${_SPR_GOLD},0.14)`);
+    gr.addColorStop(0.55, `rgba(${_SPR_GOLD},0.05)`);
     gr.addColorStop(1, `rgba(${_SPR_GOLD},0)`);
     g.fillStyle = gr;
     g.beginPath();
-    g.moveTo(sw * 0.42, 0); g.lineTo(sw * 0.58, 0);
+    g.moveTo(sw * 0.44, 0); g.lineTo(sw * 0.56, 0);
     g.lineTo(sw, sh); g.lineTo(0, sh);
     g.closePath();
     g.fill();
     canvas._sprShaft = s;
   }
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 4; i++) {
-    const x = W * (0.14 + i * 0.245) + Math.sin(t * 0.06 + i * 1.9) * W * 0.02;
-    ctx.globalAlpha = 0.5 + 0.3 * Math.sin(t * 0.23 + i * 1.3);
+  for (let i = 0; i < 3; i++) {
+    const x = W * (0.22 + i * 0.28) + Math.sin(t * 0.06 + i * 1.9) * W * 0.015;
+    ctx.globalAlpha = 0.45 + 0.3 * Math.sin(t * 0.22 + i * 1.4);
     ctx.save();
-    ctx.translate(x, -H * 0.06);
-    ctx.rotate(-0.12 + i * 0.08);
+    ctx.translate(x, -H * 0.05);
+    ctx.rotate(-0.1 + i * 0.1);
     ctx.drawImage(canvas._sprShaft, -canvas._sprShaft.width / 2, 0);
     ctx.restore();
   }
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
 
-  // 3 ── the thickets, four deep, each swaying on its own
-  if (!canvas._sprBands) {
-    canvas._sprBands = [];
-    for (let b = 0; b < 4; b++) {
-      const bh = H * (0.26 + b * 0.13);
-      const sp = _sprThicketSprite(Math.ceil(W * 1.06), bh, Math.min(2, b), b * 37 + 5);
-      canvas._sprBands.push({
-        s: sp, y: H + b * 6 - sp.height,      // hung from its own foot
-        sway: 3 + b * 5, ph: b * 1.7, sp: 0.16 + b * 0.05,
-      });
-    }
-  }
-  for (const b of canvas._sprBands) {
-    ctx.drawImage(b.s, -W * 0.03 + Math.sin(t * b.sp + b.ph) * b.sway, b.y);
-  }
-
-  // 4 ── and the arbour over the top
-  if (!canvas._sprArch) canvas._sprArch = _sprArchSprite(W, H);
-  ctx.drawImage(canvas._sprArch, Math.sin(t * 0.13) * 5, -H * 0.02);
-
-  // 5 ── petals coming down at three distances
+  // 4 ── petals coming down at three distances
   if (!canvas._sprPetals) {
     canvas._sprPetals = [];
-    const bands = [[18, 8, 15, 0.4], [11, 16, 26, 0.58], [6, 26, 44, 0.62]];
+    const bands = [[16, 8, 15, 0.34], [10, 16, 26, 0.5], [5, 26, 44, 0.58]];
     let k = 0;
     for (let bi = 0; bi < 3; bi++) {
       const [n, s0, s1, al] = bands[bi];
@@ -27694,13 +27663,13 @@ function _drawSprucePattern(canvas, ctx, W, H, t) {
     ctx.restore();
   }
 
-  // 6 ── pollen going the other way, catching the light
+  // 5 ── pollen going the other way, catching the light
   if (!canvas._sprMotes) {
     canvas._sprMotes = [];
-    for (let i = 0; i < 54; i++) {
+    for (let i = 0; i < 48; i++) {
       canvas._sprMotes.push({
         x: _sprRnd(i * 4.3) * W, y: _sprRnd(i * 6.7) * H,
-        vy: -5 - _sprRnd(i * 8.9) * 13, sz: 0.6 + _sprRnd(i * 10.7) * 1.7,
+        vy: -5 - _sprRnd(i * 8.9) * 13, sz: 0.6 + _sprRnd(i * 10.7) * 1.6,
         ph: _sprRnd(i * 12.1) * 6.283, tw: 0.5 + _sprRnd(i * 14.9) * 1.2,
       });
     }
@@ -27715,20 +27684,20 @@ function _drawSprucePattern(canvas, ctx, W, H, t) {
     ctx.moveTo(m.x + r, m.y);
     ctx.arc(m.x, m.y, r, 0, 6.283185);
   }
-  ctx.fillStyle = `rgba(${_SPR_GOLD},0.42)`;
+  ctx.fillStyle = `rgba(${_SPR_GOLD},0.4)`;
   ctx.fill();
   ctx.globalCompositeOperation = 'source-over';
 
-  // 7 ── and the edges close
+  // 6 ── and the edges close
   if (!canvas._sprVign) {
     canvas._sprVign = document.createElement('canvas');
     canvas._sprVign.width = W; canvas._sprVign.height = H;
     const vx = canvas._sprVign.getContext('2d');
-    const g = vx.createRadialGradient(W * 0.5, H * 0.42, Math.min(W, H) * 0.28,
-                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.76);
+    const g = vx.createRadialGradient(W * 0.5, H * 0.46, Math.min(W, H) * 0.24,
+                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.74);
     g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(0.6, 'rgba(22,7,18,0.34)');
-    g.addColorStop(1, 'rgba(16,5,13,0.8)');
+    g.addColorStop(0.6, 'rgba(22,7,18,0.36)');
+    g.addColorStop(1, 'rgba(16,5,13,0.82)');
     vx.fillStyle = g;
     vx.fillRect(0, 0, W, H);
   }
