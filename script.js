@@ -42038,8 +42038,10 @@ const _LH_HOT  = '255,222,152';
 const _LH_DEEP = '150,38,10';
 const _LH_HEX  = '#ff9a3c';
 
-// the wavefront a click sends through the field, which the ground reads
+// the wavefront a swing sends through the field, which the ground reads
 let _lhWave = null;
+// and where the burning blade is, so the field can answer to him being near
+let _lhTorch = null;
 
 function _lhRnd(seed) {
   const v = Math.sin(seed * 47.11 + 33.71) * 28123.57;
@@ -42107,6 +42109,60 @@ function _lhRankSprite(W, h, depth, seed) {
   return c;
 }
 
+
+// ── A standard, planted ──────────────────────────────────────────
+// The field is deliberately all one shape, and that is what turns it into an
+// army instead of a pile. But an army carries standards, and cloth is the only
+// thing out here that can move: it hangs heavy and stirs in the heat coming
+// off the ground rather than in any wind. Drawn live for that reason, where
+// the ranks behind it are baked and only drift.
+function _lhBanner(g, x, y, h, depth, t, seed) {
+  const v = (10 + depth * 74) * 0.86;              // the value of its own rank
+  const dark = `rgb(${(v * 1.3) | 0},${(v * 0.86) | 0},${(v * 0.7) | 0})`;
+  const lit = `rgba(${_LH_FIRE},${(0.8 - depth * 0.5).toFixed(2)})`;
+  const w = h * 0.155;
+  const top = y - h * 0.93, bot = top + h * 0.6;
+  // the free corner of a hanging cloth travels furthest, the head barely moves
+  const wav = (u) => Math.sin(t * 1.4 + u * 2.6 + seed) * w * 0.3 * u * u;
+
+  g.strokeStyle = dark;                            // pole and crossbar
+  g.lineWidth = Math.max(1.1, h * 0.022);
+  g.beginPath();
+  g.moveTo(x, y); g.lineTo(x, y - h);
+  g.moveTo(x - w * 0.9, y - h * 0.95); g.lineTo(x + w * 0.9, y - h * 0.95);
+  g.stroke();
+
+  const N = 8;
+  g.beginPath();
+  g.moveTo(x - w * 0.5, top);
+  for (let i = 1; i <= N; i++) {                   // down the hanging edge
+    const u = i / N;
+    g.lineTo(x - w * 0.5 + wav(u), top + (bot - top) * u);
+  }
+  for (let k = 1; k <= 4; k++) {                   // torn along the bottom
+    const u = k / 4;
+    const tx = x - w * 0.5 + w * u + wav(1);
+    g.lineTo(tx - w * 0.12, bot + h * (0.02 + _lhRnd(seed + k * 3.3) * 0.13));
+    g.lineTo(tx, bot - h * 0.04);
+  }
+  for (let i = N; i >= 0; i--) {                   // and back up the other side
+    const u = i / N;
+    g.lineTo(x + w * 0.5 + wav(u), top + (bot - top) * u);
+  }
+  g.closePath();
+  g.fillStyle = dark;
+  g.fill();
+  g.beginPath();                                   // one lit edge, as everywhere
+  g.moveTo(x + w * 0.5, top);
+  for (let i = 1; i <= N; i++) {
+    const u = i / N;
+    g.lineTo(x + w * 0.5 + wav(u), top + (bot - top) * u);
+  }
+  g.strokeStyle = lit;
+  g.lineWidth = Math.max(0.8, h * 0.014);
+  g.stroke();
+}
+
 // ── The field ────────────────────────────────────────────────────
 function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
   const fresh = _drawLeonHumanPattern._lt === undefined;
@@ -42118,6 +42174,8 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
     canvas._lhW = W; canvas._lhH = H;
     canvas._lhSky = null; canvas._lhRanks = null; canvas._lhSmoke = null;
     canvas._lhEmber = null; canvas._lhVign = null;
+    canvas._lhStands = null; canvas._lhShim = null; canvas._lhAsh = null;
+    canvas._lhKin = null; canvas._lhKinMask = null;
   }
   const HZ = H * 0.6;
 
@@ -42196,31 +42254,112 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
       });
     }
   }
-  for (const r of canvas._lhRanks) {
+  // the standards stand between the ranks, so the one belonging to rank 3 is
+  // drawn after rank 3 and before rank 4 and is in the field, not over it
+  if (!canvas._lhStands) {
+    canvas._lhStands = [];
+    const put = [2, 4, 3, 2];                      // never in the far two ranks
+    for (let i = 0; i < put.length; i++) {
+      const ri = Math.min(canvas._lhRanks.length - 1, put[i]);
+      const r = canvas._lhRanks[ri];
+      canvas._lhStands.push({
+        ri,
+        u: (i + 0.24 + _lhRnd(i * 17.3) * 0.52) / put.length,
+        h: (r.s.height / 1.5) * (1.05 + _lhRnd(i * 21.1) * 0.4),
+        depth: r.depth, seed: i * 7.9,
+      });
+    }
+  }
+  // the glow the blade itself throws, cut out of the rank standing behind it
+  const KR = 215;
+  if (_lhTorch && !canvas._lhKin) {
+    canvas._lhKin = document.createElement('canvas');
+    canvas._lhKin.width = canvas._lhKin.height = KR * 2;
+    const kg = canvas._lhKin.getContext('2d');
+    const m = kg.createRadialGradient(KR, KR, 0, KR, KR, KR);
+    m.addColorStop(0, 'rgba(0,0,0,1)');
+    m.addColorStop(0.42, 'rgba(0,0,0,0.66)');
+    m.addColorStop(1, 'rgba(0,0,0,0)');
+    canvas._lhKinMask = m;
+  }
+  for (let ri = 0; ri < canvas._lhRanks.length; ri++) {
+    const r = canvas._lhRanks[ri];
     r.off = (r.off + r.v * dt) % r.s.width;
     ctx.drawImage(r.s, -r.off, r.y);
     ctx.drawImage(r.s, r.s.width - r.off, r.y);
-    // a rank the wavefront has just reached answers it
-    if (_lhWave) {
-      const rowY = r.y + r.s.height * 0.8;
-      const d = Math.abs(Math.hypot(W * 0.5 - _lhWave.x, rowY - _lhWave.y) - _lhWave.r);
-      if (d < 90) {
+    const gnd = r.y + r.s.height * 0.933;          // where this rank is standing
+    // he carries the fire past them, and the few he is beside take light off it
+    if (_lhTorch) {
+      const dy = Math.abs(gnd - _lhTorch.y);
+      if (dy < KR * 1.4) {
+        const kg = canvas._lhKin.getContext('2d');
+        kg.globalCompositeOperation = 'source-over';
+        kg.clearRect(0, 0, KR * 2, KR * 2);
+        kg.save();
+        kg.translate(KR - _lhTorch.x, KR - _lhTorch.y);
+        kg.drawImage(r.s, -r.off, r.y);
+        kg.drawImage(r.s, r.s.width - r.off, r.y);
+        kg.restore();
+        kg.globalCompositeOperation = 'destination-in';
+        kg.fillStyle = canvas._lhKinMask;
+        kg.fillRect(0, 0, KR * 2, KR * 2);
+        kg.globalCompositeOperation = 'source-atop';   // and it is firelight
+        kg.fillStyle = `rgba(${_LH_FIRE},0.5)`;
+        kg.fillRect(0, 0, KR * 2, KR * 2);
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = (1 - d / 90) * _lhWave.life * (0.5 - r.depth * 0.3);
+        ctx.globalAlpha = (1 - dy / (KR * 1.4)) * _lhTorch.k * (1.1 - r.depth * 0.55);
+        ctx.drawImage(canvas._lhKin, _lhTorch.x - KR, _lhTorch.y - KR);
+        ctx.restore();
+      }
+    }
+    // and a rank the wavefront has just reached answers that too
+    if (_lhWave) {
+      const band = 80 + _lhWave.pw * 70;
+      const d = Math.abs(Math.hypot(W * 0.5 - _lhWave.x, gnd - _lhWave.y) - _lhWave.r);
+      if (d < band) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = (1 - d / band) * _lhWave.life *
+                          (0.5 - r.depth * 0.3) * (0.6 + _lhWave.pw * 0.5);
         ctx.drawImage(r.s, -r.off, r.y);
         ctx.drawImage(r.s, r.s.width - r.off, r.y);
         ctx.restore();
       }
     }
+    for (const b of canvas._lhStands) {
+      if (b.ri === ri) _lhBanner(ctx, W * b.u, gnd, b.h, b.depth, t, b.seed);
+    }
   }
   if (_lhWave) {
-    _lhWave.r += 900 * dt;
-    _lhWave.life -= dt * 0.7;
+    _lhWave.r += (640 + 620 * _lhWave.pw) * dt;
+    _lhWave.life -= dt * (0.9 - _lhWave.pw * 0.28);
     if (_lhWave.life <= 0) _lhWave = null;
   }
 
-  // 4 ── embers off it, going up because that is where heat goes
+  // 4 ── the air over the fire line, which is not standing still
+  {
+    const bandY = Math.max(0, HZ - H * 0.3), bandH = Math.min(H - bandY, H * 0.36);
+    if (!canvas._lhShim) {
+      canvas._lhShim = document.createElement('canvas');
+      canvas._lhShim.width = W; canvas._lhShim.height = Math.ceil(bandH);
+    }
+    const sc = canvas._lhShim.getContext('2d');
+    sc.clearRect(0, 0, W, bandH);
+    sc.drawImage(canvas, 0, bandY, W, bandH, 0, 0, W, bandH);
+    // and put it back a slice at a time, each slid sideways, strongest at the
+    // bottom of the band because that is the end of it nearest the fire
+    const SL = 20, sh = bandH / SL;
+    for (let i = 0; i < SL; i++) {
+      const u = i / (SL - 1);
+      const off = (Math.sin(t * 2.3 + i * 0.8) + Math.sin(t * 1.3 + i * 1.9) * 0.5) * u * u * 4.2;
+      const e = Math.abs(off) + 1;
+      ctx.drawImage(canvas._lhShim, 0, i * sh, W, sh,
+                    off - e, bandY + i * sh, W + e * 2, sh);
+    }
+  }
+
+  // 5 ── embers off it, going up because that is where heat goes
   if (!canvas._lhEmber) {
     canvas._lhEmber = [];
     for (let i = 0; i < 110; i++) {
@@ -42246,7 +42385,33 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
   ctx.fill();
   ctx.globalCompositeOperation = 'source-over';
 
-  // 5 ── the dark round the edge of it
+  // 6 ── and ash coming down through them, which is what makes it read deep
+  if (!canvas._lhAsh) {
+    canvas._lhAsh = [];
+    for (let i = 0; i < 80; i++) {
+      canvas._lhAsh.push({
+        x: _lhRnd(i * 4.3) * W, y: _lhRnd(i * 6.7) * H,
+        vy: 10 + _lhRnd(i * 8.9) * 30, vx: (_lhRnd(i * 10.7) - 0.5) * 20,
+        sz: 0.8 + _lhRnd(i * 12.1) * 2.1, rot: _lhRnd(i * 14.3) * 6.283185,
+        vr: (_lhRnd(i * 16.9) - 0.5) * 1.7,
+        a: 0.3 + _lhRnd(i * 18.7) * 0.42,
+      });
+    }
+  }
+  for (const k of canvas._lhAsh) {
+    k.y += k.vy * dt;
+    k.x += (k.vx + Math.sin(t * 0.5 + k.rot) * 15) * dt;
+    k.rot += k.vr * dt;
+    if (k.y > H + 12) { k.y = -12; k.x = Math.random() * W; }
+    ctx.save();
+    ctx.translate(k.x, k.y);
+    ctx.rotate(k.rot);
+    ctx.fillStyle = `rgba(14,7,5,${k.a.toFixed(2)})`;
+    ctx.fillRect(-k.sz, -k.sz * 0.38, k.sz * 2, k.sz * 0.76);
+    ctx.restore();
+  }
+
+  // 7 ── the dark round the edge of it
   if (!canvas._lhVign) {
     canvas._lhVign = document.createElement('canvas');
     canvas._lhVign.width = W; canvas._lhVign.height = H;
@@ -42262,23 +42427,56 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
   ctx.drawImage(canvas._lhVign, 0, 0);
 }
 
+
+// ── One tongue of it ─────────────────────────────────────────────
+function _lhLickSprite(col) {
+  const SW = 160, SH = 352;
+  const c = document.createElement('canvas');
+  c.width = SW; c.height = SH;
+  const g = c.getContext('2d');
+  g.translate(SW / 2, SH);
+  g.scale(1, SH / (SW / 2));                       // a circle drawn tall
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, SW / 2);
+  for (let i = 0; i <= 16; i++) {                  // no joins to show
+    const u = i / 16;
+    gr.addColorStop(u, `rgba(${col},${(0.95 * Math.pow(1 - u, 2.6)).toFixed(4)})`);
+  }
+  g.fillStyle = gr;
+  g.beginPath();
+  g.arc(0, 0, SW / 2, 0, 6.283185);
+  g.fill();
+  return c;
+}
+
 // ── His sword ────────────────────────────────────────────────────
 let _lhRaf = null;
 let _lhX = 0, _lhY = 0, _lhTX = 0, _lhTY = 0, _lhVX = 0, _lhVY = 0;
 let _lhAim = -0.9, _lhTrail = [], _lhSparks = [], _lhFore = [], _lhSwing = 0;
+let _lhHold = false, _lhCharge = 0;
 
 function _lhMouseMove(e) { _lhTX = e.clientX; _lhTY = e.clientY; }
 
-function _lhClick(e) {
-  _lhWave = { x: e.clientX, y: e.clientY, r: 20, life: 1 };
-  _lhSwing = 1;
-  for (let k = 0; k < 34; k++) {
+// A tap is a tap and still throws a ring. But held, the blade draws the heat
+// in off the field first, and what it lets go of then goes a great deal
+// further and takes every rank with it.
+function _lhDown() { _lhHold = true; }
+function _lhBlur() { _lhHold = false; _lhCharge = 0; }
+
+function _lhUp(e) {
+  if (!_lhHold) return;
+  _lhHold = false;
+  const pw = 0.3 + _lhCharge * 1.3;
+  _lhCharge = 0;
+  _lhWave = { x: e.clientX, y: e.clientY, r: 20, life: 1, pw };
+  _lhSwing = Math.min(1.7, 0.75 + pw * 0.6);
+  const n = Math.round(20 + pw * 58);
+  for (let k = 0; k < n; k++) {
     const a = Math.random() * 6.283185;
-    const s = 130 + Math.random() * 460;
+    const s = (130 + Math.random() * 460) * (0.7 + pw * 0.55);
     _lhSparks.push({ x: e.clientX, y: e.clientY, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60,
-      life: 1, sz: 1.2 + Math.random() * 2.8 });
+      life: 1, sz: (1.2 + Math.random() * 2.8) * (0.8 + pw * 0.35) });
   }
-  if (_lhSparks.length > 280) _lhSparks.splice(0, _lhSparks.length - 280);
+  if (_lhSparks.length > 320) _lhSparks.splice(0, _lhSparks.length - 320);
 }
 
 function _drawLeonHumanOverlay(canvas, ctx, W, H, t) {
@@ -42301,6 +42499,65 @@ function _drawLeonHumanOverlay(canvas, ctx, W, H, t) {
     _lhAim += d * Math.min(1, dt * 6);
   }
   _lhSwing = Math.max(0, _lhSwing - dt * 3);
+  if (_lhHold) _lhCharge = Math.min(1, _lhCharge + dt * 1.05);
+  // the field behind reads this to know which of its blades he is beside
+  const _tipX = _lhX + Math.cos(_lhAim) * 42;
+  const _tipY = _lhY + Math.sin(_lhAim) * 42;
+  _lhTorch = { x: _tipX, y: _tipY, k: 0.8 + _lhCharge * 0.9 + _lhSwing * 0.45 };
+
+  // ── the page is standing in it, not looking at it ──
+  // Dark pulled down over the top corners, moving just enough to read as air
+  // rather than as a frame, and fire coming up over the bottom edge in front
+  // of everything, because the bottom of the screen is where the ground is.
+  for (let side = 0; side < 2; side++) {
+    const ox = side ? W : 0, dir = side ? -1 : 1;
+    const R = Math.min(W, H) * 0.52;
+    const cg = ctx.createRadialGradient(ox, 0, 0, ox, 0, R);
+    for (let i = 0; i <= 12; i++) {                // out to nothing well inside
+      const u = i / 12;                            // the moving edge, so the edge
+      cg.addColorStop(u, `rgba(7,2,1,${(0.74 * Math.pow(1 - u, 2.8)).toFixed(4)})`);
+    }
+    ctx.fillStyle = cg;
+    ctx.beginPath();                               // an edge that moves, not a rule
+    ctx.moveTo(ox, 0);
+    for (let i = 0; i <= 9; i++) {
+      const a = (i / 9) * 1.5708;
+      const rr = R * (1.02 + 0.13 * Math.sin(t * 0.7 + i * 1.3 + side * 2.1)
+                           + 0.05 * Math.sin(t * 1.6 + i * 2.7));
+      ctx.lineTo(ox + dir * Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (!canvas._lhLick) {
+    canvas._lhLick = [_lhLickSprite(_LH_DEEP), _lhLickSprite(_LH_FIRE), _lhLickSprite(_LH_HOT)];
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  // three passes: a deep body, the flame proper, and a few hot cores. Each is
+  // the same soft tongue at a different size, and they overlap, which is the
+  // whole of why it reads as fire and not as a row of shapes.
+  // spacing in pixels rather than a count, and a height off the narrow side of
+  // the window, so a tall thin page gets fire and not a row of wires
+  const FH = Math.min(H, W * 0.75);
+  const rows = [[0, 205, 0.3, 1.9, 0.28, 0.8], [1, 111, 0.22, 0.8, 0.44, 1.4],
+                [2, 65, 0.11, 0.5, 0.3, 2.2]];
+  for (const [si, gap, hf, wf, af, sp] of rows) {
+    const sprite = canvas._lhLick[si];
+    const n = Math.max(2, Math.round(W / gap));
+    const bw = W / n;
+    for (let i = 0; i <= n; i++) {
+      const ph = _lhRnd(i * 3.7 + si * 11.3) * 6.283185;
+      const sz = 0.6 + _lhRnd(i * 5.9 + si * 7.1) * 0.8;
+      const x = bw * (i + 0.5) + Math.sin(t * sp * 0.7 + ph) * bw * 0.34;
+      const hh = FH * hf * sz * (0.5 + 0.5 * (0.5 - 0.5 * Math.cos(t * sp + ph))
+                                 + 0.2 * Math.sin(t * sp * 1.9 + ph * 1.6));
+      const ww = bw * wf * (0.7 + sz * 0.3);
+      ctx.globalAlpha = af * (0.6 + 0.4 * Math.sin(t * sp * 1.3 + ph));
+      ctx.drawImage(sprite, x - ww / 2, H - hh, ww, hh);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
 
   // embers crossing in front of the page
   if (!_lhFore.length) {
@@ -42337,12 +42594,12 @@ function _drawLeonHumanOverlay(canvas, ctx, W, H, t) {
     ctx.beginPath();
     ctx.arc(_lhWave.x, _lhWave.y, _lhWave.r, 0, 6.283185);
     ctx.strokeStyle = `rgba(${_LH_FIRE},${(_lhWave.life * 0.8).toFixed(3)})`;
-    ctx.lineWidth = 2 + _lhWave.life * 10;
+    ctx.lineWidth = (2 + _lhWave.life * 10) * (0.6 + _lhWave.pw * 0.7);
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(_lhWave.x, _lhWave.y, _lhWave.r * 0.82, 0, 6.283185);
     ctx.strokeStyle = `rgba(${_LH_HOT},${(_lhWave.life * 0.5).toFixed(3)})`;
-    ctx.lineWidth = 1 + _lhWave.life * 4;
+    ctx.lineWidth = (1 + _lhWave.life * 4) * (0.6 + _lhWave.pw * 0.7);
     ctx.stroke();
   }
 
@@ -42357,6 +42614,22 @@ function _drawLeonHumanOverlay(canvas, ctx, W, H, t) {
     ctx.arc(s.x, s.y, s.sz * s.life, 0, 6.283185);
     ctx.fillStyle = `rgba(${_LH_HOT},${(s.life * 0.9).toFixed(3)})`;
     ctx.fill();
+  }
+
+  // heat coming in off the field to the blade while he holds it
+  if (_lhCharge > 0.02) {
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 16; i++) {
+      const ph = (t * 1.5 + i / 16) % 1;
+      const rr = (1 - ph) * 170 * (0.35 + _lhCharge * 0.85);
+      const a = i * 0.3927 + t * 1.2;
+      ctx.beginPath();
+      ctx.arc(_tipX + Math.cos(a) * rr, _tipY + Math.sin(a) * rr,
+              0.9 + _lhCharge * 2.4 * ph, 0, 6.283185);
+      ctx.fillStyle = `rgba(${_LH_HOT},${(ph * _lhCharge * 0.8).toFixed(3)})`;
+      ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
   }
 
   // the trail the blade leaves through the air
@@ -42427,15 +42700,15 @@ function _drawLeonHumanOverlay(canvas, ctx, W, H, t) {
   for (let i = 0; i < 9; i++) {
     const u = i / 8;
     const x = -10 * S + u * 56 * S;
-    const r = (7 - u * 3) * S * (0.7 + 0.3 * Math.sin(t * 9 + i * 1.7));
+    const r = (7 - u * 3) * S * (0.7 + 0.3 * Math.sin(t * 9 + i * 1.7)) * (1 + _lhCharge * 0.45);
     ctx.beginPath();
     ctx.arc(x, Math.sin(t * 7 + i) * 2.4 * S, r, 0, 6.283185);
-    ctx.fillStyle = `rgba(${_LH_FIRE},${(0.16 + _lhSwing * 0.2).toFixed(3)})`;
+    ctx.fillStyle = `rgba(${_LH_FIRE},${(0.16 + _lhSwing * 0.2 + _lhCharge * 0.16).toFixed(3)})`;
     ctx.fill();
   }
   ctx.beginPath();
   ctx.moveTo(-16 * S, 0); ctx.lineTo(46 * S, 0);
-  ctx.strokeStyle = `rgba(${_LH_HOT},${(0.45 + _lhSwing * 0.4).toFixed(2)})`;
+  ctx.strokeStyle = `rgba(${_LH_HOT},${Math.min(1, 0.45 + _lhSwing * 0.4 + _lhCharge * 0.5).toFixed(2)})`;
   ctx.lineWidth = 2 * S;
   ctx.stroke();
   ctx.restore();
@@ -42449,8 +42722,11 @@ function _startLeonHumanOverlay() {
   _lhY = _lhTY = window.innerHeight * 0.5;
   _lhVX = _lhVY = 0; _lhAim = -0.9; _lhSwing = 0;
   _lhTrail = []; _lhSparks = []; _lhFore = []; _lhWave = null;
+  _lhTorch = null; _lhHold = false; _lhCharge = 0;
   window.addEventListener('mousemove', _lhMouseMove);
-  window.addEventListener('click', _lhClick);
+  window.addEventListener('mousedown', _lhDown);
+  window.addEventListener('mouseup', _lhUp);
+  window.addEventListener('blur', _lhBlur);
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = 'none';
   const cv = document.createElement('canvas');
@@ -42465,6 +42741,7 @@ function _startLeonHumanOverlay() {
     if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
       cv2.width = window.innerWidth; cv2.height = window.innerHeight;
       _lhFore = [];
+      cv2._lhLick = null;
     }
     _drawLeonHumanOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
     _lhRaf = requestAnimationFrame(frame);
@@ -42475,12 +42752,15 @@ function _startLeonHumanOverlay() {
 function _stopLeonHumanOverlay() {
   if (_lhRaf) { cancelAnimationFrame(_lhRaf); _lhRaf = null; }
   window.removeEventListener('mousemove', _lhMouseMove);
-  window.removeEventListener('click', _lhClick);
+  window.removeEventListener('mousedown', _lhDown);
+  window.removeEventListener('mouseup', _lhUp);
+  window.removeEventListener('blur', _lhBlur);
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('leonhuman-overlay');
   if (cv) cv.remove();
   _lhTrail = []; _lhSparks = []; _lhWave = null;
+  _lhTorch = null; _lhHold = false; _lhCharge = 0;
 }
 /* ─────────────────────────────────────────────────────────────── */
 
