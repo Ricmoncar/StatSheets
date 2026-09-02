@@ -41989,213 +41989,100 @@ function toggleMobileToC() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// RADY - a treasure hunter working a toxic wasteland. The scene is
-// built off the reference: a sick green sky over a dead skyline, a
-// broken brick wall strung with caution tape, trefoil signs on poles,
-// drums, rubble, and warning boards standing in front of the whole page
-// at the corners the way they crop into the bottom of that picture.
-// What he is actually here for is on the floor. Loot lies along the
-// bottom of the screen and the cursor ploughs through it: sweep and it
-// scatters, dig and it throws up whatever was buried there. It is the
-// one thing on the page that is his rather than the wasteland's, so it
-// is the only thing allowed to be gold.
+// ════════════════════════════════════════════════════════════════
+// RADY - a treasure hunter working a poisoned country at dusk.
+// The first attempt at this page was a prop diorama: a wall across the
+// middle with signs and drums lined up along it, everything at one
+// depth and one value, which reads as a sheet of game assets rather
+// than a place you could be lost in. This is built on one idea instead,
+// and the idea is the air. In smog this thick distance does not get
+// darker, it gets paler and flatter until it dissolves, so the far
+// ruins are the brightest things on the page and the ground at your
+// feet is nearly black. Every bit of depth here comes from that.
+// His lantern is the whole interaction. Out in the murk his finds lie
+// dead and invisible; light falling on one wakes it, and once woken it
+// follows the lamp. Sweep and you drag a tail of it behind you. A click
+// throws the haul back out into the dark.
 // ════════════════════════════════════════════════════════════════
 const _RADY_RE = /^["']?\s*RADY\s*["']?$/i;
 function _isRady(c) { return !!(c && c.name && _RADY_RE.test(c.name)); }
-const _RD_TOXIC = '150,214,96';      // what the air is doing
-const _RD_HAZ   = '242,197,36';      // tape, signs, drums
-const _RD_GOLD  = '255,206,84';      // and the only clean colour out here
-const _RD_HEX   = '#e8c23c';
+const _RD_LAMP = '255,214,140';      // the only warm thing for miles
+const _RD_GOLD = '255,208,110';
+const _RD_HAZE = '150,172,110';
+const _RD_HEX  = '#e8c46a';          // the accent, taken off the lamp
 
 function _rdRnd(seed) {
   const v = Math.sin(seed * 53.47 + 11.29) * 31573.19;
   return v - Math.floor(v);
 }
 
-// ── The marks on everything ──────────────────────────────────────
-function _rdTrefoil(g, r, col) {
-  g.fillStyle = col;
-  for (let i = 0; i < 3; i++) {
-    const a = i * 2.0944 - 1.5708;
-    g.beginPath();
-    g.moveTo(0, 0);
-    g.arc(0, 0, r, a - 0.524, a + 0.524);
-    g.closePath();
-    g.fill();
-  }
-  g.beginPath();
-  g.arc(0, 0, r * 0.19, 0, 6.283185);
-  g.fillStyle = col;
-  g.fill();
-}
+// ── One band of ruin, tileable so it can drift ───────────────────
+// Silhouette only. What separates the bands is not detail, it is value:
+// the far ones sit almost at the colour of the sky behind them.
+function _rdBandSprite(W, h, depth, seed) {
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(W); c.height = Math.ceil(h);
+  const g = c.getContext('2d');
+  // near is dark, far washes out into the haze
+  const v = 26 + depth * 108;
+  g.fillStyle = `rgb(${(v * 0.72) | 0},${(v * 0.86) | 0},${(v * 0.6) | 0})`;
 
-function _rdBiohazard(g, r, col) {
-  g.strokeStyle = col;
-  g.lineWidth = r * 0.3;
-  for (let i = 0; i < 3; i++) {
-    const a = i * 2.0944 - 1.5708;
-    g.beginPath();
-    g.arc(Math.cos(a) * r * 0.52, Math.sin(a) * r * 0.52, r * 0.46, a - 2.1, a + 2.1);
-    g.stroke();
-  }
-  g.beginPath();
-  g.arc(0, 0, r * 0.2, 0, 6.283185);
-  g.fillStyle = col;
-  g.fill();
-}
+  let x = -30, i = 0;
+  while (x < W + 30) {
+    const bw = h * (0.1 + _rdRnd(seed + i * 3.7) * 0.42);
+    const bh = h * (0.16 + _rdRnd(seed + i * 5.3) * 0.78);
+    const y = h - bh;
+    g.fillRect(x, y, bw, bh);
 
-// ── Caution tape, run along a path ───────────────────────────────
-function _rdTape(g, x0, y0, x1, y1, wdt) {
-  const dx = x1 - x0, dy = y1 - y0;
-  const len = Math.hypot(dx, dy) || 1;
-  const nx = -dy / len * wdt * 0.5, ny = dx / len * wdt * 0.5;
-  g.save();
-  g.beginPath();
-  g.moveTo(x0 + nx, y0 + ny);
-  g.lineTo(x1 + nx, y1 + ny);
-  g.lineTo(x1 - nx, y1 - ny);
-  g.lineTo(x0 - nx, y0 - ny);
-  g.closePath();
-  g.fillStyle = `rgb(${_RD_HAZ})`;
-  g.fill();
-  g.clip();
-  // the black bars, leaning the way tape bars always do
-  g.strokeStyle = 'rgba(24,22,12,0.92)';
-  g.lineWidth = wdt * 0.42;
-  g.beginPath();
-  const step = wdt * 1.5;
-  for (let d = -wdt; d < len + wdt; d += step) {
-    const px = x0 + dx * (d / len), py = y0 + dy * (d / len);
-    g.moveTo(px + nx * 1.6 - dx / len * wdt * 0.7, py + ny * 1.6 - dy / len * wdt * 0.7);
-    g.lineTo(px - nx * 1.6 + dx / len * wdt * 0.7, py - ny * 1.6 + dy / len * wdt * 0.7);
-  }
-  g.stroke();
-  g.restore();
-  g.strokeStyle = 'rgba(20,18,10,0.55)';
-  g.lineWidth = 1;
-  g.beginPath();
-  g.moveTo(x0 + nx, y0 + ny); g.lineTo(x1 + nx, y1 + ny);
-  g.moveTo(x0 - nx, y0 - ny); g.lineTo(x1 - nx, y1 - ny);
-  g.stroke();
-}
-
-// ── Wall, drums, signs, rubble ───────────────────────────────────
-function _rdWall(g, x, y, w, h, seed) {
-  const bh = Math.max(9, h * 0.11), bw = bh * 2.3;
-  const rows = Math.ceil(h / bh);
-  for (let r = 0; r < rows; r++) {
-    const yy = y + h - (r + 1) * bh;
-    // the top of a broken wall is never level
-    const top = y + h * (0.06 + _rdRnd(seed + r * 3.1) * 0.14);
-    if (yy < top) continue;
-    const off = (r % 2) * bw * 0.5;
-    for (let bx = x - bw; bx < x + w + bw; bx += bw) {
-      const px = bx + off;
-      if (px + bw < x || px > x + w) continue;
-      const v = _rdRnd(seed + r * 7.3 + px * 0.013);
-      const sh = 150 + v * 40;
-      g.fillStyle = `rgb(${(sh * 0.86) | 0},${(sh * 0.82) | 0},${(sh * 0.72) | 0})`;
-      g.fillRect(Math.max(x, px) + 1, yy + 1, Math.min(bw, x + w - px) - 2, bh - 2);
-      g.strokeStyle = 'rgba(58,52,42,0.55)';
-      g.lineWidth = 1;
-      g.strokeRect(Math.max(x, px) + 1, yy + 1, Math.min(bw, x + w - px) - 2, bh - 2);
+    const r = _rdRnd(seed + i * 7.1);
+    if (r < 0.16) {                                  // a mast off the top
+      g.fillRect(x + bw * 0.44, y - h * 0.3 * _rdRnd(seed + i * 2.3), bw * 0.07, h * 0.3);
+    } else if (r < 0.3) {                            // a broken crown
+      g.fillRect(x, y - h * 0.06, bw * 0.34, h * 0.06);
+      g.fillRect(x + bw * 0.62, y - h * 0.1, bw * 0.3, h * 0.1);
+    } else if (r < 0.4) {                            // a crane arm
+      g.save();
+      g.translate(x + bw * 0.5, y);
+      g.rotate(-0.25 + _rdRnd(seed + i) * 0.5);
+      g.fillRect(-bw * 0.9, -h * 0.03, bw * 1.8, h * 0.028);
+      g.restore();
     }
+    // a few lit windows, only close in where you could actually see them
+    if (depth < 0.4 && bw > h * 0.14) {
+      g.fillStyle = `rgba(${_RD_LAMP},${(0.1 + (0.4 - depth) * 0.22).toFixed(3)})`;
+      for (let k = 0; k < 5; k++) {
+        if (_rdRnd(seed + i * 11 + k * 3) > 0.34) continue;
+        g.fillRect(x + bw * (0.16 + _rdRnd(seed + i + k) * 0.6),
+                   y + bh * (0.1 + _rdRnd(seed + i * 2 + k) * 0.7),
+                   bw * 0.08, bh * 0.03);
+      }
+      g.fillStyle = `rgb(${(v * 0.72) | 0},${(v * 0.86) | 0},${(v * 0.6) | 0})`;
+    }
+    x += bw * (1.02 + _rdRnd(seed + i * 9.1) * 0.5);
+    i++;
   }
-  // a coping course along the ragged top
-  g.fillStyle = 'rgba(92,84,68,0.5)';
-  for (let bx = x; bx < x + w; bx += bw) {
-    const top = y + h * (0.06 + _rdRnd(seed + Math.floor((bx - x) / bw) * 5.7) * 0.12);
-    g.fillRect(bx, top, bw * 0.98, bh * 0.5);
-  }
-}
-
-function _rdDrum(g, x, y, s, seed) {
-  const w = s, h = s * 1.45;
-  const grd = g.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
-  grd.addColorStop(0, '#a97d0d');
-  grd.addColorStop(0.34, `rgb(${_RD_HAZ})`);
-  grd.addColorStop(0.72, '#f7d94e');
-  grd.addColorStop(1, '#8f6a0a');
-  g.fillStyle = grd;
-  g.fillRect(x - w / 2, y - h, w, h);
-  g.strokeStyle = 'rgba(40,32,8,0.75)';
-  g.lineWidth = 1.4;
-  g.strokeRect(x - w / 2, y - h, w, h);
-  for (const u of [0.26, 0.72]) {                   // the rolling hoops
+  // pylons striding through it, which is what says this was a country
+  for (let p = 0; p < 3; p++) {
+    const px = W * ((p + _rdRnd(seed + p * 13.7)) / 3);
+    const ph = h * (0.5 + _rdRnd(seed + p * 17.3) * 0.5);
+    const pw = h * 0.06;
+    g.strokeStyle = `rgb(${(v * 0.68) | 0},${(v * 0.8) | 0},${(v * 0.56) | 0})`;
+    g.lineWidth = Math.max(1, h * 0.008);
     g.beginPath();
-    g.moveTo(x - w / 2, y - h + h * u);
-    g.lineTo(x + w / 2, y - h + h * u);
-    g.strokeStyle = 'rgba(40,32,8,0.5)';
-    g.lineWidth = w * 0.075;
+    g.moveTo(px - pw, h); g.lineTo(px - pw * 0.28, h - ph);
+    g.moveTo(px + pw, h); g.lineTo(px + pw * 0.28, h - ph);
+    for (let k = 1; k <= 3; k++) {
+      const u = k / 4, yy = h - ph * u;
+      const wd = pw * (1 - u * 0.72);
+      g.moveTo(px - wd, yy); g.lineTo(px + wd, yy);
+    }
+    g.moveTo(px - pw * 1.5, h - ph * 0.82); g.lineTo(px + pw * 1.5, h - ph * 0.82);
     g.stroke();
   }
-  g.save();
-  g.translate(x, y - h * 0.5);
-  _rdBiohazard(g, w * 0.3, 'rgba(28,24,8,0.85)');
-  g.restore();
+  return c;
 }
 
-function _rdSign(g, x, y, s, kind, seed) {
-  g.strokeStyle = '#b9bcc0';                        // the post
-  g.lineWidth = Math.max(2, s * 0.09);
-  g.beginPath();
-  g.moveTo(x, y);
-  g.lineTo(x + (_rdRnd(seed) - 0.5) * s * 0.3, y - s * 2.3);
-  g.stroke();
-  g.save();
-  g.translate(x + (_rdRnd(seed) - 0.5) * s * 0.3, y - s * 2.3);
-  g.rotate((_rdRnd(seed * 3.1) - 0.5) * 0.3);
-  if (kind === 0) {                                 // round, trefoil
-    g.beginPath();
-    g.arc(0, 0, s * 0.62, 0, 6.283185);
-    g.fillStyle = `rgb(${_RD_HAZ})`;
-    g.fill();
-    g.strokeStyle = 'rgba(30,26,10,0.9)';
-    g.lineWidth = Math.max(1.5, s * 0.07);
-    g.stroke();
-    _rdTrefoil(g, s * 0.42, 'rgba(28,24,8,0.92)');
-  } else {                                          // triangular, exclamation
-    const r = s * 0.72;
-    g.beginPath();
-    g.moveTo(0, -r);
-    g.lineTo(r * 0.92, r * 0.62);
-    g.lineTo(-r * 0.92, r * 0.62);
-    g.closePath();
-    g.fillStyle = `rgb(${_RD_HAZ})`;
-    g.fill();
-    g.strokeStyle = 'rgba(30,26,10,0.9)';
-    g.lineWidth = Math.max(1.5, s * 0.07);
-    g.stroke();
-    g.fillStyle = 'rgba(28,24,8,0.92)';
-    g.fillRect(-s * 0.06, -r * 0.36, s * 0.12, r * 0.62);
-    g.beginPath();
-    g.arc(0, r * 0.42, s * 0.08, 0, 6.283185);
-    g.fill();
-  }
-  g.restore();
-}
-
-function _rdRubble(g, x, y, w, seed) {
-  for (let i = 0; i < 22; i++) {
-    const u = _rdRnd(seed + i * 3.7) - 0.5;
-    const rx = x + u * w * 0.8;
-    // they heap up in the middle of the pile rather than lying in a line
-    const ry = y - (1 - Math.abs(u) * 1.7) * _rdRnd(seed + i * 5.3) * w * 0.3;
-    const rs = w * (0.055 + _rdRnd(seed + i * 7.1) * 0.075);
-    const v = 140 + _rdRnd(seed + i * 9.7) * 50;
-    g.save();
-    g.translate(rx, ry);
-    g.rotate(_rdRnd(seed + i * 11.3) * 6.283);
-    g.fillStyle = `rgb(${(v * 0.88) | 0},${(v * 0.85) | 0},${(v * 0.76) | 0})`;
-    g.fillRect(-rs, -rs * 0.82, rs * 2, rs * 1.64);
-    g.strokeStyle = 'rgba(52,46,36,0.75)';
-    g.lineWidth = 1.4;
-    g.strokeRect(-rs, -rs * 0.82, rs * 2, rs * 1.64);
-    g.restore();
-  }
-}
-
-// ── The wasteland ────────────────────────────────────────────────
+// ── The country ──────────────────────────────────────────────────
 function _drawRadyPattern(canvas, ctx, W, H, t) {
   const fresh = _drawRadyPattern._lt === undefined;
   if (!fresh && t - _drawRadyPattern._lt < 0.033) return;
@@ -42204,414 +42091,268 @@ function _drawRadyPattern(canvas, ctx, W, H, t) {
 
   if (canvas._rdW !== W || canvas._rdH !== H) {
     canvas._rdW = W; canvas._rdH = H;
-    canvas._rdSky = null; canvas._rdMid = null; canvas._rdCloud = null;
-    canvas._rdMotes = null; canvas._rdVign = null;
+    canvas._rdSky = null; canvas._rdBands = null; canvas._rdSmog = null;
+    canvas._rdAsh = null; canvas._rdVign = null;
   }
-  const HORIZON = H * 0.62;
+  const HZ = H * 0.66;                    // where the ground starts
 
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
 
-  // 1 ── sick sky over a dead skyline, and the ground under it
+  // 1 ── the sky, brightest down at the horizon where the sun is buried
   if (!canvas._rdSky) {
     canvas._rdSky = document.createElement('canvas');
     canvas._rdSky.width = W; canvas._rdSky.height = H;
     const sx = canvas._rdSky.getContext('2d');
-    const g = sx.createLinearGradient(0, 0, 0, HORIZON);
-    g.addColorStop(0, '#c2d6ac');
-    g.addColorStop(0.42, '#9cba84');
-    g.addColorStop(0.78, '#7ba066');
-    g.addColorStop(1, '#5e8450');
+    const g = sx.createLinearGradient(0, 0, 0, HZ);
+    g.addColorStop(0, '#2b3722');
+    g.addColorStop(0.34, '#4c5f37');
+    g.addColorStop(0.68, '#7c9459');
+    g.addColorStop(0.9, '#b3c47e');
+    g.addColorStop(1, '#cdd694');
     sx.fillStyle = g;
-    sx.fillRect(0, 0, W, HORIZON);
-
-    // three bands of towers, the far ones swallowed by the haze
-    for (let band = 0; band < 3; band++) {
-      const base = HORIZON - H * 0.02 + band * H * 0.012;
-      const tall = H * (0.3 - band * 0.07);
-      const v = 96 + band * 26;
-      sx.fillStyle = `rgba(${(v * 0.62) | 0},${(v * 0.78) | 0},${(v * 0.6) | 0},${0.5 + band * 0.2})`;
-      let x = -40;
-      let i = 0;
-      while (x < W + 40) {
-        const bw = W * (0.02 + _rdRnd(band * 31 + i * 3.7) * 0.045);
-        const bh = tall * (0.3 + _rdRnd(band * 17 + i * 5.3) * 0.9);
-        sx.fillRect(x, base - bh, bw, bh);
-        if (_rdRnd(band * 13 + i * 7.1) < 0.3) {     // a spire on some of them
-          sx.fillRect(x + bw * 0.42, base - bh - tall * 0.22, bw * 0.16, tall * 0.22);
-        }
-        x += bw * (1.05 + _rdRnd(band * 23 + i * 9.1) * 0.5);
-        i++;
-      }
-    }
-    // the ground
-    const gg = sx.createLinearGradient(0, HORIZON, 0, H);
-    gg.addColorStop(0, '#5d5c33');
-    gg.addColorStop(0.4, '#4e4d2b');
-    gg.addColorStop(1, '#33331c');
+    sx.fillRect(0, 0, W, HZ);
+    // the sun as a smear rather than a disc, because you never see it
+    const sg = sx.createRadialGradient(W * 0.62, HZ, 0, W * 0.62, HZ, Math.max(W, H) * 0.4);
+    sg.addColorStop(0, 'rgba(238,232,164,0.5)');
+    sg.addColorStop(0.3, 'rgba(206,214,140,0.16)');
+    sg.addColorStop(1, 'rgba(206,214,140,0)');
+    sx.globalCompositeOperation = 'lighter';
+    sx.fillStyle = sg;
+    sx.fillRect(0, 0, W, HZ + 40);
+    sx.globalCompositeOperation = 'source-over';
+    // and the ground, which is the darkest thing on the page
+    const gg = sx.createLinearGradient(0, HZ, 0, H);
+    gg.addColorStop(0, '#4a5334');
+    gg.addColorStop(0.3, '#2e3520');
+    gg.addColorStop(1, '#101408');
     sx.fillStyle = gg;
-    sx.fillRect(0, HORIZON, W, H - HORIZON);
-    for (let i = 0; i < 220; i++) {                  // grit
-      const x2 = _rdRnd(i * 3.3) * W;
-      const y2 = HORIZON + _rdRnd(i * 5.9) * (H - HORIZON);
-      const s2 = 1 + _rdRnd(i * 7.7) * 2.4;
-      sx.fillStyle = `rgba(${_rdRnd(i) < 0.5 ? '90,88,58' : '40,40,24'},0.5)`;
-      sx.fillRect(x2, y2, s2, s2 * 0.7);
-    }
+    sx.fillRect(0, HZ, W, H - HZ);
   }
   ctx.drawImage(canvas._rdSky, 0, 0);
 
-  // 2 ── the cloud deck, sliding
-  if (!canvas._rdCloud) {
-    const cw = Math.ceil(W * 1.5), ch = Math.ceil(H * 0.5);
+  // 2 ── six deep, each paler and slower than the one in front of it
+  if (!canvas._rdBands) {
+    canvas._rdBands = [];
+    const N = 6;
+    for (let i = 0; i < N; i++) {
+      const depth = 1 - i / (N - 1);                  // 1 far, 0 near
+      const bh = H * (0.1 + (1 - depth) * 0.3);
+      canvas._rdBands.push({
+        s: _rdBandSprite(Math.ceil(W * 1.25), bh, depth, i * 37 + 3),
+        y: HZ - bh + (1 - depth) * H * 0.1,
+        v: 1.5 + (1 - depth) * 9,
+        off: _rdRnd(i * 5.1) * W,
+      });
+    }
+  }
+  for (const b of canvas._rdBands) {
+    b.off = (b.off + b.v * dt) % b.s.width;
+    ctx.drawImage(b.s, -b.off, b.y);
+    ctx.drawImage(b.s, b.s.width - b.off, b.y);
+  }
+
+  // 3 ── smog lying in the middle distance, which is what does the work
+  if (!canvas._rdSmog) {
+    const cw = Math.ceil(W * 1.3), ch = Math.ceil(H * 0.42);
     const c = document.createElement('canvas');
     c.width = cw; c.height = ch;
     const g = c.getContext('2d');
-    for (let i = 0; i < 34; i++) {
-      const x = _rdRnd(i * 4.1) * cw, y = _rdRnd(i * 6.3) * ch;
-      const r = cw * (0.07 + _rdRnd(i * 8.7) * 0.15);
+    for (let i = 0; i < 40; i++) {
+      const x = _rdRnd(i * 4.1) * cw, y = ch * (0.25 + _rdRnd(i * 6.3) * 0.6);
+      const r = cw * (0.06 + _rdRnd(i * 8.7) * 0.14);
       const gr = g.createRadialGradient(x, y, 0, x, y, r);
-      const a = 0.1 + _rdRnd(i * 10.9) * 0.17;
-      gr.addColorStop(0, `rgba(74,104,64,${a.toFixed(3)})`);
-      gr.addColorStop(1, 'rgba(74,104,64,0)');
+      const a = 0.05 + _rdRnd(i * 10.9) * 0.09;
+      gr.addColorStop(0, `rgba(${_RD_HAZE},${a.toFixed(3)})`);
+      gr.addColorStop(1, `rgba(${_RD_HAZE},0)`);
       g.fillStyle = gr;
       g.beginPath();
       g.arc(x, y, r, 0, 6.283185);
       g.fill();
     }
-    canvas._rdCloud = c;
+    canvas._rdSmog = c;
   }
-  {
-    const off = (t * 5) % canvas._rdCloud.width;
-    ctx.drawImage(canvas._rdCloud, -off, 0);
-    ctx.drawImage(canvas._rdCloud, canvas._rdCloud.width - off, 0);
+  for (let k = 0; k < 2; k++) {
+    const sp = 7 + k * 11;
+    const off = (t * sp) % canvas._rdSmog.width;
+    const y = HZ - canvas._rdSmog.height * (0.86 - k * 0.3);
+    ctx.globalAlpha = 0.85 - k * 0.25;
+    ctx.drawImage(canvas._rdSmog, -off, y);
+    ctx.drawImage(canvas._rdSmog, canvas._rdSmog.width - off, y);
   }
+  ctx.globalAlpha = 1;
 
-  // 3 ── the wall and everything hung on it, all of it standing still
-  if (!canvas._rdMid) {
-    canvas._rdMid = document.createElement('canvas');
-    canvas._rdMid.width = W; canvas._rdMid.height = H;
-    const g = canvas._rdMid.getContext('2d');
-    const wy = HORIZON - H * 0.2, wh = H * 0.24;
-
-    // left run, a gap for the fence, right run
-    const gapL = W * 0.33, gapR = W * 0.6;
-    _rdWall(g, -20, wy, gapL + 20, wh, 5);
-    _rdWall(g, gapR, wy, W - gapR + 20, wh, 31);
-
-    // the fence in the gap
-    g.strokeStyle = 'rgba(40,52,34,0.75)';
-    g.lineWidth = 1;
-    g.beginPath();
-    for (let x = gapL; x < gapR; x += 9) { g.moveTo(x, wy + wh * 0.2); g.lineTo(x + 9, wy + wh); }
-    for (let x = gapL; x < gapR; x += 9) { g.moveTo(x, wy + wh); g.lineTo(x + 9, wy + wh * 0.2); }
-    g.stroke();
-    g.strokeStyle = 'rgba(70,86,58,0.9)';
-    g.lineWidth = 2.5;
-    g.beginPath();
-    g.moveTo(gapL, wy + wh * 0.2); g.lineTo(gapR, wy + wh * 0.2);
-    g.stroke();
-
-    _rdRubble(g, W * 0.12, wy + wh + H * 0.04, W * 0.2, 3);
-    _rdRubble(g, W * 0.72, wy + wh + H * 0.05, W * 0.24, 17);
-    _rdRubble(g, W * 0.45, wy + wh + H * 0.02, W * 0.12, 29);
-
-    _rdDrum(g, W * 0.13, wy + wh + H * 0.06, W * 0.05, 2);
-    _rdDrum(g, W * 0.25, wy + wh + H * 0.055, W * 0.046, 8);
-    _rdDrum(g, W * 0.78, wy + wh + H * 0.065, W * 0.052, 14);
-    // one on its side, the way there is always one on its side
-    g.save();
-    g.translate(W * 0.88, wy + wh + H * 0.045);
-    g.rotate(1.5708);
-    _rdDrum(g, 0, 0, W * 0.048, 20);
-    g.restore();
-
-    _rdSign(g, W * 0.05, wy + wh * 0.6, W * 0.03, 0, 4);
-    _rdSign(g, W * 0.14, wy + wh * 0.2, W * 0.032, 0, 9);
-    _rdSign(g, W * 0.28, wy + wh * 0.4, W * 0.03, 0, 15);
-    _rdSign(g, W * 0.62, wy + wh * 0.3, W * 0.028, 1, 21);
-    _rdSign(g, W * 0.83, wy + wh * 0.15, W * 0.03, 1, 27);
-
-    // tape strung across it in long crossing runs
-    const tw = Math.max(7, H * 0.016);
-    _rdTape(g, -30, wy + wh * 0.35, W * 0.36, wy + wh * 0.95, tw);
-    _rdTape(g, W * 0.02, wy + wh * 1.0, W * 0.4, wy + wh * 0.3, tw);
-    _rdTape(g, W * 0.3, wy + wh * 0.45, W * 0.72, wy + wh * 1.05, tw);
-    _rdTape(g, W * 0.58, wy + wh * 1.0, W * 1.02, wy + wh * 0.4, tw);
-    _rdTape(g, W * 0.66, wy + wh * 0.25, W * 1.03, wy + wh * 0.8, tw);
-
-    // and somebody's opinion, in green
-    g.save();
-    g.translate(W * 0.71, wy + wh * 0.5);
-    g.rotate(-0.06);
-    g.font = `bold ${Math.round(H * 0.062)}px sans-serif`;
-    g.strokeStyle = 'rgba(38,72,20,0.8)';
-    g.lineWidth = Math.max(3, H * 0.008);
-    g.strokeText('KEEP', 0, 0);
-    g.strokeText('OUT', H * 0.016, H * 0.066);
-    g.fillStyle = 'rgba(138,214,70,0.92)';
-    g.fillText('KEEP', 0, 0);
-    g.fillText('OUT', H * 0.016, H * 0.066);
-    g.restore();
-  }
-  ctx.drawImage(canvas._rdMid, 0, 0);
-
-  // 4 ── what is in the air
-  if (!canvas._rdMotes) {
-    canvas._rdMotes = [];
-    for (let i = 0; i < 64; i++) {
-      canvas._rdMotes.push({
+  // 4 ── ash, going down slowly the way ash does
+  if (!canvas._rdAsh) {
+    canvas._rdAsh = [];
+    for (let i = 0; i < 90; i++) {
+      canvas._rdAsh.push({
         x: _rdRnd(i * 3.7) * W, y: _rdRnd(i * 5.1) * H,
-        vy: -4 - _rdRnd(i * 7.3) * 12, vx: (_rdRnd(i * 9.7) - 0.5) * 14,
-        sz: 0.8 + _rdRnd(i * 11.9) * 2, ph: _rdRnd(i * 13.1) * 6.283,
-        tw: 0.4 + _rdRnd(i * 15.7) * 1,
+        vy: 7 + _rdRnd(i * 7.3) * 26, vx: (_rdRnd(i * 9.7) - 0.5) * 16,
+        sz: 0.7 + _rdRnd(i * 11.9) * 1.8, ph: _rdRnd(i * 13.1) * 6.283,
+        near: _rdRnd(i * 15.7) < 0.25,
       });
     }
   }
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.beginPath();
-  for (const m of canvas._rdMotes) {
-    m.y += m.vy * dt;
-    m.x += (m.vx + Math.sin(t * 0.4 + m.ph) * 8) * dt;
-    if (m.y < -8) { m.y = H + 8; m.x = Math.random() * W; }
-    const r = m.sz * (0.3 + 0.7 * (0.5 - 0.5 * Math.cos(t * m.tw + m.ph)));
-    ctx.moveTo(m.x + r, m.y);
-    ctx.arc(m.x, m.y, r, 0, 6.283185);
+  for (const a of canvas._rdAsh) {
+    a.y += a.vy * dt;
+    a.x += (a.vx + Math.sin(t * 0.5 + a.ph) * 12) * dt;
+    if (a.y > H + 8) { a.y = -8; a.x = Math.random() * W; }
+    if (a.x < -8) a.x = W + 8; else if (a.x > W + 8) a.x = -8;
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, a.sz * (a.near ? 1.7 : 1), 0, 6.283185);
+    ctx.fillStyle = a.near ? 'rgba(28,32,20,0.5)' : 'rgba(206,214,170,0.28)';
+    ctx.fill();
   }
-  ctx.fillStyle = `rgba(${_RD_TOXIC},0.3)`;
-  ctx.fill();
-  ctx.globalCompositeOperation = 'source-over';
 
-  // 5 ── the haze sitting over the whole thing
+  // 5 ── the murk closing in
   if (!canvas._rdVign) {
     canvas._rdVign = document.createElement('canvas');
     canvas._rdVign.width = W; canvas._rdVign.height = H;
     const vx = canvas._rdVign.getContext('2d');
-    const g = vx.createRadialGradient(W * 0.5, H * 0.44, Math.min(W, H) * 0.24,
-                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.76);
-    g.addColorStop(0, 'rgba(120,160,100,0)');
-    g.addColorStop(0.58, 'rgba(46,64,38,0.28)');
-    g.addColorStop(1, 'rgba(24,34,20,0.7)');
+    const g = vx.createRadialGradient(W * 0.6, HZ * 0.94, Math.min(W, H) * 0.2,
+                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.78);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.54, 'rgba(12,16,8,0.34)');
+    g.addColorStop(1, 'rgba(6,9,4,0.88)');
     vx.fillStyle = g;
     vx.fillRect(0, 0, W, H);
   }
   ctx.drawImage(canvas._rdVign, 0, 0);
 }
 
-// ── The boards standing in front of the page ─────────────────────
-function _rdTopInset() {
-  let top = 0;
-  for (const sel of ['#header', '#mobile-topbar']) {
-    const el = document.querySelector(sel);
-    if (!el) continue;
-    const cs = getComputedStyle(el);
-    if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) continue;
-    const r = el.getBoundingClientRect();
-    if (r.width > 100 && r.top <= 2 && r.height > 0) top = Math.max(top, r.bottom);
-  }
-  return Math.round(Math.min(top, 160));
-}
-
-function _rdDrawFront(canvas, ctx, W0, H0) {
-  ctx.clearRect(0, 0, W0, H0);
-  const T = _rdTopInset();
-  ctx.save();
-  ctx.translate(0, T);
-  const W = W0, H = H0 - T;
-  if (H < 140 || W < 240) { ctx.restore(); return; }
-  const S = Math.min(W, H) * 0.3;
-
-  // tape run across the top corners, in front of everything
-  const tw = Math.max(9, Math.min(W, H) * 0.022);
-  _rdTape(ctx, -30, H * 0.02, W * 0.3, -10, tw);
-  _rdTape(ctx, W * 0.74, -10, W + 30, H * 0.05, tw);
-
-  // and the boards, cropped by the bottom of the frame the way they are
-  // cropped by the bottom of the picture
-  ctx.save();
-  ctx.translate(W * 0.06, H + S * 0.34);
-  ctx.rotate(-0.12);
-  ctx.beginPath();
-  ctx.moveTo(0, -S * 0.95);
-  ctx.lineTo(S * 0.88, S * 0.6);
-  ctx.lineTo(-S * 0.88, S * 0.6);
-  ctx.closePath();
-  ctx.fillStyle = `rgb(${_RD_HAZ})`;
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(30,26,10,0.92)';
-  ctx.lineWidth = S * 0.07;
-  ctx.stroke();
-  ctx.fillStyle = 'rgba(28,24,8,0.92)';
-  ctx.fillRect(-S * 0.07, -S * 0.44, S * 0.14, S * 0.66);
-  ctx.beginPath();
-  ctx.arc(0, S * 0.38, S * 0.09, 0, 6.283185);
-  ctx.fill();
-  ctx.restore();
-
-  ctx.save();
-  ctx.translate(W * 0.87, H + S * 0.42);
-  ctx.rotate(0.1);
-  ctx.beginPath();
-  ctx.arc(0, 0, S * 0.78, 0, 6.283185);
-  ctx.fillStyle = `rgb(${_RD_HAZ})`;
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(30,26,10,0.92)';
-  ctx.lineWidth = S * 0.07;
-  ctx.stroke();
-  _rdTrefoil(ctx, S * 0.54, 'rgba(28,24,8,0.92)');
-  ctx.restore();
-
-  ctx.restore();
-}
-
-// ── The floor of the place, and what is on it ────────────────────
+// ── The lamp, and what it finds ──────────────────────────────────
 let _rdOverlayRafId = null;
 let _rdX = 0, _rdY = 0, _rdTX = 0, _rdTY = 0, _rdVX = 0, _rdVY = 0;
-let _rdLoot = [], _rdSpark = [], _rdFore = [];
+let _rdLoot = [], _rdSpark = [], _rdAshF = [], _rdFlare = 0, _rdHalo = null;
 
-const _RD_KINDS = 6;   // coin, gem, ring, bar, stud, shard
+const _RD_REACH = 190;               // how far the lamp throws
 
 function _rdMouseMove(e) { _rdTX = e.clientX; _rdTY = e.clientY; }
 
-function _rdNewLoot(x, y, seed) {
-  return {
-    x, y, vx: (Math.random() - 0.5) * 90, vy: -120 - Math.random() * 160,
-    r: 8 + Math.random() * 8, kind: Math.floor(Math.random() * _RD_KINDS),
-    spin: Math.random() * 6.283, vs: (Math.random() - 0.5) * 7,
-    ph: Math.random() * 6.283, seed,
-  };
-}
-
-function _rdClick(e) {
-  // a dig: whatever was under there comes up, and so does the dirt
-  _rdLoot.push(_rdNewLoot(e.clientX, e.clientY, Math.random() * 100));
-  if (_rdLoot.length > 26) _rdLoot.shift();
+function _rdClick() {
+  // everything he has gathered goes back out into the dark
+  _rdFlare = 1;
   for (const l of _rdLoot) {
-    const dx = l.x - e.clientX, dy = l.y - e.clientY;
+    const dx = l.x - _rdX, dy = l.y - _rdY;
     const d = Math.hypot(dx, dy) || 1;
-    if (d > 190) continue;
-    const f = (1 - d / 190) * 620;
-    l.vx += dx / d * f; l.vy += dy / d * f - 130;
-    l.vs += (Math.random() - 0.5) * 12;
+    if (d > _RD_REACH * 1.3) continue;
+    const f = (1 - Math.min(1, d / (_RD_REACH * 1.3))) * 900;
+    l.vx += dx / d * f; l.vy += dy / d * f;
+    l.vs += (Math.random() - 0.5) * 14;
   }
-  for (let k = 0; k < 22; k++) {
-    const a = -Math.PI + Math.random() * Math.PI;
-    const s = 90 + Math.random() * 300;
-    _rdSpark.push({ x: e.clientX, y: e.clientY, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
-      life: 1, sz: 1.4 + Math.random() * 3, dirt: Math.random() < 0.6 });
+  for (let k = 0; k < 26; k++) {
+    const a = Math.random() * 6.283185;
+    const s = 120 + Math.random() * 380;
+    _rdSpark.push({ x: _rdX, y: _rdY, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+      life: 1, sz: 1.2 + Math.random() * 2.6 });
   }
-  if (_rdSpark.length > 260) _rdSpark.splice(0, _rdSpark.length - 260);
+  if (_rdSpark.length > 240) _rdSpark.splice(0, _rdSpark.length - 240);
 }
 
-// one piece of loot, at the origin
-function _rdDrawLoot(ctx, l, t) {
-  const r = l.r;
+function _rdHaloSprite(r) {
+  const px = Math.ceil(r * 2);
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(r, r, 0, r, r, r);
+  gr.addColorStop(0, `rgba(255,238,190,0.95)`);
+  gr.addColorStop(0.06, `rgba(${_RD_LAMP},0.62)`);
+  gr.addColorStop(0.22, `rgba(${_RD_LAMP},0.3)`);
+  gr.addColorStop(0.5, `rgba(224,192,116,0.12)`);
+  gr.addColorStop(1, `rgba(190,170,104,0)`);
+  g.fillStyle = gr;
+  g.fillRect(0, 0, px, px);
+  return c;
+}
+
+// one find, lying wherever it fell
+function _rdDrawFind(ctx, l) {
+  const w = l.wake;
+  if (w <= 0.02) {                      // out of the light it is just a lump
+    ctx.beginPath();
+    ctx.arc(l.x, l.y, l.r * 0.5, 0, 6.283185);
+    ctx.fillStyle = 'rgba(30,34,22,0.55)';
+    ctx.fill();
+    return;
+  }
   ctx.save();
   ctx.translate(l.x, l.y);
   ctx.rotate(l.spin);
-  const face = Math.abs(Math.cos(l.spin));
-  if (l.kind === 0) {                               // a coin, turning edge on
+  const face = 0.35 + Math.abs(Math.cos(l.spin)) * 0.65;
+  const r = l.r;
+  if (l.kind === 0) {                                    // coin
     ctx.beginPath();
-    ctx.ellipse(0, 0, r * (0.25 + face * 0.75), r, 0, 0, 6.283185);
+    ctx.ellipse(0, 0, r * face, r, 0, 0, 6.283185);
     const g = ctx.createLinearGradient(-r, -r, r, r);
-    g.addColorStop(0, '#8a6410');
+    g.addColorStop(0, '#6d4f0c');
     g.addColorStop(0.45, `rgb(${_RD_GOLD})`);
-    g.addColorStop(0.7, '#fff0bd');
-    g.addColorStop(1, '#9c7414');
+    g.addColorStop(0.72, '#fff2c4');
+    g.addColorStop(1, '#7d5a0e');
     ctx.fillStyle = g;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(70,50,6,0.8)';
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-  } else if (l.kind === 1) {                        // a cut stone
+  } else if (l.kind === 1) {                             // a stone
     ctx.beginPath();
-    ctx.moveTo(0, -r);
-    ctx.lineTo(r * 0.8, -r * 0.2);
-    ctx.lineTo(0, r);
-    ctx.lineTo(-r * 0.8, -r * 0.2);
+    ctx.moveTo(0, -r); ctx.lineTo(r * 0.78, -r * 0.18);
+    ctx.lineTo(0, r); ctx.lineTo(-r * 0.78, -r * 0.18);
     ctx.closePath();
     const g = ctx.createLinearGradient(-r, -r, r, r);
-    g.addColorStop(0, '#2f9bb8');
-    g.addColorStop(0.5, '#8ee6ff');
-    g.addColorStop(1, '#1c6a86');
+    g.addColorStop(0, '#2c8fa8');
+    g.addColorStop(0.5, '#9aeaff');
+    g.addColorStop(1, '#1a6076');
     ctx.fillStyle = g;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(220,250,255,0.7)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+  } else if (l.kind === 2) {                             // a band
     ctx.beginPath();
-    ctx.moveTo(-r * 0.8, -r * 0.2); ctx.lineTo(r * 0.8, -r * 0.2);
-    ctx.moveTo(0, -r); ctx.lineTo(0, r);
-    ctx.stroke();
-  } else if (l.kind === 2) {                        // a ring
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r * 0.85, r * (0.3 + face * 0.55), 0, 0, 6.283185);
+    ctx.ellipse(0, 0, r * 0.85, r * face * 0.9, 0, 0, 6.283185);
     ctx.strokeStyle = `rgb(${_RD_GOLD})`;
     ctx.lineWidth = r * 0.3;
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,244,206,0.75)';
-    ctx.lineWidth = r * 0.1;
-    ctx.stroke();
-  } else if (l.kind === 3) {                        // a small bar
+  } else if (l.kind === 3) {                             // a small ingot
     const g = ctx.createLinearGradient(0, -r * 0.5, 0, r * 0.5);
-    g.addColorStop(0, '#ffe9a8');
+    g.addColorStop(0, '#ffeab0');
     g.addColorStop(0.5, `rgb(${_RD_GOLD})`);
-    g.addColorStop(1, '#8a6410');
+    g.addColorStop(1, '#6d4f0c');
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.moveTo(-r, -r * 0.42); ctx.lineTo(r, -r * 0.42);
-    ctx.lineTo(r * 0.82, r * 0.42); ctx.lineTo(-r * 0.82, r * 0.42);
+    ctx.moveTo(-r, -r * 0.4); ctx.lineTo(r, -r * 0.4);
+    ctx.lineTo(r * 0.8, r * 0.4); ctx.lineTo(-r * 0.8, r * 0.4);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = 'rgba(70,50,6,0.7)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  } else if (l.kind === 4) {                        // a stud with a stone in it
+  } else {                                               // a shard of glass
     ctx.beginPath();
-    ctx.arc(0, 0, r * 0.8, 0, 6.283185);
-    ctx.fillStyle = '#c9ccd2';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(70,74,80,0.8)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.34, 0, 6.283185);
-    ctx.fillStyle = '#e8547a';
-    ctx.fill();
-  } else {                                          // a shard of something
-    ctx.beginPath();
-    ctx.moveTo(-r, r * 0.3);
-    ctx.lineTo(-r * 0.2, -r);
-    ctx.lineTo(r * 0.9, -r * 0.1);
-    ctx.lineTo(r * 0.1, r * 0.9);
+    ctx.moveTo(-r, r * 0.3); ctx.lineTo(-r * 0.2, -r);
+    ctx.lineTo(r * 0.9, -r * 0.1); ctx.lineTo(r * 0.1, r * 0.9);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(206,232,240,0.85)';
+    ctx.fillStyle = 'rgba(212,236,244,0.8)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
   }
   ctx.restore();
 
-  // the glint, which is the whole reason he is out here
-  const gl = (Math.sin(t * 1.7 + l.ph) + 1) * 0.5;
-  if (gl > 0.82) {
-    const k = (gl - 0.82) / 0.18;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.translate(l.x, l.y - r * 0.3);
-    ctx.rotate(0.5);
-    ctx.fillStyle = `rgba(255,252,232,${(k * 0.9).toFixed(3)})`;
-    const L = r * 2.6 * k;
+  // it only shines while the lamp is on it
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = w;
+  ctx.beginPath();
+  ctx.arc(l.x, l.y, l.r * 2.6, 0, 6.283185);
+  ctx.fillStyle = `rgba(${_RD_GOLD},0.1)`;
+  ctx.fill();
+  const gl = (Math.sin(l.ph + performance.now() * 0.004) + 1) * 0.5;
+  if (gl > 0.7) {
+    const k = (gl - 0.7) / 0.3 * w;
+    ctx.translate(l.x, l.y);
+    ctx.rotate(0.4);
+    ctx.fillStyle = `rgba(255,250,224,${(k * 0.95).toFixed(3)})`;
+    const L = l.r * 3.4 * k;
     for (let i = 0; i < 2; i++) {
       ctx.rotate(1.5708);
       ctx.beginPath();
-      ctx.moveTo(-L, 0); ctx.lineTo(0, -r * 0.22); ctx.lineTo(L, 0); ctx.lineTo(0, r * 0.22);
+      ctx.moveTo(-L, 0); ctx.lineTo(0, -l.r * 0.2); ctx.lineTo(L, 0); ctx.lineTo(0, l.r * 0.2);
       ctx.closePath();
       ctx.fill();
     }
-    ctx.restore();
   }
+  ctx.restore();
 }
 
 function _drawRadyOverlay(canvas, ctx, W, H, t) {
@@ -42621,128 +42362,146 @@ function _drawRadyOverlay(canvas, ctx, W, H, t) {
   ctx.clearRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over';
 
+  if (!_rdHalo) _rdHalo = _rdHaloSprite(_RD_REACH);
   if (!_rdLoot.length) {
-    for (let i = 0; i < 15; i++) {
-      const l = _rdNewLoot(W * (0.06 + (i / 15) * 0.88), H - 60 - Math.random() * 40, i * 7.3);
-      l.vy = 0; l.vx = 0;
-      _rdLoot.push(l);
+    for (let i = 0; i < 30; i++) {
+      _rdLoot.push({
+        x: _rdRnd(i * 4.3 + 1) * W,
+        rest: H - 16 - _rdRnd(i * 6.1) * H * 0.22,    // its own bit of rubble
+        y: H - 16 - _rdRnd(i * 6.1) * H * 0.22,
+        vx: 0, vy: 0, r: 6 + _rdRnd(i * 8.7) * 6,
+        kind: Math.floor(_rdRnd(i * 10.3) * 5),
+        spin: _rdRnd(i * 12.9) * 6.283, vs: 0,
+        ph: _rdRnd(i * 14.7) * 6.283, wake: 0,
+      });
     }
   }
-  if (!_rdFore.length) {
-    for (let i = 0; i < 18; i++) {
-      _rdFore.push({
-        x: _rdRnd(i * 4.9 + 3) * W, y: ((i + _rdRnd(i * 6.7)) / 18) * H,
-        vy: -10 - _rdRnd(i * 8.1) * 26, vx: (_rdRnd(i * 10.3) - 0.5) * 20,
-        sz: 1.4 + _rdRnd(i * 12.9) * 3, ph: _rdRnd(i * 14.1) * 6.283,
-        tw: 0.5 + _rdRnd(i * 16.3) * 1.1,
+  if (!_rdAshF.length) {
+    for (let i = 0; i < 16; i++) {
+      _rdAshF.push({
+        x: _rdRnd(i * 5.9 + 4) * W, y: ((i + _rdRnd(i * 7.7)) / 16) * H,
+        vy: 22 + _rdRnd(i * 9.1) * 40, vx: (_rdRnd(i * 11.3) - 0.5) * 22,
+        sz: 1.6 + _rdRnd(i * 13.7) * 3, ph: _rdRnd(i * 15.1) * 6.283,
       });
     }
   }
 
-  const SPRING = 70, DAMP = 13;
+  const SPRING = 62, DAMP = 13;
   _rdVX += ((_rdTX - _rdX) * SPRING - _rdVX * DAMP) * dt;
   _rdVY += ((_rdTY - _rdY) * SPRING - _rdVY * DAMP) * dt;
   _rdX += _rdVX * dt; _rdY += _rdVY * dt;
-  const spd = Math.hypot(_rdVX, _rdVY);
+  _rdFlare = Math.max(0, _rdFlare - dt * 2.6);
 
-  // toxic air in front of the page
+  // ── the pool of light, laid down before anything it touches ──
+  const pulse = 0.9 + 0.1 * Math.sin(t * 2.3) + _rdFlare * 0.7;
   ctx.globalCompositeOperation = 'lighter';
-  for (const m of _rdFore) {
-    m.y += m.vy * dt;
-    m.x += (m.vx + Math.sin(t * 0.4 + m.ph) * 12) * dt;
-    if (m.y < -12) { m.y = H + 12; m.x = Math.random() * W; }
-    const r = m.sz * (0.3 + 0.7 * (0.5 - 0.5 * Math.cos(t * m.tw + m.ph)));
+  ctx.globalAlpha = Math.min(1, pulse);
+  ctx.drawImage(_rdHalo, _rdX - _RD_REACH, _rdY - _RD_REACH);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+
+  // ── the finds ──
+  for (const l of _rdLoot) {
+    const dx = _rdX - l.x, dy = _rdY - l.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const lit = Math.max(0, 1 - d / _RD_REACH);
+    // it stays awake a moment after the light has moved off it
+    l.wake = Math.max(lit, l.wake - dt * 0.55);
+    if (d < _RD_REACH) {
+      // drawn in, but pushed sideways as well so the haul circles the lamp
+      // instead of collapsing into a single heap on top of it
+      const f = lit * 5200 * dt;
+      const ux = dx / d, uy = dy / d;
+      l.vx += (ux * f - uy * f * 0.62);
+      l.vy += (uy * f + ux * f * 0.62);
+      if (d < 52) { l.vx -= ux * 2600 * dt; l.vy -= uy * 2600 * dt; }
+      l.vs += 7 * dt;
+    }
+    l.vy += 760 * dt;                                  // it wants the ground back
+    l.vx *= 0.965; l.vy *= 0.965; l.vs *= 0.96;
+    l.x += l.vx * dt; l.y += l.vy * dt;
+    l.spin += l.vs * dt;
+    if (l.x < l.r) { l.x = l.r; l.vx = Math.abs(l.vx) * 0.4; }
+    else if (l.x > W - l.r) { l.x = W - l.r; l.vx = -Math.abs(l.vx) * 0.4; }
+    if (l.y < l.r) { l.y = l.r; l.vy = Math.abs(l.vy) * 0.4; }
+    const floor = l.rest;
+    if (l.y > floor) {
+      l.y = floor;
+      if (Math.abs(l.vy) < 60) l.vy = 0; else l.vy = -Math.abs(l.vy) * 0.3;
+      l.vx -= l.vx * 3.4 * dt;
+      l.vs -= l.vs * 4 * dt;
+    }
+    _rdDrawFind(ctx, l);
+  }
+
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _rdSpark.length - 1; i >= 0; i--) {
+    const s = _rdSpark[i];
+    s.x += s.vx * dt; s.y += s.vy * dt;
+    s.vx *= 0.93; s.vy *= 0.93;
+    s.life -= dt * 1.7;
+    if (s.life <= 0) { _rdSpark.splice(i, 1); continue; }
     ctx.beginPath();
-    ctx.arc(m.x, m.y, r, 0, 6.283185);
-    ctx.fillStyle = `rgba(${_RD_TOXIC},0.35)`;
+    ctx.arc(s.x, s.y, s.sz * s.life, 0, 6.283185);
+    ctx.fillStyle = `rgba(${_RD_LAMP},${(s.life * 0.9).toFixed(3)})`;
     ctx.fill();
   }
   ctx.globalCompositeOperation = 'source-over';
 
-  // ── the loot, which he can plough straight through ──
-  const FLOOR = H - 38;
-  for (const l of _rdLoot) {
-    // the tool shoves whatever it passes, and harder the faster it is moving
-    const dx = l.x - _rdX, dy = l.y - _rdY;
-    const d = Math.hypot(dx, dy) || 1;
-    const REACH = 74;
-    if (d < REACH) {
-      const f = (1 - d / REACH) * (140 + Math.min(900, spd * 1.5)) * dt;
-      l.vx += dx / d * f;
-      l.vy += dy / d * f * 0.7;
-      l.vs += (dx / d) * f * 0.02;
-    }
-    l.vy += 1500 * dt;
-    l.x += l.vx * dt; l.y += l.vy * dt;
-    l.spin += l.vs * dt;
-    l.vx *= 0.995;
-    if (l.x < l.r) { l.x = l.r; l.vx = Math.abs(l.vx) * 0.5; l.vs *= -0.5; }
-    else if (l.x > W - l.r) { l.x = W - l.r; l.vx = -Math.abs(l.vx) * 0.5; l.vs *= -0.5; }
-    if (l.y > FLOOR) {
-      l.y = FLOOR;
-      if (Math.abs(l.vy) < 70) l.vy = 0; else l.vy = -Math.abs(l.vy) * 0.35;
-      l.vx -= l.vx * 4.2 * dt;                       // it grinds to a stop in dirt
-      l.vs -= l.vs * 5 * dt;
-    }
-    if (l.y < -60) { l.y = -60; l.vy = 0; }
-    _rdDrawLoot(ctx, l, t);
-  }
-
-  // dirt and sparks off a dig
-  for (let i = _rdSpark.length - 1; i >= 0; i--) {
-    const s = _rdSpark[i];
-    s.vy += 1300 * dt;
-    s.x += s.vx * dt; s.y += s.vy * dt;
-    s.life -= dt * (s.dirt ? 1.4 : 2.2);
-    if (s.life <= 0) { _rdSpark.splice(i, 1); continue; }
+  // ash crossing in front of the page
+  for (const a of _rdAshF) {
+    a.y += a.vy * dt;
+    a.x += (a.vx + Math.sin(t * 0.5 + a.ph) * 16) * dt;
+    if (a.y > H + 10) { a.y = -10; a.x = Math.random() * W; }
     ctx.beginPath();
-    ctx.arc(s.x, s.y, s.sz * s.life, 0, 6.283185);
-    ctx.fillStyle = s.dirt ? `rgba(74,72,42,${(s.life * 0.85).toFixed(3)})`
-                           : `rgba(${_RD_GOLD},${(s.life * 0.95).toFixed(3)})`;
+    ctx.arc(a.x, a.y, a.sz, 0, 6.283185);
+    ctx.fillStyle = 'rgba(22,26,16,0.45)';
     ctx.fill();
   }
 
-  // ── his tool: a hand pick, leaning the way he swings it ──
+  // ── the lamp itself, swinging off his hand ──
+  const sway = Math.max(-0.5, Math.min(0.5, -_rdVX * 0.0016)) + Math.sin(t * 1.7) * 0.06;
   ctx.save();
   ctx.translate(_rdX, _rdY);
-  ctx.rotate(Math.max(-0.5, Math.min(0.5, _rdVX * 0.0014)) + 0.5 + Math.sin(t * 1.6) * 0.04);
-  ctx.beginPath();                                   // haft
-  ctx.moveTo(-6, 6); ctx.lineTo(20, 32);
-  ctx.strokeStyle = '#6b4a2a';
-  ctx.lineWidth = 5.4;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(126,92,54,0.95)';
+  ctx.rotate(sway);
+  ctx.scale(1.55, 1.55);
+  ctx.beginPath();                                   // bail
+  ctx.moveTo(-9, -12);
+  ctx.quadraticCurveTo(0, -30, 9, -12);
+  ctx.strokeStyle = '#8b8f96';
   ctx.lineWidth = 2.4;
   ctx.stroke();
-  ctx.beginPath();                                   // head, one point one blade
-  ctx.moveTo(-26, -14);
-  ctx.quadraticCurveTo(-6, -2, -2, 10);
-  ctx.lineTo(-9, 14);
-  ctx.quadraticCurveTo(-14, 2, -30, -8);
+  ctx.fillStyle = '#5d626a';                         // cap
+  ctx.fillRect(-11, -15, 22, 6);
+  ctx.fillRect(-8, 12, 16, 6);                       // base
+  ctx.beginPath();                                   // the glass
+  ctx.moveTo(-9, -9);
+  ctx.quadraticCurveTo(-12, 0, -8, 12);
+  ctx.lineTo(8, 12);
+  ctx.quadraticCurveTo(12, 0, 9, -9);
   ctx.closePath();
-  ctx.moveTo(-2, 10);
-  ctx.quadraticCurveTo(10, 0, 20, -6);
-  ctx.lineTo(22, 2);
-  ctx.quadraticCurveTo(12, 6, -1, 15);
-  ctx.closePath();
-  const hg = ctx.createLinearGradient(-24, -12, 12, 12);
-  hg.addColorStop(0, '#cfd4da');
-  hg.addColorStop(0.5, '#8b939c');
-  hg.addColorStop(1, '#4d545c');
-  ctx.fillStyle = hg;
+  const lg = ctx.createLinearGradient(0, -9, 0, 12);
+  lg.addColorStop(0, `rgba(${_RD_LAMP},0.95)`);
+  lg.addColorStop(0.5, 'rgba(255,238,190,1)');
+  lg.addColorStop(1, `rgba(${_RD_LAMP},0.9)`);
+  ctx.fillStyle = lg;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(28,32,36,0.9)';
-  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = '#4a4f57';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.beginPath();                                   // the guard bars
+  ctx.moveTo(-10, -2); ctx.lineTo(10, -2);
+  ctx.moveTo(-11, 5); ctx.lineTo(11, 5);
+  ctx.strokeStyle = 'rgba(60,64,70,0.9)';
+  ctx.lineWidth = 1.8;
   ctx.stroke();
   ctx.restore();
-  // a lamp on it, because the air out here is not clear
+  // the flame inside it, sitting on top of everything
   ctx.globalCompositeOperation = 'lighter';
-  const gl = ctx.createRadialGradient(_rdX, _rdY, 0, _rdX, _rdY, 66);
-  gl.addColorStop(0, `rgba(${_RD_GOLD},0.16)`);
-  gl.addColorStop(1, `rgba(${_RD_HAZ},0)`);
-  ctx.fillStyle = gl;
-  ctx.fillRect(_rdX - 66, _rdY - 66, 132, 132);
+  ctx.beginPath();
+  ctx.arc(_rdX, _rdY + 1, 7 + _rdFlare * 8, 0, 6.283185);
+  ctx.fillStyle = `rgba(255,246,214,${(0.55 + _rdFlare * 0.4).toFixed(3)})`;
+  ctx.fill();
   ctx.globalCompositeOperation = 'source-over';
 }
 
@@ -42751,20 +42510,12 @@ function _startRadyOverlay() {
   _drawRadyOverlay._lt = undefined;
   _rdX = _rdTX = window.innerWidth * 0.5;
   _rdY = _rdTY = window.innerHeight * 0.5;
-  _rdVX = _rdVY = 0;
-  _rdLoot = []; _rdSpark = []; _rdFore = [];
+  _rdVX = _rdVY = 0; _rdFlare = 0;
+  _rdLoot = []; _rdSpark = []; _rdAshF = [];
   window.addEventListener('mousemove', _rdMouseMove);
   window.addEventListener('click', _rdClick);
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = 'none';
-
-  const fr = document.createElement('canvas');
-  fr.id = 'rady-front-overlay';
-  fr.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:30;pointer-events:none;';
-  fr.width = window.innerWidth; fr.height = window.innerHeight;
-  document.body.appendChild(fr);
-  _rdDrawFront(fr, fr.getContext('2d'), fr.width, fr.height);
-
   const cv = document.createElement('canvas');
   cv.id = 'rady-overlay';
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
@@ -42772,16 +42523,11 @@ function _startRadyOverlay() {
   document.body.appendChild(cv);
   const t0 = performance.now();
   function frame(now) {
-    const fr2 = document.getElementById('rady-front-overlay');
-    if (fr2 && (fr2.width !== window.innerWidth || fr2.height !== window.innerHeight)) {
-      fr2.width = window.innerWidth; fr2.height = window.innerHeight;
-      _rdDrawFront(fr2, fr2.getContext('2d'), fr2.width, fr2.height);
-    }
     const cv2 = document.getElementById('rady-overlay');
     if (!cv2) return;
     if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
       cv2.width = window.innerWidth; cv2.height = window.innerHeight;
-      _rdFore = [];
+      _rdAshF = [];
     }
     _drawRadyOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
     _rdOverlayRafId = requestAnimationFrame(frame);
@@ -42797,8 +42543,6 @@ function _stopRadyOverlay() {
   if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('rady-overlay');
   if (cv) cv.remove();
-  const fr = document.getElementById('rady-front-overlay');
-  if (fr) fr.remove();
   _rdLoot = []; _rdSpark = [];
 }
 /* ─────────────────────────────────────────────────────────────── */
