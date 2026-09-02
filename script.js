@@ -42577,6 +42577,73 @@ function _rdBandSprite(W, h, depth, seed) {
   return c;
 }
 
+
+// ── Drums, left where they were dropped ──────────────────────────
+// Near ground, so by the rule of the place they are silhouettes: the body is
+// almost black and only the top rim and one side take anything off the sky.
+// The band round the middle is the one piece of hazard yellow down here, and
+// it is dusty rather than fresh. One of them is not sealed any more.
+function _rdDrum(g, x, y, s, seed, leak) {
+  const w = s, h = s * 1.42;
+  const top = y - h;
+  const body = g.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+  body.addColorStop(0, '#0d1108');
+  body.addColorStop(0.34, '#1b2110');
+  body.addColorStop(0.78, '#2b3318');
+  body.addColorStop(1, '#0a0d06');
+  g.fillStyle = body;
+  g.fillRect(x - w / 2, top, w, h);
+  g.beginPath();                                    // the lid, seen a little
+  g.ellipse(x, top, w / 2, w * 0.17, 0, 0, 6.283185);
+  g.fillStyle = '#242c14';
+  g.fill();
+  g.strokeStyle = 'rgba(196,206,150,0.35)';         // the sky on the rim
+  g.lineWidth = Math.max(1, s * 0.035);
+  g.stroke();
+  for (const u of [0.3, 0.7]) {                     // rolling hoops
+    g.beginPath();
+    g.moveTo(x - w / 2, top + h * u);
+    g.lineTo(x + w / 2, top + h * u);
+    g.strokeStyle = 'rgba(6,8,4,0.75)';
+    g.lineWidth = s * 0.08;
+    g.stroke();
+  }
+  g.fillStyle = 'rgba(178,148,42,0.82)';            // the band, gone dusty
+  g.fillRect(x - w / 2, top + h * 0.42, w, h * 0.16);
+  g.fillStyle = 'rgba(10,12,6,0.85)';               // and a mark on it
+  for (let i = 0; i < 3; i++) {
+    const a = i * 2.0944 - 1.5708;
+    g.beginPath();
+    g.moveTo(x, top + h * 0.5);
+    g.arc(x, top + h * 0.5, h * 0.062, a - 0.5, a + 0.5);
+    g.closePath();
+    g.fill();
+  }
+  g.strokeStyle = 'rgba(206,216,160,0.4)';          // one lit edge
+  g.lineWidth = Math.max(1, s * 0.04);
+  g.beginPath();
+  g.moveTo(x + w / 2, top); g.lineTo(x + w / 2, y);
+  g.stroke();
+  if (leak) {                                       // and this one is open
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    const gl = g.createRadialGradient(x + w * 0.2, y, 0, x + w * 0.2, y, w * 1.6);
+    gl.addColorStop(0, `rgba(${_RD_HAZE},0.42)`);
+    gl.addColorStop(1, `rgba(${_RD_HAZE},0)`);
+    g.fillStyle = gl;
+    g.fillRect(x - w * 1.6, y - w * 1.6, w * 3.2, w * 3.2);
+    g.restore();
+    g.beginPath();                                  // the puddle it made
+    g.ellipse(x + w * 0.25, y + s * 0.05, w * 0.7, w * 0.17, 0, 0, 6.283185);
+    g.fillStyle = 'rgba(122,168,74,0.5)';
+    g.fill();
+    g.beginPath();
+    g.ellipse(x + w * 0.25, y + s * 0.05, w * 0.38, w * 0.09, 0, 0, 6.283185);
+    g.fillStyle = 'rgba(176,222,110,0.55)';
+    g.fill();
+  }
+}
+
 // ── The country ──────────────────────────────────────────────────
 function _drawRadyPattern(canvas, ctx, W, H, t) {
   const fresh = _drawRadyPattern._lt === undefined;
@@ -42588,6 +42655,7 @@ function _drawRadyPattern(canvas, ctx, W, H, t) {
     canvas._rdW = W; canvas._rdH = H;
     canvas._rdSky = null; canvas._rdBands = null; canvas._rdSmog = null;
     canvas._rdAsh = null; canvas._rdVign = null; canvas._rdVent = null;
+    canvas._rdDrums = null;
   }
   const HZ = H * 0.66;                    // where the ground starts
 
@@ -42676,6 +42744,29 @@ function _drawRadyPattern(canvas, ctx, W, H, t) {
     ctx.drawImage(canvas._rdSmog, canvas._rdSmog.width - off, y);
   }
   ctx.globalAlpha = 1;
+
+  // and what somebody left standing about in the near ground
+  if (!canvas._rdDrums) {
+    canvas._rdDrums = document.createElement('canvas');
+    canvas._rdDrums.width = W; canvas._rdDrums.height = H;
+    const dx = canvas._rdDrums.getContext('2d');
+    const S = Math.min(W, H);
+    const set = [
+      [W * 0.16, H * 0.9,  S * 0.088, 3,  false],
+      [W * 0.22, H * 0.94, S * 0.1, 9,  true],
+      [W * 0.79, H * 0.88, S * 0.082, 15, false],
+      [W * 0.85, H * 0.93, S * 0.094, 21, false],
+      [W * 0.5,  H * 0.82, S * 0.066, 27, true],
+    ];
+    for (const [x, y, sz, sd, leak] of set) _rdDrum(dx, x, y, sz, sd, leak);
+    // one on its side, because there is always one on its side
+    dx.save();
+    dx.translate(W * 0.72, H * 0.96);
+    dx.rotate(1.5708);
+    _rdDrum(dx, 0, 0, S * 0.085, 33, false);
+    dx.restore();
+  }
+  ctx.drawImage(canvas._rdDrums, 0, 0);
 
   // 4 ── something venting out of the ground, which it does everywhere here
   if (!canvas._rdVent) {
@@ -43021,8 +43112,8 @@ function _rdDrawFront(ctx, W, H, t) {
   _rdTapeRun(ctx, -40, H * 0.1, W * 0.42, -20, S * 0.05, S * 0.09, 13, t, 1.7);
   _rdTapeRun(ctx, W * 0.58, H * 1.03, W + 40, H * 0.72, S * 0.048, -S * 0.07, 11, t, 4.1);
   // and two boards leaning in at the bottom, mostly out of shot
-  _rdBoard(ctx, W * 0.1, H * 1.02, S * 0.2, -0.16, 0);
-  _rdBoard(ctx, W * 0.93, H * 0.96, S * 0.17, 0.12, 1);
+  _rdBoard(ctx, W * 0.11, H * 0.88, S * 0.3, -0.14, 0);
+  _rdBoard(ctx, W * 0.9, H * 0.8, S * 0.26, 0.11, 1);
 }
 
 function _drawRadyOverlay(canvas, ctx, W, H, t) {
