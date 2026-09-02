@@ -14404,3 +14404,89 @@ text.lb-cl-glitch-svg {
 @media (prefers-reduced-motion: reduce) {
   .char-name-display.rady-name::after { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   LEON, human form: the warlord. Panels of scorched plate lit along
+   the bottom edge, because the fire on his page is low and behind.
+   ════════════════════════════════════════════════════════════════ */
+#char-view.leonh-ui .panel {
+  --p-border: rgba(255,138,32,0.75);
+  border: 1px solid rgba(150,38,10,0.7);
+  background: linear-gradient(180deg, rgba(26,12,7,0.95), rgba(10,4,3,0.97));
+  box-shadow:
+    0 0 30px rgba(150,38,10,0.5),
+    inset 0 -2px 0 rgba(255,138,32,0.34),
+    inset 0 0 40px rgba(60,16,6,0.6);
+}
+#char-view.leonh-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(130% 62% at 50% 120%, rgba(255,138,32,0.24), transparent 62%),
+    radial-gradient(100% 50% at 6% -12%, rgba(150,38,10,0.24), transparent 58%);
+}
+#char-view.leonh-ui .panel-title {
+  color: #ffd9a4 !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  border-bottom-color: rgba(255,138,32,0.42);
+  text-shadow: 0 0 12px rgba(255,138,32,0.9), 0 0 30px rgba(150,38,10,0.9);
+}
+#char-view.leonh-ui .tab-btn { color: #96684a; }
+#char-view.leonh-ui .tab-btn:hover {
+  color: #ffd9a4;
+  text-shadow: 0 0 12px rgba(255,138,32,0.9);
+}
+#char-view.leonh-ui .tab-btn.active {
+  color: #ffffff;
+  border-bottom-color: rgba(255,222,152,0.9);
+  text-shadow: 0 0 16px rgba(255,138,32,0.95);
+}
+#char-view.leonh-ui .trait-chip {
+  border-color: rgba(255,138,32,0.36);
+  box-shadow: inset 0 -1px 0 rgba(255,138,32,0.16), inset 0 0 18px rgba(60,16,6,0.55);
+}
+.char-name-display.leonh-name {
+  position: relative;
+  color: #ffb15e !important;
+  letter-spacing: 7px;
+  text-shadow: 0 0 14px rgba(255,138,32,0.95), 0 0 38px rgba(150,38,10,0.9);
+  animation: lh-forge 5s ease-in-out infinite;
+}
+@keyframes lh-forge {
+  0%, 100% { text-shadow: 0 0 10px rgba(150,38,10,0.9), 0 0 24px rgba(60,16,6,0.8); }
+  50%      { text-shadow: 0 0 20px rgba(255,222,152,0.9), 0 0 44px rgba(255,138,32,0.85); }
+}
+.char-name-display.leonh-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(100deg, transparent 40%, rgba(255,248,224,0.92) 50%, transparent 60%);
+  background-size: 320% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: lh-sweep 7s ease-in-out infinite;
+}
+@keyframes lh-sweep {
+  0%, 100% { background-position: 140% 0; }
+  50%      { background-position: -140% 0; }
+}
+.char-avatar-large.leonh-pfp {
+  position: relative;
+  border-color: rgba(255,138,32,0.72) !important;
+  box-shadow: 0 0 30px rgba(150,38,10,0.7), inset 0 0 26px rgba(10,4,3,0.8);
+}
+.char-avatar-large.leonh-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 122%, rgba(255,138,32,0.4), transparent 58%),
+    linear-gradient(180deg, rgba(10,4,3,0.5), transparent 34%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-name-display.leonh-name,
+  .char-name-display.leonh-name::after { animation: none; }
+}
