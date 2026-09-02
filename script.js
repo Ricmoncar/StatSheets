@@ -42092,7 +42092,7 @@ function _drawRadyPattern(canvas, ctx, W, H, t) {
   if (canvas._rdW !== W || canvas._rdH !== H) {
     canvas._rdW = W; canvas._rdH = H;
     canvas._rdSky = null; canvas._rdBands = null; canvas._rdSmog = null;
-    canvas._rdAsh = null; canvas._rdVign = null;
+    canvas._rdAsh = null; canvas._rdVign = null; canvas._rdVent = null;
   }
   const HZ = H * 0.66;                    // where the ground starts
 
@@ -42182,7 +42182,43 @@ function _drawRadyPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // 4 ── ash, going down slowly the way ash does
+  // 4 ── something venting out of the ground, which it does everywhere here
+  if (!canvas._rdVent) {
+    canvas._rdVent = [];
+    for (let i = 0; i < 5; i++) {
+      const src = { x: W * (0.06 + _rdRnd(i * 21.3) * 0.9), puffs: [] };
+      for (let k = 0; k < 9; k++) {
+        src.puffs.push({ age: (k / 9) + _rdRnd(i * 7 + k) * 0.1,
+                         off: (_rdRnd(i * 11 + k) - 0.5) * 40,
+                         sz: 0.7 + _rdRnd(i * 13 + k) * 0.6 });
+      }
+      canvas._rdVent.push(src);
+    }
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const v of canvas._rdVent) {
+    for (const q of v.puffs) {
+      q.age += dt * 0.07;
+      if (q.age > 1) { q.age -= 1; q.off = (Math.random() - 0.5) * 40; }
+      // it climbs, spreads and leans off as it goes, and thins out doing it
+      const rise = q.age * H * 0.3;
+      const r = (18 + q.age * 90) * q.sz;
+      const x = v.x + q.off + Math.sin(q.age * 3 + v.x) * 30 * q.age;
+      const y = H - 10 - rise;
+      const a = Math.sin(q.age * Math.PI) * 0.07;
+      if (a < 0.004) continue;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(${_RD_HAZE},${a.toFixed(3)})`);
+      g.addColorStop(1, `rgba(${_RD_HAZE},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, 6.283185);
+      ctx.fill();
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 5 ── ash, going down slowly the way ash does
   if (!canvas._rdAsh) {
     canvas._rdAsh = [];
     for (let i = 0; i < 90; i++) {
@@ -42205,7 +42241,7 @@ function _drawRadyPattern(canvas, ctx, W, H, t) {
     ctx.fill();
   }
 
-  // 5 ── the murk closing in
+  // 6 ── the murk closing in
   if (!canvas._rdVign) {
     canvas._rdVign = document.createElement('canvas');
     canvas._rdVign.width = W; canvas._rdVign.height = H;
@@ -42225,6 +42261,16 @@ function _drawRadyPattern(canvas, ctx, W, H, t) {
 let _rdOverlayRafId = null;
 let _rdX = 0, _rdY = 0, _rdTX = 0, _rdTY = 0, _rdVX = 0, _rdVY = 0;
 let _rdLoot = [], _rdSpark = [], _rdAshF = [], _rdFlare = 0, _rdHalo = null;
+let _rdFall = 1.2;
+
+function _rdMakeFind(x, y, rest, seed) {
+  return {
+    x, y, rest, vx: 0, vy: 0, r: 6 + _rdRnd(seed * 8.7) * 6,
+    kind: Math.floor(_rdRnd(seed * 10.3) * 5),
+    spin: _rdRnd(seed * 12.9) * 6.283, vs: 0,
+    ph: _rdRnd(seed * 14.7) * 6.283, wake: 0,
+  };
+}
 
 const _RD_REACH = 190;               // how far the lamp throws
 
@@ -42355,6 +42401,135 @@ function _rdDrawFind(ctx, l) {
   ctx.restore();
 }
 
+
+// ── What is strung across the front of the place ─────────────────
+// The first go at these was flat clipart laid over the page at full
+// saturation, which fought the whole scene: everything near the camera here
+// is dark, and only distance is bright. So these are dark too. The yellow is
+// dusty rather than fresh and the only clean light on them is a rim along
+// their top edge, picked up off the horizon behind. That one rule is the
+// difference between a sticker and an object.
+const _RD_TAPE_LIT  = '176,146,44';
+const _RD_TAPE_BACK = '58,50,20';
+const _RD_TAPE_BAR  = '18,16,9';
+
+// tape run between two points, sagging under itself and twisting as it goes
+function _rdTapeRun(ctx, x0, y0, x1, y1, w, sag, twist, t, seed) {
+  const N = 46;
+  const pt = (u) => {
+    const x = x0 + (x1 - x0) * u;
+    const y = y0 + (y1 - y0) * u + Math.sin(u * Math.PI) * sag
+            + Math.sin(u * 5 + t * 0.9 + seed) * w * 0.4;   // it moves in the air
+    return [x, y];
+  };
+  let prev = pt(0);
+  for (let i = 1; i <= N; i++) {
+    const u = i / N, q = pt(u);
+    const dx = q[0] - prev[0], dy = q[1] - prev[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    // how side on the tape is here, which flips it over where it crosses zero
+    const tw0 = Math.sin((u - 1 / N) * twist + t * 0.5 + seed);
+    const tw1 = Math.sin(u * twist + t * 0.5 + seed);
+    const h0 = w * 0.5 * (0.16 + 0.84 * Math.abs(tw0));
+    const h1 = w * 0.5 * (0.16 + 0.84 * Math.abs(tw1));
+    const face = tw1 > 0;
+    ctx.beginPath();
+    ctx.moveTo(prev[0] + nx * h0, prev[1] + ny * h0);
+    ctx.lineTo(q[0] + nx * h1, q[1] + ny * h1);
+    ctx.lineTo(q[0] - nx * h1, q[1] - ny * h1);
+    ctx.lineTo(prev[0] - nx * h0, prev[1] - ny * h0);
+    ctx.closePath();
+    // the bars come from the segment index, so they ride the twist for free
+    const bar = (i + (seed | 0)) % 6 < 3;
+    ctx.fillStyle = bar ? `rgb(${_RD_TAPE_BAR})`
+                        : (face ? `rgb(${_RD_TAPE_LIT})` : `rgb(${_RD_TAPE_BACK})`);
+    ctx.fill();
+    // and the horizon catches the upper edge of it
+    if (face) {
+      ctx.beginPath();
+      ctx.moveTo(prev[0] + nx * h0, prev[1] + ny * h0);
+      ctx.lineTo(q[0] + nx * h1, q[1] + ny * h1);
+      ctx.strokeStyle = 'rgba(226,232,170,0.4)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+    prev = q;
+  }
+}
+
+function _rdBoard(ctx, x, y, s, rot, kind) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  const face = () => {
+    const g = ctx.createLinearGradient(0, -s, 0, s);
+    g.addColorStop(0, 'rgb(188,158,52)');            // top edge takes the sky
+    g.addColorStop(0.4, 'rgb(146,120,36)');
+    g.addColorStop(1, 'rgb(74,62,22)');              // and the bottom gets nothing
+    return g;
+  };
+  if (kind === 0) {
+    ctx.beginPath();
+    ctx.moveTo(0, -s);
+    ctx.lineTo(s * 0.92, s * 0.64);
+    ctx.lineTo(-s * 0.92, s * 0.64);
+    ctx.closePath();
+  } else {
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.8, 0, 6.283185);
+  }
+  ctx.fillStyle = face();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(12,11,5,0.92)';
+  ctx.lineWidth = s * 0.075;
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(226,232,170,0.3)';         // the rim off the horizon
+  ctx.lineWidth = s * 0.02;
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(14,13,6,0.94)';
+  if (kind === 0) {
+    ctx.fillRect(-s * 0.07, -s * 0.42, s * 0.14, s * 0.66);
+    ctx.beginPath();
+    ctx.arc(0, s * 0.42, s * 0.09, 0, 6.283185);
+    ctx.fill();
+  } else {
+    for (let i = 0; i < 3; i++) {
+      const a = i * 2.0944 - 1.5708;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, s * 0.56, a - 0.524, a + 0.524);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.11, 0, 6.283185);
+    ctx.fill();
+  }
+  // wear, because nothing out here is clean
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = 'rgba(30,26,12,0.9)';
+  for (let i = 0; i < 7; i++) {
+    const a = _rdRnd(kind * 13 + i * 3.7) * 6.283185;
+    const d = s * (0.2 + _rdRnd(kind * 17 + i * 5.1) * 0.6);
+    ctx.fillRect(Math.cos(a) * d, Math.sin(a) * d,
+                 s * (0.04 + _rdRnd(i * 7.3) * 0.1), s * 0.03);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function _rdDrawFront(ctx, W, H, t) {
+  const S = Math.min(W, H);
+  // two runs of tape, one across each far corner, both leaving the frame
+  _rdTapeRun(ctx, -40, H * 0.1, W * 0.42, -20, S * 0.05, S * 0.09, 13, t, 1.7);
+  _rdTapeRun(ctx, W * 0.58, H * 1.03, W + 40, H * 0.72, S * 0.048, -S * 0.07, 11, t, 4.1);
+  // and two boards leaning in at the bottom, mostly out of shot
+  _rdBoard(ctx, W * 0.1, H * 1.02, S * 0.2, -0.16, 0);
+  _rdBoard(ctx, W * 0.93, H * 0.96, S * 0.17, 0.12, 1);
+}
+
 function _drawRadyOverlay(canvas, ctx, W, H, t) {
   if (_drawRadyOverlay._lt !== undefined && t - _drawRadyOverlay._lt < 0.016) return;
   const dt = _drawRadyOverlay._lt === undefined ? 0.016 : Math.min(t - _drawRadyOverlay._lt, 0.04);
@@ -42363,19 +42538,25 @@ function _drawRadyOverlay(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'source-over';
 
   if (!_rdHalo) _rdHalo = _rdHaloSprite(_RD_REACH);
+  // It comes down out of the sky. Scattering it about the floor at the start
+  // gave no account of where any of it came from, so it looked like it was
+  // simply appearing. Now there is a source and you can watch it arrive.
   if (!_rdLoot.length) {
-    for (let i = 0; i < 30; i++) {
-      _rdLoot.push({
-        x: _rdRnd(i * 4.3 + 1) * W,
-        rest: H - 16 - _rdRnd(i * 6.1) * H * 0.22,    // its own bit of rubble
-        y: H - 16 - _rdRnd(i * 6.1) * H * 0.22,
-        vx: 0, vy: 0, r: 6 + _rdRnd(i * 8.7) * 6,
-        kind: Math.floor(_rdRnd(i * 10.3) * 5),
-        spin: _rdRnd(i * 12.9) * 6.283, vs: 0,
-        ph: _rdRnd(i * 14.7) * 6.283, wake: 0,
-      });
+    for (let i = 0; i < 22; i++) {                    // some already landed
+      const rest = H - 16 - _rdRnd(i * 6.1) * H * 0.2;
+      _rdLoot.push(_rdMakeFind(_rdRnd(i * 4.3 + 1) * W, rest, rest, i * 3.7));
     }
   }
+  _rdFall -= dt;
+  if (_rdFall <= 0 && _rdLoot.length < 46) {
+    _rdFall = 0.5 + Math.random() * 1.4;
+    const x = 40 + Math.random() * (W - 80);
+    const l = _rdMakeFind(x, -30, H - 16 - Math.random() * H * 0.2, Math.random() * 100);
+    l.vy = 40 + Math.random() * 60;
+    l.vs = (Math.random() - 0.5) * 9;
+    _rdLoot.push(l);
+  }
+  while (_rdLoot.length > 46) _rdLoot.shift();
   if (!_rdAshF.length) {
     for (let i = 0; i < 16; i++) {
       _rdAshF.push({
@@ -42385,6 +42566,8 @@ function _drawRadyOverlay(canvas, ctx, W, H, t) {
       });
     }
   }
+
+  _rdDrawFront(ctx, W, H, t);
 
   const SPRING = 62, DAMP = 13;
   _rdVX += ((_rdTX - _rdX) * SPRING - _rdVX * DAMP) * dt;
@@ -42405,8 +42588,10 @@ function _drawRadyOverlay(canvas, ctx, W, H, t) {
     const dx = _rdX - l.x, dy = _rdY - l.y;
     const d = Math.hypot(dx, dy) || 1;
     const lit = Math.max(0, 1 - d / _RD_REACH);
-    // it stays awake a moment after the light has moved off it
-    l.wake = Math.max(lit, l.wake - dt * 0.55);
+    // it stays awake a moment after the light has moved off it, and anything
+    // still in the air is lit by the sky it is falling out of
+    const air = l.y < l.rest - 24 ? 0.55 : 0;
+    l.wake = Math.max(Math.max(lit, air), l.wake - dt * 0.55);
     if (d < _RD_REACH) {
       // drawn in, but pushed sideways as well so the haul circles the lamp
       // instead of collapsing into a single heap on top of it
@@ -42511,7 +42696,7 @@ function _startRadyOverlay() {
   _rdX = _rdTX = window.innerWidth * 0.5;
   _rdY = _rdTY = window.innerHeight * 0.5;
   _rdVX = _rdVY = 0; _rdFlare = 0;
-  _rdLoot = []; _rdSpark = []; _rdAshF = [];
+  _rdLoot = []; _rdSpark = []; _rdAshF = []; _rdFall = 1.2;
   window.addEventListener('mousemove', _rdMouseMove);
   window.addEventListener('click', _rdClick);
   const _arrow = document.getElementById('cursor');
