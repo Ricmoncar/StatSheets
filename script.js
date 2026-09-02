@@ -41963,21 +41963,24 @@ function _kinRnd(seed) {
   return v - Math.floor(v);
 }
 
-// warm is the ink of the sigils, cool is the second colour in them, glow is
-// what the magic actually gives off, and tool is what they are holding.
+// warm is the ink the sigils are drawn in, cool the second colour inside them,
+// glow what the magic actually gives off. Both of them are green, because it
+// is the same magic and they learned it together: his sits at the warm end of
+// green and hers at the cold end, which is far enough apart to tell at a
+// glance and close enough to keep them obviously related.
 const _KIN_TOBU = {
   key: 'tobu',
-  warm: '244,196,110', cool: '138,196,120', glow: '255,240,206',
-  hex: '#f0c46e', seed: 3,
-  sky: ['#241a0e', '#3b2a17', '#442f18', '#1c1208'],
-  lamp: '255,226,158',
+  warm: '168,206,92', cool: '116,166,84', glow: '226,246,180',
+  hex: '#a8ce5c', seed: 3,
+  sky: ['#151f0d', '#223315', '#293c18', '#0d1408'],
+  lamp: '212,240,150',
 };
 const _KIN_LALA = {
   key: 'lala',
-  warm: '246,170,198', cool: '150,206,236', glow: '255,238,248',
-  hex: '#f2a8c4', seed: 11,
-  sky: ['#1b1226', '#2c1c3a', '#35213f', '#140d1c'],
-  lamp: '236,196,236',
+  warm: '126,214,178', cool: '92,178,196', glow: '206,246,232',
+  hex: '#7ed6b2', seed: 11,
+  sky: ['#0c1a17', '#132c27', '#173630', '#071211'],
+  lamp: '160,232,208',
 };
 
 // ── A hand drawn ring ────────────────────────────────────────────
