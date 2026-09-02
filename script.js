@@ -43386,17 +43386,44 @@ function _drawSevachPattern(canvas, ctx, W, H, t) {
 // when he moves and pays out when he throws.
 let _svRaf = null;
 let _svX = 0, _svY = 0, _svTX = 0, _svTY = 0, _svVX = 0, _svVY = 0;
-let _svAim = -0.5, _svRope = [], _svSpear = null, _svSpray = [], _svRain = [];
+let _svAim = -0.5, _svRope = [], _svSpray = [], _svRain = [];
 let _svBeads = [], _svDrips = [], _svKick = 0;
+
+// The harpoon is always somewhere, so it is always an object: what changes is
+// what it is doing. One button does both verbs and which one it does is never
+// ambiguous, because you can see whether the harpoon is in the rail or out on
+// the water. Hold to draw it back, let go to throw, and press again to reel
+// whatever is out there back in.
+const _SV_S     = 1.62;              // everything about the gear is this size
+const _SV_REST  = 48;                // where the head sits when it is seated
+const _SV_SHAFT = 88;                // butt to tip, in those same units
+const _SV_SLACK = 84;                // the bight of line left over at rest
+let _svMode  = 'seated';             // seated | drawing | flying | adrift | reeling
+let _svSpear = { x: 0, y: 0, vx: 0, vy: 0, a: -0.5, t: 0 };
+let _svPow   = 0;                    // how far back it is drawn
+let _svLine  = _SV_SLACK;            // how much line is off the drum
+let _svMax   = 0;                    // and how much this throw was allowed
+let _svSpool = 0;                    // the drum's own angle, so you can see it run
+let _svFlip  = 1;                    // which way up the grip hangs
 
 function _svMouseMove(e) { _svTX = e.clientX; _svTY = e.clientY; }
 
-function _svDown(e) {
-  if (_svSpear) return;
-  const sp = 2100;
-  _svSpear = { x: _svX, y: _svY, vx: Math.cos(_svAim) * sp, vy: Math.sin(_svAim) * sp,
-               a: _svAim, out: true, life: 0 };
-  _svKick = 1;
+function _svDown() {
+  if (_svMode === 'seated') { _svMode = 'drawing'; _svPow = 0; }
+  else if (_svMode === 'flying' || _svMode === 'adrift') _svMode = 'reeling';
+}
+
+function _svUp() {
+  if (_svMode !== 'drawing') return;
+  const p = _svPow;
+  const sp = 880 + p * 2150;
+  _svSpear.vx = Math.cos(_svAim) * sp;
+  _svSpear.vy = Math.sin(_svAim) * sp;
+  _svSpear.t = 0;
+  _svMax = 160 + p * 640;
+  _svKick = 0.55 + p * 0.75;
+  _svPow = 0;
+  _svMode = 'flying';
 }
 
 function _svSplash(x, y, power, dep) {
@@ -43501,6 +43528,93 @@ function _svHead(ctx, S, glow) {
   ctx.globalCompositeOperation = 'source-over';
 }
 
+
+// ── The gear it is thrown from ──────────────────────────────────────
+// The line used to hang off the butt of the harpoon and trail away into
+// nothing, which reads as a loose end rather than as tackle. So the pointer is
+// the launcher now and the harpoon is what leaves it, and the line has two
+// real ends at all times. The drum is the piece that does the explaining: it
+// turns at exactly the rate line is running, so a throw visibly pays out and
+// a reel visibly takes back in, and you never have to be told which.
+function _svRig(g, S, pow, spool) {
+  const iron = g.createLinearGradient(0, -9 * S, 0, 9 * S);
+  iron.addColorStop(0, '#464c55');
+  iron.addColorStop(0.38, '#7d848f');
+  iron.addColorStop(0.56, '#3c4149');
+  iron.addColorStop(1, '#191c20');
+  g.lineJoin = 'round';
+  g.lineCap = 'butt';
+  g.beginPath();                                   // the rail the shaft rides
+  g.moveTo(21 * S, -3.6 * S);
+  g.lineTo(-24 * S, -6.6 * S);
+  g.lineTo(-29 * S, -2.4 * S);
+  g.lineTo(-29 * S, 2.8 * S);
+  g.lineTo(-23 * S, 6.8 * S);
+  g.lineTo(21 * S, 3.6 * S);
+  g.closePath();
+  g.fillStyle = iron;
+  g.fill();
+  g.strokeStyle = 'rgba(6,2,4,0.92)';
+  g.lineWidth = 1.2;
+  g.stroke();
+  g.beginPath();                                   // and the grip under it
+  g.moveTo(-7 * S, 5 * S);
+  g.lineTo(-1 * S, 5 * S);
+  g.lineTo(-4 * S, 21 * S);
+  g.lineTo(-13 * S, 19 * S);
+  g.closePath();
+  g.fillStyle = '#251a15';
+  g.fill();
+  g.stroke();
+  g.save();                                        // the drum, and what is on it
+  g.translate(-28 * S, 10 * S);
+  g.beginPath();
+  g.arc(0, 0, 10.5 * S, 0, 6.283185);
+  g.fillStyle = '#2b2f36';
+  g.fill();
+  g.stroke();
+  g.rotate(spool);
+  g.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = i * 1.256637;
+    g.moveTo(0, 0);
+    g.lineTo(Math.cos(a) * 8.6 * S, Math.sin(a) * 8.6 * S);
+  }
+  g.strokeStyle = 'rgba(146,116,84,0.7)';
+  g.lineWidth = 1.5 * S;
+  g.stroke();
+  g.beginPath();
+  g.arc(0, 0, 5.2 * S, 0, 6.283185);
+  g.strokeStyle = '#4b4038';
+  g.lineWidth = 3 * S;
+  g.stroke();
+  g.restore();
+  g.globalCompositeOperation = 'lighter';          // it runs hot as he draws
+  g.beginPath();
+  g.moveTo(-22 * S, 0);
+  g.lineTo(19 * S, 0);
+  g.strokeStyle = `rgba(${_SV_CREST},${(0.26 + pow * 0.62).toFixed(2)})`;
+  g.lineWidth = (1.3 + pow * 2.8) * S;
+  g.lineCap = 'round';
+  g.stroke();
+  if (pow > 0.01) {
+    const pg = g.createRadialGradient(0, 0, 0, 0, 0, 36 * S);
+    pg.addColorStop(0, `rgba(${_SV_SHEEN},${(pow * 0.3).toFixed(3)})`);
+    pg.addColorStop(1, `rgba(${_SV_CREST},0)`);
+    g.fillStyle = pg;
+    g.fillRect(-36 * S, -36 * S, 72 * S, 72 * S);
+  }
+  g.beginPath();                                   // the point it is aimed from
+  g.moveTo(24 * S, -3 * S);
+  g.lineTo(31 * S, 0);
+  g.lineTo(24 * S, 3 * S);
+  g.strokeStyle = `rgba(${_SV_SHEEN},0.85)`;
+  g.lineWidth = 1.5;
+  g.lineJoin = 'miter';
+  g.stroke();
+  g.globalCompositeOperation = 'source-over';
+}
+
 function _drawSevachOverlay(canvas, ctx, W, H, t) {
   if (_drawSevachOverlay._lt !== undefined && t - _drawSevachOverlay._lt < 0.016) return;
   const dt = _drawSevachOverlay._lt === undefined ? 0.016 : Math.min(t - _drawSevachOverlay._lt, 0.04);
@@ -43509,20 +43623,23 @@ function _drawSevachOverlay(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'source-over';
   const HZ = Math.round(H * 0.4);
 
-  const SPRING = 78, DAMP = 14;
+  const SPRING = 150, DAMP = 21;
   _svVX += ((_svTX - _svX) * SPRING - _svVX * DAMP) * dt;
   _svVY += ((_svTY - _svY) * SPRING - _svVY * DAMP) * dt;
   _svX += _svVX * dt; _svY += _svVY * dt;
   const spd = Math.hypot(_svVX, _svVY);
-  if (spd > 26 && !_svSpear) {
+  if (spd > 7) {                                    // low enough to aim with
     const want = Math.atan2(_svVY, _svVX);
     let d = want - _svAim;
     while (d > Math.PI) d -= Math.PI * 2;
     while (d < -Math.PI) d += Math.PI * 2;
-    _svAim += d * Math.min(1, dt * 7);
+    // and it comes round faster while he is drawing, so it can be pointed
+    _svAim += d * Math.min(1, dt * (_svMode === 'drawing' ? 16 : 9));
   }
-  _svKick = Math.max(0, _svKick - dt * 2.6);
-  const S = 1.6;
+  _svKick = Math.max(0, _svKick - dt * 3.2);
+  const ca0 = Math.cos(_svAim);
+  if (Math.abs(ca0) > 0.16) _svFlip = ca0 < 0 ? -1 : 1;
+  const S = _SV_S;
 
   // ── in front of everything: weather, and what is on the glass ──
   for (let side = 0; side < 2; side++) {            // dark curling in at the top
@@ -43625,59 +43742,131 @@ function _drawSevachOverlay(canvas, ctx, W, H, t) {
     }
   }
 
-  // ── the throw ──
-  if (_svSpear) {
-    const s = _svSpear;
-    s.life += dt;
-    if (s.out) {
-      s.vy += 900 * dt;
-      s.x += s.vx * dt; s.y += s.vy * dt;
-      s.a = Math.atan2(s.vy, s.vx);
-      if (s.life > 0.34 || s.y > H * 0.92 || s.x < -40 || s.x > W + 40) {
-        const sy = Math.max(HZ + 8, Math.min(H - 4, s.y));
-        _svSplash(s.x, sy, 1, Math.max(0, Math.min(1, (sy - HZ) / Math.max(1, H - HZ))));
-        s.out = false;
+  // ── what the harpoon is doing ──
+  const AX = _svX, AY = _svY;                       // the rig, at the pointer
+  const seatX = AX + Math.cos(_svAim) * _SV_REST * S;
+  const seatY = AY + Math.sin(_svAim) * _SV_REST * S;
+  const wasLine = _svLine;
+  const sp = _svSpear;
+  if (_svMode === 'seated' || _svMode === 'drawing') {
+    if (_svMode === 'drawing') _svPow = Math.min(1, _svPow + dt * 1.2);
+    const back = _svPow * 14 * S;                   // it draws back into the rail
+    sp.x = seatX - Math.cos(_svAim) * back;
+    sp.y = seatY - Math.sin(_svAim) * back;
+    sp.a = _svAim;
+    _svLine = _SV_SLACK;
+  } else if (_svMode === 'flying') {
+    // a full throw should not always end against the edge of a small window
+    _svMax = Math.min(_svMax, Math.max(220, Math.min(W, H) * 0.82));
+    sp.t += dt;
+    sp.vy += 1500 * dt;
+    sp.vx -= sp.vx * 0.9 * dt; sp.vy -= sp.vy * 0.9 * dt;
+    sp.x += sp.vx * dt; sp.y += sp.vy * dt;
+    sp.a = Math.atan2(sp.vy, sp.vx);
+    const d = Math.hypot(sp.x - AX, sp.y - AY);
+    _svLine = Math.min(_svMax, Math.max(_svLine, d + 10));
+    // it stops when the line runs out, or when it has been in the air long
+    // enough to have come down, whichever the throw reaches first
+    if (d >= _svMax || sp.t > 0.6 || sp.y > H - 10 || sp.x < 10 || sp.x > W - 10) {
+      const sy = Math.max(HZ + 6, Math.min(H - 6, sp.y));
+      sp.x = Math.max(10, Math.min(W - 10, sp.x));
+      sp.y = sy;
+      _svSplash(sp.x, sy, 0.6 + _svLine / 620,
+                Math.max(0, Math.min(1, (sy - HZ) / Math.max(1, H - HZ))));
+      sp.vx *= 0.08; sp.vy *= 0.08;
+      sp.t = 0;
+      _svMode = 'adrift';
+    }
+  } else if (_svMode === 'adrift') {
+    sp.t += dt;
+    sp.x += Math.sin(t * 1.1 + sp.y * 0.02) * 6 * dt;   // it lies on the swell
+    sp.y += Math.sin(t * 0.9 + sp.x * 0.011) * 9 * dt;
+    const dx = sp.x - AX, dy = sp.y - AY;
+    const d = Math.hypot(dx, dy) || 1;
+    if (d > _svLine) {                              // and the line will not give
+      const drag = d - _svLine;
+      sp.x -= dx / d * drag; sp.y -= dy / d * drag;
+      let want = Math.atan2(dy, dx);                // pulled by the butt, so the
+      let td = want - sp.a;                         // head is the end that trails
+      while (td > Math.PI) td -= Math.PI * 2;
+      while (td < -Math.PI) td += Math.PI * 2;
+      sp.a += td * Math.min(1, dt * 6);
+      if (drag > 1.2 && Math.random() < dt * 22) {
+        _svRings.push({ x: sp.x, y: sp.y, r: 2, sp: 62, life: 0.85, fade: 1.7 });
       }
+    }
+    // and the drum takes up whatever the throw left loose, the way a reel
+    // does, so the line comes tight and stays tight while he drags on it
+    const slackNow = Math.hypot(sp.x - AX, sp.y - AY) + 18;
+    const want = Math.max(_SV_SLACK, slackNow);
+    if (_svLine > want) _svLine = Math.max(want, _svLine - 320 * dt);
+    if (sp.t > 6) _svMode = 'reeling';              // he does not leave it out
+  } else {                                          // reeling
+    const dx = seatX - sp.x, dy = seatY - sp.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 16) {
+      sp.x = seatX; sp.y = seatY; sp.a = _svAim;
+      _svLine = _SV_SLACK;
+      _svMode = 'seated';
     } else {
-      const dx = _svX - s.x, dy = _svY - s.y;
-      const d = Math.hypot(dx, dy);
-      if (d < 26) { _svSpear = null; }
-      else {
-        const pull = Math.min(1, dt * 7.5);
-        s.x += dx * pull; s.y += dy * pull;
-        s.a = Math.atan2(-dy, -dx);
+      const pull = Math.min(1, dt * 7);
+      sp.x += dx * pull; sp.y += dy * pull;
+      let want = Math.atan2(sp.y - AY, sp.x - AX);
+      let td = want - sp.a;
+      while (td > Math.PI) td -= Math.PI * 2;
+      while (td < -Math.PI) td += Math.PI * 2;
+      sp.a += td * Math.min(1, dt * 8);
+      _svLine = Math.max(_SV_SLACK, Math.hypot(sp.x - AX, sp.y - AY) + 10);
+      if (Math.random() < dt * 26) {                // and it ploughs on the way in
+        _svRings.push({ x: sp.x, y: sp.y, r: 1, sp: 56, life: 0.7, fade: 2 });
       }
     }
   }
+  // the drum turns at whatever rate the line is running, in either direction
+  _svSpool += (_svLine - wasLine) / (10.5 * S);
 
-  // ── the line, node by node, hung off wherever the butt is ──
-  const hx = (_svSpear ? _svSpear.x : _svX) - Math.cos(_svSpear ? _svSpear.a : _svAim) * 88 * S;
-  const hy = (_svSpear ? _svSpear.y : _svY) - Math.sin(_svSpear ? _svSpear.a : _svAim) * 88 * S;
-  const NODES = 11, SEG = 10;
+  // ── the line, from the drum to the butt of the harpoon ──
+  // Pinned at both ends now, with the segment length set by how much has been
+  // paid out: slack at rest so it hangs in a loop, dead straight the moment
+  // the throw uses all of it.
+  const ca = Math.cos(_svAim), sa = Math.sin(_svAim);
+  const rk = _svKick * 9 * S + 21 * S;              // the muzzle is the pointer,
+  const RX = AX - ca * rk, RY = AY - sa * rk;       // and it kicks back off it
+  const drumX = RX + ca * -28 * S - sa * 10 * S * _svFlip;
+  const drumY = RY + sa * -28 * S + ca * 10 * S * _svFlip;
+  const buttX = sp.x - Math.cos(sp.a) * _SV_SHAFT * S;
+  const buttY = sp.y - Math.sin(sp.a) * _SV_SHAFT * S;
+  const NODES = 16;
+  const SEG = Math.max(3, _svLine / (NODES - 1));
   if (_svRope.length !== NODES) {
     _svRope = [];
-    for (let i = 0; i < NODES; i++) _svRope.push({ x: hx, y: hy + i * SEG, px: hx, py: hy + i * SEG });
+    for (let i = 0; i < NODES; i++) {
+      const u = i / (NODES - 1);
+      const x = drumX + (buttX - drumX) * u, y = drumY + (buttY - drumY) * u;
+      _svRope.push({ x, y, px: x, py: y });
+    }
   }
-  _svRope[0].x = hx; _svRope[0].y = hy;
-  for (let i = 1; i < NODES; i++) {                 // where each knot was going
-    const p = _svRope[i];
-    const vx = (p.x - p.px) * 0.93, vy = (p.y - p.py) * 0.93;
-    p.px = p.x; p.py = p.y;
-    p.x += vx; p.y += vy + 6200 * dt * dt;
+  for (let i = 1; i < NODES - 1; i++) {             // where each knot was going
+    const q = _svRope[i];
+    const vx = (q.x - q.px) * 0.9, vy = (q.y - q.py) * 0.9;
+    q.px = q.x; q.py = q.y;
+    q.x += vx; q.y += vy + 3200 * dt * dt;
   }
-  for (let k = 0; k < 4; k++) {                     // and it cannot stretch
+  for (let k = 0; k < 6; k++) {                     // and it cannot stretch
+    _svRope[0].x = drumX; _svRope[0].y = drumY;
+    _svRope[NODES - 1].x = buttX; _svRope[NODES - 1].y = buttY;
     for (let i = 1; i < NODES; i++) {
       const a = _svRope[i - 1], b = _svRope[i];
       const dx = b.x - a.x, dy = b.y - a.y;
       const d = Math.hypot(dx, dy) || 1;
-      const f = (d - SEG) / d;
-      if (i === 1) { b.x -= dx * f; b.y -= dy * f; }
-      else {
-        a.x += dx * f * 0.5; a.y += dy * f * 0.5;
-        b.x -= dx * f * 0.5; b.y -= dy * f * 0.5;
-      }
+      const f = (d - SEG) / d * 0.5;
+      a.x += dx * f; a.y += dy * f;
+      b.x -= dx * f; b.y -= dy * f;
     }
   }
+  _svRope[0].x = drumX; _svRope[0].y = drumY;
+  _svRope[NODES - 1].x = buttX; _svRope[NODES - 1].y = buttY;
+
   ctx.beginPath();
   ctx.moveTo(_svRope[0].x, _svRope[0].y);
   for (let i = 1; i < NODES; i++) ctx.lineTo(_svRope[i].x, _svRope[i].y);
@@ -43693,32 +43882,23 @@ function _drawSevachOverlay(canvas, ctx, W, H, t) {
   ctx.lineWidth = 0.9;
   ctx.stroke();
 
-  // if it is in the air, the line runs from his hand out to it as well
-  if (_svSpear) {
-    ctx.beginPath();
-    ctx.moveTo(_svX, _svY);
-    const span = Math.hypot(_svSpear.x - _svX, _svSpear.y - _svY);
-    const mx = (_svX + _svSpear.x) * 0.5, my = (_svY + _svSpear.y) * 0.5 + span * 0.16 + 14;
-    ctx.quadraticCurveTo(mx, my, hx, hy);
-    ctx.strokeStyle = 'rgba(16,9,8,0.92)';
-    ctx.lineWidth = 3.4;
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(72,40,32,0.85)';
-    ctx.lineWidth = 1.8;
-    ctx.stroke();
-  }
-
-  // ── the harpoon ──
+  // ── the rig, and then the harpoon over it ──
   ctx.save();
-  ctx.translate(_svSpear ? _svSpear.x : _svX, _svSpear ? _svSpear.y : _svY);
-  ctx.rotate((_svSpear ? _svSpear.a : _svAim) + _svKick * 0.22);
-  _svHead(ctx, S, _svKick);
+  ctx.translate(RX, RY);
+  ctx.rotate(_svAim);
+  ctx.scale(1, _svFlip);
+  _svRig(ctx, S, _svPow, _svSpool * _svFlip);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(sp.x, sp.y);
+  ctx.rotate(sp.a);
+  _svHead(ctx, S, Math.max(_svPow, _svKick));
   ctx.restore();
 
   // it is wet, and what comes off it goes in the sea
-  if (!_svSpear && Math.random() < dt * 5) {
-    _svDrips.push({ x: _svX - Math.cos(_svAim) * (18 + Math.random() * 60) * S,
-                    y: _svY - Math.sin(_svAim) * (18 + Math.random() * 60) * S,
+  if ((_svMode === 'seated' || _svMode === 'drawing') && Math.random() < dt * 5) {
+    _svDrips.push({ x: _svSpear.x - Math.cos(_svAim) * Math.random() * 70 * S,
+                    y: _svSpear.y - Math.sin(_svAim) * Math.random() * 70 * S,
                     vy: 20 + Math.random() * 40, sz: 1 + Math.random() * 1.8,
                     land: _svY + 40 + Math.random() * 180 });
   }
@@ -43756,8 +43936,10 @@ function _drawSevachOverlay(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'source-over';
 
   // and the sea behind is told where the head is, so it can answer
-  const tx = (_svSpear ? _svSpear.x : _svX), ty = (_svSpear ? _svSpear.y : _svY);
-  _svTip = ty > HZ - 30 ? { x: tx, y: ty, k: 0.7 + _svKick * 0.6 } : null;
+  const wet = _svMode === 'adrift' || _svMode === 'reeling';
+  _svTip = sp.y > HZ - 30
+    ? { x: sp.x, y: sp.y, k: (wet ? 1.05 : 0.6) + _svPow * 0.5 + _svKick * 0.5 }
+    : null;
 }
 
 function _startSevachOverlay() {
@@ -43766,10 +43948,14 @@ function _startSevachOverlay() {
   _svX = _svTX = window.innerWidth * 0.5;
   _svY = _svTY = window.innerHeight * 0.55;
   _svVX = _svVY = 0; _svAim = -0.5; _svKick = 0;
-  _svRope = []; _svSpear = null; _svSpray = []; _svRain = [];
+  _svRope = []; _svSpray = []; _svRain = [];
   _svBeads = []; _svDrips = []; _svRings = []; _svTip = null;
+  _svMode = 'seated'; _svPow = 0; _svLine = _SV_SLACK; _svMax = 0; _svSpool = 0;
+  _svSpear = { x: 0, y: 0, vx: 0, vy: 0, a: _svAim, t: 0 };
   window.addEventListener('mousemove', _svMouseMove);
   window.addEventListener('mousedown', _svDown);
+  window.addEventListener('mouseup', _svUp);
+  window.addEventListener('blur', _svUp);
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = 'none';
   const cv = document.createElement('canvas');
@@ -43795,12 +43981,16 @@ function _stopSevachOverlay() {
   if (_svRaf) { cancelAnimationFrame(_svRaf); _svRaf = null; }
   window.removeEventListener('mousemove', _svMouseMove);
   window.removeEventListener('mousedown', _svDown);
+  window.removeEventListener('mouseup', _svUp);
+  window.removeEventListener('blur', _svUp);
   const _arrow = document.getElementById('cursor');
   if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('sevach-overlay');
   if (cv) cv.remove();
-  _svRope = []; _svSpear = null; _svSpray = []; _svRain = [];
+  _svRope = []; _svSpray = []; _svRain = [];
   _svBeads = []; _svDrips = []; _svRings = []; _svTip = null;
+  _svMode = 'seated'; _svPow = 0; _svLine = _SV_SLACK; _svMax = 0; _svSpool = 0;
+  _svSpear = { x: 0, y: 0, vx: 0, vy: 0, a: _svAim, t: 0 };
 }
 /* ─────────────────────────────────────────────────────────────── */
 
