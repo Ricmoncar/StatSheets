@@ -14211,3 +14211,105 @@ text.lb-cl-glitch-svg {
   .char-name-display.tobu-name, .char-name-display.lala-name,
   .char-name-display.tobu-name::after, .char-name-display.lala-name::after { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   XYLIAR: the same room the other two are learning in, with all the
+   softness taken out. Their panels breathe; his sit still and hard,
+   because a hand that does not shake does not need to.
+   ════════════════════════════════════════════════════════════════ */
+#char-view.xyliar-ui .panel {
+  --p-border: rgba(218,158,255,0.72);
+  border: 1px solid rgba(162,58,236,0.6);
+  background: linear-gradient(180deg, rgba(20,6,32,0.95), rgba(4,1,8,0.97));
+  box-shadow:
+    0 0 30px rgba(88,14,146,0.5),
+    inset 0 1px 0 rgba(218,158,255,0.2),
+    inset 0 0 38px rgba(40,6,66,0.6);
+}
+#char-view.xyliar-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(218,158,255,0.07), transparent 20%),
+    radial-gradient(120% 60% at 50% -16%, rgba(162,58,236,0.24), transparent 62%),
+    radial-gradient(100% 50% at 6% 118%, rgba(88,14,146,0.34), transparent 58%);
+}
+/* one hard line under the top edge, the way his sigils are ruled */
+#char-view.xyliar-ui .panel::after {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(218,158,255,0.6), transparent);
+}
+#char-view.xyliar-ui .panel-title {
+  color: #f0dcff !important;
+  letter-spacing: 7px;
+  font-weight: normal;
+  border-bottom-color: rgba(162,58,236,0.44);
+  text-shadow: 0 0 12px rgba(162,58,236,0.95), 0 0 30px rgba(88,14,146,0.85);
+}
+#char-view.xyliar-ui .tab-btn { color: #6f4a90; }
+#char-view.xyliar-ui .tab-btn:hover {
+  color: #f0dcff;
+  text-shadow: 0 0 12px rgba(162,58,236,0.95);
+}
+#char-view.xyliar-ui .tab-btn.active {
+  color: #ffffff;
+  border-bottom-color: rgba(218,158,255,0.95);
+  text-shadow: 0 0 16px rgba(218,158,255,0.95);
+}
+#char-view.xyliar-ui .trait-chip {
+  border-color: rgba(162,58,236,0.38);
+  box-shadow: inset 0 1px 0 rgba(218,158,255,0.1), inset 0 0 18px rgba(40,6,66,0.55);
+}
+
+/* Name: it does not pulse, it just burns */
+.char-name-display.xyliar-name {
+  position: relative;
+  color: #d9b0ff !important;
+  letter-spacing: 8px;
+  text-shadow: 0 0 14px rgba(162,58,236,0.95), 0 0 38px rgba(88,14,146,0.9);
+}
+.char-name-display.xyliar-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(100deg, transparent 42%, rgba(255,255,255,0.95) 50%, transparent 58%);
+  background-size: 340% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: xy-cut 6s cubic-bezier(0.8,0,0.2,1) infinite;
+}
+/* a fast pass rather than a slow drift: his moves like a cut */
+@keyframes xy-cut {
+  0%, 62%, 100% { background-position: 150% 0; }
+  78%           { background-position: -150% 0; }
+}
+
+.char-avatar-large.xyliar-pfp {
+  position: relative;
+  border-color: rgba(218,158,255,0.7) !important;
+  box-shadow: 0 0 30px rgba(88,14,146,0.7), inset 0 0 28px rgba(4,1,8,0.85);
+}
+.char-avatar-large.xyliar-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(218,158,255,0.12), transparent 28%),
+    radial-gradient(circle at 50% 118%, rgba(162,58,236,0.34), transparent 58%);
+}
+.char-avatar-large.xyliar-pfp::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 0%,   rgba(218,158,255,0.16), transparent 26%),
+    radial-gradient(circle at 100% 100%, rgba(2,0,4,0.72), transparent 40%),
+    radial-gradient(circle at 0% 100%, rgba(2,0,4,0.66), transparent 36%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-name-display.xyliar-name::after { animation: none; }
+}
