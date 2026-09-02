@@ -27458,16 +27458,18 @@ function _sprRose(ctx, x, y, px, seed, alpha, dim) {
 
 // ── A thicket: bramble, leaves and roses, baked as one band ──────
 function _sprThicketSprite(W, H, band, seed) {
+  const SH = Math.ceil(H * 1.62);
   const c = document.createElement('canvas');
-  c.width = W; c.height = Math.ceil(H);
+  c.width = W; c.height = SH;
   const g = c.getContext('2d');
-  const dark = band === 0 ? 0.32 : band === 1 ? 0.58 : 1;
+  const dark = band === 0 ? 0.2 : band === 1 ? 0.42 : 1;
   const stems = 30 + band * 22;
 
   g.lineCap = 'round';
+  const tips = [], joints = [];
   for (let i = 0; i < stems; i++) {
     const x0 = (i / stems + _sprRnd(seed + i * 3.1) * 0.06) * W;
-    let x = x0, y = H, a = -1.5708 + (_sprRnd(seed + i * 5.7) - 0.5) * 0.7;
+    let x = x0, y = SH, a = -1.5708 + (_sprRnd(seed + i * 5.7) - 0.5) * 0.7;
     const segs = 6 + Math.floor(_sprRnd(seed + i * 7.3) * 7);
     const len = H * (0.05 + _sprRnd(seed + i * 11.1) * 0.055);
     g.beginPath();
@@ -27477,6 +27479,8 @@ function _sprThicketSprite(W, H, band, seed) {
       const nx = x + Math.cos(a) * len, ny = y + Math.sin(a) * len;
       g.quadraticCurveTo(x + Math.cos(a - 0.4) * len * 0.6, y + Math.sin(a - 0.4) * len * 0.6, nx, ny);
       x = nx; y = ny;
+      if (k === segs - 1) tips.push([x, y, i]);
+      else if (k >= segs * 0.45) joints.push([x, y, i]);
       if (_sprRnd(seed + i * 17 + k) < 0.42) {         // a leaf off the joint
         g.save();
         g.translate(x, y);
@@ -27494,12 +27498,26 @@ function _sprThicketSprite(W, H, band, seed) {
     g.stroke();
   }
 
-  const roses = 12 + band * 11;
-  for (let i = 0; i < roses; i++) {
-    const rx = (_sprRnd(seed + i * 19.3)) * W;
-    const ry = H * (0.06 + _sprRnd(seed + i * 23.1) * 0.8);
-    const rr = (5 + band * 6) * (0.55 + _sprRnd(seed + i * 29.7) * 1.05);
-    _sprRose(g, rx, ry, rr, seed + i, dark * 0.5 + 0.5, band < 2);
+  // a head of two or three, the way they actually come
+  const R0 = 5 + band * 5.5;
+  const A0 = dark * 0.72 + 0.28;
+  const cluster = (x, y, sd, scale) => {
+    const n = 1 + Math.floor(_sprRnd(sd * 1.7) * 2);
+    for (let k = 0; k < n; k++) {
+      const a = _sprRnd(sd + k * 3.1) * 6.283185;
+      const d = k === 0 ? 0 : R0 * scale * (0.8 + _sprRnd(sd + k * 5.7) * 0.8);
+      _sprRose(g, x + Math.cos(a) * d, y + Math.sin(a) * d,
+               R0 * scale * (0.72 + _sprRnd(sd + k * 7.3) * 0.5),
+               sd + k * 11, A0, band < 2);
+    }
+  };
+  for (let i = 0; i < tips.length; i++) {
+    if (_sprRnd(seed + i * 41.3) > 0.34) continue;      // not every cane blooms
+    cluster(tips[i][0], tips[i][1], seed + i * 13.7, 0.85 + _sprRnd(seed + i * 3.9) * 0.6);
+  }
+  for (let i = 0; i < joints.length; i++) {
+    if (_sprRnd(seed + i * 47.9) > 0.1) continue;
+    cluster(joints[i][0], joints[i][1], seed + 500 + i * 17.3, 0.5 + _sprRnd(seed + i * 5.1) * 0.4);
   }
   return c;
 }
@@ -27624,9 +27642,10 @@ function _drawSprucePattern(canvas, ctx, W, H, t) {
     canvas._sprBands = [];
     for (let b = 0; b < 4; b++) {
       const bh = H * (0.26 + b * 0.13);
+      const sp = _sprThicketSprite(Math.ceil(W * 1.06), bh, Math.min(2, b), b * 37 + 5);
       canvas._sprBands.push({
-        s: _sprThicketSprite(Math.ceil(W * 1.06), bh, Math.min(2, b), b * 37 + 5),
-        y: H - bh + b * 6, sway: 3 + b * 5, ph: b * 1.7, sp: 0.16 + b * 0.05,
+        s: sp, y: H + b * 6 - sp.height,      // hung from its own foot
+        sway: 3 + b * 5, ph: b * 1.7, sp: 0.16 + b * 0.05,
       });
     }
   }
@@ -27641,14 +27660,14 @@ function _drawSprucePattern(canvas, ctx, W, H, t) {
   // 5 ── petals coming down at three distances
   if (!canvas._sprPetals) {
     canvas._sprPetals = [];
-    const bands = [[16, 8, 15, 0.4], [9, 16, 26, 0.62], [5, 26, 44, 0.85]];
+    const bands = [[18, 8, 15, 0.4], [11, 16, 26, 0.58], [6, 26, 44, 0.62]];
     let k = 0;
     for (let bi = 0; bi < 3; bi++) {
       const [n, s0, s1, al] = bands[bi];
       for (let i = 0; i < n; i++, k++) {
         canvas._sprPetals.push({
           x: _sprRnd(k * 3.7) * W, y: ((i + _sprRnd(k * 5.1)) / n) * (H + 80) - 40,
-          sz: 4 + bi * 3.5 + _sprRnd(k * 7.9) * (3 + bi * 3),
+          sz: 3.4 + bi * 2.1 + _sprRnd(k * 7.9) * (2.4 + bi * 1.8),
           vy: s0 + _sprRnd(k * 11.3) * (s1 - s0),
           vx: (_sprRnd(k * 13.7) - 0.5) * 18,
           rot: _sprRnd(k * 17.1) * 6.283, vr: (_sprRnd(k * 19.9) - 0.5) * 2.2,
@@ -27668,8 +27687,8 @@ function _drawSprucePattern(canvas, ctx, W, H, t) {
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.rot);
-    ctx.scale(1, 0.45 + 0.55 * Math.abs(Math.cos(p.flip)));
-    _sprPetalPath(ctx, p.sz * 2, p.sz);
+    ctx.scale(1, 0.62 + 0.38 * Math.abs(Math.cos(p.flip)));
+    _sprPetalPath(ctx, p.sz * 1.7, p.sz);
     ctx.fillStyle = `rgba(${_SPR_CREAM},${p.a.toFixed(2)})`;
     ctx.fill();
     ctx.restore();
@@ -28068,6 +28087,156 @@ function _drawSpruceCursor(canvas, ctx, W, H, t) {
   ctx.restore();
 }
 
+
+// ── The frame: the garden growing over the edge of the page ──────
+// Mahogany has carved wood and The Shi has smoke; hers is alive. Thorned
+// canes woven along every edge, thickening into knots at the corners, with
+// her roses opening all along them. Static: drawn on entry and on resize
+// only, so it costs nothing to have.
+function _sprTopInset() {
+  let top = 0;
+  for (const sel of ['#header', '#mobile-topbar']) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width > 100 && r.top <= 2 && r.height > 0) top = Math.max(top, r.bottom);
+  }
+  return Math.round(Math.min(top, 160));
+}
+
+// one cane laid along an edge, wandering across the width of the band
+function _sprCane(ctx, p0, p1, off, wob, sd, w, thorns) {
+  const dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len, ny = dx / len;
+  const N = 34, pts = [];
+  for (let i = 0; i <= N; i++) {
+    const u = i / N;
+    const f = 4.5 + (sd % 7) * 1.6;
+    const o = off + Math.sin(u * f + sd) * wob + Math.sin(u * (f * 2.4 + 3) + sd * 2.3) * wob * 0.5;
+    pts.push([p0[0] + dx * u + nx * o, p0[1] + dy * u + ny * o]);
+  }
+  ctx.beginPath();
+  pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]));
+  ctx.strokeStyle = 'rgba(28,44,26,0.95)';
+  ctx.lineWidth = w;
+  ctx.stroke();
+  ctx.strokeStyle = `rgba(${_SPR_LEAF},0.55)`;
+  ctx.lineWidth = w * 0.4;
+  ctx.stroke();
+  if (thorns) {
+    ctx.beginPath();
+    for (let i = 3; i < N - 2; i += 3) {
+      const q = pts[i], r = pts[i + 1];
+      const tx = r[0] - q[0], ty = r[1] - q[1];
+      const tl = Math.hypot(tx, ty) || 1;
+      const sgn = (i % 6 === 0) ? 1 : -1;
+      const px2 = -ty / tl * sgn, py2 = tx / tl * sgn;
+      ctx.moveTo(q[0], q[1]);
+      ctx.lineTo(q[0] + px2 * w * 1.9 + tx * 0.5, q[1] + py2 * w * 1.9 + ty * 0.5);
+    }
+    ctx.strokeStyle = 'rgba(24,38,22,0.9)';
+    ctx.lineWidth = Math.max(1, w * 0.4);
+    ctx.stroke();
+  }
+  return pts;
+}
+
+function _sprDrawFrame(canvas, ctx, W0, H0) {
+  ctx.clearRect(0, 0, W0, H0);
+  const T = _sprTopInset();
+  ctx.save();
+  ctx.translate(0, T);
+  const W = W0, H = H0 - T;
+  if (H < 120 || W < 220) { ctx.restore(); return; }
+  const B = Math.max(42, Math.min(92, Math.min(W, H) * 0.088));
+  ctx.lineCap = 'round';
+
+  // the dark the canes are growing out of
+  for (const [x, y, w, h, gx0, gy0, gx1, gy1] of [
+    [0, 0, W, B, 0, 0, 0, B], [0, H - B, W, B, 0, H, 0, H - B],
+    [0, 0, B, H, 0, 0, B, 0], [W - B, 0, B, H, W, 0, W - B, 0]]) {
+    const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+    g.addColorStop(0, 'rgba(8,2,7,0.97)');
+    g.addColorStop(0.34, 'rgba(16,5,13,0.88)');
+    g.addColorStop(0.72, 'rgba(28,10,22,0.5)');
+    g.addColorStop(1, 'rgba(32,12,26,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x, y, w, h);
+  }
+
+  // canes along each run, three deep and woven across the band
+  const edges = [
+    [[-30, B * 0.5], [W + 30, B * 0.5]],
+    [[-30, H - B * 0.5], [W + 30, H - B * 0.5]],
+    [[B * 0.5, -30], [B * 0.5, H + 30]],
+    [[W - B * 0.5, -30], [W - B * 0.5, H + 30]],
+  ];
+  edges.forEach((e, ei) => {
+    for (let c = 0; c < 6; c++) {
+      _sprCane(ctx, e[0], e[1], (c - 2.5) * B * 0.14, B * 0.34,
+               ei * 3.3 + c * 1.9, 5.4 - c * 0.65, c < 4);
+    }
+  });
+
+  // leaves and roses all along them, thicker at the corners
+  const put = (x, y, r, sd) => {
+    const n = 1 + Math.floor(_sprRnd(sd * 2.1) * 3);
+    for (let k = 0; k < n; k++) {
+      const a = _sprRnd(sd + k * 3.7) * 6.283185;
+      const d = k === 0 ? 0 : r * (0.8 + _sprRnd(sd + k * 5.1) * 0.7);
+      _sprRose(ctx, x + Math.cos(a) * d, y + Math.sin(a) * d,
+               r * (0.7 + _sprRnd(sd + k * 6.9) * 0.55), sd + k * 9, 1);
+    }
+    for (let k = 0; k < 2; k++) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(_sprRnd(sd + k * 8.3) * 6.283185);
+      _sprLeaf(ctx, r * 1.5, r * 0.55, `rgba(${_SPR_LEAF},0.9)`);
+      ctx.restore();
+    }
+  };
+  const RB = B * 0.34;
+  for (const [cx, cy, s] of [[B * 0.5, B * 0.5, 1], [W - B * 0.5, B * 0.5, 2],
+                             [B * 0.5, H - B * 0.5, 3], [W - B * 0.5, H - B * 0.5, 4]]) {
+    for (let k = 0; k < 10; k++) {                   // a knot in every corner
+      const a = k * 0.8 + s;
+      const d = B * (0.08 + _sprRnd(s * 7 + k) * 0.72);
+      put(cx + Math.cos(a) * d, cy + Math.sin(a) * d, RB * (0.7 + _sprRnd(s * 11 + k) * 0.6), s * 31 + k * 5.3);
+    }
+  }
+  const along = Math.max(4, Math.round(W / 190));
+  for (let i = 1; i < along; i++) {
+    const u = i / along;
+    put(W * u, B * 0.5 + (_sprRnd(i * 13.1) - 0.5) * B * 0.4, RB * (0.6 + _sprRnd(i * 3.1) * 0.6), i * 17.7);
+    put(W * u, H - B * 0.5 + (_sprRnd(i * 19.3) - 0.5) * B * 0.4, RB * (0.6 + _sprRnd(i * 5.9) * 0.6), i * 23.1 + 3);
+  }
+  const down = Math.max(3, Math.round(H / 190));
+  for (let i = 1; i < down; i++) {
+    const u = i / down;
+    put(B * 0.5 + (_sprRnd(i * 29.7) - 0.5) * B * 0.4, H * u, RB * (0.6 + _sprRnd(i * 7.3) * 0.6), i * 29.3 + 7);
+    put(W - B * 0.5 + (_sprRnd(i * 31.1) - 0.5) * B * 0.4, H * u, RB * (0.6 + _sprRnd(i * 11.7) * 0.6), i * 37.9 + 11);
+  }
+
+  // the page sits down inside it
+  const iw = W - B * 2, ih = H - B * 2;
+  if (iw > 20 && ih > 20) {
+    ctx.save();
+    ctx.translate(B + iw / 2, B + ih / 2);
+    ctx.scale(1, ih / iw);
+    const g = ctx.createRadialGradient(0, 0, iw * 0.24, 0, 0, iw * 0.68);
+    g.addColorStop(0, 'rgba(12,4,10,0)');
+    g.addColorStop(0.66, 'rgba(12,4,10,0.16)');
+    g.addColorStop(1, 'rgba(12,4,10,0.44)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-iw / 2, -iw / 2, iw, iw);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 function _startSpruceOverlay() {
   _stopSpruceOverlay();
   _drawSpruceCursor._lt = undefined;
@@ -28080,6 +28249,13 @@ function _startSpruceOverlay() {
   window.addEventListener('mousemove', _spMouseMove);
   window.addEventListener('click', _spClick);
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const fr = document.createElement('canvas');
+  fr.id = 'spruce-frame-overlay';
+  fr.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:30;pointer-events:none;';
+  fr.width = window.innerWidth; fr.height = window.innerHeight;
+  document.body.appendChild(fr);
+  _sprDrawFrame(fr, fr.getContext('2d'), fr.width, fr.height);
+
   const cv = document.createElement('canvas');
   cv.id = 'spruce-overlay';
   cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
@@ -28087,6 +28263,11 @@ function _startSpruceOverlay() {
   document.body.appendChild(cv);
   const t0 = performance.now();
   function frame(now) {
+    const fr2 = document.getElementById('spruce-frame-overlay');
+    if (fr2 && (fr2.width !== window.innerWidth || fr2.height !== window.innerHeight)) {
+      fr2.width = window.innerWidth; fr2.height = window.innerHeight;
+      _sprDrawFrame(fr2, fr2.getContext('2d'), fr2.width, fr2.height);
+    }
     const cv2 = document.getElementById('spruce-overlay');
     if (!cv2) return;
     if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
@@ -28105,6 +28286,7 @@ function _stopSpruceOverlay() {
   window.removeEventListener('click', _spClick);
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('spruce-overlay'); if (cv) cv.remove();
+  const fr = document.getElementById('spruce-frame-overlay'); if (fr) fr.remove();
   _sprShake = 0; _sprShakeX = _sprShakeY = 0;
   _spHits = []; _spBits = [];
 }
