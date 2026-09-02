@@ -42307,6 +42307,7 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
     canvas._lhSun = null; canvas._lhRays = null;
   }
   const HZ = H * 0.6;
+  _bgRect(canvas);                                  // where this canvas is sitting
 
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
@@ -42454,7 +42455,10 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
   }
   // the glow the blade itself throws, cut out of the rank standing behind it
   const KR = 215;
-  if (_lhTorch && !canvas._lhKin) {
+  const torch = _lhTorch
+    ? (([tx, ty]) => ({ x: tx, y: ty, k: _lhTorch.k }))(_bgAt(canvas, W, H, _lhTorch.x, _lhTorch.y))
+    : null;
+  if (torch && !canvas._lhKin) {
     canvas._lhKin = document.createElement('canvas');
     canvas._lhKin.width = canvas._lhKin.height = KR * 2;
     const kg = canvas._lhKin.getContext('2d');
@@ -42471,14 +42475,14 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
     ctx.drawImage(r.s, r.s.width - r.off, r.y);
     const gnd = r.y + r.s.height * 0.933;          // where this rank is standing
     // he carries the fire past them, and the few he is beside take light off it
-    if (_lhTorch) {
-      const dy = Math.abs(gnd - _lhTorch.y);
+    if (torch) {
+      const dy = Math.abs(gnd - torch.y);
       if (dy < KR * 1.4) {
         const kg = canvas._lhKin.getContext('2d');
         kg.globalCompositeOperation = 'source-over';
         kg.clearRect(0, 0, KR * 2, KR * 2);
         kg.save();
-        kg.translate(KR - _lhTorch.x, KR - _lhTorch.y);
+        kg.translate(KR - torch.x, KR - torch.y);
         kg.drawImage(r.s, -r.off, r.y);
         kg.drawImage(r.s, r.s.width - r.off, r.y);
         kg.restore();
@@ -42490,8 +42494,8 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
         kg.fillRect(0, 0, KR * 2, KR * 2);
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = (1 - dy / (KR * 1.4)) * _lhTorch.k * (1.1 - r.depth * 0.55);
-        ctx.drawImage(canvas._lhKin, _lhTorch.x - KR, _lhTorch.y - KR);
+        ctx.globalAlpha = (1 - dy / (KR * 1.4)) * torch.k * (1.1 - r.depth * 0.55);
+        ctx.drawImage(canvas._lhKin, torch.x - KR, torch.y - KR);
         ctx.restore();
       }
     }
@@ -42946,6 +42950,28 @@ function _stopLeonHumanOverlay() {
 }
 /* ─────────────────────────────────────────────────────────────── */
 
+// ── A pointer position, in a background canvas's own pixels ──────
+// The overlay canvases are pinned to the viewport, so a pointer position is
+// already in their coordinates and can be used as it stands. The pattern
+// canvas is not: it is laid out inside the page, at an offset, and at a
+// slightly different scale from its own backing store. Anything a background
+// layer draws from a pointer position has to be brought across first, or it
+// lands a couple of hundred pixels away from the thing it is meant to be
+// under. Measured once a frame and cached on the canvas, because every layer
+// that needs it needs the same answer.
+function _bgRect(canvas) {
+  canvas._bgR = null;
+  if (canvas.isConnected && canvas.getBoundingClientRect) {
+    const r = canvas.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) canvas._bgR = r;
+  }
+}
+function _bgAt(canvas, W, H, x, y) {
+  const r = canvas._bgR;
+  if (!r) return [x, y];
+  return [(x - r.left) * (W / r.width), (y - r.top) * (H / r.height)];
+}
+
 // ════════════════════════════════════════════════════════════════
 // SEVACH - a pirate, and the sea he is on is blood.
 // The whole page is one substance seen at every distance, so all of
@@ -43172,6 +43198,7 @@ function _drawSevachPattern(canvas, ctx, W, H, t) {
   }
   const HZ = Math.round(H * 0.4);
   const N = 20;
+  _bgRect(canvas);                                  // where this canvas is sitting
 
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
@@ -43308,15 +43335,16 @@ function _drawSevachPattern(canvas, ctx, W, H, t) {
     g2.r += g2.sp * dt;
     g2.life -= dt * g2.fade;
     if (g2.life <= 0) { _svRings.splice(i, 1); continue; }
-    const sq = 0.16 + 0.2 * Math.max(0, (g2.y - HZ) / Math.max(1, H - HZ));
+    const [gx, gy] = _bgAt(canvas, W, H, g2.x, g2.y);
+    const sq = 0.16 + 0.2 * Math.max(0, (gy - HZ) / Math.max(1, H - HZ));
     ctx.beginPath();
-    ctx.ellipse(g2.x, g2.y, g2.r, g2.r * sq, 0, 0, 6.283185);
+    ctx.ellipse(gx, gy, g2.r, g2.r * sq, 0, 0, 6.283185);
     ctx.strokeStyle = `rgba(${_SV_SHEEN},${(g2.life * 0.34).toFixed(3)})`;
     ctx.lineWidth = 1 + g2.life * 2.2;
     ctx.stroke();
     if (g2.r > 16) {
       ctx.beginPath();
-      ctx.ellipse(g2.x, g2.y, g2.r * 0.62, g2.r * 0.62 * sq, 0, 0, 6.283185);
+      ctx.ellipse(gx, gy, g2.r * 0.62, g2.r * 0.62 * sq, 0, 0, 6.283185);
       ctx.strokeStyle = `rgba(${_SV_CREST},${(g2.life * 0.3).toFixed(3)})`;
       ctx.lineWidth = 0.9 + g2.life * 1.8;
       ctx.stroke();
@@ -43326,6 +43354,7 @@ function _drawSevachPattern(canvas, ctx, W, H, t) {
   // 6 ── and the cut he is dragging through it right now
   const KR = 190;
   if (_svTip) {
+    const [tipX, tipY] = _bgAt(canvas, W, H, _svTip.x, _svTip.y);
     if (!canvas._svWake) {
       canvas._svWake = document.createElement('canvas');
       canvas._svWake.width = canvas._svWake.height = KR * 2;
@@ -43340,9 +43369,9 @@ function _drawSevachPattern(canvas, ctx, W, H, t) {
     wg.globalCompositeOperation = 'source-over';
     wg.clearRect(0, 0, KR * 2, KR * 2);
     wg.save();
-    wg.translate(KR - _svTip.x, KR - _svTip.y);
+    wg.translate(KR - tipX, KR - tipY);
     for (const r of canvas._svRows) {
-      if (Math.abs(r.dy + r.top - _svTip.y) > KR + r.A + 40) continue;
+      if (Math.abs(r.dy + r.top - tipY) > KR + r.A + 40) continue;
       wg.drawImage(r.s, -r.off, r.dy);
       wg.drawImage(r.s, W - r.off, r.dy);
     }
@@ -43355,7 +43384,7 @@ function _drawSevachPattern(canvas, ctx, W, H, t) {
     wg.fillRect(0, 0, KR * 2, KR * 2);
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = Math.min(1, _svTip.k);
-    ctx.drawImage(canvas._svWake, _svTip.x - KR, _svTip.y - KR);
+    ctx.drawImage(canvas._svWake, tipX - KR, tipY - KR);
     ctx.globalAlpha = 1;
   }
   ctx.globalCompositeOperation = 'source-over';
