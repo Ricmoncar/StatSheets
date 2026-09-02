@@ -42110,6 +42110,110 @@ function _lhRankSprite(W, h, depth, seed) {
 }
 
 
+
+// ── The sun, and what the air is doing to it ─────────────────────
+// It was three stops of a radial gradient, which is to say a flat orange
+// hemisphere: no disc, no limb, and spread wide enough that the joins showed.
+// A sun this low in air this dirty is not a bright circle. It is a disc
+// squashed by refraction, sitting mostly under the horizon, with the haze
+// lying across it in horizontal bars. The bars are the whole of what makes it
+// read as a sun rather than as a lamp, so they are cut out of the glow as
+// well as out of the disc: where the smoke lies thick nothing gets through.
+function _lhSunSprite(R) {
+  const GLOW = R * 4.4, SINK = -R * 0.26;          // sitting on it, not sunk in it
+  const w = Math.ceil(GLOW * 2), h = Math.ceil(GLOW - SINK);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  const cx = GLOW, cy = GLOW;                      // below the sprite's own foot
+
+  g.globalCompositeOperation = 'lighter';
+  const halo = (r, a, col, pw) => {
+    const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+    for (let i = 0; i <= 16; i++) {                // smooth, or the rings show
+      const u = i / 16;
+      gr.addColorStop(u, `rgba(${col},${(a * Math.pow(1 - u, pw)).toFixed(4)})`);
+    }
+    g.fillStyle = gr;
+    g.fillRect(0, 0, w, h);
+  };
+  halo(GLOW, 0.3, _LH_DEEP, 2.4);                  // the whole sky knows it is there
+  halo(R * 2.7, 0.34, _LH_FIRE, 2.0);              // the air immediately round it
+  halo(R * 1.3, 0.6, _LH_HOT, 3.4);                // and the bloom on the limb
+
+  g.globalCompositeOperation = 'source-over';
+  g.save();                                        // the disc, flattened as it sets
+  g.translate(cx, cy);
+  g.scale(1, 0.86);
+  const dg = g.createRadialGradient(0, 0, 0, 0, 0, R);
+  dg.addColorStop(0, 'rgb(255,244,214)');
+  dg.addColorStop(0.38, `rgb(${_LH_HOT})`);
+  dg.addColorStop(0.8, `rgb(${_LH_FIRE})`);
+  dg.addColorStop(1, 'rgb(232,104,20)');
+  g.fillStyle = dg;
+  g.beginPath();
+  g.arc(0, 0, R, 0, 6.283185);
+  g.fill();
+  g.restore();
+
+  g.globalCompositeOperation = 'lighter';          // a little bloom off the limb
+  halo(R * 1.06, 0.5, _LH_HOT, 2.2);
+
+  g.globalCompositeOperation = 'destination-out';  // the haze lying across it all
+  const top = cy - R * 1.16;                       // over the part that is showing
+  for (let i = 0; i < 13; i++) {
+    const u = (i + _lhRnd(i * 6.1) * 0.95) / 13;
+    const y = top + (h - top) * Math.pow(u, 0.8);  // settling toward the horizon
+    const d = (y - top) / (h - top);
+    const th = R * (0.022 + _lhRnd(i * 9.7) * 0.09) * (0.4 + d * 1.2);
+    const a = Math.min(0.94, 0.22 + Math.pow(d, 1.25) * 0.72);
+    const bw = R * (0.75 + _lhRnd(i * 12.3) * 2.1);
+    const bx = cx + (_lhRnd(i * 15.1) - 0.5) * R * 1.7;
+    g.save();
+    g.translate(bx, y);
+    g.scale(1, th / bw);                           // one long flat lens of it
+    const br = g.createRadialGradient(0, 0, 0, 0, 0, bw);
+    for (let k = 0; k <= 10; k++) {
+      const v = k / 10;
+      br.addColorStop(v, `rgba(0,0,0,${(a * Math.pow(1 - v, 1.35)).toFixed(4)})`);
+    }
+    g.fillStyle = br;
+    g.fillRect(-bw, -bw, bw * 2, bw * 2);
+    g.restore();
+  }
+  return c;
+}
+
+// Light coming through smoke arrives in shafts. Baked as wedges and then
+// blurred, because a wedge with an edge on it is a starburst and not a shaft.
+function _lhRaySprite(R) {
+  const S = Math.ceil(R * 2);
+  const c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const g = c.getContext('2d');
+  g.translate(R, R);
+  g.globalCompositeOperation = 'lighter';
+  g.filter = `blur(${(R * 0.028).toFixed(1)}px)`;
+  for (let i = 0; i < 20; i++) {
+    const a = (i / 20) * 6.283185 + (_lhRnd(i * 3.3) - 0.5) * 0.22;
+    const wd = 0.018 + _lhRnd(i * 7.7) * 0.05;
+    const len = R * (0.42 + _lhRnd(i * 11.1) * 0.58);
+    const gr = g.createLinearGradient(0, 0, Math.cos(a) * len, Math.sin(a) * len);
+    gr.addColorStop(0, `rgba(${_LH_HOT},0)`);
+    gr.addColorStop(0.16, `rgba(${_LH_HOT},${(0.16 + _lhRnd(i * 13.9) * 0.16).toFixed(3)})`);
+    gr.addColorStop(1, `rgba(${_LH_FIRE},0)`);
+    g.fillStyle = gr;
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.lineTo(Math.cos(a - wd) * len, Math.sin(a - wd) * len);
+    g.lineTo(Math.cos(a + wd) * len, Math.sin(a + wd) * len);
+    g.closePath();
+    g.fill();
+  }
+  g.filter = 'none';
+  return c;
+}
+
 // ── A standard, planted ──────────────────────────────────────────
 // The field is deliberately all one shape, and that is what turns it into an
 // army instead of a pile. But an army carries standards, and cloth is the only
@@ -42176,6 +42280,7 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
     canvas._lhEmber = null; canvas._lhVign = null;
     canvas._lhStands = null; canvas._lhShim = null; canvas._lhAsh = null;
     canvas._lhKin = null; canvas._lhKinMask = null;
+    canvas._lhSun = null; canvas._lhRays = null;
   }
   const HZ = H * 0.6;
 
@@ -42194,10 +42299,11 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
     g.addColorStop(1, '#b84a10');
     sx.fillStyle = g;
     sx.fillRect(0, 0, W, HZ);
-    const fg = sx.createRadialGradient(W * 0.5, HZ, 0, W * 0.5, HZ, Math.max(W, H) * 0.5);
-    fg.addColorStop(0, `rgba(${_LH_HOT},0.5)`);
-    fg.addColorStop(0.18, `rgba(${_LH_FIRE},0.24)`);
-    fg.addColorStop(1, `rgba(${_LH_DEEP},0)`);
+    const fg = sx.createRadialGradient(W * 0.5, HZ, 0, W * 0.5, HZ, Math.max(W, H) * 0.66);
+    for (let i = 0; i <= 16; i++) {
+      const u = i / 16;
+      fg.addColorStop(u, `rgba(${_LH_FIRE},${(0.26 * Math.pow(1 - u, 2.3)).toFixed(4)})`);
+    }
     sx.globalCompositeOperation = 'lighter';
     sx.fillStyle = fg;
     sx.fillRect(0, 0, W, HZ + 60);
@@ -42208,10 +42314,62 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
     gg.addColorStop(1, '#070202');
     sx.fillStyle = gg;
     sx.fillRect(0, HZ, W, H - HZ);
+    // and the ground under it takes some back, which is what stops the
+    // horizon reading as a ruled line with two flat colours either side
+    const rf = sx.createRadialGradient(W * 0.5, HZ, 0, W * 0.5, HZ, Math.min(W, H) * 0.62);
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14;
+      rf.addColorStop(u, `rgba(${_LH_FIRE},${(0.2 * Math.pow(1 - u, 2.6)).toFixed(4)})`);
+    }
+    sx.globalCompositeOperation = 'lighter';
+    sx.save();
+    sx.beginPath();
+    sx.rect(0, HZ, W, H - HZ);
+    sx.clip();
+    sx.fillStyle = rf;
+    sx.fillRect(0, HZ, W, H - HZ);
+    sx.restore();
+    // In air this thick the horizon does not cut, it dissolves: a wide flat
+    // band of haze lying along it, brightest under the sun, so the disc sinks
+    // into something instead of being sliced off by an edge.
+    sx.save();
+    sx.translate(W * 0.5, HZ);
+    sx.scale(1, 0.055);
+    const hz = sx.createRadialGradient(0, 0, 0, 0, 0, W * 0.8);
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14;
+      hz.addColorStop(u, `rgba(${_LH_FIRE},${(0.34 * Math.pow(1 - u, 1.9)).toFixed(4)})`);
+    }
+    sx.fillStyle = hz;
+    sx.fillRect(-W, -W, W * 2, W * 2);
+    sx.restore();
+    sx.globalCompositeOperation = 'source-over';
   }
   ctx.drawImage(canvas._lhSky, 0, 0);
 
-  // 2 ── smoke going up off the whole of it
+  // 2 ── the sun itself, and the shafts it throws through the smoke
+  const SR = Math.max(38, Math.min(W * 0.075, H * 0.15));
+  if (!canvas._lhSun) {
+    canvas._lhSun = _lhSunSprite(SR);
+    canvas._lhRays = _lhRaySprite(Math.max(60, Math.min(W, H) * 0.62));
+  }
+  ctx.save();
+  ctx.beginPath();                                 // nothing of it below the ground
+  ctx.rect(0, 0, W, HZ);
+  ctx.clip();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.62 + 0.14 * Math.sin(t * 0.21);
+  ctx.translate(W * 0.5, HZ + SR * 0.34);
+  ctx.rotate(t * 0.013);                           // slow enough to only be felt
+  ctx.drawImage(canvas._lhRays, -canvas._lhRays.width / 2, -canvas._lhRays.height / 2);
+  ctx.restore();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.93 + 0.07 * Math.sin(t * 0.37);
+  ctx.drawImage(canvas._lhSun, W * 0.5 - canvas._lhSun.width / 2, HZ - canvas._lhSun.height);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 3 ── smoke going up off the whole of it
   if (!canvas._lhSmoke) {
     const cw = Math.ceil(W * 1.3), ch = Math.ceil(H * 0.7);
     const c = document.createElement('canvas');
@@ -42238,7 +42396,7 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // 3 ── the field, rank behind rank
+  // 4 ── the field, rank behind rank
   if (!canvas._lhRanks) {
     canvas._lhRanks = [];
     const N = 5;
@@ -42337,7 +42495,7 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
     if (_lhWave.life <= 0) _lhWave = null;
   }
 
-  // 4 ── the air over the fire line, which is not standing still
+  // 5 ── the air over the fire line, which is not standing still
   {
     const bandY = Math.max(0, HZ - H * 0.3), bandH = Math.min(H - bandY, H * 0.36);
     if (!canvas._lhShim) {
@@ -42359,7 +42517,7 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
     }
   }
 
-  // 5 ── embers off it, going up because that is where heat goes
+  // 6 ── embers off it, going up because that is where heat goes
   if (!canvas._lhEmber) {
     canvas._lhEmber = [];
     for (let i = 0; i < 110; i++) {
@@ -42385,7 +42543,7 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
   ctx.fill();
   ctx.globalCompositeOperation = 'source-over';
 
-  // 6 ── and ash coming down through them, which is what makes it read deep
+  // 7 ── and ash coming down through them, which is what makes it read deep
   if (!canvas._lhAsh) {
     canvas._lhAsh = [];
     for (let i = 0; i < 80; i++) {
@@ -42411,7 +42569,7 @@ function _drawLeonHumanPattern(canvas, ctx, W, H, t) {
     ctx.restore();
   }
 
-  // 7 ── the dark round the edge of it
+  // 8 ── the dark round the edge of it
   if (!canvas._lhVign) {
     canvas._lhVign = document.createElement('canvas');
     canvas._lhVign.width = W; canvas._lhVign.height = H;
