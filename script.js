@@ -3111,6 +3111,7 @@ const PATTERN_DEFS = {
   rady_wasteland:   { label: "Rady · Wasteland", params: [] },
   leon_warlord:     { label: "Leon · Warlord (human)", params: [] },
   sevach_bloodsea:  { label: "Sevach · Sea of blood", params: [] },
+  adam_kingdom:     { label: "Adam · Ice kingdom (human)", params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
@@ -31637,6 +31638,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'rady_wasteland') { _drawRadyPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'leon_warlord') { _drawLeonHumanPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'sevach_bloodsea') { _drawSevachPattern(canvas, ctx, W, H, t);           return; }
+  if (type === 'adam_kingdom') { _drawAdamHumanPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
@@ -32198,6 +32200,8 @@ function startBgAnim(type, params) {
   _drawLeonHumanOverlay._lt   = undefined;
   _drawSevachPattern._lt      = undefined;
   _drawSevachOverlay._lt      = undefined;
+  _drawAdamHumanPattern._lt   = undefined;
+  _drawAdamHumanOverlay._lt   = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -32302,6 +32306,7 @@ function stopBgAnim() {
   _stopRadyOverlay();
   _stopLeonHumanOverlay();
   _stopSevachOverlay();
+  _stopAdamHumanOverlay();
   _stopMbOverlay();
   _stopActariusOverlay();
   _stopSorrowOverlay();
@@ -32943,6 +32948,7 @@ function viewChar(id) {
   else if (_isSevach(c)) {             _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _SV_HEX); }
   else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isAdamHuman(c)) {  _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _AI_HEX); }
   else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isAnnie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ANNIE_RED_HEX); }
@@ -33186,6 +33192,22 @@ function viewChar(id) {
       _cvRoot.classList.remove('leonh-ui');
       if (_av) _av.classList.remove('leonh-pfp');
       if (_nm) _nm.classList.remove('leonh-name');
+    }
+  }
+
+  // ── ADAM as the prince: cut glass lit from above. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isAdamHuman(c)) {
+      _cvRoot.classList.add('adamh-ui');
+      if (_av) _av.classList.add('adamh-pfp');
+      if (_nm) { _nm.classList.add('adamh-name'); _nm.setAttribute('data-text', _nm.textContent || 'ADAM'); }
+    } else {
+      _cvRoot.classList.remove('adamh-ui');
+      if (_av) _av.classList.remove('adamh-pfp');
+      if (_nm) _nm.classList.remove('adamh-name');
     }
   }
 
@@ -33831,7 +33853,7 @@ function viewChar(id) {
       if (_av) _av.classList.remove('valkyrie-pfp');
       if (_nm) _nm.classList.remove('valkyrie-name');
     }
-    if (_isAdam(c)) {
+    if (_isAdam(c) && !_isAdamHuman(c)) {
       _cvRoot.classList.add('adam-ui');
       if (_av) _av.classList.add('adam-pfp');
       if (_nm) _nm.classList.add('adam-name');
@@ -34086,7 +34108,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -34099,7 +34121,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -34136,7 +34158,8 @@ function viewChar(id) {
   else if (_isLeon(c)) _startLeonOverlay();
   if (_isSevach(c))    _startSevachOverlay();
   if (_isValkyrie(c)) _startValkyrieOverlay();
-  if (_isAdam(c))     _startAdamOverlay();
+  if (_isAdamHuman(c)) _startAdamHumanOverlay();
+  else if (_isAdam(c)) _startAdamOverlay();
   if (_isFury(c))     _startFuryOverlay();
   if (_isAnnie(c))    _startAnnieOverlay();
   if (_isVikadan(c))  _startVikadanOverlay();
@@ -39767,7 +39790,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -39779,7 +39802,8 @@ window.addEventListener('resize', () => {
       else if (_isLeon(c)) _startLeonOverlay();
       if (_isSevach(c))    _startSevachOverlay();
       if (_isValkyrie(c)) _startValkyrieOverlay();
-      if (_isAdam(c))     _startAdamOverlay();
+      if (_isAdamHuman(c)) _startAdamHumanOverlay();
+      else if (_isAdam(c)) _startAdamOverlay();
       if (_isFury(c))     _startFuryOverlay();
       if (_isAnnie(c))    _startAnnieOverlay();
       if (_isVikadan(c))  _startVikadanOverlay();
@@ -42947,6 +42971,954 @@ function _stopLeonHumanOverlay() {
   if (cv) cv.remove();
   _lhTrail = []; _lhSparks = []; _lhWave = null;
   _lhTorch = null; _lhHold = false; _lhCharge = 0;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// ADAM, human form: the prince, and the kingdom he is heir to.
+// Leon's page is lit from a fire below the horizon, so everything on
+// it takes light on its underside and the dark is warm. This is the
+// exact inverse and it is built that way on purpose: the light hangs
+// ABOVE the world here, cold and moving, and every edge that catches
+// it catches it on top. Distance goes pale and blue rather than dark,
+// the way it does in very cold air, so the far towers dissolve into
+// the sky while the shards at your feet are nearly black.
+// Nothing out there is round. Ice has no curves in it: every spire is
+// two flat facets meeting at a ridge, one turned to the light and one
+// away, and that single rule is what makes a field of triangles read
+// as a frozen country instead of as a mountain range.
+// The blade is the interaction, and it does not destroy anything. It
+// rimes what it passes over, and where it strikes, the kingdom grows
+// another tower and keeps it.
+// ════════════════════════════════════════════════════════════════
+function _isAdamHuman(c) {
+  return _isAdam(c) && /human/i.test(_activeFormName(c));
+}
+const _AI_ICE  = '150,214,252';      // ice with the sky in it
+const _AI_GLOW = '92,196,255';       // and the light that is on the sky
+const _AI_PALE = '232,248,255';      // the hard specular off a facet
+const _AI_HAZE = '128,166,206';      // what a mile of cold air does to it
+const _AI_HEX  = '#6fd0f5';
+
+// what the two layers say to each other
+let _aiTip = null;                   // where the point of the blade is
+let _aiWave = null;                  // and the cold going out from a strike
+let _aiFrost = [];                   // rime it has left on the plain
+let _aiSpires = [];                  // and the towers he has put up
+
+function _aiRnd(seed) {
+  const v = Math.sin(seed * 41.83 + 19.37) * 24571.13;
+  return v - Math.floor(v);
+}
+
+// ── One spire ────────────────────────────────────────────────────
+// Two flat facets was enough to say ice and not enough to say anything else,
+// and a page of them came out looking like cut paper. What was missing is
+// everything that happens inside a block of ice: the facets are graded, not
+// flat, because the light is above and falls off down the face; the shadowed
+// side lifts again at the foot where light comes back up off the snow, which
+// is the whole reason ice reads as translucent and rock does not; there are
+// fractures running down inside it; and it is standing in a drift, with a
+// shadow, instead of being pasted onto the picture.
+function _aiSpire(g, x, base, h, w, lean, c, seed) {
+  const ax = x + lean * h, ay = base - h;
+  const foot = x + w * 0.08;
+  g.beginPath();                                   // the drift it stands in
+  g.ellipse(x, base, w * 0.86, w * 0.2, 0, 0, 6.283185);
+  g.fillStyle = c.drift;
+  g.fill();
+  g.beginPath();                                   // and what it is casting
+  g.ellipse(x + w * 0.3, base + w * 0.03, w * 0.6, w * 0.13, 0, 0, 6.283185);
+  g.fillStyle = c.shade;
+  g.fill();
+
+  const lg = g.createLinearGradient(0, ay, 0, base);
+  lg.addColorStop(0, c.litTop);
+  lg.addColorStop(1, c.litBot);
+  g.beginPath();                                   // the face turned to the light
+  g.moveTo(ax, ay);
+  g.lineTo(x - w * 0.5, base);
+  g.lineTo(foot, base);
+  g.closePath();
+  g.fillStyle = lg;
+  g.fill();
+
+  const dg = g.createLinearGradient(0, ay, 0, base);
+  dg.addColorStop(0, c.darkTop);
+  dg.addColorStop(0.62, c.darkMid);
+  dg.addColorStop(1, c.darkBot);                   // lifting again off the snow
+  g.beginPath();
+  g.moveTo(ax, ay);
+  g.lineTo(foot, base);
+  g.lineTo(x + w * 0.5, base);
+  g.closePath();
+  g.fillStyle = dg;
+  g.fill();
+
+  if (h > 14) {                                    // fractures, down the inside
+    g.beginPath();
+    for (let k = 0; k < 3; k++) {
+      const u = 0.2 + k * 0.26 + _aiRnd(seed + k * 5.7) * 0.16;
+      const tx = ax + (foot - ax) * u * 0.5;
+      const ty = ay + (base - ay) * u * 0.4;
+      g.moveTo(tx, ty);
+      g.lineTo(x + (_aiRnd(seed + k * 9.1) - 0.55) * w * 0.7, base);
+    }
+    g.strokeStyle = c.frac;
+    g.lineWidth = Math.max(0.5, h * 0.006);
+    g.stroke();
+  }
+  g.beginPath();                                   // the ridge takes the light
+  g.moveTo(ax, ay);
+  g.lineTo(foot, base);
+  g.strokeStyle = c.edge;
+  g.lineWidth = c.ew;
+  g.stroke();
+  g.beginPath();                                   // and the shoulder, a little
+  g.moveTo(ax, ay);
+  g.lineTo(ax + (x - w * 0.5 - ax) * 0.42, ay + (base - ay) * 0.42);
+  g.globalAlpha = 0.45;
+  g.stroke();
+  g.globalAlpha = 1;
+}
+
+// the palette a spire is drawn in, which is entirely a function of how far
+// off it is: cold air makes distance pale and flat, never dark
+function _aiPal(depth) {
+  const v = 14 + Math.pow(depth, 0.8) * 108;
+  const k = 0.25 + depth * 0.75;                   // the lift is the air, and
+  const mix = (a, b, c2) =>                        // there is none of it close to
+    `rgb(${(v * a + b * k) | 0},${(v * a * 1.42 + c2 * k) | 0},${(v * a * 2 + c2 * 1.5 * k) | 0})`;
+  return {
+    litTop: mix(0.86, 24, 40), litBot: mix(0.52, 8, 18),
+    darkTop: mix(0.4, 5, 12), darkMid: mix(0.28, 3, 9), darkBot: mix(0.46, 6, 16),
+    edge: `rgba(${_AI_PALE},${(0.24 + depth * 0.3).toFixed(2)})`,
+    frac: `rgba(${_AI_PALE},${(0.1 + depth * 0.12).toFixed(2)})`,
+    drift: `rgba(${_AI_ICE},${(0.06 + depth * 0.1).toFixed(3)})`,
+    shade: `rgba(2,6,16,${(0.34 - depth * 0.2).toFixed(2)})`,
+    ew: 1,
+  };
+}
+
+// a whole ridge of them, baked, and tileable so it can be laid twice
+function _aiRidgeSprite(W, h, depth, seed) {
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(W); c.height = Math.ceil(h * 1.35);
+  const g = c.getContext('2d');
+  const base = c.height;
+  const pal = _aiPal(depth);
+  pal.ew = Math.max(0.6, h * 0.012);
+  // the far fringe is dense and fine; what is standing at your feet is a few
+  // big shards with the plain showing between them, or the page has no floor
+  const step = h * (0.52 - depth * 0.3);
+  const gap = 0.12 + (1 - depth) * 0.44;
+  for (let x = -step; x < W + step * 2; x += step) {
+    const i = Math.round(x / step);
+    if (_aiRnd(seed + i * 2.3) < gap) continue;
+    const r1 = _aiRnd(seed + i * 3.7);
+    // most of them are small and a few are enormous, which is what a field
+    // of broken ice looks like and what an even spread never does
+    const hh = h * (0.22 + Math.pow(r1, 2.2) * 1.5);
+    const ww = step * (0.3 + _aiRnd(seed + i * 5.3) * 0.5 + r1 * 0.34);
+    const ln = (_aiRnd(seed + i * 7.9) - 0.5) * 0.26;
+    _aiSpire(g, x + (_aiRnd(seed + i * 11.3) - 0.5) * step * 0.4, base + h * 0.2,
+             hh, ww, ln, pal, seed + i);
+  }
+  return c;
+}
+
+// ── The citadel ──────────────────────────────────────────────────
+// A ridge of ice is a landscape. What turns it into a kingdom is that
+// some of the spires have windows in them, so this is the only thing
+// on the page that is not tiled: one place, drawn once, standing where
+// it stands.
+function _aiCitadelSprite(CW) {
+  const CH = Math.ceil(CW * 1.05);
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(CW); c.height = CH;
+  const g = c.getContext('2d');
+  const base = CH;
+  const lit  = 'rgb(58,86,124)';
+  const dark = 'rgb(24,40,68)';
+  const edge = 'rgba(198,230,255,0.55)';
+  const towers = [
+    [0.1, 0.34, 0.1], [0.2, 0.52, 0.12], [0.31, 0.42, 0.1],
+    [0.5, 1.0, 0.15], [0.68, 0.56, 0.12], [0.79, 0.4, 0.1], [0.9, 0.3, 0.09],
+  ];
+  g.beginPath();                                   // the curtain wall it stands on
+  g.moveTo(0, base);
+  g.lineTo(0, base - CH * 0.1);
+  for (let i = 0; i <= 10; i++) {
+    const u = i / 10;
+    g.lineTo(CW * u, base - CH * (0.1 + (i % 2 ? 0.03 : 0)));
+  }
+  g.lineTo(CW, base);
+  g.closePath();
+  g.fillStyle = dark;
+  g.fill();
+  for (const [u, hf, wf] of towers) {
+    const x = CW * u, hh = CH * hf * 0.8, ww = CW * wf;
+    g.beginPath();                                 // the shaft of the tower
+    g.moveTo(x - ww * 0.5, base);
+    g.lineTo(x - ww * 0.42, base - hh * 0.72);
+    g.lineTo(x, base - hh);                        // and the point on top of it
+    g.lineTo(x + ww * 0.42, base - hh * 0.72);
+    g.lineTo(x + ww * 0.5, base);
+    g.closePath();
+    g.fillStyle = dark;
+    g.fill();
+    g.beginPath();                                 // the face that takes the light
+    g.moveTo(x, base - hh);
+    g.lineTo(x - ww * 0.42, base - hh * 0.72);
+    g.lineTo(x - ww * 0.5, base);
+    g.lineTo(x - ww * 0.06, base);
+    g.lineTo(x, base - hh * 0.72);
+    g.closePath();
+    g.fillStyle = lit;
+    g.fill();
+    g.beginPath();
+    g.moveTo(x, base - hh);
+    g.lineTo(x, base - hh * 0.72);
+    g.lineTo(x - ww * 0.42, base - hh * 0.72);
+    g.moveTo(x, base - hh);
+    g.lineTo(x + ww * 0.42, base - hh * 0.72);
+    g.strokeStyle = edge;
+    g.lineWidth = Math.max(0.7, CW * 0.004);
+    g.stroke();
+    // and there is somebody in
+    const rows = Math.max(2, Math.round(hh / (CH * 0.09)));
+    for (let r = 0; r < rows; r++) {
+      for (let k = -1; k <= 1; k++) {
+        if (_aiRnd(u * 91 + r * 7.3 + k * 3.1) < 0.45) continue;
+        const wy = base - hh * 0.12 - r * (hh * 0.62 / rows);
+        const wx = x + k * ww * 0.24;
+        g.fillStyle = `rgba(${_AI_GLOW},${(0.4 + _aiRnd(u * 13 + r) * 0.5).toFixed(2)})`;
+        g.fillRect(wx - CW * 0.006, wy - CW * 0.012, CW * 0.012, CW * 0.02);
+      }
+    }
+  }
+  return c;
+}
+
+// ── The field ────────────────────────────────────────────────────
+function _drawAdamHumanPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawAdamHumanPattern._lt === undefined;
+  if (!fresh && t - _drawAdamHumanPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawAdamHumanPattern._lt, 0.05);
+  _drawAdamHumanPattern._lt = t;
+
+  if (canvas._aiW !== W || canvas._aiH !== H) {
+    canvas._aiW = W; canvas._aiH = H;
+    canvas._aiSky = null; canvas._aiAur = null; canvas._aiRidge = null;
+    canvas._aiCit = null; canvas._aiPlain = null; canvas._aiVign = null;
+    canvas._aiMist = null;
+    canvas._aiPlant = null; canvas._aiRime = null; canvas._aiRimeMask = null;
+    for (const s of _aiSpires) s.stamped = false;   // they get put up again
+  }
+  const HZ = Math.round(H * 0.52);
+  _bgRect(canvas);
+
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+
+  // 1 ── a sky with nothing warm anywhere in it
+  if (!canvas._aiSky) {
+    canvas._aiSky = document.createElement('canvas');
+    canvas._aiSky.width = W; canvas._aiSky.height = H;
+    const sx = canvas._aiSky.getContext('2d');
+    const g = sx.createLinearGradient(0, 0, 0, HZ);
+    g.addColorStop(0, '#03060f');
+    g.addColorStop(0.44, '#081428');
+    g.addColorStop(0.8, '#16345c');
+    g.addColorStop(1, '#4a7ba8');
+    sx.fillStyle = g;
+    sx.fillRect(0, 0, W, HZ);
+    for (let i = 0; i < 150; i++) {                // stars, thinning near the haze
+      const y = Math.pow(_aiRnd(i * 5.1), 1.5) * HZ;
+      const r = 0.3 + _aiRnd(i * 9.7) * 1.1;
+      sx.beginPath();
+      sx.arc(_aiRnd(i * 3.3) * W, y, r, 0, 6.283185);
+      sx.fillStyle = `rgba(${_AI_PALE},${(0.7 * (1 - y / HZ) * (0.3 + _aiRnd(i * 13.1) * 0.7)).toFixed(3)})`;
+      sx.fill();
+    }
+    sx.save();                                     // the cold sitting on the skyline
+    sx.translate(W * 0.5, HZ);
+    sx.scale(1, 0.3);
+    const hz = sx.createRadialGradient(0, 0, 0, 0, 0, W * 0.7);
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14;
+      hz.addColorStop(u, `rgba(${_AI_HAZE},${(0.4 * Math.pow(1 - u, 2.1)).toFixed(4)})`);
+    }
+    sx.globalCompositeOperation = 'lighter';
+    sx.fillStyle = hz;
+    sx.fillRect(-W, -W, W * 2, W * 2);
+    sx.restore();
+  }
+  ctx.drawImage(canvas._aiSky, 0, 0);
+
+  // 2 ── and the one thing up there that moves
+  if (!canvas._aiAur) {
+    const cw = Math.ceil(W * 1.4), ch = Math.ceil(HZ * 0.92);
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const g = c.getContext('2d');
+    g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 130; i++) {                // a curtain is many hanging folds
+      const x = _aiRnd(i * 4.7) * cw;
+      const top = ch * (0.06 + _aiRnd(i * 6.1) * 0.42);
+      const bot = top + ch * (0.24 + _aiRnd(i * 8.3) * 0.5);
+      const wd = cw * (0.004 + _aiRnd(i * 10.7) * 0.014);
+      const col = _aiRnd(i * 12.9) < 0.24 ? '150,110,255' : _AI_GLOW;
+      const gr = g.createLinearGradient(0, top, 0, bot);
+      gr.addColorStop(0, `rgba(${col},0)`);
+      gr.addColorStop(0.34, `rgba(${col},${(0.1 + _aiRnd(i * 14.3) * 0.16).toFixed(3)})`);
+      gr.addColorStop(1, `rgba(${col},0)`);
+      g.fillStyle = gr;
+      g.fillRect(x - wd * 0.5 + Math.sin(i) * cw * 0.004, top, wd, bot - top);
+    }
+    canvas._aiAur = c;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 2; k++) {
+    const off = (t * (5 + k * 9)) % canvas._aiAur.width;
+    ctx.globalAlpha = (0.85 - k * 0.34) * (0.72 + 0.28 * Math.sin(t * 0.23 + k * 2.1));
+    const y = HZ - canvas._aiAur.height * (0.99 - k * 0.16);
+    ctx.drawImage(canvas._aiAur, -off, y);
+    ctx.drawImage(canvas._aiAur, canvas._aiAur.width - off, y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 3 ── the plain, one sheet of it, broken into plates
+  if (!canvas._aiPlain) {
+    canvas._aiPlain = document.createElement('canvas');
+    canvas._aiPlain.width = W; canvas._aiPlain.height = H - HZ + 2;
+    const g = canvas._aiPlain.getContext('2d');
+    const PH2 = H - HZ;
+    const gg = g.createLinearGradient(0, 0, 0, PH2);
+    gg.addColorStop(0, '#426b98');
+    gg.addColorStop(0.1, '#20406a');
+    gg.addColorStop(0.42, '#122a49');
+    gg.addColorStop(1, '#04091a');
+    g.fillStyle = gg;
+    g.fillRect(0, 0, W, PH2 + 2);
+    // the sky is on the ice, smeared out the way a reflection is on
+    // something that is not quite a mirror
+    g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 26; i++) {
+      const x = _aiRnd(i * 4.7) * W;
+      const wd = W * (0.006 + _aiRnd(i * 6.1) * 0.03);
+      const len = PH2 * (0.1 + _aiRnd(i * 8.3) * 0.34);
+      const col = _aiRnd(i * 12.9) < 0.24 ? '150,110,255' : _AI_GLOW;
+      const rg = g.createLinearGradient(0, 0, 0, len);
+      rg.addColorStop(0, `rgba(${col},${(0.05 + _aiRnd(i * 10.7) * 0.07).toFixed(3)})`);
+      rg.addColorStop(1, `rgba(${col},0)`);
+      g.fillStyle = rg;
+      g.fillRect(x - wd * 0.5, 0, wd, len);
+    }
+    g.globalCompositeOperation = 'source-over';
+    // an ice sheet is not one thing, it is plates: a network of seams that
+    // branch, opening out as it comes at you
+    const seam = (x, y, ang, len, dep) => {
+      if (dep > 3 || len < 26) return;
+      const steps = 5;
+      let cx2 = x, cy2 = y, a = ang;
+      g.beginPath();
+      g.moveTo(cx2, cy2);
+      for (let k = 0; k < steps; k++) {
+        a += (_aiRnd(cx2 + cy2 + k * 3.1) - 0.5) * 0.5;
+        cx2 += Math.cos(a) * len / steps;
+        cy2 += Math.sin(a) * len / steps * 0.42;
+        g.lineTo(cx2, cy2);
+      }
+      const u = Math.min(1, Math.max(0, cy2 / PH2));
+      g.strokeStyle = `rgba(${_AI_PALE},${(0.05 + u * 0.15).toFixed(3)})`;
+      g.lineWidth = 0.5 + u * 1.7;
+      g.stroke();
+      g.strokeStyle = `rgba(2,6,16,${(0.1 + u * 0.2).toFixed(3)})`;
+      g.lineWidth = 0.5 + u * 1.1;
+      g.stroke();
+      for (const s2 of [-1, 1]) {
+        if (_aiRnd(cx2 * 1.7 + dep) < 0.4) continue;
+        seam(cx2, cy2, a + s2 * (0.7 + _aiRnd(cx2) * 0.7), len * 0.7, dep + 1);
+      }
+    };
+    for (let i = 0; i < 16; i++) {
+      seam(_aiRnd(i * 7.1) * W, PH2 * Math.pow(_aiRnd(i * 9.3), 0.55),
+           (_aiRnd(i * 11.7) - 0.5) * 2.2, PH2 * (0.16 + _aiRnd(i * 13.9) * 0.3), 0);
+    }
+    // and the wind ribs lying across all of it
+    for (let i = 0; i < 80; i++) {
+      const u = Math.pow(_aiRnd(i * 3.7), 1.7);
+      const y = PH2 * u;
+      const w = W * (0.05 + u * 0.3) * (0.5 + _aiRnd(i * 5.9));
+      const x = _aiRnd(i * 8.3) * W;
+      g.beginPath();
+      g.ellipse(x, y, w, w * (0.018 + u * 0.03), 0, 3.4, 6.02);
+      g.strokeStyle = `rgba(${_AI_PALE},${(0.04 + u * 0.1).toFixed(3)})`;
+      g.lineWidth = 0.5 + u * 1.2;
+      g.stroke();
+    }
+  }
+  ctx.drawImage(canvas._aiPlain, 0, HZ);
+  // mist lying on it, low and slow, which is what the far ground is made of
+  if (!canvas._aiMist) {
+    const cw = Math.ceil(W * 1.3), ch = Math.ceil((H - HZ) * 0.5);
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const g = c.getContext('2d');
+    for (let i = 0; i < 30; i++) {
+      const x = _aiRnd(i * 5.3) * cw, y = ch * (0.1 + _aiRnd(i * 7.1) * 0.85);
+      const rw = cw * (0.06 + _aiRnd(i * 9.7) * 0.16), rh = rw * 0.13;
+      const gr = g.createRadialGradient(x, y, 0, x, y, rw);
+      const a = 0.05 + _aiRnd(i * 11.3) * 0.09;
+      for (let k = 0; k <= 8; k++) {
+        const u = k / 8;
+        gr.addColorStop(u, `rgba(${_AI_HAZE},${(a * Math.pow(1 - u, 2)).toFixed(4)})`);
+      }
+      g.save();
+      g.translate(x, y);
+      g.scale(1, rh / rw);
+      g.fillStyle = gr;
+      g.translate(-x, -y);
+      g.fillRect(x - rw, y - rw, rw * 2, rw * 2);
+      g.restore();
+    }
+    canvas._aiMist = c;
+  }
+  for (let k = 0; k < 2; k++) {
+    const off = (t * (7 + k * 11)) % canvas._aiMist.width;
+    ctx.globalAlpha = 0.8 - k * 0.3;
+    const y = HZ + (H - HZ) * (0.02 + k * 0.16);
+    ctx.drawImage(canvas._aiMist, -off, y);
+    ctx.drawImage(canvas._aiMist, canvas._aiMist.width - off, y);
+  }
+  ctx.globalAlpha = 1;
+
+  // 4 ── the country, ridge behind ridge
+  const N = 5;
+  if (!canvas._aiRidge) {
+    canvas._aiRidge = [];
+    for (let i = 0; i < N; i++) {
+      const depth = 1 - i / (N - 1);
+      const near = Math.pow(1 - depth, 1.5);
+      const rh = H * (0.035 + near * 0.22);
+      canvas._aiRidge.push({
+        s: _aiRidgeSprite(Math.ceil(W * 1.25), rh, depth, i * 31 + 7),
+        y: HZ - rh * 1.16 + near * (H - HZ) * 0.72,
+        v: 0.3 + near * 3.2,
+        off: _aiRnd(i * 5.9) * W,
+        depth, rh,
+      });
+    }
+  }
+  // and his house, standing between the third ridge and the fourth
+  const CW = Math.max(170, Math.min(W * 0.36, H * 0.56));
+  if (!canvas._aiCit) canvas._aiCit = _aiCitadelSprite(CW);
+  const cit = canvas._aiCit;
+  const CX = W * 0.31;
+
+  if (!canvas._aiRime) {                           // for relighting what he passes
+    const KR = 200;
+    canvas._aiRime = document.createElement('canvas');
+    canvas._aiRime.width = canvas._aiRime.height = KR * 2;
+    const m = canvas._aiRime.getContext('2d').createRadialGradient(KR, KR, 0, KR, KR, KR);
+    m.addColorStop(0, 'rgba(0,0,0,1)');
+    m.addColorStop(0.4, 'rgba(0,0,0,0.6)');
+    m.addColorStop(1, 'rgba(0,0,0,0)');
+    canvas._aiRimeMask = m;
+  }
+  const KR = canvas._aiRime.width / 2;
+  const tip = _aiTip ? (([x, y]) => ({ x, y, k: _aiTip.k }))(_bgAt(canvas, W, H, _aiTip.x, _aiTip.y)) : null;
+
+  for (let i = 0; i < N; i++) {
+    const r = canvas._aiRidge[i];
+    r.off = (r.off + r.v * dt) % r.s.width;
+    ctx.drawImage(r.s, -r.off, r.y);
+    ctx.drawImage(r.s, r.s.width - r.off, r.y);
+    if (i === 2) {                                 // the citadel, in among them
+      ctx.drawImage(cit, CX - cit.width * 0.5, HZ + (H - HZ) * 0.1 - cit.height);
+    }
+    const gnd = r.y + r.s.height;
+    // a band of cold air lying between this ridge and the next one, which is
+    // the only thing that stops five layers of ice reading as one layer
+    if (i < N - 1) {
+      const hy = gnd - r.rh * 0.72, hh2 = r.rh * 1.5;
+      const pk = 0.24 * Math.pow(r.depth, 0.6) + 0.05;
+      const hg = ctx.createLinearGradient(0, hy, 0, hy + hh2);
+      hg.addColorStop(0, `rgba(${_AI_HAZE},0)`);
+      hg.addColorStop(0.34, `rgba(${_AI_HAZE},${pk.toFixed(3)})`);
+      hg.addColorStop(0.62, `rgba(${_AI_HAZE},${(pk * 0.5).toFixed(3)})`);
+      hg.addColorStop(1, `rgba(${_AI_HAZE},0)`);
+      ctx.fillStyle = hg;
+      ctx.fillRect(0, hy, W, hh2);
+    }
+    // the shield goes past and the ice takes light off it
+    if (tip && Math.abs(gnd - tip.y) < KR * 1.5) {
+      const rg = canvas._aiRime.getContext('2d');
+      rg.globalCompositeOperation = 'source-over';
+      rg.clearRect(0, 0, KR * 2, KR * 2);
+      rg.save();
+      rg.translate(KR - tip.x, KR - tip.y);
+      rg.drawImage(r.s, -r.off, r.y);
+      rg.drawImage(r.s, r.s.width - r.off, r.y);
+      rg.restore();
+      rg.globalCompositeOperation = 'source-atop';
+      rg.fillStyle = `rgba(${_AI_GLOW},0.55)`;
+      rg.fillRect(0, 0, KR * 2, KR * 2);
+      rg.globalCompositeOperation = 'destination-in';
+      rg.fillStyle = canvas._aiRimeMask;
+      rg.fillRect(0, 0, KR * 2, KR * 2);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = (1 - Math.abs(gnd - tip.y) / (KR * 1.5)) * tip.k * (0.9 - r.depth * 0.5);
+      ctx.drawImage(canvas._aiRime, tip.x - KR, tip.y - KR);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    // and a ridge the cold front has just reached answers it
+    if (_aiWave) {
+      const [wx, wy] = _bgAt(canvas, W, H, _aiWave.x, _aiWave.y);
+      const d = Math.abs(Math.hypot(W * 0.5 - wx, gnd - wy) - _aiWave.r);
+      if (d < 110) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = (1 - d / 110) * _aiWave.life * (0.55 - r.depth * 0.35);
+        ctx.drawImage(r.s, -r.off, r.y);
+        ctx.drawImage(r.s, r.s.width - r.off, r.y);
+        ctx.restore();
+      }
+    }
+  }
+  if (_aiWave) {
+    _aiWave.r += 700 * dt;
+    _aiWave.life -= dt * 1.5;
+    if (_aiWave.life <= 0) _aiWave = null;
+  }
+
+  // 5 ── what he has put up, and it stays up
+  if (!canvas._aiPlant) {
+    canvas._aiPlant = document.createElement('canvas');
+    canvas._aiPlant.width = W; canvas._aiPlant.height = H;
+  }
+  const pg = canvas._aiPlant.getContext('2d');
+  const wallPal = _aiPal(0.24);
+  wallPal.ew = 1.6;
+  for (const sp of _aiSpires) {
+    if (sp.stamped) continue;
+    sp.grow = Math.min(1, sp.grow + dt * 1.6);
+    const [sx, sy] = _bgAt(canvas, W, H, sp.x, sp.y);
+    const e = sp.grow * sp.grow * (3 - 2 * sp.grow);
+    const target = sp.grow >= 1 ? pg : ctx;
+    _aiRampart(target, sx, sy, sp.w * (0.4 + e * 0.6), sp.h, sp.n, sp.seed, e, wallPal);
+    if (sp.grow >= 1) {
+      pg.globalCompositeOperation = 'lighter';     // a light left burning in it
+      const lg = pg.createRadialGradient(sx, sy - sp.h * 0.6, 0, sx, sy - sp.h * 0.6, sp.w * 0.8);
+      lg.addColorStop(0, `rgba(${_AI_GLOW},0.26)`);
+      lg.addColorStop(1, `rgba(${_AI_GLOW},0)`);
+      pg.fillStyle = lg;
+      pg.fillRect(sx - sp.w * 0.8, sy - sp.h * 0.6 - sp.w * 0.8, sp.w * 1.6, sp.w * 1.6);
+      pg.globalCompositeOperation = 'source-over';
+      sp.stamped = true;
+    }
+  }
+  ctx.drawImage(canvas._aiPlant, 0, 0);
+
+  // 6 ── and the rime he has left on the way
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _aiFrost.length - 1; i >= 0; i--) {
+    const f = _aiFrost[i];
+    f.life -= dt * 0.28;
+    f.g = Math.min(1, f.g + dt * 3.4);
+    if (f.life <= 0) { _aiFrost.splice(i, 1); continue; }
+    const [fx, fy] = _bgAt(canvas, W, H, f.x, f.y);
+    const a = Math.min(1, f.life) * 0.36;
+    ctx.strokeStyle = `rgba(${_AI_PALE},${a.toFixed(3)})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let k = 0; k < 6; k++) {                  // six arms, the way frost goes
+      const ang = k * 1.047 + f.rot;
+      const len = f.r * f.g;
+      const ex = fx + Math.cos(ang) * len, ey = fy + Math.sin(ang) * len * 0.34;
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(ex, ey);
+      for (const side of [-0.6, 0.6]) {            // and the barbs off each arm
+        const bx = fx + Math.cos(ang) * len * 0.55, by = fy + Math.sin(ang) * len * 0.19;
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + Math.cos(ang + side) * len * 0.3,
+                   by + Math.sin(ang + side) * len * 0.1);
+      }
+    }
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 7 ── the dark round the edge of it
+  if (!canvas._aiVign) {
+    canvas._aiVign = document.createElement('canvas');
+    canvas._aiVign.width = W; canvas._aiVign.height = H;
+    const vx = canvas._aiVign.getContext('2d');
+    const g = vx.createRadialGradient(W * 0.5, HZ * 0.94, Math.min(W, H) * 0.2,
+                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.78);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.5, 'rgba(3,7,18,0.36)');
+    g.addColorStop(1, 'rgba(1,3,10,0.94)');
+    vx.fillStyle = g;
+    vx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(canvas._aiVign, 0, 0);
+}
+
+// ── His shield ───────────────────────────────────────────────────
+// Leon carries the thing that is burning and swings it. Adam carries the
+// thing you get behind, so the cursor is a shield and it is drawn face on
+// rather than pointed anywhere: it hangs at the pointer and banks with him,
+// the way a thing on an arm does. It is not a decal either. Ice is
+// translucent, so the field behind shows faintly through the plate, and the
+// only opaque things on it are the rim, the boss, and the fractures.
+// Bracing it is the verb. He does not cut the country up, he adds to it: a
+// press puts a run of ice up out of the plain and it stays there.
+let _aiRaf = null;
+let _aiX = 0, _aiY = 0, _aiTX = 0, _aiTY = 0, _aiVX = 0, _aiVY = 0;
+let _aiTilt = 0, _aiShards = [], _aiSnow = [], _aiStrike = 0;
+
+function _aiMouseMove(e) { _aiTX = e.clientX; _aiTY = e.clientY; }
+
+function _aiDown(e) {
+  _aiStrike = 1;
+  _aiWave = { x: e.clientX, y: e.clientY, r: 14, life: 1 };
+  _aiSpires.push({ x: e.clientX, y: e.clientY + 42,
+                   w: 150 + Math.random() * 190, h: 34 + Math.random() * 46,
+                   n: 4 + ((Math.random() * 5) | 0), seed: Math.random() * 400,
+                   grow: 0, stamped: false });
+  if (_aiSpires.length > 60) _aiSpires.splice(0, _aiSpires.length - 60);
+  for (let k = 0; k < 40; k++) {
+    const a = -Math.PI * 0.5 + (Math.random() - 0.5) * 2.8;
+    const sp = 170 + Math.random() * 540;
+    _aiShards.push({ x: e.clientX, y: e.clientY + 20,
+                     vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+                     rot: Math.random() * 6.283, vr: (Math.random() - 0.5) * 12,
+                     life: 1, sz: 2 + Math.random() * 6 });
+  }
+  if (_aiShards.length > 240) _aiShards.splice(0, _aiShards.length - 240);
+}
+
+// a run of ice standing up out of the plain: merlons, not needles, because
+// what a prince puts up is a wall
+function _aiRampart(g, x, y, w, h, n, seed, e, pal) {
+  const bw = w / n;
+  const bh = h * 0.4 * e;
+  if (bh > 1) {
+    const wg = g.createLinearGradient(0, y - bh, 0, y);
+    wg.addColorStop(0, pal.litTop);
+    wg.addColorStop(1, pal.darkMid);
+    g.beginPath();                                 // the wall the teeth sit on
+    g.moveTo(x - w * 0.5, y);
+    g.lineTo(x - w * 0.46, y - bh);
+    g.lineTo(x + w * 0.46, y - bh);
+    g.lineTo(x + w * 0.5, y);
+    g.closePath();
+    g.fillStyle = wg;
+    g.fill();
+    g.beginPath();
+    g.moveTo(x - w * 0.46, y - bh);
+    g.lineTo(x + w * 0.46, y - bh);
+    g.strokeStyle = pal.edge;
+    g.lineWidth = 1.4;
+    g.stroke();
+  }
+  for (let k = 0; k < n; k++) {
+    const u = (k + 0.5) / n;
+    const hh = h * (0.5 + _aiRnd(seed + k * 4.1) * 0.72) * e;
+    const ww = bw * (0.72 + _aiRnd(seed + k * 6.3) * 0.36);
+    _aiSpire(g, x - w * 0.5 + bw * (k + 0.5), y - bh * 0.86, hh, ww,
+             (u - 0.5) * 0.24, pal, seed + k);
+  }
+}
+
+function _aiShield(g, S, brace) {
+  const W2 = 30 * S, H2 = 38 * S;
+  const face = (inset) => {                        // the outline, once
+    const a = 1 - inset;
+    g.beginPath();
+    g.moveTo(-W2 * a, -H2 * a);
+    g.lineTo(W2 * a, -H2 * a);
+    g.quadraticCurveTo(W2 * 1.06 * a, H2 * 0.22 * a, 0, H2 * a);
+    g.quadraticCurveTo(-W2 * 1.06 * a, H2 * 0.22 * a, -W2 * a, -H2 * a);
+    g.closePath();
+  };
+  const body = g.createLinearGradient(0, -H2, 0, H2);
+  body.addColorStop(0, 'rgba(198,234,255,0.9)');
+  body.addColorStop(0.3, 'rgba(104,172,224,0.62)');
+  body.addColorStop(0.68, 'rgba(40,92,150,0.6)');
+  body.addColorStop(1, 'rgba(150,212,250,0.78)');   // light coming up off the ice
+  face(0);
+  g.fillStyle = body;
+  g.fill();
+  g.strokeStyle = `rgba(${_AI_PALE},0.85)`;         // the rim, which is solid
+  g.lineWidth = 2.6 * S;
+  g.stroke();
+  g.strokeStyle = `rgba(${_AI_GLOW},${(0.5 + brace * 0.5).toFixed(2)})`;
+  g.lineWidth = 1 * S;
+  g.stroke();
+  face(0.16);                                       // and an inner bevel
+  g.strokeStyle = `rgba(${_AI_PALE},0.28)`;
+  g.lineWidth = 1.1 * S;
+  g.stroke();
+  g.save();                                         // fractures, off the boss
+  face(0.02);
+  g.clip();
+  g.beginPath();
+  for (let k = 0; k < 7; k++) {
+    const a = k * 0.898 + 0.4;
+    g.moveTo(Math.cos(a) * 6 * S, Math.sin(a) * 6 * S);
+    g.lineTo(Math.cos(a) * W2 * 2, Math.sin(a) * H2 * 2);
+  }
+  g.strokeStyle = `rgba(${_AI_PALE},0.2)`;
+  g.lineWidth = 1 * S;
+  g.stroke();
+  g.restore();
+  g.beginPath();                                    // the boss
+  g.moveTo(0, -13 * S);
+  g.lineTo(10 * S, 0);
+  g.lineTo(0, 13 * S);
+  g.lineTo(-10 * S, 0);
+  g.closePath();
+  g.fillStyle = 'rgba(22,48,82,0.9)';
+  g.fill();
+  g.strokeStyle = `rgba(${_AI_PALE},0.75)`;
+  g.lineWidth = 1.4 * S;
+  g.stroke();
+  g.beginPath();                                    // and the crown cut into it
+  for (let k = -1; k <= 1; k++) {
+    g.moveTo(k * 4 * S, 4 * S);
+    g.lineTo(k * 4 * S, -1 * S);
+    g.lineTo(k * 4 * S + 2 * S, -4.5 * S);
+  }
+  g.moveTo(-5 * S, 4 * S);
+  g.lineTo(5 * S, 4 * S);
+  g.strokeStyle = `rgba(${_AI_GLOW},${(0.75 + brace * 0.25).toFixed(2)})`;
+  g.lineWidth = 1.3 * S;
+  g.stroke();
+  if (brace > 0.01) {                               // what bracing it throws up
+    g.globalCompositeOperation = 'lighter';
+    const R = (1 - brace) * 130 * S + 24 * S;
+    g.beginPath();
+    for (let k = 0; k <= 6; k++) {
+      const a = k * 1.047 - 0.5236;
+      const px = Math.cos(a) * R, py = Math.sin(a) * R * 0.9;
+      if (k === 0) g.moveTo(px, py); else g.lineTo(px, py);
+    }
+    g.strokeStyle = `rgba(${_AI_GLOW},${(brace * 0.6).toFixed(3)})`;
+    g.lineWidth = 2.4 * S * brace;
+    g.stroke();
+    const bg = g.createRadialGradient(0, 0, 0, 0, 0, 60 * S);
+    bg.addColorStop(0, `rgba(${_AI_PALE},${(brace * 0.3).toFixed(3)})`);
+    bg.addColorStop(1, `rgba(${_AI_GLOW},0)`);
+    g.fillStyle = bg;
+    g.fillRect(-60 * S, -60 * S, 120 * S, 120 * S);
+    g.globalCompositeOperation = 'source-over';
+  }
+}
+
+function _drawAdamHumanOverlay(canvas, ctx, W, H, t) {
+  if (_drawAdamHumanOverlay._lt !== undefined && t - _drawAdamHumanOverlay._lt < 0.016) return;
+  const dt = _drawAdamHumanOverlay._lt === undefined ? 0.016 : Math.min(t - _drawAdamHumanOverlay._lt, 0.04);
+  _drawAdamHumanOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+
+  const SPRING = 96, DAMP = 16;
+  _aiVX += ((_aiTX - _aiX) * SPRING - _aiVX * DAMP) * dt;
+  _aiVY += ((_aiTY - _aiY) * SPRING - _aiVY * DAMP) * dt;
+  _aiX += _aiVX * dt; _aiY += _aiVY * dt;
+  const spd = Math.hypot(_aiVX, _aiVY);
+  // a shield on an arm banks when he moves, it does not point
+  const wantTilt = Math.max(-0.34, Math.min(0.34, _aiVX * 0.0007));
+  _aiTilt += (wantTilt - _aiTilt) * Math.min(1, dt * 6);
+  _aiStrike = Math.max(0, _aiStrike - dt * 2.4);
+  const S = 1.5;
+
+  // ── in front of everything: the cold on the glass, and the weather ──
+  if (!canvas._aiCorner) {
+    const CS = Math.ceil(Math.min(W, H) * 0.3);
+    const c = document.createElement('canvas');
+    c.width = c.height = CS;
+    const g = c.getContext('2d');
+    g.lineCap = 'round';
+    // frost is dendritic: a spine, and smaller spines off it at a fixed angle
+    const frond = (x, y, ang, len, w, dep) => {
+      if (len < 3 || dep > 5) return;
+      const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(ex, ey);
+      g.strokeStyle = `rgba(${_AI_PALE},${(0.07 + dep * 0.022).toFixed(3)})`;
+      g.lineWidth = w;
+      g.stroke();
+      for (let k = 1; k <= 3; k++) {
+        const u = k / 4;
+        const bx = x + (ex - x) * u, by = y + (ey - y) * u;
+        for (const s of [-0.62, 0.62]) {
+          frond(bx, by, ang + s, len * (0.36 + _aiRnd(x + y + k * 3.1 + dep) * 0.22),
+                w * 0.66, dep + 1);
+        }
+      }
+      frond(ex, ey, ang + (_aiRnd(x + len) - 0.5) * 0.5, len * 0.62, w * 0.8, dep + 1);
+    };
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * 1.5708 + 0.06;
+      frond(0, 0, a, CS * (0.3 + _aiRnd(i * 6.3) * 0.34), 2.1, 0);
+    }
+    canvas._aiCorner = c;
+  }
+  const cs = canvas._aiCorner;
+  const breath = 0.34 + 0.1 * Math.sin(t * 0.31) + _aiStrike * 0.28;
+  for (let k = 0; k < 4; k++) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, breath * (k < 2 ? 1 : 0.72));
+    ctx.translate(k % 2 ? W : 0, k < 2 ? 0 : H);
+    ctx.scale(k % 2 ? -1 : 1, k < 2 ? 1 : -1);
+    ctx.drawImage(cs, 0, 0);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  for (let side = 0; side < 2; side++) {            // and the dark above the corners
+    const ox = side ? W : 0, dir = side ? -1 : 1;
+    const R = Math.min(W, H) * 0.46;
+    const cg = ctx.createRadialGradient(ox, 0, 0, ox, 0, R);
+    for (let i = 0; i <= 12; i++) {
+      const u = i / 12;
+      cg.addColorStop(u, `rgba(2,5,14,${(0.6 * Math.pow(1 - u, 2.8)).toFixed(4)})`);
+    }
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(ox, 0);
+    for (let i = 0; i <= 9; i++) {
+      const a = (i / 9) * 1.5708;
+      const rr = R * (1.02 + 0.12 * Math.sin(t * 0.5 + i * 1.5 + side * 2.4));
+      ctx.lineTo(ox + dir * Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  if (!_aiSnow.length) {                            // it is coming down out there
+    for (let i = 0; i < 130; i++) {
+      _aiSnow.push({ x: _aiRnd(i * 3.1) * W, y: _aiRnd(i * 5.7) * H,
+                     v: 24 + _aiRnd(i * 7.9) * 90, sz: 0.7 + _aiRnd(i * 9.3) * 2.2,
+                     ph: _aiRnd(i * 11.7) * 6.283, sw: 0.4 + _aiRnd(i * 13.1) * 1.4,
+                     a: 0.2 + _aiRnd(i * 15.3) * 0.6 });
+    }
+  }
+  ctx.beginPath();
+  for (const f of _aiSnow) {
+    f.y += f.v * dt;
+    f.x += Math.sin(t * f.sw + f.ph) * 22 * dt;
+    if (f.y > H + 6) { f.y = -6; f.x = Math.random() * W; }
+    ctx.moveTo(f.x + f.sz, f.y);
+    ctx.arc(f.x, f.y, f.sz, 0, 6.283185);
+  }
+  ctx.fillStyle = `rgba(${_AI_PALE},0.5)`;
+  ctx.fill();
+
+  // ── what the blade leaves, and what a strike throws ──
+  const tipX = _aiX;                                // it rimes what it is over
+  const tipY = _aiY + 34 * S;
+  if (spd > 40 && Math.random() < dt * 13) {
+    _aiFrost.push({ x: tipX, y: tipY, r: 7 + Math.random() * 15,
+                    rot: Math.random() * 6.283, life: 0.7 + Math.random() * 0.6, g: 0 });
+    if (_aiFrost.length > 44) _aiFrost.shift();
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _aiShards.length - 1; i >= 0; i--) {
+    const p = _aiShards[i];
+    p.vy += 1100 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.99;
+    p.rot += p.vr * dt;
+    p.life -= dt * 0.8;
+    if (p.life <= 0) { _aiShards.splice(i, 1); continue; }
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    const z = p.sz * p.life;
+    ctx.beginPath();                                // a chip of ice, not a dot
+    ctx.moveTo(0, -z * 1.7);
+    ctx.lineTo(z * 0.6, 0);
+    ctx.lineTo(0, z * 1.7);
+    ctx.lineTo(-z * 0.6, 0);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${_AI_ICE},${(p.life * 0.85).toFixed(3)})`;
+    ctx.fill();
+    ctx.restore();
+  }
+  if (_aiWave) {                                    // the front going out from it
+    const far = Math.max(0, 1 - _aiWave.r / 520);   // and gone before it is a hoop
+    ctx.beginPath();
+    ctx.arc(_aiWave.x, _aiWave.y, _aiWave.r, 0, 6.283185);
+    ctx.strokeStyle = `rgba(${_AI_GLOW},${(_aiWave.life * far * 0.6).toFixed(3)})`;
+    ctx.lineWidth = 1.5 + _aiWave.life * 7;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(_aiWave.x, _aiWave.y, _aiWave.r * 0.8, 0, 6.283185);
+    ctx.strokeStyle = `rgba(${_AI_PALE},${(_aiWave.life * far * 0.34).toFixed(3)})`;
+    ctx.lineWidth = 1 + _aiWave.life * 3;
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // ── the shield ──
+  ctx.save();
+  ctx.translate(_aiX, _aiY + _aiStrike * 9 * S);
+  ctx.rotate(_aiTilt);
+  ctx.scale(1 + _aiStrike * 0.1, 1 + _aiStrike * 0.1);
+  _aiShield(ctx, S, _aiStrike);
+  ctx.restore();
+
+  _aiTip = { x: tipX, y: tipY, k: 0.75 + _aiStrike * 0.5 };
+}
+
+function _startAdamHumanOverlay() {
+  _stopAdamHumanOverlay();
+  _drawAdamHumanOverlay._lt = undefined;
+  _aiX = _aiTX = window.innerWidth * 0.5;
+  _aiY = _aiTY = window.innerHeight * 0.5;
+  _aiVX = _aiVY = 0; _aiTilt = 0; _aiStrike = 0;
+  _aiShards = []; _aiSnow = [];
+  _aiFrost = []; _aiSpires = []; _aiWave = null; _aiTip = null;
+  window.addEventListener('mousemove', _aiMouseMove);
+  window.addEventListener('mousedown', _aiDown);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'adamhuman-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('adamhuman-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+      _aiSnow = []; cv2._aiCorner = null;
+    }
+    _drawAdamHumanOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _aiRaf = requestAnimationFrame(frame);
+  }
+  _aiRaf = requestAnimationFrame(frame);
+}
+
+function _stopAdamHumanOverlay() {
+  if (_aiRaf) { cancelAnimationFrame(_aiRaf); _aiRaf = null; }
+  window.removeEventListener('mousemove', _aiMouseMove);
+  window.removeEventListener('mousedown', _aiDown);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('adamhuman-overlay');
+  if (cv) cv.remove();
+  _aiShards = []; _aiSnow = [];
+  _aiFrost = []; _aiSpires = []; _aiWave = null; _aiTip = null;
 }
 /* ─────────────────────────────────────────────────────────────── */
 
