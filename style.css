@@ -2341,15 +2341,114 @@ body.nara-no-select, body.nara-no-select * {
    SPRUCE, lavish white-rose UI chrome: ivory panels, a softly
    glowing pearl-white name.
    ============================================================ */
+/* Spruce: ivory over wine. Panels lit along the top the way the garden is
+   lit from above, a name with light crossing it, and a portrait held in
+   thorn. */
 #char-view.spruce-ui .panel {
-  border: 1px solid rgba(255,250,242,0.55);
-  background: linear-gradient(180deg, rgba(42,28,40,0.9), rgba(22,14,24,0.94));
-  box-shadow: 0 0 24px rgba(255,240,235,0.18), inset 0 0 30px rgba(120,80,100,0.2);
+  --p-border: rgba(255,250,242,0.62);
+  border: 1px solid rgba(255,250,242,0.4);
+  background: linear-gradient(180deg, rgba(58,26,44,0.93), rgba(24,10,20,0.96));
+  box-shadow:
+    0 0 28px rgba(120,44,74,0.4),
+    inset 0 1px 0 rgba(255,250,242,0.24),
+    inset 0 0 36px rgba(90,34,58,0.4);
+  animation: sp-bloom 11s ease-in-out infinite;
 }
-@keyframes spNameGlow { 0%,100% { text-shadow: 0 0 10px rgba(255,240,235,0.8), 0 0 22px rgba(255,210,225,0.45); } 50% { text-shadow: 0 0 16px rgba(255,250,245,1), 0 0 30px rgba(255,215,230,0.7); } }
+@keyframes sp-bloom {
+  0%, 100% { border-color: rgba(255,250,242,0.28); }
+  50%      { border-color: rgba(255,250,242,0.68); }
+}
+#char-view.spruce-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(242,214,158,0.1), transparent 24%),
+    radial-gradient(120% 58% at 50% -14%, rgba(242,214,158,0.16), transparent 62%),
+    radial-gradient(110% 55% at 6% 116%, rgba(120,44,74,0.34), transparent 60%);
+}
+#char-view.spruce-ui .panel-title {
+  color: #fff6ef !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(255,250,242,0.3);
+  text-shadow: 0 0 12px rgba(255,240,235,0.85), 0 0 28px rgba(180,80,110,0.7);
+}
+#char-view.spruce-ui .tab-btn { color: #9c7285; }
+#char-view.spruce-ui .tab-btn:hover {
+  color: #fff6ef;
+  text-shadow: 0 0 12px rgba(255,240,235,0.9);
+}
+#char-view.spruce-ui .tab-btn.active {
+  color: #ffffff;
+  border-bottom-color: rgba(255,250,242,0.9);
+  text-shadow: 0 0 16px rgba(255,240,235,0.95);
+}
+#char-view.spruce-ui .trait-chip {
+  border-color: rgba(255,250,242,0.3);
+  box-shadow: inset 0 1px 0 rgba(242,214,158,0.12), inset 0 0 18px rgba(90,34,58,0.4);
+}
+
+@keyframes spNameGlow {
+  0%, 100% { text-shadow: 0 0 10px rgba(255,240,235,0.8), 0 0 22px rgba(255,210,225,0.45); }
+  50%      { text-shadow: 0 0 18px rgba(255,250,245,1), 0 0 34px rgba(255,215,230,0.7); }
+}
 .char-name-display.spruce-name {
-  color: #fff6ef; letter-spacing: 1px;
-  animation: spNameGlow 3s ease-in-out infinite;
+  position: relative;
+  color: #fff6ef !important;
+  letter-spacing: 5px;
+  animation: spNameGlow 5s ease-in-out infinite;
+}
+.char-name-display.spruce-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(100deg, transparent 38%, rgba(255,255,255,0.92) 50%, transparent 62%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: sp-sweep 8s ease-in-out infinite;
+}
+@keyframes sp-sweep {
+  0%, 100% { background-position: 136% 0; }
+  50%      { background-position: -136% 0; }
+}
+
+.char-avatar-large.spruce-pfp {
+  position: relative;
+  border-color: rgba(255,250,242,0.66) !important;
+  box-shadow: 0 0 28px rgba(120,44,74,0.6), inset 0 0 26px rgba(24,10,20,0.7);
+  animation: sp-bloom 11s ease-in-out infinite;
+}
+.char-avatar-large.spruce-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(242,214,158,0.16), transparent 34%),
+    radial-gradient(circle at 50% 114%, rgba(120,44,74,0.42), transparent 60%);
+}
+.char-avatar-large.spruce-pfp::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 100%,   rgba(20,8,16,0.62), transparent 34%),
+    radial-gradient(circle at 100% 100%, rgba(20,8,16,0.56), transparent 32%),
+    radial-gradient(circle at 4% 2%,     rgba(255,250,242,0.2), transparent 26%);
+  animation: sp-thorn 11s ease-in-out infinite;
+}
+@keyframes sp-thorn {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #char-view.spruce-ui .panel,
+  .char-avatar-large.spruce-pfp,
+  .char-avatar-large.spruce-pfp::after,
+  .char-name-display.spruce-name,
+  .char-name-display.spruce-name::after { animation: none; }
 }
 
 /* ============================================================

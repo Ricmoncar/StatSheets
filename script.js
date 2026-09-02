@@ -27340,154 +27340,743 @@ function _stopOliverOverlay() {
 // giant central white rose, a heavy petal blizzard, drifting pollen sparkles,
 // and a grand white-rose cursor that showers petals.
 // ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// SPRUCE - a white rose garden at dusk, rebuilt with depth in it. The
+// old one was a single flat sheet of roses baked once and scattered
+// round the edges, which is a wallpaper rather than a place. This is
+// four thicket bands standing at four distances, an arbour arched over
+// the top of the page, light coming down through it and petals falling
+// at three speeds, so there is somewhere to be rather than something to
+// look at.
+// Her cursor is a hammer, which is the joke: it is enormous, it is made
+// of roses, and it hits hard enough to shake the page. Where it lands,
+// vines whip out and roses open along them.
+// ════════════════════════════════════════════════════════════════
 const _SPRUCE_RE = /^Spruce$/i;
 function _isSpruce(c) { return !!(c && c.name && _SPRUCE_RE.test(c.name)); }
-let _spruceOverlayRafId = null;
-let _spMX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 0);
-let _spMY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 0);
-let _spTrail = [];
-function _spDrawPetal(ctx, p) {
-  ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
-  ctx.scale(0.4 + 0.6 * Math.abs(Math.cos(p.rot * 1.3)), 1);
-  const grd = ctx.createLinearGradient(0, -p.sz, 0, p.sz);
-  grd.addColorStop(0, '#ffffff'); grd.addColorStop(1, '#e7e1d4');
-  ctx.fillStyle = grd;
-  ctx.beginPath(); ctx.moveTo(0, -p.sz); ctx.bezierCurveTo(p.sz * 0.9, -p.sz * 0.4, p.sz * 0.6, p.sz * 0.8, 0, p.sz); ctx.bezierCurveTo(-p.sz * 0.6, p.sz * 0.8, -p.sz * 0.9, -p.sz * 0.4, 0, -p.sz); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = 'rgba(175,165,148,0.4)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(0, -p.sz * 0.8); ctx.lineTo(0, p.sz * 0.8); ctx.stroke();
-  ctx.restore();
+const _SPR_WINE  = '78,28,52';       // the dusk the garden stands in
+const _SPR_ROSE  = '246,240,232';    // her roses, warm rather than blue white
+const _SPR_CREAM = '255,251,244';
+const _SPR_LEAF  = '62,102,56';
+const _SPR_GOLD  = '242,214,158';    // the light coming down through it
+const _SPR_HEX   = '#f0dfd0';
+
+// the page shakes when she connects, and both layers read this
+let _sprShakeX = 0, _sprShakeY = 0, _sprShake = 0;
+
+function _sprRnd(seed) {
+  const v = Math.sin(seed * 73.19 + 17.83) * 29847.61;
+  return v - Math.floor(v);
 }
-// a lush white rose drawn at the current origin (caller translates)
-function _spDrawRose(ctx, R, rot, glow) {
-  ctx.save(); ctx.rotate(rot);
-  ctx.fillStyle = '#3c6b2e';     // leaves behind
-  for (const la of [-2.4, -0.7, 2.4]) { ctx.save(); ctx.rotate(la); ctx.beginPath(); ctx.ellipse(0, R * 0.98, R * 0.22, R * 0.5, 0, 0, 6.2832); ctx.fill(); ctx.restore(); }
-  if (glow) { ctx.shadowColor = 'rgba(255,255,255,0.7)'; ctx.shadowBlur = R * 0.5; }
+
+// ── One petal, one leaf ──────────────────────────────────────────
+function _sprPetalPath(ctx, len, wid) {
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(wid, -len * 0.24, wid * 0.86, -len * 0.86, 0, -len);
+  ctx.bezierCurveTo(-wid * 0.86, -len * 0.86, -wid, -len * 0.24, 0, 0);
+  ctx.closePath();
+}
+
+function _sprLeaf(ctx, len, wid, col) {
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(wid, -len * 0.42, 0, -len);
+  ctx.quadraticCurveTo(-wid, -len * 0.42, 0, 0);
+  ctx.closePath();
+  ctx.fillStyle = col;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(0, -len * 0.9);
+  ctx.strokeStyle = 'rgba(20,40,18,0.45)';
+  ctx.lineWidth = Math.max(0.5, len * 0.035);
+  ctx.stroke();
+}
+
+// ── A white rose, cached ─────────────────────────────────────────
+// Rings of petals wound in, brightest at the heart, and the outer ring dulled
+// toward the dusk so it sits in the scene rather than on top of it.
+const _sprRoseCache = {};
+function _sprRoseSprite(px, seed, dim) {
+  const key = px + '|' + (seed % 6) + (dim ? '|d' : '');
+  if (_sprRoseCache[key]) return _sprRoseCache[key];
+  const d = Math.max(8, Math.ceil(px * 2.5));
+  const c = document.createElement('canvas');
+  c.width = c.height = d;
+  const g = c.getContext('2d');
+  g.translate(d / 2, d / 2);
+  const base = _sprRnd(seed) * 6.283185;
+  const K = dim ? 0.52 : 1;
+
+  for (const la of [-2.5, -0.55, 2.5, 1.4]) {          // leaves behind it
+    g.save();
+    g.rotate(base + la);
+    g.translate(0, px * 0.55);
+    _sprLeaf(g, px * 0.95, px * 0.3, `rgba(${_SPR_LEAF},${(0.85 * K).toFixed(2)})`);
+    g.restore();
+  }
+
   const rings = [
-    { n: 9, len: R, wid: R * 0.5, col: '#e9e5dc', rot: 0, push: R * 0.18 },
-    { n: 8, len: R * 0.78, wid: R * 0.44, col: '#f3efe7', rot: 0.4, push: R * 0.14 },
-    { n: 6, len: R * 0.56, wid: R * 0.38, col: '#fbf8f2', rot: 0.9, push: R * 0.1 },
-    { n: 5, len: R * 0.36, wid: R * 0.32, col: '#fffdf9', rot: 1.4, push: R * 0.06 },
+    { n: 9, len: px * 1.0,  wid: px * 0.5,  push: px * 0.2,  sh: 0.78, sp: 0 },
+    { n: 8, len: px * 0.78, wid: px * 0.44, push: px * 0.15, sh: 0.87, sp: 0.4 },
+    { n: 6, len: px * 0.56, wid: px * 0.38, push: px * 0.1,  sh: 0.94, sp: 0.9 },
+    { n: 5, len: px * 0.36, wid: px * 0.32, push: px * 0.06, sh: 1,    sp: 1.4 },
   ];
-  for (const rg of rings) for (let i = 0; i < rg.n; i++) { ctx.save(); ctx.rotate(rg.rot + i * (6.2832 / rg.n)); ctx.translate(0, -rg.push); _evPetalShape(ctx, rg.len, rg.wid, rg.col); ctx.restore(); }
-  ctx.shadowBlur = 0;
-  ctx.beginPath(); ctx.arc(0, 0, R * 0.15, 0, 6.2832); ctx.fillStyle = '#efe2af'; ctx.fill();
-  ctx.restore();
-}
-function _spBuildGarden(W, H) {
-  const c = document.createElement('canvas'); c.width = W; c.height = H;
-  const g = c.getContext('2d'), S = Math.min(W, H);
-  const bg = g.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#160a16'); bg.addColorStop(0.4, '#2e1626'); bg.addColorStop(0.7, '#481f2e'); bg.addColorStop(1, '#1b0c17');
-  g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  const cg = g.createRadialGradient(W * 0.5, H * 0.2, 10, W * 0.5, H * 0.2, Math.max(W, H) * 0.5);
-  cg.addColorStop(0, 'rgba(255,240,225,0.2)'); cg.addColorStop(1, 'rgba(255,240,225,0)');
-  g.fillStyle = cg; g.fillRect(0, 0, W, H);
-  // lush white-rose vines framing the WHOLE screen
-  const rng = _aetherRng(555);
-  const place = (x, y, R) => { g.save(); g.translate(x, y); _spDrawRose(g, R, rng() * 6.2832, false); g.restore(); };
-  [[0, 0], [W, 0], [0, H], [W, H]].forEach(([cx, cy]) => { for (let i = 0; i < 6; i++) place(cx + (rng() - 0.5) * S * 0.18, cy + (rng() - 0.5) * S * 0.18, S * (0.045 + rng() * 0.045)); });
-  for (let i = 0; i < 6; i++) place(W * (0.18 + i * 0.13), H * 0.02 + rng() * S * 0.03, S * (0.03 + rng() * 0.03));   // top
-  for (let i = 0; i < 6; i++) place(W * (0.18 + i * 0.13), H * 0.98 - rng() * S * 0.03, S * (0.03 + rng() * 0.03));   // bottom
-  for (let i = 0; i < 4; i++) place(W * 0.02 + rng() * S * 0.03, H * (0.26 + i * 0.16), S * (0.03 + rng() * 0.03));   // left
-  for (let i = 0; i < 4; i++) place(W * 0.98 - rng() * S * 0.03, H * (0.26 + i * 0.16), S * (0.03 + rng() * 0.03));   // right
+  for (const rg of rings) {
+    for (let i = 0; i < rg.n; i++) {
+      g.save();
+      g.rotate(base + rg.sp + i * (6.283185 / rg.n));
+      g.translate(0, -rg.push);
+      const v = rg.sh * K;
+      const gr = g.createLinearGradient(0, 0, 0, -rg.len);
+      gr.addColorStop(0, `rgba(${Math.round(198 * v)},${Math.round(186 * v)},${Math.round(180 * v)},1)`);
+      gr.addColorStop(1, `rgba(${Math.round(255 * v)},${Math.round(251 * v)},${Math.round(244 * v)},1)`);
+      _sprPetalPath(g, rg.len, rg.wid);
+      g.fillStyle = gr;
+      g.fill();
+      g.strokeStyle = `rgba(${Math.round(150 * v)},${Math.round(132 * v)},${Math.round(128 * v)},0.4)`;
+      g.lineWidth = Math.max(0.4, px * 0.022);
+      g.stroke();
+      g.restore();
+    }
+  }
+  g.beginPath();
+  g.arc(0, 0, px * 0.14, 0, 6.283185);
+  g.fillStyle = `rgba(${_SPR_GOLD},${(0.9 * K).toFixed(2)})`;
+  g.fill();
+  _sprRoseCache[key] = c;
   return c;
 }
+
+function _sprRose(ctx, x, y, px, seed, alpha, dim) {
+  const sp = _sprRoseSprite(Math.max(3, Math.round(px)), seed, dim);
+  const d = sp.width;
+  if (alpha !== undefined && alpha < 1) ctx.globalAlpha = alpha;
+  ctx.drawImage(sp, x - d / 2, y - d / 2);
+  if (alpha !== undefined && alpha < 1) ctx.globalAlpha = 1;
+}
+
+// ── A thicket: bramble, leaves and roses, baked as one band ──────
+function _sprThicketSprite(W, H, band, seed) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = Math.ceil(H);
+  const g = c.getContext('2d');
+  const dark = band === 0 ? 0.32 : band === 1 ? 0.58 : 1;
+  const stems = 30 + band * 22;
+
+  g.lineCap = 'round';
+  for (let i = 0; i < stems; i++) {
+    const x0 = (i / stems + _sprRnd(seed + i * 3.1) * 0.06) * W;
+    let x = x0, y = H, a = -1.5708 + (_sprRnd(seed + i * 5.7) - 0.5) * 0.7;
+    const segs = 6 + Math.floor(_sprRnd(seed + i * 7.3) * 7);
+    const len = H * (0.05 + _sprRnd(seed + i * 11.1) * 0.055);
+    g.beginPath();
+    g.moveTo(x, y);
+    for (let k = 0; k < segs; k++) {
+      a += (_sprRnd(seed + i * 13 + k * 2.7) - 0.5) * 0.8;
+      const nx = x + Math.cos(a) * len, ny = y + Math.sin(a) * len;
+      g.quadraticCurveTo(x + Math.cos(a - 0.4) * len * 0.6, y + Math.sin(a - 0.4) * len * 0.6, nx, ny);
+      x = nx; y = ny;
+      if (_sprRnd(seed + i * 17 + k) < 0.42) {         // a leaf off the joint
+        g.save();
+        g.translate(x, y);
+        g.rotate(a + (_sprRnd(seed + i + k) - 0.5) * 2);
+        const lv = 0.5 + _sprRnd(seed + i * 3 + k * 5) * 0.5;
+        _sprLeaf(g, len * 0.46, len * 0.17,
+          `rgba(${Math.round(48 * lv * dark + 10)},${Math.round(84 * lv * dark + 16)},${Math.round(44 * lv * dark + 10)},${(0.85 * dark + 0.1).toFixed(2)})`);
+        g.restore();
+        g.beginPath();
+        g.moveTo(x, y);
+      }
+    }
+    g.strokeStyle = `rgba(${Math.round(34 * dark + 12)},${Math.round(52 * dark + 11)},${Math.round(30 * dark + 12)},${(0.8 * dark + 0.12).toFixed(2)})`;
+    g.lineWidth = 0.8 + band * 0.7;
+    g.stroke();
+  }
+
+  const roses = 12 + band * 11;
+  for (let i = 0; i < roses; i++) {
+    const rx = (_sprRnd(seed + i * 19.3)) * W;
+    const ry = H * (0.06 + _sprRnd(seed + i * 23.1) * 0.8);
+    const rr = (5 + band * 6) * (0.55 + _sprRnd(seed + i * 29.7) * 1.05);
+    _sprRose(g, rx, ry, rr, seed + i, dark * 0.5 + 0.5, band < 2);
+  }
+  return c;
+}
+
+// ── The arbour over the top of the page ──────────────────────────
+function _sprArchSprite(W, H) {
+  const h = Math.ceil(H * 0.34);
+  const c = document.createElement('canvas');
+  c.width = W; c.height = h;
+  const g = c.getContext('2d');
+  const sag = h * 0.62;
+  g.lineCap = 'round';
+  // three ropes of vine crossing the top, each hanging a little lower
+  for (let r = 0; r < 3; r++) {
+    const drop = sag * (0.5 + r * 0.26);
+    g.beginPath();
+    g.moveTo(-20, -10 + r * 6);
+    for (let i = 0; i <= 24; i++) {
+      const u = i / 24;
+      const x = -20 + u * (W + 40);
+      const y = -10 + r * 6 + Math.sin(u * Math.PI) * drop
+              + Math.sin(u * 9 + r * 2) * h * 0.03;
+      g.lineTo(x, y);
+    }
+    g.strokeStyle = `rgba(46,74,42,${(0.6 - r * 0.12).toFixed(2)})`;
+    g.lineWidth = 4.5 - r;
+    g.stroke();
+    // and what hangs off it
+    const n = 9 + r * 3;
+    for (let i = 0; i < n; i++) {
+      const u = (i + 0.5) / n;
+      const x = -20 + u * (W + 40);
+      const y = -10 + r * 6 + Math.sin(u * Math.PI) * drop + Math.sin(u * 9 + r * 2) * h * 0.03;
+      const hang = h * (0.06 + _sprRnd(r * 31 + i * 7.7) * 0.16);
+      g.beginPath();
+      g.moveTo(x, y);
+      g.quadraticCurveTo(x + hang * 0.3, y + hang * 0.6, x, y + hang);
+      g.strokeStyle = `rgba(46,74,42,${(0.5 - r * 0.1).toFixed(2)})`;
+      g.lineWidth = 2;
+      g.stroke();
+      _sprRose(g, x, y + hang, (13 - r * 3) * (0.7 + _sprRnd(r * 41 + i * 3.3) * 0.6),
+               r * 13 + i, 0.9 - r * 0.18, r > 0);
+    }
+  }
+  return c;
+}
+
+// ── The garden ───────────────────────────────────────────────────
 function _drawSprucePattern(canvas, ctx, W, H, t) {
   const fresh = _drawSprucePattern._lt === undefined;
   if (!fresh && t - _drawSprucePattern._lt < 0.033) return;
   const dt = fresh ? 0.016 : Math.min(t - _drawSprucePattern._lt, 0.05);
   _drawSprucePattern._lt = t;
-  if (canvas._spW !== W || canvas._spH !== H || !canvas._spBg) {
-    canvas._spW = W; canvas._spH = H;
-    canvas._spBg = _spBuildGarden(W, H);
-    canvas._spPetals = Array.from({ length: 46 }, () => ({ x: Math.random() * W, y: Math.random() * H, vy: 22 + Math.random() * 40, vx: (Math.random() - 0.5) * 26, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 2, sz: 5 + Math.random() * 8, sway: Math.random() * 6.28 }));
-    canvas._spSpark = Array.from({ length: 36 }, () => ({ x: Math.random() * W, y: Math.random() * H, vy: -(8 + Math.random() * 20), r: 0.6 + Math.random() * 1.8, ph: Math.random() * 6.28, sp: 1 + Math.random() * 2 }));
+
+  if (canvas._sprW !== W || canvas._sprH !== H) {
+    canvas._sprW = W; canvas._sprH = H;
+    canvas._sprSky = null; canvas._sprBands = null; canvas._sprArch = null;
+    canvas._sprShaft = null; canvas._sprPetals = null; canvas._sprMotes = null;
+    canvas._sprVign = null;
   }
-  // gentle elegant breathing sway of the whole garden
-  const swX = Math.sin(t * 0.5) * 5, swY = Math.cos(t * 0.4) * 4, br = 1 + Math.sin(t * 0.6) * 0.008;
-  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-  ctx.save(); ctx.translate(W / 2 + swX, H / 2 + swY); ctx.scale(br, br); ctx.translate(-W / 2, -H / 2);
-  ctx.drawImage(canvas._spBg, -12, -12, W + 24, H + 24);
+
+  ctx.save();
+  ctx.translate(_sprShakeX, _sprShakeY);      // she is allowed to move the room
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+
+  // 1 ── dusk: wine at the floor, a warm bloom high where the light gets in
+  if (!canvas._sprSky) {
+    canvas._sprSky = document.createElement('canvas');
+    canvas._sprSky.width = W; canvas._sprSky.height = H;
+    const sx = canvas._sprSky.getContext('2d');
+    const g = sx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#2a1024');
+    g.addColorStop(0.34, '#43162e');
+    g.addColorStop(0.68, '#5a1e35');
+    g.addColorStop(1, '#1d0a18');
+    sx.fillStyle = g;
+    sx.fillRect(0, 0, W, H);
+    const cg = sx.createRadialGradient(W * 0.5, -H * 0.1, 0, W * 0.5, H * 0.1, Math.max(W, H) * 0.72);
+    cg.addColorStop(0, `rgba(${_SPR_GOLD},0.3)`);
+    cg.addColorStop(0.4, `rgba(${_SPR_GOLD},0.09)`);
+    cg.addColorStop(1, `rgba(${_SPR_GOLD},0)`);
+    sx.globalCompositeOperation = 'lighter';
+    sx.fillStyle = cg;
+    sx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(canvas._sprSky, 0, 0);
+
+  // 2 ── light coming down through the arbour, one sprite leaned over and over
+  if (!canvas._sprShaft) {
+    const sw = Math.ceil(W * 0.3), sh = Math.ceil(H);
+    const s = document.createElement('canvas');
+    s.width = sw; s.height = sh;
+    const g = s.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, 0, sh);
+    gr.addColorStop(0, `rgba(${_SPR_GOLD},0.16)`);
+    gr.addColorStop(0.5, `rgba(${_SPR_GOLD},0.06)`);
+    gr.addColorStop(1, `rgba(${_SPR_GOLD},0)`);
+    g.fillStyle = gr;
+    g.beginPath();
+    g.moveTo(sw * 0.42, 0); g.lineTo(sw * 0.58, 0);
+    g.lineTo(sw, sh); g.lineTo(0, sh);
+    g.closePath();
+    g.fill();
+    canvas._sprShaft = s;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 4; i++) {
+    const x = W * (0.14 + i * 0.245) + Math.sin(t * 0.06 + i * 1.9) * W * 0.02;
+    ctx.globalAlpha = 0.5 + 0.3 * Math.sin(t * 0.23 + i * 1.3);
+    ctx.save();
+    ctx.translate(x, -H * 0.06);
+    ctx.rotate(-0.12 + i * 0.08);
+    ctx.drawImage(canvas._sprShaft, -canvas._sprShaft.width / 2, 0);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 3 ── the thickets, four deep, each swaying on its own
+  if (!canvas._sprBands) {
+    canvas._sprBands = [];
+    for (let b = 0; b < 4; b++) {
+      const bh = H * (0.26 + b * 0.13);
+      canvas._sprBands.push({
+        s: _sprThicketSprite(Math.ceil(W * 1.06), bh, Math.min(2, b), b * 37 + 5),
+        y: H - bh + b * 6, sway: 3 + b * 5, ph: b * 1.7, sp: 0.16 + b * 0.05,
+      });
+    }
+  }
+  for (const b of canvas._sprBands) {
+    ctx.drawImage(b.s, -W * 0.03 + Math.sin(t * b.sp + b.ph) * b.sway, b.y);
+  }
+
+  // 4 ── and the arbour over the top
+  if (!canvas._sprArch) canvas._sprArch = _sprArchSprite(W, H);
+  ctx.drawImage(canvas._sprArch, Math.sin(t * 0.13) * 5, -H * 0.02);
+
+  // 5 ── petals coming down at three distances
+  if (!canvas._sprPetals) {
+    canvas._sprPetals = [];
+    const bands = [[16, 8, 15, 0.4], [9, 16, 26, 0.62], [5, 26, 44, 0.85]];
+    let k = 0;
+    for (let bi = 0; bi < 3; bi++) {
+      const [n, s0, s1, al] = bands[bi];
+      for (let i = 0; i < n; i++, k++) {
+        canvas._sprPetals.push({
+          x: _sprRnd(k * 3.7) * W, y: ((i + _sprRnd(k * 5.1)) / n) * (H + 80) - 40,
+          sz: 4 + bi * 3.5 + _sprRnd(k * 7.9) * (3 + bi * 3),
+          vy: s0 + _sprRnd(k * 11.3) * (s1 - s0),
+          vx: (_sprRnd(k * 13.7) - 0.5) * 18,
+          rot: _sprRnd(k * 17.1) * 6.283, vr: (_sprRnd(k * 19.9) - 0.5) * 2.2,
+          flip: _sprRnd(k * 23.3) * 6.283, vf: 0.6 + _sprRnd(k * 29.1) * 1.2,
+          a: al, sway: 8 + bi * 8,
+        });
+      }
+    }
+  }
+  for (const p of canvas._sprPetals) {
+    p.x += (p.vx + Math.sin(t * 0.6 + p.flip) * p.sway) * dt;
+    p.y += p.vy * dt;
+    p.rot += p.vr * dt;
+    p.flip += p.vf * dt;
+    if (p.y > H + 40) { p.y = -40; p.x = Math.random() * W; }
+    if (p.x < -40) p.x = W + 40; else if (p.x > W + 40) p.x = -40;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.scale(1, 0.45 + 0.55 * Math.abs(Math.cos(p.flip)));
+    _sprPetalPath(ctx, p.sz * 2, p.sz);
+    ctx.fillStyle = `rgba(${_SPR_CREAM},${p.a.toFixed(2)})`;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 6 ── pollen going the other way, catching the light
+  if (!canvas._sprMotes) {
+    canvas._sprMotes = [];
+    for (let i = 0; i < 54; i++) {
+      canvas._sprMotes.push({
+        x: _sprRnd(i * 4.3) * W, y: _sprRnd(i * 6.7) * H,
+        vy: -5 - _sprRnd(i * 8.9) * 13, sz: 0.6 + _sprRnd(i * 10.7) * 1.7,
+        ph: _sprRnd(i * 12.1) * 6.283, tw: 0.5 + _sprRnd(i * 14.9) * 1.2,
+      });
+    }
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.beginPath();
+  for (const m of canvas._sprMotes) {
+    m.y += m.vy * dt;
+    m.x += Math.sin(t * 0.4 + m.ph) * 8 * dt;
+    if (m.y < -8) { m.y = H + 8; m.x = Math.random() * W; }
+    const r = m.sz * (0.35 + 0.65 * (0.5 - 0.5 * Math.cos(t * m.tw + m.ph)));
+    ctx.moveTo(m.x + r, m.y);
+    ctx.arc(m.x, m.y, r, 0, 6.283185);
+  }
+  ctx.fillStyle = `rgba(${_SPR_GOLD},0.42)`;
+  ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 7 ── and the edges close
+  if (!canvas._sprVign) {
+    canvas._sprVign = document.createElement('canvas');
+    canvas._sprVign.width = W; canvas._sprVign.height = H;
+    const vx = canvas._sprVign.getContext('2d');
+    const g = vx.createRadialGradient(W * 0.5, H * 0.42, Math.min(W, H) * 0.28,
+                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.76);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.6, 'rgba(22,7,18,0.34)');
+    g.addColorStop(1, 'rgba(16,5,13,0.8)');
+    vx.fillStyle = g;
+    vx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(canvas._sprVign, 0, 0);
   ctx.restore();
-  // GIANT central white rose with a pulsing halo
-  const gx = W * 0.5, gy = H * 0.2, gR = Math.min(W, H) * 0.15, pulse = 0.5 + 0.5 * Math.sin(t * 0.9);
-  ctx.globalCompositeOperation = 'lighter';
-  const halo = ctx.createRadialGradient(gx, gy, gR * 0.5, gx, gy, gR * 2.4);
-  halo.addColorStop(0, `rgba(255,250,240,${0.05 + pulse * 0.1})`); halo.addColorStop(0.5, `rgba(255,230,235,${0.04 + pulse * 0.06})`); halo.addColorStop(1, 'rgba(255,230,235,0)');
-  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(gx, gy, gR * 2.4, 0, 6.2832); ctx.fill();
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.save(); ctx.translate(gx, gy); ctx.scale(1 + Math.sin(t * 0.8) * 0.02, 1 + Math.sin(t * 0.8) * 0.02); _spDrawRose(ctx, gR, t * 0.1, true); ctx.restore();
-  // pollen sparkles drifting up (additive twinkle)
-  ctx.globalCompositeOperation = 'lighter';
-  for (const s of canvas._spSpark) {
-    s.y += s.vy * dt; s.x += Math.sin(t * 0.6 + s.ph) * 6 * dt; if (s.y < -4) { s.y = H + 4; s.x = Math.random() * W; }
-    ctx.globalAlpha = 0.3 + 0.7 * Math.abs(Math.sin(t * s.sp + s.ph));
-    ctx.fillStyle = '#fff6e8'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.2832); ctx.fill();
-  }
-  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-  // HEAVY white petal blizzard
-  for (const p of canvas._spPetals) {
-    p.x += (p.vx + Math.sin(t * 0.8 + p.sway) * 20) * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
-    if (p.y > H + 14) { p.y = -14; p.x = Math.random() * W; }
-    if (p.x < -14) p.x = W + 14; else if (p.x > W + 14) p.x = -14;
-    _spDrawPetal(ctx, p);
-  }
-  // soft drifting mist
-  ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 3; i++) {
-    const mx = W * (0.3 + i * 0.25) + Math.sin(t * 0.2 + i * 2) * W * 0.1, my = H * (0.55 + (i % 2) * 0.2), mr = W * 0.28;
-    const mg = ctx.createRadialGradient(mx, my, 0, mx, my, mr);
-    mg.addColorStop(0, 'rgba(255,245,238,0.05)'); mg.addColorStop(1, 'rgba(255,245,238,0)');
-    ctx.save(); ctx.translate(mx, my); ctx.scale(1, 0.45); ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(0, 0, mr, 0, 6.2832); ctx.fill(); ctx.restore();
-  }
-  ctx.globalCompositeOperation = 'source-over';
-  // soft vignette
-  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.34, W / 2, H / 2, Math.max(W, H) * 0.82);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(10,4,12,0.6)');
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
 }
 
-// ── grand white-rose cursor that showers petals + sparkles ──
-function _spMouseMove(e) { _spMX = e.clientX; _spMY = e.clientY; }
-function _spClick() {
-  for (let i = 0; i < 16; i++) {
-    const a = Math.random() * 6.2832, s = 70 + Math.random() * 200;
-    _spTrail.push({ kind: Math.random() < 0.5 ? 'petal' : 'spark', x: _spMX, y: _spMY, vx: Math.cos(a) * s, vy: Math.sin(a) * s, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 5, sz: 4 + Math.random() * 6, r: 1 + Math.random() * 2, life: 1, sway: Math.random() * 6.28 });
+// ── The hammer ───────────────────────────────────────────────────
+let _spruceOverlayRafId = null;
+let _spTX = 0, _spTY = 0, _spX = 0, _spY = 0, _spVX = 0, _spVY = 0;
+let _spSwing = 0, _spPhase = 'idle', _spPhaseT = 0, _spLean = 0;
+let _spHits = [], _spBits = [], _spFore = [], _spLanded = false;
+
+const _SP_ARM = 102;                 // grip to the middle of the head
+const _SP_REST = 0.72;              // where the arm sits when she is not swinging
+
+function _spMouseMove(e) { _spTX = e.clientX; _spTY = e.clientY; }
+
+function _spClick(e) {
+  if (_spPhase === 'idle') { _spPhase = 'wind'; _spPhaseT = 0; }
+}
+
+// Head at the origin, shaft running back up the -x axis to the grip.
+// Drawn dark and read by its roses, so it stays legible over a dark garden.
+function _sprHammer(ctx, S, t) {
+  const A = _SP_ARM * S;
+  // the shaft, with a vine wound up it
+  ctx.beginPath();
+  ctx.moveTo(-A * 1.02, -3.6 * S);
+  ctx.lineTo(-6 * S, -5.2 * S);
+  ctx.lineTo(-6 * S, 5.2 * S);
+  ctx.lineTo(-A * 1.02, 3.6 * S);
+  ctx.closePath();
+  const sg = ctx.createLinearGradient(0, -5 * S, 0, 5 * S);
+  sg.addColorStop(0, '#6b4a34');
+  sg.addColorStop(0.4, '#8d6647');
+  sg.addColorStop(1, '#3f2a1e');
+  ctx.fillStyle = sg;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(26,16,12,0.9)';
+  ctx.lineWidth = 1.4 * S;
+  ctx.stroke();
+
+  ctx.beginPath();                                  // the vine
+  for (let i = 0; i <= 26; i++) {
+    const u = i / 26;
+    const x = -A * 1.0 + u * (A * 0.94);
+    const y = Math.sin(u * 11) * 5 * S;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.strokeStyle = `rgba(${_SPR_LEAF},0.95)`;
+  ctx.lineWidth = 2.2 * S;
+  ctx.stroke();
+  for (let i = 0; i < 5; i++) {                     // leaves off the vine
+    const u = 0.12 + i * 0.19;
+    ctx.save();
+    ctx.translate(-A * 1.0 + u * (A * 0.94), Math.sin(u * 11) * 5 * S);
+    ctx.rotate(Math.sin(u * 11) > 0 ? 1.1 : -1.1);
+    _sprLeaf(ctx, 13 * S, 5 * S, `rgba(${_SPR_LEAF},0.95)`);
+    ctx.restore();
+  }
+
+  const hw = 25 * S, hh = 43 * S, r = 6 * S;
+  // the collar the shaft goes into, drawn first so the head laps over it
+  ctx.beginPath();
+  ctx.moveTo(-hw - 17 * S, -12 * S);
+  ctx.lineTo(-hw + 3 * S, -20 * S);
+  ctx.lineTo(-hw + 3 * S, 20 * S);
+  ctx.lineTo(-hw - 17 * S, 12 * S);
+  ctx.closePath();
+  ctx.fillStyle = '#4b3c39';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(18,10,10,0.95)';
+  ctx.lineWidth = 1.6 * S;
+  ctx.stroke();
+
+  // the head: long across the shaft, short along it, flaring to the face
+  ctx.beginPath();
+  ctx.moveTo(-hw, -hh * 0.8 + r);
+  ctx.quadraticCurveTo(-hw, -hh * 0.8, -hw + r, -hh * 0.8);
+  ctx.lineTo(hw - r, -hh);
+  ctx.quadraticCurveTo(hw, -hh, hw, -hh + r);
+  ctx.lineTo(hw, hh - r);
+  ctx.quadraticCurveTo(hw, hh, hw - r, hh);
+  ctx.lineTo(-hw + r, hh * 0.8);
+  ctx.quadraticCurveTo(-hw, hh * 0.8, -hw, hh * 0.8 - r);
+  ctx.closePath();
+  const hg = ctx.createLinearGradient(0, -hh, 0, hh);
+  hg.addColorStop(0, '#9b8880');
+  hg.addColorStop(0.34, '#6a5654');
+  hg.addColorStop(0.72, '#40312f');
+  hg.addColorStop(1, '#241a19');
+  ctx.fillStyle = hg;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(18,10,10,0.95)';
+  ctx.lineWidth = 1.8 * S;
+  ctx.stroke();
+  // the bevel round the face that does the work
+  ctx.beginPath();
+  ctx.moveTo(hw - 8 * S, -hh + 5 * S);
+  ctx.lineTo(hw - 8 * S, hh - 5 * S);
+  ctx.strokeStyle = `rgba(${_SPR_CREAM},0.4)`;
+  ctx.lineWidth = 2.6 * S;
+  ctx.stroke();
+
+  // and the roses growing all over it, which is the point of her
+  _sprRose(ctx, -hw * 0.1, -hh * 0.6, 14 * S, 2, 1);
+  _sprRose(ctx, hw * 0.34, -hh * 0.22, 10 * S, 5, 1);
+  _sprRose(ctx, -hw * 0.2, hh * 0.5, 12 * S, 9, 1);
+  _sprRose(ctx, hw * 0.4, hh * 0.78, 8 * S, 13, 1);
+  _sprRose(ctx, -hw * 1.35, -hh * 0.02, 9 * S, 17, 1);
+  for (const [lx, ly, la] of [[-hw * 0.6, -hh * 0.94, -0.5], [hw * 0.7, hh * 0.96, 2.4], [-hw * 1.5, -hh * 0.3, -1.9]]) {
+    ctx.save();
+    ctx.translate(lx, ly);
+    ctx.rotate(la);
+    _sprLeaf(ctx, 16 * S, 6 * S, `rgba(${_SPR_LEAF},0.95)`);
+    ctx.restore();
   }
 }
+
+function _sprImpact(x, y) {
+  _spHits.push({ x, y, age: 0, seed: Math.random() * 100, vines: null });
+  if (_spHits.length > 5) _spHits.shift();
+  _sprShake = 1;
+  // petals and grit thrown off the strike
+  for (let k = 0; k < 34; k++) {
+    const a = -Math.PI + Math.random() * Math.PI;      // upward and out
+    const s = 130 + Math.random() * 420;
+    _spBits.push({
+      x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.75,
+      rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 14,
+      flip: Math.random() * 6.28, vf: 2 + Math.random() * 3,
+      sz: 3 + Math.random() * 7, life: 1,
+      grit: Math.random() < 0.35,
+    });
+  }
+  if (_spBits.length > 320) _spBits.splice(0, _spBits.length - 320);
+}
+
 function _drawSpruceCursor(canvas, ctx, W, H, t) {
   const fresh = _drawSpruceCursor._lt === undefined;
   if (!fresh && t - _drawSpruceCursor._lt < 0.016) return;
-  const dt = fresh ? 0.016 : Math.min(t - _drawSpruceCursor._lt, 0.05);
+  const dt = fresh ? 0.016 : Math.min(t - _drawSpruceCursor._lt, 0.04);
   _drawSpruceCursor._lt = t;
   ctx.clearRect(0, 0, W, H);
-  if (_spTrail.length < 200) {
-    if (Math.random() < 0.7) _spTrail.push({ kind: 'petal', x: _spMX + (Math.random() - 0.5) * 12, y: _spMY + (Math.random() - 0.5) * 12, vx: (Math.random() - 0.5) * 26, vy: 14 + Math.random() * 28, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 2, sz: 3 + Math.random() * 5, life: 1, sway: Math.random() * 6.28 });
-    if (Math.random() < 0.5) _spTrail.push({ kind: 'spark', x: _spMX + (Math.random() - 0.5) * 16, y: _spMY + (Math.random() - 0.5) * 16, vx: (Math.random() - 0.5) * 20, vy: (Math.random() - 0.5) * 20, r: 0.8 + Math.random() * 1.8, life: 1 });
+
+  // the shake, which both this and the garden behind it read
+  if (_sprShake > 0) {
+    _sprShake = Math.max(0, _sprShake - dt * 3.4);
+    const m = _sprShake * _sprShake * 15;
+    _sprShakeX = (Math.random() - 0.5) * 2 * m;
+    _sprShakeY = (Math.random() - 0.5) * 2 * m;
+  } else { _sprShakeX = _sprShakeY = 0; }
+
+  ctx.save();
+  ctx.translate(_sprShakeX, _sprShakeY);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // petals crossing in front of the page
+  if (!_spFore.length) {
+    for (let i = 0; i < 12; i++) {
+      const near = i > 8;
+      _spFore.push({
+        x: _sprRnd(i * 5.1 + 1) * W, y: ((i + _sprRnd(i * 7.3)) / 12) * (H + 80) - 40,
+        sz: near ? 15 + _sprRnd(i * 9.1) * 14 : 6 + _sprRnd(i * 9.1) * 6,
+        vy: near ? 46 + _sprRnd(i * 11.7) * 40 : 20 + _sprRnd(i * 11.7) * 22,
+        vx: (_sprRnd(i * 13.3) - 0.5) * 26,
+        rot: _sprRnd(i * 15.9) * 6.283, vr: (_sprRnd(i * 17.7) - 0.5) * 2.4,
+        flip: _sprRnd(i * 19.1) * 6.283, vf: 0.8 + _sprRnd(i * 21.3) * 1.4,
+        a: near ? 0.36 : 0.7,
+      });
+    }
   }
-  for (let i = _spTrail.length - 1; i >= 0; i--) {
-    const p = _spTrail[i];
-    p.x += (p.vx + (p.kind === 'petal' ? Math.sin(t * 1.5 + p.sway) * 10 : 0)) * dt; p.y += p.vy * dt;
-    if (p.kind === 'petal') { p.vy += 28 * dt; p.rot += p.vr * dt; p.life -= dt * 0.7; }
-    else { p.vy += 60 * dt; p.life -= dt * 1.4; }
-    if (p.life <= 0) { _spTrail.splice(i, 1); continue; }
-    ctx.globalAlpha = Math.min(1, p.life);
-    if (p.kind === 'petal') _spDrawPetal(ctx, p);
-    else { ctx.fillStyle = '#fff6e8'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill(); }
+  for (const p of _spFore) {
+    p.x += (p.vx + Math.sin(t * 0.6 + p.flip) * 14) * dt;
+    p.y += p.vy * dt;
+    p.rot += p.vr * dt; p.flip += p.vf * dt;
+    if (p.y > H + 50) { p.y = -50; p.x = Math.random() * W; }
+    if (p.x < -50) p.x = W + 50; else if (p.x > W + 50) p.x = -50;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.scale(1, 0.45 + 0.55 * Math.abs(Math.cos(p.flip)));
+    _sprPetalPath(ctx, p.sz * 2, p.sz);
+    ctx.fillStyle = `rgba(${_SPR_CREAM},${p.a.toFixed(2)})`;
+    ctx.fill();
+    ctx.restore();
   }
-  ctx.globalAlpha = 1;
-  // glow + grand rose
-  const gl = ctx.createRadialGradient(_spMX, _spMY, 0, _spMX, _spMY, 30);
-  gl.addColorStop(0, 'rgba(255,250,242,0.35)'); gl.addColorStop(1, 'rgba(255,250,242,0)');
-  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(_spMX, _spMY, 30, 0, 6.2832); ctx.fill();
-  ctx.save(); ctx.translate(_spMX, _spMY); _spDrawRose(ctx, 17, t * 0.3, true); ctx.restore();
-  // orbiting sparkles
-  for (let k = 0; k < 3; k++) { const a = t * 1.6 + k * 2.1, rr = 22 + Math.sin(t * 2 + k) * 4; ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 3 + k); ctx.fillStyle = '#fffbf2'; ctx.beginPath(); ctx.arc(_spMX + Math.cos(a) * rr, _spMY + Math.sin(a) * rr, 1.6, 0, 6.2832); ctx.fill(); }
-  ctx.globalAlpha = 1;
+
+  // ── where she has already hit ──
+  for (let i = _spHits.length - 1; i >= 0; i--) {
+    const h = _spHits[i];
+    h.age += dt;
+    if (h.age > 4.2) { _spHits.splice(i, 1); continue; }
+    if (!h.vines) {
+      h.vines = [];
+      const n = 5 + Math.floor(_sprRnd(h.seed) * 3);
+      for (let k = 0; k < n; k++) {
+        h.vines.push({
+          a: (k / n) * 6.283185 + _sprRnd(h.seed + k) * 0.7,
+          len: 90 + _sprRnd(h.seed + k * 3.3) * 130,
+          curl: (_sprRnd(h.seed + k * 5.9) - 0.5) * 1.7,
+          rs: [0.42 + _sprRnd(h.seed + k * 7.1) * 0.2, 0.78 + _sprRnd(h.seed + k * 9.3) * 0.18],
+        });
+      }
+    }
+    // light on the ground where it landed, so what grows there reads as new
+    {
+      const gl = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, 210);
+      const ga = Math.max(0, 1 - h.age / 2.6);
+      gl.addColorStop(0, `rgba(${_SPR_CREAM},${(0.3 * ga).toFixed(3)})`);
+      gl.addColorStop(0.35, `rgba(${_SPR_GOLD},${(0.13 * ga).toFixed(3)})`);
+      gl.addColorStop(1, `rgba(${_SPR_GOLD},0)`);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = gl;
+      ctx.fillRect(h.x - 210, h.y - 210, 420, 420);
+      if (h.age < 0.14) {                       // and the flash of the hit
+        ctx.globalAlpha = (1 - h.age / 0.14) * 0.75;
+        ctx.fillStyle = `rgba(${_SPR_CREAM},1)`;
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, 60 + h.age * 700, 0, 6.283185);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    // the rings going out
+    const rp = Math.min(1, h.age / 0.9);
+    if (rp < 1) {
+      const e = 1 - rp;
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, 8 + rp * 330, 0, 6.283185);
+      ctx.strokeStyle = `rgba(${_SPR_CREAM},${(e * 0.95).toFixed(3)})`;
+      ctx.lineWidth = 1 + e * 9;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, 4 + rp * 186, 0, 6.283185);
+      ctx.strokeStyle = `rgba(${_SPR_GOLD},${(e * 0.8).toFixed(3)})`;
+      ctx.lineWidth = 1 + e * 5;
+      ctx.stroke();
+    }
+    // vines running out of it, roses opening along them as they go
+    const grow = Math.min(1, h.age / 0.75);
+    const fade = h.age < 3 ? 1 : Math.max(0, 1 - (h.age - 3) / 1.2);
+    for (const v of h.vines) {
+      const L = v.len * grow;
+      ctx.beginPath();
+      ctx.moveTo(h.x, h.y);
+      for (let k = 1; k <= 10; k++) {
+        const u = k / 10, a = v.a + v.curl * u * u;
+        ctx.lineTo(h.x + Math.cos(a) * L * u, h.y + Math.sin(a) * L * u);
+      }
+      ctx.strokeStyle = `rgba(150,208,132,${(0.95 * fade).toFixed(3)})`;
+      ctx.lineWidth = 4.2;
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(${_SPR_LEAF},${(0.9 * fade).toFixed(3)})`;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+      for (const ru of v.rs) {
+        if (grow < ru) continue;
+        const a = v.a + v.curl * ru * ru;
+        const bloom = Math.min(1, (grow - ru) / 0.18);
+        _sprRose(ctx, h.x + Math.cos(a) * v.len * ru, h.y + Math.sin(a) * v.len * ru,
+                 15 * bloom, h.seed + ru * 31, fade);
+      }
+    }
+    // and one big one right where it landed
+    const bb = Math.min(1, h.age / 0.4);
+    _sprRose(ctx, h.x, h.y, 26 * bb, h.seed + 3, fade);
+  }
+
+  // what the strike threw
+  for (let i = _spBits.length - 1; i >= 0; i--) {
+    const b = _spBits[i];
+    b.vy += 900 * dt;
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    b.vx *= 0.985;
+    b.rot += b.vr * dt; b.flip += b.vf * dt;
+    b.life -= dt * (b.grit ? 1.5 : 0.7);
+    if (b.life <= 0 || b.y > H + 60) { _spBits.splice(i, 1); continue; }
+    const a = Math.min(1, b.life);
+    if (b.grit) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.sz * 0.3, 0, 6.283185);
+      ctx.fillStyle = `rgba(${_SPR_GOLD},${(a * 0.8).toFixed(3)})`;
+      ctx.fill();
+    } else {
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(b.rot);
+      ctx.scale(1, 0.4 + 0.6 * Math.abs(Math.cos(b.flip)));
+      _sprPetalPath(ctx, b.sz * 2, b.sz);
+      ctx.fillStyle = `rgba(${_SPR_CREAM},${a.toFixed(3)})`;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ── the swing ──
+  const SPRING = 46, DAMP = 11;
+  _spVX += ((_spTX - _spX) * SPRING - _spVX * DAMP) * dt;
+  _spVY += ((_spTY - _spY) * SPRING - _spVY * DAMP) * dt;
+  _spX += _spVX * dt; _spY += _spVY * dt;
+  const spd = Math.hypot(_spVX, _spVY);
+  // she is heavy, so she trails the way she is being dragged
+  const want = Math.max(-0.5, Math.min(0.5, -_spVX * 0.0011));
+  _spLean += (want - _spLean) * Math.min(1, dt * 5);
+
+  _spPhaseT += dt;
+  if (_spPhase === 'wind') {
+    const u = Math.min(1, _spPhaseT / 0.16);
+    _spSwing = -1.25 * (u * u * (3 - 2 * u));
+    if (u >= 1) { _spPhase = 'fall'; _spPhaseT = 0; }
+  } else if (_spPhase === 'fall') {
+    const u = Math.min(1, _spPhaseT / 0.085);
+    _spSwing = -1.25 + 1.25 * (u * u);             // it accelerates into the page
+    if (u >= 1) { _spPhase = 'hold'; _spPhaseT = 0; _spSwing = 0.14; _spLanded = true; }
+  } else if (_spPhase === 'hold') {
+    if (_spPhaseT > 0.09) { _spPhase = 'lift'; _spPhaseT = 0; }
+  } else if (_spPhase === 'lift') {
+    const u = Math.min(1, _spPhaseT / 0.42);
+    _spSwing = 0.14 * (1 - (u * u * (3 - 2 * u)));
+    if (u >= 1) { _spPhase = 'idle'; _spSwing = 0; }
+  } else {
+    _spSwing = Math.sin(t * 1.5) * 0.045;          // it breathes when she is still
+  }
+
+  // The grip is fixed relative to the pointer and the head swings into it, so
+  // wherever she strikes is exactly where the pointer was.
+  const rest = _SP_REST + _spLean;
+  const gx = _spX - Math.cos(rest) * _SP_ARM;
+  const gy = _spY - Math.sin(rest) * _SP_ARM;
+  const arm = rest + _spSwing;
+  const hx = gx + Math.cos(arm) * _SP_ARM;
+  const hy = gy + Math.sin(arm) * _SP_ARM;
+
+  // the head buries a little past the pointer on the follow through, so the
+  // strike is fired from where it actually ended up rather than from the
+  // pointer, or the rings sit off the thing that made them
+  if (_spLanded) { _spLanded = false; _sprImpact(hx, hy); }
+
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.rotate(arm);
+  _sprHammer(ctx, 1, t);
+  ctx.restore();
+
+  // a soft light on her, so she never disappears into the dark of the garden
+  ctx.globalCompositeOperation = 'lighter';
+  const gl = ctx.createRadialGradient(hx, hy, 0, hx, hy, 62);
+  gl.addColorStop(0, `rgba(${_SPR_CREAM},0.12)`);
+  gl.addColorStop(1, `rgba(${_SPR_CREAM},0)`);
+  ctx.fillStyle = gl;
+  ctx.fillRect(hx - 62, hy - 62, 124, 124);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.restore();
 }
+
 function _startSpruceOverlay() {
   _stopSpruceOverlay();
-  _drawSpruceCursor._lt = undefined; _spTrail = [];
+  _drawSpruceCursor._lt = undefined;
+  _spX = _spTX = window.innerWidth * 0.5;
+  _spY = _spTY = window.innerHeight * 0.5;
+  _spVX = _spVY = 0; _spSwing = 0; _spLean = 0;
+  _spPhase = 'idle'; _spPhaseT = 0;
+  _spHits = []; _spBits = []; _spFore = []; _spLanded = false;
+  _sprShake = 0; _sprShakeX = _sprShakeY = 0;
   window.addEventListener('mousemove', _spMouseMove);
   window.addEventListener('click', _spClick);
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
@@ -27500,18 +28089,24 @@ function _startSpruceOverlay() {
   function frame(now) {
     const cv2 = document.getElementById('spruce-overlay');
     if (!cv2) return;
-    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) { cv2.width = window.innerWidth; cv2.height = window.innerHeight; }
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+      _spFore = [];
+    }
     _drawSpruceCursor(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
     _spruceOverlayRafId = requestAnimationFrame(frame);
   }
   _spruceOverlayRafId = requestAnimationFrame(frame);
 }
+
 function _stopSpruceOverlay() {
   if (_spruceOverlayRafId) { cancelAnimationFrame(_spruceOverlayRafId); _spruceOverlayRafId = null; }
   window.removeEventListener('mousemove', _spMouseMove);
   window.removeEventListener('click', _spClick);
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('spruce-overlay'); if (cv) cv.remove();
+  _sprShake = 0; _sprShakeX = _sprShakeY = 0;
+  _spHits = []; _spBits = [];
 }
 /* ─────────────────────────────────────────────────────────────── */
 
@@ -32186,6 +32781,7 @@ function viewChar(id) {
   else if (_isActarius(c)) {      _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ACT_HEX); }
   else if (_isBall(c))     {       _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _BALL_HEX); }
   else if (_isOblitus(c)) {        _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _OBL_HEX); }
+  else if (_isSpruce(c))   {         _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _SPR_HEX); }
   else if (_isMb(c))       { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d9552c'); }
   else if (_isSorrow(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#9a9a9a'); }
   else if (_isEmporium(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffcf3a'); }
@@ -33131,8 +33727,16 @@ function viewChar(id) {
   {
     const _cvRoot = document.getElementById('char-view');
     const _nm = document.getElementById('cv-name');
-    if (_isSpruce(c)) { _cvRoot.classList.add('spruce-ui'); if (_nm) _nm.classList.add('spruce-name'); }
-    else { _cvRoot.classList.remove('spruce-ui'); if (_nm) _nm.classList.remove('spruce-name'); }
+    const _av = document.getElementById('cv-avatar');
+    if (_isSpruce(c)) {
+      _cvRoot.classList.add('spruce-ui');
+      if (_av) _av.classList.add('spruce-pfp');
+      if (_nm) { _nm.classList.add('spruce-name'); _nm.setAttribute('data-text', _nm.textContent || 'Spruce'); }
+    } else {
+      _cvRoot.classList.remove('spruce-ui');
+      if (_av) _av.classList.remove('spruce-pfp');
+      if (_nm) _nm.classList.remove('spruce-name');
+    }
   }
 
   // ── Momo: foggy grey-wasteland UI chrome (ashen panels + a pale, crimson-lit name). ──
