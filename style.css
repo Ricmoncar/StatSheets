@@ -14490,3 +14490,89 @@ text.lb-cl-glitch-svg {
   .char-name-display.leonh-name,
   .char-name-display.leonh-name::after { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   SEVACH: panels of wet dark timber with the lamp above them, so
+   the light on this page falls from the top edge and not the bottom.
+   ════════════════════════════════════════════════════════════════ */
+#char-view.sevach-ui .panel {
+  --p-border: rgba(207,34,51,0.72);
+  border: 1px solid rgba(120,18,28,0.8);
+  background: linear-gradient(180deg, rgba(28,6,11,0.96), rgba(9,2,4,0.97));
+  box-shadow:
+    0 0 30px rgba(120,18,28,0.45),
+    inset 0 2px 0 rgba(228,46,56,0.3),
+    inset 0 0 40px rgba(48,6,12,0.7);
+}
+#char-view.sevach-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(130% 60% at 50% -18%, rgba(228,46,56,0.2), transparent 62%),
+    radial-gradient(90% 46% at 92% 118%, rgba(120,18,28,0.22), transparent 60%);
+}
+#char-view.sevach-ui .panel-title {
+  color: #ffb8b0 !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  border-bottom-color: rgba(207,34,51,0.4);
+  text-shadow: 0 0 12px rgba(228,46,56,0.9), 0 0 30px rgba(120,18,28,0.9);
+}
+#char-view.sevach-ui .tab-btn { color: #8a5257; }
+#char-view.sevach-ui .tab-btn:hover {
+  color: #ffb8b0;
+  text-shadow: 0 0 12px rgba(228,46,56,0.9);
+}
+#char-view.sevach-ui .tab-btn.active {
+  color: #ffffff;
+  border-bottom-color: rgba(255,132,124,0.9);
+  text-shadow: 0 0 16px rgba(228,46,56,0.95);
+}
+#char-view.sevach-ui .trait-chip {
+  border-color: rgba(207,34,51,0.34);
+  box-shadow: inset 0 1px 0 rgba(228,46,56,0.16), inset 0 0 18px rgba(48,6,12,0.6);
+}
+.char-name-display.sevach-name {
+  position: relative;
+  color: #e8404c !important;
+  letter-spacing: 7px;
+  text-shadow: 0 0 14px rgba(228,46,56,0.95), 0 0 38px rgba(120,18,28,0.9);
+  animation: sv-swell 6s ease-in-out infinite;
+}
+@keyframes sv-swell {
+  0%, 100% { text-shadow: 0 0 10px rgba(120,18,28,0.9), 0 0 24px rgba(40,4,10,0.85); }
+  50%      { text-shadow: 0 0 20px rgba(255,132,124,0.9), 0 0 46px rgba(228,46,56,0.85); }
+}
+.char-name-display.sevach-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(100deg, transparent 40%, rgba(255,214,206,0.9) 50%, transparent 60%);
+  background-size: 320% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: sv-sweep 8s ease-in-out infinite;
+}
+@keyframes sv-sweep {
+  0%, 100% { background-position: 140% 0; }
+  50%      { background-position: -140% 0; }
+}
+.char-avatar-large.sevach-pfp {
+  position: relative;
+  border-color: rgba(207,34,51,0.7) !important;
+  box-shadow: 0 0 30px rgba(120,18,28,0.7), inset 0 0 26px rgba(9,2,4,0.8);
+}
+.char-avatar-large.sevach-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% -22%, rgba(228,46,56,0.36), transparent 58%),
+    linear-gradient(0deg, rgba(9,2,4,0.55), transparent 36%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-name-display.sevach-name,
+  .char-name-display.sevach-name::after { animation: none; }
+}

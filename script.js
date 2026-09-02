@@ -3110,6 +3110,7 @@ const PATTERN_DEFS = {
   xyliar_sanctum:   { label: "XYLIAR · Sanctum", params: [] },
   rady_wasteland:   { label: "Rady · Wasteland", params: [] },
   leon_warlord:     { label: "Leon · Warlord (human)", params: [] },
+  sevach_bloodsea:  { label: "Sevach · Sea of blood", params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
@@ -31635,6 +31636,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'xyliar_sanctum') { _drawXyliarPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'rady_wasteland') { _drawRadyPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'leon_warlord') { _drawLeonHumanPattern(canvas, ctx, W, H, t);             return; }
+  if (type === 'sevach_bloodsea') { _drawSevachPattern(canvas, ctx, W, H, t);           return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
@@ -32194,6 +32196,8 @@ function startBgAnim(type, params) {
   _drawRadyOverlay._lt        = undefined;
   _drawLeonHumanPattern._lt   = undefined;
   _drawLeonHumanOverlay._lt   = undefined;
+  _drawSevachPattern._lt      = undefined;
+  _drawSevachOverlay._lt      = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -32297,6 +32301,7 @@ function stopBgAnim() {
   _stopXyliarOverlay();
   _stopRadyOverlay();
   _stopLeonHumanOverlay();
+  _stopSevachOverlay();
   _stopMbOverlay();
   _stopActariusOverlay();
   _stopSorrowOverlay();
@@ -32935,6 +32940,7 @@ function viewChar(id) {
   else if (_isBizzy(c))    { _stopNaraRaf(); _startBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); }
   else if (_isKatie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isLeonHuman(c)) {            _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _LH_HEX); }
+  else if (_isSevach(c)) {             _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _SV_HEX); }
   else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
@@ -33180,6 +33186,22 @@ function viewChar(id) {
       _cvRoot.classList.remove('leonh-ui');
       if (_av) _av.classList.remove('leonh-pfp');
       if (_nm) _nm.classList.remove('leonh-name');
+    }
+  }
+
+  // ── SEVACH: wet iron and lamplight over a red sea. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isSevach(c)) {
+      _cvRoot.classList.add('sevach-ui');
+      if (_av) _av.classList.add('sevach-pfp');
+      if (_nm) { _nm.classList.add('sevach-name'); _nm.setAttribute('data-text', _nm.textContent || 'SEVACH'); }
+    } else {
+      _cvRoot.classList.remove('sevach-ui');
+      if (_av) _av.classList.remove('sevach-pfp');
+      if (_nm) _nm.classList.remove('sevach-name');
     }
   }
 
@@ -34064,7 +34086,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -34077,7 +34099,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -34112,6 +34134,7 @@ function viewChar(id) {
   if (_isSnaps(c))    _startSnapsOverlay();
   if (_isLeonHuman(c)) _startLeonHumanOverlay();
   else if (_isLeon(c)) _startLeonOverlay();
+  if (_isSevach(c))    _startSevachOverlay();
   if (_isValkyrie(c)) _startValkyrieOverlay();
   if (_isAdam(c))     _startAdamOverlay();
   if (_isFury(c))     _startFuryOverlay();
@@ -39744,7 +39767,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -39754,6 +39777,7 @@ window.addEventListener('resize', () => {
       if (_isSnaps(c))    _startSnapsOverlay();
       if (_isLeonHuman(c)) _startLeonHumanOverlay();
       else if (_isLeon(c)) _startLeonOverlay();
+      if (_isSevach(c))    _startSevachOverlay();
       if (_isValkyrie(c)) _startValkyrieOverlay();
       if (_isAdam(c))     _startAdamOverlay();
       if (_isFury(c))     _startFuryOverlay();
@@ -42919,6 +42943,864 @@ function _stopLeonHumanOverlay() {
   if (cv) cv.remove();
   _lhTrail = []; _lhSparks = []; _lhWave = null;
   _lhTorch = null; _lhHold = false; _lhCharge = 0;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// SEVACH - a pirate, and the sea he is on is blood.
+// The whole page is one substance seen at every distance, so all of
+// it is built on the same rule: blood is not water. Water is thin
+// and lets light through, which is why a normal sea is blue in the
+// mass and white on the crest. Blood is nearly opaque, so it is
+// almost black where it is deep, and it only shows its colour in a
+// thin film catching the light. Every band out there obeys that,
+// and the far ones dissolve into the haze instead of going dark,
+// which is what puts the ship a mile off rather than just up the
+// page. His harpoon is the interaction: it cuts a wake, throws
+// rings where it lands, and drips into the swell as he carries it.
+// ════════════════════════════════════════════════════════════════
+const _SEVACH_RE = /^["']?\s*SEVACH\s*["']?$/i;
+function _isSevach(c) { return !!(c && c.name && _SEVACH_RE.test(c.name)); }
+
+const _SV_CREST = '228,46,56';       // the film on a wave face, lit
+const _SV_SHEEN = '255,132,124';     // and the hard specular on top of that
+const _SV_DEEP  = '22,3,7';          // what it is when there is depth under it
+const _SV_HAZE  = '146,58,64';       // and what a mile of bad air does to it
+const _SV_HEX   = '#cf2233';
+
+// what the two layers say to each other
+let _svTip = null;                   // where the harpoon head is
+let _svRings = [];                   // and what it has dropped in the water
+
+function _svRnd(seed) {
+  const v = Math.sin(seed * 39.17 + 11.53) * 26417.31;
+  return v - Math.floor(v);
+}
+
+// ── The ship, a mile off ─────────────────────────────────────────
+// Silhouette, because at this distance that is all there is: the eye
+// gets the rig and nothing else. A galleon is read from three things
+// and only three, so those three are what get drawn properly. The
+// stern stands higher than the bow, the mainmast is taller than the
+// other two, and the yards get shorter as they go up. Everything
+// else here is a line off one of those.
+function _svShipSprite(SW) {
+  const SH = Math.ceil(SW * 1.15);
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(SW); c.height = SH;
+  const g = c.getContext('2d');
+  const wl = SH * 0.94;                             // the waterline
+  const ink = '#0b0206';
+  g.fillStyle = ink;
+  g.strokeStyle = ink;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+
+  const mast = (x, top, yards) => {
+    g.lineWidth = SW * 0.011;
+    g.beginPath();
+    g.moveTo(x, wl - SH * 0.06);
+    g.lineTo(x, top);
+    g.stroke();
+    for (let k = 0; k < yards; k++) {
+      const u = k / yards;
+      const y = top + (wl - SH * 0.1 - top) * (0.1 + u * 0.72);
+      const half = SW * (0.115 - u * 0.042);
+      g.lineWidth = SW * 0.008;
+      g.beginPath();                                // the yard
+      g.moveTo(x - half, y);
+      g.lineTo(x + half, y);
+      g.stroke();
+      // and the canvas hanging off it, blown out and torn along the foot
+      const dh = (wl - SH * 0.1 - top) * 0.2;
+      const belly = SW * 0.016;
+      g.beginPath();
+      g.moveTo(x - half * 0.94, y);
+      g.quadraticCurveTo(x - half * 0.8 + belly, y + dh * 0.6, x - half * 0.72, y + dh);
+      for (let s = 1; s <= 5; s++) {                // the torn foot of it
+        const v = s / 5;
+        const tx = x - half * 0.72 + half * 1.44 * v;
+        g.lineTo(tx - half * 0.14, y + dh * (0.88 + _svRnd(x + y + s) * 0.14));
+        g.lineTo(tx, y + dh * 1.0);
+      }
+      g.quadraticCurveTo(x + half * 0.8 + belly, y + dh * 0.6, x + half * 0.94, y);
+      g.closePath();
+      g.fill();
+    }
+  };
+
+  // hull: a long low sheer with the stern castle standing up behind it
+  g.beginPath();
+  g.moveTo(SW * 0.09, wl - SH * 0.02);              // the bow, cutting
+  g.quadraticCurveTo(SW * 0.1, wl - SH * 0.085, SW * 0.19, wl - SH * 0.075);
+  g.lineTo(SW * 0.62, wl - SH * 0.062);
+  g.lineTo(SW * 0.66, wl - SH * 0.125);             // up onto the castle
+  g.lineTo(SW * 0.9, wl - SH * 0.132);
+  g.quadraticCurveTo(SW * 0.95, wl - SH * 0.12, SW * 0.93, wl - SH * 0.03);
+  g.quadraticCurveTo(SW * 0.6, wl + SH * 0.018, SW * 0.09, wl - SH * 0.02);
+  g.closePath();
+  g.fill();
+
+  g.lineWidth = SW * 0.009;                         // bowsprit, out over the sea
+  g.beginPath();
+  g.moveTo(SW * 0.2, wl - SH * 0.08);
+  g.lineTo(SW * -0.03, wl - SH * 0.19);
+  g.stroke();
+
+  mast(SW * 0.3, SH * 0.26, 3);                     // fore
+  mast(SW * 0.52, SH * 0.08, 3);                    // main, the tall one
+  mast(SW * 0.75, SH * 0.34, 2);                    // mizzen
+
+  g.lineWidth = SW * 0.0045;                        // stays and shrouds
+  g.beginPath();
+  g.moveTo(SW * 0.52, SH * 0.08); g.lineTo(SW * 0.3, SH * 0.26);
+  g.moveTo(SW * 0.3, SH * 0.26); g.lineTo(SW * -0.02, wl - SH * 0.185);
+  g.moveTo(SW * 0.52, SH * 0.08); g.lineTo(SW * 0.75, SH * 0.34);
+  g.moveTo(SW * 0.75, SH * 0.34); g.lineTo(SW * 0.93, wl - SH * 0.12);
+  for (const [mx, my] of [[0.3, 0.26], [0.52, 0.08], [0.75, 0.34]]) {
+    for (let k = -1; k <= 1; k += 2) {
+      g.moveTo(SW * mx, SH * my);
+      g.lineTo(SW * (mx + k * 0.075), wl - SH * 0.07);
+    }
+  }
+  g.stroke();
+
+  g.beginPath();                                    // and a rag at the masthead
+  g.moveTo(SW * 0.52, SH * 0.075);
+  g.lineTo(SW * 0.63, SH * 0.1);
+  g.lineTo(SW * 0.58, SH * 0.115);
+  g.lineTo(SW * 0.63, SH * 0.132);
+  g.lineTo(SW * 0.52, SH * 0.14);
+  g.closePath();
+  g.fill();
+  return c;
+}
+
+// ── The swell ────────────────────────────────────────────────────
+// One band of it: a crest running the width of the page with the body of the
+// water filled in under it, the lit face hung off the crest so the light
+// follows every rise instead of lying in level stripes, and foam breaking
+// along the top in patches.
+// All of it is baked. Drawn live this was twenty polylines the width of the
+// page taking eight stroked passes each, which measured forty one
+// milliseconds a frame: six times the entire budget, for work that did not
+// change between frames except in phase. Now each band is one strip that
+// tiles, and the swell moves by scrolling it. Tiling is the only constraint
+// that costs anything: every harmonic in the wave is given a whole number of
+// cycles across the width rather than a wavelength, so the strip closes on
+// itself and the join never shows.
+function _svBandSprite(W, hgt, A, top, u, seed) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = hgt;
+  const g = c.getContext('2d');
+  const cyc = (lam) => Math.max(1, Math.round(W / lam));
+  const L = (28 + 430 * u * u) * (0.82 + _svRnd(seed * 5.3) * 0.36) * 6.283185;
+  const n1 = cyc(L);
+  const n2 = cyc(L * (0.34 + _svRnd(seed * 7.1) * 0.2));
+  const n3 = cyc(L * (0.13 + _svRnd(seed * 9.7) * 0.1));
+  const n4 = cyc(L * 4.2);                          // the long one under it all
+  const K = 6.283185 / W;
+  const wave = (x) => A * 0.5 * (
+        Math.sin(K * n1 * x) - 0.28 * Math.cos(K * n1 * 2 * x)
+      + 0.5 * Math.sin(K * n2 * x + 2.1)
+      + 0.24 * Math.sin(K * n3 * x + 4.7)
+      + 1.05 * Math.sin(K * n4 * x + 1.3));
+  const step = 4;
+  const pts = [];
+  for (let x = 0; x <= W; x += step) pts.push(x, top + wave(x));
+  if (pts[pts.length - 2] !== W) pts.push(W, top + wave(W));
+  const line = (off) => {
+    g.beginPath();
+    g.moveTo(pts[0], pts[1] + off);
+    for (let k = 2; k < pts.length; k += 2) g.lineTo(pts[k], pts[k + 1] + off);
+  };
+  // a run of bright and dim along the crest, closed at both ends so the
+  // wrap is invisible. A crest that is one brightness for the whole width
+  // of a page is a ruled line and nothing else.
+  const patch = (col, base, pow) => {
+    const pg = g.createLinearGradient(0, 0, W, 0);
+    for (let k = 0; k <= 30; k++) {
+      const v = k / 30;
+      const e = (k === 0 || k === 30) ? 0.12 : Math.pow(_svRnd(seed * 13.7 + k * 3.1), pow);
+      pg.addColorStop(v, `rgba(${col},${(base * (0.15 + 0.85 * e)).toFixed(4)})`);
+    }
+    return pg;
+  };
+
+  const m = Math.pow(u, 0.8);
+  line(0);                                          // the body of the swell
+  g.lineTo(W, hgt); g.lineTo(0, hgt);
+  g.closePath();
+  g.fillStyle = `rgb(${(126 - 112 * m) | 0},${(52 - 50 * m) | 0},${(58 - 54 * m) | 0})`;
+  g.fill();
+
+  const face = `${(158 - 46 * m) | 0},${(80 - 66 * m) | 0},${(86 - 64 * m) | 0}`;
+  const fw = Math.max(2, Math.min(46, (hgt - top) * 0.52));
+  g.lineJoin = 'round';
+  for (const [wd, al] of [[fw, 0.17], [fw * 0.72, 0.18], [fw * 0.48, 0.2],
+                          [fw * 0.28, 0.24], [fw * 0.12, 0.32]]) {
+    line(wd * 0.5 - 1);
+    g.lineWidth = wd;
+    g.strokeStyle = `rgba(${face},${al})`;
+    g.stroke();
+  }
+  line(0);                                          // and the film along the top
+  g.lineWidth = 0.7 + u * 2.2;
+  g.strokeStyle = patch(`${(190 + 50 * u) | 0},${(116 - 46 * u) | 0},${(120 - 46 * u) | 0}`,
+                        0.24 + u * 0.34, 1.3);
+  g.stroke();
+  if (u > 0.4) {                                    // foam, where there is any
+    line(0.5);
+    g.lineWidth = 1 + u * 2.6;
+    g.strokeStyle = patch('255,190,182', (u - 0.4) * 0.62, 3.4);
+    g.stroke();
+  }
+  return c;
+}
+
+function _drawSevachPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawSevachPattern._lt === undefined;
+  if (!fresh && t - _drawSevachPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawSevachPattern._lt, 0.05);
+  _drawSevachPattern._lt = t;
+
+  if (canvas._svW !== W || canvas._svH !== H) {
+    canvas._svW = W; canvas._svH = H;
+    canvas._svSky = null; canvas._svShip = null; canvas._svVign = null;
+    canvas._svGlit = null; canvas._svRows = null; canvas._svCloud = null;
+    canvas._svWake = null; canvas._svWakeMask = null;
+  }
+  const HZ = Math.round(H * 0.4);
+  const N = 20;
+
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+
+  // 1 ── a sky with the last of the light under it
+  if (!canvas._svSky) {
+    canvas._svSky = document.createElement('canvas');
+    canvas._svSky.width = W; canvas._svSky.height = HZ + 2;
+    const sx = canvas._svSky.getContext('2d');
+    const g = sx.createLinearGradient(0, 0, 0, HZ);
+    g.addColorStop(0, '#070103');
+    g.addColorStop(0.42, '#1c0409');
+    g.addColorStop(0.78, '#4b0c15');
+    g.addColorStop(1, '#96323a');
+    sx.fillStyle = g;
+    sx.fillRect(0, 0, W, HZ + 2);
+    // the light does not come from a point, it comes from the whole edge
+    sx.save();
+    sx.translate(W * 0.5, HZ);
+    sx.scale(1, 0.34);
+    const hz = sx.createRadialGradient(0, 0, 0, 0, 0, W * 0.62);
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14;
+      hz.addColorStop(u, `rgba(${_SV_HAZE},${(0.44 * Math.pow(1 - u, 2.1)).toFixed(4)})`);
+    }
+    sx.globalCompositeOperation = 'lighter';
+    sx.fillStyle = hz;
+    sx.fillRect(-W, -W, W * 2, W * 2);
+    sx.restore();
+  }
+  ctx.drawImage(canvas._svSky, 0, 0);
+
+  // 2 ── weather sitting on top of it, two banks at two speeds
+  if (!canvas._svCloud) {
+    const cw = Math.ceil(W * 1.35), ch = Math.ceil(HZ * 0.95);
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const g = c.getContext('2d');
+    for (let i = 0; i < 40; i++) {
+      const x = _svRnd(i * 4.3) * cw, y = ch * (0.05 + _svRnd(i * 6.7) * 0.8);
+      const r = cw * (0.06 + _svRnd(i * 8.9) * 0.14);
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      const a = 0.09 + _svRnd(i * 10.3) * 0.16;
+      for (let k = 0; k <= 8; k++) {
+        const u = k / 8;
+        gr.addColorStop(u, `rgba(10,2,5,${(a * Math.pow(1 - u, 2)).toFixed(4)})`);
+      }
+      g.fillStyle = gr;
+      g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    canvas._svCloud = c;
+  }
+  for (let k = 0; k < 2; k++) {
+    const off = (t * (4 + k * 7)) % canvas._svCloud.width;
+    ctx.globalAlpha = 0.95 - k * 0.3;
+    const y = HZ - canvas._svCloud.height * (0.98 - k * 0.24);
+    ctx.drawImage(canvas._svCloud, -off, y);
+    ctx.drawImage(canvas._svCloud, canvas._svCloud.width - off, y);
+  }
+  ctx.globalAlpha = 1;
+
+  // 3 ── and something out there that is not weather
+  const SW = Math.max(80, Math.min(W * 0.135, H * 0.24));
+  if (!canvas._svShip) canvas._svShip = _svShipSprite(SW);
+  const sh = canvas._svShip;
+  const SX = W * 0.68, roll = Math.sin(t * 0.42) * 0.028 + Math.sin(t * 0.71) * 0.012;
+  const bob = Math.sin(t * 0.63) * sh.height * 0.012;
+  ctx.save();
+  ctx.translate(SX, HZ + bob);
+  ctx.rotate(roll);
+  ctx.globalAlpha = 0.93;
+  ctx.drawImage(sh, -sh.width * 0.5, -sh.height * 0.94);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  // one lamp lit on the stern, and the water underneath knows about it
+  const lx = SX + sh.width * 0.2, ly = HZ - sh.height * 0.1;
+  ctx.globalCompositeOperation = 'lighter';
+  const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, sh.width * 0.3);
+  lg.addColorStop(0, 'rgba(255,196,150,0.85)');
+  lg.addColorStop(0.16, 'rgba(255,120,90,0.3)');
+  lg.addColorStop(1, 'rgba(255,90,70,0)');
+  ctx.fillStyle = lg;
+  ctx.fillRect(lx - sh.width * 0.3, ly - sh.width * 0.3, sh.width * 0.6, sh.width * 0.6);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 4 ── the sea, band behind band out to where it stops being visible
+  if (!canvas._svRows) {
+    canvas._svRows = [];
+    for (let i = 0; i < N; i++) {
+      const u = i / (N - 1);
+      canvas._svRows.push({
+        u,
+        y: HZ + (H - HZ) * 1.03 * Math.pow(u, 1.9)
+           + (H - HZ) * 0.016 * u * (_svRnd(i * 3.7) - 0.5),
+        A: 1.2 + 42 * Math.pow(u, 2.1),
+      });
+    }
+    for (let i = 0; i < N; i++) {
+      const r = canvas._svRows[i];
+      const nx = canvas._svRows[i + 1];
+      const nxt = nx ? nx.y + nx.A + 6 : H + 40;
+      r.top = r.A + 10;                             // headroom over the crest
+      r.s = _svBandSprite(W, Math.ceil(nxt - r.y + r.top + 8), r.A, r.top, r.u, i);
+      r.off = _svRnd(i * 11.9) * W;
+      r.v = 3 + Math.pow(r.u, 1.7) * 200;           // nearer water runs faster
+      r.bob = _svRnd(i * 15.1) * 6.283185;
+    }
+  }
+  for (const r of canvas._svRows) {
+    r.off = (r.off + r.v * dt) % W;
+    r.dy = r.y - r.top + (1.5 + r.u * 24) * 0.34 * Math.sin(t * (0.5 + r.u * 0.7) + r.bob);
+    ctx.drawImage(r.s, -r.off, r.dy);
+    ctx.drawImage(r.s, W - r.off, r.dy);
+  }
+  // and the light off the horizon lies in one column, the way it does on any
+  // water, which is the thing that tells you the surface is wet
+  if (!canvas._svGlit) {
+    const gg = ctx.createRadialGradient(W * 0.5, HZ, 0, W * 0.5, HZ, Math.min(W, H) * 0.72);
+    for (let i = 0; i <= 14; i++) {
+      const v = i / 14;
+      gg.addColorStop(v, `rgba(${_SV_SHEEN},${(0.075 * Math.pow(1 - v, 2.6)).toFixed(4)})`);
+    }
+    canvas._svGlit = gg;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = canvas._svGlit;
+  ctx.fillRect(0, HZ, W, H - HZ);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 5 ── what he has dropped in it, spreading and flattening out
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _svRings.length - 1; i >= 0; i--) {
+    const g2 = _svRings[i];
+    g2.r += g2.sp * dt;
+    g2.life -= dt * g2.fade;
+    if (g2.life <= 0) { _svRings.splice(i, 1); continue; }
+    const sq = 0.16 + 0.2 * Math.max(0, (g2.y - HZ) / Math.max(1, H - HZ));
+    ctx.beginPath();
+    ctx.ellipse(g2.x, g2.y, g2.r, g2.r * sq, 0, 0, 6.283185);
+    ctx.strokeStyle = `rgba(${_SV_SHEEN},${(g2.life * 0.34).toFixed(3)})`;
+    ctx.lineWidth = 1 + g2.life * 2.2;
+    ctx.stroke();
+    if (g2.r > 16) {
+      ctx.beginPath();
+      ctx.ellipse(g2.x, g2.y, g2.r * 0.62, g2.r * 0.62 * sq, 0, 0, 6.283185);
+      ctx.strokeStyle = `rgba(${_SV_CREST},${(g2.life * 0.3).toFixed(3)})`;
+      ctx.lineWidth = 0.9 + g2.life * 1.8;
+      ctx.stroke();
+    }
+  }
+
+  // 6 ── and the cut he is dragging through it right now
+  const KR = 190;
+  if (_svTip) {
+    if (!canvas._svWake) {
+      canvas._svWake = document.createElement('canvas');
+      canvas._svWake.width = canvas._svWake.height = KR * 2;
+      const m = canvas._svWake.getContext('2d')
+                  .createRadialGradient(KR, KR, 0, KR, KR, KR);
+      m.addColorStop(0, 'rgba(0,0,0,1)');
+      m.addColorStop(0.34, 'rgba(0,0,0,0.62)');
+      m.addColorStop(1, 'rgba(0,0,0,0)');
+      canvas._svWakeMask = m;
+    }
+    const wg = canvas._svWake.getContext('2d');
+    wg.globalCompositeOperation = 'source-over';
+    wg.clearRect(0, 0, KR * 2, KR * 2);
+    wg.save();
+    wg.translate(KR - _svTip.x, KR - _svTip.y);
+    for (const r of canvas._svRows) {
+      if (Math.abs(r.dy + r.top - _svTip.y) > KR + r.A + 40) continue;
+      wg.drawImage(r.s, -r.off, r.dy);
+      wg.drawImage(r.s, W - r.off, r.dy);
+    }
+    wg.restore();
+    wg.globalCompositeOperation = 'source-atop';    // it lifts, it does not bleach
+    wg.fillStyle = `rgba(${_SV_CREST},0.5)`;
+    wg.fillRect(0, 0, KR * 2, KR * 2);
+    wg.globalCompositeOperation = 'destination-in';
+    wg.fillStyle = canvas._svWakeMask;
+    wg.fillRect(0, 0, KR * 2, KR * 2);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = Math.min(1, _svTip.k);
+    ctx.drawImage(canvas._svWake, _svTip.x - KR, _svTip.y - KR);
+    ctx.globalAlpha = 1;
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 7 ── the dark round the edge of it
+  if (!canvas._svVign) {
+    canvas._svVign = document.createElement('canvas');
+    canvas._svVign.width = W; canvas._svVign.height = H;
+    const vx = canvas._svVign.getContext('2d');
+    const g = vx.createRadialGradient(W * 0.5, HZ * 1.1, Math.min(W, H) * 0.18,
+                                      W * 0.5, H * 0.52, Math.max(W, H) * 0.78);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.42, 'rgba(8,1,3,0.34)');
+    g.addColorStop(0.74, 'rgba(6,1,3,0.72)');
+    g.addColorStop(1, 'rgba(4,0,2,0.97)');
+    vx.fillStyle = g;
+    vx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(canvas._svVign, 0, 0);
+}
+
+// ── His harpoon ──────────────────────────────────────────────────
+// It has to be a tool before it is a decoration, so it is built the
+// way one is built: a socket the shaft goes into, a head with barbs
+// that only let go one way, and a ring at the butt with the line
+// through it. The line is the reason to have any of this, so it is
+// not drawn as a curve but simulated, node by node, and it whips
+// when he moves and pays out when he throws.
+let _svRaf = null;
+let _svX = 0, _svY = 0, _svTX = 0, _svTY = 0, _svVX = 0, _svVY = 0;
+let _svAim = -0.5, _svRope = [], _svSpear = null, _svSpray = [], _svRain = [];
+let _svBeads = [], _svDrips = [], _svKick = 0;
+
+function _svMouseMove(e) { _svTX = e.clientX; _svTY = e.clientY; }
+
+function _svDown(e) {
+  if (_svSpear) return;
+  const sp = 2100;
+  _svSpear = { x: _svX, y: _svY, vx: Math.cos(_svAim) * sp, vy: Math.sin(_svAim) * sp,
+               a: _svAim, out: true, life: 0 };
+  _svKick = 1;
+}
+
+function _svSplash(x, y, power, dep) {
+  const k = power * (0.22 + dep * 0.95);            // and it goes by how far off it is
+  _svRings.push({ x, y, r: 4 * k, sp: 190 * k, life: 1, fade: 0.75 });
+  _svRings.push({ x, y, r: 1, sp: 96 * k, life: 1, fade: 1.1 });
+  const n = Math.round(10 + power * 30 * (0.3 + dep));
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI * 0.5 + (Math.random() - 0.5) * 2.3;
+    const sp = (110 + Math.random() * 420) * k;
+    _svSpray.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+                    life: 1, sz: (1 + Math.random() * 3) * (0.35 + dep * 0.8) });
+  }
+  if (_svSpray.length > 300) _svSpray.splice(0, _svSpray.length - 300);
+}
+
+// the head, pointing wherever it is going, tip at the origin
+function _svHead(ctx, S, glow) {
+  const iron = ctx.createLinearGradient(0, -5 * S, 0, 5 * S);
+  iron.addColorStop(0, '#5a5f66');
+  iron.addColorStop(0.4, '#b8bec6');
+  iron.addColorStop(0.56, '#767c84');
+  iron.addColorStop(1, '#23262b');
+  ctx.beginPath();                                  // the point
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-15 * S, -4.4 * S);
+  ctx.lineTo(-21 * S, 0);
+  ctx.lineTo(-15 * S, 4.4 * S);
+  ctx.closePath();
+  ctx.fillStyle = iron;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(8,2,4,0.9)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  for (const k of [-1, 1]) {                        // barbs, swept back
+    ctx.beginPath();
+    ctx.moveTo(-13 * S, k * 3.6 * S);
+    ctx.lineTo(-25 * S, k * 12 * S);
+    ctx.lineTo(-27 * S, k * 9.4 * S);
+    ctx.lineTo(-19 * S, k * 2.4 * S);
+    ctx.closePath();
+    ctx.fillStyle = iron;
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.beginPath();                                  // socket and shaft
+  ctx.moveTo(-19 * S, -3.4 * S);
+  ctx.lineTo(-30 * S, -3.9 * S);
+  ctx.lineTo(-30 * S, 3.9 * S);
+  ctx.lineTo(-19 * S, 3.4 * S);
+  ctx.closePath();
+  ctx.fillStyle = '#2f3238';
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-30 * S, -2.5 * S);
+  ctx.lineTo(-84 * S, -2.1 * S);
+  ctx.lineTo(-84 * S, 2.1 * S);
+  ctx.lineTo(-30 * S, 2.5 * S);
+  ctx.closePath();
+  ctx.fillStyle = '#1b1d21';
+  ctx.fill();
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(120,128,138,0.7)';        // whipping round the shaft
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const x = -38 * S - i * 5 * S;
+    ctx.moveTo(x, -2.4 * S); ctx.lineTo(x - 2 * S, 2.4 * S);
+  }
+  ctx.stroke();
+  ctx.beginPath();                                  // the ring the line runs to
+  ctx.arc(-88 * S, 0, 4.4 * S, 0, 6.283185);
+  ctx.strokeStyle = '#3a3e45';
+  ctx.lineWidth = 2.4 * S;
+  ctx.stroke();
+  // and it is hot along the edge, because it is his
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.beginPath();
+  ctx.moveTo(-84 * S, 0);
+  ctx.lineTo(-2 * S, 0);
+  ctx.strokeStyle = `rgba(${_SV_CREST},${(0.5 + glow * 0.45).toFixed(2)})`;
+  ctx.lineWidth = 3.2 * S;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.strokeStyle = `rgba(${_SV_SHEEN},${(0.7 + glow * 0.3).toFixed(2)})`;
+  ctx.lineWidth = 1.1 * S;
+  ctx.stroke();
+  for (const k of [-1, 1]) {                        // and down the barbs as well
+    ctx.beginPath();
+    ctx.moveTo(-14 * S, k * 3.8 * S);
+    ctx.lineTo(-26 * S, k * 10.6 * S);
+    ctx.strokeStyle = `rgba(${_SV_CREST},${(0.45 + glow * 0.4).toFixed(2)})`;
+    ctx.lineWidth = 1.8 * S;
+    ctx.stroke();
+  }
+  const hg = ctx.createRadialGradient(-8 * S, 0, 0, -8 * S, 0, 22 * S);
+  hg.addColorStop(0, `rgba(${_SV_SHEEN},${(0.2 + glow * 0.36).toFixed(2)})`);
+  hg.addColorStop(1, `rgba(${_SV_CREST},0)`);
+  ctx.fillStyle = hg;
+  ctx.fillRect(-30 * S, -22 * S, 44 * S, 44 * S);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function _drawSevachOverlay(canvas, ctx, W, H, t) {
+  if (_drawSevachOverlay._lt !== undefined && t - _drawSevachOverlay._lt < 0.016) return;
+  const dt = _drawSevachOverlay._lt === undefined ? 0.016 : Math.min(t - _drawSevachOverlay._lt, 0.04);
+  _drawSevachOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+  const HZ = Math.round(H * 0.4);
+
+  const SPRING = 78, DAMP = 14;
+  _svVX += ((_svTX - _svX) * SPRING - _svVX * DAMP) * dt;
+  _svVY += ((_svTY - _svY) * SPRING - _svVY * DAMP) * dt;
+  _svX += _svVX * dt; _svY += _svVY * dt;
+  const spd = Math.hypot(_svVX, _svVY);
+  if (spd > 26 && !_svSpear) {
+    const want = Math.atan2(_svVY, _svVX);
+    let d = want - _svAim;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    _svAim += d * Math.min(1, dt * 7);
+  }
+  _svKick = Math.max(0, _svKick - dt * 2.6);
+  const S = 1.6;
+
+  // ── in front of everything: weather, and what is on the glass ──
+  for (let side = 0; side < 2; side++) {            // dark curling in at the top
+    const ox = side ? W : 0, dir = side ? -1 : 1;
+    const R = Math.min(W, H) * 0.5;
+    const cg = ctx.createRadialGradient(ox, 0, 0, ox, 0, R);
+    for (let i = 0; i <= 12; i++) {
+      const u = i / 12;
+      cg.addColorStop(u, `rgba(5,0,2,${(0.72 * Math.pow(1 - u, 2.8)).toFixed(4)})`);
+    }
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(ox, 0);
+    for (let i = 0; i <= 9; i++) {
+      const a = (i / 9) * 1.5708;
+      const rr = R * (1.02 + 0.13 * Math.sin(t * 0.6 + i * 1.4 + side * 2.3));
+      ctx.lineTo(ox + dir * Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  if (!_svRain.length) {                            // it is raining what he sails on
+    for (let i = 0; i < 90; i++) {
+      _svRain.push({ x: _svRnd(i * 3.1) * W * 1.3 - W * 0.15, y: _svRnd(i * 5.7) * H,
+                     v: 900 + _svRnd(i * 7.9) * 1300, len: 22 + _svRnd(i * 9.3) * 48,
+                     a: 0.14 + _svRnd(i * 11.7) * 0.3 });
+    }
+  }
+  const SLANT = 0.26;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'butt';
+  for (const d of _svRain) {
+    d.y += d.v * dt;
+    d.x += d.v * SLANT * dt;
+    if (d.y > H + 20) { d.y = -20; d.x = Math.random() * W * 1.3 - W * 0.15; }
+    ctx.beginPath();
+    ctx.moveTo(d.x, d.y);
+    ctx.lineTo(d.x - d.len * SLANT, d.y - d.len);
+    ctx.strokeStyle = `rgba(${_SV_CREST},${d.a.toFixed(3)})`;
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // beads of it caught on the glass, which sit still and then run
+  if (_svBeads.length < 11 && Math.random() < dt * 2.2) {
+    _svBeads.push({ x: Math.random() * W, y: Math.random() * H * 0.85,
+                    r: 2.4 + Math.random() * 5.2, v: 0, hold: 0.3 + Math.random() * 2.4,
+                    trail: [], life: 1 });
+  }
+  for (let i = _svBeads.length - 1; i >= 0; i--) {
+    const b = _svBeads[i];
+    b.hold -= dt;
+    if (b.hold <= 0) {
+      b.v = Math.min(b.v + 190 * dt * (b.r / 3), 340);
+      const was = b.y;
+      b.y += b.v * dt;
+      if (b.y - was > 1) {
+        b.trail.push({ y: was, x: b.x, a: 1 });
+        b.r *= 0.994;                               // it leaves itself behind
+      }
+      if (Math.random() < dt * 1.4) b.hold = 0.2 + Math.random() * 0.7;
+    }
+    for (let k = b.trail.length - 1; k >= 0; k--) {
+      b.trail[k].a -= dt * 0.32;
+      if (b.trail[k].a <= 0) b.trail.splice(k, 1);
+    }
+    if (b.y > H + 12 || b.r < 1) {
+      if (!b.trail.length) { _svBeads.splice(i, 1); continue; }
+      b.r = 0;
+    }
+    if (b.trail.length > 1) {                       // the streak behind it
+      const q0 = b.trail[0], q1 = b.trail[b.trail.length - 1];
+      const tg = ctx.createLinearGradient(0, q0.y, 0, Math.max(q1.y + 1, b.y));
+      tg.addColorStop(0, `rgba(104,10,20,${(q0.a * 0.2).toFixed(3)})`);
+      tg.addColorStop(1, `rgba(150,18,28,${(q1.a * 0.34).toFixed(3)})`);
+      ctx.beginPath();
+      ctx.moveTo(q0.x, q0.y);
+      for (let k = 1; k < b.trail.length; k++) ctx.lineTo(b.trail[k].x, b.trail[k].y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = tg;
+      ctx.lineWidth = Math.max(1, b.r * 0.58);
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+    if (b.r >= 1) {
+      const bg = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.4, 0, b.x, b.y, b.r);
+      bg.addColorStop(0, 'rgba(226,86,86,0.62)');
+      bg.addColorStop(0.5, 'rgba(132,14,24,0.66)');
+      bg.addColorStop(1, 'rgba(44,4,10,0.72)');
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.ellipse(b.x, b.y, b.r, b.r * 1.16, 0, 0, 6.283185);
+      ctx.fill();
+      ctx.beginPath();                              // the catchlight on it
+      ctx.arc(b.x - b.r * 0.34, b.y - b.r * 0.44, b.r * 0.24, 0, 6.283185);
+      ctx.fillStyle = 'rgba(255,196,196,0.5)';
+      ctx.fill();
+    }
+  }
+
+  // ── the throw ──
+  if (_svSpear) {
+    const s = _svSpear;
+    s.life += dt;
+    if (s.out) {
+      s.vy += 900 * dt;
+      s.x += s.vx * dt; s.y += s.vy * dt;
+      s.a = Math.atan2(s.vy, s.vx);
+      if (s.life > 0.34 || s.y > H * 0.92 || s.x < -40 || s.x > W + 40) {
+        const sy = Math.max(HZ + 8, Math.min(H - 4, s.y));
+        _svSplash(s.x, sy, 1, Math.max(0, Math.min(1, (sy - HZ) / Math.max(1, H - HZ))));
+        s.out = false;
+      }
+    } else {
+      const dx = _svX - s.x, dy = _svY - s.y;
+      const d = Math.hypot(dx, dy);
+      if (d < 26) { _svSpear = null; }
+      else {
+        const pull = Math.min(1, dt * 7.5);
+        s.x += dx * pull; s.y += dy * pull;
+        s.a = Math.atan2(-dy, -dx);
+      }
+    }
+  }
+
+  // ── the line, node by node, hung off wherever the butt is ──
+  const hx = (_svSpear ? _svSpear.x : _svX) - Math.cos(_svSpear ? _svSpear.a : _svAim) * 88 * S;
+  const hy = (_svSpear ? _svSpear.y : _svY) - Math.sin(_svSpear ? _svSpear.a : _svAim) * 88 * S;
+  const NODES = 11, SEG = 10;
+  if (_svRope.length !== NODES) {
+    _svRope = [];
+    for (let i = 0; i < NODES; i++) _svRope.push({ x: hx, y: hy + i * SEG, px: hx, py: hy + i * SEG });
+  }
+  _svRope[0].x = hx; _svRope[0].y = hy;
+  for (let i = 1; i < NODES; i++) {                 // where each knot was going
+    const p = _svRope[i];
+    const vx = (p.x - p.px) * 0.93, vy = (p.y - p.py) * 0.93;
+    p.px = p.x; p.py = p.y;
+    p.x += vx; p.y += vy + 6200 * dt * dt;
+  }
+  for (let k = 0; k < 4; k++) {                     // and it cannot stretch
+    for (let i = 1; i < NODES; i++) {
+      const a = _svRope[i - 1], b = _svRope[i];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const f = (d - SEG) / d;
+      if (i === 1) { b.x -= dx * f; b.y -= dy * f; }
+      else {
+        a.x += dx * f * 0.5; a.y += dy * f * 0.5;
+        b.x -= dx * f * 0.5; b.y -= dy * f * 0.5;
+      }
+    }
+  }
+  ctx.beginPath();
+  ctx.moveTo(_svRope[0].x, _svRope[0].y);
+  for (let i = 1; i < NODES; i++) ctx.lineTo(_svRope[i].x, _svRope[i].y);
+  ctx.strokeStyle = 'rgba(16,9,8,0.95)';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(72,40,32,0.9)';           // the strands on it
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+  ctx.strokeStyle = `rgba(${_SV_CREST},0.3)`;       // and the sea lighting it
+  ctx.lineWidth = 0.9;
+  ctx.stroke();
+
+  // if it is in the air, the line runs from his hand out to it as well
+  if (_svSpear) {
+    ctx.beginPath();
+    ctx.moveTo(_svX, _svY);
+    const span = Math.hypot(_svSpear.x - _svX, _svSpear.y - _svY);
+    const mx = (_svX + _svSpear.x) * 0.5, my = (_svY + _svSpear.y) * 0.5 + span * 0.16 + 14;
+    ctx.quadraticCurveTo(mx, my, hx, hy);
+    ctx.strokeStyle = 'rgba(16,9,8,0.92)';
+    ctx.lineWidth = 3.4;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(72,40,32,0.85)';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  }
+
+  // ── the harpoon ──
+  ctx.save();
+  ctx.translate(_svSpear ? _svSpear.x : _svX, _svSpear ? _svSpear.y : _svY);
+  ctx.rotate((_svSpear ? _svSpear.a : _svAim) + _svKick * 0.22);
+  _svHead(ctx, S, _svKick);
+  ctx.restore();
+
+  // it is wet, and what comes off it goes in the sea
+  if (!_svSpear && Math.random() < dt * 5) {
+    _svDrips.push({ x: _svX - Math.cos(_svAim) * (18 + Math.random() * 60) * S,
+                    y: _svY - Math.sin(_svAim) * (18 + Math.random() * 60) * S,
+                    vy: 20 + Math.random() * 40, sz: 1 + Math.random() * 1.8,
+                    land: _svY + 40 + Math.random() * 180 });
+  }
+  for (let i = _svDrips.length - 1; i >= 0; i--) {
+    const d = _svDrips[i];
+    d.vy += 1500 * dt;
+    d.y += d.vy * dt;
+    if (d.y > d.land || d.y > H - 2) {
+      const ly = Math.min(d.y, H - 2);
+      if (ly > HZ) _svRings.push({ x: d.x, y: ly, r: 1, sp: 46, life: 1, fade: 1.5 });
+      _svDrips.splice(i, 1);
+      continue;
+    }
+    ctx.beginPath();
+    ctx.ellipse(d.x, d.y, d.sz, d.sz * 2.1, 0, 0, 6.283185);
+    ctx.fillStyle = 'rgba(150,16,26,0.8)';
+    ctx.fill();
+  }
+
+  // ── and what the throw threw up ──
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _svSpray.length - 1; i >= 0; i--) {
+    const p = _svSpray[i];
+    p.vy += 1300 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.985;
+    p.life -= dt * 0.85;
+    if (p.life <= 0) { _svSpray.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.sz * p.life, p.sz * p.life * 1.7,
+                Math.atan2(p.vy, p.vx) - 1.5708, 0, 6.283185);
+    ctx.fillStyle = `rgba(${_SV_CREST},${(p.life * 0.8).toFixed(3)})`;
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // and the sea behind is told where the head is, so it can answer
+  const tx = (_svSpear ? _svSpear.x : _svX), ty = (_svSpear ? _svSpear.y : _svY);
+  _svTip = ty > HZ - 30 ? { x: tx, y: ty, k: 0.7 + _svKick * 0.6 } : null;
+}
+
+function _startSevachOverlay() {
+  _stopSevachOverlay();
+  _drawSevachOverlay._lt = undefined;
+  _svX = _svTX = window.innerWidth * 0.5;
+  _svY = _svTY = window.innerHeight * 0.55;
+  _svVX = _svVY = 0; _svAim = -0.5; _svKick = 0;
+  _svRope = []; _svSpear = null; _svSpray = []; _svRain = [];
+  _svBeads = []; _svDrips = []; _svRings = []; _svTip = null;
+  window.addEventListener('mousemove', _svMouseMove);
+  window.addEventListener('mousedown', _svDown);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'sevach-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('sevach-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+      _svRain = [];
+    }
+    _drawSevachOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _svRaf = requestAnimationFrame(frame);
+  }
+  _svRaf = requestAnimationFrame(frame);
+}
+
+function _stopSevachOverlay() {
+  if (_svRaf) { cancelAnimationFrame(_svRaf); _svRaf = null; }
+  window.removeEventListener('mousemove', _svMouseMove);
+  window.removeEventListener('mousedown', _svDown);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('sevach-overlay');
+  if (cv) cv.remove();
+  _svRope = []; _svSpear = null; _svSpray = []; _svRain = [];
+  _svBeads = []; _svDrips = []; _svRings = []; _svTip = null;
 }
 /* ─────────────────────────────────────────────────────────────── */
 
