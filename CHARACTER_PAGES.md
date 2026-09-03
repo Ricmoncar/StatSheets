@@ -93,6 +93,30 @@ Perspective is worth the trouble here. Three sheets at three speeds is a
 parallax trick and reads as one; giving every mote a real z and projecting it
 is barely more code and reads as a space you are inside.
 
+### And a loop is not a page either: give it EVENTS
+
+Even with six kinds of motion running, a page whose motion all loops has been
+seen in full after about fifteen seconds. What fixes that is a small scheduler:
+one event at a time, every six to eleven seconds, never the same one twice
+running, each rolled once when it starts so it is the same event all the way
+through.
+
+The rule that makes it work: each event must be a different KIND of thing, not
+a different colour of the same thing. "1" ended up with something crossing the
+frame, the light going out and coming back, the previous form showing through
+for two seconds, the collapse arriving as a straight front instead of a ring,
+the field drawing itself a figure out of whatever motes happen to be there, the
+sky beating once, and a giant 0 passing through UNDOING the collapse as it goes.
+Seven of those cost about a millisecond between them and the page stops
+repeating.
+
+Two traps found building them. An event that picks a random point of the frame
+and looks for content near it will usually find nothing, because a field is
+dense in one place and thin everywhere else: anchor it to something that
+already exists. And an event that can cancel itself must not do so by setting
+its own duration to nearly zero, or it never appears and you will not be able to
+tell whether it is broken or merely rare.
+
 ### Composition first. Polish will not save a page that has none
 
 The single most expensive mistake made so far: Adam's ice kingdom was rebuilt

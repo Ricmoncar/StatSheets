@@ -1995,6 +1995,65 @@ body.juko-0inf-page::before {
   #char-view.juko-one .char-avatar-large.juko-pfp::before { animation: none; }
 }
 
+
+/* ════════ Hovering anything on "1" pixelates it ════════
+   There is no CSS that genuinely resamples an element to a lower resolution,
+   so this is the honest approximation and it is a convincing one: blur what is
+   behind the overlay so the detail is gone, then lay a hard grid of the same
+   cell size the background is rendered at over the top, so what is left reads
+   as cells rather than as a blur. The result is that touching any control
+   drops it into the same resolution the void is drawn at. */
+#char-view.juko-one .panel,
+#char-view.juko-one .tab-btn,
+#char-view.juko-one .btn,
+#char-view.juko-one .trait-card,
+#char-view.juko-one .inv-card,
+#char-view.juko-one .form-chip,
+#char-view.juko-one .stat-row { position: relative; }
+
+#char-view.juko-one .panel::before,
+#char-view.juko-one .tab-btn::before,
+#char-view.juko-one .btn::before,
+#char-view.juko-one .trait-card::before,
+#char-view.juko-one .inv-card::before,
+#char-view.juko-one .form-chip::before,
+#char-view.juko-one .stat-row::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.09s steps(3, end);
+  backdrop-filter: blur(1.6px) contrast(1.28) saturate(1.25);
+  background-image:
+    repeating-linear-gradient(0deg,  rgba(2,10,14,0.42) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(2,10,14,0.42) 0 1px, transparent 1px 4px);
+  background-size: 4px 4px;
+  box-shadow: inset 0 0 0 1px rgba(78,240,196,0.5);
+}
+#char-view.juko-one .panel:hover::before,
+#char-view.juko-one .tab-btn:hover::before,
+#char-view.juko-one .btn:hover::before,
+#char-view.juko-one .trait-card:hover::before,
+#char-view.juko-one .inv-card:hover::before,
+#char-view.juko-one .form-chip:hover::before,
+#char-view.juko-one .stat-row:hover::before { opacity: 1; }
+
+/* the same on the way out of the page: the app chrome takes it too */
+body.juko-one-page #header-btns .btn:hover,
+body.juko-one-page .char-entry:hover { filter: contrast(1.2) saturate(1.15); }
+
+@media (prefers-reduced-motion: reduce) {
+  #char-view.juko-one .panel::before,
+  #char-view.juko-one .tab-btn::before,
+  #char-view.juko-one .btn::before,
+  #char-view.juko-one .trait-card::before,
+  #char-view.juko-one .inv-card::before,
+  #char-view.juko-one .form-chip::before,
+  #char-view.juko-one .stat-row::before { transition: none; }
+}
+
 /* ============================================================
    LUCIFER · UNLEASHED: demonic, over-the-top form styling.
    Crimson + black, molten panels, a menacing flickering name, an

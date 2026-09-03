@@ -10630,6 +10630,23 @@ function _jukoBuildFrameCells(w, h, cell) {
 // graded green tones (dark base → light-yellow tips via one shared vertical
 // gradient). Bars snap UP instantly on beats/loudness and fall back smoothly,
 // like a VU meter, so they track the actual music rather than lagging it.
+// In "1" the meter is drawn at pixel resolution like everything else on that
+// page: it is the same space, and a smooth gradient bar next to a dithered void
+// looks like two different programs.
+function _j1EqPixelate(canvas, ctx, W, H, PX) {
+  const lo = _j1Lo(canvas, '_j1Eq', W, H, PX);
+  const lg = lo._g;
+  lg.setTransform(1, 0, 0, 1, 0, 0);
+  lg.clearRect(0, 0, lo.width, lo.height);
+  lg.imageSmoothingEnabled = false;
+  lg.drawImage(canvas, 0, 0, W, H, 0, 0, lo.width, lo.height);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(lo, 0, 0, lo.width, lo.height, 0, 0, lo.width * PX, lo.height * PX);
+  ctx.imageSmoothingEnabled = true;
+}
+
 function _drawJukoEqualizer(canvas, ctx, W, H, t) {
   if (!(W > 0 && H > 0)) return;      // laid out in a hidden pane: nothing to draw on
   // The `>= 0` matters: a clock that jumps BACKWARDS (a remount that resets
@@ -10731,6 +10748,9 @@ function _drawJukoEqualizer(canvas, ctx, W, H, t) {
     ctx.fillRect(i * spacing + (spacing - barW) * 0.5 - 0.4, H - bh, barW + 0.8, 2.4);
   }
   ctx.globalCompositeOperation = 'source-over';
+  // and in "1" the whole meter goes down to pixel resolution with the rest of
+  // the page, panel pools included
+  if (one) _j1EqPixelate(canvas, ctx, W, H, _j1PX(W));
 }
 
 function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
@@ -11639,7 +11659,7 @@ function _j1NewMote(m, scatter) {
   return m;
 }
 let _j1Flash = [];                                   // digits caught in the act of resolving
-function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY, cw, PX, arrive) {
+function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY, cw, PX, arrive, ev) {
   let pool = _j1Field._p;
   const want = Math.max(190, Math.min(760, Math.round((W * H) / 1650)));
   if (!pool || pool.length !== want) {
@@ -11654,6 +11674,8 @@ function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY, cw, PX, 
   st.length = 0;
   const pr = _j1Field._pr || (_j1Field._pr = []);
   pr.length = 0;
+  const pos = _j1Field._pos || (_j1Field._pos = []);  // for the constellation
+  pos.length = 0;
 
   // the arrival: on entry the whole field is a long way out and comes in
   const speed = (210 + aL * 460 + beat * 320) * (1 + (1 - arrive) * 6);
@@ -11674,6 +11696,17 @@ function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY, cw, PX, 
       const d = Math.hypot(sx - cw.x, sy - cw.y);
       const R = cw.p * maxD * 0.85;
       if (d < R) res = Math.max(res, 1 - (R - d) / (maxD * 0.4));
+    }
+    if (ev) {
+      if (ev.name === 'cascade') {                   // a front, not a ring
+        const proj = (sx - cx) * ev.dirX + (sy - cy) * ev.dirY;
+        const edge = (ev.p * 2 - 1) * Math.hypot(W, H) * 0.75;
+        if (proj < edge) res = 1;
+      } else if (ev.name === 'zero' && ev.zx !== undefined) {
+        // and the zero takes it back
+        const d = Math.hypot(sx - ev.zx, sy - ev.zy);
+        if (d < ev.zr) { res = Math.min(res, d / ev.zr * 0.4); m.lock = 0; }
+      }
     }
     let touched = 0;
     if (tipX > -9000) {
@@ -11708,6 +11741,7 @@ function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY, cw, PX, 
     let b = 0;
     while (b < _J1_BUCKETS - 1 && sz > _J1_SIZES[b + 1] - 2) b++;
     bk[b].push(sx, sy, a, touched > 0.15 ? 1 : (res > 0.75 ? 2 : 0), m.ch, m.x, m.y);
+    if (pos.length < 400) pos.push(sx, sy);
     if (k > 0.85 && m.px !== undefined) st.push(m.px, m.py, sx, sy);
     m.px = sx; m.py = sy;
   }
@@ -11979,11 +12013,17 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
     else canvas._j1CW = null;
   }
 
+  const ev = _j1EvTick(canvas, W, H, LX, LY, t, S);
+
   // ── 1. the void ──
   ID();
   lg.globalCompositeOperation = 'source-over';
   lg.globalAlpha = 1;
   lg.drawImage(canvas._j1Void, 0, 0);
+
+  WORLD();
+  _j1EvBack(lg, ev, W, H, LX, LY, t, PX, S);
+  ID();
 
   // ── 2. the coordinate cage, and the shafts coming through the span ──
   lg.globalCompositeOperation = 'lighter';
@@ -12024,8 +12064,9 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
   }
 
   // ── 3. the field, coming at you, and the cables it travels down ──
-  _j1Field(lg, W, H, LX, LY, dt, t, aL, beat, wave, tipX, tipY, cw, PX, ease);
+  _j1Field(lg, W, H, LX, LY, dt, t, aL, beat, wave, tipX, tipY, cw, PX, ease, ev);
   _j1Conduits(lg, W, H, LX, LY, t, beat, PX);
+  _j1EvFront(lg, ev, W, H, LX, LY, t, PX, S, beat);
   lg.globalCompositeOperation = 'source-over';
 
   // ── 4. the wreck of the garden, still out there ──
@@ -12053,7 +12094,7 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
   lg.save();
   lg.globalAlpha = ease;
   lg.translate((W * 1.06 + _j1ParX * 0.5) / PX, (H * 0.02 + _j1ParY * 0.5) / PX);
-  lg.rotate(rockA + beat * 0.006);
+  lg.rotate(rockA + beat * 0.006 + _j1EvRock(ev));
   lg.drawImage(canvas._j1Canopy, -(W * 1.06) / PX, -(H * 0.02) / PX);
   if (beat > 0.2) {
     lg.globalCompositeOperation = 'lighter';
@@ -12123,7 +12164,15 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
   // ── 8. the void closing in, then bloom, then up to the screen ──
   ID();
   lg.drawImage(canvas._j1Vign, 0, 0);
-  _j1Bloom(canvas, lo, PX, 0.3 + beat * 0.22);
+  const flash = _j1EvFlash(ev);                      // the light coming back on
+  if (flash > 0.01) {
+    lg.save();
+    lg.globalCompositeOperation = 'lighter';
+    lg.fillStyle = `rgba(226,255,246,${(flash * 0.75).toFixed(3)})`;
+    lg.fillRect(0, 0, lo.width, lo.height);
+    lg.restore();
+  }
+  _j1Bloom(canvas, lo, PX, 0.3 + beat * 0.22 + flash * 0.5);
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
@@ -12132,6 +12181,217 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
   ctx.clearRect(0, 0, W, H);
   ctx.drawImage(lo, 0, 0, lo.width, lo.height, 0, 0, lo.width * PX, lo.height * PX);
   ctx.imageSmoothingEnabled = true;
+}
+
+
+// ── THE EVENTS ──────────────────────────────────────────────
+// One at a time, six to eleven seconds apart, never the same twice running.
+// Each one is a different kind of thing, not a different colour of the same
+// thing, which is the only way a page like this stops looking like a loop.
+const _J1_EV = ['comet', 'eclipse', 'garden', 'cascade', 'constel', 'wingbeat', 'zero'];
+const _J1_EV_DUR = { comet: 3.6, eclipse: 1.9, garden: 1.9, cascade: 2.1, constel: 3.0, wingbeat: 1.6, zero: 6.0 };
+function _j1EvTick(canvas, W, H, LX, LY, t, S) {
+  let e = canvas._j1Ev;
+  if (!e) e = canvas._j1Ev = { name: null, t0: 0, dur: 0, next: t + 3.5, last: '', p: 0 };
+  if (e.name) {
+    e.p = (t - e.t0) / e.dur;
+    if (e.p >= 1) { e.name = null; e.next = t + 6 + Math.random() * 5; }
+    else return e;
+  }
+  if (t < e.next) return null;
+  let n = e.last;
+  for (let i = 0; i < 8 && n === e.last; i++) n = _J1_EV[(Math.random() * _J1_EV.length) | 0];
+  e.name = n; e.last = n; e.t0 = t; e.dur = _J1_EV_DUR[n]; e.p = 0;
+  // whatever this one needs, rolled once so it is the same event all the way
+  const a = Math.random() * 6.283185;
+  e.a = a;
+  e.dirX = Math.cos(a); e.dirY = Math.sin(a);
+  e.ch = _J1_DIGITS[(Math.random() * 10) | 0];
+  e.hue = (Math.random() * _J1_SPECN) | 0;
+  e.x0 = -0.2 * W + Math.random() * 0.3 * W;
+  e.y0 = Math.random() * H;
+  e.x1 = W * 1.15;
+  e.y1 = Math.random() * H;
+  e.side = Math.random() < 0.5 ? -1 : 1;
+  e.pts = null;
+  return e;
+}
+
+// Behind the field: the old garden showing through, and the light going out.
+function _j1EvBack(lg, e, W, H, LX, LY, t, PX, S) {
+  if (!e) return;
+  if (e.name === 'garden') {
+    // Every so often the room shows through the void it was standing in. Same
+    // green, same rain, gone in under two seconds.
+    const env = Math.sin(Math.PI * e.p);
+    lg.save();
+    lg.globalCompositeOperation = 'lighter';
+    lg.textAlign = 'center'; lg.textBaseline = 'middle';
+    lg.font = `bold ${Math.round(PX * 7)}px "Courier New", monospace`;
+    const cols = Math.min(46, Math.round(W / (PX * 11)));
+    for (let i = 0; i < cols; i++) {
+      const x = (i + 0.5) * (W / cols);
+      const head = ((t * (160 + _j1Rnd(i * 3.1) * 220) + _j1Rnd(i * 7.7) * H * 3) % (H * 1.4)) - H * 0.2;
+      const len = 6 + ((_j1Rnd(i * 5.3) * 9) | 0);
+      for (let k = 0; k < len; k++) {
+        const y = head - k * PX * 8;
+        if (y < -20 || y > H + 20) continue;
+        const a = env * (1 - k / len) * 0.5 * (0.4 + _j1Rnd(i * 2.3 + k) * 0.6);
+        if (a < 0.03) continue;
+        lg.fillStyle = `rgba(${k === 0 ? '190,255,190' : '54,194,90'},${a.toFixed(3)})`;
+        lg.fillText(_J1_DIGITS[((i * 7 + k * 3 + ((t * 9) | 0)) % 10)], x, y);
+      }
+    }
+    lg.restore();
+  }
+  if (e.name === 'eclipse') {
+    // The light gutters. Everything else on the page is lit by it, so the whole
+    // space goes with it, and the return is the brightest moment there is.
+    const q = e.p < 0.62 ? Math.sin((e.p / 0.62) * Math.PI * 0.85) : 0;
+    lg.save();
+    lg.globalCompositeOperation = 'source-over';
+    lg.fillStyle = `rgba(0,2,5,${(q * 0.86).toFixed(3)})`;
+    lg.fillRect(0, 0, W, H);
+    lg.restore();
+  }
+}
+
+// In front: things that cross the frame, and the ones the field draws itself.
+function _j1EvFront(lg, e, W, H, LX, LY, t, PX, S, beat) {
+  if (!e) return;
+  const ep = e.p;
+  if (e.name === 'comet') {
+    // One enormous digit crossing the frame, close enough to be the biggest
+    // thing on the page. Scale contrast is the cheapest way to feel vast.
+    const u = ep;
+    const x = e.x0 + (e.x1 - e.x0) * u;
+    const y = e.y0 + (e.y1 - e.y0) * u + Math.sin(u * 3.1) * H * 0.06;
+    const sz = S * (0.16 + Math.sin(Math.PI * u) * 0.5);
+    const fade = Math.sin(Math.PI * Math.min(1, u * 1.15));
+    lg.save();
+    lg.textAlign = 'center'; lg.textBaseline = 'middle';
+    lg.globalCompositeOperation = 'lighter';
+    for (let k = 7; k >= 0; k--) {                   // the spectrum trails it
+      const tu = Math.max(0, u - k * 0.026);
+      const tx = e.x0 + (e.x1 - e.x0) * tu;
+      const ty = e.y0 + (e.y1 - e.y0) * tu + Math.sin(tu * 3.1) * H * 0.06;
+      const ts = S * (0.16 + Math.sin(Math.PI * tu) * 0.5) * (1 - k * 0.045);
+      lg.font = `bold ${Math.max(6, ts) | 0}px "Courier New", monospace`;
+      lg.fillStyle = _J1_SPEC[(e.hue + k) % _J1_SPECN][_j1A(fade * (k === 0 ? 0.95 : 0.26 - k * 0.028))];
+      lg.fillText(e.ch, tx, ty);
+    }
+    lg.restore();
+  }
+  if (e.name === 'zero') {
+    // The other value, the one that did not survive, coming back through. It
+    // UNDOES the collapse where it passes, which _j1Field reads off it.
+    const u = ep;
+    const x = W * 1.2 - (W * 1.5) * u;
+    const y = H * (0.28 + e.side * 0.16) + Math.sin(u * 2.2) * H * 0.05;
+    e.zx = x; e.zy = y; e.zr = S * 0.42;
+    const fade = Math.sin(Math.PI * Math.min(1, u * 1.06));
+    lg.save();
+    lg.textAlign = 'center'; lg.textBaseline = 'middle';
+    lg.font = `bold ${(S * 0.78) | 0}px "Courier New", monospace`;
+    lg.globalCompositeOperation = 'source-over';
+    lg.fillStyle = `rgba(1,4,7,${(fade * 0.9).toFixed(3)})`;
+    lg.fillText('0', x, y);
+    lg.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 3; k++) {
+      lg.strokeStyle = _J1_SPEC[(k * 3) % _J1_SPECN][_j1A(fade * 0.32)];
+      lg.lineWidth = PX;
+      lg.strokeText('0', x + (k - 1) * PX * 1.6, y);
+    }
+    lg.restore();
+  }
+  if (e.name === 'cascade') {
+    // The collapse arriving as a front instead of a ring: a straight edge
+    // sweeping the field, everything behind it already finished.
+    const off = (ep * 2 - 1) * Math.hypot(W, H) * 0.75;
+    lg.save();
+    lg.globalCompositeOperation = 'lighter';
+    lg.translate(LX + e.dirX * off, LY + e.dirY * off);
+    lg.rotate(e.a + 1.5708);
+    const L = Math.hypot(W, H);
+    const gr = lg.createLinearGradient(0, -L, 0, L * 0.05);
+    gr.addColorStop(0, `rgba(${_J1_MINT},0)`);
+    gr.addColorStop(0.94, `rgba(${_J1_MINT},${(0.16 * Math.sin(Math.PI * ep)).toFixed(3)})`);
+    gr.addColorStop(1, `rgba(226,255,246,${(0.5 * Math.sin(Math.PI * ep)).toFixed(3)})`);
+    lg.fillStyle = gr;
+    lg.fillRect(-L, -L, L * 2, L);
+    lg.restore();
+  }
+  if (e.name === 'constel') {
+    // The field draws itself a figure out of whatever happens to be there, holds
+    // it for a moment, and lets it go.
+    const pos = _j1Field._pos;
+    if (!e.pts && pos && pos.length >= 12) {
+      // start from a mote that is actually there, then take its neighbours
+      const seed = ((Math.random() * (pos.length >> 1)) | 0) * 2;
+      const cxr = pos[seed], cyr = pos[seed + 1];
+      const R = Math.min(W, H) * 0.42;
+      const cand = [];
+      for (let i = 0; i < pos.length; i += 2) {
+        const d = Math.hypot(pos[i] - cxr, pos[i + 1] - cyr);
+        if (d < R) cand.push([pos[i], pos[i + 1], d]);
+      }
+      cand.sort((a2, b2) => a2[2] - b2[2]);
+      const n = Math.min(9, cand.length);
+      const picked = [];
+      for (let i = 0; i < n; i++) picked.push(cand[i][0], cand[i][1]);
+      // and walk them nearest-to-nearest, so the figure is a path rather than
+      // a scribble back and forth across the same region
+      const order = [picked[0], picked[1]];
+      const used = new Array(n).fill(false); used[0] = true;
+      for (let k = 1; k < n; k++) {
+        let best = -1, bd = 1e9;
+        for (let j = 0; j < n; j++) {
+          if (used[j]) continue;
+          const d = Math.hypot(picked[j * 2] - order[order.length - 2], picked[j * 2 + 1] - order[order.length - 1]);
+          if (d < bd) { bd = d; best = j; }
+        }
+        if (best < 0) break;
+        used[best] = true;
+        order.push(picked[best * 2], picked[best * 2 + 1]);
+      }
+      e.pts = order.length >= 6 ? order : null;
+      if (!e.pts) e.dur = 0.12;
+    }
+    if (e.pts) {
+      const env = Math.sin(Math.PI * ep);
+      lg.save();
+      lg.globalCompositeOperation = 'lighter';
+      lg.beginPath();
+      lg.moveTo(e.pts[0], e.pts[1]);
+      for (let i = 2; i < e.pts.length; i += 2) lg.lineTo(e.pts[i], e.pts[i + 1]);
+      lg.strokeStyle = _J1_R_WHITE[_j1A(env * 0.5)];
+      lg.lineWidth = PX;
+      lg.stroke();
+      for (let i = 0; i < e.pts.length; i += 2) {
+        lg.fillStyle = _J1_SPEC[((i >> 1) + e.hue) % _J1_SPECN][_j1A(env * 0.9)];
+        lg.fillRect(e.pts[i] - PX * 1.5, e.pts[i + 1] - PX * 1.5, PX * 3, PX * 3);
+      }
+      lg.restore();
+    }
+  }
+  if (e.name === 'wingbeat') {
+    const env = Math.sin(Math.PI * ep);
+    lg.save();
+    lg.globalCompositeOperation = 'lighter';
+    lg.beginPath();
+    lg.arc(W * 1.06, H * 0.02, ep * Math.hypot(W, H) * 1.1, 0, 6.283185);
+    lg.strokeStyle = _J1_R_MINT[_j1A(Math.pow(1 - ep, 1.8) * 0.4)];
+    lg.lineWidth = PX * (1 + env * 4);
+    lg.stroke();
+    lg.restore();
+  }
+}
+// the extra swing the sky takes when it beats, and the flash when the light
+// comes back on
+function _j1EvRock(e) { return (e && e.name === 'wingbeat') ? Math.sin(Math.PI * e.p) * 0.06 : 0; }
+function _j1EvFlash(e) {
+  if (!e || e.name !== 'eclipse') return 0;
+  return e.p > 0.62 ? Math.pow(1 - (e.p - 0.62) / 0.38, 2.2) : 0;
 }
 
 // ── THE CURSOR: the rainbow sword. The tip is the pointer, so it stays exact,
