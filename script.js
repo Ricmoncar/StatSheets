@@ -1595,6 +1595,7 @@ function _jukoClick() {
   // because there is no cat holding the cursor in this form.
   if (_isJuko1(_jukoCurChar())) {
     _j1Pulse = 1;
+    _j1ClickAt = { x: _jukoX, y: _jukoY };
     _j1Burst.push({ x: _jukoX, y: _jukoY, life: 1 });
     if (_j1Burst.length > 4) _j1Burst.shift();
     for (let i = 0; i < 22; i++) {
@@ -10358,17 +10359,28 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     const glowV  = Math.min(1.0, idle + _jukoAudioLevel * 0.22 + _jukoAudioBeat * 0.92);
     const onsetV = Math.min(1, _jukoAudioBeat);
     const glitchV = _jukoAudioBeat > 0.5 ? 1 : (Math.sin(t * 13.0) > 0.94 ? 0.5 : 0);
-    // PERF: quantize and only write a custom property when it actually changes.
-    // Writing to #char-view invalidates the style of its whole subtree, so doing
-    // it every frame was the main source of lag. Skipping no-op writes removes it
-    // with no visible difference (idle barely writes; music writes on real change).
-    const qG = Math.round(glowV * 33) / 33;
-    const qO = Math.round(onsetV * 25) / 25;
-    const last = _drawJukoOverlay._css || (_drawJukoOverlay._css = { g: -1, o: -1, x: -1 });
-    const st = _cvRoot.style;
-    if (qG !== last.g)      { st.setProperty('--juko-glow', qG.toFixed(3));   last.g = qG; }
-    if (qO !== last.o)      { st.setProperty('--juko-onset', qO.toFixed(3));  last.o = qO; }
-    if (glitchV !== last.x) { st.setProperty('--juko-glitch', glitchV.toFixed(2)); last.x = glitchV; }
+    // PERF, and this is the single most expensive thing on any of her pages.
+    // Setting a custom property here costs ELEVEN MILLISECONDS, measured: it
+    // inherits, so it re-resolves the style of all ~750 nodes under #char-view,
+    // most of which are running color-mix() and calc() off it. Quantizing alone
+    // does not help, because with music playing a quantized value still changes
+    // on almost every frame.
+    //
+    // So the write is event-shaped rather than continuous: immediately on a
+    // real jump, which is what a beat is and the only part anyone watches, and
+    // otherwise at most four times a second. Roughly thirty writes a second
+    // becomes three or four, and it looks the same, because what it is tracking
+    // is the hits.
+    const last = _drawJukoOverlay._css || (_drawJukoOverlay._css = { g: -1, o: -1, x: -1, t: -9 });
+    const jump = Math.abs(glowV - last.g) > 0.13 || Math.abs(onsetV - last.o) > 0.16 || glitchV !== last.x;
+    const settle = (t - last.t) > 0.25 && (Math.abs(glowV - last.g) > 0.03 || Math.abs(onsetV - last.o) > 0.04);
+    if (jump || settle) {
+      const st = _cvRoot.style;
+      st.setProperty('--juko-glow', glowV.toFixed(3));
+      st.setProperty('--juko-onset', onsetV.toFixed(3));
+      st.setProperty('--juko-glitch', glitchV.toFixed(2));
+      last.g = glowV; last.o = onsetV; last.x = glitchV; last.t = t;
+    }
   }
 
   // 0∞: this is the topmost layer in the whole app (z-index 9999), so this is
@@ -10728,7 +10740,7 @@ function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
 
   for (let pi = 0; pi < panels.length; pi++) {
     const p = panels[pi];
-    const r = p.getBoundingClientRect();
+    const r = _lyRect(p);
     if (r.width < 24 || r.bottom < -40 || r.top > H + 40) continue;   // hidden / off-screen
     let st = p._jukoFrame;
     const rw = Math.round(r.width), rh = Math.round(r.height);
@@ -11171,6 +11183,10 @@ const _J1_R_WHITE = _j1Ramp('226,255,246');
 // (Through _bgAt: the two canvases do NOT share a coordinate space.)
 let _j1Tip = null;
 let _j1Pulse = 0;        // 0..1, a click. The background answers it.
+// A click hands the background a place to collapse from. The overlay writes it
+// in viewport coordinates; the background converts and runs it on its own
+// clock, because the two canvases do not share either one.
+let _j1ClickAt = null;
 
 // ── The void: base gradient, nebula, and the light the core throws into the
 //    dust. All static, so all of it is one baked sheet. ──
@@ -11238,7 +11254,7 @@ function _j1NewMote(m, scatter) {
   m.lock = 0;                                        // 1 once it has resolved
   return m;
 }
-function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY) {
+function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY, cw) {
   let pool = _j1Field._p;
   const want = Math.max(180, Math.min(700, Math.round((W * H) / 1900)));
   if (!pool || pool.length !== want) {
@@ -11248,13 +11264,15 @@ function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY) {
   let bk = _j1Field._b;
   if (!bk) { bk = _j1Field._b = []; for (let i = 0; i < _J1_BUCKETS; i++) bk.push([]); }
   for (let i = 0; i < _J1_BUCKETS; i++) bk[i].length = 0;
+  const st = _j1Field._s || (_j1Field._s = []);
+  st.length = 0;
 
   const speed = 210 + aL * 460 + beat * 320;
   const maxD = Math.hypot(W, H) * 0.5;
   for (let i = 0; i < pool.length; i++) {
     const m = pool[i];
     m.z -= speed * dt;
-    if (m.z < _J1_NEAR) { _j1NewMote(m, false); continue; }
+    if (m.z < _J1_NEAR) { _j1NewMote(m, false); m.px = undefined; continue; }
     const k = _J1_FOCAL / m.z;
     const sx = cx + m.x * k, sy = cy + m.y * k;
     if (sx < -40 || sx > W + 40 || sy < -40 || sy > H + 40) continue;
@@ -11265,6 +11283,11 @@ function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY) {
     if (wave > 0) {
       const d = Math.hypot(sx - cx, sy - cy);
       if (d < wave * maxD) res = Math.max(res, 1 - (wave * maxD - d) / (maxD * 0.5));
+    }
+    if (cw) {                                        // and the one you threw
+      const d = Math.hypot(sx - cw.x, sy - cw.y);
+      const R = cw.p * maxD * 0.85;
+      if (d < R) res = Math.max(res, 1 - (R - d) / (maxD * 0.4));
     }
     // and the cursor finishes it too: what it passes over resolves
     let touched = 0;
@@ -11287,6 +11310,16 @@ function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY) {
     let b = 0;
     while (b < _J1_BUCKETS - 1 && sz > _J1_SIZES[b + 1] - 2) b++;
     bk[b].push(sx, sy, a, touched > 0.15 ? 1 : (res > 0.75 ? 2 : 0), m.ch);
+    // the close ones smear, because at this speed the eye expects them to
+    if (k > 0.85 && m.px !== undefined) { st.push(m.px, m.py, sx, sy); }
+    m.px = sx; m.py = sy;
+  }
+  if (st.length) {                                   // one path, one stroke
+    ctx.beginPath();
+    for (let i = 0; i < st.length; i += 4) { ctx.moveTo(st[i], st[i + 1]); ctx.lineTo(st[i + 2], st[i + 3]); }
+    ctx.strokeStyle = _J1_R_CYAN[_j1A(0.16 + aL * 0.2)];
+    ctx.lineWidth = 1;
+    ctx.stroke();
   }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -11797,6 +11830,19 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
   const waveP = (t - canvas._j1Wave.t0) / 2.3;
   const wave = (waveP >= 0 && waveP < 1) ? waveP : 0;
 
+  // and the one the cursor threw, on this canvas's clock and in its coordinates
+  if (_j1ClickAt) {
+    const q = _bgAt(canvas, W, H, _j1ClickAt.x, _j1ClickAt.y);
+    canvas._j1CW = { x: q[0], y: q[1], t0: t };
+    _j1ClickAt = null;
+  }
+  let cw = null;
+  if (canvas._j1CW) {
+    const p = (t - canvas._j1CW.t0) / 1.5;
+    if (p >= 0 && p < 1) cw = { x: canvas._j1CW.x, y: canvas._j1CW.y, p };
+    else canvas._j1CW = null;
+  }
+
   // 3 ── the coordinate cage, and the spokes, which now read as the lines of
   //     the perspective you are travelling along
   ctx.globalCompositeOperation = 'lighter';
@@ -11831,7 +11877,7 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
   }
 
   // 4 ── THE FIELD, coming at you
-  _j1Field(ctx, W, H, CX, CY, dt, t, aL, beat, wave, tipX, tipY);
+  _j1Field(ctx, W, H, CX, CY, dt, t, aL, beat, wave, tipX, tipY, cw);
 
   // 5 ── and the cables it is travelling down
   _j1Conduits(ctx, W, H, CX, CY, t, beat);
@@ -11888,6 +11934,17 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
     ctx.arc(CX, CY, wave * maxR * 0.94, 0, 6.283185);
     ctx.strokeStyle = _J1_R_WHITE[_j1A(Math.pow(1 - wave, 2.6) * 0.3)];
     ctx.lineWidth = 1 + (1 - wave) * 1.6;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (cw) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath();
+    ctx.arc(cw.x, cw.y, cw.p * maxR * 0.9, 0, 6.283185);
+    ctx.strokeStyle = _J1_R_WHITE[_j1A(Math.pow(1 - cw.p, 2.2) * 0.55)];
+    ctx.lineWidth = 1 + (1 - cw.p) * 3.5;
     ctx.stroke();
     ctx.restore();
   }
@@ -12096,7 +12153,7 @@ function _j1PageLayer(canvas, ctx, W, H, t) {
   const pc = _j1PageLayer._pc && _j1PageLayer._pc.isConnected
     ? _j1PageLayer._pc : (_j1PageLayer._pc = document.getElementById('pattern-canvas'));
   if (!pc) return;
-  const r = pc.getBoundingClientRect();
+  const r = _lyRect(pc);
   if (!(r.width > 0 && r.height > 0)) return;
   const CX = r.left + r.width * 0.73, CY = r.top + r.height * 0.29;
   const S = Math.min(r.width * 0.55, r.height * 0.95);
@@ -47686,10 +47743,44 @@ function _stopPlumkyOverlay() {
 // lands a couple of hundred pixels away from the thing it is meant to be
 // under. Measured once a frame and cached on the canvas, because every layer
 // that needs it needs the same answer.
+// Layout cache. Reading an element's box mid-frame forces the browser to
+// finish style and layout on the spot, and on these pages the layout is never
+// clean (panel animations, the custom properties the overlays write), so every
+// read was a full recalc. Measured at 5.1 ms a frame, which was more than the
+// entire background cost to draw. A box only moves when something moves it, so
+// reads are cached against a generation that the things which move boxes bump.
+let _lyGen = 0;
+function _lyBump() { _lyGen++; }
+if (typeof window !== 'undefined') {
+  addEventListener('resize', _lyBump, { passive: true });
+  addEventListener('scroll', _lyBump, { passive: true, capture: true });
+  // A tab change, a panel opening, an image arriving: anything that resizes
+  // the content box means the boxes inside it moved.
+  if (typeof ResizeObserver === 'function') {
+    const ro = new ResizeObserver(_lyBump);
+    const watch = () => {
+      const c = document.getElementById('content');
+      const pc = document.getElementById('pattern-canvas');
+      const cv = document.getElementById('char-view');
+      for (const el of [c, pc, cv]) { if (el && !el._lyObs) { el._lyObs = 1; ro.observe(el); } }
+    };
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', watch);
+    else watch();
+    setInterval(watch, 2000);        // pick up nodes that get replaced
+  }
+  // and a slow net for anything none of the above catches
+  setInterval(_lyBump, 2000);
+}
+function _lyRect(el) {
+  if (el._lyG === _lyGen && el._lyR) return el._lyR;
+  el._lyG = _lyGen;
+  return (el._lyR = el.getBoundingClientRect());
+}
+
 function _bgRect(canvas) {
   canvas._bgR = null;
   if (canvas.isConnected && canvas.getBoundingClientRect) {
-    const r = canvas.getBoundingClientRect();
+    const r = _lyRect(canvas);
     if (r.width > 0 && r.height > 0) canvas._bgR = r;
   }
 }

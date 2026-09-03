@@ -280,36 +280,73 @@ Watch the throttle when benchmarking: the draw functions early-return if
 exactly-equal step fall on the wrong side, so use a comfortably larger step and
 assert that the frames actually drew.
 
-What is expensive, in order. These are measured on the live page, not guessed.
+**Measure on the LIVE page, not on an offscreen canvas.** The two disagreed by
+a factor of eight on Juko's "1": the draw function billed 14.6 ms a frame in
+the page while every canvas operation inside it added up to 0.44 ms. None of
+the cost was drawing. An offscreen benchmark cannot see the things below,
+because they are about the document the canvas is sitting in.
 
-1. **`ctx.filter`.** Setting a filter on a viewport-sized context measured
+1. **Writing a CSS custom property.** The single most expensive thing found in
+   this project, by a distance. Measured on Juko's page:
+
+   | | cost |
+   |---|---|
+   | `getBoundingClientRect` on a clean layout | 0.000 ms |
+   | the same read after toggling a class | 0.005 ms |
+   | the same read after ONE `style.setProperty('--x', ...)` | **11.2 ms** |
+
+   Custom properties inherit, so changing one re-resolves the style of every
+   node beneath it, and a character card is ~750 nodes full of `calc()` and
+   `color-mix()` reading that variable. Driving a music-reactive glow by
+   writing one every frame costs a third of a second per second. Quantizing
+   the value does not save you: with music playing a quantized value still
+   changes on most frames.
+
+   Make the write an EVENT: go immediately on a real jump (which is what a beat
+   is, and the only part anyone watches) and otherwise no more than about four
+   times a second. Thirty writes a second becomes two or three and it looks
+   identical. Toggling a class is essentially free by comparison, so where you
+   need more than a handful of states, prefer classes.
+
+2. **Reading layout inside the frame.** `getBoundingClientRect`, `offsetWidth`,
+   `getComputedStyle` and friends force the browser to finish style and layout
+   on the spot. That is free when nothing has changed and costs a full recalc
+   when something has, which on an animated page is every frame. Boxes only
+   move when something moves them, so cache the reads against a generation that
+   `resize`, `scroll` and a `ResizeObserver` bump, and never on a timer faster
+   than a second. `_lyRect(el)` in the source does this and every page that
+   reads the cursor position through `_bgRect` was paying for it.
+
+3. **`ctx.filter`.** Setting a filter on a viewport-sized context measured
    **650 ms a frame** on Juko's overlay, which drew two hue-rotated copies of
    the cursor sprite. It forces the whole layer onto a software path. Never set
    `ctx.filter` on a large canvas in a loop. To tint a sprite: draw it to a
    scratch canvas its own size, `source-atop` a semi-transparent fill over it
    (semi-transparent so the sprite keeps its shading), blit that. Same picture,
    about a fiftieth of a millisecond.
-2. **Wide antialiased polyline strokes across the full width.** Sevach's sea was
+4. **Wide antialiased polyline strokes across the full width.** Sevach's sea was
    41 ms a frame from this alone: twenty polylines taking eight stroked passes
    each. Baked into scrolling strips it is **0.58 ms**.
-3. **`shadowBlur` on a large stroke.** A glowing `strokeRect` around the
+5. **`shadowBlur` on a large stroke.** A glowing `strokeRect` around the
    viewport: 4.1 ms with shadowBlur, 0.14 ms without. Four widening strokes at
    falling alpha give the same soft edge for 0.7 ms.
-4. **Large gradient fills, even from a cached gradient object.** Caching the
+6. **Large gradient fills, even from a cached gradient object.** Caching the
    gradient does not help; the fill is the cost. At 1030x656 a full-screen
    radial fill is 2.0 ms and the same pixels blitted from a baked canvas are
    0.11 ms. **Bake every gradient that only moves or changes brightness**, and
    put the brightness back with `globalAlpha`.
-5. **A `CanvasPattern` fill over the full screen**: 4.3 ms, against 0.4 ms for
+7. **A `CanvasPattern` fill over the full screen**: 4.3 ms, against 0.4 ms for
    a pre-filled sheet of the same size blitted at a random offset. Applies to
    every noise/static layer.
-6. **`fillText` with a freshly built `rgba(...)` string.** The string is
+8. **`fillText` with a freshly built `rgba(...)` string.** Setting `ctx.font`
+   is expensive too, so quantize glyph sizes onto a small table and draw a
+   size at a time rather than setting a fresh font per glyph. The string is
    re-parsed every call. 2100 glyphs: **10.9 ms** with fresh strings, **3.7 ms**
    reading from an interned table, 2.0 ms with one fixed style. Quantize the
    alpha into ramps built once at module level (see `_jkRamp`).
-7. Full-screen self-copies (`drawImage(canvas, ...)`). About 1 ms each at 720p.
+9. Full-screen self-copies (`drawImage(canvas, ...)`). About 1 ms each at 720p.
    Budget a handful, not twenty.
-8. **Many small canvases.** 149 per-column strips cost 6.2 ms a frame to rebake
+10. **Many small canvases.** 149 per-column strips cost 6.2 ms a frame to rebake
    and blit; the same content in ONE atlas canvas, a slot per item, cost 3.7 ms.
    If you bake per item, bake into one atlas.
 
