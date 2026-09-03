@@ -1506,9 +1506,14 @@ function _isJuko1(c) { return !!(_isJuko(c) && _JUKO_1_RE.test(_activeFormName(c
 // PERF: memoized current-character lookup so the per-frame Juko draws don't each
 // run characters.find() several times a frame. Cached by currentId; the object
 // reference is stable so activeFormIdx is still read live off it.
-let _jukoCurCache = { id: undefined, c: null };
+let _jukoCurCache = { id: undefined, i: -1, c: null };
 function _jukoCurChar() {
-  if (_jukoCurCache.id !== currentId) _jukoCurCache = { id: currentId, c: characters.find(x => x.id === currentId) || null };
+  const k = _jukoCurCache;
+  // Still the live object? (An array index compare, so this stays cheap enough
+  // to call several times a frame, which is the whole point of the cache.)
+  if (k.id === currentId && k.c && characters[k.i] === k.c) return k.c;
+  const i = characters.findIndex(x => x.id === currentId);
+  _jukoCurCache = { id: currentId, i, c: i < 0 ? null : characters[i] };
   return _jukoCurCache.c;
 }
 // ── 0∞ timing: a 22-second slow-building INTRO (synced to the song's intro)
@@ -1529,10 +1534,25 @@ let _juko0InfGlitchNext = 0;      // next teleport/re-filter tick for an existin
 let _juko0InfBoomFired = false;
 let _juko0InfBoomT0 = undefined;
 let _juko0InfBoomCracks = null;
+// Bumped on every genuine entry. Anything one-shot (the drop punch baked into
+// the background canvas, which outlives a form change) compares against it
+// rather than owning its own flag, so a second entry re-arms it.
+let _juko0InfRun = 0;
+let _juko0InfAudioAnchored = false;   // has the 0-infinity track been seen from the top yet
+let _juko0InfLeaving = false;         // true through the short release after an exit
 function _juko0InfElapsed() {
+  const wall = _juko0InfStart ? (performance.now() - _juko0InfStart) / 1000 : 0;
   const a = (typeof _themeAudio !== 'undefined') ? _themeAudio : null;
-  if (a && _jukoEnvKey === _JUKO_0INF_THEME_SRC && !a.paused && !a.ended && a.currentTime > 0.05) return a.currentTime;
-  return _juko0InfStart ? (performance.now() - _juko0InfStart) / 1000 : 0;
+  // The song's own clock is preferred, so the visual drop lands exactly on the
+  // beat drop. But only once this entry has actually seen the track start from
+  // the top: re-entering the form leaves the PREVIOUS play still loaded and
+  // running for the ~800ms of the crossfade, and reading its currentTime sent
+  // the page straight to the breakdown with no intro at all.
+  if (a && _jukoEnvKey === _JUKO_0INF_THEME_SRC && !a.paused && !a.ended) {
+    if (!_juko0InfAudioAnchored && Math.abs(a.currentTime - wall) < 2.5) _juko0InfAudioAnchored = true;
+    if (_juko0InfAudioAnchored && a.currentTime > 0.05) return a.currentTime;
+  }
+  return wall;
 }
 function _juko0InfSev(elapsed) {
   if (elapsed < _JUKO_0INF_INTRO) { const p = elapsed / _JUKO_0INF_INTRO; return p * p * 0.55; }
@@ -9250,7 +9270,10 @@ function _jukoNewCol(x, H, scatter) {
     y:    scatter ? Math.random() * H : -Math.random() * H * 0.6,  // head pixel pos
     spd:  46 + Math.random() * 88,                                 // fall speed px/s
     len:  10 + Math.floor(Math.random() * 22),                     // trail length (cells)
-    mut:  Math.random() * 0.35,                                    // glyph-mutation timer
+    phase: (Math.random() * 40) | 0,                               // where its ribbon starts
+    headCh: _JUKO_RAIN[(Math.random() * _JUKO_RAIN.length) | 0],
+    headCell: -99999,
+    dirty: true, bakedDrop: null, bakedSev: -1, bakedH: 0,         // its slot in the atlas
     yellow: Math.random() < 0.3,                                   // light-yellow vs green head tone
     bright: 0.4 + Math.random() * 0.78,                            // per-column brightness (some dim, some vivid)
     glyphs: Array.from({ length: 40 }, () => _JUKO_RAIN[Math.floor(Math.random() * _JUKO_RAIN.length)]),
@@ -9388,6 +9411,58 @@ function _jukoSampleAudio(dt) {
                       base: +_jukoAudioBase.toFixed(3), beat: +_jukoAudioBeat.toFixed(3), onset: +_jukoAudioOnset.toFixed(3) };
 }
 
+
+// PERF: the rain paints roughly two thousand glyphs a frame, and every one of
+// them used to set fillStyle from a freshly built `rgba(...)` string. Chrome
+// parses each of those, and measured on the real page that parse was about
+// seventy per cent of the entire background's cost: 2100 glyphs took 10.9 ms
+// with fresh strings and 3.7 ms with interned ones. The colours only ever vary
+// in brightness, so they are quantized into tables built once and indexed.
+const _JK_STEPS = 28;
+function _jkRamp(r, g, b) {
+  const a = new Array(_JK_STEPS + 1);
+  for (let i = 0; i <= _JK_STEPS; i++) a[i] = `rgba(${r},${g},${b},${(i / _JK_STEPS).toFixed(3)})`;
+  return a;
+}
+// alpha (0..1, clamped) to an index into any of the ramps above
+function _jkA(v) { return v <= 0 ? 0 : v >= 1 ? _JK_STEPS : ((v * _JK_STEPS + 0.5) | 0); }
+const _JK_TAIL      = _jkRamp(54, 194, 90);    // deep green tail
+const _JK_TAIL_D    = _jkRamp(20, 120, 40);    // sickly tail, post drop
+const _JK_NEAR      = _jkRamp(150, 238, 140);  // fresh green near the head
+const _JK_NEAR_D    = _jkRamp(90, 255, 110);   // hot toxic green near the head
+const _JK_KEY       = _jkRamp(228, 238, 120);  // yellow keyword token
+const _JK_KEY_D     = _jkRamp(180, 255, 80);   // acid keyword token
+const _JK_HEAD_G    = _jkRamp(222, 255, 212);  // green head
+const _JK_HEAD_Y    = _jkRamp(247, 252, 205);  // yellow head
+const _JK_HEAD_FL   = _jkRamp(255, 255, 236);  // head flaring on a beat
+const _JK_ACID      = _jkRamp(120, 255, 60);   // corruption flare
+const _JK_WHITE     = _jkRamp(255, 255, 255);  // blown white flare
+
+
+// Full-screen static. A CanvasPattern fill of this size measured 4.3 ms a
+// frame; the same pixels blitted from a canvas that is already the right size
+// measure 0.4 ms. Baked per canvas size, offset randomly so it still crawls.
+function _jukoNoiseSheet(W, H) {
+  const need = ((W + 128) | 0) + 'x' + ((H + 128) | 0);
+  let c = _jukoNoiseSheet._c;
+  if (!c || _jukoNoiseSheet._k !== need) {
+    c = _jukoNoiseSheet._c = document.createElement('canvas');
+    c.width = W + 128; c.height = H + 128;
+    const g = c.getContext('2d');
+    g.fillStyle = g.createPattern(_exNoiseTile(), 'repeat');
+    g.fillRect(0, 0, c.width, c.height);
+    _jukoNoiseSheet._k = need;
+  }
+  return c;
+}
+function _jukoSnow(ctx, W, H, alpha) {
+  const sheet = _jukoNoiseSheet(W, H);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(sheet, -((Math.random() * 96) | 0), -((Math.random() * 96) | 0));
+  ctx.restore();
+}
+
 // PERF: pre-rendered soft-orb sprite (radial gradient → transparent). Drawing a
 // cached sprite scaled + alpha'd is identical to building a fresh radial gradient
 // per orb per frame, but allocates nothing: big win for the bokeh + rain heads.
@@ -9403,7 +9478,69 @@ function _jukoSoftSprite(rgb) {
   return _jukoSoftSprite[key] = c;
 }
 
+// The four colours a corrupted bokeh orb can roll, pre-rendered.
+const _JK_ORB_BAD = [];
+function _jkOrbBad() {
+  if (!_JK_ORB_BAD.length) {
+    for (const r of [120, 200]) for (const b of [90, 160]) _JK_ORB_BAD.push(_jukoSoftSprite(`${r},255,${b}`));
+  }
+  return _JK_ORB_BAD;
+}
+
+// The rain, baked into one atlas: a slot per column, side by side. The head
+// cell is left out of it, because it flares on the beat and it is the part
+// anyone actually watches, so it is drawn live. `br` (the column's own
+// brightness) is baked in because it never changes; `cf` (the field's loudness
+// pulse) is not, because it does, and it comes back as the blit's alpha.
+const _JK_CELLH = 15, _JK_STRIPW = 24, _JK_STRIPH = 480;   // 480 = the longest trail
+function _jkAtlas(canvas, n) {
+  let a = canvas._jkAtlas;
+  if (!a || a._n !== n) {
+    a = canvas._jkAtlas = document.createElement('canvas');
+    a.width = n * _JK_STRIPW; a.height = _JK_STRIPH; a._n = n;
+    a._g = a.getContext('2d');
+    a._g.textAlign = 'center';
+    a._g.textBaseline = 'middle';
+  }
+  a._g.font = 'bold 13px "Courier New", monospace';   // lost if the canvas resized
+  return a;
+}
+function _jkBakeCol(g, slot, col, dropped, chaosGlyph, corruptP) {
+  const len = col.len;
+  const SH = Math.min(_JK_STRIPH, len * _JK_CELLH);
+  const X0 = slot * _JK_STRIPW;
+  g.clearRect(X0, 0, _JK_STRIPW, _JK_STRIPH);
+  const gl = col.glyphs, gn = gl.length, br = col.bright;
+  const keyRamp = dropped ? _JK_KEY_D : _JK_KEY;
+  const nearRamp = dropped ? _JK_NEAR_D : _JK_NEAR;
+  const tailRamp = dropped ? _JK_TAIL_D : _JK_TAIL;
+  const X = X0 + _JK_STRIPW / 2;
+  for (let k = 1; k < len; k++) {
+    const idx = (k + col.phase) % gn;                  // fixed window: the ribbon is rigid
+    const f = 1 - k / len;                             // 1 at the head, 0 at the tail
+    if (chaosGlyph && Math.random() < corruptP) {
+      g.fillStyle = Math.random() < 0.5
+        ? _JK_ACID[_jkA((0.8 * f + 0.2) * br)]         // acid-green flare
+        : _JK_WHITE[_jkA((0.9 * f + 0.2) * br)];       // blown-white flare
+    } else if (idx % 6 === 0) {
+      g.fillStyle = keyRamp[_jkA((0.55 * f + 0.18) * br)];
+    } else if (k <= 3) {
+      g.fillStyle = nearRamp[_jkA((0.9 * f + 0.1) * br)];
+    } else {
+      const a2 = 0.78 * f * br;
+      if (a2 < 0.02) continue;                         // invisible: skip it
+      g.fillStyle = tailRamp[_jkA(a2)];
+    }
+    g.fillText(gl[idx], X, SH - (k + 0.5) * _JK_CELLH);
+  }
+  col.dirty = false;
+  col.bakedDrop = dropped;
+  col.bakedSev = corruptP;
+  col.bakedH = SH;
+}
+
 function _drawJukoPattern(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;      // laid out in a hidden pane: nothing to draw on
   // 30fps cap (matches the other heavy patterns)
   if (_drawJukoPattern._lt !== undefined && t - _drawJukoPattern._lt < 0.033) return;
   const dt = _drawJukoPattern._lt === undefined ? 0.016 : Math.min(t - _drawJukoPattern._lt, 0.05);
@@ -9424,10 +9561,11 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   const dropped = chaos ? _juko0InfDropped(elapsed) : false;
   const ramp = sev;                                    // (effect amounts scale with severity)
 
-  if (canvas._jukoW !== W || canvas._jukoH !== H || canvas._jukoChaos !== chaos) {
-    canvas._jukoW = W; canvas._jukoH = H; canvas._jukoChaos = chaos;
+  if (canvas._jukoW !== W || canvas._jukoH !== H || canvas._jukoChaos !== chaos || canvas._jukoRun !== _juko0InfRun) {
+    canvas._jukoW = W; canvas._jukoH = H; canvas._jukoChaos = chaos; canvas._jukoRun = _juko0InfRun;
     canvas._jukoCols = null; canvas._jukoBokeh = null; canvas._jukoVign = null;
-    canvas._jukoHRows = null; canvas._jukoSnips = null;
+    canvas._jukoHRows = null; canvas._jukoSnips = null; canvas._jukoHStrip = null;
+    canvas._jukoBands = null; canvas._jukoBreath = null; canvas._jkAtlas = null;
     canvas._jukoDropped = false;   // re-arm the one-time DROP punch
   }
 
@@ -9457,6 +9595,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   ctx.globalCompositeOperation = 'lighter';
   const bokehBoost = 1 + aL * 0.9;
   const orbGreen = _jukoSoftSprite('86,214,116'), orbYellow = _jukoSoftSprite('224,236,128');
+  if (chaos) _jkOrbBad();
   for (const b of canvas._jukoBokeh) {
     const glitching = dropped && b.corrupt;
     b.y -= b.vy * dt * bokehBoost * (glitching ? 1.8 + sev * 1.4 : 1);
@@ -9464,13 +9603,11 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
     b.pulse = (0.45 + 0.55 * Math.sin(t * b.pf + b.ph)) * (1 + aL * 0.5);
     if (b.y < -b.r) Object.assign(b, _jukoNewBokeh(W, H, false));
     if (glitching) {
-      // corrupt orbs randomize colour per frame → keep the (rarer) gradient path
-      ctx.globalAlpha = 1;
-      const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-      g.addColorStop(0, `rgba(${Math.random() < 0.5 ? 120 : 200},255,${Math.random() < 0.5 ? 90 : 160},${(0.2 + sev * 0.2) * b.pulse})`);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+      // Corrupt orbs roll their colour every frame, which used to mean a fresh
+      // radial gradient every frame. The roll only ever picks one of four
+      // combinations, so all four are cached sprites and the roll picks a sprite.
+      ctx.globalAlpha = (0.2 + sev * 0.2) * b.pulse;
+      ctx.drawImage(_JK_ORB_BAD[(Math.random() * 4) | 0], b.x - b.r, b.y - b.r, b.r * 2, b.r * 2);
     } else {
       ctx.globalAlpha = (b.yellow ? 0.16 : 0.15) * b.pulse;
       ctx.drawImage(b.yellow ? orbYellow : orbGreen, b.x - b.r, b.y - b.r, b.r * 2, b.r * 2);
@@ -9478,24 +9615,44 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // 3 ── Horizontal code tickers, scrolling left BEHIND the vertical rain
+  // 3 ── Horizontal code tickers, scrolling left BEHIND the vertical rain.
+  //     Their glyphs never mutate and each row is one flat green, so the whole
+  //     set is baked ONCE into a single tileable strip (one row per band) and
+  //     scrolled with a wrapping offset. That is 46 blits a frame instead of
+  //     2668 fillText calls, and it was the single biggest cost on the page.
   if (!canvas._jukoHRows) {
     const rn = Math.max(10, Math.round(H / 28));
     canvas._jukoHRows = Array.from({ length: rn }, () => _jukoNewHRow(W, H));
+    const cw = canvas._jukoHRows[0].cw;
+    const SW = Math.ceil(W / cw) * cw;              // whole cells, so it tiles
+    const RH = 14;
+    const st = document.createElement('canvas');
+    st.width = SW; st.height = RH * rn;
+    const sg = st.getContext('2d');
+    sg.font = '11px "Courier New", monospace';
+    sg.textAlign = 'left';
+    sg.textBaseline = 'middle';
+    sg.fillStyle = 'rgb(46,158,80)';                // alpha comes from the blit
+    for (let i = 0; i < rn; i++) {
+      const gl = canvas._jukoHRows[i].glyphs, n = gl.length;
+      for (let j = 0, gx = 0; gx < SW; j++, gx += cw) sg.fillText(gl[j % n], gx, i * RH + RH / 2);
+    }
+    canvas._jukoHStrip = st; canvas._jukoHSW = SW; canvas._jukoHRH = RH;
   }
   ctx.globalCompositeOperation = 'source-over';
-  ctx.font = '11px "Courier New", monospace';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  for (const row of canvas._jukoHRows) {
-    row.off += row.spd * dt * (1 + aL * 1.1);
-    const cw = row.cw, n = row.glyphs.length;
-    const start = ((row.off % cw) + cw) % cw;
-    const baseIdx = Math.floor(row.off / cw);
-    ctx.fillStyle = `rgba(46,158,80,${row.alpha})`;
-    for (let j = 0, gx = -start; gx < W + cw; j++, gx += cw) {
-      ctx.fillText(row.glyphs[(((baseIdx + j) % n) + n) % n], gx, row.y);
+  {
+    const strip = canvas._jukoHStrip, SW = canvas._jukoHSW, RH = canvas._jukoHRH;
+    const rows = canvas._jukoHRows;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      row.off += row.spd * dt * (1 + aL * 1.1);
+      const ox = ((row.off % SW) + SW) % SW;
+      const ry = row.y - RH / 2;
+      ctx.globalAlpha = row.alpha;
+      ctx.drawImage(strip, 0, i * RH, SW, RH, -ox, ry, SW, RH);
+      ctx.drawImage(strip, 0, i * RH, SW, RH, SW - ox, ry, SW, RH);
     }
+    ctx.globalAlpha = 1;
   }
 
   // 4 ── Code snippets that fade in and out across the background
@@ -9518,7 +9675,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
 
   // 5 ── Matrix code rain: dense green streams, glowing heads with additive
   //      bloom, per-column brightness, scrolling light-yellow "keyword" tokens.
-  const cellH = 15, colW = 11;
+  const colW = 11;
   if (!canvas._jukoCols) {
     const n = Math.ceil(W / colW) + 1;
     canvas._jukoCols = Array.from({ length: n }, (_, i) => _jukoNewCol(i * colW + colW * 0.5, H, true));
@@ -9533,13 +9690,6 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   const headGreen = _jukoSoftSprite('150,246,150'), headYellow = _jukoSoftSprite('232,248,168');
   for (const col of cols) {
     col.y += col.spd * dt * rainBoost * (1 + sev * 0.35);
-    col.mut -= dt * (1 + aL * 1.6) * (1 + sev * 1.4);   // rain corrupts faster as it worsens
-    if (col.mut <= 0) {
-      col.mut = 0.04 + Math.random() * 0.2;
-      const charset = (chaos && Math.random() < sev) ? _JUKO_RAIN_CHAOS : _JUKO_RAIN;
-      col.glyphs[Math.floor(Math.random() * col.glyphs.length)] =
-        charset[Math.floor(Math.random() * charset.length)];
-    }
     const hy = col.y;
     if (hy > -18 && hy < H + 18) {
       const gA = (col.yellow ? 0.55 : 0.48) * Math.min(1, 0.5 + col.bright * 0.7);
@@ -9549,72 +9699,114 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalAlpha = 1;
 
-  // 5b: glyph streams (per-column brightness; whole field pulses with the music)
+  // 5b: the trails, blitted, and the heads, drawn.
   const cf = 0.8 + aL * 0.7;            // loudness → overall brightness
   const headFlash = aO;                 // beat → heads flare white-hot
+  const chaosGlyph = chaos && sev > 0.02;
+  const corruptP = chaosGlyph ? Math.round(sev * 0.22 * 20) / 20 : 0;   // bucketed: see below
   ctx.globalCompositeOperation = 'source-over';
+  const atlas = _jkAtlas(canvas, cols.length), ag = atlas._g;
+  // How much of the field churns this frame. Everything mutates faster as the
+  // music gets louder and as the crash deepens, which is what the old per-cell
+  // mutation timer was for; doing it as a share of the field per frame means
+  // the cost of the churn is a number chosen here rather than one that falls
+  // out of how fast the rain happens to be falling.
+  const churn = Math.min(0.3, 0.05 + aL * 0.05 + sev * 0.07);
+  for (let ci = 0; ci < cols.length; ci++) {
+    const col = cols[ci];
+    const headCell = Math.floor(col.y / _JK_CELLH);
+    if (headCell !== col.headCell) {                   // crossed a cell: new head glyph
+      col.headCell = headCell;
+      const cs = (chaos && Math.random() < sev) ? _JUKO_RAIN_CHAOS : _JUKO_RAIN;
+      col.headCh = cs[(Math.random() * cs.length) | 0];
+    }
+    if (Math.random() < churn) {                       // a letter somewhere in the trail turns over
+      const cs = (chaos && Math.random() < sev) ? _JUKO_RAIN_CHAOS : _JUKO_RAIN;
+      col.glyphs[(Math.random() * col.glyphs.length) | 0] = cs[(Math.random() * cs.length) | 0];
+      col.dirty = true;
+    }
+    // Re-bake only when something in the strip actually changed: a letter
+    // turned over, the palette flipped at the drop, or the corruption density
+    // moved a bucket. Bucketing corruptP is what stops a smoothly rising
+    // severity from forcing a re-bake on every frame of the intro.
+    if (col.dirty || col.bakedDrop !== dropped || col.bakedSev !== corruptP) {
+      _jkBakeCol(ag, ci, col, dropped, chaosGlyph, corruptP);
+    }
+    const top = col.y + _JK_CELLH / 2 - col.bakedH;
+    if (top < H && top + col.bakedH > 0) {
+      ctx.globalAlpha = Math.min(1, cf);
+      ctx.drawImage(atlas, ci * _JK_STRIPW, 0, _JK_STRIPW, col.bakedH,
+                    col.x - _JK_STRIPW / 2, top, _JK_STRIPW, col.bakedH);
+    }
+    if (col.y - col.len * _JK_CELLH > H) { Object.assign(col, _jukoNewCol(col.x, H, false)); col.dirty = true; }
+  }
+  ctx.globalAlpha = 1;
+
+  // 5c: the heads, live, because they flare on the beat and they are the part
+  //     you actually watch. One glyph a column.
   ctx.font = 'bold 13px "Courier New", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (const col of cols) {
-    const headCell = Math.floor(col.y / cellH);
-    const gl = col.glyphs, gn = gl.length, br = col.bright;
-    for (let k = 0; k < col.len; k++) {
-      const cy = col.y - k * cellH;
-      if (cy < -cellH || cy > H + cellH) continue;
-      const idx = (((headCell - k) % gn) + gn) % gn;
-      const ch = gl[idx];
-      const f = 1 - k / col.len;                          // 1 head → 0 tail
-      // Corruption flickers creep in with severity through the intro, then rage
-      // after the drop; the full acid palette only switches on once dropped.
-      const corruptGlyph = chaos && Math.random() < sev * 0.28;
-      if (corruptGlyph) {
-        ctx.fillStyle = Math.random() < 0.5
-          ? `rgba(120,255,60,${Math.min(1, (0.8 * f + 0.2) * br)})`                     // acid-green flare
-          : `rgba(255,255,255,${Math.min(1, (0.9 * f + 0.2) * br)})`;                   // blown-white flare
-      } else if (k === 0) {
-        const ha = Math.min(1, 0.55 + br * 0.45);
-        if (dropped) ctx.fillStyle = `rgba(${140 + Math.random() * 60 | 0},255,${120 + Math.random() * 60 | 0},${Math.min(1, ha + 0.3)})`;
-        else if (headFlash > 0.35) ctx.fillStyle = `rgba(255,255,236,${Math.min(1, ha + headFlash * 0.5)})`;
-        else ctx.fillStyle = col.yellow ? `rgba(247,252,205,${ha})` : `rgba(222,255,212,${ha})`;
-      } else if (idx % 6 === 0) {
-        ctx.fillStyle = dropped
-          ? `rgba(180,255,80,${Math.min(1, (0.55 * f + 0.18) * br * cf)})`              // acid keyword token
-          : `rgba(228,238,120,${Math.min(1, (0.55 * f + 0.18) * br * cf)})`;            // yellow keyword token
-      } else if (k <= 3) {
-        ctx.fillStyle = dropped
-          ? `rgba(90,255,110,${Math.min(1, (0.9 * f + 0.1) * br * cf)})`                // hot toxic-green near head
-          : `rgba(150,238,140,${Math.min(1, (0.9 * f + 0.1) * br * cf)})`;              // fresh green near head
-      } else {
-        ctx.fillStyle = dropped
-          ? `rgba(20,120,40,${Math.min(1, 0.78 * f * br * cf)})`                        // sickly deep-green tail
-          : `rgba(54,194,90,${Math.min(1, 0.78 * f * br * cf)})`;                       // deep green tail
-      }
-      ctx.fillText(ch, col.x, cy);
+    const cy = col.y;
+    if (cy < -_JK_CELLH || cy > H + _JK_CELLH) continue;
+    const ha = 0.55 + col.bright * 0.45;
+    if (dropped) ctx.fillStyle = _JK_NEAR_D[_jkA(ha + 0.3)];
+    else if (headFlash > 0.35) ctx.fillStyle = _JK_HEAD_FL[_jkA(ha + headFlash * 0.5)];
+    else ctx.fillStyle = col.yellow ? _JK_HEAD_Y[_jkA(ha)] : _JK_HEAD_G[_jkA(ha)];
+    ctx.fillText(col.headCh, col.x, cy);
+  }
+
+  // 5d: and a scatter of live corruption flares over the baked trails, so the
+  //     acid speckle still flickers at frame rate rather than at bake rate.
+  if (chaosGlyph) {
+    const flares = Math.min(90, Math.round(cols.length * sev * 0.5));
+    for (let i = 0; i < flares; i++) {
+      const col = cols[(Math.random() * cols.length) | 0];
+      const k = 1 + ((Math.random() * (col.len - 1)) | 0);
+      const cy = col.y - k * _JK_CELLH;
+      if (cy < 0 || cy > H) continue;
+      const idx = (k + col.phase) % col.glyphs.length;
+      const f = 1 - k / col.len;
+      ctx.fillStyle = Math.random() < 0.5
+        ? _JK_ACID[_jkA((0.8 * f + 0.2) * col.bright)]
+        : _JK_WHITE[_jkA((0.9 * f + 0.2) * col.bright)];
+      ctx.fillText(col.glyphs[idx], col.x, cy);
     }
-    if (col.y - col.len * cellH > H) Object.assign(col, _jukoNewCol(col.x, H, false));
   }
   ctx.font = '10px sans-serif';
   ctx.textAlign = 'start';
   ctx.textBaseline = 'alphabetic';
 
-  // 6 ── Soft gradient light bands sweeping up & down over the code
+  // 6 ── Soft gradient light bands sweeping up & down over the code.
+  //     Baked at full alpha and blitted at the brightness the music asks for:
+  //     the shape never changes, only where it is and how bright.
+  const bandH = Math.round(H * 0.55);
+  if (!canvas._jukoBands) {
+    const mk = (rgb) => {
+      const c = document.createElement('canvas');
+      c.width = W; c.height = bandH;
+      const g = c.getContext('2d');
+      const lg = g.createLinearGradient(0, 0, 0, bandH);
+      for (let i = 0; i <= 16; i++) {                 // enough stops to not band
+        const u = i / 16;
+        lg.addColorStop(u, `rgba(${rgb},${Math.sin(Math.PI * u).toFixed(4)})`);
+      }
+      g.fillStyle = lg; g.fillRect(0, 0, W, bandH);
+      return c;
+    };
+    canvas._jukoBands = [mk('88,218,120'), mk('226,236,120')];
+  }
   ctx.globalCompositeOperation = 'lighter';
   for (let bIdx = 0; bIdx < 3; bIdx++) {
     const dir = bIdx % 2 === 0 ? 1 : -1;
     const speed = 0.05 + bIdx * 0.028;
-    const bandH = H * 0.55;
     const phase = (((t * speed * dir) % 1) + 1) % 1;
     const cy = phase * (H + bandH) - bandH / 2;
-    const rgb = bIdx === 1 ? '226,236,120' : '88,218,120';
-    const bandA = 0.05 + aL * 0.11;
-    const g = ctx.createLinearGradient(0, cy - bandH / 2, 0, cy + bandH / 2);
-    g.addColorStop(0,   `rgba(${rgb},0)`);
-    g.addColorStop(0.5, `rgba(${rgb},${bandA})`);
-    g.addColorStop(1,   `rgba(${rgb},0)`);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, cy - bandH / 2, W, bandH);
+    ctx.globalAlpha = 0.05 + aL * 0.11;
+    ctx.drawImage(canvas._jukoBands[bIdx === 1 ? 1 : 0], 0, cy - bandH / 2);
   }
+  ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
 
   // 6.5 ── CHAOS: beat bloom + torn slices + channel-split jolts + data corruption.
@@ -9625,7 +9817,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   if (dropped && !canvas._jukoDropped) {
     canvas._jukoDropped = true;
     ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = 'rgba(150,255,150,0.5)';
+    ctx.fillStyle = 'rgba(150,255,150,0.34)';
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
   }
@@ -9633,7 +9825,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   if (aO > 0.05 || (chaos && sev > 0.08)) {
     ctx.globalCompositeOperation = 'lighter';
     ctx.fillStyle = chaos
-      ? `rgba(${40 + Math.random() * 60 | 0},255,${60 + Math.random() * 60 | 0},${Math.min(0.5, aO * 0.3 + sev * 0.14)})`
+      ? `rgba(${40 + Math.random() * 60 | 0},255,${60 + Math.random() * 60 | 0},${Math.min(0.26, aO * 0.22 + sev * 0.07)})`
       : `rgba(130,245,150,${Math.min(0.42, aO * 0.3)})`;
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
@@ -9642,7 +9834,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   // after the drop.
   const glitchP = chaos ? Math.min(0.99, 0.08 + sev * 0.9 + aO * 0.3) : (0.2 + aO * 0.7 + aL * 0.22);
   if (Math.random() < glitchP) {
-    const slices = chaos ? 1 + Math.floor(Math.random() * (2 + sev * 12 + aO * 6)) : 1 + Math.floor(Math.random() * (3 + aO * 6));
+    const slices = chaos ? 1 + Math.floor(Math.random() * (1 + sev * 3 + aO * 2)) : 1 + Math.floor(Math.random() * (2 + aO * 3));
     for (let i = 0; i < slices; i++) {
       const sh = 4 + Math.random() * (chaos ? 20 + aL * 60 + sev * 70 : 26 + aL * 46);
       const sy = Math.random() * Math.max(1, H - sh);
@@ -9660,7 +9852,7 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   }
   // Block-displacement scramble: memory-corruption chunk-slam. Post-drop only.
   if (dropped) {
-    const nb = 1 + Math.floor(Math.random() * (2 + sev * 6));
+    const nb = 1 + Math.floor(Math.random() * (1 + sev * 2));
     for (let i = 0; i < nb; i++) {
       if (Math.random() > 0.3 + sev * 0.5) continue;
       const bw = 40 + Math.random() * (W * 0.4), bh = 20 + Math.random() * (H * 0.3);
@@ -9674,20 +9866,19 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   if ((chaos && sev > 0.06) || (aO > 0.42 && Math.random() < 0.6)) {
     const off = chaos ? 3 + aO * 14 + Math.sin(t * 19) * (2 + sev * 8) : 3 + aO * 10;
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = chaos ? 0.12 + sev * 0.24 : 0.45;
-    ctx.drawImage(canvas, off, 0);
-    if (dropped) { ctx.globalAlpha = 0.1 + sev * 0.16; ctx.drawImage(canvas, -off, Math.sin(t * 7) * sev * 4); }
+    ctx.globalAlpha = chaos ? 0.12 + sev * 0.2 : 0.45;
+    ctx.drawImage(canvas, off, dropped ? Math.sin(t * 7) * sev * 3 : 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   }
   // Data-corruption blocks: garbled glyph clusters, scaling in with severity.
   if (Math.random() < (chaos ? sev * 0.8 : 0.14 + aL * 0.32)) {
-    const nblk = chaos ? 1 + Math.floor(Math.random() * (2 + sev * 8)) : 1 + Math.floor(Math.random() * 3);
+    const nblk = chaos ? 1 + Math.floor(Math.random() * (1 + sev * 3)) : 1 + Math.floor(Math.random() * 2);
     ctx.font = 'bold 13px "Courier New", monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let b = 0; b < nblk; b++) {
       const bx = Math.random() * W, by = Math.random() * H;
-      const bw = 3 + Math.floor(Math.random() * (dropped ? 12 : 6)), bh = 1 + Math.floor(Math.random() * (dropped ? 8 : 4));
+      const bw = 3 + Math.floor(Math.random() * (dropped ? 8 : 5)), bh = 1 + Math.floor(Math.random() * (dropped ? 5 : 3));
       const charset = dropped ? _JUKO_RAIN_CHAOS : _JUKO_RAIN;
       for (let yy = 0; yy < bh; yy++) for (let xx = 0; xx < bw; xx++) {
         ctx.fillStyle = dropped
@@ -9699,7 +9890,9 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
   }
   // Error-message spew: runtime exceptions flash across the crash in mono type.
-  if (chaos && Math.random() < sev * 0.4) {
+  // (Rare here: the page-wide overlay runs the same effect over the whole app,
+  //  and both firing at full rate put two of them on screen at once.)
+  if (chaos && Math.random() < sev * 0.12) {
     const msg = _JUKO_0INF_ERRORS[(Math.random() * _JUKO_0INF_ERRORS.length) | 0];
     const fs = 12 + Math.random() * (14 + sev * 20);
     ctx.font = `bold ${fs | 0}px "Courier New", monospace`;
@@ -9726,27 +9919,21 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
     ctx.restore();
   }
   // Vertical hold slip: the whole picture jumps + wraps. Post-drop only.
-  if (dropped && Math.random() < 0.02 + sev * 0.06) {
+  if (dropped && Math.random() < 0.004 + sev * 0.012) {
     const shift = (Math.random() * H) | 0;
     ctx.drawImage(canvas, 0, 0, W, H - shift, 0, shift, W, H - shift);
     ctx.drawImage(canvas, 0, H - shift, W, shift, 0, 0, W, shift);
   }
   // Static noise grain: fades in with severity. PERF: cache the CanvasPattern.
   if (chaos && sev > 0.03) {
-    ctx.save();
-    ctx.globalAlpha = Math.min(0.26, 0.04 + Math.random() * 0.05 + sev * 0.14);
-    const ox = (Math.random() * 96) | 0, oy = (Math.random() * 96) | 0;
-    ctx.translate(-ox, -oy);
-    ctx.fillStyle = ctx._jukoNoisePat || (ctx._jukoNoisePat = ctx.createPattern(_exNoiseTile(), 'repeat'));
-    ctx.fillRect(ox, oy, W + 96, H + 96);
-    ctx.restore();
+    _jukoSnow(ctx, W, H, Math.min(0.26, 0.04 + Math.random() * 0.05 + sev * 0.14));
   }
   // Full-screen invert flash: softened + green-tinted so it's not blinding, and
   // only once the crash is fully underway.
-  if (dropped && Math.random() < 0.03 + aO * 0.08 + sev * 0.04) {
+  if (dropped && Math.random() < 0.008 + aO * 0.03 + sev * 0.012) {
     ctx.save();
     ctx.globalCompositeOperation = 'difference';
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 0.4;
     ctx.fillStyle = '#146b28';
     ctx.fillRect(0, 0, W, H);
     ctx.restore();
@@ -9754,12 +9941,23 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
 
   // 6.6 ── Loudness makes the whole screen breathe (very visible reactivity)
   if (aL > 0.04 || chaos) {
+    if (!canvas._jukoBreath) {
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const g = c.getContext('2d');
+      const rg = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.62);
+      const rgb = chaos ? '60,220,90' : '72,212,112';
+      for (let i = 0; i <= 14; i++) {
+        const u = i / 14;
+        rg.addColorStop(u, `rgba(${rgb},${(1 - u).toFixed(4)})`);
+      }
+      g.fillStyle = rg; g.fillRect(0, 0, W, H);
+      canvas._jukoBreath = c;
+    }
     ctx.globalCompositeOperation = 'lighter';
-    const pg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.62);
-    pg.addColorStop(0, chaos ? `rgba(60,220,90,${aL * 0.14 + ramp * 0.06})` : `rgba(72,212,112,${aL * 0.12})`);
-    pg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = pg;
-    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = Math.min(1, chaos ? aL * 0.14 + ramp * 0.06 : aL * 0.12);
+    ctx.drawImage(canvas._jukoBreath, 0, 0);
+    ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   }
 
@@ -9768,16 +9966,19 @@ function _drawJukoPattern(canvas, ctx, W, H, t) {
   //      overlay canvas now: _drawJukoOverlay: so they cover the whole app,
   //      not just this background. This is just the normal soft framing.)
   if (!canvas._jukoVign || canvas._jukoVignChaos !== chaos) {
-    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * (chaos ? 0.16 : 0.22), W / 2, H / 2, Math.max(W, H) * 0.72);
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * (chaos ? 0.16 : 0.22), W / 2, H / 2, Math.max(W, H) * 0.72);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
     vg.addColorStop(chaos ? 0.7 : 1, chaos ? 'rgba(0,14,4,0.5)' : 'rgba(0,0,0,0.55)');
     if (chaos) vg.addColorStop(1, 'rgba(0,0,0,0.85)');
-    canvas._jukoVign = vg; canvas._jukoVignChaos = chaos;
+    g.fillStyle = vg; g.fillRect(0, 0, W, H);
+    canvas._jukoVign = c; canvas._jukoVignChaos = chaos;
   }
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
-  ctx.fillStyle = canvas._jukoVign;
-  ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(canvas._jukoVign, 0, 0);
 }
 
 // Chibi Juko: green cat head, gold glasses, light-yellow twintails, reactive eyes.
@@ -10001,7 +10202,36 @@ function _jukoDrawSprite(ctx, x, y, t) {
   ctx.restore();
 }
 
+
+// A colour-shifted copy of the cursor sprite. This used to be `ctx.filter =
+// 'hue-rotate(...)'`, one line, and on a viewport-sized canvas it measured
+// SIX HUNDRED AND FIFTY MILLISECONDS a frame: setting a filter forces the whole
+// layer down a software path, and the sprite is drawn twice that way every
+// frame. The same picture comes out of a scratch canvas the size of the sprite
+// with one `source-atop` fill over it, for about a fiftieth of a millisecond.
+// The fill is left semi-transparent so the sprite keeps its own shading instead
+// of flattening into a silhouette.
+const _JK_GH = 176, _JK_GHX = 88, _JK_GHY = 74;      // scratch size, and the origin in it
+function _jukoGhostSprite(ctx, x, y, t, rgb, alpha) {
+  let sc = _jukoGhostSprite._c;
+  if (!sc) { sc = _jukoGhostSprite._c = document.createElement('canvas'); sc.width = sc.height = _JK_GH; }
+  const g = sc.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalCompositeOperation = 'source-over';
+  g.globalAlpha = 1;
+  g.clearRect(0, 0, _JK_GH, _JK_GH);
+  _jukoDrawSprite(g, _JK_GHX, _JK_GHY, t);
+  g.globalCompositeOperation = 'source-atop';
+  g.fillStyle = `rgba(${rgb},0.62)`;
+  g.fillRect(0, 0, _JK_GH, _JK_GH);
+  g.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(sc, x - _JK_GHX, y - _JK_GHY);
+  ctx.globalAlpha = 1;
+}
+
 function _drawJukoOverlay(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;      // laid out in a hidden pane: nothing to draw on
   if (_drawJukoOverlay._lt !== undefined && t - _drawJukoOverlay._lt < 0.033) return;
   const dt = _drawJukoOverlay._lt === undefined ? 0.016 : Math.min(t - _drawJukoOverlay._lt, 0.05);
   _drawJukoOverlay._lt = t;
@@ -10062,16 +10292,11 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
   if (_o0inf && _oSev > 0.04) {
     const amp = 3 + _oSev * 16;
     const jx = (Math.random() - 0.5) * amp, jy = (Math.random() - 0.5) * amp;
+    const gA = 0.25 + _oSev * 0.3;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.25 + _oSev * 0.3;
-    // cyan-shifted ghost (green → cyan, stays cool-green)
-    ctx.filter = 'hue-rotate(-45deg) saturate(2.4) brightness(1.3)';
-    _jukoDrawSprite(ctx, _jukoX - 5 - jx, _jukoY + jy * 0.6, t);
-    // lime-shifted ghost (green → yellow-green)
-    ctx.filter = 'hue-rotate(35deg) saturate(2.4) brightness(1.3)';
-    _jukoDrawSprite(ctx, _jukoX + 5 + jx, _jukoY - jy * 0.6, t);
-    ctx.filter = 'none';
+    _jukoGhostSprite(ctx, _jukoX - 5 - jx, _jukoY + jy * 0.6, t, '90,236,255', gA);   // cyan ghost
+    _jukoGhostSprite(ctx, _jukoX + 5 + jx, _jukoY - jy * 0.6, t, '186,255,96', gA);   // lime ghost
     ctx.restore();
     _jukoDrawSprite(ctx, _jukoX + jx * 0.3, _jukoY + jy * 0.3, t);
   } else {
@@ -10113,16 +10338,10 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     const R = _oSev;
     const beat = _jukoAudioOnset;
     // static snow across the full viewport (fades in with severity). PERF: cached pattern.
-    ctx.save();
-    ctx.globalAlpha = Math.min(0.18, 0.02 + Math.random() * 0.03 + R * 0.1);
-    const ox = (Math.random() * 96) | 0, oy = (Math.random() * 96) | 0;
-    ctx.translate(-ox, -oy);
-    ctx.fillStyle = ctx._jukoNoisePat || (ctx._jukoNoisePat = ctx.createPattern(_exNoiseTile(), 'repeat'));
-    ctx.fillRect(ox, oy, W + 96, H + 96);
-    ctx.restore();
+    _jukoSnow(ctx, W, H, Math.min(0.18, 0.02 + Math.random() * 0.03 + R * 0.1));
     // page-wide torn slices: cut straight through nav bar / sidebar / panels alike
-    if (Math.random() < 0.12 + R * 0.8) {
-      const slices = 1 + Math.floor(Math.random() * (1 + R * 8));
+    if (Math.random() < 0.1 + R * 0.5) {
+      const slices = 1 + Math.floor(Math.random() * (1 + R * 3));
       for (let i = 0; i < slices; i++) {
         const sh = 6 + Math.random() * (30 + R * 50);
         const sy = Math.random() * Math.max(1, H - sh);
@@ -10135,8 +10354,8 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
       }
     }
     // page-wide block-displacement: rip a chunk of the composited UI and shove it. Post-drop.
-    if (_oDrop && Math.random() < 0.25 + R * 0.5) {
-      const nb = 1 + Math.floor(Math.random() * (1 + R * 4));
+    if (_oDrop && Math.random() < 0.12 + R * 0.25) {
+      const nb = 1 + Math.floor(Math.random() * (1 + R * 2));
       for (let i = 0; i < nb; i++) {
         const bw = 60 + Math.random() * (W * 0.5), bh = 24 + Math.random() * (H * 0.28);
         const sx = Math.random() * (W - bw), sy = Math.random() * (H - bh);
@@ -10146,11 +10365,9 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     }
     // whole-viewport green chromatic smear (grows with severity)
     ctx.globalCompositeOperation = 'lighter';
-    const off = 2 + Math.random() * (3 + R * 10);
-    ctx.globalAlpha = 0.06 + R * 0.14;
-    ctx.drawImage(canvas, off, 0);
-    ctx.globalAlpha = 0.05 + R * 0.1;
-    ctx.drawImage(canvas, -off, Math.sin(t * 9) * R * 3);
+    const off = 2 + Math.random() * (3 + R * 8);
+    ctx.globalAlpha = 0.06 + R * 0.12;
+    ctx.drawImage(canvas, off, Math.sin(t * 9) * R * 2);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     // rolling tracking bar sweeping the whole page
@@ -10164,7 +10381,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     ctx.fillRect(0, rollY - 1, W, 2);
     ctx.restore();
     // error-message spew over the whole page
-    if (Math.random() < R * 0.4) {
+    if (Math.random() < R * 0.16) {
       const msg = _JUKO_0INF_ERRORS[(Math.random() * _JUKO_0INF_ERRORS.length) | 0];
       const fs = 12 + Math.random() * (14 + R * 22);
       ctx.font = `bold ${fs | 0}px "Courier New", monospace`;
@@ -10176,10 +10393,10 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
       ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     }
     // rare, SOFTENED full-page green invert punch (post-drop, semi-transparent)
-    if (_oDrop && Math.random() < 0.012 + beat * 0.06 + R * 0.02) {
+    if (_oDrop && Math.random() < 0.004 + beat * 0.02 + R * 0.006) {
       ctx.save();
       ctx.globalCompositeOperation = 'difference';
-      ctx.globalAlpha = 0.45;
+      ctx.globalAlpha = 0.36;
       ctx.fillStyle = '#0a3a12';
       ctx.fillRect(0, 0, W, H);
       ctx.restore();
@@ -10208,14 +10425,21 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     } else {
       // Post-drop: a light residual frame, replaced as the main framing device
       // by the swaying green/yellow border drawn below.
+      // Baked: filling a viewport-sized radial gradient every frame measured
+      // 2.1 ms, and this one never changes. A blit of it is half that.
       if (!canvas._jukoPageVign || canvas._jukoPageVignW !== W || canvas._jukoPageVignH !== H) {
-        const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.88);
-        g.addColorStop(0, 'rgba(0,0,0,0)');
-        g.addColorStop(1, 'rgba(0,10,3,0.28)');
-        canvas._jukoPageVign = g; canvas._jukoPageVignW = W; canvas._jukoPageVignH = H;
+        const vc = document.createElement('canvas');
+        vc.width = W; vc.height = H;
+        const vx = vc.getContext('2d');
+        const g = vx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.88);
+        for (let i = 0; i <= 12; i++) {
+          const u = i / 12;
+          g.addColorStop(u, `rgba(0,10,3,${(0.28 * Math.pow(u, 2.1)).toFixed(4)})`);
+        }
+        vx.fillStyle = g; vx.fillRect(0, 0, W, H);
+        canvas._jukoPageVign = vc; canvas._jukoPageVignW = W; canvas._jukoPageVignH = H;
       }
-      ctx.fillStyle = canvas._jukoPageVign;
-      ctx.fillRect(0, 0, W, H);
+      ctx.drawImage(canvas._jukoPageVign, 0, 0);
 
       // Fast dedicated fade-in (1.3s) so the border is unmistakably there right
       // after the drop, independent of the slower 6s severity ramp: severity
@@ -10232,14 +10456,19 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
         const rC = Math.round(74 + (234 - 74) * mixT);
         const gC = Math.round(222 + (255 - 222) * mixT);
         const bC = Math.round(90 + (176 - 90) * mixT);
+        // The glow used to be shadowBlur on a viewport-sized strokeRect, which
+        // measured 4.1 ms a frame against 0.14 ms for the stroke alone. Three
+        // widening strokes at falling alpha give the same soft edge for 0.7 ms.
+        const glow = (18 + aO2 * 18 + _oSev * 10) * borderIn;
+        const coreA = borderIn * (0.75 + aL2 * 0.25);
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.translate(swayX, swayY);
-        ctx.strokeStyle = `rgba(${rC},${gC},${bC},${(borderIn * (0.75 + aL2 * 0.25)).toFixed(3)})`;
-        ctx.lineWidth = Math.max(1, bw);
-        ctx.shadowColor = `rgba(${rC},${gC},${bC},0.95)`;
-        ctx.shadowBlur = (18 + aO2 * 18 + _oSev * 10) * borderIn;
-        ctx.strokeRect(margin, margin, W - margin * 2, H - margin * 2);
+        for (let gi = 3; gi >= 0; gi--) {
+          ctx.strokeStyle = `rgba(${rC},${gC},${bC},${(coreA * (gi === 0 ? 1 : 0.16 / gi)).toFixed(3)})`;
+          ctx.lineWidth = Math.max(1, bw + (gi === 0 ? 0 : glow * gi * 0.5));
+          ctx.strokeRect(margin, margin, W - margin * 2, H - margin * 2);
+        }
         ctx.restore();
       }
     }
@@ -10346,6 +10575,7 @@ function _jukoBuildFrameCells(w, h, cell) {
 // gradient). Bars snap UP instantly on beats/loudness and fall back smoothly,
 // like a VU meter, so they track the actual music rather than lagging it.
 function _drawJukoEqualizer(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;      // laid out in a hidden pane: nothing to draw on
   if (_drawJukoEqualizer._lt !== undefined && t - _drawJukoEqualizer._lt < 0.033) return;
   const dt = _drawJukoEqualizer._lt === undefined ? 0.016 : Math.min(t - _drawJukoEqualizer._lt, 0.05);
   _drawJukoEqualizer._lt = t;
@@ -10416,6 +10646,7 @@ function _drawJukoEqualizer(canvas, ctx, W, H, t) {
 }
 
 function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;      // laid out in a hidden pane: nothing to draw on
   if (_drawJukoCodeFrame._lt !== undefined && t - _drawJukoCodeFrame._lt < 0.033) return;
   const dt = _drawJukoCodeFrame._lt === undefined ? 0.016 : Math.min(t - _drawJukoCodeFrame._lt, 0.05);
   _drawJukoCodeFrame._lt = t;
@@ -10565,7 +10796,14 @@ function _stopJukoOverlay() {
 // second. Everything below the DROP (elapsed < 22s) stays calm and builds.
 // ════════════════════════════════════════════════════════════════
 let _juko0InfAvatar = null;
-let _juko0InfYank = { t0: -99, dur: 0.5, sx: 1, sy: 1, tx: 0, ty: 0, rot: 0 };
+let _juko0InfKick = { t0: -99, dur: 0.4, tx: 0, ty: 0 };
+// Read live rather than once, so changing the system setting takes effect
+// without a reload.
+let _jkCalmMq = null;
+function _jkCalm() {
+  if (!_jkCalmMq && typeof matchMedia === 'function') _jkCalmMq = matchMedia('(prefers-reduced-motion: reduce)');
+  return !!(_jkCalmMq && _jkCalmMq.matches);
+}
 // ATK/DEF/MAG/IQ read "∞" but glitch-flash to her real number now and then.
 const _JUKO0_INF_STAT_KEYS = ['atk', 'def', 'mag', 'iq'];
 let _juko0InfStatNext = 0;
@@ -10579,7 +10817,10 @@ const _JUKO0_WIN_FILTERS = [
 ];
 
 function _startJuko0InfExtras(avatarUrl) {
-  _stopJuko0InfExtras();
+  _stopJuko0InfExtras(true);            // immediate: a fresh entry supersedes any release
+  _juko0InfRun++;
+  _juko0InfLeaving = false;
+  _juko0InfAudioAnchored = false;
   _juko0InfAvatar = avatarUrl || null;
   _juko0InfNextWin = 0;
   _juko0InfGlitchNext = 0;
@@ -10587,121 +10828,213 @@ function _startJuko0InfExtras(avatarUrl) {
   _juko0InfBoomFired = false;
   _juko0InfBoomT0 = undefined;
   _juko0InfBoomCracks = null;
-  _juko0InfYank = { t0: -99, dur: 0.5, sx: 1, sy: 1, tx: 0, ty: 0, rot: 0 };
+  _juko0InfKick = { t0: -99, dur: 0.4, tx: 0, ty: 0 };
   if (_juko0InfWinRafId == null) _juko0InfWinRafId = requestAnimationFrame(_juko0InfWinFrame);
 }
 
-function _stopJuko0InfExtras() {
+// Everything the breakdown grabbed hold of, handed back. `hard` skips the short
+// release and drops it all this instant (used when a fresh entry supersedes an
+// exit that was still settling).
+function _stopJuko0InfExtras(hard) {
   if (_juko0InfWinRafId != null) { cancelAnimationFrame(_juko0InfWinRafId); _juko0InfWinRafId = null; }
-  // release the window-mess transform
-  const de = document.documentElement;
-  if (de) { de.style.transform = ''; de.style.transformOrigin = ''; }
-  for (const w of _juko0InfWinList) { try { w.remove(); } catch (e) {} }
+  _juko0InfLeaving = false;
+
+  // The stat readouts: any that was mid-flash back to its real number would
+  // otherwise be left showing it under the wrong form's chrome.
+  for (const key of _JUKO0_INF_STAT_KEYS) {
+    const el = document.getElementById(`stat-num-${key}`);
+    if (el) el.classList.remove('juko0-stat-flash');
+  }
+
+  const app = document.getElementById('app');
+  const wins = _juko0InfWinList;
   _juko0InfWinList = [];
+
+  if (hard) {
+    if (app) { app.style.transition = ''; app.style.transform = ''; }
+    for (const w of wins) { try { w.remove(); } catch (e) {} }
+    return;
+  }
+  // Let go rather than snap: the shake eases back to rest and the windows
+  // collapse on themselves, then the nodes go.
+  if (app && app.style.transform) {
+    app.style.transition = 'transform 0.26s cubic-bezier(0.22,0.9,0.3,1)';
+    app.style.transform = 'translate(0px,0px)';
+    setTimeout(() => { if (!_juko0InfActive) { app.style.transition = ''; app.style.transform = ''; } }, 320);
+  } else if (app) {
+    app.style.transition = ''; app.style.transform = '';
+  }
+  for (const w of wins) {
+    try { w.classList.add('juko0-win-out'); } catch (e) {}
+    setTimeout(() => { try { w.remove(); } catch (e) {} }, 300);
+  }
 }
 
-// Attempt to physically nudge/resize the real browser window. Modern browsers
-// block this for the main tab, so it silently no-ops there: the visual fake
-// below carries the effect regardless. Guarded + throttled so it can never spam.
-function _juko0InfPokeWindow() {
-  try {
-    const dx = (Math.random() - 0.5) * 80, dy = (Math.random() - 0.5) * 60;
-    const dw = (Math.random() - 0.5) * 60, dh = (Math.random() - 0.5) * 40;
-    if (typeof window.moveBy === 'function') window.moveBy(dx | 0, dy | 0);
-    if (typeof window.resizeBy === 'function') window.resizeBy(dw | 0, dh | 0);
-  } catch (e) { /* blocked: fine */ }
+// Five different corrupted things, so the pile of them is not five copies of
+// one thing. Each kind brings its own title, because a window whose title bar
+// does not match its contents reads as a mistake rather than as corruption.
+const _JUKO0_WIN_KINDS = ['pfp', 'pfp', 'err', 'trace', 'hex', 'load'];
+const _JUKO0_WIN_TITLES = {
+  pfp:   ['juko.exe', 'render0.dll', 'self.png'],
+  err:   ['stderr', 'exception.log', 'PANIC'],
+  trace: ['stack.trace', 'call_0.inf', 'unwind'],
+  hex:   ['heapdump.bin', '0x00000000', 'core'],
+  load:  ['loop.sys', 'resolving...', 'NUL'],
+};
+const _JK0_HEX = '0123456789ABCDEF';
+function _jk0Hex(n) { let o = ''; for (let i = 0; i < n; i++) o += _JK0_HEX[(Math.random() * 16) | 0]; return o; }
+
+function _juko0InfWinBody(kind) {
+  if (kind === 'pfp') {
+    if (!_juko0InfAvatar) return null;
+    const f = _JUKO0_WIN_FILTERS[(Math.random() * _JUKO0_WIN_FILTERS.length) | 0];
+    return `<div class="juko0-win-body juko0-win-pfp"><img src="${_juko0InfAvatar}" alt="" style="filter:${f}"/></div>`;
+  }
+  if (kind === 'err') {
+    let rows = '';
+    for (let i = 0; i < 5; i++) {
+      const m = _JUKO_0INF_ERRORS[(Math.random() * _JUKO_0INF_ERRORS.length) | 0];
+      rows += `<div class="juko0-win-line${Math.random() < 0.34 ? ' hot' : ''}">${m}</div>`;
+    }
+    return `<div class="juko0-win-body juko0-win-text">${rows}</div>`;
+  }
+  if (kind === 'trace') {
+    let rows = '<div class="juko0-win-line hot">at juko.loop ()</div>';
+    for (let i = 0; i < 5; i++) rows += `<div class="juko0-win-line">  at loop (0:${_jk0Hex(2)})</div>`;
+    rows += '<div class="juko0-win-line">  ... 0 more</div>';
+    return `<div class="juko0-win-body juko0-win-text">${rows}</div>`;
+  }
+  if (kind === 'hex') {
+    let rows = '';
+    for (let i = 0; i < 6; i++) rows += `<div class="juko0-win-line">${_jk0Hex(4)} ${_jk0Hex(4)} ${_jk0Hex(4)}</div>`;
+    return `<div class="juko0-win-body juko0-win-text juko0-win-hex">${rows}</div>`;
+  }
+  // load: a progress bar that will never get there
+  return '<div class="juko0-win-body juko0-win-load">' +
+         '<div class="juko0-win-line">resolving 0 / 0</div>' +
+         '<div class="juko0-win-track"><div class="juko0-win-fill"></div></div>' +
+         '<div class="juko0-win-line hot">\u221e%</div></div>';
 }
 
-function _juko0InfSpawnWindow() {
-  if (!_juko0InfAvatar) return null;
+function _juko0InfSpawnWindow(sev) {
+  const up = _juko0InfWinList.map(w => w._jk0Kind);
+  let kind = '';
+  for (let tries = 0; tries < 6; tries++) {
+    kind = _JUKO0_WIN_KINDS[(Math.random() * _JUKO0_WIN_KINDS.length) | 0];
+    if (up.indexOf(kind) < 0) break;                 // two the same reads as a copy
+  }
+  if (kind === 'pfp' && !_juko0InfAvatar) kind = 'err';
+  const body = _juko0InfWinBody(kind);
+  if (!body) return null;
+  const titles = _JUKO0_WIN_TITLES[kind];
   const w = document.createElement('div');
-  w.className = 'juko0-win';
+  w.className = 'juko0-win juko0-win-' + kind;
+  w._jk0Kind = kind;
   w.innerHTML =
-    `<div class="juko0-win-bar"><span class="juko0-win-title">juko.exe</span><span class="juko0-win-x">✕</span></div>` +
-    `<div class="juko0-win-body"><img src="${_juko0InfAvatar}" alt=""/></div>`;
+    `<div class="juko0-win-bar"><span class="juko0-win-title">${titles[(Math.random() * titles.length) | 0]}</span>` +
+    `<span class="juko0-win-x">\u2715</span></div>` + body;
+  // They live and die instead of blinking about: short after the drop, longer
+  // in the intro where there are only one or two of them on screen at a time.
+  w._jk0Die = performance.now() / 1000 + (2.6 + Math.random() * 3.4) * (1.4 - sev * 0.5);
+  _juko0InfPlaceWindow(w);
   document.body.appendChild(w);
   _juko0InfWinList.push(w);
   return w;
 }
 
+// Placed once, at spawn, and left alone. The middle of the screen is where the
+// character actually is: her portrait, her name, her stats. Windows go around
+// that, along the sides and the bottom, so the breakdown crowds the page
+// without hiding the thing the page is for.
 function _juko0InfPlaceWindow(w) {
-  const sz = 90 + Math.random() * 130;
-  const x = Math.random() * Math.max(1, window.innerWidth - sz);
-  const y = Math.random() * Math.max(1, window.innerHeight - sz);
-  w.style.width = sz + 'px';
-  w.style.left = x + 'px';
-  w.style.top = y + 'px';
-  w.style.setProperty('--jw-drift', (2.4 + Math.random() * 2.4).toFixed(2) + 's');
+  const VW = window.innerWidth || 1280, VH = window.innerHeight || 720;
+  const sz = 96 + Math.random() * (VW < 760 ? 60 : 128);
+  const h = sz * 0.9;
+  const band = Math.random();
+  let x, y;
+  if (band < 0.4) {                                  // left gutter
+    x = Math.random() * Math.max(1, VW * 0.26 - sz * 0.4) - sz * 0.18;
+    y = VH * 0.1 + Math.random() * Math.max(1, VH * 0.74 - h);
+  } else if (band < 0.8) {                           // right gutter
+    x = VW * 0.62 + Math.random() * Math.max(1, VW * 0.42 - sz * 0.6);
+    y = VH * 0.08 + Math.random() * Math.max(1, VH * 0.76 - h);
+  } else {                                           // along the bottom edge
+    x = Math.random() * Math.max(1, VW - sz);
+    y = VH * 0.7 + Math.random() * Math.max(1, VH * 0.28 - h * 0.5);
+  }
+  w.style.width = Math.round(sz) + 'px';
+  w.style.left = Math.round(x) + 'px';
+  w.style.top = Math.round(y) + 'px';
+  w.style.setProperty('--jw-drift', (3.2 + Math.random() * 3.4).toFixed(2) + 's');
   w.style.setProperty('--jw-delay', (-Math.random() * 3).toFixed(2) + 's');
-  const img = w.querySelector('img');
-  if (img) img.style.filter = _JUKO0_WIN_FILTERS[(Math.random() * _JUKO0_WIN_FILTERS.length) | 0];
+  w.style.setProperty('--jw-tilt', ((Math.random() - 0.5) * 5).toFixed(2) + 'deg');
 }
 
 function _juko0InfWinFrame(now) {
   if (!_juko0InfActive) { _juko0InfWinRafId = null; return; }
+  _jukoEnsureEnvelope();          // sets _jukoEnvKey, which _juko0InfElapsed reads
   const tt = now / 1000;
   const elapsed = _juko0InfElapsed();
   const sev = _juko0InfSev(elapsed);
   const dropped = _juko0InfDropped(elapsed);
 
-  // ── Window / screen messing: occasional violent "yank" of the whole viewport
-  //    (fakes the window being grabbed, shoved and resized). Only after the drop.
-  const y = _juko0InfYank;
-  const age = tt - y.t0;
-  if (dropped && age > y.dur && Math.random() < 0.03 + sev * 0.05) {
-    // start a new yank
-    y.t0 = tt;
-    y.dur = 0.35 + Math.random() * 0.5;
-    y.sx = 1 + (Math.random() - 0.5) * (0.16 + sev * 0.22);
-    y.sy = 1 + (Math.random() - 0.5) * (0.16 + sev * 0.22);
-    y.tx = (Math.random() - 0.5) * (40 + sev * 120);
-    y.ty = (Math.random() - 0.5) * (30 + sev * 90);
-    y.rot = (Math.random() - 0.5) * (0.6 + sev * 1.6);
-    _juko0InfPokeWindow();
+  // ── The kick: the app frame gets shoved, once, and rings out.
+  //    Straight translation only. The old version rotated and scaled <html>
+  //    itself, which tips the horizon of every straight line on the page at
+  //    once: that is the part that made it unpleasant to sit with, and it also
+  //    forced the whole document, canvases included, through the compositor
+  //    every frame. It now fires ON A BEAT (with a floor of random hits so it
+  //    still happens when the music is paused) and always leaves a gap.
+  const k = _juko0InfKick;
+  const age = tt - k.t0;
+  const onBeat = _jukoAudioBeat > 0.62;
+  if (dropped && !_jkCalm() && age > k.dur + 0.75 && (onBeat ? Math.random() < 0.5 : Math.random() < 0.004 + sev * 0.006)) {
+    k.t0 = tt;
+    k.dur = 0.3 + Math.random() * 0.16;
+    const a = Math.random() * 6.283185;
+    const mag = 5 + sev * 13;                        // pixels, and that is all
+    k.tx = Math.cos(a) * mag;
+    k.ty = Math.sin(a) * mag * 0.55;
   }
-  const de = document.documentElement;
-  if (de) {
-    if (age < y.dur) {
-      // ease out → in: snap to the yanked pose, then spring back to identity.
-      // (transform is compositor-cheap, and we clear it fully between yanks so
-      //  the root isn't perpetually transformed: good for perf.)
-      const p = age / y.dur;
-      const env = Math.sin(Math.PI * p);           // 0→1→0 over the yank
-      const sx = 1 + (y.sx - 1) * env, sy = 1 + (y.sy - 1) * env;
-      const tx = y.tx * env, ty = y.ty * env, rot = y.rot * env;
-      de.style.transformOrigin = '50% 50%';
-      de.style.transform = `translate(${tx.toFixed(2)}px,${ty.toFixed(2)}px) scale(${sx.toFixed(3)},${sy.toFixed(3)}) rotate(${rot.toFixed(3)}deg)`;
-    } else if (de.style.transform) {
-      de.style.transform = '';
+  const app = _juko0InfWinFrame._app || (_juko0InfWinFrame._app = document.getElementById('app'));
+  if (app) {
+    if (age < k.dur) {
+      const p = age / k.dur;
+      const env = (1 - p) * (1 - p) * Math.cos(p * 13.5);   // one hit, ringing out
+      app.style.transform = `translate(${(k.tx * env).toFixed(2)}px,${(k.ty * env).toFixed(2)}px)`;
+    } else if (app.style.transform) {
+      app.style.transform = '';
     }
   }
 
-  // ── Floating glitched-pfp windows: build up in count as severity rises.
-  const wantCount = _juko0InfAvatar ? Math.round(sev * 5) : 0;   // 0 during early intro → up to 5
+  // ── The windows: they open, they sit there, they close.
+  const wantCount = Math.round(sev * 4);             // 0 early in the intro, up to 4
+  for (let i = _juko0InfWinList.length - 1; i >= 0; i--) {
+    const w = _juko0InfWinList[i];
+    if (tt > w._jk0Die || _juko0InfWinList.length > wantCount + 1) {
+      _juko0InfWinList.splice(i, 1);
+      w.classList.add('juko0-win-out');
+      setTimeout(() => { try { w.remove(); } catch (e) {} }, 300);
+    }
+  }
   if (tt > _juko0InfNextWin) {
-    _juko0InfNextWin = tt + (dropped ? 0.5 + Math.random() * 0.9 : 1.4 + Math.random() * 1.6);
-    // grow/shrink the pool toward wantCount, and re-glitch an existing one
+    _juko0InfNextWin = tt + (dropped ? 0.7 + Math.random() * 1.1 : 1.8 + Math.random() * 2.2);
     if (_juko0InfWinList.length < wantCount) {
-      const w = _juko0InfSpawnWindow();
-      if (w) {
-        _juko0InfPlaceWindow(w);
-        // Faint deep-pitched blip when a corrupted window pops in.
-        if (typeof playSound === 'function') { try { playSound('pop', { rate: 0.42 + Math.random() * 0.12, volume: 0.22 }); } catch (e) {} }
-      }
-    } else if (_juko0InfWinList.length > wantCount && _juko0InfWinList.length) {
-      const w = _juko0InfWinList.pop(); try { w.remove(); } catch (e) {}
-    } else if (_juko0InfWinList.length) {
-      _juko0InfPlaceWindow(_juko0InfWinList[(Math.random() * _juko0InfWinList.length) | 0]);
+      const w = _juko0InfSpawnWindow(sev);
+      // Faint deep-pitched blip when a corrupted window pops in.
+      if (w && typeof playSound === 'function') { try { playSound('pop', { rate: 0.42 + Math.random() * 0.12, volume: 0.18 }); } catch (e) {} }
     }
   }
 
-  // ── Faster independent teleport/re-filter tick: on top of the CSS drift/
-  //    jitter, existing windows periodically hard-snap to a new spot + swap
-  //    their broken filter, like the corrupted feed keeps re-syncing.
+  // ── Re-sync: the picture inside a window tears sideways for a
+  //    moment. This is what the teleport was reaching for, without throwing the
+  //    window across the screen to get it.
   if (tt > _juko0InfGlitchNext && _juko0InfWinList.length) {
-    _juko0InfGlitchNext = tt + (dropped ? 0.3 + Math.random() * 0.45 : 0.7 + Math.random() * 0.8);
+    _juko0InfGlitchNext = tt + (dropped ? 0.45 + Math.random() * 0.7 : 1.1 + Math.random() * 1.2);
     const w = _juko0InfWinList[(Math.random() * _juko0InfWinList.length) | 0];
-    _juko0InfPlaceWindow(w);
+    w.style.setProperty('--jw-tear', ((Math.random() - 0.5) * 26).toFixed(1) + 'px');
+    w.classList.add('juko0-win-tear');
+    setTimeout(() => { try { w.classList.remove('juko0-win-tear'); } catch (e) {} }, 130);
   }
 
   // ── Stat glitch: ATK/DEF/MAG/IQ read "∞" but occasionally flash her real

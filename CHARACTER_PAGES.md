@@ -128,6 +128,21 @@ undulation laid under everything else is a sea.
 Most of them should be small and a few enormous (`pow(rnd, 2.2)`), not an even
 spread.
 
+### Repetition is the enemy of "corrupted"
+
+Five identical windows titled `juko.exe`, all holding the same picture, teleporting
+to a random point three times a second, read as one asset repeated: the eye
+groups them instantly and stops looking. Things that are meant to feel broken
+need to differ from each other (five kinds of window, own titles, own contents),
+they need to arrive and leave rather than blink (open and close animations, a
+lifetime), and they must not teleport, because a thing with no persistence has no
+weight. If you want the "it re-synced" beat, tear the *contents* sideways for a
+frame and leave the window where it is.
+
+And keep them out of the middle. The character's portrait, name and stats are
+what the page is for; put the chaos in the gutters and along the bottom and it
+crowds the page without hiding it.
+
 ### Respect the furniture
 
 The GUI panels sit across the upper and middle of the page. Keep the middle
@@ -199,18 +214,54 @@ Watch the throttle when benchmarking: the draw functions early-return if
 exactly-equal step fall on the wrong side, so use a comfortably larger step and
 assert that the frames actually drew.
 
-What is expensive, in order:
+What is expensive, in order. These are measured on the live page, not guessed.
 
-1. **Wide antialiased polyline strokes across the full width.** Sevach's sea was
+1. **`ctx.filter`.** Setting a filter on a viewport-sized context measured
+   **650 ms a frame** on Juko's overlay, which drew two hue-rotated copies of
+   the cursor sprite. It forces the whole layer onto a software path. Never set
+   `ctx.filter` on a large canvas in a loop. To tint a sprite: draw it to a
+   scratch canvas its own size, `source-atop` a semi-transparent fill over it
+   (semi-transparent so the sprite keeps its shading), blit that. Same picture,
+   about a fiftieth of a millisecond.
+2. **Wide antialiased polyline strokes across the full width.** Sevach's sea was
    41 ms a frame from this alone: twenty polylines taking eight stroked passes
-   each. Baked into scrolling strips it is **0.58 ms**. If a page is over
-   budget, this is almost always why.
-2. Full-screen fills, one per band. Bound each fill to its own strip.
-3. Large rotated blits. Fine at one or two per frame.
-4. Gradient objects created per item per frame. Hoist or bake them.
+   each. Baked into scrolling strips it is **0.58 ms**.
+3. **`shadowBlur` on a large stroke.** A glowing `strokeRect` around the
+   viewport: 4.1 ms with shadowBlur, 0.14 ms without. Four widening strokes at
+   falling alpha give the same soft edge for 0.7 ms.
+4. **Large gradient fills, even from a cached gradient object.** Caching the
+   gradient does not help; the fill is the cost. At 1030x656 a full-screen
+   radial fill is 2.0 ms and the same pixels blitted from a baked canvas are
+   0.11 ms. **Bake every gradient that only moves or changes brightness**, and
+   put the brightness back with `globalAlpha`.
+5. **A `CanvasPattern` fill over the full screen**: 4.3 ms, against 0.4 ms for
+   a pre-filled sheet of the same size blitted at a random offset. Applies to
+   every noise/static layer.
+6. **`fillText` with a freshly built `rgba(...)` string.** The string is
+   re-parsed every call. 2100 glyphs: **10.9 ms** with fresh strings, **3.7 ms**
+   reading from an interned table, 2.0 ms with one fixed style. Quantize the
+   alpha into ramps built once at module level (see `_jkRamp`).
+7. Full-screen self-copies (`drawImage(canvas, ...)`). About 1 ms each at 720p.
+   Budget a handful, not twenty.
+8. **Many small canvases.** 149 per-column strips cost 6.2 ms a frame to rebake
+   and blit; the same content in ONE atlas canvas, a slot per item, cost 3.7 ms.
+   If you bake per item, bake into one atlas.
 
 Cheap enough to ignore: `getBoundingClientRect` once a frame, a few hundred
-small `arc` fills batched into one path, blits.
+small `arc` fills batched into one path, blits (a full-canvas blit is 0.11 ms).
+
+**Baking only pays if the thing actually holds still.** Juko's rain columns were
+baked per cell-crossing, which sounded right and bought 27%, because a column
+falls up to 320 px/s through 15 px cells and so re-baked on 42% of frames
+anyway. What made it work was changing the design so the trail is a *rigid*
+ribbon that churns on its own slow clock instead of one the glyphs stream
+through: same look, one re-bake per column every 0.4 s. Before you bake, work
+out the re-bake rate; if it is close to the frame rate, you have added
+complexity and a texture upload for nothing.
+
+**Watch the total, not each page in isolation.** Juko runs four canvases (the
+background, plus an equalizer, a code frame and a cursor layer at three
+z-indexes) and two rAF loops. Every one of them is inside budget on its own.
 
 ---
 
@@ -262,6 +313,52 @@ function's own text, never by searching the whole file.
 **Sprites baked while the layout was collapsed stay wrong** until the
 `canvas._xW !== W` guard fires. Reset every cached sprite there, and reset
 `stamped` flags on persistent items so they redraw.
+
+**A canvas of width 0 cannot be drawn.** `innerWidth` is 0 in a hidden pane, so
+an overlay canvas can be sized 0x0. Gradient objects do not mind; a *baked*
+gradient is a canvas, and `drawImage` of a zero-width canvas throws
+`InvalidStateError` and takes the rAF loop down with it. Every draw function
+wants `if (!(W > 0 && H > 0)) return;` at the top. This is a real trap the
+moment you start baking things that used to be gradient objects.
+
+**`characters` is replaced wholesale by every Firestore snapshot.** Anything
+holding a character reference keyed only by id goes stale and keeps answering
+with the state that object had before the swap. It bit `_jukoCurChar()`: a form
+switch writes, the snapshot lands a second later, and from then on the
+background believed Juko was in whatever form she had been in before, for as
+long as you stayed on her page. Cache the index alongside the reference and
+re-find when `characters[i] !== cached`.
+
+**A form's timed intro cannot trust the audio clock on re-entry.** Reading
+`_themeAudio.currentTime` to sync a build-up is right, but on re-entry the
+PREVIOUS play is still loaded and running through the crossfade, so the clock
+reads minutes in and the build-up is skipped entirely. Anchor it: only adopt the
+song clock once it agrees with the wall clock this entry started
+(`Math.abs(audio - wall) < 2.5`), and fall back to wall time otherwise.
+
+**Count how many elements a CSS animation actually lands on.** 0-infinity put an
+infinite `transform` shake on `.stat-row`, `.trait-card`, `.inv-card` and
+`.char-entry`: the last of those is one element per character in the sidebar, so
+a hundred elements animated a non-composited property forever. It also made the
+text unreadable, which was the complaint that led to finding it. Colour strobes
+are cheap; position shakes are not, and a page does not need more than one or
+two things moving at a time.
+
+**`mix-blend-mode` on a full-viewport fixed layer** forces the whole page
+through a blend group whenever it changes, and animating `top` on one relayouts
+it every frame. If the overlay canvas already draws the effect, delete the CSS
+copy; if not, animate `transform`.
+
+**Never transform `<html>` or shake the whole viewport.** Rotating and scaling
+the root promotes the entire document, every fixed canvas included, into one
+layer that is re-rasterised for each frame of the animation. It is also the most
+physically unpleasant thing you can do to a reader: tipping the horizon of every
+straight line at once is what makes a page nauseating rather than exciting. A
+short *translation-only* kick on `#app`, fired on a beat and with a real gap
+after it, reads as more violent and costs nothing.
+
+**Give the most motion-heavy pages a `prefers-reduced-motion` escape**, in the
+CSS *and* in the JS that drives the motion.
 
 ---
 
