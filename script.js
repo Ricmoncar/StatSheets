@@ -43200,6 +43200,154 @@ function _aiCitadelSprite(CW) {
   return c;
 }
 
+
+// ── The way up to the gate ─────────────────────────────────────────
+// The first two passes had no composition in them: spires scattered evenly
+// over an empty floor, which is a texture and not a place. What organises a
+// landscape is a line through it, so there is a road now, running from under
+// your feet back to the citadel gate. Everything else is hung off that line.
+// It converges, which gives the page a vanishing point it did not have; it is
+// polished, which gives the plain a value other than one; it is empty down
+// the middle, which is where the panels sit; and the shards stand back off it
+// instead of standing anywhere, which is the difference between a country and
+// a scatter.
+function _aiRoadX(W, H, HZ, u, side) {
+  const vx = W * 0.34;                              // where it goes
+  return vx + ((side < 0 ? W * 0.21 : W * 0.63) - vx) * u;
+}
+
+// A gate is the one thing out here with a hole in it, and a hole is what
+// gives a silhouette scale. Everything else on the page is solid.
+function _aiArchSprite(AW, AH) {
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(AW); c.height = Math.ceil(AH);
+  const g = c.getContext('2d');
+  const pier = AW * 0.17, spring = AH * 0.44;
+  g.beginPath();                                    // the whole gate, one shape
+  g.moveTo(0, AH);
+  g.lineTo(pier * 0.42, spring * 0.72);
+  g.lineTo(pier * 0.86, 0);                         // the outer peak, left
+  g.lineTo(pier * 1.5, spring * 0.5);
+  g.lineTo(AW * 0.5, AH * 0.12);                    // and the keystone
+  g.lineTo(AW - pier * 1.5, spring * 0.5);
+  g.lineTo(AW - pier * 0.86, 0);
+  g.lineTo(AW - pier * 0.42, spring * 0.72);
+  g.lineTo(AW, AH);
+  g.lineTo(AW - pier, AH);
+  g.lineTo(AW - pier, spring);
+  g.lineTo(AW * 0.5, AH * 0.3);                     // the underside of the arch
+  g.lineTo(pier, spring);
+  g.lineTo(pier, AH);
+  g.closePath();
+  const gg = g.createLinearGradient(0, 0, 0, AH);
+  gg.addColorStop(0, 'rgb(70,108,152)');
+  gg.addColorStop(0.42, 'rgb(26,48,80)');
+  gg.addColorStop(1, 'rgb(9,17,34)');
+  g.fillStyle = gg;
+  g.fill();
+  g.strokeStyle = `rgba(${_AI_PALE},0.45)`;
+  g.lineWidth = Math.max(1, AW * 0.005);
+  g.stroke();
+  g.beginPath();                                    // fractures through the piers
+  for (let k = 0; k < 7; k++) {
+    const x = (k < 4 ? pier * 0.3 : AW - pier * 0.3) + (_aiRnd(k * 5.3) - 0.5) * pier * 0.9;
+    g.moveTo(x, AH * (0.4 + _aiRnd(k * 7.9) * 0.3));
+    g.lineTo(x + (_aiRnd(k * 9.1) - 0.5) * pier * 0.7, AH);
+  }
+  g.strokeStyle = `rgba(${_AI_PALE},0.16)`;
+  g.lineWidth = 1;
+  g.stroke();
+  g.globalCompositeOperation = 'lighter';           // a light burning in the gate
+  const lg = g.createRadialGradient(AW * 0.5, AH * 0.62, 0, AW * 0.5, AH * 0.62, AW * 0.32);
+  lg.addColorStop(0, `rgba(${_AI_GLOW},0.4)`);
+  lg.addColorStop(1, `rgba(${_AI_GLOW},0)`);
+  g.fillStyle = lg;
+  g.fillRect(0, AH * 0.2, AW, AH * 0.8);
+  return c;
+}
+
+
+// ── What is left of the outer wall ─────────────────────────────────
+// The road and the gate organise the left of the page and the middle of it,
+// and left the right hand side an empty floor with some spikes on. A kingdom
+// has an outside as well as a middle, so this is the old wall, out where
+// nobody keeps it: a run of curtain with the crenellation gone in places, one
+// tower still standing and one leaning on what is under it. It is darker than
+// the citadel because there is nobody in it, which is also why only two of
+// its windows are lit.
+function _aiRuinSprite(RW) {
+  const RH = Math.ceil(RW * 0.42);
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(RW); c.height = RH;
+  const g = c.getContext('2d');
+  const base = RH;
+  const face = g.createLinearGradient(0, RH * 0.2, 0, base);
+  face.addColorStop(0, 'rgb(70,102,142)');
+  face.addColorStop(1, 'rgb(30,52,84)');
+  const dark = 'rgb(24,42,70)';
+  const edge = 'rgba(232,248,255,0.45)';
+
+  // the curtain wall, running away to the right and losing height with it
+  const wallTop = (u) => base - RH * (0.42 - u * 0.2);
+  g.beginPath();
+  g.moveTo(RW * 0.06, base);
+  g.lineTo(RW * 0.06, wallTop(0.06) + RH * 0.1);
+  for (let k = 0; k <= 16; k++) {                   // crenellation, with gaps
+    const u = 0.06 + (k / 16) * 0.94;
+    const x = RW * u;
+    const gone = _aiRnd(k * 7.3) < 0.32;
+    g.lineTo(x, wallTop(u) + (gone ? RH * 0.2 : -RH * 0.05));
+    g.lineTo(x + RW * 0.036, wallTop(u) + (gone ? RH * 0.2 : -RH * 0.05));
+  }
+  g.lineTo(RW, base);
+  g.closePath();
+  g.fillStyle = face;
+  g.fill();
+  g.strokeStyle = edge;
+  g.lineWidth = Math.max(0.8, RW * 0.0035);
+  g.stroke();
+
+  const tower = (u, hf, wf, lean) => {
+    const x = RW * u, hh = RH * hf, ww = RW * wf;
+    g.save();
+    g.translate(x, base);
+    g.rotate(lean);
+    g.beginPath();                                  // the shaft, broken at the top
+    g.moveTo(-ww * 0.5, 0);
+    g.lineTo(-ww * 0.46, -hh);
+    g.lineTo(-ww * 0.16, -hh * (0.86 + _aiRnd(u * 31) * 0.1));
+    g.lineTo(ww * 0.1, -hh * 1.04);
+    g.lineTo(ww * 0.46, -hh * 0.9);
+    g.lineTo(ww * 0.5, 0);
+    g.closePath();
+    g.fillStyle = dark;
+    g.fill();
+    g.beginPath();                                  // and the face that is lit
+    g.moveTo(-ww * 0.46, -hh);
+    g.lineTo(-ww * 0.16, -hh * 0.88);
+    g.lineTo(-ww * 0.06, 0);
+    g.lineTo(-ww * 0.5, 0);
+    g.closePath();
+    g.fillStyle = face;
+    g.fill();
+    g.beginPath();
+    g.moveTo(-ww * 0.46, -hh);
+    g.lineTo(ww * 0.1, -hh * 1.04);
+    g.strokeStyle = edge;
+    g.lineWidth = Math.max(0.8, RW * 0.003);
+    g.stroke();
+    for (let r = 0; r < 4; r++) {                   // and almost nobody home
+      if (_aiRnd(u * 71 + r * 5.1) < 0.72) continue;
+      g.fillStyle = `rgba(${_AI_GLOW},0.55)`;
+      g.fillRect(-ww * 0.1, -hh * (0.2 + r * 0.2), ww * 0.16, hh * 0.09);
+    }
+    g.restore();
+  };
+  tower(0.14, 0.92, 0.13, 0);
+  tower(0.62, 0.66, 0.11, 0.09);                    // this one is going over
+  return c;
+}
+
 // ── The field ────────────────────────────────────────────────────
 function _drawAdamHumanPattern(canvas, ctx, W, H, t) {
   const fresh = _drawAdamHumanPattern._lt === undefined;
@@ -43211,7 +43359,8 @@ function _drawAdamHumanPattern(canvas, ctx, W, H, t) {
     canvas._aiW = W; canvas._aiH = H;
     canvas._aiSky = null; canvas._aiAur = null; canvas._aiRidge = null;
     canvas._aiCit = null; canvas._aiPlain = null; canvas._aiVign = null;
-    canvas._aiMist = null;
+    canvas._aiMist = null; canvas._aiArch = null; canvas._aiLedge = null;
+    canvas._aiRuin = null;
     canvas._aiPlant = null; canvas._aiRime = null; canvas._aiRimeMask = null;
     for (const s of _aiSpires) s.stamped = false;   // they get put up again
   }
@@ -43289,12 +43438,13 @@ function _drawAdamHumanPattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
 
-  // 3 ── the plain, one sheet of it, broken into plates
+  // 3 ── the plain, and the road running back across it
+  const PH2 = H - HZ;
+  const RX = (u, side) => _aiRoadX(W, H, HZ, u, side);
   if (!canvas._aiPlain) {
     canvas._aiPlain = document.createElement('canvas');
-    canvas._aiPlain.width = W; canvas._aiPlain.height = H - HZ + 2;
+    canvas._aiPlain.width = W; canvas._aiPlain.height = PH2 + 2;
     const g = canvas._aiPlain.getContext('2d');
-    const PH2 = H - HZ;
     const gg = g.createLinearGradient(0, 0, 0, PH2);
     gg.addColorStop(0, '#426b98');
     gg.addColorStop(0.1, '#20406a');
@@ -43302,9 +43452,7 @@ function _drawAdamHumanPattern(canvas, ctx, W, H, t) {
     gg.addColorStop(1, '#04091a');
     g.fillStyle = gg;
     g.fillRect(0, 0, W, PH2 + 2);
-    // the sky is on the ice, smeared out the way a reflection is on
-    // something that is not quite a mirror
-    g.globalCompositeOperation = 'lighter';
+    g.globalCompositeOperation = 'lighter';         // the sky, smeared on the ice
     for (let i = 0; i < 26; i++) {
       const x = _aiRnd(i * 4.7) * W;
       const wd = W * (0.006 + _aiRnd(i * 6.1) * 0.03);
@@ -43317,53 +43465,126 @@ function _drawAdamHumanPattern(canvas, ctx, W, H, t) {
       g.fillRect(x - wd * 0.5, 0, wd, len);
     }
     g.globalCompositeOperation = 'source-over';
-    // an ice sheet is not one thing, it is plates: a network of seams that
-    // branch, opening out as it comes at you
-    const seam = (x, y, ang, len, dep) => {
+    // crevasses, lying across the country either side of the road: a black
+    // opening with the far lip catching light, which is the one thing that
+    // says the ground has a thickness
+    for (let i = 0; i < 7; i++) {
+      const u = 0.14 + _aiRnd(i * 3.1) * 0.78;
+      const y = PH2 * u;
+      const left = i % 2 === 0;
+      const x0 = left ? -W * 0.05 : RX(u, 1) + W * 0.02;
+      const x1 = left ? RX(u, -1) - W * 0.02 : W * 1.05;
+      if (x1 - x0 < W * 0.06) continue;
+      const th = PH2 * (0.007 + u * 0.03) * (0.6 + _aiRnd(i * 5.9) * 0.9);
+      g.beginPath();
+      g.moveTo(x0, y);
+      const N2 = 7;
+      for (let k = 1; k <= N2; k++) {
+        const v = k / N2;
+        g.lineTo(x0 + (x1 - x0) * v, y + (_aiRnd(i * 7.3 + k) - 0.5) * th * 0.5);
+      }
+      for (let k = N2; k >= 0; k--) {
+        const v = k / N2;
+        g.lineTo(x0 + (x1 - x0) * v, y + th * (0.55 + _aiRnd(i * 9.7 + k) * 0.7));
+      }
+      g.closePath();
+      const cg = g.createLinearGradient(0, y, 0, y + th);
+      cg.addColorStop(0, 'rgba(2,5,14,0.95)');
+      cg.addColorStop(0.6, 'rgba(6,16,34,0.9)');
+      cg.addColorStop(1, `rgba(${_AI_GLOW},0.16)`);  // the light gets in at the bottom
+      g.fillStyle = cg;
+      g.fill();
+      g.beginPath();                                 // and the near lip is lit
+      g.moveTo(x0, y);
+      for (let k = 1; k <= N2; k++) {
+        const v = k / N2;
+        g.lineTo(x0 + (x1 - x0) * v, y + (_aiRnd(i * 7.3 + k) - 0.5) * th * 0.5);
+      }
+      g.strokeStyle = `rgba(${_AI_PALE},${(0.16 + u * 0.3).toFixed(2)})`;
+      g.lineWidth = 0.8 + u * 2.4;
+      g.stroke();
+    }
+    const seam = (x, y, ang, len, dep) => {          // and the plates it is in
       if (dep > 3 || len < 26) return;
-      const steps = 5;
       let cx2 = x, cy2 = y, a = ang;
       g.beginPath();
       g.moveTo(cx2, cy2);
-      for (let k = 0; k < steps; k++) {
+      for (let k = 0; k < 5; k++) {
         a += (_aiRnd(cx2 + cy2 + k * 3.1) - 0.5) * 0.5;
-        cx2 += Math.cos(a) * len / steps;
-        cy2 += Math.sin(a) * len / steps * 0.42;
+        cx2 += Math.cos(a) * len / 5;
+        cy2 += Math.sin(a) * len / 5 * 0.42;
         g.lineTo(cx2, cy2);
       }
       const u = Math.min(1, Math.max(0, cy2 / PH2));
-      g.strokeStyle = `rgba(${_AI_PALE},${(0.05 + u * 0.15).toFixed(3)})`;
-      g.lineWidth = 0.5 + u * 1.7;
-      g.stroke();
-      g.strokeStyle = `rgba(2,6,16,${(0.1 + u * 0.2).toFixed(3)})`;
-      g.lineWidth = 0.5 + u * 1.1;
+      g.strokeStyle = `rgba(${_AI_PALE},${(0.04 + u * 0.11).toFixed(3)})`;
+      g.lineWidth = 0.5 + u * 1.5;
       g.stroke();
       for (const s2 of [-1, 1]) {
         if (_aiRnd(cx2 * 1.7 + dep) < 0.4) continue;
         seam(cx2, cy2, a + s2 * (0.7 + _aiRnd(cx2) * 0.7), len * 0.7, dep + 1);
       }
     };
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 14; i++) {
       seam(_aiRnd(i * 7.1) * W, PH2 * Math.pow(_aiRnd(i * 9.3), 0.55),
            (_aiRnd(i * 11.7) - 0.5) * 2.2, PH2 * (0.16 + _aiRnd(i * 13.9) * 0.3), 0);
     }
-    // and the wind ribs lying across all of it
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 70; i++) {                   // wind ribs across all of it
       const u = Math.pow(_aiRnd(i * 3.7), 1.7);
       const y = PH2 * u;
       const w = W * (0.05 + u * 0.3) * (0.5 + _aiRnd(i * 5.9));
-      const x = _aiRnd(i * 8.3) * W;
       g.beginPath();
-      g.ellipse(x, y, w, w * (0.018 + u * 0.03), 0, 3.4, 6.02);
+      g.ellipse(_aiRnd(i * 8.3) * W, y, w, w * (0.018 + u * 0.03), 0, 3.4, 6.02);
       g.strokeStyle = `rgba(${_AI_PALE},${(0.04 + u * 0.1).toFixed(3)})`;
       g.lineWidth = 0.5 + u * 1.2;
       g.stroke();
+    }
+    // the road itself, polished, so it holds the sky where the plain does not
+    g.beginPath();
+    g.moveTo(RX(0, -1), 0);
+    g.lineTo(RX(1, -1), PH2 + 2);
+    g.lineTo(RX(1, 1), PH2 + 2);
+    g.lineTo(RX(0, 1), 0);
+    g.closePath();
+    g.save();
+    g.clip();
+    const rd = g.createLinearGradient(0, 0, 0, PH2);
+    rd.addColorStop(0, 'rgba(150,196,238,0.5)');
+    rd.addColorStop(0.24, 'rgba(66,116,172,0.34)');
+    rd.addColorStop(0.7, 'rgba(24,54,92,0.3)');
+    rd.addColorStop(1, 'rgba(10,24,46,0.4)');
+    g.fillStyle = rd;
+    g.fillRect(0, 0, W, PH2 + 2);
+    g.globalCompositeOperation = 'lighter';          // the aurora standing in it
+    for (let i = 0; i < 16; i++) {
+      const u = _aiRnd(i * 6.7);
+      const x = RX(u, -1) + (RX(u, 1) - RX(u, -1)) * _aiRnd(i * 8.9);
+      const len = PH2 * (0.14 + _aiRnd(i * 10.3) * 0.4);
+      const wd = W * (0.004 + _aiRnd(i * 12.7) * 0.016);
+      const rg2 = g.createLinearGradient(0, 0, 0, len);
+      rg2.addColorStop(0, `rgba(${_AI_GLOW},${(0.06 + _aiRnd(i * 14.1) * 0.1).toFixed(3)})`);
+      rg2.addColorStop(1, `rgba(${_AI_GLOW},0)`);
+      g.fillStyle = rg2;
+      g.fillRect(x - wd * 0.5, 0, wd, len);
+    }
+    g.restore();
+    g.globalCompositeOperation = 'source-over';
+    for (const side of [-1, 1]) {                    // a kerb of shards down it
+      for (let k = 0; k < 34; k++) {
+        const u = Math.pow(k / 34, 1.5) + _aiRnd(k * 4.3 + side) * 0.03;
+        if (u > 1) continue;
+        const y = PH2 * u;
+        const pal = _aiPal(Math.max(0, 0.55 - u * 0.5));
+        pal.ew = 0.8;
+        _aiSpire(g, RX(u, side) + side * PH2 * 0.012, y,
+                 PH2 * (0.012 + u * 0.075) * (0.6 + _aiRnd(k * 6.1) * 0.9),
+                 PH2 * (0.008 + u * 0.04), (_aiRnd(k * 8.7) - 0.5) * 0.3, pal, k * 3 + side);
+      }
     }
   }
   ctx.drawImage(canvas._aiPlain, 0, HZ);
   // mist lying on it, low and slow, which is what the far ground is made of
   if (!canvas._aiMist) {
-    const cw = Math.ceil(W * 1.3), ch = Math.ceil((H - HZ) * 0.5);
+    const cw = Math.ceil(W * 1.3), ch = Math.ceil(PH2 * 0.5);
     const c = document.createElement('canvas');
     c.width = cw; c.height = ch;
     const g = c.getContext('2d');
@@ -43389,7 +43610,7 @@ function _drawAdamHumanPattern(canvas, ctx, W, H, t) {
   for (let k = 0; k < 2; k++) {
     const off = (t * (7 + k * 11)) % canvas._aiMist.width;
     ctx.globalAlpha = 0.8 - k * 0.3;
-    const y = HZ + (H - HZ) * (0.02 + k * 0.16);
+    const y = HZ + PH2 * (0.02 + k * 0.16);
     ctx.drawImage(canvas._aiMist, -off, y);
     ctx.drawImage(canvas._aiMist, canvas._aiMist.width - off, y);
   }
@@ -43434,8 +43655,23 @@ function _drawAdamHumanPattern(canvas, ctx, W, H, t) {
   for (let i = 0; i < N; i++) {
     const r = canvas._aiRidge[i];
     r.off = (r.off + r.v * dt) % r.s.width;
+    // nothing stands in the road. The far fringe is behind the near end of it
+    // anyway, so only what is close enough to be in the way gets cut out.
+    const clipRoad = i >= 2;
+    if (clipRoad) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, W, H);
+      ctx.moveTo(RX(0, -1), HZ);
+      ctx.lineTo(RX(1, -1), H);
+      ctx.lineTo(RX(1, 1), H);
+      ctx.lineTo(RX(0, 1), HZ);
+      ctx.closePath();
+      ctx.clip('evenodd');
+    }
     ctx.drawImage(r.s, -r.off, r.y);
     ctx.drawImage(r.s, r.s.width - r.off, r.y);
+    if (clipRoad) ctx.restore();
     if (i === 2) {                                 // the citadel, in among them
       ctx.drawImage(cit, CX - cit.width * 0.5, HZ + (H - HZ) * 0.1 - cit.height);
     }
@@ -43487,6 +43723,21 @@ function _drawAdamHumanPattern(canvas, ctx, W, H, t) {
         ctx.drawImage(r.s, r.s.width - r.off, r.y);
         ctx.restore();
       }
+    }
+    if (i === 1) {                                // the old wall, out on the right
+      const RW = Math.max(170, Math.min(W * 0.3, H * 0.44));
+      if (!canvas._aiRuin) canvas._aiRuin = _aiRuinSprite(RW);
+      ctx.globalAlpha = 0.9;
+      ctx.drawImage(canvas._aiRuin, W * 0.66, HZ + PH2 * 0.045 - canvas._aiRuin.height);
+      ctx.globalAlpha = 1;
+    }
+    if (i === 2) {                                // the gate stands over the road
+      const AU = 0.2;
+      const AW2 = (RX(AU, 1) - RX(AU, -1)) * 1.35;
+      if (!canvas._aiArch) canvas._aiArch = _aiArchSprite(AW2, AW2 * 0.86);
+      ctx.drawImage(canvas._aiArch,
+                    (RX(AU, -1) + RX(AU, 1)) * 0.5 - canvas._aiArch.width * 0.5,
+                    HZ + PH2 * AU - canvas._aiArch.height);
     }
   }
   if (_aiWave) {
@@ -43552,7 +43803,45 @@ function _drawAdamHumanPattern(canvas, ctx, W, H, t) {
   }
   ctx.globalCompositeOperation = 'source-over';
 
-  // 7 ── the dark round the edge of it
+  // 7 ── and the shelf you are standing on to look at it
+  if (!canvas._aiLedge) {
+    const lh = Math.ceil(H * 0.1);
+    const c = document.createElement('canvas');
+    c.width = W; c.height = lh;
+    const g = c.getContext('2d');
+    g.beginPath();
+    g.moveTo(-4, lh);
+    g.lineTo(-4, lh * 0.5);
+    for (let x = 0; x <= W + 40; x += 34) {         // a broken edge, not a rule
+      const u = x / W;
+      g.lineTo(x, lh * (0.4 + _aiRnd(x * 0.13) * 0.17
+                        + Math.sin(u * 5.3) * 0.07 + Math.sin(u * 1.7) * 0.11));
+    }
+    g.lineTo(W + 4, lh);
+    g.closePath();
+    const lg = g.createLinearGradient(0, 0, 0, lh);
+    lg.addColorStop(0, 'rgb(16,30,54)');
+    lg.addColorStop(0.4, 'rgb(7,14,30)');
+    lg.addColorStop(1, 'rgb(2,4,12)');
+    g.fillStyle = lg;
+    g.fill();
+    g.strokeStyle = `rgba(${_AI_PALE},0.42)`;       // one lit rim along the top
+    g.lineWidth = 1.6;
+    g.stroke();
+    g.beginPath();                                  // and cracks down the face
+    for (let k = 0; k < 26; k++) {
+      const x = _aiRnd(k * 5.7) * W;
+      g.moveTo(x, lh * (0.4 + _aiRnd(k * 7.3) * 0.2));
+      g.lineTo(x + (_aiRnd(k * 9.1) - 0.5) * 60, lh);
+    }
+    g.strokeStyle = `rgba(${_AI_PALE},0.09)`;
+    g.lineWidth = 1;
+    g.stroke();
+    canvas._aiLedge = c;
+  }
+  ctx.drawImage(canvas._aiLedge, 0, H - canvas._aiLedge.height);
+
+  // 8 ── the dark round the edge of it
   if (!canvas._aiVign) {
     canvas._aiVign = document.createElement('canvas');
     canvas._aiVign.width = W; canvas._aiVign.height = H;
