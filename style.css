@@ -1898,6 +1898,103 @@ body.juko-0inf-page::before {
   95%           { opacity: 1; }
 }
 
+
+/* ============================================================
+   JUKO · 1: the value that was left. The Code Garden chrome
+   (.juko-ui) still applies and has already gone mint, because it
+   reads --char-color. This is what the void adds on top: a page
+   that has stopped moving, one light, and a name seen through a
+   prism rather than through a fault.
+   ============================================================ */
+#char-view.juko-one .panel-title {
+  letter-spacing: 3px;
+}
+/* The header underline sweep slows right down: out here nothing is in a hurry. */
+#char-view.juko-one .panel-title::after { animation: juko-header-sweep 6s linear infinite; }
+
+/* The portrait sits in a prism: a slow spectrum sheen crawls across it, and
+   the HUD bracket loses the garden's yellow for the void's white. */
+#char-view.juko-one .char-avatar-large.juko-pfp {
+  filter: saturate(1.1) contrast(1.05);
+}
+#char-view.juko-one .char-avatar-large.juko-pfp::before {
+  animation: juko-pfp-scan 9s linear infinite;
+  opacity: calc(0.18 + var(--juko-glow) * 0.3);
+}
+#char-view.juko-one .char-avatar-large.juko-pfp::after {
+  border-color: color-mix(in srgb, #e6fff6 62%, transparent);
+  box-shadow: 0 0 calc(3px + var(--juko-onset) * 14px) color-mix(in srgb, #4ef0c4 75%, transparent);
+}
+#char-view.juko-one .juko-pfp-fx {
+  background: linear-gradient(115deg,
+    transparent 38%,
+    rgba(255,120,170,0.16) 45%,
+    rgba(120,255,220,0.22) 50%,
+    rgba(140,190,255,0.16) 55%,
+    transparent 62%);
+  animation: juko1-refract 7s ease-in-out infinite;
+}
+@keyframes juko1-refract {
+  0%, 100% { background-position: -140% 0; opacity: 0.5; }
+  50%      { background-position: 240% 0;  opacity: 0.95; }
+}
+#char-view.juko-one .juko-pfp-tag {
+  color: #cffff0;
+  text-shadow: 0 0 8px rgba(78,240,196,0.8);
+  animation: none;
+  opacity: 0.8;
+}
+
+/* THE NAME, through the prism. The two ghosts drift apart and back on a long
+   slow cycle instead of stuttering: same mechanism as 0 infinity, opposite
+   temperament. They are the three primaries a prism actually splits into. */
+#char-view.juko-one .char-name-display.juko-name {
+  color: #dffff4 !important;
+  letter-spacing: 2px;
+  text-shadow:
+    0 0 calc(6px + var(--juko-glow) * 20px) rgba(78,240,196,0.85),
+    0 0 calc(18px + var(--juko-glow) * 34px) rgba(78,240,196,0.35);
+  animation: none;
+}
+#char-view.juko-one .char-name-display.juko-name::before {
+  color: #ff6a9c !important;
+  clip-path: none;
+  opacity: 0.55;
+  transform: translate(-2px, 0);
+  animation: juko1-split-a 5.5s ease-in-out infinite;
+}
+#char-view.juko-one .char-name-display.juko-name::after {
+  color: #6ad8ff !important;
+  clip-path: none;
+  opacity: 0.55;
+  transform: translate(2px, 0);
+  animation: juko1-split-b 5.5s ease-in-out infinite;
+}
+@keyframes juko1-split-a {
+  0%, 100% { transform: translate(-1px, 0);   opacity: 0.34; }
+  50%      { transform: translate(-4.5px, 0); opacity: 0.7; }
+}
+@keyframes juko1-split-b {
+  0%, 100% { transform: translate(1px, 0);   opacity: 0.34; }
+  50%      { transform: translate(4.5px, 0); opacity: 0.7; }
+}
+
+/* Tabs and traits: a hairline in the void's colour, and a glow that only
+   arrives with the music. No borders anywhere else: the canvas draws them. */
+#char-view.juko-one .tab-btn.active {
+  text-shadow: 0 0 calc(4px + var(--juko-onset) * 14px) rgba(78,240,196,0.9);
+}
+#char-view.juko-one .stat-seg.fill-fg {
+  box-shadow: 0 0 calc(2px + var(--juko-glow) * 9px) rgba(78,240,196,0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #char-view.juko-one .char-name-display.juko-name::before,
+  #char-view.juko-one .char-name-display.juko-name::after,
+  #char-view.juko-one .juko-pfp-fx,
+  #char-view.juko-one .char-avatar-large.juko-pfp::before { animation: none; }
+}
+
 /* ============================================================
    LUCIFER · UNLEASHED: demonic, over-the-top form styling.
    Crimson + black, molten panels, a menacing flickering name, an

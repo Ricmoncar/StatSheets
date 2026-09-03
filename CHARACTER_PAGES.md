@@ -99,6 +99,38 @@ Say where the light is in a comment and let every facet, rim and shadow follow
 it. The moment two things disagree, the page reads as a collage. Where an object
 has two faces, one is lit and one is not, and the seam between them is dark.
 
+**And which face is the lit one is a calculation, not an assumption.** Juko's
+knight lit the `-n` edge of every blade in its wing, which is correct for a
+blade pointing one way and backwards for a blade pointing the other. In a fan
+that spans a hundred degrees it is backwards for most of them, and the largest
+object on the page ended up lit from the wrong side while every rule above it
+was still being followed on paper. Pass the light's position in and take the
+sign from `dot(normal, light - point)`.
+
+### Drawing a figure: what actually reads
+
+Four attempts at one wireframe figure, and each failure has a name:
+
+- **A fan is not a wing.** Blades radiating from a single point across 130
+  degrees is a starburst. A wing is blades pointing roughly the SAME way across
+  maybe 60, rooted along a spread rather than at a point, longest at one end,
+  with an arc along the leading edge.
+- **Outlines pile up; filled shapes occlude.** A wireframe made of unfilled
+  outlines reads as a wire mess however carefully it is drawn. Fill each plate
+  near black and the same shapes read as overlapping armour.
+- **An arc bows once; it does not curl.** A quadratic from a point to a point
+  makes a bent stick. To get a tentacle, walk the path outward and TURN the
+  heading a little at every step, with the turn rate rising along it.
+- **Size the figure off the canvas you actually have.** `min(W, H)` looks
+  reasonable and is wrong here: `#pattern-canvas` is the content area, about
+  1.6:1, so a figure sized off the smaller dimension is lost on a tall window
+  and cropped to nothing on a wide one. Take the span off the width and let the
+  height be a ceiling on it.
+
+Also: if a figure is meant to feel enormous, crop it deliberately, but crop the
+TIPS. Cropping so hard that only the roots are on the page does not read as
+"too big for the frame", it reads as a mistake.
+
 ### Things must touch the ground
 
 Anything standing on a surface needs a **contact shadow** and usually a drift,
@@ -296,7 +328,12 @@ overlays simultaneously. Insert *after* the whole chain.
 do not name the palette `c` too.
 
 **rAF never fires in the preview pane** (`document.hidden === true`), and
-`innerWidth` collapses to 0 when the pane is hidden. Verify by driving the draw
+`innerWidth` collapses to 0 when the pane is hidden. A zero-width viewport also
+makes every `max-width` media query match, so the app's mobile rules switch on
+during verification: that is why the system cursor reappears and the custom one
+vanishes while testing, and it is not a bug in the page. Anything spring-driven
+also cannot be tested by hovering and waiting, because the spring only advances
+on frames that never come; drive the draw function by hand instead. Verify by driving the draw
 functions manually against offscreen canvases at a chosen size, and screenshot
 by POSTing `canvas.toDataURL()` to a small local endpoint.
 
@@ -309,6 +346,20 @@ that did not exist.
 
 **Section-number comments collide across characters.** Renumber inside the one
 function's own text, never by searching the whole file.
+
+**The frame throttle needs a `>= 0`.** `if (t - _lt < 0.033) return;` is a
+correct 30fps cap and a permanent freeze the first time the clock goes
+BACKWARDS, because a large negative difference passes the test forever. Any
+remount that resets the loop's `t0`, or anything that drives a draw function
+directly, does exactly that. Write `t - _lt >= 0 && t - _lt < 0.033`.
+
+**`#pattern-canvas` sits at opacity 0.3 by default**, so anything subtle you
+draw is a third as visible as it looked while you were testing it. Pages that
+want the background to carry the page raise it (0.6 to 0.95). The blocks that
+set it form a chain where each resets the property unless one of the earlier
+claimants is active, which means every new claimant has to be added to every
+later negation. Do not extend that chain: put a new claimant in its own block
+AFTER all of them, where it only has to set the value.
 
 **Sprites baked while the layout was collapsed stay wrong** until the
 `canvas._xW !== W` guard fires. Reset every cached sprite there, and reset

@@ -1590,6 +1590,27 @@ const _JUKO_SNIPPETS = [
 ];
 function _jukoMouseMove(e) { _jukoTargX = e.clientX; _jukoTargY = e.clientY; }
 function _jukoClick() {
+  // In "1" the click is the value asserting itself: a shockwave off the shard
+  // and a scatter of digits, most of which have already resolved. No squish,
+  // because there is no cat holding the cursor in this form.
+  if (_isJuko1(_jukoCurChar())) {
+    _j1Pulse = 1;
+    _j1Burst.push({ x: _jukoX, y: _jukoY, life: 1 });
+    if (_j1Burst.length > 4) _j1Burst.shift();
+    for (let i = 0; i < 22; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const spd = 90 + Math.random() * 240;
+      _jukoParticles.push({
+        x: _jukoX, y: _jukoY,
+        vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 40,
+        rot: 0, vr: (Math.random() - 0.5) * 3,
+        life: 1, sz: 10 + Math.random() * 10,
+        ch:  Math.random() < 0.6 ? '1' : _J1_DIGITS[(Math.random() * 10) | 0],
+        hue: 158 + Math.random() * 26,          // the mint the whole page is lit in
+      });
+    }
+    return;
+  }
   _jukoBounceT = 1.0;
   _jukoHappyT  = 1.8;
   for (let i = 0; i < 16; i++) {
@@ -3100,6 +3121,7 @@ const PATTERN_DEFS = {
   nara_green:       { label: "NARA! · Green!! UFO",     params: [] },
   sorrow_fire:      { label: "Sorrow's Ashes",         params: [] },
   juko_code:        { label: "Juko's Code Garden",     params: [] },
+  juko_one:         { label: "Juko · 1, the value left",  params: [] },
   lucifer_unleashed:{ label: "Lucifer · Unleashed",    params: [] },
   divine_light:     { label: "Divine · Radiance",      params: [] },
   jimmy_muffin:     { label: "Jimmy · Big Muffin",     params: [] },
@@ -9542,7 +9564,10 @@ function _jkBakeCol(g, slot, col, dropped, chaosGlyph, corruptP) {
 function _drawJukoPattern(canvas, ctx, W, H, t) {
   if (!(W > 0 && H > 0)) return;      // laid out in a hidden pane: nothing to draw on
   // 30fps cap (matches the other heavy patterns)
-  if (_drawJukoPattern._lt !== undefined && t - _drawJukoPattern._lt < 0.033) return;
+  // The `>= 0` matters: a clock that jumps BACKWARDS (a remount that resets
+  // the loop's t0, or anything driving these directly) leaves t - _lt hugely
+  // negative, which passes a bare `< 0.033` and freezes the layer for good.
+  if (_drawJukoPattern._lt !== undefined && t - _drawJukoPattern._lt >= 0 && t - _drawJukoPattern._lt < 0.033) return;
   const dt = _drawJukoPattern._lt === undefined ? 0.016 : Math.min(t - _drawJukoPattern._lt, 0.05);
   _drawJukoPattern._lt = t;
 
@@ -10232,7 +10257,10 @@ function _jukoGhostSprite(ctx, x, y, t, rgb, alpha) {
 
 function _drawJukoOverlay(canvas, ctx, W, H, t) {
   if (!(W > 0 && H > 0)) return;      // laid out in a hidden pane: nothing to draw on
-  if (_drawJukoOverlay._lt !== undefined && t - _drawJukoOverlay._lt < 0.033) return;
+  // The `>= 0` matters: a clock that jumps BACKWARDS (a remount that resets
+  // the loop's t0, or anything driving these directly) leaves t - _lt hugely
+  // negative, which passes a bare `< 0.033` and freezes the layer for good.
+  if (_drawJukoOverlay._lt !== undefined && t - _drawJukoOverlay._lt >= 0 && t - _drawJukoOverlay._lt < 0.033) return;
   const dt = _drawJukoOverlay._lt === undefined ? 0.016 : Math.min(t - _drawJukoOverlay._lt, 0.05);
   _drawJukoOverlay._lt = t;
   ctx.clearRect(0, 0, W, H);
@@ -10289,7 +10317,20 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
   // 0∞: the cursor companion glitches too, cyan + lime ghost double-renders
   // (green family, NOT red) jittering off-position, like the sprite itself can't
   // hold a single frame. Grows with severity (calm in the intro).
-  if (_o0inf && _oSev > 0.04) {
+  const _oOne = !_o0inf && _isJuko1(_jukoCurChar());
+  if (_oOne) {
+    // 1: the thing the program resolved to, and the page's only light source
+    // apart from the core. The background reads _j1Tip to know where it is.
+    _j1Pulse = Math.max(0, _j1Pulse - dt * 1.9);
+    _j1Tip = { x: _jukoX, y: _jukoY };
+    if (!_j1Wake.length || Math.hypot(_jukoX - _j1Wake[0].x, _jukoY - _j1Wake[0].y) > 13) {
+      _j1Wake.unshift({ x: _jukoX, y: _jukoY, life: 1, ch: _j1Glyph(0.5, _j1Wake.length + t * 31) });
+      if (_j1Wake.length > 26) _j1Wake.pop();
+    }
+    _j1PageLayer(canvas, ctx, W, H, t);
+    _j1Cursor(ctx, _jukoX, _jukoY, t, _jukoVX, _jukoVY);
+  } else if (_o0inf && _oSev > 0.04) {
+    if (_j1Tip) { _j1Tip = null; _j1Wake.length = 0; _j1Burst.length = 0; }
     const amp = 3 + _oSev * 16;
     const jx = (Math.random() - 0.5) * amp, jy = (Math.random() - 0.5) * amp;
     const gA = 0.25 + _oSev * 0.3;
@@ -10300,6 +10341,7 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
     ctx.restore();
     _jukoDrawSprite(ctx, _jukoX + jx * 0.3, _jukoY + jy * 0.3, t);
   } else {
+    if (_j1Tip) { _j1Tip = null; _j1Wake.length = 0; _j1Burst.length = 0; }
     _jukoDrawSprite(ctx, _jukoX, _jukoY, t);
   }
 
@@ -10576,7 +10618,10 @@ function _jukoBuildFrameCells(w, h, cell) {
 // like a VU meter, so they track the actual music rather than lagging it.
 function _drawJukoEqualizer(canvas, ctx, W, H, t) {
   if (!(W > 0 && H > 0)) return;      // laid out in a hidden pane: nothing to draw on
-  if (_drawJukoEqualizer._lt !== undefined && t - _drawJukoEqualizer._lt < 0.033) return;
+  // The `>= 0` matters: a clock that jumps BACKWARDS (a remount that resets
+  // the loop's t0, or anything driving these directly) leaves t - _lt hugely
+  // negative, which passes a bare `< 0.033` and freezes the layer for good.
+  if (_drawJukoEqualizer._lt !== undefined && t - _drawJukoEqualizer._lt >= 0 && t - _drawJukoEqualizer._lt < 0.033) return;
   const dt = _drawJukoEqualizer._lt === undefined ? 0.016 : Math.min(t - _drawJukoEqualizer._lt, 0.05);
   _drawJukoEqualizer._lt = t;
   ctx.clearRect(0, 0, W, H);
@@ -10586,6 +10631,7 @@ function _drawJukoEqualizer(canvas, ctx, W, H, t) {
   // regardless of the music, building through the intro then raging post-drop.
   const _r = _drawJukoOverlay._root || (_drawJukoOverlay._root = document.getElementById('char-view'));
   const chaos = !!(_r && _r.classList.contains('juko-0inf'));
+  const one = !!(_r && _r.classList.contains('juko-one'));
   const eqR = chaos ? _juko0InfSev(_juko0InfElapsed()) : 0;
   const eqH = Math.min(240, H * (chaos ? 0.26 + eqR * 0.08 : 0.26));   // ceiling rises with severity
   const spacing = 6, barW = 2.6;
@@ -10601,20 +10647,27 @@ function _drawJukoEqualizer(canvas, ctx, W, H, t) {
     };
   }
   // Rebuild the gradient each frame in chaos so it can flip acid/white; cache otherwise.
-  if (!eq.grad || chaos !== eq._chaos || eq._gradH !== H) {
+  if (!eq.grad || chaos !== eq._chaos || one !== eq._one || eq._gradH !== H) {
     const g = ctx.createLinearGradient(0, H, 0, H - eqH);
     if (chaos) {
       g.addColorStop(0.0, '#04220e');
       g.addColorStop(0.4, '#2ad14a');
       g.addColorStop(0.72, '#8dff5a');
       g.addColorStop(1.0, '#f2fff0');
+    } else if (one) {
+      // in the void the meter is the last readout still running, so it takes
+      // the void's light rather than the garden's
+      g.addColorStop(0.0, '#031c1c');
+      g.addColorStop(0.4, '#12796f');
+      g.addColorStop(0.72, '#3fe0c0');
+      g.addColorStop(1.0, '#e6fff6');
     } else {
       g.addColorStop(0.0, '#06301a');
       g.addColorStop(0.4, '#1c9c3d');
       g.addColorStop(0.72, '#5cef4a');
       g.addColorStop(1.0, '#eaffb0');
     }
-    eq.grad = g; eq._chaos = chaos; eq._gradH = H;
+    eq.grad = g; eq._chaos = chaos; eq._one = one; eq._gradH = H;
   }
   const kUp = Math.min(1, dt * (chaos ? 60 : 38)), kDn = Math.min(1, dt * (chaos ? 16 : 9));
   // solid graded bars
@@ -10647,7 +10700,10 @@ function _drawJukoEqualizer(canvas, ctx, W, H, t) {
 
 function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
   if (!(W > 0 && H > 0)) return;      // laid out in a hidden pane: nothing to draw on
-  if (_drawJukoCodeFrame._lt !== undefined && t - _drawJukoCodeFrame._lt < 0.033) return;
+  // The `>= 0` matters: a clock that jumps BACKWARDS (a remount that resets
+  // the loop's t0, or anything driving these directly) leaves t - _lt hugely
+  // negative, which passes a bare `< 0.033` and freezes the layer for good.
+  if (_drawJukoCodeFrame._lt !== undefined && t - _drawJukoCodeFrame._lt >= 0 && t - _drawJukoCodeFrame._lt < 0.033) return;
   const dt = _drawJukoCodeFrame._lt === undefined ? 0.016 : Math.min(t - _drawJukoCodeFrame._lt, 0.05);
   _drawJukoCodeFrame._lt = t;
   ctx.clearRect(0, 0, W, H);
@@ -10657,6 +10713,7 @@ function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
 
   const beat = _jukoAudioBeat, lvl = _jukoAudioLevel;
   const chaos = root.classList.contains('juko-0inf');
+  const one = root.classList.contains('juko-one');
   const cR = chaos ? _juko0InfSev(_juko0InfElapsed()) : 0;      // severity (shared intro→drop)
   // Border code only corrupts into the chaos charset once things are worsening.
   const frameCharset = (chaos && cR > 0.4) ? _JUKO_RAIN_CHAOS : _JUKO_RAIN;
@@ -10698,6 +10755,7 @@ function _drawJukoCodeFrame(canvas, ctx, W, H, t) {
       const w2 = comet * (0.5 + beat * 0.45);
       let cr, cg, cb;
       if (cR > 0 && Math.random() < cR * 0.3) { cr = 235; cg = 255; cb = 235; }  // white corruption glint
+      else if (one) { if (c.warm) { cr = 168; cg = 246; cb = 255; } else { cr = 78; cg = 232; cb = 196; } }
       else if (c.warm) { cr = 205; cg = 255; cb = 135; } else { cr = 58; cg = 232; cb = 92; }
       cr = Math.min(255, cr + w2 * 175); cg = Math.min(255, cg + w2 * 22); cb = Math.min(255, cb + w2 * 120);
       // per-glyph position jitter: fades in with severity
@@ -11060,6 +11118,1000 @@ function _juko0InfWinFrame(now) {
   _juko0InfWinRafId = requestAnimationFrame(_juko0InfWinFrame);
 }
 /* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// JUKO · 1 : the value that was left
+//
+// THE CLAIM, and everything below is downstream of it: the loop tore itself
+// apart, and everything that was inside it resolved to a single value. The
+// Code Garden was a room. 0 infinity broke the room. This is the void the room
+// was standing in, and the thing standing in the void is what the program
+// became when it finished collapsing.
+//
+// So: no ground, no horizon, no weather. Distance goes DARK and small, because
+// the air is clear and there is nothing in it. There is exactly one light, the
+// prism the thing holds in its chest, and it is the origin of the coordinate
+// space as well: the rings and spokes are centred on it, the rim light on every
+// edge points away from it, and the further anything is from it the closer it
+// falls to black. The code mechanics stay, at a scale where a glyph is a star:
+// the field is made of digits, and the further out they are the more of them
+// are still undecided. Near the core they have all resolved to 1.
+// ════════════════════════════════════════════════════════════════
+const _J1_MINT   = '94,240,200';    // the core's light, and everything lit by it
+const _J1_CYAN   = '62,196,214';    // mid distance
+const _J1_DEEP   = '22,84,92';      // far, nearly gone
+const _J1_VIOLET = '104,74,168';    // the one cold accent, far upper left
+const _J1_HEX    = '#4ef0c4';
+
+// The field is resolving. Far out it is still every digit; near the core it is
+// mostly the answer. `res` runs 0 (far) to 1 (near).
+const _J1_DIGITS = '0123456789'.split('');
+function _j1Glyph(res, h) {
+  return (_j1Rnd(h) < res * 0.82) ? '1' : _J1_DIGITS[(_j1Rnd(h * 1.7) * 10) | 0];
+}
+// deterministic hash so a baked field is the same field after a resize
+function _j1Rnd(i) { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+// PERF: same lesson as the rain. Interned ramps, because the tendrils and the
+// field draw a few hundred glyphs a frame and a fresh rgba() string per glyph
+// is most of the cost of drawing one.
+const _J1_STEPS = 24;
+function _j1Ramp(rgb) {
+  const p = rgb.split(','), a = new Array(_J1_STEPS + 1);
+  for (let i = 0; i <= _J1_STEPS; i++) a[i] = `rgba(${p[0]},${p[1]},${p[2]},${(i / _J1_STEPS).toFixed(3)})`;
+  return a;
+}
+function _j1A(v) { return v <= 0 ? 0 : v >= 1 ? _J1_STEPS : ((v * _J1_STEPS + 0.5) | 0); }
+const _J1_R_MINT = _j1Ramp(_J1_MINT);
+const _J1_R_CYAN = _j1Ramp(_J1_CYAN);
+const _J1_R_DEEP = _j1Ramp(_J1_DEEP);
+const _J1_R_WHITE = _j1Ramp('226,255,246');
+
+// Where the cursor is, in viewport coordinates, for the background to read.
+// (Through _bgAt: the two canvases do NOT share a coordinate space.)
+let _j1Tip = null;
+let _j1Pulse = 0;        // 0..1, a click. The background answers it.
+
+// ── The void: base gradient, nebula, and the light the core throws into the
+//    dust. All static, so all of it is one baked sheet. ──
+function _j1VoidSheet(W, H, cx, cy) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#010407';
+  g.fillRect(0, 0, W, H);
+
+  // the core's glow in the dust: the only reason anything out here is visible
+  const R = Math.hypot(W, H) * 0.78;
+  const lg = g.createRadialGradient(cx, cy, 0, cx, cy, R);
+  for (let i = 0; i <= 16; i++) {
+    const u = i / 16;
+    lg.addColorStop(u, `rgba(${_J1_DEEP},${(0.95 * Math.pow(1 - u, 2.2)).toFixed(4)})`);
+  }
+  g.fillStyle = lg;
+  g.fillRect(0, 0, W, H);
+
+  // Air between the layers. Two nebula banks, one cyan low and right, one
+  // violet high and left, each faded at BOTH ends so no edge reads as a rule.
+  const bank = (bx, by, bw, bh, rgb, a, rot) => {
+    g.save();
+    g.translate(bx, by);
+    g.rotate(rot);
+    const ng = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14;
+      ng.addColorStop(u, `rgba(${rgb},${(a * Math.pow(1 - u, 2.2)).toFixed(4)})`);
+    }
+    g.scale(bw, bh);
+    g.fillStyle = ng;
+    g.fillRect(-1, -1, 2, 2);
+    g.restore();
+  };
+  bank(W * 0.78, H * 0.72, W * 0.62, H * 0.3, _J1_CYAN, 0.2, -0.22);
+  bank(W * 0.18, H * 0.18, W * 0.6, H * 0.36, _J1_VIOLET, 0.26, 0.3);
+  bank(W * 0.42, H * 0.98, W * 0.55, H * 0.24, _J1_VIOLET, 0.15, 0.1);
+  bank(W * 0.1, H * 0.74, W * 0.36, H * 0.26, '46,132,86', 0.13, -0.15);   // over the wreck
+  return c;
+}
+
+// ── The field. Three ranks of glyph stars, each rank baked at canvas size and
+//    tileable in x so it can drift; near ranks are bigger, brighter and drift
+//    faster, which is the whole of the parallax. ──
+function _j1FieldRank(W, H, cx, cy, rank) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  const n = Math.round((W * H) / (rank === 0 ? 2600 : rank === 1 ? 7000 : 26000));
+  const sz = rank === 0 ? 7 : rank === 1 ? 10 : 14;
+  const maxD = Math.hypot(W, H) * 0.72;
+  for (let i = 0; i < n; i++) {
+    const h = i * 3.7 + rank * 971;
+    const x = _j1Rnd(h) * W, y = _j1Rnd(h * 2.3) * H;
+    // Resolution rises toward the core: out at the edges the field is still
+    // every digit, in close it has almost all fallen to 1.
+    const res = Math.max(0, 1 - Math.hypot(x - cx, y - cy) / maxD);
+    const a = (rank === 0 ? 0.28 : rank === 1 ? 0.46 : 0.66) * (0.35 + res * 0.9) * (0.4 + _j1Rnd(h * 5.1) * 0.6);
+    g.font = `${(sz * (0.8 + _j1Rnd(h * 7.3) * 0.5)) | 0}px "Courier New", monospace`;
+    g.fillStyle = (res > 0.55 ? _J1_R_MINT : res > 0.28 ? _J1_R_CYAN : _J1_R_DEEP)[_j1A(a)];
+    g.fillText(_j1Glyph(res, h), x, y);
+    // wrap: anything near an edge is drawn again on the other side so the
+    // rank tiles cleanly when it drifts
+    if (x < sz * 2) g.fillText(_j1Glyph(res, h), x + W, y);
+    else if (x > W - sz * 2) g.fillText(_j1Glyph(res, h), x - W, y);
+  }
+  return c;
+}
+
+// ── The coordinate space: rings centred on the core. Rings are rotation
+//    invariant, so they bake once and never move; the spokes are drawn live
+//    (they are 30 straight lines) which is what lets them turn, breathe with
+//    the music and light up where the cursor passes. ──
+function _j1RingSheet(W, H, cx, cy) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const maxR = Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy));
+  for (let i = 1; i <= 22; i++) {
+    // spacing opens up with distance, the way a receding grid does
+    const r = maxR * Math.pow(i / 22, 1.55);
+    const a = 0.2 * Math.pow(1 - i / 23, 0.8) + 0.025;
+    g.beginPath();
+    g.arc(cx, cy, r, 0, 6.283185);
+    g.strokeStyle = `rgba(${i < 8 ? _J1_MINT : _J1_CYAN},${a.toFixed(3)})`;
+    g.lineWidth = i < 5 ? 1.2 : 1;
+    g.stroke();
+    // a tick on every fourth ring, so the cage reads as measured rather than drawn
+    if (i % 4 === 0) {
+      for (let k = 0; k < 24; k++) {
+        const ang = (k / 24) * 6.283185 + i * 0.13;
+        const x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r;
+        g.fillStyle = `rgba(${_J1_MINT},${(a * 1.6).toFixed(3)})`;
+        g.fillRect(x - 1, y - 1, 2, 2);
+      }
+    }
+  }
+  return c;
+}
+
+// ── THE KNIGHT. Every edge that faces the core is bright and every edge
+//    that faces away is nearly gone, which is the whole rule and the only thing
+//    stopping a figure made of outlines from reading flat. The plates are
+//    FILLED, near black, so they occlude one another: a pile of overlapping
+//    dark shapes with lit edges is a wing, a pile of outlines is a wire mess.
+//    Baked whole; it never changes shape. ────────
+function _j1Vane(g, x, y, ang, len, wid, bow, lit, lx, ly) {
+  // One blade: long, narrow, nearly straight, tapering to a point, bowed a
+  // little so a rank of them is not a rank of identical sticks. Filled almost
+  // black so the blades in front of it occlude the ones behind.
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const nx = -sa, ny = ca;
+  const tx = x + ca * len, ty = y + sa * len;
+  const mx = x + ca * len * 0.5 + nx * bow, my = y + sa * len * 0.5 + ny * bow;
+  const r1x = x + nx * wid, r1y = y + ny * wid;
+  const r2x = x - nx * wid, r2y = y - ny * wid;
+  g.beginPath();
+  g.moveTo(r1x, r1y);
+  g.quadraticCurveTo(mx + nx * wid * 0.62, my + ny * wid * 0.62, tx, ty);
+  g.quadraticCurveTo(mx - nx * wid * 0.62, my - ny * wid * 0.62, r2x, r2y);
+  g.closePath();
+  g.fillStyle = 'rgba(1,5,9,0.93)';
+  g.fill();
+  // ONE lit edge, and WHICH one is not a guess: it is whichever of the two
+  // faces the light. Assuming it was always the same side lit every blade on
+  // the far side, which is the one rule this page is built on, inverted on the
+  // largest object on it.
+  const towards = (lx - x) * nx + (ly - y) * ny;
+  const sgn = towards >= 0 ? 1 : -1;
+  g.beginPath();
+  g.moveTo(x + nx * wid * sgn, y + ny * wid * sgn);
+  g.quadraticCurveTo(mx + nx * wid * 0.62 * sgn, my + ny * wid * 0.62 * sgn, tx, ty);
+  g.strokeStyle = `rgba(${_J1_MINT},${lit.toFixed(3)})`;
+  g.lineWidth = 1.4;
+  g.stroke();
+  g.beginPath();
+  g.moveTo(x - nx * wid * sgn, y - ny * wid * sgn);
+  g.quadraticCurveTo(mx - nx * wid * 0.62 * sgn, my - ny * wid * 0.62 * sgn, tx, ty);
+  g.strokeStyle = `rgba(${_J1_DEEP},${(lit * 0.7).toFixed(3)})`;
+  g.lineWidth = 1;
+  g.stroke();
+}
+
+// A wing: blades fanned across a wide angle from a short shoulder arc, longest
+// at the top of the fan, drawn from the back of the fan forward so the front
+// blades lie over the back ones, with an arc along the leading edge.
+function _j1Wing(g, ox, oy, S, a0, a1, reach, n, lit, wid, lx, ly) {
+  const first = [];
+  for (let k = n - 1; k >= 0; k--) {
+    const u = k / (n - 1);
+    const ang = a0 + (a1 - a0) * u;
+    // Each blade leaves from a point already out along its OWN direction, so
+    // the roots spread across the fan. Rooting them all at one place, or along
+    // a perpendicular arc, bunches them into a single wedge.
+    const rt = S * (0.055 + u * 0.06);
+    const rx = ox + Math.cos(ang) * rt, ry = oy + Math.sin(ang) * rt;
+    // longest up at the top of the fan, and ragged, so the leading edge is a
+    // silhouette rather than a rim
+    const len = S * reach * (1 - u * 0.5) * (0.66 + _j1Rnd(k * 5.3 + a0 * 10) * 0.62);
+    _j1Vane(g, rx, ry, ang, len, S * wid * (1 - u * 0.25),
+            S * 0.03 * (0.4 + _j1Rnd(k * 7.9) * 0.9), lit * (1 - u * 0.34), lx, ly);
+    first.push([rx + Math.cos(ang) * len, ry + Math.sin(ang) * len]);
+  }
+  // the leading edge, which is what stops the fan reading as loose sticks
+  g.beginPath();
+  g.moveTo(first[first.length - 1][0], first[first.length - 1][1]);
+  for (let k = first.length - 2; k >= 0; k--) {
+    const a = first[k + 1], b = first[k];
+    g.quadraticCurveTo((a[0] + b[0]) / 2 + (b[1] - a[1]) * 0.12,
+                       (a[1] + b[1]) / 2 - (b[0] - a[0]) * 0.12, b[0], b[1]);
+  }
+  g.strokeStyle = `rgba(${_J1_MINT},${(lit * 0.5).toFixed(3)})`;
+  g.lineWidth = 1.2;
+  g.stroke();
+}
+
+function _j1KnightSheet(W, H, cx, cy) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const S = Math.min(W, H);
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+
+  // ── the robe: one narrow tapering blade under the head, falling away and
+  //    slightly left, with two panel seams. Drawn first, so the pauldrons and
+  //    the wings sit over its shoulders.
+  {
+    const top = cy + S * 0.02, bot = cy + S * 0.48, lean = -S * 0.07;
+    g.beginPath();
+    g.moveTo(cx - S * 0.042, top);
+    g.quadraticCurveTo(cx - S * 0.058, cy + S * 0.24, cx + lean - S * 0.005, bot);
+    g.lineTo(cx + lean + S * 0.005, bot);
+    g.quadraticCurveTo(cx + S * 0.05, cy + S * 0.22, cx + S * 0.042, top);
+    g.closePath();
+    g.fillStyle = 'rgba(1,5,9,0.94)';
+    g.fill();
+    g.beginPath();                                   // the lit side is the right
+    g.moveTo(cx + S * 0.042, top);
+    g.quadraticCurveTo(cx + S * 0.05, cy + S * 0.22, cx + lean + S * 0.005, bot);
+    g.strokeStyle = `rgba(${_J1_MINT},0.66)`;
+    g.lineWidth = 1.7;
+    g.stroke();
+    g.beginPath();
+    g.moveTo(cx - S * 0.042, top);
+    g.quadraticCurveTo(cx - S * 0.058, cy + S * 0.24, cx + lean - S * 0.005, bot);
+    g.strokeStyle = `rgba(${_J1_DEEP},0.6)`;
+    g.lineWidth = 1.2;
+    g.stroke();
+    for (const u of [0.22, 0.46, 0.7]) {             // panel seams across it
+      const y = top + (bot - top) * u;
+      const w = S * 0.05 * (1 - u * 0.78);
+      const mx = cx + lean * u;
+      g.beginPath();
+      g.moveTo(mx - w, y - S * 0.012);
+      g.lineTo(mx, y);
+      g.lineTo(mx + w, y - S * 0.012);
+      g.strokeStyle = `rgba(${_J1_CYAN},${(0.4 * (1 - u * 0.5)).toFixed(3)})`;
+      g.lineWidth = 1.2;
+      g.stroke();
+    }
+  }
+
+  // ── the wings. Two of them at two distances, both sweeping up and back
+  //    to the left, away from the arms. The far one is shorter and dimmer,
+  //    which is the whole of the depth between them.
+  _j1Wing(g, cx + S * 0.02, cy - S * 0.14, S, -1.72, -2.62, 0.56, 9, 0.24, 0.011, cx, cy);
+  _j1Wing(g, cx - S * 0.05, cy - S * 0.02, S, -1.98, -3.02, 0.92, 13, 0.6, 0.0135, cx, cy);
+  // the lower cluster, shorter and swept further back, so the left of the page
+  // is a wing and a broken wing rather than one fan
+  _j1Wing(g, cx - S * 0.1, cy + S * 0.12, S, -3.05, -3.62, 0.6, 7, 0.4, 0.012, cx, cy);
+
+  // ── the pauldrons, and on the right the socket the arms leave from
+  for (const sgn of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(cx + sgn * S * 0.026, cy - S * 0.04);
+    g.lineTo(cx + sgn * S * 0.105, cy - S * 0.062);
+    g.lineTo(cx + sgn * S * 0.125, cy + S * 0.016);
+    g.lineTo(cx + sgn * S * 0.045, cy + S * 0.042);
+    g.closePath();
+    g.fillStyle = 'rgba(1,5,9,0.95)';
+    g.fill();
+    g.beginPath();                                   // the outer edges only
+    g.moveTo(cx + sgn * S * 0.026, cy - S * 0.04);
+    g.lineTo(cx + sgn * S * 0.105, cy - S * 0.062);
+    g.lineTo(cx + sgn * S * 0.125, cy + S * 0.016);
+    g.strokeStyle = `rgba(${sgn > 0 ? _J1_MINT : _J1_DEEP},${sgn > 0 ? 0.7 : 0.45})`;
+    g.lineWidth = 1.5;
+    g.stroke();
+  }
+
+  // ── the head, small, so everything else reads as huge
+  g.beginPath();
+  g.moveTo(cx, cy - S * 0.078);
+  g.lineTo(cx + S * 0.032, cy - S * 0.038);
+  g.lineTo(cx + S * 0.022, cy + S * 0.012);
+  g.lineTo(cx - S * 0.022, cy + S * 0.012);
+  g.lineTo(cx - S * 0.032, cy - S * 0.038);
+  g.closePath();
+  g.fillStyle = 'rgba(1,6,10,0.97)';
+  g.fill();
+  g.strokeStyle = `rgba(${_J1_MINT},0.7)`;
+  g.lineWidth = 1.5;
+  g.stroke();
+  g.beginPath();                                     // the visor slit
+  g.moveTo(cx - S * 0.021, cy - S * 0.035);
+  g.lineTo(cx + S * 0.021, cy - S * 0.035);
+  g.strokeStyle = 'rgba(226,255,246,0.75)';
+  g.lineWidth = 2;
+  g.stroke();
+
+  // ── the crown: a diamond floating clear of the head with two spikes. The
+  //    one piece of ornament, and the reason it reads as a knight.
+  const crY = cy - S * 0.172, crR = S * 0.06;
+  g.beginPath();
+  g.moveTo(cx, crY - crR); g.lineTo(cx + crR * 0.66, crY);
+  g.lineTo(cx, crY + crR * 0.86); g.lineTo(cx - crR * 0.66, crY);
+  g.closePath();
+  g.fillStyle = 'rgba(1,5,9,0.8)';
+  g.fill();
+  g.strokeStyle = `rgba(${_J1_MINT},0.95)`;
+  g.lineWidth = 1.9;
+  g.stroke();
+  g.beginPath();
+  g.moveTo(cx, crY - crR); g.lineTo(cx, crY + crR * 0.86);
+  g.strokeStyle = `rgba(${_J1_CYAN},0.55)`;
+  g.lineWidth = 1;
+  g.stroke();
+  for (const sgn of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(cx + sgn * crR * 0.55, crY + crR * 0.24);
+    g.lineTo(cx + sgn * crR * 2.3, crY - crR * 1.85);
+    g.lineTo(cx + sgn * crR * 0.95, crY - crR * 0.34);
+    g.closePath();
+    g.fillStyle = 'rgba(1,5,9,0.82)';
+    g.fill();
+    g.strokeStyle = `rgba(${_J1_MINT},${sgn > 0 ? 0.75 : 0.42})`;
+    g.lineWidth = 1.4;
+    g.stroke();
+  }
+  return c;
+}
+
+// ── The wreck of the Code Garden, low and left: the thing this used to be,
+//    kept as the counterweight to the Knight so half the page is not dead.
+//    Dead green, no light of its own, broken open. ──
+function _j1WreckSheet(S) {
+  // (S is the sheet size; the plates below are sized off it too)
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  const m = S / 2, R = S * 0.36;
+  g.lineCap = 'round';
+  // the ring, in arcs with pieces missing
+  for (let i = 0; i < 9; i++) {
+    const a0 = _j1Rnd(i * 4.1) * 6.283185;
+    const sp = 0.25 + _j1Rnd(i * 6.7) * 0.5;
+    const rr = R * (0.72 + _j1Rnd(i * 9.3) * 0.5);
+    g.beginPath();
+    g.arc(m, m, rr, a0, a0 + sp);
+    g.strokeStyle = `rgba(58,166,108,${(0.34 + _j1Rnd(i * 3.3) * 0.34).toFixed(3)})`;
+    g.lineWidth = 1 + _j1Rnd(i * 8.1);
+    g.stroke();
+  }
+  // spars across the hole where the garden was
+  for (let i = 0; i < 7; i++) {
+    const a = _j1Rnd(i * 12.7) * 6.283185;
+    const l = R * (0.4 + _j1Rnd(i * 15.1) * 0.75);
+    g.beginPath();
+    g.moveTo(m + Math.cos(a) * R * 0.18, m + Math.sin(a) * R * 0.18);
+    g.lineTo(m + Math.cos(a + 0.3) * l, m + Math.sin(a + 0.3) * l);
+    g.strokeStyle = `rgba(48,140,92,${(0.26 + _j1Rnd(i * 2.9) * 0.24).toFixed(3)})`;
+    g.lineWidth = 1;
+    g.stroke();
+  }
+  // plates torn off the thing and left behind: the same construction as the
+  // Knight's, but dead, and they are what actually balances the right side.
+  for (let i = 0; i < 5; i++) {
+    const a = 0.7 + _j1Rnd(i * 19.1) * 4.2, d = R * (0.85 + _j1Rnd(i * 23.7) * 0.6);
+    const px = m + Math.cos(a) * d, py = m + Math.sin(a) * d;
+    const ps = S * (0.05 + _j1Rnd(i * 27.3) * 0.07), rot = _j1Rnd(i * 31.9) * 6.283185;
+    g.save();
+    g.translate(px, py);
+    g.rotate(rot);
+    g.beginPath();
+    g.moveTo(-ps, -ps * 0.5); g.lineTo(ps * 0.8, -ps * 0.72);
+    g.lineTo(ps, ps * 0.55); g.lineTo(-ps * 0.6, ps * 0.8);
+    g.closePath();
+    g.fillStyle = 'rgba(1,6,7,0.9)';
+    g.fill();
+    g.strokeStyle = `rgba(58,166,108,${(0.24 + _j1Rnd(i * 33.1) * 0.24).toFixed(3)})`;
+    g.lineWidth = 1.3;
+    g.stroke();
+    g.restore();
+  }
+  // a few glyphs still stuck to it, the last of the old field
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let i = 0; i < 14; i++) {
+    const a = _j1Rnd(i * 5.9) * 6.283185, d = R * (0.5 + _j1Rnd(i * 7.7) * 0.6);
+    g.font = `${8 + ((_j1Rnd(i * 11.3) * 5) | 0)}px "Courier New", monospace`;
+    g.fillStyle = `rgba(74,182,116,${(0.3 + _j1Rnd(i * 13.9) * 0.3).toFixed(3)})`;
+    g.fillText(_J1_DIGITS[(_j1Rnd(i * 17.3) * 10) | 0], m + Math.cos(a) * d, m + Math.sin(a) * d);
+  }
+  return c;
+}
+
+// ── The near plane: big dark shards close to the camera, crossing the bottom
+//    and the edges, with one lit edge facing the core and a face you can only
+//    just read digits on. Without these there is only mid and far. ──
+function _j1ShardSheet(S, seed) {
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  const m = S / 2;
+  const n = 5 + ((_j1Rnd(seed) * 3) | 0);
+  const pts = [];
+  const tilt = _j1Rnd(seed * 1.7) * 6.283185;        // baked in, see below
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 6.283185 + tilt + _j1Rnd(seed + i * 3.1) * 0.5;
+    const r = m * (0.5 + _j1Rnd(seed + i * 7.7) * 0.46);
+    pts.push([m + Math.cos(a) * r, m + Math.sin(a) * r]);
+  }
+  g.beginPath();
+  g.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < n; i++) g.lineTo(pts[i][0], pts[i][1]);
+  g.closePath();
+  g.fillStyle = 'rgba(1,4,7,0.93)';                  // near things are the darkest
+  g.fill();
+  // faces: faint digits on the surface, mostly resolved
+  g.save();
+  g.clip();
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let i = 0; i < 22; i++) {
+    g.font = `${9 + ((_j1Rnd(seed + i * 2.3) * 6) | 0)}px "Courier New", monospace`;
+    g.fillStyle = `rgba(${_J1_DEEP},${(0.1 + _j1Rnd(seed + i * 4.7) * 0.16).toFixed(3)})`;
+    g.fillText(_j1Glyph(0.75, seed + i * 9.1), _j1Rnd(seed + i * 5.3) * S, _j1Rnd(seed + i * 8.9) * S);
+  }
+  g.restore();
+  // ONE lit edge, the one turned toward the core (which is up and right of
+  // every shard down here), not an outline all the way round.
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n];
+    const mx = (a[0] + b[0]) / 2 - m, my = (a[1] + b[1]) / 2 - m;
+    const facing = (mx * 0.5 + my * -0.86) / (Math.hypot(mx, my) || 1);   // up and right
+    if (facing < 0.05) continue;
+    g.beginPath();
+    g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
+    g.strokeStyle = `rgba(${_J1_MINT},${(0.12 + facing * 0.62).toFixed(3)})`;
+    g.lineWidth = 1.6;
+    g.stroke();
+  }
+  return c;
+}
+
+// ── The prism. The one light. A diamond of white with a rainbow fan behind
+//    it, breathing on the beat. Small, and the brightest thing on the page. ──
+function _j1Prism(g, x, y, r, t, beat, pulse) {
+  const b = 1 + beat * 0.5 + pulse * 0.7;
+  // the fan: six wedges of spectrum, turning slowly. This is the only place
+  // colour other than the mint/cyan ramp is allowed.
+  g.save();
+  g.translate(x, y);
+  g.globalCompositeOperation = 'lighter';
+  g.rotate(t * 0.18);
+  const cols = ['255,80,120', '255,190,70', '190,255,90', '80,255,200', '90,180,255', '170,110,255'];
+  for (let i = 0; i < 6; i++) {
+    const a0 = (i / 6) * 6.283185;
+    const rr = r * (5.5 + Math.sin(t * 1.3 + i) * 0.9) * b;
+    const wg = g.createRadialGradient(0, 0, r * 0.4, 0, 0, rr);
+    wg.addColorStop(0, `rgba(${cols[i]},${(0.16 * b).toFixed(3)})`);
+    wg.addColorStop(1, `rgba(${cols[i]},0)`);
+    g.fillStyle = wg;
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.arc(0, 0, rr, a0, a0 + 0.62);
+    g.closePath();
+    g.fill();
+  }
+  g.restore();
+
+  // the halo, then the stone
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  const hg = g.createRadialGradient(x, y, 0, x, y, r * 7 * b);
+  for (let i = 0; i <= 12; i++) {
+    const u = i / 12;
+    hg.addColorStop(u, `rgba(${_J1_MINT},${(0.34 * b * Math.pow(1 - u, 2.7)).toFixed(4)})`);
+  }
+  g.fillStyle = hg;
+  g.fillRect(x - r * 7 * b, y - r * 7 * b, r * 14 * b, r * 14 * b);
+
+  const rr = r * (1 + beat * 0.14 + pulse * 0.2);
+  g.beginPath();                                     // the diamond
+  g.moveTo(x, y - rr * 1.5); g.lineTo(x + rr, y);
+  g.lineTo(x, y + rr * 1.5); g.lineTo(x - rr, y);
+  g.closePath();
+  const sg = g.createLinearGradient(x - rr, y - rr, x + rr, y + rr);
+  sg.addColorStop(0, 'rgba(226,255,246,0.95)');
+  sg.addColorStop(0.5, `rgba(${_J1_MINT},0.85)`);
+  sg.addColorStop(1, 'rgba(150,220,255,0.9)');
+  g.fillStyle = sg;
+  g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.9)';
+  g.lineWidth = 1.2;
+  g.stroke();
+  g.beginPath();                                     // the facet seam
+  g.moveTo(x - rr, y); g.lineTo(x + rr, y);
+  g.moveTo(x, y - rr * 1.5); g.lineTo(x, y + rr * 1.5);
+  g.strokeStyle = 'rgba(255,255,255,0.5)';
+  g.lineWidth = 0.9;
+  g.stroke();
+  g.restore();
+}
+
+// ── The tendrils: chains of digits running out of the core, which is the one
+//    thing from the reference art that has to be exactly right. Each is an arc
+//    with a slow wobble, and the digits FLOW along it outward, resolving to 1
+//    the closer to the core they are. ──
+function _j1Tendrils(g, cx, cy, S, t, beat, arms) {
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  for (let ai = 0; ai < arms.length; ai++) {
+    const a = arms[ai];
+    // Walked, not drawn: the heading turns a little at every step, so the arm
+    // curls. An arc bows once and then reads as a bent stick.
+    const rt = S * a.rt;
+    let x = cx + Math.cos(a.root) * rt, y = cy + Math.sin(a.root) * rt;
+    let dir = a.ang + Math.sin(t * a.wf + a.ph) * a.wa;
+    const len = S * a.len * (1 + beat * 0.05);
+    const step = len / a.n;
+    const flow = (t * a.spd * a.n) % 1;              // glyphs slide outward
+    for (let i = 0; i < a.n; i++) {
+      const u = (i + flow) / a.n;
+      // the turn rate rises along the arm, so it opens wide and then coils
+      dir += (a.curl / a.n) * (0.35 + u * 1.9)
+           + Math.sin(u * 5.5 + t * a.wf * 1.7 + a.ph) * 0.035;
+      x += Math.cos(dir) * step;
+      y += Math.sin(dir) * step;
+      const fade = Math.pow(1 - u, 0.7);
+      const al = (0.52 + beat * 0.34) * fade * a.br;
+      if (al < 0.02) continue;
+      g.font = `bold ${Math.max(5, (S * (0.038 - u * 0.019)) | 0)}px "Courier New", monospace`;
+      g.fillStyle = (u < 0.2 ? _J1_R_WHITE : u < 0.58 ? _J1_R_MINT : _J1_R_CYAN)[_j1A(al)];
+      g.fillText(_j1Glyph(1 - u, ai * 53 + i * 3.1), x, y);
+    }
+  }
+}
+
+// The arms are rolled once and kept, so they are the same arms every frame.
+function _j1Arms() {
+  if (_j1Arms._a) return _j1Arms._a;
+  const a = [];
+  // they all sweep RIGHT and UP, into the clear side of the page, away from
+  // the wings. Two reach far enough to leave the canvas entirely.
+  // angle out of the shoulder, reach, TOTAL turn along the arm, brightness.
+  // Mixed signs on the turn so they do not all coil the same way.
+  const spec = [
+    [-0.82, 1.2, 1.5, 1.0], [-0.34, 1.4, 1.05, 0.95], [0.08, 1.5, -1.3, 0.92],
+    [0.46, 1.3, -1.75, 0.85], [0.9, 1.05, -2.1, 0.72], [-1.2, 0.85, 2.0, 0.62],
+    [1.28, 0.75, -1.5, 0.5],
+  ];
+  for (let i = 0; i < spec.length; i++) {
+    a.push({
+      ang: spec[i][0], len: spec[i][1], curl: spec[i][2], br: spec[i][3],
+      root: spec[i][0] + (_j1Rnd(i * 2.1) - 0.5) * 1.6,
+      rt: 0.07 + _j1Rnd(i * 6.1) * 0.13,            // and each from its own place
+      n: 24 + ((_j1Rnd(i * 3.7) * 12) | 0),         // a chain, not a ribbon
+      spd: 0.10 + _j1Rnd(i * 5.3) * 0.1,
+      wf: 0.3 + _j1Rnd(i * 7.1) * 0.35,
+      wa: 0.05 + _j1Rnd(i * 9.7) * 0.07,
+      ph: _j1Rnd(i * 11.3) * 6.283185,
+    });
+  }
+  return (_j1Arms._a = a);
+}
+
+// ════════════════════════════════════════════════════════════════
+function _drawJuko1Pattern(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;                     // hidden pane: nothing to draw on
+  // The `>= 0` matters: a clock that jumps BACKWARDS (a remount that resets
+  // the loop's t0, or anything driving these directly) leaves t - _lt hugely
+  // negative, which passes a bare `< 0.033` and freezes the layer for good.
+  if (_drawJuko1Pattern._lt !== undefined && t - _drawJuko1Pattern._lt >= 0 && t - _drawJuko1Pattern._lt < 0.033) return;
+  const dt = _drawJuko1Pattern._lt === undefined ? 0.016 : Math.min(t - _drawJuko1Pattern._lt, 0.05);
+  _drawJuko1Pattern._lt = t;
+
+  _jukoEnsureEnvelope();
+  _jukoSampleAudio(dt);
+  const aL = _jukoAudioLevel, aO = _jukoAudioOnset, beat = _jukoAudioBeat;
+
+  // The pattern canvas is the content area, which is wide and short: about
+  // 1.6:1. Sizing the figure off min(W,H) alone made it tiny on a tall window
+  // and cropped it to nothing on a wide one, so the span is taken off the
+  // width and the height is only a ceiling on it.
+  const S = Math.min(W * 0.55, H * 0.95);
+  // THE CORE, and therefore the light, the vanishing point and the origin of
+  // the rings. Up and right, which is the one part of this layout the panels
+  // leave clear, and far enough over that the wing has the whole page to
+  // sweep across. Deliberately cropped: the wing leaves the frame on the left
+  // and the arms leave it on the right. You are meant to be seeing part of
+  // something, not all of something small.
+  const CX = W * 0.62, CY = H * 0.4;
+
+  if (canvas._j1W !== W || canvas._j1H !== H) {
+    canvas._j1W = W; canvas._j1H = H;
+    canvas._j1Void = null; canvas._j1Rings = null; canvas._j1Knight = null;
+    canvas._j1Field = null; canvas._j1Wreck = null; canvas._j1Shards = null;
+    canvas._j1Vign = null;
+  }
+  if (!canvas._j1Void) {
+    canvas._j1Void = _j1VoidSheet(W, H, CX, CY);
+    canvas._j1Rings = _j1RingSheet(W, H, CX, CY);
+    canvas._j1Knight = _j1KnightSheet(W, H, CX, CY);
+    canvas._j1Field = [_j1FieldRank(W, H, CX, CY, 0), _j1FieldRank(W, H, CX, CY, 1), _j1FieldRank(W, H, CX, CY, 2)];
+    canvas._j1Wreck = _j1WreckSheet(Math.round(S * 0.5));
+    canvas._j1Shards = [0, 1, 2, 3].map(i => _j1ShardSheet(Math.round(S * (0.3 + _j1Rnd(i * 21.1) * 0.34)), i * 17 + 3));
+    const vc = document.createElement('canvas');
+    vc.width = W; vc.height = H;
+    const vg = vc.getContext('2d');
+    const rg = vg.createRadialGradient(CX, CY, Math.min(W, H) * 0.28, CX, CY, Math.hypot(W, H) * 0.86);
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14;
+      rg.addColorStop(u, `rgba(0,1,3,${(0.46 * Math.pow(u, 2.8)).toFixed(4)})`);
+    }
+    vg.fillStyle = rg; vg.fillRect(0, 0, W, H);
+    canvas._j1Vign = vc;
+  }
+
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.drawImage(canvas._j1Void, 0, 0);
+
+  // 1 ── the field, three ranks, drifting at three speeds. That difference IS
+  //      the parallax; there is nothing else out here to give distance away.
+  ctx.globalCompositeOperation = 'lighter';
+  for (let r = 0; r < 3; r++) {
+    const sheet = canvas._j1Field[r];
+    const off = ((t * (2.2 + r * 4.4)) % W + W) % W;
+    ctx.globalAlpha = 0.75 + aL * 0.25;
+    ctx.drawImage(sheet, -off, 0);
+    ctx.drawImage(sheet, W - off, 0);
+  }
+  ctx.globalAlpha = 1;
+
+  // 2 ── the coordinate cage. Rings baked (a ring does not care about
+  //      rotation); spokes live, because live is what lets them turn, answer
+  //      the music, and brighten where the cursor is.
+  ctx.drawImage(canvas._j1Rings, 0, 0);
+  const maxR = Math.hypot(Math.max(CX, W - CX), Math.max(CY, H - CY));
+  _bgRect(canvas);
+  let tipX = -9999, tipY = -9999;
+  if (_j1Tip) { const p = _bgAt(canvas, W, H, _j1Tip.x, _j1Tip.y); tipX = p[0]; tipY = p[1]; }
+  const tipAng = Math.atan2(tipY - CY, tipX - CX);
+  const spokes = 18, spin = t * 0.021;
+  for (let bucket = 0; bucket < 3; bucket++) {
+    ctx.beginPath();
+    let any = false;
+    for (let i = 0; i < spokes; i++) {
+      const ang = (i / spokes) * 6.283185 + spin;
+      // how close this spoke passes to the cursor, wrapped
+      let d = Math.abs(((ang - tipAng + Math.PI * 3) % 6.283185) - Math.PI);
+      const near = _j1Tip ? Math.max(0, 1 - d / 0.5) : 0;
+      const b = (i % 3 === bucket ? 1 : 0) * (0.55 + near * 2.6 + beat * 0.5);
+      if (b <= 0) continue;
+      any = true;
+      const c1 = Math.cos(ang), s1 = Math.sin(ang);
+      ctx.moveTo(CX + c1 * S * 0.05, CY + s1 * S * 0.05);
+      ctx.lineTo(CX + c1 * maxR, CY + s1 * maxR);
+    }
+    if (!any) continue;
+    const nearAny = _j1Tip ? 1 : 0;
+    ctx.strokeStyle = `rgba(${_J1_CYAN},${(0.018 + beat * 0.016).toFixed(3)})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  // the spokes the cursor is actually on, brighter, drawn on their own so the
+  // brightness is per spoke rather than per bucket
+  if (_j1Tip) {
+    for (let i = 0; i < spokes; i++) {
+      const ang = (i / spokes) * 6.283185 + spin;
+      let d = Math.abs(((ang - tipAng + Math.PI * 3) % 6.283185) - Math.PI);
+      const near = Math.max(0, 1 - d / 0.42);
+      if (near < 0.02) continue;
+      const c1 = Math.cos(ang), s1 = Math.sin(ang);
+      ctx.beginPath();
+      ctx.moveTo(CX + c1 * S * 0.05, CY + s1 * S * 0.05);
+      ctx.lineTo(CX + c1 * maxR, CY + s1 * maxR);
+      ctx.strokeStyle = _J1_R_MINT[_j1A(near * near * (0.16 + _j1Pulse * 0.4))];
+      ctx.lineWidth = 1 + near;
+      ctx.stroke();
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 3 ── the wreck of the garden, low and left: the counterweight, and the
+  //      only green left on the page.
+  {
+    const wc = canvas._j1Wreck, ws = wc.width;
+    const wx = W * 0.17 - ws / 2, wy = H * 0.76 - ws / 2;
+    ctx.save();
+    ctx.translate(wx + ws / 2, wy + ws / 2);
+    ctx.rotate(Math.sin(t * 0.05) * 0.03 + 0.2);
+    ctx.globalAlpha = 0.9;
+    ctx.drawImage(wc, -ws / 2, -ws / 2);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  // 4 ── THE KNIGHT
+  ctx.drawImage(canvas._j1Knight, 0, 0);
+  if (beat > 0.15) {                                 // the light in it swells on the beat
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = Math.min(0.5, beat * 0.45);
+    ctx.drawImage(canvas._j1Knight, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 5 ── the tendrils, flowing out of the core
+  _j1Tendrils(ctx, CX, CY, S, t, beat, _j1Arms());
+
+  // 6 ── the core itself
+  _j1Prism(ctx, CX, CY, S * 0.032, t, beat, _j1Pulse);
+
+  // 7 ── the near plane: shards close enough to be nearly black, drifting.
+  //      Without these the page is only mid and far, and it reads flat.
+  if (!canvas._j1ShardPos) {
+    canvas._j1ShardPos = canvas._j1Shards.map((sc, i) => ({
+      x: [0.08, 0.55, 0.93, 0.3][i] * W,
+      y: [1.02, 1.1, 0.9, 0.98][i] * H,
+      vx: (_j1Rnd(i * 31.7) - 0.5) * 5, vy: -1.2 - _j1Rnd(i * 13.3) * 1.6,
+      ph: _j1Rnd(i * 7.9) * 6.283185,
+    }));
+  }
+  for (let i = 0; i < canvas._j1Shards.length; i++) {
+    const sc = canvas._j1Shards[i], p = canvas._j1ShardPos[i], sz = sc.width;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    if (p.y < -sz) { p.y = H + sz; p.x = _j1Rnd(t * 3.3 + i) * W; }
+    // Only a wobble, never a spin: the lit edge was chosen at bake time from
+    // where the core is, and turning the sheet turns the light with it.
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(Math.sin(t * 0.11 + p.ph) * 0.05);
+    ctx.drawImage(sc, -sz / 2, -sz / 2);
+    ctx.restore();
+  }
+
+  // 8 ── the void closing in at the edges
+  ctx.drawImage(canvas._j1Vign, 0, 0);
+
+  // 9 ── and a resolve pulse: on a real hit, a ring of light leaves the core.
+  //      One ring, so it reads as an event rather than as texture.
+  if (!canvas._j1Ring) canvas._j1Ring = { t0: -99 };
+  if (aO > 0.5 && t - canvas._j1Ring.t0 > 1.4) canvas._j1Ring.t0 = t;
+  const ra = (t - canvas._j1Ring.t0) / 2.2;
+  if (ra >= 0 && ra < 1) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath();
+    ctx.arc(CX, CY, ra * maxR * 1.05, 0, 6.283185);
+    ctx.strokeStyle = _J1_R_MINT[_j1A(Math.pow(1 - ra, 2.2) * 0.5)];
+    ctx.lineWidth = 1 + (1 - ra) * 3;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ── The cursor for 1: the value itself, given a shape. A prism core with four
+//    wing blades that fold when it is still and spread when it moves, a wake of
+//    digits behind it that have not finished resolving, and a refraction split
+//    done with three offset outlines rather than ctx.filter (which costs
+//    hundreds of milliseconds on a canvas this size). ──
+let _j1Wake = [];
+let _j1Burst = [];
+let _j1Spin = 0;
+
+function _j1Cursor(g, x, y, t, vx, vy) {
+  const spd = Math.hypot(vx, vy);
+  const f = Math.min(1, spd / 460);                  // how hard it is travelling
+  const head = Math.atan2(vy, vx);
+  _j1Spin += 0.006 + f * 0.03;
+  const beat = _jukoAudioBeat;
+  const R = 9 + beat * 2.2 + _j1Pulse * 4;
+
+  // the wake: digits it has already passed through, still resolving
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  for (let i = _j1Wake.length - 1; i >= 0; i--) {
+    const w = _j1Wake[i];
+    w.life -= 0.02;
+    if (w.life <= 0) { _j1Wake.splice(i, 1); continue; }
+    const a = w.life * w.life * 0.62;
+    g.font = `bold ${(7 + w.life * 7) | 0}px "Courier New", monospace`;
+    g.fillStyle = (w.life > 0.66 ? _J1_R_WHITE : w.life > 0.33 ? _J1_R_MINT : _J1_R_CYAN)[_j1A(a)];
+    g.fillText(w.ch, w.x, w.y + (1 - w.life) * 9);
+  }
+
+  // the burst from a click: a ring, and digits thrown out of it
+  for (let i = _j1Burst.length - 1; i >= 0; i--) {
+    const b = _j1Burst[i];
+    b.life -= 0.022;
+    if (b.life <= 0) { _j1Burst.splice(i, 1); continue; }
+    const p = 1 - b.life;
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    g.beginPath();
+    g.arc(b.x, b.y, 8 + p * 118, 0, 6.283185);
+    g.strokeStyle = _J1_R_MINT[_j1A(b.life * b.life * 0.7)];
+    g.lineWidth = 1 + b.life * 3.4;
+    g.stroke();
+    g.beginPath();                                   // and a second, tighter
+    g.arc(b.x, b.y, 4 + p * 62, 0, 6.283185);
+    g.strokeStyle = _J1_R_WHITE[_j1A(b.life * 0.42)];
+    g.lineWidth = 1 + b.life;
+    g.stroke();
+    g.restore();
+  }
+
+  g.save();
+  g.translate(x, y);
+  g.globalCompositeOperation = 'lighter';
+
+  // the halo it carries with it
+  const hg = g.createRadialGradient(0, 0, 0, 0, 0, R * 6);
+  for (let i = 0; i <= 10; i++) {
+    const u = i / 10;
+    hg.addColorStop(u, `rgba(${_J1_MINT},${(0.3 * Math.pow(1 - u, 2.6)).toFixed(4)})`);
+  }
+  g.fillStyle = hg;
+  g.fillRect(-R * 6, -R * 6, R * 12, R * 12);
+
+  // four wing blades, banked toward where it is going
+  g.save();
+  g.rotate(head * 0.22 + Math.sin(t * 1.3) * 0.05);
+  for (let k = 0; k < 4; k++) {
+    const a = _j1Spin + k * 1.5708;
+    const L = R * (1.5 + f * 2.6 + beat * 0.5);
+    const w = R * 0.42;
+    const cA = Math.cos(a), sA = Math.sin(a);
+    g.beginPath();
+    g.moveTo(cA * R * 0.5, sA * R * 0.5);
+    g.lineTo(-sA * w + cA * L * 0.55, cA * w + sA * L * 0.55);
+    g.lineTo(cA * L, sA * L);
+    g.lineTo(sA * w * 0.5 + cA * L * 0.5, -cA * w * 0.5 + sA * L * 0.5);
+    g.closePath();
+    g.strokeStyle = _J1_R_MINT[_j1A(0.45 + f * 0.35)];
+    g.lineWidth = 1.2;
+    g.stroke();
+    g.fillStyle = _J1_R_CYAN[_j1A(0.1 + f * 0.14)];
+    g.fill();
+  }
+  g.restore();
+
+  // refraction: the same outline three times, offset, in the three primaries.
+  // This is what ctx.filter would have been for, at a five-hundredth of the cost.
+  const dia = (ox, oy, col, al, lw) => {
+    g.beginPath();
+    g.moveTo(ox, oy - R * 1.5); g.lineTo(ox + R, oy);
+    g.lineTo(ox, oy + R * 1.5); g.lineTo(ox - R, oy);
+    g.closePath();
+    g.strokeStyle = `rgba(${col},${al})`;
+    g.lineWidth = lw;
+    g.stroke();
+  };
+  const sp = 1.6 + f * 3.4 + _j1Pulse * 3;
+  dia(-sp, 0, '255,90,140', 0.45, 1.2);
+  dia(sp, 0, '90,190,255', 0.45, 1.2);
+  dia(0, -sp * 0.5, '190,255,120', 0.3, 1.1);
+
+  // the stone
+  g.globalCompositeOperation = 'source-over';
+  g.beginPath();
+  g.moveTo(0, -R * 1.5); g.lineTo(R, 0); g.lineTo(0, R * 1.5); g.lineTo(-R, 0);
+  g.closePath();
+  const sg = g.createLinearGradient(-R, -R, R, R);
+  sg.addColorStop(0, 'rgba(232,255,248,0.96)');
+  sg.addColorStop(0.5, `rgba(${_J1_MINT},0.9)`);
+  sg.addColorStop(1, 'rgba(140,215,255,0.92)');
+  g.fillStyle = sg;
+  g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.92)';
+  g.lineWidth = 1.3;
+  g.stroke();
+  g.beginPath();
+  g.moveTo(-R, 0); g.lineTo(R, 0);
+  g.strokeStyle = 'rgba(255,255,255,0.55)';
+  g.lineWidth = 0.9;
+  g.stroke();
+  // the value it is holding
+  g.font = `bold ${(R * 1.15) | 0}px "Courier New", monospace`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = 'rgba(2,20,18,0.85)';
+  g.fillText('1', 0, 0);
+  g.restore();
+}
+
+// ── Above the GUI: the thing is bigger than the character card, so its outer
+//    arms and the light it throws cross the whole application. Drawn on the
+//    top layer in VIEWPORT coordinates, with the core's position derived from
+//    the background canvas's rect (the two do not share a coordinate space). ──
+function _j1PageLayer(canvas, ctx, W, H, t) {
+  const beat = _jukoAudioBeat, aL = _jukoAudioLevel, aO = _jukoAudioOnset;
+
+  // the far field, drifting across everything, very faint
+  if (!canvas._j1Sky || canvas._j1SkyW !== W || canvas._j1SkyH !== H) {
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    const n = Math.round((W * H) / 12000);
+    for (let i = 0; i < n; i++) {
+      const h = i * 4.3 + 17;
+      const x = _j1Rnd(h) * W, y = _j1Rnd(h * 2.7) * H;
+      g.font = `${(6 + _j1Rnd(h * 3.1) * 5) | 0}px "Courier New", monospace`;
+      g.fillStyle = _J1_R_CYAN[_j1A(0.06 + _j1Rnd(h * 5.9) * 0.1)];
+      g.fillText(_J1_DIGITS[(_j1Rnd(h * 7.7) * 10) | 0], x, y);
+      if (x < 14) g.fillText(_J1_DIGITS[(_j1Rnd(h * 7.7) * 10) | 0], x + W, y);
+      else if (x > W - 14) g.fillText(_J1_DIGITS[(_j1Rnd(h * 7.7) * 10) | 0], x - W, y);
+    }
+    canvas._j1Sky = c; canvas._j1SkyW = W; canvas._j1SkyH = H;
+  }
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const off = ((t * 3.1) % W + W) % W;
+  ctx.globalAlpha = 0.55 + aL * 0.35;
+  ctx.drawImage(canvas._j1Sky, -off, 0);
+  ctx.drawImage(canvas._j1Sky, W - off, 0);
+  ctx.restore();
+
+  // where the core is, in this canvas's coordinates
+  const pc = _j1PageLayer._pc && _j1PageLayer._pc.isConnected
+    ? _j1PageLayer._pc : (_j1PageLayer._pc = document.getElementById('pattern-canvas'));
+  if (!pc) return;
+  const r = pc.getBoundingClientRect();
+  if (!(r.width > 0 && r.height > 0)) return;
+  const CX = r.left + r.width * 0.62, CY = r.top + r.height * 0.4;
+  const S = Math.min(r.width * 0.55, r.height * 0.95);
+
+  // Two outer arms, the ones long enough to leave the card entirely. They pass
+  // over the nav and the sidebar, which is the point: the card cannot hold it.
+  _j1Tendrils(ctx, CX, CY, S * 1.5, t * 0.8, beat * 0.6, _j1OuterArms());
+
+  // and the resolve pulse, crossing the whole application
+  if (!_j1PageLayer._ring) _j1PageLayer._ring = { t0: -99 };
+  const ring = _j1PageLayer._ring;
+  if (aO > 0.5 && t - ring.t0 > 1.4) ring.t0 = t;
+  const p = (t - ring.t0) / 2.4;
+  if (p >= 0 && p < 1) {
+    const R = p * Math.hypot(W, H) * 0.85;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, 6.283185);
+    ctx.strokeStyle = _J1_R_MINT[_j1A(Math.pow(1 - p, 2.4) * 0.34)];
+    ctx.lineWidth = 1 + (1 - p) * 2.6;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+function _j1OuterArms() {
+  if (_j1OuterArms._a) return _j1OuterArms._a;
+  const a = [];
+  const spec = [[-1.38, 0.8, 1.2, 0.5], [0.36, 0.95, -1.5, 0.42], [-0.54, 1.05, 0.9, 0.34]];
+  for (let i = 0; i < spec.length; i++) {
+    a.push({
+      ang: spec[i][0], len: spec[i][1], curl: spec[i][2], br: spec[i][3],
+      root: spec[i][0] + (_j1Rnd(i * 2.7 + 5) - 0.5) * 1.4,
+      rt: 0.1 + _j1Rnd(i * 6.7 + 5) * 0.14,
+      n: 26 + ((_j1Rnd(i * 8.3 + 5) * 10) | 0),
+      spd: 0.07 + _j1Rnd(i * 4.1 + 5) * 0.06,
+      wf: 0.22 + _j1Rnd(i * 6.7 + 5) * 0.22,
+      wa: 0.06 + _j1Rnd(i * 3.3 + 5) * 0.06,
+      ph: _j1Rnd(i * 9.1 + 5) * 6.283185,
+    });
+  }
+  return (_j1OuterArms._a = a);
+}
 
 // ════════════════════════════════════════════════════════════════
 // LUCIFER · UNLEASHED: demonic hellscape (background) + hellfire cursor
@@ -31942,6 +32994,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'nara_green')     { _drawNaraGreenPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'sorrow_fire')    { _drawSorrowPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'juko_code')      { _drawJukoPattern(canvas, ctx, W, H, t);               return; }
+  if (type === 'juko_one')       { _drawJuko1Pattern(canvas, ctx, W, H, t);              return; }
   if (type === 'lucifer_unleashed') { _drawLuciferPattern(canvas, ctx, W, H, t);         return; }
   if (type === 'divine_light')      { _drawDivinePattern(canvas, ctx, W, H, t);          return; }
   if (type === 'jimmy_muffin')      { _drawJimmyPattern(canvas, ctx, W, H, t);           return; }
@@ -32475,6 +33528,7 @@ function startBgAnim(type, params) {
   _drawNaraGreenPattern._lt   = undefined;
   _drawNaraGreenOverlay._lt   = undefined;
   _drawJukoPattern._lt        = undefined;
+  _drawJuko1Pattern._lt       = undefined;
   _drawJukoOverlay._lt        = undefined;
   _drawLuciferPattern._lt     = undefined;
   _drawLuciferOverlay._lt     = undefined;
@@ -33298,7 +34352,7 @@ function viewChar(id) {
   else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isAnnie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ANNIE_RED_HEX); }
   else if (_isVikadan(c))  { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _VIK_CYAN_HEX); }
-  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
+  else if (_isJuko(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _isJuko1(c) ? _J1_HEX : c.color); }
   else if (_isLuciferUnleashed(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e01122'); }
   else if (_isDivine(c))   { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#f4cf6a'); }
   else if (_isShi(c))      { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a7c4dc'); }
@@ -33364,6 +34418,9 @@ function viewChar(id) {
       _cvRoot.classList.add('juko-ui');
       const _0inf = _isJuko0Inf(c);
       _cvRoot.classList.toggle('juko-0inf', _0inf);
+      // "1" is the other end of the same story, so it shares the code chrome
+      // and changes only what the void needs: cyan instead of green, and calm.
+      _cvRoot.classList.toggle('juko-one', _isJuko1(c));
       // 0∞ goes beyond the character page: the WHOLE app UI (top nav,
       // sidebar) glitches while she's in this form.
       document.body.classList.toggle('juko-0inf-page', _0inf);
@@ -33396,7 +34453,7 @@ function viewChar(id) {
       }
       if (_nm) { _nm.classList.add('juko-name'); _nm.setAttribute('data-text', _nm.textContent || 'JUKO!'); }
     } else {
-      _cvRoot.classList.remove('juko-ui', 'juko-0inf');
+      _cvRoot.classList.remove('juko-ui', 'juko-0inf', 'juko-one');
       document.body.classList.remove('juko-0inf-page');
       if (_juko0InfActive) { _juko0InfActive = false; _stopJuko0InfExtras(); }
       if (_av) { _av.classList.remove('juko-pfp'); const fx = _av.querySelector('.juko-pfp-fx'); if (fx) fx.remove(); }
@@ -34373,6 +35430,16 @@ function viewChar(id) {
     }
   }
 
+  // ── Juko · 1: the void is not a backdrop to this page, it IS the page, so
+  // the pattern canvas comes up off its default 0.3. Deliberately placed after
+  // every other opacity-setting block: those reset the property to '' for any
+  // character they do not claim, Juko included, so this one only has to set it
+  // and never has to join the chain of negations above. ──
+  {
+    const _pc = document.getElementById('pattern-canvas');
+    if (_pc && _isJuko1(c)) _pc.style.opacity = '0.95';
+  }
+
   // ── Evelynn: elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -34485,7 +35552,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -34496,9 +35563,9 @@ function viewChar(id) {
   } else {
   if (_stPanel) _stPanel.style.display = '';
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
-  const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
+  const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : _isJuko1(c) ? "Juko · 1, the value left" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -40169,7 +41236,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
