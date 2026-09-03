@@ -3113,6 +3113,7 @@ const PATTERN_DEFS = {
   sevach_bloodsea:  { label: "Sevach · Sea of blood", params: [] },
   adam_kingdom:     { label: "Adam · Ice kingdom (human)", params: [] },
   libra_entropy:    { label: "Libra · Entropy", params: [] },
+  plumky_hallows:   { label: "Plumky · Hallows", params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
@@ -31641,6 +31642,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'sevach_bloodsea') { _drawSevachPattern(canvas, ctx, W, H, t);           return; }
   if (type === 'adam_kingdom') { _drawAdamHumanPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'libra_entropy') { _drawLibraPattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'plumky_hallows') { _drawPlumkyPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
@@ -32206,6 +32208,8 @@ function startBgAnim(type, params) {
   _drawAdamHumanOverlay._lt   = undefined;
   _drawLibraPattern._lt       = undefined;
   _drawLibraOverlay._lt       = undefined;
+  _drawPlumkyPattern._lt      = undefined;
+  _drawPlumkyOverlay._lt      = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -32312,6 +32316,7 @@ function stopBgAnim() {
   _stopSevachOverlay();
   _stopAdamHumanOverlay();
   _stopLibraOverlay();
+  _stopPlumkyOverlay();
   _stopMbOverlay();
   _stopActariusOverlay();
   _stopSorrowOverlay();
@@ -32955,6 +32960,7 @@ function viewChar(id) {
   else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isAdamHuman(c)) {  _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _AI_HEX); }
   else if (_isLibra(c)) {   _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _LB_HEX); }
+  else if (_isPlumky(c)) {    _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _PK_HEX); }
   else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isAnnie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ANNIE_RED_HEX); }
@@ -33198,6 +33204,22 @@ function viewChar(id) {
       _cvRoot.classList.remove('leonh-ui');
       if (_av) _av.classList.remove('leonh-pfp');
       if (_nm) _nm.classList.remove('leonh-name');
+    }
+  }
+
+  // ── PLUMKY: orange on black, and a bit lopsided. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isPlumky(c)) {
+      _cvRoot.classList.add('plumky-ui');
+      if (_av) _av.classList.add('plumky-pfp');
+      if (_nm) { _nm.classList.add('plumky-name'); _nm.setAttribute('data-text', _nm.textContent || 'PLUMKY'); }
+    } else {
+      _cvRoot.classList.remove('plumky-ui');
+      if (_av) _av.classList.remove('plumky-pfp');
+      if (_nm) _nm.classList.remove('plumky-name');
     }
   }
 
@@ -34130,7 +34152,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -34143,7 +34165,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -34180,6 +34202,7 @@ function viewChar(id) {
   else if (_isLeon(c)) _startLeonOverlay();
   if (_isSevach(c))    _startSevachOverlay();
   if (_isLibra(c))     _startLibraOverlay();
+  if (_isPlumky(c))    _startPlumkyOverlay();
   if (_isValkyrie(c)) _startValkyrieOverlay();
   if (_isAdamHuman(c)) _startAdamHumanOverlay();
   else if (_isAdam(c)) _startAdamOverlay();
@@ -39813,7 +39836,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -39825,6 +39848,7 @@ window.addEventListener('resize', () => {
       else if (_isLeon(c)) _startLeonOverlay();
       if (_isSevach(c))    _startSevachOverlay();
       if (_isLibra(c))     _startLibraOverlay();
+      if (_isPlumky(c))    _startPlumkyOverlay();
       if (_isValkyrie(c)) _startValkyrieOverlay();
       if (_isAdamHuman(c)) _startAdamHumanOverlay();
       else if (_isAdam(c)) _startAdamOverlay();
@@ -45341,6 +45365,726 @@ function _stopLibraOverlay() {
   _lbShards = []; _lbPetals = []; _lbFore = []; _lbTrail = [];
   _lbSwing = 0;
   _lbScars = []; _lbBlooms = []; _lbWave = null; _lbTip = null;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// PLUMKY - the god of Halloween, who is a pumpkin.
+// The other pages in here are places. This one is a place having a
+// party, and the difference is the banners: strips of bunting strung
+// across the night with pumpkins running along them, which is the one
+// thing that was actually asked for, so they are load bearing rather
+// than decoration. Two are strung between poles out over the patch
+// and one runs along the very bottom of the page in front of
+// everything, and all of them run right to left forever, because a
+// tileable strip blitted twice at a wrapping offset never ends.
+// Everything on the page is lit by one thing: the moon is a carved
+// pumpkin and it is the only light for miles, so every ridge out
+// there takes its orange on the top and goes black underneath.
+// ════════════════════════════════════════════════════════════════
+const _PLUMKY_RE = /^["']?\s*PLUMKY\s*["']?$/i;
+function _isPlumky(c) { return !!(c && c.name && _PLUMKY_RE.test(c.name)); }
+
+const _PK_ORANGE = '246,132,32';     // the flesh of the thing
+const _PK_EMBER  = '255,196,96';     // and the candle inside it
+const _PK_PURPLE = '92,44,138';      // the night it is all happening in
+const _PK_GREEN  = '116,158,72';
+const _PK_HEX    = '#f68420';
+
+// what the two layers say to each other
+let _pkTip = null;                   // where the lantern is
+let _pkGrown = [];                   // and what he has put in the ground
+
+function _pkRnd(seed) {
+  const v = Math.sin(seed * 45.29 + 13.77) * 23417.91;
+  return v - Math.floor(v);
+}
+
+// ── A pumpkin ────────────────────────────────────────────────────
+// Ribbed, which means it is not one shape but a row of overlapping
+// vertical lobes, widest in the middle and squashed at the sides. The
+// light is always up and to the right on this page because that is
+// where the moon is, so the lobes on that side are lit and the ones on
+// the far side are not, and the seam between two lobes is a dark line
+// no matter which side it is on.
+function _pkPumpkin(g, x, y, r, seed, carved, lit) {
+  const lobes = 5, rx = r * 1.14, ry = r * 0.94;
+  g.save();
+  g.translate(x, y);
+  for (let i = 0; i < lobes; i++) {
+    const u = (i / (lobes - 1)) * 2 - 1;            // -1 far side, +1 lit side
+    const lx = u * rx * 0.62;
+    const lw = rx * (0.46 - Math.abs(u) * 0.22);
+    const sh = 0.42 + 0.58 * (u * 0.5 + 0.5);       // the moon is over there
+    const v = (0.38 + sh * 0.62) * (0.6 + lit * 0.4);
+    const gg = g.createLinearGradient(0, -ry, 0, ry);
+    gg.addColorStop(0, `rgb(${(150 * v + 40) | 0},${(74 * v + 16) | 0},${(20 * v + 6) | 0})`);
+    gg.addColorStop(0.42, `rgb(${(214 * v + 34) | 0},${(112 * v + 14) | 0},${(28 * v + 5) | 0})`);
+    gg.addColorStop(1, `rgb(${(96 * v + 14) | 0},${(44 * v + 6) | 0},${(12 * v + 3) | 0})`);
+    g.beginPath();
+    g.ellipse(lx, 0, lw, ry, 0, 0, 6.283185);
+    g.fillStyle = gg;
+    g.fill();
+    g.strokeStyle = 'rgba(38,14,6,0.55)';
+    g.lineWidth = Math.max(0.5, r * 0.035);
+    g.stroke();
+  }
+  g.beginPath();                                    // the stem, curling off it
+  g.moveTo(-r * 0.12, -ry * 0.9);
+  g.lineTo(r * 0.13, -ry * 0.94);
+  g.lineTo(r * 0.2, -ry * 1.4);
+  g.lineTo(r * 0.34, -ry * 1.62);
+  g.lineTo(r * 0.12, -ry * 1.5);
+  g.lineTo(-r * 0.02, -ry * 1.32);
+  g.closePath();
+  g.fillStyle = `rgb(${_PK_GREEN})`;
+  g.fill();
+  g.strokeStyle = 'rgba(26,38,14,0.7)';
+  g.lineWidth = Math.max(0.5, r * 0.035);
+  g.stroke();
+  if (carved && r > 5) {
+    const face = (fill) => {
+      g.beginPath();                                // two eyes and a grin
+      for (const s of [-1, 1]) {
+        g.moveTo(s * r * 0.5, -ry * 0.2);
+        g.lineTo(s * r * 0.18, -ry * 0.22);
+        g.lineTo(s * r * 0.34, -ry * 0.56);
+        g.closePath();
+      }
+      g.moveTo(-r * 0.6, ry * 0.16);
+      for (let k = 0; k <= 6; k++) {
+        const u = k / 6;
+        g.lineTo(-r * 0.6 + r * 1.2 * u, ry * (0.16 + (k % 2 ? 0.3 : 0.04)));
+      }
+      g.lineTo(r * 0.6, ry * 0.16);
+      g.lineTo(r * 0.5, ry * 0.5);
+      for (let k = 6; k >= 0; k--) {
+        const u = k / 6;
+        g.lineTo(-r * 0.5 + r * 1.0 * u, ry * (0.5 + (k % 2 ? 0.18 : 0.02)));
+      }
+      g.closePath();
+      g.fillStyle = fill;
+      g.fill();
+    };
+    face('rgb(24,8,4)');
+    g.globalCompositeOperation = 'lighter';         // and the candle behind it
+    face(`rgba(${_PK_EMBER},0.92)`);
+    const cg = g.createRadialGradient(0, ry * 0.1, 0, 0, ry * 0.1, r * 1.5);
+    cg.addColorStop(0, `rgba(${_PK_EMBER},0.2)`);
+    cg.addColorStop(1, `rgba(${_PK_ORANGE},0)`);
+    g.fillStyle = cg;
+    g.fillRect(-r * 1.5, ry * 0.1 - r * 1.5, r * 3, r * 3);
+    g.globalCompositeOperation = 'source-over';
+  }
+  g.restore();
+}
+
+// ── A banner of them ─────────────────────────────────────────────
+// The one thing that had to be here. It is a strip that tiles, so it
+// is drawn twice at a wrapping offset and runs right to left forever
+// without ever repeating visibly at a seam: the pattern has a whole
+// number of units across it and the two copies meet exactly.
+function _pkBandSprite(BW, BH, units, dark) {
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(BW); c.height = Math.ceil(BH);
+  const g = c.getContext('2d');
+  const bg = dark ? '#160a20' : `rgb(${_PK_ORANGE})`;
+  const fg = dark ? `rgb(${_PK_ORANGE})` : '#160a20';
+  g.fillStyle = bg;
+  g.fillRect(0, 0, BW, BH);
+  g.fillStyle = fg;                                 // a rule along top and bottom
+  g.fillRect(0, 0, BW, BH * 0.07);
+  g.fillRect(0, BH * 0.93, BW, BH * 0.07);
+  const uw = BW / units;
+  for (let i = 0; i < units; i++) {
+    const x = uw * (i + 0.28);
+    _pkPumpkin(g, x, BH * 0.5, BH * 0.3, i * 3.7, false, 1);
+    const dx = uw * (i + 0.66);                     // a diamond between each
+    g.beginPath();
+    g.moveTo(dx, BH * 0.3);
+    g.lineTo(dx + BH * 0.14, BH * 0.5);
+    g.lineTo(dx, BH * 0.7);
+    g.lineTo(dx - BH * 0.14, BH * 0.5);
+    g.closePath();
+    g.fillStyle = fg;
+    g.fill();
+    g.beginPath();                                  // and a bat over the join
+    const bx = uw * (i + 0.9), by = BH * 0.5;
+    g.moveTo(bx, by + BH * 0.05);
+    g.quadraticCurveTo(bx - BH * 0.09, by - BH * 0.13, bx - BH * 0.19, by - BH * 0.02);
+    g.quadraticCurveTo(bx - BH * 0.11, by - BH * 0.03, bx, by + BH * 0.05);
+    g.quadraticCurveTo(bx + BH * 0.11, by - BH * 0.03, bx + BH * 0.19, by - BH * 0.02);
+    g.quadraticCurveTo(bx + BH * 0.09, by - BH * 0.13, bx, by + BH * 0.05);
+    g.closePath();
+    g.fillStyle = fg;
+    g.fill();
+  }
+  return c;
+}
+
+// ── A bare tree ──────────────────────────────────────────────────
+// Recursive, and thinning as it goes, because the one thing that makes
+// a drawn tree look drawn is branches that stay the same weight.
+function _pkTree(g, x, y, len, ang, w, dep, seed, col) {
+  if (dep > 5 || len < 4) return;
+  const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+  g.beginPath();
+  g.moveTo(x, y);
+  g.lineTo(ex, ey);
+  g.strokeStyle = col;
+  g.lineWidth = w;
+  g.lineCap = 'round';
+  g.stroke();
+  const n = dep < 2 ? 3 : 2;
+  for (let k = 0; k < n; k++) {
+    const sp = (k - (n - 1) / 2) * (0.5 + _pkRnd(seed + dep * 3.1) * 0.4);
+    _pkTree(g, ex, ey, len * (0.62 + _pkRnd(seed + k * 5.7) * 0.2),
+            ang + sp + (_pkRnd(seed + k * 7.9) - 0.5) * 0.3,
+            w * 0.66, dep + 1, seed + k * 11.3 + dep, col);
+  }
+}
+
+// ── The night ────────────────────────────────────────────────────
+function _drawPlumkyPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawPlumkyPattern._lt === undefined;
+  if (!fresh && t - _drawPlumkyPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawPlumkyPattern._lt, 0.05);
+  _drawPlumkyPattern._lt = t;
+
+  if (canvas._pkW !== W || canvas._pkH !== H) {
+    canvas._pkW = W; canvas._pkH = H;
+    canvas._pkSky = null; canvas._pkMoon = null; canvas._pkTrees = null;
+    canvas._pkPatch = null; canvas._pkFog = null; canvas._pkVign = null;
+    canvas._pkBands = null; canvas._pkPlant = null;
+    for (const p of _pkGrown) p.stamped = false;
+  }
+  const HZ = Math.round(H * 0.54);
+  const MX = W * 0.76, MY = HZ * 0.6;              // low, where the panels are not
+  const MR = Math.max(38, Math.min(W * 0.058, H * 0.1));
+  _bgRect(canvas);
+
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+
+  // 1 ── the sky, and the only thing lighting it
+  if (!canvas._pkSky) {
+    canvas._pkSky = document.createElement('canvas');
+    canvas._pkSky.width = W; canvas._pkSky.height = H;
+    const sx = canvas._pkSky.getContext('2d');
+    const g = sx.createLinearGradient(0, 0, 0, HZ);
+    g.addColorStop(0, '#0b0616');
+    g.addColorStop(0.38, '#1d0f2e');
+    g.addColorStop(0.72, '#3d1b3c');
+    g.addColorStop(1, '#7d3a2c');
+    sx.fillStyle = g;
+    sx.fillRect(0, 0, W, HZ + 2);
+    for (let i = 0; i < 170; i++) {
+      const y = Math.pow(_pkRnd(i * 5.1), 1.4) * HZ;
+      sx.beginPath();
+      sx.arc(_pkRnd(i * 3.3) * W, y, 0.3 + _pkRnd(i * 9.7) * 1.1, 0, 6.283185);
+      sx.fillStyle = `rgba(255,232,206,${(0.6 * (1 - y / HZ) * (0.3 + _pkRnd(i * 13.1) * 0.7)).toFixed(3)})`;
+      sx.fill();
+    }
+    sx.globalCompositeOperation = 'lighter';        // the moon on the whole sky
+    const hz = sx.createRadialGradient(MX, MY, 0, MX, MY, Math.max(W, H) * 0.7);
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14;
+      hz.addColorStop(u, `rgba(${_PK_ORANGE},${(0.2 * Math.pow(1 - u, 2.3)).toFixed(4)})`);
+    }
+    sx.fillStyle = hz;
+    sx.fillRect(0, 0, W, HZ + 2);
+    sx.globalCompositeOperation = 'source-over';
+    const gg = sx.createLinearGradient(0, HZ, 0, H);  // and the ground under it
+    gg.addColorStop(0, '#4a2320');
+    gg.addColorStop(0.24, '#2a1420');
+    gg.addColorStop(1, '#0d0512');
+    sx.fillStyle = gg;
+    sx.fillRect(0, HZ, W, H - HZ);
+  }
+  ctx.drawImage(canvas._pkSky, 0, 0);
+
+  // 2 ── the moon, which he has carved
+  if (!canvas._pkMoon) {
+    const S2 = Math.ceil(MR * 4);
+    canvas._pkMoon = document.createElement('canvas');
+    canvas._pkMoon.width = canvas._pkMoon.height = S2;
+    const mg = canvas._pkMoon.getContext('2d');
+    mg.globalCompositeOperation = 'lighter';        // the halo round it
+    const hg = mg.createRadialGradient(S2 / 2, S2 / 2, 0, S2 / 2, S2 / 2, S2 / 2);
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14;
+      hg.addColorStop(u, `rgba(${_PK_EMBER},${(0.3 * Math.pow(1 - u, 2.6)).toFixed(4)})`);
+    }
+    mg.fillStyle = hg;
+    mg.fillRect(0, 0, S2, S2);
+    mg.globalCompositeOperation = 'source-over';
+    _pkPumpkin(mg, S2 / 2, S2 / 2, MR, 3.1, true, 1);
+  }
+  const mb = 0.92 + 0.08 * Math.sin(t * 0.7) + 0.04 * Math.sin(t * 2.3);
+  ctx.globalAlpha = mb;
+  ctx.drawImage(canvas._pkMoon, MX - canvas._pkMoon.width / 2, MY - canvas._pkMoon.height / 2);
+  ctx.globalAlpha = 1;
+
+  // 3 ── a treeline, which is what a horizon looks like out here
+  if (!canvas._pkTrees) {
+    canvas._pkTrees = document.createElement('canvas');
+    canvas._pkTrees.width = W; canvas._pkTrees.height = H;
+    const tg = canvas._pkTrees.getContext('2d');
+    for (let band = 0; band < 2; band++) {
+      const y = HZ + (H - HZ) * (band === 0 ? 0.01 : 0.07);
+      const hgt = H * (band === 0 ? 0.1 : 0.17);
+      const col = band === 0 ? 'rgba(30,16,32,0.9)' : 'rgba(14,7,18,0.96)';
+      const n = band === 0 ? 12 : 6;
+      for (let i = 0; i <= n; i++) {
+        const x = W * ((i + _pkRnd(i * 7.3 + band) * 0.8) / n);
+        _pkTree(tg, x, y, hgt * (0.4 + _pkRnd(i * 9.1 + band) * 0.3),
+                -1.5708 + (_pkRnd(i * 11.7 + band) - 0.5) * 0.4,
+                Math.max(1.4, hgt * 0.035), 0, i * 13 + band * 41, col);
+      }
+    }
+    tg.fillStyle = 'rgba(10,5,14,0.95)';            // and a fence gone crooked
+    for (let i = 0; i < 46; i++) {
+      const x = W * (i / 45) + (_pkRnd(i * 3.7) - 0.5) * 14;
+      const h2 = (H - HZ) * (0.07 + _pkRnd(i * 5.9) * 0.04);
+      const y = HZ + (H - HZ) * 0.1;
+      tg.save();
+      tg.translate(x, y);
+      tg.rotate((_pkRnd(i * 8.3) - 0.5) * 0.2);
+      tg.fillRect(-W * 0.004, -h2, W * 0.008, h2);
+      tg.restore();
+    }
+    tg.fillRect(0, HZ + (H - HZ) * 0.062, W, Math.max(2, H * 0.005));
+  }
+  ctx.drawImage(canvas._pkTrees, 0, 0);
+
+  // 4 ── the banners, strung over the patch and running forever
+  if (!canvas._pkBands) {
+    const BH = Math.max(20, Math.round(H * 0.037));
+    canvas._pkBands = [
+      { s: _pkBandSprite(BH * 15, BH, 5, true), y: HZ * 0.5, tilt: -0.03, v: 40, off: 0, a: 0.92 },
+      { s: _pkBandSprite(BH * 12.6, BH * 0.86, 4, false), y: HZ * 0.78, tilt: 0.024, v: 72, off: 130, a: 0.92 },
+    ];
+  }
+  for (const b of canvas._pkBands) {
+    b.off = (b.off + b.v * dt) % b.s.width;
+    ctx.save();
+    ctx.translate(W * 0.5, b.y);
+    ctx.rotate(b.tilt);
+    ctx.globalAlpha = b.a;
+    const span = Math.ceil(W * 1.4 / b.s.width) + 1;
+    for (let k = -1; k < span; k++) {
+      ctx.drawImage(b.s, -W * 0.7 - b.off + k * b.s.width, -b.s.height * 0.5);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // 5 ── the patch: rows of them, smaller and paler as they go back
+  const PH2 = H - HZ;
+  if (!canvas._pkPatch) {
+    canvas._pkPatch = document.createElement('canvas');
+    canvas._pkPatch.width = W; canvas._pkPatch.height = PH2 + 2;
+    const pg = canvas._pkPatch.getContext('2d');
+    const crop = [];
+    for (let i = 0; i < 96; i++) {
+      const u = _pkRnd(i * 4.3);
+      crop.push({ u, y: PH2 * Math.pow(u, 1.3), i });
+    }
+    crop.sort((a, b) => a.y - b.y);
+    for (const { u, y, i } of crop) {
+      const x = _pkRnd(i * 6.7) * W * 1.14 - W * 0.07;
+      const r = PH2 * (0.005 + Math.pow(u, 1.6) * 0.15) * (0.7 + _pkRnd(i * 8.9) * 0.6);
+      pg.save();                                    // a vine running off it
+      pg.beginPath();
+      let vx = x, vy = y + r * 0.5, va = _pkRnd(i * 10.3) * 6.283;
+      pg.moveTo(vx, vy);
+      for (let k = 0; k < 5; k++) {
+        va += (_pkRnd(i * 12.1 + k) - 0.5) * 1.1;
+        vx += Math.cos(va) * r * 0.7; vy += Math.abs(Math.sin(va)) * r * 0.3;
+        pg.lineTo(vx, vy);
+      }
+      pg.strokeStyle = `rgba(${_PK_GREEN},${(0.2 + u * 0.3).toFixed(2)})`;
+      pg.lineWidth = Math.max(0.8, r * 0.12);
+      pg.stroke();
+      pg.restore();
+      _pkPumpkin(pg, x, y, r, i * 3.1, _pkRnd(i * 14.7) < 0.13 && u > 0.55, 0.34 + u * 0.66);
+    }
+  }
+  ctx.drawImage(canvas._pkPatch, 0, HZ);
+
+  // 6 ── the ones he has put in himself, which stay put
+  if (!canvas._pkPlant) {
+    canvas._pkPlant = document.createElement('canvas');
+    canvas._pkPlant.width = W; canvas._pkPlant.height = H;
+  }
+  const plg = canvas._pkPlant.getContext('2d');
+  for (const p of _pkGrown) {
+    if (p.stamped) continue;
+    p.grow = Math.min(1, p.grow + dt * 2.4);
+    const [gx, gy] = _bgAt(canvas, W, H, p.x, p.y);
+    const e = p.grow * p.grow * (3 - 2 * p.grow);
+    const target = p.grow >= 1 ? plg : ctx;
+    _pkPumpkin(target, gx, gy, p.r * e, p.seed, true, 1);
+    if (p.grow >= 1) p.stamped = true;
+  }
+  ctx.drawImage(canvas._pkPlant, 0, 0);
+
+  // 7 ── fog lying in the rows
+  if (!canvas._pkFog) {
+    const cw = Math.ceil(W * 1.3), ch = Math.ceil(PH2 * 0.6);
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const g = c.getContext('2d');
+    for (let i = 0; i < 34; i++) {
+      const x = _pkRnd(i * 5.3) * cw, y = ch * (0.1 + _pkRnd(i * 7.1) * 0.85);
+      const rw = cw * (0.05 + _pkRnd(i * 9.7) * 0.14);
+      const gr = g.createRadialGradient(x, y, 0, x, y, rw);
+      const a = 0.05 + _pkRnd(i * 11.3) * 0.1;
+      for (let k = 0; k <= 8; k++) {
+        const u = k / 8;
+        gr.addColorStop(u, `rgba(${_PK_PURPLE},${(a * Math.pow(1 - u, 2)).toFixed(4)})`);
+      }
+      g.save();
+      g.translate(x, y);
+      g.scale(1, 0.14);
+      g.fillStyle = gr;
+      g.translate(-x, -y);
+      g.fillRect(x - rw, y - rw, rw * 2, rw * 2);
+      g.restore();
+    }
+    canvas._pkFog = c;
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 2; k++) {
+    const off = (t * (9 + k * 13)) % canvas._pkFog.width;
+    ctx.globalAlpha = 0.85 - k * 0.3;
+    const y = HZ + PH2 * (0.1 + k * 0.28);
+    ctx.drawImage(canvas._pkFog, -off, y);
+    ctx.drawImage(canvas._pkFog, canvas._pkFog.width - off, y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 8 ── and the lantern he is carrying over all of it
+  if (_pkTip) {
+    const [tx, ty] = _bgAt(canvas, W, H, _pkTip.x, _pkTip.y);
+    const KR = 230;
+    ctx.globalCompositeOperation = 'lighter';
+    const gl = ctx.createRadialGradient(tx, ty, 0, tx, ty, KR);
+    for (let i = 0; i <= 10; i++) {
+      const u = i / 10;
+      gl.addColorStop(u, `rgba(${_PK_ORANGE},${(0.3 * _pkTip.k * Math.pow(1 - u, 2.3)).toFixed(4)})`);
+    }
+    ctx.fillStyle = gl;
+    ctx.fillRect(tx - KR, ty - KR, KR * 2, KR * 2);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 9 ── the dark round the edge of it
+  if (!canvas._pkVign) {
+    canvas._pkVign = document.createElement('canvas');
+    canvas._pkVign.width = W; canvas._pkVign.height = H;
+    const vx = canvas._pkVign.getContext('2d');
+    const g = vx.createRadialGradient(MX, MY * 1.4, Math.min(W, H) * 0.16,
+                                      W * 0.5, H * 0.55, Math.max(W, H) * 0.8);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.5, 'rgba(10,4,16,0.36)');
+    g.addColorStop(1, 'rgba(5,2,8,0.94)');
+    vx.fillStyle = g;
+    vx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(canvas._pkVign, 0, 0);
+}
+
+// ── His lantern ──────────────────────────────────────────────────
+// A carved pumpkin on a hook, and the pumpkin is not welded to the
+// hook: it hangs off it and swings, so hauling it across the page
+// makes it lag and overshoot the way a heavy thing on a wire does.
+// It is the only light down here, so the patch under it comes up out
+// of the dark as it goes past.
+let _pkRaf = null;
+let _pkX = 0, _pkY = 0, _pkTX = 0, _pkTY = 0, _pkVX = 0, _pkVY = 0;
+let _pkSw = 0, _pkSwV = 0, _pkFlare = 0;
+let _pkEmbers = [], _pkLeaves = [], _pkBats = [], _pkBar = null;
+
+function _pkMouseMove(e) { _pkTX = e.clientX; _pkTY = e.clientY; }
+
+function _pkDown(e) {
+  _pkFlare = 1;
+  _pkSwV += (Math.random() - 0.5) * 9;
+  _pkGrown.push({ x: e.clientX, y: e.clientY + 54, r: 20 + Math.random() * 26,
+                  seed: Math.random() * 300, grow: 0, stamped: false });
+  if (_pkGrown.length > 60) _pkGrown.splice(0, _pkGrown.length - 60);
+  for (let k = 0; k < 46; k++) {
+    const a = -Math.PI * 0.5 + (Math.random() - 0.5) * 3;
+    const sp = 90 + Math.random() * 420;
+    _pkEmbers.push({ x: e.clientX, y: e.clientY + 40,
+                     vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+                     life: 1, sz: 1 + Math.random() * 3.2,
+                     ph: Math.random() * 6.283, tw: 1 + Math.random() * 3 });
+  }
+  if (_pkEmbers.length > 300) _pkEmbers.splice(0, _pkEmbers.length - 300);
+  for (let k = 0; k < 5; k++) {                     // and something goes up
+    _pkBats.push({ x: e.clientX + (Math.random() - 0.5) * 90, y: e.clientY + 30,
+                   vx: (Math.random() - 0.5) * 260, vy: -(120 + Math.random() * 200),
+                   ph: Math.random() * 6.283, sz: 9 + Math.random() * 10, life: 1 });
+  }
+  if (_pkBats.length > 26) _pkBats.splice(0, _pkBats.length - 26);
+}
+
+function _pkBat(g, x, y, s, flap) {
+  g.beginPath();
+  g.moveTo(x, y + s * 0.16);
+  g.quadraticCurveTo(x - s * 0.5, y - s * (0.5 + flap * 0.4), x - s, y - s * 0.05);
+  g.quadraticCurveTo(x - s * 0.6, y - s * 0.12, x - s * 0.34, y + s * 0.08);
+  g.quadraticCurveTo(x - s * 0.2, y + s * 0.3, x, y + s * 0.3);
+  g.quadraticCurveTo(x + s * 0.2, y + s * 0.3, x + s * 0.34, y + s * 0.08);
+  g.quadraticCurveTo(x + s * 0.6, y - s * 0.12, x + s, y - s * 0.05);
+  g.quadraticCurveTo(x + s * 0.5, y - s * (0.5 + flap * 0.4), x, y + s * 0.16);
+  g.closePath();
+  g.fill();
+}
+
+function _drawPlumkyOverlay(canvas, ctx, W, H, t) {
+  if (_drawPlumkyOverlay._lt !== undefined && t - _drawPlumkyOverlay._lt < 0.016) return;
+  const dt = _drawPlumkyOverlay._lt === undefined ? 0.016 : Math.min(t - _drawPlumkyOverlay._lt, 0.04);
+  _drawPlumkyOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+
+  const SPRING = 132, DAMP = 19;
+  const oldVX = _pkVX;
+  _pkVX += ((_pkTX - _pkX) * SPRING - _pkVX * DAMP) * dt;
+  _pkVY += ((_pkTY - _pkY) * SPRING - _pkVY * DAMP) * dt;
+  _pkX += _pkVX * dt; _pkY += _pkVY * dt;
+  // the lantern hangs off the hook, so sideways travel throws it out and
+  // gravity pulls it back: a pendulum driven by how hard he is moving
+  const accel = (_pkVX - oldVX) / Math.max(dt, 0.001);
+  _pkSwV += (-Math.sin(_pkSw) * 26 - _pkSw * 2 - accel * 0.0016 - _pkSwV * 2.4) * dt;
+  _pkSw += _pkSwV * dt;
+  _pkSw = Math.max(-1.1, Math.min(1.1, _pkSw));
+  _pkFlare = Math.max(0, _pkFlare - dt * 1.9);
+  const S = Math.min(1.5, Math.max(0.75, Math.min(W, H) / 780));
+  const HOOK = 96 * S;
+  const lx = _pkX + Math.sin(_pkSw) * HOOK;
+  const ly = _pkY + Math.cos(_pkSw) * HOOK;
+
+  // ── in front of everything ──
+  if (!canvas._pkWeb) {                             // cobweb in the corners
+    const CS = Math.ceil(Math.min(W, H) * 0.34);
+    const c = document.createElement('canvas');
+    c.width = c.height = CS;
+    const g = c.getContext('2d');
+    const RAYS = 9;
+    g.strokeStyle = 'rgba(226,214,236,0.2)';
+    g.lineWidth = 1;
+    g.beginPath();
+    for (let i = 0; i <= RAYS; i++) {
+      const a = (i / RAYS) * 1.5708;
+      g.moveTo(0, 0);
+      g.lineTo(Math.cos(a) * CS, Math.sin(a) * CS);
+    }
+    g.stroke();
+    for (let r = 1; r <= 7; r++) {                  // and the strands between
+      const rr = CS * Math.pow(r / 7, 1.5);
+      g.beginPath();
+      for (let i = 0; i <= RAYS; i++) {
+        const a = (i / RAYS) * 1.5708;
+        const sag = rr * (0.86 + 0.1 * Math.sin(i * 2.3 + r));
+        const px = Math.cos(a) * sag, py = Math.sin(a) * sag;
+        if (i === 0) g.moveTo(px, py);
+        else {
+          const pa = ((i - 0.5) / RAYS) * 1.5708;
+          g.quadraticCurveTo(Math.cos(pa) * sag * 0.86, Math.sin(pa) * sag * 0.86, px, py);
+        }
+      }
+      g.strokeStyle = `rgba(226,214,236,${(0.22 - r * 0.02).toFixed(3)})`;
+      g.stroke();
+    }
+    canvas._pkWeb = c;
+  }
+  const wb = 0.5 + 0.08 * Math.sin(t * 0.4) + _pkFlare * 0.2;
+  for (let k = 0; k < 4; k++) {
+    ctx.save();
+    ctx.globalAlpha = wb * (k < 2 ? 1 : 0.6);
+    ctx.translate(k % 2 ? W : 0, k < 2 ? 0 : H);
+    ctx.scale(k % 2 ? -1 : 1, k < 2 ? 1 : -1);
+    ctx.drawImage(canvas._pkWeb, 0, 0);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  for (let side = 0; side < 2; side++) {
+    const ox = side ? W : 0, dir = side ? -1 : 1;
+    const R = Math.min(W, H) * 0.48;
+    const cg = ctx.createRadialGradient(ox, 0, 0, ox, 0, R);
+    for (let i = 0; i <= 12; i++) {
+      const u = i / 12;
+      cg.addColorStop(u, `rgba(7,3,12,${(0.62 * Math.pow(1 - u, 2.8)).toFixed(4)})`);
+    }
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(ox, 0);
+    for (let i = 0; i <= 9; i++) {
+      const a = (i / 9) * 1.5708;
+      const rr = R * (1.02 + 0.12 * Math.sin(t * 0.5 + i * 1.4 + side * 2.2));
+      ctx.lineTo(ox + dir * Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  if (!_pkLeaves.length) {                          // leaves coming down
+    for (let i = 0; i < 30; i++) {
+      _pkLeaves.push({ x: _pkRnd(i * 3.1) * W, y: _pkRnd(i * 5.7) * H,
+                       vy: 26 + _pkRnd(i * 7.9) * 62, sz: 5 + _pkRnd(i * 9.3) * 8,
+                       rot: _pkRnd(i * 11.7) * 6.283, vr: (_pkRnd(i * 13.1) - 0.5) * 2.4,
+                       ph: _pkRnd(i * 15.3) * 6.283, sw: 0.6 + _pkRnd(i * 17.1) * 1.4 });
+    }
+  }
+  for (const l of _pkLeaves) {
+    l.y += l.vy * dt;
+    l.x += Math.sin(t * l.sw + l.ph) * 46 * dt;
+    l.rot += l.vr * dt;
+    if (l.y > H + 14) { l.y = -14; l.x = Math.random() * W; }
+    ctx.save();
+    ctx.translate(l.x, l.y);
+    ctx.rotate(l.rot);
+    ctx.beginPath();                                // a simple three lobed leaf
+    ctx.moveTo(0, l.sz);
+    ctx.quadraticCurveTo(-l.sz * 0.9, l.sz * 0.2, -l.sz * 0.45, -l.sz * 0.35);
+    ctx.quadraticCurveTo(-l.sz * 0.7, -l.sz * 0.9, 0, -l.sz);
+    ctx.quadraticCurveTo(l.sz * 0.7, -l.sz * 0.9, l.sz * 0.45, -l.sz * 0.35);
+    ctx.quadraticCurveTo(l.sz * 0.9, l.sz * 0.2, 0, l.sz);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${(150 + l.sz * 6) | 0},${(64 + l.sz * 3) | 0},24,0.7)`;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ── the banner along the bottom, in front of the page ──
+  if (!_pkBar || _pkBar.w !== W) {
+    const BH = Math.max(24, Math.round(H * 0.05));
+    _pkBar = { s: _pkBandSprite(BH * 13, BH, 4, false), off: 0, w: W, h: BH };
+  }
+  _pkBar.off = (_pkBar.off + 96 * dt) % _pkBar.s.width;
+  const by = H - _pkBar.h;
+  for (let k = -1; k <= Math.ceil(W / _pkBar.s.width); k++) {
+    ctx.drawImage(_pkBar.s, -_pkBar.off + k * _pkBar.s.width, by);
+  }
+
+  // ── embers and bats ──
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _pkEmbers.length - 1; i >= 0; i--) {
+    const p = _pkEmbers[i];
+    p.vy += 260 * dt;
+    p.vy -= 700 * dt;                               // they are hot, so they climb
+    p.x += (p.vx + Math.sin(t * p.tw + p.ph) * 40) * dt;
+    p.y += p.vy * dt;
+    p.vx *= 0.98;
+    p.life -= dt * 0.62;
+    if (p.life <= 0) { _pkEmbers.splice(i, 1); continue; }
+    const k = 0.35 + 0.65 * (0.5 - 0.5 * Math.cos(t * p.tw + p.ph));
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.sz * p.life * k, 0, 6.283185);
+    ctx.fillStyle = `rgba(${_PK_EMBER},${(p.life * 0.85).toFixed(3)})`;
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = 'rgba(12,6,16,0.88)';
+  for (let i = _pkBats.length - 1; i >= 0; i--) {
+    const b = _pkBats[i];
+    b.vy += 120 * dt;
+    b.x += (b.vx + Math.sin(t * 3 + b.ph) * 90) * dt;
+    b.y += b.vy * dt;
+    b.life -= dt * 0.2;
+    if (b.life <= 0 || b.y < -40 || b.x < -60 || b.x > W + 60) { _pkBats.splice(i, 1); continue; }
+    _pkBat(ctx, b.x, b.y, b.sz, 0.5 + 0.5 * Math.sin(t * 14 + b.ph));
+  }
+
+  // ── the lantern ──
+  ctx.save();
+  ctx.translate(_pkX, _pkY);
+  ctx.beginPath();                                  // the hook it hangs from
+  ctx.moveTo(-10 * S, -26 * S);
+  ctx.quadraticCurveTo(14 * S, -34 * S, 12 * S, -12 * S);
+  ctx.quadraticCurveTo(10 * S, 2 * S, 0, 2 * S);
+  ctx.strokeStyle = '#2c2028';
+  ctx.lineWidth = 5 * S;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.strokeStyle = '#5c4a52';
+  ctx.lineWidth = 2 * S;
+  ctx.stroke();
+  ctx.restore();
+  ctx.save();
+  ctx.translate(lx, ly);
+  ctx.rotate(_pkSw * 0.5);
+  ctx.beginPath();                                  // the wire down to it
+  ctx.moveTo(0, -HOOK);
+  ctx.lineTo(0, -26 * S);
+  ctx.strokeStyle = '#3a2c34';
+  ctx.lineWidth = 2.4 * S;
+  ctx.stroke();
+  ctx.beginPath();                                  // and a handle across the top
+  ctx.moveTo(-18 * S, -20 * S);
+  ctx.quadraticCurveTo(0, -34 * S, 18 * S, -20 * S);
+  ctx.strokeStyle = '#4a3a42';
+  ctx.lineWidth = 3 * S;
+  ctx.stroke();
+  _pkPumpkin(ctx, 0, 0, 26 * S, 7.3, true, 1);
+  ctx.globalCompositeOperation = 'lighter';
+  const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, 120 * S);
+  fg.addColorStop(0, `rgba(${_PK_EMBER},${(0.22 + _pkFlare * 0.4).toFixed(3)})`);
+  fg.addColorStop(1, `rgba(${_PK_ORANGE},0)`);
+  ctx.fillStyle = fg;
+  ctx.fillRect(-120 * S, -120 * S, 240 * S, 240 * S);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.restore();
+
+  _pkTip = { x: lx, y: ly, k: 0.8 + _pkFlare * 0.6 };
+}
+
+function _startPlumkyOverlay() {
+  _stopPlumkyOverlay();
+  _drawPlumkyOverlay._lt = undefined;
+  _pkX = _pkTX = window.innerWidth * 0.5;
+  _pkY = _pkTY = window.innerHeight * 0.4;
+  _pkVX = _pkVY = 0; _pkSw = 0; _pkSwV = 0; _pkFlare = 0;
+  _pkEmbers = []; _pkLeaves = []; _pkBats = []; _pkBar = null;
+  _pkGrown = []; _pkTip = null;
+  window.addEventListener('mousemove', _pkMouseMove);
+  window.addEventListener('mousedown', _pkDown);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'plumky-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('plumky-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+      _pkLeaves = []; _pkBar = null; cv2._pkWeb = null;
+    }
+    _drawPlumkyOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _pkRaf = requestAnimationFrame(frame);
+  }
+  _pkRaf = requestAnimationFrame(frame);
+}
+
+function _stopPlumkyOverlay() {
+  if (_pkRaf) { cancelAnimationFrame(_pkRaf); _pkRaf = null; }
+  window.removeEventListener('mousemove', _pkMouseMove);
+  window.removeEventListener('mousedown', _pkDown);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('plumky-overlay');
+  if (cv) cv.remove();
+  _pkEmbers = []; _pkLeaves = []; _pkBats = []; _pkBar = null;
+  _pkGrown = []; _pkTip = null;
 }
 /* ─────────────────────────────────────────────────────────────── */
 
