@@ -44774,11 +44774,29 @@ let _lbRaf = null;
 let _lbX = 0, _lbY = 0, _lbTX = 0, _lbTY = 0, _lbVX = 0, _lbVY = 0;
 let _lbAng = 1.15, _lbSpin = 0, _lbSlam = 0;
 let _lbShards = [], _lbPetals = [], _lbFore = [];
+// A slam that only shook the sword in place was the wrong verb for a thing
+// this size. It swings now, and it swings about the grip rather than about
+// the point, so the point is what travels: wind up, whip through, settle.
+// The direction alternates, so two clicks in a row are not the same click.
+let _lbSwing = 0, _lbSwingDir = 1, _lbTrail = [];
+
+function _lbSwingOff(p) {                            // p runs 0 to 1
+  if (p < 0.22) return -(p / 0.22);                  // wind up, against the blow
+  if (p < 0.56) {                                    // and through
+    const q = (p - 0.22) / 0.34;
+    return -1 + 2.15 * (1 - Math.pow(1 - q, 2.4));
+  }
+  const q = (p - 0.56) / 0.44;                       // then it settles back
+  return 1.15 * Math.pow(1 - q, 2) * Math.cos(q * 4.2);
+}
 
 function _lbMouseMove(e) { _lbTX = e.clientX; _lbTY = e.clientY; }
 
 function _lbDown(e) {
   _lbSlam = 1;
+  _lbSwing = 1;
+  _lbSwingDir = -_lbSwingDir;
+  _lbTrail.length = 0;
   _lbWave = { x: e.clientX, y: e.clientY, r: 12, life: 1 };
   _lbScars.push({ x: e.clientX, y: e.clientY, r: 90 + Math.random() * 90,
                   n: 5 + ((Math.random() * 4) | 0), seed: Math.random() * 300,
@@ -44811,122 +44829,259 @@ function _lbDown(e) {
   if (_lbPetals.length > 160) _lbPetals.splice(0, _lbPetals.length - 160);
 }
 
-// point at the origin, everything else back along -x
+// Point at the origin, everything else back along -x. The first cut of this
+// had a blade and a gold cap and nothing in between, which is not a sword:
+// with no grip and no guard the eye reads a pen. A sword is four parts and
+// they have to be told apart at a glance, so they are: the blade, then a
+// shoulder, then a guard wide enough to actually stop something, then a
+// wrapped grip long enough for two hands on a thing this size, then the
+// pommel that balances all of it.
+const _LB_L = 448;                   // tip to shoulder
+const _LB_BW = 22;                   // and how wide across the flat
+const _LB_GUARD = _LB_L + 30;        // where the crossguard sits
+const _LB_GRIP0 = _LB_L + 46;        // and the grip behind it
+const _LB_GRIP1 = _LB_L + 132;
+const _LB_END = _LB_L + 196;         // the back of the pommel
+
+function _lbGold(g, a, b) {
+  const gg = g.createLinearGradient(0, a, 0, b);
+  gg.addColorStop(0, '#fbe6ad');
+  gg.addColorStop(0.3, '#e2bc6e');
+  gg.addColorStop(0.54, '#b0842f');
+  gg.addColorStop(0.78, '#d8ae5c');
+  gg.addColorStop(1, '#6b4a1c');
+  return gg;
+}
+
 function _lbSword(g, S, slam, t) {
-  const L = 372, BW = 22;                            // blade, in sprite units
+  const L = _LB_L, BW = _LB_BW;
+  const ink = 'rgba(12,6,24,0.88)';
+
+  // ── the blade ──
   const steel = g.createLinearGradient(0, -BW * S, 0, BW * S);
-  steel.addColorStop(0, '#454a58');
-  steel.addColorStop(0.36, '#c2c8d6');
-  steel.addColorStop(0.5, '#8f96a6');
-  steel.addColorStop(0.62, '#b6bcca');
-  steel.addColorStop(1, '#2c3040');
-  g.beginPath();                                     // the blade
+  steel.addColorStop(0, '#3c4152');
+  steel.addColorStop(0.2, '#9aa2b6');
+  steel.addColorStop(0.4, '#dde2ee');
+  steel.addColorStop(0.52, '#7d859a');
+  steel.addColorStop(0.66, '#c3c9da');
+  steel.addColorStop(0.86, '#525a70');
+  steel.addColorStop(1, '#22263a');
+  g.beginPath();
   g.moveTo(0, 0);
-  g.lineTo(-34 * S, -BW * 0.72 * S);
+  g.lineTo(-46 * S, -BW * 0.7 * S);
   g.lineTo(-L * S, -BW * S);
   g.lineTo(-L * S, BW * S);
-  g.lineTo(-34 * S, BW * 0.72 * S);
+  g.lineTo(-46 * S, BW * 0.7 * S);
   g.closePath();
   g.fillStyle = steel;
   g.fill();
-  g.strokeStyle = 'rgba(10,6,20,0.85)';
-  g.lineWidth = 1.4;
+  g.strokeStyle = ink;
+  g.lineWidth = 1.5;
   g.stroke();
-  g.beginPath();                                     // the fuller down the middle
-  g.moveTo(-40 * S, 0);
-  g.lineTo(-(L - 12) * S, 0);
-  g.strokeStyle = 'rgba(62,68,90,0.72)';
-  g.lineWidth = BW * 0.42 * S;
+  g.beginPath();                                     // the fuller
+  g.moveTo(-54 * S, 0);
+  g.lineTo(-(L - 14) * S, 0);
+  g.strokeStyle = 'rgba(58,64,88,0.7)';
+  g.lineWidth = BW * 0.4 * S;
   g.stroke();
-  g.beginPath();                                     // and what is written in it
-  for (let k = 0; k < 9; k++) {
-    const x = -(60 + k * 25) * S;
-    g.moveTo(x, -BW * 0.2 * S); g.lineTo(x, BW * 0.2 * S);
+  g.beginPath();                                     // and what is cut into it
+  for (let k = 0; k < 13; k++) {
+    const x = -(72 + k * 27) * S;
+    g.moveTo(x, -BW * 0.19 * S); g.lineTo(x, BW * 0.19 * S);
     g.moveTo(x - 5 * S, 0); g.lineTo(x + 5 * S, 0);
   }
   g.strokeStyle = `rgba(${_LB_PALE},0.5)`;
   g.lineWidth = 1.4;
   g.stroke();
-
-  const gold = g.createLinearGradient(0, -30 * S, 0, 30 * S);
-  gold.addColorStop(0, '#f4d68e');
-  gold.addColorStop(0.42, '#c99b42');
-  gold.addColorStop(1, '#6a4a20');
-  g.save();                                          // the gold vine on the ricasso
-  g.translate(-(L - 26) * S, 0);
-  g.beginPath();
-  for (const s of [-1, 1]) {
-    g.moveTo(0, s * BW * S);
-    g.quadraticCurveTo(-14 * S, s * BW * 1.5 * S, -26 * S, s * BW * 0.4 * S);
-  }
-  g.strokeStyle = gold;
-  g.lineWidth = 3.4 * S;
+  g.beginPath();                                     // the edge bevels
+  g.moveTo(-46 * S, -BW * 0.44 * S); g.lineTo(-L * S, -BW * 0.62 * S);
+  g.moveTo(-46 * S, BW * 0.44 * S); g.lineTo(-L * S, BW * 0.62 * S);
+  g.strokeStyle = 'rgba(238,244,255,0.34)';
+  g.lineWidth = 1.2;
   g.stroke();
-  g.beginPath();
-  g.arc(-13 * S, 0, 5.4 * S, 0, 6.283185);
-  g.fillStyle = '#f2e6d0';
-  g.fill();
-  g.restore();
 
-  g.save();                                          // the head of it
-  g.translate(-L * S, 0);
+  // ── the shoulder, where the blade stops being a blade ──
   g.beginPath();
-  g.moveTo(10 * S, -32 * S);
-  g.lineTo(-46 * S, -42 * S);
-  g.lineTo(-74 * S, 0);
-  g.lineTo(-46 * S, 42 * S);
-  g.lineTo(10 * S, 32 * S);
+  g.moveTo(-L * S, -BW * S);
+  g.lineTo(-(L + 18) * S, -BW * 0.72 * S);
+  g.lineTo(-(L + 18) * S, BW * 0.72 * S);
+  g.lineTo(-L * S, BW * S);
+  g.closePath();
+  g.fillStyle = _lbGold(g, -BW * S, BW * S);
+  g.fill();
+  g.strokeStyle = ink;
+  g.lineWidth = 1.3;
+  g.stroke();
+
+  // ── the crossguard: wide, and swept toward the point ──
+  const GY = 74;
+  g.save();
+  g.translate(-_LB_GUARD * S, 0);
+  const gold = _lbGold(g, -GY * S, GY * S);
+  for (const side of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(14 * S, side * 12 * S);
+    g.quadraticCurveTo(20 * S, side * GY * 0.72 * S, 26 * S, side * GY * S);
+    g.lineTo(6 * S, side * GY * 0.98 * S);
+    g.quadraticCurveTo(-6 * S, side * GY * 0.5 * S, -14 * S, side * 13 * S);
+    g.closePath();
+    g.fillStyle = gold;
+    g.fill();
+    g.strokeStyle = ink;
+    g.lineWidth = 1.4;
+    g.stroke();
+    g.beginPath();                                   // a curl at the quillon tip
+    g.arc(20 * S, side * GY * 0.94 * S, 7 * S, 0, 6.283185);
+    g.fillStyle = gold;
+    g.fill();
+    g.stroke();
+    g.beginPath();
+    g.arc(20 * S, side * GY * 0.94 * S, 2.6 * S, 0, 6.283185);
+    g.fillStyle = `rgb(${_LB_ROSE})`;
+    g.fill();
+  }
+  g.beginPath();                                     // the boss over the middle
+  g.moveTo(20 * S, 0); g.lineTo(2 * S, -22 * S);
+  g.lineTo(-20 * S, 0); g.lineTo(2 * S, 22 * S);
   g.closePath();
   g.fillStyle = gold;
   g.fill();
-  g.strokeStyle = 'rgba(20,10,4,0.8)';
+  g.strokeStyle = ink;
+  g.lineWidth = 1.4;
+  g.stroke();
+  const stone = g.createRadialGradient(-2 * S, -4 * S, 0, 0, 0, 15 * S);
+  stone.addColorStop(0, 'rgb(178,214,255)');
+  stone.addColorStop(0.42, `rgb(${_LB_ROSE})`);
+  stone.addColorStop(1, 'rgb(14,22,74)');
+  g.beginPath();
+  g.ellipse(0, 0, 9.5 * S, 13 * S, 0, 0, 6.283185);
+  g.fillStyle = stone;
+  g.fill();
+  g.strokeStyle = ink;
+  g.lineWidth = 1.2;
+  g.stroke();
+  g.globalCompositeOperation = 'lighter';            // and it is lit from inside
+  const sg = g.createRadialGradient(0, 0, 0, 0, 0, 34 * S);
+  sg.addColorStop(0, `rgba(${_LB_PETAL},${(0.22 + slam * 0.5 + 0.06 * Math.sin(t * 1.7)).toFixed(3)})`);
+  sg.addColorStop(1, `rgba(${_LB_ROSE},0)`);
+  g.fillStyle = sg;
+  g.fillRect(-34 * S, -34 * S, 68 * S, 68 * S);
+  g.globalCompositeOperation = 'source-over';
+  g.restore();
+
+  // ── the grip, long enough for both hands ──
+  g.save();
+  g.translate(-_LB_GRIP0 * S, 0);
+  const GL = (_LB_GRIP1 - _LB_GRIP0) * S, GW = 15 * S;
+  g.beginPath();                                     // slightly waisted
+  g.moveTo(0, -GW);
+  g.quadraticCurveTo(-GL * 0.5, -GW * 0.78, -GL, -GW * 0.94);
+  g.lineTo(-GL, GW * 0.94);
+  g.quadraticCurveTo(-GL * 0.5, GW * 0.78, 0, GW);
+  g.closePath();
+  const lea = g.createLinearGradient(0, -GW, 0, GW);
+  lea.addColorStop(0, '#3a2a4e');
+  lea.addColorStop(0.36, '#2a1c3c');
+  lea.addColorStop(0.6, '#171025');
+  lea.addColorStop(1, '#0c0716');
+  g.fillStyle = lea;
+  g.fill();
+  g.strokeStyle = ink;
+  g.lineWidth = 1.4;
+  g.stroke();
+  g.save();                                          // wire wound round it
+  g.beginPath();
+  g.moveTo(0, -GW);
+  g.quadraticCurveTo(-GL * 0.5, -GW * 0.78, -GL, -GW * 0.94);
+  g.lineTo(-GL, GW * 0.94);
+  g.quadraticCurveTo(-GL * 0.5, GW * 0.78, 0, GW);
+  g.closePath();
+  g.clip();
+  g.beginPath();
+  for (let k = -2; k < 16; k++) {
+    const x = -k * GL / 13;
+    g.moveTo(x, -GW * 1.2);
+    g.lineTo(x - GW * 1.1, GW * 1.2);
+  }
+  g.strokeStyle = 'rgba(198,158,86,0.5)';
+  g.lineWidth = 2.4 * S;
+  g.stroke();
+  g.strokeStyle = 'rgba(16,8,26,0.5)';
+  g.lineWidth = 1 * S;
+  g.stroke();
+  g.restore();
+  for (const fx of [0, -GL]) {                       // a ferrule at each end
+    g.beginPath();
+    g.rect(fx - (fx ? 0 : 7 * S), -GW * 1.06, 7 * S, GW * 2.12);
+    g.fillStyle = _lbGold(g, -GW, GW);
+    g.fill();
+    g.strokeStyle = ink;
+    g.lineWidth = 1.2;
+    g.stroke();
+  }
+  g.restore();
+
+  // ── the pommel, crowned ──
+  g.save();
+  g.translate(-_LB_GRIP1 * S, 0);
+  const PY = 40, PL = (_LB_END - _LB_GRIP1);
+  const pg = _lbGold(g, -PY * S, PY * S);
+  g.beginPath();
+  g.moveTo(0, -22 * S);
+  g.lineTo(-PL * 0.42 * S, -PY * S);
+  g.lineTo(-PL * 0.86 * S, 0);
+  g.lineTo(-PL * 0.42 * S, PY * S);
+  g.lineTo(0, 22 * S);
+  g.closePath();
+  g.fillStyle = pg;
+  g.fill();
+  g.strokeStyle = ink;
   g.lineWidth = 1.6;
   g.stroke();
-  g.beginPath();                                     // filigree cut into it
+  g.beginPath();                                     // chasing across the face
   for (let k = 0; k < 4; k++) {
-    const x = -8 * S - k * 12 * S;
-    g.moveTo(x, -22 * S + k * 3 * S);
-    g.quadraticCurveTo(x - 6 * S, 0, x, 22 * S - k * 3 * S);
+    const x = -(8 + k * 13) * S;
+    g.moveTo(x, -(30 - k * 4) * S);
+    g.quadraticCurveTo(x - 8 * S, 0, x, (30 - k * 4) * S);
   }
-  g.strokeStyle = 'rgba(120,84,32,0.6)';
-  g.lineWidth = 1.2;
+  g.strokeStyle = 'rgba(122,86,32,0.55)';
+  g.lineWidth = 1.3;
   g.stroke();
-  g.beginPath();                                     // the stone
-  g.ellipse(-26 * S, 0, 9 * S, 13 * S, 0, 0, 6.283185);
-  const st = g.createRadialGradient(-29 * S, -4 * S, 0, -26 * S, 0, 14 * S);
-  st.addColorStop(0, 'rgb(150,190,255)');
-  st.addColorStop(0.5, `rgb(${_LB_ROSE})`);
-  st.addColorStop(1, 'rgb(18,28,86)');
-  g.fillStyle = st;
+  g.beginPath();                                     // the stone in it
+  g.ellipse(-PL * 0.4 * S, 0, 10 * S, 14 * S, 0, 0, 6.283185);
+  const p2 = g.createRadialGradient(-PL * 0.43 * S, -5 * S, 0, -PL * 0.4 * S, 0, 16 * S);
+  p2.addColorStop(0, 'rgb(186,220,255)');
+  p2.addColorStop(0.45, `rgb(${_LB_ROSE})`);
+  p2.addColorStop(1, 'rgb(12,20,68)');
+  g.fillStyle = p2;
   g.fill();
-  g.strokeStyle = 'rgba(20,10,4,0.7)';
+  g.strokeStyle = ink;
   g.lineWidth = 1.2;
   g.stroke();
-  for (const [dx, dy, r] of [[-4, -17, 3.4], [-4, 17, 3.4], [-46, 0, 4]]) {
+  for (const dy of [-26, 26]) {
     g.beginPath();
-    g.arc(dx * S, dy * S, r * S, 0, 6.283185);
+    g.arc(-PL * 0.22 * S, dy * S, 4.4 * S, 0, 6.283185);
     g.fillStyle = `rgb(${_LB_ROSE})`;
     g.fill();
     g.stroke();
   }
-  g.beginPath();                                     // the crown on the very top
-  g.moveTo(-52 * S, -18 * S);
-  g.lineTo(-78 * S, -22 * S);
-  g.lineTo(-72 * S, -6 * S);
-  g.lineTo(-86 * S, 0);
-  g.lineTo(-72 * S, 6 * S);
-  g.lineTo(-78 * S, 22 * S);
-  g.lineTo(-52 * S, 18 * S);
+  g.beginPath();                                     // and the crown on the end
+  g.moveTo(-PL * 0.66 * S, -30 * S);
+  g.lineTo(-PL * 1.06 * S, -36 * S);
+  g.lineTo(-PL * 0.94 * S, -12 * S);
+  g.lineTo(-PL * 1.2 * S, 0);
+  g.lineTo(-PL * 0.94 * S, 12 * S);
+  g.lineTo(-PL * 1.06 * S, 36 * S);
+  g.lineTo(-PL * 0.66 * S, 30 * S);
   g.closePath();
-  g.fillStyle = gold;
+  g.fillStyle = pg;
   g.fill();
+  g.strokeStyle = ink;
+  g.lineWidth = 1.5;
   g.stroke();
   g.restore();
 
-  // and the roses growing along it, because they are hers
-  // and the vines she has let grow on it: they run along the blade from the
-  // guard rather than being stuck to it in four places, which is the
-  // difference between roses on a sword and roses beside one
+  // ── and the vines she has let grow along it ──
   const sway = Math.sin(t * 0.9) * 0.1 + slam * 0.24;
   for (const side of [-1, 1]) {
     const seg = 9;
@@ -44934,7 +45089,7 @@ function _lbSword(g, S, slam, t) {
     for (let k = 0; k <= seg; k++) {
       const u = k / seg;
       const wob = Math.sin(u * 5.4 + side * 1.7 + t * 0.6 + sway * 3) * (0.5 + u) * 9;
-      pts.push(-(34 + u * (L - 70)) * S, (side * BW * 0.82 + wob) * S);
+      pts.push(-(40 + u * (L - 76)) * S, (side * BW * 0.82 + wob) * S);
     }
     g.beginPath();
     g.moveTo(pts[0], pts[1]);
@@ -44947,7 +45102,7 @@ function _lbSword(g, S, slam, t) {
     g.strokeStyle = 'rgb(58,80,112)';
     g.lineWidth = 1.4 * S;
     g.stroke();
-    g.beginPath();                                   // thorns off it
+    g.beginPath();
     for (let k = 1; k < seg; k++) {
       const px = pts[k * 2], py = pts[k * 2 + 1];
       const d = k % 2 ? 1 : -1;
@@ -44957,7 +45112,7 @@ function _lbSword(g, S, slam, t) {
     g.strokeStyle = 'rgb(70,92,124)';
     g.lineWidth = 1.6 * S;
     g.stroke();
-    for (const [k, rr] of (side < 0 ? [[2, 30], [5, 22], [8, 26]] : [[1, 24], [4, 32], [7, 20]])) {
+    for (const [k, rr] of (side < 0 ? [[2, 28], [5, 21], [8, 24]] : [[1, 23], [4, 30], [7, 19]])) {
       const px = pts[k * 2], py = pts[k * 2 + 1];
       g.save();
       g.translate(px, py + side * rr * 0.5 * S);
@@ -44986,7 +45141,20 @@ function _drawLibraOverlay(canvas, ctx, W, H, t) {
   _lbSpin += (want - _lbAng) * 26 * dt - _lbSpin * 5.4 * dt;
   _lbAng += _lbSpin * dt;
   _lbSlam = Math.max(0, _lbSlam - dt * 2.2);
-  const S = Math.min(1.9, Math.max(0.85, Math.min(W, H) / 560));
+  const S = Math.min(1.8, Math.max(0.8, Math.min(W, H) / 660));
+  // it pivots at the grip, which is what makes the point travel
+  const PIV = _LB_GRIP0 * S;
+  let swing = 0;
+  if (_lbSwing > 0) {
+    _lbSwing = Math.max(0, _lbSwing - dt * 2.6);
+    swing = _lbSwingDir * 0.78 * _lbSwingOff(1 - _lbSwing);
+  }
+  const pvx = _lbX - Math.cos(_lbAng) * PIV;
+  const pvy = _lbY - Math.sin(_lbAng) * PIV;
+  const tipX = pvx + Math.cos(_lbAng + swing) * PIV;
+  const tipY = pvy + Math.sin(_lbAng + swing) * PIV;
+  _lbTrail.push({ x: tipX, y: tipY, a: _lbAng + swing });
+  if (_lbTrail.length > 16) _lbTrail.shift();
 
   // ── in front of everything: the dark, and what is coming apart in it ──
   for (let side = 0; side < 2; side++) {
@@ -45090,14 +45258,44 @@ function _drawLibraOverlay(canvas, ctx, W, H, t) {
     ctx.restore();
   }
 
+  // ── what the point has been doing, which is most of the drama ──
+  if (_lbTrail.length > 3) {
+    let moved = 0;
+    for (let i = 1; i < _lbTrail.length; i++) {
+      moved += Math.hypot(_lbTrail[i].x - _lbTrail[i - 1].x, _lbTrail[i].y - _lbTrail[i - 1].y);
+    }
+    if (moved > 40) {
+      const k = Math.min(1, moved / 700);
+      ctx.globalCompositeOperation = 'lighter';
+      for (const [wd, col, al] of [[22, _LB_ROSE, 0.2], [11, _LB_VIOLET, 0.3], [4, _LB_PALE, 0.5]]) {
+        ctx.beginPath();
+        ctx.moveTo(_lbTrail[0].x, _lbTrail[0].y);
+        for (let i = 1; i < _lbTrail.length - 1; i++) {  // through the midpoints,
+          const q = _lbTrail[i], r = _lbTrail[i + 1];    // so it curves
+          ctx.quadraticCurveTo(q.x, q.y, (q.x + r.x) * 0.5, (q.y + r.y) * 0.5);
+        }
+        ctx.lineTo(_lbTrail[_lbTrail.length - 1].x, _lbTrail[_lbTrail.length - 1].y);
+        ctx.strokeStyle = `rgba(${col},${(al * k).toFixed(3)})`;
+        ctx.lineWidth = wd * k * S;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
   // ── and the sword ──
   ctx.save();
-  ctx.translate(_lbX, _lbY + _lbSlam * 10);
+  ctx.translate(_lbX, _lbY);
   ctx.rotate(_lbAng);
+  ctx.translate(-PIV, 0);                            // round the grip, not the point
+  ctx.rotate(swing);
+  ctx.translate(PIV, 0);
   _lbSword(ctx, S, _lbSlam, t);
   ctx.restore();
 
-  _lbTip = { x: _lbX, y: _lbY, k: 0.7 + _lbSlam * 0.6 };
+  _lbTip = { x: tipX, y: tipY, k: 0.7 + _lbSlam * 0.6 };
 }
 
 function _startLibraOverlay() {
@@ -45106,7 +45304,8 @@ function _startLibraOverlay() {
   _lbX = _lbTX = window.innerWidth * 0.5;
   _lbY = _lbTY = window.innerHeight * 0.6;
   _lbVX = _lbVY = 0; _lbAng = 1.15; _lbSpin = 0; _lbSlam = 0;
-  _lbShards = []; _lbPetals = []; _lbFore = [];
+  _lbShards = []; _lbPetals = []; _lbFore = []; _lbTrail = [];
+  _lbSwing = 0; _lbSwingDir = 1;
   _lbScars = []; _lbBlooms = []; _lbWave = null; _lbTip = null;
   window.addEventListener('mousemove', _lbMouseMove);
   window.addEventListener('mousedown', _lbDown);
@@ -45139,7 +45338,8 @@ function _stopLibraOverlay() {
   if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('libra-overlay');
   if (cv) cv.remove();
-  _lbShards = []; _lbPetals = []; _lbFore = [];
+  _lbShards = []; _lbPetals = []; _lbFore = []; _lbTrail = [];
+  _lbSwing = 0;
   _lbScars = []; _lbBlooms = []; _lbWave = null; _lbTip = null;
 }
 /* ─────────────────────────────────────────────────────────────── */
