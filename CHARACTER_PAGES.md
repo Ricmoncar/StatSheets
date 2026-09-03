@@ -59,6 +59,40 @@ drawing decision is downstream of that claim:
 Write the claim in the module's header comment. When a later decision looks
 arbitrary, the claim is what settles it.
 
+### A page is a PLACE, not a picture of the character
+
+The most expensive mistake of the second round, and it is worth putting above
+everything else because it looks like success right up until someone says it.
+Juko's "1" was built as a figure: the character, whole, centred, standing in a
+space, rendered in loving detail. It was well drawn and it was wrong, because
+none of the pages that work has anyone standing in it. The sea, the ice
+kingdom, the pumpkin patch, the entropy floor, the code garden: they are all
+somewhere you are, not something you are looking at.
+
+If the character has to be present, make them the ARCHITECTURE. The thing
+overhead is now a wing that runs off two edges of the frame; you never see the
+whole of it and you know it by what it blocks out. Same character, same
+reference art, and the page stopped being a portrait.
+
+### A page that only drifts is a wallpaper
+
+The same build failed a second test: almost every pixel of it was baked, and
+the only motion was a slow sideways drift. Baking is right for what does not
+change, but if NOTHING changes then the technique has eaten the page. Ask what
+in this place is happening, and make that the thing you draw.
+
+It also wants more than one kind of motion, at different speeds, with at least
+one of them being an EVENT rather than a loop. "1" ended up with the field
+flying at the camera in real perspective, digits churning until they resolve,
+cables streaming past, the sky rocking, debris tumbling, and a wave of
+resolution thrown off the light on a real beat that turns everything it reaches
+into a 1. The last of those is the one that makes it feel alive, because it is
+the only one you can be surprised by.
+
+Perspective is worth the trouble here. Three sheets at three speeds is a
+parallax trick and reads as one; giving every mote a real z and projecting it
+is barely more code and reads as a space you are inside.
+
 ### Composition first. Polish will not save a page that has none
 
 The single most expensive mistake made so far: Adam's ice kingdom was rebuilt

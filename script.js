@@ -11214,34 +11214,142 @@ function _j1VoidSheet(W, H, cx, cy) {
   return c;
 }
 
-// ── The field. Three ranks of glyph stars, each rank baked at canvas size and
-//    tileable in x so it can drift; near ranks are bigger, brighter and drift
-//    faster, which is the whole of the parallax. ──
-function _j1FieldRank(W, H, cx, cy, rank) {
-  const c = document.createElement('canvas');
-  c.width = W; c.height = H;
-  const g = c.getContext('2d');
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  const n = Math.round((W * H) / (rank === 0 ? 2600 : rank === 1 ? 7000 : 26000));
-  const sz = rank === 0 ? 7 : rank === 1 ? 10 : 14;
-  const maxD = Math.hypot(W, H) * 0.72;
-  for (let i = 0; i < n; i++) {
-    const h = i * 3.7 + rank * 971;
-    const x = _j1Rnd(h) * W, y = _j1Rnd(h * 2.3) * H;
-    // Resolution rises toward the core: out at the edges the field is still
-    // every digit, in close it has almost all fallen to 1.
-    const res = Math.max(0, 1 - Math.hypot(x - cx, y - cy) / maxD);
-    const a = (rank === 0 ? 0.28 : rank === 1 ? 0.46 : 0.66) * (0.35 + res * 0.9) * (0.4 + _j1Rnd(h * 5.1) * 0.6);
-    g.font = `${(sz * (0.8 + _j1Rnd(h * 7.3) * 0.5)) | 0}px "Courier New", monospace`;
-    g.fillStyle = (res > 0.55 ? _J1_R_MINT : res > 0.28 ? _J1_R_CYAN : _J1_R_DEEP)[_j1A(a)];
-    g.fillText(_j1Glyph(res, h), x, y);
-    // wrap: anything near an edge is drawn again on the other side so the
-    // rank tiles cleanly when it drifts
-    if (x < sz * 2) g.fillText(_j1Glyph(res, h), x + W, y);
-    else if (x > W - sz * 2) g.fillText(_j1Glyph(res, h), x - W, y);
+// ── THE FIELD. Not a backdrop of stars: the space you are moving through.
+//    Every digit has a real z, is projected, and comes at the camera, so the
+//    parallax is the actual thing rather than three sheets at three speeds.
+//    Far away (large z, close to the point of light) the collapse has already
+//    happened and everything reads 1. Out here by the camera it is still every
+//    digit, still changing its mind.
+//
+//    PERF: setting ctx.font is expensive and there are several hundred of these
+//    a frame, so sizes are quantized into buckets and drawn a bucket at a time.
+const _J1_NEAR = 90, _J1_FAR = 2600, _J1_FOCAL = 700;
+const _J1_BUCKETS = 7;
+const _J1_SIZES = [5, 7, 10, 14, 19, 26, 36];        // the font a bucket draws at
+function _j1NewMote(m, scatter) {
+  const a = Math.random() * 6.283185;
+  const r = 90 + Math.pow(Math.random(), 0.62) * 1350;
+  m.x = Math.cos(a) * r;
+  m.y = Math.sin(a) * r * 0.92;
+  m.z = scatter ? _J1_NEAR + Math.random() * (_J1_FAR - _J1_NEAR) : _J1_FAR * (0.86 + Math.random() * 0.14);
+  m.ch = _J1_DIGITS[(Math.random() * 10) | 0];
+  m.mut = Math.random() * 0.5;
+  m.br = 0.5 + Math.random() * 0.5;
+  m.lock = 0;                                        // 1 once it has resolved
+  return m;
+}
+function _j1Field(ctx, W, H, cx, cy, dt, t, aL, beat, wave, tipX, tipY) {
+  let pool = _j1Field._p;
+  const want = Math.max(180, Math.min(700, Math.round((W * H) / 1900)));
+  if (!pool || pool.length !== want) {
+    pool = _j1Field._p = Array.from({ length: want }, () => _j1NewMote({}, true));
   }
-  return c;
+  // buckets are reused between frames so this allocates nothing
+  let bk = _j1Field._b;
+  if (!bk) { bk = _j1Field._b = []; for (let i = 0; i < _J1_BUCKETS; i++) bk.push([]); }
+  for (let i = 0; i < _J1_BUCKETS; i++) bk[i].length = 0;
+
+  const speed = 210 + aL * 460 + beat * 320;
+  const maxD = Math.hypot(W, H) * 0.5;
+  for (let i = 0; i < pool.length; i++) {
+    const m = pool[i];
+    m.z -= speed * dt;
+    if (m.z < _J1_NEAR) { _j1NewMote(m, false); continue; }
+    const k = _J1_FOCAL / m.z;
+    const sx = cx + m.x * k, sy = cy + m.y * k;
+    if (sx < -40 || sx > W + 40 || sy < -40 || sy > H + 40) continue;
+    // How far through the collapse this one is. Deep in the field it is over;
+    // near the camera it is still running; and a wave passing through finishes
+    // it wherever it reaches.
+    let res = (m.z - 700) / 1500;
+    if (wave > 0) {
+      const d = Math.hypot(sx - cx, sy - cy);
+      if (d < wave * maxD) res = Math.max(res, 1 - (wave * maxD - d) / (maxD * 0.5));
+    }
+    // and the cursor finishes it too: what it passes over resolves
+    let touched = 0;
+    if (tipX > -9000) {
+      const td = Math.hypot(sx - tipX, sy - tipY);
+      if (td < 130) { touched = 1 - td / 130; res = Math.max(res, touched); }
+    }
+    res = res < 0 ? 0 : res > 1 ? 1 : res;
+    if (res > 0.75) {
+      if (!m.lock) { m.lock = 1; m.ch = '1'; }
+    } else {
+      m.lock = 0;
+      m.mut -= dt * (1.4 + aL * 2.6);
+      if (m.mut <= 0) { m.mut = 0.08 + Math.random() * 0.4; m.ch = _J1_DIGITS[(Math.random() * 10) | 0]; }
+    }
+    const sz = 22 * k * (0.7 + m.br * 0.6);
+    if (sz < 4) continue;
+    const near = 1 - (m.z - _J1_NEAR) / (_J1_FAR - _J1_NEAR);
+    const a = Math.min(1, (0.14 + near * 0.6) * m.br + touched * 0.7) * (0.5 + res * 0.6);
+    let b = 0;
+    while (b < _J1_BUCKETS - 1 && sz > _J1_SIZES[b + 1] - 2) b++;
+    bk[b].push(sx, sy, a, touched > 0.15 ? 1 : (res > 0.75 ? 2 : 0), m.ch);
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let b = 0; b < _J1_BUCKETS; b++) {
+    const arr = bk[b];
+    if (!arr.length) continue;
+    ctx.font = `${_J1_SIZES[b]}px "Courier New", monospace`;
+    for (let i = 0; i < arr.length; i += 5) {
+      const kind = arr[i + 3];
+      ctx.fillStyle = (kind === 1 ? _J1_R_WHITE : kind === 2 ? _J1_R_MINT : _J1_R_CYAN)[_j1A(arr[i + 2])];
+      ctx.fillText(arr[i + 4], arr[i], arr[i + 1]);
+    }
+  }
+}
+
+// ── Conduits: long chains of digits running past the camera with the same
+//    perspective as the field, so they belong to the space rather than sitting
+//    on top of it. These are the cables the collapse is travelling down.
+function _j1Conduits(ctx, W, H, cx, cy, t, beat) {
+  let cs = _j1Conduits._c;
+  if (!cs) {
+    cs = _j1Conduits._c = [];
+    for (let i = 0; i < 5; i++) {
+      cs.push({
+        a: _j1Rnd(i * 3.1) * 6.283185,
+        r: 220 + _j1Rnd(i * 5.7) * 900,
+        rise: (_j1Rnd(i * 7.3) - 0.5) * 700,
+        curl: (_j1Rnd(i * 9.1) - 0.5) * 2.4,
+        n: 26 + ((_j1Rnd(i * 11.7) * 14) | 0),
+        spd: 150 + _j1Rnd(i * 13.3) * 240,
+        z0: _j1Rnd(i * 17.9) * _J1_FAR,
+        br: 0.5 + _j1Rnd(i * 19.3) * 0.5,
+      });
+    }
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  let lastB = -1;
+  for (let ci = 0; ci < cs.length; ci++) {
+    const c = cs[ci];
+    const head = (c.z0 - t * c.spd) % _J1_FAR;
+    for (let i = 0; i < c.n; i++) {
+      let z = head + i * 74;
+      z = ((z % _J1_FAR) + _J1_FAR) % _J1_FAR;
+      if (z < _J1_NEAR + 30) continue;
+      const u = i / c.n;
+      const ang = c.a + c.curl * u + Math.sin(t * 0.3 + ci) * 0.12;
+      const rr = c.r * (1 + u * 0.35);
+      const k = _J1_FOCAL / z;
+      const sx = cx + Math.cos(ang) * rr * k;
+      const sy = cy + (Math.sin(ang) * rr * 0.72 + c.rise * u) * k;
+      if (sx < -30 || sx > W + 30 || sy < -30 || sy > H + 30) continue;
+      const sz = 15 * k;
+      if (sz < 4) continue;
+      const near = 1 - (z - _J1_NEAR) / (_J1_FAR - _J1_NEAR);
+      const a = Math.min(1, (0.2 + near * 0.7) * c.br * (1 - u * 0.35) + beat * 0.2);
+      let b = 0;
+      while (b < _J1_BUCKETS - 1 && sz > _J1_SIZES[b + 1] - 2) b++;
+      if (b !== lastB) { ctx.font = `bold ${_J1_SIZES[b]}px "Courier New", monospace`; lastB = b; }
+      ctx.fillStyle = (near > 0.6 ? _J1_R_WHITE : near > 0.3 ? _J1_R_MINT : _J1_R_CYAN)[_j1A(a)];
+      ctx.fillText(z > 1500 ? '1' : _J1_DIGITS[((ci * 7 + i) * 3 + ((t * 3) | 0)) % 10], sx, sy);
+    }
+  }
 }
 
 // ── The coordinate space: rings centred on the core. Rings are rotation
@@ -11296,7 +11404,7 @@ function _j1Vane(g, x, y, ang, len, wid, bow, lit, lx, ly) {
   g.quadraticCurveTo(mx + nx * wid * 0.62, my + ny * wid * 0.62, tx, ty);
   g.quadraticCurveTo(mx - nx * wid * 0.62, my - ny * wid * 0.62, r2x, r2y);
   g.closePath();
-  g.fillStyle = 'rgba(1,5,9,0.93)';
+  g.fillStyle = 'rgba(3,13,17,0.72)';
   g.fill();
   // ONE lit edge, and WHICH one is not a guess: it is whichever of the two
   // faces the light. Assuming it was always the same side lit every blade on
@@ -11335,7 +11443,7 @@ function _j1Wing(g, ox, oy, S, a0, a1, reach, n, lit, wid, lx, ly) {
     // silhouette rather than a rim
     const len = S * reach * (1 - u * 0.5) * (0.66 + _j1Rnd(k * 5.3 + a0 * 10) * 0.62);
     _j1Vane(g, rx, ry, ang, len, S * wid * (1 - u * 0.25),
-            S * 0.03 * (0.4 + _j1Rnd(k * 7.9) * 0.9), lit * (1 - u * 0.34), lx, ly);
+            S * 0.055 * (0.4 + _j1Rnd(k * 7.9) * 1.0), lit * (1 - u * 0.34), lx, ly);
     first.push([rx + Math.cos(ang) * len, ry + Math.sin(ang) * len]);
   }
   // the leading edge, which is what stops the fan reading as loose sticks
@@ -11351,130 +11459,43 @@ function _j1Wing(g, ox, oy, S, a0, a1, reach, n, lit, wid, lx, ly) {
   g.stroke();
 }
 
-function _j1KnightSheet(W, H, cx, cy) {
+// The thing overhead. Not a figure: a span. It is rooted off the right of the
+// frame and runs off the top and the left, so what you get is the underside of
+// a wing crossing the whole sky, and you never see where it ends. Baked once,
+// then rocked slowly around its root, which is the only way something this big
+// is allowed to move.
+function _j1CanopySheet(W, H) {
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const g = c.getContext('2d');
-  const S = Math.min(W, H);
+  const S = Math.max(W, H);
   g.lineCap = 'round';
   g.lineJoin = 'round';
-
-  // ── the robe: one narrow tapering blade under the head, falling away and
-  //    slightly left, with two panel seams. Drawn first, so the pauldrons and
-  //    the wings sit over its shoulders.
-  {
-    const top = cy + S * 0.02, bot = cy + S * 0.48, lean = -S * 0.07;
-    g.beginPath();
-    g.moveTo(cx - S * 0.042, top);
-    g.quadraticCurveTo(cx - S * 0.058, cy + S * 0.24, cx + lean - S * 0.005, bot);
-    g.lineTo(cx + lean + S * 0.005, bot);
-    g.quadraticCurveTo(cx + S * 0.05, cy + S * 0.22, cx + S * 0.042, top);
-    g.closePath();
-    g.fillStyle = 'rgba(1,5,9,0.94)';
-    g.fill();
-    g.beginPath();                                   // the lit side is the right
-    g.moveTo(cx + S * 0.042, top);
-    g.quadraticCurveTo(cx + S * 0.05, cy + S * 0.22, cx + lean + S * 0.005, bot);
-    g.strokeStyle = `rgba(${_J1_MINT},0.66)`;
-    g.lineWidth = 1.7;
-    g.stroke();
-    g.beginPath();
-    g.moveTo(cx - S * 0.042, top);
-    g.quadraticCurveTo(cx - S * 0.058, cy + S * 0.24, cx + lean - S * 0.005, bot);
-    g.strokeStyle = `rgba(${_J1_DEEP},0.6)`;
-    g.lineWidth = 1.2;
-    g.stroke();
-    for (const u of [0.22, 0.46, 0.7]) {             // panel seams across it
-      const y = top + (bot - top) * u;
-      const w = S * 0.05 * (1 - u * 0.78);
-      const mx = cx + lean * u;
-      g.beginPath();
-      g.moveTo(mx - w, y - S * 0.012);
-      g.lineTo(mx, y);
-      g.lineTo(mx + w, y - S * 0.012);
-      g.strokeStyle = `rgba(${_J1_CYAN},${(0.4 * (1 - u * 0.5)).toFixed(3)})`;
-      g.lineWidth = 1.2;
-      g.stroke();
-    }
-  }
-
-  // ── the wings. Two of them at two distances, both sweeping up and back
-  //    to the left, away from the arms. The far one is shorter and dimmer,
-  //    which is the whole of the depth between them.
-  _j1Wing(g, cx + S * 0.02, cy - S * 0.14, S, -1.72, -2.62, 0.56, 9, 0.24, 0.011, cx, cy);
-  _j1Wing(g, cx - S * 0.05, cy - S * 0.02, S, -1.98, -3.02, 0.92, 13, 0.6, 0.0135, cx, cy);
-  // the lower cluster, shorter and swept further back, so the left of the page
-  // is a wing and a broken wing rather than one fan
-  _j1Wing(g, cx - S * 0.1, cy + S * 0.12, S, -3.05, -3.62, 0.6, 7, 0.4, 0.012, cx, cy);
-
-  // ── the pauldrons, and on the right the socket the arms leave from
-  for (const sgn of [-1, 1]) {
-    g.beginPath();
-    g.moveTo(cx + sgn * S * 0.026, cy - S * 0.04);
-    g.lineTo(cx + sgn * S * 0.105, cy - S * 0.062);
-    g.lineTo(cx + sgn * S * 0.125, cy + S * 0.016);
-    g.lineTo(cx + sgn * S * 0.045, cy + S * 0.042);
-    g.closePath();
-    g.fillStyle = 'rgba(1,5,9,0.95)';
-    g.fill();
-    g.beginPath();                                   // the outer edges only
-    g.moveTo(cx + sgn * S * 0.026, cy - S * 0.04);
-    g.lineTo(cx + sgn * S * 0.105, cy - S * 0.062);
-    g.lineTo(cx + sgn * S * 0.125, cy + S * 0.016);
-    g.strokeStyle = `rgba(${sgn > 0 ? _J1_MINT : _J1_DEEP},${sgn > 0 ? 0.7 : 0.45})`;
-    g.lineWidth = 1.5;
-    g.stroke();
-  }
-
-  // ── the head, small, so everything else reads as huge
+  const rx = W * 1.06, ry = H * 0.02;               // rooted off the top right
+  // the far span, dimmer and shorter, so the ceiling has a depth to it
+  _j1Wing(g, rx + S * 0.03, ry - S * 0.04, S, -3.02, -3.52, 0.34, 8, 0.18, 0.011, rx, ry + S * 0.6);
+  // and the near span, the one that actually crosses the sky
+  _j1Wing(g, rx, ry, S, -2.86, -3.72, 0.56, 11, 0.46, 0.014, rx, ry + S * 0.6);
+  // the spar it all hangs from, running off the frame
   g.beginPath();
-  g.moveTo(cx, cy - S * 0.078);
-  g.lineTo(cx + S * 0.032, cy - S * 0.038);
-  g.lineTo(cx + S * 0.022, cy + S * 0.012);
-  g.lineTo(cx - S * 0.022, cy + S * 0.012);
-  g.lineTo(cx - S * 0.032, cy - S * 0.038);
-  g.closePath();
-  g.fillStyle = 'rgba(1,6,10,0.97)';
-  g.fill();
-  g.strokeStyle = `rgba(${_J1_MINT},0.7)`;
-  g.lineWidth = 1.5;
+  g.moveTo(rx + S * 0.05, ry + S * 0.05);
+  g.quadraticCurveTo(rx - S * 0.3, ry - S * 0.02, rx - S * 0.62, ry + S * 0.12);
+  g.strokeStyle = `rgba(${_J1_MINT},0.45)`;
+  g.lineWidth = 2.6;
   g.stroke();
-  g.beginPath();                                     // the visor slit
-  g.moveTo(cx - S * 0.021, cy - S * 0.035);
-  g.lineTo(cx + S * 0.021, cy - S * 0.035);
-  g.strokeStyle = 'rgba(226,255,246,0.75)';
-  g.lineWidth = 2;
-  g.stroke();
+  return c;
+}
 
-  // ── the crown: a diamond floating clear of the head with two spikes. The
-  //    one piece of ornament, and the reason it reads as a knight.
-  const crY = cy - S * 0.172, crR = S * 0.06;
-  g.beginPath();
-  g.moveTo(cx, crY - crR); g.lineTo(cx + crR * 0.66, crY);
-  g.lineTo(cx, crY + crR * 0.86); g.lineTo(cx - crR * 0.66, crY);
-  g.closePath();
-  g.fillStyle = 'rgba(1,5,9,0.8)';
-  g.fill();
-  g.strokeStyle = `rgba(${_J1_MINT},0.95)`;
-  g.lineWidth = 1.9;
-  g.stroke();
-  g.beginPath();
-  g.moveTo(cx, crY - crR); g.lineTo(cx, crY + crR * 0.86);
-  g.strokeStyle = `rgba(${_J1_CYAN},0.55)`;
-  g.lineWidth = 1;
-  g.stroke();
-  for (const sgn of [-1, 1]) {
-    g.beginPath();
-    g.moveTo(cx + sgn * crR * 0.55, crY + crR * 0.24);
-    g.lineTo(cx + sgn * crR * 2.3, crY - crR * 1.85);
-    g.lineTo(cx + sgn * crR * 0.95, crY - crR * 0.34);
-    g.closePath();
-    g.fillStyle = 'rgba(1,5,9,0.82)';
-    g.fill();
-    g.strokeStyle = `rgba(${_J1_MINT},${sgn > 0 ? 0.75 : 0.42})`;
-    g.lineWidth = 1.4;
-    g.stroke();
-  }
+// A second span, far off and low on the other side, so the space is enclosed
+// rather than open on one side only.
+function _j1FarSpanSheet(W, H) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const S = Math.max(W, H);
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  _j1Wing(g, -W * 0.06, H * 1.1, S, -1.02, -0.46, 0.34, 6, 0.12, 0.009, W * 0.6, H * 0.2);
   return c;
 }
 
@@ -11561,7 +11582,7 @@ function _j1ShardSheet(S, seed) {
   g.moveTo(pts[0][0], pts[0][1]);
   for (let i = 1; i < n; i++) g.lineTo(pts[i][0], pts[i][1]);
   g.closePath();
-  g.fillStyle = 'rgba(1,4,7,0.93)';                  // near things are the darkest
+  g.fillStyle = 'rgba(3,12,16,0.8)';                 // near things are the darkest
   g.fill();
   // faces: faint digits on the surface, mostly resolved
   g.save();
@@ -11582,8 +11603,8 @@ function _j1ShardSheet(S, seed) {
     if (facing < 0.05) continue;
     g.beginPath();
     g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
-    g.strokeStyle = `rgba(${_J1_MINT},${(0.12 + facing * 0.62).toFixed(3)})`;
-    g.lineWidth = 1.6;
+    g.strokeStyle = `rgba(${_J1_MINT},${(0.2 + facing * 0.8).toFixed(3)})`;
+    g.lineWidth = 1.8;
     g.stroke();
   }
   return c;
@@ -11718,39 +11739,33 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
   // the loop's t0, or anything driving these directly) leaves t - _lt hugely
   // negative, which passes a bare `< 0.033` and freezes the layer for good.
   if (_drawJuko1Pattern._lt !== undefined && t - _drawJuko1Pattern._lt >= 0 && t - _drawJuko1Pattern._lt < 0.033) return;
-  const dt = _drawJuko1Pattern._lt === undefined ? 0.016 : Math.min(t - _drawJuko1Pattern._lt, 0.05);
+  const dt = _drawJuko1Pattern._lt === undefined ? 0.016 : Math.min(Math.abs(t - _drawJuko1Pattern._lt), 0.05);
   _drawJuko1Pattern._lt = t;
 
   _jukoEnsureEnvelope();
   _jukoSampleAudio(dt);
   const aL = _jukoAudioLevel, aO = _jukoAudioOnset, beat = _jukoAudioBeat;
 
-  // The pattern canvas is the content area, which is wide and short: about
-  // 1.6:1. Sizing the figure off min(W,H) alone made it tiny on a tall window
-  // and cropped it to nothing on a wide one, so the span is taken off the
-  // width and the height is only a ceiling on it.
+  // THE POINT OF LIGHT: the direction everything is falling, the origin of the
+  // rings, the vanishing point of the perspective and the only light source.
+  // Off centre so the panels keep the quieter half of the page.
+  const CX = W * 0.73, CY = H * 0.29;
   const S = Math.min(W * 0.55, H * 0.95);
-  // THE CORE, and therefore the light, the vanishing point and the origin of
-  // the rings. Up and right, which is the one part of this layout the panels
-  // leave clear, and far enough over that the wing has the whole page to
-  // sweep across. Deliberately cropped: the wing leaves the frame on the left
-  // and the arms leave it on the right. You are meant to be seeing part of
-  // something, not all of something small.
-  const CX = W * 0.62, CY = H * 0.4;
 
   if (canvas._j1W !== W || canvas._j1H !== H) {
     canvas._j1W = W; canvas._j1H = H;
-    canvas._j1Void = null; canvas._j1Rings = null; canvas._j1Knight = null;
-    canvas._j1Field = null; canvas._j1Wreck = null; canvas._j1Shards = null;
-    canvas._j1Vign = null;
+    canvas._j1Void = null; canvas._j1Rings = null; canvas._j1Canopy = null;
+    canvas._j1Far = null; canvas._j1Wreck = null; canvas._j1Shards = null;
+    canvas._j1Vign = null; canvas._j1ShardPos = null;
+    _j1Field._p = null;
   }
   if (!canvas._j1Void) {
     canvas._j1Void = _j1VoidSheet(W, H, CX, CY);
     canvas._j1Rings = _j1RingSheet(W, H, CX, CY);
-    canvas._j1Knight = _j1KnightSheet(W, H, CX, CY);
-    canvas._j1Field = [_j1FieldRank(W, H, CX, CY, 0), _j1FieldRank(W, H, CX, CY, 1), _j1FieldRank(W, H, CX, CY, 2)];
-    canvas._j1Wreck = _j1WreckSheet(Math.round(S * 0.5));
-    canvas._j1Shards = [0, 1, 2, 3].map(i => _j1ShardSheet(Math.round(S * (0.3 + _j1Rnd(i * 21.1) * 0.34)), i * 17 + 3));
+    canvas._j1Canopy = _j1CanopySheet(W, H);
+    canvas._j1Far = _j1FarSpanSheet(W, H);
+    canvas._j1Wreck = _j1WreckSheet(Math.round(S * 0.42));
+    canvas._j1Shards = [0, 1, 2, 3, 4].map(i => _j1ShardSheet(Math.round(S * (0.24 + _j1Rnd(i * 21.1) * 0.3)), i * 17 + 3));
     const vc = document.createElement('canvas');
     vc.width = W; vc.height = H;
     const vg = vc.getContext('2d');
@@ -11767,55 +11782,42 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1;
   ctx.drawImage(canvas._j1Void, 0, 0);
 
-  // 1 ── the field, three ranks, drifting at three speeds. That difference IS
-  //      the parallax; there is nothing else out here to give distance away.
-  ctx.globalCompositeOperation = 'lighter';
-  for (let r = 0; r < 3; r++) {
-    const sheet = canvas._j1Field[r];
-    const off = ((t * (2.2 + r * 4.4)) % W + W) % W;
-    ctx.globalAlpha = 0.75 + aL * 0.25;
-    ctx.drawImage(sheet, -off, 0);
-    ctx.drawImage(sheet, W - off, 0);
-  }
-  ctx.globalAlpha = 1;
-
-  // 2 ── the coordinate cage. Rings baked (a ring does not care about
-  //      rotation); spokes live, because live is what lets them turn, answer
-  //      the music, and brighten where the cursor is.
-  ctx.drawImage(canvas._j1Rings, 0, 0);
-  const maxR = Math.hypot(Math.max(CX, W - CX), Math.max(CY, H - CY));
+  // 1 ── where the cursor is, in THIS canvas's coordinates. The two canvases
+  //     do not share a coordinate space, so it goes through the helpers.
   _bgRect(canvas);
   let tipX = -9999, tipY = -9999;
-  if (_j1Tip) { const p = _bgAt(canvas, W, H, _j1Tip.x, _j1Tip.y); tipX = p[0]; tipY = p[1]; }
+  if (_j1Tip) { const q = _bgAt(canvas, W, H, _j1Tip.x, _j1Tip.y); tipX = q[0]; tipY = q[1]; }
+
+  // 2 ── a wave of resolution, thrown off the point of light on a real hit and
+  //     travelling out through the field turning everything it reaches into 1.
+  //     This is the page's clock: the thing that makes it an event rather than
+  //     a texture.
+  if (!canvas._j1Wave) canvas._j1Wave = { t0: -99 };
+  if (aO > 0.42 && t - canvas._j1Wave.t0 > 1.5) canvas._j1Wave.t0 = t;
+  const waveP = (t - canvas._j1Wave.t0) / 2.3;
+  const wave = (waveP >= 0 && waveP < 1) ? waveP : 0;
+
+  // 3 ── the coordinate cage, and the spokes, which now read as the lines of
+  //     the perspective you are travelling along
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(canvas._j1Rings, 0, 0);
+  const maxR = Math.hypot(Math.max(CX, W - CX), Math.max(CY, H - CY));
   const tipAng = Math.atan2(tipY - CY, tipX - CX);
   const spokes = 18, spin = t * 0.021;
-  for (let bucket = 0; bucket < 3; bucket++) {
-    ctx.beginPath();
-    let any = false;
-    for (let i = 0; i < spokes; i++) {
-      const ang = (i / spokes) * 6.283185 + spin;
-      // how close this spoke passes to the cursor, wrapped
-      let d = Math.abs(((ang - tipAng + Math.PI * 3) % 6.283185) - Math.PI);
-      const near = _j1Tip ? Math.max(0, 1 - d / 0.5) : 0;
-      const b = (i % 3 === bucket ? 1 : 0) * (0.55 + near * 2.6 + beat * 0.5);
-      if (b <= 0) continue;
-      any = true;
-      const c1 = Math.cos(ang), s1 = Math.sin(ang);
-      ctx.moveTo(CX + c1 * S * 0.05, CY + s1 * S * 0.05);
-      ctx.lineTo(CX + c1 * maxR, CY + s1 * maxR);
-    }
-    if (!any) continue;
-    const nearAny = _j1Tip ? 1 : 0;
-    ctx.strokeStyle = `rgba(${_J1_CYAN},${(0.018 + beat * 0.016).toFixed(3)})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
+  ctx.beginPath();
+  for (let i = 0; i < spokes; i++) {
+    const ang = (i / spokes) * 6.283185 + spin;
+    const c1 = Math.cos(ang), s1 = Math.sin(ang);
+    ctx.moveTo(CX + c1 * S * 0.05, CY + s1 * S * 0.05);
+    ctx.lineTo(CX + c1 * maxR, CY + s1 * maxR);
   }
-  // the spokes the cursor is actually on, brighter, drawn on their own so the
-  // brightness is per spoke rather than per bucket
-  if (_j1Tip) {
+  ctx.strokeStyle = `rgba(${_J1_CYAN},${(0.018 + beat * 0.02).toFixed(3)})`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  if (_j1Tip) {                                      // the ones the cursor is on
     for (let i = 0; i < spokes; i++) {
       const ang = (i / spokes) * 6.283185 + spin;
-      let d = Math.abs(((ang - tipAng + Math.PI * 3) % 6.283185) - Math.PI);
+      const d = Math.abs(((ang - tipAng + Math.PI * 3) % 6.283185) - Math.PI);
       const near = Math.max(0, 1 - d / 0.42);
       if (near < 0.02) continue;
       const c1 = Math.cos(ang), s1 = Math.sin(ang);
@@ -11827,79 +11829,105 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
       ctx.stroke();
     }
   }
+
+  // 4 ── THE FIELD, coming at you
+  _j1Field(ctx, W, H, CX, CY, dt, t, aL, beat, wave, tipX, tipY);
+
+  // 5 ── and the cables it is travelling down
+  _j1Conduits(ctx, W, H, CX, CY, t, beat);
   ctx.globalCompositeOperation = 'source-over';
 
-  // 3 ── the wreck of the garden, low and left: the counterweight, and the
-  //      only green left on the page.
+  // 6 ── the wreck of the garden, still out there, turning slowly
   {
     const wc = canvas._j1Wreck, ws = wc.width;
-    const wx = W * 0.17 - ws / 2, wy = H * 0.76 - ws / 2;
     ctx.save();
-    ctx.translate(wx + ws / 2, wy + ws / 2);
-    ctx.rotate(Math.sin(t * 0.05) * 0.03 + 0.2);
-    ctx.globalAlpha = 0.9;
+    ctx.translate(W * 0.15, H * 0.8 + Math.sin(t * 0.11) * H * 0.012);
+    ctx.rotate(t * 0.012 + 0.2);
+    ctx.globalAlpha = 0.85;
     ctx.drawImage(wc, -ws / 2, -ws / 2);
     ctx.restore();
     ctx.globalAlpha = 1;
   }
 
-  // 4 ── THE KNIGHT
-  ctx.drawImage(canvas._j1Knight, 0, 0);
-  if (beat > 0.15) {                                 // the light in it swells on the beat
+  // 7 ── the far span, low and on the other side
+  ctx.save();
+  ctx.translate(W * 0.5, H * 0.5);
+  ctx.rotate(Math.sin(t * 0.07) * 0.012);
+  ctx.drawImage(canvas._j1Far, -W * 0.5, -H * 0.5);
+  ctx.restore();
+
+  // 8 ── THE CANOPY. Rocked around its root, off the right of the frame, so
+  //     the whole sky moves and nothing about the movement is fast.
+  const rockA = Math.sin(t * 0.13) * 0.018 + Math.sin(t * 0.061) * 0.01;
+  ctx.save();
+  ctx.translate(W * 1.06, H * 0.02);
+  ctx.rotate(rockA + beat * 0.006);
+  ctx.drawImage(canvas._j1Canopy, -W * 1.06, -H * 0.02);
+  if (beat > 0.2) {                                  // its edges take the light
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = Math.min(0.5, beat * 0.45);
-    ctx.drawImage(canvas._j1Knight, 0, 0);
+    ctx.globalAlpha = Math.min(0.45, beat * 0.4);
+    ctx.drawImage(canvas._j1Canopy, -W * 1.06, -H * 0.02);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   }
+  ctx.restore();
 
-  // 5 ── the tendrils, flowing out of the core
-  _j1Tendrils(ctx, CX, CY, S, t, beat, _j1Arms());
-
-  // 6 ── the core itself
+  // 9 ── the point of light itself
   _j1Prism(ctx, CX, CY, S * 0.032, t, beat, _j1Pulse);
 
-  // 7 ── the near plane: shards close enough to be nearly black, drifting.
-  //      Without these the page is only mid and far, and it reads flat.
-  if (!canvas._j1ShardPos) {
-    canvas._j1ShardPos = canvas._j1Shards.map((sc, i) => ({
-      x: [0.08, 0.55, 0.93, 0.3][i] * W,
-      y: [1.02, 1.1, 0.9, 0.98][i] * H,
-      vx: (_j1Rnd(i * 31.7) - 0.5) * 5, vy: -1.2 - _j1Rnd(i * 13.3) * 1.6,
-      ph: _j1Rnd(i * 7.9) * 6.283185,
-    }));
-  }
-  for (let i = 0; i < canvas._j1Shards.length; i++) {
-    const sc = canvas._j1Shards[i], p = canvas._j1ShardPos[i], sz = sc.width;
-    p.x += p.vx * dt; p.y += p.vy * dt;
-    if (p.y < -sz) { p.y = H + sz; p.x = _j1Rnd(t * 3.3 + i) * W; }
-    // Only a wobble, never a spin: the lit edge was chosen at bake time from
-    // where the core is, and turning the sheet turns the light with it.
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(Math.sin(t * 0.11 + p.ph) * 0.05);
-    ctx.drawImage(sc, -sz / 2, -sz / 2);
-    ctx.restore();
-  }
-
-  // 8 ── the void closing in at the edges
-  ctx.drawImage(canvas._j1Vign, 0, 0);
-
-  // 9 ── and a resolve pulse: on a real hit, a ring of light leaves the core.
-  //      One ring, so it reads as an event rather than as texture.
-  if (!canvas._j1Ring) canvas._j1Ring = { t0: -99 };
-  if (aO > 0.5 && t - canvas._j1Ring.t0 > 1.4) canvas._j1Ring.t0 = t;
-  const ra = (t - canvas._j1Ring.t0) / 2.2;
-  if (ra >= 0 && ra < 1) {
+  // 10 ── the wave, drawn: one ring leaving the light
+  if (wave > 0) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.beginPath();
-    ctx.arc(CX, CY, ra * maxR * 1.05, 0, 6.283185);
-    ctx.strokeStyle = _J1_R_MINT[_j1A(Math.pow(1 - ra, 2.2) * 0.5)];
-    ctx.lineWidth = 1 + (1 - ra) * 3;
+    ctx.arc(CX, CY, wave * maxR * 1.1, 0, 6.283185);
+    ctx.strokeStyle = _J1_R_MINT[_j1A(Math.pow(1 - wave, 2.1) * 0.5)];
+    ctx.lineWidth = 1 + (1 - wave) * 4;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(CX, CY, wave * maxR * 0.94, 0, 6.283185);
+    ctx.strokeStyle = _J1_R_WHITE[_j1A(Math.pow(1 - wave, 2.6) * 0.3)];
+    ctx.lineWidth = 1 + (1 - wave) * 1.6;
     ctx.stroke();
     ctx.restore();
   }
+
+  // 11 ── the near plane: debris going past the camera, rotated so the edge
+  //     the light is baked onto is the edge actually facing the light.
+  if (!canvas._j1ShardPos) {
+    canvas._j1ShardPos = canvas._j1Shards.map((sc, i) => ({
+      a: _j1Rnd(i * 5.3) * 6.283185,
+      r: 200 + _j1Rnd(i * 9.7) * 900,
+      z: _J1_NEAR + _j1Rnd(i * 3.1) * (_J1_FAR - _J1_NEAR),
+      sp: 0.5 + _j1Rnd(i * 13.9) * 0.7,
+      vr: (_j1Rnd(i * 7.1) - 0.5) * 0.12,
+    }));
+  }
+  const shSpeed = 210 + aL * 460 + beat * 320;
+  for (let i = 0; i < canvas._j1Shards.length; i++) {
+    const sc = canvas._j1Shards[i], p = canvas._j1ShardPos[i];
+    p.z -= shSpeed * p.sp * dt;
+    if (p.z < _J1_NEAR * 0.7) {
+      p.z = _J1_FAR; p.a = Math.random() * 6.283185; p.r = 200 + Math.random() * 900;
+    }
+    const k = _J1_FOCAL / p.z;
+    const sx = CX + Math.cos(p.a) * p.r * k, sy = CY + Math.sin(p.a) * p.r * 0.72 * k;
+    const sz = sc.width * k * 0.8;
+    if (sz < 6 || sz > H * 0.55 || sx < -sz || sx > W + sz || sy < -sz || sy > H + sz) continue;
+    // the sheet bakes its lit edge pointing up and right (that is atan2(-0.86,
+    // 0.5)), so turn it until that edge faces the light
+    const toLight = Math.atan2(CY - sy, CX - sx);
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(toLight + 1.047 + Math.sin(t * p.vr * 8 + i) * 0.08);
+    ctx.globalAlpha = Math.min(1, 0.35 + (1 - p.z / _J1_FAR) * 0.9);
+    ctx.drawImage(sc, -sz / 2, -sz / 2, sz, sz);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // 12 ── the void closing in at the edges
+  ctx.drawImage(canvas._j1Vign, 0, 0);
 }
 
 // ── The cursor for 1: the value itself, given a shape. A prism core with four
@@ -12070,7 +12098,7 @@ function _j1PageLayer(canvas, ctx, W, H, t) {
   if (!pc) return;
   const r = pc.getBoundingClientRect();
   if (!(r.width > 0 && r.height > 0)) return;
-  const CX = r.left + r.width * 0.62, CY = r.top + r.height * 0.4;
+  const CX = r.left + r.width * 0.73, CY = r.top + r.height * 0.29;
   const S = Math.min(r.width * 0.55, r.height * 0.95);
 
   // Two outer arms, the ones long enough to leave the card entirely. They pass
