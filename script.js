@@ -45408,7 +45408,7 @@ function _pkRnd(seed) {
 // the far side are not, and the seam between two lobes is a dark line
 // no matter which side it is on.
 function _pkPumpkin(g, x, y, r, seed, carved, lit) {
-  const lobes = 5, rx = r * 1.14, ry = r * 0.94;
+  const lobes = r < 9 ? 3 : 5, rx = r * 1.14, ry = r * 0.94;
   g.save();
   g.translate(x, y);
   for (let i = 0; i < lobes; i++) {
@@ -45522,6 +45522,65 @@ function _pkBandSprite(BW, BH, units, dark) {
   return c;
 }
 
+
+// ── The moon, and what is out in front of it ──────────────────────────────
+// Built by punching one disc out of another, which is the only honest way to
+// draw a crescent: the terminator is then a real circular arc and not a curve
+// somebody guessed at, and it meets the limb at the two sharp horns a drawn
+// one never gets right. Craters go on before the punch so the ones that fall
+// in the shadow simply are not there.
+function _pkMoonSprite(R) {
+  const S2 = Math.ceil(R * 6);
+  const c = document.createElement('canvas');
+  c.width = c.height = S2;
+  const g = c.getContext('2d');
+  const cx = S2 / 2, cy = S2 / 2;
+
+  const disc = document.createElement('canvas');
+  disc.width = disc.height = S2;
+  const dg = disc.getContext('2d');
+  const face = dg.createRadialGradient(cx - R * 0.5, cy - R * 0.4, 0, cx, cy, R * 1.15);
+  face.addColorStop(0, 'rgb(255,252,240)');
+  face.addColorStop(0.5, 'rgb(238,230,212)');
+  face.addColorStop(1, 'rgb(196,182,168)');
+  dg.beginPath();
+  dg.arc(cx, cy, R, 0, 6.283185);
+  dg.fillStyle = face;
+  dg.fill();
+  for (let i = 0; i < 12; i++) {                    // craters, before the punch
+    const a = _pkRnd(i * 4.1) * 6.283185;
+    const d = Math.pow(_pkRnd(i * 6.3), 0.6) * R * 0.86;
+    const rr = R * (0.04 + _pkRnd(i * 8.7) * 0.1);
+    dg.beginPath();
+    dg.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, rr, 0, 6.283185);
+    dg.fillStyle = `rgba(176,164,150,${(0.18 + _pkRnd(i * 10.9) * 0.2).toFixed(2)})`;
+    dg.fill();
+    dg.beginPath();                                 // each with one lit rim
+    dg.arc(cx + Math.cos(a) * d - rr * 0.12, cy + Math.sin(a) * d - rr * 0.14,
+           rr * 0.86, 3.4, 5.9);
+    dg.strokeStyle = 'rgba(255,252,244,0.3)';
+    dg.lineWidth = Math.max(0.6, rr * 0.14);
+    dg.stroke();
+  }
+  dg.globalCompositeOperation = 'destination-out';  // and this is the night side
+  dg.fillStyle = '#000';                            // opaque, or it only half goes
+  dg.beginPath();
+  dg.arc(cx + R * 0.5, cy - R * 0.26, R * 0.92, 0, 6.283185);
+  dg.fill();
+
+  g.globalCompositeOperation = 'lighter';           // the halo goes underneath
+  const hg = g.createRadialGradient(cx, cy, 0, cx, cy, S2 * 0.5);
+  for (let i = 0; i <= 14; i++) {
+    const u = i / 14;
+    hg.addColorStop(u, `rgba(236,228,214,${(0.19 * Math.pow(1 - u, 2.8)).toFixed(4)})`);
+  }
+  g.fillStyle = hg;
+  g.fillRect(0, 0, S2, S2);
+  g.globalCompositeOperation = 'source-over';
+  g.drawImage(disc, 0, 0);
+  return c;
+}
+
 // ── A bare tree ──────────────────────────────────────────────────
 // Recursive, and thinning as it goes, because the one thing that makes
 // a drawn tree look drawn is branches that stay the same weight.
@@ -45555,12 +45614,13 @@ function _drawPlumkyPattern(canvas, ctx, W, H, t) {
     canvas._pkW = W; canvas._pkH = H;
     canvas._pkSky = null; canvas._pkMoon = null; canvas._pkTrees = null;
     canvas._pkPatch = null; canvas._pkFog = null; canvas._pkVign = null;
-    canvas._pkBands = null; canvas._pkPlant = null;
+    canvas._pkBands = null; canvas._pkPlant = null; canvas._pkFlock = null;
+    canvas._pkWisps = null; canvas._pkWeeds = null; canvas._pkLit = null;
     for (const p of _pkGrown) p.stamped = false;
   }
   const HZ = Math.round(H * 0.54);
-  const MX = W * 0.76, MY = HZ * 0.6;              // low, where the panels are not
-  const MR = Math.max(38, Math.min(W * 0.058, H * 0.1));
+  const MX = W * 0.8, MY = HZ * 0.23;             // clear of the top banner
+  const MR = Math.max(34, Math.min(W * 0.05, H * 0.088));
   _bgRect(canvas);
 
   ctx.globalCompositeOperation = 'source-over';
@@ -45603,27 +45663,33 @@ function _drawPlumkyPattern(canvas, ctx, W, H, t) {
   }
   ctx.drawImage(canvas._pkSky, 0, 0);
 
-  // 2 ── the moon, which he has carved
-  if (!canvas._pkMoon) {
-    const S2 = Math.ceil(MR * 4);
-    canvas._pkMoon = document.createElement('canvas');
-    canvas._pkMoon.width = canvas._pkMoon.height = S2;
-    const mg = canvas._pkMoon.getContext('2d');
-    mg.globalCompositeOperation = 'lighter';        // the halo round it
-    const hg = mg.createRadialGradient(S2 / 2, S2 / 2, 0, S2 / 2, S2 / 2, S2 / 2);
-    for (let i = 0; i <= 14; i++) {
-      const u = i / 14;
-      hg.addColorStop(u, `rgba(${_PK_EMBER},${(0.3 * Math.pow(1 - u, 2.6)).toFixed(4)})`);
-    }
-    mg.fillStyle = hg;
-    mg.fillRect(0, 0, S2, S2);
-    mg.globalCompositeOperation = 'source-over';
-    _pkPumpkin(mg, S2 / 2, S2 / 2, MR, 3.1, true, 1);
-  }
-  const mb = 0.92 + 0.08 * Math.sin(t * 0.7) + 0.04 * Math.sin(t * 2.3);
-  ctx.globalAlpha = mb;
+  // 2 ── the moon, and the flock that lives round it
+  if (!canvas._pkMoon) canvas._pkMoon = _pkMoonSprite(MR);
   ctx.drawImage(canvas._pkMoon, MX - canvas._pkMoon.width / 2, MY - canvas._pkMoon.height / 2);
-  ctx.globalAlpha = 1;
+  if (!canvas._pkFlock) {
+    canvas._pkFlock = [];
+    for (let i = 0; i < 13; i++) {
+      canvas._pkFlock.push({
+        x: _pkRnd(i * 3.7) * W * 1.3 - W * 0.15,
+        y: HZ * (0.1 + _pkRnd(i * 5.9) * 0.8),
+        v: 26 + _pkRnd(i * 7.1) * 62,
+        sz: 5 + _pkRnd(i * 9.3) * 11,
+        ph: _pkRnd(i * 11.7) * 6.283185,
+        bob: 0.5 + _pkRnd(i * 13.1) * 1.4,
+        fl: 7 + _pkRnd(i * 15.3) * 8,
+      });
+    }
+    canvas._pkFlock.sort((a, b) => a.sz - b.sz);
+  }
+  for (const b of canvas._pkFlock) {
+    b.x += b.v * dt;
+    if (b.x > W + 60) { b.x = -60; b.y = HZ * (0.1 + Math.random() * 0.8); }
+    const y = b.y + Math.sin(t * b.bob + b.ph) * HZ * 0.05;
+    // the far ones are small and lift into the sky, the near ones are black
+    const k = Math.min(1, (b.sz - 5) / 11);
+    ctx.fillStyle = `rgba(${(24 - k * 16) | 0},${(14 - k * 9) | 0},${(28 - k * 18) | 0},${(0.5 + k * 0.45).toFixed(2)})`;
+    _pkBat(ctx, b.x, y, b.sz, 0.5 + 0.5 * Math.sin(t * b.fl + b.ph));
+  }
 
   // 3 ── a treeline, which is what a horizon looks like out here
   if (!canvas._pkTrees) {
@@ -45645,15 +45711,15 @@ function _drawPlumkyPattern(canvas, ctx, W, H, t) {
     tg.fillStyle = 'rgba(10,5,14,0.95)';            // and a fence gone crooked
     for (let i = 0; i < 46; i++) {
       const x = W * (i / 45) + (_pkRnd(i * 3.7) - 0.5) * 14;
-      const h2 = (H - HZ) * (0.07 + _pkRnd(i * 5.9) * 0.04);
-      const y = HZ + (H - HZ) * 0.1;
+      const h2 = (H - HZ) * (0.055 + _pkRnd(i * 5.9) * 0.035);
+      const y = HZ + (H - HZ) * 0.055;
       tg.save();
       tg.translate(x, y);
       tg.rotate((_pkRnd(i * 8.3) - 0.5) * 0.2);
       tg.fillRect(-W * 0.004, -h2, W * 0.008, h2);
       tg.restore();
     }
-    tg.fillRect(0, HZ + (H - HZ) * 0.062, W, Math.max(2, H * 0.005));
+    tg.fillRect(0, HZ + (H - HZ) * 0.028, W, Math.max(2, H * 0.005));
   }
   ctx.drawImage(canvas._pkTrees, 0, 0);
 
@@ -45679,40 +45745,102 @@ function _drawPlumkyPattern(canvas, ctx, W, H, t) {
     ctx.restore();
   }
 
-  // 5 ── the patch: rows of them, smaller and paler as they go back
+  // 5 ── the patch, and it was planted rather than spilled
+  // Scattering them at random reads as confetti. Nobody grows pumpkins like
+  // that: they go in rows, and rows in perspective are the cheapest depth cue
+  // there is, because the spacing between them closes up as they go back at
+  // exactly the rate the pumpkins themselves shrink.
   const PH2 = H - HZ;
   if (!canvas._pkPatch) {
     canvas._pkPatch = document.createElement('canvas');
     canvas._pkPatch.width = W; canvas._pkPatch.height = PH2 + 2;
+    canvas._pkLit = [];                              // where the candles are
     const pg = canvas._pkPatch.getContext('2d');
+    const FENCE = PH2 * 0.06;                        // where the rail is
+    const ROWS = 11;
     const crop = [];
-    for (let i = 0; i < 96; i++) {
-      const u = _pkRnd(i * 4.3);
-      crop.push({ u, y: PH2 * Math.pow(u, 1.3), i });
-    }
-    crop.sort((a, b) => a.y - b.y);
-    for (const { u, y, i } of crop) {
-      const x = _pkRnd(i * 6.7) * W * 1.14 - W * 0.07;
-      const r = PH2 * (0.005 + Math.pow(u, 1.6) * 0.15) * (0.7 + _pkRnd(i * 8.9) * 0.6);
-      pg.save();                                    // a vine running off it
-      pg.beginPath();
-      let vx = x, vy = y + r * 0.5, va = _pkRnd(i * 10.3) * 6.283;
-      pg.moveTo(vx, vy);
-      for (let k = 0; k < 5; k++) {
-        va += (_pkRnd(i * 12.1 + k) - 0.5) * 1.1;
-        vx += Math.cos(va) * r * 0.7; vy += Math.abs(Math.sin(va)) * r * 0.3;
-        pg.lineTo(vx, vy);
+    for (let ri = 0; ri < ROWS; ri++) {
+      const u = 0.16 + (ri + 0.55) / ROWS * 0.84;
+      const ry = PH2 * Math.pow(u, 1.4);
+      const r0 = PH2 * (0.006 + Math.pow(u, 1.7) * 0.15);
+      const step = r0 * 3.6;
+      const skew = (_pkRnd(ri * 5.3) - 0.5) * step;  // no row is dead straight
+      for (let x = -step; x < W + step * 2; x += step) {
+        const k = Math.round(x / step);
+        if (_pkRnd(ri * 21.7 + k * 3.1) < 0.26) continue;
+        const px = x + skew + (_pkRnd(ri * 7.9 + k * 5.1) - 0.5) * step * 0.44;
+        const py = ry + (_pkRnd(ri * 9.7 + k * 6.3) - 0.5) * r0 * 0.7;
+        const r = r0 * (0.72 + _pkRnd(ri * 11.3 + k * 8.9) * 0.66);
+        if (py - r * 1.7 < FENCE) continue;          // nothing grows through it
+        crop.push({ px, py, r, u, ri, k });
       }
-      pg.strokeStyle = `rgba(${_PK_GREEN},${(0.2 + u * 0.3).toFixed(2)})`;
-      pg.lineWidth = Math.max(0.8, r * 0.12);
-      pg.stroke();
-      pg.restore();
-      _pkPumpkin(pg, x, y, r, i * 3.1, _pkRnd(i * 14.7) < 0.13 && u > 0.55, 0.34 + u * 0.66);
+    }
+    crop.sort((a, b) => a.py - b.py);                // back to front, and nothing else
+    for (const { px, py, r, u, ri, k } of crop) {
+      if (r > 8) {                                   // a vine running off it
+        pg.beginPath();
+        let vx = px, vy = py + r * 0.5, va = _pkRnd(ri * 13.1 + k) * 6.283;
+        pg.moveTo(vx, vy);
+        for (let q = 0; q < 5; q++) {
+          va += (_pkRnd(ri * 3.3 + k * 2.7 + q) - 0.5) * 1.1;
+          vx += Math.cos(va) * r * 0.75; vy += Math.abs(Math.sin(va)) * r * 0.28;
+          pg.lineTo(vx, vy);
+        }
+        pg.strokeStyle = `rgba(${_PK_GREEN},${(0.2 + u * 0.3).toFixed(2)})`;
+        pg.lineWidth = Math.max(0.8, r * 0.12);
+        pg.stroke();
+      }
+      const carved = u > 0.4 && _pkRnd(ri * 17.9 + k * 4.7) < 0.16;
+      _pkPumpkin(pg, px, py, r, ri * 3.1 + k, carved, 0.34 + u * 0.66);
+      if (carved) canvas._pkLit.push({ x: px, y: py + HZ, r, ph: _pkRnd(k * 19.1) * 6.283 });
     }
   }
   ctx.drawImage(canvas._pkPatch, 0, HZ);
+  // and the candles in them are candles, so they are not steady
+  ctx.globalCompositeOperation = 'lighter';
+  for (const c2 of canvas._pkLit) {
+    const f = 0.5 + 0.5 * Math.sin(t * 5.3 + c2.ph) * Math.sin(t * 2.1 + c2.ph * 1.7);
+    const rr = c2.r * (0.85 + f * 0.4);              // tight, so it stays its own
+    const fg2 = ctx.createRadialGradient(c2.x, c2.y, 0, c2.x, c2.y, rr);
+    fg2.addColorStop(0, `rgba(${_PK_EMBER},${(0.07 + f * 0.1).toFixed(3)})`);
+    fg2.addColorStop(1, `rgba(${_PK_ORANGE},0)`);
+    ctx.fillStyle = fg2;
+    ctx.fillRect(c2.x - rr, c2.y - rr, rr * 2, rr * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
 
-  // 6 ── the ones he has put in himself, which stay put
+  // 6 ── weeds along the front of it, leaning on the wind
+  if (!canvas._pkWeeds) {
+    canvas._pkWeeds = [];
+    for (let i = 0; i < 26; i++) {
+      canvas._pkWeeds.push({
+        x: _pkRnd(i * 3.9) * W * 1.06 - W * 0.03,
+        u: 0.72 + _pkRnd(i * 5.7) * 0.36,
+        n: 4 + ((_pkRnd(i * 7.3) * 4) | 0),
+        ph: _pkRnd(i * 9.1) * 6.283185,
+        sz: 0.7 + _pkRnd(i * 11.9) * 0.7,
+      });
+    }
+  }
+  const gust = Math.sin(t * 0.37) * 0.5 + Math.sin(t * 0.91) * 0.3;
+  for (const wd of canvas._pkWeeds) {
+    const y = HZ + PH2 * Math.min(1.04, Math.pow(wd.u, 1.4));
+    const hgt = PH2 * 0.1 * wd.sz;
+    const lean = (gust + Math.sin(t * 1.9 + wd.ph) * 0.22) * 0.5;
+    ctx.beginPath();
+    for (let k = 0; k < wd.n; k++) {
+      const sp = (k / (wd.n - 1) - 0.5) * 1.1;
+      ctx.moveTo(wd.x, y);
+      ctx.quadraticCurveTo(wd.x + Math.sin(sp + lean * 0.5) * hgt * 0.5, y - hgt * 0.6,
+                           wd.x + Math.sin(sp + lean) * hgt * 0.9, y - hgt);
+    }
+    ctx.strokeStyle = 'rgba(58,46,32,0.72)';
+    ctx.lineWidth = Math.max(1, hgt * 0.035);
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // 7 ── the ones he has put in himself, which stay put
   if (!canvas._pkPlant) {
     canvas._pkPlant = document.createElement('canvas');
     canvas._pkPlant.width = W; canvas._pkPlant.height = H;
@@ -45729,7 +45857,39 @@ function _drawPlumkyPattern(canvas, ctx, W, H, t) {
   }
   ctx.drawImage(canvas._pkPlant, 0, 0);
 
-  // 7 ── fog lying in the rows
+  // 8 ── wisps over the rows, which is the other thing out here
+  if (!canvas._pkWisps) {
+    canvas._pkWisps = [];
+    for (let i = 0; i < 9; i++) {
+      canvas._pkWisps.push({
+        x: _pkRnd(i * 4.7) * W, u: 0.2 + _pkRnd(i * 6.1) * 0.7,
+        vx: (_pkRnd(i * 8.3) - 0.5) * 26, ph: _pkRnd(i * 10.7) * 6.283185,
+        bob: 0.4 + _pkRnd(i * 12.9) * 0.9, sz: 2 + _pkRnd(i * 14.3) * 4,
+      });
+    }
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const w of canvas._pkWisps) {
+    w.x += w.vx * dt;
+    if (w.x < -40) w.x = W + 40;
+    if (w.x > W + 40) w.x = -40;
+    const y = HZ + PH2 * Math.pow(w.u, 1.4) + Math.sin(t * w.bob + w.ph) * PH2 * 0.03;
+    const k = 0.4 + 0.6 * (0.5 - 0.5 * Math.cos(t * 1.7 + w.ph));
+    const rr = w.sz * 9 * k;
+    const wg = ctx.createRadialGradient(w.x, y, 0, w.x, y, rr);
+    wg.addColorStop(0, `rgba(190,255,190,${(0.3 * k).toFixed(3)})`);
+    wg.addColorStop(0.3, `rgba(${_PK_EMBER},${(0.12 * k).toFixed(3)})`);
+    wg.addColorStop(1, `rgba(${_PK_GREEN},0)`);
+    ctx.fillStyle = wg;
+    ctx.fillRect(w.x - rr, y - rr, rr * 2, rr * 2);
+    ctx.beginPath();
+    ctx.arc(w.x, y, w.sz * k * 0.6, 0, 6.283185);
+    ctx.fillStyle = `rgba(226,255,222,${(0.7 * k).toFixed(2)})`;
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 9 ── fog lying in the rows
   if (!canvas._pkFog) {
     const cw = Math.ceil(W * 1.3), ch = Math.ceil(PH2 * 0.6);
     const c = document.createElement('canvas');
@@ -45765,7 +45925,7 @@ function _drawPlumkyPattern(canvas, ctx, W, H, t) {
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
 
-  // 8 ── and the lantern he is carrying over all of it
+  // 10 ── and the lantern he is carrying over all of it
   if (_pkTip) {
     const [tx, ty] = _bgAt(canvas, W, H, _pkTip.x, _pkTip.y);
     const KR = 230;
@@ -45780,7 +45940,7 @@ function _drawPlumkyPattern(canvas, ctx, W, H, t) {
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  // 9 ── the dark round the edge of it
+  // 11 ── the dark round the edge of it
   if (!canvas._pkVign) {
     canvas._pkVign = document.createElement('canvas');
     canvas._pkVign.width = W; canvas._pkVign.height = H;
@@ -46016,15 +46176,16 @@ function _drawPlumkyOverlay(canvas, ctx, W, H, t) {
   ctx.lineWidth = 2 * S;
   ctx.stroke();
   ctx.restore();
-  ctx.save();
-  ctx.translate(lx, ly);
-  ctx.rotate(_pkSw * 0.5);
-  ctx.beginPath();                                  // the wire down to it
-  ctx.moveTo(0, -HOOK);
-  ctx.lineTo(0, -26 * S);
+  ctx.beginPath();                                  // the wire, hook to handle
+  ctx.moveTo(_pkX, _pkY);
+  ctx.lineTo(lx - Math.sin(_pkSw) * 27 * S, ly - Math.cos(_pkSw) * 27 * S);
   ctx.strokeStyle = '#3a2c34';
   ctx.lineWidth = 2.4 * S;
+  ctx.lineCap = 'round';
   ctx.stroke();
+  ctx.save();
+  ctx.translate(lx, ly);
+  ctx.rotate(_pkSw);                                // and it hangs plumb on it
   ctx.beginPath();                                  // and a handle across the top
   ctx.moveTo(-18 * S, -20 * S);
   ctx.quadraticCurveTo(0, -34 * S, 18 * S, -20 * S);
