@@ -3112,6 +3112,7 @@ const PATTERN_DEFS = {
   leon_warlord:     { label: "Leon · Warlord (human)", params: [] },
   sevach_bloodsea:  { label: "Sevach · Sea of blood", params: [] },
   adam_kingdom:     { label: "Adam · Ice kingdom (human)", params: [] },
+  libra_entropy:    { label: "Libra · Entropy", params: [] },
   mouseburger_dusk: { label: "Mouseburger · Duskfall",  params: [] },
   emporium_range:   { label: "Emporium · Gold Range",   params: [] },
   alsace_spiral:    { label: "Alsace · Jester's Spiral", params: [] },
@@ -31639,6 +31640,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'leon_warlord') { _drawLeonHumanPattern(canvas, ctx, W, H, t);             return; }
   if (type === 'sevach_bloodsea') { _drawSevachPattern(canvas, ctx, W, H, t);           return; }
   if (type === 'adam_kingdom') { _drawAdamHumanPattern(canvas, ctx, W, H, t);            return; }
+  if (type === 'libra_entropy') { _drawLibraPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'mouseburger_dusk') { _drawMbPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'emporium_range') { _drawEmporiumPattern(canvas, ctx, W, H, t);            return; }
   if (type === 'alsace_spiral')  { _drawAlsacePattern(canvas, ctx, W, H, t);              return; }
@@ -32202,6 +32204,8 @@ function startBgAnim(type, params) {
   _drawSevachOverlay._lt      = undefined;
   _drawAdamHumanPattern._lt   = undefined;
   _drawAdamHumanOverlay._lt   = undefined;
+  _drawLibraPattern._lt       = undefined;
+  _drawLibraOverlay._lt       = undefined;
   _drawMbPattern._lt          = undefined;
   _drawMbOverlay._lt          = undefined;
   _drawEmporiumPattern._lt    = undefined;
@@ -32307,6 +32311,7 @@ function stopBgAnim() {
   _stopLeonHumanOverlay();
   _stopSevachOverlay();
   _stopAdamHumanOverlay();
+  _stopLibraOverlay();
   _stopMbOverlay();
   _stopActariusOverlay();
   _stopSorrowOverlay();
@@ -32949,6 +32954,7 @@ function viewChar(id) {
   else if (_isLeon(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isValkyrie(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isAdamHuman(c)) {  _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _AI_HEX); }
+  else if (_isLibra(c)) {   _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _LB_HEX); }
   else if (_isAdam(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isFury(c))     { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', c.color); }
   else if (_isAnnie(c))    { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _ANNIE_RED_HEX); }
@@ -33192,6 +33198,22 @@ function viewChar(id) {
       _cvRoot.classList.remove('leonh-ui');
       if (_av) _av.classList.remove('leonh-pfp');
       if (_nm) _nm.classList.remove('leonh-name');
+    }
+  }
+
+  // ── LIBRA: gilt on plum, and it is not quite square. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    if (_isLibra(c)) {
+      _cvRoot.classList.add('libra-ui');
+      if (_av) _av.classList.add('libra-pfp');
+      if (_nm) { _nm.classList.add('libra-name'); _nm.setAttribute('data-text', _nm.textContent || 'LIBRA'); }
+    } else {
+      _cvRoot.classList.remove('libra-ui');
+      if (_av) _av.classList.remove('libra-pfp');
+      if (_nm) _nm.classList.remove('libra-name');
     }
   }
 
@@ -34108,7 +34130,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -34121,7 +34143,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -34157,6 +34179,7 @@ function viewChar(id) {
   if (_isLeonHuman(c)) _startLeonHumanOverlay();
   else if (_isLeon(c)) _startLeonOverlay();
   if (_isSevach(c))    _startSevachOverlay();
+  if (_isLibra(c))     _startLibraOverlay();
   if (_isValkyrie(c)) _startValkyrieOverlay();
   if (_isAdamHuman(c)) _startAdamHumanOverlay();
   else if (_isAdam(c)) _startAdamOverlay();
@@ -39790,7 +39813,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -39801,6 +39824,7 @@ window.addEventListener('resize', () => {
       if (_isLeonHuman(c)) _startLeonHumanOverlay();
       else if (_isLeon(c)) _startLeonOverlay();
       if (_isSevach(c))    _startSevachOverlay();
+      if (_isLibra(c))     _startLibraOverlay();
       if (_isValkyrie(c)) _startValkyrieOverlay();
       if (_isAdamHuman(c)) _startAdamHumanOverlay();
       else if (_isAdam(c)) _startAdamOverlay();
@@ -44208,6 +44232,915 @@ function _stopAdamHumanOverlay() {
   if (cv) cv.remove();
   _aiShards = []; _aiSnow = [];
   _aiFrost = []; _aiSpires = []; _aiWave = null; _aiTip = null;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
+// LIBRA - the goddess of entropy, and she is enjoying it.
+// Every other page here is a place that holds together. This one is
+// a place coming apart, and the coming apart is the composition: the
+// floor under your feet is whole and tiled and has roses growing on
+// it, and the further back it goes the less of it there is. First
+// the seams open. Then tiles lift off the ground and hang there.
+// Then there is no floor, only islands of it drifting, and then not
+// even that, only motes going up into the dark. Order is near and
+// entropy is far, and the eye reads that as distance without being
+// told, which is the whole trick of the page.
+// She is Libra, so the thing hanging in the middle of it is a set of
+// scales, and of course they are broken: one chain parted, one pan
+// gone down, and the beam turning very slowly because there is
+// nothing left to balance it against.
+// ════════════════════════════════════════════════════════════════
+const _LIBRA_RE = /^["']?\s*LIBRA\s*["']?$/i;
+function _isLibra(c) { return !!(c && c.name && _LIBRA_RE.test(c.name)); }
+
+const _LB_VIOLET = '150,102,226';    // the light this place is lit by
+const _LB_ROSE   = '68,106,214';     // and the blue of everything growing in it
+const _LB_PETAL  = '128,168,255';
+const _LB_GOLD   = '228,190,110';
+const _LB_PALE   = '226,206,255';    // the hard edge of a broken thing
+const _LB_DEEP   = '22,11,38';
+const _LB_HEX    = '#a870ea';
+
+// what the two layers say to each other
+let _lbTip = null;                   // where the point of the sword is
+let _lbWave = null;                  // and the disorder going out from a slam
+let _lbScars = [];                   // what it has broken open
+let _lbBlooms = [];                  // and what has come up through the breaks
+
+function _lbRnd(seed) {
+  const v = Math.sin(seed * 43.71 + 27.13) * 22193.47;
+  return v - Math.floor(v);
+}
+
+// ── A blue rose ──────────────────────────────────────────────────
+// The first two attempts drew rings of ellipses, which gives a pinwheel: the
+// eye reads concentric swirls and not a flower. A rose is petals, and a petal
+// is a cupped thing that is narrow where it joins and wide and rounded at the
+// free edge, and it is darker at the base than at the tip because that is
+// where the light stops reaching. Three rings of those, each turned half a
+// step off the one under it so no petal sits directly on another, and a tight
+// curl in the middle where they have not opened yet.
+function _lbPetal(g, a, ri, ro, w, base, tip) {
+  const cx0 = Math.cos(a) * ri, cy0 = Math.sin(a) * ri;
+  g.beginPath();
+  g.moveTo(cx0, cy0);
+  g.quadraticCurveTo(Math.cos(a - w) * ro * 1.12, Math.sin(a - w) * ro * 1.12,
+                     Math.cos(a) * ro, Math.sin(a) * ro);
+  g.quadraticCurveTo(Math.cos(a + w) * ro * 1.12, Math.sin(a + w) * ro * 1.12,
+                     cx0, cy0);
+  g.closePath();
+  const pg = g.createLinearGradient(cx0, cy0, Math.cos(a) * ro, Math.sin(a) * ro);
+  pg.addColorStop(0, base);
+  pg.addColorStop(1, tip);
+  g.fillStyle = pg;
+  g.fill();
+  g.strokeStyle = 'rgba(12,20,50,0.55)';
+  g.lineWidth = Math.max(0.4, ro * 0.045);
+  g.stroke();
+}
+
+function _lbRose(g, x, y, r, seed, open) {
+  g.save();
+  g.translate(x, y);
+  const rings = r < 8 ? 2 : 3;
+  for (let k = rings - 1; k >= 0; k--) {
+    const ro = r * (0.34 + k * 0.35) * (0.62 + open * 0.38);
+    const ri = ro * 0.24;
+    const n = 5 + k;
+    for (let q = 0; q < n; q++) {
+      const a = (q / n) * 6.283185 + k * 0.62 + seed;
+      // the light is up and to the left on every page in this file
+      const lit = 0.44 + 0.56 * Math.pow(Math.max(0, Math.cos(a + 2.35)), 0.8);
+      const v = (0.5 + k * 0.25) * lit;
+      _lbPetal(g, a, ri, ro, 0.62,
+               `rgb(${(18 + 40 * v) | 0},${(30 + 62 * v) | 0},${(72 + 96 * v) | 0})`,
+               `rgb(${(40 + 116 * v) | 0},${(66 + 144 * v) | 0},${(132 + 128 * v) | 0})`);
+    }
+  }
+  const cr = r * 0.2;                                // the curl in the middle
+  g.beginPath();
+  g.arc(0, 0, cr, 0, 6.283185);
+  g.fillStyle = 'rgb(34,52,104)';
+  g.fill();
+  g.beginPath();
+  for (let q = 0; q < 2; q++) {
+    const a = seed + q * 3.14159;
+    g.moveTo(Math.cos(a) * cr * 0.9, Math.sin(a) * cr * 0.9);
+    g.quadraticCurveTo(Math.cos(a + 1.6) * cr * 1.2, Math.sin(a + 1.6) * cr * 1.2,
+                       Math.cos(a + 3.0) * cr * 0.3, Math.sin(a + 3.0) * cr * 0.3);
+  }
+  g.strokeStyle = `rgba(${_LB_PETAL},0.8)`;
+  g.lineWidth = Math.max(0.6, r * 0.05);
+  g.stroke();
+  g.restore();
+}
+
+// a thorned stem with a rose on the end, which is how they arrive here
+function _lbSprig(g, x, y, len, ang, r, seed) {
+  let cx = x, cy = y, a = ang;
+  g.beginPath();
+  g.moveTo(cx, cy);
+  const pts = [];
+  for (let k = 0; k < 6; k++) {
+    a += (_lbRnd(seed + k * 3.7) - 0.5) * 0.55;
+    cx += Math.cos(a) * len / 6;
+    cy += Math.sin(a) * len / 6;
+    pts.push(cx, cy, a);
+    g.lineTo(cx, cy);
+  }
+  g.strokeStyle = 'rgb(38,52,74)';
+  g.lineWidth = Math.max(1, len * 0.028);
+  g.lineCap = 'round';
+  g.stroke();
+  g.beginPath();                                     // thorns, alternating
+  for (let k = 1; k < 6; k++) {
+    const px = pts[(k - 1) * 3], py = pts[(k - 1) * 3 + 1], pa = pts[(k - 1) * 3 + 2];
+    const s = k % 2 ? 1 : -1;
+    g.moveTo(px, py);
+    g.lineTo(px + Math.cos(pa + s * 1.9) * len * 0.07,
+             py + Math.sin(pa + s * 1.9) * len * 0.07);
+  }
+  g.strokeStyle = 'rgb(52,68,96)';
+  g.lineWidth = Math.max(0.8, len * 0.016);
+  g.stroke();
+  _lbRose(g, cx, cy, r, seed, 1);
+}
+
+// ── The scales ───────────────────────────────────────────────────
+// The one landmark, and the only thing on the page that is supposed to
+// be level. It is not: the near chain has parted, that pan has gone,
+// and the beam has swung over as far as the other one will let it.
+function _lbScalesSprite(SW) {
+  const SH = Math.ceil(SW * 1.15);
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(SW); c.height = SH;
+  const g = c.getContext('2d');
+  const cx = SW * 0.5, top = SH * 0.06;
+  const gold = g.createLinearGradient(0, 0, 0, SH);
+  gold.addColorStop(0, 'rgb(244,214,142)');
+  gold.addColorStop(0.4, 'rgb(186,142,66)');
+  gold.addColorStop(1, 'rgb(96,68,34)');
+
+  g.strokeStyle = gold;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  g.lineWidth = SW * 0.022;
+  g.beginPath();                                     // the column it hangs from
+  g.moveTo(cx, top);
+  g.lineTo(cx, SH * 0.66);
+  g.stroke();
+  g.beginPath();                                     // and its foot, gone over
+  g.moveTo(cx - SW * 0.14, SH * 0.72);
+  g.lineTo(cx, SH * 0.66);
+  g.lineTo(cx + SW * 0.12, SH * 0.74);
+  g.stroke();
+
+  const tilt = 0.34;                                 // the beam, given up on level
+  const bx = SW * 0.4;
+  const lx = cx - Math.cos(tilt) * bx, ly = top + Math.sin(tilt) * bx;
+  const rx = cx + Math.cos(tilt) * bx, ry = top - Math.sin(tilt) * bx;
+  g.lineWidth = SW * 0.018;
+  g.beginPath();
+  g.moveTo(lx, ly);
+  g.lineTo(rx, ry);
+  g.stroke();
+  g.beginPath();                                     // the pivot
+  g.arc(cx, top, SW * 0.035, 0, 6.283185);
+  g.fillStyle = gold;
+  g.fill();
+  g.beginPath();
+  g.arc(cx, top, SW * 0.014, 0, 6.283185);
+  g.fillStyle = `rgba(${_LB_ROSE},0.95)`;
+  g.fill();
+
+  // the low pan is still on, and full of roses instead of anything you
+  // could weigh, which is the joke she is making
+  const py = ly + SH * 0.2;
+  g.lineWidth = SW * 0.007;
+  g.beginPath();
+  for (const s of [-1, 1]) {
+    g.moveTo(lx, ly);
+    g.lineTo(lx + s * SW * 0.09, py);
+  }
+  g.stroke();
+  g.beginPath();
+  g.moveTo(lx - SW * 0.11, py);
+  g.quadraticCurveTo(lx, py + SH * 0.07, lx + SW * 0.11, py);
+  g.closePath();
+  g.fillStyle = gold;
+  g.fill();
+  for (let k = 0; k < 4; k++) {
+    _lbRose(g, lx + (k - 1.5) * SW * 0.05, py - SW * 0.012 - _lbRnd(k * 7.1) * SW * 0.03,
+            SW * 0.032, k * 2.1, 1);
+  }
+  // and the high one has parted: three links still swinging off the end
+  g.lineWidth = SW * 0.007;
+  g.beginPath();
+  g.moveTo(rx, ry);
+  g.lineTo(rx + SW * 0.02, ry + SH * 0.09);
+  g.lineTo(rx - SW * 0.01, ry + SH * 0.15);
+  g.stroke();
+  g.beginPath();
+  g.arc(rx - SW * 0.012, ry + SH * 0.165, SW * 0.012, 0, 6.283185);
+  g.strokeStyle = gold;
+  g.lineWidth = SW * 0.006;
+  g.stroke();
+  return c;
+}
+
+// ── The floor, and how much of it is left ────────────────────────
+// A tile grid in perspective, and then the page's one idea applied to
+// it: the further back a tile is the less likely it is to still be
+// doing its job. Near ones are laid flat and seamless. Further on the
+// seams open. Then they start to lift, which is the moment the floor
+// stops being a floor, so they get a side face to show they have come
+// off the ground. Then they are gone and there is only the drop.
+function _lbFloorSprite(W, PH, VX) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = PH;
+  const g = c.getContext('2d');
+  const ROWS = 15, COLS = 26;
+  const rowY = (i) => PH * Math.pow(i / ROWS, 1.45);
+  const colX = (j, y) => {                           // every column runs to VX
+    const u = y / PH;
+    const far = VX + (j / COLS - 0.5) * W * 0.34;
+    const near = VX + (j / COLS - 0.5) * W * 2.4;
+    return far + (near - far) * u;
+  };
+  for (let i = ROWS - 1; i >= 0; i--) {
+    const y0 = rowY(i), y1 = rowY(i + 1);
+    const u = i / ROWS;                              // 0 at the horizon, 1 at your feet
+    const solid = Math.pow(u, 0.85);
+    for (let j = 0; j < COLS; j++) {
+      const h = _lbRnd(i * 13.1 + j * 7.7);
+      if (h > 0.12 + solid * 0.95) continue;         // this one is not there
+      const lift = h > solid * 0.72 ? (1 - solid) * PH * (0.02 + h * 0.07) : 0;
+      const gap = (1 - solid) * PH * 0.006;
+      const ax = colX(j, y0) + gap, bx = colX(j + 1, y0) - gap;
+      const cx2 = colX(j, y1) + gap, dx = colX(j + 1, y1) - gap;
+      const t0 = y0 - lift, t1 = y1 - lift;
+      const v = 30 + solid * 76 + h * 30;
+      if (lift > 1) {                                // it is off the ground now
+        g.beginPath();
+        g.moveTo(cx2, t1); g.lineTo(dx, t1);
+        g.lineTo(dx, y1); g.lineTo(cx2, y1);
+        g.closePath();
+        g.fillStyle = `rgb(${(v * 0.34) | 0},${(v * 0.26) | 0},${(v * 0.5) | 0})`;
+        g.fill();
+      }
+      g.beginPath();                                 // the face of the tile
+      g.moveTo(ax, t0); g.lineTo(bx, t0);
+      g.lineTo(dx, t1); g.lineTo(cx2, t1);
+      g.closePath();
+      const tg = g.createLinearGradient(0, t0, 0, t1);
+      tg.addColorStop(0, `rgb(${(v * 1.0) | 0},${(v * 0.8) | 0},${(v * 1.62) | 0})`);
+      tg.addColorStop(1, `rgb(${(v * 0.56) | 0},${(v * 0.42) | 0},${(v * 1.0) | 0})`);
+      g.fillStyle = tg;
+      g.fill();
+      g.beginPath();                                 // one lit edge along the far side
+      g.moveTo(ax, t0); g.lineTo(bx, t0);
+      g.strokeStyle = `rgba(${_LB_PALE},${(0.1 + (1 - solid) * 0.5).toFixed(3)})`;
+      g.lineWidth = 0.6 + u * 1.4;
+      g.stroke();
+    }
+  }
+  return c;
+}
+
+function _drawLibraPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawLibraPattern._lt === undefined;
+  if (!fresh && t - _drawLibraPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(t - _drawLibraPattern._lt, 0.05);
+  _drawLibraPattern._lt = t;
+
+  if (canvas._lbW !== W || canvas._lbH !== H) {
+    canvas._lbW = W; canvas._lbH = H;
+    canvas._lbVoid = null; canvas._lbFloor = null; canvas._lbScales = null;
+    canvas._lbVign = null; canvas._lbSlabs = null; canvas._lbMotes = null;
+    canvas._lbGrown = null; canvas._lbRose = null;
+    for (const b of _lbBlooms) b.stamped = false;
+    for (const s of _lbScars) s.stamped = false;
+  }
+  const HZ = Math.round(H * 0.44);
+  const VX = W * 0.44;
+  _bgRect(canvas);
+
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+
+  // 1 ── the dark she is doing this in
+  if (!canvas._lbVoid) {
+    canvas._lbVoid = document.createElement('canvas');
+    canvas._lbVoid.width = W; canvas._lbVoid.height = H;
+    const sx = canvas._lbVoid.getContext('2d');
+    const g = sx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0a0416');
+    g.addColorStop(0.4, '#170a2c');
+    g.addColorStop(0.62, '#241040');
+    g.addColorStop(1, '#0c0518');
+    sx.fillStyle = g;
+    sx.fillRect(0, 0, W, H);
+    sx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 7; i++) {                    // a few slow blooms of light
+      const x = _lbRnd(i * 5.3) * W, y = HZ * (0.1 + _lbRnd(i * 7.9) * 1.1);
+      const r = Math.max(W, H) * (0.14 + _lbRnd(i * 9.7) * 0.3);
+      const col = _lbRnd(i * 11.3) < 0.35 ? _LB_ROSE : _LB_VIOLET;
+      const gr = sx.createRadialGradient(x, y, 0, x, y, r);
+      const a = 0.07 + _lbRnd(i * 13.1) * 0.1;
+      for (let k = 0; k <= 12; k++) {
+        const u = k / 12;
+        gr.addColorStop(u, `rgba(${col},${(a * Math.pow(1 - u, 2.4)).toFixed(4)})`);
+      }
+      sx.fillStyle = gr;
+      sx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    for (let i = 0; i < 190; i++) {                  // and what is left of the stars
+      const x = _lbRnd(i * 3.1) * W, y = _lbRnd(i * 4.7) * HZ * 1.2;
+      const r = 0.3 + _lbRnd(i * 6.3) * 1.2;
+      sx.beginPath();
+      sx.arc(x, y, r, 0, 6.283185);
+      sx.fillStyle = `rgba(${_LB_PALE},${(0.14 + _lbRnd(i * 8.9) * 0.6).toFixed(3)})`;
+      sx.fill();
+    }
+  }
+  ctx.drawImage(canvas._lbVoid, 0, 0);
+
+  // 2 ── the scales, hanging over the far end of it
+  const SW = Math.max(110, Math.min(W * 0.19, H * 0.3));
+  if (!canvas._lbScales) canvas._lbScales = _lbScalesSprite(SW);
+  const sc = canvas._lbScales;
+  ctx.save();
+  ctx.translate(W * 0.52, HZ - sc.height * 0.4 + Math.sin(t * 0.31) * H * 0.008);
+  ctx.rotate(Math.sin(t * 0.18) * 0.05);             // nothing left to steady it
+  ctx.globalAlpha = 0.94;
+  ctx.drawImage(sc, -sc.width * 0.5, -sc.height * 0.5);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+
+  // 3 ── what is left of the floor
+  const PH = H - HZ;
+  if (!canvas._lbFloor) canvas._lbFloor = _lbFloorSprite(W, Math.ceil(PH), VX);
+  ctx.drawImage(canvas._lbFloor, 0, HZ);
+
+  // 4 ── and the pieces that have already left it
+  if (!canvas._lbSlabs) {
+    canvas._lbSlabs = [];
+    for (let i = 0; i < 16; i++) {
+      const u = _lbRnd(i * 3.3);
+      canvas._lbSlabs.push({
+        x: _lbRnd(i * 5.7) * W,
+        y: HZ * (0.5 + Math.pow(_lbRnd(i * 7.1), 0.7) * 0.72),
+        w: W * (0.016 + Math.pow(u, 2.4) * 0.1),
+        rot: _lbRnd(i * 9.3) * 6.283185,
+        vr: (_lbRnd(i * 11.7) - 0.5) * 0.24,
+        vy: -(2 + _lbRnd(i * 13.9) * 9),
+        ph: _lbRnd(i * 15.1) * 6.283185,
+        v: 40 + u * 60,
+      });
+    }
+  }
+  for (const s of canvas._lbSlabs) {
+    s.rot += s.vr * dt;
+    s.y += s.vy * dt;
+    if (s.y < -s.w * 2) { s.y = HZ * 1.1; s.x = Math.random() * W; }
+    const sway = Math.sin(t * 0.4 + s.ph) * s.w * 0.2;
+    ctx.save();
+    ctx.translate(s.x + sway, s.y);
+    ctx.rotate(s.rot);
+    const hw = s.w * 0.5, hh = s.w * 0.2;
+    ctx.beginPath();                                 // the thickness of it
+    ctx.moveTo(-hw, hh); ctx.lineTo(hw, hh);
+    ctx.lineTo(hw * 0.9, hh + s.w * 0.14); ctx.lineTo(-hw * 0.9, hh + s.w * 0.14);
+    ctx.closePath();
+    ctx.fillStyle = `rgb(${(s.v * 0.26) | 0},${(s.v * 0.18) | 0},${(s.v * 0.5) | 0})`;
+    ctx.fill();
+    ctx.beginPath();                                 // and its face
+    ctx.moveTo(-hw, -hh); ctx.lineTo(hw, -hh);
+    ctx.lineTo(hw, hh); ctx.lineTo(-hw, hh);
+    ctx.closePath();
+    const sg = ctx.createLinearGradient(0, -hh, 0, hh);
+    sg.addColorStop(0, `rgb(${(s.v * 0.94) | 0},${(s.v * 0.76) | 0},${(s.v * 1.56) | 0})`);
+    sg.addColorStop(1, `rgb(${(s.v * 0.5) | 0},${(s.v * 0.36) | 0},${(s.v * 0.94) | 0})`);
+    ctx.fillStyle = sg;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-hw, -hh); ctx.lineTo(hw, -hh);
+    ctx.strokeStyle = `rgba(${_LB_PALE},0.4)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 5 ── roses, which grow up through whatever is still holding still
+  if (!canvas._lbGrown) {
+    canvas._lbGrown = document.createElement('canvas');
+    canvas._lbGrown.width = W; canvas._lbGrown.height = H;
+    const rg = canvas._lbGrown.getContext('2d');
+    for (let i = 0; i < 15; i++) {                   // and only where it is solid
+      const u = 0.5 + Math.pow(_lbRnd(i * 4.1), 0.8) * 0.5;
+      const y = HZ + PH * Math.pow(u, 1.45);
+      const x = _lbRnd(i * 6.7) * W;
+      const sz = PH * (0.018 + u * 0.042);
+      _lbSprig(rg, x, y, sz * 2.6, -1.5708 + (_lbRnd(i * 8.3) - 0.5) * 1.1, sz * 0.55, i * 3.7);
+    }
+  }
+  ctx.drawImage(canvas._lbGrown, 0, 0);
+
+  // 6 ── what he has broken open, and what came up through it
+  if (!canvas._lbRose) {
+    canvas._lbRose = document.createElement('canvas');
+    canvas._lbRose.width = W; canvas._lbRose.height = H;
+  }
+  const bg = canvas._lbRose.getContext('2d');
+  for (const s of _lbScars) {
+    if (s.stamped) continue;
+    s.grow = Math.min(1, s.grow + dt * 3.4);
+    const [sx, sy] = _bgAt(canvas, W, H, s.x, s.y);
+    const target = s.grow >= 1 ? bg : ctx;
+    const e = s.grow;
+    target.beginPath();                              // cracks, running out from it
+    for (let k = 0; k < s.n; k++) {
+      const a = (k / s.n) * 6.283185 + s.seed;
+      let px = sx, py = sy, aa = a;
+      target.moveTo(px, py);
+      for (let q = 0; q < 4; q++) {
+        aa += (_lbRnd(s.seed + k * 3.1 + q) - 0.5) * 0.8;
+        px += Math.cos(aa) * s.r * e * 0.25;
+        py += Math.sin(aa) * s.r * e * 0.25 * 0.42;
+        target.lineTo(px, py);
+      }
+    }
+    target.strokeStyle = `rgba(${_LB_PALE},0.34)`;
+    target.lineWidth = 1.6;
+    target.stroke();
+    target.strokeStyle = 'rgba(6,2,12,0.6)';
+    target.lineWidth = 0.9;
+    target.stroke();
+    if (s.grow >= 1) s.stamped = true;
+  }
+  for (const b of _lbBlooms) {
+    if (b.stamped) continue;
+    b.grow = Math.min(1, b.grow + dt * 2.2);
+    const [bx2, by2] = _bgAt(canvas, W, H, b.x, b.y);
+    const target = b.grow >= 1 ? bg : ctx;
+    const e = b.grow * b.grow * (3 - 2 * b.grow);
+    _lbSprig(target, bx2, by2, b.len * e, b.ang, b.r * e, b.seed);
+    if (b.grow >= 1) b.stamped = true;
+  }
+  ctx.drawImage(canvas._lbRose, 0, 0);
+
+  // 7 ── the ground giving up wherever the point of the sword is
+  if (_lbTip) {
+    const [tx, ty] = _bgAt(canvas, W, H, _lbTip.x, _lbTip.y);
+    const KR = 210;
+    ctx.globalCompositeOperation = 'lighter';
+    const gl = ctx.createRadialGradient(tx, ty, 0, tx, ty, KR);
+    for (let i = 0; i <= 10; i++) {
+      const u = i / 10;
+      gl.addColorStop(u, `rgba(${_LB_VIOLET},${(0.24 * _lbTip.k * Math.pow(1 - u, 2.4)).toFixed(4)})`);
+    }
+    ctx.fillStyle = gl;
+    ctx.fillRect(tx - KR, ty - KR, KR * 2, KR * 2);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 8 ── motes, going up because that is the only direction left
+  if (!canvas._lbMotes) {
+    canvas._lbMotes = [];
+    for (let i = 0; i < 110; i++) {
+      canvas._lbMotes.push({
+        x: _lbRnd(i * 3.7) * W, y: _lbRnd(i * 5.1) * H,
+        vy: -(6 + _lbRnd(i * 7.3) * 34), sz: 0.6 + _lbRnd(i * 9.7) * 2,
+        ph: _lbRnd(i * 11.9) * 6.283185, tw: 0.5 + _lbRnd(i * 13.1) * 1.8,
+        rose: _lbRnd(i * 15.7) < 0.3,
+      });
+    }
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.beginPath();
+  for (const m of canvas._lbMotes) {
+    m.y += m.vy * dt;
+    m.x += Math.sin(t * m.tw + m.ph) * 14 * dt;
+    if (m.y < -8) { m.y = H + 8; m.x = Math.random() * W; }
+    if (m.rose) continue;
+    const r = m.sz * (0.35 + 0.65 * (0.5 - 0.5 * Math.cos(t * m.tw + m.ph)));
+    ctx.moveTo(m.x + r, m.y);
+    ctx.arc(m.x, m.y, r, 0, 6.283185);
+  }
+  ctx.fillStyle = `rgba(${_LB_VIOLET},0.6)`;
+  ctx.fill();
+  ctx.beginPath();
+  for (const m of canvas._lbMotes) {
+    if (!m.rose) continue;
+    const r = m.sz * (0.35 + 0.65 * (0.5 - 0.5 * Math.cos(t * m.tw + m.ph)));
+    ctx.moveTo(m.x + r, m.y);
+    ctx.arc(m.x, m.y, r, 0, 6.283185);
+  }
+  ctx.fillStyle = `rgba(${_LB_PETAL},0.6)`;
+  ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+
+  if (_lbWave) {
+    _lbWave.r += 820 * dt;
+    _lbWave.life -= dt * 1.3;
+    if (_lbWave.life <= 0) _lbWave = null;
+  }
+
+  // 9 ── the dark round the edge of it
+  if (!canvas._lbVign) {
+    canvas._lbVign = document.createElement('canvas');
+    canvas._lbVign.width = W; canvas._lbVign.height = H;
+    const vx = canvas._lbVign.getContext('2d');
+    const g = vx.createRadialGradient(W * 0.5, HZ * 1.06, Math.min(W, H) * 0.2,
+                                      W * 0.5, H * 0.5, Math.max(W, H) * 0.76);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.5, 'rgba(10,4,20,0.38)');
+    g.addColorStop(1, 'rgba(5,1,10,0.94)');
+    vx.fillStyle = g;
+    vx.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(canvas._lbVign, 0, 0);
+}
+
+// ── Her sword ────────────────────────────────────────────────────
+// The brief was a really, really large longsword, so it is one: point
+// to pommel it is most of the height of the page, and the pointer is
+// the point of it, which means she is dragging the thing rather than
+// holding it up. It is heavy, so it lags behind where she is going and
+// swings past when she stops. The roses are hers and they are growing
+// on it while she carries it.
+let _lbRaf = null;
+let _lbX = 0, _lbY = 0, _lbTX = 0, _lbTY = 0, _lbVX = 0, _lbVY = 0;
+let _lbAng = 1.15, _lbSpin = 0, _lbSlam = 0;
+let _lbShards = [], _lbPetals = [], _lbFore = [];
+
+function _lbMouseMove(e) { _lbTX = e.clientX; _lbTY = e.clientY; }
+
+function _lbDown(e) {
+  _lbSlam = 1;
+  _lbWave = { x: e.clientX, y: e.clientY, r: 12, life: 1 };
+  _lbScars.push({ x: e.clientX, y: e.clientY, r: 90 + Math.random() * 90,
+                  n: 5 + ((Math.random() * 4) | 0), seed: Math.random() * 300,
+                  grow: 0, stamped: false });
+  if (_lbScars.length > 40) _lbScars.splice(0, _lbScars.length - 40);
+  const nb = 2 + ((Math.random() * 3) | 0);
+  for (let k = 0; k < nb; k++) {
+    _lbBlooms.push({ x: e.clientX + (Math.random() - 0.5) * 130,
+                     y: e.clientY + (Math.random() - 0.5) * 44,
+                     len: 34 + Math.random() * 52, r: 9 + Math.random() * 11,
+                     ang: -1.5708 + (Math.random() - 0.5) * 1.3,
+                     seed: Math.random() * 300, grow: 0, stamped: false });
+  }
+  if (_lbBlooms.length > 70) _lbBlooms.splice(0, _lbBlooms.length - 70);
+  for (let k = 0; k < 44; k++) {
+    const a = -Math.PI * 0.5 + (Math.random() - 0.5) * 2.9;
+    const sp = 180 + Math.random() * 620;
+    _lbShards.push({ x: e.clientX, y: e.clientY, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+                     rot: Math.random() * 6.283, vr: (Math.random() - 0.5) * 14,
+                     life: 1, sz: 2 + Math.random() * 7 });
+  }
+  if (_lbShards.length > 240) _lbShards.splice(0, _lbShards.length - 240);
+  for (let k = 0; k < 22; k++) {
+    _lbPetals.push({ x: e.clientX + (Math.random() - 0.5) * 90,
+                     y: e.clientY + (Math.random() - 0.5) * 40,
+                     vx: (Math.random() - 0.5) * 260, vy: -(60 + Math.random() * 260),
+                     rot: Math.random() * 6.283, vr: (Math.random() - 0.5) * 8,
+                     life: 1, sz: 4 + Math.random() * 7 });
+  }
+  if (_lbPetals.length > 160) _lbPetals.splice(0, _lbPetals.length - 160);
+}
+
+// point at the origin, everything else back along -x
+function _lbSword(g, S, slam, t) {
+  const L = 372, BW = 22;                            // blade, in sprite units
+  const steel = g.createLinearGradient(0, -BW * S, 0, BW * S);
+  steel.addColorStop(0, '#454a58');
+  steel.addColorStop(0.36, '#c2c8d6');
+  steel.addColorStop(0.5, '#8f96a6');
+  steel.addColorStop(0.62, '#b6bcca');
+  steel.addColorStop(1, '#2c3040');
+  g.beginPath();                                     // the blade
+  g.moveTo(0, 0);
+  g.lineTo(-34 * S, -BW * 0.72 * S);
+  g.lineTo(-L * S, -BW * S);
+  g.lineTo(-L * S, BW * S);
+  g.lineTo(-34 * S, BW * 0.72 * S);
+  g.closePath();
+  g.fillStyle = steel;
+  g.fill();
+  g.strokeStyle = 'rgba(10,6,20,0.85)';
+  g.lineWidth = 1.4;
+  g.stroke();
+  g.beginPath();                                     // the fuller down the middle
+  g.moveTo(-40 * S, 0);
+  g.lineTo(-(L - 12) * S, 0);
+  g.strokeStyle = 'rgba(62,68,90,0.72)';
+  g.lineWidth = BW * 0.42 * S;
+  g.stroke();
+  g.beginPath();                                     // and what is written in it
+  for (let k = 0; k < 9; k++) {
+    const x = -(60 + k * 25) * S;
+    g.moveTo(x, -BW * 0.2 * S); g.lineTo(x, BW * 0.2 * S);
+    g.moveTo(x - 5 * S, 0); g.lineTo(x + 5 * S, 0);
+  }
+  g.strokeStyle = `rgba(${_LB_PALE},0.5)`;
+  g.lineWidth = 1.4;
+  g.stroke();
+
+  const gold = g.createLinearGradient(0, -30 * S, 0, 30 * S);
+  gold.addColorStop(0, '#f4d68e');
+  gold.addColorStop(0.42, '#c99b42');
+  gold.addColorStop(1, '#6a4a20');
+  g.save();                                          // the gold vine on the ricasso
+  g.translate(-(L - 26) * S, 0);
+  g.beginPath();
+  for (const s of [-1, 1]) {
+    g.moveTo(0, s * BW * S);
+    g.quadraticCurveTo(-14 * S, s * BW * 1.5 * S, -26 * S, s * BW * 0.4 * S);
+  }
+  g.strokeStyle = gold;
+  g.lineWidth = 3.4 * S;
+  g.stroke();
+  g.beginPath();
+  g.arc(-13 * S, 0, 5.4 * S, 0, 6.283185);
+  g.fillStyle = '#f2e6d0';
+  g.fill();
+  g.restore();
+
+  g.save();                                          // the head of it
+  g.translate(-L * S, 0);
+  g.beginPath();
+  g.moveTo(10 * S, -32 * S);
+  g.lineTo(-46 * S, -42 * S);
+  g.lineTo(-74 * S, 0);
+  g.lineTo(-46 * S, 42 * S);
+  g.lineTo(10 * S, 32 * S);
+  g.closePath();
+  g.fillStyle = gold;
+  g.fill();
+  g.strokeStyle = 'rgba(20,10,4,0.8)';
+  g.lineWidth = 1.6;
+  g.stroke();
+  g.beginPath();                                     // filigree cut into it
+  for (let k = 0; k < 4; k++) {
+    const x = -8 * S - k * 12 * S;
+    g.moveTo(x, -22 * S + k * 3 * S);
+    g.quadraticCurveTo(x - 6 * S, 0, x, 22 * S - k * 3 * S);
+  }
+  g.strokeStyle = 'rgba(120,84,32,0.6)';
+  g.lineWidth = 1.2;
+  g.stroke();
+  g.beginPath();                                     // the stone
+  g.ellipse(-26 * S, 0, 9 * S, 13 * S, 0, 0, 6.283185);
+  const st = g.createRadialGradient(-29 * S, -4 * S, 0, -26 * S, 0, 14 * S);
+  st.addColorStop(0, 'rgb(150,190,255)');
+  st.addColorStop(0.5, `rgb(${_LB_ROSE})`);
+  st.addColorStop(1, 'rgb(18,28,86)');
+  g.fillStyle = st;
+  g.fill();
+  g.strokeStyle = 'rgba(20,10,4,0.7)';
+  g.lineWidth = 1.2;
+  g.stroke();
+  for (const [dx, dy, r] of [[-4, -17, 3.4], [-4, 17, 3.4], [-46, 0, 4]]) {
+    g.beginPath();
+    g.arc(dx * S, dy * S, r * S, 0, 6.283185);
+    g.fillStyle = `rgb(${_LB_ROSE})`;
+    g.fill();
+    g.stroke();
+  }
+  g.beginPath();                                     // the crown on the very top
+  g.moveTo(-52 * S, -18 * S);
+  g.lineTo(-78 * S, -22 * S);
+  g.lineTo(-72 * S, -6 * S);
+  g.lineTo(-86 * S, 0);
+  g.lineTo(-72 * S, 6 * S);
+  g.lineTo(-78 * S, 22 * S);
+  g.lineTo(-52 * S, 18 * S);
+  g.closePath();
+  g.fillStyle = gold;
+  g.fill();
+  g.stroke();
+  g.restore();
+
+  // and the roses growing along it, because they are hers
+  // and the vines she has let grow on it: they run along the blade from the
+  // guard rather than being stuck to it in four places, which is the
+  // difference between roses on a sword and roses beside one
+  const sway = Math.sin(t * 0.9) * 0.1 + slam * 0.24;
+  for (const side of [-1, 1]) {
+    const seg = 9;
+    const pts = [];
+    for (let k = 0; k <= seg; k++) {
+      const u = k / seg;
+      const wob = Math.sin(u * 5.4 + side * 1.7 + t * 0.6 + sway * 3) * (0.5 + u) * 9;
+      pts.push(-(34 + u * (L - 70)) * S, (side * BW * 0.82 + wob) * S);
+    }
+    g.beginPath();
+    g.moveTo(pts[0], pts[1]);
+    for (let k = 2; k < pts.length; k += 2) g.lineTo(pts[k], pts[k + 1]);
+    g.strokeStyle = 'rgb(34,50,74)';
+    g.lineWidth = 3.4 * S;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.stroke();
+    g.strokeStyle = 'rgb(58,80,112)';
+    g.lineWidth = 1.4 * S;
+    g.stroke();
+    g.beginPath();                                   // thorns off it
+    for (let k = 1; k < seg; k++) {
+      const px = pts[k * 2], py = pts[k * 2 + 1];
+      const d = k % 2 ? 1 : -1;
+      g.moveTo(px, py);
+      g.lineTo(px + 7 * S, py + d * 9 * S);
+    }
+    g.strokeStyle = 'rgb(70,92,124)';
+    g.lineWidth = 1.6 * S;
+    g.stroke();
+    for (const [k, rr] of (side < 0 ? [[2, 30], [5, 22], [8, 26]] : [[1, 24], [4, 32], [7, 20]])) {
+      const px = pts[k * 2], py = pts[k * 2 + 1];
+      g.save();
+      g.translate(px, py + side * rr * 0.5 * S);
+      g.rotate(t * 0.12 + k);
+      _lbRose(g, 0, 0, rr * S, k * 2.3, 1);
+      g.restore();
+    }
+  }
+}
+
+function _drawLibraOverlay(canvas, ctx, W, H, t) {
+  if (_drawLibraOverlay._lt !== undefined && t - _drawLibraOverlay._lt < 0.016) return;
+  const dt = _drawLibraOverlay._lt === undefined ? 0.016 : Math.min(t - _drawLibraOverlay._lt, 0.04);
+  _drawLibraOverlay._lt = t;
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+
+  const SPRING = 118, DAMP = 18;
+  _lbVX += ((_lbTX - _lbX) * SPRING - _lbVX * DAMP) * dt;
+  _lbVY += ((_lbTY - _lbY) * SPRING - _lbVY * DAMP) * dt;
+  _lbX += _lbVX * dt; _lbY += _lbVY * dt;
+  // it is a very heavy thing on the end of her arm, so it trails behind
+  // where she is going and swings past when she stops
+  const want = 1.15 - Math.max(-0.75, Math.min(0.75, _lbVX * 0.0016))
+                    + Math.max(-0.4, Math.min(0.4, _lbVY * 0.0009));
+  _lbSpin += (want - _lbAng) * 26 * dt - _lbSpin * 5.4 * dt;
+  _lbAng += _lbSpin * dt;
+  _lbSlam = Math.max(0, _lbSlam - dt * 2.2);
+  const S = Math.min(1.9, Math.max(0.85, Math.min(W, H) / 560));
+
+  // ── in front of everything: the dark, and what is coming apart in it ──
+  for (let side = 0; side < 2; side++) {
+    const ox = side ? W : 0, dir = side ? -1 : 1;
+    const R = Math.min(W, H) * 0.5;
+    const cg = ctx.createRadialGradient(ox, 0, 0, ox, 0, R);
+    for (let i = 0; i <= 12; i++) {
+      const u = i / 12;
+      cg.addColorStop(u, `rgba(8,3,16,${(0.66 * Math.pow(1 - u, 2.8)).toFixed(4)})`);
+    }
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(ox, 0);
+    for (let i = 0; i <= 9; i++) {
+      const a = (i / 9) * 1.5708;
+      const rr = R * (1.02 + 0.13 * Math.sin(t * 0.6 + i * 1.4 + side * 2.3));
+      ctx.lineTo(ox + dir * Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (!_lbFore.length) {                             // petals crossing the page
+    for (let i = 0; i < 15; i++) {
+      _lbFore.push({ x: _lbRnd(i * 3.7) * W, y: _lbRnd(i * 5.9) * H,
+                     vy: -(14 + _lbRnd(i * 7.3) * 46), vx: (_lbRnd(i * 9.1) - 0.5) * 40,
+                     rot: _lbRnd(i * 11.3) * 6.283, vr: (_lbRnd(i * 13.7) - 0.5) * 1.6,
+                     sz: 4 + _lbRnd(i * 15.1) * 6 });
+    }
+  }
+  for (const p of _lbFore) {
+    p.y += p.vy * dt;
+    p.x += (p.vx + Math.sin(t * 0.5 + p.rot) * 18) * dt;
+    p.rot += p.vr * dt;
+    if (p.y < -20) { p.y = H + 20; p.x = Math.random() * W; }
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, p.sz, p.sz * 0.62, 0, 0, 6.283185);
+    ctx.fillStyle = `rgba(${_LB_ROSE},0.66)`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(-p.sz * 0.2, -p.sz * 0.14, p.sz * 0.5, p.sz * 0.3, 0, 0, 6.283185);
+    ctx.fillStyle = `rgba(${_LB_PETAL},0.5)`;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ── what the slam threw up ──
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = _lbShards.length - 1; i >= 0; i--) {
+    const p = _lbShards[i];
+    p.vy += 1200 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.99;
+    p.rot += p.vr * dt;
+    p.life -= dt * 0.85;
+    if (p.life <= 0) { _lbShards.splice(i, 1); continue; }
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    const z = p.sz * p.life;
+    ctx.beginPath();
+    ctx.moveTo(0, -z * 1.6); ctx.lineTo(z * 0.7, 0);
+    ctx.lineTo(0, z * 1.3); ctx.lineTo(-z * 0.6, 0);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${_LB_VIOLET},${(p.life * 0.8).toFixed(3)})`;
+    ctx.fill();
+    ctx.restore();
+  }
+  if (_lbWave) {
+    const far = Math.max(0, 1 - _lbWave.r / 520);
+    ctx.beginPath();
+    ctx.arc(_lbWave.x, _lbWave.y, _lbWave.r, 0, 6.283185);
+    ctx.strokeStyle = `rgba(${_LB_VIOLET},${(_lbWave.life * far * 0.6).toFixed(3)})`;
+    ctx.lineWidth = 1.6 + _lbWave.life * 8;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(_lbWave.x, _lbWave.y, _lbWave.r * 0.78, 0, 6.283185);
+    ctx.strokeStyle = `rgba(${_LB_PETAL},${(_lbWave.life * far * 0.34).toFixed(3)})`;
+    ctx.lineWidth = 1 + _lbWave.life * 3;
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  for (let i = _lbPetals.length - 1; i >= 0; i--) {
+    const p = _lbPetals[i];
+    p.vy += 420 * dt;
+    p.vx *= 0.985;
+    p.x += (p.vx + Math.sin(t * 2 + p.rot) * 40) * dt;
+    p.y += p.vy * dt;
+    p.rot += p.vr * dt;
+    p.life -= dt * 0.5;
+    if (p.life <= 0) { _lbPetals.splice(i, 1); continue; }
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, p.sz, p.sz * 0.6, 0, 0, 6.283185);
+    ctx.fillStyle = `rgba(${_LB_ROSE},${(p.life * 0.85).toFixed(3)})`;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ── and the sword ──
+  ctx.save();
+  ctx.translate(_lbX, _lbY + _lbSlam * 10);
+  ctx.rotate(_lbAng);
+  _lbSword(ctx, S, _lbSlam, t);
+  ctx.restore();
+
+  _lbTip = { x: _lbX, y: _lbY, k: 0.7 + _lbSlam * 0.6 };
+}
+
+function _startLibraOverlay() {
+  _stopLibraOverlay();
+  _drawLibraOverlay._lt = undefined;
+  _lbX = _lbTX = window.innerWidth * 0.5;
+  _lbY = _lbTY = window.innerHeight * 0.6;
+  _lbVX = _lbVY = 0; _lbAng = 1.15; _lbSpin = 0; _lbSlam = 0;
+  _lbShards = []; _lbPetals = []; _lbFore = [];
+  _lbScars = []; _lbBlooms = []; _lbWave = null; _lbTip = null;
+  window.addEventListener('mousemove', _lbMouseMove);
+  window.addEventListener('mousedown', _lbDown);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'libra-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('libra-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+      _lbFore = [];
+    }
+    _drawLibraOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _lbRaf = requestAnimationFrame(frame);
+  }
+  _lbRaf = requestAnimationFrame(frame);
+}
+
+function _stopLibraOverlay() {
+  if (_lbRaf) { cancelAnimationFrame(_lbRaf); _lbRaf = null; }
+  window.removeEventListener('mousemove', _lbMouseMove);
+  window.removeEventListener('mousedown', _lbDown);
+  const _arrow = document.getElementById('cursor');
+  if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('libra-overlay');
+  if (cv) cv.remove();
+  _lbShards = []; _lbPetals = []; _lbFore = [];
+  _lbScars = []; _lbBlooms = []; _lbWave = null; _lbTip = null;
 }
 /* ─────────────────────────────────────────────────────────────── */
 

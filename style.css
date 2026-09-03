@@ -14662,3 +14662,92 @@ text.lb-cl-glitch-svg {
   .char-name-display.adamh-name,
   .char-name-display.adamh-name::after { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   LIBRA: gilt on plum. Every panel here is very slightly out of true,
+   because nothing on her page is square and she likes it that way.
+   ════════════════════════════════════════════════════════════════ */
+#char-view.libra-ui .panel {
+  --p-border: rgba(168,112,234,0.78);
+  border: 1px solid rgba(96,52,150,0.8);
+  background: linear-gradient(168deg, rgba(32,16,54,0.96), rgba(12,5,24,0.97));
+  box-shadow:
+    0 0 32px rgba(96,52,150,0.5),
+    inset 0 1px 0 rgba(228,196,120,0.28),
+    inset 0 0 44px rgba(40,16,70,0.7);
+}
+#char-view.libra-ui .panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(130% 62% at 16% -14%, rgba(150,102,226,0.24), transparent 62%),
+    radial-gradient(100% 52% at 92% 116%, rgba(68,106,214,0.2), transparent 60%);
+}
+#char-view.libra-ui .panel-title {
+  color: #e8d3ff !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  border-bottom-color: rgba(228,190,110,0.45);
+  text-shadow: 0 0 12px rgba(150,102,226,0.9), 0 0 30px rgba(68,106,214,0.8);
+}
+#char-view.libra-ui .tab-btn { color: #8a6bb0; }
+#char-view.libra-ui .tab-btn:hover {
+  color: #e8d3ff;
+  text-shadow: 0 0 12px rgba(150,102,226,0.95);
+}
+#char-view.libra-ui .tab-btn.active {
+  color: #ffffff;
+  border-bottom-color: rgba(228,190,110,0.9);
+  text-shadow: 0 0 16px rgba(150,102,226,0.95);
+}
+#char-view.libra-ui .trait-chip {
+  border-color: rgba(168,112,234,0.38);
+  box-shadow: inset 0 1px 0 rgba(228,190,110,0.18), inset 0 0 18px rgba(30,12,54,0.6);
+}
+.char-name-display.libra-name {
+  position: relative;
+  color: #c69bf5 !important;
+  letter-spacing: 8px;
+  text-shadow: 0 0 14px rgba(150,102,226,0.95), 0 0 38px rgba(68,106,214,0.85);
+  animation: lb-drift 6.5s ease-in-out infinite;
+}
+@keyframes lb-drift {
+  0%, 100% { text-shadow: 0 0 10px rgba(96,52,150,0.9), 0 0 24px rgba(20,8,40,0.85);
+             transform: translateX(0) rotate(0deg); }
+  34%      { transform: translateX(1px) rotate(-0.35deg); }
+  50%      { text-shadow: 0 0 20px rgba(228,190,110,0.75), 0 0 46px rgba(150,102,226,0.9); }
+  72%      { transform: translateX(-1px) rotate(0.3deg); }
+}
+.char-name-display.libra-name::after {
+  content: attr(data-text);
+  position: absolute; left: 0; top: 0; width: 100%;
+  pointer-events: none;
+  color: transparent;
+  background: linear-gradient(100deg, transparent 40%, rgba(248,232,190,0.92) 50%, transparent 60%);
+  background-size: 320% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: lb-sweep 8s ease-in-out infinite;
+}
+@keyframes lb-sweep {
+  0%, 100% { background-position: 140% 0; }
+  50%      { background-position: -140% 0; }
+}
+.char-avatar-large.libra-pfp {
+  position: relative;
+  border-color: rgba(168,112,234,0.75) !important;
+  box-shadow: 0 0 30px rgba(96,52,150,0.7), inset 0 0 26px rgba(12,5,24,0.8);
+}
+.char-avatar-large.libra-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% -18%, rgba(150,102,226,0.4), transparent 58%),
+    linear-gradient(196deg, transparent 62%, rgba(68,106,214,0.24));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-name-display.libra-name,
+  .char-name-display.libra-name::after { animation: none; }
+}
