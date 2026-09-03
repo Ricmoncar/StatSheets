@@ -2054,6 +2054,149 @@ body.juko-one-page .char-entry:hover { filter: contrast(1.2) saturate(1.15); }
   #char-view.juko-one .stat-row::before { transition: none; }
 }
 
+
+/* ============================================================
+   JUKO · 1, the whole application. While she is in this form the
+   void is not confined to the character card: the header, the
+   sidebar, the music bar and every control take the same
+   spectrum, the same pixel grid and the same one light.
+   ============================================================ */
+body.juko-one-page {
+  --j1-mint: #4ef0c4;
+  --j1-deep: #0a2b30;
+}
+/* (The pixel grid over the whole window is drawn on the effect canvas, not
+   here. A full-viewport mix-blend-mode layer forces the entire page through a
+   blend group every frame, and there is no reason to pay that twice.) */
+
+/* ────── HEADER ────── */
+body.juko-one-page #header {
+  border-bottom-color: var(--j1-mint);
+  box-shadow: 0 1px 0 rgba(78,240,196,0.35), 0 6px 22px -10px rgba(78,240,196,0.5);
+}
+/* a spectrum rail under the header, sliding, which is the one thing on the
+   chrome that moves on its own */
+body.juko-one-page #header::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 2px;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg,
+    #9a60ee 0 40px, #6092ff 40px 80px, #54deff 80px 120px, #4ef0c4 120px 160px,
+    #96ff98 160px 200px, #d4ff78 200px 240px, #ffe270 240px 280px, #ff96a0 280px 320px);
+  background-size: 320px 100%;
+  opacity: 0.65;
+  animation: j1-rail 9s linear infinite;
+}
+@keyframes j1-rail { to { background-position: 320px 0; } }
+body.juko-one-page #logo { color: #dffff4; text-shadow: -2px 0 rgba(255,106,156,0.55), 2px 0 rgba(106,216,255,0.55), 0 0 14px rgba(78,240,196,0.5); }
+body.juko-one-page #logo span { color: var(--j1-mint); }
+body.juko-one-page #header-btns .btn {
+  border: 1px solid rgba(78,240,196,0.45);
+  color: #b8ffe8;
+  background: linear-gradient(180deg, rgba(10,40,44,0.55), rgba(4,16,20,0.55));
+}
+body.juko-one-page #header-btns .btn:hover {
+  color: #eafff8;
+  border-color: #4ef0c4;
+  box-shadow: 0 0 12px rgba(78,240,196,0.55), inset 0 0 10px rgba(78,240,196,0.22);
+}
+
+/* ────── SIDEBAR ────── */
+body.juko-one-page #sidebar {
+  border-color: rgba(78,240,196,0.45);
+  background-image: linear-gradient(180deg, rgba(10,40,44,0.28), transparent 45%);
+}
+body.juko-one-page #sidebar-title span:first-child { color: var(--j1-mint); text-shadow: 0 0 10px rgba(78,240,196,0.6); }
+body.juko-one-page #sidebar-search {
+  border-color: rgba(78,240,196,0.4);
+  color: #cfffee;
+}
+body.juko-one-page .char-entry { border-left: 2px solid transparent; }
+body.juko-one-page .char-entry:hover { border-left-color: rgba(78,240,196,0.55); background: rgba(78,240,196,0.06); }
+body.juko-one-page .char-entry.active {
+  border-left-color: var(--j1-mint);
+  background: linear-gradient(90deg, rgba(78,240,196,0.16), transparent 70%);
+}
+
+/* ────── THE MUSIC BAR ──────
+   It is the one part of the chrome that is already about sound, so it gets the
+   spectrum: a prism rail along the top, spectrum bars in the meter, and a
+   volume slider that runs through the whole range of the page. */
+body.juko-one-page #theme-bar {
+  border-color: rgba(78,240,196,0.5) !important;
+  background: linear-gradient(180deg, rgba(6,26,30,0.96), rgba(2,10,14,0.96)) !important;
+  box-shadow: 0 0 24px -6px rgba(78,240,196,0.55), inset 0 0 18px rgba(78,240,196,0.08);
+  position: relative;
+}
+body.juko-one-page #theme-bar::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg,
+    #9a60ee 0 26px, #6092ff 26px 52px, #54deff 52px 78px, #4ef0c4 78px 104px,
+    #96ff98 104px 130px, #d4ff78 130px 156px, #ffe270 156px 182px, #ff96a0 182px 208px);
+  background-size: 208px 100%;
+  animation: j1-rail2 6s linear infinite;
+}
+@keyframes j1-rail2 { to { background-position: 208px 0; } }
+body.juko-one-page #theme-bar-title { color: #eafff8; }
+body.juko-one-page #theme-bar-char { color: var(--j1-mint); }
+body.juko-one-page #theme-bar button { color: #b8ffe8; border-color: rgba(78,240,196,0.4); }
+body.juko-one-page #theme-bar button:hover { color: #eafff8; box-shadow: 0 0 10px rgba(78,240,196,0.5); }
+body.juko-one-page #theme-bar-vol-label { color: #7fe8cc; }
+/* the four little meter bars run the spectrum instead of one colour */
+body.juko-one-page #theme-bar-eq span:nth-child(1) { background: #ff96a0 !important; }
+body.juko-one-page #theme-bar-eq span:nth-child(2) { background: #ffe270 !important; }
+body.juko-one-page #theme-bar-eq span:nth-child(3) { background: #4ef0c4 !important; }
+body.juko-one-page #theme-bar-eq span:nth-child(4) { background: #6092ff !important; }
+body.juko-one-page #theme-bar-volume {
+  --val-color: var(--j1-mint);
+  accent-color: #4ef0c4;
+}
+body.juko-one-page #theme-bar-volume::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, #9a60ee, #54deff, #4ef0c4, #d4ff78, #ffe270) !important;
+}
+
+/* ────── and hovering ANY of it pixelates it, the same as on the card ────── */
+body.juko-one-page #header-btns .btn,
+body.juko-one-page #sidebar-search,
+body.juko-one-page .char-entry,
+body.juko-one-page #theme-bar button,
+body.juko-one-page #theme-bar-info { position: relative; }
+body.juko-one-page #header-btns .btn::after,
+body.juko-one-page #sidebar-search::after,
+body.juko-one-page .char-entry::after,
+body.juko-one-page #theme-bar button::after,
+body.juko-one-page #theme-bar-info::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.09s steps(3, end);
+  backdrop-filter: blur(1.5px) contrast(1.25) saturate(1.2);
+  background-image:
+    repeating-linear-gradient(0deg,  rgba(2,10,14,0.4) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(2,10,14,0.4) 0 1px, transparent 1px 4px);
+  background-size: 4px 4px;
+  box-shadow: inset 0 0 0 1px rgba(78,240,196,0.5);
+}
+body.juko-one-page #header-btns .btn:hover::after,
+body.juko-one-page #sidebar-search:hover::after,
+body.juko-one-page .char-entry:hover::after,
+body.juko-one-page #theme-bar button:hover::after,
+body.juko-one-page #theme-bar-info:hover::after { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  body.juko-one-page #header::after,
+  body.juko-one-page #theme-bar::before { animation: none; }
+}
+
 /* ============================================================
    LUCIFER · UNLEASHED: demonic, over-the-top form styling.
    Crimson + black, molten panels, a menacing flickering name, an

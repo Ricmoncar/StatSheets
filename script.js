@@ -10257,7 +10257,8 @@ function _jukoGhostSprite(ctx, x, y, t, rgb, alpha) {
   ctx.globalAlpha = 1;
 }
 
-function _drawJukoOverlay(canvas, ctx, W, H, t) {
+function _drawJukoOverlay(canvas, ctxIn, W, H, t) {
+  let ctx = ctxIn;
   if (!(W > 0 && H > 0)) return;      // laid out in a hidden pane: nothing to draw on
   // The `>= 0` matters: a clock that jumps BACKWARDS (a remount that resets
   // the loop's t0, or anything driving these directly) leaves t - _lt hugely
@@ -10266,6 +10267,23 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
   const dt = _drawJukoOverlay._lt === undefined ? 0.016 : Math.min(t - _drawJukoOverlay._lt, 0.05);
   _drawJukoOverlay._lt = t;
   ctx.clearRect(0, 0, W, H);
+
+  // In "1" the ENTIRE effect layer is drawn at pixel resolution and blitted up
+  // at the end: the cursor, its trail, the sparks, everything over the GUI. A
+  // sharp cursor on a dithered void looked like two programs stapled together.
+  const _oneCur = _jukoCurChar();
+  const _oneForm = !!_isJuko1(_oneCur) && !_isJuko0Inf(_oneCur);
+  let _onePX = 0, _oneLo = null;
+  if (_oneForm) {
+    _onePX = _j1PX(W);
+    _oneLo = _j1Lo(canvas, '_j1Ov', W, H, _onePX);
+    ctx = _oneLo._g;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, _oneLo.width, _oneLo.height);
+    ctx.setTransform(1 / _onePX, 0, 0, 1 / _onePX, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+  }
 
   // Spring-follow (floaty lag)
   const SPRING = 80, DAMP = 10;
@@ -10330,8 +10348,8 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
                         ch: _j1Glyph(0.5, _j1Wake.length + t * 31) });
       if (_j1Wake.length > 26) _j1Wake.pop();
     }
-    _j1PageLayer(canvas, ctx, W, H, t);
-    _j1Cursor(ctx, _jukoX, _jukoY, t, _jukoVX, _jukoVY);
+    _j1PageLayer(canvas, ctx, W, H, t, _onePX);
+    _j1Cursor(ctx, _jukoX, _jukoY, t, _jukoVX, _jukoVY, _onePX);
   } else if (_o0inf && _oSev > 0.04) {
     if (_j1Tip) { _j1Tip = null; _j1Wake.length = 0; _j1Burst.length = 0; }
     const amp = 3 + _oSev * 16;
@@ -10593,6 +10611,16 @@ function _drawJukoOverlay(canvas, ctx, W, H, t) {
         ctx.restore();
       }
     }
+  }
+
+  // and up to the screen, one blit, nearest neighbour
+  if (_oneForm && _oneLo) {
+    ctxIn.setTransform(1, 0, 0, 1, 0, 0);
+    ctxIn.globalCompositeOperation = 'source-over';
+    ctxIn.globalAlpha = 1;
+    ctxIn.imageSmoothingEnabled = false;
+    ctxIn.drawImage(_oneLo, 0, 0, _oneLo.width, _oneLo.height, 0, 0, _oneLo.width * _onePX, _oneLo.height * _onePX);
+    ctxIn.imageSmoothingEnabled = true;
   }
 }
 
@@ -11246,6 +11274,7 @@ let _j1Pulse = 0;        // 0..1, a click. The background answers it.
 let _j1ClickAt = null;
 // A few pixels of counter-parallax, so the space has a inside to look into.
 let _j1ParX = 0, _j1ParY = 0;
+let _j1EvNow = null;     // whatever the background is doing, for the layer above the GUI
 
 // ── The pixel pipeline. Everything is drawn into a canvas about a third of the
 //    size with the world transform scaled to match, so all the geometry below
@@ -12014,6 +12043,7 @@ function _drawJuko1Pattern(canvas, ctx, W, H, t) {
   }
 
   const ev = _j1EvTick(canvas, W, H, LX, LY, t, S);
+  _j1EvNow = ev;                                     // the layer over the GUI reads this
 
   // ── 1. the void ──
   ID();
@@ -12394,205 +12424,261 @@ function _j1EvFlash(e) {
   return e.p > 0.62 ? Math.pow(1 - (e.p - 0.62) / 0.38, 2.2) : 0;
 }
 
-// ── THE CURSOR: the rainbow sword. The tip is the pointer, so it stays exact,
-//    and the blade falls away behind it with the prism gem set in the guard.
-//    The refraction is three offset outlines rather than ctx.filter, which on a
-//    canvas this size measured six hundred and fifty milliseconds a frame. ──
+// ── THE CURSOR: the rainbow sword. The tip is the pointer, so it stays
+//    exact, and the blade falls away behind it with the prism set in the guard.
+//    Drawn into the pixel buffer with the rest of the layer, so its widths are
+//    multiples of the pixel and its edges land on the grid. ──────
 let _j1Wake = [];
 let _j1Burst = [];
 let _j1Swing = 0;                                    // 0..1, decays after a click
-const _J1_SW_L = 168;                                // tip to pommel
+const _J1_SW_L = 186;                                // tip to pommel
 
-function _j1Sword(g, x, y, t, vx, vy) {
+function _j1Sword(g, x, y, t, vx, vy, PX) {
+  const P = PX || 1;
   const spd = Math.hypot(vx, vy);
   const f = Math.min(1, spd / 520);
   const beat = _jukoAudioBeat;
-  // it hangs down and right from the tip, and banks the way it is travelling
+  const bob = Math.sin(t * 1.6) * 2.2 * (1 - f);     // it breathes when you leave it alone
   const lean = Math.max(-0.5, Math.min(0.5, vx / 900)) + Math.sin(t * 0.9) * 0.03;
-  const swing = _j1Swing > 0 ? Math.sin(_j1Swing * Math.PI) * 1.5 : 0;
+  const swing = _j1Swing > 0 ? Math.sin(_j1Swing * Math.PI) * 1.55 : 0;
   const ang = 0.83 + lean - swing;
   const ca = Math.cos(ang), sa = Math.sin(ang);
   const nx = -sa, ny = ca;
   const L = _J1_SW_L * (1 + beat * 0.03);
 
-  // the wake, a ribbon of digits it has already cut through
+  // ── the trail: a spectrum ribbon through where the tip has been, with the
+  //    digits it cut loose riding on it
+  if (_j1Wake.length > 2) {
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 3; k++) {
+      g.beginPath();
+      g.moveTo(_j1Wake[0].x, _j1Wake[0].y);
+      for (let i = 1; i < _j1Wake.length - 1; i++) {
+        const a = _j1Wake[i], b = _j1Wake[i + 1];
+        g.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2 + (k - 1) * P * 1.6, (a.y + b.y) / 2);
+      }
+      g.strokeStyle = _J1_SPEC[(k * 3 + ((t * 4) | 0)) % _J1_SPECN][_j1A(0.3 - k * 0.06)];
+      g.lineWidth = P * (3 - k);
+      g.stroke();
+    }
+    g.restore();
+  }
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   for (let i = _j1Wake.length - 1; i >= 0; i--) {
     const w = _j1Wake[i];
     w.life -= 0.022;
     if (w.life <= 0) { _j1Wake.splice(i, 1); continue; }
-    g.font = `bold ${(9 + w.life * 9) | 0}px "Courier New", monospace`;
-    g.fillStyle = _J1_SPEC[w.h][_j1A(w.life * w.life * 0.7)];
-    g.fillText(w.ch, w.x, w.y + (1 - w.life) * 10);
+    g.font = `bold ${Math.max(P * 3, ((9 + w.life * 11) | 0))}px "Courier New", monospace`;
+    g.fillStyle = _J1_SPEC[w.h][_j1A(w.life * w.life * 0.75)];
+    g.fillText(w.ch, w.x, w.y + (1 - w.life) * 11);
   }
 
-  // the burst from a click
+  // ── the burst from a click: the shockwave splits on the way out
   for (let i = _j1Burst.length - 1; i >= 0; i--) {
     const b = _j1Burst[i];
     b.life -= 0.022;
     if (b.life <= 0) { _j1Burst.splice(i, 1); continue; }
-    const p = 1 - b.life;
+    const q = 1 - b.life;
     g.save();
     g.globalCompositeOperation = 'lighter';
-    for (let k = 0; k < _J1_SPECN; k++) {            // the ring splits as it goes
+    for (let k = 0; k < _J1_SPECN; k++) {
       g.beginPath();
-      g.arc(b.x, b.y, 8 + p * (112 + k * 7), 0, 6.283185);
-      g.strokeStyle = _J1_SPEC[k][_j1A(b.life * b.life * 0.4)];
-      g.lineWidth = 1 + b.life * 2.2;
+      g.arc(b.x, b.y, 8 + q * (118 + k * 9), 0, 6.283185);
+      g.strokeStyle = _J1_SPEC[k][_j1A(b.life * b.life * 0.42)];
+      g.lineWidth = P * (0.6 + b.life * 1.6);
       g.stroke();
     }
     g.restore();
   }
 
   g.save();
-  g.translate(x, y);
+  g.translate(x, y + bob);
+
+  // the light it carries
+  g.save();
   g.globalCompositeOperation = 'lighter';
-  const hg = g.createRadialGradient(0, 0, 0, 0, 0, 46);
+  const hg = g.createRadialGradient(0, 0, 0, 0, 0, 54);
   for (let i = 0; i <= 10; i++) {
     const u = i / 10;
-    hg.addColorStop(u, `rgba(${_J1_MINT},${(0.3 * Math.pow(1 - u, 2.6)).toFixed(4)})`);
+    hg.addColorStop(u, `rgba(${_J1_MINT},${(0.32 * Math.pow(1 - u, 2.6)).toFixed(4)})`);
   }
   g.fillStyle = hg;
-  g.fillRect(-46, -46, 92, 92);
+  g.fillRect(-54, -54, 108, 108);
   g.restore();
 
-  g.save();
-  g.translate(x, y);
-
-  // the slash: a spectrum crescent thrown off the edge
+  // ── the slash: a spectrum crescent thrown off the edge, one arc per hue
   if (_j1Swing > 0) {
     g.save();
     g.globalCompositeOperation = 'lighter';
     const sp = 1 - _j1Swing;
     for (let k = 0; k < _J1_SPECN; k++) {
       g.beginPath();
-      g.arc(0, 0, L * (0.5 + sp * 0.75) + k * 3, ang - 1.5 + sp * 1.9, ang - 0.4 + sp * 1.9);
-      g.strokeStyle = _J1_SPEC[k][_j1A(_j1Swing * _j1Swing * 0.5)];
-      g.lineWidth = 3 + _j1Swing * 5;
+      g.arc(0, 0, L * (0.42 + sp * 0.8) + k * P * 1.6, ang - 1.6 + sp * 2.0, ang - 0.3 + sp * 2.0);
+      g.strokeStyle = _J1_SPEC[k][_j1A(_j1Swing * _j1Swing * 0.55)];
+      g.lineWidth = P * (1.2 + _j1Swing * 2.2);
       g.stroke();
     }
     g.restore();
   }
 
-  // BLADE. Point at the origin, widening to the guard, dark inside with one
-  // bright edge, and a fuller down the middle.
-  const gx = ca * L * 0.72, gy = sa * L * 0.72;      // where the guard sits
-  const wgt = 7.5;
+  const gx = ca * L * 0.7, gy = sa * L * 0.7;        // the guard
+  const rx = ca * L * 0.2, ry = sa * L * 0.2;        // where the taper ends
+  const W1 = 4.5, W2 = 9;                            // half widths: near tip, at guard
+
+  // ── BLADE. A long taper to the point, a ricasso above the guard, one lit
+  //    edge and one in shadow, and a fuller with the field engraved in it.
   g.beginPath();
   g.moveTo(0, 0);
-  g.lineTo(gx + nx * wgt, gy + ny * wgt);
-  g.lineTo(gx - nx * wgt, gy - ny * wgt);
+  g.lineTo(rx + nx * W1, ry + ny * W1);
+  g.lineTo(gx + nx * W2, gy + ny * W2);
+  g.lineTo(gx - nx * W2, gy - ny * W2);
+  g.lineTo(rx - nx * W1, ry - ny * W1);
   g.closePath();
-  g.fillStyle = 'rgba(6,20,26,0.92)';
+  g.fillStyle = 'rgba(5,18,24,0.94)';
   g.fill();
-  g.beginPath();                                     // the lit edge
+  // the lit edge takes the light, the other takes the shadow
+  g.beginPath();
   g.moveTo(0, 0);
-  g.lineTo(gx + nx * wgt, gy + ny * wgt);
-  g.strokeStyle = 'rgba(240,255,250,0.95)';
-  g.lineWidth = 2;
+  g.lineTo(rx + nx * W1, ry + ny * W1);
+  g.lineTo(gx + nx * W2, gy + ny * W2);
+  g.strokeStyle = 'rgba(240,255,250,0.96)';
+  g.lineWidth = P * 0.9;
   g.stroke();
-  g.beginPath();                                     // and the shadowed one
+  g.beginPath();
   g.moveTo(0, 0);
-  g.lineTo(gx - nx * wgt, gy - ny * wgt);
-  g.strokeStyle = `rgba(${_J1_MINT},0.6)`;
-  g.lineWidth = 1.4;
+  g.lineTo(rx - nx * W1, ry - ny * W1);
+  g.lineTo(gx - nx * W2, gy - ny * W2);
+  g.strokeStyle = `rgba(${_J1_MINT},0.55)`;
+  g.lineWidth = P * 0.7;
   g.stroke();
-  g.beginPath();                                     // fuller
-  g.moveTo(ca * L * 0.13, sa * L * 0.13);
-  g.lineTo(gx * 0.94, gy * 0.94);
-  g.strokeStyle = `rgba(${_J1_CYAN},0.5)`;
-  g.lineWidth = 1.4;
+  // the fuller, and the field engraved down it
+  g.beginPath();
+  g.moveTo(ca * L * 0.1, sa * L * 0.1);
+  g.lineTo(gx * 0.92, gy * 0.92);
+  g.strokeStyle = `rgba(${_J1_CYAN},0.45)`;
+  g.lineWidth = P * 0.7;
   g.stroke();
+  g.save();
+  g.translate(0, 0);
+  g.rotate(ang + 1.5708);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `bold ${Math.max(6, P * 2.6) | 0}px "Courier New", monospace`;
+  for (let k = 0; k < 7; k++) {
+    const u = 0.16 + k * 0.078;
+    const scroll = ((t * 0.35 + k * 0.14) % 1);
+    g.fillStyle = _J1_SPEC[(k + ((t * 2) | 0)) % _J1_SPECN][_j1A(0.3 + Math.sin(scroll * 6.283) * 0.25)];
+    g.fillText(_j1Glyph(0.8, k * 3.1 + ((t * 2) | 0)), 0, -L * u);
+  }
+  g.restore();
 
-  // the refraction: the blade outline again either side, in the primaries
+  // the refraction: the outline again either side, in the three primaries
   g.save();
   g.globalCompositeOperation = 'lighter';
-  const off = 1.5 + f * 3.6 + _j1Pulse * 3;
+  const off = P * (0.6 + f * 1.6) + _j1Pulse * 3;
   for (const [dx, col] of [[-off, '255,90,140'], [off, '90,190,255'], [0, '190,255,120']]) {
     g.beginPath();
     g.moveTo(dx, 0);
-    g.lineTo(gx + nx * wgt + dx, gy + ny * wgt);
-    g.lineTo(gx - nx * wgt + dx, gy - ny * wgt);
+    g.lineTo(gx + nx * W2 + dx, gy + ny * W2);
+    g.lineTo(gx - nx * W2 + dx, gy - ny * W2);
     g.closePath();
-    g.strokeStyle = `rgba(${col},0.42)`;
-    g.lineWidth = 1.2;
+    g.strokeStyle = `rgba(${col},0.4)`;
+    g.lineWidth = P * 0.7;
     g.stroke();
   }
   g.restore();
 
-  // CROSSGUARD
+  // ── CROSSGUARD: swept, not a bar
   g.beginPath();
-  g.moveTo(gx + nx * 21, gy + ny * 21);
-  g.lineTo(gx - nx * 21, gy - ny * 21);
-  g.strokeStyle = 'rgba(226,255,246,0.9)';
-  g.lineWidth = 4.5;
+  g.moveTo(gx + nx * 26 - ca * 5, gy + ny * 26 - sa * 5);
+  g.quadraticCurveTo(gx + nx * 13, gy + ny * 13, gx, gy);
+  g.quadraticCurveTo(gx - nx * 13, gy - ny * 13, gx - nx * 26 - ca * 5, gy - ny * 26 - sa * 5);
+  g.strokeStyle = 'rgba(226,255,246,0.92)';
+  g.lineWidth = P * 1.8;
   g.stroke();
   g.beginPath();
-  g.moveTo(gx + nx * 21, gy + ny * 21);
-  g.lineTo(gx - nx * 21, gy - ny * 21);
-  g.strokeStyle = `rgba(${_J1_DEEP},1)`;
-  g.lineWidth = 2;
+  g.moveTo(gx + nx * 26 - ca * 5, gy + ny * 26 - sa * 5);
+  g.quadraticCurveTo(gx + nx * 13, gy + ny * 13, gx, gy);
+  g.quadraticCurveTo(gx - nx * 13, gy - ny * 13, gx - nx * 26 - ca * 5, gy - ny * 26 - sa * 5);
+  g.strokeStyle = `rgba(${_J1_DEEP},0.9)`;
+  g.lineWidth = P * 0.8;
   g.stroke();
 
-  // grip and pommel
+  // grip, with a wrap, and a crowned pommel
   const px2 = ca * L * 0.93, py2 = sa * L * 0.93;
   g.beginPath();
   g.moveTo(gx, gy); g.lineTo(px2, py2);
-  g.strokeStyle = 'rgba(10,28,34,0.95)';
-  g.lineWidth = 7;
+  g.strokeStyle = 'rgba(9,26,32,0.96)';
+  g.lineWidth = P * 2.6;
   g.stroke();
+  for (let k = 1; k <= 4; k++) {
+    const u = k / 5;
+    const wx = gx + (px2 - gx) * u, wy = gy + (py2 - gy) * u;
+    g.beginPath();
+    g.moveTo(wx + nx * 4, wy + ny * 4);
+    g.lineTo(wx - nx * 4, wy - ny * 4);
+    g.strokeStyle = `rgba(${_J1_MINT},0.5)`;
+    g.lineWidth = P * 0.7;
+    g.stroke();
+  }
   g.beginPath();
-  g.moveTo(gx, gy); g.lineTo(px2, py2);
-  g.strokeStyle = `rgba(${_J1_MINT},0.55)`;
-  g.lineWidth = 1.6;
-  g.stroke();
-  g.beginPath();
-  g.arc(ca * L, sa * L, 5.5, 0, 6.283185);
-  g.fillStyle = 'rgba(14,36,42,0.95)';
+  g.arc(ca * L, sa * L, P * 2.4 + 2.5, 0, 6.283185);
+  g.fillStyle = 'rgba(14,36,42,0.96)';
   g.fill();
   g.strokeStyle = `rgba(${_J1_MINT},0.85)`;
-  g.lineWidth = 1.6;
+  g.lineWidth = P * 0.8;
   g.stroke();
 
-  // THE GEM in the guard: the rainbow square from the drawing, four quadrants
-  // of spectrum with a white core, throwing its own light.
-  const gr = 8.5 + beat * 1.6 + _j1Pulse * 3.5;
+  // ── THE GEM in the guard: the rainbow square from the drawing. It throws
+  //    its light back up the blade, which is what makes it read as the source
+  //    of the colour rather than a sticker on the hilt.
+  const gr = 9 + beat * 1.8 + _j1Pulse * 4;
   g.save();
   g.translate(gx, gy);
   g.globalCompositeOperation = 'lighter';
-  const gg = g.createRadialGradient(0, 0, 0, 0, 0, gr * 5);
+  const gg = g.createRadialGradient(0, 0, 0, 0, 0, gr * 6);
   for (let i = 0; i <= 10; i++) {
     const u = i / 10;
-    gg.addColorStop(u, `rgba(226,255,246,${(0.34 * Math.pow(1 - u, 2.4)).toFixed(4)})`);
+    gg.addColorStop(u, `rgba(226,255,246,${(0.36 * Math.pow(1 - u, 2.3)).toFixed(4)})`);
   }
   g.fillStyle = gg;
-  g.fillRect(-gr * 5, -gr * 5, gr * 10, gr * 10);
+  g.fillRect(-gr * 6, -gr * 6, gr * 12, gr * 12);
+  // beams back up the blade
+  g.rotate(ang + 1.5708);
+  for (let k = 0; k < _J1_SPECN; k++) {
+    const a0 = -0.42 + (k / _J1_SPECN) * 0.84;
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.lineTo(Math.sin(a0) * L * 0.62, -Math.cos(a0) * L * 0.62);
+    g.strokeStyle = _J1_SPEC[k][_j1A(0.1 + beat * 0.14 + _j1Pulse * 0.2)];
+    g.lineWidth = P * 0.7;
+    g.stroke();
+  }
   g.restore();
 
   g.save();
   g.translate(gx, gy);
   g.rotate(ang + t * 0.35);
-  const q = [['255,86,132', -1, -1], ['255,214,92', 1, -1], ['120,255,180', -1, 1], ['110,182,255', 1, 1]];
-  for (const [col, sx2, sy2] of q) {
+  const quad = [['255,86,132', -1, -1], ['255,214,92', 1, -1], ['120,255,180', -1, 1], ['110,182,255', 1, 1]];
+  for (const [col, sx2, sy2] of quad) {
     g.fillStyle = `rgb(${col})`;
     g.fillRect(sx2 < 0 ? -gr : 0, sy2 < 0 ? -gr : 0, gr, gr);
   }
   g.strokeStyle = 'rgba(255,255,255,0.95)';
-  g.lineWidth = 1.6;
+  g.lineWidth = P * 0.8;
   g.strokeRect(-gr, -gr, gr * 2, gr * 2);
   g.beginPath();
-  g.arc(0, 0, gr * 0.36, 0, 6.283185);
-  g.fillStyle = 'rgba(255,255,255,0.92)';
+  g.arc(0, 0, gr * 0.34, 0, 6.283185);
+  g.fillStyle = 'rgba(255,255,255,0.94)';
   g.fill();
   g.restore();
 
   g.restore();
 }
-// kept under the old name because the overlay calls it
-function _j1Cursor(g, x, y, t, vx, vy) {
+function _j1Cursor(g, x, y, t, vx, vy, PX) {
   _j1Swing = Math.max(0, _j1Swing - 0.045);
-  _j1Sword(g, x, y, t, vx, vy);
+  _j1Sword(g, x, y, t, vx, vy, PX);
 }
 
 // ── Above the GUI: the thing is bigger than the character card, so the far
@@ -12641,63 +12727,190 @@ function _j1OuterArms() {
   return (_j1OuterArms._a = a);
 }
 
-function _j1PageLayer(canvas, ctx, W, H, t) {
+function _j1PageLayer(canvas, ctx, W, H, t, PX) {
+  const P = PX || 1;
   const beat = _jukoAudioBeat, aL = _jukoAudioLevel, aO = _jukoAudioOnset;
-  if (!canvas._j1Sky || canvas._j1SkyW !== W || canvas._j1SkyH !== H) {
+  const ev = _j1EvNow;
+
+  // ── the far field, drifting across the whole application
+  if (!canvas._j1Sky || canvas._j1SkyW !== W || canvas._j1SkyH !== H || canvas._j1SkyP !== P) {
     const c = document.createElement('canvas');
-    c.width = W; c.height = H;
+    c.width = Math.ceil(W / P); c.height = Math.ceil(H / P);
     const g = c.getContext('2d');
+    g.setTransform(1 / P, 0, 0, 1 / P, 0, 0);
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    const n = Math.round((W * H) / 12000);
+    const n = Math.round((W * H) / 11000);
     for (let i = 0; i < n; i++) {
       const h = i * 4.3 + 17;
       const x = _j1Rnd(h) * W, y = _j1Rnd(h * 2.7) * H;
-      g.font = `${(7 + _j1Rnd(h * 3.1) * 6) | 0}px "Courier New", monospace`;
-      g.fillStyle = _j1Hue(x - W * 0.73, y - H * 0.29)[_j1A(0.07 + _j1Rnd(h * 5.9) * 0.11)];
+      g.font = `${(P * (2 + _j1Rnd(h * 3.1) * 3)) | 0}px "Courier New", monospace`;
+      g.fillStyle = _j1Hue(x - W * 0.73, y - H * 0.29)[_j1A(0.08 + _j1Rnd(h * 5.9) * 0.13)];
       const ch = _J1_DIGITS[(_j1Rnd(h * 7.7) * 10) | 0];
       g.fillText(ch, x, y);
-      if (x < 14) g.fillText(ch, x + W, y);
-      else if (x > W - 14) g.fillText(ch, x - W, y);
+      if (x < 18) g.fillText(ch, x + W, y);
+      else if (x > W - 18) g.fillText(ch, x - W, y);
     }
-    canvas._j1Sky = c; canvas._j1SkyW = W; canvas._j1SkyH = H;
+    canvas._j1Sky = c; canvas._j1SkyW = W; canvas._j1SkyH = H; canvas._j1SkyP = P;
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'lighter';
+  const lw = canvas._j1Sky.width;
+  const off = ((t * 3.1 / P) % lw + lw) % lw;
+  ctx.globalAlpha = 0.6 + aL * 0.35;
+  ctx.drawImage(canvas._j1Sky, -off, 0);
+  ctx.drawImage(canvas._j1Sky, lw - off, 0);
+  ctx.restore();
+
+  // ── SCANLINES across the whole window. Baked at one pixel in three, so
+  //    they land exactly on the grid rather than shimmering against it.
+  if (!canvas._j1Scan || canvas._j1ScanW !== W || canvas._j1ScanP !== P) {
+    const c = document.createElement('canvas');
+    c.width = 1; c.height = 3;
+    const g = c.getContext('2d');
+    g.fillStyle = 'rgba(0,0,0,0.28)';
+    g.fillRect(0, 2, 1, 1);
+    canvas._j1Scan = c; canvas._j1ScanW = W; canvas._j1ScanP = P;
+    canvas._j1ScanPat = null;
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (!canvas._j1ScanPat) canvas._j1ScanPat = ctx.createPattern(canvas._j1Scan, 'repeat');
+  ctx.globalAlpha = 0.42;
+  ctx.fillStyle = canvas._j1ScanPat;
+  ctx.fillRect(0, 0, Math.ceil(W / P), Math.ceil(H / P));
+  ctx.restore();
+
+  // ── the light the cursor is carrying, spilled onto the chrome
+  if (_j1Tip) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const R = 190 + beat * 70 + _j1Pulse * 120;
+    const cg = ctx.createRadialGradient(_j1Tip.x, _j1Tip.y, 0, _j1Tip.x, _j1Tip.y, R);
+    for (let i = 0; i <= 10; i++) {
+      const u = i / 10;
+      cg.addColorStop(u, `rgba(${_J1_MINT},${(0.15 * Math.pow(1 - u, 2.8)).toFixed(4)})`);
+    }
+    ctx.fillStyle = cg;
+    ctx.fillRect(_j1Tip.x - R, _j1Tip.y - R, R * 2, R * 2);
+    ctx.restore();
+  }
+
+  // ── SPARKS: prismatic motes coming up through the application
+  let sp = _j1PageLayer._sp;
+  if (!sp) {
+    sp = _j1PageLayer._sp = [];
+    for (let i = 0; i < 26; i++) sp.push({ x: Math.random(), y: Math.random(), v: 0.02 + Math.random() * 0.05,
+      w: 0.4 + Math.random() * 1.2, ph: Math.random() * 6.283185, h: (Math.random() * _J1_SPECN) | 0 });
   }
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const off = ((t * 3.1) % W + W) % W;
-  ctx.globalAlpha = 0.55 + aL * 0.35;
-  ctx.drawImage(canvas._j1Sky, -off, 0);
-  ctx.drawImage(canvas._j1Sky, W - off, 0);
+  for (const q of sp) {
+    q.y -= q.v * 0.016 * (1 + aL);
+    if (q.y < -0.03) { q.y = 1.03; q.x = Math.random(); }
+    const x = q.x * W + Math.sin(t * q.w + q.ph) * 22;
+    const y = q.y * H;
+    const a = (0.3 + beat * 0.4) * (0.5 + 0.5 * Math.sin(t * 2.2 + q.ph));
+    ctx.fillStyle = _J1_SPEC[q.h][_j1A(a)];
+    ctx.fillRect(x - P, y - P, P * 2, P * 2);
+  }
   ctx.restore();
 
+  // ── the outer arms, which reach over the nav and the sidebar
   const pc = _j1PageLayer._pc && _j1PageLayer._pc.isConnected
     ? _j1PageLayer._pc : (_j1PageLayer._pc = document.getElementById('pattern-canvas'));
-  if (!pc) return;
-  const r = _lyRect(pc);
-  if (!(r.width > 0 && r.height > 0)) return;
-  const CX = r.left + r.width * 0.73 + _j1ParX, CY = r.top + r.height * 0.29 + _j1ParY;
-  const S = Math.min(r.width * 0.55, r.height * 0.95);
-
+  let CX = W * 0.7, CY = H * 0.3, S = Math.min(W * 0.55, H * 0.95);
+  if (pc) {
+    const r = _lyRect(pc);
+    if (r.width > 0 && r.height > 0) {
+      CX = r.left + r.width * 0.73 + _j1ParX;
+      CY = r.top + r.height * 0.29 + _j1ParY;
+      S = Math.min(r.width * 0.55, r.height * 0.95);
+    }
+  }
   _j1Tendrils(ctx, CX, CY, S * 1.5, t * 0.8, beat * 0.6, _j1OuterArms());
 
+  // ── a spectrum fringe at the edge of the window, breathing on the music
+  {
+    const m = 3 + beat * 5;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < _J1_SPECN; k++) {
+      ctx.strokeStyle = _J1_SPEC[k][_j1A(0.06 + beat * 0.14)];
+      ctx.lineWidth = P;
+      const o = k * P * 1.2 + m;
+      ctx.strokeRect(o, o, W - o * 2, H - o * 2);
+    }
+    ctx.restore();
+  }
+
+  // ── and every event in the background reaches the whole window
+  if (ev) {
+    if (ev.name === 'eclipse') {
+      const q = ev.p < 0.62 ? Math.sin((ev.p / 0.62) * Math.PI * 0.85) : 0;
+      const fl = ev.p > 0.62 ? Math.pow(1 - (ev.p - 0.62) / 0.38, 2.2) : 0;
+      ctx.save();
+      ctx.fillStyle = `rgba(0,2,5,${(q * 0.72).toFixed(3)})`;
+      ctx.fillRect(0, 0, W, H);
+      if (fl > 0.01) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(226,255,246,${(fl * 0.5).toFixed(3)})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+      ctx.restore();
+    }
+    if (ev.name === 'wingbeat' || ev.name === 'cascade') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.beginPath();
+      ctx.arc(CX, CY, ev.p * Math.hypot(W, H) * 1.15, 0, 6.283185);
+      ctx.strokeStyle = _J1_R_MINT[_j1A(Math.pow(1 - ev.p, 2) * 0.3)];
+      ctx.lineWidth = P * (1 + (1 - ev.p) * 3);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (ev.name === 'garden') {
+      // the old room bleeding out past the card as well
+      const env = Math.sin(Math.PI * ev.p);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `bold ${Math.max(6, P * 4) | 0}px "Courier New", monospace`;
+      const cols = Math.min(60, Math.round(W / (P * 16)));
+      for (let i = 0; i < cols; i++) {
+        const x = (i + 0.5) * (W / cols);
+        const head = ((t * (200 + _j1Rnd(i * 3.1) * 260) + _j1Rnd(i * 7.7) * H * 3) % (H * 1.4)) - H * 0.2;
+        for (let k = 0; k < 5; k++) {
+          const y = head - k * P * 9;
+          if (y < -20 || y > H + 20) continue;
+          const a = env * (1 - k / 5) * 0.32;
+          ctx.fillStyle = `rgba(${k === 0 ? '190,255,190' : '54,194,90'},${a.toFixed(3)})`;
+          ctx.fillText(_J1_DIGITS[((i * 7 + k * 3 + ((t * 9) | 0)) % 10)], x, y);
+        }
+      }
+      ctx.restore();
+    }
+  }
+
+  // ── and the resolve pulse, which splits as it crosses the application
   if (!_j1PageLayer._ring) _j1PageLayer._ring = { t0: -99 };
   const ring = _j1PageLayer._ring;
   if (aO > 0.5 && t - ring.t0 > 1.4) ring.t0 = t;
-  const p = (t - ring.t0) / 2.4;
-  if (p >= 0 && p < 1) {
+  const q = (t - ring.t0) / 2.4;
+  if (q >= 0 && q < 1) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    for (let k = 0; k < _J1_SPECN; k += 2) {         // the pulse splits too
+    for (let k = 0; k < _J1_SPECN; k += 2) {
       ctx.beginPath();
-      ctx.arc(CX, CY, p * Math.hypot(W, H) * 0.85 + k * 5, 0, 6.283185);
-      ctx.strokeStyle = _J1_SPEC[k][_j1A(Math.pow(1 - p, 2.4) * 0.26)];
-      ctx.lineWidth = 1 + (1 - p) * 2.2;
+      ctx.arc(CX, CY, q * Math.hypot(W, H) * 0.85 + k * P * 2, 0, 6.283185);
+      ctx.strokeStyle = _J1_SPEC[k][_j1A(Math.pow(1 - q, 2.4) * 0.3)];
+      ctx.lineWidth = P;
       ctx.stroke();
     }
     ctx.restore();
   }
 }
 
-// ════════════════════════════════════════════════════════════════
 // LUCIFER · UNLEASHED: demonic hellscape (background) + hellfire cursor
 // ════════════════════════════════════════════════════════════════
 function _lucNewEmber(W, H, scatter) {
@@ -35008,6 +35221,7 @@ function viewChar(id) {
       // 0∞ goes beyond the character page: the WHOLE app UI (top nav,
       // sidebar) glitches while she's in this form.
       document.body.classList.toggle('juko-0inf-page', _0inf);
+      document.body.classList.toggle('juko-one-page', _isJuko1(c));
       // Start/stop the 0∞ intro timer + glitch-window extras only on TRANSITION,
       // so re-renders (tab switches etc.) don't restart the 22s build-up.
       if (_0inf && !_juko0InfActive) {
@@ -35038,7 +35252,7 @@ function viewChar(id) {
       if (_nm) { _nm.classList.add('juko-name'); _nm.setAttribute('data-text', _nm.textContent || 'JUKO!'); }
     } else {
       _cvRoot.classList.remove('juko-ui', 'juko-0inf', 'juko-one');
-      document.body.classList.remove('juko-0inf-page');
+      document.body.classList.remove('juko-0inf-page', 'juko-one-page');
       if (_juko0InfActive) { _juko0InfActive = false; _stopJuko0InfExtras(); }
       if (_av) { _av.classList.remove('juko-pfp'); const fx = _av.querySelector('.juko-pfp-fx'); if (fx) fx.remove(); }
       if (_nm) { _nm.classList.remove('juko-name'); if (!_nmHasNameSkin(_nm)) _nm.removeAttribute('data-text'); }
