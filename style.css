@@ -5993,6 +5993,129 @@ body.nara-no-select, body.nara-no-select * {
   box-shadow: 0 0 8px rgba(1,254,157,0.6);
 }
 
+
+/* ============================================================
+   AH!FLOWEY: the card as something the garden has already
+   reached. Bark under the panels, gold on every title because
+   gold is the only colour left in this world, and thorns
+   growing along the edges that face the light.
+   ============================================================ */
+#char-view.flowey-ui .panel {
+  --p-border: rgba(224,184,56,0.34);
+  border-color: rgba(224,184,56,0.30);
+  background:
+    linear-gradient(180deg, rgba(14,22,17,0.95), rgba(5,9,7,0.975)),
+    repeating-linear-gradient(96deg, rgba(0,0,0,0.30) 0 3px, rgba(255,255,255,0.015) 3px 7px);
+  box-shadow: 0 0 22px -8px rgba(224,184,56,0.30), inset 0 0 34px rgba(6,14,9,0.75);
+}
+/* a run of thorns along the top edge, which is the edge nearest the light */
+#char-view.flowey-ui .panel::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 5px;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(115deg, rgba(224,184,56,0.42) 0 2px, transparent 2px 11px),
+    linear-gradient(180deg, rgba(224,184,56,0.20), transparent);
+}
+#char-view.flowey-ui .panel-title {
+  color: #e6c451 !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom-color: rgba(224,184,56,0.32);
+  text-shadow: 0 0 12px rgba(224,184,56,0.45), 0 1px 0 rgba(4,8,5,0.9);
+}
+#char-view.flowey-ui .tab-btn { color: #5d6b52; }
+#char-view.flowey-ui .tab-btn:hover { color: #f0dc95; text-shadow: 0 0 10px rgba(224,184,56,0.55); }
+#char-view.flowey-ui .tab-btn.active {
+  color: #ffeeae;
+  border-bottom-color: rgba(224,184,56,0.9);
+  text-shadow: 0 0 14px rgba(224,184,56,0.7);
+}
+#char-view.flowey-ui .stat-bar-fill,
+#char-view.flowey-ui .stat-fill {
+  background: linear-gradient(90deg, #4a3a10, #e0b838) !important;
+}
+
+/* ────── the name, with something behind it ──────
+   One element, so it may have a transform. It leans the way a stem leans and
+   it never stops, because nothing in this place has stopped. */
+.char-name-display.flowey-name {
+  position: relative;
+  color: #e6c451 !important;
+  letter-spacing: 6px;
+  font-weight: normal;
+  text-shadow:
+    -1px 0 rgba(4,8,5,0.95), 1px 0 rgba(4,8,5,0.95),
+    0 -1px rgba(4,8,5,0.95), 0 1px rgba(4,8,5,0.95),
+    0 0 16px rgba(224,184,56,0.55);
+  transform-origin: 6% 100%;
+  animation: flowey-lean 6.5s ease-in-out infinite;
+}
+@keyframes flowey-lean {
+  0%, 100% { transform: rotate(-0.5deg); }
+  50%      { transform: rotate(0.5deg); }
+}
+/* the vine behind it, a band of thorn strokes that creeps across and back */
+.char-name-display.flowey-name::before {
+  content: "";
+  position: absolute;
+  left: -14px; right: -14px; bottom: -6px;
+  height: 8px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(72deg, rgba(31,44,34,0.95) 0 4px, transparent 4px 13px),
+    linear-gradient(90deg, transparent, rgba(31,44,34,0.9) 12%, rgba(31,44,34,0.9) 88%, transparent);
+  background-size: 200px 100%, 100% 100%;
+  animation: flowey-creep 11s linear infinite;
+}
+@keyframes flowey-creep { to { background-position: 200px 0, 0 0; } }
+
+/* ────── the portrait, ringed by the thing that grew over it ────── */
+.char-avatar-large.flowey-pfp {
+  border-color: rgba(224,184,56,0.55) !important;
+  box-shadow: 0 0 26px -6px rgba(224,184,56,0.45), inset 0 0 30px rgba(4,10,6,0.8);
+  position: relative;
+}
+.char-avatar-large.flowey-pfp::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  pointer-events: none;
+  border-radius: inherit;
+  background: repeating-conic-gradient(from 0deg,
+    rgba(31,44,34,0.95) 0deg 3deg, transparent 3deg 13deg);
+  -webkit-mask: radial-gradient(closest-side, transparent 78%, #000 82%);
+          mask: radial-gradient(closest-side, transparent 78%, #000 82%);
+  animation: flowey-ring 34s linear infinite;
+}
+@keyframes flowey-ring { to { transform: rotate(360deg); } }
+/* and one flower sitting on the rim, watching */
+.char-avatar-large.flowey-pfp::after {
+  content: "";
+  position: absolute;
+  right: -6px; top: -6px;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, #0a0a0a 0 26%, #e0b838 28% 100%);
+  box-shadow: 0 0 12px rgba(224,184,56,0.7);
+  animation: flowey-watch 4.2s ease-in-out infinite;
+}
+@keyframes flowey-watch {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-name-display.flowey-name,
+  .char-name-display.flowey-name::before,
+  .char-avatar-large.flowey-pfp::before,
+  .char-avatar-large.flowey-pfp::after { animation: none; }
+}
+
 /* ============================================================
    HARU: parasitical, mysterious, overwhelming. Infected
    purple panels whose borders pulse like veins, a name that

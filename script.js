@@ -3190,6 +3190,7 @@ const PATTERN_DEFS = {
   classic_det:      { label: "Classic · Determination.",   params: [] },
   classic_save:     { label: "Classic · SAVE",              params: [] },
   classic_ghost:    { label: "Classic · GHOST",             params: [] },
+  flowey_vines:     { label: "AH!Flowey · Overgrown",       params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -26554,6 +26555,1397 @@ function _stopHaruOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// AH!FLOWEY
+//
+// THE CLAIM. This place has already lost. The vines got here first
+// and they have not stopped: they came in from the edges and they
+// are still coming, and the only reason there is any room left in
+// the middle is that you are standing in it.
+//
+// ONE LIGHT. The hole you fell through, high and off to the right,
+// throwing a single pale shaft down onto the far end of the path.
+// The AIR is what goes pale: it is brightest around the hole and
+// falls away from it, so the top right of the room is a grey you
+// can see silhouettes against and the bottom left is the dark you
+// are standing in. Everything solid is darker than the air behind
+// it, and distance costs contrast rather than adding brightness.
+// Which edge of a vine is lit is computed from that one point every
+// time, never assumed: a vine that curls past the light swaps
+// sides, and it has to.
+//
+// ONE COLOUR. Gold. The world is grey because the colour has been
+// taken out of it, and the only colour left in it is on the
+// flowers, which is not a kindness. Your cursor is a flower that
+// has lost even that: torn, grey, and still watching you.
+//
+// The page is two layers of the same substance. The background is
+// the PLACE (path, shaft, the far tangle, the broken arch). The
+// overlay is the FRAME: vines rooted in all four edges of the
+// window, growing inward over the whole application, reaching for
+// the cursor when it comes near them, and every flower on them
+// turning to follow it.
+// ════════════════════════════════════════════════════════════════
+const _FLOWEY_RE = /^\s*(?:a\s*h\s*[!.\-]*\s*)?flowey\s*[!.]*\s*$/i;
+function _isFlowey(c) { return !!(c && c.name && _FLOWEY_RE.test(c.name)); }
+
+function _fwRnd(i) { const v = Math.sin(i * 78.233 + 12.9898) * 43758.5453; return v - Math.floor(v); }
+
+// The escape, in the JS as well as in the CSS: the sway comes right down and
+// the two events that arrive without warning (the whip across the frame, and
+// the light going out) are taken out of the deck. Everything else here drifts
+// slowly enough to keep.
+let _fwRM = false;
+if (typeof window !== 'undefined' && window.matchMedia) {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  _fwRM = !!mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', e => { _fwRM = !!e.matches; });
+}
+
+// PERF: interned colour ramps. Every vine, leaf, petal and mote reads its
+// fillStyle out of one of these instead of building a fresh `rgba(...)` string,
+// which the manual measures at 10.9 ms against 3.7 ms for 2100 glyphs.
+function _fwRamp(r, g, b) {
+  const a = new Array(101);
+  for (let i = 0; i <= 100; i++) a[i] = 'rgba(' + r + ',' + g + ',' + b + ',' + (i / 100).toFixed(2) + ')';
+  return a;
+}
+function _fwA(v) { return v <= 0 ? 0 : v >= 1 ? 100 : (v * 100) | 0; }
+// The value ramp, and its direction, decided once: the AIR goes pale toward
+// the light and everything solid is darker than the air it is seen against.
+// Distance does not make a vine paler, it makes it lower contrast, so the far
+// tangle is mid grey (it silhouettes where the air behind it is bright and
+// vanishes where the air is black) and the near bank is flat black.
+const _FW_BLACK = _fwRamp(4, 7, 5);        // the near bank: flat black
+const _FW_DARK  = _fwRamp(12, 19, 15);     // vine body, near
+const _FW_BODY  = _fwRamp(24, 34, 28);     // vine body, mid
+const _FW_FAR   = _fwRamp(34, 42, 36);     // vine body, far
+const _FW_LIT   = _fwRamp(150, 164, 143);  // the one lit edge
+const _FW_HAZE  = _fwRamp(186, 193, 172);  // the air, which is what distance is made of
+const _FW_GOLD  = _fwRamp(224, 184, 56);   // the only colour in the world
+const _FW_GOLDH = _fwRamp(250, 231, 152);
+const _FW_ROT   = _fwRamp(74, 58, 18);     // the middle of a flower
+const _FW_GREY  = _fwRamp(138, 140, 132);  // gold, once it has been taken out
+const _FW_WHITE = _fwRamp(255, 255, 255);
+const _FW_LEAF  = _fwRamp(31, 44, 34);
+const _FW_LEAFL = _fwRamp(112, 128, 104);
+
+// The wilt event drains the gold out of the world and lets it bleed back. Both
+// layers read this, so the frame greys at the same moment the garden does.
+let _fwSat = 1;
+// The shadow event puts the light out. Both layers read this too.
+let _fwDim = 0;
+function _fwGold(v) { return _fwSat > 0.985 ? _FW_GOLD[_fwA(v)] : _fwSat < 0.02 ? _FW_GREY[_fwA(v)]
+  : 'rgba(' + ((138 + (224 - 138) * _fwSat) | 0) + ',' + ((140 + (184 - 140) * _fwSat) | 0) + ',' +
+    ((132 + (56 - 132) * _fwSat) | 0) + ',' + v.toFixed(2) + ')'; }
+
+/* ── a vine ───────────────────────────────────────────────────────
+   Built by WALKING and turning, never by bowing a quadratic between
+   two points: an arc bows once, and a vine curls. The turn rate
+   rises along the length so the tip coils and the root does not. ── */
+function _fwMakeVine(seed, x0, y0, ang, len, steps, curl) {
+  const p = new Float32Array((steps + 1) * 2);
+  let x = x0, y = y0, a = ang;
+  for (let i = 0; i <= steps; i++) {
+    p[i * 2] = x; p[i * 2 + 1] = y;
+    const u = i / steps;
+    a += (_fwRnd(seed * 3.1 + i * 7.7) - 0.5) * 0.42 + curl * (0.012 + u * u * 0.09);
+    const st = (len / steps) * (1 - u * 0.28);
+    x += Math.cos(a) * st; y += Math.sin(a) * st;
+  }
+  return p;
+}
+
+// Normals for the polyline currently being drawn. One scratch pair, reused, so
+// the ribbon fill and the lit-edge stroke both read the same numbers and
+// neither of them allocates.
+const _fwNX = new Float32Array(320), _fwNY = new Float32Array(320);
+const _fwSeg = new Float32Array(640);       // one reusable slice buffer, never per frame
+function _fwNorms(p, n) {
+  for (let i = 0; i < n; i++) {
+    let dx, dy;
+    if (i === 0) { dx = p[2] - p[0]; dy = p[3] - p[1]; }
+    else if (i === n - 1) { dx = p[i * 2] - p[i * 2 - 2]; dy = p[i * 2 + 1] - p[i * 2 - 1]; }
+    else { dx = p[i * 2 + 2] - p[i * 2 - 2]; dy = p[i * 2 + 3] - p[i * 2 - 1]; }
+    const m = Math.hypot(dx, dy) || 1;
+    _fwNX[i] = -dy / m; _fwNY[i] = dx / m;
+  }
+}
+
+/* Outlines pile up; filled shapes occlude. A vine is a closed ribbon around
+   its centreline, tapering to the tip, so vines overlap like vines instead of
+   crosshatching like wire. Thorns go into the SAME path as subpaths, so a
+   whole vine plus its thorns is one fill. */
+function _fwRibbon(ctx, p, n, w0, w1, thorns, seed) {
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const w = (w0 + (w1 - w0) * (i / (n - 1))) * 0.5;
+    const X = p[i * 2] + _fwNX[i] * w, Y = p[i * 2 + 1] + _fwNY[i] * w;
+    if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+  }
+  for (let i = n - 1; i >= 0; i--) {
+    const w = (w0 + (w1 - w0) * (i / (n - 1))) * 0.5;
+    ctx.lineTo(p[i * 2] - _fwNX[i] * w, p[i * 2 + 1] - _fwNY[i] * w);
+  }
+  ctx.closePath();
+  if (thorns) {
+    for (let i = 3; i < n - 2; i += 3) {
+      if (_fwRnd(seed * 5.3 + i * 2.1) > 0.55) continue;
+      const u = i / (n - 1);
+      const w = (w0 + (w1 - w0) * u) * 0.5;
+      const s = (i & 1) ? 1 : -1;
+      const x = p[i * 2], y = p[i * 2 + 1];
+      const nx = _fwNX[i] * s, ny = _fwNY[i] * s;
+      const tx = -ny, ty = nx;                       // along the vine
+      const L = w * (1.7 + _fwRnd(seed + i) * 1.5) + 1;
+      ctx.moveTo(x + nx * w * 0.6 + tx * w * 0.8, y + ny * w * 0.6 + ty * w * 0.8);
+      ctx.lineTo(x + nx * (w + L) - tx * w * 0.3, y + ny * (w + L) - ty * w * 0.3);
+      ctx.lineTo(x + nx * w * 0.6 - tx * w * 0.9, y + ny * w * 0.6 - ty * w * 0.9);
+      ctx.closePath();
+    }
+  }
+  ctx.fill();
+}
+
+/* ONE lit edge, and WHICH edge is a calculation. dot(normal, light - point)
+   picks the side per point; where the sign flips the stroke breaks and starts
+   again on the other side, because that is what actually happens to a vine
+   that curls past a lamp. */
+function _fwLitEdge(ctx, p, n, w0, w1, lx, ly, style, lw) {
+  ctx.strokeStyle = style; ctx.lineWidth = lw;
+  ctx.beginPath();
+  let prev = 0;
+  for (let i = 0; i < n; i++) {
+    const w = (w0 + (w1 - w0) * (i / (n - 1))) * 0.5;
+    const x = p[i * 2], y = p[i * 2 + 1];
+    const s = ((lx - x) * _fwNX[i] + (ly - y) * _fwNY[i]) >= 0 ? 1 : -1;
+    const X = x + _fwNX[i] * w * s, Y = y + _fwNY[i] * w * s;
+    if (i === 0 || s !== prev) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+    prev = s;
+  }
+  ctx.stroke();
+}
+
+// Sway. The root is nailed down and the tip moves most, so the amplitude runs
+// as u^2 along the length. `pull` bends the last third toward a point, which is
+// how the frame reaches for the cursor.
+function _fwSway(v, t, out, pull, px, py) {
+  const n = v.n;
+  const amp = v.amp * (_fwRM ? 0.3 : 1), sp = v.sp * (_fwRM ? 0.5 : 1), ph = v.ph, sx = v.sx, sy = v.sy;
+  for (let i = 0; i < n; i++) {
+    const u = i / (n - 1);
+    const s = Math.sin(t * sp + u * 3.4 + ph) * amp * u * u;
+    let x = v.p[i * 2] + sx * s, y = v.p[i * 2 + 1] + sy * s;
+    if (pull > 0) {
+      const k = pull * u * u * u;
+      x += (px - v.p[(n - 1) * 2]) * k;
+      y += (py - v.p[(n - 1) * 2 + 1]) * k;
+    }
+    out[i * 2] = x; out[i * 2 + 1] = y;
+  }
+}
+
+/* ── flowers ──────────────────────────────────────────────────────
+   Every petal of every flower on the page goes into ONE path and one
+   fill; every centre into a second; every pupil into a third. A few
+   hundred small arcs batched into one path is cheap, and setting
+   fillStyle thirty times is not. */
+function _fwPetals(ctx, x, y, r, open, ang) {
+  for (let k = 0; k < 5; k++) {
+    const a = ang + k * 1.2566371;
+    const px = x + Math.cos(a) * r * 0.70, py = y + Math.sin(a) * r * 0.70;
+    const pr = r * 0.52 * open;
+    ctx.moveTo(px + pr, py);
+    ctx.arc(px, py, pr, 0, 6.2831853);
+  }
+}
+function _fwDisc(ctx, x, y, r) { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, 6.2831853); }
+
+// A leaf: two arcs meeting at a point, with the stem end at (x,y).
+function _fwLeaf(ctx, x, y, ang, L, Wd) {
+  const cx = Math.cos(ang), cy = Math.sin(ang);
+  const nx = -cy, ny = cx;
+  ctx.moveTo(x, y);
+  ctx.quadraticCurveTo(x + cx * L * 0.45 + nx * Wd, y + cy * L * 0.45 + ny * Wd, x + cx * L, y + cy * L);
+  ctx.quadraticCurveTo(x + cx * L * 0.45 - nx * Wd, y + cy * L * 0.45 - ny * Wd, x, y);
+}
+
+// ════════════════════════════════════════════════════════════════
+// EVENTS. One at a time, every 5 to 10 seconds, never the same one
+// twice running, rolled once when it starts so it is the same event
+// all the way through. Each one is a different KIND of thing, not a
+// different colour of the same thing: something crossing the frame,
+// a state spreading, the character arriving, the frame itself
+// moving, the palette dying, a volley, the light going out.
+// Both layers read _fwEvNow, so the window frame is in the event
+// with the garden rather than watching it happen.
+// ════════════════════════════════════════════════════════════════
+let _fwEvNow = null, _fwEvNext = 0, _fwEvLast = '';
+const _FW_EV = [
+  { n: 'lash',    d: 1.10 },   // one vine whips across the whole page
+  { n: 'bloom',   d: 3.40 },   // a wave of opening runs outward from the light
+  { n: 'face',    d: 2.90 },   // the tangle resolves into him for two seconds
+  { n: 'close',   d: 3.20 },   // the frame grows inward and lets go again
+  { n: 'wilt',    d: 3.60 },   // the gold drains out and bleeds back
+  { n: 'pellets', d: 2.60 },   // a ring of white forms and crosses the frame
+  { n: 'dark',    d: 2.30 },   // something passes over the hole
+];
+function _fwEvTick(t) {
+  const e = _fwEvNow;
+  if (e) {
+    const p = (t - e.t0) / e.d;
+    if (p < 1) { e.p = p; return e; }
+    _fwEvNow = null;
+    _fwEvNext = t + 4.4 + _fwRnd(t * 13.1) * 5.2;
+    return null;
+  }
+  if (_fwEvNext === 0) { _fwEvNext = t + 3.5 + _fwRnd(t * 7.3) * 3.5; return null; }
+  if (t < _fwEvNext) return null;
+  let k = 0, d = null;
+  for (let tries = 0; tries < 12; tries++) {
+    k = (_fwRnd(t * 91.7 + tries * 3.3) * _FW_EV.length) | 0;
+    d = _FW_EV[k];
+    if (_fwRM && (d.n === 'lash' || d.n === 'dark')) continue;
+    if (d.n !== _fwEvLast) break;
+  }
+  if (_fwRM && (d.n === 'lash' || d.n === 'dark')) d = _FW_EV[1];   // bloom
+  _fwEvLast = d.n;
+  _fwEvNow = { name: d.n, d: d.d, t0: t, p: 0,
+               r0: _fwRnd(t * 17.7), r1: _fwRnd(t * 29.3), r2: _fwRnd(t * 41.9) };
+  return _fwEvNow;
+}
+function _fwEvReset() { _fwEvNow = null; _fwEvNext = 0; _fwEvLast = ''; _fwSat = 1; _fwDim = 0; }
+
+// ════════════════════════════════════════════════════════════════
+// THE PLACE
+// ════════════════════════════════════════════════════════════════
+
+// Everything behind the shaft, baked: the air, the path running back to the
+// light, the far tangle, the broken arch that balances it, and the haze bands
+// that put air between the depth layers.
+function _fwFarSheet(W, H, LX, LY) {
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  const GX = W * 0.700, GY = H * 0.640;          // where the shaft lands
+
+  // ── the air. It is brightest around the hole and falls away from it, so
+  //    the top right of the room is a grey you can see silhouettes against
+  //    and the bottom left is the dark you are standing in.
+  g.fillStyle = '#070a08'; g.fillRect(0, 0, W, H);
+  const air = g.createRadialGradient(LX, -H * 0.05, 0, LX, -H * 0.05, W * 0.92);
+  for (let i = 0; i <= 14; i++) {
+    const u = i / 14;
+    air.addColorStop(u, _FW_HAZE[_fwA(0.30 * Math.pow(1 - u, 2.5))]);
+  }
+  g.fillStyle = air; g.fillRect(0, 0, W, H);
+  // and a second, weaker pool of it thrown across the floor from where the
+  // shaft lands, which is what lets the arch on the left have a silhouette
+  const spill = g.createRadialGradient(GX - W * 0.14, GY - H * 0.05, 0, GX - W * 0.14, GY - H * 0.05, W * 0.60);
+  for (let i = 0; i <= 12; i++) {
+    const u = i / 12;
+    spill.addColorStop(u, _FW_HAZE[_fwA(0.13 * Math.pow(1 - u, 3.0))]);
+  }
+  g.fillStyle = spill; g.fillRect(0, 0, W, H);
+
+  // ── THE FAR TANGLE: the canopy the light has to come through. Rooted along
+  //    the top and the upper corners, hanging down, thinning before it reaches
+  //    the middle of the page where the panels live. A corridor is left open
+  //    around the shaft, because the shaft has to get through something.
+  for (let i = 0; i < 38; i++) {
+    const r0 = _fwRnd(i * 2.7);
+    let x0, y0, ang;
+    if (i % 5 === 0) { x0 = -W * 0.05; y0 = -H * 0.05 + _fwRnd(i * 3.1) * H * 0.45; ang = 0.35 + r0 * 0.8; }
+    else if (i % 5 === 1) { x0 = W * 1.05; y0 = -H * 0.05 + _fwRnd(i * 4.3) * H * 0.45; ang = Math.PI - 0.35 - r0 * 0.8; }
+    else { x0 = -W * 0.04 + _fwRnd(i * 5.9) * W * 1.08; y0 = -H * 0.06; ang = 1.5707963 + (r0 - 0.5) * 1.7; }
+    const corridor = Math.abs(x0 - LX) / W;
+    const len = H * (0.30 + _fwRnd(i * 6.1) * 0.46) * (corridor < 0.055 ? 0.35 : 1);
+    const steps = 24;
+    const p = _fwMakeVine(i * 1.7 + 4, x0, y0, ang, len, steps, (_fwRnd(i * 8.8) - 0.5) * 3.0);
+    const w = W * (0.0028 + _fwRnd(i * 9.9) * 0.0072);
+    _fwNorms(p, steps + 1);
+    g.fillStyle = _FW_FAR[_fwA(0.80)];
+    _fwRibbon(g, p, steps + 1, w, w * 0.25, true, i + 1);
+    _fwLitEdge(g, p, steps + 1, w, w * 0.25, LX, LY, _FW_LIT[_fwA(0.16)], 1);
+    // branches, because a comb is not a tangle
+    const nb = _fwRnd(i * 1.3) > 0.35 ? 2 : 1;
+    for (let b = 0; b < nb; b++) {
+      const k = 5 + ((_fwRnd(i * 3.3 + b * 7.1) * 14) | 0);
+      const a = Math.atan2(p[k * 2 + 3] - p[k * 2 + 1], p[k * 2 + 2] - p[k * 2]) + (_fwRnd(i * 5.5 + b) - 0.5) * 2.1;
+      const bp = _fwMakeVine(i * 13.1 + b * 41 + 300, p[k * 2], p[k * 2 + 1], a, len * 0.62, 16,
+        (_fwRnd(i * 7.7 + b) - 0.5) * 3.8);
+      const bw = W * (0.0018 + _fwRnd(i * 2.2 + b) * 0.0038);
+      _fwNorms(bp, 17);
+      g.fillStyle = _FW_FAR[_fwA(0.78)];
+      _fwRibbon(g, bp, 17, bw, bw * 0.25, true, i + 100 + b);
+      _fwLitEdge(g, bp, 17, bw, bw * 0.25, LX, LY, _FW_LIT[_fwA(0.14)], 1);
+    }
+  }
+  // air BETWEEN the layers: five ridges without it read as one ridge. Faded at
+  // BOTH ends, or the top of the band is a visible rule across the page, which
+  // is exactly what it was the first time.
+  for (let b = 0; b < 3; b++) {
+    const y = GY - H * (0.02 + b * 0.16);
+    const hz = g.createLinearGradient(0, y - H * 0.11, 0, y + H * 0.07);
+    hz.addColorStop(0, _FW_HAZE[0]);
+    hz.addColorStop(0.5, _FW_HAZE[_fwA(0.05 - b * 0.014)]);
+    hz.addColorStop(1, _FW_HAZE[0]);
+    g.fillStyle = hz; g.fillRect(0, y - H * 0.11, W, H * 0.18);
+  }
+
+  // ── THE LINE THROUGH THE PAGE: a worn path running back from the bottom
+  //    left to the foot of the shaft. Drawn BEFORE the arch, because the arch
+  //    stands on it: the other way round the path fills over the arch's legs
+  //    and the landmark reads as a hoop floating in the air.
+  //    Its edges are walked with noise rather than ruled, and its far end
+  //    dissolves into the haze instead of stopping at a horizontal rule.
+  const NP = 26;
+  const cxAt = (u) => GX + (W * 0.20 - GX) * Math.pow(u, 1.30);
+  const hwAt = (u) => W * (0.020 + 0.250 * Math.pow(u, 1.50));
+  const yAt = (u) => GY + (H * 1.08 - GY) * Math.pow(u, 1.30);
+  const pg = g.createLinearGradient(0, H, 0, GY);
+  pg.addColorStop(0, '#0a0d0a');
+  pg.addColorStop(0.40, '#161b16');
+  pg.addColorStop(0.78, '#3a4136');
+  pg.addColorStop(1, '#848b78');
+  g.fillStyle = pg;
+  g.beginPath();
+  for (let i = 0; i <= NP; i++) {
+    const u = i / NP;
+    const x = cxAt(u) - hwAt(u) * (1 + (_fwRnd(i * 4.1) - 0.5) * 0.24);
+    const y = yAt(u) + (_fwRnd(i * 7.3) - 0.5) * H * 0.012 * u;
+    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  for (let i = NP; i >= 0; i--) {
+    const u = i / NP;
+    g.lineTo(cxAt(u) + hwAt(u) * (1 + (_fwRnd(i * 9.7) - 0.5) * 0.24),
+             yAt(u) + (_fwRnd(i * 2.9) - 0.5) * H * 0.012 * u);
+  }
+  g.closePath();
+  g.fill();
+  // the worn middle of it, where the light catches, only in the far half
+  const wg = g.createLinearGradient(0, yAt(0.55), 0, GY);
+  wg.addColorStop(0, _FW_HAZE[0]);
+  wg.addColorStop(1, _FW_HAZE[_fwA(0.15)]);
+  g.fillStyle = wg;
+  g.beginPath();
+  for (let i = 0; i <= NP; i++) { const u = i / NP; g.lineTo(cxAt(u) - hwAt(u) * 0.42, yAt(u)); }
+  for (let i = NP; i >= 0; i--) { const u = i / NP; g.lineTo(cxAt(u) + hwAt(u) * 0.42, yAt(u)); }
+  g.closePath(); g.fill();
+  // cracks and stones, thinning with distance, each stone on its own shadow
+  g.lineCap = 'round';
+  for (let i = 0; i < 40; i++) {
+    const u = 0.10 + Math.pow(_fwRnd(i * 5.1), 1.3) * 0.90;
+    const x = cxAt(u) + (_fwRnd(i * 9.3) - 0.5) * hwAt(u) * 1.7;
+    const y = yAt(u);
+    const L = (4 + u * 62) * (0.4 + _fwRnd(i * 3.7));
+    const a = 1.35 + (_fwRnd(i * 2.3) - 0.5) * 1.8;
+    g.strokeStyle = _FW_BLACK[_fwA(0.16 + u * 0.34)];
+    g.lineWidth = 0.6 + u * 1.9;
+    g.beginPath(); g.moveTo(x, y);
+    g.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L * 0.30);
+    g.stroke();
+  }
+  for (let i = 0; i < 26; i++) {
+    const u = 0.05 + Math.pow(_fwRnd(i * 7.9 + 3), 1.6) * 0.95;
+    const x = cxAt(u) + (_fwRnd(i * 11.7) - 0.5) * hwAt(u) * 1.9;
+    const y = yAt(u);
+    const r = (1.1 + u * 8) * (0.5 + _fwRnd(i * 4.1));
+    g.fillStyle = _FW_BLACK[_fwA(0.45)];
+    g.beginPath(); g.ellipse(x, y + r * 0.55, r * 1.5, r * 0.45, 0, 0, 6.2831853); g.fill();
+    g.fillStyle = _FW_FAR[_fwA(0.7 + u * 0.2)];
+    g.beginPath(); g.ellipse(x, y, r, r * 0.72, 0, 0, 6.2831853); g.fill();
+    g.fillStyle = _FW_LIT[_fwA(0.30 * (1 - u * 0.7))];
+    g.beginPath(); g.ellipse(x + r * 0.16, y - r * 0.26, r * 0.58, r * 0.28, 0, 0, 6.2831853); g.fill();
+  }
+  // clumps of dead grass along both kerbs, so the edge of the path is a place
+  // where two things meet and not a line somebody drew
+  for (let i = 0; i < 58; i++) {
+    const u = 0.04 + Math.pow(_fwRnd(i * 3.3 + 11), 1.25) * 0.96;
+    const side = (i & 1) ? 1 : -1;
+    const x = cxAt(u) + side * hwAt(u) * (0.92 + _fwRnd(i * 5.7) * 0.20);
+    const y = yAt(u);
+    const hgt = (3 + u * 30) * (0.5 + _fwRnd(i * 8.1));
+    g.strokeStyle = _FW_BLACK[_fwA(0.5 + u * 0.4)];
+    g.lineWidth = Math.max(0.7, 0.5 + u * 1.5);
+    g.beginPath();
+    for (let k = 0; k < 4; k++) {
+      const a = -1.5707963 + (_fwRnd(i * 2.1 + k) - 0.5) * 1.5;
+      g.moveTo(x + (k - 1.5) * hgt * 0.16, y);
+      g.lineTo(x + (k - 1.5) * hgt * 0.16 + Math.cos(a) * hgt, y + Math.sin(a) * hgt);
+    }
+    g.stroke();
+  }
+  // the far end of it dissolves rather than stops. Faded at both ends.
+  const dis = g.createLinearGradient(0, GY - H * 0.14, 0, GY + H * 0.11);
+  dis.addColorStop(0, _FW_HAZE[0]);
+  dis.addColorStop(0.45, _FW_HAZE[_fwA(0.10)]);
+  dis.addColorStop(1, _FW_HAZE[0]);
+  g.fillStyle = dis; g.fillRect(0, GY - H * 0.14, W, H * 0.25);
+
+  // ── THE LANDMARK: a broken stone arch. One leg on the ground and the other
+  //    side snapped off in mid air, which is what makes it a ruin: two legs on
+  //    the floor is a horseshoe.
+  //    It stands in the RIGHT gutter, not on the left where it started, because
+  //    the GUI panels cover the left two thirds of this canvas and a landmark
+  //    nobody can see is not a landmark. Here it silhouettes against the shaft,
+  //    which is the brightest thing on the page, and the two of them balance
+  //    each other in the one band of the picture that is actually visible.
+  //    The whole thing is drawn mirrored, so its ONE lit edge ends up on the
+  //    side facing the light rather than on the side it was built for.
+  {
+    const AX = W * 0.862, AB = H * 0.760, AH = H * 0.290, AW = W * 0.140;
+    g.save();
+    g.translate(AX, 0); g.scale(-1, 1); g.translate(-AX, 0);
+    // Its own patch of air, wide and strong: a ruin reads as a SILHOUETTE
+    // against something brighter, and the hole reads because the same
+    // something shows through it. Lighting the inside of the hole instead
+    // turned the arch inside out and it looked like a lit headstone.
+    const halo = g.createRadialGradient(AX + AW * 0.05, AB - AH * 0.62, 0, AX + AW * 0.05, AB - AH * 0.62, AW * 2.4);
+    for (let i = 0; i <= 12; i++) {
+      const u = i / 12;
+      halo.addColorStop(u, _FW_HAZE[_fwA(0.20 * Math.pow(1 - u, 1.8))]);
+    }
+    g.fillStyle = halo; g.fillRect(AX - AW * 2.5, AB - AH * 2.6, AW * 5.0, AH * 3.4);
+
+    g.fillStyle = _FW_BLACK[_fwA(0.6)];
+    g.beginPath(); g.ellipse(AX - AW * 0.5, AB + 4, AW * 0.62, H * 0.020, 0, 0, 6.2831853); g.fill();
+    g.fillStyle = '#0b100d';
+    g.beginPath();
+    g.moveTo(AX - AW * 0.82, AB);                       // the standing leg
+    g.lineTo(AX - AW * 0.78, AB - AH * 0.56);
+    g.quadraticCurveTo(AX - AW * 0.70, AB - AH * 1.14, AX + AW * 0.10, AB - AH * 1.18);
+    g.quadraticCurveTo(AX + AW * 0.66, AB - AH * 1.13, AX + AW * 0.84, AB - AH * 0.84);
+    g.lineTo(AX + AW * 0.70, AB - AH * 0.80);           // and here it is broken
+    g.lineTo(AX + AW * 0.78, AB - AH * 0.72);
+    g.lineTo(AX + AW * 0.63, AB - AH * 0.68);
+    g.lineTo(AX + AW * 0.70, AB - AH * 0.60);
+    g.lineTo(AX + AW * 0.55, AB - AH * 0.62);
+    g.lineTo(AX + AW * 0.60, AB - AH * 0.55);
+    g.lineTo(AX + AW * 0.44, AB - AH * 0.60);
+    g.quadraticCurveTo(AX + AW * 0.42, AB - AH * 0.90, AX + AW * 0.10, AB - AH * 0.95);
+    g.quadraticCurveTo(AX - AW * 0.34, AB - AH * 0.92, AX - AW * 0.40, AB - AH * 0.54);
+    g.lineTo(AX - AW * 0.40, AB);
+    g.closePath();
+    g.fill();
+    // a thin cool rim where the light wraps the top of the standing leg
+    g.strokeStyle = _FW_LIT[_fwA(0.13)]; g.lineWidth = 1.2;
+    g.beginPath();
+    g.moveTo(AX - AW * 0.40, AB - AH * 0.54);
+    g.quadraticCurveTo(AX - AW * 0.34, AB - AH * 0.92, AX + AW * 0.10, AB - AH * 0.95);
+    g.stroke();
+    // ONE lit edge: the light is up to the right, so the outer right curve and
+    // the broken face take it and nothing else does.
+    g.strokeStyle = _FW_LIT[_fwA(0.42)]; g.lineWidth = 2.2; g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(AX - AW * 0.20, AB - AH * 1.175);
+    g.quadraticCurveTo(AX + AW * 0.66, AB - AH * 1.13, AX + AW * 0.84, AB - AH * 0.84);
+    g.stroke();
+    // the broken face is raw stone facing away from the light, so it gets a
+    // dim edge and not the bright one: a lit zigzag read as a paper arrow
+    g.strokeStyle = _FW_LIT[_fwA(0.14)]; g.lineWidth = 1.3;
+    g.beginPath();
+    g.moveTo(AX + AW * 0.84, AB - AH * 0.84);
+    g.lineTo(AX + AW * 0.70, AB - AH * 0.80);
+    g.lineTo(AX + AW * 0.78, AB - AH * 0.72);
+    g.lineTo(AX + AW * 0.63, AB - AH * 0.68);
+    g.lineTo(AX + AW * 0.70, AB - AH * 0.60);
+    g.lineTo(AX + AW * 0.55, AB - AH * 0.62);
+    g.lineTo(AX + AW * 0.60, AB - AH * 0.55);
+    g.stroke();
+    // coursing, going dark as the stone turns away from the light
+    g.strokeStyle = _FW_BLACK[_fwA(0.5)]; g.lineWidth = 1.3;
+    for (let k = 1; k < 5; k++) {
+      const yy = AB - AH * (0.10 + k * 0.105);
+      g.beginPath(); g.moveTo(AX - AW * 0.81, yy); g.lineTo(AX - AW * 0.41, yy); g.stroke();
+    }
+    // rubble at its foot, so it is standing in something
+    for (let i = 0; i < 14; i++) {
+      const x = AX + (_fwRnd(i * 6.1) - 0.62) * AW * 2.0;
+      const y = AB + (_fwRnd(i * 2.9) - 0.35) * H * 0.022;
+      const r = 3 + _fwRnd(i * 8.3) * 10;
+      g.fillStyle = _FW_BLACK[_fwA(0.88)];
+      g.beginPath(); g.ellipse(x, y, r, r * 0.6, _fwRnd(i) * 3, 0, 6.2831853); g.fill();
+      g.fillStyle = _FW_LIT[_fwA(0.18)];
+      g.beginPath(); g.ellipse(x + r * 0.22, y - r * 0.2, r * 0.52, r * 0.22, 0, 0, 6.2831853); g.fill();
+    }
+    g.restore();
+    // and the vines that are eating it, drawn unmirrored so their lit edges
+    // are computed against the real light like every other vine here
+    for (let i = 0; i < 8; i++) {
+      const p = _fwMakeVine(i * 13.7 + 61, AX - AW * 0.9 + _fwRnd(i * 3.1) * AW * 1.7, AB + 4,
+        -1.5707963 + (_fwRnd(i * 5.9) - 0.5) * 1.0, AH * (0.7 + _fwRnd(i * 2.7) * 0.8), 20,
+        (_fwRnd(i * 7.1) - 0.5) * 3.6);
+      _fwNorms(p, 21);
+      g.fillStyle = _FW_DARK[_fwA(0.96)];
+      _fwRibbon(g, p, 21, W * 0.0058, W * 0.0014, true, i + 40);
+      _fwLitEdge(g, p, 21, W * 0.0058, W * 0.0014, LX, LY, _FW_LIT[_fwA(0.26)], 1);
+    }
+  }
+  return cv;
+}
+
+// The shaft. A big soft gradient fill is 2 ms and a blit of the same pixels is
+// 0.11, so it is baked once and the breathing is done with globalAlpha.
+function _fwShaftSheet(W, H) {
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  const GX = W * 0.700, GY = H * 0.640, TX = W * 0.735;
+  g.globalCompositeOperation = 'lighter';
+  // Five nested wedges left five visible vertical steps across the beam.
+  // Fifty thin ones on a bell curve give the same shape with a cross section
+  // you cannot see the joins in. The vertical ramp keeps most of its value all
+  // the way down: fading it to nothing at the floor made the beam stop in mid
+  // air above its own pool.
+  const N = 25, T0 = W * 0.026, T1 = W * 0.150;
+  const wedge = (u, wid, a) => {
+    const lg = g.createLinearGradient(0, -H * 0.06, 0, GY + H * 0.05);
+    lg.addColorStop(0, _FW_HAZE[_fwA(a * 1.20)]);
+    lg.addColorStop(0.45, _FW_HAZE[_fwA(a * 0.92)]);
+    lg.addColorStop(0.88, _FW_HAZE[_fwA(a * 0.62)]);
+    lg.addColorStop(1, _FW_HAZE[_fwA(a * 0.30)]);
+    g.fillStyle = lg;
+    g.beginPath();
+    g.moveTo(TX + T0 * u - T0 * wid, -H * 0.06);
+    g.lineTo(TX + T0 * u + T0 * wid, -H * 0.06);
+    g.lineTo(GX + T1 * u + T1 * wid, GY + H * 0.04);
+    g.lineTo(GX + T1 * u - T1 * wid, GY + H * 0.04);
+    g.closePath();
+    g.fill();
+  };
+  for (let k = -N; k <= N; k++) {
+    const u = k / N;
+    wedge(u, 1.05 / N, 0.115 * Math.exp(-u * u * 1.9));
+  }
+  // and four brighter streaks inside it, because a shaft coming through a
+  // tangle is not smooth: the canopy is what makes the rays
+  for (let k = 0; k < 4; k++) {
+    const u = (_fwRnd(k * 9.1 + 3) - 0.5) * 1.5;
+    wedge(u, (0.5 + _fwRnd(k * 4.7) * 1.2) / N, 0.075 * Math.exp(-u * u * 1.4));
+  }
+  // the pool where it lands
+  const pool = g.createRadialGradient(GX, GY, 0, GX, GY, W * 0.19);
+  for (let i = 0; i <= 14; i++) {
+    const u = i / 14;
+    pool.addColorStop(u, _FW_HAZE[_fwA(0.40 * Math.pow(1 - u, 2.4))]);
+  }
+  g.fillStyle = pool;
+  g.save(); g.translate(GX, GY); g.scale(1, 0.38); g.translate(-GX, -GY);
+  g.fillRect(GX - W * 0.19, GY - W * 0.19, W * 0.38, W * 0.38);
+  g.restore();
+  return cv;
+}
+
+// The near bank: the foreground plane, flat black, so the page has a near, a
+// mid and a far instead of only the last two.
+function _fwNearSheet(W, H, LX, LY) {
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  for (let i = 0; i < 16; i++) {
+    const side = i % 4;
+    let x0, y0, ang;
+    if (side === 0) { x0 = -W * 0.04; y0 = H * (0.55 + _fwRnd(i * 2.2) * 0.55); ang = -0.5 + _fwRnd(i) * 0.9; }
+    else if (side === 1) { x0 = W * 1.04; y0 = H * (0.55 + _fwRnd(i * 3.3) * 0.55); ang = Math.PI + 0.5 - _fwRnd(i) * 0.9; }
+    else { x0 = _fwRnd(i * 4.4) * W; y0 = H * 1.05; ang = -1.5707963 + (_fwRnd(i * 5.5) - 0.5) * 1.5; }
+    const p = _fwMakeVine(i * 2.9 + 101, x0, y0, ang, W * (0.16 + _fwRnd(i * 6.6) * 0.30), 22,
+      (_fwRnd(i * 7.7) - 0.5) * 3.0);
+    _fwNorms(p, 23);
+    const w = W * (0.009 + _fwRnd(i * 8.8) * 0.014);
+    g.fillStyle = _FW_BLACK[_fwA(0.97)];
+    _fwRibbon(g, p, 23, w, w * 0.22, true, i + 70);
+    _fwLitEdge(g, p, 23, w, w * 0.22, LX, LY, _FW_LIT[_fwA(0.10)], 1.2);
+  }
+  // a couple of enormous near leaves crossing the bottom corners: most of them
+  // small and a few huge, never an even spread
+  g.fillStyle = _FW_BLACK[_fwA(0.95)];
+  g.beginPath();
+  _fwLeaf(g, -W * 0.02, H * 1.02, -0.62, W * 0.24, W * 0.055);
+  _fwLeaf(g, W * 0.06, H * 1.04, -1.05, W * 0.19, W * 0.042);
+  _fwLeaf(g, W * 1.02, H * 1.02, Math.PI + 0.66, W * 0.26, W * 0.06);
+  g.fill();
+  // vignette: the frame is dark because the light is at the far end
+  const vg = g.createRadialGradient(W * 0.66, H * 0.5, 0, W * 0.66, H * 0.5, Math.hypot(W, H) * 0.62);
+  for (let i = 0; i <= 12; i++) {
+    const u = i / 12;
+    vg.addColorStop(u, 'rgba(3,5,4,' + (0.93 * Math.pow(u, 2.0)).toFixed(3) + ')');
+  }
+  g.fillStyle = vg; g.fillRect(0, 0, W, H);
+  return cv;
+}
+
+function _drawFloweyPattern(canvas, ctx, W, H, t) {
+  const fresh = _drawFloweyPattern._lt === undefined;
+  if (!fresh && t - _drawFloweyPattern._lt >= 0 && t - _drawFloweyPattern._lt < 0.033) return;
+  const dt = fresh ? 0.016 : Math.min(Math.abs(t - _drawFloweyPattern._lt), 0.05);
+  _drawFloweyPattern._lt = t;
+  if (!(W > 0 && H > 0)) return;
+
+  // The one light, named: the hole is above the top of the frame and to the
+  // right, and every lit edge below takes its sign from this point.
+  const LX = W * 0.735, LY = -H * 0.30;
+  const GX = W * 0.700, GY = H * 0.640;
+
+  const ev = _fwEvTick(t);
+  const P = _drawFloweyPattern;
+  if (P._w !== W || P._h !== H) {
+    P._far = _fwFarSheet(W, H, LX, LY);
+    P._shaft = _fwShaftSheet(W, H);
+    P._near = _fwNearSheet(W, H, LX, LY);
+    P._vines = null; P._flowers = null;
+    P._w = W; P._h = H;
+  }
+
+  // ── the palette events, which every layer downstream reads ──
+  if (ev && ev.name === 'wilt') {
+    const q = ev.p;
+    _fwSat = q < 0.30 ? 1 - q / 0.30 : q < 0.55 ? 0 : (q - 0.55) / 0.45;
+  } else _fwSat += (1 - _fwSat) * Math.min(1, dt * 4);
+  if (ev && ev.name === 'dark') {
+    const q = ev.p;
+    _fwDim = q < 0.22 ? q / 0.22 : q < 0.62 ? 1 : 1 - (q - 0.62) / 0.38;
+  } else _fwDim += (0 - _fwDim) * Math.min(1, dt * 5);
+
+  // ── the mid vines, the ones that are still moving ──
+  if (!P._vines) {
+    const vs = [];
+    for (let i = 0; i < 11; i++) {
+      const side = i % 3;
+      let x0, y0, ang;
+      if (side === 0) { x0 = -W * 0.03; y0 = H * (0.28 + _fwRnd(i * 3.1) * 0.66); ang = -0.55 + _fwRnd(i * 2.2) * 1.0; }
+      else if (side === 1) { x0 = W * 1.03; y0 = H * (0.24 + _fwRnd(i * 4.2) * 0.70); ang = Math.PI + 0.55 - _fwRnd(i * 5.1) * 1.0; }
+      else { x0 = W * (0.05 + _fwRnd(i * 6.3) * 0.9); y0 = H * 1.03; ang = -1.5707963 + (_fwRnd(i * 7.4) - 0.5) * 1.3; }
+      const len = W * (0.16 + _fwRnd(i * 8.5) * 0.26);
+      const steps = 24;
+      const p = _fwMakeVine(i * 5.7 + 211, x0, y0, ang, len, steps, (_fwRnd(i * 9.6) - 0.5) * 3.2);
+      const dx = p[steps * 2] - x0, dy = p[steps * 2 + 1] - y0;
+      const m = Math.hypot(dx, dy) || 1;
+      vs.push({ p, n: steps + 1, w: W * (0.005 + _fwRnd(i * 2.7) * 0.010),
+                amp: W * (0.010 + _fwRnd(i * 3.9) * 0.020), sp: 0.35 + _fwRnd(i * 4.8) * 0.5,
+                ph: _fwRnd(i * 5.4) * 6.283, sx: -dy / m, sy: dx / m,
+                out: new Float32Array((steps + 1) * 2) });
+    }
+    P._vines = vs;
+    // the flowers ride on the vines, so they are placed once with them
+    // Flowers spaced ALONG each vine rather than rolled at random: two random
+    // positions on a short vine land on top of each other and read as a bunch
+    // of berries, which is what happened the first time.
+    const fl = [];
+    for (let i = 0; i < vs.length; i++) {
+      const nfl = 1 + ((_fwRnd(i * 11.3) * 2.4) | 0);
+      for (let k = 0; k < nfl; k++) {
+        fl.push({ v: i, at: 0.38 + (k + _fwRnd(i * 3.3 + k * 7.1) * 0.7) / nfl * 0.60,
+                  r: W * (0.007 + Math.pow(_fwRnd(i * 5.5 + k), 2.0) * 0.017),
+                  ph: _fwRnd(i * 7.7 + k * 2.2) * 6.283 });
+      }
+    }
+    P._flowers = fl;
+  }
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(P._far, 0, 0);
+
+  _fwEvBack(ctx, ev, W, H, LX, LY, GX, GY, t);
+
+  // the shaft, breathing, and the dust that is only visible inside it
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = (0.72 + Math.sin(t * 0.45) * 0.11) * (1 - _fwDim * 0.94);
+  ctx.drawImage(P._shaft, 0, 0);
+  ctx.globalAlpha = 1;
+  if (_fwDim < 0.8) {
+    ctx.beginPath();
+    for (let i = 0; i < 46; i++) {
+      const ph = _fwRnd(i * 2.3) * 6.283;
+      const yy = ((_fwRnd(i * 3.7) * H + t * (5 + _fwRnd(i * 4.9) * 13)) % (GY + H * 0.1)) - H * 0.04;
+      const u = Math.max(0, yy / GY);
+      const sp = W * (0.020 + 0.088 * u);
+      const xx = GX + (0.735 - 0.700) * W * (1 - u) + Math.sin(t * 0.5 + ph) * sp * 0.9
+                 + (_fwRnd(i * 5.1) - 0.5) * sp * 1.3;
+      const r = (0.7 + _fwRnd(i * 6.2) * 1.5) * (0.5 + u);
+      ctx.moveTo(xx + r, yy); ctx.arc(xx, yy, r, 0, 6.2831853);
+    }
+    ctx.fillStyle = _FW_HAZE[_fwA((0.22 + Math.sin(t * 1.7) * 0.05) * (1 - _fwDim))];
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // ── the vines, swaying, each with its one lit edge ──
+  const closeK = ev && ev.name === 'close' ? Math.sin(Math.PI * Math.min(1, ev.p / 0.86)) : 0;
+  for (let i = 0; i < P._vines.length; i++) {
+    const v = P._vines[i];
+    _fwSway(v, t, v.out, closeK * 0.32, W * 0.62, H * 0.46);
+    _fwNorms(v.out, v.n);
+    ctx.fillStyle = _FW_DARK[_fwA(0.94)];
+    _fwRibbon(ctx, v.out, v.n, v.w, v.w * 0.22, true, i + 5);
+    _fwLitEdge(ctx, v.out, v.n, v.w, v.w * 0.22, LX, LY, _FW_LIT[_fwA(0.26 * (1 - _fwDim * 0.85))], 1.3);
+  }
+
+  // ── the leaves, one path, one fill ──
+  ctx.beginPath();
+  for (let i = 0; i < P._vines.length; i++) {
+    const v = P._vines[i];
+    _fwNorms(v.out, v.n);            // the scratch holds the LAST vine, not this one
+    for (let k = 2; k < v.n - 2; k += 4) {
+      const s = (k & 3) ? 1 : -1;
+      const x = v.out[k * 2], y = v.out[k * 2 + 1];
+      const a = Math.atan2(_fwNY[k], _fwNX[k]) * s + Math.sin(t * 0.8 + i + k) * 0.16;
+      _fwLeaf(ctx, x, y, a, v.w * (2.6 + _fwRnd(i * 3.1 + k) * 2.2), v.w * 0.9);
+    }
+  }
+  ctx.fillStyle = _FW_LEAF[_fwA(0.9)];
+  ctx.fill();
+
+  // ── the flowers: petals in one path, centres in a second, pupils in a third.
+  //    They turn to look at you, and the bloom event opens them in a wave
+  //    travelling out from the light.
+  const bloom = ev && ev.name === 'bloom' ? ev.p : -1;
+  _bgRect(canvas);                   // the two canvases do not share coordinates
+  const [mx, my] = _bgAt(canvas, W, H, _fwMX, _fwMY);
+  ctx.beginPath();
+  const fls = P._flowers;
+  for (let i = 0; i < fls.length; i++) {
+    const f = fls[i];
+    const v = P._vines[f.v];
+    const k = Math.min(v.n - 1, (f.at * (v.n - 1)) | 0);
+    f._x = v.out[k * 2]; f._y = v.out[k * 2 + 1];
+    let open = 0.72 + Math.sin(t * 0.9 + f.ph) * 0.13;
+    if (bloom >= 0) {
+      const d = Math.hypot(f._x - GX, f._y - GY) / Math.hypot(W, H);
+      const w = bloom * 1.5 - d;
+      if (w > 0 && w < 0.55) open = 0.72 + Math.sin((w / 0.55) * Math.PI) * 0.62;
+      else if (w >= 0.55) open = 0.72;
+    }
+    f._o = open;
+    _fwPetals(ctx, f._x, f._y, f.r, open, t * 0.22 + f.ph);
+  }
+  ctx.fillStyle = _fwGold(0.82 * (1 - _fwDim * 0.72));
+  ctx.fill();
+  ctx.beginPath();
+  for (let i = 0; i < fls.length; i++) _fwDisc(ctx, fls[i]._x, fls[i]._y, fls[i].r * 0.46);
+  ctx.fillStyle = _FW_ROT[_fwA(0.9)];
+  ctx.fill();
+  ctx.beginPath();
+  for (let i = 0; i < fls.length; i++) {
+    const f = fls[i];
+    const dx = mx - f._x, dy = my - f._y, m = Math.hypot(dx, dy) || 1;
+    const g = Math.min(f.r * 0.20, m * 0.5);
+    _fwDisc(ctx, f._x + dx / m * g, f._y + dy / m * g, f.r * 0.18);
+  }
+  ctx.fillStyle = _FW_BLACK[_fwA(0.95)];
+  ctx.fill();
+
+  ctx.drawImage(P._near, 0, 0);
+
+  _fwEvFront(ctx, ev, W, H, LX, LY, GX, GY, t);
+
+  if (_fwDim > 0.005) {
+    ctx.fillStyle = 'rgba(2,4,3,' + (_fwDim * 0.66).toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+// Events drawn BEHIND the near bank: they belong to the place, not to the glass.
+function _fwEvBack(ctx, ev, W, H, LX, LY, GX, GY, t) {
+  if (!ev) return;
+
+  // ── FACE. The character, as architecture. The tangle around the shaft
+  //    stops being a tangle for two seconds: two flower eyes flanking the
+  //    light and a grin under it, drawn out of the same material, then gone.
+  if (ev.name === 'face') {
+    const q = ev.p;
+    const a = q < 0.22 ? q / 0.22 : q > 0.74 ? 1 - (q - 0.74) / 0.26 : 1;
+    if (a <= 0.01) return;
+    const S = W * 0.40;
+    const CX = GX, CY = GY - S * 0.36;
+    ctx.save();
+    // Two pale fields with a dark hole in each: an eye is that and nothing
+    // else. A dark socket ring under them made three concentric circles and
+    // the whole face read as a pair of archery targets.
+    ctx.fillStyle = _FW_LIT[_fwA(a * 0.52)];
+    ctx.beginPath();
+    ctx.ellipse(CX - S * 0.40, CY - S * 0.10, S * 0.155, S * 0.185, -0.16, 0, 6.2831853);
+    ctx.ellipse(CX + S * 0.40, CY - S * 0.10, S * 0.155, S * 0.185, 0.16, 0, 6.2831853);
+    ctx.fill();
+    ctx.fillStyle = _FW_BLACK[_fwA(a * 0.97)];
+    ctx.beginPath();
+    const jx = (ev.r0 - 0.5) * S * 0.07, jy = (ev.r1 - 0.5) * S * 0.06;
+    ctx.ellipse(CX - S * 0.40 + jx, CY - S * 0.10 + jy, S * 0.070, S * 0.092, 0, 0, 6.2831853);
+    ctx.ellipse(CX + S * 0.40 + jx, CY - S * 0.10 + jy, S * 0.070, S * 0.092, 0, 0, 6.2831853);
+    ctx.fill();
+    // the grin: a wide arc of teeth, which is the only straight-edged thing
+    // anywhere on this page and reads instantly because of it
+    const GW = S * 0.96, GY2 = CY + S * 0.34, GH = S * 0.24;
+    ctx.fillStyle = _FW_BLACK[_fwA(a * 0.92)];
+    ctx.beginPath();
+    ctx.moveTo(CX - GW * 0.5, GY2 - GH * 0.30);
+    ctx.quadraticCurveTo(CX, GY2 + GH * 0.95, CX + GW * 0.5, GY2 - GH * 0.30);
+    ctx.quadraticCurveTo(CX, GY2 + GH * 0.30, CX - GW * 0.5, GY2 - GH * 0.30);
+    ctx.fill();
+    ctx.fillStyle = _FW_HAZE[_fwA(a * 0.55)];
+    ctx.beginPath();
+    const teeth = 9;
+    for (let i = 0; i < teeth; i++) {
+      const u0 = i / teeth, u1 = (i + 1) / teeth;
+      const bx0 = CX - GW * 0.5 + GW * u0, bx1 = CX - GW * 0.5 + GW * u1;
+      const by0 = GY2 - GH * 0.30 + Math.sin(u0 * Math.PI) * GH * 0.32;
+      const by1 = GY2 - GH * 0.30 + Math.sin(u1 * Math.PI) * GH * 0.32;
+      const tipY = GY2 - GH * 0.30 + Math.sin((u0 + u1) * 0.5 * Math.PI) * GH * 0.72;
+      ctx.moveTo(bx0, by0); ctx.lineTo(bx1, by1); ctx.lineTo((bx0 + bx1) * 0.5, tipY);
+      ctx.closePath();
+    }
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ── DARK. Something passes over the hole. Drawn behind so the near bank
+  //    stays black through it and the page loses its depth for a moment.
+  if (ev.name === 'dark') {
+    const q = ev.p;
+    const x = -W * 0.4 + q * W * 1.9;
+    ctx.save();
+    ctx.fillStyle = _FW_BLACK[_fwA(0.85)];
+    ctx.beginPath();
+    ctx.ellipse(x, -H * 0.02, W * 0.34, H * 0.20, 0.2, 0, 6.2831853);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// Events drawn IN FRONT of the near bank: things that cross the glass.
+function _fwEvFront(ctx, ev, W, H, LX, LY, GX, GY, t) {
+  if (!ev) return;
+
+  // ── LASH. One vine comes in from an edge, crosses the whole page and is
+  //    gone. It is the only thing here that is ever in a hurry.
+  if (ev.name === 'lash') {
+    const q = ev.p;
+    const a = q < 0.16 ? q / 0.16 : 1 - Math.max(0, (q - 0.55) / 0.45);
+    if (a <= 0.01) return;
+    const F = _fwEvFront;
+    if (F._lashFor !== ev.t0) {
+      F._lashFor = ev.t0;
+      const fromTop = ev.r0 > 0.5;
+      const x0 = fromTop ? W * (0.05 + ev.r1 * 0.9) : (ev.r1 > 0.5 ? -W * 0.05 : W * 1.05);
+      const y0 = fromTop ? -H * 0.05 : H * (0.15 + ev.r2 * 0.7);
+      const ang = Math.atan2(H * 0.5 - y0, W * 0.5 - x0) + (ev.r2 - 0.5) * 0.8;
+      F._lash = _fwMakeVine(ev.t0 * 3.3, x0, y0, ang, Math.hypot(W, H) * 1.15, 30, (ev.r0 - 0.5) * 6.5);
+      F._lashOut = new Float32Array(62);
+      F._lashV = { p: F._lash, n: 31, amp: W * 0.085, sp: 9.5, ph: 0, sx: 0, sy: 0, out: F._lashOut };
+      const dx = F._lash[60] - F._lash[0], dy = F._lash[61] - F._lash[1], m = Math.hypot(dx, dy) || 1;
+      F._lashV.sx = -dy / m; F._lashV.sy = dx / m;
+    }
+    const v = F._lashV;
+    v.amp = W * 0.085 * (1 - q * 0.7);
+    _fwSway(v, t, v.out, 0, 0, 0);
+    // it arrives tip first: only the part that has "come through" is drawn
+    const grow = Math.min(1, q / 0.34), shrink = Math.max(0, (q - 0.58) / 0.42);
+    const i0 = (shrink * (v.n - 1)) | 0, i1 = Math.max(i0 + 2, (grow * (v.n - 1)) | 0);
+    for (let i = i0; i <= i1; i++) { _fwSeg[(i - i0) * 2] = v.out[i * 2]; _fwSeg[(i - i0) * 2 + 1] = v.out[i * 2 + 1]; }
+    const n = i1 - i0 + 1;
+    _fwNorms(_fwSeg, n);
+    const w = W * 0.026;
+    ctx.fillStyle = _FW_BLACK[_fwA(a * 0.99)];
+    _fwRibbon(ctx, _fwSeg, n, w, w * 0.15, true, 3);
+    _fwLitEdge(ctx, _fwSeg, n, w, w * 0.15, LX, LY, _FW_LIT[_fwA(a * 0.42)], 1.6);
+  }
+
+  // ── PELLETS. A ring of white forms around the light and comes at you. The
+  //    only pure white on the page and the only thing that moves in a
+  //    straight line, so it does not look like anything else here.
+  if (ev.name === 'pellets') {
+    const q = ev.p;
+    const N = 9;
+    const form = Math.min(1, q / 0.30);
+    const fly = Math.max(0, (q - 0.42) / 0.58);
+    const a = q > 0.94 ? (1 - q) / 0.06 : 1;
+    const R = W * (0.045 + fly * 0.9);
+    ctx.save();
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const ang = (i / N) * 6.2831853 + ev.r0 * 6.283 + fly * 0.9;
+      const r = 3 + form * (W * 0.0085) + fly * W * 0.006;
+      _fwDisc(ctx, GX + Math.cos(ang) * R * form, GY + Math.sin(ang) * R * form * 0.8, r);
+    }
+    ctx.fillStyle = _FW_WHITE[_fwA(a * (0.35 + form * 0.6))];
+    ctx.fill();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const ang = (i / N) * 6.2831853 + ev.r0 * 6.283 + fly * 0.9;
+      _fwDisc(ctx, GX + Math.cos(ang) * R * form, GY + Math.sin(ang) * R * form * 0.8, 9 + fly * 14);
+    }
+    ctx.fillStyle = _FW_WHITE[_fwA(a * 0.10)];
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// THE FRAME
+//
+// Vines rooted in all four edges of the WINDOW, not of the card, so
+// the garden is growing over the whole application. Heaviest in the
+// corners and along the bottom, thin along the top, because the
+// header and the panels are what the page is actually for and the
+// manual is right that the chaos belongs in the gutters.
+//
+// The static mass is baked into one sheet and blitted. What is
+// alive on top of it: twelve tips that sway and REACH when the
+// cursor comes near, and snap back off you when you click; leaves;
+// flowers that open as you approach and whose pupils follow you
+// round the room; and the petals they drop. The frame is IN the
+// events with the garden rather than watching them: it thickens
+// inward on `close`, greys on `wilt`, and goes dark when something
+// passes over the hole.
+// ════════════════════════════════════════════════════════════════
+let _fwMX = (typeof window !== 'undefined' ? window.innerWidth * 0.5 : 0);
+let _fwMY = (typeof window !== 'undefined' ? window.innerHeight * 0.5 : 0);
+let _fwPrevMX = _fwMX, _fwPrevMY = _fwMY;
+let _fwStemX = null, _fwStemY = null;         // the stem lagging behind the head
+let _fwPetalsList = [];
+let _fwFlinch = 0;
+let _fwRecoil = 0;            // the frame flinching back from a click
+let _fwOverlayRaf = null;
+function _fwMouseMove(e) { _fwMX = e.clientX; _fwMY = e.clientY; }
+function _fwMouseDown() { _fwFlinch = 1; _fwRecoil = 1; }
+
+// Where the hole is, in WINDOW coordinates: the same shaft the background is
+// lit by, so a vine on the left edge of the screen and a vine in the picture
+// agree about where the light is. Read through the layout cache, never raw.
+function _fwLightAt(W, H) {
+  const pc = _fwLightAt._pc && _fwLightAt._pc.isConnected
+    ? _fwLightAt._pc : (_fwLightAt._pc = document.getElementById('pattern-canvas'));
+  if (pc) {
+    const r = _lyRect(pc);
+    if (r.width > 0 && r.height > 0) {
+      return [r.left + r.width * 0.735, r.top - r.height * 0.30,
+              r.left + r.width * 0.700, r.top + r.height * 0.665];
+    }
+  }
+  return [W * 0.74, -H * 0.25, W * 0.70, H * 0.55];
+}
+
+// Roots spaced around the perimeter, weighted to the corners. `depth` is how
+// far in this one is allowed to reach: the top gets the shortest ones.
+function _fwFrameRoots(W, H) {
+  const R = [];
+  const M = Math.min(W, H);
+  const push = (x, y, ang, depth, i) => R.push({ x, y, ang, depth, i });
+  for (let i = 0; i < 16; i++) {             // bottom, the heaviest edge
+    const u = (i + 0.5) / 16;
+    const corner = Math.max(0, 1 - Math.min(u, 1 - u) * 3.4);
+    push(W * u, H + M * 0.02, -1.5707963 + (_fwRnd(i * 3.1) - 0.5) * 1.4, (0.15 + corner * 0.21) * M, i);
+  }
+  for (let i = 0; i < 12; i++) {             // left
+    const u = (i + 0.5) / 12;
+    const corner = Math.max(0, (u - 0.35) / 0.65);
+    push(-M * 0.02, H * u, (_fwRnd(i * 5.7) - 0.5) * 1.5, (0.11 + corner * 0.21) * M, i + 20);
+  }
+  for (let i = 0; i < 12; i++) {             // right
+    const u = (i + 0.5) / 12;
+    const corner = Math.max(0, (u - 0.35) / 0.65);
+    push(W + M * 0.02, H * u, Math.PI + (_fwRnd(i * 7.3) - 0.5) * 1.5, (0.11 + corner * 0.21) * M, i + 40);
+  }
+  for (let i = 0; i < 11; i++) {             // top, kept short: the header lives here
+    const u = (i + 0.5) / 11;
+    const corner = Math.max(0, 1 - Math.min(u, 1 - u) * 3.0);
+    push(W * u, -M * 0.02, 1.5707963 + (_fwRnd(i * 9.1) - 0.5) * 1.3, (0.050 + corner * 0.17) * M, i + 60);
+  }
+  return R;
+}
+
+function _fwFrameSheet(W, H, LX, LY) {
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  const M = Math.min(W, H);
+  const roots = _fwFrameRoots(W, H);
+  for (const r of roots) {
+    const steps = 22;
+    const p = _fwMakeVine(r.i * 4.3 + 7, r.x, r.y, r.ang, r.depth * (1.5 + _fwRnd(r.i * 2.2) * 0.7),
+      steps, (_fwRnd(r.i * 6.1) - 0.5) * 3.6);
+    _fwNorms(p, steps + 1);
+    const w = M * (0.010 + _fwRnd(r.i * 8.9) * 0.016);
+    g.fillStyle = _FW_DARK[_fwA(0.97)];
+    _fwRibbon(g, p, steps + 1, w, w * 0.20, true, r.i + 11);
+    _fwLitEdge(g, p, steps + 1, w, w * 0.20, LX, LY, _FW_LIT[_fwA(0.34)], 1.6);
+    _fwLitEdge(g, p, steps + 1, w * 0.45, w * 0.09, LX, LY, _FW_LIT[_fwA(0.10)], 1.2);
+    // one branch off most of them, so the mass is a tangle and not a comb
+    if (_fwRnd(r.i * 1.9) > 0.45) {
+      const k = 6 + ((_fwRnd(r.i * 3.7) * 8) | 0);
+      const b = _fwMakeVine(r.i * 11.3 + 71, p[k * 2], p[k * 2 + 1],
+        Math.atan2(p[k * 2 + 3] - p[k * 2 + 1], p[k * 2 + 2] - p[k * 2]) + (_fwRnd(r.i * 5.3) - 0.5) * 1.9,
+        r.depth * 0.85, 16, (_fwRnd(r.i * 7.9) - 0.5) * 4.0);
+      _fwNorms(b, 17);
+      g.fillStyle = _FW_DARK[_fwA(0.95)];
+      _fwRibbon(g, b, 17, w * 0.55, w * 0.14, true, r.i + 31);
+      _fwLitEdge(g, b, 17, w * 0.55, w * 0.14, LX, LY, _FW_LIT[_fwA(0.26)], 1.2);
+    }
+  }
+  return cv;
+}
+
+/* ── the torn flower ──────────────────────────────────────────────
+   The cursor. Six petals, of which one is gone, one has been torn
+   through and one is bent the wrong way; a stem that lags behind
+   the head like something being dragged; a pupil that looks where
+   you are going. It is the only flower in the world with no gold
+   left in it, which is the whole idea, so it is drawn in white,
+   grey and black and nothing else.
+   A hard black outline all the way round is wrong for a plant in a
+   scene and right for a cursor, which has to read on a white panel
+   and on a black vine in the same second. ── */
+const _FW_PET_N = 6;
+// One petal: a teardrop from just outside the middle to a rounded tip. Whole,
+// torn short with a chewed end, or hanging half off its own stem.
+function _fwPetalPath(ctx, x, y, a, L, Wd, torn) {
+  const cx = Math.cos(a), cy = Math.sin(a);
+  const nx = -cy, ny = cx;
+  const r0 = L * 0.26;
+  const tip = torn ? L * 0.62 : L;
+  ctx.moveTo(x + cx * r0, y + cy * r0);
+  ctx.quadraticCurveTo(x + cx * L * 0.52 + nx * Wd, y + cy * L * 0.52 + ny * Wd,
+                       x + cx * tip + nx * Wd * (torn ? 0.75 : 0.16),
+                       y + cy * tip + ny * Wd * (torn ? 0.75 : 0.16));
+  if (torn) {
+    // chewed off rather than cut: four notches across the end
+    for (let k = 0; k < 4; k++) {
+      const u = 0.75 - k * 0.42;
+      const back = tip * (k & 1 ? 0.80 : 0.94);
+      ctx.lineTo(x + cx * back + nx * Wd * u, y + cy * back + ny * Wd * u);
+      ctx.lineTo(x + cx * tip * 0.99 + nx * Wd * (u - 0.30), y + cy * tip * 0.99 + ny * Wd * (u - 0.30));
+    }
+  }
+  ctx.quadraticCurveTo(x + cx * L * 0.52 - nx * Wd, y + cy * L * 0.52 - ny * Wd,
+                       x + cx * r0, y + cy * r0);
+  ctx.closePath();
+}
+
+function _fwDrawCursor(ctx, x, y, t, vx, vy) {
+  const R = 15;
+  const bob = Math.sin(t * 2.3) * 0.7;
+  const spd = Math.hypot(vx, vy);
+  const look = spd > 6 ? Math.atan2(vy, vx) : (_fwDrawCursor._la || 0.9);
+  _fwDrawCursor._la = look;
+  const shut = _fwFlinch;
+  const hx = x, hy = y + bob;
+
+  // the stem, dragged behind, because a picked flower does not lead with its
+  // root: the head goes where you go and the rest of it catches up
+  ctx.beginPath();
+  ctx.moveTo(_fwStemX[0], _fwStemY[0]);
+  for (let i = 1; i < _fwStemX.length; i++) ctx.lineTo(_fwStemX[i], _fwStemY[i]);
+  ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 5.0; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.strokeStyle = '#9a9a9a'; ctx.lineWidth = 2.2;
+  ctx.stroke();
+  {
+    const i = 3;
+    const ax = _fwStemX[i], ay = _fwStemY[i];
+    const a = Math.atan2(_fwStemY[i] - _fwStemY[i - 1], _fwStemX[i] - _fwStemX[i - 1]);
+    ctx.beginPath();
+    _fwLeaf(ctx, ax, ay, a + 1.20, 12, 4.0);
+    _fwLeaf(ctx, ax, ay, a - 1.30, 7.5, 2.4);
+    ctx.fillStyle = '#c4c4c4'; ctx.fill();
+    ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.rotate(Math.sin(t * 1.4) * 0.06 - shut * 0.22);
+  const L = R * (1 - shut * 0.22);
+
+  // the petal that is hanging off, drawn UNDER the others so its broken root
+  // disappears behind the middle
+  ctx.beginPath();
+  _fwPetalPath(ctx, Math.cos(2.62) * R * 0.30, Math.sin(2.62) * R * 0.30 + R * 0.20,
+               2.62 + 0.62, L * 0.86, R * 0.30, false);
+  ctx.fillStyle = '#c6c6c6'; ctx.fill();
+  ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.7; ctx.lineJoin = 'round'; ctx.stroke();
+
+  // and the petals still attached. Slot 1 is simply not there.
+  ctx.beginPath();
+  for (let k = 0; k < _FW_PET_N; k++) {
+    if (k === 1 || k === 4) continue;
+    const a = k * 1.0471976 - 1.5707963;
+    _fwPetalPath(ctx, 0, 0, a, L, R * 0.31, k === 3);
+  }
+  ctx.fillStyle = '#ededed'; ctx.fill();
+  ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.7; ctx.stroke();
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = 'rgba(110,110,110,0.5)';
+  ctx.beginPath(); ctx.ellipse(0, R * 0.75, R * 1.7, R * 0.95, 0, 0, 6.2831853); ctx.fill();
+  ctx.restore();
+
+  // the middle, and the pupil, which looks where you are going
+  ctx.beginPath(); ctx.arc(0, 0, R * 0.33, 0, 6.2831853);
+  ctx.fillStyle = '#a8a8a8'; ctx.fill();
+  ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.6; ctx.stroke();
+  const px = Math.cos(look) * R * 0.11, py = Math.sin(look) * R * 0.11;
+  ctx.beginPath();
+  ctx.arc(px, py, R * (0.17 - shut * 0.09), 0, 6.2831853);
+  ctx.fillStyle = '#0a0a0a'; ctx.fill();
+  ctx.beginPath();
+  ctx.arc(px - R * 0.05, py - R * 0.06, R * 0.045, 0, 6.2831853);
+  ctx.fillStyle = '#f4f4f4'; ctx.fill();
+  ctx.restore();
+}
+
+function _drawFloweyOverlay(canvas, ctx, W, H, t) {
+  const fresh = _drawFloweyOverlay._lt === undefined;
+  if (!fresh && t - _drawFloweyOverlay._lt >= 0 && t - _drawFloweyOverlay._lt < 0.014) return;
+  const dt = fresh ? 0.016 : Math.min(Math.abs(t - _drawFloweyOverlay._lt), 0.05);
+  _drawFloweyOverlay._lt = t;
+  if (!(W > 0 && H > 0)) return;
+  ctx.clearRect(0, 0, W, H);
+
+  const O = _drawFloweyOverlay;
+  const M = Math.min(W, H);
+  const [LX, LY, GX, GY] = _fwLightAt(W, H);
+  const ev = _fwEvNow;
+  _fwFlinch = Math.max(0, _fwFlinch - dt * 3.4);
+  _fwRecoil = Math.max(0, _fwRecoil - dt * 1.5);
+
+  if (O._w !== W || O._h !== H) {
+    O._sheet = _fwFrameSheet(W, H, LX, LY);
+    O._reach = null; O._fl = null;
+    O._w = W; O._h = H;
+  }
+  if (!O._reach) {
+    // twelve tips spread right round the frame. They get their OWN seeds, so
+    // each is a second vine out of a root the baked mass already has rather
+    // than a live copy of a baked one drifting off it.
+    const roots = _fwFrameRoots(W, H);
+    const pick = [1, 4, 6, 9, 11, 14, 17, 20, 23, 27, 31, 35];
+    const rs = [];
+    for (let j = 0; j < pick.length; j++) {
+      const r = roots[pick[j] % roots.length];
+      const steps = 20;
+      const p = _fwMakeVine(r.i * 4.3 + 907, r.x, r.y, r.ang + (_fwRnd(r.i * 1.3) - 0.5) * 0.5,
+        r.depth * 1.75, steps, (_fwRnd(r.i * 6.1) - 0.5) * 3.2);
+      const dx = p[steps * 2] - r.x, dy = p[steps * 2 + 1] - r.y, m = Math.hypot(dx, dy) || 1;
+      rs.push({ p, n: steps + 1, w: M * (0.008 + _fwRnd(r.i * 8.9) * 0.011),
+                amp: M * (0.010 + _fwRnd(r.i * 2.4) * 0.016), sp: 0.4 + _fwRnd(r.i * 3.6) * 0.55,
+                ph: _fwRnd(r.i * 4.8) * 6.283, sx: -dy / m, sy: dx / m,
+                out: new Float32Array((steps + 1) * 2), pull: 0 });
+    }
+    O._reach = rs;
+    const fl = [];
+    for (let j = 0; j < rs.length; j++) {
+      const n = 1 + ((_fwRnd(j * 13.1) * 2.6) | 0);
+      for (let k = 0; k < n; k++) {
+        fl.push({ v: j, at: 0.40 + (k + _fwRnd(j * 5.1 + k * 3.7) * 0.72) / n * 0.58,
+                  r: M * (0.009 + Math.pow(_fwRnd(j * 7.3 + k), 1.7) * 0.015),
+                  ph: _fwRnd(j * 9.5 + k * 2.9) * 6.283 });
+      }
+    }
+    O._fl = fl;
+    _fwStemX = new Float32Array(7); _fwStemY = new Float32Array(7);
+    for (let i = 0; i < 7; i++) { _fwStemX[i] = _fwMX; _fwStemY[i] = _fwMY; }
+  }
+
+  const dimA = _fwDim;
+  const closeK = ev && ev.name === 'close' ? Math.sin(Math.PI * Math.min(1, ev.p / 0.86)) : 0;
+
+  // ── the baked mass. On `close` it is blitted a second time, pulled in
+  //    toward the middle, which reads as the frame growing rather than as
+  //    the frame moving: the roots stay where they were because the first
+  //    blit is still under it.
+  ctx.save();
+  ctx.globalAlpha = 1 - dimA * 0.30;
+  ctx.drawImage(O._sheet, 0, 0);
+  if (closeK > 0.01) {
+    const s = 1 - closeK * 0.085;
+    ctx.globalAlpha = (1 - dimA * 0.30) * 0.92;
+    ctx.translate(W * 0.5, H * 0.5); ctx.scale(s, s); ctx.translate(-W * 0.5, -H * 0.5);
+    ctx.drawImage(O._sheet, 0, 0);
+  }
+  ctx.restore();
+
+  // ── the tips: they sway, and when you come near one it REACHES ──
+  const reachR = M * 0.30;
+  for (let j = 0; j < O._reach.length; j++) {
+    const v = O._reach[j];
+    const tx = v.p[(v.n - 1) * 2], ty = v.p[(v.n - 1) * 2 + 1];
+    const d = Math.hypot(_fwMX - tx, _fwMY - ty);
+    // A click snaps them back off you for a second, and then they come
+    // again: the reach is the interaction, so the recoil has to be part of it
+    // rather than a separate effect somewhere else on the page.
+    const want = Math.max(-0.30, Math.max(0, 1 - d / reachR) * 0.82 * (1 - _fwRecoil * 1.9)
+                                 + closeK * 0.30 - _fwRecoil * 0.22);
+    v.pull += (want - v.pull) * Math.min(1, dt * 3.4);
+    _fwSway(v, t, v.out, v.pull, _fwMX, _fwMY);
+    _fwNorms(v.out, v.n);
+    ctx.fillStyle = _FW_DARK[_fwA(0.97)];
+    _fwRibbon(ctx, v.out, v.n, v.w, v.w * 0.18, true, j + 17);
+    _fwLitEdge(ctx, v.out, v.n, v.w, v.w * 0.18, LX, LY, _FW_LIT[_fwA(0.38 * (1 - dimA * 0.8))], 1.5);
+  }
+
+  // ── leaves ──
+  ctx.beginPath();
+  for (let j = 0; j < O._reach.length; j++) {
+    const v = O._reach[j];
+    _fwNorms(v.out, v.n);
+    for (let k = 3; k < v.n - 2; k += 4) {
+      const s = (k & 3) ? 1 : -1;
+      const a = Math.atan2(_fwNY[k], _fwNX[k]) * s + Math.sin(t * 0.9 + j + k) * 0.18;
+      _fwLeaf(ctx, v.out[k * 2], v.out[k * 2 + 1], a, v.w * (2.8 + _fwRnd(j * 3.3 + k) * 2.4), v.w * 1.0);
+    }
+  }
+  ctx.fillStyle = _FW_LEAF[_fwA(0.92 * (1 - dimA * 0.5))];
+  ctx.fill();
+
+  // ── the flowers on the frame, watching you ──
+  const bloom = ev && ev.name === 'bloom' ? ev.p : -1;
+  const bucket = (t * 3) | 0;
+  const fl = O._fl;
+  ctx.beginPath();
+  for (let i = 0; i < fl.length; i++) {
+    const f = fl[i];
+    const v = O._reach[f.v];
+    const k = Math.min(v.n - 1, (f.at * (v.n - 1)) | 0);
+    f._x = v.out[k * 2]; f._y = v.out[k * 2 + 1];
+    let open = 0.74 + Math.sin(t * 1.0 + f.ph) * 0.12
+             + Math.max(0, 1 - Math.hypot(_fwMX - f._x, _fwMY - f._y) / (M * 0.20)) * 0.40;
+    if (bloom >= 0) {
+      const d = Math.hypot(f._x - LX, f._y - LY) / Math.hypot(W, H);
+      const w = bloom * 1.7 - d;
+      if (w > 0 && w < 0.55) open = 0.74 + Math.sin((w / 0.55) * Math.PI) * 0.60;
+    }
+    _fwPetals(ctx, f._x, f._y, f.r, open, t * 0.25 + f.ph);
+    // now and then one of them lets a petal go. Rolled once per third of a
+    // second, not once per frame, or twenty petals leave at once.
+    if (bucket !== O._pb && _fwRnd(bucket * 7.7 + i * 3.1) > 0.94 && _fwPetalsList.length < 40) {
+      _fwPetalsList.push({ x: f._x, y: f._y, vx: (_fwRnd(i + bucket) - 0.5) * 26, vy: 6 + _fwRnd(i * 2 + bucket) * 18,
+                           a: _fwRnd(i * 3 + bucket) * 6.283, va: (_fwRnd(i * 4 + bucket) - 0.5) * 3, r: f.r * 0.5, life: 1 });
+    }
+  }
+  O._pb = bucket;
+  ctx.fillStyle = _fwGold(0.88 * (1 - dimA * 0.7));
+  ctx.fill();
+  ctx.beginPath();
+  for (let i = 0; i < fl.length; i++) _fwDisc(ctx, fl[i]._x, fl[i]._y, fl[i].r * 0.44);
+  ctx.fillStyle = _FW_ROT[_fwA(0.92)];
+  ctx.fill();
+  ctx.beginPath();
+  for (let i = 0; i < fl.length; i++) {
+    const f = fl[i];
+    const dx = _fwMX - f._x, dy = _fwMY - f._y, m = Math.hypot(dx, dy) || 1;
+    const g = Math.min(f.r * 0.19, m * 0.5);
+    _fwDisc(ctx, f._x + dx / m * g, f._y + dy / m * g, f.r * 0.17);
+  }
+  ctx.fillStyle = _FW_BLACK[_fwA(0.96)];
+  ctx.fill();
+
+  // ── petals coming off the frame, and off you when you move fast ──
+  const mvx = (_fwMX - _fwPrevMX) / Math.max(dt, 0.001), mvy = (_fwMY - _fwPrevMY) / Math.max(dt, 0.001);
+  _fwPrevMX = _fwMX; _fwPrevMY = _fwMY;
+  if (Math.hypot(mvx, mvy) > 900 && _fwPetalsList.length < 40 && _fwRnd(t * 91.3) > 0.55) {
+    _fwPetalsList.push({ x: _fwMX, y: _fwMY, vx: -mvx * 0.05, vy: -mvy * 0.05 + 10,
+                         a: _fwRnd(t * 3.1) * 6.283, va: (_fwRnd(t * 5.5) - 0.5) * 5, r: 5.5, life: 1, mono: 1 });
+  }
+  if (_fwPetalsList.length) {
+    ctx.beginPath();
+    let goldPath = false;
+    for (const q of _fwPetalsList) {
+      q.vy += 34 * dt; q.vx *= 0.99;
+      q.x += q.vx * dt; q.y += q.vy * dt; q.a += q.va * dt;
+      q.life -= dt * 0.42;
+      if (q.mono) continue;
+      goldPath = true;
+      _fwLeaf(ctx, q.x, q.y, q.a, q.r * 2.0, q.r * 0.85);
+    }
+    if (goldPath) { ctx.fillStyle = _fwGold(0.60 * (1 - dimA * 0.7)); ctx.fill(); }
+    ctx.beginPath();
+    let monoPath = false;
+    for (const q of _fwPetalsList) {
+      if (!q.mono) continue;
+      monoPath = true;
+      _fwLeaf(ctx, q.x, q.y, q.a, q.r * 2.0, q.r * 0.85);
+    }
+    if (monoPath) { ctx.fillStyle = 'rgba(228,228,228,0.62)'; ctx.fill(); }
+    _fwPetalsList = _fwPetalsList.filter(q => q.life > 0 && q.y < H + 40);
+  }
+
+  // ── the events that reach the whole application ──
+  if (ev && ev.name === 'pellets') {
+    const q = ev.p, fly = Math.max(0, (q - 0.42) / 0.58);
+    if (fly > 0) {
+      ctx.save();
+      ctx.beginPath();
+      for (let i = 0; i < 9; i++) {
+        const ang = (i / 9) * 6.2831853 + ev.r0 * 6.283 + fly * 0.9;
+        const R = M * (0.28 + fly * 1.5);
+        _fwDisc(ctx, GX + Math.cos(ang) * R, GY + Math.sin(ang) * R * 0.85, 3 + fly * 4);
+      }
+      ctx.fillStyle = _FW_WHITE[_fwA((1 - fly) * 0.75)];
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  if (dimA > 0.005) {
+    ctx.fillStyle = 'rgba(2,4,3,' + (dimA * 0.38).toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // ── you ──
+  if (!_fwStemX) {
+    _fwStemX = new Float32Array(7); _fwStemY = new Float32Array(7);
+    for (let i = 0; i < 7; i++) { _fwStemX[i] = _fwMX; _fwStemY[i] = _fwMY; }
+  }
+  for (let i = _fwStemX.length - 1; i > 0; i--) {
+    _fwStemX[i] += (_fwStemX[i - 1] - _fwStemX[i]) * Math.min(1, dt * 22);
+    _fwStemY[i] += (_fwStemY[i - 1] - _fwStemY[i]) * Math.min(1, dt * 22) + dt * 26;
+  }
+  _fwStemX[0] = _fwMX; _fwStemY[0] = _fwMY + 6;
+  _fwDrawCursor(ctx, _fwMX, _fwMY, t, mvx, mvy);
+}
+
+function _startFloweyOverlay() {
+  _stopFloweyOverlay();
+  _drawFloweyOverlay._lt = undefined;
+  _fwEvReset();
+  _fwPetalsList = [];
+  _fwFlinch = 0; _fwRecoil = 0;
+  _fwPrevMX = _fwMX; _fwPrevMY = _fwMY;
+  _fwStemX = null; _fwStemY = null;
+  window.addEventListener('mousemove', _fwMouseMove);
+  window.addEventListener('mousedown', _fwMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'flowey-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('flowey-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawFloweyOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _fwOverlayRaf = requestAnimationFrame(frame);
+  }
+  _fwOverlayRaf = requestAnimationFrame(frame);
+}
+function _stopFloweyOverlay() {
+  if (_fwOverlayRaf) { cancelAnimationFrame(_fwOverlayRaf); _fwOverlayRaf = null; }
+  window.removeEventListener('mousemove', _fwMouseMove);
+  window.removeEventListener('mousedown', _fwMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('flowey-overlay'); if (cv) cv.remove();
+  _fwPetalsList = [];
+  _fwFlinch = 0; _fwRecoil = 0;
+  _fwEvReset();
+  _drawFloweyOverlay._w = -1;
+  _drawFloweyPattern._w = -1;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // CLASSIC: his stats are corrupted beyond reading (always glitched),
 // his menus are UNDERTALE dialogue boxes, his base form is GHOST.
 // The "Determination." form: an intense, intimidating red killing
@@ -33858,6 +35250,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'classic_det')    { _drawClassicDetPattern(canvas, ctx, W, H, t);          return; }
   if (type === 'classic_save')   { _drawClassicSavePattern(canvas, ctx, W, H, t);         return; }
   if (type === 'classic_ghost')  { _drawClassicGhostPattern(canvas, ctx, W, H, t);        return; }
+  if (type === 'flowey_vines')   { _drawFloweyPattern(canvas, ctx, W, H, t);              return; }
 
   // Static noise: handle BEFORE clearRect, skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -34442,6 +35835,8 @@ function startBgAnim(type, params) {
   _drawClassicSaveOverlay._lt = undefined;
   _drawClassicGhostPattern._lt = undefined;
   _drawClassicGhostOverlay._lt = undefined;
+  _drawFloweyPattern._lt      = undefined;
+  _drawFloweyOverlay._lt      = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -34538,6 +35933,7 @@ function stopBgAnim() {
   _stopClassicDetOverlay();
   _stopClassicSaveOverlay();
   _stopClassicGhostOverlay();
+  _stopFloweyOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -35200,6 +36596,7 @@ function viewChar(id) {
   else if (_isRook(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#cf4436'); }
   else if (_isStarry(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fcf'); }
   else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
+  else if (_isFlowey(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e0b838'); }
   else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
   else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
   else if (_isClassicGhost(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d8c46a'); }
@@ -36238,6 +37635,28 @@ function viewChar(id) {
     if (_pc && _isJuko1(c)) _pc.style.opacity = '0.95';
   }
 
+  // ── AH!Flowey: the card is a thing the garden has already reached. Bark
+  //    panels, gold titles, a name with vines behind it, and the pattern
+  //    canvas up off its default 0.3 because the place IS the page. This
+  //    block sits after every other opacity claimant, so it only has to set
+  //    the value and never has to be added to the negations above. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isFlowey(c)) {
+      _cvRoot.classList.add('flowey-ui');
+      if (_av) _av.classList.add('flowey-pfp');
+      if (_nm) { _nm.classList.add('flowey-name'); _nm.setAttribute('data-text', _nm.textContent || 'FLOWEY'); }
+      if (_pc) _pc.style.opacity = '0.95';
+    } else {
+      _cvRoot.classList.remove('flowey-ui');
+      if (_av) _av.classList.remove('flowey-pfp');
+      if (_nm) { _nm.classList.remove('flowey-name'); if (!_nmHasNameSkin(_nm)) _nm.removeAttribute('data-text'); }
+    }
+  }
+
   // ── Evelynn: elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -36350,7 +37769,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -36363,7 +37782,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : _isJuko1(c) ? "Juko · 1, the value left" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && ptype !== 'flowey_vines' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -36473,6 +37892,7 @@ function viewChar(id) {
   if (_isClassicDet(c)) _startClassicDetOverlay();
   if (_isClassicSave(c)) _startClassicSaveOverlay();
   if (_isClassicGhost(c)) _startClassicGhostOverlay();
+  if (_isFlowey(c))   _startFloweyOverlay();
   }
 
   renderInventory(c);
@@ -42034,7 +43454,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -42108,6 +43528,7 @@ window.addEventListener('resize', () => {
       if (_isClassicDet(c)) _startClassicDetOverlay();
       if (_isClassicSave(c)) _startClassicSaveOverlay();
       if (_isClassicGhost(c)) _startClassicGhostOverlay();
+      if (_isFlowey(c))   _startFloweyOverlay();
     }
   }
 });

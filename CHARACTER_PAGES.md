@@ -142,6 +142,15 @@ A composition needs:
 
 Decide once whether distance goes **pale** or **dark**, and never contradict it.
 
+And be clear about what the ramp applies to: it is the **air**. Objects seen
+through pale air are *lower contrast*, not brighter, so a far object is still
+darker than the air behind it. AH!Flowey's far tangle was drawn paler than the
+ground on the reasoning that distance goes pale, and forty vines came out as
+pale scratches floating on a dark field, like marks on a lens. Painting them
+mid-grey against a bright patch of air turned the same forty into a canopy. If
+a far thing is the brightest thing on the page, that thing is the light or the
+air; it is not a vine.
+
 - Cold or dirty air: distance goes **pale and low contrast** (Rady's smog,
   Adam's ice, Sevach's haze). The far things are the *brightest* on the page.
 - Clear night: distance goes **dark**.
@@ -189,6 +198,26 @@ Also: if a figure is meant to feel enormous, crop it deliberately, but crop the
 TIPS. Cropping so hard that only the roots are on the page does not read as
 "too big for the frame", it reads as a mistake.
 
+### Draw the ground before the things standing on it
+
+Obvious, and it still went wrong: the path was filled after the arch, so it
+covered the arch's legs and the landmark read as a hoop floating in mid air.
+Air, then far things, then the floor, then everything standing on the floor.
+
+### Three shapes that did not read, and why
+
+- **A ruin has ONE leg on the ground.** An arch with both feet down is a
+  horseshoe however carefully it is broken. Stand one leg, snap the other side
+  off in mid air, and it reads as a ruin instantly.
+- **Do not light the inside of a hole.** A hole reads because the background
+  shows through it, so leave it unpainted (`fill('evenodd')`) and put the
+  brightness *behind* the whole object. Filling the opening with light instead
+  turned the arch inside out: dark cap, bright slab, and it looked like a lit
+  headstone.
+- **An eye is a pale field with a dark hole in it.** A dark socket under a pale
+  sclera under a black pupil is three concentric circles, and a face made of
+  two of them reads as a pair of archery targets. Two shapes, not three.
+
 ### Things must touch the ground
 
 Anything standing on a surface needs a **contact shadow** and usually a drift,
@@ -233,6 +262,21 @@ And keep them out of the middle. The character's portrait, name and stats are
 what the page is for; put the chaos in the gutters and along the bottom and it
 crowds the page without hiding it.
 
+### Test the landmark against the panels FIRST, not the composition
+
+A composition can be right and still be invisible. AH!Flowey's broken arch was
+built on the left with a road running to it, checked, liked, and then covered
+almost entirely by the stats and traits panels, which between them own the left
+two thirds of `#pattern-canvas`. What is actually visible on a character page is
+an L: the **right gutter** and the **band along the bottom**. Put the landmark
+in that L before drawing anything else. Moving the arch into the right gutter,
+where it silhouettes against the shaft, cost ten lines and was the single
+biggest improvement to the page.
+
+If a shape was built to be lit from one side and the move puts it on the other
+side of the light, do not re-derive it: draw it inside a mirroring transform
+about its own centre, and its one lit edge lands on the correct side for free.
+
 ### Respect the furniture
 
 The GUI panels sit across the upper and middle of the page. Keep the middle
@@ -276,6 +320,28 @@ Clipping to a disc and re-blitting instead gives a visible hard circle.
 join as a contour ring. Use 12 to 16 stops on a power curve:
 `a * pow(1 - u, p)`. Any edge where a gradient is still visibly non-zero will
 read as a hard line.
+
+**A vine is a filled ribbon, not a stroked polyline.** Offset the centreline
+by a tapering half-width, walk out and back, close it: one `fill` per vine,
+with a real taper, and vines overlap like vines instead of crosshatching like
+wire. Thorns go in as extra subpaths of the SAME path, so a whole vine and its
+thorns are still one fill. Then one stroke down the lit side. Twelve swaying
+vines plus a baked mass cost 0.42 ms at 1920x1080.
+
+**Nested shapes make visible steps.** Five nested wedges for a light shaft gave
+five vertical bands you could count. Fifty thin ones with alpha on a bell curve
+give the same shape and no seams, and it is a bake, so the count is free.
+
+**Space items along a path by index, not by rolling a position.** Two flowers
+given random positions on one short vine land on top of each other and read as
+a bunch of berries. `at = (k + rnd * 0.7) / n` spreads them and still looks
+unplanned.
+
+**The same object wants different numbers on the two layers.** A vine in the
+picture is near black because it is in front of a lit room; the same vine on the
+overlay is in front of a near black application, and at those values it is
+invisible. The frame's bodies were lifted off black and its lit edges doubled.
+Check every overlay element against `#000`, not against your background.
 
 **Sort by y and draw back to front.** Row order is *not* depth order once items
 are jittered off their row line. This is what makes things look like they are
@@ -373,6 +439,12 @@ because they are about the document the canvas is sitting in.
 10. **Many small canvases.** 149 per-column strips cost 6.2 ms a frame to rebake
    and blit; the same content in ONE atlas canvas, a slot per item, cost 3.7 ms.
    If you bake per item, bake into one atlas.
+
+11. A soft band added to hide one hard edge brings its own. AH!Flowey's path
+   was dissolved into the haze with a full width gradient, which removed the
+   rule at the horizon and drew a new one across the whole page at its own top
+   edge. Fade at BOTH ends. This is in the composition section too and it still
+   happened, so it is here as well.
 
 Cheap enough to ignore: `getBoundingClientRect` once a frame, a few hundred
 small `arc` fills batched into one path, blits (a full-canvas blit is 0.11 ms).
