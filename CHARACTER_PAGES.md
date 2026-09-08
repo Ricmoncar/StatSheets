@@ -218,11 +218,70 @@ Air, then far things, then the floor, then everything standing on the floor.
   sclera under a black pupil is three concentric circles, and a face made of
   two of them reads as a pair of archery targets. Two shapes, not three.
 
+### Scale is the thing that goes wrong twice
+
+Flower heads on this page were sized off the width of the vine they sit on,
+which is correct, with a multiplier that made them a hundred and thirty pixels
+across. It was caught, fixed in the garden, and then shipped again a day later
+in the window frame from the same formula copied over. When a size is derived
+from another size, check it at the extremes of that other size before moving
+on, and check every place the formula was copied to.
+
+### A landmark must not be made of the same kind of shape as its surroundings
+
+The broken arch on this page failed three times: too tall, then reading as a
+horseshoe, then lit inside out. All three were fixable and none of them was the
+real problem, which is that an arch is a CURVE in a page made entirely of
+curves, so it sank into the tangle whatever value it was given. Replacing it
+with a doorway (two uprights and a lintel, the only straight edges anywhere on
+the page) made it read instantly at half the size and a third of the
+brightness. If a landmark keeps needing to be made brighter to be seen, the
+problem is its shape language, not its value.
+
 ### Things must touch the ground
 
 Anything standing on a surface needs a **contact shadow** and usually a drift,
 kerb or base at its foot. Without it, it is a sticker on a photograph. This is
 what took Adam's spires from "cut paper" to "standing in snow".
+
+### "Detached, unorganised and flat": the three things that cause it
+
+AH!Flowey was built once, looked competent, and got exactly that verdict. All
+three complaints had one cause each, and none of them was polish.
+
+**Flat** was a flat fill plus a hairline. A silhouette with a one pixel lit edge
+on it is a sticker however good the shape is. What fixes it is THREE TONES
+ACROSS THE WIDTH of every solid thing: a dark body, a lit band down the side
+facing the light, and a bright rim on that edge. For a curved object build the
+band as one quad per segment rather than one long polygon, and it survives the
+lit side swapping over when the object curls past the light.
+
+And the lit band has to STOP AT THE CENTRELINE. Running it a third of the way
+past the middle covered two thirds of every vine on the page and turned the
+whole thing pale: they went from flat black sticks to flat olive sticks, which
+is not an improvement. A lit side is a side.
+
+**Detached** was that everything started in mid air. Vines came in from the
+edges of the canvas and simply began. What fixes it is to draw the MASS FIRST
+and root everything in it: a bank of tangled root heaped along both kerbs of
+the path, a ceiling of it overhead, a band of thicket down each edge of the
+window. Then every vine grows out of something and the page stops being a pile
+of separate objects. This is the same lesson as "things must touch the ground",
+one level up: a thing needs somewhere to come FROM, not just something to stand
+on.
+
+**Unorganised** was two layers drawn by two different pieces of code. The
+background and the overlay ended up with their own vine code, their own values
+and their own idea of the light, and they read as two pictures stapled
+together. Write ONE renderer for the thing your page is made of, give it a
+palette argument, and call it from both layers. The only difference between a
+vine in the picture and a vine on the window frame should be which palette it
+gets.
+
+And the palette itself: one grey ramp reads flat no matter how carefully it is
+drawn. Pick a COOL light and a WARM shadow (or the reverse) so that every
+surface is telling you which way it faces by its hue as well as its value.
+Adding that split to this page did more than any other single change.
 
 ### Flat fills read as cut paper
 
@@ -342,6 +401,12 @@ picture is near black because it is in front of a lit room; the same vine on the
 overlay is in front of a near black application, and at those values it is
 invisible. The frame's bodies were lifted off black and its lit edges doubled.
 Check every overlay element against `#000`, not against your background.
+
+**A shape drawn on top of a mass at half alpha reads as a separate object.**
+Lobes added under a ceiling to break up its silhouette were drawn over it at
+0.55 and came out as a row of flying saucers parked underneath. Drawn FIRST, in
+the mass's own fill, they are simply places where the ceiling hangs lower,
+which is what they were for.
 
 **Sort by y and draw back to front.** Row order is *not* depth order once items
 are jittered off their row line. This is what makes things look like they are
@@ -487,6 +552,15 @@ moon with a smudge because the fill style was still the last crater's, at 0.2.
 **`else if` chains.** Inserting a start call between an `if` and its `else if`
 rebinds the else to your new condition. It made Leon run his base and human
 overlays simultaneously. Insert *after* the whole chain.
+
+**A generic anchor plus `rindex` deletes whatever is between.** A patch script
+replaced a block bounded by `s.index(start)` and `s.rindex('  return cv;
+}')`.
+That closing brace is how every sheet builder in the file ends, so `rindex`
+found the LAST one and the edit silently removed two entire functions. The page
+kept parsing and died at runtime with "not defined". Bound a replacement with
+anchors unique to the ONE function you mean, and assert the slice you are about
+to delete looks like what you think it is.
 
 **A 6-space anchor contains the 2-space one.** `"  if (_isX(c))"` matches inside
 `"      if (_isX(c))"`. Anchor on the preceding newline.

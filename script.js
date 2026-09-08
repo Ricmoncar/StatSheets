@@ -26558,42 +26558,42 @@ function _stopHaruOverlay() {
 // AH!FLOWEY
 //
 // THE CLAIM. This place has already lost. The vines got here first
-// and they have not stopped: they came in from the edges and they
-// are still coming, and the only reason there is any room left in
-// the middle is that you are standing in it.
+// and they have not stopped: they came up out of the ground along
+// the path and they are still coming, and the only reason there is
+// any room left in the middle is that you are standing in it.
 //
-// ONE LIGHT. The hole you fell through, high and off to the right,
-// throwing a single pale shaft down onto the far end of the path.
-// The AIR is what goes pale: it is brightest around the hole and
-// falls away from it, so the top right of the room is a grey you
-// can see silhouettes against and the bottom left is the dark you
-// are standing in. Everything solid is darker than the air behind
-// it, and distance costs contrast rather than adding brightness.
-// Which edge of a vine is lit is computed from that one point every
-// time, never assumed: a vine that curls past the light swaps
-// sides, and it has to.
+// ONE LIGHT, and it is COOL. Daylight down a hole in a mountain,
+// high and off to the right. The air it fills is blue grey; every
+// surface that turns toward it takes that blue; and everything it
+// does not reach is warm, rotted olive going to black. That split
+// is what stops the page reading as one flat grey, and it is the
+// rule the whole palette is built on.
 //
-// ONE COLOUR. Gold. The world is grey because the colour has been
-// taken out of it, and the only colour left in it is on the
-// flowers, which is not a kindness. Your cursor is a flower that
-// has lost even that: torn, grey, and still watching you.
+// ONE COLOUR ON TOP OF THAT. Gold, on the flowers, and nowhere
+// else. Your cursor is a flower that has lost even that: torn,
+// grey, and still watching you.
 //
-// The page is two layers of the same substance. The background is
-// the PLACE (path, shaft, the far tangle, the broken arch). The
-// overlay is the FRAME: vines rooted in all four edges of the
-// window, growing inward over the whole application, reaching for
-// the cursor when it comes near them, and every flower on them
-// turning to follow it.
+// NOTHING FLOATS. Every vine on this page grows out of something:
+// the banks of root along both kerbs of the path, the mass in the
+// canopy, or the thicket packed along the edge of the window. A
+// vine that begins in mid air is the single thing that made the
+// first build read as scattered sticks, and it is why every root
+// here is planted in a mass that is drawn first.
+//
+// EVERY VINE IS THE SAME OBJECT. One renderer draws all of them,
+// on both layers: a dark body, a lit band down the side facing the
+// light, a bright rim on that edge, and a swelling at every node.
+// Three tones across the width is what gives a vine a round side
+// and a shadowed side instead of the flat silhouette with a
+// hairline on it that this page had the first time.
 // ════════════════════════════════════════════════════════════════
 const _FLOWEY_RE = /^\s*(?:a\s*h\s*[!.\-]*\s*)?flowey\s*[!.]*\s*$/i;
 function _isFlowey(c) { return !!(c && c.name && _FLOWEY_RE.test(c.name)); }
 
 function _fwRnd(i) { const v = Math.sin(i * 78.233 + 12.9898) * 43758.5453; return v - Math.floor(v); }
 
-// The escape, in the JS as well as in the CSS: the sway comes right down and
-// the two events that arrive without warning (the whip across the frame, and
-// the light going out) are taken out of the deck. Everything else here drifts
-// slowly enough to keep.
+// The escape, in the JS as well as the CSS: the sway comes right down and the
+// two events that arrive without warning are taken out of the deck.
 let _fwRM = false;
 if (typeof window !== 'undefined' && window.matchMedia) {
   const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -26610,33 +26610,48 @@ function _fwRamp(r, g, b) {
   return a;
 }
 function _fwA(v) { return v <= 0 ? 0 : v >= 1 ? 100 : (v * 100) | 0; }
-// The value ramp, and its direction, decided once: the AIR goes pale toward
-// the light and everything solid is darker than the air it is seen against.
-// Distance does not make a vine paler, it makes it lower contrast, so the far
-// tangle is mid grey (it silhouettes where the air behind it is bright and
-// vanishes where the air is black) and the near bank is flat black.
-const _FW_BLACK = _fwRamp(4, 7, 5);        // the near bank: flat black
-const _FW_DARK  = _fwRamp(12, 19, 15);     // vine body, near
-const _FW_BODY  = _fwRamp(24, 34, 28);     // vine body, mid
-const _FW_FAR   = _fwRamp(34, 42, 36);     // vine body, far
-const _FW_LIT   = _fwRamp(150, 164, 143);  // the one lit edge
-const _FW_HAZE  = _fwRamp(186, 193, 172);  // the air, which is what distance is made of
-const _FW_GOLD  = _fwRamp(224, 184, 56);   // the only colour in the world
-const _FW_GOLDH = _fwRamp(250, 231, 152);
-const _FW_ROT   = _fwRamp(74, 58, 18);     // the middle of a flower
-const _FW_GREY  = _fwRamp(138, 140, 132);  // gold, once it has been taken out
-const _FW_WHITE = _fwRamp(255, 255, 255);
-const _FW_LEAF  = _fwRamp(31, 44, 34);
-const _FW_LEAFL = _fwRamp(112, 128, 104);
 
-// The wilt event drains the gold out of the world and lets it bleed back. Both
-// layers read this, so the frame greys at the same moment the garden does.
-let _fwSat = 1;
-// The shadow event puts the light out. Both layers read this too.
-let _fwDim = 0;
-function _fwGold(v) { return _fwSat > 0.985 ? _FW_GOLD[_fwA(v)] : _fwSat < 0.02 ? _FW_GREY[_fwA(v)]
-  : 'rgba(' + ((138 + (224 - 138) * _fwSat) | 0) + ',' + ((140 + (184 - 140) * _fwSat) | 0) + ',' +
-    ((132 + (56 - 132) * _fwSat) | 0) + ',' + v.toFixed(2) + ')'; }
+// ── the palette. COOL light, WARM shadow, and gold on top of both. ──
+const _FW_AIR   = _fwRamp(176, 190, 214);   // the light, and the air it fills
+const _FW_LIT   = _fwRamp(150, 166, 184);   // a surface turned toward it
+const _FW_STONE = _fwRamp(96, 102, 120);    // the doorway: cold, because it is dead
+// vines: warm olive in the shadow, cooling as they turn to the light
+const _FW_V0    = _fwRamp(9, 11, 8);        // the near bank, and the deep of any vine
+const _FW_V1    = _fwRamp(22, 26, 16);      // body
+const _FW_V2    = _fwRamp(47, 54, 32);      // the lit band down one side
+const _FW_V3    = _fwRamp(108, 122, 92);    // the rim on that edge
+const _FW_L1    = _fwRamp(25, 36, 20);      // leaf, shadow half
+const _FW_L2    = _fwRamp(66, 88, 48);      // leaf, lit half
+const _FW_GOLD  = _fwRamp(216, 168, 40);
+const _FW_GOLDH = _fwRamp(255, 226, 128);   // the edge of a petal facing the hole
+const _FW_ROT   = _fwRamp(48, 32, 6);       // the middle of a flower
+const _FW_GREY  = _fwRamp(126, 128, 122);   // gold, once it has been taken out
+const _FW_WHITE = _fwRamp(255, 255, 255);
+const _FW_BLACK = _FW_V0;
+
+// Palettes handed to the one vine renderer. The only difference between a vine
+// in the picture and a vine on the window frame is which of these it gets.
+const _FW_PAL_NEAR = { body: _FW_V0[97], mid: _FW_V1[92], lit: _FW_V3[26], lw: 1.3 };
+const _FW_PAL_MID  = { body: _FW_V1[95], mid: _FW_V2[80], lit: _FW_V3[52], lw: 1.5 };
+const _FW_PAL_FAR  = { body: _FW_V1[74], mid: _FW_V2[46], lit: _FW_LIT[26], lw: 1.0 };
+const _FW_PAL_FRM  = { body: _FW_V1[97], mid: _FW_V2[88], lit: _FW_V3[70], lw: 1.7 };
+
+// The wilt event drains the gold out of the world and lets it bleed back; the
+// stare event stops everything moving; the dark event puts the light out.
+// Both layers read all three, so the window frame is IN each event with the
+// garden rather than watching it happen.
+let _fwSat = 1, _fwDim = 0, _fwStare = 0;
+function _fwGold(v) {
+  if (_fwSat > 0.985) return _FW_GOLD[_fwA(v)];
+  if (_fwSat < 0.02) return _FW_GREY[_fwA(v)];
+  return 'rgba(' + ((126 + (216 - 126) * _fwSat) | 0) + ',' + ((128 + (168 - 128) * _fwSat) | 0) + ',' +
+         ((122 + (40 - 122) * _fwSat) | 0) + ',' + v.toFixed(2) + ')';
+}
+function _fwGoldH(v) {
+  if (_fwSat > 0.985) return _FW_GOLDH[_fwA(v)];
+  return 'rgba(' + ((170 + (255 - 170) * _fwSat) | 0) + ',' + ((172 + (226 - 172) * _fwSat) | 0) + ',' +
+         ((166 + (128 - 166) * _fwSat) | 0) + ',' + v.toFixed(2) + ')';
+}
 
 /* ── a vine ───────────────────────────────────────────────────────
    Built by WALKING and turning, never by bowing a quadratic between
@@ -26656,10 +26671,10 @@ function _fwMakeVine(seed, x0, y0, ang, len, steps, curl) {
 }
 
 // Normals for the polyline currently being drawn. One scratch pair, reused, so
-// the ribbon fill and the lit-edge stroke both read the same numbers and
-// neither of them allocates.
+// every pass of the renderer reads the same numbers and none of them allocate.
 const _fwNX = new Float32Array(320), _fwNY = new Float32Array(320);
-const _fwSeg = new Float32Array(640);       // one reusable slice buffer, never per frame
+const _fwSG = new Int8Array(320);            // which side of each point is lit
+const _fwSeg = new Float32Array(640);
 function _fwNorms(p, n) {
   for (let i = 0; i < n; i++) {
     let dx, dy;
@@ -26671,10 +26686,10 @@ function _fwNorms(p, n) {
   }
 }
 
-/* Outlines pile up; filled shapes occlude. A vine is a closed ribbon around
-   its centreline, tapering to the tip, so vines overlap like vines instead of
-   crosshatching like wire. Thorns go into the SAME path as subpaths, so a
-   whole vine plus its thorns is one fill. */
+/* Outlines pile up; filled shapes occlude. The body of a vine is a closed
+   ribbon around its centreline, tapering to the tip, so vines overlap like
+   vines instead of crosshatching like wire. Thorns go into the SAME path as
+   subpaths, so a whole vine plus its thorns is one fill. */
 function _fwRibbon(ctx, p, n, w0, w1, thorns, seed) {
   ctx.beginPath();
   for (let i = 0; i < n; i++) {
@@ -26689,48 +26704,93 @@ function _fwRibbon(ctx, p, n, w0, w1, thorns, seed) {
   ctx.closePath();
   if (thorns) {
     for (let i = 3; i < n - 2; i += 3) {
-      if (_fwRnd(seed * 5.3 + i * 2.1) > 0.55) continue;
+      if (_fwRnd(seed * 5.3 + i * 2.1) > 0.5) continue;
       const u = i / (n - 1);
       const w = (w0 + (w1 - w0) * u) * 0.5;
       const s = (i & 1) ? 1 : -1;
       const x = p[i * 2], y = p[i * 2 + 1];
       const nx = _fwNX[i] * s, ny = _fwNY[i] * s;
-      const tx = -ny, ty = nx;                       // along the vine
-      const L = w * (1.7 + _fwRnd(seed + i) * 1.5) + 1;
-      ctx.moveTo(x + nx * w * 0.6 + tx * w * 0.8, y + ny * w * 0.6 + ty * w * 0.8);
-      ctx.lineTo(x + nx * (w + L) - tx * w * 0.3, y + ny * (w + L) - ty * w * 0.3);
-      ctx.lineTo(x + nx * w * 0.6 - tx * w * 0.9, y + ny * w * 0.6 - ty * w * 0.9);
+      const tx = -ny, ty = nx;
+      const L = w * (1.8 + _fwRnd(seed + i) * 1.7) + 1;
+      ctx.moveTo(x + nx * w * 0.6 + tx * w * 0.9, y + ny * w * 0.6 + ty * w * 0.9);
+      ctx.lineTo(x + nx * (w + L) - tx * w * 0.4, y + ny * (w + L) - ty * w * 0.4);
+      ctx.lineTo(x + nx * w * 0.6 - tx * w * 1.0, y + ny * w * 0.6 - ty * w * 1.0);
       ctx.closePath();
     }
   }
   ctx.fill();
 }
 
-/* ONE lit edge, and WHICH edge is a calculation. dot(normal, light - point)
-   picks the side per point; where the sign flips the stroke breaks and starts
-   again on the other side, because that is what actually happens to a vine
-   that curls past a lamp. */
-function _fwLitEdge(ctx, p, n, w0, w1, lx, ly, style, lw) {
-  ctx.strokeStyle = style; ctx.lineWidth = lw;
-  ctx.beginPath();
-  let prev = 0;
+/* THE ONE VINE RENDERER. Everything that is a vine anywhere on this page goes
+   through here, which is most of what makes the two layers look like the same
+   world.
+     1. the body, flat and dark, with its thorns
+     2. a LIT BAND down the side facing the light, as one quad per segment so
+        it survives the vine curling past the light and swapping sides
+     3. a bright rim on that same edge
+     4. a swelling at every node, because a vine is not a tube
+   Which side is lit is dot(normal, light - point), computed per point and
+   never assumed: in a curl it is genuinely different at the two ends. */
+function _fwVine(ctx, p, n, w0, w1, lx, ly, P, seed, nodes) {
+  _fwNorms(p, n);
   for (let i = 0; i < n; i++) {
-    const w = (w0 + (w1 - w0) * (i / (n - 1))) * 0.5;
-    const x = p[i * 2], y = p[i * 2 + 1];
-    const s = ((lx - x) * _fwNX[i] + (ly - y) * _fwNY[i]) >= 0 ? 1 : -1;
-    const X = x + _fwNX[i] * w * s, Y = y + _fwNY[i] * w * s;
-    if (i === 0 || s !== prev) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
-    prev = s;
+    _fwSG[i] = ((lx - p[i * 2]) * _fwNX[i] + (ly - p[i * 2 + 1]) * _fwNY[i]) >= 0 ? 1 : -1;
+  }
+  ctx.fillStyle = P.body;
+  _fwRibbon(ctx, p, n, w0, w1, true, seed);
+
+  const hw = (i) => (w0 + (w1 - w0) * (i / (n - 1))) * 0.5;
+  ctx.fillStyle = P.mid;
+  ctx.beginPath();
+  for (let i = 0; i < n - 1; i++) {
+    const s = _fwSG[i];
+    if (s !== _fwSG[i + 1]) continue;                 // the segment it flips on
+    const a = hw(i), b = hw(i + 1);
+    const x0 = p[i * 2], y0 = p[i * 2 + 1], x1 = p[i * 2 + 2], y1 = p[i * 2 + 3];
+    ctx.moveTo(x0 + _fwNX[i] * a * s, y0 + _fwNY[i] * a * s);
+    ctx.lineTo(x1 + _fwNX[i + 1] * b * s, y1 + _fwNY[i + 1] * b * s);
+    ctx.lineTo(x1 + _fwNX[i + 1] * b * 0.08 * s, y1 + _fwNY[i + 1] * b * 0.08 * s);
+    ctx.lineTo(x0 + _fwNX[i] * a * 0.08 * s, y0 + _fwNY[i] * a * 0.08 * s);
+    ctx.closePath();
+  }
+  ctx.fill();
+  if (nodes !== false) {
+    ctx.fillStyle = P.body;
+    ctx.beginPath();
+    for (let i = 2; i < n - 1; i += 4) {
+      const a = hw(i) * 1.34;
+      ctx.moveTo(p[i * 2] + a, p[i * 2 + 1]);
+      ctx.ellipse(p[i * 2], p[i * 2 + 1], a, a * 0.82, 0, 0, 6.2831853);
+    }
+    ctx.fill();
+    ctx.fillStyle = P.mid;
+    ctx.beginPath();
+    for (let i = 2; i < n - 1; i += 4) {
+      const a = hw(i) * 1.34, s = _fwSG[i];
+      ctx.moveTo(p[i * 2] + _fwNX[i] * a * 0.42 * s + a * 0.62, p[i * 2 + 1] + _fwNY[i] * a * 0.42 * s);
+      ctx.ellipse(p[i * 2] + _fwNX[i] * a * 0.42 * s, p[i * 2 + 1] + _fwNY[i] * a * 0.42 * s,
+                  a * 0.62, a * 0.46, 0, 0, 6.2831853);
+    }
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = P.lit; ctx.lineWidth = P.lw;
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const s = _fwSG[i], w = hw(i);
+    const X = p[i * 2] + _fwNX[i] * w * s, Y = p[i * 2 + 1] + _fwNY[i] * w * s;
+    if (i === 0 || s !== _fwSG[i - 1]) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
   }
   ctx.stroke();
 }
 
 // Sway. The root is nailed down and the tip moves most, so the amplitude runs
 // as u^2 along the length. `pull` bends the last third toward a point, which is
-// how the frame reaches for the cursor.
+// how the frame reaches for the cursor. The stare event holds everything still.
 function _fwSway(v, t, out, pull, px, py) {
   const n = v.n;
-  const amp = v.amp * (_fwRM ? 0.3 : 1), sp = v.sp * (_fwRM ? 0.5 : 1), ph = v.ph, sx = v.sx, sy = v.sy;
+  const still = (1 - _fwStare * 0.92) * (_fwRM ? 0.3 : 1);
+  const amp = v.amp * still, sp = v.sp * (_fwRM ? 0.5 : 1), ph = v.ph, sx = v.sx, sy = v.sy;
   for (let i = 0; i < n; i++) {
     const u = i / (n - 1);
     const s = Math.sin(t * sp + u * 3.4 + ph) * amp * u * u;
@@ -26744,46 +26804,77 @@ function _fwSway(v, t, out, pull, px, py) {
   }
 }
 
+/* ── leaves ───────────────────────────────────────────────────────
+   A flat blob is not a leaf. Every leaf here is a dark whole with a
+   LIT HALF on the side facing the hole and a midrib between them,
+   which is three passes for the whole page because each one is one
+   batched path. */
+function _fwLeafShape(ctx, x, y, a, L, Wd) {
+  const cx = Math.cos(a), cy = Math.sin(a), nx = -cy, ny = cx;
+  ctx.moveTo(x, y);
+  ctx.quadraticCurveTo(x + cx * L * 0.42 + nx * Wd, y + cy * L * 0.42 + ny * Wd, x + cx * L, y + cy * L);
+  ctx.quadraticCurveTo(x + cx * L * 0.42 - nx * Wd, y + cy * L * 0.42 - ny * Wd, x, y);
+}
+function _fwLeafHalf(ctx, x, y, a, L, Wd, lx, ly) {
+  const cx = Math.cos(a), cy = Math.sin(a);
+  let nx = -cy, ny = cx;
+  if ((lx - x) * nx + (ly - y) * ny < 0) { nx = -nx; ny = -ny; }
+  ctx.moveTo(x, y);
+  ctx.quadraticCurveTo(x + cx * L * 0.42 + nx * Wd, y + cy * L * 0.42 + ny * Wd, x + cx * L, y + cy * L);
+  ctx.lineTo(x, y);
+}
+function _fwLeafRib(ctx, x, y, a, L) {
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + Math.cos(a) * L * 0.92, y + Math.sin(a) * L * 0.92);
+}
+
 /* ── flowers ──────────────────────────────────────────────────────
-   Every petal of every flower on the page goes into ONE path and one
-   fill; every centre into a second; every pupil into a third. A few
-   hundred small arcs batched into one path is cheap, and setting
-   fillStyle thirty times is not. */
+   Not a disc with five circles on it. A flower here has a stem off
+   its vine, a calyx it sits in, petals with a lit outer edge, a
+   dark middle, a ring of stamens and a pupil. Every one of those is
+   one batched path across every flower on the layer, so the whole
+   crop costs six fills however many of them there are. */
 function _fwPetals(ctx, x, y, r, open, ang) {
   for (let k = 0; k < 5; k++) {
     const a = ang + k * 1.2566371;
-    const px = x + Math.cos(a) * r * 0.70, py = y + Math.sin(a) * r * 0.70;
-    const pr = r * 0.52 * open;
+    const px = x + Math.cos(a) * r * 0.68, py = y + Math.sin(a) * r * 0.68;
+    const pr = r * 0.54 * open;
+    ctx.moveTo(px + pr, py);
+    ctx.arc(px, py, pr, 0, 6.2831853);
+  }
+}
+function _fwPetalRims(ctx, x, y, r, open, ang, lx, ly) {
+  const dx = lx - x, dy = ly - y, m = Math.hypot(dx, dy) || 1;
+  const ox = dx / m * r * 0.16, oy = dy / m * r * 0.16;
+  for (let k = 0; k < 5; k++) {
+    const a = ang + k * 1.2566371;
+    const px = x + Math.cos(a) * r * 0.68 + ox, py = y + Math.sin(a) * r * 0.68 + oy;
+    const pr = r * 0.40 * open;
     ctx.moveTo(px + pr, py);
     ctx.arc(px, py, pr, 0, 6.2831853);
   }
 }
 function _fwDisc(ctx, x, y, r) { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, 6.2831853); }
-
-// A leaf: two arcs meeting at a point, with the stem end at (x,y).
-function _fwLeaf(ctx, x, y, ang, L, Wd) {
-  const cx = Math.cos(ang), cy = Math.sin(ang);
-  const nx = -cy, ny = cx;
-  ctx.moveTo(x, y);
-  ctx.quadraticCurveTo(x + cx * L * 0.45 + nx * Wd, y + cy * L * 0.45 + ny * Wd, x + cx * L, y + cy * L);
-  ctx.quadraticCurveTo(x + cx * L * 0.45 - nx * Wd, y + cy * L * 0.45 - ny * Wd, x, y);
+function _fwStamens(ctx, x, y, r, ph) {
+  for (let k = 0; k < 6; k++) {
+    const a = ph + k * 1.0471976;
+    ctx.moveTo(x + Math.cos(a) * r * 0.62 + r * 0.13, y + Math.sin(a) * r * 0.62);
+    ctx.arc(x + Math.cos(a) * r * 0.62, y + Math.sin(a) * r * 0.62, r * 0.13, 0, 6.2831853);
+  }
 }
-
 // ════════════════════════════════════════════════════════════════
 // EVENTS. One at a time, every 5 to 10 seconds, never the same one
 // twice running, rolled once when it starts so it is the same event
-// all the way through. Each one is a different KIND of thing, not a
-// different colour of the same thing: something crossing the frame,
-// a state spreading, the character arriving, the frame itself
-// moving, the palette dying, a volley, the light going out.
-// Both layers read _fwEvNow, so the window frame is in the event
-// with the garden rather than watching it happen.
+// all the way through. Each is a different KIND of thing: something
+// crossing the frame, a state spreading, everything stopping at
+// once, the frame itself moving, the palette dying, a volley, the
+// light going out.
 // ════════════════════════════════════════════════════════════════
 let _fwEvNow = null, _fwEvNext = 0, _fwEvLast = '';
 const _FW_EV = [
   { n: 'lash',    d: 1.10 },   // one vine whips across the whole page
   { n: 'bloom',   d: 3.40 },   // a wave of opening runs outward from the light
-  { n: 'face',    d: 2.90 },   // the tangle resolves into him for two seconds
+  { n: 'stare',   d: 3.10 },   // everything stops moving and looks at you
   { n: 'close',   d: 3.20 },   // the frame grows inward and lets go again
   { n: 'wilt',    d: 3.60 },   // the gold drains out and bleeds back
   { n: 'pellets', d: 2.60 },   // a ring of white forms and crosses the frame
@@ -26807,106 +26898,120 @@ function _fwEvTick(t) {
     if (_fwRM && (d.n === 'lash' || d.n === 'dark')) continue;
     if (d.n !== _fwEvLast) break;
   }
-  if (_fwRM && (d.n === 'lash' || d.n === 'dark')) d = _FW_EV[1];   // bloom
+  if (_fwRM && (d.n === 'lash' || d.n === 'dark')) d = _FW_EV[1];
   _fwEvLast = d.n;
   _fwEvNow = { name: d.n, d: d.d, t0: t, p: 0,
                r0: _fwRnd(t * 17.7), r1: _fwRnd(t * 29.3), r2: _fwRnd(t * 41.9) };
   return _fwEvNow;
 }
-function _fwEvReset() { _fwEvNow = null; _fwEvNext = 0; _fwEvLast = ''; _fwSat = 1; _fwDim = 0; }
+function _fwEvReset() { _fwEvNow = null; _fwEvNext = 0; _fwEvLast = ''; _fwSat = 1; _fwDim = 0; _fwStare = 0; }
 
 // ════════════════════════════════════════════════════════════════
 // THE PLACE
 // ════════════════════════════════════════════════════════════════
 
-// Everything behind the shaft, baked: the air, the path running back to the
-// light, the far tangle, the broken arch that balances it, and the haze bands
-// that put air between the depth layers.
+// Everything behind the shaft, baked once: the air, the canopy the light comes
+// through, the path, the banks of root along its kerbs, and the arch.
 function _fwFarSheet(W, H, LX, LY) {
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
-  const GX = W * 0.700, GY = H * 0.640;          // where the shaft lands
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  const GX = W * 0.680, GY = H * 0.615;          // where the shaft lands
 
-  // ── the air. It is brightest around the hole and falls away from it, so
-  //    the top right of the room is a grey you can see silhouettes against
-  //    and the bottom left is the dark you are standing in.
-  g.fillStyle = '#070a08'; g.fillRect(0, 0, W, H);
-  const air = g.createRadialGradient(LX, -H * 0.05, 0, LX, -H * 0.05, W * 0.92);
+  // ── 1. THE AIR. Warm black everywhere, and a cool blue grey pouring in
+  //    around the hole. Every value on this page sits between those two.
+  g.fillStyle = '#0a0b08'; g.fillRect(0, 0, W, H);
+  const air = g.createRadialGradient(LX, -H * 0.02, 0, LX, -H * 0.02, W * 0.95);
   for (let i = 0; i <= 14; i++) {
     const u = i / 14;
-    air.addColorStop(u, _FW_HAZE[_fwA(0.30 * Math.pow(1 - u, 2.5))]);
+    air.addColorStop(u, _FW_AIR[_fwA(0.26 * Math.pow(1 - u, 2.2))]);
   }
   g.fillStyle = air; g.fillRect(0, 0, W, H);
-  // and a second, weaker pool of it thrown across the floor from where the
-  // shaft lands, which is what lets the arch on the left have a silhouette
-  const spill = g.createRadialGradient(GX - W * 0.14, GY - H * 0.05, 0, GX - W * 0.14, GY - H * 0.05, W * 0.60);
+  const spill = g.createRadialGradient(GX, GY - H * 0.03, 0, GX, GY - H * 0.03, W * 0.52);
   for (let i = 0; i <= 12; i++) {
     const u = i / 12;
-    spill.addColorStop(u, _FW_HAZE[_fwA(0.13 * Math.pow(1 - u, 3.0))]);
+    spill.addColorStop(u, _FW_AIR[_fwA(0.16 * Math.pow(1 - u, 2.6))]);
   }
   g.fillStyle = spill; g.fillRect(0, 0, W, H);
 
-  // ── THE FAR TANGLE: the canopy the light has to come through. Rooted along
-  //    the top and the upper corners, hanging down, thinning before it reaches
-  //    the middle of the page where the panels live. A corridor is left open
-  //    around the shaft, because the shaft has to get through something.
-  for (let i = 0; i < 38; i++) {
-    const r0 = _fwRnd(i * 2.7);
-    let x0, y0, ang;
-    if (i % 5 === 0) { x0 = -W * 0.05; y0 = -H * 0.05 + _fwRnd(i * 3.1) * H * 0.45; ang = 0.35 + r0 * 0.8; }
-    else if (i % 5 === 1) { x0 = W * 1.05; y0 = -H * 0.05 + _fwRnd(i * 4.3) * H * 0.45; ang = Math.PI - 0.35 - r0 * 0.8; }
-    else { x0 = -W * 0.04 + _fwRnd(i * 5.9) * W * 1.08; y0 = -H * 0.06; ang = 1.5707963 + (r0 - 0.5) * 1.7; }
-    const corridor = Math.abs(x0 - LX) / W;
-    const len = H * (0.30 + _fwRnd(i * 6.1) * 0.46) * (corridor < 0.055 ? 0.35 : 1);
-    const steps = 24;
-    const p = _fwMakeVine(i * 1.7 + 4, x0, y0, ang, len, steps, (_fwRnd(i * 8.8) - 0.5) * 3.0);
-    const w = W * (0.0028 + _fwRnd(i * 9.9) * 0.0072);
-    _fwNorms(p, steps + 1);
-    g.fillStyle = _FW_FAR[_fwA(0.80)];
-    _fwRibbon(g, p, steps + 1, w, w * 0.25, true, i + 1);
-    _fwLitEdge(g, p, steps + 1, w, w * 0.25, LX, LY, _FW_LIT[_fwA(0.16)], 1);
-    // branches, because a comb is not a tangle
-    const nb = _fwRnd(i * 1.3) > 0.35 ? 2 : 1;
-    for (let b = 0; b < nb; b++) {
-      const k = 5 + ((_fwRnd(i * 3.3 + b * 7.1) * 14) | 0);
-      const a = Math.atan2(p[k * 2 + 3] - p[k * 2 + 1], p[k * 2 + 2] - p[k * 2]) + (_fwRnd(i * 5.5 + b) - 0.5) * 2.1;
-      const bp = _fwMakeVine(i * 13.1 + b * 41 + 300, p[k * 2], p[k * 2 + 1], a, len * 0.62, 16,
-        (_fwRnd(i * 7.7 + b) - 0.5) * 3.8);
-      const bw = W * (0.0018 + _fwRnd(i * 2.2 + b) * 0.0038);
-      _fwNorms(bp, 17);
-      g.fillStyle = _FW_FAR[_fwA(0.78)];
-      _fwRibbon(g, bp, 17, bw, bw * 0.25, true, i + 100 + b);
-      _fwLitEdge(g, bp, 17, bw, bw * 0.25, LX, LY, _FW_LIT[_fwA(0.14)], 1);
-    }
+  // ── 2. THE CANOPY. One mass with a real silhouette, not thirty eight
+  //    separate sticks: a filled ceiling of root whose lower edge dips in big
+  //    lobes and RETREATS around the hole, which is what lets the shaft
+  //    through and explains where it comes from. Tendrils hang off that edge.
+  const edgeAt = (x) => {
+    const gap = Math.exp(-Math.pow((x - LX) / (W * 0.115), 2)) * H * 0.40;
+    return H * (0.235
+      + 0.075 * Math.sin(x / W * 5.3 + 1.3)
+      + 0.048 * Math.sin(x / W * 11.7 + 4.2)
+      + 0.030 * Math.sin(x / W * 19.1 + 2.1)
+      + 0.018 * Math.sin(x / W * 37.7 + 5.6)) - gap;
+  };
+  const cg = g.createLinearGradient(0, -H * 0.05, 0, H * 0.34);
+  cg.addColorStop(0, _FW_V0[_fwA(0.92)]);
+  cg.addColorStop(0.6, _FW_V1[_fwA(0.86)]);
+  cg.addColorStop(1, _FW_V2[_fwA(0.60)]);
+  // Lobes where the ceiling hangs lower, drawn FIRST and in the ceiling's own
+  // colour: put on top at half alpha they read as saucers parked underneath.
+  g.fillStyle = cg;
+  for (let i = 0; i < 18; i++) {
+    const x = -W * 0.02 + _fwRnd(i * 3.7 + 9) * W * 1.04;
+    const y = edgeAt(x);
+    if (y < H * 0.04) continue;
+    const rx = W * (0.035 + _fwRnd(i * 5.1) * 0.070), ry = H * (0.022 + _fwRnd(i * 8.3) * 0.060);
+    g.beginPath();
+    g.ellipse(x, y - ry * 0.55, rx, ry, 0, 0, 6.2831853);
+    g.fill();
   }
-  // air BETWEEN the layers: five ridges without it read as one ridge. Faded at
-  // BOTH ends, or the top of the band is a visible rule across the page, which
-  // is exactly what it was the first time.
-  for (let b = 0; b < 3; b++) {
-    const y = GY - H * (0.02 + b * 0.16);
-    const hz = g.createLinearGradient(0, y - H * 0.11, 0, y + H * 0.07);
-    hz.addColorStop(0, _FW_HAZE[0]);
-    hz.addColorStop(0.5, _FW_HAZE[_fwA(0.05 - b * 0.014)]);
-    hz.addColorStop(1, _FW_HAZE[0]);
-    g.fillStyle = hz; g.fillRect(0, y - H * 0.11, W, H * 0.18);
+  g.beginPath();
+  g.moveTo(-W * 0.02, -H * 0.05);
+  for (let x = -W * 0.02; x <= W * 1.02; x += W * 0.012) g.lineTo(x, Math.max(-H * 0.04, edgeAt(x)));
+  g.lineTo(W * 1.02, -H * 0.05);
+  g.closePath();
+  g.fill();
+  // the underside of the mass is the part that faces the room, so it takes a
+  // little of the light bouncing back up off the floor
+  g.strokeStyle = _FW_V2[40]; g.lineWidth = 2.4;
+  g.beginPath();
+  for (let x = -W * 0.02; x <= W * 1.02; x += W * 0.012) {
+    const y = edgeAt(x);
+    if (y < -H * 0.03) { g.moveTo(x, y); continue; }
+    if (x <= -W * 0.02) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.stroke();
+  // and the tendrils hanging out of it, longest where the mass hangs lowest
+  for (let i = 0; i < 34; i++) {
+    const x = -W * 0.02 + _fwRnd(i * 5.9) * W * 1.04;
+    const y = edgeAt(x);
+    if (y < H * 0.02) continue;                       // nothing hangs in the gap
+    const len = H * (0.10 + _fwRnd(i * 3.1) * 0.42) * (0.5 + y / (H * 0.4));
+    const p = _fwMakeVine(i * 1.7 + 4, x, y - 2, 1.5707963 + (_fwRnd(i * 7.3) - 0.5) * 1.1,
+      len, 20, (_fwRnd(i * 8.8) - 0.5) * 3.4);
+    const w = W * (0.0032 + _fwRnd(i * 9.9) * 0.0075);
+    _fwVine(g, p, 21, w, w * 0.22, LX, LY, _FW_PAL_FAR, i + 1, false);
+  }
+  // air BETWEEN the layers, faded at BOTH ends or the top of the band is a
+  // visible rule across the page
+  for (let b = 0; b < 2; b++) {
+    const y = GY - H * (0.01 + b * 0.17);
+    const hz = g.createLinearGradient(0, y - H * 0.12, 0, y + H * 0.08);
+    hz.addColorStop(0, _FW_AIR[0]);
+    hz.addColorStop(0.5, _FW_AIR[_fwA(0.055 - b * 0.018)]);
+    hz.addColorStop(1, _FW_AIR[0]);
+    g.fillStyle = hz; g.fillRect(0, y - H * 0.12, W, H * 0.20);
   }
 
-  // ── THE LINE THROUGH THE PAGE: a worn path running back from the bottom
-  //    left to the foot of the shaft. Drawn BEFORE the arch, because the arch
-  //    stands on it: the other way round the path fills over the arch's legs
-  //    and the landmark reads as a hoop floating in the air.
-  //    Its edges are walked with noise rather than ruled, and its far end
-  //    dissolves into the haze instead of stopping at a horizontal rule.
+  // ── 3. THE LINE THROUGH THE PAGE. A worn path back to the foot of the
+  //    shaft. Drawn before anything that stands on it.
   const NP = 26;
-  const cxAt = (u) => GX + (W * 0.20 - GX) * Math.pow(u, 1.30);
-  const hwAt = (u) => W * (0.020 + 0.250 * Math.pow(u, 1.50));
-  const yAt = (u) => GY + (H * 1.08 - GY) * Math.pow(u, 1.30);
+  const cxAt = (u) => GX + (W * 0.22 - GX) * Math.pow(u, 1.30);
+  const hwAt = (u) => W * (0.020 + 0.245 * Math.pow(u, 1.50));
+  const yAt = (u) => GY + (H * 1.08 - GY) * Math.pow(u, 1.28);
   const pg = g.createLinearGradient(0, H, 0, GY);
-  pg.addColorStop(0, '#0a0d0a');
-  pg.addColorStop(0.40, '#161b16');
-  pg.addColorStop(0.78, '#3a4136');
-  pg.addColorStop(1, '#848b78');
+  pg.addColorStop(0, '#0c0d0a');
+  pg.addColorStop(0.42, '#1b1d18');
+  pg.addColorStop(0.80, '#42473f');
+  pg.addColorStop(1, '#868da0');
   g.fillStyle = pg;
   g.beginPath();
   for (let i = 0; i <= NP; i++) {
@@ -26920,190 +27025,200 @@ function _fwFarSheet(W, H, LX, LY) {
     g.lineTo(cxAt(u) + hwAt(u) * (1 + (_fwRnd(i * 9.7) - 0.5) * 0.24),
              yAt(u) + (_fwRnd(i * 2.9) - 0.5) * H * 0.012 * u);
   }
-  g.closePath();
-  g.fill();
-  // the worn middle of it, where the light catches, only in the far half
-  const wg = g.createLinearGradient(0, yAt(0.55), 0, GY);
-  wg.addColorStop(0, _FW_HAZE[0]);
-  wg.addColorStop(1, _FW_HAZE[_fwA(0.15)]);
+  g.closePath(); g.fill();
+  const wg = g.createLinearGradient(0, yAt(0.60), 0, GY);
+  wg.addColorStop(0, _FW_AIR[0]);
+  wg.addColorStop(1, _FW_AIR[_fwA(0.17)]);
   g.fillStyle = wg;
   g.beginPath();
-  for (let i = 0; i <= NP; i++) { const u = i / NP; g.lineTo(cxAt(u) - hwAt(u) * 0.42, yAt(u)); }
-  for (let i = NP; i >= 0; i--) { const u = i / NP; g.lineTo(cxAt(u) + hwAt(u) * 0.42, yAt(u)); }
+  for (let i = 0; i <= NP; i++) { const u = i / NP; g.lineTo(cxAt(u) - hwAt(u) * 0.40, yAt(u)); }
+  for (let i = NP; i >= 0; i--) { const u = i / NP; g.lineTo(cxAt(u) + hwAt(u) * 0.40, yAt(u)); }
   g.closePath(); g.fill();
-  // cracks and stones, thinning with distance, each stone on its own shadow
-  g.lineCap = 'round';
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 34; i++) {
     const u = 0.10 + Math.pow(_fwRnd(i * 5.1), 1.3) * 0.90;
-    const x = cxAt(u) + (_fwRnd(i * 9.3) - 0.5) * hwAt(u) * 1.7;
+    const x = cxAt(u) + (_fwRnd(i * 9.3) - 0.5) * hwAt(u) * 1.5;
     const y = yAt(u);
-    const L = (4 + u * 62) * (0.4 + _fwRnd(i * 3.7));
+    const L = (4 + u * 60) * (0.4 + _fwRnd(i * 3.7));
     const a = 1.35 + (_fwRnd(i * 2.3) - 0.5) * 1.8;
-    g.strokeStyle = _FW_BLACK[_fwA(0.16 + u * 0.34)];
+    g.strokeStyle = _FW_V0[_fwA(0.18 + u * 0.34)];
     g.lineWidth = 0.6 + u * 1.9;
     g.beginPath(); g.moveTo(x, y);
     g.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L * 0.30);
     g.stroke();
   }
-  for (let i = 0; i < 26; i++) {
+  for (let i = 0; i < 24; i++) {
     const u = 0.05 + Math.pow(_fwRnd(i * 7.9 + 3), 1.6) * 0.95;
-    const x = cxAt(u) + (_fwRnd(i * 11.7) - 0.5) * hwAt(u) * 1.9;
+    const x = cxAt(u) + (_fwRnd(i * 11.7) - 0.5) * hwAt(u) * 1.7;
     const y = yAt(u);
     const r = (1.1 + u * 8) * (0.5 + _fwRnd(i * 4.1));
-    g.fillStyle = _FW_BLACK[_fwA(0.45)];
-    g.beginPath(); g.ellipse(x, y + r * 0.55, r * 1.5, r * 0.45, 0, 0, 6.2831853); g.fill();
-    g.fillStyle = _FW_FAR[_fwA(0.7 + u * 0.2)];
-    g.beginPath(); g.ellipse(x, y, r, r * 0.72, 0, 0, 6.2831853); g.fill();
-    g.fillStyle = _FW_LIT[_fwA(0.30 * (1 - u * 0.7))];
-    g.beginPath(); g.ellipse(x + r * 0.16, y - r * 0.26, r * 0.58, r * 0.28, 0, 0, 6.2831853); g.fill();
+    g.fillStyle = _FW_V0[_fwA(0.5)];
+    g.beginPath(); g.ellipse(x, y + r * 0.5, r * 1.5, r * 0.42, 0, 0, 6.2831853); g.fill();
+    g.fillStyle = _FW_STONE[_fwA(0.62 + u * 0.2)];
+    g.beginPath(); g.ellipse(x, y, r, r * 0.70, 0, 0, 6.2831853); g.fill();
+    g.fillStyle = _FW_LIT[_fwA(0.34 * (1 - u * 0.6))];
+    g.beginPath(); g.ellipse(x + r * 0.16, y - r * 0.26, r * 0.56, r * 0.26, 0, 0, 6.2831853); g.fill();
   }
-  // clumps of dead grass along both kerbs, so the edge of the path is a place
-  // where two things meet and not a line somebody drew
-  for (let i = 0; i < 58; i++) {
-    const u = 0.04 + Math.pow(_fwRnd(i * 3.3 + 11), 1.25) * 0.96;
-    const side = (i & 1) ? 1 : -1;
-    const x = cxAt(u) + side * hwAt(u) * (0.92 + _fwRnd(i * 5.7) * 0.20);
-    const y = yAt(u);
-    const hgt = (3 + u * 30) * (0.5 + _fwRnd(i * 8.1));
-    g.strokeStyle = _FW_BLACK[_fwA(0.5 + u * 0.4)];
-    g.lineWidth = Math.max(0.7, 0.5 + u * 1.5);
-    g.beginPath();
-    for (let k = 0; k < 4; k++) {
-      const a = -1.5707963 + (_fwRnd(i * 2.1 + k) - 0.5) * 1.5;
-      g.moveTo(x + (k - 1.5) * hgt * 0.16, y);
-      g.lineTo(x + (k - 1.5) * hgt * 0.16 + Math.cos(a) * hgt, y + Math.sin(a) * hgt);
-    }
-    g.stroke();
-  }
-  // the far end of it dissolves rather than stops. Faded at both ends.
-  const dis = g.createLinearGradient(0, GY - H * 0.14, 0, GY + H * 0.11);
-  dis.addColorStop(0, _FW_HAZE[0]);
-  dis.addColorStop(0.45, _FW_HAZE[_fwA(0.10)]);
-  dis.addColorStop(1, _FW_HAZE[0]);
-  g.fillStyle = dis; g.fillRect(0, GY - H * 0.14, W, H * 0.25);
 
-  // ── THE LANDMARK: a broken stone arch. One leg on the ground and the other
-  //    side snapped off in mid air, which is what makes it a ruin: two legs on
-  //    the floor is a horseshoe.
-  //    It stands in the RIGHT gutter, not on the left where it started, because
-  //    the GUI panels cover the left two thirds of this canvas and a landmark
-  //    nobody can see is not a landmark. Here it silhouettes against the shaft,
-  //    which is the brightest thing on the page, and the two of them balance
-  //    each other in the one band of the picture that is actually visible.
-  //    The whole thing is drawn mirrored, so its ONE lit edge ends up on the
-  //    side facing the light rather than on the side it was built for.
+  // ── 4. THE BANKS. This is the fix for everything looking detached: a mass
+  //    of root heaped along BOTH kerbs of the path, out of which every other
+  //    vine on this page grows. A vine that starts in mid air reads as a
+  //    scattered stick; a vine that comes up out of a bank reads as a plant.
+  const bank = [];
+  for (let side = -1; side <= 1; side += 2) {
+    // the heap itself first, so the vines have something to come out of
+    g.fillStyle = _FW_V0[92];
+    g.beginPath();
+    g.moveTo(cxAt(0.02) + side * hwAt(0.02) * 0.9, yAt(0.02));
+    for (let i = 1; i <= 22; i++) {
+      const u = i / 22;
+      const x = cxAt(u) + side * hwAt(u) * (1.02 + _fwRnd(i * 3.3 + side) * 0.10);
+      const rise = H * (0.008 + 0.055 * Math.pow(u, 1.7)) * (0.7 + _fwRnd(i * 7.1 + side) * 0.7);
+      g.lineTo(x, yAt(u) - rise);
+    }
+    for (let i = 22; i >= 0; i--) {
+      const u = i / 22;
+      g.lineTo(cxAt(u) + side * hwAt(u) * 2.6, yAt(u) + H * 0.03);
+    }
+    g.closePath(); g.fill();
+    // and the roots out of it
+    for (let i = 0; i < 15; i++) {
+      const u = 0.06 + Math.pow(_fwRnd(i * 4.7 + side * 2), 1.15) * 0.94;
+      const x = cxAt(u) + side * hwAt(u) * (0.95 + _fwRnd(i * 6.3) * 0.5);
+      const y = yAt(u);
+      const len = (H * 0.035 + H * 0.185 * u) * (0.5 + _fwRnd(i * 8.9 + side) * 1.0);
+      const ang = -1.5707963 + side * (0.25 + _fwRnd(i * 2.1) * 0.9) - side * 0.5;
+      const p = _fwMakeVine(i * 6.1 + 200 + side * 37, x, y + 3, ang, len, 20,
+        (_fwRnd(i * 9.7 + side) - 0.5) * 3.4);
+      const w = (W * 0.0020 + W * 0.0080 * u) * (0.55 + _fwRnd(i * 3.9) * 0.9);
+      const P = u > 0.62 ? _FW_PAL_NEAR : _FW_PAL_MID;
+      _fwVine(g, p, 21, w, w * 0.20, LX, LY, P, i + 60 + side * 5, true);
+      bank.push({ p, u, w, side });
+    }
+  }
+  // leaves on the banks, three batched passes for the whole heap
+  g.beginPath();
+  for (const b of bank) {
+    _fwNorms(b.p, 21);
+    for (let k = 3; k < 19; k += 4) {
+      const s = (k & 3) ? 1 : -1;
+      const a = Math.atan2(_fwNY[k], _fwNX[k]) * s;
+      _fwLeafShape(g, b.p[k * 2], b.p[k * 2 + 1], a, b.w * (2.6 + _fwRnd(b.u * 90 + k) * 2.4), b.w * 0.95);
+    }
+  }
+  g.fillStyle = _FW_L1[92]; g.fill();
+  g.beginPath();
+  for (const b of bank) {
+    _fwNorms(b.p, 21);
+    for (let k = 3; k < 19; k += 4) {
+      const s = (k & 3) ? 1 : -1;
+      const a = Math.atan2(_fwNY[k], _fwNX[k]) * s;
+      _fwLeafHalf(g, b.p[k * 2], b.p[k * 2 + 1], a, b.w * (2.6 + _fwRnd(b.u * 90 + k) * 2.4), b.w * 0.95, LX, LY);
+    }
+  }
+  g.fillStyle = _FW_L2[_fwA(0.42)]; g.fill();
+
+  // ── 5. THE LANDMARK: a ruined stone doorway in the RIGHT gutter, which is
+  //    one of the two bands of this canvas the GUI panels do not cover.
+  //    An arch was tried twice and kept losing: it is made of the same kind of
+  //    curve as everything else here, so it sank into the tangle. A doorway is
+  //    two uprights and a lintel, the only STRAIGHT edges anywhere on the
+  //    page, and it reads instantly for exactly that reason. Cold grey against
+  //    warm olive, half swallowed, with black through the opening: something
+  //    was built here, and it lost.
   {
-    const AX = W * 0.862, AB = H * 0.760, AH = H * 0.290, AW = W * 0.140;
-    g.save();
-    g.translate(AX, 0); g.scale(-1, 1); g.translate(-AX, 0);
-    // Its own patch of air, wide and strong: a ruin reads as a SILHOUETTE
-    // against something brighter, and the hole reads because the same
-    // something shows through it. Lighting the inside of the hole instead
-    // turned the arch inside out and it looked like a lit headstone.
-    const halo = g.createRadialGradient(AX + AW * 0.05, AB - AH * 0.62, 0, AX + AW * 0.05, AB - AH * 0.62, AW * 2.4);
+    const DX = W * 0.885, DB = H * 0.690, DH = H * 0.340, DW = W * 0.072;
+    const J = DW * 0.42;                                // how thick a jamb is
+    const halo = g.createRadialGradient(DX - DW * 0.2, DB - DH * 0.55, 0, DX - DW * 0.2, DB - DH * 0.55, DW * 2.6);
     for (let i = 0; i <= 12; i++) {
       const u = i / 12;
-      halo.addColorStop(u, _FW_HAZE[_fwA(0.20 * Math.pow(1 - u, 1.8))]);
+      halo.addColorStop(u, _FW_AIR[_fwA(0.13 * Math.pow(1 - u, 2.0))]);
     }
-    g.fillStyle = halo; g.fillRect(AX - AW * 2.5, AB - AH * 2.6, AW * 5.0, AH * 3.4);
+    g.fillStyle = halo; g.fillRect(DX - DW * 2.8, DB - DH * 2.2, DW * 5.6, DH * 2.8);
 
-    g.fillStyle = _FW_BLACK[_fwA(0.6)];
-    g.beginPath(); g.ellipse(AX - AW * 0.5, AB + 4, AW * 0.62, H * 0.020, 0, 0, 6.2831853); g.fill();
-    g.fillStyle = '#0b100d';
+    // the opening: a hole into the dark, drawn first so the stone sits on it
+    g.fillStyle = '#06070a';
     g.beginPath();
-    g.moveTo(AX - AW * 0.82, AB);                       // the standing leg
-    g.lineTo(AX - AW * 0.78, AB - AH * 0.56);
-    g.quadraticCurveTo(AX - AW * 0.70, AB - AH * 1.14, AX + AW * 0.10, AB - AH * 1.18);
-    g.quadraticCurveTo(AX + AW * 0.66, AB - AH * 1.13, AX + AW * 0.84, AB - AH * 0.84);
-    g.lineTo(AX + AW * 0.70, AB - AH * 0.80);           // and here it is broken
-    g.lineTo(AX + AW * 0.78, AB - AH * 0.72);
-    g.lineTo(AX + AW * 0.63, AB - AH * 0.68);
-    g.lineTo(AX + AW * 0.70, AB - AH * 0.60);
-    g.lineTo(AX + AW * 0.55, AB - AH * 0.62);
-    g.lineTo(AX + AW * 0.60, AB - AH * 0.55);
-    g.lineTo(AX + AW * 0.44, AB - AH * 0.60);
-    g.quadraticCurveTo(AX + AW * 0.42, AB - AH * 0.90, AX + AW * 0.10, AB - AH * 0.95);
-    g.quadraticCurveTo(AX - AW * 0.34, AB - AH * 0.92, AX - AW * 0.40, AB - AH * 0.54);
-    g.lineTo(AX - AW * 0.40, AB);
-    g.closePath();
-    g.fill();
-    // a thin cool rim where the light wraps the top of the standing leg
-    g.strokeStyle = _FW_LIT[_fwA(0.13)]; g.lineWidth = 1.2;
+    g.moveTo(DX - DW * 0.5, DB);
+    g.lineTo(DX - DW * 0.5, DB - DH * 0.74);
+    g.lineTo(DX + DW * 0.5, DB - DH * 0.74);
+    g.lineTo(DX + DW * 0.5, DB);
+    g.closePath(); g.fill();
+
+    const stone = (x, y, w, h, litLeft) => {
+      const lg = g.createLinearGradient(x, y, x + w, y);
+      lg.addColorStop(0, _FW_STONE[_fwA(litLeft ? 0.30 : 0.09)]);
+      lg.addColorStop(1, _FW_STONE[_fwA(litLeft ? 0.09 : 0.28)]);
+      g.fillStyle = lg;
+      g.fillRect(x, y, w, h);
+    };
+    // The light is up and to the LEFT of this doorway, so the left face of the
+    // left jamb takes it and the right jamb is nearly in silhouette.
+    stone(DX - DW * 0.5 - J, DB - DH * 0.80, J, DH * 0.80, true);
+    stone(DX + DW * 0.5, DB - DH * 0.80, J, DH * 0.80, false);
+    // the lintel, with a corner broken off the right end
+    stone(DX - DW * 0.5 - J, DB - DH * 0.98, DW + J * 2, DH * 0.185, true);
+    g.fillStyle = '#0a0b08';
     g.beginPath();
-    g.moveTo(AX - AW * 0.40, AB - AH * 0.54);
-    g.quadraticCurveTo(AX - AW * 0.34, AB - AH * 0.92, AX + AW * 0.10, AB - AH * 0.95);
+    g.moveTo(DX + DW * 0.5 + J, DB - DH * 0.98);
+    g.lineTo(DX + DW * 0.5 + J, DB - DH * 0.86);
+    g.lineTo(DX + DW * 0.12, DB - DH * 0.98);
+    g.closePath(); g.fill();
+    // the one lit edge: the left face and the top of the lintel, nothing else
+    g.strokeStyle = _FW_AIR[_fwA(0.20)]; g.lineWidth = 1.8;
+    g.beginPath();
+    g.moveTo(DX - DW * 0.5 - J, DB);
+    g.lineTo(DX - DW * 0.5 - J, DB - DH * 0.98);
+    g.lineTo(DX + DW * 0.12, DB - DH * 0.98);
     g.stroke();
-    // ONE lit edge: the light is up to the right, so the outer right curve and
-    // the broken face take it and nothing else does.
-    g.strokeStyle = _FW_LIT[_fwA(0.42)]; g.lineWidth = 2.2; g.lineJoin = 'round';
-    g.beginPath();
-    g.moveTo(AX - AW * 0.20, AB - AH * 1.175);
-    g.quadraticCurveTo(AX + AW * 0.66, AB - AH * 1.13, AX + AW * 0.84, AB - AH * 0.84);
-    g.stroke();
-    // the broken face is raw stone facing away from the light, so it gets a
-    // dim edge and not the bright one: a lit zigzag read as a paper arrow
-    g.strokeStyle = _FW_LIT[_fwA(0.14)]; g.lineWidth = 1.3;
-    g.beginPath();
-    g.moveTo(AX + AW * 0.84, AB - AH * 0.84);
-    g.lineTo(AX + AW * 0.70, AB - AH * 0.80);
-    g.lineTo(AX + AW * 0.78, AB - AH * 0.72);
-    g.lineTo(AX + AW * 0.63, AB - AH * 0.68);
-    g.lineTo(AX + AW * 0.70, AB - AH * 0.60);
-    g.lineTo(AX + AW * 0.55, AB - AH * 0.62);
-    g.lineTo(AX + AW * 0.60, AB - AH * 0.55);
-    g.stroke();
-    // coursing, going dark as the stone turns away from the light
-    g.strokeStyle = _FW_BLACK[_fwA(0.5)]; g.lineWidth = 1.3;
-    for (let k = 1; k < 5; k++) {
-      const yy = AB - AH * (0.10 + k * 0.105);
-      g.beginPath(); g.moveTo(AX - AW * 0.81, yy); g.lineTo(AX - AW * 0.41, yy); g.stroke();
+    // coursing, and cracks running down from the broken end
+    g.strokeStyle = _FW_V0[_fwA(0.45)]; g.lineWidth = 1.1;
+    for (let k = 1; k < 7; k++) {
+      const yy = DB - DH * (0.115 * k);
+      g.beginPath(); g.moveTo(DX - DW * 0.5 - J, yy); g.lineTo(DX - DW * 0.5, yy); g.stroke();
+      g.beginPath(); g.moveTo(DX + DW * 0.5, yy); g.lineTo(DX + DW * 0.5 + J, yy); g.stroke();
     }
+    g.beginPath();
+    g.moveTo(DX + DW * 0.30, DB - DH * 0.90);
+    g.lineTo(DX + DW * 0.42, DB - DH * 0.83);
+    g.stroke();
     // rubble at its foot, so it is standing in something
-    for (let i = 0; i < 14; i++) {
-      const x = AX + (_fwRnd(i * 6.1) - 0.62) * AW * 2.0;
-      const y = AB + (_fwRnd(i * 2.9) - 0.35) * H * 0.022;
-      const r = 3 + _fwRnd(i * 8.3) * 10;
-      g.fillStyle = _FW_BLACK[_fwA(0.88)];
-      g.beginPath(); g.ellipse(x, y, r, r * 0.6, _fwRnd(i) * 3, 0, 6.2831853); g.fill();
-      g.fillStyle = _FW_LIT[_fwA(0.18)];
-      g.beginPath(); g.ellipse(x + r * 0.22, y - r * 0.2, r * 0.52, r * 0.22, 0, 0, 6.2831853); g.fill();
+    for (let i = 0; i < 12; i++) {
+      const x = DX + (_fwRnd(i * 6.1) - 0.5) * DW * 2.4;
+      const y = DB + (_fwRnd(i * 2.9) - 0.3) * H * 0.020;
+      const r = 3 + _fwRnd(i * 8.3) * 9;
+      g.fillStyle = _FW_V0[_fwA(0.9)];
+      g.beginPath(); g.ellipse(x, y, r, r * 0.55, _fwRnd(i) * 3, 0, 6.2831853); g.fill();
+      g.fillStyle = _FW_STONE[_fwA(0.20)];
+      g.beginPath(); g.ellipse(x - r * 0.2, y - r * 0.18, r * 0.5, r * 0.2, 0, 0, 6.2831853); g.fill();
     }
-    g.restore();
-    // and the vines that are eating it, drawn unmirrored so their lit edges
-    // are computed against the real light like every other vine here
-    for (let i = 0; i < 8; i++) {
-      const p = _fwMakeVine(i * 13.7 + 61, AX - AW * 0.9 + _fwRnd(i * 3.1) * AW * 1.7, AB + 4,
-        -1.5707963 + (_fwRnd(i * 5.9) - 0.5) * 1.0, AH * (0.7 + _fwRnd(i * 2.7) * 0.8), 20,
+    // and the vines that are swallowing it, which is why it is a ruin
+    for (let i = 0; i < 9; i++) {
+      const p = _fwMakeVine(i * 13.7 + 61, DX - DW * 1.6 + _fwRnd(i * 3.1) * DW * 3.2, DB + 4,
+        -1.5707963 + (_fwRnd(i * 5.9) - 0.5) * 0.9, DH * (0.60 + _fwRnd(i * 2.7) * 0.80), 20,
         (_fwRnd(i * 7.1) - 0.5) * 3.6);
-      _fwNorms(p, 21);
-      g.fillStyle = _FW_DARK[_fwA(0.96)];
-      _fwRibbon(g, p, 21, W * 0.0058, W * 0.0014, true, i + 40);
-      _fwLitEdge(g, p, 21, W * 0.0058, W * 0.0014, LX, LY, _FW_LIT[_fwA(0.26)], 1);
+      _fwVine(g, p, 21, W * 0.0062, W * 0.0015, LX, LY, _FW_PAL_MID, i + 40, true);
     }
   }
   return cv;
 }
 
 // The shaft. A big soft gradient fill is 2 ms and a blit of the same pixels is
-// 0.11, so it is baked once and the breathing is done with globalAlpha.
+// 0.11, so it is baked once and the breathing is done with globalAlpha. Fifty
+// thin wedges on a bell curve, because five nested ones left five steps you
+// could count across the beam.
 function _fwShaftSheet(W, H) {
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
-  const GX = W * 0.700, GY = H * 0.640, TX = W * 0.735;
+  const GX = W * 0.680, GY = H * 0.615, TX = W * 0.720;
   g.globalCompositeOperation = 'lighter';
-  // Five nested wedges left five visible vertical steps across the beam.
-  // Fifty thin ones on a bell curve give the same shape with a cross section
-  // you cannot see the joins in. The vertical ramp keeps most of its value all
-  // the way down: fading it to nothing at the floor made the beam stop in mid
-  // air above its own pool.
-  const N = 25, T0 = W * 0.026, T1 = W * 0.150;
+  const N = 25, T0 = W * 0.028, T1 = W * 0.155;
   const wedge = (u, wid, a) => {
     const lg = g.createLinearGradient(0, -H * 0.06, 0, GY + H * 0.05);
-    lg.addColorStop(0, _FW_HAZE[_fwA(a * 1.20)]);
-    lg.addColorStop(0.45, _FW_HAZE[_fwA(a * 0.92)]);
-    lg.addColorStop(0.88, _FW_HAZE[_fwA(a * 0.62)]);
-    lg.addColorStop(1, _FW_HAZE[_fwA(a * 0.30)]);
+    lg.addColorStop(0, _FW_AIR[_fwA(a * 1.20)]);
+    lg.addColorStop(0.45, _FW_AIR[_fwA(a * 0.92)]);
+    lg.addColorStop(0.88, _FW_AIR[_fwA(a * 0.60)]);
+    lg.addColorStop(1, _FW_AIR[_fwA(a * 0.28)]);
     g.fillStyle = lg;
     g.beginPath();
     g.moveTo(TX + T0 * u - T0 * wid, -H * 0.06);
@@ -27113,21 +27228,15 @@ function _fwShaftSheet(W, H) {
     g.closePath();
     g.fill();
   };
-  for (let k = -N; k <= N; k++) {
-    const u = k / N;
-    wedge(u, 1.05 / N, 0.115 * Math.exp(-u * u * 1.9));
-  }
-  // and four brighter streaks inside it, because a shaft coming through a
-  // tangle is not smooth: the canopy is what makes the rays
-  for (let k = 0; k < 4; k++) {
+  for (let k = -N; k <= N; k++) wedge(k / N, 1.05 / N, 0.105 * Math.exp(-(k / N) * (k / N) * 1.9));
+  for (let k = 0; k < 5; k++) {
     const u = (_fwRnd(k * 9.1 + 3) - 0.5) * 1.5;
-    wedge(u, (0.5 + _fwRnd(k * 4.7) * 1.2) / N, 0.075 * Math.exp(-u * u * 1.4));
+    wedge(u, (0.5 + _fwRnd(k * 4.7) * 1.2) / N, 0.070 * Math.exp(-u * u * 1.4));
   }
-  // the pool where it lands
   const pool = g.createRadialGradient(GX, GY, 0, GX, GY, W * 0.19);
   for (let i = 0; i <= 14; i++) {
     const u = i / 14;
-    pool.addColorStop(u, _FW_HAZE[_fwA(0.40 * Math.pow(1 - u, 2.4))]);
+    pool.addColorStop(u, _FW_AIR[_fwA(0.42 * Math.pow(1 - u, 2.4))]);
   }
   g.fillStyle = pool;
   g.save(); g.translate(GX, GY); g.scale(1, 0.38); g.translate(-GX, -GY);
@@ -27136,44 +27245,52 @@ function _fwShaftSheet(W, H) {
   return cv;
 }
 
-// The near bank: the foreground plane, flat black, so the page has a near, a
-// mid and a far instead of only the last two.
+// The near plane: a thicket packed along the bottom and both sides, flat black
+// because it is the thing closest to you and nothing lights it. This is what
+// gives the page a near, a mid and a far instead of only the last two.
 function _fwNearSheet(W, H, LX, LY) {
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
-  for (let i = 0; i < 16; i++) {
-    const side = i % 4;
+  g.lineJoin = 'round';
+  const P = { body: _FW_V0[99], mid: _FW_V1[70], lit: _FW_V2[45], lw: 1.6 };
+  const vs = [];
+  for (let i = 0; i < 20; i++) {
+    const side = i % 5;
     let x0, y0, ang;
-    if (side === 0) { x0 = -W * 0.04; y0 = H * (0.55 + _fwRnd(i * 2.2) * 0.55); ang = -0.5 + _fwRnd(i) * 0.9; }
-    else if (side === 1) { x0 = W * 1.04; y0 = H * (0.55 + _fwRnd(i * 3.3) * 0.55); ang = Math.PI + 0.5 - _fwRnd(i) * 0.9; }
-    else { x0 = _fwRnd(i * 4.4) * W; y0 = H * 1.05; ang = -1.5707963 + (_fwRnd(i * 5.5) - 0.5) * 1.5; }
-    const p = _fwMakeVine(i * 2.9 + 101, x0, y0, ang, W * (0.16 + _fwRnd(i * 6.6) * 0.30), 22,
+    if (side === 0) { x0 = -W * 0.05; y0 = H * (0.55 + _fwRnd(i * 2.2) * 0.56); ang = -0.5 + _fwRnd(i) * 0.85; }
+    else if (side === 1) { x0 = W * 1.05; y0 = H * (0.55 + _fwRnd(i * 3.3) * 0.56); ang = Math.PI + 0.5 - _fwRnd(i) * 0.85; }
+    else { x0 = -W * 0.05 + _fwRnd(i * 4.4) * W * 1.1; y0 = H * 1.10; ang = -1.5707963 + (_fwRnd(i * 5.5) - 0.5) * 1.4; }
+    const p = _fwMakeVine(i * 2.9 + 101, x0, y0, ang, W * (0.11 + _fwRnd(i * 6.6) * 0.24), 22,
       (_fwRnd(i * 7.7) - 0.5) * 3.0);
-    _fwNorms(p, 23);
-    const w = W * (0.009 + _fwRnd(i * 8.8) * 0.014);
-    g.fillStyle = _FW_BLACK[_fwA(0.97)];
-    _fwRibbon(g, p, 23, w, w * 0.22, true, i + 70);
-    _fwLitEdge(g, p, 23, w, w * 0.22, LX, LY, _FW_LIT[_fwA(0.10)], 1.2);
+    const w = W * (0.008 + _fwRnd(i * 8.8) * 0.014);
+    _fwVine(g, p, 23, w, w * 0.20, LX, LY, P, i + 70, true);
+    vs.push({ p, w });
   }
-  // a couple of enormous near leaves crossing the bottom corners: most of them
-  // small and a few huge, never an even spread
-  g.fillStyle = _FW_BLACK[_fwA(0.95)];
   g.beginPath();
-  _fwLeaf(g, -W * 0.02, H * 1.02, -0.62, W * 0.24, W * 0.055);
-  _fwLeaf(g, W * 0.06, H * 1.04, -1.05, W * 0.19, W * 0.042);
-  _fwLeaf(g, W * 1.02, H * 1.02, Math.PI + 0.66, W * 0.26, W * 0.06);
+  for (const v of vs) {
+    _fwNorms(v.p, 23);
+    for (let k = 3; k < 21; k += 4) {
+      const s = (k & 3) ? 1 : -1;
+      _fwLeafShape(g, v.p[k * 2], v.p[k * 2 + 1], Math.atan2(_fwNY[k], _fwNX[k]) * s,
+        v.w * (2.4 + _fwRnd(v.w * 31 + k) * 2.2), v.w * 0.9);
+    }
+  }
+  g.fillStyle = _FW_V0[97]; g.fill();
+  g.fillStyle = _FW_V0[96];
+  g.beginPath();
+  _fwLeafShape(g, -W * 0.02, H * 1.02, -0.62, W * 0.25, W * 0.058);
+  _fwLeafShape(g, W * 0.07, H * 1.05, -1.05, W * 0.20, W * 0.044);
+  _fwLeafShape(g, W * 1.02, H * 1.02, Math.PI + 0.66, W * 0.27, W * 0.062);
   g.fill();
-  // vignette: the frame is dark because the light is at the far end
-  const vg = g.createRadialGradient(W * 0.66, H * 0.5, 0, W * 0.66, H * 0.5, Math.hypot(W, H) * 0.62);
+  const vg = g.createRadialGradient(W * 0.66, H * 0.46, 0, W * 0.66, H * 0.46, Math.hypot(W, H) * 0.60);
   for (let i = 0; i <= 12; i++) {
     const u = i / 12;
-    vg.addColorStop(u, 'rgba(3,5,4,' + (0.93 * Math.pow(u, 2.0)).toFixed(3) + ')');
+    vg.addColorStop(u, 'rgba(5,6,4,' + (0.90 * Math.pow(u, 2.1)).toFixed(3) + ')');
   }
   g.fillStyle = vg; g.fillRect(0, 0, W, H);
   return cv;
 }
-
 function _drawFloweyPattern(canvas, ctx, W, H, t) {
   const fresh = _drawFloweyPattern._lt === undefined;
   if (!fresh && t - _drawFloweyPattern._lt >= 0 && t - _drawFloweyPattern._lt < 0.033) return;
@@ -27183,8 +27300,8 @@ function _drawFloweyPattern(canvas, ctx, W, H, t) {
 
   // The one light, named: the hole is above the top of the frame and to the
   // right, and every lit edge below takes its sign from this point.
-  const LX = W * 0.735, LY = -H * 0.30;
-  const GX = W * 0.700, GY = H * 0.640;
+  const LX = W * 0.720, LY = -H * 0.26;
+  const GX = W * 0.680, GY = H * 0.615;
 
   const ev = _fwEvTick(t);
   const P = _drawFloweyPattern;
@@ -27196,7 +27313,7 @@ function _drawFloweyPattern(canvas, ctx, W, H, t) {
     P._w = W; P._h = H;
   }
 
-  // ── the palette events, which every layer downstream reads ──
+  // ── the three states every layer downstream reads ──
   if (ev && ev.name === 'wilt') {
     const q = ev.p;
     _fwSat = q < 0.30 ? 1 - q / 0.30 : q < 0.55 ? 0 : (q - 0.55) / 0.45;
@@ -27205,37 +27322,47 @@ function _drawFloweyPattern(canvas, ctx, W, H, t) {
     const q = ev.p;
     _fwDim = q < 0.22 ? q / 0.22 : q < 0.62 ? 1 : 1 - (q - 0.62) / 0.38;
   } else _fwDim += (0 - _fwDim) * Math.min(1, dt * 5);
+  if (ev && ev.name === 'stare') {
+    const q = ev.p;
+    _fwStare = q < 0.16 ? q / 0.16 : q < 0.68 ? 1 : 1 - (q - 0.68) / 0.32;
+  } else _fwStare += (0 - _fwStare) * Math.min(1, dt * 3);
 
-  // ── the mid vines, the ones that are still moving ──
+  // ── the vines that are still moving, ROOTED IN THE BANKS along the path.
+  //    They start where the heap is, not at the edge of the canvas, which is
+  //    the whole difference between a plant and a stick lying on a picture.
   if (!P._vines) {
+    const cxAt = (u) => GX + (W * 0.22 - GX) * Math.pow(u, 1.30);
+    const hwAt = (u) => W * (0.020 + 0.245 * Math.pow(u, 1.50));
+    const yAt = (u) => GY + (H * 1.08 - GY) * Math.pow(u, 1.28);
     const vs = [];
-    for (let i = 0; i < 11; i++) {
-      const side = i % 3;
-      let x0, y0, ang;
-      if (side === 0) { x0 = -W * 0.03; y0 = H * (0.28 + _fwRnd(i * 3.1) * 0.66); ang = -0.55 + _fwRnd(i * 2.2) * 1.0; }
-      else if (side === 1) { x0 = W * 1.03; y0 = H * (0.24 + _fwRnd(i * 4.2) * 0.70); ang = Math.PI + 0.55 - _fwRnd(i * 5.1) * 1.0; }
-      else { x0 = W * (0.05 + _fwRnd(i * 6.3) * 0.9); y0 = H * 1.03; ang = -1.5707963 + (_fwRnd(i * 7.4) - 0.5) * 1.3; }
-      const len = W * (0.16 + _fwRnd(i * 8.5) * 0.26);
-      const steps = 24;
-      const p = _fwMakeVine(i * 5.7 + 211, x0, y0, ang, len, steps, (_fwRnd(i * 9.6) - 0.5) * 3.2);
+    for (let i = 0; i < 12; i++) {
+      const side = (i & 1) ? 1 : -1;
+      const u = 0.22 + _fwRnd(i * 3.1) * 0.76;
+      const x0 = cxAt(u) + side * hwAt(u) * (0.98 + _fwRnd(i * 4.2) * 0.55);
+      const y0 = yAt(u) + 2;
+      const ang = -1.5707963 + side * (0.15 + _fwRnd(i * 5.1) * 1.05) - side * 0.45;
+      const len = (H * 0.05 + H * 0.215 * u) * (0.6 + _fwRnd(i * 8.5) * 0.9);
+      const steps = 22;
+      const p = _fwMakeVine(i * 5.7 + 411, x0, y0, ang, len, steps, (_fwRnd(i * 9.6) - 0.5) * 3.2);
       const dx = p[steps * 2] - x0, dy = p[steps * 2 + 1] - y0;
       const m = Math.hypot(dx, dy) || 1;
-      vs.push({ p, n: steps + 1, w: W * (0.005 + _fwRnd(i * 2.7) * 0.010),
-                amp: W * (0.010 + _fwRnd(i * 3.9) * 0.020), sp: 0.35 + _fwRnd(i * 4.8) * 0.5,
+      vs.push({ p, n: steps + 1, u,
+                w: (W * 0.0020 + W * 0.0072 * u) * (0.6 + _fwRnd(i * 2.7) * 0.85),
+                amp: W * (0.006 + _fwRnd(i * 3.9) * 0.016) * (0.4 + u),
+                sp: 0.35 + _fwRnd(i * 4.8) * 0.55,
                 ph: _fwRnd(i * 5.4) * 6.283, sx: -dy / m, sy: dx / m,
                 out: new Float32Array((steps + 1) * 2) });
     }
     P._vines = vs;
-    // the flowers ride on the vines, so they are placed once with them
-    // Flowers spaced ALONG each vine rather than rolled at random: two random
-    // positions on a short vine land on top of each other and read as a bunch
-    // of berries, which is what happened the first time.
+    // Flowers spaced ALONG each vine by index: two random positions on one
+    // short vine land on top of each other and read as a bunch of berries.
     const fl = [];
     for (let i = 0; i < vs.length; i++) {
-      const nfl = 1 + ((_fwRnd(i * 11.3) * 2.4) | 0);
+      const nfl = 1 + ((_fwRnd(i * 11.3) * 2.2) | 0);
       for (let k = 0; k < nfl; k++) {
-        fl.push({ v: i, at: 0.38 + (k + _fwRnd(i * 3.3 + k * 7.1) * 0.7) / nfl * 0.60,
-                  r: W * (0.007 + Math.pow(_fwRnd(i * 5.5 + k), 2.0) * 0.017),
+        fl.push({ v: i, at: 0.40 + (k + _fwRnd(i * 3.3 + k * 7.1) * 0.72) / nfl * 0.58,
+                  r: vs[i].w * (1.05 + _fwRnd(i * 5.5 + k) * 0.85),
+                  lean: (_fwRnd(i * 2.9 + k * 5.3) - 0.5) * 1.5,
                   ph: _fwRnd(i * 7.7 + k * 2.2) * 6.283 });
       }
     }
@@ -27243,6 +27370,7 @@ function _drawFloweyPattern(canvas, ctx, W, H, t) {
   }
 
   ctx.clearRect(0, 0, W, H);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
   ctx.drawImage(P._far, 0, 0);
 
   _fwEvBack(ctx, ev, W, H, LX, LY, GX, GY, t);
@@ -27250,161 +27378,127 @@ function _drawFloweyPattern(canvas, ctx, W, H, t) {
   // the shaft, breathing, and the dust that is only visible inside it
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = (0.72 + Math.sin(t * 0.45) * 0.11) * (1 - _fwDim * 0.94);
+  ctx.globalAlpha = (0.74 + Math.sin(t * 0.45) * 0.10) * (1 - _fwDim * 0.94);
   ctx.drawImage(P._shaft, 0, 0);
   ctx.globalAlpha = 1;
   if (_fwDim < 0.8) {
     ctx.beginPath();
-    for (let i = 0; i < 46; i++) {
+    for (let i = 0; i < 44; i++) {
       const ph = _fwRnd(i * 2.3) * 6.283;
       const yy = ((_fwRnd(i * 3.7) * H + t * (5 + _fwRnd(i * 4.9) * 13)) % (GY + H * 0.1)) - H * 0.04;
       const u = Math.max(0, yy / GY);
-      const sp = W * (0.020 + 0.088 * u);
-      const xx = GX + (0.735 - 0.700) * W * (1 - u) + Math.sin(t * 0.5 + ph) * sp * 0.9
+      const sp = W * (0.022 + 0.092 * u);
+      const xx = GX + (0.720 - 0.680) * W * (1 - u) + Math.sin(t * 0.5 + ph) * sp * 0.9
                  + (_fwRnd(i * 5.1) - 0.5) * sp * 1.3;
       const r = (0.7 + _fwRnd(i * 6.2) * 1.5) * (0.5 + u);
       ctx.moveTo(xx + r, yy); ctx.arc(xx, yy, r, 0, 6.2831853);
     }
-    ctx.fillStyle = _FW_HAZE[_fwA((0.22 + Math.sin(t * 1.7) * 0.05) * (1 - _fwDim))];
+    ctx.fillStyle = _FW_AIR[_fwA((0.24 + Math.sin(t * 1.7) * 0.05) * (1 - _fwDim))];
     ctx.fill();
   }
   ctx.restore();
 
-  // ── the vines, swaying, each with its one lit edge ──
+  // ── the vines ──
   const closeK = ev && ev.name === 'close' ? Math.sin(Math.PI * Math.min(1, ev.p / 0.86)) : 0;
+  const dimL = 1 - _fwDim * 0.8;
+  const PAL = { body: _FW_V1[95], mid: _FW_V2[_fwA(0.80 * dimL)], lit: _FW_V3[_fwA(0.52 * dimL)], lw: 1.5 };
   for (let i = 0; i < P._vines.length; i++) {
     const v = P._vines[i];
-    _fwSway(v, t, v.out, closeK * 0.32, W * 0.62, H * 0.46);
-    _fwNorms(v.out, v.n);
-    ctx.fillStyle = _FW_DARK[_fwA(0.94)];
-    _fwRibbon(ctx, v.out, v.n, v.w, v.w * 0.22, true, i + 5);
-    _fwLitEdge(ctx, v.out, v.n, v.w, v.w * 0.22, LX, LY, _FW_LIT[_fwA(0.26 * (1 - _fwDim * 0.85))], 1.3);
+    _fwSway(v, t, v.out, closeK * 0.26, W * 0.60, H * 0.44);
+    _fwVine(ctx, v.out, v.n, v.w, v.w * 0.20, LX, LY, PAL, i + 5, true);
   }
 
-  // ── the leaves, one path, one fill ──
-  ctx.beginPath();
+  // ── leaves: whole, lit half, midrib. Three batched paths for all of them. ──
+  const LEAF = [];
   for (let i = 0; i < P._vines.length; i++) {
     const v = P._vines[i];
-    _fwNorms(v.out, v.n);            // the scratch holds the LAST vine, not this one
-    for (let k = 2; k < v.n - 2; k += 4) {
+    _fwNorms(v.out, v.n);
+    for (let k = 3; k < v.n - 2; k += 4) {
       const s = (k & 3) ? 1 : -1;
-      const x = v.out[k * 2], y = v.out[k * 2 + 1];
-      const a = Math.atan2(_fwNY[k], _fwNX[k]) * s + Math.sin(t * 0.8 + i + k) * 0.16;
-      _fwLeaf(ctx, x, y, a, v.w * (2.6 + _fwRnd(i * 3.1 + k) * 2.2), v.w * 0.9);
+      const a = Math.atan2(_fwNY[k], _fwNX[k]) * s + Math.sin(t * 0.8 + i + k) * 0.14;
+      LEAF.push(v.out[k * 2], v.out[k * 2 + 1], a,
+                v.w * (2.6 + _fwRnd(i * 3.1 + k) * 2.3), v.w * 0.95);
     }
   }
-  ctx.fillStyle = _FW_LEAF[_fwA(0.9)];
-  ctx.fill();
+  ctx.beginPath();
+  for (let i = 0; i < LEAF.length; i += 5) _fwLeafShape(ctx, LEAF[i], LEAF[i+1], LEAF[i+2], LEAF[i+3], LEAF[i+4]);
+  ctx.fillStyle = _FW_L1[95]; ctx.fill();
+  ctx.beginPath();
+  for (let i = 0; i < LEAF.length; i += 5) _fwLeafHalf(ctx, LEAF[i], LEAF[i+1], LEAF[i+2], LEAF[i+3], LEAF[i+4], LX, LY);
+  ctx.fillStyle = _FW_L2[_fwA(0.50 * dimL)]; ctx.fill();
+  ctx.beginPath();
+  for (let i = 0; i < LEAF.length; i += 5) _fwLeafRib(ctx, LEAF[i], LEAF[i+1], LEAF[i+2], LEAF[i+3]);
+  ctx.strokeStyle = _FW_V0[70]; ctx.lineWidth = 1; ctx.stroke();
 
-  // ── the flowers: petals in one path, centres in a second, pupils in a third.
-  //    They turn to look at you, and the bloom event opens them in a wave
-  //    travelling out from the light.
+  // ── the flowers. Stem, calyx, petals, lit rim, middle, stamens, pupil:
+  //    seven batched passes for the whole crop, however many there are. ──
   const bloom = ev && ev.name === 'bloom' ? ev.p : -1;
   _bgRect(canvas);                   // the two canvases do not share coordinates
   const [mx, my] = _bgAt(canvas, W, H, _fwMX, _fwMY);
-  ctx.beginPath();
   const fls = P._flowers;
   for (let i = 0; i < fls.length; i++) {
     const f = fls[i];
     const v = P._vines[f.v];
     const k = Math.min(v.n - 1, (f.at * (v.n - 1)) | 0);
-    f._x = v.out[k * 2]; f._y = v.out[k * 2 + 1];
-    let open = 0.72 + Math.sin(t * 0.9 + f.ph) * 0.13;
+    const bx = v.out[k * 2], by = v.out[k * 2 + 1];
+    const a = Math.atan2(v.out[k * 2 + 1] - v.out[k * 2 - 1], v.out[k * 2] - v.out[k * 2 - 2]) + f.lean;
+    const sl = f.r * 1.5;
+    f._bx = bx; f._by = by;
+    f._x = bx + Math.cos(a) * sl + Math.sin(t * 0.7 + f.ph) * f.r * 0.14;
+    f._y = by + Math.sin(a) * sl - f.r * 0.35;
+    let open = 0.76 + Math.sin(t * 0.9 + f.ph) * 0.11 + _fwStare * 0.22;
     if (bloom >= 0) {
       const d = Math.hypot(f._x - GX, f._y - GY) / Math.hypot(W, H);
       const w = bloom * 1.5 - d;
-      if (w > 0 && w < 0.55) open = 0.72 + Math.sin((w / 0.55) * Math.PI) * 0.62;
-      else if (w >= 0.55) open = 0.72;
+      if (w > 0 && w < 0.55) open = 0.76 + Math.sin((w / 0.55) * Math.PI) * 0.60;
     }
     f._o = open;
-    _fwPetals(ctx, f._x, f._y, f.r, open, t * 0.22 + f.ph);
   }
-  ctx.fillStyle = _fwGold(0.82 * (1 - _fwDim * 0.72));
-  ctx.fill();
   ctx.beginPath();
-  for (let i = 0; i < fls.length; i++) _fwDisc(ctx, fls[i]._x, fls[i]._y, fls[i].r * 0.46);
-  ctx.fillStyle = _FW_ROT[_fwA(0.9)];
-  ctx.fill();
+  for (const f of fls) { ctx.moveTo(f._bx, f._by); ctx.lineTo(f._x, f._y); }
+  ctx.strokeStyle = _FW_V2[_fwA(0.75 * dimL)]; ctx.lineWidth = Math.max(1.4, W * 0.0022); ctx.stroke();
   ctx.beginPath();
-  for (let i = 0; i < fls.length; i++) {
-    const f = fls[i];
+  for (const f of fls) _fwDisc(ctx, f._x, f._y, f.r * 0.82);
+  ctx.fillStyle = _FW_L1[92]; ctx.fill();
+  ctx.beginPath();
+  for (const f of fls) _fwPetals(ctx, f._x, f._y, f.r, f._o, t * 0.20 + f.ph);
+  ctx.fillStyle = _fwGold(0.90 * dimL); ctx.fill();
+  ctx.beginPath();
+  for (const f of fls) _fwPetalRims(ctx, f._x, f._y, f.r, f._o, t * 0.20 + f.ph, LX, LY);
+  ctx.fillStyle = _fwGoldH(0.30 * dimL); ctx.fill();
+  ctx.beginPath();
+  for (const f of fls) _fwDisc(ctx, f._x, f._y, f.r * 0.44);
+  ctx.fillStyle = _FW_ROT[92]; ctx.fill();
+  ctx.beginPath();
+  for (const f of fls) _fwStamens(ctx, f._x, f._y, f.r * 0.44, t * 0.2 + f.ph);
+  ctx.fillStyle = _fwGoldH(_fwStare > 0.02 ? 0.10 : 0.42); ctx.fill();
+  ctx.beginPath();
+  for (const f of fls) {
     const dx = mx - f._x, dy = my - f._y, m = Math.hypot(dx, dy) || 1;
-    const g = Math.min(f.r * 0.20, m * 0.5);
-    _fwDisc(ctx, f._x + dx / m * g, f._y + dy / m * g, f.r * 0.18);
+    const g = Math.min(f.r * (0.16 + _fwStare * 0.10), m * 0.5);
+    _fwDisc(ctx, f._x + dx / m * g, f._y + dy / m * g, f.r * (0.17 + _fwStare * 0.09));
   }
-  ctx.fillStyle = _FW_BLACK[_fwA(0.95)];
-  ctx.fill();
+  ctx.fillStyle = _FW_V0[97]; ctx.fill();
 
   ctx.drawImage(P._near, 0, 0);
 
   _fwEvFront(ctx, ev, W, H, LX, LY, GX, GY, t);
 
   if (_fwDim > 0.005) {
-    ctx.fillStyle = 'rgba(2,4,3,' + (_fwDim * 0.66).toFixed(3) + ')';
+    ctx.fillStyle = 'rgba(3,4,3,' + (_fwDim * 0.66).toFixed(3) + ')';
     ctx.fillRect(0, 0, W, H);
   }
 }
 
-// Events drawn BEHIND the near bank: they belong to the place, not to the glass.
+// Events drawn BEHIND the near thicket: they belong to the place, not the glass.
 function _fwEvBack(ctx, ev, W, H, LX, LY, GX, GY, t) {
   if (!ev) return;
-
-  // ── FACE. The character, as architecture. The tangle around the shaft
-  //    stops being a tangle for two seconds: two flower eyes flanking the
-  //    light and a grin under it, drawn out of the same material, then gone.
-  if (ev.name === 'face') {
-    const q = ev.p;
-    const a = q < 0.22 ? q / 0.22 : q > 0.74 ? 1 - (q - 0.74) / 0.26 : 1;
-    if (a <= 0.01) return;
-    const S = W * 0.40;
-    const CX = GX, CY = GY - S * 0.36;
-    ctx.save();
-    // Two pale fields with a dark hole in each: an eye is that and nothing
-    // else. A dark socket ring under them made three concentric circles and
-    // the whole face read as a pair of archery targets.
-    ctx.fillStyle = _FW_LIT[_fwA(a * 0.52)];
-    ctx.beginPath();
-    ctx.ellipse(CX - S * 0.40, CY - S * 0.10, S * 0.155, S * 0.185, -0.16, 0, 6.2831853);
-    ctx.ellipse(CX + S * 0.40, CY - S * 0.10, S * 0.155, S * 0.185, 0.16, 0, 6.2831853);
-    ctx.fill();
-    ctx.fillStyle = _FW_BLACK[_fwA(a * 0.97)];
-    ctx.beginPath();
-    const jx = (ev.r0 - 0.5) * S * 0.07, jy = (ev.r1 - 0.5) * S * 0.06;
-    ctx.ellipse(CX - S * 0.40 + jx, CY - S * 0.10 + jy, S * 0.070, S * 0.092, 0, 0, 6.2831853);
-    ctx.ellipse(CX + S * 0.40 + jx, CY - S * 0.10 + jy, S * 0.070, S * 0.092, 0, 0, 6.2831853);
-    ctx.fill();
-    // the grin: a wide arc of teeth, which is the only straight-edged thing
-    // anywhere on this page and reads instantly because of it
-    const GW = S * 0.96, GY2 = CY + S * 0.34, GH = S * 0.24;
-    ctx.fillStyle = _FW_BLACK[_fwA(a * 0.92)];
-    ctx.beginPath();
-    ctx.moveTo(CX - GW * 0.5, GY2 - GH * 0.30);
-    ctx.quadraticCurveTo(CX, GY2 + GH * 0.95, CX + GW * 0.5, GY2 - GH * 0.30);
-    ctx.quadraticCurveTo(CX, GY2 + GH * 0.30, CX - GW * 0.5, GY2 - GH * 0.30);
-    ctx.fill();
-    ctx.fillStyle = _FW_HAZE[_fwA(a * 0.55)];
-    ctx.beginPath();
-    const teeth = 9;
-    for (let i = 0; i < teeth; i++) {
-      const u0 = i / teeth, u1 = (i + 1) / teeth;
-      const bx0 = CX - GW * 0.5 + GW * u0, bx1 = CX - GW * 0.5 + GW * u1;
-      const by0 = GY2 - GH * 0.30 + Math.sin(u0 * Math.PI) * GH * 0.32;
-      const by1 = GY2 - GH * 0.30 + Math.sin(u1 * Math.PI) * GH * 0.32;
-      const tipY = GY2 - GH * 0.30 + Math.sin((u0 + u1) * 0.5 * Math.PI) * GH * 0.72;
-      ctx.moveTo(bx0, by0); ctx.lineTo(bx1, by1); ctx.lineTo((bx0 + bx1) * 0.5, tipY);
-      ctx.closePath();
-    }
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // ── DARK. Something passes over the hole. Drawn behind so the near bank
-  //    stays black through it and the page loses its depth for a moment.
+  // ── DARK. Something passes over the hole, so it is drawn up at the top,
+  //    behind everything, and the room loses its depth for a moment.
   if (ev.name === 'dark') {
-    const q = ev.p;
-    const x = -W * 0.4 + q * W * 1.9;
+    const x = -W * 0.4 + ev.p * W * 1.9;
     ctx.save();
-    ctx.fillStyle = _FW_BLACK[_fwA(0.85)];
+    ctx.fillStyle = _FW_V0[_fwA(0.9)];
     ctx.beginPath();
     ctx.ellipse(x, -H * 0.02, W * 0.34, H * 0.20, 0.2, 0, 6.2831853);
     ctx.fill();
@@ -27412,8 +27506,31 @@ function _fwEvBack(ctx, ev, W, H, LX, LY, GX, GY, t) {
   }
 }
 
-// Events drawn IN FRONT of the near bank: things that cross the glass.
+// Events drawn IN FRONT of the near thicket: things that cross the glass.
 function _fwEvFront(ctx, ev, W, H, LX, LY, GX, GY, t) {
+  // ── STARE. Everything on the page stops moving at once and turns to look
+  //    at you, and the room closes in a little while it does. Stillness is
+  //    the event: it is the only one of the seven that is an absence.
+  if (_fwStare > 0.01) {
+    const vg = _fwEvFront._vg && _fwEvFront._vgW === W && _fwEvFront._vgH === H
+      ? _fwEvFront._vg : null;
+    if (!vg) {
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const q = c.getContext('2d');
+      const rg = q.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.52);
+      for (let i = 0; i <= 12; i++) {
+        const u = i / 12;
+        rg.addColorStop(u, 'rgba(4,5,4,' + Math.pow(u, 2.6).toFixed(3) + ')');
+      }
+      q.fillStyle = rg; q.fillRect(0, 0, W, H);
+      _fwEvFront._vg = c; _fwEvFront._vgW = W; _fwEvFront._vgH = H;
+    }
+    ctx.save();
+    ctx.globalAlpha = _fwStare * 0.55;
+    ctx.drawImage(_fwEvFront._vg, 0, 0);
+    ctx.restore();
+  }
   if (!ev) return;
 
   // ── LASH. One vine comes in from an edge, crosses the whole page and is
@@ -27421,33 +27538,31 @@ function _fwEvFront(ctx, ev, W, H, LX, LY, GX, GY, t) {
   if (ev.name === 'lash') {
     const q = ev.p;
     const a = q < 0.16 ? q / 0.16 : 1 - Math.max(0, (q - 0.55) / 0.45);
-    if (a <= 0.01) return;
-    const F = _fwEvFront;
-    if (F._lashFor !== ev.t0) {
-      F._lashFor = ev.t0;
-      const fromTop = ev.r0 > 0.5;
-      const x0 = fromTop ? W * (0.05 + ev.r1 * 0.9) : (ev.r1 > 0.5 ? -W * 0.05 : W * 1.05);
-      const y0 = fromTop ? -H * 0.05 : H * (0.15 + ev.r2 * 0.7);
-      const ang = Math.atan2(H * 0.5 - y0, W * 0.5 - x0) + (ev.r2 - 0.5) * 0.8;
-      F._lash = _fwMakeVine(ev.t0 * 3.3, x0, y0, ang, Math.hypot(W, H) * 1.15, 30, (ev.r0 - 0.5) * 6.5);
-      F._lashOut = new Float32Array(62);
-      F._lashV = { p: F._lash, n: 31, amp: W * 0.085, sp: 9.5, ph: 0, sx: 0, sy: 0, out: F._lashOut };
-      const dx = F._lash[60] - F._lash[0], dy = F._lash[61] - F._lash[1], m = Math.hypot(dx, dy) || 1;
-      F._lashV.sx = -dy / m; F._lashV.sy = dx / m;
+    if (a > 0.01) {
+      const F = _fwEvFront;
+      if (F._lashFor !== ev.t0) {
+        F._lashFor = ev.t0;
+        const fromTop = ev.r0 > 0.5;
+        const x0 = fromTop ? W * (0.05 + ev.r1 * 0.9) : (ev.r1 > 0.5 ? -W * 0.05 : W * 1.05);
+        const y0 = fromTop ? -H * 0.05 : H * (0.15 + ev.r2 * 0.7);
+        const ang = Math.atan2(H * 0.5 - y0, W * 0.5 - x0) + (ev.r2 - 0.5) * 0.8;
+        F._lash = _fwMakeVine(ev.t0 * 3.3, x0, y0, ang, Math.hypot(W, H) * 1.15, 30, (ev.r0 - 0.5) * 6.5);
+        F._lashOut = new Float32Array(62);
+        F._lashV = { p: F._lash, n: 31, amp: W * 0.085, sp: 9.5, ph: 0, sx: 0, sy: 0, out: F._lashOut };
+        const dx = F._lash[60] - F._lash[0], dy = F._lash[61] - F._lash[1], m = Math.hypot(dx, dy) || 1;
+        F._lashV.sx = -dy / m; F._lashV.sy = dx / m;
+      }
+      const v = F._lashV;
+      v.amp = W * 0.085 * (1 - q * 0.7);
+      _fwSway(v, t, v.out, 0, 0, 0);
+      const grow = Math.min(1, q / 0.34), shrink = Math.max(0, (q - 0.58) / 0.42);
+      const i0 = (shrink * (v.n - 1)) | 0, i1 = Math.max(i0 + 2, (grow * (v.n - 1)) | 0);
+      for (let i = i0; i <= i1; i++) { _fwSeg[(i - i0) * 2] = v.out[i * 2]; _fwSeg[(i - i0) * 2 + 1] = v.out[i * 2 + 1]; }
+      const n = i1 - i0 + 1;
+      const w = W * 0.026;
+      _fwVine(ctx, _fwSeg, n, w, w * 0.15, LX, LY,
+        { body: _FW_V0[_fwA(a * 0.99)], mid: _FW_V1[_fwA(a * 0.9)], lit: _FW_V3[_fwA(a * 0.5)], lw: 1.8 }, 3, true);
     }
-    const v = F._lashV;
-    v.amp = W * 0.085 * (1 - q * 0.7);
-    _fwSway(v, t, v.out, 0, 0, 0);
-    // it arrives tip first: only the part that has "come through" is drawn
-    const grow = Math.min(1, q / 0.34), shrink = Math.max(0, (q - 0.58) / 0.42);
-    const i0 = (shrink * (v.n - 1)) | 0, i1 = Math.max(i0 + 2, (grow * (v.n - 1)) | 0);
-    for (let i = i0; i <= i1; i++) { _fwSeg[(i - i0) * 2] = v.out[i * 2]; _fwSeg[(i - i0) * 2 + 1] = v.out[i * 2 + 1]; }
-    const n = i1 - i0 + 1;
-    _fwNorms(_fwSeg, n);
-    const w = W * 0.026;
-    ctx.fillStyle = _FW_BLACK[_fwA(a * 0.99)];
-    _fwRibbon(ctx, _fwSeg, n, w, w * 0.15, true, 3);
-    _fwLitEdge(ctx, _fwSeg, n, w, w * 0.15, LX, LY, _FW_LIT[_fwA(a * 0.42)], 1.6);
   }
 
   // ── PELLETS. A ring of white forms around the light and comes at you. The
@@ -27461,6 +27576,15 @@ function _fwEvFront(ctx, ev, W, H, LX, LY, GX, GY, t) {
     const a = q > 0.94 ? (1 - q) / 0.06 : 1;
     const R = W * (0.045 + fly * 0.9);
     ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const ang = (i / N) * 6.2831853 + ev.r0 * 6.283 + fly * 0.9;
+      _fwDisc(ctx, GX + Math.cos(ang) * R * form, GY + Math.sin(ang) * R * form * 0.8, 10 + fly * 16);
+    }
+    ctx.fillStyle = _FW_WHITE[_fwA(a * 0.10)];
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const ang = (i / N) * 6.2831853 + ev.r0 * 6.283 + fly * 0.9;
@@ -27468,14 +27592,6 @@ function _fwEvFront(ctx, ev, W, H, LX, LY, GX, GY, t) {
       _fwDisc(ctx, GX + Math.cos(ang) * R * form, GY + Math.sin(ang) * R * form * 0.8, r);
     }
     ctx.fillStyle = _FW_WHITE[_fwA(a * (0.35 + form * 0.6))];
-    ctx.fill();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.beginPath();
-    for (let i = 0; i < N; i++) {
-      const ang = (i / N) * 6.2831853 + ev.r0 * 6.283 + fly * 0.9;
-      _fwDisc(ctx, GX + Math.cos(ang) * R * form, GY + Math.sin(ang) * R * form * 0.8, 9 + fly * 14);
-    }
-    ctx.fillStyle = _FW_WHITE[_fwA(a * 0.10)];
     ctx.fill();
     ctx.restore();
   }
@@ -27487,17 +27603,22 @@ function _fwEvFront(ctx, ev, W, H, LX, LY, GX, GY, t) {
 // Vines rooted in all four edges of the WINDOW, not of the card, so
 // the garden is growing over the whole application. Heaviest in the
 // corners and along the bottom, thin along the top, because the
-// header and the panels are what the page is actually for and the
-// manual is right that the chaos belongs in the gutters.
+// header and the panels are what the page is actually for.
 //
-// The static mass is baked into one sheet and blitted. What is
-// alive on top of it: twelve tips that sway and REACH when the
-// cursor comes near, and snap back off you when you click; leaves;
-// flowers that open as you approach and whose pupils follow you
-// round the room; and the petals they drop. The frame is IN the
-// events with the garden rather than watching them: it thickens
-// inward on `close`, greys on `wilt`, and goes dark when something
-// passes over the hole.
+// It is drawn by the SAME renderer as the garden behind it, off the
+// same palette and the same one light, which is what stops the two
+// layers looking like two different pictures stapled together. And
+// like the garden, nothing here starts in mid air: a band of
+// thicket is laid down each edge first and every vine comes out of
+// that.
+//
+// Alive on top of the baked mass: twelve tips that sway and REACH
+// when the cursor comes near, and snap back off you when you click;
+// leaves; flowers that open as you approach and follow you round
+// the room; the petals they drop. The frame is IN the events with
+// the garden rather than watching them: it thickens inward on
+// `close`, greys on `wilt`, holds still and stares on `stare`, and
+// goes dark when something passes over the hole.
 // ════════════════════════════════════════════════════════════════
 let _fwMX = (typeof window !== 'undefined' ? window.innerWidth * 0.5 : 0);
 let _fwMY = (typeof window !== 'undefined' ? window.innerHeight * 0.5 : 0);
@@ -27505,7 +27626,7 @@ let _fwPrevMX = _fwMX, _fwPrevMY = _fwMY;
 let _fwStemX = null, _fwStemY = null;         // the stem lagging behind the head
 let _fwPetalsList = [];
 let _fwFlinch = 0;
-let _fwRecoil = 0;            // the frame flinching back from a click
+let _fwRecoil = 0;                            // the frame flinching from a click
 let _fwOverlayRaf = null;
 function _fwMouseMove(e) { _fwMX = e.clientX; _fwMY = e.clientY; }
 function _fwMouseDown() { _fwFlinch = 1; _fwRecoil = 1; }
@@ -27519,11 +27640,11 @@ function _fwLightAt(W, H) {
   if (pc) {
     const r = _lyRect(pc);
     if (r.width > 0 && r.height > 0) {
-      return [r.left + r.width * 0.735, r.top - r.height * 0.30,
-              r.left + r.width * 0.700, r.top + r.height * 0.665];
+      return [r.left + r.width * 0.720, r.top - r.height * 0.26,
+              r.left + r.width * 0.680, r.top + r.height * 0.615];
     }
   }
-  return [W * 0.74, -H * 0.25, W * 0.70, H * 0.55];
+  return [W * 0.72, -H * 0.22, W * 0.68, H * 0.55];
 }
 
 // Roots spaced around the perimeter, weighted to the corners. `depth` is how
@@ -27535,22 +27656,22 @@ function _fwFrameRoots(W, H) {
   for (let i = 0; i < 16; i++) {             // bottom, the heaviest edge
     const u = (i + 0.5) / 16;
     const corner = Math.max(0, 1 - Math.min(u, 1 - u) * 3.4);
-    push(W * u, H + M * 0.02, -1.5707963 + (_fwRnd(i * 3.1) - 0.5) * 1.4, (0.15 + corner * 0.21) * M, i);
+    push(W * u, H + M * 0.02, -1.5707963 + (_fwRnd(i * 3.1) - 0.5) * 1.4, (0.115 + corner * 0.175) * M, i);
   }
   for (let i = 0; i < 12; i++) {             // left
     const u = (i + 0.5) / 12;
     const corner = Math.max(0, (u - 0.35) / 0.65);
-    push(-M * 0.02, H * u, (_fwRnd(i * 5.7) - 0.5) * 1.5, (0.11 + corner * 0.21) * M, i + 20);
+    push(-M * 0.02, H * u, (_fwRnd(i * 5.7) - 0.5) * 1.5, (0.085 + corner * 0.175) * M, i + 20);
   }
   for (let i = 0; i < 12; i++) {             // right
     const u = (i + 0.5) / 12;
     const corner = Math.max(0, (u - 0.35) / 0.65);
-    push(W + M * 0.02, H * u, Math.PI + (_fwRnd(i * 7.3) - 0.5) * 1.5, (0.11 + corner * 0.21) * M, i + 40);
+    push(W + M * 0.02, H * u, Math.PI + (_fwRnd(i * 7.3) - 0.5) * 1.5, (0.085 + corner * 0.175) * M, i + 40);
   }
   for (let i = 0; i < 11; i++) {             // top, kept short: the header lives here
     const u = (i + 0.5) / 11;
     const corner = Math.max(0, 1 - Math.min(u, 1 - u) * 3.0);
-    push(W * u, -M * 0.02, 1.5707963 + (_fwRnd(i * 9.1) - 0.5) * 1.3, (0.050 + corner * 0.17) * M, i + 60);
+    push(W * u, -M * 0.02, 1.5707963 + (_fwRnd(i * 9.1) - 0.5) * 1.3, (0.040 + corner * 0.135) * M, i + 60);
   }
   return R;
 }
@@ -27559,46 +27680,76 @@ function _fwFrameSheet(W, H, LX, LY) {
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
+  g.lineJoin = 'round'; g.lineCap = 'round';
   const M = Math.min(W, H);
+
+  // the thicket the frame grows out of: a soft dark band down each edge, so
+  // no vine on this layer begins in empty air either
+  const band = (x, y, w, h, gx0, gy0, gx1, gy1) => {
+    const lg = g.createLinearGradient(gx0, gy0, gx1, gy1);
+    lg.addColorStop(0, _FW_V0[_fwA(0.78)]);
+    lg.addColorStop(0.45, _FW_V0[_fwA(0.32)]);
+    lg.addColorStop(1, _FW_V0[0]);
+    g.fillStyle = lg;
+    g.fillRect(x, y, w, h);
+  };
+  band(0, H - M * 0.32, W, M * 0.32, 0, H, 0, H - M * 0.32);
+  band(0, 0, W, M * 0.11, 0, 0, 0, M * 0.11);
+  band(0, 0, M * 0.22, H, 0, 0, M * 0.22, 0);
+  band(W - M * 0.22, 0, M * 0.22, H, W, 0, W - M * 0.22, 0);
+
   const roots = _fwFrameRoots(W, H);
+  const vs = [];
   for (const r of roots) {
     const steps = 22;
     const p = _fwMakeVine(r.i * 4.3 + 7, r.x, r.y, r.ang, r.depth * (1.5 + _fwRnd(r.i * 2.2) * 0.7),
       steps, (_fwRnd(r.i * 6.1) - 0.5) * 3.6);
-    _fwNorms(p, steps + 1);
-    const w = M * (0.010 + _fwRnd(r.i * 8.9) * 0.016);
-    g.fillStyle = _FW_DARK[_fwA(0.97)];
-    _fwRibbon(g, p, steps + 1, w, w * 0.20, true, r.i + 11);
-    _fwLitEdge(g, p, steps + 1, w, w * 0.20, LX, LY, _FW_LIT[_fwA(0.34)], 1.6);
-    _fwLitEdge(g, p, steps + 1, w * 0.45, w * 0.09, LX, LY, _FW_LIT[_fwA(0.10)], 1.2);
+    const w = M * (0.0072 + _fwRnd(r.i * 8.9) * 0.0115);
+    _fwVine(g, p, steps + 1, w, w * 0.20, LX, LY, _FW_PAL_FRM, r.i + 11, true);
+    vs.push({ p, n: steps + 1, w });
     // one branch off most of them, so the mass is a tangle and not a comb
     if (_fwRnd(r.i * 1.9) > 0.45) {
       const k = 6 + ((_fwRnd(r.i * 3.7) * 8) | 0);
       const b = _fwMakeVine(r.i * 11.3 + 71, p[k * 2], p[k * 2 + 1],
         Math.atan2(p[k * 2 + 3] - p[k * 2 + 1], p[k * 2 + 2] - p[k * 2]) + (_fwRnd(r.i * 5.3) - 0.5) * 1.9,
         r.depth * 0.85, 16, (_fwRnd(r.i * 7.9) - 0.5) * 4.0);
-      _fwNorms(b, 17);
-      g.fillStyle = _FW_DARK[_fwA(0.95)];
-      _fwRibbon(g, b, 17, w * 0.55, w * 0.14, true, r.i + 31);
-      _fwLitEdge(g, b, 17, w * 0.55, w * 0.14, LX, LY, _FW_LIT[_fwA(0.26)], 1.2);
+      _fwVine(g, b, 17, w * 0.55, w * 0.14, LX, LY, _FW_PAL_FRM, r.i + 31, true);
+      vs.push({ p: b, n: 17, w: w * 0.55 });
     }
   }
+  // and their leaves, in the same three passes the garden uses
+  const L = [];
+  for (const v of vs) {
+    _fwNorms(v.p, v.n);
+    for (let k = 3; k < v.n - 2; k += 4) {
+      const s = (k & 3) ? 1 : -1;
+      L.push(v.p[k * 2], v.p[k * 2 + 1], Math.atan2(_fwNY[k], _fwNX[k]) * s,
+             v.w * (1.8 + _fwRnd(v.w * 41 + k) * 1.6), v.w * 0.84);
+    }
+  }
+  g.beginPath();
+  for (let i = 0; i < L.length; i += 5) _fwLeafShape(g, L[i], L[i + 1], L[i + 2], L[i + 3], L[i + 4]);
+  g.fillStyle = _FW_L1[96]; g.fill();
+  g.beginPath();
+  for (let i = 0; i < L.length; i += 5) _fwLeafHalf(g, L[i], L[i + 1], L[i + 2], L[i + 3], L[i + 4], LX, LY);
+  g.fillStyle = _FW_L2[_fwA(0.44)]; g.fill();
+  g.beginPath();
+  for (let i = 0; i < L.length; i += 5) _fwLeafRib(g, L[i], L[i + 1], L[i + 2], L[i + 3]);
+  g.strokeStyle = _FW_V0[70]; g.lineWidth = 1; g.stroke();
   return cv;
 }
 
 /* ── the torn flower ──────────────────────────────────────────────
    The cursor. Six petals, of which one is gone, one has been torn
-   through and one is bent the wrong way; a stem that lags behind
-   the head like something being dragged; a pupil that looks where
-   you are going. It is the only flower in the world with no gold
-   left in it, which is the whole idea, so it is drawn in white,
-   grey and black and nothing else.
+   through and one is hanging off; a stem that lags behind the head
+   like something being dragged; a pupil that looks where you are
+   going. It is the only flower in the world with no gold left in
+   it, which is the whole idea, so it is white, grey and black and
+   nothing else.
    A hard black outline all the way round is wrong for a plant in a
    scene and right for a cursor, which has to read on a white panel
    and on a black vine in the same second. ── */
 const _FW_PET_N = 6;
-// One petal: a teardrop from just outside the middle to a rounded tip. Whole,
-// torn short with a chewed end, or hanging half off its own stem.
 function _fwPetalPath(ctx, x, y, a, L, Wd, torn) {
   const cx = Math.cos(a), cy = Math.sin(a);
   const nx = -cy, ny = cx;
@@ -27609,7 +27760,6 @@ function _fwPetalPath(ctx, x, y, a, L, Wd, torn) {
                        x + cx * tip + nx * Wd * (torn ? 0.75 : 0.16),
                        y + cy * tip + ny * Wd * (torn ? 0.75 : 0.16));
   if (torn) {
-    // chewed off rather than cut: four notches across the end
     for (let k = 0; k < 4; k++) {
       const u = 0.75 - k * 0.42;
       const back = tip * (k & 1 ? 0.80 : 0.94);
@@ -27631,8 +27781,6 @@ function _fwDrawCursor(ctx, x, y, t, vx, vy) {
   const shut = _fwFlinch;
   const hx = x, hy = y + bob;
 
-  // the stem, dragged behind, because a picked flower does not lead with its
-  // root: the head goes where you go and the rest of it catches up
   ctx.beginPath();
   ctx.moveTo(_fwStemX[0], _fwStemY[0]);
   for (let i = 1; i < _fwStemX.length; i++) ctx.lineTo(_fwStemX[i], _fwStemY[i]);
@@ -27645,8 +27793,8 @@ function _fwDrawCursor(ctx, x, y, t, vx, vy) {
     const ax = _fwStemX[i], ay = _fwStemY[i];
     const a = Math.atan2(_fwStemY[i] - _fwStemY[i - 1], _fwStemX[i] - _fwStemX[i - 1]);
     ctx.beginPath();
-    _fwLeaf(ctx, ax, ay, a + 1.20, 12, 4.0);
-    _fwLeaf(ctx, ax, ay, a - 1.30, 7.5, 2.4);
+    _fwLeafShape(ctx, ax, ay, a + 1.20, 12, 4.0);
+    _fwLeafShape(ctx, ax, ay, a - 1.30, 7.5, 2.4);
     ctx.fillStyle = '#c4c4c4'; ctx.fill();
     ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.5; ctx.stroke();
   }
@@ -27655,21 +27803,17 @@ function _fwDrawCursor(ctx, x, y, t, vx, vy) {
   ctx.translate(hx, hy);
   ctx.rotate(Math.sin(t * 1.4) * 0.06 - shut * 0.22);
   const L = R * (1 - shut * 0.22);
-
-  // the petal that is hanging off, drawn UNDER the others so its broken root
-  // disappears behind the middle
+  // the petal hanging off, under the others so its broken root is hidden
   ctx.beginPath();
   _fwPetalPath(ctx, Math.cos(2.62) * R * 0.30, Math.sin(2.62) * R * 0.30 + R * 0.20,
                2.62 + 0.62, L * 0.86, R * 0.30, false);
   ctx.fillStyle = '#c6c6c6'; ctx.fill();
   ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.7; ctx.lineJoin = 'round'; ctx.stroke();
-
-  // and the petals still attached. Slot 1 is simply not there.
+  // and the ones still attached. Slot 1 is simply not there.
   ctx.beginPath();
   for (let k = 0; k < _FW_PET_N; k++) {
     if (k === 1 || k === 4) continue;
-    const a = k * 1.0471976 - 1.5707963;
-    _fwPetalPath(ctx, 0, 0, a, L, R * 0.31, k === 3);
+    _fwPetalPath(ctx, 0, 0, k * 1.0471976 - 1.5707963, L, R * 0.31, k === 3);
   }
   ctx.fillStyle = '#ededed'; ctx.fill();
   ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.7; ctx.stroke();
@@ -27678,8 +27822,6 @@ function _fwDrawCursor(ctx, x, y, t, vx, vy) {
   ctx.fillStyle = 'rgba(110,110,110,0.5)';
   ctx.beginPath(); ctx.ellipse(0, R * 0.75, R * 1.7, R * 0.95, 0, 0, 6.2831853); ctx.fill();
   ctx.restore();
-
-  // the middle, and the pupil, which looks where you are going
   ctx.beginPath(); ctx.arc(0, 0, R * 0.33, 0, 6.2831853);
   ctx.fillStyle = '#a8a8a8'; ctx.fill();
   ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.6; ctx.stroke();
@@ -27700,6 +27842,7 @@ function _drawFloweyOverlay(canvas, ctx, W, H, t) {
   _drawFloweyOverlay._lt = t;
   if (!(W > 0 && H > 0)) return;
   ctx.clearRect(0, 0, W, H);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
 
   const O = _drawFloweyOverlay;
   const M = Math.min(W, H);
@@ -27714,9 +27857,9 @@ function _drawFloweyOverlay(canvas, ctx, W, H, t) {
     O._w = W; O._h = H;
   }
   if (!O._reach) {
-    // twelve tips spread right round the frame. They get their OWN seeds, so
-    // each is a second vine out of a root the baked mass already has rather
-    // than a live copy of a baked one drifting off it.
+    // twelve tips spread right round the frame, with their OWN seeds: each is
+    // a second vine out of a root the baked mass already has, rather than a
+    // live copy of a baked one drifting off it
     const roots = _fwFrameRoots(W, H);
     const pick = [1, 4, 6, 9, 11, 14, 17, 20, 23, 27, 31, 35];
     const rs = [];
@@ -27726,7 +27869,7 @@ function _drawFloweyOverlay(canvas, ctx, W, H, t) {
       const p = _fwMakeVine(r.i * 4.3 + 907, r.x, r.y, r.ang + (_fwRnd(r.i * 1.3) - 0.5) * 0.5,
         r.depth * 1.75, steps, (_fwRnd(r.i * 6.1) - 0.5) * 3.2);
       const dx = p[steps * 2] - r.x, dy = p[steps * 2 + 1] - r.y, m = Math.hypot(dx, dy) || 1;
-      rs.push({ p, n: steps + 1, w: M * (0.008 + _fwRnd(r.i * 8.9) * 0.011),
+      rs.push({ p, n: steps + 1, w: M * (0.0060 + _fwRnd(r.i * 8.9) * 0.0080),
                 amp: M * (0.010 + _fwRnd(r.i * 2.4) * 0.016), sp: 0.4 + _fwRnd(r.i * 3.6) * 0.55,
                 ph: _fwRnd(r.i * 4.8) * 6.283, sx: -dy / m, sy: dx / m,
                 out: new Float32Array((steps + 1) * 2), pull: 0 });
@@ -27734,10 +27877,11 @@ function _drawFloweyOverlay(canvas, ctx, W, H, t) {
     O._reach = rs;
     const fl = [];
     for (let j = 0; j < rs.length; j++) {
-      const n = 1 + ((_fwRnd(j * 13.1) * 2.6) | 0);
+      const n = 1 + ((_fwRnd(j * 13.1) * 1.9) | 0);
       for (let k = 0; k < n; k++) {
         fl.push({ v: j, at: 0.40 + (k + _fwRnd(j * 5.1 + k * 3.7) * 0.72) / n * 0.58,
-                  r: M * (0.009 + Math.pow(_fwRnd(j * 7.3 + k), 1.7) * 0.015),
+                  r: rs[j].w * (0.95 + _fwRnd(j * 7.3 + k) * 0.70),
+                  lean: (_fwRnd(j * 4.1 + k * 6.7) - 0.5) * 1.5,
                   ph: _fwRnd(j * 9.5 + k * 2.9) * 6.283 });
       }
     }
@@ -27746,13 +27890,12 @@ function _drawFloweyOverlay(canvas, ctx, W, H, t) {
     for (let i = 0; i < 7; i++) { _fwStemX[i] = _fwMX; _fwStemY[i] = _fwMY; }
   }
 
-  const dimA = _fwDim;
+  const dimA = _fwDim, dimL = 1 - dimA * 0.8;
   const closeK = ev && ev.name === 'close' ? Math.sin(Math.PI * Math.min(1, ev.p / 0.86)) : 0;
 
-  // ── the baked mass. On `close` it is blitted a second time, pulled in
-  //    toward the middle, which reads as the frame growing rather than as
-  //    the frame moving: the roots stay where they were because the first
-  //    blit is still under it.
+  // ── the baked mass. On `close` it is blitted a second time pulled in toward
+  //    the middle, which reads as the frame GROWING rather than moving,
+  //    because the first blit is still under it holding the roots in place.
   ctx.save();
   ctx.globalAlpha = 1 - dimA * 0.30;
   ctx.drawImage(O._sheet, 0, 0);
@@ -27766,78 +27909,93 @@ function _drawFloweyOverlay(canvas, ctx, W, H, t) {
 
   // ── the tips: they sway, and when you come near one it REACHES ──
   const reachR = M * 0.30;
+  const PAL = { body: _FW_V1[97], mid: _FW_V2[_fwA(0.88 * dimL)], lit: _FW_V3[_fwA(0.70 * dimL)], lw: 1.7 };
   for (let j = 0; j < O._reach.length; j++) {
     const v = O._reach[j];
     const tx = v.p[(v.n - 1) * 2], ty = v.p[(v.n - 1) * 2 + 1];
     const d = Math.hypot(_fwMX - tx, _fwMY - ty);
-    // A click snaps them back off you for a second, and then they come
-    // again: the reach is the interaction, so the recoil has to be part of it
-    // rather than a separate effect somewhere else on the page.
+    // A click snaps them back off you for a second and then they come again:
+    // the reach IS the interaction, so the recoil belongs to it.
     const want = Math.max(-0.30, Math.max(0, 1 - d / reachR) * 0.82 * (1 - _fwRecoil * 1.9)
                                  + closeK * 0.30 - _fwRecoil * 0.22);
     v.pull += (want - v.pull) * Math.min(1, dt * 3.4);
     _fwSway(v, t, v.out, v.pull, _fwMX, _fwMY);
-    _fwNorms(v.out, v.n);
-    ctx.fillStyle = _FW_DARK[_fwA(0.97)];
-    _fwRibbon(ctx, v.out, v.n, v.w, v.w * 0.18, true, j + 17);
-    _fwLitEdge(ctx, v.out, v.n, v.w, v.w * 0.18, LX, LY, _FW_LIT[_fwA(0.38 * (1 - dimA * 0.8))], 1.5);
+    _fwVine(ctx, v.out, v.n, v.w, v.w * 0.18, LX, LY, PAL, j + 17, true);
   }
 
-  // ── leaves ──
-  ctx.beginPath();
+  // ── leaves: whole, lit half, midrib ──
+  const L = [];
   for (let j = 0; j < O._reach.length; j++) {
     const v = O._reach[j];
     _fwNorms(v.out, v.n);
     for (let k = 3; k < v.n - 2; k += 4) {
       const s = (k & 3) ? 1 : -1;
-      const a = Math.atan2(_fwNY[k], _fwNX[k]) * s + Math.sin(t * 0.9 + j + k) * 0.18;
-      _fwLeaf(ctx, v.out[k * 2], v.out[k * 2 + 1], a, v.w * (2.8 + _fwRnd(j * 3.3 + k) * 2.4), v.w * 1.0);
+      const a = Math.atan2(_fwNY[k], _fwNX[k]) * s + Math.sin(t * 0.9 + j + k) * 0.16;
+      L.push(v.out[k * 2], v.out[k * 2 + 1], a, v.w * (1.9 + _fwRnd(j * 3.3 + k) * 1.7), v.w * 0.86);
     }
   }
-  ctx.fillStyle = _FW_LEAF[_fwA(0.92 * (1 - dimA * 0.5))];
-  ctx.fill();
+  ctx.beginPath();
+  for (let i = 0; i < L.length; i += 5) _fwLeafShape(ctx, L[i], L[i + 1], L[i + 2], L[i + 3], L[i + 4]);
+  ctx.fillStyle = _FW_L1[96]; ctx.fill();
+  ctx.beginPath();
+  for (let i = 0; i < L.length; i += 5) _fwLeafHalf(ctx, L[i], L[i + 1], L[i + 2], L[i + 3], L[i + 4], LX, LY);
+  ctx.fillStyle = _FW_L2[_fwA(0.52 * dimL)]; ctx.fill();
+  ctx.beginPath();
+  for (let i = 0; i < L.length; i += 5) _fwLeafRib(ctx, L[i], L[i + 1], L[i + 2], L[i + 3]);
+  ctx.strokeStyle = _FW_V0[75]; ctx.lineWidth = 1; ctx.stroke();
 
   // ── the flowers on the frame, watching you ──
   const bloom = ev && ev.name === 'bloom' ? ev.p : -1;
   const bucket = (t * 3) | 0;
   const fl = O._fl;
-  ctx.beginPath();
   for (let i = 0; i < fl.length; i++) {
     const f = fl[i];
     const v = O._reach[f.v];
     const k = Math.min(v.n - 1, (f.at * (v.n - 1)) | 0);
-    f._x = v.out[k * 2]; f._y = v.out[k * 2 + 1];
-    let open = 0.74 + Math.sin(t * 1.0 + f.ph) * 0.12
-             + Math.max(0, 1 - Math.hypot(_fwMX - f._x, _fwMY - f._y) / (M * 0.20)) * 0.40;
+    const bx = v.out[k * 2], by = v.out[k * 2 + 1];
+    const a = Math.atan2(by - v.out[k * 2 - 1], bx - v.out[k * 2 - 2]) + f.lean;
+    const sl = f.r * 1.5;
+    f._bx = bx; f._by = by;
+    f._x = bx + Math.cos(a) * sl + Math.sin(t * 0.8 + f.ph) * f.r * 0.14;
+    f._y = by + Math.sin(a) * sl - f.r * 0.35;
+    f._o = 0.78 + Math.sin(t * 1.0 + f.ph) * 0.10 + _fwStare * 0.22
+         + Math.max(0, 1 - Math.hypot(_fwMX - f._x, _fwMY - f._y) / (M * 0.20)) * 0.38;
     if (bloom >= 0) {
-      const d = Math.hypot(f._x - LX, f._y - LY) / Math.hypot(W, H);
+      const d = Math.hypot(f._x - GX, f._y - GY) / Math.hypot(W, H);
       const w = bloom * 1.7 - d;
-      if (w > 0 && w < 0.55) open = 0.74 + Math.sin((w / 0.55) * Math.PI) * 0.60;
+      if (w > 0 && w < 0.55) f._o = 0.78 + Math.sin((w / 0.55) * Math.PI) * 0.58;
     }
-    _fwPetals(ctx, f._x, f._y, f.r, open, t * 0.25 + f.ph);
-    // now and then one of them lets a petal go. Rolled once per third of a
-    // second, not once per frame, or twenty petals leave at once.
     if (bucket !== O._pb && _fwRnd(bucket * 7.7 + i * 3.1) > 0.94 && _fwPetalsList.length < 40) {
       _fwPetalsList.push({ x: f._x, y: f._y, vx: (_fwRnd(i + bucket) - 0.5) * 26, vy: 6 + _fwRnd(i * 2 + bucket) * 18,
                            a: _fwRnd(i * 3 + bucket) * 6.283, va: (_fwRnd(i * 4 + bucket) - 0.5) * 3, r: f.r * 0.5, life: 1 });
     }
   }
   O._pb = bucket;
-  ctx.fillStyle = _fwGold(0.88 * (1 - dimA * 0.7));
-  ctx.fill();
   ctx.beginPath();
-  for (let i = 0; i < fl.length; i++) _fwDisc(ctx, fl[i]._x, fl[i]._y, fl[i].r * 0.44);
-  ctx.fillStyle = _FW_ROT[_fwA(0.92)];
-  ctx.fill();
+  for (const f of fl) { ctx.moveTo(f._bx, f._by); ctx.lineTo(f._x, f._y); }
+  ctx.strokeStyle = _FW_V2[_fwA(0.85 * dimL)]; ctx.lineWidth = Math.max(1.6, M * 0.0028); ctx.stroke();
   ctx.beginPath();
-  for (let i = 0; i < fl.length; i++) {
-    const f = fl[i];
+  for (const f of fl) _fwDisc(ctx, f._x, f._y, f.r * 0.82);
+  ctx.fillStyle = _FW_L1[95]; ctx.fill();
+  ctx.beginPath();
+  for (const f of fl) _fwPetals(ctx, f._x, f._y, f.r, f._o, t * 0.22 + f.ph);
+  ctx.fillStyle = _fwGold(0.94 * dimL); ctx.fill();
+  ctx.beginPath();
+  for (const f of fl) _fwPetalRims(ctx, f._x, f._y, f.r, f._o, t * 0.22 + f.ph, LX, LY);
+  ctx.fillStyle = _fwGoldH(0.32 * dimL); ctx.fill();
+  ctx.beginPath();
+  for (const f of fl) _fwDisc(ctx, f._x, f._y, f.r * 0.44);
+  ctx.fillStyle = _FW_ROT[94]; ctx.fill();
+  ctx.beginPath();
+  for (const f of fl) _fwStamens(ctx, f._x, f._y, f.r * 0.44, t * 0.2 + f.ph);
+  ctx.fillStyle = _fwGoldH(_fwStare > 0.02 ? 0.10 : 0.44); ctx.fill();
+  ctx.beginPath();
+  for (const f of fl) {
     const dx = _fwMX - f._x, dy = _fwMY - f._y, m = Math.hypot(dx, dy) || 1;
-    const g = Math.min(f.r * 0.19, m * 0.5);
-    _fwDisc(ctx, f._x + dx / m * g, f._y + dy / m * g, f.r * 0.17);
+    const g = Math.min(f.r * (0.15 + _fwStare * 0.10), m * 0.5);
+    _fwDisc(ctx, f._x + dx / m * g, f._y + dy / m * g, f.r * (0.16 + _fwStare * 0.09));
   }
-  ctx.fillStyle = _FW_BLACK[_fwA(0.96)];
-  ctx.fill();
+  ctx.fillStyle = _FW_V0[97]; ctx.fill();
 
   // ── petals coming off the frame, and off you when you move fast ──
   const mvx = (_fwMX - _fwPrevMX) / Math.max(dt, 0.001), mvy = (_fwMY - _fwPrevMY) / Math.max(dt, 0.001);
@@ -27848,24 +28006,24 @@ function _drawFloweyOverlay(canvas, ctx, W, H, t) {
   }
   if (_fwPetalsList.length) {
     ctx.beginPath();
-    let goldPath = false;
+    let gold = false;
     for (const q of _fwPetalsList) {
       q.vy += 34 * dt; q.vx *= 0.99;
       q.x += q.vx * dt; q.y += q.vy * dt; q.a += q.va * dt;
       q.life -= dt * 0.42;
       if (q.mono) continue;
-      goldPath = true;
-      _fwLeaf(ctx, q.x, q.y, q.a, q.r * 2.0, q.r * 0.85);
+      gold = true;
+      _fwLeafShape(ctx, q.x, q.y, q.a, q.r * 2.0, q.r * 0.85);
     }
-    if (goldPath) { ctx.fillStyle = _fwGold(0.60 * (1 - dimA * 0.7)); ctx.fill(); }
+    if (gold) { ctx.fillStyle = _fwGold(0.62 * dimL); ctx.fill(); }
     ctx.beginPath();
-    let monoPath = false;
+    let mono = false;
     for (const q of _fwPetalsList) {
       if (!q.mono) continue;
-      monoPath = true;
-      _fwLeaf(ctx, q.x, q.y, q.a, q.r * 2.0, q.r * 0.85);
+      mono = true;
+      _fwLeafShape(ctx, q.x, q.y, q.a, q.r * 2.0, q.r * 0.85);
     }
-    if (monoPath) { ctx.fillStyle = 'rgba(228,228,228,0.62)'; ctx.fill(); }
+    if (mono) { ctx.fillStyle = 'rgba(228,228,228,0.62)'; ctx.fill(); }
     _fwPetalsList = _fwPetalsList.filter(q => q.life > 0 && q.y < H + 40);
   }
 
@@ -27878,7 +28036,7 @@ function _drawFloweyOverlay(canvas, ctx, W, H, t) {
       for (let i = 0; i < 9; i++) {
         const ang = (i / 9) * 6.2831853 + ev.r0 * 6.283 + fly * 0.9;
         const R = M * (0.28 + fly * 1.5);
-        _fwDisc(ctx, GX + Math.cos(ang) * R, GY + Math.sin(ang) * R * 0.85, 3 + fly * 4);
+        _fwDisc(ctx, GX + Math.cos(ang) * R, GY + Math.sin(ang) * R * 0.85, 3 + fly * 5);
       }
       ctx.fillStyle = _FW_WHITE[_fwA((1 - fly) * 0.75)];
       ctx.fill();
@@ -27886,7 +28044,7 @@ function _drawFloweyOverlay(canvas, ctx, W, H, t) {
     }
   }
   if (dimA > 0.005) {
-    ctx.fillStyle = 'rgba(2,4,3,' + (dimA * 0.38).toFixed(3) + ')';
+    ctx.fillStyle = 'rgba(3,4,3,' + (dimA * 0.38).toFixed(3) + ')';
     ctx.fillRect(0, 0, W, H);
   }
 
