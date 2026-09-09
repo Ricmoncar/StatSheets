@@ -26642,7 +26642,7 @@ let _ivDrain = 0;      // `bleed`: 1 = every red in the world has gone to grey
 let _ivDark = 0;       // `hunger`: the candles are out
 let _ivSwing = 0;      // `chandelier`: how far the light has swung, -1..1
 let _ivGrow = 0;       // `rococo`: how far the ornament has grown inward
-let _ivSlash = null;   // `lunge`: a white cut across the frame, or null
+// `lunge` and every click open CUTS instead, held in _ivCuts in window coords
 let _ivCrack = 0;      // `shatter`: how far the mirror crack has spread
 let _ivEvNow = null;
 
@@ -26911,7 +26911,9 @@ function _ivEvTick(t) {
 }
 function _ivEvReset() {
   _ivEvNow = null; _ivEvNext = 0; _ivEvLast = '';
-  _ivPulse = 0; _ivDrain = 0; _ivDark = 0; _ivSwing = 0; _ivGrow = 0; _ivSlash = null; _ivCrack = 0;
+  _ivPulse = 0; _ivDrain = 0; _ivDark = 0; _ivSwing = 0; _ivGrow = 0; _ivCrack = 0;
+  if (typeof _ivCutClear === 'function') _ivCutClear();
+  if (typeof _ivSparks !== 'undefined') { _ivSparks = []; _ivGhosts = []; _ivDrips = []; }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -27172,115 +27174,151 @@ function _ivNearSheet(W, H, PX) {
   const CX = VX, CY = H * 0.185;
   const S = W * 0.10;
 
-  // ── 4. THE PIANO. Near, cropped by two edges, its raised lid the one big
-  //    straight diagonal in a page made entirely of curves. Dark elegance is
-  //    mostly this: a black lacquer object with one white edge.
+  // ── 4. THE PIANO. A grand is a shape everybody knows, so it has to have
+  //    the parts: a bent case, a raised lid whose polished UNDERSIDE is what
+  //    you actually see and what the chandelier is reflected in, the plate and
+  //    strings under it, a stick holding it up, a cheek at the end of the
+  //    keys, and a turned leg. It is the blackest object on the page and the
+  //    only one with straight edges, which is why it reads at all in a room
+  //    made entirely of scrollwork.
   {
-    const PB = H * 0.980, PL = W * 0.610, PR = W * 1.12, PT = H * 0.735;
-    // the lid, raised on its stick
-    g.fillStyle = _IV_LAC[24];
+    const PL = W * 0.585, PR = W * 1.16;
+    const CT = H * 0.760;                     // the case top at the near end
+    const RISE = H * 0.085;                   // how far it climbs going away
+    const topY = (u) => CT - RISE * u;        // u: 0 near, 1 at the right edge
+    const xAt = (u) => PL + (PR - PL) * u;
+    const LH = H * 0.300;                     // how high the far edge is lifted
+    const LID = () => {
+      g.beginPath();
+      g.moveTo(xAt(0.02), topY(0.02) - H * 0.010);
+      g.lineTo(xAt(1), topY(1) - LH);
+      g.lineTo(xAt(1), topY(1) - LH + H * 0.046);
+      g.lineTo(xAt(0.02), topY(0.02) + H * 0.024);
+      g.closePath();
+    };
+    const CASE = () => {
+      g.beginPath();
+      g.moveTo(xAt(0), topY(0));
+      g.lineTo(xAt(1), topY(1));
+      g.lineTo(xAt(1), H * 1.03);
+      g.quadraticCurveTo(xAt(0.34), H * 1.06, xAt(0), topY(0) + H * 0.115);
+      g.closePath();
+    };
+    const KTOP = (u) => topY(u) + H * 0.014;
+    const KBOT = (u) => topY(u) + H * 0.056;
+    const K0 = 0.035, K1 = 1;
+    const KEYS = () => {
+      g.beginPath();
+      g.moveTo(xAt(K0), KTOP(K0)); g.lineTo(xAt(K1), KTOP(K1));
+      g.lineTo(xAt(K1), KBOT(K1)); g.lineTo(xAt(K0), KBOT(K0));
+      g.closePath();
+    };
+
+    // the lid, raised: its underside faces us and it is a mirror
+    g.fillStyle = _IV_LAC[24]; LID(); g.fill();
+    const und = g.createLinearGradient(xAt(0.1), topY(0.1), xAt(1), topY(1) - LH);
+    und.addColorStop(0, 'rgba(6,2,4,0.92)');
+    und.addColorStop(0.45, 'rgba(120,12,26,0.55)');
+    und.addColorStop(0.78, 'rgba(255,86,74,0.42)');
+    und.addColorStop(1, 'rgba(40,5,12,0.85)');
+    g.fillStyle = und; LID(); g.fill();
+    g.strokeStyle = _IV_EMBER[_ivA(0.85)]; g.lineWidth = W * 0.0022;
+    g.beginPath(); g.moveTo(xAt(0.02), topY(0.02) - H * 0.010); g.lineTo(xAt(1), topY(1) - LH); g.stroke();
+    g.strokeStyle = _IV_BONE[_ivA(0.30)]; g.lineWidth = Math.max(1, W * 0.0008);
+    g.beginPath(); g.moveTo(xAt(0.30), topY(0.30) - H * 0.096); g.lineTo(xAt(0.86), topY(0.86) - H * 0.253); g.stroke();
+
+    // the plate and the strings, under the lid and over the case
+    g.fillStyle = '#050203';
     g.beginPath();
-    g.moveTo(PL + W * 0.020, PT - H * 0.010);
-    g.lineTo(PR, PT - H * 0.330);
-    g.lineTo(PR, PT - H * 0.070);
-    g.lineTo(PL + W * 0.040, PT + H * 0.014);
+    g.moveTo(xAt(0.05), topY(0.05));
+    g.lineTo(xAt(1), topY(1) - H * 0.020);
+    g.lineTo(xAt(1), topY(1) - LH + H * 0.020);
+    g.lineTo(xAt(0.05), topY(0.05) + H * 0.006);
     g.closePath(); g.fill();
-    const lidg = g.createLinearGradient(PL, PT - H * 0.33, PR, PT);
-    lidg.addColorStop(0, 'rgba(3,1,2,0.55)');
-    lidg.addColorStop(1, 'rgba(214,28,48,0.10)');
-    g.fillStyle = lidg;
-    g.beginPath();
-    g.moveTo(PL + W * 0.020, PT - H * 0.010);
-    g.lineTo(PR, PT - H * 0.330);
-    g.lineTo(PR, PT - H * 0.070);
-    g.lineTo(PL + W * 0.040, PT + H * 0.014);
-    g.closePath(); g.fill();
-    g.strokeStyle = _IV_EMBER[_ivA(0.62)]; g.lineWidth = W * 0.0022;
-    g.beginPath(); g.moveTo(PL + W * 0.020, PT - H * 0.010); g.lineTo(PR, PT - H * 0.330); g.stroke();
-    g.strokeStyle = _IV_BLOOD[_ivA(0.34)]; g.lineWidth = W * 0.0014;
-    g.beginPath(); g.moveTo(PL + W * 0.040, PT + H * 0.014); g.lineTo(PR, PT - H * 0.070); g.stroke();
-    // the body
-    g.fillStyle = _IV_LAC[24];
-    g.beginPath();
-    g.moveTo(PL, PT + H * 0.028);
-    g.lineTo(PR, PT - H * 0.048);
-    g.lineTo(PR, PB);
-    g.quadraticCurveTo(PL + W * 0.20, PB + H * 0.035, PL, PT + H * 0.115);
-    g.closePath(); g.fill();
-    const bg2 = g.createLinearGradient(0, PT, 0, PB);
-    bg2.addColorStop(0, 'rgba(214,28,48,0.24)');
-    bg2.addColorStop(0.28, 'rgba(24,3,8,0.80)');
-    bg2.addColorStop(1, 'rgba(3,1,2,0.96)');
-    g.fillStyle = bg2;
-    g.beginPath();
-    g.moveTo(PL, PT + H * 0.028);
-    g.lineTo(PR, PT - H * 0.048);
-    g.lineTo(PR, PB);
-    g.quadraticCurveTo(PL + W * 0.20, PB + H * 0.035, PL, PT + H * 0.115);
-    g.closePath(); g.fill();
-    g.strokeStyle = _IV_EMBER[_ivA(0.55)]; g.lineWidth = W * 0.0018;
-    g.beginPath(); g.moveTo(PL, PT + H * 0.028); g.lineTo(PR, PT - H * 0.048); g.stroke();
-    g.strokeStyle = _IV_HOT[_ivA(0.30)]; g.lineWidth = W * 0.0016;
-    g.beginPath();
-    g.moveTo(PL, PT + H * 0.115);
-    g.quadraticCurveTo(PL + W * 0.20, PB + H * 0.035, PR, PB);
-    g.stroke();
+    for (let k = 0; k < 34; k++) {
+      const v = k / 33;
+      const y0 = topY(0.05) - H * 0.004 - v * H * 0.010;
+      const y1 = topY(1) - H * 0.024 - v * (LH - H * 0.048);
+      g.strokeStyle = (k % 7 === 0) ? _IV_EMBER[_ivA(0.34)] : _IV_BLOOD[_ivA(0.20 + (k % 3) * 0.05)];
+      g.lineWidth = Math.max(1, W * (k % 7 === 0 ? 0.0014 : 0.0006));
+      g.beginPath(); g.moveTo(xAt(0.05), y0); g.lineTo(xAt(1), y1); g.stroke();
+    }
+    g.strokeStyle = _IV_DARK[24]; g.lineWidth = W * 0.0055;
+    for (const u of [0.34, 0.66]) {
+      g.beginPath();
+      g.moveTo(xAt(u), topY(u) - H * 0.004);
+      g.lineTo(xAt(u), topY(u) - LH * u - H * 0.016);
+      g.stroke();
+    }
+    // the stick holding the lid up
+    g.strokeStyle = _IV_DARK[24]; g.lineWidth = W * 0.0035;
+    g.beginPath(); g.moveTo(xAt(0.80), topY(0.80) - H * 0.006); g.lineTo(xAt(0.72), topY(0.72) - LH * 0.72 - H * 0.006); g.stroke();
+    g.strokeStyle = _IV_HOT[_ivA(0.5)]; g.lineWidth = Math.max(1, W * 0.0010);
+    g.beginPath(); g.moveTo(xAt(0.80), topY(0.80) - H * 0.006); g.lineTo(xAt(0.72), topY(0.72) - LH * 0.72 - H * 0.006); g.stroke();
+
+    // the case
+    g.fillStyle = _IV_LAC[24]; CASE(); g.fill();
+    const cs = g.createLinearGradient(0, CT, 0, H * 1.03);
+    cs.addColorStop(0, 'rgba(214,28,48,0.24)');
+    cs.addColorStop(0.26, 'rgba(24,3,8,0.82)');
+    cs.addColorStop(1, 'rgba(3,1,2,0.97)');
+    g.fillStyle = cs; CASE(); g.fill();
+    g.strokeStyle = _IV_EMBER[_ivA(0.62)]; g.lineWidth = W * 0.0020;
+    g.beginPath(); g.moveTo(xAt(0), topY(0)); g.lineTo(xAt(1), topY(1)); g.stroke();
+
     // THE KEYS. The only pure white on the page and the reason it is spent
     // here: a keyboard is a row of teeth.
-    const KY0 = PT + H * 0.026, KY1 = PT + H * 0.066;
-    const KL = PL + W * 0.012, KR = PR;
-    g.fillStyle = _IV_BONE[_ivA(0.86)];
-    g.beginPath();
-    g.moveTo(KL, KY0 + H * 0.006); g.lineTo(KR, KY0 - H * 0.052);
-    g.lineTo(KR, KY1 - H * 0.052); g.lineTo(KL, KY1 + H * 0.006);
-    g.closePath(); g.fill();
-    const NK = 26;
-    g.fillStyle = _IV_VOID[24];
-    for (let i = 0; i < NK; i++) {
-      const m = i % 7;
+    g.fillStyle = _IV_BONE[_ivA(0.88)]; KEYS(); g.fill();
+    const NK = 30;
+    g.fillStyle = '#050203';
+    for (let k = 0; k < NK; k++) {
+      const m = k % 7;
       if (m === 2 || m === 6) continue;
-      const u0 = (i + 0.62) / NK, u1 = (i + 1.03) / NK;
-      const xa = KL + (KR - KL) * u0, xb = KL + (KR - KL) * u1;
-      const ya = KY0 + H * 0.006 - H * 0.058 * u0, yb = KY0 + H * 0.006 - H * 0.058 * u1;
+      const ua = K0 + (K1 - K0) * ((k + 0.60) / NK), ub = K0 + (K1 - K0) * ((k + 1.02) / NK);
       g.beginPath();
-      g.moveTo(xa, ya); g.lineTo(xb, yb);
-      g.lineTo(xb, yb + H * 0.026); g.lineTo(xa, ya + H * 0.026);
+      g.moveTo(xAt(ua), KTOP(ua)); g.lineTo(xAt(ub), KTOP(ub));
+      g.lineTo(xAt(ub), KTOP(ub) + H * 0.026); g.lineTo(xAt(ua), KTOP(ua) + H * 0.026);
       g.closePath(); g.fill();
     }
-    g.strokeStyle = _IV_CLOT[_ivA(0.7)]; g.lineWidth = 1;
-    for (let i = 1; i < NK; i++) {
-      const u = i / NK;
-      const xa = KL + (KR - KL) * u;
-      const ya = KY0 + H * 0.006 - H * 0.058 * u;
-      g.beginPath(); g.moveTo(xa, ya + H * 0.026); g.lineTo(xa, ya + H * 0.040); g.stroke();
+    g.strokeStyle = _IV_CLOT[_ivA(0.8)]; g.lineWidth = 1;
+    for (let k = 1; k < NK; k++) {
+      const u = K0 + (K1 - K0) * (k / NK);
+      g.beginPath(); g.moveTo(xAt(u), KTOP(u) + H * 0.026); g.lineTo(xAt(u), KBOT(u)); g.stroke();
     }
-    // the leg, and the ornament on the case, because it is a rococo piano
+    // the cheek, and the shadow the fallboard throws across the back of them
     g.fillStyle = _IV_LAC[24];
     g.beginPath();
-    g.moveTo(PL + W * 0.030, PT + H * 0.128);
-    g.lineTo(PL + W * 0.062, PT + H * 0.122);
-    g.lineTo(PL + W * 0.052, H * 1.02);
-    g.lineTo(PL + W * 0.022, H * 1.02);
+    g.moveTo(xAt(0), topY(0) + H * 0.006); g.lineTo(xAt(K0), KTOP(K0) - H * 0.002);
+    g.lineTo(xAt(K0), KBOT(K0) + H * 0.008); g.lineTo(xAt(0), topY(0) + H * 0.070);
     g.closePath(); g.fill();
-    g.strokeStyle = _IV_HOT[_ivA(0.26)]; g.lineWidth = W * 0.0014;
-    g.beginPath(); g.moveTo(PL + W * 0.030, PT + H * 0.128); g.lineTo(PL + W * 0.022, H * 1.02); g.stroke();
-    _ivOrnament(g, PL + W * 0.075, PT + H * 0.150, -0.35, S * 0.52, CX, CY, _IV_PAL_MID, 61, false);
-    _ivOrnament(g, PL + W * 0.235, PT + H * 0.190, -0.20, S * 0.44, CX, CY, _IV_PAL_MID, 62, true);
-    // and what the lacquer floor does with all of it
+    g.strokeStyle = _IV_HOT[_ivA(0.45)]; g.lineWidth = Math.max(1, W * 0.0012);
+    g.beginPath(); g.moveTo(xAt(0), topY(0) + H * 0.006); g.lineTo(xAt(K0), KTOP(K0) - H * 0.002); g.stroke();
+    g.fillStyle = 'rgba(4,1,3,0.55)';
+    g.beginPath();
+    g.moveTo(xAt(K0), KTOP(K0)); g.lineTo(xAt(K1), KTOP(K1));
+    g.lineTo(xAt(K1), KTOP(K1) + H * 0.008); g.lineTo(xAt(K0), KTOP(K0) + H * 0.008);
+    g.closePath(); g.fill();
+
+    // the leg, with the hall's own scroll at its knee
+    g.fillStyle = _IV_LAC[24];
+    g.beginPath();
+    g.moveTo(xAt(0.055), topY(0.055) + H * 0.098);
+    g.lineTo(xAt(0.115), topY(0.115) + H * 0.092);
+    g.lineTo(xAt(0.100), H * 1.04);
+    g.lineTo(xAt(0.048), H * 1.04);
+    g.closePath(); g.fill();
+    g.strokeStyle = _IV_HOT[_ivA(0.34)]; g.lineWidth = W * 0.0014;
+    g.beginPath(); g.moveTo(xAt(0.055), topY(0.055) + H * 0.098); g.lineTo(xAt(0.048), H * 1.04); g.stroke();
+    _ivOrnament(g, xAt(0.085), topY(0.085) + H * 0.140, -1.5707963, S * 0.40, CX, CY, _IV_PAL_MID, 61, false);
+    _ivOrnament(g, xAt(0.28), topY(0.28) + H * 0.150, -0.20, S * 0.44, CX, CY, _IV_PAL_MID, 62, true);
+
+    // and what the lacquer floor makes of the whole thing
     g.save();
-    g.globalAlpha = 0.22;
-    g.translate(0, PB * 2);
+    g.globalAlpha = 0.20;
+    g.translate(0, (topY(0) + H * 0.115) * 2);
     g.scale(1, -1);
-    g.fillStyle = _IV_LAC[20];
-    g.beginPath();
-    g.moveTo(PL, PT + H * 0.028); g.lineTo(PR, PT - H * 0.048); g.lineTo(PR, PB);
-    g.quadraticCurveTo(PL + W * 0.20, PB + H * 0.035, PL, PT + H * 0.115);
-    g.closePath(); g.fill();
-    g.fillStyle = _IV_BONE[14];
-    g.beginPath();
-    g.moveTo(KL, KY0 + H * 0.006); g.lineTo(KR, KY0 - H * 0.052);
-    g.lineTo(KR, KY1 - H * 0.052); g.lineTo(KL, KY1 + H * 0.006);
-    g.closePath(); g.fill();
+    g.fillStyle = _IV_LAC[20]; CASE(); g.fill();
+    g.fillStyle = _IV_BONE[10]; KEYS(); g.fill();
     g.restore();
   }
 
@@ -27462,16 +27500,11 @@ function _drawIvyEvilPattern(canvas, ctx, W, H, t) {
   _ivCrack = (ev && ev.name === 'shatter')
     ? (ev.p < 0.22 ? ev.p / 0.22 : ev.p < 0.68 ? 1 : 1 - (ev.p - 0.68) / 0.32)
     : 0;
-  if (ev && ev.name === 'lunge') {
-    if (!_ivSlash || _ivSlash.t0 !== ev.t0) {
-      const a = -0.55 - ev.r0 * 0.55;
-      const cx = W * (0.32 + ev.r1 * 0.42), cy = H * (0.30 + ev.r2 * 0.42);
-      const L = Math.hypot(W, H) * 0.85;
-      _ivSlash = { t0: ev.t0, x0: cx - Math.cos(a) * L, y0: cy - Math.sin(a) * L,
-                   x1: cx + Math.cos(a) * L, y1: cy + Math.sin(a) * L, p: 0 };
-    }
-    _ivSlash.p = ev.p;
-  } else if (_ivSlash) _ivSlash = null;
+  if (ev && ev.name === 'lunge' && P._lungeFor !== ev.t0) {
+    P._lungeFor = ev.t0;
+    _ivCutFire((window.innerWidth || W) * (0.30 + ev.r1 * 0.45),
+               (window.innerHeight || H) * (0.28 + ev.r2 * 0.44), null, ev.t0 * 13.7);
+  }
 
   const CX0 = VX, CY = H * 0.185;
   const CX = CX0 + _ivSwing * W * 0.055;              // the light itself moves
@@ -27640,7 +27673,9 @@ function _drawIvyEvilPattern(canvas, ctx, W, H, t) {
     lg.fillStyle = 'rgba(3,1,2,' + (_ivDark * 0.72).toFixed(3) + ')';
     lg.fillRect(0, 0, W, H);
   }
-  _ivBloom(canvas, lo, 0.15 + _ivPulse * 0.14 + (_ivSlash ? 0.4 * (1 - _ivSlash.p) : 0));
+  let cutGlow = 0;
+  for (const c of _ivCuts) if (c.p > 0 && c.p < 1) cutGlow = Math.max(cutGlow, 1 - c.p);
+  _ivBloom(canvas, lo, 0.15 + _ivPulse * 0.14 + cutGlow * 0.45);
 
   // ── up, with the smoothing off, which is the whole point ──
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -27790,43 +27825,158 @@ function _ivEvFront(g, ev, W, H, VX, VY, CX, CY, t) {
     g.restore();
   }
 
-  // LUNGE. A rapier cut through the whole frame. White, because white is the
-  // most violent thing available in a red room and it is spent exactly here.
-  if (_ivSlash) _ivDrawSlash(g, _ivSlash, W, H);
+  // LUNGE. The cuts are held in WINDOW coordinates because they go through the
+  // application as well; the picture converts them into its own space so the
+  // same wound crosses both layers in the same frame.
+  if (_ivCuts.length) {
+    const r = _ivEvFront._pc && _ivEvFront._pc.isConnected
+      ? _lyRect(_ivEvFront._pc) : (_ivEvFront._pc = document.getElementById('pattern-canvas'), null);
+    const sx = r && r.width > 0 ? W / r.width : 1, sy = r && r.height > 0 ? H / r.height : 1;
+    const ox = r ? r.left : 0, oy = r ? r.top : 0;
+    for (const c of _ivCuts) {
+      const q = { p: c.p, w: c.w, seed: c.seed,
+                  x0: (c.x0 - ox) * sx, y0: (c.y0 - oy) * sy,
+                  x1: (c.x1 - ox) * sx, y1: (c.y1 - oy) * sy };
+      _ivCutDraw(g, q, W, H, _ivPX(W));
+    }
+  }
 }
 
-// The cut itself. Shared by both layers, so the same stroke crosses the picture
-// and the application in the same frame.
-function _ivDrawSlash(g, S, W, H) {
-  const q = S.p;
-  const grow = Math.min(1, q / 0.22);
-  const fade = q > 0.42 ? 1 - (q - 0.42) / 0.58 : 1;
-  const x1 = S.x0 + (S.x1 - S.x0) * grow, y1 = S.y0 + (S.y1 - S.y0) * grow;
-  const back = Math.max(0, (q - 0.55) / 0.45);
-  const x0 = S.x0 + (S.x1 - S.x0) * back, y0 = S.y0 + (S.y1 - S.y0) * back;
-  g.save();
-  g.globalCompositeOperation = 'lighter';
-  const w = Math.max(2, Math.hypot(W, H) * 0.004);
-  g.strokeStyle = _IV_HOT[_ivA(fade * 0.55)]; g.lineWidth = w * 4.5;
-  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
-  g.strokeStyle = _IV_EMBER[_ivA(fade * 0.75)]; g.lineWidth = w * 1.8;
-  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
-  g.strokeStyle = _IV_WHITE[_ivA(fade * 0.95)]; g.lineWidth = Math.max(1, w * 0.55);
-  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
-  // and what it opened
-  const dx = (S.x1 - S.x0), dy = (S.y1 - S.y0), m = Math.hypot(dx, dy) || 1;
-  const nx = -dy / m, ny = dx / m;
-  g.beginPath();
-  for (let i = 0; i < 26; i++) {
-    const u = _ivRnd(S.t0 * 7.1 + i * 3.3);
-    if (u > grow) continue;
-    const px = S.x0 + dx * u, py = S.y0 + dy * u;
-    const sp = (_ivRnd(S.t0 * 11.7 + i) - 0.5) * 2;
-    const d = q * Math.hypot(W, H) * 0.10 * (0.4 + _ivRnd(S.t0 + i * 5.1));
-    const r = Math.max(1.5, w * (0.5 + _ivRnd(i * 2.9)));
-    g.rect(px + nx * d * sp - r, py + ny * d * sp - r, r * 2, r * 2);
+
+// ════════════════════════════════════════════════════════════════
+// THE CUTS
+//
+// A slash across the page is only half of it: what sells it is the
+// application itself coming apart along the same line. Every
+// element that can be cut gets a mask with a hard transparent band
+// through it at the cut's angle, so the panels, the sidebar and the
+// header are genuinely severed for as long as the gap is open and
+// you can see the hall through the wound. One mask string on a
+// handful of elements, written a few times over half a second: it
+// is a paint, not a custom property, and it costs nothing like one.
+//
+// Six variants, rolled at random and never the same twice running,
+// so the same cut never lands the same way twice.
+// ════════════════════════════════════════════════════════════════
+const _IV_CUT_KINDS = ['single', 'single', 'cross', 'flurry', 'flurry', 'wide'];
+let _ivCuts = [];              // the live cuts, in window coordinates
+let _ivCutLast = '';
+const _IV_CUT_EL = ['char-view', 'sidebar', 'header', 'theme-bar'];
+
+function _ivCutFire(cx, cy, kind, seed) {
+  const W = window.innerWidth || 1600, H = window.innerHeight || 900;
+  const L = Math.hypot(W, H) * 1.1;
+  if (!kind) {
+    for (let i = 0; i < 10; i++) {
+      kind = _IV_CUT_KINDS[(_ivRnd(seed * 7.7 + i * 3.1) * _IV_CUT_KINDS.length) | 0];
+      if (kind !== _ivCutLast) break;
+    }
   }
-  g.fillStyle = _IV_HOT[_ivA(fade * 0.8)];
+  _ivCutLast = kind;
+  const base = (_ivRnd(seed * 3.3) - 0.5) * 2.4;
+  const add = (a, off, delay, w) => {
+    const px = cx - Math.sin(a) * off, py = cy + Math.cos(a) * off;
+    _ivCuts.push({ a: a, x: px, y: py,
+                   x0: px - Math.cos(a) * L, y0: py - Math.sin(a) * L,
+                   x1: px + Math.cos(a) * L, y1: py + Math.sin(a) * L,
+                   t0: -delay, p: 0, w: w || 1, seed: seed + off });
+  };
+  if (kind === 'single') add(base, 0, 0, 1);
+  else if (kind === 'wide') add(base, 0, 0, 2.1);
+  else if (kind === 'cross') { add(base, 0, 0, 1); add(base + 1.5707963, 0, 0.11, 1); }
+  else {
+    const n = 3 + ((_ivRnd(seed * 5.1) * 2) | 0);
+    for (let i = 0; i < n; i++) add(base + (_ivRnd(seed + i) - 0.5) * 0.25,
+                                    (i - (n - 1) * 0.5) * Math.min(W, H) * 0.115, i * 0.07, 0.8);
+  }
+  _ivCutApply();
+}
+
+// Put the wound through the interface. The gap is widest early and closes.
+function _ivCutApply() {
+  if (_ivRM) return;
+  let m = '';
+  for (const c of _ivCuts) {
+    if (c.p < 0 || c.p > 0.72) continue;
+    const open = Math.sin(Math.PI * Math.min(1, c.p / 0.72));
+    const gap = 0.22 * c.w * open;                 // in percent of the gradient
+    if (gap < 0.02) continue;
+    const deg = (c.a * 57.2957795 + 90).toFixed(1);
+    const mid = 50 + (c.y - (window.innerHeight || 900) * 0.5) * 0.08;
+    m += (m ? ',' : '') + 'linear-gradient(' + deg + 'deg, #000 0 ' + (mid - gap).toFixed(2) +
+         '%, transparent ' + (mid - gap).toFixed(2) + '% ' + (mid + gap).toFixed(2) +
+         '%, #000 ' + (mid + gap).toFixed(2) + '% 100%)';
+  }
+  for (const id of _IV_CUT_EL) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (!m) { el.style.webkitMaskImage = ''; el.style.maskImage = ''; el.style.webkitMaskComposite = ''; el.style.maskComposite = ''; }
+    else {
+      el.style.webkitMaskImage = m; el.style.maskImage = m;
+      el.style.webkitMaskComposite = 'source-in'; el.style.maskComposite = 'intersect';
+    }
+  }
+}
+function _ivCutClear() {
+  _ivCuts = [];
+  for (const id of _IV_CUT_EL) {
+    const el = document.getElementById(id);
+    if (el) { el.style.webkitMaskImage = ''; el.style.maskImage = ''; el.style.webkitMaskComposite = ''; el.style.maskComposite = ''; }
+  }
+}
+
+// Draw one cut: the wound itself, its two glowing faces, and what came out.
+function _ivCutDraw(g, c, W, H, PX) {
+  const q = c.p;
+  if (q < 0 || q > 1) return;
+  const grow = Math.min(1, q / 0.16);
+  const fade = q > 0.40 ? Math.max(0, 1 - (q - 0.40) / 0.60) : 1;
+  const x1 = c.x0 + (c.x1 - c.x0) * grow, y1 = c.y0 + (c.y1 - c.y0) * grow;
+  const back = Math.max(0, (q - 0.60) / 0.40);
+  const x0 = c.x0 + (c.x1 - c.x0) * back, y0 = c.y0 + (c.y1 - c.y0) * back;
+  const open = Math.sin(Math.PI * Math.min(1, q / 0.72));
+  const dx = c.x1 - c.x0, dy = c.y1 - c.y0, m = Math.hypot(dx, dy) || 1;
+  const nx = -dy / m, ny = dx / m;
+  const gap = Math.max(PX, Math.hypot(W, H) * 0.010 * c.w * open);
+
+  g.save();
+  // The wound. Kept translucent on purpose: the interface has actually been
+  // masked away along this line, so what belongs in the gap is the hall behind
+  // it. Filling it with opaque black covered up the only good part.
+  g.fillStyle = 'rgba(4,1,3,' + (0.45 * open).toFixed(3) + ')';
+  g.beginPath();
+  g.moveTo(x0 + nx * gap, y0 + ny * gap);
+  g.lineTo(x1 + nx * gap, y1 + ny * gap);
+  g.lineTo(x1 - nx * gap, y1 - ny * gap);
+  g.lineTo(x0 - nx * gap, y0 - ny * gap);
+  g.closePath(); g.fill();
+  g.globalCompositeOperation = 'lighter';
+  // the cut faces, still hot
+  const w = Math.max(PX, Math.hypot(W, H) * 0.0022 * c.w);
+  for (const sgn of [1, -1]) {
+    g.strokeStyle = _IV_HOT[_ivA(fade * 0.55)]; g.lineWidth = w * 3.2;
+    g.beginPath();
+    g.moveTo(x0 + nx * gap * sgn, y0 + ny * gap * sgn);
+    g.lineTo(x1 + nx * gap * sgn, y1 + ny * gap * sgn);
+    g.stroke();
+    g.strokeStyle = _IV_BONE[_ivA(fade * 0.95)]; g.lineWidth = Math.max(1, w * 0.8);
+    g.beginPath();
+    g.moveTo(x0 + nx * gap * sgn, y0 + ny * gap * sgn);
+    g.lineTo(x1 + nx * gap * sgn, y1 + ny * gap * sgn);
+    g.stroke();
+  }
+  // and what came out of it
+  g.beginPath();
+  for (let i = 0; i < 30; i++) {
+    const u = _ivRnd(c.seed * 7.1 + i * 3.3);
+    if (u > grow) continue;
+    const px = c.x0 + dx * u, py = c.y0 + dy * u;
+    const sp = (_ivRnd(c.seed * 11.7 + i) - 0.5) * 2;
+    const d = q * Math.hypot(W, H) * 0.11 * (0.4 + _ivRnd(c.seed + i * 5.1));
+    const r = Math.max(PX, w * (0.5 + _ivRnd(i * 2.9)));
+    g.rect(px + nx * (d * sp + gap * Math.sign(sp || 1)) - r, py + ny * (d * sp + gap * Math.sign(sp || 1)) - r, r * 2, r * 2);
+  }
+  g.fillStyle = _IV_HOT[_ivA(fade * 0.85)];
   g.fill();
   g.restore();
 }
@@ -27851,15 +28001,26 @@ let _ivMY = (typeof window !== 'undefined' ? window.innerHeight * 0.5 : 0);
 let _ivPrevMX = _ivMX, _ivPrevMY = _ivMY;
 let _ivLunge = 0;                       // 0..1, a click: the thrust
 let _ivTrail = null, _ivTrailN = 0;
+let _ivSparks = [];                     // struck off the blade and out of the cuts
+let _ivGhosts = [];                     // where the blade has just been
+let _ivDrips = [];                      // and what is still coming off it
 let _ivOverlayRaf = null;
 function _ivMouseMove(e) { _ivMX = e.clientX; _ivMY = e.clientY; }
 function _ivMouseDown() {
   _ivLunge = 1;
   const a = (_ivDrawRapier._a || -0.6);
-  const L = Math.hypot(window.innerWidth, window.innerHeight) * 0.85;
-  _ivSlash = { t0: performance.now() * 0.001, p: 0, ov: 1,
-               x0: _ivMX - Math.cos(a) * L, y0: _ivMY - Math.sin(a) * L,
-               x1: _ivMX + Math.cos(a) * L, y1: _ivMY + Math.sin(a) * L };
+  const L = Math.hypot(window.innerWidth, window.innerHeight) * 1.1;
+  _ivCuts.push({ a: a, x: _ivMX, y: _ivMY,
+                 x0: _ivMX - Math.cos(a) * L, y0: _ivMY - Math.sin(a) * L,
+                 x1: _ivMX + Math.cos(a) * L, y1: _ivMY + Math.sin(a) * L,
+                 t0: 0, p: 0, w: 1, seed: performance.now() * 0.013 });
+  _ivCutApply();
+  for (let i = 0; i < 14; i++) {
+    _ivSparks.push({ x: _ivMX, y: _ivMY,
+                     vx: Math.cos(a + (Math.random() - 0.5) * 1.1) * (260 + Math.random() * 620),
+                     vy: Math.sin(a + (Math.random() - 0.5) * 1.1) * (260 + Math.random() * 620),
+                     life: 1, hot: Math.random() > 0.4 });
+  }
 }
 
 // Where the chandelier is in WINDOW coordinates, so a scroll in the corner of
@@ -27876,6 +28037,12 @@ function _ivLightAt(W, H) {
 }
 
 // ── the ornament around the window, baked once ──
+// The ornament round the window is baked at a FINER pixel than the rest of the
+// page and blitted straight onto the real canvas after the low resolution
+// layer has gone up. Everything else stays chunky; the border does not, which
+// is what was asked for and also what a gilt frame wants: it is the one thing
+// here that is supposed to look expensive.
+function _ivFramePX(PX) { return Math.max(1, Math.round(PX / 2.5)); }
 function _ivFrameSheet(W, H, LX, LY, PX) {
   const c = _ivSheet(W, H, PX); c._px = PX;
   const g = c.getContext('2d');
@@ -27907,6 +28074,148 @@ function _ivFrameSheet(W, H, LX, LY, PX) {
   return c;
 }
 
+
+/* ── the star ─────────────────────────────────────────────────────
+   On the left, over the application, burning. Eight spikes on a
+   slowly turning frame, a sigil inscribed in a double ring of the
+   hall's own ornament, and a core too bright to look at. It is on
+   the OVERLAY rather than in the picture because the left third of
+   the picture is behind the panels, and a thing that is supposed to
+   be intimidating has to be visible.
+   Everything is additive, so it reads as light standing in front of
+   the interface rather than as an object stuck on top of it. It
+   answers the same heartbeat everything else does: the spikes throw
+   out on the beat and a ring leaves it every time. ── */
+function _ivStar(g, W, H, t, PX) {
+  const M = Math.min(W, H);
+  const X = W * 0.150, Y = H * 0.470;
+  const R = M * 0.205;
+  const beat = _ivPulse;
+  const flare = Math.pow(Math.max(0, Math.sin(t * 0.42)), 12);      // now and then, more
+  const pw = (1 - _ivDark * 0.85) * (1 - _ivDrain * 0.55);
+  const spin = t * 0.10;
+
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+
+  // the halo it stands in
+  const GL = _ivGlowTinted();
+  const HR = R * (2.0 + beat * 0.5 + flare * 0.9);
+  g.globalAlpha = (0.20 + beat * 0.18 + flare * 0.22) * pw;
+  g.drawImage(GL, X - HR, Y - HR, HR * 2, HR * 2);
+  g.globalAlpha = 1;
+
+  // EIGHT SPIKES: four long on the cardinals, four short between, and they
+  // throw out on the beat
+  const L1 = R * (1.30 + beat * 0.48 + flare * 0.75);
+  const L2 = R * (0.62 + beat * 0.22 + flare * 0.32);
+  g.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = spin + i * 0.7853982;
+    const L = (i & 1) ? L2 : L1;
+    const w = R * ((i & 1) ? 0.055 : 0.085);
+    const cx = Math.cos(a), cy = Math.sin(a);
+    g.moveTo(X + cx * L, Y + cy * L);
+    g.lineTo(X - cy * w, Y + cx * w);
+    g.lineTo(X + cy * w, Y - cx * w);
+    g.closePath();
+  }
+  g.fillStyle = _ivRed(_IV_BLOOD, (0.42 + beat * 0.30) * pw);
+  g.fill();
+  g.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = spin + i * 0.7853982;
+    const L = ((i & 1) ? L2 : L1) * 0.72;
+    const w = R * ((i & 1) ? 0.022 : 0.034);
+    const cx = Math.cos(a), cy = Math.sin(a);
+    g.moveTo(X + cx * L, Y + cy * L);
+    g.lineTo(X - cy * w, Y + cx * w);
+    g.lineTo(X + cy * w, Y - cx * w);
+    g.closePath();
+  }
+  g.fillStyle = _ivRed(_IV_EMBER, (0.70 + beat * 0.30) * pw);
+  g.fill();
+
+  // THE SIGIL: a five point star drawn 5/2, which is the shape everybody
+  // reads as a warning, inscribed in the ring
+  const SR = R * 0.62;
+  g.strokeStyle = _ivRed(_IV_EMBER, (0.45 + beat * 0.35) * pw);
+  g.lineWidth = Math.max(1, PX * 1.1);
+  g.beginPath();
+  for (let i = 0; i <= 5; i++) {
+    const a = -1.5707963 - spin * 1.7 + (i * 2) * 1.2566371;
+    const x = X + Math.cos(a) * SR, y = Y + Math.sin(a) * SR;
+    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.stroke();
+  g.strokeStyle = _IV_BONE[_ivA((0.20 + beat * 0.30) * pw)];
+  g.lineWidth = Math.max(1, PX * 0.5);
+  g.stroke();
+
+  // two rings, counter turning, and the hall's ornament riding the outer one
+  for (let k = 0; k < 2; k++) {
+    const rr = SR * (1.06 + k * 0.20);
+    g.strokeStyle = _ivRed(k ? _IV_BLOOD : _IV_HOT, (0.34 + beat * 0.25) * pw);
+    g.lineWidth = Math.max(1, PX * (k ? 0.8 : 1.4));
+    g.beginPath(); g.arc(X, Y, rr, 0, 6.2831853); g.stroke();
+  }
+  // The ring of ornament is eight compound scrolls, and eight of those every
+  // frame was most of what this layer cost. It is the same eight every time
+  // and all it does is turn, so it is baked once and the blit does the turning.
+  {
+    const key = (R | 0) + ':' + PX;
+    let sp = _ivStar._ring;
+    if (!sp || _ivStar._key !== key) {
+      const sz = Math.ceil(SR * 3.2);
+      sp = _ivStar._ring = document.createElement('canvas');
+      sp.width = sp.height = sz;
+      const q = sp.getContext('2d');
+      q.lineJoin = 'round'; q.lineCap = 'round';
+      for (let i = 0; i < 8; i++) {
+        const a = i * 0.7853982;
+        const rr = SR * 1.26;
+        _ivOrnament(q, sz * 0.5 + Math.cos(a) * rr, sz * 0.5 + Math.sin(a) * rr, a + 1.5707963,
+                    R * 0.20, sz * 0.5, sz * 0.5, _IV_PAL_GILT, i + 500, i & 1);
+      }
+      _ivStar._key = key;
+    }
+    const sc = 1 + beat * 0.12;
+    g.save();
+    g.translate(X, Y);
+    g.rotate(-spin * 2.1);
+    g.scale(sc, sc);
+    g.drawImage(sp, -sp.width * 0.5, -sp.height * 0.5);
+    g.restore();
+  }
+
+  // the shockwave it lets go of on every beat
+  if (!_ivStar._rings) _ivStar._rings = [];
+  if (beat > 0.92 && t - (_ivStar._last || -9) > 0.45) {
+    _ivStar._last = t;
+    _ivStar._rings.push({ r: R * 0.4, a: 1 });
+  }
+  for (let i = _ivStar._rings.length - 1; i >= 0; i--) {
+    const q = _ivStar._rings[i];
+    q.r += M * 1.15 * 0.016;
+    q.a -= 0.022;
+    if (q.a <= 0) { _ivStar._rings.splice(i, 1); continue; }
+    g.strokeStyle = _ivRed(_IV_HOT, q.a * 0.30 * pw);
+    g.lineWidth = Math.max(1, PX * (0.6 + q.a * 1.6));
+    g.beginPath(); g.arc(X, Y, q.r, 0, 6.2831853); g.stroke();
+  }
+
+  // and the core, which is the only place on this page that goes to white
+  const CR = R * (0.165 + beat * 0.05 + flare * 0.08);
+  g.globalAlpha = pw;
+  g.drawImage(GL, X - CR * 3.4, Y - CR * 3.4, CR * 6.8, CR * 6.8);
+  g.globalAlpha = 1;
+  g.fillStyle = _ivRed(_IV_HOT, 0.95 * pw);
+  g.beginPath(); g.arc(X, Y, CR, 0, 6.2831853); g.fill();
+  g.fillStyle = _IV_BONE[_ivA((0.75 + beat * 0.25) * pw)];
+  g.beginPath(); g.arc(X, Y, CR * 0.52, 0, 6.2831853); g.fill();
+  g.restore();
+}
+
 /* ── the rapier ───────────────────────────────────────────────────
    A long thin blade with one lit edge and a dark spine, a swept
    guard made of the same scroll as everything else in the hall, a
@@ -27914,7 +28223,61 @@ function _ivFrameSheet(W, H, LX, LY, PX) {
    sits on the pointer and the rest of the weapon hangs back from
    it, leaning into wherever you are going. A click drives it
    forward along its own axis and opens a cut across the page. ── */
-function _ivDrawRapier(g, x, y, t, vx, vy, PX) {
+// Draws only the steel, in local coordinates, so the ghosts behind the blade
+// can reuse it without repeating the hilt.
+function _ivBlade(g, BL, bw, PX, hot, shimmer) {
+  g.fillStyle = _IV_VOID[24];
+  g.beginPath();
+  g.moveTo(4, 0);
+  g.lineTo(-BL * 0.30, -bw * 0.78);
+  g.lineTo(-BL, -bw);
+  g.lineTo(-BL, bw);
+  g.lineTo(-BL * 0.30, bw * 0.78);
+  g.closePath(); g.fill();
+  // WHITE, and only white: the blade is the one thing in this hall the red
+  // has not got into yet.
+  g.fillStyle = hot > 0.02 ? _IV_BONE[24] : _IV_BONE[_ivA(0.94)];
+  g.beginPath();
+  g.moveTo(4, 0);
+  g.lineTo(-BL * 0.30, -bw * 0.78);
+  g.lineTo(-BL, -bw * 0.92);
+  g.lineTo(-BL, bw * 0.92);
+  g.lineTo(-BL * 0.30, bw * 0.78);
+  g.closePath(); g.fill();
+  // the fuller, and the shadow along the underside so it is a bar and not a
+  // strip of paper
+  g.fillStyle = 'rgba(150,150,160,0.40)';
+  g.beginPath();
+  g.moveTo(4, 0);
+  g.lineTo(-BL * 0.30, bw * 0.78);
+  g.lineTo(-BL, bw * 0.92);
+  g.lineTo(-BL, bw * 0.18);
+  g.lineTo(-BL * 0.30, bw * 0.16);
+  g.closePath(); g.fill();
+  g.strokeStyle = 'rgba(90,90,100,0.55)'; g.lineWidth = Math.max(1, PX * 0.7);
+  g.beginPath(); g.moveTo(-BL * 0.16, 0); g.lineTo(-BL * 0.95, 0); g.stroke();
+  // a bright band running up it, so the steel is doing something when you are not
+  if (shimmer >= 0) {
+    const u = shimmer;
+    const sx = -BL * (1 - u);
+    const hw = bw * (1 - 0.62 * (1 - u));
+    g.fillStyle = 'rgba(255,255,255,' + (0.85 * Math.sin(Math.PI * u)).toFixed(3) + ')';
+    g.fillRect(sx - Math.max(1, PX * 1.2), -hw, Math.max(2, PX * 2.4), hw * 2);
+  }
+  if (hot > 0.02) {
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    g.fillStyle = _IV_HOT[_ivA(hot * 0.55)];
+    g.beginPath();
+    g.moveTo(4, 0);
+    g.lineTo(-BL * 0.30, -bw * 0.78); g.lineTo(-BL, -bw);
+    g.lineTo(-BL, bw); g.lineTo(-BL * 0.30, bw * 0.78);
+    g.closePath(); g.fill();
+    g.restore();
+  }
+}
+
+function _ivDrawRapier(g, x, y, t, vx, vy, PX, W, H) {
   const spd = Math.hypot(vx, vy);
   let a = _ivDrawRapier._a === undefined ? -0.62 : _ivDrawRapier._a;
   const want = spd > 40 ? Math.atan2(vy, vx) : -0.62 + Math.sin(t * 0.9) * 0.05;
@@ -27924,90 +28287,91 @@ function _ivDrawRapier(g, x, y, t, vx, vy, PX) {
   a += d * Math.min(1, 0.14 + spd * 0.0006);
   _ivDrawRapier._a = a;
 
-  // Everything here is sized so it survives the pixel grid: the blade is five
-  // low resolution pixels across at the guard and the guard is twenty. Drawn
-  // at the size a sharp cursor would be, the whole weapon came out two pixels
-  // wide and vanished.
-  const M = 152;
-  const BL = M * 0.70, GR = M * 0.16, GW = M * 0.19;
-  const bw = M * 0.050;
-  const push = _ivLunge * M * 0.26;
+  // Sized so it survives the pixel grid: the blade is five low resolution
+  // pixels across at the guard. Drawn at the size a sharp cursor would be, the
+  // whole weapon came out two pixels wide and vanished.
+  const M = 214;
+  const BL = M * 0.80, GR = M * 0.115, GW = M * 0.135;
+  const bw = M * 0.036;
+  const push = _ivLunge * M * 0.30;
+  const hot = _ivLunge;
+  const shimmerT = (t * 0.42) % 1;
+  const shimmer = shimmerT < 0.34 ? shimmerT / 0.34 : -1;
+
+  // ── the ghosts: where the blade was a moment ago, blade only, no hilt ──
+  for (let i = 0; i < _ivGhosts.length; i++) {
+    const gh = _ivGhosts[i];
+    if (gh.a <= 0.02) continue;
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    g.globalAlpha = gh.a * 0.40;
+    g.translate(gh.x, gh.y); g.rotate(gh.r);
+    g.fillStyle = _IV_BONE[_ivA(0.55)];
+    g.beginPath();
+    g.moveTo(4, 0);
+    g.lineTo(-BL * 0.30, -bw * 0.78); g.lineTo(-BL, -bw);
+    g.lineTo(-BL, bw); g.lineTo(-BL * 0.30, bw * 0.78);
+    g.closePath(); g.fill();
+    g.restore();
+  }
 
   g.save();
   g.translate(x, y);
   g.rotate(a);
   g.translate(push, 0);
+  _ivBlade(g, BL, bw, PX, hot, shimmer);
 
-  // the blade: a dark spine with a white edge on top and the room's red on the
-  // underside, because it is polished and there is only one light in here
-  g.fillStyle = _IV_VOID[24];
-  g.beginPath();
-  g.moveTo(3, 0);
-  g.lineTo(-BL * 0.34, -bw * 0.72);
-  g.lineTo(-BL, -bw);
-  g.lineTo(-BL, bw);
-  g.lineTo(-BL * 0.34, bw * 0.72);
-  g.closePath(); g.fill();
-  g.fillStyle = _IV_BONE[24];
-  g.beginPath();
-  g.moveTo(3, 0);
-  g.lineTo(-BL * 0.34, -bw * 0.72);
-  g.lineTo(-BL, -bw);
-  g.lineTo(-BL, -bw * 0.30);
-  g.lineTo(-BL * 0.34, -bw * 0.20);
-  g.closePath(); g.fill();
-  g.fillStyle = _IV_HOT[_ivA(0.75)];
-  g.beginPath();
-  g.moveTo(3, 0);
-  g.lineTo(-BL * 0.34, bw * 0.72);
-  g.lineTo(-BL, bw);
-  g.lineTo(-BL, bw * 0.34);
-  g.lineTo(-BL * 0.34, bw * 0.24);
-  g.closePath(); g.fill();
-  // the fuller, and blood still on the last third of it
-  g.strokeStyle = _IV_CLOT[_ivA(0.85)]; g.lineWidth = Math.max(1, PX);
-  g.beginPath(); g.moveTo(-BL * 0.20, 0); g.lineTo(-BL * 0.94, 0); g.stroke();
-  g.strokeStyle = _IV_BLOOD[_ivA(0.80)]; g.lineWidth = Math.max(1, PX);
-  g.beginPath();
-  g.moveTo(-BL * 0.30, bw * 0.30);
-  g.lineTo(-BL * 0.52, bw * 0.55);
-  g.lineTo(-BL * 0.66, bw * 0.30);
-  g.stroke();
-
-  // THE GUARD. The same C scroll the hall is built out of, three of them swept
+  // THE GUARD. The same C scroll the hall is built out of, four of them swept
   // round the hand, which is the whole reason there is one scroll primitive.
-  const n0 = _ivScroll(-BL + GW * 0.10, -bw * 0.5, -2.25, GW * 0.92, 1.25, 1, 16);
+  const n0 = _ivScroll(-BL + GW * 0.10, -bw * 0.6, -2.25, GW * 0.92, 1.25, 1, 16);
   _ivGilt(g, _IV_PT, n0, GW * 0.34, GW * 0.11, 0, -M * 4, _IV_PAL_GILT);
-  const n1 = _ivScroll(-BL + GW * 0.10, bw * 0.5, 2.25, GW * 0.92, 1.25, -1, 16);
+  const n1 = _ivScroll(-BL + GW * 0.10, bw * 0.6, 2.25, GW * 0.92, 1.25, -1, 16);
   _ivGilt(g, _IV_PT, n1, GW * 0.34, GW * 0.11, 0, -M * 4, _IV_PAL_GILT);
   const n2 = _ivScroll(-BL - GR * 0.70, -bw * 0.2, 1.15, GW * 0.70, 1.05, 1, 14);
   _ivGilt(g, _IV_PT, n2, GW * 0.26, GW * 0.09, 0, -M * 4, _IV_PAL_GILT);
   const n3 = _ivScroll(-BL - GR * 0.70, bw * 0.2, -1.15, GW * 0.70, 1.05, -1, 14);
   _ivGilt(g, _IV_PT, n3, GW * 0.26, GW * 0.09, 0, -M * 4, _IV_PAL_GILT);
-  // the ricasso block the scrolls spring from
   g.fillStyle = _IV_DARK[24];
-  g.beginPath(); g.ellipse(-BL - GR * 0.06, 0, GR * 0.28, bw * 1.9, 0, 0, 6.2831853); g.fill();
-  g.strokeStyle = _IV_EMBER[_ivA(0.75)]; g.lineWidth = Math.max(1, PX * 0.7);
-  g.beginPath(); g.ellipse(-BL - GR * 0.06, 0, GR * 0.28, bw * 1.9, 0, 0, 6.2831853); g.stroke();
-  // and the stone in it
+  g.beginPath(); g.ellipse(-BL - GR * 0.06, 0, GR * 0.30, bw * 2.1, 0, 0, 6.2831853); g.fill();
+  g.strokeStyle = _IV_EMBER[_ivA(0.8)]; g.lineWidth = Math.max(1, PX * 0.7);
+  g.beginPath(); g.ellipse(-BL - GR * 0.06, 0, GR * 0.30, bw * 2.1, 0, 0, 6.2831853); g.stroke();
   g.fillStyle = _IV_HOT[24];
-  g.beginPath(); g.arc(-BL - GR * 0.06, 0, bw * 0.85, 0, 6.2831853); g.fill();
-  g.fillStyle = _IV_BONE[_ivA(0.85)];
-  g.beginPath(); g.arc(-BL - GR * 0.06 - bw * 0.25, -bw * 0.28, bw * 0.30, 0, 6.2831853); g.fill();
+  g.beginPath(); g.arc(-BL - GR * 0.06, 0, bw * 0.95, 0, 6.2831853); g.fill();
+  g.fillStyle = _IV_BONE[_ivA(0.9)];
+  g.beginPath(); g.arc(-BL - GR * 0.06 - bw * 0.28, -bw * 0.30, bw * 0.34, 0, 6.2831853); g.fill();
 
-  // grip and pommel
   g.fillStyle = _IV_CLOT[24];
-  g.fillRect(-BL - GR * 1.10, -bw * 0.80, GR * 1.02, bw * 1.60);
-  g.strokeStyle = _IV_BLOOD[_ivA(0.85)]; g.lineWidth = Math.max(1, PX * 0.7);
+  g.fillRect(-BL - GR * 1.20, -bw * 0.88, GR * 1.14, bw * 1.76);
+  g.strokeStyle = _IV_BLOOD[_ivA(0.9)]; g.lineWidth = Math.max(1, PX * 0.7);
   for (let i = 1; i < 5; i++) {
-    const px = -BL - GR * 1.10 + GR * 1.02 * (i / 5);
-    g.beginPath(); g.moveTo(px, -bw * 0.80); g.lineTo(px - GR * 0.16, bw * 0.80); g.stroke();
+    const px = -BL - GR * 1.20 + GR * 1.14 * (i / 5);
+    g.beginPath(); g.moveTo(px, -bw * 0.88); g.lineTo(px - GR * 0.18, bw * 0.88); g.stroke();
   }
   g.fillStyle = _IV_BLOOD[24];
-  g.beginPath(); g.arc(-BL - GR * 1.24, 0, bw * 1.15, 0, 6.2831853); g.fill();
-  g.fillStyle = _IV_EMBER[_ivA(0.9)];
-  g.beginPath(); g.arc(-BL - GR * 1.30, -bw * 0.32, bw * 0.40, 0, 6.2831853); g.fill();
+  g.beginPath(); g.arc(-BL - GR * 1.36, 0, bw * 1.25, 0, 6.2831853); g.fill();
+  g.fillStyle = _IV_EMBER[_ivA(0.95)];
+  g.beginPath(); g.arc(-BL - GR * 1.42, -bw * 0.34, bw * 0.44, 0, 6.2831853); g.fill();
+
+  // the point, which is the brightest pixel on the page
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  const TR = bw * (2.6 + hot * 6);
+  g.globalAlpha = 0.55 + hot * 0.45;
+  g.drawImage(_ivGlowSprite(), 4 - TR, -TR, TR * 2, TR * 2);
   g.restore();
+  g.restore();
+
+  // and the ring it lets go of when it goes in
+  if (hot > 0.05) {
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    const rr = (1 - hot) * M * 1.5;
+    g.strokeStyle = _IV_BONE[_ivA(hot * 0.45)];
+    g.lineWidth = Math.max(1, PX * (0.6 + hot * 2));
+    g.beginPath(); g.arc(x + Math.cos(a) * push, y + Math.sin(a) * push, rr, 0, 6.2831853); g.stroke();
+    g.restore();
+  }
+  return { a: a, tipX: x + Math.cos(a) * push, tipY: y + Math.sin(a) * push, BL: BL, bw: bw };
 }
 
 function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
@@ -28022,9 +28386,21 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
   const M = Math.min(W, H);
   const [LX, LY] = _ivLightAt(W, H);
   _ivLunge = Math.max(0, _ivLunge - dt * 4.0);
-  if (_ivSlash && _ivSlash.ov) {
-    _ivSlash.p += dt / 0.95;
-    if (_ivSlash.p >= 1) _ivSlash = null;
+
+  // ── the cuts, and the wound they leave in the interface. The mask is only
+  //    rewritten when the gap has actually changed by a visible amount: it is
+  //    a paint on four elements, cheap, but not free. ──
+  if (_ivCuts.length) {
+    let live = false, key = 0;
+    for (let i = _ivCuts.length - 1; i >= 0; i--) {
+      const c = _ivCuts[i];
+      c.t0 += dt;
+      c.p = c.t0 / 0.95;
+      if (c.p > 1.05) { _ivCuts.splice(i, 1); continue; }
+      if (c.p > 0) { live = true; key += ((Math.sin(Math.PI * Math.min(1, c.p / 0.72)) * 22) | 0) * 61 + i; }
+    }
+    if (!_ivCuts.length) _ivCutClear();
+    else if (live && key !== O._cutKey) { O._cutKey = key; _ivCutApply(); }
   }
 
   // the whole layer goes through the pixel pipeline, same as the hall: a
@@ -28038,8 +28414,8 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
   g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
 
   if (O._w !== W || O._h !== H) {
-    O._sheet = _ivFrameSheet(W, H, LX, LY, PX);
-    O._motes = null;
+    O._sheet = _ivFrameSheet(W, H, LX, LY, _ivFramePX(PX));
+    O._motes = null; O._star = null;
     O._w = W; O._h = H;
   }
   if (!O._motes) {
@@ -28052,20 +28428,6 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
     _ivTrail = new Float32Array(32); _ivTrailN = 0;
     for (let i = 0; i < 16; i++) { _ivTrail[i * 2] = _ivMX; _ivTrail[i * 2 + 1] = _ivMY; }
   }
-
-  // ── the ornament. On `rococo` it is blitted a second time pulled inward,
-  //    which reads as it GROWING because the first blit is still under it. ──
-  g.save();
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  g.globalAlpha = (0.92 - _ivDark * 0.45) * (1 - _ivDrain * 0.4);
-  g.drawImage(O._sheet, 0, 0);
-  if (_ivGrow > 0.01) {
-    const s = 1 - _ivGrow * 0.055;
-    g.globalAlpha *= 0.9;
-    g.translate(lo.width * 0.5, lo.height * 0.5); g.scale(s, s); g.translate(-lo.width * 0.5, -lo.height * 0.5);
-    g.drawImage(O._sheet, 0, 0);
-  }
-  g.restore();
 
   // ── embers coming up through the application ──
   g.save();
@@ -28158,11 +28520,73 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
     }
     g.restore();
   }
-  if (_ivSlash) _ivDrawSlash(g, _ivSlash, W, H);
+
+  // ── the cuts themselves, over everything ──
+  for (const c of _ivCuts) _ivCutDraw(g, c, W, H, PX);
+
+  // ── the star ──
+  _ivStar(g, W, H, t, PX);
 
   // ── you ──
   const mvx = (_ivMX - _ivPrevMX) / Math.max(dt, 0.001), mvy = (_ivMY - _ivPrevMY) / Math.max(dt, 0.001);
   _ivPrevMX = _ivMX; _ivPrevMY = _ivMY;
+  const spd = Math.hypot(mvx, mvy);
+
+  // where the blade has just been, and the sparks it is striking off
+  for (let i = _ivGhosts.length - 1; i >= 0; i--) {
+    _ivGhosts[i].a -= dt * 4.2;
+    if (_ivGhosts[i].a <= 0) _ivGhosts.splice(i, 1);
+  }
+  if (spd > 500 && _ivGhosts.length < 7) {
+    _ivGhosts.push({ x: _ivMX, y: _ivMY, r: _ivDrawRapier._a || -0.62, a: 1 });
+    if (_ivRnd(t * 71.3) > 0.45) {
+      const aa = (_ivDrawRapier._a || -0.62) + 3.1415927;
+      _ivSparks.push({ x: _ivMX, y: _ivMY,
+                       vx: Math.cos(aa + (Math.random() - 0.5) * 1.6) * (120 + Math.random() * 380),
+                       vy: Math.sin(aa + (Math.random() - 0.5) * 1.6) * (120 + Math.random() * 380),
+                       life: 1, hot: Math.random() > 0.5 });
+    }
+  }
+  // and a drop of what is still on it, now and then
+  if (_ivDrips.length < 6 && _ivRnd(((t * 2) | 0) * 5.3) > 0.90) {
+    _ivDrips.push({ x: _ivMX + (Math.random() - 0.5) * 18, y: _ivMY + 10, v: 0, life: 1 });
+  }
+  if (_ivSparks.length) {
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    g.beginPath();
+    let anyHot = false;
+    for (let i = _ivSparks.length - 1; i >= 0; i--) {
+      const q = _ivSparks[i];
+      q.x += q.vx * dt; q.y += q.vy * dt;
+      q.vx *= 0.94; q.vy = q.vy * 0.94 + 420 * dt;
+      q.life -= dt * 1.5;
+      if (q.life <= 0) { _ivSparks.splice(i, 1); continue; }
+      if (!q.hot) continue;
+      anyHot = true;
+      const r = Math.max(PX, PX * 1.4 * q.life);
+      g.rect(q.x - r * 0.5, q.y - r * 0.5, r, r);
+    }
+    if (anyHot) { g.fillStyle = _IV_BONE[_ivA(0.9)]; g.fill(); }
+    g.beginPath();
+    for (const q of _ivSparks) {
+      if (q.hot) continue;
+      const r = Math.max(PX, PX * 1.4 * q.life);
+      g.rect(q.x - r * 0.5, q.y - r * 0.5, r, r);
+    }
+    g.fillStyle = _ivRed(_IV_HOT, 0.85); g.fill();
+    g.restore();
+  }
+  if (_ivDrips.length) {
+    g.beginPath();
+    for (let i = _ivDrips.length - 1; i >= 0; i--) {
+      const q = _ivDrips[i];
+      q.v += 900 * dt; q.y += q.v * dt; q.life -= dt * 0.55;
+      if (q.life <= 0 || q.y > H + 20) { _ivDrips.splice(i, 1); continue; }
+      g.rect(q.x - PX * 0.5, q.y - PX * 2, PX, PX * 4);
+    }
+    g.fillStyle = _ivRed(_IV_HOT, 0.75); g.fill();
+  }
   _ivTrailN = (_ivTrailN + 1) & 15;
   _ivTrail[_ivTrailN * 2] = _ivMX; _ivTrail[_ivTrailN * 2 + 1] = _ivMY;
   g.save();
@@ -28178,13 +28602,32 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
     g.stroke();
   }
   g.restore();
-  _ivDrawRapier(g, _ivMX, _ivMY, t, mvx, mvy, PX);
+  _ivDrawRapier(g, _ivMX, _ivMY, t, mvx, mvy, PX, W, H);
 
   const ctx = ctxIn;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, W, H);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(lo, 0, 0, lo.width, lo.height, 0, 0, lo.width * PX, lo.height * PX);
+
+  // ── and the ornament LAST, off the low resolution layer entirely: it is
+  //    baked at a finer pixel and blitted straight onto the real canvas, so
+  //    the border keeps its edges while everything else stays chunky. On
+  //    `rococo` it goes down a second time pulled inward, which reads as it
+  //    growing because the first blit is still under it. ──
+  const FPX = _ivFramePX(PX);
+  const sh = O._sheet;
+  ctx.globalAlpha = (0.94 - _ivDark * 0.45) * (1 - _ivDrain * 0.4);
+  ctx.drawImage(sh, 0, 0, sh.width, sh.height, 0, 0, sh.width * FPX, sh.height * FPX);
+  if (_ivGrow > 0.01) {
+    const k = 1 - _ivGrow * 0.055;
+    ctx.save();
+    ctx.globalAlpha *= 0.9;
+    ctx.translate(W * 0.5, H * 0.5); ctx.scale(k, k); ctx.translate(-W * 0.5, -H * 0.5);
+    ctx.drawImage(sh, 0, 0, sh.width, sh.height, 0, 0, sh.width * FPX, sh.height * FPX);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
 }
 
@@ -28193,6 +28636,7 @@ function _startIvyEvilOverlay() {
   _drawIvyEvilOverlay._lt = undefined;
   _ivEvReset();
   _ivLunge = 0;
+  _ivSparks = []; _ivGhosts = []; _ivDrips = [];
   _ivPrevMX = _ivMX; _ivPrevMY = _ivMY;
   _ivTrail = null;
   window.addEventListener('mousemove', _ivMouseMove);
@@ -28221,8 +28665,10 @@ function _stopIvyEvilOverlay() {
   window.removeEventListener('mousedown', _ivMouseDown);
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('ivyevil-overlay'); if (cv) cv.remove();
+  _ivCutClear();
   _ivEvReset();
   _ivLunge = 0;
+  _ivSparks = []; _ivGhosts = []; _ivDrips = [];
   _drawIvyEvilOverlay._w = -1;
   _drawIvyEvilPattern._w = -1;
 }

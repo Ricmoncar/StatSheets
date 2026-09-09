@@ -430,6 +430,19 @@ into a 64x64 sprite, tinted once when the palette changes and blitted at
 whatever size each light needs, is the same picture for nothing. The same
 applies to any glow, bloom, pool or halo that differs only in size and colour.
 
+**You can cut the interface itself, with a mask.** A slash drawn on the overlay
+is a bright line lying on top of the page; what makes it read as a CUT is the
+application coming apart along the same line. Write a `mask-image` of
+`linear-gradient(Ndeg, #000 0 A%, transparent A% B%, #000 B% 100%)` onto the
+few elements that should be severed and they are genuinely gone along that
+band, so the character's background shows through the wound. It is a paint on
+one element, not a custom property, so it is cheap; quantize the gap so the
+string is only rewritten when it has visibly changed, and keep the gap on the
+canvas TRANSLUCENT, because filling it with black covers up the only good part.
+
+Two things it needs: a teardown that clears the mask off every element (a stuck
+mask leaves the app permanently sliced), and a reduced-motion escape.
+
 **Sort by y and draw back to front.** Row order is *not* depth order once items
 are jittered off their row line. This is what makes things look like they are
 floating.
