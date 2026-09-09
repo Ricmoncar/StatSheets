@@ -27125,41 +27125,8 @@ function _ivHallSheet(W, H, PX) {
   fg.addColorStop(0.30, '#0d0509');
   fg.addColorStop(1, '#070305');
   g.fillStyle = fg; g.fillRect(0, VY - 1, W, H - VY + 2);
-  // the checker, in perspective, every other cell only
-  for (let r = 0; r < 17; r++) {
-    const u0 = Math.pow(r / 17, 1.30), u1 = Math.pow((r + 1) / 17, 1.30);
-    const y0 = fy(u0), y1 = fy(u1);
-    if (y1 < VY) continue;
-    for (let cIdx = -22; cIdx < 22; cIdx++) {
-      if (((cIdx + r) & 1) === 0) continue;
-      const a0 = fx(u0, cIdx * 0.085), b0 = fx(u0, (cIdx + 1) * 0.085);
-      if (b0 < -W * 0.1 || a0 > W * 1.1) continue;
-      const a1 = fx(u1, cIdx * 0.085), b1 = fx(u1, (cIdx + 1) * 0.085);
-      g.fillStyle = _IV_DARK[_ivA(0.52 - u0 * 0.42)];
-      g.beginPath();
-      g.moveTo(a0, y0); g.lineTo(b0, y0); g.lineTo(b1, y1); g.lineTo(a1, y1);
-      g.closePath(); g.fill();
-    }
-  }
-  // the long reflection of the chandelier down the lacquer, which is the thing
-  // that makes a polished floor read as polished
-  const rg = g.createLinearGradient(0, VY, 0, H * 1.05);
-  rg.addColorStop(0, 'rgba(255,86,74,0.34)');
-  rg.addColorStop(0.30, 'rgba(214,28,48,0.16)');
-  rg.addColorStop(1, 'rgba(138,14,30,0.0)');
-  g.fillStyle = rg;
-  g.beginPath();
-  g.moveTo(VX - W * 0.020, VY);
-  g.lineTo(VX + W * 0.020, VY);
-  g.lineTo(VX + W * 0.135, H * 1.05);
-  g.lineTo(VX - W * 0.135, H * 1.05);
-  g.closePath(); g.fill();
-  const hl = g.createLinearGradient(0, 0, W, 0);
-  hl.addColorStop(0, _IV_EMBER[0]);
-  hl.addColorStop(0.5, _IV_EMBER[_ivA(0.30)]);
-  hl.addColorStop(1, _IV_EMBER[0]);
-  g.strokeStyle = hl; g.lineWidth = W * 0.0016;
-  g.beginPath(); g.moveTo(0, VY); g.lineTo(W, VY); g.stroke();
+  // The checker, the reflection down it and the line where it meets the wall
+  // are NOT baked: the floor moves. See _ivFloorLive.
 
   _ivDither(c, 13);
   return c;
@@ -27168,6 +27135,68 @@ function _ivHallSheet(W, H, PX) {
 // ── everything IN FRONT of the live layers: the piano, the ornament crowding
 //    in from the near edges, and the vignette. Baked and dithered like the
 //    rest, so the embers and the dancers have a hall to be inside of. ──
+/* THE FLOOR, LIVE. It marches toward you, one rank of tiles at a time, slowly
+   enough that you are not sure at first. A baked floor in a room where
+   everything else breathes was the one dead surface on the page.
+   Every row is ONE path and one fill, so the whole floor is seventeen fills
+   however many tiles are on it. The row index carries the whole-number part of
+   the phase, so the black and red squares stay in step across the moment a
+   rank passes under your feet and the pattern is reborn at the horizon. */
+function _ivFloorLive(g, W, H, t) {
+  const [VX, VY] = _ivVP(W, H);
+  const fy = (u) => _ivFloorY(H, VY, u);
+  const fx = (u, s) => _ivFloorX(W, VX, u, s);
+  const N = 17;
+  const phase = t * 0.085 * (_ivRM ? 0.3 : 1);
+  const base = Math.floor(phase), frac = phase - base;
+  for (let r = -1; r < N; r++) {
+    const v0 = (r + frac) / N, v1 = (r + 1 + frac) / N;
+    if (v1 <= 0) continue;
+    const u0 = Math.pow(Math.max(0, v0), 1.30), u1 = Math.pow(Math.max(0, v1), 1.30);
+    const y0 = fy(u0), y1 = fy(u1);
+    if (y1 < VY) continue;
+    // a little stronger than the baked one was: that got its bite from the
+    // dither, and a live layer does not go through it
+    g.fillStyle = _ivRed(_IV_DARK, Math.max(0, 0.66 - u0 * 0.50));
+    g.beginPath();
+    let any = false;
+    for (let cIdx = -22; cIdx < 22; cIdx++) {
+      if (((cIdx + r + base) & 1) === 0) continue;
+      const a0 = fx(u0, cIdx * 0.085), b0 = fx(u0, (cIdx + 1) * 0.085);
+      if (b0 < -W * 0.1 || a0 > W * 1.1) continue;
+      const a1 = fx(u1, cIdx * 0.085), b1 = fx(u1, (cIdx + 1) * 0.085);
+      g.moveTo(a0, y0); g.lineTo(b0, y0); g.lineTo(b1, y1); g.lineTo(a1, y1);
+      g.closePath();
+      any = true;
+    }
+    if (any) g.fill();
+  }
+  // the long reflection of the chandelier down the lacquer, which is the thing
+  // that makes a polished floor read as polished, and the line where the floor
+  // meets the wall. Both sit ON the checker, so both come with it.
+  let rg = _ivFloorLive._rg;
+  if (!rg || _ivFloorLive._w !== W || _ivFloorLive._h !== H) {
+    rg = _ivFloorLive._rg = g.createLinearGradient(0, VY, 0, H * 1.05);
+    rg.addColorStop(0, 'rgba(255,86,74,0.34)');
+    rg.addColorStop(0.30, 'rgba(214,28,48,0.16)');
+    rg.addColorStop(1, 'rgba(138,14,30,0.0)');
+    const hl = _ivFloorLive._hl = g.createLinearGradient(0, 0, W, 0);
+    hl.addColorStop(0, _IV_EMBER[0]);
+    hl.addColorStop(0.5, _IV_EMBER[_ivA(0.30)]);
+    hl.addColorStop(1, _IV_EMBER[0]);
+    _ivFloorLive._w = W; _ivFloorLive._h = H;
+  }
+  g.fillStyle = rg;
+  g.beginPath();
+  g.moveTo(VX - W * 0.020, VY);
+  g.lineTo(VX + W * 0.020, VY);
+  g.lineTo(VX + W * 0.135, H * 1.05);
+  g.lineTo(VX - W * 0.135, H * 1.05);
+  g.closePath(); g.fill();
+  g.strokeStyle = _ivFloorLive._hl; g.lineWidth = W * 0.0016;
+  g.beginPath(); g.moveTo(0, VY); g.lineTo(W, VY); g.stroke();
+}
+
 function _ivNearSheet(W, H, PX) {
   const c = _ivSheet(W, H, PX); c._px = PX;
   const g = c.getContext('2d');
@@ -27550,6 +27579,7 @@ function _drawIvyEvilPattern(canvas, ctx, W, H, t) {
   lg.restore();
 
   BL(P._hall);
+  _ivFloorLive(lg, W, H, t);
   _ivEvBack(lg, ev, W, H, VX, VY, CX, CY, t);
 
   // ── the light the chandelier is actually throwing, which moves when it does ──
@@ -27942,11 +27972,20 @@ function _ivCutFire(cx, cy, kind, seed) {
   _ivCutApply();
 }
 
-// How far apart the two sides have been pulled RIGHT NOW. Snaps out, settles
-// back: this is the only thing about a cut that is allowed to animate.
+/* How far apart the two sides have been pulled RIGHT NOW: the only thing about
+   a cut that is allowed to animate.
+   Snap, HOLD, then settle. The first version went straight from the snap into
+   a steady decay and the whole thing was over before you had looked at it: a
+   wound wants to sit there. It is held wide for a third of its life and then
+   takes the remaining two thirds to close, rocking a little as it seats,
+   because two heavy pieces that have been knocked apart do not glide back into
+   line. */
 function _ivCutOpen(c) {
   if (c.p < 0 || c.p > 1) return 0;
-  return c.p < 0.12 ? c.p / 0.12 : Math.pow(1 - (c.p - 0.12) / 0.88, 0.85);
+  if (c.p < 0.05) return c.p / 0.05;
+  if (c.p < 0.34) return 1;
+  const u = (c.p - 0.34) / 0.66;
+  return Math.max(0, Math.pow(1 - u, 1.7) * (1 + 0.16 * Math.sin(u * 13)));
 }
 // The rip itself is a fixed width. It is a cut: it happens in one frame.
 function _ivRipGap(c, D) { return D * 0.0115 * c.w; }
@@ -28087,8 +28126,8 @@ function _ivCutDraw(g, c, W, H, PX, sx, sy, ox, oy) {
   // the visible wound is the rip itself plus however far the two pieces have
   // been pulled apart, which is what the transform is doing to them
   const gap = _ivRipGap(c, WD) + WD * 0.013 * c.w * open;
-  const fade = c.p > 0.45 ? Math.max(0, 1 - (c.p - 0.45) / 0.55) : 1;
-  const swept = Math.min(1, c.p / 0.14);          // the blade going through
+  const fade = c.p > 0.30 ? Math.max(0, Math.pow(1 - (c.p - 0.30) / 0.70, 0.8)) : 1;
+  const swept = Math.min(1, c.p / 0.07);          // the blade going through
   const last = Math.max(1, ((c.n - 1) * swept) | 0);
   const X = (i) => (c.pts[i * 2] - ox) * sx;
   const Y = (i) => (c.pts[i * 2 + 1] - oy) * sy;
@@ -28649,7 +28688,7 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
     for (let i = _ivCuts.length - 1; i >= 0; i--) {
       const c = _ivCuts[i];
       c.t0 += dt;
-      c.p = c.t0 / 1.05;
+      c.p = c.t0 / 1.90;
       if (c.p > 1) { _ivCuts.splice(i, 1); continue; }
       if (c.p > 0.02 && !c.burst) { c.burst = 1; _ivShardBurst(c, W, H); }
       done = false;
@@ -28846,20 +28885,6 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
   }
   _ivTrailN = (_ivTrailN + 1) & 15;
   _ivTrail[_ivTrailN * 2] = _ivMX; _ivTrail[_ivTrailN * 2 + 1] = _ivMY;
-  g.save();
-  g.globalCompositeOperation = 'lighter';
-  for (let k = 1; k < 15; k++) {
-    const i0 = (_ivTrailN - k + 32) & 15, i1 = (_ivTrailN - k + 33) & 15;
-    const u = 1 - k / 15;
-    g.strokeStyle = _ivRed(k < 5 ? _IV_BONE : _IV_HOT, u * u * 0.45);
-    g.lineWidth = Math.max(1, PX * (0.4 + u * 1.6));
-    g.beginPath();
-    g.moveTo(_ivTrail[i0 * 2], _ivTrail[i0 * 2 + 1]);
-    g.lineTo(_ivTrail[i1 * 2], _ivTrail[i1 * 2 + 1]);
-    g.stroke();
-  }
-  g.restore();
-  _ivDrawRapier(g, _ivMX, _ivMY, t, mvx, mvy, PX, W, H);
 
   const ctx = ctxIn;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -28886,6 +28911,30 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
   }
   ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
+
+  // ── THE RAPIER, off the low resolution layer entirely and drawn last.
+  //    Everything else on this page is deliberately chunky; a rapier is a
+  //    polished needle and it wants a clean edge, so it is drawn straight onto
+  //    the real canvas at full resolution, after the ornament, on top of
+  //    everything. Its trail comes with it: a smooth blade dragging a stepped
+  //    trail would look like two different cursors. ──
+  const CPX = 1.6;
+  ctx.save();
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.globalCompositeOperation = 'lighter';
+  for (let k = 1; k < 15; k++) {
+    const i0 = (_ivTrailN - k + 32) & 15, i1 = (_ivTrailN - k + 33) & 15;
+    const u = 1 - k / 15;
+    ctx.strokeStyle = _ivRed(k < 5 ? _IV_BONE : _IV_HOT, u * u * 0.45);
+    ctx.lineWidth = Math.max(1, CPX * (0.5 + u * 2.4));
+    ctx.beginPath();
+    ctx.moveTo(_ivTrail[i0 * 2], _ivTrail[i0 * 2 + 1]);
+    ctx.lineTo(_ivTrail[i1 * 2], _ivTrail[i1 * 2 + 1]);
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  _ivDrawRapier(ctx, _ivMX, _ivMY, t, mvx, mvy, CPX, W, H);
+  ctx.restore();
 }
 
 function _startIvyEvilOverlay() {

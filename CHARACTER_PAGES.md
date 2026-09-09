@@ -475,6 +475,25 @@ inner block (a stuck mask leaves the app permanently sliced), and a
 reduced-motion escape. Measured: 1.06 ms background and 0.74 ms overlay idle,
 rising to 1.78 and 1.52 for the second a tear is open.
 
+**An event needs a HOLD, not an attack and a decay.** Ivy's cuts snapped open
+and then began settling immediately, and the note back was that it "goes back
+to normal too quickly". The envelope that reads is snap, HOLD wide for about a
+third of the whole thing, then take the remaining two thirds to settle, rocking
+once or twice on the way in. Two heavy pieces knocked apart do not glide back
+into line, and a wound wants to sit there long enough to be looked at. The same
+shape suits almost any impact: the hold is the part that is easy to leave out
+and the part people notice is missing.
+
+**On a pixel page, ONE thing may be crisp, and it should be the thing you are
+holding.** Everything on Ivy goes through the low resolution buffer, which is
+right for a room and wrong for a polished needle: the rapier was drawn at the
+same three-pixel grid as the wallpaper. Drawing it straight onto the real
+canvas after the low-resolution blit, at full resolution and last of all, is
+what lets it read as steel. Two rules come with that: it has to be drawn LAST
+so nothing chunky lands on top of it, and anything attached to it has to come
+with it, because a smooth blade dragging a stepped trail reads as two different
+cursors.
+
 **Sort by y and draw back to front.** Row order is *not* depth order once items
 are jittered off their row line. This is what makes things look like they are
 floating.
