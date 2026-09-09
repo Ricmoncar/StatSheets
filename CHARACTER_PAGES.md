@@ -430,18 +430,37 @@ into a 64x64 sprite, tinted once when the palette changes and blitted at
 whatever size each light needs, is the same picture for nothing. The same
 applies to any glow, bloom, pool or halo that differs only in size and colour.
 
-**You can cut the interface itself, with a mask.** A slash drawn on the overlay
-is a bright line lying on top of the page; what makes it read as a CUT is the
-application coming apart along the same line. Write a `mask-image` of
-`linear-gradient(Ndeg, #000 0 A%, transparent A% B%, #000 B% 100%)` onto the
-few elements that should be severed and they are genuinely gone along that
-band, so the character's background shows through the wound. It is a paint on
-one element, not a custom property, so it is cheap; quantize the gap so the
-string is only rewritten when it has visibly changed, and keep the gap on the
-canvas TRANSLUCENT, because filling it with black covers up the only good part.
+**You can TEAR the interface, and a clean gap is not a tear.** Masking a
+straight transparent band through the panels gives you a slot, and a slot reads
+as a design element. What reads as torn is three things at once:
 
-Two things it needs: a teardown that clears the mask off every element (a stuck
-mask leaves the app permanently sliced), and a reduced-motion escape.
+1. **The rip is ragged.** Walk a jittering centreline with a half width that
+   varies along it, take a few bites out of the edges, and lose the odd chunk
+   entirely. Build it as an SVG `<path>` (outer rectangle plus one closed
+   subpath per wound, `fill-rule="evenodd"`) and hand it to `mask-image` as a
+   data URL: it is a STRING, so it costs microseconds to build and stays crisp
+   at any size, where a rasterised mask has to be PNG-encoded several times a
+   second.
+2. **The pieces move.** Translate every element away from the cut, on the side
+   its own middle falls, with a shear along the cut. And shove the blocks
+   INSIDE the card separately: a mask puts a hole through a panel, but a panel
+   that does not move is a panel with a hole in it. Keep the list to the half
+   dozen big blocks; an effect on `.char-entry` is one element per character in
+   the sidebar.
+3. **Something comes off.** Shards in the interface's own colours, tumbling
+   out of the wound and falling.
+
+Two traps. Build the mask once in WINDOW space and place it per element with
+`mask-size: <winW>px <winH>px` and a negative `mask-position` of that element's
+box, or every element gets its own private diagonal instead of one cut across
+all of them. And SNAPSHOT each box before you shove it: a shoved element's own
+`getBoundingClientRect` is the shoved one, so recomputing from it feeds the
+shove back into itself and everything drifts off the screen.
+
+It also needs a teardown that clears mask and transform off every element and
+every inner block (a stuck mask leaves the app permanently sliced), and a
+reduced-motion escape. Measured: the whole page idles at 1.05 ms background and
+0.64 ms overlay, and rises to 1.78 and 1.18 for the second a tear is open.
 
 **Sort by y and draw back to front.** Row order is *not* depth order once items
 are jittered off their row line. This is what makes things look like they are

@@ -26914,6 +26914,7 @@ function _ivEvReset() {
   _ivPulse = 0; _ivDrain = 0; _ivDark = 0; _ivSwing = 0; _ivGrow = 0; _ivCrack = 0;
   if (typeof _ivCutClear === 'function') _ivCutClear();
   if (typeof _ivSparks !== 'undefined') { _ivSparks = []; _ivGhosts = []; _ivDrips = []; }
+  if (typeof _ivShards !== 'undefined') _ivShards = [];
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -27829,45 +27830,87 @@ function _ivEvFront(g, ev, W, H, VX, VY, CX, CY, t) {
   // application as well; the picture converts them into its own space so the
   // same wound crosses both layers in the same frame.
   if (_ivCuts.length) {
-    const r = _ivEvFront._pc && _ivEvFront._pc.isConnected
-      ? _lyRect(_ivEvFront._pc) : (_ivEvFront._pc = document.getElementById('pattern-canvas'), null);
+    if (!_ivEvFront._pc || !_ivEvFront._pc.isConnected) _ivEvFront._pc = document.getElementById('pattern-canvas');
+    const r = _ivEvFront._pc ? _lyRect(_ivEvFront._pc) : null;
     const sx = r && r.width > 0 ? W / r.width : 1, sy = r && r.height > 0 ? H / r.height : 1;
     const ox = r ? r.left : 0, oy = r ? r.top : 0;
-    for (const c of _ivCuts) {
-      const q = { p: c.p, w: c.w, seed: c.seed,
-                  x0: (c.x0 - ox) * sx, y0: (c.y0 - oy) * sy,
-                  x1: (c.x1 - ox) * sx, y1: (c.y1 - oy) * sy };
-      _ivCutDraw(g, q, W, H, _ivPX(W));
-    }
+    for (const c of _ivCuts) _ivCutDraw(g, c, W, H, _ivPX(W), sx, sy, ox, oy);
   }
 }
 
 
 // ════════════════════════════════════════════════════════════════
-// THE CUTS
+// TEARING THE INTERFACE APART
 //
-// A slash across the page is only half of it: what sells it is the
-// application itself coming apart along the same line. Every
-// element that can be cut gets a mask with a hard transparent band
-// through it at the cut's angle, so the panels, the sidebar and the
-// header are genuinely severed for as long as the gap is open and
-// you can see the hall through the wound. One mask string on a
-// handful of elements, written a few times over half a second: it
-// is a paint, not a custom property, and it costs nothing like one.
+// A clean gap is not a tear. What makes an interface look TORN is
+// three things happening at once, and the first version had one of
+// them.
 //
-// Six variants, rolled at random and never the same twice running,
-// so the same cut never lands the same way twice.
+// 1. THE RIP IS RAGGED. The hole taken out of each element is a
+//    walked, jittering band with bites out of its edges and a few
+//    chunks missing entirely, not a ruled slot. It is built as an
+//    SVG path and handed to `mask-image` as a data URL: a string,
+//    so it costs microseconds to build and renders crisp at any
+//    size, where a rasterised mask would have to be encoded as a
+//    PNG several times a second.
+//
+// 2. THE PIECES MOVE. Every element gets a translate away from the
+//    cut, on the side of it that element's middle falls on, plus a
+//    shear along the cut. The panels, the sidebar, the header and
+//    the music bar all shift against each other, so the whole
+//    application comes apart rather than developing a slot.
+//
+// 3. SOMETHING COMES OFF. Shards in the panels' own colour tumble
+//    out of the wound and fall, and the exposed faces burn.
+//
+// The mask is built once in WINDOW space and placed on each element
+// with mask-size and a negative mask-position, so a single string
+// lands the same cut on four boxes of four different sizes. Get
+// that wrong and every element gets its own private diagonal.
 // ════════════════════════════════════════════════════════════════
-const _IV_CUT_KINDS = ['single', 'single', 'cross', 'flurry', 'flurry', 'wide'];
-let _ivCuts = [];              // the live cuts, in window coordinates
+const _IV_CUT_KINDS = ['single', 'single', 'cross', 'flurry', 'flurry', 'wide', 'shred'];
+let _ivCuts = [];              // live cuts, in window coordinates
 let _ivCutLast = '';
+let _ivShards = [];
 const _IV_CUT_EL = ['char-view', 'sidebar', 'header', 'theme-bar'];
+
+// The rip's own shape, rolled once when the cut starts so it is the same rip
+// all the way through: a walked centreline, a half width per point that varies
+// along it, and a few bites taken out of the edge.
+function _ivTearBuild(c, W, H) {
+  const N = 30;
+  const dx = c.x1 - c.x0, dy = c.y1 - c.y0, m = Math.hypot(dx, dy) || 1;
+  const nx = -dy / m, ny = dx / m;
+  c.nx = nx; c.ny = ny;
+  const D = Math.hypot(W, H);
+  c.pts = new Float32Array((N + 1) * 2);
+  c.hw = new Float32Array(N + 1);
+  let wob = 0;
+  for (let i = 0; i <= N; i++) {
+    const u = i / N;
+    wob += (_ivRnd(c.seed * 3.1 + i * 7.7) - 0.5) * D * 0.010;
+    wob *= 0.72;                                   // it wanders but comes back
+    const off = wob + (_ivRnd(c.seed * 1.7 + i * 2.3) - 0.5) * D * 0.006;
+    c.pts[i * 2] = c.x0 + dx * u + nx * off;
+    c.pts[i * 2 + 1] = c.y0 + dy * u + ny * off;
+    c.hw[i] = 0.45 + _ivRnd(c.seed * 5.3 + i * 3.7) * 1.25
+            + (_ivRnd(c.seed * 9.1 + i) > 0.86 ? 1.6 : 0);   // the odd big bite
+  }
+  c.n = N + 1;
+  c.bites = [];
+  for (let k = 0; k < 7; k++) {
+    c.bites.push({ u: _ivRnd(c.seed * 11.3 + k * 4.1),
+                   s: _ivRnd(c.seed * 13.7 + k) > 0.5 ? 1 : -1,
+                   r: 0.7 + _ivRnd(c.seed * 17.1 + k) * 1.9,
+                   o: 0.6 + _ivRnd(c.seed * 19.3 + k) * 1.4 });
+  }
+}
 
 function _ivCutFire(cx, cy, kind, seed) {
   const W = window.innerWidth || 1600, H = window.innerHeight || 900;
-  const L = Math.hypot(W, H) * 1.1;
+  const L = Math.hypot(W, H) * 1.2;
   if (!kind) {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 12; i++) {
       kind = _IV_CUT_KINDS[(_ivRnd(seed * 7.7 + i * 3.1) * _IV_CUT_KINDS.length) | 0];
       if (kind !== _ivCutLast) break;
     }
@@ -27876,109 +27919,245 @@ function _ivCutFire(cx, cy, kind, seed) {
   const base = (_ivRnd(seed * 3.3) - 0.5) * 2.4;
   const add = (a, off, delay, w) => {
     const px = cx - Math.sin(a) * off, py = cy + Math.cos(a) * off;
-    _ivCuts.push({ a: a, x: px, y: py,
-                   x0: px - Math.cos(a) * L, y0: py - Math.sin(a) * L,
-                   x1: px + Math.cos(a) * L, y1: py + Math.sin(a) * L,
-                   t0: -delay, p: 0, w: w || 1, seed: seed + off });
+    const c = { a: a, x: px, y: py,
+                x0: px - Math.cos(a) * L, y0: py - Math.sin(a) * L,
+                x1: px + Math.cos(a) * L, y1: py + Math.sin(a) * L,
+                t0: -delay, p: 0, w: w || 1, seed: seed * 7.3 + off * 0.017 + delay * 31 };
+    _ivTearBuild(c, W, H);
+    _ivCuts.push(c);
   };
-  if (kind === 'single') add(base, 0, 0, 1);
-  else if (kind === 'wide') add(base, 0, 0, 2.1);
-  else if (kind === 'cross') { add(base, 0, 0, 1); add(base + 1.5707963, 0, 0.11, 1); }
-  else {
+  if (kind === 'single') add(base, 0, 0, 1.1);
+  else if (kind === 'wide') add(base, 0, 0, 2.4);
+  else if (kind === 'cross') { add(base, 0, 0, 1.2); add(base + 1.5707963, 0, 0.10, 1.2); }
+  else if (kind === 'shred') {
+    for (let i = 0; i < 6; i++) {
+      add(base + (_ivRnd(seed + i * 2.7) - 0.5) * 1.9,
+          (_ivRnd(seed * 2.1 + i) - 0.5) * Math.min(W, H) * 0.75, i * 0.055, 0.75);
+    }
+  } else {
     const n = 3 + ((_ivRnd(seed * 5.1) * 2) | 0);
-    for (let i = 0; i < n; i++) add(base + (_ivRnd(seed + i) - 0.5) * 0.25,
-                                    (i - (n - 1) * 0.5) * Math.min(W, H) * 0.115, i * 0.07, 0.8);
+    for (let i = 0; i < n; i++) add(base + (_ivRnd(seed + i) - 0.5) * 0.28,
+                                    (i - (n - 1) * 0.5) * Math.min(W, H) * 0.125, i * 0.06, 0.9);
   }
   _ivCutApply();
 }
 
-// Put the wound through the interface. The gap is widest early and closes.
+// How wide the wound is right now: open fast, hold, close.
+function _ivCutOpen(c) {
+  if (c.p < 0) return 0;
+  if (c.p > 0.90) return 0;
+  return Math.pow(Math.sin(Math.PI * Math.min(1, c.p / 0.90)), 0.65);
+}
+
+// The rip, as one SVG path in window space. Outer rectangle plus one closed
+// subpath per wound; evenodd turns the subpaths into holes.
+function _ivTearSVG(W, H) {
+  const D = Math.hypot(W, H);
+  let d = 'M0 0H' + W + 'V' + H + 'H0Z';
+  let any = false;
+  for (const c of _ivCuts) {
+    const open = _ivCutOpen(c);
+    if (open < 0.02 || !c.pts) continue;
+    const grow = Math.min(1, Math.max(0, c.p) / 0.18);
+    const gap = D * 0.0075 * c.w * open;
+    const last = Math.max(1, ((c.n - 1) * grow) | 0);
+    any = true;
+    let f = '', b = '';
+    for (let i = 0; i <= last; i++) {
+      const hw = gap * c.hw[i];
+      const x = c.pts[i * 2], y = c.pts[i * 2 + 1];
+      f += (i ? 'L' : 'M') + (x + c.nx * hw).toFixed(1) + ' ' + (y + c.ny * hw).toFixed(1);
+      b = 'L' + (x - c.nx * hw).toFixed(1) + ' ' + (y - c.ny * hw).toFixed(1) + b;
+    }
+    d += f + b + 'Z';
+    // and the chunks bitten out of the edge
+    for (const bt of c.bites) {
+      if (bt.u > grow) continue;
+      const i = Math.min(c.n - 1, (bt.u * (c.n - 1)) | 0);
+      const r = gap * bt.r * 1.5 * bt.o;
+      const x = c.pts[i * 2] + c.nx * (gap * c.hw[i] + r * 0.45) * bt.s;
+      const y = c.pts[i * 2 + 1] + c.ny * (gap * c.hw[i] + r * 0.45) * bt.s;
+      d += 'M' + (x - r).toFixed(1) + ' ' + y.toFixed(1) +
+           'a' + r.toFixed(1) + ' ' + r.toFixed(1) + ' 0 1 0 ' + (r * 2).toFixed(1) + ' 0' +
+           'a' + r.toFixed(1) + ' ' + r.toFixed(1) + ' 0 1 0 ' + (-r * 2).toFixed(1) + ' 0Z';
+    }
+  }
+  if (!any) return null;
+  return 'url("data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '">' +
+    '<path fill="#fff" fill-rule="evenodd" d="' + d + '"/></svg>') + '")';
+}
+
+// Put the wound, and the shove, through the interface.
 function _ivCutApply() {
   if (_ivRM) return;
-  let m = '';
+  const W = window.innerWidth || 1600, H = window.innerHeight || 900;
+  const url = _ivTearSVG(W, H);
+  const D = Math.hypot(W, H);
+  for (const id of _IV_CUT_EL) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (!url) {
+      el.style.webkitMaskImage = ''; el.style.maskImage = '';
+      el.style.webkitMaskSize = ''; el.style.maskSize = '';
+      el.style.webkitMaskPosition = ''; el.style.maskPosition = '';
+      el.style.webkitMaskRepeat = ''; el.style.maskRepeat = '';
+      el.style.transform = '';
+      continue;
+    }
+    const r0 = _lyRect(el);
+    if (!el._ivBase) el._ivBase = { left: r0.left, top: r0.top, width: r0.width, height: r0.height };
+    const r = el._ivBase;
+    el.style.webkitMaskImage = url; el.style.maskImage = url;
+    el.style.webkitMaskRepeat = 'no-repeat'; el.style.maskRepeat = 'no-repeat';
+    el.style.webkitMaskSize = W + 'px ' + H + 'px'; el.style.maskSize = W + 'px ' + H + 'px';
+    const px = (-r.left).toFixed(1) + 'px ' + (-r.top).toFixed(1) + 'px';
+    el.style.webkitMaskPosition = px; el.style.maskPosition = px;
+    _ivShove(el, r0, D, 1);
+  }
+  // and the pieces INSIDE the card shear against each other, which is what
+  // actually reads as coming apart: a mask puts a hole through a panel, but a
+  // panel that does not move is a panel with a hole in it. The list is the
+  // half dozen big blocks and nothing repeated per character: an effect on
+  // .char-entry is one element per character in the sidebar, and that mistake
+  // has cost this project a page before.
+  const inner = document.querySelectorAll('#char-view .panel, #cv-avatar, #cv-name, #char-view .tabs');
+  for (const el of inner) {
+    if (!url) { el.style.transform = ''; continue; }
+    _ivShove(el, _lyRect(el), D, 1.5);
+  }
+}
+
+// How far one box is thrown, and which way: off the cut on the side its middle
+// falls, plus a shear along it.
+function _ivShove(el, r, D, k) {
+  if (!el._ivBase) el._ivBase = { left: r.left, top: r.top, width: r.width, height: r.height };
+  const b = el._ivBase;
+  let tx = 0, ty = 0;
+  const cx = b.left + b.width * 0.5, cy = b.top + b.height * 0.5;
   for (const c of _ivCuts) {
-    if (c.p < 0 || c.p > 0.72) continue;
-    const open = Math.sin(Math.PI * Math.min(1, c.p / 0.72));
-    const gap = 0.22 * c.w * open;                 // in percent of the gradient
-    if (gap < 0.02) continue;
-    const deg = (c.a * 57.2957795 + 90).toFixed(1);
-    const mid = 50 + (c.y - (window.innerHeight || 900) * 0.5) * 0.08;
-    m += (m ? ',' : '') + 'linear-gradient(' + deg + 'deg, #000 0 ' + (mid - gap).toFixed(2) +
-         '%, transparent ' + (mid - gap).toFixed(2) + '% ' + (mid + gap).toFixed(2) +
-         '%, #000 ' + (mid + gap).toFixed(2) + '% 100%)';
+    const open = _ivCutOpen(c);
+    if (open < 0.02) continue;
+    const sgn = ((cx - c.x) * c.nx + (cy - c.y) * c.ny) >= 0 ? 1 : -1;
+    const m = D * 0.014 * c.w * open * sgn * k;
+    tx += c.nx * m - c.ny * m * 0.45;
+    ty += c.ny * m + c.nx * m * 0.45;
+  }
+  el.style.transform = (Math.abs(tx) + Math.abs(ty) < 0.2) ? ''
+    : 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px)';
+}
+function _ivCutClear() {
+  _ivCuts = [];
+  for (const el of document.querySelectorAll('#char-view .panel, #cv-avatar, #cv-name, #char-view .tabs')) {
+    el.style.transform = ''; el._ivBase = null;
   }
   for (const id of _IV_CUT_EL) {
     const el = document.getElementById(id);
     if (!el) continue;
-    if (!m) { el.style.webkitMaskImage = ''; el.style.maskImage = ''; el.style.webkitMaskComposite = ''; el.style.maskComposite = ''; }
-    else {
-      el.style.webkitMaskImage = m; el.style.maskImage = m;
-      el.style.webkitMaskComposite = 'source-in'; el.style.maskComposite = 'intersect';
-    }
-  }
-}
-function _ivCutClear() {
-  _ivCuts = [];
-  for (const id of _IV_CUT_EL) {
-    const el = document.getElementById(id);
-    if (el) { el.style.webkitMaskImage = ''; el.style.maskImage = ''; el.style.webkitMaskComposite = ''; el.style.maskComposite = ''; }
+    el._ivBase = null;
+    el.style.webkitMaskImage = ''; el.style.maskImage = '';
+    el.style.webkitMaskSize = ''; el.style.maskSize = '';
+    el.style.webkitMaskPosition = ''; el.style.maskPosition = '';
+    el.style.webkitMaskRepeat = ''; el.style.maskRepeat = '';
+    el.style.transform = '';
   }
 }
 
-// Draw one cut: the wound itself, its two glowing faces, and what came out.
-function _ivCutDraw(g, c, W, H, PX) {
-  const q = c.p;
-  if (q < 0 || q > 1) return;
-  const grow = Math.min(1, q / 0.16);
-  const fade = q > 0.40 ? Math.max(0, 1 - (q - 0.40) / 0.60) : 1;
-  const x1 = c.x0 + (c.x1 - c.x0) * grow, y1 = c.y0 + (c.y1 - c.y0) * grow;
-  const back = Math.max(0, (q - 0.60) / 0.40);
-  const x0 = c.x0 + (c.x1 - c.x0) * back, y0 = c.y0 + (c.y1 - c.y0) * back;
-  const open = Math.sin(Math.PI * Math.min(1, q / 0.72));
-  const dx = c.x1 - c.x0, dy = c.y1 - c.y0, m = Math.hypot(dx, dy) || 1;
-  const nx = -dy / m, ny = dx / m;
-  const gap = Math.max(PX, Math.hypot(W, H) * 0.010 * c.w * open);
+// Throw pieces of whatever was there out of the wound.
+function _ivShardBurst(c, W, H) {
+  const D = Math.hypot(W, H);
+  const gap = D * 0.0075 * c.w;
+  for (let k = 0; k < 9; k++) {
+    const u = _ivRnd(c.seed * 23.1 + k * 3.3);
+    const i = Math.min(c.n - 1, (u * (c.n - 1)) | 0);
+    const sgn = k & 1 ? 1 : -1;
+    const sp = D * (0.10 + _ivRnd(c.seed * 29.7 + k) * 0.35);
+    _ivShards.push({
+      x: c.pts[i * 2] + c.nx * gap * sgn, y: c.pts[i * 2 + 1] + c.ny * gap * sgn,
+      vx: c.nx * sp * sgn - c.ny * sp * 0.35, vy: c.ny * sp * sgn + c.nx * sp * 0.35,
+      a: _ivRnd(c.seed + k) * 6.283, va: (_ivRnd(c.seed * 2 + k) - 0.5) * 9,
+      w: gap * (1.4 + _ivRnd(c.seed * 3 + k) * 4.5), h: gap * (0.7 + _ivRnd(c.seed * 4 + k) * 2.2),
+      life: 1
+    });
+  }
+}
+
+// Draw one wound: the dark inside it, the burning faces, and the grit.
+function _ivCutDraw(g, c, W, H, PX, sx, sy, ox, oy) {
+  const open = _ivCutOpen(c);
+  if (open < 0.01 || !c.pts) return;
+  const D = Math.hypot(W, H);
+  const grow = Math.min(1, Math.max(0, c.p) / 0.18);
+  const last = Math.max(1, ((c.n - 1) * grow) | 0);
+  const gap = Math.hypot(window.innerWidth || W, window.innerHeight || H) * 0.0075 * c.w * open;
+  const fade = c.p > 0.55 ? Math.max(0, 1 - (c.p - 0.55) / 0.45) : 1;
+  const X = (i) => (c.pts[i * 2] - ox) * sx;
+  const Y = (i) => (c.pts[i * 2 + 1] - oy) * sy;
+  const nx = c.nx * sx, ny = c.ny * sy;
 
   g.save();
-  // The wound. Kept translucent on purpose: the interface has actually been
-  // masked away along this line, so what belongs in the gap is the hall behind
-  // it. Filling it with opaque black covered up the only good part.
-  g.fillStyle = 'rgba(4,1,3,' + (0.45 * open).toFixed(3) + ')';
+  // the dark inside it. Kept translucent: the interface really has been taken
+  // away along this line, so what belongs in the wound is the hall behind it.
+  g.fillStyle = 'rgba(4,1,3,' + (0.42 * open).toFixed(3) + ')';
   g.beginPath();
-  g.moveTo(x0 + nx * gap, y0 + ny * gap);
-  g.lineTo(x1 + nx * gap, y1 + ny * gap);
-  g.lineTo(x1 - nx * gap, y1 - ny * gap);
-  g.lineTo(x0 - nx * gap, y0 - ny * gap);
+  for (let i = 0; i <= last; i++) { const h = gap * c.hw[i];
+    const x = X(i) + nx * h, y = Y(i) + ny * h; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); }
+  for (let i = last; i >= 0; i--) { const h = gap * c.hw[i];
+    g.lineTo(X(i) - nx * h, Y(i) - ny * h); }
   g.closePath(); g.fill();
+
   g.globalCompositeOperation = 'lighter';
-  // the cut faces, still hot
-  const w = Math.max(PX, Math.hypot(W, H) * 0.0022 * c.w);
+  const w = Math.max(PX, D * 0.0022 * c.w);
   for (const sgn of [1, -1]) {
-    g.strokeStyle = _IV_HOT[_ivA(fade * 0.55)]; g.lineWidth = w * 3.2;
-    g.beginPath();
-    g.moveTo(x0 + nx * gap * sgn, y0 + ny * gap * sgn);
-    g.lineTo(x1 + nx * gap * sgn, y1 + ny * gap * sgn);
-    g.stroke();
-    g.strokeStyle = _IV_BONE[_ivA(fade * 0.95)]; g.lineWidth = Math.max(1, w * 0.8);
-    g.beginPath();
-    g.moveTo(x0 + nx * gap * sgn, y0 + ny * gap * sgn);
-    g.lineTo(x1 + nx * gap * sgn, y1 + ny * gap * sgn);
-    g.stroke();
+    const edge = () => {
+      g.beginPath();
+      for (let i = 0; i <= last; i++) { const h = gap * c.hw[i];
+        const x = X(i) + nx * h * sgn, y = Y(i) + ny * h * sgn;
+        if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); }
+    };
+    edge();
+    g.strokeStyle = _IV_HOT[_ivA(fade * 0.34)]; g.lineWidth = w * 2.4; g.stroke();
+    g.strokeStyle = _IV_BONE[_ivA(fade * 0.80)]; g.lineWidth = Math.max(1, w * 0.40); g.stroke();
   }
-  // and what came out of it
+  // grit still coming out of it
   g.beginPath();
-  for (let i = 0; i < 30; i++) {
-    const u = _ivRnd(c.seed * 7.1 + i * 3.3);
+  for (let k = 0; k < 15; k++) {
+    const u = _ivRnd(c.seed * 7.1 + k * 3.3);
     if (u > grow) continue;
-    const px = c.x0 + dx * u, py = c.y0 + dy * u;
-    const sp = (_ivRnd(c.seed * 11.7 + i) - 0.5) * 2;
-    const d = q * Math.hypot(W, H) * 0.11 * (0.4 + _ivRnd(c.seed + i * 5.1));
-    const r = Math.max(PX, w * (0.5 + _ivRnd(i * 2.9)));
-    g.rect(px + nx * (d * sp + gap * Math.sign(sp || 1)) - r, py + ny * (d * sp + gap * Math.sign(sp || 1)) - r, r * 2, r * 2);
+    const i = Math.min(c.n - 1, (u * (c.n - 1)) | 0);
+    const sgn = (_ivRnd(c.seed * 11.7 + k) - 0.5) * 2;
+    const dd = c.p * D * 0.09 * (0.4 + _ivRnd(c.seed + k * 5.1));
+    const r = Math.max(PX, w * (0.5 + _ivRnd(k * 2.9)));
+    g.rect(X(i) + nx * (dd * sgn + gap * Math.sign(sgn || 1)) - r,
+           Y(i) + ny * (dd * sgn + gap * Math.sign(sgn || 1)) - r, r * 2, r * 2);
   }
   g.fillStyle = _IV_HOT[_ivA(fade * 0.85)];
   g.fill();
   g.restore();
+}
+
+// The pieces that came off, tumbling. They are drawn in the interface's own
+// colours because that is what they are: bits of it.
+function _ivShardsDraw(g, dt, W, H, PX) {
+  if (!_ivShards.length) return;
+  for (let i = _ivShards.length - 1; i >= 0; i--) {
+    const q = _ivShards[i];
+    q.x += q.vx * dt; q.y += q.vy * dt;
+    q.vx *= 0.965; q.vy = q.vy * 0.965 + 900 * dt;
+    q.a += q.va * dt;
+    q.life -= dt * 0.75;
+    if (q.life <= 0 || q.y > H + 80) { _ivShards.splice(i, 1); continue; }
+    g.save();
+    g.translate(q.x, q.y); g.rotate(q.a);
+    g.globalAlpha = Math.min(1, q.life * 1.6);
+    g.fillStyle = 'rgba(16,6,9,0.96)';
+    g.fillRect(-q.w * 0.5, -q.h * 0.5, q.w, q.h);
+    g.strokeStyle = _IV_EMBER[_ivA(0.8)];
+    g.lineWidth = Math.max(1, PX * 0.6);
+    g.strokeRect(-q.w * 0.5, -q.h * 0.5, q.w, q.h);
+    g.restore();
+  }
+  g.globalAlpha = 1;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -28010,10 +28189,13 @@ function _ivMouseDown() {
   _ivLunge = 1;
   const a = (_ivDrawRapier._a || -0.6);
   const L = Math.hypot(window.innerWidth, window.innerHeight) * 1.1;
-  _ivCuts.push({ a: a, x: _ivMX, y: _ivMY,
-                 x0: _ivMX - Math.cos(a) * L, y0: _ivMY - Math.sin(a) * L,
-                 x1: _ivMX + Math.cos(a) * L, y1: _ivMY + Math.sin(a) * L,
-                 t0: 0, p: 0, w: 1, seed: performance.now() * 0.013 });
+  const c = { a: a, x: _ivMX, y: _ivMY,
+              x0: _ivMX - Math.cos(a) * L, y0: _ivMY - Math.sin(a) * L,
+              x1: _ivMX + Math.cos(a) * L, y1: _ivMY + Math.sin(a) * L,
+              t0: 0, p: 0, w: 1.15, seed: performance.now() * 0.013 };
+  _ivTearBuild(c, window.innerWidth || 1600, window.innerHeight || 900);
+  _ivCuts.push(c);
+  _ivShardBurst(c, window.innerWidth || 1600, window.innerHeight || 900);
   _ivCutApply();
   for (let i = 0; i < 14; i++) {
     _ivSparks.push({ x: _ivMX, y: _ivMY,
@@ -28464,7 +28646,8 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
       c.t0 += dt;
       c.p = c.t0 / 0.95;
       if (c.p > 1.05) { _ivCuts.splice(i, 1); continue; }
-      if (c.p > 0) { live = true; key += ((Math.sin(Math.PI * Math.min(1, c.p / 0.72)) * 22) | 0) * 61 + i; }
+      if (c.p > 0.04 && !c.burst) { c.burst = 1; _ivShardBurst(c, W, H); }
+      if (c.p > 0) { live = true; key += ((_ivCutOpen(c) * 22) | 0) * 61 + i; }
     }
     if (!_ivCuts.length) _ivCutClear();
     else if (live && key !== O._cutKey) { O._cutKey = key; _ivCutApply(); }
@@ -28589,7 +28772,8 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
   }
 
   // ── the cuts themselves, over everything ──
-  for (const c of _ivCuts) _ivCutDraw(g, c, W, H, PX);
+  for (const c of _ivCuts) _ivCutDraw(g, c, W, H, PX, 1, 1, 0, 0);
+  _ivShardsDraw(g, dt, W, H, PX);
 
   // ── the star ──
   _ivStar(g, W, H, t, PX);
@@ -28703,7 +28887,7 @@ function _startIvyEvilOverlay() {
   _drawIvyEvilOverlay._lt = undefined;
   _ivEvReset();
   _ivLunge = 0;
-  _ivSparks = []; _ivGhosts = []; _ivDrips = [];
+  _ivSparks = []; _ivGhosts = []; _ivDrips = []; _ivShards = [];
   _ivPrevMX = _ivMX; _ivPrevMY = _ivMY;
   _ivTrail = null;
   window.addEventListener('mousemove', _ivMouseMove);
@@ -28735,7 +28919,7 @@ function _stopIvyEvilOverlay() {
   _ivCutClear();
   _ivEvReset();
   _ivLunge = 0;
-  _ivSparks = []; _ivGhosts = []; _ivDrips = [];
+  _ivSparks = []; _ivGhosts = []; _ivDrips = []; _ivShards = [];
   _drawIvyEvilOverlay._w = -1;
   _drawIvyEvilPattern._w = -1;
 }
