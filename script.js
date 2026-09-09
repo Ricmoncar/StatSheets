@@ -27942,39 +27942,42 @@ function _ivCutFire(cx, cy, kind, seed) {
   _ivCutApply();
 }
 
-// How wide the wound is right now: open fast, hold, close.
+// How far apart the two sides have been pulled RIGHT NOW. Snaps out, settles
+// back: this is the only thing about a cut that is allowed to animate.
 function _ivCutOpen(c) {
-  if (c.p < 0) return 0;
-  if (c.p > 0.90) return 0;
-  return Math.pow(Math.sin(Math.PI * Math.min(1, c.p / 0.90)), 0.65);
+  if (c.p < 0 || c.p > 1) return 0;
+  return c.p < 0.12 ? c.p / 0.12 : Math.pow(1 - (c.p - 0.12) / 0.88, 0.85);
 }
+// The rip itself is a fixed width. It is a cut: it happens in one frame.
+function _ivRipGap(c, D) { return D * 0.0115 * c.w; }
 
-// The rip, as one SVG path in window space. Outer rectangle plus one closed
-// subpath per wound; evenodd turns the subpaths into holes.
+/* The mask is built ONCE per burst and taken off once.
+   Rebuilding it as the wound widened meant a fresh data URL twenty times a
+   second, and every one of those is a new image the browser has to re-rasterise
+   before it can composite the element: the page flickered, because for a frame
+   at a time elements were being drawn with no mask at all. It also modelled the
+   wrong thing. A cut is instantaneous; the hole does not grow. What grows is
+   the SEPARATION of the two pieces, and that is a transform, which is free to
+   animate and never re-rasterises anything. */
 function _ivTearSVG(W, H) {
-  const D = Math.hypot(W, H);
   let d = 'M0 0H' + W + 'V' + H + 'H0Z';
   let any = false;
+  const D = Math.hypot(W, H);
   for (const c of _ivCuts) {
-    const open = _ivCutOpen(c);
-    if (open < 0.02 || !c.pts) continue;
-    const grow = Math.min(1, Math.max(0, c.p) / 0.18);
-    const gap = D * 0.0075 * c.w * open;
-    const last = Math.max(1, ((c.n - 1) * grow) | 0);
+    if (!c.pts) continue;
     any = true;
+    const gap = _ivRipGap(c, D);
     let f = '', b = '';
-    for (let i = 0; i <= last; i++) {
+    for (let i = 0; i < c.n; i++) {
       const hw = gap * c.hw[i];
       const x = c.pts[i * 2], y = c.pts[i * 2 + 1];
       f += (i ? 'L' : 'M') + (x + c.nx * hw).toFixed(1) + ' ' + (y + c.ny * hw).toFixed(1);
       b = 'L' + (x - c.nx * hw).toFixed(1) + ' ' + (y - c.ny * hw).toFixed(1) + b;
     }
     d += f + b + 'Z';
-    // and the chunks bitten out of the edge
     for (const bt of c.bites) {
-      if (bt.u > grow) continue;
       const i = Math.min(c.n - 1, (bt.u * (c.n - 1)) | 0);
-      const r = gap * bt.r * 1.5 * bt.o;
+      const r = gap * bt.r * 1.05 * bt.o;
       const x = c.pts[i * 2] + c.nx * (gap * c.hw[i] + r * 0.45) * bt.s;
       const y = c.pts[i * 2 + 1] + c.ny * (gap * c.hw[i] + r * 0.45) * bt.s;
       d += 'M' + (x - r).toFixed(1) + ' ' + y.toFixed(1) +
@@ -27988,79 +27991,72 @@ function _ivTearSVG(W, H) {
     '<path fill="#fff" fill-rule="evenodd" d="' + d + '"/></svg>') + '")';
 }
 
-// Put the wound, and the shove, through the interface.
+// The list of everything that gets torn: the four containers, then the blocks
+// inside the card, which are shoved harder because they are what you are
+// looking at. Nothing repeated per character: an effect on .char-entry is one
+// element per character in the sidebar.
+function _ivCutTargets() {
+  const out = [];
+  for (const id of _IV_CUT_EL) { const el = document.getElementById(id); if (el) out.push([el, 1]); }
+  for (const el of document.querySelectorAll('#char-view .panel, #cv-avatar, #cv-name, #char-view .tabs')) out.push([el, 1.55]);
+  return out;
+}
+
+// Put the hole through the interface. Once.
 function _ivCutApply() {
   if (_ivRM) return;
   const W = window.innerWidth || 1600, H = window.innerHeight || 900;
   const url = _ivTearSVG(W, H);
-  const D = Math.hypot(W, H);
-  for (const id of _IV_CUT_EL) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    if (!url) {
-      el.style.webkitMaskImage = ''; el.style.maskImage = '';
-      el.style.webkitMaskSize = ''; el.style.maskSize = '';
-      el.style.webkitMaskPosition = ''; el.style.maskPosition = '';
-      el.style.webkitMaskRepeat = ''; el.style.maskRepeat = '';
-      el.style.transform = '';
-      continue;
-    }
-    const r0 = _lyRect(el);
-    if (!el._ivBase) el._ivBase = { left: r0.left, top: r0.top, width: r0.width, height: r0.height };
-    const r = el._ivBase;
+  _ivCutTargets().forEach(function (t) {
+    const el = t[0];
+    const r = _lyRect(el);
+    if (!el._ivBase) el._ivBase = { left: r.left, top: r.top, width: r.width, height: r.height };
+    if (!url) return;
     el.style.webkitMaskImage = url; el.style.maskImage = url;
     el.style.webkitMaskRepeat = 'no-repeat'; el.style.maskRepeat = 'no-repeat';
     el.style.webkitMaskSize = W + 'px ' + H + 'px'; el.style.maskSize = W + 'px ' + H + 'px';
-    const px = (-r.left).toFixed(1) + 'px ' + (-r.top).toFixed(1) + 'px';
+    const b = el._ivBase;
+    const px = (-b.left).toFixed(1) + 'px ' + (-b.top).toFixed(1) + 'px';
     el.style.webkitMaskPosition = px; el.style.maskPosition = px;
-    _ivShove(el, r0, D, 1);
-  }
-  // and the pieces INSIDE the card shear against each other, which is what
-  // actually reads as coming apart: a mask puts a hole through a panel, but a
-  // panel that does not move is a panel with a hole in it. The list is the
-  // half dozen big blocks and nothing repeated per character: an effect on
-  // .char-entry is one element per character in the sidebar, and that mistake
-  // has cost this project a page before.
-  const inner = document.querySelectorAll('#char-view .panel, #cv-avatar, #cv-name, #char-view .tabs');
-  for (const el of inner) {
-    if (!url) { el.style.transform = ''; continue; }
-    _ivShove(el, _lyRect(el), D, 1.5);
-  }
+  });
 }
 
-// How far one box is thrown, and which way: off the cut on the side its middle
-// falls, plus a shear along it.
-function _ivShove(el, r, D, k) {
-  if (!el._ivBase) el._ivBase = { left: r.left, top: r.top, width: r.width, height: r.height };
-  const b = el._ivBase;
-  let tx = 0, ty = 0;
-  const cx = b.left + b.width * 0.5, cy = b.top + b.height * 0.5;
-  for (const c of _ivCuts) {
-    const open = _ivCutOpen(c);
-    if (open < 0.02) continue;
-    const sgn = ((cx - c.x) * c.nx + (cy - c.y) * c.ny) >= 0 ? 1 : -1;
-    const m = D * 0.014 * c.w * open * sgn * k;
-    tx += c.nx * m - c.ny * m * 0.45;
-    ty += c.ny * m + c.nx * m * 0.45;
-  }
-  el.style.transform = (Math.abs(tx) + Math.abs(ty) < 0.2) ? ''
-    : 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px)';
+// And the pieces coming apart, every frame. A transform is a compositor
+// property: it costs nothing to animate and it re-rasterises nothing, which is
+// exactly why the movement lives here and the hole does not.
+function _ivShoveAll() {
+  if (_ivRM || !_ivCuts.length) return;
+  const D = Math.hypot(window.innerWidth || 1600, window.innerHeight || 900);
+  _ivCutTargets().forEach(function (t) {
+    const el = t[0], k = t[1];
+    const b = el._ivBase;
+    if (!b) return;
+    let tx = 0, ty = 0;
+    const cx = b.left + b.width * 0.5, cy = b.top + b.height * 0.5;
+    for (const c of _ivCuts) {
+      const open = _ivCutOpen(c);
+      if (open < 0.002) continue;
+      const sgn = ((cx - c.x) * c.nx + (cy - c.y) * c.ny) >= 0 ? 1 : -1;
+      const m = D * 0.013 * c.w * open * sgn * k;
+      tx += c.nx * m - c.ny * m * 0.42;
+      ty += c.ny * m + c.nx * m * 0.42;
+    }
+    el.style.transform = (Math.abs(tx) + Math.abs(ty) < 0.15) ? '' :
+      'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px)';
+  });
 }
+
 function _ivCutClear() {
   _ivCuts = [];
-  for (const el of document.querySelectorAll('#char-view .panel, #cv-avatar, #cv-name, #char-view .tabs')) {
-    el.style.transform = ''; el._ivBase = null;
-  }
-  for (const id of _IV_CUT_EL) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    el._ivBase = null;
+  _ivCutTargets().forEach(function (t) {
+    const el = t[0];
     el.style.webkitMaskImage = ''; el.style.maskImage = '';
     el.style.webkitMaskSize = ''; el.style.maskSize = '';
     el.style.webkitMaskPosition = ''; el.style.maskPosition = '';
     el.style.webkitMaskRepeat = ''; el.style.maskRepeat = '';
     el.style.transform = '';
-  }
+    el._ivBase = null;
+  });
 }
 
 // Throw pieces of whatever was there out of the wound.
@@ -28084,21 +28080,24 @@ function _ivShardBurst(c, W, H) {
 
 // Draw one wound: the dark inside it, the burning faces, and the grit.
 function _ivCutDraw(g, c, W, H, PX, sx, sy, ox, oy) {
-  const open = _ivCutOpen(c);
-  if (open < 0.01 || !c.pts) return;
+  if (!c.pts || c.p < 0 || c.p > 1) return;
   const D = Math.hypot(W, H);
-  const grow = Math.min(1, Math.max(0, c.p) / 0.18);
-  const last = Math.max(1, ((c.n - 1) * grow) | 0);
-  const gap = Math.hypot(window.innerWidth || W, window.innerHeight || H) * 0.0075 * c.w * open;
-  const fade = c.p > 0.55 ? Math.max(0, 1 - (c.p - 0.55) / 0.45) : 1;
+  const WD = Math.hypot(window.innerWidth || W, window.innerHeight || H);
+  const open = _ivCutOpen(c);
+  // the visible wound is the rip itself plus however far the two pieces have
+  // been pulled apart, which is what the transform is doing to them
+  const gap = _ivRipGap(c, WD) + WD * 0.013 * c.w * open;
+  const fade = c.p > 0.45 ? Math.max(0, 1 - (c.p - 0.45) / 0.55) : 1;
+  const swept = Math.min(1, c.p / 0.14);          // the blade going through
+  const last = Math.max(1, ((c.n - 1) * swept) | 0);
   const X = (i) => (c.pts[i * 2] - ox) * sx;
   const Y = (i) => (c.pts[i * 2 + 1] - oy) * sy;
   const nx = c.nx * sx, ny = c.ny * sy;
 
   g.save();
-  // the dark inside it. Kept translucent: the interface really has been taken
-  // away along this line, so what belongs in the wound is the hall behind it.
-  g.fillStyle = 'rgba(4,1,3,' + (0.42 * open).toFixed(3) + ')';
+  // the dark inside it, kept translucent: the interface really has been taken
+  // away along this line, so what belongs in the wound is the hall behind it
+  g.fillStyle = 'rgba(4,1,3,' + (0.34 + 0.20 * open).toFixed(3) + ')';
   g.beginPath();
   for (let i = 0; i <= last; i++) { const h = gap * c.hw[i];
     const x = X(i) + nx * h, y = Y(i) + ny * h; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); }
@@ -28109,21 +28108,27 @@ function _ivCutDraw(g, c, W, H, PX, sx, sy, ox, oy) {
   g.globalCompositeOperation = 'lighter';
   const w = Math.max(PX, D * 0.0022 * c.w);
   for (const sgn of [1, -1]) {
-    const edge = () => {
-      g.beginPath();
-      for (let i = 0; i <= last; i++) { const h = gap * c.hw[i];
-        const x = X(i) + nx * h * sgn, y = Y(i) + ny * h * sgn;
-        if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); }
-    };
-    edge();
+    g.beginPath();
+    for (let i = 0; i <= last; i++) { const h = gap * c.hw[i];
+      const x = X(i) + nx * h * sgn, y = Y(i) + ny * h * sgn;
+      if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); }
     g.strokeStyle = _IV_HOT[_ivA(fade * 0.34)]; g.lineWidth = w * 2.4; g.stroke();
     g.strokeStyle = _IV_BONE[_ivA(fade * 0.80)]; g.lineWidth = Math.max(1, w * 0.40); g.stroke();
+  }
+  // the blade going through, in the first tenth of a second
+  if (swept < 1) {
+    const i = last;
+    const px = X(i), py = Y(i);
+    const r = Math.max(PX * 2, D * 0.010);
+    g.globalAlpha = 0.9;
+    g.drawImage(_ivGlowSprite(), px - r * 2, py - r * 2, r * 4, r * 4);
+    g.globalAlpha = 1;
   }
   // grit still coming out of it
   g.beginPath();
   for (let k = 0; k < 15; k++) {
     const u = _ivRnd(c.seed * 7.1 + k * 3.3);
-    if (u > grow) continue;
+    if (u > swept) continue;
     const i = Math.min(c.n - 1, (u * (c.n - 1)) | 0);
     const sgn = (_ivRnd(c.seed * 11.7 + k) - 0.5) * 2;
     const dd = c.p * D * 0.09 * (0.4 + _ivRnd(c.seed + k * 5.1));
@@ -28640,17 +28645,18 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
   //    rewritten when the gap has actually changed by a visible amount: it is
   //    a paint on four elements, cheap, but not free. ──
   if (_ivCuts.length) {
-    let live = false, key = 0;
+    let done = true;
     for (let i = _ivCuts.length - 1; i >= 0; i--) {
       const c = _ivCuts[i];
       c.t0 += dt;
-      c.p = c.t0 / 0.95;
-      if (c.p > 1.05) { _ivCuts.splice(i, 1); continue; }
-      if (c.p > 0.04 && !c.burst) { c.burst = 1; _ivShardBurst(c, W, H); }
-      if (c.p > 0) { live = true; key += ((_ivCutOpen(c) * 22) | 0) * 61 + i; }
+      c.p = c.t0 / 1.05;
+      if (c.p > 1) { _ivCuts.splice(i, 1); continue; }
+      if (c.p > 0.02 && !c.burst) { c.burst = 1; _ivShardBurst(c, W, H); }
+      done = false;
     }
+    // The hole is put in once and taken out once; only the shove animates.
     if (!_ivCuts.length) _ivCutClear();
-    else if (live && key !== O._cutKey) { O._cutKey = key; _ivCutApply(); }
+    else _ivShoveAll();
   }
 
   // the whole layer goes through the pixel pipeline, same as the hall: a

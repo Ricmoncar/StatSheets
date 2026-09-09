@@ -438,29 +438,42 @@ as a design element. What reads as torn is three things at once:
    varies along it, take a few bites out of the edges, and lose the odd chunk
    entirely. Build it as an SVG `<path>` (outer rectangle plus one closed
    subpath per wound, `fill-rule="evenodd"`) and hand it to `mask-image` as a
-   data URL: it is a STRING, so it costs microseconds to build and stays crisp
-   at any size, where a rasterised mask has to be PNG-encoded several times a
-   second.
+   data URL: it is a STRING, so it costs microseconds to build.
 2. **The pieces move.** Translate every element away from the cut, on the side
    its own middle falls, with a shear along the cut. And shove the blocks
-   INSIDE the card separately: a mask puts a hole through a panel, but a panel
-   that does not move is a panel with a hole in it. Keep the list to the half
-   dozen big blocks; an effect on `.char-entry` is one element per character in
-   the sidebar.
+   INSIDE the card separately and harder: a mask puts a hole through a panel,
+   but a panel that does not move is a panel with a hole in it. Keep the list
+   to the half dozen big blocks; an effect on `.char-entry` is one element per
+   character in the sidebar.
 3. **Something comes off.** Shards in the interface's own colours, tumbling
    out of the wound and falling.
 
-Two traps. Build the mask once in WINDOW space and place it per element with
+**Build the mask ONCE and take it off once. Never animate it.** This was the
+mistake that made the whole thing look wrong: the first version widened the
+wound over half a second, which meant a fresh data URL twenty times a second,
+and every one of those is a NEW image the browser has to re-rasterise before it
+can composite the element. The page flickered, because for a frame at a time
+elements were being drawn with no mask at all.
+
+It was also modelling the wrong thing. A cut is instantaneous: the hole does
+not grow. What grows is the SEPARATION of the two pieces, and that is a
+transform, which is a compositor property, free to animate, and re-rasterises
+nothing. So: one wide fixed rip, put in on the first frame and taken out on the
+last, and an animated shove between. The visible wound is then the rip plus
+twice the shove, which is what the canvas layer should draw so its burning
+edges sit on the edges that are actually there.
+
+Two more traps. Build the mask in WINDOW space and place it per element with
 `mask-size: <winW>px <winH>px` and a negative `mask-position` of that element's
 box, or every element gets its own private diagonal instead of one cut across
 all of them. And SNAPSHOT each box before you shove it: a shoved element's own
 `getBoundingClientRect` is the shoved one, so recomputing from it feeds the
 shove back into itself and everything drifts off the screen.
 
-It also needs a teardown that clears mask and transform off every element and
-every inner block (a stuck mask leaves the app permanently sliced), and a
-reduced-motion escape. Measured: the whole page idles at 1.05 ms background and
-0.64 ms overlay, and rises to 1.78 and 1.18 for the second a tear is open.
+It needs a teardown that clears mask and transform off every element and every
+inner block (a stuck mask leaves the app permanently sliced), and a
+reduced-motion escape. Measured: 1.06 ms background and 0.74 ms overlay idle,
+rising to 1.78 and 1.52 for the second a tear is open.
 
 **Sort by y and draw back to front.** Row order is *not* depth order once items
 are jittered off their row line. This is what makes things look like they are
