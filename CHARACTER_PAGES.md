@@ -336,6 +336,99 @@ If a shape was built to be lit from one side and the move puts it on the other
 side of the light, do not re-derive it: draw it inside a mirroring transform
 about its own centre, and its one lit edge lands on the correct side for free.
 
+### If it belongs in the scene, build it IN the scene
+
+Asked for "a red star on the left side", I built a tall arched window on the
+OVERLAY, on the grounds that the left of the picture is behind the GUI panels
+and a thing meant to be intimidating has to be visible. The answer was that it
+"feels out of place", and that the star should be "IN THE BACKGROUND ITSELF, IN
+THE SKY". That was right. A thing floated on the overlay is in front of the
+room, not in it: it has no perspective, no wall to sit in, and nothing in the
+room lights it or is lit by it, so it reads as a decal however well it is drawn.
+The panels are translucent. Something genuinely in the picture reads through
+them, and reading through them is what "in the background" means.
+
+If the scene has no place for the thing, change the scene. The hall had a
+vaulted ceiling and therefore no sky, so the wall got torn open.
+
+### Building an opening: what actually makes a hole read as a hole
+
+Three passes at this failed before it read, and every failure was the same
+failure: dark shape on a dark wall. Detail does not make a shape read; contrast
+does. In order of how much each one bought:
+
+1. **Something behind it, at a DIFFERENT VALUE.** A night sky in a picture is
+   almost never black: it is the *lightest dark* in the frame. The interior here
+   is warm red-black everywhere, so the sky is a cooler, lighter violet-black.
+   That one change did more than everything else put together.
+2. **A HORIZON.** A gradient is a fill; black spires against a lighter sky is a
+   distance. It also gives the bottom of the opening something to be.
+3. **The THICKNESS of the material**, as a band of cut face between the outer
+   outline and an inset copy of it. Reading outward: dark wall, lit broken
+   stone, sky. Three values in a row is all a hole has ever needed. Inset by a
+   CONSTANT distance, not by a fraction of the way to the centroid, or the band
+   goes wide where the opening is tall and vanishes where it is narrow and reads
+   as a ribbon draped over two sides of it.
+4. **Teeth on all four sides.** Two ragged edges and two ruled ones is a picture
+   frame. Keep the teeth SHALLOW: deeper than about a tenth of the surface and
+   they stop reading as broken masonry and start reading as spikes.
+5. **Rubble on the floor under it**, and the wreckage of whatever used to be in
+   the way. A hole with nothing beneath it is a hole somebody drew.
+
+Build the outline in the room's own parameters, not in screen space. Every
+vertex here is a (u, f) on the left wall run through the same two functions the
+floor junction, the dado and the cornice use, so the opening foreshortens and
+leans with the room for free, and the far end of it rides up out of the picture,
+which is what stops it reading as a porthole stuck on.
+
+### Do not light the lip with a dot product and hope
+
+The obvious "is this edge facing the light" test came out negative all the way
+round: the chandelier is far off to the right, so neither the up-facing top lip
+nor the down-facing bottom lip points at it, and the whole outline drew unlit.
+The face that is actually turned toward the light is the *cut face inside the
+opening*, so that is the thing to make bright. Work out which surface is really
+facing the light before writing the shading; do not shade the silhouette and
+hope.
+
+### A distant light must be laid over the vignette
+
+The near vignette sits over the whole picture, and it pulled the star's core
+down to (170,151,150): a warm grey dot. Everything in the room should be behind
+the near dark, because the vignette is the room closing in. A star is not in the
+room. Draw its core and the tightest ring of its halo again after the vignette,
+additively and small. It is also just what a bright light does to a lens.
+
+### Additive white cores go cyan
+
+Stack additive passes on a red object and the red channel clips first, then
+green and blue keep climbing: the core goes white and then faintly cold. A red
+giant came out looking like a headlight, twice. Paint the disc with
+`source-over` through one radial gradient, and keep `lighter` for the halo and
+the spikes where it belongs.
+
+### Clip a light to what it can actually shine on
+
+Clipping the star to the opening left its spikes running down over the black
+mountains in front of it. It needs the *sky* inside the opening, which is a
+second polygon: the top lip, the ends, and the horizon back along the bottom.
+Canvas clips intersect, so clip to both.
+
+Related: do not draw an object inside a clip it does not live in. The ruined
+window's glazing bars were being drawn inside the opening, but the window's sill
+is *below* the opening, so all that survived the clip was the top inch of each
+bar: four short vertical lines floating in the sky like scratches on the screen.
+The window is on the wall. Draw it on the wall, and stop each bar short of the
+lip so none of them stray up into the sky.
+
+### A path helper that calls `beginPath` cannot build a ring
+
+`_ivBreachPath` began its own path, so calling it twice for an even-odd ring
+(outer, then inset) silently threw the outer path away and filled the inset
+polygon solid. That painted lit stone over the entire sky and made the opening
+read as a framed picture hung on the wall. Give any such helper a `keep` flag
+and pass it for the second outline.
+
 ### Respect the furniture
 
 The GUI panels sit across the upper and middle of the page. Keep the middle

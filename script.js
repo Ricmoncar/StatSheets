@@ -26953,6 +26953,135 @@ function _ivVP(W, H) { return [W * 0.700, H * 0.455]; }
 function _ivFloorY(H, VY, u) { return VY + (H * 1.12 - VY) * Math.pow(u, 1.65); }
 function _ivFloorX(W, VX, u, s) { return VX + s * (W * 0.045 + W * 1.30 * Math.pow(u, 1.55)); }
 
+/* THE BREACH.
+   The star wanted to be in the sky, and this room did not have one, so the
+   room is broken. The third arched window down the LEFT wall has been torn
+   out of the wall entirely, taking the cornice and a piece of the vault with
+   it, and the night is behind it.
+   It is built in the hall's own perspective rather than as a shape laid over
+   it: every vertex is a (u, f) on the left wall, where u is how far away it is
+   and f is how far up it is, run through the same two functions the floor
+   junction, the dado and the cornice are run through. f = 0 is the skirting,
+   f = 1 is eye level, f = 2.35 is the cornice. So the opening leans and
+   foreshortens with the room, and the far end of it rides up toward the top of
+   the picture, which is what stops it reading as a porthole stuck on.
+   The outline is TOOTHED, not merely jittered. Masonry that has been torn out
+   leaves teeth, and a soft wobbly edge reads as a stain instead of a hole.
+   Rolled once from a fixed seed: the room does not change shape between
+   frames, and it does not change shape between the layer that bakes it and the
+   layer that throws light through it. */
+function _ivBreach(W, H) {
+  let K = _ivBreach._k;
+  if (K && K.W === W && K.H === H) return K;
+  const [VX, VY] = _ivVP(W, H);
+  const wx = (u) => _ivFloorX(W, VX, u, -1.02);
+  const wy = (u, f) => { const fy = _ivFloorY(H, VY, u); return fy - (fy - VY) * f; };
+  // Far enough down the wall to clear the near vignette, which crushes
+  // anything in the outer eighth of the picture to black and had been eating
+  // the near half of this.
+  const U0 = 0.415, U1 = 0.575, N = 8, D = (U1 - U0) / N;
+  const FT = 2.46, FB = 1.28;                     // through the cornice, down past eye level
+  const P = [];
+  const push = (u, f) => { P.push(wx(u), wy(u, f)); };
+  // the top lip, running away from you, with teeth of plaster left hanging
+  // down into the gap
+  for (let i = 0; i <= N; i++) {
+    const u = U0 + D * i;
+    push(u, FT + (_ivRnd(i * 3.7 + 2) - 0.5) * 0.16);
+    // shallow. A tooth deeper than about a tenth of the wall stops reading as
+    // broken masonry and starts reading as a spike.
+    if (i < N) push(u + D * 0.5, FT - 0.05 - _ivRnd(i * 8.1 + 5) * 0.16);
+  }
+  // the far end coming down. All four sides have to break: two ragged edges
+  // and two ruled ones is a picture frame, not a hole.
+  for (let k = 1; k <= 4; k++) {
+    const f = FT + (FB - FT) * (k / 5);
+    P.push(wx(U1) + (_ivRnd(k * 6.1 + 31) - 0.5) * W * 0.022, wy(U1, f));
+  }
+  const TOP = P.length >> 1;
+  // and the bottom lip coming back toward you, with the wall left standing in
+  // teeth of its own
+  for (let i = N; i >= 0; i--) {
+    const u = U0 + D * i;
+    push(u, FB + (_ivRnd(i * 5.3 + 7) - 0.5) * 0.14);
+    if (i > 0) push(u - D * 0.5, FB + 0.04 + _ivRnd(i * 9.7 + 3) * 0.15);
+  }
+  // then the near end going back up
+  for (let k = 1; k <= 4; k++) {
+    const f = FB + (FT - FB) * (k / 5);
+    P.push(wx(U0) + (_ivRnd(k * 4.7 + 17) - 0.5) * W * 0.022, wy(U0, f));
+  }
+  const n = P.length >> 1;
+  // Pulled in by a CONSTANT distance rather than by a fraction of the way to
+  // the middle: a fractional inset makes the band wide where the opening is
+  // tall and vanishes where it is narrow, which read as a ribbon draped over
+  // two sides of it instead of as the thickness of a wall.
+  let cx = 0, cy = 0;
+  for (let i = 0; i < n; i++) { cx += P[i * 2]; cy += P[i * 2 + 1]; }
+  cx /= n; cy /= n;
+  const Q = new Float32Array(n * 2);
+  const T = Math.min(W, H) * 0.017;
+  for (let i = 0; i < n; i++) {
+    const vx = cx - P[i * 2], vy = cy - P[i * 2 + 1];
+    const d = Math.hypot(vx, vy) || 1;
+    const k = Math.min(T, d * 0.55);
+    Q[i * 2] = P[i * 2] + (vx / d) * k;
+    Q[i * 2 + 1] = P[i * 2 + 1] + (vy / d) * k;
+  }
+  // THE HORIZON, built here rather than at draw time so that the sky it cuts
+  // off is a shape the star can be clipped to as well: a spike of starlight
+  // has no business crossing in front of a mountain.
+  const HX0 = wx(U1) - W * 0.09, HX1 = wx(U0) + W * 0.09, HN = 27;
+  const hz = new Float32Array(HN * 2);
+  // Level, and clear of the lower lip: a real horizon is at one height because
+  // it is far away, and one that sits down on the sill is not a horizon, it is
+  // a texture. Most peaks are low and a few are not, which is what a range
+  // looks like and what a row of even teeth does not.
+  const hy0 = Math.min(wy(U0, FB), wy(U1, FB)) - H * 0.030;
+  for (let i = 0; i < HN; i++) {
+    const u = i / (HN - 1);
+    const pk = Math.pow(_ivRnd(i * 4.3 + 21), 2.2);
+    hz[i * 2] = HX0 + u * (HX1 - HX0);
+    hz[i * 2 + 1] = hy0 - H * (0.014 + pk * 0.058) * (0.55 + 0.45 * Math.sin(u * 5.1 + 1.2));
+  }
+  // the window this used to be: niche 2 of the four down that wall
+  const nu0 = 0.47, nu1 = 0.585;
+  K = _ivBreach._k = {
+    W: W, H: H, p: new Float32Array(P), q: Q, n: n, cx: cx, cy: cy,
+    t: TOP, hz: hz, hn: HN, hy: hy0,
+    u0: U0, u1: U1, wx: wx, wy: wy,
+    nx0: wx(nu0), nx1: wx(nu1),
+    nb0: wy(nu0, 0.62), nb1: wy(nu1, 0.62),
+    ns0: wy(nu0, 1.62), ns1: wy(nu1, 1.62),
+    // where the star hangs in the opening, and the two ends of the broken sill
+    // its light spills over
+    sx: wx(0.495), sy: wy(0.495, 2.00),
+    bx0: wx(U0), by0: wy(U0, FB), bx1: wx(U1), by1: wy(U1, FB),
+  };
+  return K;
+}
+// The sky INSIDE the opening: the top lip and the far end, then the horizon
+// back along the bottom. Used as a second clip on top of the opening's own, so
+// it is the intersection of the two, which is what the star is allowed to
+// shine on.
+function _ivSkyPoly(g, K) {
+  g.beginPath();
+  g.moveTo(K.p[0], K.p[1]);
+  for (let i = 1; i < K.t; i++) g.lineTo(K.p[i * 2], K.p[i * 2 + 1]);
+  for (let i = 0; i < K.hn; i++) g.lineTo(K.hz[i * 2], K.hz[i * 2 + 1]);
+  g.closePath();
+}
+// `keep` appends to the path in progress instead of starting a new one, which
+// is what an even-odd ring needs: both outlines have to be in the SAME path.
+function _ivBreachPath(g, K, arr, keep) {
+  const p = arr || K.p;
+  if (!keep) g.beginPath();
+  g.moveTo(p[0], p[1]);
+  for (let i = 1; i < K.n; i++) g.lineTo(p[i * 2], p[i * 2 + 1]);
+  g.closePath();
+}
+
+
 // ── the void: black, and the chandelier's light bleeding into it. Baked and
 //    dithered, which is where most of the pixel-art character comes from. ──
 function _ivVoidSheet(W, H, CX, CY, PX) {
@@ -26987,6 +27116,9 @@ function _ivSconces(W, H) {
   const out = [];
   for (let side = -1; side <= 1; side += 2) {
     for (let k = 0; k < 4; k++) {
+      // the third bracket down the left wall is inside the breach, and a
+      // candle cannot burn on a wall that is not there any more
+      if (side < 0 && k === 2) continue;
       const u = 0.07 + k * 0.20 - 0.030;
       const fyy = _ivFloorY(H, VY, u);
       out.push({ x: _ivFloorX(W, VX, u, side * 1.02), y: fyy - (fyy - VY) * 1.12,
@@ -27084,6 +27216,189 @@ function _ivHallSheet(W, H, PX) {
     g.fillStyle = _IV_DARK[24];
     g.fillRect(sc.x - bw, sc.y, bw * 2, bw * 2.6);
     _ivOrnament(g, sc.x, sc.y + bw * 3.0, -1.5707963, S * 0.20 * sc.s, CX, CY, _IV_PAL_GILT, sc.i + 400, sc.i & 1);
+  }
+
+  // ── 1c. THE BREACH, punched last of the wall work so that it cuts the
+  //    niches, the mouldings and the brackets rather than being drawn in among
+  //    them. Everything a hole needs in order to read as a hole is here, in
+  //    this order: something behind it, the wreckage of what used to be in the
+  //    way, the THICKNESS of the material it is through, a broken lip that is
+  //    bright where it faces the light, and the rubble it made on the floor.
+  {
+    const K = _ivBreach(W, H);
+
+    // 1. THE NIGHT. It is a colder black than the room's, which is the only
+    //    thing separating the two at this bit depth: everything indoors here
+    //    is a warm red-black, so the sky is given a blue one.
+    _ivBreachPath(g, K); g.save(); g.clip();
+    // A night sky is almost never black in a picture: it is the LIGHTEST dark
+    // in the frame, which is exactly how an opening in a shadowed wall reads as
+    // an opening at all. Cool at the top against a room that is warm red-black
+    // everywhere, and going to blood at the bottom where the horizon is.
+    const sg = g.createLinearGradient(0, K.cy - H * 0.30, 0, K.by0 + H * 0.04);
+    sg.addColorStop(0, '#15102a');
+    sg.addColorStop(0.45, '#21133c');
+    sg.addColorStop(0.80, '#361538');
+    sg.addColorStop(1, '#4c1730');
+    g.fillStyle = sg;
+    g.fillRect(0, -H, W, H * 2);
+    // Two thin banks of cloud, so the sky is a place and not a fill. They are
+    // LIGHTER than the sky, not darker: cloud at night is lit from underneath
+    // by whatever is burning, and a dark cloud over a dark sky is just a
+    // second way of painting the opening shut, which is what the first pass at
+    // this did.
+    for (let k = 0; k < 2; k++) {
+      const y = K.cy + H * (0.030 + k * 0.062);
+      const th = H * 0.020;
+      const cg = g.createLinearGradient(0, y - th, 0, y + th);
+      cg.addColorStop(0, 'rgba(112,72,128,0)');
+      cg.addColorStop(0.45, 'rgba(112,72,128,' + (0.20 - k * 0.07).toFixed(3) + ')');
+      cg.addColorStop(1, 'rgba(112,72,128,0)');
+      g.fillStyle = cg;
+      g.beginPath();
+      g.moveTo(0, y - th);
+      for (let i = 0; i <= 10; i++) {
+        g.lineTo(W * 0.045 * i, y - th + Math.sin(i * 1.1 + k * 2.4) * H * 0.012);
+      }
+      g.lineTo(W * 0.45, y + th); g.lineTo(0, y + th);
+      g.closePath(); g.fill();
+    }
+    // A HORIZON, which is the thing that turns a coloured shape into a
+    // distance. Black spires against a sky that is lighter than the room is
+    // also the one contrast in this whole picture that cannot be mistaken for
+    // anything else, so it is what finally makes the opening read as an
+    // opening rather than as a stain on the wall.
+    {
+      g.fillStyle = _IV_VOID[24];
+      g.beginPath();
+      g.moveTo(K.hz[0], K.hz[1]);
+      for (let i = 1; i < K.hn; i++) g.lineTo(K.hz[i * 2], K.hz[i * 2 + 1]);
+      g.lineTo(K.hz[(K.hn - 1) * 2], K.hy + H * 0.09);
+      g.lineTo(K.hz[0], K.hy + H * 0.09);
+      g.closePath(); g.fill();
+      // and the last of the sky caught along their tops
+      g.strokeStyle = _IV_BLOOD[_ivA(0.30)];
+      g.lineWidth = Math.max(1, W * 0.0010);
+      g.stroke();
+    }
+
+    // the small ones. The big one is drawn live, because it is the only thing
+    // out there that is doing anything.
+    for (let i = 0; i < 60; i++) {
+      const x = K.bx1 + _ivRnd(i * 3.7 + 1) * (K.bx0 - K.bx1) * 1.2;
+      const y = K.cy - H * 0.22 + _ivRnd(i * 5.3 + 4) * H * 0.46;
+      const r = W * 0.0011 * (0.5 + _ivRnd(i * 9.1) * 1.7);
+      g.fillStyle = _IV_BONE[_ivA(0.22 + _ivRnd(i * 2.3) * 0.50)];
+      g.beginPath(); g.arc(x, y, r, 0, 6.2831853); g.fill();
+    }
+
+    g.restore();
+
+    // 2. THE WRECKAGE OF THE WINDOW, and it is drawn on the WALL, outside the
+    //    opening's clip, because that is where it is: the arched window that
+    //    used to be here had its head torn off with the masonry above it, and
+    //    what is left is the bottom of it still standing under the hole. Every
+    //    bar is stopped short of the lower lip so that none of them stray up
+    //    into the sky.
+    //    This is the tall arched window that was on the overlay before, put
+    //    where a window in this hall actually goes, and then broken.
+    {
+      const nw = K.nx1 - K.nx0;
+      const at = (u, a, b) => a + (b - a) * u;
+      const NU0 = 0.47, NU1 = 0.585;
+      for (let k = 1; k < 6; k++) {
+        const u = k / 6;
+        const x = at(u, K.nx0, K.nx1);
+        const yb = at(u, K.nb0, K.nb1);
+        const ys = at(u, K.ns0, K.ns1);
+        const cap = K.wy(NU0 + (NU1 - NU0) * u, 1.28) + H * 0.016;
+        const yt = Math.max(yb - (yb - ys) * (0.45 + _ivRnd(k * 7.1) * 1.05), cap);
+        if (yb - yt < H * 0.006) continue;
+        const lean = (_ivRnd(k * 3.3) - 0.5) * nw * 0.10;
+        g.strokeStyle = _IV_VOID[24]; g.lineWidth = W * 0.0034;
+        g.beginPath(); g.moveTo(x, yb); g.lineTo(x + lean, yt); g.stroke();
+        g.strokeStyle = _IV_EMBER[_ivA(0.42)]; g.lineWidth = W * 0.0010;
+        g.beginPath(); g.moveTo(x + W * 0.0011, yb); g.lineTo(x + lean + W * 0.0011, yt); g.stroke();
+      }
+      // the teeth of glass still standing in the sill
+      for (let k = 0; k < 11; k++) {
+        const u = k / 10;
+        const x = at(u, K.nx0, K.nx1);
+        const yb = at(u, K.nb0, K.nb1);
+        const h = (yb - at(u, K.ns0, K.ns1)) * (0.12 + _ivRnd(k * 4.9) * 0.60);
+        const wd = nw * 0.050 * (0.5 + _ivRnd(k * 6.1));
+        g.beginPath();
+        g.moveTo(x - wd, yb); g.lineTo(x + wd, yb);
+        g.lineTo(x + (_ivRnd(k * 2.2) - 0.5) * wd, yb - h);
+        g.closePath();
+        g.fillStyle = _IV_BLOOD[_ivA(0.20)]; g.fill();
+        g.strokeStyle = _IV_EMBER[_ivA(0.50)]; g.lineWidth = Math.max(1, W * 0.0009); g.stroke();
+      }
+    }
+
+    // 3. THE THICKNESS, and it is the BRIGHT thing here. The wall is a plane
+    //    facing across the room, so its front is in shadow at this end of the
+    //    hall, but the raw face left by the break is turned inward toward the
+    //    chandelier and catches it. Reading outward that gives dark wall, a
+    //    band of lit broken stone, then sky: three values in a row, which is
+    //    all a hole has ever needed to look like a hole.
+    g.save();
+    _ivBreachPath(g, K);
+    _ivBreachPath(g, K, K.q, true);
+    const rv = g.createLinearGradient(K.cx - W * 0.09, K.cy + H * 0.10, K.cx + W * 0.09, K.cy - H * 0.10);
+    rv.addColorStop(0, _IV_CLOT[24]);
+    rv.addColorStop(0.35, _IV_DARK[24]);
+    rv.addColorStop(0.80, _IV_BLOOD[24]);
+    rv.addColorStop(1, _IV_HOT[_ivA(0.72)]);
+    g.fillStyle = rv;
+    g.fill('evenodd');
+    g.restore();
+
+    // 4. THE BROKEN LIP, segment by segment. An edge turned toward the
+    //    chandelier takes the ember and an edge turned away takes the void,
+    //    which is the same three tone rule every other object in this hall is
+    //    drawn under. Nothing is left unlit entirely, because a black edge on
+    //    a black wall is how the first version of this disappeared.
+    _ivBreachPath(g, K);
+    g.strokeStyle = _IV_VOID[24]; g.lineWidth = W * 0.0030; g.stroke();
+    _ivBreachPath(g, K, K.q);
+    g.strokeStyle = _IV_EMBER[_ivA(0.78)]; g.lineWidth = Math.max(1, W * 0.0014); g.stroke();
+
+    // 5. THE RUBBLE. A hole with nothing on the floor under it is a hole
+    //    somebody drew; a hole with the wall lying under it is a hole
+    //    something came through. Angular chunks, sized by depth, each with a
+    //    top facet catching the chandelier.
+    for (let i = 0; i < 9; i++) {
+      const u = 0.470 + _ivRnd(i * 3.1 + 13) * 0.185;
+      const fy = _ivFloorY(H, VY, u);
+      const x = _ivFloorX(W, VX, u, -1.02) + _ivRnd(i * 5.9) * W * 0.115;
+      const s = W * 0.008 * (0.4 + _ivRnd(i * 7.3) * 1.5) * (0.4 + u);
+      const a = (_ivRnd(i * 2.7) - 0.5) * 0.7;
+      g.save(); g.translate(x, fy); g.rotate(a);
+      g.fillStyle = _IV_VOID[24];
+      g.beginPath();
+      g.moveTo(-s, 0); g.lineTo(-s * 0.5, -s * 0.75); g.lineTo(s * 0.7, -s * 0.55);
+      g.lineTo(s, 0); g.closePath(); g.fill();
+      g.fillStyle = _IV_BLOOD[_ivA(0.34)];
+      g.beginPath();
+      g.moveTo(-s * 0.5, -s * 0.75); g.lineTo(s * 0.7, -s * 0.55);
+      g.lineTo(s * 0.5, -s * 0.70); g.lineTo(-s * 0.35, -s * 0.92);
+      g.closePath(); g.fill();
+      g.restore();
+    }
+    // and the plaster still hanging off the top lip, and the ribs of the vault
+    // snapped where they ran into it
+    for (let i = 3; i < 14; i += 5) {
+      const x = K.p[i * 2], y = K.p[i * 2 + 1];
+      const nn = _ivArc(x, y, 1.35 + (_ivRnd(i * 5.1) - 0.5) * 0.7,
+                        W * (0.007 + _ivRnd(i * 3.3) * 0.011),
+                        (_ivRnd(i * 7.7) - 0.5) * 0.9, 6);
+      _ivGilt(g, _IV_PT, nn, W * 0.0038, W * 0.0008, CX, CY, _IV_PAL_MID);
+    }
+    // 6. and the room's own manners, broken off at both ends of the gap: the
+    //    cornice ornament stops dead where the wall stops.
+    _ivOrnament(g, K.bx0, K.by0, -0.6, S * 0.36, CX, CY, _IV_PAL_GILT, 611, false);
+    _ivOrnament(g, K.p[0], K.p[1], 1.0, S * 0.32, CX, CY, _IV_PAL_GILT, 612, true);
   }
 
   // ── 2. THE LANDMARK: a tall arched mirror on the far wall, dead on the
@@ -27520,6 +27835,189 @@ function _ivGlowTinted() {
   return c;
 }
 
+/* THE STAR, in the sky, through the breach in the left wall.
+   A core too bright to look at, a corona, and the four long diffraction spikes
+   that are the reason a bright point in a dark sky reads as a star at all,
+   with four short ones between them. It is clipped to the opening, so the
+   spikes are cut off by the broken masonry and it reads as a thing OUT THERE
+   being seen through a hole rather than a shape drawn on top of one.
+   THE LIGHT RULE HOLDS: the chandelier is still the one light, and every lit
+   edge in this hall is still computed from it. The star does the two things a
+   real one that far away would do and no more. It glows, and it throws a shaft
+   of its own light through the opening onto the floor. */
+function _ivStarSky(g, W, H, t) {
+  const K = _ivBreach(W, H);
+  const S = _ivStarSky;
+  const beat = _ivPulse;
+  // it flares on its own clock, slower than the heart, so the two drift in and
+  // out of phase instead of thumping together
+  const flare = Math.pow(Math.max(0, Math.sin(t * 0.29)), 12);
+  const pw = (1 - _ivDark * 0.35) * (1 - _ivDrain * 0.55);
+  if (pw <= 0.01) return;
+  const SX = K.sx, SY = K.sy;
+  const R = W * (0.0125 + beat * 0.0030 + flare * 0.0052);
+  const GL = _ivGlowTinted();
+  const slow = _ivRM ? 0.3 : 1;
+
+  g.save();
+  _ivBreachPath(g, K); g.clip();
+  _ivSkyPoly(g, K); g.clip();
+  g.globalCompositeOperation = 'lighter';
+
+  // the small ones twinkle. They are baked, so this is the only live pass over
+  // them and it is one path and one fill.
+  g.beginPath();
+  for (let i = 0; i < 30; i++) {
+    const x = K.bx1 + _ivRnd(i * 3.7 + 1) * (K.bx0 - K.bx1) * 1.2;
+    const y = K.cy - H * 0.22 + _ivRnd(i * 5.3 + 4) * H * 0.46;
+    const tw = Math.pow(Math.abs(Math.sin(t * (0.5 + _ivRnd(i * 8.3) * 1.6) * slow + i)), 3);
+    const r = W * 0.0013 * tw;
+    if (r < 0.35) continue;
+    g.moveTo(x + r, y); g.arc(x, y, r, 0, 6.2831853);
+  }
+  g.fillStyle = _ivRed(_IV_EMBER, 0.7 * pw);
+  g.fill();
+
+  // the halo, three passes of the one glow sprite, which is how every other
+  // light in this scene is done
+  for (let k = 0; k < 3; k++) {
+    const hr = R * (7.5 - k * 2.2) * (1 + beat * 0.18 + flare * 0.38);
+    g.globalAlpha = (0.11 + beat * 0.08 + flare * 0.14) * pw;
+    g.drawImage(GL, SX - hr, SY - hr, hr * 2, hr * 2);
+  }
+  g.globalAlpha = 1;
+
+  // THE PULSE, made visible: on the top of every heartbeat the star throws off
+  // a ring, and it goes out across the sky and dies. Two or three alive at a
+  // time. This is the difference between something that scales up and down on
+  // a sine and something that is doing it ON PURPOSE.
+  if (!S._rings) S._rings = [];
+  if (!_ivRM && beat > 0.88 && t - (S._last || -9) > 0.55) { S._last = t; S._rings.push({ r: R * 1.5, a: 1 }); }
+  for (let i = S._rings.length - 1; i >= 0; i--) {
+    const q = S._rings[i];
+    q.r += R * 0.62; q.a -= 0.042;
+    if (q.a <= 0 || q.r > R * 30) { S._rings.splice(i, 1); continue; }
+    g.strokeStyle = _ivRed(_IV_HOT, q.a * q.a * 0.42 * pw);
+    g.lineWidth = Math.max(1, R * 0.13 * q.a);
+    g.beginPath(); g.arc(SX, SY, q.r, 0, 6.2831853); g.stroke();
+  }
+
+  // the spikes. Four long, four short, drawn twice: a wide soft cross in the
+  // hot red and a narrow hard one over it, so they have a core instead of
+  // being flat triangles. They are longer than the opening is wide, so the
+  // broken wall cuts them off, which is the whole point: the thing is too
+  // bright to fit through the hole you are looking at it through.
+  const spin = Math.sin(t * 0.09) * 0.05;
+  for (let pass = 0; pass < 2; pass++) {
+    const L1 = R * (15.0 + beat * 5.5 + flare * 11.0) * (pass ? 0.46 : 1);
+    const L2 = R * (4.4 + beat * 1.6 + flare * 3.4) * (pass ? 0.46 : 1);
+    g.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = spin + i * 0.7853982;
+      const L = (i & 1) ? L2 : L1;
+      const w = R * ((i & 1) ? 0.16 : 0.24) * (pass ? 0.40 : 1);
+      const cx = Math.cos(a), cy = Math.sin(a);
+      g.moveTo(SX + cx * L, SY + cy * L);
+      g.lineTo(SX - cy * w, SY + cx * w);
+      g.lineTo(SX + cy * w, SY - cx * w);
+      g.closePath();
+    }
+    g.fillStyle = pass ? _ivRed(_IV_EMBER, (0.80 + beat * 0.20) * pw)
+                       : _ivRed(_IV_HOT, (0.34 + beat * 0.26) * pw);
+    g.fill();
+  }
+
+  // THE DISC, and this part is NOT additive. Stacking additive reds saturates
+  // the red channel first and then keeps piling green and blue on top, so an
+  // additive core goes white and then faintly cyan: the first version of this
+  // was a red giant that came out looking like a headlight. Painted straight,
+  // through one radial gradient the way every other light on this page is
+  // done, it stays red and it still has a core you cannot look at.
+  g.globalCompositeOperation = 'source-over';
+  const RR = R * 1.45;
+  const dg = g.createRadialGradient(SX, SY, 0, SX, SY, RR);
+  dg.addColorStop(0, _IV_BONE[24]);
+  dg.addColorStop(0.16, _IV_FLAME[24]);
+  dg.addColorStop(0.38, _ivRed(_IV_EMBER, 1));
+  dg.addColorStop(0.70, _ivRed(_IV_HOT, 0.94));
+  dg.addColorStop(0.88, _ivRed(_IV_HOT, 0.45));
+  dg.addColorStop(1, _ivRed(_IV_HOT, 0));
+  g.fillStyle = dg;
+  g.beginPath(); g.arc(SX, SY, RR, 0, 6.2831853); g.fill();
+  // and the two brightest spikes carried across the disc itself, so the core
+  // is a point of light and not a bead sitting in front of a cross
+  g.strokeStyle = _IV_FLAME[_ivA(0.55 + beat * 0.35)];
+  g.lineWidth = Math.max(1, R * 0.11);
+  g.beginPath();
+  g.moveTo(SX - Math.cos(spin) * R * 2.4, SY - Math.sin(spin) * R * 2.4);
+  g.lineTo(SX + Math.cos(spin) * R * 2.4, SY + Math.sin(spin) * R * 2.4);
+  g.moveTo(SX + Math.sin(spin) * R * 2.4, SY - Math.cos(spin) * R * 2.4);
+  g.lineTo(SX - Math.sin(spin) * R * 2.4, SY + Math.cos(spin) * R * 2.4);
+  g.stroke();
+  g.restore();
+
+  // and the light it puts in the room: the halo blooming a little past the
+  // broken lip, because a bright thing behind a hole does exactly that, and
+  // the shaft it throws down onto the floor
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  const hr = R * 9 * (1 + beat * 0.2 + flare * 0.5);
+  g.globalAlpha = (0.05 + beat * 0.04 + flare * 0.09) * pw;
+  g.drawImage(GL, SX - hr, SY - hr, hr * 2, hr * 2);
+  g.globalAlpha = 1;
+  // A shaft, cast from the opening down into the room along the direction the
+  // starlight is actually travelling. Narrow and bright at the lip, wide and
+  // gone by the time it reaches the floor, which is what a beam of light in
+  // dusty air does and what a flat wash over the floorboards does not.
+  const dx = 0.80, dy = 0.60, L = H * 0.95;
+  const beam = (spread, alpha) => {
+    const sh = g.createLinearGradient(K.bx0, K.by0, K.bx0 + dx * L, K.by0 + dy * L);
+    sh.addColorStop(0, _ivRed(_IV_HOT, alpha * pw));
+    sh.addColorStop(0.42, _ivRed(_IV_HOT, alpha * 0.42 * pw));
+    sh.addColorStop(1, _ivRed(_IV_HOT, 0));
+    g.fillStyle = sh;
+    const mx = (K.bx0 + K.bx1) * 0.5, my = (K.by0 + K.by1) * 0.5;
+    const ax = K.bx0 + (mx - K.bx0) * (1 - spread), ay = K.by0 + (my - K.by0) * (1 - spread);
+    const bx = K.bx1 + (mx - K.bx1) * (1 - spread), by = K.by1 + (my - K.by1) * (1 - spread);
+    g.beginPath();
+    g.moveTo(ax, ay); g.lineTo(bx, by);
+    g.lineTo(bx + dx * L * 1.20, by + dy * L * 1.20);
+    g.lineTo(ax + dx * L * 0.80, ay + dy * L * 1.20);
+    g.closePath(); g.fill();
+  };
+  beam(1.00, 0.055 + beat * 0.035 + flare * 0.075);
+  beam(0.40, 0.075 + beat * 0.050 + flare * 0.110);
+  g.restore();
+}
+
+
+/* The star, laid over the vignette. Everything else in this hall is behind the
+   near dark and should be: the vignette is the room closing in. A star is not
+   in the room. So its core and the tightest ring of its halo go on afterwards,
+   which is the only reason it reads as the brightest thing in the picture
+   instead of as a warm grey dot. Small, additive, clipped to the sky. */
+function _ivStarBurn(g, W, H, t) {
+  const K = _ivBreach(W, H);
+  const beat = _ivPulse;
+  const flare = Math.pow(Math.max(0, Math.sin(t * 0.29)), 12);
+  const pw = (1 - _ivDark * 0.35) * (1 - _ivDrain * 0.55);
+  if (pw <= 0.01) return;
+  const R = W * (0.0125 + beat * 0.0030 + flare * 0.0052);
+  g.save();
+  _ivBreachPath(g, K); g.clip();
+  _ivSkyPoly(g, K); g.clip();
+  g.globalCompositeOperation = 'lighter';
+  const hr = R * 3.2 * (1 + beat * 0.2 + flare * 0.4);
+  g.globalAlpha = (0.34 + beat * 0.20 + flare * 0.26) * pw;
+  g.drawImage(_ivGlowTinted(), K.sx - hr, K.sy - hr, hr * 2, hr * 2);
+  g.globalAlpha = 1;
+  g.fillStyle = _IV_FLAME[_ivA((0.72 + beat * 0.28) * pw)];
+  g.beginPath(); g.arc(K.sx, K.sy, R * 0.44, 0, 6.2831853); g.fill();
+  g.fillStyle = _IV_BONE[_ivA((0.60 + beat * 0.40) * pw)];
+  g.beginPath(); g.arc(K.sx, K.sy, R * 0.20, 0, 6.2831853); g.fill();
+  g.restore();
+}
+
 function _drawIvyEvilPattern(canvas, ctx, W, H, t) {
   if (!(W > 0 && H > 0)) return;
   // The `>= 0` matters: a clock that jumps BACKWARDS leaves t - _lt hugely
@@ -27605,6 +28103,7 @@ function _drawIvyEvilPattern(canvas, ctx, W, H, t) {
 
   BL(P._hall);
   _ivFloorLive(lg, W, H, t);
+  _ivStarSky(lg, W, H, t);
   _ivEvBack(lg, ev, W, H, VX, VY, CX, CY, t);
 
   // ── the light the chandelier is actually throwing, which moves when it does ──
@@ -27723,6 +28222,7 @@ function _drawIvyEvilPattern(canvas, ctx, W, H, t) {
   lg.restore();
 
   BL(P._near);
+  _ivStarBurn(lg, W, H, t);
   _ivEvFront(lg, ev, W, H, VX, VY, CX, CY, t);
 
   if (_ivDark > 0.01) {
@@ -28353,192 +28853,6 @@ function _ivFrameSheet(W, H, LX, LY, PX) {
 }
 
 
-/* ── the star ─────────────────────────────────────────────────────
-   An actual star, in an actual sky. The first attempt was a sigil:
-   an eight pointed heraldic thing with a pentagram in it, which is
-   a symbol of a star and not a star.
-   So the hall gets a window. Tall, arched, on the left, framed in
-   the same scroll as everything else, with the night behind it and
-   a red giant sitting low in it: a core too bright to look at, a
-   corona, and the four long diffraction spikes that are the reason
-   a bright point in a dark sky reads as a star at all. Small ones
-   are scattered around it and they twinkle at their own rates.
-   It is on the OVERLAY rather than in the picture because the left
-   third of the picture is behind the GUI panels, and a thing that
-   is supposed to be intimidating has to be visible.
-   THE LIGHT RULE HOLDS. The chandelier is still the one light: every
-   lit edge, every rim and every shadow in the hall is computed from
-   it and nothing here changes that. The star is a distant source
-   that does two things and no more, which is what a real one at
-   that distance would do: it glows, and it lays a shaft of its own
-   light across the floor under the window. ── */
-function _ivSkyWindow(W, H) {
-  const M = Math.min(W, H);
-  return { x: W * 0.132, t: H * 0.185, b: H * 0.790, w: M * 0.118 };
-}
-function _ivSkyPath(g, K) {
-  g.beginPath();
-  g.moveTo(K.x - K.w, K.b);
-  g.lineTo(K.x - K.w, K.t + K.w * 0.92);
-  g.quadraticCurveTo(K.x, K.t - K.w * 0.34, K.x + K.w, K.t + K.w * 0.92);
-  g.lineTo(K.x + K.w, K.b);
-  g.closePath();
-}
-
-function _ivStar(g, W, H, t, PX) {
-  const M = Math.min(W, H);
-  const K = _ivSkyWindow(W, H);
-  const beat = _ivPulse;
-  const flare = Math.pow(Math.max(0, Math.sin(t * 0.34)), 14);       // now and then
-  const pw = (1 - _ivDark * 0.7) * (1 - _ivDrain * 0.5);
-  const SX = K.x + K.w * 0.10, SY = K.t + (K.b - K.t) * 0.40;
-  const R = K.w * (0.190 + beat * 0.035 + flare * 0.055);            // the disc itself
-  const GL = _ivGlowTinted();
-  const slow = _ivRM ? 0.35 : 1;
-
-  // ── the night behind it. Deepened rather than painted in: the application
-  //    underneath is already almost black, so a wash is enough to read as sky
-  //    and the sidebar stays legible through it.
-  g.save();
-  _ivSkyPath(g, K);
-  g.clip();
-  const ng = g.createLinearGradient(0, K.t, 0, K.b);
-  ng.addColorStop(0, 'rgba(2,1,4,0.62)');
-  ng.addColorStop(0.62, 'rgba(6,2,6,0.55)');
-  ng.addColorStop(1, 'rgba(26,4,12,0.48)');
-  g.fillStyle = ng;
-  g.fillRect(K.x - K.w, K.t - K.w, K.w * 2, K.b - K.t + K.w * 2);
-
-  // the small ones, each twinkling on its own clock
-  g.globalCompositeOperation = 'lighter';
-  g.beginPath();
-  for (let i = 0; i < 54; i++) {
-    const sx = K.x + (_ivRnd(i * 3.1) - 0.5) * K.w * 2.0;
-    const sy = K.t + _ivRnd(i * 5.7) * (K.b - K.t);
-    const tw = 0.35 + 0.65 * Math.pow(Math.abs(Math.sin(t * (0.5 + _ivRnd(i * 7.3) * 1.6) * slow + i)), 2.2);
-    const r = Math.max(PX * 0.5, K.w * 0.008 * (0.5 + _ivRnd(i * 9.1)) * tw);
-    g.moveTo(sx + r, sy); g.arc(sx, sy, r, 0, 6.2831853);
-  }
-  g.fillStyle = _ivRed(_IV_EMBER, 0.55 * pw);
-  g.fill();
-
-  // a bank of cloud crossing low and slow, so the sky is not a still picture
-  for (let k = 0; k < 3; k++) {
-    const cy = K.t + (K.b - K.t) * (0.58 + k * 0.13);
-    const dx = ((t * (5 + k * 3) * slow) % (K.w * 4)) - K.w * 2;
-    g.fillStyle = 'rgba(4,1,3,' + (0.30 - k * 0.06).toFixed(2) + ')';
-    g.globalCompositeOperation = 'source-over';
-    g.beginPath();
-    g.ellipse(K.x + dx, cy, K.w * (0.9 - k * 0.15), K.w * (0.10 - k * 0.015), 0, 0, 6.2831853);
-    g.ellipse(K.x + dx - K.w * 0.5, cy + K.w * 0.04, K.w * 0.5, K.w * 0.06, 0, 0, 6.2831853);
-    g.fill();
-  }
-
-  // ── THE STAR. Corona, then the spikes, then the disc. The four long spikes
-  //    are what a bright point in a dark sky actually looks like and they are
-  //    most of why this reads as a star rather than as a decoration.
-  g.globalCompositeOperation = 'lighter';
-  for (let k = 0; k < 3; k++) {
-    const hr = R * (10 - k * 3.4) * (1 + beat * 0.12 + flare * 0.25);
-    g.globalAlpha = (0.14 + beat * 0.09 + flare * 0.14) * pw;
-    g.drawImage(GL, SX - hr, SY - hr, hr * 2, hr * 2);
-  }
-  g.globalAlpha = 1;
-  const spin = Math.sin(t * 0.11) * 0.06;
-  const L1 = R * (9.5 + beat * 3.2 + flare * 7.5);
-  const L2 = R * (3.1 + beat * 1.1 + flare * 2.6);
-  for (let pass = 0; pass < 2; pass++) {
-    g.beginPath();
-    for (let i = 0; i < 8; i++) {
-      const a = spin + i * 0.7853982;
-      const L = ((i & 1) ? L2 : L1) * (pass ? 0.55 : 1);
-      const w = R * ((i & 1) ? 0.22 : 0.30) * (pass ? 0.45 : 1);
-      const cx = Math.cos(a), cy = Math.sin(a);
-      g.moveTo(SX + cx * L, SY + cy * L);
-      g.lineTo(SX - cy * w, SY + cx * w);
-      g.lineTo(SX + cy * w, SY - cx * w);
-      g.closePath();
-    }
-    g.fillStyle = pass ? _ivRed(_IV_EMBER, (0.85 + beat * 0.15) * pw)
-                       : _ivRed(_IV_HOT, (0.42 + beat * 0.26) * pw);
-    g.fill();
-  }
-  // the disc, and the only white in the sky
-  g.fillStyle = _ivRed(_IV_EMBER, 0.95 * pw);
-  g.beginPath(); g.arc(SX, SY, R, 0, 6.2831853); g.fill();
-  g.fillStyle = _IV_BONE[_ivA((0.80 + beat * 0.20) * pw)];
-  g.beginPath(); g.arc(SX, SY, R * 0.46, 0, 6.2831853); g.fill();
-
-  // and what it throws off on the beat, still inside the window
-  if (!_ivStar._rings) _ivStar._rings = [];
-  if (beat > 0.92 && t - (_ivStar._last || -9) > 0.45) { _ivStar._last = t; _ivStar._rings.push({ r: R * 1.2, a: 1 }); }
-  for (let i = _ivStar._rings.length - 1; i >= 0; i--) {
-    const q = _ivStar._rings[i];
-    q.r += M * 0.55 * 0.016; q.a -= 0.024;
-    if (q.a <= 0) { _ivStar._rings.splice(i, 1); continue; }
-    g.strokeStyle = _ivRed(_IV_HOT, q.a * 0.26 * pw);
-    g.lineWidth = Math.max(1, PX * (0.5 + q.a * 1.4));
-    g.beginPath(); g.arc(SX, SY, q.r, 0, 6.2831853); g.stroke();
-  }
-  g.restore();
-
-  // ── the reveal and the frame. The wall is thick, so the opening has a jamb
-  //    and a sill, and the whole thing is edged in the hall's own ornament. ──
-  g.save();
-  g.globalCompositeOperation = 'source-over';
-  g.strokeStyle = _IV_VOID[24]; g.lineWidth = M * 0.020;
-  _ivSkyPath(g, K); g.stroke();
-  g.strokeStyle = _IV_DARK[24]; g.lineWidth = M * 0.011;
-  _ivSkyPath(g, K); g.stroke();
-  g.strokeStyle = _ivRed(_IV_EMBER, 0.42); g.lineWidth = Math.max(1, PX * 0.9);
-  _ivSkyPath(g, K); g.stroke();
-  // the transom and the mullion, which is what tells you it is glazed
-  g.strokeStyle = _IV_DARK[24]; g.lineWidth = M * 0.007;
-  g.beginPath();
-  g.moveTo(K.x, K.t + K.w * 0.30); g.lineTo(K.x, K.b);
-  g.moveTo(K.x - K.w, K.t + (K.b - K.t) * 0.42); g.lineTo(K.x + K.w, K.t + (K.b - K.t) * 0.42);
-  g.stroke();
-  g.strokeStyle = _ivRed(_IV_BLOOD, 0.55); g.lineWidth = Math.max(1, PX * 0.6);
-  g.stroke();
-  // the sill, and the ornament on the frame
-  g.fillStyle = _IV_DARK[24];
-  g.fillRect(K.x - K.w * 1.14, K.b, K.w * 2.28, M * 0.016);
-  g.strokeStyle = _ivRed(_IV_EMBER, 0.5); g.lineWidth = Math.max(1, PX * 0.8);
-  g.strokeRect(K.x - K.w * 1.14, K.b, K.w * 2.28, M * 0.016);
-  const OS = K.w * 0.62;
-  const LX = W * 0.70, LY = H * 0.20;
-  _ivOrnament(g, K.x, K.t - K.w * 0.30, -1.5707963, OS, LX, LY, _IV_PAL_GILT, 601, false);
-  _ivOrnament(g, K.x, K.t - K.w * 0.30, -1.5707963, OS, LX, LY, _IV_PAL_GILT, 602, true);
-  for (let k = 0; k < 3; k++) {
-    const yy = K.t + K.w * 1.0 + (K.b - K.t - K.w) * (k / 2.6);
-    _ivOrnament(g, K.x - K.w - M * 0.004, yy, 1.5707963 + 0.35, OS * 0.55, LX, LY, _IV_PAL_GILT, 610 + k, true);
-    _ivOrnament(g, K.x + K.w + M * 0.004, yy, 1.5707963 - 0.35, OS * 0.55, LX, LY, _IV_PAL_GILT, 620 + k, false);
-  }
-  _ivOrnament(g, K.x - K.w * 0.9, K.b + M * 0.014, -0.5, OS * 0.7, LX, LY, _IV_PAL_GILT, 631, false);
-  _ivOrnament(g, K.x + K.w * 0.9, K.b + M * 0.014, Math.PI + 0.5, OS * 0.7, LX, LY, _IV_PAL_GILT, 632, true);
-  g.restore();
-
-  // ── and the one thing a star that far away is allowed to do to the room:
-  //    lay its own light on the floor under the window. ──
-  g.save();
-  g.globalCompositeOperation = 'lighter';
-  const sg = g.createLinearGradient(K.x, K.b, K.x + M * 0.30, H);
-  sg.addColorStop(0, _ivRed(_IV_HOT, (0.18 + beat * 0.10 + flare * 0.14) * pw));
-  sg.addColorStop(1, _ivRed(_IV_HOT, 0));
-  g.fillStyle = sg;
-  g.beginPath();
-  g.moveTo(K.x - K.w, K.b + M * 0.016);
-  g.lineTo(K.x + K.w, K.b + M * 0.016);
-  g.lineTo(K.x + K.w * 2.6, H);
-  g.lineTo(K.x - K.w * 0.4, H);
-  g.closePath(); g.fill();
-  const hr = K.w * (3.2 + beat * 0.5 + flare * 1.2);
-  g.globalAlpha = (0.10 + beat * 0.06 + flare * 0.12) * pw;
-  g.drawImage(GL, SX - hr, SY - hr, hr * 2, hr * 2);
-  g.globalAlpha = 1;
-  g.restore();
-}
-
 /* ── the rapier ───────────────────────────────────────────────────
    A long thin blade with one lit edge and a dark spine, a swept
    guard made of the same scroll as everything else in the hall, a
@@ -28916,9 +29230,6 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
   // ── the cuts themselves, over everything ──
   for (const c of _ivCuts) _ivCutDraw(g, c, W, H, PX, 1, 1, 0, 0);
   _ivShardsDraw(g, dt, W, H, PX);
-
-  // ── the star ──
-  _ivStar(g, W, H, t, PX);
 
   // ── you ──
   const mvx = (_ivMX - _ivPrevMX) / Math.max(dt, 0.001), mvy = (_ivMY - _ivPrevMY) / Math.max(dt, 0.001);
