@@ -587,6 +587,59 @@ so nothing chunky lands on top of it, and anything attached to it has to come
 with it, because a smooth blade dragging a stepped trail reads as two different
 cursors.
 
+### Moving the interface itself, and leaving something behind
+
+The room breathes, the chandelier swings, the floor marches, and the GUI sat
+perfectly still on top of all of it, which is what made it read as a screenshot
+pasted over a picture. Making the panels sway with the page is cheap and it ties
+the two together. A few rules came out of doing it:
+
+**ONE writer per CSS property.** The tear already wrote `transform` on these
+elements. A second writer for the sway is a fight nobody wins, so the sway and
+the shove are summed in one function and written once. If you find yourself
+adding a second thing that sets the same property, merge them instead.
+
+**Phase every element off its own position, not off a shared clock.** A dozen
+boxes moving in step is not a swaying interface, it is a wobbling page, and a
+wobbling page is the nauseating thing this manual already warns about. Out of
+step, the same amplitude reads as the room moving under the furniture.
+
+**Freeze on mousedown; do not snap to zero.** The earlier click fix cleared the
+transform whenever the pointer was down, which stops clicks being eaten but is
+itself a jump. What a `click` actually needs is for the element not to MOVE
+between its mousedown and its mouseup, and holding the current offset does that
+without the jump.
+
+**Measuring something you are transforming.** `getBoundingClientRect` reports
+the box as transformed, so measuring a panel you are already swaying and then
+swaying it from that measurement walks it off the screen. Subtract your own
+transform, and only re-measure when the layout cache generation changes: within
+a generation the cached rect was taken under whatever transform was in effect
+then, and subtracting the CURRENT one instead lets the base drift.
+
+**An honest trail of a slow movement is invisible.** A three pixel sway moves
+less than a pixel between frames, so the true afterimage is a sub-pixel fringe.
+Each echo has to be pushed further along the direction the element came from
+until you can actually see it, and the lag has to be read back in SECONDS rather
+than in frames or the trail is three times longer on a 30 Hz laptop than on a
+144 Hz monitor.
+
+**Three ghosts read as three rectangles. Five read as a smear.** Density with
+the alpha falling off is what makes a trail; a few widely spaced copies just
+look like copies. And ghost the OUTLINE, not a filled box: these panels are
+frames with translucent middles, and a filled ghost puts a wash over the text
+inside the real one.
+
+**Ghost on the canvas, not in CSS.** The DOM ways of doing it are a duplicated
+subtree per ghost or an animated `filter: drop-shadow`, and the second repaints
+the whole panel every frame. Three strokes on the overlay cost 0.11 ms.
+
+**Separate "take the effect off" from "put the page back".** The tear's cleanup
+ran at the end of every cut and was clearing the transform with it, so the whole
+interface snapped back a few pixels and dropped its echoes each time a wound
+healed. Removing the hole and restoring the layout are two different jobs, and
+only leaving the page should do the second one.
+
 **Sort by y and draw back to front.** Row order is *not* depth order once items
 are jittered off their row line. This is what makes things look like they are
 floating.

@@ -28573,8 +28573,8 @@ function _ivCutApply() {
   const url = _ivTearSVG(W, H);
   _ivCutTargets().forEach(function (t) {
     const el = t[0];
-    const r = _lyRect(el);
-    if (!el._ivBase) el._ivBase = { left: r.left, top: r.top, width: r.width, height: r.height };
+    const s = _ivFxBox(el, _ivFxState(el));
+    if (!el._ivBase) el._ivBase = { left: s.bx, top: s.by, width: s.bw, height: s.bh };
     if (!url) return;
     el.style.webkitMaskImage = url; el.style.maskImage = url;
     el.style.webkitMaskRepeat = 'no-repeat'; el.style.maskRepeat = 'no-repeat';
@@ -28585,27 +28585,109 @@ function _ivCutApply() {
   });
 }
 
-// And the pieces coming apart, every frame. A transform is a compositor
-// property: it costs nothing to animate and it re-rasterises nothing, which is
-// exactly why the movement lives here and the hole does not.
-function _ivShoveAll() {
-  if (_ivRM || !_ivCuts.length) return;
+/* THE SWAY, and the red left behind it.
+   The hall breathes on the heartbeat, the chandelier swings, the floor marches;
+   the interface sat perfectly still on top of all of it, which is what made it
+   read as a screenshot pasted over a picture rather than as something in the
+   room. So it moves too, on the same heartbeat.
+   ONE function owns `transform` on these elements. The tear already wrote it,
+   and two writers on one property is a fight nobody wins, so the sway and the
+   shove are summed here and written once.
+   A transform is a compositor property: animating it costs no layout and no
+   repaint, which is the only reason a dozen panels can move every frame. The
+   moment this reaches for `left`, `filter` or `box-shadow` instead, it becomes
+   a full relayout of the page at 70 frames a second.
+   Amplitude is deliberately small. Tipping every straight line on a page at
+   once is the difference between a page that feels alive and a page that makes
+   the reader ill, and the manual has that lesson written in blood already. */
+const _IV_ECHO_N = 34;                 // frames of position history kept per panel
+
+// The target list, and the boxes to measure it against. Rebuilt twice a second
+// rather than every frame: querySelectorAll is not free, and panels do not come
+// and go at 70 Hz.
+let _ivFxList = null, _ivFxAt = -9;
+let _ivFxSeen = [];                    // everything a transform has ever been written to
+function _ivFxTargets(t) {
+  if (_ivFxList && t - _ivFxAt >= 0 && t - _ivFxAt < 0.5) return _ivFxList;
+  _ivFxAt = t;
+  const out = _ivCutTargets();
+  for (const e of out) if (_ivFxSeen.indexOf(e[0]) < 0) _ivFxSeen.push(e[0]);
+  if (_ivFxSeen.length > 120) _ivFxSeen = _ivFxSeen.slice(-60);
+  return (_ivFxList = out);
+}
+
+// An element's box with OUR OWN transform taken back out of it.
+// getBoundingClientRect reports the box as transformed, so measuring a panel we
+// are already swaying and then swaying it from that measurement walks it off
+// the screen. _lyRect only re-reads when the layout generation changes, and
+// when it does the transform in effect is the one written on the previous
+// frame, which is the one recorded here.
+function _ivFxBox(el, s) {
+  if (el._lyG !== _lyGen || !s.bw) {
+    const r = _lyRect(el);
+    s.bx = r.left - s.tx; s.by = r.top - s.ty; s.bw = r.width; s.bh = r.height;
+  }
+  return s;
+}
+function _ivFxState(el) {
+  // three floats a sample: where it was, and how long that frame took. The
+  // duration is what lets the echo be read back at a fixed number of
+  // MILLISECONDS behind rather than a fixed number of frames, so the trail is
+  // the same length on a 30 Hz laptop and a 144 Hz monitor.
+  return el._ivFx || (el._ivFx = { tx: 0, ty: 0, wx: 9e9, wy: 9e9,
+                                   bx: 0, by: 0, bw: 0, bh: 0,
+                                   h: new Float32Array(_IV_ECHO_N * 3), i: 0, n: 0 });
+}
+
+// the sample this far behind the head, by time
+function _ivEchoBack(s, lag) {
+  let acc = 0, j = (s.i - 1 + _IV_ECHO_N) % _IV_ECHO_N;
+  for (let c = 1; c < s.n; c++) {
+    acc += s.h[j * 3 + 2];
+    if (acc >= lag) break;
+    j = (j - 1 + _IV_ECHO_N) % _IV_ECHO_N;
+  }
+  return j;
+}
+
+function _ivMoveAll(t, dt) {
+  if (_ivRM) return;
   // Nothing moves while a button is held down, or while something is being
   // typed into: a `click` needs its mousedown and its mouseup on the same
-  // element, and forty pixels of shove in between is how you lose one.
+  // element, and anything that slides the interface in between is how you lose
+  // one. It FREEZES rather than snapping back to zero, because snapping back is
+  // itself a jump, and a jump on mousedown is the bug this is guarding against.
   const ae = document.activeElement;
   const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
-  if (_ivPtrDown || typing) {
-    _ivCutTargets().forEach(function (t) { t[0].style.transform = ''; });
-    return;
-  }
-  const D = Math.hypot(window.innerWidth || 1600, window.innerHeight || 900);
-  _ivCutTargets().forEach(function (t) {
-    const el = t[0], k = t[1];
-    const b = el._ivBase;
-    if (!b) return;
-    let tx = 0, ty = 0;
-    const cx = b.left + b.width * 0.5, cy = b.top + b.height * 0.5;
+  if (_ivPtrDown || typing) return;
+
+  const W = window.innerWidth || 1600, H = window.innerHeight || 900;
+  const D = Math.hypot(W, H);
+  const beat = _ivPulse;
+  const kick = beat * beat;              // squared: the shove is on the thump, not the whole cycle
+  const calm = 1 - _ivDark * 0.6;
+  const list = _ivFxTargets(t);
+
+  for (let i = 0; i < list.length; i++) {
+    const el = list[i][0], k = list[i][1];
+    const s = _ivFxBox(el, _ivFxState(el));
+    const cx = s.bx + s.bw * 0.5, cy = s.by + s.bh * 0.5;
+    // Phase off the element's own place on the screen as well as its index, so
+    // the panels drift out of step with each other. In step, a dozen boxes
+    // moving together is not a swaying interface, it is a wobbling page.
+    const ph = i * 1.9 + cx * 0.0042 + cy * 0.0061;
+    const A = 2.0 * k * calm;
+    // A slow drift with a faster wobble riding on it. The wobble is what the
+    // echoes have to bite on: a pure slow drift moves too little between frames
+    // to leave a trail of any kind.
+    let tx = A * Math.sin(t * 0.51 + ph) + A * 0.52 * Math.sin(t * 1.37 + ph * 1.7);
+    let ty = A * 0.60 * Math.sin(t * 0.43 + ph * 1.3) + A * 0.38 * Math.sin(t * 1.19 + ph * 2.1);
+    // and the heartbeat, shoving everything out from the middle of the screen
+    const dx0 = cx - W * 0.5, dy0 = cy - H * 0.5, dl = Math.hypot(dx0, dy0) || 1;
+    tx += (dx0 / dl) * kick * 5.0 * k * calm;
+    ty += (dy0 / dl) * kick * 5.0 * k * calm;
+
+    // then whatever the cuts are doing to it, on top
     for (const c of _ivCuts) {
       const open = _ivCutOpen(c);
       if (open < 0.002) continue;
@@ -28614,22 +28696,54 @@ function _ivShoveAll() {
       tx += c.nx * m - c.ny * m * 0.42;
       ty += c.ny * m + c.nx * m * 0.42;
     }
-    el.style.transform = (Math.abs(tx) + Math.abs(ty) < 0.15) ? '' :
-      'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px)';
-  });
+
+    s.tx = tx; s.ty = ty;
+    s.h[s.i * 3] = tx; s.h[s.i * 3 + 1] = ty; s.h[s.i * 3 + 2] = dt || 0.016;
+    s.i = (s.i + 1) % _IV_ECHO_N;
+    if (s.n < _IV_ECHO_N) s.n++;
+    // Writing the same string back into style.transform still invalidates
+    // style, so do not.
+    if (Math.abs(tx - s.wx) > 0.04 || Math.abs(ty - s.wy) > 0.04) {
+      s.wx = tx; s.wy = ty;
+      el.style.transform = (Math.abs(tx) + Math.abs(ty) < 0.05) ? ''
+        : 'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px)';
+    }
+  }
 }
 
+// Take the hole out. This runs at the end of EVERY tear, so it must not touch
+// the sway: clearing the transform here snapped the whole interface back a few
+// pixels and dropped its echoes every time a cut healed. The shove fades out on
+// its own, because it is summed from _ivCuts and _ivCuts is now empty.
 function _ivCutClear() {
   _ivCuts = [];
-  _ivCutTargets().forEach(function (t) {
-    const el = t[0];
+  for (const el of _ivFxAll()) {
     el.style.webkitMaskImage = ''; el.style.maskImage = '';
     el.style.webkitMaskSize = ''; el.style.maskSize = '';
     el.style.webkitMaskPosition = ''; el.style.maskPosition = '';
     el.style.webkitMaskRepeat = ''; el.style.maskRepeat = '';
-    el.style.transform = '';
     el._ivBase = null;
-  });
+  }
+}
+
+// Everything currently in the list plus everything that has ever been in it:
+// panels are replaced when you change character, and an element that has left
+// the list still has our transform sitting on it.
+function _ivFxAll() {
+  const all = _ivCutTargets().map(function (t) { return t[0]; });
+  for (const el of _ivFxSeen) if (all.indexOf(el) < 0) all.push(el);
+  return all;
+}
+
+// And put the interface back where it was. Leaving the page is the only time
+// this is right.
+function _ivFxReset() {
+  for (const el of _ivFxAll()) {
+    el.style.transform = '';
+    el._ivFx = null;
+  }
+  _ivFxSeen = [];
+  _ivFxList = null; _ivFxAt = -9;
 }
 
 // Throw pieces of whatever was there out of the wound.
@@ -29078,6 +29192,55 @@ function _ivDrawRapier(g, x, y, t, vx, vy, PX, W, H) {
   }
 }
 
+/* THE AFTERIMAGES.
+   Every panel keeps twenty frames of where it has been, and three of those are
+   drawn again in red, additively, behind the live one. They are drawn as the
+   panel's OUTLINE rather than as a filled box, because these panels are frames
+   with translucent middles: a filled ghost washes out the text inside the real
+   one, an outlined ghost reads as a doubled border, which is exactly what an
+   afterimage of a rectangle looks like.
+   The lag is EXAGGERATED. A sway of a few pixels moves less than a pixel
+   between one frame and the next, so an honest trail is invisible; each echo is
+   pushed further along the direction the panel has come from until you can see
+   it. They collapse into the panel at the turn of the sway and spread on the
+   heartbeat, which is the whole effect: the interface smears when the room's
+   pulse hits it and settles again between beats.
+   This is on the canvas rather than in CSS on purpose. The DOM ways of doing it
+   are a duplicated subtree per ghost, or an animated `filter: drop-shadow`, and
+   the second one repaints the whole panel every frame. */
+const _IV_ECHO_LAG = [0.045, 0.095, 0.150, 0.215, 0.300];   // seconds behind
+const _IV_ECHO_A   = [0.30,  0.23,  0.17,  0.11,  0.06];
+const _IV_ECHO_G = 5.0;                       // how far past the truth to push it
+function _ivEchoDraw(g, W, H, PX) {
+  if (_ivRM) return;
+  const list = _ivFxTargets(_ivEchoDraw._t || 0);
+  const pw = (1 - _ivDark * 0.7);
+  if (pw <= 0.02) return;
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  g.lineWidth = Math.max(1, PX);
+  for (let i = 0; i < list.length; i++) {
+    // the containers sway but do not ghost: a red rectangle the size of the
+    // sidebar drawn across the window is not an afterimage, it is a border
+    if (list[i][1] <= 1) continue;
+    const el = list[i][0], s = el._ivFx;
+    if (!s || s.n < 6 || s.bw < 8) continue;
+    if (s.by + s.bh < -8 || s.by > H + 8 || s.bx + s.bw < -8 || s.bx > W + 8) continue;
+    for (let k = 0; k < _IV_ECHO_LAG.length; k++) {
+      const j = _ivEchoBack(s, _IV_ECHO_LAG[k]);
+      const ex = s.tx + (s.h[j * 3] - s.tx) * _IV_ECHO_G;
+      const ey = s.ty + (s.h[j * 3 + 1] - s.ty) * _IV_ECHO_G;
+      // no ghost while it is standing still, or every panel gets a permanent
+      // red double edge and the page just looks blurry
+      const d = Math.abs(ex - s.tx) + Math.abs(ey - s.ty);
+      if (d < 0.45) continue;
+      g.strokeStyle = _ivRed(_IV_HOT, _IV_ECHO_A[k] * Math.min(1, d * 0.34) * pw);
+      g.strokeRect(s.bx + ex, s.by + ey, s.bw, s.bh);
+    }
+  }
+  g.restore();
+}
+
 function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
   const fresh = _drawIvyEvilOverlay._lt === undefined;
   if (!fresh && t - _drawIvyEvilOverlay._lt >= 0 && t - _drawIvyEvilOverlay._lt < 0.014) return;
@@ -29104,10 +29267,11 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
       if (c.p > 0.02 && !c.burst) { c.burst = 1; _ivShardBurst(c, W, H); }
       done = false;
     }
-    // The hole is put in once and taken out once; only the shove animates.
+    // The hole is put in once and taken out once; only the movement animates.
     if (!_ivCuts.length) _ivCutClear();
-    else _ivShoveAll();
   }
+  // and the interface moves whether or not anything is torn
+  _ivMoveAll(t, dt);
 
   // the whole layer goes through the pixel pipeline, same as the hall: a
   // smooth cursor on a dithered room looks like two programs at once
@@ -29134,6 +29298,10 @@ function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
     _ivTrail = new Float32Array(32); _ivTrailN = 0;
     for (let i = 0; i < 16; i++) { _ivTrail[i * 2] = _ivMX; _ivTrail[i * 2 + 1] = _ivMY; }
   }
+
+  // ── where the interface just was ──
+  _ivEchoDraw._t = t;
+  _ivEchoDraw(g, W, H, PX);
 
   // ── embers coming up through the application ──
   g.save();
@@ -29386,6 +29554,7 @@ function _stopIvyEvilOverlay() {
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('ivyevil-overlay'); if (cv) cv.remove();
   _ivCutClear();
+  _ivFxReset();
   _ivEvReset();
   _ivLunge = 0;
   _ivSparks = []; _ivGhosts = []; _ivDrips = []; _ivShards = [];
