@@ -28223,55 +28223,81 @@ function _ivStar(g, W, H, t, PX) {
    sits on the pointer and the rest of the weapon hangs back from
    it, leaning into wherever you are going. A click drives it
    forward along its own axis and opens a cut across the page. ── */
-// Draws only the steel, in local coordinates, so the ghosts behind the blade
-// can reuse it without repeating the hilt.
+/* ── the rapier ───────────────────────────────────────────────────
+   A rapier is three things, and the first attempt had none of them.
+   It is a NEEDLE: the blade is four fifths of the whole weapon and
+   barely wider than a pencil, where a short sword is a third as
+   long and four times as wide. It has a CROSSBAR: two straight
+   quillons across the blade at right angles, which is the silhouette
+   everybody reads. And it has a SWEPT HILT: a cage of thin bars
+   springing off those quillons, sweeping forward around the hand
+   and back to the pommel, with a side ring standing open around the
+   ricasso and a knuckle bow closing the other side.
+   Built out of spirals instead, it came out as a short sword with a
+   flower on the end of it.
+   The blade is white and nothing else: it is the one thing in this
+   hall the red has not got into yet. ── */
+
+// One bar of the hilt: dark body, bright rim, which is the same two tone
+// treatment every other piece of metal on this page gets.
+function _ivBar(g, PX, w, path) {
+  g.lineCap = 'round';
+  g.strokeStyle = _IV_VOID[24]; g.lineWidth = w;
+  path(); g.stroke();
+  g.strokeStyle = _IV_DARK[24]; g.lineWidth = Math.max(1, w * 0.62);
+  path(); g.stroke();
+  g.strokeStyle = _IV_EMBER[_ivA(0.85)]; g.lineWidth = Math.max(1, w * 0.26);
+  path(); g.stroke();
+}
+
+// The steel on its own, in local coordinates, so the ghosts can reuse it
+// without repeating the hilt.
 function _ivBlade(g, BL, bw, PX, hot, shimmer) {
+  // a needle: full width only at the ricasso, and a hair by the point
   g.fillStyle = _IV_VOID[24];
   g.beginPath();
-  g.moveTo(4, 0);
-  g.lineTo(-BL * 0.30, -bw * 0.78);
+  g.moveTo(0, 0);
+  g.lineTo(-BL * 0.55, -bw * 0.62);
   g.lineTo(-BL, -bw);
   g.lineTo(-BL, bw);
-  g.lineTo(-BL * 0.30, bw * 0.78);
+  g.lineTo(-BL * 0.55, bw * 0.62);
   g.closePath(); g.fill();
-  // WHITE, and only white: the blade is the one thing in this hall the red
-  // has not got into yet.
-  g.fillStyle = hot > 0.02 ? _IV_BONE[24] : _IV_BONE[_ivA(0.94)];
+  g.fillStyle = _IV_BONE[24];
   g.beginPath();
-  g.moveTo(4, 0);
-  g.lineTo(-BL * 0.30, -bw * 0.78);
-  g.lineTo(-BL, -bw * 0.92);
-  g.lineTo(-BL, bw * 0.92);
-  g.lineTo(-BL * 0.30, bw * 0.78);
+  g.moveTo(0, 0);
+  g.lineTo(-BL * 0.55, -bw * 0.62);
+  g.lineTo(-BL, -bw * 0.90);
+  g.lineTo(-BL, bw * 0.20);
+  g.lineTo(-BL * 0.55, bw * 0.14);
   g.closePath(); g.fill();
-  // the fuller, and the shadow along the underside so it is a bar and not a
-  // strip of paper
-  g.fillStyle = 'rgba(150,150,160,0.40)';
+  // the underside, which is the same steel turned away from the chandelier
+  g.fillStyle = 'rgba(126,126,138,0.55)';
   g.beginPath();
-  g.moveTo(4, 0);
-  g.lineTo(-BL * 0.30, bw * 0.78);
-  g.lineTo(-BL, bw * 0.92);
-  g.lineTo(-BL, bw * 0.18);
-  g.lineTo(-BL * 0.30, bw * 0.16);
+  g.moveTo(0, 0);
+  g.lineTo(-BL * 0.55, bw * 0.62);
+  g.lineTo(-BL, bw * 0.90);
+  g.lineTo(-BL, bw * 0.24);
+  g.lineTo(-BL * 0.55, bw * 0.16);
   g.closePath(); g.fill();
-  g.strokeStyle = 'rgba(90,90,100,0.55)'; g.lineWidth = Math.max(1, PX * 0.7);
-  g.beginPath(); g.moveTo(-BL * 0.16, 0); g.lineTo(-BL * 0.95, 0); g.stroke();
+  // the fuller
+  g.strokeStyle = 'rgba(70,70,80,0.7)'; g.lineWidth = Math.max(1, PX * 0.6);
+  g.beginPath(); g.moveTo(-BL * 0.20, 0); g.lineTo(-BL * 0.96, 0); g.stroke();
   // a bright band running up it, so the steel is doing something when you are not
   if (shimmer >= 0) {
     const u = shimmer;
     const sx = -BL * (1 - u);
-    const hw = bw * (1 - 0.62 * (1 - u));
-    g.fillStyle = 'rgba(255,255,255,' + (0.85 * Math.sin(Math.PI * u)).toFixed(3) + ')';
-    g.fillRect(sx - Math.max(1, PX * 1.2), -hw, Math.max(2, PX * 2.4), hw * 2);
+    const hw = bw * (0.14 + 0.86 * (1 - u));
+    g.fillStyle = 'rgba(255,255,255,' + (0.9 * Math.sin(Math.PI * u)).toFixed(3) + ')';
+    g.fillRect(sx - Math.max(1, PX), -hw, Math.max(2, PX * 2), hw * 2);
   }
   if (hot > 0.02) {
     g.save();
     g.globalCompositeOperation = 'lighter';
-    g.fillStyle = _IV_HOT[_ivA(hot * 0.55)];
+    g.fillStyle = _IV_HOT[_ivA(hot * 0.5)];
     g.beginPath();
-    g.moveTo(4, 0);
-    g.lineTo(-BL * 0.30, -bw * 0.78); g.lineTo(-BL, -bw);
-    g.lineTo(-BL, bw); g.lineTo(-BL * 0.30, bw * 0.78);
+    g.moveTo(0, 0);
+    g.lineTo(-BL * 0.55, -bw * 0.62); g.lineTo(-BL, -bw);
+    g.lineTo(-BL, bw); g.lineTo(-BL * 0.55, bw * 0.62);
     g.closePath(); g.fill();
     g.restore();
   }
@@ -28287,30 +28313,34 @@ function _ivDrawRapier(g, x, y, t, vx, vy, PX, W, H) {
   a += d * Math.min(1, 0.14 + spd * 0.0006);
   _ivDrawRapier._a = a;
 
-  // Sized so it survives the pixel grid: the blade is five low resolution
-  // pixels across at the guard. Drawn at the size a sharp cursor would be, the
-  // whole weapon came out two pixels wide and vanished.
-  const M = 214;
-  const BL = M * 0.80, GR = M * 0.115, GW = M * 0.135;
-  const bw = M * 0.036;
-  const push = _ivLunge * M * 0.30;
+  // The proportions ARE the reading. Blade four fifths of the length and about
+  // one part in forty across; everything else is hilt.
+  const M = 300;
+  const BL = M * 0.760;                  // blade
+  const bw = M * 0.021;                  // half width at the ricasso
+  const RIC = -BL;                       // where the guard sits
+  const QL = M * 0.150;                  // half the crossbar
+  const GRIP = M * 0.150;
+  const POM = RIC - GRIP;
+  const bar = Math.max(1.5, M * 0.019);
+  const push = _ivLunge * M * 0.26;
   const hot = _ivLunge;
   const shimmerT = (t * 0.42) % 1;
   const shimmer = shimmerT < 0.34 ? shimmerT / 0.34 : -1;
 
-  // ── the ghosts: where the blade was a moment ago, blade only, no hilt ──
+  // ── the ghosts: blade only, no hilt ──
   for (let i = 0; i < _ivGhosts.length; i++) {
     const gh = _ivGhosts[i];
     if (gh.a <= 0.02) continue;
     g.save();
     g.globalCompositeOperation = 'lighter';
-    g.globalAlpha = gh.a * 0.40;
+    g.globalAlpha = gh.a * 0.38;
     g.translate(gh.x, gh.y); g.rotate(gh.r);
-    g.fillStyle = _IV_BONE[_ivA(0.55)];
+    g.fillStyle = _IV_BONE[_ivA(0.5)];
     g.beginPath();
-    g.moveTo(4, 0);
-    g.lineTo(-BL * 0.30, -bw * 0.78); g.lineTo(-BL, -bw);
-    g.lineTo(-BL, bw); g.lineTo(-BL * 0.30, bw * 0.78);
+    g.moveTo(0, 0);
+    g.lineTo(-BL * 0.55, -bw * 0.62); g.lineTo(-BL, -bw);
+    g.lineTo(-BL, bw); g.lineTo(-BL * 0.55, bw * 0.62);
     g.closePath(); g.fill();
     g.restore();
   }
@@ -28319,59 +28349,96 @@ function _ivDrawRapier(g, x, y, t, vx, vy, PX, W, H) {
   g.translate(x, y);
   g.rotate(a);
   g.translate(push, 0);
+
+  // ── the cage, behind the blade: the bars that sweep forward round the hand
+  _ivBar(g, PX, bar * 0.80, () => {
+    g.beginPath();
+    g.moveTo(RIC, -QL * 0.72);
+    g.quadraticCurveTo(RIC + M * 0.090, -QL * 0.48, RIC + M * 0.058, -QL * 0.04);
+  });
+  _ivBar(g, PX, bar * 0.80, () => {
+    g.beginPath();
+    g.moveTo(RIC, QL * 0.72);
+    g.quadraticCurveTo(RIC + M * 0.090, QL * 0.48, RIC + M * 0.058, QL * 0.04);
+  });
+  // the side ring, standing open around the ricasso: the single most rapier
+  // thing there is after the crossbar itself
+  _ivBar(g, PX, bar * 0.85, () => {
+    g.beginPath();
+    g.ellipse(RIC + M * 0.038, 0, M * 0.046, QL * 0.56, 0, 0, 6.2831853);
+  });
+
   _ivBlade(g, BL, bw, PX, hot, shimmer);
 
-  // THE GUARD. The same C scroll the hall is built out of, four of them swept
-  // round the hand, which is the whole reason there is one scroll primitive.
-  const n0 = _ivScroll(-BL + GW * 0.10, -bw * 0.6, -2.25, GW * 0.92, 1.25, 1, 16);
-  _ivGilt(g, _IV_PT, n0, GW * 0.34, GW * 0.11, 0, -M * 4, _IV_PAL_GILT);
-  const n1 = _ivScroll(-BL + GW * 0.10, bw * 0.6, 2.25, GW * 0.92, 1.25, -1, 16);
-  _ivGilt(g, _IV_PT, n1, GW * 0.34, GW * 0.11, 0, -M * 4, _IV_PAL_GILT);
-  const n2 = _ivScroll(-BL - GR * 0.70, -bw * 0.2, 1.15, GW * 0.70, 1.05, 1, 14);
-  _ivGilt(g, _IV_PT, n2, GW * 0.26, GW * 0.09, 0, -M * 4, _IV_PAL_GILT);
-  const n3 = _ivScroll(-BL - GR * 0.70, bw * 0.2, -1.15, GW * 0.70, 1.05, -1, 14);
-  _ivGilt(g, _IV_PT, n3, GW * 0.26, GW * 0.09, 0, -M * 4, _IV_PAL_GILT);
-  g.fillStyle = _IV_DARK[24];
-  g.beginPath(); g.ellipse(-BL - GR * 0.06, 0, GR * 0.30, bw * 2.1, 0, 0, 6.2831853); g.fill();
-  g.strokeStyle = _IV_EMBER[_ivA(0.8)]; g.lineWidth = Math.max(1, PX * 0.7);
-  g.beginPath(); g.ellipse(-BL - GR * 0.06, 0, GR * 0.30, bw * 2.1, 0, 0, 6.2831853); g.stroke();
-  g.fillStyle = _IV_HOT[24];
-  g.beginPath(); g.arc(-BL - GR * 0.06, 0, bw * 0.95, 0, 6.2831853); g.fill();
-  g.fillStyle = _IV_BONE[_ivA(0.9)];
-  g.beginPath(); g.arc(-BL - GR * 0.06 - bw * 0.28, -bw * 0.30, bw * 0.34, 0, 6.2831853); g.fill();
-
-  g.fillStyle = _IV_CLOT[24];
-  g.fillRect(-BL - GR * 1.20, -bw * 0.88, GR * 1.14, bw * 1.76);
-  g.strokeStyle = _IV_BLOOD[_ivA(0.9)]; g.lineWidth = Math.max(1, PX * 0.7);
-  for (let i = 1; i < 5; i++) {
-    const px = -BL - GR * 1.20 + GR * 1.14 * (i / 5);
-    g.beginPath(); g.moveTo(px, -bw * 0.88); g.lineTo(px - GR * 0.18, bw * 0.88); g.stroke();
+  // ── THE CROSSBAR. Straight, long, at right angles to the blade, with a
+  //    small scroll finial on each end so it still belongs to this room.
+  _ivBar(g, PX, bar * 1.30, () => {
+    g.beginPath();
+    g.moveTo(RIC - M * 0.014, -QL);
+    g.quadraticCurveTo(RIC + M * 0.020, 0, RIC - M * 0.014, QL);
+  });
+  for (const sgn of [-1, 1]) {
+    const n = _ivScroll(RIC - M * 0.014, QL * sgn, sgn > 0 ? 1.5707963 : -1.5707963,
+                        M * 0.034, 0.95, sgn, 10);
+    _ivGilt(g, _IV_PT, n, bar * 0.9, bar * 0.35, 0, -M * 5, _IV_PAL_GILT);
   }
-  g.fillStyle = _IV_BLOOD[24];
-  g.beginPath(); g.arc(-BL - GR * 1.36, 0, bw * 1.25, 0, 6.2831853); g.fill();
-  g.fillStyle = _IV_EMBER[_ivA(0.95)];
-  g.beginPath(); g.arc(-BL - GR * 1.42, -bw * 0.34, bw * 0.44, 0, 6.2831853); g.fill();
+
+  // ── the knuckle bow, from the crossbar back over the hand to the pommel
+  _ivBar(g, PX, bar * 0.95, () => {
+    g.beginPath();
+    g.moveTo(RIC - M * 0.010, -QL * 0.96);
+    g.quadraticCurveTo(POM + GRIP * 0.30, -QL * 0.98, POM + M * 0.014, -M * 0.014);
+  });
+
+  // ── the grip: a slim barrel with wire wrapped round it
+  g.fillStyle = _IV_CLOT[24];
+  g.beginPath();
+  g.moveTo(RIC - M * 0.004, -bw * 1.25);
+  g.quadraticCurveTo(RIC - GRIP * 0.5, -bw * 1.75, POM + M * 0.020, -bw * 1.15);
+  g.lineTo(POM + M * 0.020, bw * 1.15);
+  g.quadraticCurveTo(RIC - GRIP * 0.5, bw * 1.75, RIC - M * 0.004, bw * 1.25);
+  g.closePath(); g.fill();
+  g.strokeStyle = _IV_BLOOD[_ivA(0.9)]; g.lineWidth = Math.max(1, PX * 0.7);
+  for (let i = 1; i < 7; i++) {
+    const u = i / 7;
+    const px = RIC - M * 0.004 - (GRIP - M * 0.024) * u;
+    g.beginPath(); g.moveTo(px, -bw * 1.6); g.lineTo(px - GRIP * 0.10, bw * 1.6); g.stroke();
+  }
+  g.strokeStyle = _IV_EMBER[_ivA(0.5)]; g.lineWidth = Math.max(1, PX * 0.5);
+  g.beginPath();
+  g.moveTo(RIC - M * 0.004, -bw * 1.25);
+  g.quadraticCurveTo(RIC - GRIP * 0.5, -bw * 1.75, POM + M * 0.020, -bw * 1.15);
+  g.stroke();
+
+  // ── the pommel: a pear, with the stone in it that the guard's ring answers
+  g.fillStyle = _IV_DARK[24];
+  g.beginPath(); g.ellipse(POM, 0, M * 0.030, M * 0.024, 0, 0, 6.2831853); g.fill();
+  g.strokeStyle = _IV_EMBER[_ivA(0.8)]; g.lineWidth = Math.max(1, PX * 0.6);
+  g.beginPath(); g.ellipse(POM, 0, M * 0.030, M * 0.024, 0, 0, 6.2831853); g.stroke();
+  g.fillStyle = _IV_HOT[24];
+  g.beginPath(); g.arc(POM, 0, M * 0.013, 0, 6.2831853); g.fill();
+  g.fillStyle = _IV_BONE[_ivA(0.9)];
+  g.beginPath(); g.arc(POM - M * 0.004, -M * 0.004, M * 0.005, 0, 6.2831853); g.fill();
 
   // the point, which is the brightest pixel on the page
   g.save();
   g.globalCompositeOperation = 'lighter';
-  const TR = bw * (2.6 + hot * 6);
-  g.globalAlpha = 0.55 + hot * 0.45;
-  g.drawImage(_ivGlowSprite(), 4 - TR, -TR, TR * 2, TR * 2);
+  const TR = bw * (2.1 + hot * 7);
+  g.globalAlpha = 0.42 + hot * 0.55;
+  g.drawImage(_ivGlowSprite(), -TR, -TR, TR * 2, TR * 2);
   g.restore();
   g.restore();
 
-  // and the ring it lets go of when it goes in
+  // ── and the ring it lets go of when it goes in ──
   if (hot > 0.05) {
     g.save();
     g.globalCompositeOperation = 'lighter';
-    const rr = (1 - hot) * M * 1.5;
+    const rr = (1 - hot) * M * 1.3;
     g.strokeStyle = _IV_BONE[_ivA(hot * 0.45)];
     g.lineWidth = Math.max(1, PX * (0.6 + hot * 2));
     g.beginPath(); g.arc(x + Math.cos(a) * push, y + Math.sin(a) * push, rr, 0, 6.2831853); g.stroke();
     g.restore();
   }
-  return { a: a, tipX: x + Math.cos(a) * push, tipY: y + Math.sin(a) * push, BL: BL, bw: bw };
 }
 
 function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
