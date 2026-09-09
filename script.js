@@ -41192,7 +41192,19 @@ function saveInfoField(key, val) {
     if (el) { el.textContent = val ? 'BY ' + val.toUpperCase() : ''; el.style.display = val ? '' : 'none'; }
   }
   clearTimeout(_infoSaveTimer);
-  _infoSaveTimer = setTimeout(() => saveData(c), 600);
+  const id = c.id;
+  // Re-apply onto whatever is CURRENTLY in the array when this fires, not
+  // the object captured here. The full editor swaps in a brand new object on
+  // save (characters[idx] = char); if that happened during this 600ms window,
+  // writing the stale object we captured would silently overwrite it (an alt
+  // form's avatar included) with pre-edit data.
+  _infoSaveTimer = setTimeout(() => {
+    const fresh = characters.find(x => x.id === id);
+    if (!fresh) return;
+    fresh.info = fresh.info || {};
+    fresh.info[key] = val;
+    saveData(fresh);
+  }, 600);
 }
 
 function inlineMarkdown(raw) {
@@ -41437,7 +41449,15 @@ function updateInfoLink(key, idx, field, val) {
     }
   }
   clearTimeout(_infoSaveTimer);
-  _infoSaveTimer = setTimeout(() => saveData(c), 600);
+  const id = c.id;
+  // Same stale-closure guard as saveInfoField: re-resolve and re-apply at
+  // fire time instead of writing back whatever object was captured now.
+  _infoSaveTimer = setTimeout(() => {
+    const fresh = characters.find(x => x.id === id);
+    if (!fresh || !fresh.info || !fresh.info[key] || !fresh.info[key][idx]) return;
+    fresh.info[key][idx][field] = val;
+    saveData(fresh);
+  }, 600);
 }
 
 // ============================================================
@@ -60828,7 +60848,19 @@ function _soulPersist() {
   if (!c) return;
   _soulDirty = true;
   clearTimeout(_soulSaveTimer);
-  _soulSaveTimer = setTimeout(() => { _soulDirty = false; saveData(c); }, 600);
+  const id = c.id, soul = c.perfectSoulData;
+  // Same stale-closure guard as saveInfoField: the full editor can swap this
+  // character for a brand new object (characters[idx] = char) while this
+  // timer is pending, and writing back the object captured here would
+  // silently overwrite that fresh save (an alt form's avatar included) with
+  // pre-edit data. Re-resolve at fire time and carry only the soul edit over.
+  _soulSaveTimer = setTimeout(() => {
+    _soulDirty = false;
+    const fresh = characters.find(x => x.id === id);
+    if (!fresh) return;
+    fresh.perfectSoulData = soul;
+    saveData(fresh);
+  }, 600);
 }
 
 function soulSet(key, val) {
