@@ -3145,7 +3145,7 @@ const PATTERN_DEFS = {
   amber_arcana:     { label: "Amber · Arcane Sanctum", params: [] },
   lele_cold:        { label: "Lele · Cold Embrace",   params: [] },
   mahogany_thorns:  { label: "'MAHOGANY' · Thornwood", params: [] },
-  kurio_nightgarden: { label: "'KURIO' · Night Garden", params: [] },
+  kurio_nightgarden: { label: "'KUROI' · Night Garden", params: [] },
   actarius_mycelium: { label: "Actarius · Nightwood", params: [] },
   ball_checks:      { label: "BALL · Checks", params: [] },
   oblitus_void:     { label: "OBLITUS · The Void", params: [] },
@@ -3191,6 +3191,7 @@ const PATTERN_DEFS = {
   classic_save:     { label: "Classic · SAVE",              params: [] },
   classic_ghost:    { label: "Classic · GHOST",             params: [] },
   flowey_vines:     { label: "AH!Flowey · Overgrown",       params: [] },
+  ivy_evil:         { label: "Ivy · EVIL creature",         params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -26555,6 +26556,1679 @@ function _stopHaruOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// IVY · EVIL CREATURE
+//
+// THE CLAIM. A rococo ballroom that has been bled into. Everything
+// in it was gilt once and every bit of that gold has gone over to
+// arterial red; the chandelier still burns but it burns red and it
+// drips; the lacquer floor still takes a perfect reflection and
+// what it reflects is a room with something loose in it. Dark
+// elegance on top, bloodthirst underneath, and the second one is
+// winning.
+//
+// ONE LIGHT. The chandelier, high and right of centre, burning red.
+// It is the only light in the hall, so every rim, every reflection
+// and every shadow is computed from that one point, and when it
+// swings the whole room's lighting swings with it.
+//
+// TWO COLOURS AND A THIRD FOR CUTTING. Black and red, five values
+// of red from clotted to arterial, and pure white used ONLY for an
+// edge that is about to open something: the keys, the pearls, the
+// blade. White is the most violent thing available in a red room
+// and it is spent carefully.
+//
+// EVERY ORNAMENT IS ONE SHAPE. Rococo is C scrolls and acanthus
+// and nothing else, so there is one scroll primitive here and the
+// whole page is built out of it: the vault ribs, the mirror frame,
+// the chandelier arms, the ornament in the corners of the window,
+// and the guard of the rapier you are holding.
+//
+// PIXELS. Like Juko's "1", both layers are drawn into a buffer
+// about a quarter of the size with the world transform scaled to
+// match, so all the geometry stays in real coordinates, and blitted
+// up with smoothing off. The baked sheets are ordered-dithered,
+// which is where most of the pixel-art character comes from: the
+// banding in a dark red gradient is going to be visible at this bit
+// depth whatever happens, so it may as well be deliberate.
+// ════════════════════════════════════════════════════════════════
+const _IVY_RE = /^\s*ivy\s*$/i;
+function _isIvy(c) { return !!(c && c.name && _IVY_RE.test(c.name)); }
+const _IVY_EVIL_RE = /evil/i;
+function _isIvyEvil(c) { return !!(_isIvy(c) && _IVY_EVIL_RE.test(_activeFormName(c))); }
+
+function _ivRnd(i) { const x = Math.sin(i * 91.7 + 47.13) * 43758.5453; return x - Math.floor(x); }
+
+let _ivRM = false;
+if (typeof window !== 'undefined' && window.matchMedia) {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  _ivRM = !!mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', e => { _ivRM = !!e.matches; });
+}
+
+// ── PERF: interned colour ramps. Nothing on this page ever builds an
+//    `rgba(...)` string in a loop. ──
+const _IV_STEPS = 24;
+function _ivRamp(rgb) {
+  const p = rgb.split(','), a = new Array(_IV_STEPS + 1);
+  for (let i = 0; i <= _IV_STEPS; i++) a[i] = 'rgba(' + p[0] + ',' + p[1] + ',' + p[2] + ',' + (i / _IV_STEPS).toFixed(3) + ')';
+  return a;
+}
+function _ivA(v) { return v <= 0 ? 0 : v >= 1 ? _IV_STEPS : ((v * _IV_STEPS + 0.5) | 0); }
+
+// black, five reds, and white kept for cutting
+const _IV_VOID  = _ivRamp('7,3,5');
+const _IV_CLOT  = _ivRamp('34,5,11');       // the deep of any red thing
+const _IV_DARK  = _ivRamp('62,8,17');
+const _IV_BLOOD = _ivRamp('138,14,30');
+const _IV_HOT   = _ivRamp('214,28,48');
+const _IV_EMBER = _ivRamp('255,86,74');     // the rim on anything facing the light
+const _IV_FLAME = _ivRamp('255,182,120');   // candle cores only
+const _IV_BONE  = _ivRamp('255,236,236');   // keys, pearls, the blade
+const _IV_WHITE = _ivRamp('255,255,255');
+const _IV_LAC   = _ivRamp('16,8,12');       // black lacquer
+
+// One palette shape, handed to the one ornament renderer, exactly as the vine
+// renderer on the Flowey page takes one. Body, the lit band down the side
+// facing the chandelier, and the rim on that edge.
+const _IV_PAL_FAR  = { body: _IV_CLOT[20],  mid: _IV_DARK[16],  lit: _IV_BLOOD[12], lw: 1 };
+const _IV_PAL_MID  = { body: _IV_CLOT[23],  mid: _IV_BLOOD[19], lit: _IV_EMBER[15], lw: 1 };
+const _IV_PAL_NEAR = { body: _IV_VOID[24],  mid: _IV_CLOT[21],  lit: _IV_HOT[11],   lw: 1 };
+const _IV_PAL_GILT = { body: _IV_DARK[24],  mid: _IV_BLOOD[22], lit: _IV_EMBER[20], lw: 1 };
+
+// ── state both layers read, so the ornament round the window is IN each
+//    event with the hall rather than watching it happen ──
+let _ivPulse = 0;      // the heartbeat, 0..1, peaks on the beat
+let _ivDrain = 0;      // `bleed`: 1 = every red in the world has gone to grey
+let _ivDark = 0;       // `hunger`: the candles are out
+let _ivSwing = 0;      // `chandelier`: how far the light has swung, -1..1
+let _ivGrow = 0;       // `rococo`: how far the ornament has grown inward
+let _ivSlash = null;   // `lunge`: a white cut across the frame, or null
+let _ivCrack = 0;      // `shatter`: how far the mirror crack has spread
+let _ivEvNow = null;
+
+// Red, drained toward grey by the `bleed` event. One string built per call and
+// only four calls a frame, so it never shows up in a profile.
+function _ivRed(ramp, v) {
+  if (_ivDrain < 0.02) return ramp[_ivA(v)];
+  const s = ramp[_ivA(v)];
+  const p = s.slice(5, -1).split(',');
+  const r = +p[0], g = +p[1], b = +p[2];
+  const l = (r * 0.35 + g * 0.5 + b * 0.15) * 0.85;
+  const d = _ivDrain;
+  return 'rgba(' + ((r + (l - r) * d) | 0) + ',' + ((g + (l - g) * d) | 0) + ',' +
+         ((b + (l - b) * d) | 0) + ',' + p[3] + ')';
+}
+
+// ── the pixel pipeline ──
+function _ivPX(W) { return Math.max(2, Math.min(5, Math.round(W / 360))); }
+function _ivLo(canvas, key, W, H, PX) {
+  const k = key + 'Lo';
+  let c = canvas[k];
+  const lw = Math.ceil(W / PX), lh = Math.ceil(H / PX);
+  if (!c || c.width !== lw || c.height !== lh) {
+    c = canvas[k] = document.createElement('canvas');
+    c.width = lw; c.height = lh;
+    c._g = c.getContext('2d');
+  }
+  return c;
+}
+// a sheet baked at pixel resolution with the world transform already on it, so
+// everything inside is written in real coordinates
+function _ivSheet(W, H, PX) {
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(W / PX); c.height = Math.ceil(H / PX);
+  const g = c.getContext('2d');
+  g.setTransform(1 / PX, 0, 0, 1 / PX, 0, 0);
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  return c;
+}
+const _IV_BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+function _ivDither(c, levels) {
+  const g = c.getContext('2d');
+  let img;
+  try { img = g.getImageData(0, 0, c.width, c.height); } catch (e) { return; }
+  const d = img.data, w = c.width, step = 255 / levels;
+  for (let y = 0; y < c.height; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const b = (_IV_BAYER[(y & 3) * 4 + (x & 3)] / 16 - 0.5) * step * 0.55;
+      for (let k = 0; k < 3; k++) {
+        const v = Math.round((d[i + k] + b) / step) * step;
+        d[i + k] = v < 0 ? 0 : v > 255 ? 255 : v;
+      }
+    }
+  }
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.putImageData(img, 0, 0);
+  g.setTransform(1 / (c._px || 1), 0, 0, 1 / (c._px || 1), 0, 0);
+}
+function _ivBloom(canvas, lo, amount) {
+  const w1 = Math.max(8, lo.width >> 2), h1 = Math.max(8, lo.height >> 2);
+  let b1 = canvas._ivB1, b2 = canvas._ivB2;
+  if (!b1 || b1.width !== w1 || b1.height !== h1) {
+    b1 = canvas._ivB1 = document.createElement('canvas'); b1.width = w1; b1.height = h1;
+    b2 = canvas._ivB2 = document.createElement('canvas'); b2.width = Math.max(4, w1 >> 1); b2.height = Math.max(4, h1 >> 1);
+  }
+  const g1 = b1.getContext('2d'), g2 = b2.getContext('2d');
+  g1.globalCompositeOperation = 'copy'; g1.drawImage(lo, 0, 0, w1, h1);
+  g2.globalCompositeOperation = 'copy'; g2.drawImage(b1, 0, 0, b2.width, b2.height);
+  const lg = lo._g;
+  lg.save();
+  lg.setTransform(1, 0, 0, 1, 0, 0);
+  lg.globalCompositeOperation = 'lighter';
+  lg.globalAlpha = amount;      lg.drawImage(b2, 0, 0, lo.width, lo.height);
+  lg.globalAlpha = amount * 0.6; lg.drawImage(b1, 0, 0, lo.width, lo.height);
+  lg.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+// THE ORNAMENT
+//
+// Rococo is C scrolls and acanthus and almost nothing else, so
+// there is one scroll here and the entire page is built out of it.
+// A scroll is a logarithmic spiral: the radius falls by a constant
+// factor per turn, which is why the eye of a real one sits where it
+// does and why an evenly-spaced arc never looks right. It is walked
+// from its OUTER end so it can be attached to something, drawn as a
+// tapering ribbon so it has weight, and lit down the side facing
+// the chandelier like everything else in the room.
+// ════════════════════════════════════════════════════════════════
+const _IV_PT = new Float32Array(200);
+const _IV_NX = new Float32Array(100), _IV_NY = new Float32Array(100);
+const _IV_SG = new Int8Array(100);
+
+// Fills _IV_PT with a scroll starting at (x,y) heading along `ang`, curling in
+// `dir` (+1 or -1), with `turns` of spiral inside radius R. Returns the count.
+function _ivScroll(x, y, ang, R, turns, dir, N) {
+  const n = N || 22;
+  const TH = turns * 6.2831853;
+  const k = Math.log(7) / TH;                    // the eye is a seventh of R
+  const a0 = ang + dir * 1.5707963;              // so the outer tangent is `ang`
+  const cx = x - Math.cos(a0) * R, cy = y - Math.sin(a0) * R;
+  for (let i = 0; i <= n; i++) {
+    const th = (i / n) * TH;
+    const r = R * Math.exp(-k * th);
+    const a = a0 + dir * th;
+    _IV_PT[i * 2] = cx + Math.cos(a) * r;
+    _IV_PT[i * 2 + 1] = cy + Math.sin(a) * r;
+  }
+  return n + 1;
+}
+// a plain curved stem, for joining ornaments to each other
+function _ivArc(x, y, ang, len, bend, N) {
+  const n = N || 14;
+  let px = x, py = y, a = ang;
+  for (let i = 0; i <= n; i++) {
+    _IV_PT[i * 2] = px; _IV_PT[i * 2 + 1] = py;
+    a += bend / n;
+    px += Math.cos(a) * (len / n); py += Math.sin(a) * (len / n);
+  }
+  return n + 1;
+}
+
+function _ivNorms(p, n) {
+  for (let i = 0; i < n; i++) {
+    let dx, dy;
+    if (i === 0) { dx = p[2] - p[0]; dy = p[3] - p[1]; }
+    else if (i === n - 1) { dx = p[i * 2] - p[i * 2 - 2]; dy = p[i * 2 + 1] - p[i * 2 - 1]; }
+    else { dx = p[i * 2 + 2] - p[i * 2 - 2]; dy = p[i * 2 + 3] - p[i * 2 - 1]; }
+    const m = Math.hypot(dx, dy) || 1;
+    _IV_NX[i] = -dy / m; _IV_NY[i] = dx / m;
+  }
+}
+
+// A closed ribbon around the current point list, tapering to the eye. Filled
+// shapes occlude; outlines pile up.
+function _ivRibbonPath(ctx, p, n, w0, w1) {
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const w = (w0 + (w1 - w0) * (i / (n - 1))) * 0.5;
+    const X = p[i * 2] + _IV_NX[i] * w, Y = p[i * 2 + 1] + _IV_NY[i] * w;
+    if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+  }
+  for (let i = n - 1; i >= 0; i--) {
+    const w = (w0 + (w1 - w0) * (i / (n - 1))) * 0.5;
+    ctx.lineTo(p[i * 2] - _IV_NX[i] * w, p[i * 2 + 1] - _IV_NY[i] * w);
+  }
+  ctx.closePath();
+}
+
+// THE ONE ORNAMENT RENDERER. Body, a lit band down the side facing the light
+// that stops at the centreline, and a rim on that edge. Which side is lit is
+// dot(normal, light - point) per point, so a scroll that curls past the
+// chandelier changes sides halfway round, which is what actually happens.
+function _ivGilt(ctx, p, n, w0, w1, lx, ly, P) {
+  _ivNorms(p, n);
+  for (let i = 0; i < n; i++) {
+    _IV_SG[i] = ((lx - p[i * 2]) * _IV_NX[i] + (ly - p[i * 2 + 1]) * _IV_NY[i]) >= 0 ? 1 : -1;
+  }
+  ctx.fillStyle = P.body;
+  _ivRibbonPath(ctx, p, n, w0, w1);
+  ctx.fill();
+  const hw = (i) => (w0 + (w1 - w0) * (i / (n - 1))) * 0.5;
+  ctx.fillStyle = P.mid;
+  ctx.beginPath();
+  for (let i = 0; i < n - 1; i++) {
+    const s = _IV_SG[i];
+    if (s !== _IV_SG[i + 1]) continue;
+    const a = hw(i), b = hw(i + 1);
+    const x0 = p[i * 2], y0 = p[i * 2 + 1], x1 = p[i * 2 + 2], y1 = p[i * 2 + 3];
+    ctx.moveTo(x0 + _IV_NX[i] * a * s, y0 + _IV_NY[i] * a * s);
+    ctx.lineTo(x1 + _IV_NX[i + 1] * b * s, y1 + _IV_NY[i + 1] * b * s);
+    ctx.lineTo(x1 + _IV_NX[i + 1] * b * 0.10 * s, y1 + _IV_NY[i + 1] * b * 0.10 * s);
+    ctx.lineTo(x0 + _IV_NX[i] * a * 0.10 * s, y0 + _IV_NY[i] * a * 0.10 * s);
+    ctx.closePath();
+  }
+  ctx.fill();
+  ctx.strokeStyle = P.lit; ctx.lineWidth = P.lw;
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const s = _IV_SG[i], w = hw(i);
+    const X = p[i * 2] + _IV_NX[i] * w * s, Y = p[i * 2 + 1] + _IV_NY[i] * w * s;
+    if (i === 0 || s !== _IV_SG[i - 1]) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+  }
+  ctx.stroke();
+}
+
+// An acanthus leaf: a lobed blade that curls the same way the scroll it sits on
+// does. Three lobes down one side, one long point.
+function _ivAcanthus(ctx, x, y, ang, L, Wd, dir) {
+  const cx = Math.cos(ang), cy = Math.sin(ang);
+  const nx = -cy * dir, ny = cx * dir;
+  ctx.moveTo(x, y);
+  ctx.quadraticCurveTo(x + cx * L * 0.30 + nx * Wd * 1.05, y + cy * L * 0.30 + ny * Wd * 1.05,
+                       x + cx * L * 0.46 + nx * Wd * 0.45, y + cy * L * 0.46 + ny * Wd * 0.45);
+  ctx.quadraticCurveTo(x + cx * L * 0.62 + nx * Wd * 0.92, y + cy * L * 0.62 + ny * Wd * 0.92,
+                       x + cx * L * 0.74 + nx * Wd * 0.36, y + cy * L * 0.74 + ny * Wd * 0.36);
+  ctx.quadraticCurveTo(x + cx * L * 0.92 + nx * Wd * 0.52, y + cy * L * 0.92 + ny * Wd * 0.52,
+                       x + cx * L, y + cy * L);
+  ctx.quadraticCurveTo(x + cx * L * 0.44 - nx * Wd * 0.30, y + cy * L * 0.44 - ny * Wd * 0.30, x, y);
+  ctx.closePath();
+}
+
+// A COMPOUND ORNAMENT: the thing rococo actually is. A C scroll one way, a
+// smaller S scroll answering it the other way, acanthus in the crook of each,
+// and a bead where they meet. Used for the vault ribs, the mirror frame, the
+// corners of the window and the guard of the rapier, at four different sizes.
+function _ivOrnament(ctx, x, y, ang, S, lx, ly, P, seed, flip) {
+  const d = flip ? -1 : 1;
+  const w = S * 0.115;
+  let n = _ivScroll(x, y, ang, S * 0.62, 1.35, d, 20);
+  _ivGilt(ctx, _IV_PT, n, w, w * 0.22, lx, ly, P);
+  const bx = x + Math.cos(ang) * S * 0.30, by = y + Math.sin(ang) * S * 0.30;
+  n = _ivScroll(bx, by, ang + d * 2.5, S * 0.36, 1.15, -d, 16);
+  _ivGilt(ctx, _IV_PT, n, w * 0.70, w * 0.16, lx, ly, P);
+  ctx.fillStyle = P.mid;
+  ctx.beginPath();
+  _ivAcanthus(ctx, x, y, ang - d * 0.55, S * 0.52, S * 0.17, d);
+  _ivAcanthus(ctx, bx, by, ang + d * 1.15, S * 0.34, S * 0.12, -d);
+  ctx.fill();
+  ctx.fillStyle = P.lit;
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.9, y); ctx.arc(x, y, w * 0.9, 0, 6.2831853);
+  ctx.fill();
+}
+
+// ════════════════════════════════════════════════════════════════
+// EVENTS. One at a time, every four to nine seconds, never the same
+// one twice running, rolled once when it starts. Each is a
+// different KIND: a cut across the frame, the palette dying, the
+// light itself moving, the ornament growing, everything stopping,
+// something dancing through, and the world breaking.
+// ════════════════════════════════════════════════════════════════
+let _ivEvNext = 0, _ivEvLast = '';
+const _IV_EV = [
+  { n: 'lunge',   d: 0.95 },   // a rapier cut opens the whole frame
+  { n: 'bleed',   d: 3.30 },   // every red in the hall drains out and floods back
+  { n: 'sweep',   d: 3.60 },   // the chandelier swings and takes the lighting with it
+  { n: 'rococo',  d: 3.40 },   // the ornament grows inward over everything and lets go
+  { n: 'hunger',  d: 3.00 },   // the candles go out one at a time, then all relight at once
+  { n: 'waltz',   d: 4.20 },   // two of them turn through the hall, and their reflection does too
+  { n: 'shatter', d: 2.60 },   // a crack spiders across the world and heals
+];
+function _ivEvTick(t) {
+  const e = _ivEvNow;
+  if (e) {
+    const p = (t - e.t0) / e.d;
+    if (p < 1) { e.p = p; return e; }
+    _ivEvNow = null;
+    _ivEvNext = t + 3.6 + _ivRnd(t * 13.1) * 5.0;
+    return null;
+  }
+  if (_ivEvNext === 0) { _ivEvNext = t + 2.6 + _ivRnd(t * 7.3) * 3.0; return null; }
+  if (t < _ivEvNext) return null;
+  let d = null;
+  for (let tries = 0; tries < 12; tries++) {
+    d = _IV_EV[(_ivRnd(t * 91.7 + tries * 3.3) * _IV_EV.length) | 0];
+    if (_ivRM && (d.n === 'lunge' || d.n === 'shatter' || d.n === 'hunger')) continue;
+    if (d.n !== _ivEvLast) break;
+  }
+  if (_ivRM && (d.n === 'lunge' || d.n === 'shatter' || d.n === 'hunger')) d = _IV_EV[5];
+  _ivEvLast = d.n;
+  _ivEvNow = { name: d.n, d: d.d, t0: t, p: 0,
+               r0: _ivRnd(t * 17.7), r1: _ivRnd(t * 29.3), r2: _ivRnd(t * 41.9) };
+  return _ivEvNow;
+}
+function _ivEvReset() {
+  _ivEvNow = null; _ivEvNext = 0; _ivEvLast = '';
+  _ivPulse = 0; _ivDrain = 0; _ivDark = 0; _ivSwing = 0; _ivGrow = 0; _ivSlash = null; _ivCrack = 0;
+}
+
+// ════════════════════════════════════════════════════════════════
+// THE HALL
+// ════════════════════════════════════════════════════════════════
+// One point perspective, the vanishing point under the chandelier and
+// off to the right, because the GUI panels own the left two thirds of
+// this canvas and a hall nobody can see down is not a hall.
+function _ivVP(W, H) { return [W * 0.700, H * 0.455]; }
+// the floor, parameterised by depth u (0 at the horizon, 1 at your feet)
+function _ivFloorY(H, VY, u) { return VY + (H * 1.12 - VY) * Math.pow(u, 1.65); }
+function _ivFloorX(W, VX, u, s) { return VX + s * (W * 0.045 + W * 1.30 * Math.pow(u, 1.55)); }
+
+// ── the void: black, and the chandelier's light bleeding into it. Baked and
+//    dithered, which is where most of the pixel-art character comes from. ──
+function _ivVoidSheet(W, H, CX, CY, PX) {
+  const c = _ivSheet(W, H, PX); c._px = PX;
+  const g = c.getContext('2d');
+  g.fillStyle = '#070305';
+  g.fillRect(0, 0, W, H);
+  const R = Math.hypot(W, H) * 0.86;
+  const lg = g.createRadialGradient(CX, CY, 0, CX, CY, R);
+  for (let i = 0; i <= 16; i++) {
+    const u = i / 16;
+    lg.addColorStop(u, 'rgba(138,14,30,' + (0.30 * Math.pow(1 - u, 2.8)).toFixed(4) + ')');
+  }
+  g.fillStyle = lg; g.fillRect(0, 0, W, H);
+  const hot = g.createRadialGradient(CX, CY, 0, CX, CY, W * 0.30);
+  for (let i = 0; i <= 12; i++) {
+    const u = i / 12;
+    hot.addColorStop(u, 'rgba(255,86,74,' + (0.13 * Math.pow(1 - u, 3.2)).toFixed(4) + ')');
+  }
+  g.fillStyle = hot; g.fillRect(0, 0, W, H);
+  _ivDither(c, 11);
+  return c;
+}
+
+// ── everything that does not move: the vault, the mirror, the floor, the
+//    piano, and the near dark. One sheet, baked once, dithered. ──
+// The sconces down both walls: one candle per niche, going away. Their
+// positions are computed once and read by both the baked bracket and the live
+// flame, so the two cannot drift apart.
+function _ivSconces(W, H) {
+  const [VX, VY] = _ivVP(W, H);
+  const out = [];
+  for (let side = -1; side <= 1; side += 2) {
+    for (let k = 0; k < 4; k++) {
+      const u = 0.07 + k * 0.20 - 0.030;
+      const fyy = _ivFloorY(H, VY, u);
+      out.push({ x: _ivFloorX(W, VX, u, side * 1.02), y: fyy - (fyy - VY) * 1.12,
+                 s: 0.28 + u * 1.5, i: out.length });
+    }
+  }
+  return out;
+}
+
+function _ivHallSheet(W, H, PX) {
+  const c = _ivSheet(W, H, PX); c._px = PX;
+  const g = c.getContext('2d');
+  const [VX, VY] = _ivVP(W, H);
+  const CX = VX, CY = H * 0.185;                       // the chandelier
+  const S = W * 0.10;
+
+  // ── 1. THE VAULT. Ribs running back to the vanishing point with an ornament
+  //    at every springing, which is what a rococo ceiling is: the same scroll
+  //    at four sizes and nothing else.
+  for (let i = 0; i < 9; i++) {
+    const a = -3.0416 + (i / 8) * 2.6;                  // fanned across the top
+    const n = _ivArc(VX, VY, a, Math.hypot(W, H) * 0.95, (i - 4) * 0.16, 16);
+    const w = W * (0.0055 + Math.abs(i - 4) * 0.0016);
+    _ivGilt(g, _IV_PT, n, w * 0.3, w, CX, CY, _IV_PAL_FAR);
+  }
+  // the transverse arches, three of them, at three depths
+  for (let k = 0; k < 3; k++) {
+    const d = 0.16 + k * 0.30;
+    const y = VY - H * (0.10 + d * 0.62);
+    const sp = W * (0.10 + d * 1.05);
+    g.strokeStyle = _IV_DARK[_ivA(0.55 - k * 0.12)];
+    g.lineWidth = W * (0.004 + d * 0.006);
+    g.beginPath();
+    g.moveTo(VX - sp, y + H * 0.30 * d);
+    g.quadraticCurveTo(VX, y - H * 0.14 * d, VX + sp, y + H * 0.30 * d);
+    g.stroke();
+    const OS = S * (0.34 + d * 0.75);
+    _ivOrnament(g, VX - sp * 0.62, y - H * 0.055 * d, 0.5, OS, CX, CY, _IV_PAL_FAR, k, false);
+    _ivOrnament(g, VX + sp * 0.62, y - H * 0.055 * d, Math.PI - 0.5, OS, CX, CY, _IV_PAL_FAR, k, true);
+  }
+
+  // ── 1b. THE SIDE WALLS. In one point perspective every line running away
+  //    from you meets at the vanishing point, so the floor junction, the dado
+  //    and the cornice are three lines out of that one point. The niches
+  //    between them are what stop the hall being two planes and nothing else.
+  {
+    const wy = (u, f) => {
+      const fyy = _ivFloorY(H, VY, u);
+      return fyy - (fyy - VY) * f;
+    };
+    for (let side = -1; side <= 1; side += 2) {
+      const wx = (u) => _ivFloorX(W, VX, u, side * 1.02);
+      g.fillStyle = _IV_CLOT[_ivA(0.85)];
+      g.beginPath();
+      g.moveTo(VX, VY);
+      for (let i = 0; i <= 12; i++) { const u = Math.pow(i / 12, 1.2); g.lineTo(wx(u), wy(u, 0)); }
+      for (let i = 12; i >= 0; i--) { const u = Math.pow(i / 12, 1.2); g.lineTo(wx(u), wy(u, 2.35)); }
+      g.closePath(); g.fill();
+      for (const L of [[0, _IV_EMBER, 0.30], [0.62, _IV_BLOOD, 0.34], [2.10, _IV_BLOOD, 0.26]]) {
+        g.strokeStyle = L[1][_ivA(L[2])];
+        g.lineWidth = W * 0.0016;
+        g.beginPath();
+        g.moveTo(VX, VY);
+        for (let i = 1; i <= 12; i++) { const u = Math.pow(i / 12, 1.2); g.lineTo(wx(u), wy(u, L[0])); }
+        g.stroke();
+      }
+      for (let k = 0; k < 4; k++) {
+        const u0 = 0.07 + k * 0.20, u1 = u0 + 0.115;
+        const x0 = wx(u0), x1 = wx(u1);
+        const b0 = wy(u0, 0.62), b1 = wy(u1, 0.62);
+        const s0 = wy(u0, 1.55), s1 = wy(u1, 1.55);   // where the arch springs
+        const cr = (wy((u0 + u1) * 0.5, 2.05));       // and its crown
+        const NICHE = () => {
+          g.beginPath();
+          g.moveTo(x0, b0); g.lineTo(x1, b1); g.lineTo(x1, s1);
+          g.quadraticCurveTo((x0 + x1) * 0.5, cr - Math.abs(x1 - x0) * 0.28, x0, s0);
+          g.closePath();
+        };
+        g.fillStyle = _IV_VOID[24]; NICHE(); g.fill();
+        const ng = g.createLinearGradient(0, cr, 0, Math.max(b0, b1));
+        ng.addColorStop(0, 'rgba(255,86,74,0.34)');
+        ng.addColorStop(0.45, 'rgba(138,14,30,0.16)');
+        ng.addColorStop(1, 'rgba(34,5,11,0.02)');
+        g.fillStyle = ng; NICHE(); g.fill();
+        g.strokeStyle = _IV_EMBER[_ivA(0.26)]; g.lineWidth = Math.max(1, W * 0.0012);
+        NICHE(); g.stroke();
+        const OS = S * (0.22 + u1 * 0.85);
+        _ivOrnament(g, x1, (b1 + s1) * 0.5, side > 0 ? Math.PI : 0, OS, CX, CY, _IV_PAL_FAR, k + 300 + side * 7, side > 0);
+      }
+    }
+  }
+
+  for (const sc of _ivSconces(W, H)) {
+    const bw = W * 0.006 * sc.s;
+    g.fillStyle = _IV_DARK[24];
+    g.fillRect(sc.x - bw, sc.y, bw * 2, bw * 2.6);
+    _ivOrnament(g, sc.x, sc.y + bw * 3.0, -1.5707963, S * 0.20 * sc.s, CX, CY, _IV_PAL_GILT, sc.i + 400, sc.i & 1);
+  }
+
+  // ── 2. THE LANDMARK: a tall arched mirror on the far wall, dead on the
+  //    vanishing point, with the hall going on inside it. It is the one thing
+  //    here with a light in it, so it reads at a glance and carries the scale.
+  {
+    const MW = W * 0.105, MT = VY - H * 0.335, MB = VY + H * 0.010;
+    g.fillStyle = _IV_LAC[24];
+    g.beginPath();
+    g.moveTo(VX - MW, MB); g.lineTo(VX - MW, MT + MW * 0.9);
+    g.quadraticCurveTo(VX, MT - MW * 0.55, VX + MW, MT + MW * 0.9);
+    g.lineTo(VX + MW, MB); g.closePath(); g.fill();
+    const mg = g.createLinearGradient(0, MT, 0, MB);
+    mg.addColorStop(0, 'rgba(20,3,8,0.55)');
+    mg.addColorStop(0.5, 'rgba(12,2,5,0.88)');
+    mg.addColorStop(1, 'rgba(34,5,11,0.70)');
+    g.fillStyle = mg;
+    g.beginPath();
+    g.moveTo(VX - MW, MB); g.lineTo(VX - MW, MT + MW * 0.9);
+    g.quadraticCurveTo(VX, MT - MW * 0.55, VX + MW, MT + MW * 0.9);
+    g.lineTo(VX + MW, MB); g.closePath(); g.fill();
+    // what is actually in it: the chandelier, and the hall going away behind
+    const cr = g.createLinearGradient(0, MT + MW * 0.2, 0, MB);
+    cr.addColorStop(0, 'rgba(255,86,74,0.55)');
+    cr.addColorStop(0.35, 'rgba(214,28,48,0.20)');
+    cr.addColorStop(1, 'rgba(214,28,48,0.0)');
+    g.fillStyle = cr;
+    g.beginPath();
+    g.moveTo(VX - MW * 0.10, MT + MW * 0.2);
+    g.lineTo(VX + MW * 0.10, MT + MW * 0.2);
+    g.lineTo(VX + MW * 0.30, MB);
+    g.lineTo(VX - MW * 0.30, MB);
+    g.closePath(); g.fill();
+    // the hall repeating inside it, twice, going away
+    for (let k = 1; k <= 3; k++) {
+      const f = Math.pow(0.52, k);
+      g.strokeStyle = _IV_EMBER[_ivA(0.34 / k)];
+      g.lineWidth = Math.max(1, W * 0.0015);
+      g.beginPath();
+      g.moveTo(VX - MW * f, MB); g.lineTo(VX - MW * f, MT + MW * 0.9 * f + (MB - MT) * (1 - f) * 0.5);
+      g.quadraticCurveTo(VX, MT + (MB - MT) * (1 - f) * 0.5 - MW * 0.55 * f, VX + MW * f, MT + MW * 0.9 * f + (MB - MT) * (1 - f) * 0.5);
+      g.lineTo(VX + MW * f, MB); g.stroke();
+    }
+    // and its frame: ornament all the way round, biggest at the crown
+    for (let k = 0; k < 7; k++) {
+      const u = k / 6;
+      const yy = MT + MW * 0.9 + (MB - MT - MW * 0.9) * u;
+      _ivOrnament(g, VX - MW - W * 0.004, yy, 1.5707963 + 0.3, S * (0.30 - u * 0.10), CX, CY, _IV_PAL_GILT, k + 20, true);
+      _ivOrnament(g, VX + MW + W * 0.004, yy, 1.5707963 - 0.3, S * (0.30 - u * 0.10), CX, CY, _IV_PAL_GILT, k + 30, false);
+    }
+    _ivOrnament(g, VX - MW * 0.5, MT + MW * 0.30, -0.9, S * 0.46, CX, CY, _IV_PAL_GILT, 41, false);
+    _ivOrnament(g, VX + MW * 0.5, MT + MW * 0.30, Math.PI + 0.9, S * 0.46, CX, CY, _IV_PAL_GILT, 42, true);
+    // the crown cartouche
+    _ivOrnament(g, VX, MT - MW * 0.36, -1.5707963, S * 0.52, CX, CY, _IV_PAL_GILT, 43, false);
+    _ivOrnament(g, VX, MT - MW * 0.36, -1.5707963, S * 0.52, CX, CY, _IV_PAL_GILT, 44, true);
+  }
+
+  // ── 3. THE FLOOR. Black lacquer, and lacquer is only black where nothing is
+  //    reflected in it, so the whole thing is a mirror with a checker under it.
+  const fy = (u) => _ivFloorY(H, VY, u);
+  const fx = (u, s) => _ivFloorX(W, VX, u, s);
+  const fg = g.createLinearGradient(0, VY, 0, H * 1.02);
+  fg.addColorStop(0, '#1d0c12');
+  fg.addColorStop(0.30, '#0d0509');
+  fg.addColorStop(1, '#070305');
+  g.fillStyle = fg; g.fillRect(0, VY - 1, W, H - VY + 2);
+  // the checker, in perspective, every other cell only
+  for (let r = 0; r < 17; r++) {
+    const u0 = Math.pow(r / 17, 1.30), u1 = Math.pow((r + 1) / 17, 1.30);
+    const y0 = fy(u0), y1 = fy(u1);
+    if (y1 < VY) continue;
+    for (let cIdx = -22; cIdx < 22; cIdx++) {
+      if (((cIdx + r) & 1) === 0) continue;
+      const a0 = fx(u0, cIdx * 0.085), b0 = fx(u0, (cIdx + 1) * 0.085);
+      if (b0 < -W * 0.1 || a0 > W * 1.1) continue;
+      const a1 = fx(u1, cIdx * 0.085), b1 = fx(u1, (cIdx + 1) * 0.085);
+      g.fillStyle = _IV_DARK[_ivA(0.52 - u0 * 0.42)];
+      g.beginPath();
+      g.moveTo(a0, y0); g.lineTo(b0, y0); g.lineTo(b1, y1); g.lineTo(a1, y1);
+      g.closePath(); g.fill();
+    }
+  }
+  // the long reflection of the chandelier down the lacquer, which is the thing
+  // that makes a polished floor read as polished
+  const rg = g.createLinearGradient(0, VY, 0, H * 1.05);
+  rg.addColorStop(0, 'rgba(255,86,74,0.34)');
+  rg.addColorStop(0.30, 'rgba(214,28,48,0.16)');
+  rg.addColorStop(1, 'rgba(138,14,30,0.0)');
+  g.fillStyle = rg;
+  g.beginPath();
+  g.moveTo(VX - W * 0.020, VY);
+  g.lineTo(VX + W * 0.020, VY);
+  g.lineTo(VX + W * 0.135, H * 1.05);
+  g.lineTo(VX - W * 0.135, H * 1.05);
+  g.closePath(); g.fill();
+  const hl = g.createLinearGradient(0, 0, W, 0);
+  hl.addColorStop(0, _IV_EMBER[0]);
+  hl.addColorStop(0.5, _IV_EMBER[_ivA(0.30)]);
+  hl.addColorStop(1, _IV_EMBER[0]);
+  g.strokeStyle = hl; g.lineWidth = W * 0.0016;
+  g.beginPath(); g.moveTo(0, VY); g.lineTo(W, VY); g.stroke();
+
+  _ivDither(c, 13);
+  return c;
+}
+
+// ── everything IN FRONT of the live layers: the piano, the ornament crowding
+//    in from the near edges, and the vignette. Baked and dithered like the
+//    rest, so the embers and the dancers have a hall to be inside of. ──
+function _ivNearSheet(W, H, PX) {
+  const c = _ivSheet(W, H, PX); c._px = PX;
+  const g = c.getContext('2d');
+  const [VX, VY] = _ivVP(W, H);
+  const CX = VX, CY = H * 0.185;
+  const S = W * 0.10;
+
+  // ── 4. THE PIANO. Near, cropped by two edges, its raised lid the one big
+  //    straight diagonal in a page made entirely of curves. Dark elegance is
+  //    mostly this: a black lacquer object with one white edge.
+  {
+    const PB = H * 0.980, PL = W * 0.610, PR = W * 1.12, PT = H * 0.735;
+    // the lid, raised on its stick
+    g.fillStyle = _IV_LAC[24];
+    g.beginPath();
+    g.moveTo(PL + W * 0.020, PT - H * 0.010);
+    g.lineTo(PR, PT - H * 0.330);
+    g.lineTo(PR, PT - H * 0.070);
+    g.lineTo(PL + W * 0.040, PT + H * 0.014);
+    g.closePath(); g.fill();
+    const lidg = g.createLinearGradient(PL, PT - H * 0.33, PR, PT);
+    lidg.addColorStop(0, 'rgba(3,1,2,0.55)');
+    lidg.addColorStop(1, 'rgba(214,28,48,0.10)');
+    g.fillStyle = lidg;
+    g.beginPath();
+    g.moveTo(PL + W * 0.020, PT - H * 0.010);
+    g.lineTo(PR, PT - H * 0.330);
+    g.lineTo(PR, PT - H * 0.070);
+    g.lineTo(PL + W * 0.040, PT + H * 0.014);
+    g.closePath(); g.fill();
+    g.strokeStyle = _IV_EMBER[_ivA(0.62)]; g.lineWidth = W * 0.0022;
+    g.beginPath(); g.moveTo(PL + W * 0.020, PT - H * 0.010); g.lineTo(PR, PT - H * 0.330); g.stroke();
+    g.strokeStyle = _IV_BLOOD[_ivA(0.34)]; g.lineWidth = W * 0.0014;
+    g.beginPath(); g.moveTo(PL + W * 0.040, PT + H * 0.014); g.lineTo(PR, PT - H * 0.070); g.stroke();
+    // the body
+    g.fillStyle = _IV_LAC[24];
+    g.beginPath();
+    g.moveTo(PL, PT + H * 0.028);
+    g.lineTo(PR, PT - H * 0.048);
+    g.lineTo(PR, PB);
+    g.quadraticCurveTo(PL + W * 0.20, PB + H * 0.035, PL, PT + H * 0.115);
+    g.closePath(); g.fill();
+    const bg2 = g.createLinearGradient(0, PT, 0, PB);
+    bg2.addColorStop(0, 'rgba(214,28,48,0.24)');
+    bg2.addColorStop(0.28, 'rgba(24,3,8,0.80)');
+    bg2.addColorStop(1, 'rgba(3,1,2,0.96)');
+    g.fillStyle = bg2;
+    g.beginPath();
+    g.moveTo(PL, PT + H * 0.028);
+    g.lineTo(PR, PT - H * 0.048);
+    g.lineTo(PR, PB);
+    g.quadraticCurveTo(PL + W * 0.20, PB + H * 0.035, PL, PT + H * 0.115);
+    g.closePath(); g.fill();
+    g.strokeStyle = _IV_EMBER[_ivA(0.55)]; g.lineWidth = W * 0.0018;
+    g.beginPath(); g.moveTo(PL, PT + H * 0.028); g.lineTo(PR, PT - H * 0.048); g.stroke();
+    g.strokeStyle = _IV_HOT[_ivA(0.30)]; g.lineWidth = W * 0.0016;
+    g.beginPath();
+    g.moveTo(PL, PT + H * 0.115);
+    g.quadraticCurveTo(PL + W * 0.20, PB + H * 0.035, PR, PB);
+    g.stroke();
+    // THE KEYS. The only pure white on the page and the reason it is spent
+    // here: a keyboard is a row of teeth.
+    const KY0 = PT + H * 0.026, KY1 = PT + H * 0.066;
+    const KL = PL + W * 0.012, KR = PR;
+    g.fillStyle = _IV_BONE[_ivA(0.86)];
+    g.beginPath();
+    g.moveTo(KL, KY0 + H * 0.006); g.lineTo(KR, KY0 - H * 0.052);
+    g.lineTo(KR, KY1 - H * 0.052); g.lineTo(KL, KY1 + H * 0.006);
+    g.closePath(); g.fill();
+    const NK = 26;
+    g.fillStyle = _IV_VOID[24];
+    for (let i = 0; i < NK; i++) {
+      const m = i % 7;
+      if (m === 2 || m === 6) continue;
+      const u0 = (i + 0.62) / NK, u1 = (i + 1.03) / NK;
+      const xa = KL + (KR - KL) * u0, xb = KL + (KR - KL) * u1;
+      const ya = KY0 + H * 0.006 - H * 0.058 * u0, yb = KY0 + H * 0.006 - H * 0.058 * u1;
+      g.beginPath();
+      g.moveTo(xa, ya); g.lineTo(xb, yb);
+      g.lineTo(xb, yb + H * 0.026); g.lineTo(xa, ya + H * 0.026);
+      g.closePath(); g.fill();
+    }
+    g.strokeStyle = _IV_CLOT[_ivA(0.7)]; g.lineWidth = 1;
+    for (let i = 1; i < NK; i++) {
+      const u = i / NK;
+      const xa = KL + (KR - KL) * u;
+      const ya = KY0 + H * 0.006 - H * 0.058 * u;
+      g.beginPath(); g.moveTo(xa, ya + H * 0.026); g.lineTo(xa, ya + H * 0.040); g.stroke();
+    }
+    // the leg, and the ornament on the case, because it is a rococo piano
+    g.fillStyle = _IV_LAC[24];
+    g.beginPath();
+    g.moveTo(PL + W * 0.030, PT + H * 0.128);
+    g.lineTo(PL + W * 0.062, PT + H * 0.122);
+    g.lineTo(PL + W * 0.052, H * 1.02);
+    g.lineTo(PL + W * 0.022, H * 1.02);
+    g.closePath(); g.fill();
+    g.strokeStyle = _IV_HOT[_ivA(0.26)]; g.lineWidth = W * 0.0014;
+    g.beginPath(); g.moveTo(PL + W * 0.030, PT + H * 0.128); g.lineTo(PL + W * 0.022, H * 1.02); g.stroke();
+    _ivOrnament(g, PL + W * 0.075, PT + H * 0.150, -0.35, S * 0.52, CX, CY, _IV_PAL_MID, 61, false);
+    _ivOrnament(g, PL + W * 0.235, PT + H * 0.190, -0.20, S * 0.44, CX, CY, _IV_PAL_MID, 62, true);
+    // and what the lacquer floor does with all of it
+    g.save();
+    g.globalAlpha = 0.22;
+    g.translate(0, PB * 2);
+    g.scale(1, -1);
+    g.fillStyle = _IV_LAC[20];
+    g.beginPath();
+    g.moveTo(PL, PT + H * 0.028); g.lineTo(PR, PT - H * 0.048); g.lineTo(PR, PB);
+    g.quadraticCurveTo(PL + W * 0.20, PB + H * 0.035, PL, PT + H * 0.115);
+    g.closePath(); g.fill();
+    g.fillStyle = _IV_BONE[14];
+    g.beginPath();
+    g.moveTo(KL, KY0 + H * 0.006); g.lineTo(KR, KY0 - H * 0.052);
+    g.lineTo(KR, KY1 - H * 0.052); g.lineTo(KL, KY1 + H * 0.006);
+    g.closePath(); g.fill();
+    g.restore();
+  }
+
+  // ── 5. THE NEAR DARK: heavy ornament crowding in at the left and along the
+  //    bottom, flat black, so the hall has a near plane to be seen past.
+  const dr = g.createLinearGradient(0, 0, W * 0.30, 0);
+  dr.addColorStop(0, _IV_CLOT[_ivA(0.62)]);
+  dr.addColorStop(0.5, _IV_CLOT[_ivA(0.22)]);
+  dr.addColorStop(1, _IV_CLOT[0]);
+  g.fillStyle = dr; g.fillRect(0, 0, W * 0.30, H);
+  for (let i = 0; i < 8; i++) {
+    const y = H * (0.16 + i * 0.115);
+    _ivOrnament(g, -W * 0.015, y, -0.35 + _ivRnd(i * 3.1) * 0.7, S * (0.95 + _ivRnd(i * 5.5) * 0.70),
+                CX, CY, _IV_PAL_NEAR, i + 70, i & 1);
+  }
+  for (let i = 0; i < 5; i++) {
+    _ivOrnament(g, W * (0.04 + i * 0.115), H * 1.03, -1.5707963 + (_ivRnd(i * 7.7) - 0.5) * 0.9,
+                S * (0.72 + _ivRnd(i * 2.3) * 0.5), CX, CY, _IV_PAL_NEAR, i + 80, i & 1);
+  }
+  const vg = g.createRadialGradient(CX, CY + H * 0.14, 0, CX, CY + H * 0.14, Math.hypot(W, H) * 0.62);
+  for (let i = 0; i <= 12; i++) {
+    const u = i / 12;
+    vg.addColorStop(u, 'rgba(4,2,3,' + (0.92 * Math.pow(u, 2.2)).toFixed(3) + ')');
+  }
+  g.fillStyle = vg; g.fillRect(0, 0, W, H);
+  _ivDither(c, 13);
+  return c;
+}
+
+// ── the chandelier, drawn live because it swings, and because its candles are
+//    the only thing in the hall that is actually on fire ──
+// The chandelier. Its metal is eighteen scroll arms and a curtain of drops,
+// all of which cost three passes each and none of which ever change: baked
+// once into a sheet and blitted, with the swing applied as a rotation of the
+// blit. Only the fire is drawn live, because only the fire is doing anything.
+function _ivChandelierSheet(W, H, CX, CY, PX) {
+  const c = _ivSheet(W, H, PX); c._px = PX;
+  const g = c.getContext('2d');
+  const S = W * 0.10;
+  const R = W * 0.082;
+  const FL = [];
+  g.strokeStyle = _IV_DARK[24]; g.lineWidth = W * 0.0035;
+  g.beginPath(); g.moveTo(CX, -H * 0.06); g.lineTo(CX, CY + R * 0.5); g.stroke();
+  for (let tier = 0; tier < 3; tier++) {
+    const ty = CY - R * 0.30 + tier * R * 0.42;
+    const rr = R * (1.0 - tier * 0.26);
+    const nA = 7 - tier;
+    for (let i = 0; i < nA; i++) {
+      const u = (i + 0.5) / nA;
+      const ax = CX + (u - 0.5) * 2 * rr;
+      const side = u < 0.5 ? -1 : 1;
+      const n = _ivScroll(CX, ty, side > 0 ? 0.35 : Math.PI - 0.35, Math.abs(ax - CX) + R * 0.10, 0.55, side, 12);
+      _ivGilt(g, _IV_PT, n, S * 0.055, S * 0.022, CX, CY, _IV_PAL_GILT);
+      const ex = _IV_PT[n * 2 - 2], ey = _IV_PT[n * 2 - 1];
+      FL.push(ex, ey - S * 0.055);
+      g.fillStyle = _IV_BONE[_ivA(0.55)];
+      g.fillRect(ex - S * 0.016, ey - S * 0.055, S * 0.032, S * 0.055);
+    }
+  }
+  g.fillStyle = _IV_HOT[_ivA(0.62)];
+  g.beginPath();
+  for (let i = 0; i < 26; i++) {
+    const u = (i + 0.5) / 26;
+    const x = CX + (u - 0.5) * 2 * R * 1.02;
+    const dy = R * (0.34 + 0.30 * Math.sin(u * 9.4 + 1.1));
+    for (let k = 0; k < 3; k++) {
+      const y = CY + R * 0.55 + dy * (k / 3);
+      const rr = S * (0.026 - k * 0.005);
+      g.moveTo(x + rr, y); g.arc(x, y, rr, 0, 6.2831853);
+    }
+  }
+  g.fill();
+  _ivOrnament(g, CX, CY + R * 0.62, -1.5707963, S * 0.72, CX, CY, _IV_PAL_GILT, 91, false);
+  _ivOrnament(g, CX, CY + R * 0.62, -1.5707963, S * 0.72, CX, CY, _IV_PAL_GILT, 92, true);
+  c._flames = FL;
+  return c;
+}
+
+// The fire, live. `hunger` puts the candles out one at a time and relights them
+// all at once, so the count of them IS the event.
+function _ivChandelierFire(g, W, H, sheet, t) {
+  const S = W * 0.10;
+  const FL = sheet._flames;
+  const n = FL.length >> 1;
+  const lit = _ivDark > 0.01 ? Math.ceil(n * (1 - _ivDark)) : n;
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < lit; i++) {
+    const x = FL[i * 2], y = FL[i * 2 + 1];
+    const f = 0.72 + Math.sin(t * (7 + (i % 5)) + i) * 0.22 + _ivPulse * 0.30;
+    const hgt = S * 0.16 * f;
+    g.fillStyle = _IV_HOT[_ivA(0.55)];
+    g.beginPath();
+    g.moveTo(x, y - hgt * 1.7);
+    g.quadraticCurveTo(x + hgt * 0.55, y - hgt * 0.4, x, y + hgt * 0.15);
+    g.quadraticCurveTo(x - hgt * 0.55, y - hgt * 0.4, x, y - hgt * 1.7);
+    g.fill();
+    g.fillStyle = _IV_FLAME[_ivA(0.75)];
+    g.beginPath();
+    g.moveTo(x, y - hgt * 1.0);
+    g.quadraticCurveTo(x + hgt * 0.26, y - hgt * 0.25, x, y + hgt * 0.08);
+    g.quadraticCurveTo(x - hgt * 0.26, y - hgt * 0.25, x, y - hgt * 1.0);
+    g.fill();
+  }
+  g.restore();
+}
+
+// One soft glow sprite, baked, then blitted at whatever size a light needs.
+// Sixteen createRadialGradient calls a frame was most of what this page cost.
+function _ivGlowSprite() {
+  let c = _ivGlowSprite._c;
+  if (c) return c;
+  c = _ivGlowSprite._c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const gg = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  for (let i = 0; i <= 10; i++) {
+    const u = i / 10;
+    gg.addColorStop(u, 'rgba(255,255,255,' + Math.pow(1 - u, 2.6).toFixed(4) + ')');
+  }
+  g.fillStyle = gg; g.fillRect(0, 0, 64, 64);
+  return c;
+}
+
+// ════════════════════════════════════════════════════════════════
+// WHAT IS HAPPENING IN IT
+// ════════════════════════════════════════════════════════════════
+const _IV_NEARZ = 90, _IV_FARZ = 1500, _IV_FOCAL = 640;
+
+// The glow sprite, tinted once per drain level rather than once per light.
+function _ivGlowTinted() {
+  const k = (_ivDrain * 8) | 0;
+  if (_ivGlowTinted._k === k && _ivGlowTinted._c) return _ivGlowTinted._c;
+  let c = _ivGlowTinted._c;
+  if (!c) { c = _ivGlowTinted._c = document.createElement('canvas'); c.width = c.height = 64; }
+  const g = c.getContext('2d');
+  g.globalCompositeOperation = 'copy';
+  g.drawImage(_ivGlowSprite(), 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = _ivRed(_IV_HOT, 1);
+  g.fillRect(0, 0, 64, 64);
+  g.globalCompositeOperation = 'source-over';
+  _ivGlowTinted._k = k;
+  return c;
+}
+
+function _drawIvyEvilPattern(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;
+  // The `>= 0` matters: a clock that jumps BACKWARDS leaves t - _lt hugely
+  // negative, which passes a bare `< 0.033` and freezes the layer for good.
+  if (_drawIvyEvilPattern._lt !== undefined && t - _drawIvyEvilPattern._lt >= 0
+      && t - _drawIvyEvilPattern._lt < 0.033) return;
+  const dt = _drawIvyEvilPattern._lt === undefined ? 0.016 : Math.min(Math.abs(t - _drawIvyEvilPattern._lt), 0.05);
+  _drawIvyEvilPattern._lt = t;
+
+  const P = _drawIvyEvilPattern;
+  const PX = _ivPX(W);
+  const [VX, VY] = _ivVP(W, H);
+  const ev = _ivEvTick(t);
+
+  // ── THE HEARTBEAT. Two thumps, then a wait. Every layer on both canvases
+  //    reads it, which is what ties a page of separate effects into one body.
+  const hb = (t * 0.70) % 1;
+  _ivPulse = Math.max(Math.exp(-hb * 15), Math.exp(-Math.max(0, hb - 0.17) * 15) * 0.66);
+
+  // ── the states the events drive, which both layers read ──
+  _ivDrain = (ev && ev.name === 'bleed')
+    ? (ev.p < 0.28 ? ev.p / 0.28 : ev.p < 0.56 ? 1 : 1 - (ev.p - 0.56) / 0.44)
+    : _ivDrain + (0 - _ivDrain) * Math.min(1, dt * 4);
+  _ivDark = (ev && ev.name === 'hunger')
+    ? (ev.p < 0.68 ? ev.p / 0.68 : 0)
+    : _ivDark + (0 - _ivDark) * Math.min(1, dt * 9);
+  _ivSwing = (ev && ev.name === 'sweep')
+    ? Math.sin(ev.p * 6.2831853 * 1.5) * Math.sin(Math.PI * ev.p)
+    : _ivSwing + (0 - _ivSwing) * Math.min(1, dt * 2.4);
+  _ivGrow = (ev && ev.name === 'rococo')
+    ? Math.sin(Math.PI * Math.min(1, ev.p / 0.88))
+    : _ivGrow + (0 - _ivGrow) * Math.min(1, dt * 3);
+  _ivCrack = (ev && ev.name === 'shatter')
+    ? (ev.p < 0.22 ? ev.p / 0.22 : ev.p < 0.68 ? 1 : 1 - (ev.p - 0.68) / 0.32)
+    : 0;
+  if (ev && ev.name === 'lunge') {
+    if (!_ivSlash || _ivSlash.t0 !== ev.t0) {
+      const a = -0.55 - ev.r0 * 0.55;
+      const cx = W * (0.32 + ev.r1 * 0.42), cy = H * (0.30 + ev.r2 * 0.42);
+      const L = Math.hypot(W, H) * 0.85;
+      _ivSlash = { t0: ev.t0, x0: cx - Math.cos(a) * L, y0: cy - Math.sin(a) * L,
+                   x1: cx + Math.cos(a) * L, y1: cy + Math.sin(a) * L, p: 0 };
+    }
+    _ivSlash.p = ev.p;
+  } else if (_ivSlash) _ivSlash = null;
+
+  const CX0 = VX, CY = H * 0.185;
+  const CX = CX0 + _ivSwing * W * 0.055;              // the light itself moves
+
+  if (P._w !== W || P._h !== H) {
+    P._void = _ivVoidSheet(W, H, CX0, CY, PX);
+    P._hall = _ivHallSheet(W, H, PX);
+    P._near = _ivNearSheet(W, H, PX);
+    P._chand = _ivChandelierSheet(W, H, CX0, CY, PX);
+    P._motes = null;
+    P._w = W; P._h = H;
+  }
+  if (!P._motes) {
+    const m = [];
+    for (let i = 0; i < 270; i++) {
+      m.push({ x: (_ivRnd(i * 3.1) - 0.5) * W * 2.4, y: (_ivRnd(i * 5.7) - 0.5) * H * 2.0,
+               z: _IV_NEARZ + _ivRnd(i * 7.3) * (_IV_FARZ - _IV_NEARZ),
+               v: 70 + _ivRnd(i * 9.1) * 260, s: 1.6 + _ivRnd(i * 2.7) * 4.2,
+               ph: _ivRnd(i * 4.4) * 6.283 });
+    }
+    P._motes = m;
+    P._drips = [];
+    P._rings = [];
+    P._lastHb = 0;
+  }
+
+  const lo = _ivLo(canvas, '_iv', W, H, PX);
+  const lg = lo._g;
+  lg.setTransform(1, 0, 0, 1, 0, 0);
+  lg.clearRect(0, 0, lo.width, lo.height);
+  lg.setTransform(1 / PX, 0, 0, 1 / PX, 0, 0);
+  lg.lineJoin = 'round'; lg.lineCap = 'round';
+  lg.globalCompositeOperation = 'source-over'; lg.globalAlpha = 1;
+  const BL = (sheet) => { lg.save(); lg.setTransform(1, 0, 0, 1, 0, 0); lg.drawImage(sheet, 0, 0); lg.restore(); };
+
+  // ── the void, breathing on the heartbeat ──
+  BL(P._void);
+  lg.save();
+  lg.globalCompositeOperation = 'lighter';
+  lg.globalAlpha = (0.05 + _ivPulse * 0.26) * (1 - _ivDark * 0.9) * (1 - _ivDrain * 0.75);
+  BL(P._void);
+  lg.restore();
+
+  BL(P._hall);
+  _ivEvBack(lg, ev, W, H, VX, VY, CX, CY, t);
+
+  // ── the light the chandelier is actually throwing, which moves when it does ──
+  {
+    const R = Math.hypot(W, H) * 0.55;
+    const gg = lg.createRadialGradient(CX, CY, 0, CX, CY, R);
+    for (let i = 0; i <= 10; i++) {
+      const u = i / 10;
+      gg.addColorStop(u, _ivRed(_IV_HOT, 0.09 * (1 + _ivPulse * 0.8) * (1 - _ivDark) * Math.pow(1 - u, 3.0)));
+    }
+    lg.save();
+    lg.globalCompositeOperation = 'lighter';
+    lg.fillStyle = gg;
+    lg.fillRect(CX - R, CY - R, R * 2, R * 2);
+    lg.restore();
+  }
+
+  // ── DRIPS. The chandelier is not only burning, it is running. Each drop
+  //    falls, lands on the lacquer, and leaves a ring in the reflection.
+  if (P._drips.length < 14 && _ivRnd((t * 4) | 0) > 0.86 && _ivDark < 0.5) {
+    P._drips.push({ x: CX + (_ivRnd(t * 31.1) - 0.5) * W * 0.14, y: CY + H * 0.05, v: 0 });
+  }
+  lg.beginPath();
+  for (let i = P._drips.length - 1; i >= 0; i--) {
+    const d = P._drips[i];
+    d.v += 900 * dt; d.y += d.v * dt;
+    const ground = _ivFloorY(H, VY, 0.30);
+    if (d.y >= ground) {
+      P._rings.push({ x: d.x, y: ground, r: 0, a: 1 });
+      P._drips.splice(i, 1); continue;
+    }
+    lg.moveTo(d.x, d.y - 5); lg.lineTo(d.x, d.y + 5);
+  }
+  lg.strokeStyle = _ivRed(_IV_HOT, 0.85); lg.lineWidth = Math.max(1.5, W * 0.0022); lg.stroke();
+  for (let i = P._rings.length - 1; i >= 0; i--) {
+    const r = P._rings[i];
+    r.r += W * 0.10 * dt; r.a -= dt * 0.9;
+    if (r.a <= 0) { P._rings.splice(i, 1); continue; }
+    lg.strokeStyle = _ivRed(_IV_EMBER, r.a * 0.5);
+    lg.lineWidth = Math.max(1, W * 0.0014);
+    lg.beginPath();
+    lg.ellipse(r.x, r.y, r.r, r.r * 0.26, 0, 0, 6.2831853);
+    lg.stroke();
+  }
+
+  // ── the ring the heartbeat throws off, out across the whole hall ──
+  if (_ivPulse > 0.90 && t - P._lastHb > 0.5) { P._lastHb = t; P._rings.push({ x: CX, y: CY, r: 0, a: 0.7, big: 1 }); }
+  for (const r of P._rings) {
+    if (!r.big) continue;
+    r.r += W * 1.5 * dt;
+    lg.save();
+    lg.globalCompositeOperation = 'lighter';
+    lg.strokeStyle = _ivRed(_IV_HOT, r.a * 0.30 * (1 - _ivDrain));
+    lg.lineWidth = Math.max(1, W * 0.0026);
+    lg.beginPath(); lg.arc(r.x, r.y, r.r, 0, 6.2831853); lg.stroke();
+    lg.restore();
+  }
+
+  // ── THE EMBERS. Real z, projected on the vanishing point, coming at the
+  //    camera. Three sheets at three speeds is a parallax trick and reads as
+  //    one; giving every mote a z and projecting it reads as a space you are
+  //    standing in.
+  lg.save();
+  lg.globalCompositeOperation = 'lighter';
+  lg.beginPath();
+  const speed = (1 + _ivPulse * 1.2) * (_ivRM ? 0.35 : 1);
+  for (const m of P._motes) {
+    m.z -= m.v * dt * speed;
+    if (m.z < _IV_NEARZ) { m.z = _IV_FARZ; m.x = (Math.random() - 0.5) * W * 2.4; m.y = (Math.random() - 0.5) * H * 2.0; }
+    const k = _IV_FOCAL / m.z;
+    const sx = VX + m.x * k, sy = VY + m.y * k + Math.sin(t * 1.6 + m.ph) * 3;
+    if (sx < -20 || sx > W + 20 || sy < -20 || sy > H + 20) continue;
+    const r = Math.max(PX * 0.5, m.s * k);
+    lg.rect(sx - r, sy - r, r * 2, r * 2);
+  }
+  lg.fillStyle = _ivRed(_IV_EMBER, (0.30 + _ivPulse * 0.26) * (1 - _ivDark * 0.7));
+  lg.fill();
+  lg.restore();
+
+  // ── the sconces: sixteen small fires going away down both walls, which is
+  //    what turns a corridor of flat panels into a hall with a length to it ──
+  if (!P._sc) P._sc = _ivSconces(W, H);
+  const GLOW = _ivGlowTinted();
+  lg.save();
+  lg.globalCompositeOperation = 'lighter';
+  const scLit = 1 - _ivDark;
+  for (const sc of P._sc) {
+    if (scLit <= 0.02) break;
+    const f = (0.66 + Math.sin(t * (5.5 + (sc.i % 4) * 1.7) + sc.i * 2.1) * 0.24 + _ivPulse * 0.34) * scLit;
+    const hgt = W * 0.0090 * sc.s * f;
+    const R = hgt * 7;
+    lg.save();
+    lg.globalAlpha = 0.40 * f;
+    lg.drawImage(GLOW, sc.x - R, sc.y - R, R * 2, R * 2);
+    lg.restore();
+    lg.fillStyle = _ivRed(_IV_HOT, 0.75);
+    lg.beginPath();
+    lg.moveTo(sc.x, sc.y - hgt * 2.0);
+    lg.quadraticCurveTo(sc.x + hgt * 0.7, sc.y - hgt * 0.5, sc.x, sc.y + hgt * 0.2);
+    lg.quadraticCurveTo(sc.x - hgt * 0.7, sc.y - hgt * 0.5, sc.x, sc.y - hgt * 2.0);
+    lg.fill();
+    lg.fillStyle = _ivRed(_IV_FLAME, 0.85);
+    lg.beginPath();
+    lg.moveTo(sc.x, sc.y - hgt * 1.15);
+    lg.quadraticCurveTo(sc.x + hgt * 0.30, sc.y - hgt * 0.3, sc.x, sc.y + hgt * 0.10);
+    lg.quadraticCurveTo(sc.x - hgt * 0.30, sc.y - hgt * 0.3, sc.x, sc.y - hgt * 1.15);
+    lg.fill();
+  }
+  lg.restore();
+
+  // ── the chandelier itself ──
+  lg.save();
+  if (_ivSwing !== 0) { lg.translate(CX0, CY - H * 0.22); lg.rotate(_ivSwing * 0.13); lg.translate(-CX0, -(CY - H * 0.22)); }
+  lg.save(); lg.scale(PX, PX); lg.drawImage(P._chand, 0, 0); lg.restore();
+  _ivChandelierFire(lg, W, H, P._chand, t);
+  lg.restore();
+
+  BL(P._near);
+  _ivEvFront(lg, ev, W, H, VX, VY, CX, CY, t);
+
+  if (_ivDark > 0.01) {
+    lg.fillStyle = 'rgba(3,1,2,' + (_ivDark * 0.72).toFixed(3) + ')';
+    lg.fillRect(0, 0, W, H);
+  }
+  _ivBloom(canvas, lo, 0.15 + _ivPulse * 0.14 + (_ivSlash ? 0.4 * (1 - _ivSlash.p) : 0));
+
+  // ── up, with the smoothing off, which is the whole point ──
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(lo, 0, 0, lo.width, lo.height, 0, 0, lo.width * PX, lo.height * PX);
+  ctx.imageSmoothingEnabled = true;
+}
+
+// ── events that belong to the hall, drawn between the floor and the piano ──
+function _ivEvBack(g, ev, W, H, VX, VY, CX, CY, t) {
+  if (!ev) return;
+
+  // WALTZ. Two of them turning through the hall in three time, and the lacquer
+  // has them too. Nobody is drawn: two lights and a reflection is enough, and
+  // a figure would be a picture of the character instead of a place.
+  if (ev.name === 'waltz') {
+    const q = ev.p;
+    const a = q < 0.14 ? q / 0.14 : q > 0.80 ? (1 - q) / 0.20 : 1;
+    const turn = q * 6.2831853 * 2.2;
+    const path = 0.18 + q * 0.55;                       // they come toward you
+    const cx = VX + Math.sin(q * 3.1 + 0.6) * W * 0.16;
+    const cy = _ivFloorY(H, VY, path);
+    const rr = W * (0.020 + path * 0.055);
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    // the figure they have been cutting into the floor for the last second
+    for (let k = 0; k < 2; k++) {
+      g.strokeStyle = _ivRed(k ? _IV_BONE : _IV_EMBER, a * 0.26);
+      g.lineWidth = Math.max(1, W * 0.0022);
+      g.beginPath();
+      for (let i = 0; i <= 22; i++) {
+        const qq = Math.max(0, q - (1 - i / 22) * 0.16);
+        const tn = qq * 6.2831853 * 2.2 + k * 3.1415927;
+        const pth = 0.18 + qq * 0.55;
+        const ccx = VX + Math.sin(qq * 3.1 + 0.6) * W * 0.16;
+        const ccy = _ivFloorY(H, VY, pth);
+        const r2 = W * (0.020 + pth * 0.055);
+        const xx = ccx + Math.cos(tn) * r2, yy = ccy + Math.sin(tn) * r2 * 0.32;
+        if (i === 0) g.moveTo(xx, yy); else g.lineTo(xx, yy);
+      }
+      g.stroke();
+    }
+    for (let k = 0; k < 2; k++) {
+      const ang = turn + k * 3.1415927;
+      const x = cx + Math.cos(ang) * rr, y = cy + Math.sin(ang) * rr * 0.32;
+      const s = W * (0.007 + path * 0.018);
+      g.fillStyle = _ivRed(k ? _IV_BONE : _IV_EMBER, a * 0.95);
+      g.beginPath(); g.ellipse(x, y - s * 3.0, s * 0.85, s * 2.6, 0, 0, 6.2831853); g.fill();
+      const gg2 = g.createRadialGradient(x, y - s * 2.2, 0, x, y - s * 2.2, s * 7);
+      gg2.addColorStop(0, _ivRed(k ? _IV_BONE : _IV_EMBER, a * 0.34));
+      gg2.addColorStop(1, _ivRed(_IV_HOT, 0));
+      g.fillStyle = gg2;
+      g.fillRect(x - s * 7, y - s * 9, s * 14, s * 14);
+      g.globalAlpha = 0.34;
+      g.fillStyle = _ivRed(k ? _IV_BONE : _IV_EMBER, a * 0.7);
+      g.beginPath(); g.ellipse(x, y + s * 3.2, s * 0.7, s * 2.2, 0, 0, 6.2831853); g.fill();
+      g.globalAlpha = 1;
+    }
+    g.restore();
+  }
+
+  // SWEEP. The light has moved, so there is a bright band lying across the
+  // floor where it now points, and it travels.
+  if (ev.name === 'sweep') {
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    const lgd = g.createLinearGradient(CX - W * 0.20, 0, CX + W * 0.20, 0);
+    const env = Math.sin(Math.PI * ev.p);
+    lgd.addColorStop(0, _ivRed(_IV_HOT, 0));
+    lgd.addColorStop(0.5, _ivRed(_IV_EMBER, 0.46 * env));
+    lgd.addColorStop(1, _ivRed(_IV_HOT, 0));
+    g.fillStyle = lgd;
+    g.beginPath();
+    g.moveTo(CX - W * 0.035, VY); g.lineTo(CX + W * 0.035, VY);
+    g.lineTo(CX + W * 0.30, H * 1.05); g.lineTo(CX - W * 0.30, H * 1.05);
+    g.closePath(); g.fill();
+    // and the near wall it is raking, so the light is somewhere and not just
+    // a brighter patch of floor
+    const wg = g.createRadialGradient(CX, VY - H * 0.10, 0, CX, VY - H * 0.10, W * 0.34);
+    wg.addColorStop(0, _ivRed(_IV_EMBER, 0.30 * env));
+    wg.addColorStop(1, _ivRed(_IV_EMBER, 0));
+    g.fillStyle = wg;
+    g.fillRect(CX - W * 0.34, VY - H * 0.44, W * 0.68, H * 0.44);
+    g.restore();
+  }
+}
+
+// ── events that cross the glass, drawn over everything in the hall ──
+function _ivEvFront(g, ev, W, H, VX, VY, CX, CY, t) {
+  // ROCOCO. The ornament grows in over the picture, four more of it from the
+  // sides, and lets go again. The window frame does the same thing at the same
+  // moment, so the two layers are in the event together.
+  if (_ivGrow > 0.01) {
+    const S = W * 0.10 * _ivGrow;
+    for (let i = 0; i < 6; i++) {
+      const side = i & 1;
+      const y = H * (0.16 + (i >> 1) * 0.30);
+      _ivOrnament(g, side ? W * 1.01 : -W * 0.01, y, side ? Math.PI + 0.4 : -0.4,
+                  S * (0.9 + _ivRnd(i * 5.1) * 0.6), CX, CY, _IV_PAL_MID, i + 130, side);
+    }
+  }
+
+  // SHATTER. A crack spiders across the world and heals. Rolled once when the
+  // event starts, so it is the same crack all the way through.
+  if (_ivCrack > 0.01 && ev) {
+    const F = _ivEvFront;
+    if (F._crackFor !== ev.t0) {
+      F._crackFor = ev.t0;
+      const seg = [];
+      const ox = W * (0.2 + ev.r0 * 0.6), oy = H * (0.2 + ev.r1 * 0.6);
+      for (let b = 0; b < 9; b++) {
+        let x = ox, y = oy, a = ev.r2 * 6.283 + b * 0.7;
+        const st = [];
+        for (let k = 0; k < 7; k++) {
+          st.push(x, y);
+          a += (_ivRnd(b * 13.1 + k * 3.7) - 0.5) * 1.2;
+          const L = Math.hypot(W, H) * (0.05 + _ivRnd(b * 2.3 + k) * 0.09);
+          x += Math.cos(a) * L; y += Math.sin(a) * L;
+        }
+        st.push(x, y);
+        seg.push(st);
+      }
+      F._crack = seg;
+    }
+    const grow = Math.min(1, _ivCrack * 1.4);
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    for (const st of F._crack) {
+      const n = Math.max(2, (grow * (st.length / 2)) | 0);
+      g.beginPath();
+      g.moveTo(st[0], st[1]);
+      for (let k = 1; k < n; k++) g.lineTo(st[k * 2], st[k * 2 + 1]);
+      g.strokeStyle = _ivRed(_IV_EMBER, _ivCrack * 0.55); g.lineWidth = Math.max(1, W * 0.0030); g.stroke();
+      g.strokeStyle = _IV_BONE[_ivA(_ivCrack * 0.60)]; g.lineWidth = Math.max(1, W * 0.0012); g.stroke();
+    }
+    g.restore();
+  }
+
+  // HUNGER. The candles have all gone out, and they come back at once.
+  if (ev && ev.name === 'hunger' && ev.p > 0.68) {
+    const f = Math.pow(1 - (ev.p - 0.68) / 0.32, 2.2);
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    g.fillStyle = _ivRed(_IV_EMBER, f * 0.85);
+    g.fillRect(0, 0, W, H);
+    g.restore();
+  }
+
+  // LUNGE. A rapier cut through the whole frame. White, because white is the
+  // most violent thing available in a red room and it is spent exactly here.
+  if (_ivSlash) _ivDrawSlash(g, _ivSlash, W, H);
+}
+
+// The cut itself. Shared by both layers, so the same stroke crosses the picture
+// and the application in the same frame.
+function _ivDrawSlash(g, S, W, H) {
+  const q = S.p;
+  const grow = Math.min(1, q / 0.22);
+  const fade = q > 0.42 ? 1 - (q - 0.42) / 0.58 : 1;
+  const x1 = S.x0 + (S.x1 - S.x0) * grow, y1 = S.y0 + (S.y1 - S.y0) * grow;
+  const back = Math.max(0, (q - 0.55) / 0.45);
+  const x0 = S.x0 + (S.x1 - S.x0) * back, y0 = S.y0 + (S.y1 - S.y0) * back;
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  const w = Math.max(2, Math.hypot(W, H) * 0.004);
+  g.strokeStyle = _IV_HOT[_ivA(fade * 0.55)]; g.lineWidth = w * 4.5;
+  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+  g.strokeStyle = _IV_EMBER[_ivA(fade * 0.75)]; g.lineWidth = w * 1.8;
+  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+  g.strokeStyle = _IV_WHITE[_ivA(fade * 0.95)]; g.lineWidth = Math.max(1, w * 0.55);
+  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+  // and what it opened
+  const dx = (S.x1 - S.x0), dy = (S.y1 - S.y0), m = Math.hypot(dx, dy) || 1;
+  const nx = -dy / m, ny = dx / m;
+  g.beginPath();
+  for (let i = 0; i < 26; i++) {
+    const u = _ivRnd(S.t0 * 7.1 + i * 3.3);
+    if (u > grow) continue;
+    const px = S.x0 + dx * u, py = S.y0 + dy * u;
+    const sp = (_ivRnd(S.t0 * 11.7 + i) - 0.5) * 2;
+    const d = q * Math.hypot(W, H) * 0.10 * (0.4 + _ivRnd(S.t0 + i * 5.1));
+    const r = Math.max(1.5, w * (0.5 + _ivRnd(i * 2.9)));
+    g.rect(px + nx * d * sp - r, py + ny * d * sp - r, r * 2, r * 2);
+  }
+  g.fillStyle = _IV_HOT[_ivA(fade * 0.8)];
+  g.fill();
+  g.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+// OVER THE APPLICATION
+//
+// The same hall, reaching out past the card: ornament in the four
+// corners of the WINDOW, the heartbeat crossing the whole thing,
+// embers coming up through the panels, and the cut going all the
+// way across on a `lunge`. Drawn by the same scroll renderer off
+// the same palette and the same one light, and through the same
+// pixel pipeline, so a scroll on the header and a scroll on the
+// mirror are the same object at two sizes.
+//
+// And the rapier. The tip sits exactly on the pointer, because a
+// rapier points at the thing you are pointing at; everything else
+// hangs back from it and lags when you move.
+// ════════════════════════════════════════════════════════════════
+let _ivMX = (typeof window !== 'undefined' ? window.innerWidth * 0.5 : 0);
+let _ivMY = (typeof window !== 'undefined' ? window.innerHeight * 0.5 : 0);
+let _ivPrevMX = _ivMX, _ivPrevMY = _ivMY;
+let _ivLunge = 0;                       // 0..1, a click: the thrust
+let _ivTrail = null, _ivTrailN = 0;
+let _ivOverlayRaf = null;
+function _ivMouseMove(e) { _ivMX = e.clientX; _ivMY = e.clientY; }
+function _ivMouseDown() {
+  _ivLunge = 1;
+  const a = (_ivDrawRapier._a || -0.6);
+  const L = Math.hypot(window.innerWidth, window.innerHeight) * 0.85;
+  _ivSlash = { t0: performance.now() * 0.001, p: 0, ov: 1,
+               x0: _ivMX - Math.cos(a) * L, y0: _ivMY - Math.sin(a) * L,
+               x1: _ivMX + Math.cos(a) * L, y1: _ivMY + Math.sin(a) * L };
+}
+
+// Where the chandelier is in WINDOW coordinates, so a scroll in the corner of
+// the screen and a scroll on the mirror agree about the light. Through the
+// layout cache, never a raw read.
+function _ivLightAt(W, H) {
+  const pc = _ivLightAt._pc && _ivLightAt._pc.isConnected
+    ? _ivLightAt._pc : (_ivLightAt._pc = document.getElementById('pattern-canvas'));
+  if (pc) {
+    const r = _lyRect(pc);
+    if (r.width > 0 && r.height > 0) return [r.left + r.width * 0.700, r.top + r.height * 0.185];
+  }
+  return [W * 0.70, H * 0.20];
+}
+
+// ── the ornament around the window, baked once ──
+function _ivFrameSheet(W, H, LX, LY, PX) {
+  const c = _ivSheet(W, H, PX); c._px = PX;
+  const g = c.getContext('2d');
+  const M = Math.min(W, H);
+  const S = M * 0.20;
+  // a thin gilt rail all the way round, so the corners are joined to each other
+  g.strokeStyle = _IV_DARK[_ivA(0.85)]; g.lineWidth = M * 0.010;
+  g.strokeRect(M * 0.012, M * 0.012, W - M * 0.024, H - M * 0.024);
+  g.strokeStyle = _IV_BLOOD[_ivA(0.55)]; g.lineWidth = M * 0.0034;
+  g.strokeRect(M * 0.012, M * 0.012, W - M * 0.024, H - M * 0.024);
+  // the corners: one compound ornament each, mirrored round the window
+  const C = [[0, 0, 0.785, false], [W, 0, 2.356, true], [W, H, -2.356, false], [0, H, -0.785, true]];
+  for (let i = 0; i < 4; i++) {
+    const [x, y, a, f] = C[i];
+    _ivOrnament(g, x, y, a, S, LX, LY, _IV_PAL_GILT, i + 200, f);
+    _ivOrnament(g, x, y, a + (f ? 0.75 : -0.75), S * 0.62, LX, LY, _IV_PAL_GILT, i + 210, !f);
+    _ivOrnament(g, x, y, a + (f ? -0.75 : 0.75), S * 0.48, LX, LY, _IV_PAL_GILT, i + 220, f);
+  }
+  // and a bead of it along the bottom and the sides, where the GUI is quiet
+  for (let i = 0; i < 5; i++) {
+    const u = (i + 1) / 6;
+    _ivOrnament(g, W * u, H + M * 0.004, -1.5707963, S * 0.30, LX, LY, _IV_PAL_GILT, i + 230, i & 1);
+  }
+  for (let i = 0; i < 3; i++) {
+    const u = (i + 1) / 4;
+    _ivOrnament(g, -M * 0.004, H * u, 0, S * 0.26, LX, LY, _IV_PAL_GILT, i + 240, i & 1);
+    _ivOrnament(g, W + M * 0.004, H * u, Math.PI, S * 0.26, LX, LY, _IV_PAL_GILT, i + 250, i & 1);
+  }
+  return c;
+}
+
+/* ── the rapier ───────────────────────────────────────────────────
+   A long thin blade with one lit edge and a dark spine, a swept
+   guard made of the same scroll as everything else in the hall, a
+   wrapped grip and a bead of a pommel. The TIP is the hotspot: it
+   sits on the pointer and the rest of the weapon hangs back from
+   it, leaning into wherever you are going. A click drives it
+   forward along its own axis and opens a cut across the page. ── */
+function _ivDrawRapier(g, x, y, t, vx, vy, PX) {
+  const spd = Math.hypot(vx, vy);
+  let a = _ivDrawRapier._a === undefined ? -0.62 : _ivDrawRapier._a;
+  const want = spd > 40 ? Math.atan2(vy, vx) : -0.62 + Math.sin(t * 0.9) * 0.05;
+  let d = want - a;
+  while (d > 3.1415927) d -= 6.2831853;
+  while (d < -3.1415927) d += 6.2831853;
+  a += d * Math.min(1, 0.14 + spd * 0.0006);
+  _ivDrawRapier._a = a;
+
+  // Everything here is sized so it survives the pixel grid: the blade is five
+  // low resolution pixels across at the guard and the guard is twenty. Drawn
+  // at the size a sharp cursor would be, the whole weapon came out two pixels
+  // wide and vanished.
+  const M = 152;
+  const BL = M * 0.70, GR = M * 0.16, GW = M * 0.19;
+  const bw = M * 0.050;
+  const push = _ivLunge * M * 0.26;
+
+  g.save();
+  g.translate(x, y);
+  g.rotate(a);
+  g.translate(push, 0);
+
+  // the blade: a dark spine with a white edge on top and the room's red on the
+  // underside, because it is polished and there is only one light in here
+  g.fillStyle = _IV_VOID[24];
+  g.beginPath();
+  g.moveTo(3, 0);
+  g.lineTo(-BL * 0.34, -bw * 0.72);
+  g.lineTo(-BL, -bw);
+  g.lineTo(-BL, bw);
+  g.lineTo(-BL * 0.34, bw * 0.72);
+  g.closePath(); g.fill();
+  g.fillStyle = _IV_BONE[24];
+  g.beginPath();
+  g.moveTo(3, 0);
+  g.lineTo(-BL * 0.34, -bw * 0.72);
+  g.lineTo(-BL, -bw);
+  g.lineTo(-BL, -bw * 0.30);
+  g.lineTo(-BL * 0.34, -bw * 0.20);
+  g.closePath(); g.fill();
+  g.fillStyle = _IV_HOT[_ivA(0.75)];
+  g.beginPath();
+  g.moveTo(3, 0);
+  g.lineTo(-BL * 0.34, bw * 0.72);
+  g.lineTo(-BL, bw);
+  g.lineTo(-BL, bw * 0.34);
+  g.lineTo(-BL * 0.34, bw * 0.24);
+  g.closePath(); g.fill();
+  // the fuller, and blood still on the last third of it
+  g.strokeStyle = _IV_CLOT[_ivA(0.85)]; g.lineWidth = Math.max(1, PX);
+  g.beginPath(); g.moveTo(-BL * 0.20, 0); g.lineTo(-BL * 0.94, 0); g.stroke();
+  g.strokeStyle = _IV_BLOOD[_ivA(0.80)]; g.lineWidth = Math.max(1, PX);
+  g.beginPath();
+  g.moveTo(-BL * 0.30, bw * 0.30);
+  g.lineTo(-BL * 0.52, bw * 0.55);
+  g.lineTo(-BL * 0.66, bw * 0.30);
+  g.stroke();
+
+  // THE GUARD. The same C scroll the hall is built out of, three of them swept
+  // round the hand, which is the whole reason there is one scroll primitive.
+  const n0 = _ivScroll(-BL + GW * 0.10, -bw * 0.5, -2.25, GW * 0.92, 1.25, 1, 16);
+  _ivGilt(g, _IV_PT, n0, GW * 0.34, GW * 0.11, 0, -M * 4, _IV_PAL_GILT);
+  const n1 = _ivScroll(-BL + GW * 0.10, bw * 0.5, 2.25, GW * 0.92, 1.25, -1, 16);
+  _ivGilt(g, _IV_PT, n1, GW * 0.34, GW * 0.11, 0, -M * 4, _IV_PAL_GILT);
+  const n2 = _ivScroll(-BL - GR * 0.70, -bw * 0.2, 1.15, GW * 0.70, 1.05, 1, 14);
+  _ivGilt(g, _IV_PT, n2, GW * 0.26, GW * 0.09, 0, -M * 4, _IV_PAL_GILT);
+  const n3 = _ivScroll(-BL - GR * 0.70, bw * 0.2, -1.15, GW * 0.70, 1.05, -1, 14);
+  _ivGilt(g, _IV_PT, n3, GW * 0.26, GW * 0.09, 0, -M * 4, _IV_PAL_GILT);
+  // the ricasso block the scrolls spring from
+  g.fillStyle = _IV_DARK[24];
+  g.beginPath(); g.ellipse(-BL - GR * 0.06, 0, GR * 0.28, bw * 1.9, 0, 0, 6.2831853); g.fill();
+  g.strokeStyle = _IV_EMBER[_ivA(0.75)]; g.lineWidth = Math.max(1, PX * 0.7);
+  g.beginPath(); g.ellipse(-BL - GR * 0.06, 0, GR * 0.28, bw * 1.9, 0, 0, 6.2831853); g.stroke();
+  // and the stone in it
+  g.fillStyle = _IV_HOT[24];
+  g.beginPath(); g.arc(-BL - GR * 0.06, 0, bw * 0.85, 0, 6.2831853); g.fill();
+  g.fillStyle = _IV_BONE[_ivA(0.85)];
+  g.beginPath(); g.arc(-BL - GR * 0.06 - bw * 0.25, -bw * 0.28, bw * 0.30, 0, 6.2831853); g.fill();
+
+  // grip and pommel
+  g.fillStyle = _IV_CLOT[24];
+  g.fillRect(-BL - GR * 1.10, -bw * 0.80, GR * 1.02, bw * 1.60);
+  g.strokeStyle = _IV_BLOOD[_ivA(0.85)]; g.lineWidth = Math.max(1, PX * 0.7);
+  for (let i = 1; i < 5; i++) {
+    const px = -BL - GR * 1.10 + GR * 1.02 * (i / 5);
+    g.beginPath(); g.moveTo(px, -bw * 0.80); g.lineTo(px - GR * 0.16, bw * 0.80); g.stroke();
+  }
+  g.fillStyle = _IV_BLOOD[24];
+  g.beginPath(); g.arc(-BL - GR * 1.24, 0, bw * 1.15, 0, 6.2831853); g.fill();
+  g.fillStyle = _IV_EMBER[_ivA(0.9)];
+  g.beginPath(); g.arc(-BL - GR * 1.30, -bw * 0.32, bw * 0.40, 0, 6.2831853); g.fill();
+  g.restore();
+}
+
+function _drawIvyEvilOverlay(canvas, ctxIn, W, H, t) {
+  const fresh = _drawIvyEvilOverlay._lt === undefined;
+  if (!fresh && t - _drawIvyEvilOverlay._lt >= 0 && t - _drawIvyEvilOverlay._lt < 0.014) return;
+  const dt = fresh ? 0.016 : Math.min(Math.abs(t - _drawIvyEvilOverlay._lt), 0.05);
+  _drawIvyEvilOverlay._lt = t;
+  if (!(W > 0 && H > 0)) return;
+
+  const O = _drawIvyEvilOverlay;
+  const PX = _ivPX(W);
+  const M = Math.min(W, H);
+  const [LX, LY] = _ivLightAt(W, H);
+  _ivLunge = Math.max(0, _ivLunge - dt * 4.0);
+  if (_ivSlash && _ivSlash.ov) {
+    _ivSlash.p += dt / 0.95;
+    if (_ivSlash.p >= 1) _ivSlash = null;
+  }
+
+  // the whole layer goes through the pixel pipeline, same as the hall: a
+  // smooth cursor on a dithered room looks like two programs at once
+  const lo = _ivLo(canvas, '_ivOv', W, H, PX);
+  const g = lo._g;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, lo.width, lo.height);
+  g.setTransform(1 / PX, 0, 0, 1 / PX, 0, 0);
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+
+  if (O._w !== W || O._h !== H) {
+    O._sheet = _ivFrameSheet(W, H, LX, LY, PX);
+    O._motes = null;
+    O._w = W; O._h = H;
+  }
+  if (!O._motes) {
+    const m = [];
+    for (let i = 0; i < 40; i++) {
+      m.push({ x: Math.random(), y: Math.random(), v: 0.03 + Math.random() * 0.07,
+               s: 1 + Math.random() * 2.2, ph: Math.random() * 6.283, w: 0.4 + Math.random() * 1.1 });
+    }
+    O._motes = m;
+    _ivTrail = new Float32Array(32); _ivTrailN = 0;
+    for (let i = 0; i < 16; i++) { _ivTrail[i * 2] = _ivMX; _ivTrail[i * 2 + 1] = _ivMY; }
+  }
+
+  // ── the ornament. On `rococo` it is blitted a second time pulled inward,
+  //    which reads as it GROWING because the first blit is still under it. ──
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalAlpha = (0.92 - _ivDark * 0.45) * (1 - _ivDrain * 0.4);
+  g.drawImage(O._sheet, 0, 0);
+  if (_ivGrow > 0.01) {
+    const s = 1 - _ivGrow * 0.055;
+    g.globalAlpha *= 0.9;
+    g.translate(lo.width * 0.5, lo.height * 0.5); g.scale(s, s); g.translate(-lo.width * 0.5, -lo.height * 0.5);
+    g.drawImage(O._sheet, 0, 0);
+  }
+  g.restore();
+
+  // ── embers coming up through the application ──
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  g.beginPath();
+  for (const q of O._motes) {
+    q.y -= q.v * dt * (1 + _ivPulse * 1.4) * (_ivRM ? 0.4 : 1);
+    if (q.y < -0.03) { q.y = 1.03; q.x = Math.random(); }
+    const x = q.x * W + Math.sin(t * q.w + q.ph) * 24;
+    const y = q.y * H;
+    const r = Math.max(PX, q.s * PX * 0.8);
+    g.rect(x - r * 0.5, y - r * 0.5, r, r);
+  }
+  g.fillStyle = _ivRed(_IV_EMBER, (0.34 + _ivPulse * 0.34) * (1 - _ivDark * 0.8));
+  g.fill();
+  g.restore();
+
+  // ── the heartbeat, out across the whole window ──
+  if (_ivPulse > 0.02) {
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    const R = Math.max(M * 0.10, M * 0.55 * (1 - _ivPulse));
+    g.strokeStyle = _ivRed(_IV_HOT, _ivPulse * 0.16 * (1 - _ivDrain));
+    g.lineWidth = Math.max(1, PX * 1.2);
+    g.beginPath(); g.arc(LX, LY, R, 0, 6.2831853); g.stroke();
+    // and a red breath at the very edge of the screen
+    const eg = g.createLinearGradient(0, 0, 0, H);
+    eg.addColorStop(0, _ivRed(_IV_BLOOD, _ivPulse * 0.20));
+    eg.addColorStop(0.35, _ivRed(_IV_BLOOD, 0));
+    eg.addColorStop(0.65, _ivRed(_IV_BLOOD, 0));
+    eg.addColorStop(1, _ivRed(_IV_BLOOD, _ivPulse * 0.26));
+    g.fillStyle = eg; g.fillRect(0, 0, W, H);
+    g.restore();
+  }
+
+  // ── the light the rapier is carrying, thrown onto the chrome ──
+  {
+    const R = M * (0.16 + _ivLunge * 0.16);
+    const cg = g.createRadialGradient(_ivMX, _ivMY, 0, _ivMX, _ivMY, R);
+    for (let i = 0; i <= 8; i++) {
+      const u = i / 8;
+      cg.addColorStop(u, _IV_HOT[_ivA((0.14 + _ivLunge * 0.22) * Math.pow(1 - u, 2.6))]);
+    }
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    g.fillStyle = cg;
+    g.fillRect(_ivMX - R, _ivMY - R, R * 2, R * 2);
+    g.restore();
+  }
+
+  // ── the events that reach the whole application ──
+  if (_ivDark > 0.01) {
+    g.fillStyle = 'rgba(3,1,2,' + (_ivDark * 0.55).toFixed(3) + ')';
+    g.fillRect(0, 0, W, H);
+  }
+  if (_ivEvNow && _ivEvNow.name === 'hunger' && _ivEvNow.p > 0.68) {
+    const f = Math.pow(1 - (_ivEvNow.p - 0.68) / 0.32, 2.4);
+    g.save(); g.globalCompositeOperation = 'lighter';
+    g.fillStyle = _IV_EMBER[_ivA(f * 0.55)]; g.fillRect(0, 0, W, H);
+    g.restore();
+  }
+  if (_ivCrack > 0.01) {
+    const F = _drawIvyEvilOverlay;
+    if (F._crackFor !== (_ivEvNow && _ivEvNow.t0)) {
+      F._crackFor = _ivEvNow && _ivEvNow.t0;
+      const seg = [];
+      const ox = W * (0.25 + (_ivEvNow ? _ivEvNow.r0 : 0.5) * 0.5);
+      const oy = H * (0.25 + (_ivEvNow ? _ivEvNow.r1 : 0.5) * 0.5);
+      for (let b = 0; b < 7; b++) {
+        let x = ox, y = oy, aa = b * 0.9 + (_ivEvNow ? _ivEvNow.r2 : 0) * 6.283;
+        const st = [];
+        for (let k = 0; k < 6; k++) {
+          st.push(x, y);
+          aa += (_ivRnd(b * 17.3 + k * 5.1) - 0.5) * 1.1;
+          const L = M * (0.09 + _ivRnd(b * 3.7 + k) * 0.16);
+          x += Math.cos(aa) * L; y += Math.sin(aa) * L;
+        }
+        st.push(x, y); seg.push(st);
+      }
+      F._crack = seg;
+    }
+    const grow = Math.min(1, _ivCrack * 1.4);
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (const st of F._crack) {
+      const n = Math.max(2, (grow * (st.length / 2)) | 0);
+      g.beginPath(); g.moveTo(st[0], st[1]);
+      for (let k = 1; k < n; k++) g.lineTo(st[k * 2], st[k * 2 + 1]);
+      g.strokeStyle = _ivRed(_IV_EMBER, _ivCrack * 0.45); g.lineWidth = Math.max(1, PX * 1.4); g.stroke();
+      g.strokeStyle = _IV_BONE[_ivA(_ivCrack * 0.5)]; g.lineWidth = Math.max(1, PX * 0.5); g.stroke();
+    }
+    g.restore();
+  }
+  if (_ivSlash) _ivDrawSlash(g, _ivSlash, W, H);
+
+  // ── you ──
+  const mvx = (_ivMX - _ivPrevMX) / Math.max(dt, 0.001), mvy = (_ivMY - _ivPrevMY) / Math.max(dt, 0.001);
+  _ivPrevMX = _ivMX; _ivPrevMY = _ivMY;
+  _ivTrailN = (_ivTrailN + 1) & 15;
+  _ivTrail[_ivTrailN * 2] = _ivMX; _ivTrail[_ivTrailN * 2 + 1] = _ivMY;
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  for (let k = 1; k < 15; k++) {
+    const i0 = (_ivTrailN - k + 32) & 15, i1 = (_ivTrailN - k + 33) & 15;
+    const u = 1 - k / 15;
+    g.strokeStyle = _ivRed(k < 5 ? _IV_BONE : _IV_HOT, u * u * 0.45);
+    g.lineWidth = Math.max(1, PX * (0.4 + u * 1.6));
+    g.beginPath();
+    g.moveTo(_ivTrail[i0 * 2], _ivTrail[i0 * 2 + 1]);
+    g.lineTo(_ivTrail[i1 * 2], _ivTrail[i1 * 2 + 1]);
+    g.stroke();
+  }
+  g.restore();
+  _ivDrawRapier(g, _ivMX, _ivMY, t, mvx, mvy, PX);
+
+  const ctx = ctxIn;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(lo, 0, 0, lo.width, lo.height, 0, 0, lo.width * PX, lo.height * PX);
+  ctx.imageSmoothingEnabled = true;
+}
+
+function _startIvyEvilOverlay() {
+  _stopIvyEvilOverlay();
+  _drawIvyEvilOverlay._lt = undefined;
+  _ivEvReset();
+  _ivLunge = 0;
+  _ivPrevMX = _ivMX; _ivPrevMY = _ivMY;
+  _ivTrail = null;
+  window.addEventListener('mousemove', _ivMouseMove);
+  window.addEventListener('mousedown', _ivMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'ivyevil-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('ivyevil-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawIvyEvilOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _ivOverlayRaf = requestAnimationFrame(frame);
+  }
+  _ivOverlayRaf = requestAnimationFrame(frame);
+}
+function _stopIvyEvilOverlay() {
+  if (_ivOverlayRaf) { cancelAnimationFrame(_ivOverlayRaf); _ivOverlayRaf = null; }
+  window.removeEventListener('mousemove', _ivMouseMove);
+  window.removeEventListener('mousedown', _ivMouseDown);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('ivyevil-overlay'); if (cv) cv.remove();
+  _ivEvReset();
+  _ivLunge = 0;
+  _drawIvyEvilOverlay._w = -1;
+  _drawIvyEvilPattern._w = -1;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // AH!FLOWEY
 //
 // THE CLAIM. This place has already lost. The vines got here first
@@ -35409,6 +37083,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'classic_save')   { _drawClassicSavePattern(canvas, ctx, W, H, t);         return; }
   if (type === 'classic_ghost')  { _drawClassicGhostPattern(canvas, ctx, W, H, t);        return; }
   if (type === 'flowey_vines')   { _drawFloweyPattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'ivy_evil')       { _drawIvyEvilPattern(canvas, ctx, W, H, t);              return; }
 
   // Static noise: handle BEFORE clearRect, skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -35995,6 +37670,8 @@ function startBgAnim(type, params) {
   _drawClassicGhostOverlay._lt = undefined;
   _drawFloweyPattern._lt      = undefined;
   _drawFloweyOverlay._lt      = undefined;
+  _drawIvyEvilPattern._lt     = undefined;
+  _drawIvyEvilOverlay._lt     = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -36092,6 +37769,7 @@ function stopBgAnim() {
   _stopClassicSaveOverlay();
   _stopClassicGhostOverlay();
   _stopFloweyOverlay();
+  _stopIvyEvilOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -36755,6 +38433,7 @@ function viewChar(id) {
   else if (_isStarry(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff8fcf'); }
   else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
   else if (_isFlowey(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e0b838'); }
+  else if (_isIvyEvil(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d61c30'); }
   else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
   else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
   else if (_isClassicGhost(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d8c46a'); }
@@ -37123,7 +38802,7 @@ function viewChar(id) {
     if (_isKurio(c)) {
       _cvRoot.classList.add('kurio-ui');
       if (_av) _av.classList.add('kurio-pfp');
-      if (_nm) { _nm.classList.add('kurio-name'); _nm.setAttribute('data-text', _nm.textContent || 'KURIO'); }
+      if (_nm) { _nm.classList.add('kurio-name'); _nm.setAttribute('data-text', _nm.textContent || 'KUROI'); }
     } else {
       _cvRoot.classList.remove('kurio-ui');
       if (_av) _av.classList.remove('kurio-pfp');
@@ -37815,6 +39494,27 @@ function viewChar(id) {
     }
   }
 
+  // ── Ivy · EVIL creature: the card is a piece of the same room. Lacquer
+  //    panels, blood on every title, and the pattern canvas up off its
+  //    default 0.3 because the hall IS the page. Placed after every other
+  //    opacity claimant, so it only has to set the value. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isIvyEvil(c)) {
+      _cvRoot.classList.add('ivyevil-ui');
+      if (_av) _av.classList.add('ivyevil-pfp');
+      if (_nm) { _nm.classList.add('ivyevil-name'); _nm.setAttribute('data-text', _nm.textContent || 'IVY'); }
+      if (_pc) _pc.style.opacity = '0.97';
+    } else {
+      _cvRoot.classList.remove('ivyevil-ui');
+      if (_av) _av.classList.remove('ivyevil-pfp');
+      if (_nm) { _nm.classList.remove('ivyevil-name'); if (!_nmHasNameSkin(_nm)) _nm.removeAttribute('data-text'); }
+    }
+  }
+
   // ── Evelynn: elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -37927,7 +39627,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -37940,7 +39640,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : _isJuko1(c) ? "Juko · 1, the value left" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && ptype !== 'flowey_vines' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && ptype !== 'flowey_vines' && ptype !== 'ivy_evil' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -38051,6 +39751,7 @@ function viewChar(id) {
   if (_isClassicSave(c)) _startClassicSaveOverlay();
   if (_isClassicGhost(c)) _startClassicGhostOverlay();
   if (_isFlowey(c))   _startFloweyOverlay();
+  if (_isIvyEvil(c))  _startIvyEvilOverlay();
   }
 
   renderInventory(c);
@@ -43612,7 +45313,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -43687,6 +45388,7 @@ window.addEventListener('resize', () => {
       if (_isClassicSave(c)) _startClassicSaveOverlay();
       if (_isClassicGhost(c)) _startClassicGhostOverlay();
       if (_isFlowey(c))   _startFloweyOverlay();
+      if (_isIvyEvil(c))  _startIvyEvilOverlay();
     }
   }
 });
@@ -54533,7 +56235,7 @@ function _stopActariusOverlay() {
 // apart on its own clock, so the garden is never twice the same.
 // His cursor is a bud, and a click opens it.
 // ════════════════════════════════════════════════════════════════
-const _KUR_RE = /^["']?\s*KURIO\s*["']?$/i;
+const _KUR_RE = /^["']?\s*KUROI\s*["']?$/i;
 function _isKurio(c) { return !!(c && c.name && _KUR_RE.test(c.name)); }
 const _KUR_SILVER = '208,200,220';    // the only light in the place
 const _KUR_ASH    = '130,122,144';

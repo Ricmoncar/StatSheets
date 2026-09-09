@@ -408,6 +408,28 @@ Lobes added under a ceiling to break up its silhouette were drawn over it at
 the mass's own fill, they are simply places where the ceiling hangs lower,
 which is what they were for.
 
+**On a pixel page, design at the LOW resolution.** The pixel pipeline draws
+everything into a buffer a third to a fifth of the size, so an object sized the
+way you would size it on a sharp canvas gets a fraction of the pixels you
+imagined. Ivy's rapier was built at the size a normal cursor would be and came
+out with a blade two low-resolution pixels wide, which is to say invisible.
+Work out the pixel count you will actually get for each part before drawing it:
+a blade wants five across, an ornament wants twenty, and if that makes the
+object big, the object is big.
+
+**Bake the metal, keep the fire.** A chandelier of eighteen scroll arms and a
+curtain of drops, three passes each, redrawn every frame, was a third of that
+page's cost, and none of it ever changed: only the flames move, and the swing
+is a rotation. Baking the metal into a sheet and applying the swing to the blit
+took the background from 1.76 ms to 1.26. Ask of every ornate thing which part
+of it is actually animating.
+
+**One `createRadialGradient` per light is one too many.** Sixteen sconces meant
+sixteen gradient objects built and filled every frame. One white radial baked
+into a 64x64 sprite, tinted once when the palette changes and blitted at
+whatever size each light needs, is the same picture for nothing. The same
+applies to any glow, bloom, pool or halo that differs only in size and colour.
+
 **Sort by y and draw back to front.** Row order is *not* depth order once items
 are jittered off their row line. This is what makes things look like they are
 floating.
