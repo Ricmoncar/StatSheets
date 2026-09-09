@@ -1944,8 +1944,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const a = _themeAudio, raw = a.dataset.rawUrl || '', stage = a.dataset.bkStage || '0';
       const reload = (url) => { const at = a.currentTime || 0; a.src = url; a.load(); try { a.currentTime = at; } catch (e) {} a.play().catch(() => {}); };
       if (raw && a.src.indexOf('/br_128k/') !== -1 && stage === '0') { a.dataset.bkStage = '1'; reload(raw); return; }
-      const alt = _cldSwap(raw);
-      if (alt && stage !== '2') { a.dataset.bkStage = '2'; reload(alt); return; }
+      //   3) each backup account in turn, so one dead account cannot end the song
+      for (let i = Math.max(0, +stage - 1); i < CLOUDINARY_BACKUPS.length; i++) {
+        const alt = _cldSwap(raw, i);
+        if (alt) { a.dataset.bkStage = String(i + 2); reload(alt); return; }
+      }
     });
     // Top-level `let` does NOT become a window property in a non-module script,
     // so window._themeAudio was permanently undefined: which silently disabled
@@ -1991,27 +1994,41 @@ const THEME_MAX_MB = 20;
 
 const CLOUDINARY_CLOUD = 'dhdfz1iud';
 const CLOUDINARY_PRESET = 'statsheets';
-// Second, independent Cloudinary account used as a hot backup. Uploads are
-// mirrored to it at the SAME public_id, so if the primary ever fails to deliver
-// (outage or monthly-credit cap), the very same asset is served from here just
-// by swapping the cloud name in the URL.
-// (dhlik6lkn was the original primary; it got disabled for exceeding its
-// usage limit, so dhdfz1iud is now primary and dhlik6lkn sits here as backup.)
-const CLOUDINARY_CLOUD_2 = 'dhlik6lkn';
-const CLOUDINARY_PRESET_2 = 'statsheets';
+// Independent Cloudinary accounts kept as hot backups, tried in this order.
+// Every upload is mirrored to all of them at the SAME public_id, so if an
+// account ever fails to deliver (an outage, or the monthly credit cap) the very
+// same asset is served from the next one just by swapping the cloud name in the
+// URL. Adding another account is one line here.
+// (dhlik6lkn was the original primary and got disabled for exceeding its usage
+// limit, so it sits last; duq37uaxf is the fresh one and goes first.)
+//
+// These are unsigned uploads, which is why only the cloud name and the preset
+// appear here and no API key or secret does. An unsigned preset is the only
+// credential that is safe in a file the browser downloads: a secret in here
+// would be readable by anyone who opened the page and would let them delete
+// the whole account. Each account needs an UNSIGNED upload preset named
+// `statsheets` for this to work.
+const CLOUDINARY_BACKUPS = [
+  { cloud: 'duq37uaxf', preset: 'statsheets' },
+  { cloud: 'dhlik6lkn', preset: 'statsheets' },
+];
 
-// rewrite a primary-account Cloudinary URL to point at the backup account
-function _cldSwap(url) {
-  if (typeof url !== 'string') return null;
-  const needle = 'res.cloudinary.com/' + CLOUDINARY_CLOUD + '/';
-  if (url.indexOf(needle) === -1) return null;
-  return url.replace('/' + CLOUDINARY_CLOUD + '/', '/' + CLOUDINARY_CLOUD_2 + '/');
+// rewrite a Cloudinary URL to point at backup account `i`
+function _cldSwap(url, i) {
+  const b = CLOUDINARY_BACKUPS[i || 0];
+  if (typeof url !== 'string' || !b) return null;
+  const m = url.match(/res\.cloudinary\.com\/([^/]+)\//);
+  if (!m || m[1] === b.cloud) return null;
+  return url.replace('/' + m[1] + '/', '/' + b.cloud + '/');
 }
-// <img> fallback: on load error, retry the same asset from the backup account (once)
+// <img> fallback: on load error, walk down the backups one at a time
 function _cldImgError(img) {
-  if (!img || img.dataset.cldBk) return;
-  const alt = _cldSwap(img.src);
-  if (alt) { img.dataset.cldBk = '1'; img.src = alt; }
+  if (!img) return;
+  const n = +(img.dataset.cldBk || 0);
+  if (n >= CLOUDINARY_BACKUPS.length) return;
+  const alt = _cldSwap(img.src, n);
+  img.dataset.cldBk = String(n + 1);
+  if (alt) img.src = alt; else _cldImgError(img);
 }
 
 // ── Upload helper: Cloudinary primary → Cloudinary backup → ImageKit ──────────
@@ -2035,19 +2052,27 @@ async function _cldUploadTo(cloud, preset, file, resourceType, pid) {
 async function _uploadMedia(file, resourceType /* 'image' | 'video' */, publicId) {
   // shared id so the asset lands at the same path on BOTH accounts (enables the swap fallback)
   const pid = publicId || ('uploads/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));
-  // 1. Cloudinary (primary): and mirror to the backup account in the background
+  // 1. Cloudinary (primary), mirrored to every backup in the background
   try {
     const url = await _cldUploadTo(CLOUDINARY_CLOUD, CLOUDINARY_PRESET, file, resourceType, pid);
-    _cldUploadTo(CLOUDINARY_CLOUD_2, CLOUDINARY_PRESET_2, file, resourceType, pid).catch(() => {}); // best-effort mirror
+    for (const b of CLOUDINARY_BACKUPS) {
+      _cldUploadTo(b.cloud, b.preset, file, resourceType, pid).catch(() => {});  // best effort
+    }
     return url;
   } catch (err) {
-    console.warn('[Upload] Cloudinary primary failed, trying backup account:', err.message);
+    console.warn('[Upload] Cloudinary primary failed, trying the backups:', err.message);
   }
-  // 2. Cloudinary (backup account)
-  try {
-    return await _cldUploadTo(CLOUDINARY_CLOUD_2, CLOUDINARY_PRESET_2, file, resourceType, pid);
-  } catch (err) {
-    console.warn('[Upload] Cloudinary backup failed, falling back to ImageKit:', err.message);
+  // 2. each backup account in turn
+  for (const b of CLOUDINARY_BACKUPS) {
+    try {
+      const url = await _cldUploadTo(b.cloud, b.preset, file, resourceType, pid);
+      for (const o of CLOUDINARY_BACKUPS) {
+        if (o !== b) _cldUploadTo(o.cloud, o.preset, file, resourceType, pid).catch(() => {});
+      }
+      return url;
+    } catch (e2) {
+      console.warn('[Upload] Cloudinary backup ' + b.cloud + ' failed:', e2.message);
+    }
   }
 
   // 3. ImageKit (final fallback)
@@ -28065,6 +28090,15 @@ function _ivCutApply() {
 // exactly why the movement lives here and the hole does not.
 function _ivShoveAll() {
   if (_ivRM || !_ivCuts.length) return;
+  // Nothing moves while a button is held down, or while something is being
+  // typed into: a `click` needs its mousedown and its mouseup on the same
+  // element, and forty pixels of shove in between is how you lose one.
+  const ae = document.activeElement;
+  const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
+  if (_ivPtrDown || typing) {
+    _ivCutTargets().forEach(function (t) { t[0].style.transform = ''; });
+    return;
+  }
   const D = Math.hypot(window.innerWidth || 1600, window.innerHeight || 900);
   _ivCutTargets().forEach(function (t) {
     const el = t[0], k = t[1];
@@ -28228,19 +28262,37 @@ let _ivSparks = [];                     // struck off the blade and out of the c
 let _ivGhosts = [];                     // where the blade has just been
 let _ivDrips = [];                      // and what is still coming off it
 let _ivOverlayRaf = null;
+let _ivPtrDown = false;
 function _ivMouseMove(e) { _ivMX = e.clientX; _ivMY = e.clientY; }
-function _ivMouseDown() {
+
+/* Anything you can press, type in, or pick from. A tear that fires under the
+   pointer shoves the interface forty pixels sideways between mousedown and
+   mouseup, and a `click` only happens when both land on the same element: the
+   effect was quietly eating presses on EDIT, on the form buttons and on
+   anything else you aimed at. So a click on a control opens no wound at all,
+   and while a button is held down nothing is allowed to move. */
+function _ivInteractive(el) {
+  return !!(el && el.closest && el.closest(
+    'button, .btn, a, input, select, textarea, label, summary, option,' +
+    '[onclick], [role="button"], .tab-btn, .char-entry, .panel-title,' +
+    '.stat-row, .inv-card, .trait-card, .chip, .folder-row'));
+}
+function _ivMouseUp() { _ivPtrDown = false; }
+function _ivMouseDown(e) {
+  _ivPtrDown = true;
   _ivLunge = 1;
   const a = (_ivDrawRapier._a || -0.6);
-  const L = Math.hypot(window.innerWidth, window.innerHeight) * 1.1;
-  const c = { a: a, x: _ivMX, y: _ivMY,
-              x0: _ivMX - Math.cos(a) * L, y0: _ivMY - Math.sin(a) * L,
-              x1: _ivMX + Math.cos(a) * L, y1: _ivMY + Math.sin(a) * L,
-              t0: 0, p: 0, w: 1.15, seed: performance.now() * 0.013 };
-  _ivTearBuild(c, window.innerWidth || 1600, window.innerHeight || 900);
-  _ivCuts.push(c);
-  _ivShardBurst(c, window.innerWidth || 1600, window.innerHeight || 900);
-  _ivCutApply();
+  const L = Math.hypot(window.innerWidth || 1600, window.innerHeight || 900) * 1.1;
+  if (!_ivInteractive(e && e.target)) {
+    const c = { a: a, x: _ivMX, y: _ivMY,
+                x0: _ivMX - Math.cos(a) * L, y0: _ivMY - Math.sin(a) * L,
+                x1: _ivMX + Math.cos(a) * L, y1: _ivMY + Math.sin(a) * L,
+                t0: 0, p: 0, w: 1.15, seed: performance.now() * 0.013 };
+    _ivTearBuild(c, window.innerWidth || 1600, window.innerHeight || 900);
+    _ivCuts.push(c);
+    _ivShardBurst(c, window.innerWidth || 1600, window.innerHeight || 900);
+    _ivCutApply();
+  }
   for (let i = 0; i < 14; i++) {
     _ivSparks.push({ x: _ivMX, y: _ivMY,
                      vx: Math.cos(a + (Math.random() - 0.5) * 1.1) * (260 + Math.random() * 620),
@@ -28302,143 +28354,188 @@ function _ivFrameSheet(W, H, LX, LY, PX) {
 
 
 /* ── the star ─────────────────────────────────────────────────────
-   On the left, over the application, burning. Eight spikes on a
-   slowly turning frame, a sigil inscribed in a double ring of the
-   hall's own ornament, and a core too bright to look at. It is on
-   the OVERLAY rather than in the picture because the left third of
-   the picture is behind the panels, and a thing that is supposed to
-   be intimidating has to be visible.
-   Everything is additive, so it reads as light standing in front of
-   the interface rather than as an object stuck on top of it. It
-   answers the same heartbeat everything else does: the spikes throw
-   out on the beat and a ring leaves it every time. ── */
+   An actual star, in an actual sky. The first attempt was a sigil:
+   an eight pointed heraldic thing with a pentagram in it, which is
+   a symbol of a star and not a star.
+   So the hall gets a window. Tall, arched, on the left, framed in
+   the same scroll as everything else, with the night behind it and
+   a red giant sitting low in it: a core too bright to look at, a
+   corona, and the four long diffraction spikes that are the reason
+   a bright point in a dark sky reads as a star at all. Small ones
+   are scattered around it and they twinkle at their own rates.
+   It is on the OVERLAY rather than in the picture because the left
+   third of the picture is behind the GUI panels, and a thing that
+   is supposed to be intimidating has to be visible.
+   THE LIGHT RULE HOLDS. The chandelier is still the one light: every
+   lit edge, every rim and every shadow in the hall is computed from
+   it and nothing here changes that. The star is a distant source
+   that does two things and no more, which is what a real one at
+   that distance would do: it glows, and it lays a shaft of its own
+   light across the floor under the window. ── */
+function _ivSkyWindow(W, H) {
+  const M = Math.min(W, H);
+  return { x: W * 0.132, t: H * 0.185, b: H * 0.790, w: M * 0.118 };
+}
+function _ivSkyPath(g, K) {
+  g.beginPath();
+  g.moveTo(K.x - K.w, K.b);
+  g.lineTo(K.x - K.w, K.t + K.w * 0.92);
+  g.quadraticCurveTo(K.x, K.t - K.w * 0.34, K.x + K.w, K.t + K.w * 0.92);
+  g.lineTo(K.x + K.w, K.b);
+  g.closePath();
+}
+
 function _ivStar(g, W, H, t, PX) {
   const M = Math.min(W, H);
-  const X = W * 0.150, Y = H * 0.470;
-  const R = M * 0.205;
+  const K = _ivSkyWindow(W, H);
   const beat = _ivPulse;
-  const flare = Math.pow(Math.max(0, Math.sin(t * 0.42)), 12);      // now and then, more
-  const pw = (1 - _ivDark * 0.85) * (1 - _ivDrain * 0.55);
-  const spin = t * 0.10;
-
-  g.save();
-  g.globalCompositeOperation = 'lighter';
-
-  // the halo it stands in
+  const flare = Math.pow(Math.max(0, Math.sin(t * 0.34)), 14);       // now and then
+  const pw = (1 - _ivDark * 0.7) * (1 - _ivDrain * 0.5);
+  const SX = K.x + K.w * 0.10, SY = K.t + (K.b - K.t) * 0.40;
+  const R = K.w * (0.190 + beat * 0.035 + flare * 0.055);            // the disc itself
   const GL = _ivGlowTinted();
-  const HR = R * (2.0 + beat * 0.5 + flare * 0.9);
-  g.globalAlpha = (0.20 + beat * 0.18 + flare * 0.22) * pw;
-  g.drawImage(GL, X - HR, Y - HR, HR * 2, HR * 2);
+  const slow = _ivRM ? 0.35 : 1;
+
+  // ── the night behind it. Deepened rather than painted in: the application
+  //    underneath is already almost black, so a wash is enough to read as sky
+  //    and the sidebar stays legible through it.
+  g.save();
+  _ivSkyPath(g, K);
+  g.clip();
+  const ng = g.createLinearGradient(0, K.t, 0, K.b);
+  ng.addColorStop(0, 'rgba(2,1,4,0.62)');
+  ng.addColorStop(0.62, 'rgba(6,2,6,0.55)');
+  ng.addColorStop(1, 'rgba(26,4,12,0.48)');
+  g.fillStyle = ng;
+  g.fillRect(K.x - K.w, K.t - K.w, K.w * 2, K.b - K.t + K.w * 2);
+
+  // the small ones, each twinkling on its own clock
+  g.globalCompositeOperation = 'lighter';
+  g.beginPath();
+  for (let i = 0; i < 54; i++) {
+    const sx = K.x + (_ivRnd(i * 3.1) - 0.5) * K.w * 2.0;
+    const sy = K.t + _ivRnd(i * 5.7) * (K.b - K.t);
+    const tw = 0.35 + 0.65 * Math.pow(Math.abs(Math.sin(t * (0.5 + _ivRnd(i * 7.3) * 1.6) * slow + i)), 2.2);
+    const r = Math.max(PX * 0.5, K.w * 0.008 * (0.5 + _ivRnd(i * 9.1)) * tw);
+    g.moveTo(sx + r, sy); g.arc(sx, sy, r, 0, 6.2831853);
+  }
+  g.fillStyle = _ivRed(_IV_EMBER, 0.55 * pw);
+  g.fill();
+
+  // a bank of cloud crossing low and slow, so the sky is not a still picture
+  for (let k = 0; k < 3; k++) {
+    const cy = K.t + (K.b - K.t) * (0.58 + k * 0.13);
+    const dx = ((t * (5 + k * 3) * slow) % (K.w * 4)) - K.w * 2;
+    g.fillStyle = 'rgba(4,1,3,' + (0.30 - k * 0.06).toFixed(2) + ')';
+    g.globalCompositeOperation = 'source-over';
+    g.beginPath();
+    g.ellipse(K.x + dx, cy, K.w * (0.9 - k * 0.15), K.w * (0.10 - k * 0.015), 0, 0, 6.2831853);
+    g.ellipse(K.x + dx - K.w * 0.5, cy + K.w * 0.04, K.w * 0.5, K.w * 0.06, 0, 0, 6.2831853);
+    g.fill();
+  }
+
+  // ── THE STAR. Corona, then the spikes, then the disc. The four long spikes
+  //    are what a bright point in a dark sky actually looks like and they are
+  //    most of why this reads as a star rather than as a decoration.
+  g.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 3; k++) {
+    const hr = R * (10 - k * 3.4) * (1 + beat * 0.12 + flare * 0.25);
+    g.globalAlpha = (0.14 + beat * 0.09 + flare * 0.14) * pw;
+    g.drawImage(GL, SX - hr, SY - hr, hr * 2, hr * 2);
+  }
   g.globalAlpha = 1;
-
-  // EIGHT SPIKES: four long on the cardinals, four short between, and they
-  // throw out on the beat
-  const L1 = R * (1.30 + beat * 0.48 + flare * 0.75);
-  const L2 = R * (0.62 + beat * 0.22 + flare * 0.32);
-  g.beginPath();
-  for (let i = 0; i < 8; i++) {
-    const a = spin + i * 0.7853982;
-    const L = (i & 1) ? L2 : L1;
-    const w = R * ((i & 1) ? 0.055 : 0.085);
-    const cx = Math.cos(a), cy = Math.sin(a);
-    g.moveTo(X + cx * L, Y + cy * L);
-    g.lineTo(X - cy * w, Y + cx * w);
-    g.lineTo(X + cy * w, Y - cx * w);
-    g.closePath();
-  }
-  g.fillStyle = _ivRed(_IV_BLOOD, (0.42 + beat * 0.30) * pw);
-  g.fill();
-  g.beginPath();
-  for (let i = 0; i < 8; i++) {
-    const a = spin + i * 0.7853982;
-    const L = ((i & 1) ? L2 : L1) * 0.72;
-    const w = R * ((i & 1) ? 0.022 : 0.034);
-    const cx = Math.cos(a), cy = Math.sin(a);
-    g.moveTo(X + cx * L, Y + cy * L);
-    g.lineTo(X - cy * w, Y + cx * w);
-    g.lineTo(X + cy * w, Y - cx * w);
-    g.closePath();
-  }
-  g.fillStyle = _ivRed(_IV_EMBER, (0.70 + beat * 0.30) * pw);
-  g.fill();
-
-  // THE SIGIL: a five point star drawn 5/2, which is the shape everybody
-  // reads as a warning, inscribed in the ring
-  const SR = R * 0.62;
-  g.strokeStyle = _ivRed(_IV_EMBER, (0.45 + beat * 0.35) * pw);
-  g.lineWidth = Math.max(1, PX * 1.1);
-  g.beginPath();
-  for (let i = 0; i <= 5; i++) {
-    const a = -1.5707963 - spin * 1.7 + (i * 2) * 1.2566371;
-    const x = X + Math.cos(a) * SR, y = Y + Math.sin(a) * SR;
-    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
-  }
-  g.stroke();
-  g.strokeStyle = _IV_BONE[_ivA((0.20 + beat * 0.30) * pw)];
-  g.lineWidth = Math.max(1, PX * 0.5);
-  g.stroke();
-
-  // two rings, counter turning, and the hall's ornament riding the outer one
-  for (let k = 0; k < 2; k++) {
-    const rr = SR * (1.06 + k * 0.20);
-    g.strokeStyle = _ivRed(k ? _IV_BLOOD : _IV_HOT, (0.34 + beat * 0.25) * pw);
-    g.lineWidth = Math.max(1, PX * (k ? 0.8 : 1.4));
-    g.beginPath(); g.arc(X, Y, rr, 0, 6.2831853); g.stroke();
-  }
-  // The ring of ornament is eight compound scrolls, and eight of those every
-  // frame was most of what this layer cost. It is the same eight every time
-  // and all it does is turn, so it is baked once and the blit does the turning.
-  {
-    const key = (R | 0) + ':' + PX;
-    let sp = _ivStar._ring;
-    if (!sp || _ivStar._key !== key) {
-      const sz = Math.ceil(SR * 3.2);
-      sp = _ivStar._ring = document.createElement('canvas');
-      sp.width = sp.height = sz;
-      const q = sp.getContext('2d');
-      q.lineJoin = 'round'; q.lineCap = 'round';
-      for (let i = 0; i < 8; i++) {
-        const a = i * 0.7853982;
-        const rr = SR * 1.26;
-        _ivOrnament(q, sz * 0.5 + Math.cos(a) * rr, sz * 0.5 + Math.sin(a) * rr, a + 1.5707963,
-                    R * 0.20, sz * 0.5, sz * 0.5, _IV_PAL_GILT, i + 500, i & 1);
-      }
-      _ivStar._key = key;
+  const spin = Math.sin(t * 0.11) * 0.06;
+  const L1 = R * (9.5 + beat * 3.2 + flare * 7.5);
+  const L2 = R * (3.1 + beat * 1.1 + flare * 2.6);
+  for (let pass = 0; pass < 2; pass++) {
+    g.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = spin + i * 0.7853982;
+      const L = ((i & 1) ? L2 : L1) * (pass ? 0.55 : 1);
+      const w = R * ((i & 1) ? 0.22 : 0.30) * (pass ? 0.45 : 1);
+      const cx = Math.cos(a), cy = Math.sin(a);
+      g.moveTo(SX + cx * L, SY + cy * L);
+      g.lineTo(SX - cy * w, SY + cx * w);
+      g.lineTo(SX + cy * w, SY - cx * w);
+      g.closePath();
     }
-    const sc = 1 + beat * 0.12;
-    g.save();
-    g.translate(X, Y);
-    g.rotate(-spin * 2.1);
-    g.scale(sc, sc);
-    g.drawImage(sp, -sp.width * 0.5, -sp.height * 0.5);
-    g.restore();
+    g.fillStyle = pass ? _ivRed(_IV_EMBER, (0.85 + beat * 0.15) * pw)
+                       : _ivRed(_IV_HOT, (0.42 + beat * 0.26) * pw);
+    g.fill();
   }
+  // the disc, and the only white in the sky
+  g.fillStyle = _ivRed(_IV_EMBER, 0.95 * pw);
+  g.beginPath(); g.arc(SX, SY, R, 0, 6.2831853); g.fill();
+  g.fillStyle = _IV_BONE[_ivA((0.80 + beat * 0.20) * pw)];
+  g.beginPath(); g.arc(SX, SY, R * 0.46, 0, 6.2831853); g.fill();
 
-  // the shockwave it lets go of on every beat
+  // and what it throws off on the beat, still inside the window
   if (!_ivStar._rings) _ivStar._rings = [];
-  if (beat > 0.92 && t - (_ivStar._last || -9) > 0.45) {
-    _ivStar._last = t;
-    _ivStar._rings.push({ r: R * 0.4, a: 1 });
-  }
+  if (beat > 0.92 && t - (_ivStar._last || -9) > 0.45) { _ivStar._last = t; _ivStar._rings.push({ r: R * 1.2, a: 1 }); }
   for (let i = _ivStar._rings.length - 1; i >= 0; i--) {
     const q = _ivStar._rings[i];
-    q.r += M * 1.15 * 0.016;
-    q.a -= 0.022;
+    q.r += M * 0.55 * 0.016; q.a -= 0.024;
     if (q.a <= 0) { _ivStar._rings.splice(i, 1); continue; }
-    g.strokeStyle = _ivRed(_IV_HOT, q.a * 0.30 * pw);
-    g.lineWidth = Math.max(1, PX * (0.6 + q.a * 1.6));
-    g.beginPath(); g.arc(X, Y, q.r, 0, 6.2831853); g.stroke();
+    g.strokeStyle = _ivRed(_IV_HOT, q.a * 0.26 * pw);
+    g.lineWidth = Math.max(1, PX * (0.5 + q.a * 1.4));
+    g.beginPath(); g.arc(SX, SY, q.r, 0, 6.2831853); g.stroke();
   }
+  g.restore();
 
-  // and the core, which is the only place on this page that goes to white
-  const CR = R * (0.165 + beat * 0.05 + flare * 0.08);
-  g.globalAlpha = pw;
-  g.drawImage(GL, X - CR * 3.4, Y - CR * 3.4, CR * 6.8, CR * 6.8);
+  // ── the reveal and the frame. The wall is thick, so the opening has a jamb
+  //    and a sill, and the whole thing is edged in the hall's own ornament. ──
+  g.save();
+  g.globalCompositeOperation = 'source-over';
+  g.strokeStyle = _IV_VOID[24]; g.lineWidth = M * 0.020;
+  _ivSkyPath(g, K); g.stroke();
+  g.strokeStyle = _IV_DARK[24]; g.lineWidth = M * 0.011;
+  _ivSkyPath(g, K); g.stroke();
+  g.strokeStyle = _ivRed(_IV_EMBER, 0.42); g.lineWidth = Math.max(1, PX * 0.9);
+  _ivSkyPath(g, K); g.stroke();
+  // the transom and the mullion, which is what tells you it is glazed
+  g.strokeStyle = _IV_DARK[24]; g.lineWidth = M * 0.007;
+  g.beginPath();
+  g.moveTo(K.x, K.t + K.w * 0.30); g.lineTo(K.x, K.b);
+  g.moveTo(K.x - K.w, K.t + (K.b - K.t) * 0.42); g.lineTo(K.x + K.w, K.t + (K.b - K.t) * 0.42);
+  g.stroke();
+  g.strokeStyle = _ivRed(_IV_BLOOD, 0.55); g.lineWidth = Math.max(1, PX * 0.6);
+  g.stroke();
+  // the sill, and the ornament on the frame
+  g.fillStyle = _IV_DARK[24];
+  g.fillRect(K.x - K.w * 1.14, K.b, K.w * 2.28, M * 0.016);
+  g.strokeStyle = _ivRed(_IV_EMBER, 0.5); g.lineWidth = Math.max(1, PX * 0.8);
+  g.strokeRect(K.x - K.w * 1.14, K.b, K.w * 2.28, M * 0.016);
+  const OS = K.w * 0.62;
+  const LX = W * 0.70, LY = H * 0.20;
+  _ivOrnament(g, K.x, K.t - K.w * 0.30, -1.5707963, OS, LX, LY, _IV_PAL_GILT, 601, false);
+  _ivOrnament(g, K.x, K.t - K.w * 0.30, -1.5707963, OS, LX, LY, _IV_PAL_GILT, 602, true);
+  for (let k = 0; k < 3; k++) {
+    const yy = K.t + K.w * 1.0 + (K.b - K.t - K.w) * (k / 2.6);
+    _ivOrnament(g, K.x - K.w - M * 0.004, yy, 1.5707963 + 0.35, OS * 0.55, LX, LY, _IV_PAL_GILT, 610 + k, true);
+    _ivOrnament(g, K.x + K.w + M * 0.004, yy, 1.5707963 - 0.35, OS * 0.55, LX, LY, _IV_PAL_GILT, 620 + k, false);
+  }
+  _ivOrnament(g, K.x - K.w * 0.9, K.b + M * 0.014, -0.5, OS * 0.7, LX, LY, _IV_PAL_GILT, 631, false);
+  _ivOrnament(g, K.x + K.w * 0.9, K.b + M * 0.014, Math.PI + 0.5, OS * 0.7, LX, LY, _IV_PAL_GILT, 632, true);
+  g.restore();
+
+  // ── and the one thing a star that far away is allowed to do to the room:
+  //    lay its own light on the floor under the window. ──
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  const sg = g.createLinearGradient(K.x, K.b, K.x + M * 0.30, H);
+  sg.addColorStop(0, _ivRed(_IV_HOT, (0.18 + beat * 0.10 + flare * 0.14) * pw));
+  sg.addColorStop(1, _ivRed(_IV_HOT, 0));
+  g.fillStyle = sg;
+  g.beginPath();
+  g.moveTo(K.x - K.w, K.b + M * 0.016);
+  g.lineTo(K.x + K.w, K.b + M * 0.016);
+  g.lineTo(K.x + K.w * 2.6, H);
+  g.lineTo(K.x - K.w * 0.4, H);
+  g.closePath(); g.fill();
+  const hr = K.w * (3.2 + beat * 0.5 + flare * 1.2);
+  g.globalAlpha = (0.10 + beat * 0.06 + flare * 0.12) * pw;
+  g.drawImage(GL, SX - hr, SY - hr, hr * 2, hr * 2);
   g.globalAlpha = 1;
-  g.fillStyle = _ivRed(_IV_HOT, 0.95 * pw);
-  g.beginPath(); g.arc(X, Y, CR, 0, 6.2831853); g.fill();
-  g.fillStyle = _IV_BONE[_ivA((0.75 + beat * 0.25) * pw)];
-  g.beginPath(); g.arc(X, Y, CR * 0.52, 0, 6.2831853); g.fill();
   g.restore();
 }
 
@@ -28945,8 +29042,11 @@ function _startIvyEvilOverlay() {
   _ivSparks = []; _ivGhosts = []; _ivDrips = []; _ivShards = [];
   _ivPrevMX = _ivMX; _ivPrevMY = _ivMY;
   _ivTrail = null;
+  _ivPtrDown = false;
   window.addEventListener('mousemove', _ivMouseMove);
-  window.addEventListener('mousedown', _ivMouseDown);
+  window.addEventListener('mousedown', _ivMouseDown, true);
+  window.addEventListener('mouseup', _ivMouseUp, true);
+  window.addEventListener('blur', _ivMouseUp);
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
   const cv = document.createElement('canvas');
   cv.id = 'ivyevil-overlay';
@@ -28967,8 +29067,11 @@ function _startIvyEvilOverlay() {
 }
 function _stopIvyEvilOverlay() {
   if (_ivOverlayRaf) { cancelAnimationFrame(_ivOverlayRaf); _ivOverlayRaf = null; }
+  _ivPtrDown = false;
   window.removeEventListener('mousemove', _ivMouseMove);
-  window.removeEventListener('mousedown', _ivMouseDown);
+  window.removeEventListener('mousedown', _ivMouseDown, true);
+  window.removeEventListener('mouseup', _ivMouseUp, true);
+  window.removeEventListener('blur', _ivMouseUp);
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('ivyevil-overlay'); if (cv) cv.remove();
   _ivCutClear();
