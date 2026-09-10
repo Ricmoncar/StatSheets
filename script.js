@@ -1693,6 +1693,7 @@ let previewAnim = null;
 let bgAnim = null;
 let editorAnim = null;
 let _editorForms = [];
+let _editorBase = null;   // the character as it was when the editor opened
 let _formUploadIdx = null;
 
 // ============================================================
@@ -1819,14 +1820,62 @@ function _baseOf(data) {
   return o;
 }
 
+// ── Three-way merge ───────────────────────────────────────────────
+// b is the field as this tab loaded it, l is what this tab has now, s is what
+// the database has now. Whatever only one side changed wins; whatever both
+// changed the same way is fine; whatever both changed DIFFERENTLY is a
+// conflict, and the database's version stays.
+const _ABSENT = Object.freeze({ __absent: true });
+function _same(a, b) {
+  if (a === _ABSENT || b === _ABSENT) return a === b;
+  return _stable(a) === _stable(b);
+}
+function _plainObj(v) { return v !== _ABSENT && v !== null && typeof v === 'object' && !Array.isArray(v); }
+// lists of keys where order does not matter: merged as sets, so two people
+// adding different traits at once both keep theirs
+const _SET_LISTS = new Set(['traits', 'shimmyfulTraits', 'tags']);
+function _merge3(b, l, s, path, conflicts) {
+  if (_same(l, b)) return s;              // this tab did not change it
+  if (_same(s, b)) return l;              // nobody else did
+  if (_same(l, s)) return l;              // both made the same change
+  const leaf = path.slice(path.lastIndexOf('.') + 1);
+  if (_plainObj(b) && _plainObj(l) && _plainObj(s)) {
+    const out = {};
+    for (const k of new Set([...Object.keys(b), ...Object.keys(l), ...Object.keys(s)])) {
+      const v = _merge3(k in b ? b[k] : _ABSENT, k in l ? l[k] : _ABSENT, k in s ? s[k] : _ABSENT, path + '.' + k, conflicts);
+      if (v !== _ABSENT) out[k] = v;
+    }
+    return out;
+  }
+  if (Array.isArray(b) && Array.isArray(l) && Array.isArray(s)) {
+    if (_SET_LISTS.has(leaf)) {
+      const key = x => _stable(x);
+      const bk = new Set(b.map(key)), lk = new Set(l.map(key));
+      const out = s.filter(x => !(bk.has(key(x)) && !lk.has(key(x))));   // drop what this tab removed
+      const have = new Set(out.map(key));
+      for (const x of l) if (!bk.has(key(x)) && !have.has(key(x))) { out.push(x); have.add(key(x)); }
+      return out;
+    }
+    // forms keep their places, so they can be merged one by one
+    if (leaf === 'altForms' && b.length === l.length && l.length === s.length) {
+      return s.map((x, i) => _merge3(b[i], l[i], x, path + '[' + i + ']', conflicts));
+    }
+  }
+  conflicts.push(path);
+  return s;
+}
+
 function saveData(charObj) {
   const c = charObj || characters.find(x => x.id === currentId);
   if (!c || !db) return;
   _lastSaveId = c.id;
   _lastSaveTime = Date.now();
-  // Keep local array in sync optimistically
+  // Keep local array in sync optimistically, but never by putting an OLDER
+  // copy of the character back in place of a newer one: a stale object being
+  // saved is merged into the database, and the next snapshot brings it back.
   const idx = characters.findIndex(x => x.id === c.id);
-  if (idx >= 0) characters[idx] = c; else characters.push(c);
+  if (idx < 0) characters.push(c);
+  else if (characters[idx] === c || !characters[idx].__base || !c.__base || characters[idx].__base === c.__base) characters[idx] = c;
   const ref = db.collection('characters').doc(c.id);
   const fail = err => { console.error('Firestore write error:', err); notify('SAVE FAILED', 'err'); };
   // Diff against what the database looked like when THIS object was loaded,
@@ -1840,33 +1889,72 @@ function saveData(charObj) {
   if (!base) {
     // never seen in the database: a brand new character, so write it whole
     const full = _stripUndefined(c);
+    full._rev = 1; c._rev = 1;
     const b = _baseOf(full);
     _dbBase.set(c.id, b);
     Object.defineProperty(c, '__base', { value: b, writable: true, configurable: true });
     ref.set(full).catch(fail);
     return;
   }
-  const patch = {};
-  let n = 0;
+  // What this code changed, relative to what it loaded.
+  const changed = [];
   for (const k of Object.keys(c)) {
-    if (c[k] === undefined) continue;
-    const v = _stripUndefined(c[k]);
-    const js = _stable(v);
-    if (base[k] !== js) {
-      patch[k] = v; base[k] = js; n++;
-      if (cur && cur !== base) cur[k] = js;
-    }
+    if (k === '_rev' || c[k] === undefined) continue;
+    if (base[k] !== _stable(_stripUndefined(c[k]))) changed.push(k);
   }
-  // a field that was really removed (delete c.x) is removed from the database
-  for (const k of Object.keys(base)) {
-    if (!(k in c)) {
-      patch[k] = firebase.firestore.FieldValue.delete(); delete base[k]; n++;
-      if (cur && cur !== base) delete cur[k];
-    }
+  for (const k of Object.keys(base)) if (k !== '_rev' && !(k in c)) changed.push(k);
+  if (!changed.length) return;
+  const mine = {}, was = {};
+  for (const k of changed) {
+    mine[k] = (k in c && c[k] !== undefined) ? _stripUndefined(c[k]) : _ABSENT;
+    was[k] = k in base ? JSON.parse(base[k]) : _ABSENT;
   }
-  if (!n) return;
-  ref.update(patch).catch(err => {
-    if (err && err.code === 'not-found') { ref.set(_stripUndefined(c)).catch(fail); return; }
+  // Read the latest version and write on top of it, in one transaction, with
+  // the next revision number. The database rules refuse any write that does
+  // not carry exactly that number, which is what shuts out a tab whose copy
+  // is out of date, including every tab still running older code.
+  db.runTransaction(async t => {
+    const snap = await t.get(ref);
+    if (!snap.exists) return { gone: true };
+    const sv = snap.data();
+    const conflicts = [], merged = {}, patch = {};
+    for (const k of changed) {
+      const theirs = k in sv ? sv[k] : _ABSENT;
+      const m = _merge3(was[k], mine[k], theirs, k, conflicts);
+      merged[k] = m;
+      if (!_same(m, theirs)) patch[k] = m === _ABSENT ? firebase.firestore.FieldValue.delete() : m;
+    }
+    let rev = null;
+    if (Object.keys(patch).length) {
+      rev = (typeof sv._rev === 'number' ? sv._rev : 0) + 1;
+      patch._rev = rev;
+      t.update(ref, patch);
+    }
+    return { merged, conflicts, rev };
+  }).then(r => {
+    if (r.gone) { notify('THIS CHARACTER WAS DELETED ELSEWHERE', 'err'); return; }
+    // the object catches up with what is now in the database
+    for (const k of changed) {
+      const m = r.merged[k];
+      if (m === _ABSENT) { delete base[k]; if (cur && cur !== base) delete cur[k]; delete c[k]; }
+      else { const js = _stable(m); base[k] = js; if (cur && cur !== base) cur[k] = js; c[k] = m; }
+    }
+    if (r.rev) {
+      c._rev = r.rev;
+      base._rev = _stable(r.rev);
+      if (cur && cur !== base) cur._rev = base._rev;
+    }
+    if (r.conflicts.length) {
+      notify('CHANGED ELSEWHERE, NOT SAVED: ' + r.conflicts.join(', ').toUpperCase(), 'err');
+      _lastSaveTime = 0;                  // let the next snapshot redraw
+      if (currentId === c.id) viewChar(c.id);
+    }
+  }).catch(err => {
+    if (err && err.code === 'permission-denied') {
+      notify('THIS TAB IS OUT OF DATE, RELOADING', 'err');
+      setTimeout(() => location.reload(), 1500);
+      return;
+    }
     fail(err);
   });
 }
@@ -39282,7 +39370,7 @@ function _commitCharOrder(arr, prev) {
     const p = prev.get(ch.id);
     const fid = ch.folderId || null;
     if (!p || p.order !== ch.order || p.folderId !== fid) {
-      batch.update(db.collection('characters').doc(ch.id), { order: ch.order, folderId: fid });
+      batch.update(db.collection('characters').doc(ch.id), { order: ch.order, folderId: fid, _rev: firebase.firestore.FieldValue.increment(1) });
       n++;
     }
   }
@@ -41906,6 +41994,7 @@ function removeEditorTag(i) {
 // EDITOR
 // ============================================================
 function showEditor(id) {
+  _editorBase = null;
   // Delete placeholder drafts when starting a brand-new character
   if (!id) {
     const had = characters.some(c => c.isPlaceholder);
@@ -41950,6 +42039,7 @@ function showEditor(id) {
     currentAvatarDataURL = c.avatar || null;
     _editorTags = [...(c.tags || [])];
     renderEditorTags();
+    _editorBase = c.__base ? Object.assign({}, c.__base) : null;
     _editorForms = (c.altForms || []).map((f, i) => ({
       _srcIdx: i,
       name: f.name || '',
@@ -42247,7 +42337,11 @@ function saveCharacter() {
     perfectSoulData: existing.perfectSoulData,
   };
   // a spread does not copy the hidden baseline, so hand it over explicitly
-  if (existing.__base) Object.defineProperty(char, '__base', { value: existing.__base, writable: true, configurable: true });
+  // Diff against the character as it was when the EDITOR OPENED. A field the
+  // user did not touch then compares equal and is left alone, even if someone
+  // else changed it while the editor sat open.
+  const _eb = _editorBase || existing.__base;
+  if (_eb) Object.defineProperty(char, '__base', { value: _eb, writable: true, configurable: true });
 
   if (editingId) {
     characters[characters.findIndex(x => x.id === editingId)] = char;
@@ -48858,7 +48952,7 @@ window.giveJukoShimmyfulMissingNo = async function () {
     const d = doc.data();
     const traits = Array.from(new Set([...(d.traits || []), 'missingno']));
     const shimmy = Array.from(new Set([...(d.shimmyfulTraits || []), 'missingno']));
-    await db.collection('characters').doc(doc.id).update({ traits, shimmyfulTraits: shimmy });
+    await db.collection('characters').doc(doc.id).update({ traits, shimmyfulTraits: shimmy, _rev: firebase.firestore.FieldValue.increment(1) });
     console.log(`Patched ${doc.id} (${d.name}): traits=${JSON.stringify(traits)}, shimmyful=${JSON.stringify(shimmy)}`);
   }
   console.log('Done. Refresh the page to see changes.');
@@ -49024,13 +49118,15 @@ function sendChatMsg() {
 
   // Use arrayUnion for atomic append: won't clobber other senders' messages
   db.collection('characters').doc(_chatRecipId).update({
-    [`chats.${senderId}`]: firebase.firestore.FieldValue.arrayUnion(msg)
+    [`chats.${senderId}`]: firebase.firestore.FieldValue.arrayUnion(msg),
+    _rev: firebase.firestore.FieldValue.increment(1)
   }).catch(() => {
     // Field doesn't exist yet: fall back to merge update
     const recip    = characters.find(c => c.id === _chatRecipId);
     const existing = recip?.chats?.[senderId] || [];
     db.collection('characters').doc(_chatRecipId).update({
-      chats: { ...(recip?.chats || {}), [senderId]: [...existing, msg] }
+      chats: { ...(recip?.chats || {}), [senderId]: [...existing, msg] },
+      _rev: firebase.firestore.FieldValue.increment(1)
     });
   });
 

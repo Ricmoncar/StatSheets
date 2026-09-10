@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Characters: anyone can read, create and delete them, exactly as before.
+    // An UPDATE must carry the next revision number: _rev one higher than what
+    // is in the database now (1 on a character that has never had one).
+    // The site reads the latest revision inside a transaction before every
+    // save, so this is invisible to it. What it refuses is a write from a tab
+    // whose copy is out of date, including every tab still running old code,
+    // which does not know about _rev at all.
+    match /characters/{id} {
+      allow read, create, delete: if true;
+      allow update: if request.resource.data.get('_rev', null) is int
+                    && request.resource.data._rev == resource.data.get('_rev', 0) + 1;
+    }
+
+    // photo galleries and anything else stored under a character
+    match /characters/{id}/{rest=**} {
+      allow read, write: if true;
+    }
+
+    // every other collection stays as open as it is now
+    match /{col}/{doc=**} {
+      allow read, write: if col != 'characters';
+    }
+  }
+}

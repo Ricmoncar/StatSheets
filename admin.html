@@ -398,6 +398,20 @@ const FIREBASE_CONFIG = {
 firebase.initializeApp(FIREBASE_CONFIG);
 db = firebase.firestore();
 
+const FV = firebase.firestore.FieldValue;
+// What the selected character looked like when it was loaded into the editor
+// here, so a save can tell what THIS page changed from what changed elsewhere.
+let _pendingOrig = null;
+function _nextRev(d) { return (typeof d._rev === 'number' ? d._rev : 0) + 1; }
+// A list of trait keys merged three ways: what the database has now, plus
+// what this page added, minus what this page removed.
+function _setMerge(base, mine, theirs) {
+  const b = new Set(base || []), m = new Set(mine || []);
+  const out = (theirs || []).filter(k => !(b.has(k) && !m.has(k)));
+  for (const k of (mine || [])) if (!b.has(k) && !out.includes(k)) out.push(k);
+  return out;
+}
+
 function _strip(obj) {
   if (obj === null || typeof obj !== 'object') {
     if (typeof obj === 'number' && !isFinite(obj)) return 0;
@@ -500,6 +514,8 @@ function teLoadChar(id) {
   _pending = JSON.parse(JSON.stringify(c));
   _pending.traits = _pending.traits || [];
   _pending.shimmyfulTraits = _pending.shimmyfulTraits || [];
+  _pendingOrig = { traits: [..._pending.traits], shimmyfulTraits: [..._pending.shimmyfulTraits],
+                   stats: Object.assign({}, c.stats || {}), name: c.name };
   _hasUnsavedChanges = false;
   document.getElementById('te-msg').textContent = '';
   document.getElementById('rename-input').value = c.name || '';
@@ -559,12 +575,23 @@ function teSave() {
   if (!_pending) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
   const c = characters.find(x => x.id === _pending.id);
   if (!c) return;
-  c.traits = [..._pending.traits];
-  c.shimmyfulTraits = [...(_pending.shimmyfulTraits || [])];
-  // Only the fields this page changed. A full .set() of this page's copy put
-  // back every other field (items, avatars, forms, names) the way this page
-  // last saw it, wiping anything saved from the main site in the meantime.
-  db.collection('characters').doc(c.id).update({ traits: c.traits, shimmyfulTraits: c.shimmyfulTraits })
+  // Read the latest version and merge this page's additions and removals into
+  // it, so a trait added from the main site meanwhile is kept, with the next
+  // revision number the database rules require.
+  const ref = db.collection('characters').doc(c.id);
+  const orig = _pendingOrig || { traits: [], shimmyfulTraits: [] };
+  const mine = [..._pending.traits], mineS = [...(_pending.shimmyfulTraits || [])];
+  db.runTransaction(async t => {
+    const snap = await t.get(ref);
+    if (!snap.exists) throw new Error('character was deleted');
+    const d = snap.data();
+    const traits = _setMerge(orig.traits, mine, d.traits);
+    const shimmy = _setMerge(orig.shimmyfulTraits, mineS, d.shimmyfulTraits);
+    t.update(ref, { traits, shimmyfulTraits: shimmy, _rev: _nextRev(d) });
+    c.traits = traits; c.shimmyfulTraits = shimmy;
+    _pending.traits = [...traits]; _pending.shimmyfulTraits = [...shimmy];
+    if (_pendingOrig) { _pendingOrig.traits = [...traits]; _pendingOrig.shimmyfulTraits = [...shimmy]; }
+  })
     .then(() => {
       _hasUnsavedChanges = false;
       const m = document.getElementById('te-msg');
@@ -599,13 +626,35 @@ function qsSave() {
   if (!_pending) { notify('SELECT A CHARACTER FIRST', 'err'); return; }
   const c = characters.find(x => x.id === _pending.id);
   if (!c) return;
-  c.stats = c.stats || {};
+  const orig = (_pendingOrig && _pendingOrig.stats) || {};
+  const want = {};
   ['hp','atk','def','mag','spd'].forEach(k => {
     const v = parseInt(document.getElementById('qs-' + k)?.value);
-    if (!isNaN(v) && v > 0) c.stats[k] = v;
+    if (!isNaN(v) && v > 0) want[k] = v;
   });
-  db.collection('characters').doc(c.id).update({ stats: _strip(c.stats) })
-    .then(() => notify('STATS SAVED: ' + (c.name || c.id), 'ok'))
+  // A stat edited here is written unless somebody else changed that same
+  // stat since it was loaded; stats not edited here are left alone.
+  const ref = db.collection('characters').doc(c.id);
+  let clashed = [];
+  db.runTransaction(async t => {
+    const snap = await t.get(ref);
+    if (!snap.exists) throw new Error('character was deleted');
+    const d = snap.data();
+    const now = d.stats || {};
+    const stats = Object.assign({}, now);
+    clashed = [];
+    for (const k of Object.keys(want)) {
+      if (want[k] === orig[k]) continue;
+      if (now[k] !== orig[k] && now[k] !== want[k]) { clashed.push(k); continue; }
+      stats[k] = want[k];
+    }
+    t.update(ref, { stats, _rev: _nextRev(d) });
+    c.stats = stats;
+    if (_pendingOrig) _pendingOrig.stats = Object.assign({}, stats);
+  })
+    .then(() => clashed.length
+      ? notify('CHANGED ELSEWHERE, NOT SAVED: ' + clashed.join(', ').toUpperCase(), 'err')
+      : notify('STATS SAVED: ' + (c.name || c.id), 'ok'))
     .catch(err => notify('SAVE FAILED: ' + err.message, 'err'));
 }
 
@@ -618,7 +667,16 @@ function renameChar() {
   const old = c.name;
   c.name = newName;
   _pending.name = newName;
-  db.collection('characters').doc(c.id).update({ name: newName })
+  const origName = (_pendingOrig && _pendingOrig.name != null) ? _pendingOrig.name : old;
+  const ref = db.collection('characters').doc(c.id);
+  db.runTransaction(async t => {
+    const snap = await t.get(ref);
+    if (!snap.exists) throw new Error('character was deleted');
+    const d = snap.data();
+    if (d.name !== origName && d.name !== newName) throw new Error('it was renamed elsewhere to "' + d.name + '"');
+    t.update(ref, { name: newName, _rev: _nextRev(d) });
+    if (_pendingOrig) _pendingOrig.name = newName;
+  })
     .then(() => {
       renderCharList();
       notify('"' + old + '" → "' + newName + '"', 'ok');
@@ -662,7 +720,7 @@ function bulkGive() {
     if (!u.traits.includes(key)) { u.traits.push(key); count++; }
     if (shimmy && !u.shimmyfulTraits.includes(key)) u.shimmyfulTraits.push(key);
     Object.assign(c, u);
-    return { id: c.id, data: { traits: u.traits, shimmyfulTraits: u.shimmyfulTraits } };
+    return { id: c.id, data: { traits: FV.arrayUnion(key), ...(shimmy ? { shimmyfulTraits: FV.arrayUnion(key) } : {}), _rev: FV.increment(1) } };
   });
   _batchWrite(updates, `✓ GAVE "${key}" TO ${count} CHARS`, 'bulk-msg');
 }
@@ -689,7 +747,7 @@ function _doRemoveAll(key, statusId) {
     u.traits = (u.traits || []).filter(k => k !== key);
     u.shimmyfulTraits = (u.shimmyfulTraits || []).filter(k => k !== key);
     Object.assign(c, u);
-    updates.push({ id: c.id, data: { traits: u.traits, shimmyfulTraits: u.shimmyfulTraits } });
+    updates.push({ id: c.id, data: { traits: FV.arrayRemove(key), shimmyfulTraits: FV.arrayRemove(key), _rev: FV.increment(1) } });
     count++;
   });
   if (!count) { notify('NO CHARACTERS HAD THAT TRAIT', 'ok'); return; }
@@ -704,7 +762,7 @@ function wipeAllEveryone() {
     u.traits = [];
     u.shimmyfulTraits = [];
     Object.assign(c, u);
-    return { id: c.id, data: { traits: u.traits, shimmyfulTraits: u.shimmyfulTraits } };
+    return { id: c.id, data: { traits: [], shimmyfulTraits: [], _rev: FV.increment(1) } };
   });
   _batchWrite(updates, `✓ WIPED ALL TRAITS FROM ${characters.length} CHARS`, 'nuke-msg');
 }
