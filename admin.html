@@ -561,7 +561,10 @@ function teSave() {
   if (!c) return;
   c.traits = [..._pending.traits];
   c.shimmyfulTraits = [...(_pending.shimmyfulTraits || [])];
-  db.collection('characters').doc(c.id).set(_strip(c))
+  // Only the fields this page changed. A full .set() of this page's copy put
+  // back every other field (items, avatars, forms, names) the way this page
+  // last saw it, wiping anything saved from the main site in the meantime.
+  db.collection('characters').doc(c.id).update({ traits: c.traits, shimmyfulTraits: c.shimmyfulTraits })
     .then(() => {
       _hasUnsavedChanges = false;
       const m = document.getElementById('te-msg');
@@ -601,7 +604,7 @@ function qsSave() {
     const v = parseInt(document.getElementById('qs-' + k)?.value);
     if (!isNaN(v) && v > 0) c.stats[k] = v;
   });
-  db.collection('characters').doc(c.id).set(_strip(c))
+  db.collection('characters').doc(c.id).update({ stats: _strip(c.stats) })
     .then(() => notify('STATS SAVED: ' + (c.name || c.id), 'ok'))
     .catch(err => notify('SAVE FAILED: ' + err.message, 'err'));
 }
@@ -615,7 +618,7 @@ function renameChar() {
   const old = c.name;
   c.name = newName;
   _pending.name = newName;
-  db.collection('characters').doc(c.id).set(_strip(c))
+  db.collection('characters').doc(c.id).update({ name: newName })
     .then(() => {
       renderCharList();
       notify('"' + old + '" → "' + newName + '"', 'ok');
@@ -632,7 +635,7 @@ function _batchWrite(updates, successMsg, statusId) {
   for (let i = 0; i < updates.length; i += LIMIT) chunks.push(updates.slice(i, i + LIMIT));
   const promises = chunks.map(chunk => {
     const batch = db.batch();
-    chunk.forEach(({ id, data }) => batch.set(db.collection('characters').doc(id), data));
+    chunk.forEach(({ id, data }) => batch.update(db.collection('characters').doc(id), data));
     return batch.commit();
   });
   return Promise.all(promises)
@@ -659,7 +662,7 @@ function bulkGive() {
     if (!u.traits.includes(key)) { u.traits.push(key); count++; }
     if (shimmy && !u.shimmyfulTraits.includes(key)) u.shimmyfulTraits.push(key);
     Object.assign(c, u);
-    return { id: c.id, data: _strip(u) };
+    return { id: c.id, data: { traits: u.traits, shimmyfulTraits: u.shimmyfulTraits } };
   });
   _batchWrite(updates, `✓ GAVE "${key}" TO ${count} CHARS`, 'bulk-msg');
 }
@@ -686,7 +689,7 @@ function _doRemoveAll(key, statusId) {
     u.traits = (u.traits || []).filter(k => k !== key);
     u.shimmyfulTraits = (u.shimmyfulTraits || []).filter(k => k !== key);
     Object.assign(c, u);
-    updates.push({ id: c.id, data: _strip(u) });
+    updates.push({ id: c.id, data: { traits: u.traits, shimmyfulTraits: u.shimmyfulTraits } });
     count++;
   });
   if (!count) { notify('NO CHARACTERS HAD THAT TRAIT', 'ok'); return; }
@@ -701,7 +704,7 @@ function wipeAllEveryone() {
     u.traits = [];
     u.shimmyfulTraits = [];
     Object.assign(c, u);
-    return { id: c.id, data: _strip(u) };
+    return { id: c.id, data: { traits: u.traits, shimmyfulTraits: u.shimmyfulTraits } };
   });
   _batchWrite(updates, `✓ WIPED ALL TRAITS FROM ${characters.length} CHARS`, 'nuke-msg');
 }
