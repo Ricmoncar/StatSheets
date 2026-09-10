@@ -1829,11 +1829,20 @@ function saveData(charObj) {
   if (idx >= 0) characters[idx] = c; else characters.push(c);
   const ref = db.collection('characters').doc(c.id);
   const fail = err => { console.error('Firestore write error:', err); notify('SAVE FAILED', 'err'); };
-  const base = _dbBase.get(c.id);
+  // Diff against what the database looked like when THIS object was loaded,
+  // not against what it looks like now. Code can hold an object across a
+  // snapshot (a modal left open, an upload being awaited, a timer), and
+  // diffed against the CURRENT baseline every field somebody else changed in
+  // the meantime looks like a local edit and gets written straight back over
+  // theirs. Against its own baseline, only what this code changed is sent.
+  const cur = _dbBase.get(c.id);
+  const base = c.__base || cur;
   if (!base) {
     // never seen in the database: a brand new character, so write it whole
     const full = _stripUndefined(c);
-    _dbBase.set(c.id, _baseOf(full));
+    const b = _baseOf(full);
+    _dbBase.set(c.id, b);
+    Object.defineProperty(c, '__base', { value: b, writable: true, configurable: true });
     ref.set(full).catch(fail);
     return;
   }
@@ -1843,11 +1852,17 @@ function saveData(charObj) {
     if (c[k] === undefined) continue;
     const v = _stripUndefined(c[k]);
     const js = _stable(v);
-    if (base[k] !== js) { patch[k] = v; base[k] = js; n++; }
+    if (base[k] !== js) {
+      patch[k] = v; base[k] = js; n++;
+      if (cur && cur !== base) cur[k] = js;
+    }
   }
   // a field that was really removed (delete c.x) is removed from the database
   for (const k of Object.keys(base)) {
-    if (!(k in c)) { patch[k] = firebase.firestore.FieldValue.delete(); delete base[k]; n++; }
+    if (!(k in c)) {
+      patch[k] = firebase.firestore.FieldValue.delete(); delete base[k]; n++;
+      if (cur && cur !== base) delete cur[k];
+    }
   }
   if (!n) return;
   ref.update(patch).catch(err => {
@@ -42231,6 +42246,8 @@ function saveCharacter() {
     drunkCount: existing.drunkCount,
     perfectSoulData: existing.perfectSoulData,
   };
+  // a spread does not copy the hidden baseline, so hand it over explicitly
+  if (existing.__base) Object.defineProperty(char, '__base', { value: existing.__base, writable: true, configurable: true });
 
   if (editingId) {
     characters[characters.findIndex(x => x.id === editingId)] = char;
@@ -46672,7 +46689,10 @@ if (sidebarList && db) {
       .map(d => {
         const raw = d.data();
         // before _migrateCharacter touches it: the baseline is the database
-        if (_changed.has(d.id)) _dbBase.set(d.id, _baseOf(raw));
+        if (_changed.has(d.id) || !_dbBase.has(d.id)) _dbBase.set(d.id, _baseOf(raw));
+        // and this object remembers WHICH baseline it was built from (not
+        // enumerable, so it is never saved or copied by a spread)
+        Object.defineProperty(raw, '__base', { value: _dbBase.get(d.id), writable: true, configurable: true });
         return _migrateCharacter(raw);
       })
       .sort((a, b) => {
