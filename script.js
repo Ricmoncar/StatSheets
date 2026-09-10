@@ -1797,6 +1797,28 @@ function _migrateCharacter(c) {
   return c;
 }
 
+// What this tab believes each character looks like in the database: one
+// stable JSON string per top-level field, refreshed from every snapshot.
+//
+// saveData used to .set() the WHOLE character from this tab's copy. Any tab
+// whose copy was out of date (a phone tab resumed from sleep, a backgrounded
+// tab, the offline cache) would change one thing and silently put every other
+// field back the way it last saw it: traits, items, names, avatars, other
+// people's edits, all reverted. Now it writes only the fields that differ
+// from what it last saw in the database, so changing gold writes gold.
+const _dbBase = new Map();
+function _stable(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v === undefined ? null : v);
+  if (Array.isArray(v)) return '[' + v.map(_stable).join(',') + ']';
+  return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort()
+    .map(k => JSON.stringify(k) + ':' + _stable(v[k])).join(',') + '}';
+}
+function _baseOf(data) {
+  const o = {};
+  for (const k of Object.keys(data)) if (data[k] !== undefined) o[k] = _stable(_stripUndefined(data[k]));
+  return o;
+}
+
 function saveData(charObj) {
   const c = charObj || characters.find(x => x.id === currentId);
   if (!c || !db) return;
@@ -1805,9 +1827,32 @@ function saveData(charObj) {
   // Keep local array in sync optimistically
   const idx = characters.findIndex(x => x.id === c.id);
   if (idx >= 0) characters[idx] = c; else characters.push(c);
-  db.collection('characters').doc(c.id).set(_stripUndefined(c)).catch(err => {
-    console.error('Firestore write error:', err);
-    notify('SAVE FAILED', 'err');
+  const ref = db.collection('characters').doc(c.id);
+  const fail = err => { console.error('Firestore write error:', err); notify('SAVE FAILED', 'err'); };
+  const base = _dbBase.get(c.id);
+  if (!base) {
+    // never seen in the database: a brand new character, so write it whole
+    const full = _stripUndefined(c);
+    _dbBase.set(c.id, _baseOf(full));
+    ref.set(full).catch(fail);
+    return;
+  }
+  const patch = {};
+  let n = 0;
+  for (const k of Object.keys(c)) {
+    if (c[k] === undefined) continue;
+    const v = _stripUndefined(c[k]);
+    const js = _stable(v);
+    if (base[k] !== js) { patch[k] = v; base[k] = js; n++; }
+  }
+  // a field that was really removed (delete c.x) is removed from the database
+  for (const k of Object.keys(base)) {
+    if (!(k in c)) { patch[k] = firebase.firestore.FieldValue.delete(); delete base[k]; n++; }
+  }
+  if (!n) return;
+  ref.update(patch).catch(err => {
+    if (err && err.code === 'not-found') { ref.set(_stripUndefined(c)).catch(fail); return; }
+    fail(err);
   });
 }
 
@@ -41539,7 +41584,7 @@ function switchForm(idx) {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
   c.activeFormIdx = idx;
-  saveData(c);
+  saveData(c);            // writes only activeFormIdx
   viewChar(c.id);
 }
 
@@ -41890,7 +41935,8 @@ function showEditor(id) {
     currentAvatarDataURL = c.avatar || null;
     _editorTags = [...(c.tags || [])];
     renderEditorTags();
-    _editorForms = (c.altForms || []).map(f => ({
+    _editorForms = (c.altForms || []).map((f, i) => ({
+      _srcIdx: i,
       name: f.name || '',
       avatar: f.avatar || null,
       stats: { hp: f.stats?.hp || 50, atk: f.stats?.atk || 10, def: f.stats?.def || 10, mag: f.stats?.mag || 10, spd: f.stats?.spd || 10, iq: f.stats?.iq || 50 },
@@ -42115,7 +42161,11 @@ function saveCharacter() {
   if (pdef) pdef.params.forEach(p => { if (patternParams[p.id] === undefined) patternParams[p.id] = p.default; });
 
   const existing = editingId ? (characters.find(x => x.id === editingId) || {}) : {};
+  // Start from everything the character already has. Building it from a fixed
+  // list instead wiped any field that was not on the list every time the
+  // editor saved.
   const char = {
+    ...existing,
     id: editingId || genId(),
     createdAt: existing.createdAt || Date.now(),
     name,
@@ -42156,14 +42206,22 @@ function saveCharacter() {
     goldHistory: existing.goldHistory || [],
     pity: existing.pity ?? 0,
     tags: [..._editorTags],
-    altForms: _editorForms.map(f => ({
-      name: f.name || '',
-      avatar: f.avatar || null,
-      stats: { hp: +f.stats.hp || 1, atk: +f.stats.atk || 1, def: +f.stats.def || 1, mag: +f.stats.mag || 1, spd: +f.stats.spd || 1, iq: +f.stats.iq || 50 },
-      substats: _fullSubstats(f.substats, true),
-      ...(f.themeSong ? { themeSong: f.themeSong } : {}),
-      ...(Array.isArray(f.traits) ? { traits: f.traits, shimmyfulTraits: f.shimmyfulTraits || [] } : {}),
-    })),
+    altForms: _editorForms.map(f => {
+      // The editor does not edit a form's traits or theme song, so those come
+      // from the form as it is NOW. Taking them from the copy made when the
+      // editor opened put back whatever they were then, wiping anything rolled
+      // or set in the meantime.
+      const live = f._srcIdx != null ? (existing.altForms || [])[f._srcIdx] : null;
+      const src = live || f;
+      return {
+        name: f.name || '',
+        avatar: f.avatar || null,
+        stats: { hp: +f.stats.hp || 1, atk: +f.stats.atk || 1, def: +f.stats.def || 1, mag: +f.stats.mag || 1, spd: +f.stats.spd || 1, iq: +f.stats.iq || 50 },
+        substats: _fullSubstats(f.substats, true),
+        ...(src.themeSong ? { themeSong: src.themeSong } : {}),
+        ...(Array.isArray(src.traits) ? { traits: src.traits, shimmyfulTraits: src.shimmyfulTraits || [] } : {}),
+      };
+    }),
     activeFormIdx: existing.activeFormIdx || 0,
     info: existing.info || {},
     missingNoRolls: existing.missingNoRolls,
@@ -46606,8 +46664,17 @@ if (sidebarList && db) {
   sidebarList.innerHTML = '<div style="padding:20px;font-size:8px;color:#444;text-align:center;letter-spacing:2px;">CONNECTING...</div>';
 
   db.collection('characters').onSnapshot(snapshot => {
+    const _changed = new Set();
+    snapshot.docChanges().forEach(ch => {
+      if (ch.type === 'removed') _dbBase.delete(ch.doc.id); else _changed.add(ch.doc.id);
+    });
     characters = snapshot.docs
-      .map(d => _migrateCharacter(d.data()))
+      .map(d => {
+        const raw = d.data();
+        // before _migrateCharacter touches it: the baseline is the database
+        if (_changed.has(d.id)) _dbBase.set(d.id, _baseOf(raw));
+        return _migrateCharacter(raw);
+      })
       .sort((a, b) => {
         const ao = a.order != null ? a.order : (a.createdAt || 0);
         const bo = b.order != null ? b.order : (b.createdAt || 0);
