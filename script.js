@@ -39560,11 +39560,30 @@ document.addEventListener('click', () => closeCharContextMenu());
 // ============================================================
 // VIEW
 // ============================================================
+// Which character the page opens on. It used to be characters[0], which is
+// whoever happens to sort first by order/createdAt, so it changed every time
+// someone reordered the sidebar. Now: the last character THIS browser was
+// looking at (localStorage, so it is per person), falling back to Blackjack,
+// and only then to the first in the list.
+const LAST_CHAR_KEY = 'statsheets_last_char';
+function _rememberChar(id) {
+  try { localStorage.setItem(LAST_CHAR_KEY, id); } catch (e) { /* private mode etc. */ }
+}
+function _startCharId() {
+  let id = null;
+  try { id = localStorage.getItem(LAST_CHAR_KEY); } catch (e) { /* private mode etc. */ }
+  if (id && characters.some(x => x.id === id)) return id;
+  const bj = characters.find(x => _BJ_RE.test((x.name || '').trim()));
+  if (bj) return bj.id;
+  return characters.length ? characters[0].id : null;
+}
+
 function viewChar(id) {
   currentId = id;
   loadPity();
   const c = characters.find(x => x.id === id);
   if (!c) return;
+  _rememberChar(id);
 
   // Clear cached trait tooltips so they rebuild for the new character
   document.querySelectorAll('.trait-chip[data-trait][data-tooltip]').forEach(chip => {
@@ -42181,7 +42200,7 @@ async function deleteChar(id) {
   notify('DELETED', 'err');
   if (currentId === id) {
     currentId = null; stopBgAnim();
-    if (characters.length) viewChar(characters[0].id);
+    if (characters.length) viewChar(_startCharId());
     else {
       document.getElementById('char-view').classList.remove('active');
       document.getElementById('editor').classList.remove('active');
@@ -46636,12 +46655,12 @@ if (sidebarList && db) {
         currentId = null; stopBgAnim();
         document.getElementById('char-view').classList.remove('active');
         document.getElementById('editor').classList.remove('active');
-        if (characters.length) viewChar(characters[0].id);
+        if (characters.length) viewChar(_startCharId());
         else { document.getElementById('empty-state').style.display = ''; randomizeHeart(); }
       }
     } else if (characters.length) {
       document.getElementById('empty-state').style.display = 'none';
-      viewChar(characters[0].id);
+      viewChar(_startCharId());
     } else {
       const emptyState = document.getElementById('empty-state');
       if (emptyState) emptyState.style.display = '';
@@ -46661,7 +46680,7 @@ if (sidebarList && db) {
   // No Firebase: silent localStorage fallback
   loadData();
   renderSidebar();
-  if (characters.length) viewChar(characters[0].id);
+  if (characters.length) viewChar(_startCharId());
   else { document.getElementById('empty-state').style.display = ''; randomizeHeart(); }
 }
 
