@@ -46236,6 +46236,12 @@ function adjustStacks(key, delta) {
   updateLiveStats(c);
   renderTraitsDisplay(c);
 }
+// The stacks slider calls setStacks on every tick of a drag, dozens of times a
+// second, and every save is a database write (Starry reached 2,708 revisions
+// that way). The screen updates on each tick; the save happens once, a moment
+// after the last one, re-applied onto whatever object is current by then.
+let _stackSaveTimer = null;
+const _stackPending = {};
 function setStacks(key, val) {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
@@ -46244,7 +46250,17 @@ function setStacks(key, val) {
   const v = Math.max(0, Math.min(max, parseInt(val) || 0));
   c.traitStacks = c.traitStacks || {};
   c.traitStacks[key] = v;
-  saveData(c);
+  const id = c.id;
+  _stackPending[key] = v;
+  clearTimeout(_stackSaveTimer);
+  _stackSaveTimer = setTimeout(() => {
+    const fresh = characters.find(x => x.id === id);
+    const vals = Object.assign({}, _stackPending);
+    for (const k of Object.keys(_stackPending)) delete _stackPending[k];
+    if (!fresh) return;
+    fresh.traitStacks = Object.assign({}, fresh.traitStacks || {}, vals);
+    saveData(fresh);
+  }, 400);
   refreshCultivationPreviews();
   updateLiveStats(c);
   renderTraitsDisplay(c);
