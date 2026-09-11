@@ -3366,6 +3366,7 @@ const PATTERN_DEFS = {
   flowey_vines:     { label: "AH!Flowey · Overgrown",       params: [] },
   ivy_evil:         { label: "Ivy · EVIL creature",         params: [] },
   aeden_puppet:     { label: "Aeden · PUPPET",              params: [] },
+  sel_night:        { label: "Sel · Frozen night",          params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -31394,6 +31395,1475 @@ function _stopAedenOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// SEL
+//
+// THE CLAIM. The top of the world on a clear night. The cliffs up here
+// are flat-topped and frozen, every one capped with a slab of ice that
+// ran over its edges and set, and they stand up out of a sea of cloud.
+// There is ONE light and it is not a moon: it is a ringed planet, close
+// and white-hot, with a small moon of its own, high on the right. Every
+// rock takes a lit edge on the side facing it and every slab of ice is
+// brightest on top.
+// Distance goes PALE: the air between the cliffs is full of the planet's
+// light, so the far mesas are soft lavender shapes and the near ones are
+// deep indigo, holding the most colour.
+// Nothing in the scene is yellow. Yellow is hers: the Solver she points
+// with, and the [NULL] she makes by holding the button down, which drags
+// the stars in toward it.
+// Every form of hers gets this page.
+// ════════════════════════════════════════════════════════════════
+const _SEL_RE = /^\s*sel\s*$/i;
+function _isSel(c) { return !!(c && c.name && _SEL_RE.test(c.name)); }
+const _SL_HEX = '#ffff75';
+
+let _slRM = false;
+if (typeof window !== 'undefined' && window.matchMedia) {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  _slRM = !!mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', e => { _slRM = !!e.matches; });
+}
+function _slRnd(i) { const x = Math.sin(i * 63.719 + 17.531) * 43758.5453; return x - Math.floor(x); }
+function _slClock() { return performance.now() / 1000; }
+function _slMk(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+
+// what the overlay tells the sky: where the [NULL] is and how big, viewport px
+let _slHole = { x: 0, y: 0, r: 0 };
+
+const _SL_STEPS = 20;
+function _slRamp(rgb) {
+  const a = new Array(_SL_STEPS + 1);
+  for (let i = 0; i <= _SL_STEPS; i++) a[i] = 'rgba(' + rgb + ',' + (i / _SL_STEPS).toFixed(3) + ')';
+  return a;
+}
+function _slA(a) { return a <= 0 ? 0 : a >= 1 ? _SL_STEPS : Math.round(a * _SL_STEPS); }
+const _SL_WHITE = _slRamp('238,242,255');
+const _SL_CYAN = _slRamp('172,236,255');
+const _SL_PINK = _slRamp('255,204,242');
+const _SL_STARCOLS = [_SL_WHITE, _SL_CYAN, _SL_PINK];
+
+// Palettes, far to near. Far is pale and flat, near is deep and has the colour.
+const _SL_PAL = {
+  far:  { rock: '#8185da', rockDk: '#7174c8', lit: '176,184,246', groove: '#6a6cc2', ice: '#c4eefc', iceTop: '#eafcff', iceDk: '#98c8e8' },
+  mid:  { rock: '#4a52b6', rockDk: '#353b97', lit: '128,142,232', groove: '#2d3386', ice: '#7fdff0', iceTop: '#cdf8ff', iceDk: '#3c9dc8' },
+  near: { rock: '#2a2e7c', rockDk: '#171a52', lit: '92,108,214', groove: '#13164a', ice: '#4fcbe6', iceTop: '#b4f4fd', iceDk: '#1e76a6' },
+};
+
+// ── baked pieces ─────────────────────────────────────────────────
+function _slGlow() {
+  if (_slGlow._c) return _slGlow._c;
+  const cv = _slMk(128, 128), g = cv.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  for (let i = 0; i <= 14; i++) { const u = i / 14; gr.addColorStop(u, 'rgba(214,224,255,' + Math.pow(1 - u, 2.4).toFixed(4) + ')'); }
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return (_slGlow._c = cv);
+}
+// a thin horizontal streak, bright in the middle: the planet's lens flare
+function _slFlare() {
+  if (_slFlare._c) return _slFlare._c;
+  const cv = _slMk(512, 24), g = cv.getContext('2d');
+  const h = g.createLinearGradient(0, 0, 512, 0);
+  for (let i = 0; i <= 16; i++) { const u = i / 16, d = Math.abs(u - 0.5) * 2; h.addColorStop(u, 'rgba(220,232,255,' + Math.pow(1 - d, 2.6).toFixed(4) + ')'); }
+  g.fillStyle = h; g.fillRect(0, 0, 512, 24);
+  g.globalCompositeOperation = 'destination-in';
+  const v = g.createLinearGradient(0, 0, 0, 24);
+  for (let i = 0; i <= 12; i++) { const u = i / 12, d = Math.abs(u - 0.5) * 2; v.addColorStop(u, 'rgba(0,0,0,' + Math.pow(1 - d, 2).toFixed(4) + ')'); }
+  g.fillStyle = v; g.fillRect(0, 0, 512, 24);
+  return (_slFlare._c = cv);
+}
+// a meteor's tail, bright at the right-hand end where the head is
+function _slStreak() {
+  if (_slStreak._c) return _slStreak._c;
+  const cv = _slMk(256, 10), g = cv.getContext('2d');
+  const h = g.createLinearGradient(0, 0, 256, 0);
+  for (let i = 0; i <= 12; i++) { const u = i / 12; h.addColorStop(u, 'rgba(226,240,255,' + Math.pow(u, 2.2).toFixed(4) + ')'); }
+  g.fillStyle = h; g.fillRect(0, 0, 256, 10);
+  g.globalCompositeOperation = 'destination-in';
+  g.beginPath(); g.moveTo(0, 5); g.lineTo(256, 0); g.lineTo(256, 10); g.closePath();
+  g.fillStyle = '#000'; g.fill();
+  return (_slStreak._c = cv);
+}
+// a comet's tail: a long soft cone, head at the left
+function _slTail() {
+  if (_slTail._c) return _slTail._c;
+  const cv = _slMk(320, 64), g = cv.getContext('2d');
+  const h = g.createLinearGradient(0, 0, 320, 0);
+  for (let i = 0; i <= 14; i++) { const u = i / 14; h.addColorStop(u, 'rgba(180,236,255,' + (0.9 * Math.pow(1 - u, 1.6)).toFixed(4) + ')'); }
+  g.fillStyle = h; g.fillRect(0, 0, 320, 64);
+  g.globalCompositeOperation = 'destination-in';
+  const v = g.createLinearGradient(0, 0, 0, 64);
+  for (let i = 0; i <= 12; i++) { const u = i / 12, d = Math.abs(u - 0.5) * 2; v.addColorStop(u, 'rgba(0,0,0,' + Math.pow(1 - d, 1.8).toFixed(4) + ')'); }
+  g.fillStyle = v;
+  g.beginPath(); g.moveTo(0, 30); g.lineTo(320, 0); g.lineTo(320, 64); g.lineTo(0, 34); g.closePath(); g.fill();
+  return (_slTail._c = cv);
+}
+// the aurora: vertical rays, teal at the foot fading to violet and nothing
+function _slAuroraSheet() {
+  if (_slAuroraSheet._c) return _slAuroraSheet._c;
+  const cv = _slMk(512, 160), g = cv.getContext('2d');
+  for (let x = 0; x < 512; x++) {
+    const n = 0.35 + 0.65 * Math.pow(0.5 + 0.5 * Math.sin(x * 0.043 + Math.sin(x * 0.011) * 3), 2) * (0.6 + 0.4 * _slRnd(x * 0.37));
+    const edge = Math.min(1, x / 60, (511 - x) / 60);
+    const top = 160 * (0.1 + 0.5 * _slRnd(x * 0.11 + 3));
+    const gr = g.createLinearGradient(0, 160, 0, top);
+    gr.addColorStop(0, 'rgba(110,236,214,' + (0.5 * n * edge).toFixed(3) + ')');
+    gr.addColorStop(0.5, 'rgba(126,170,244,' + (0.3 * n * edge).toFixed(3) + ')');
+    gr.addColorStop(1, 'rgba(160,120,240,0)');
+    g.fillStyle = gr; g.fillRect(x, top, 1, 160 - top);
+  }
+  return (_slAuroraSheet._c = cv);
+}
+// a pink cloud, lit from the upper right
+function _slPuff(seed) {
+  const w = 280, h = 120, cv = _slMk(w, h), g = cv.getContext('2d');
+  const b = [];
+  for (let i = 0; i < 9; i++) {
+    const u = i / 8;
+    b.push({ x: w * (0.12 + 0.76 * u), y: h * (0.62 - Math.sin(Math.PI * u) * 0.24 + (_slRnd(seed + i) - 0.5) * 0.08), r: h * (0.16 + Math.sin(Math.PI * u) * 0.16 + _slRnd(seed + i * 3.1) * 0.06) });
+  }
+  const paint = (col, dx, dy, k) => { g.fillStyle = col; g.beginPath(); for (const p of b) { g.moveTo(p.x + dx + p.r * k, p.y + dy); g.arc(p.x + dx, p.y + dy, p.r * k, 0, 6.2831853); } g.fill(); };
+  paint('#f6d0f2', 2, -2, 1);
+  paint('#cf96dd', 0, 2, 0.97);
+  paint('#9c6dc6', -2, 8, 0.86);
+  g.fillStyle = '#9c6dc6'; g.fillRect(w * 0.12, h * 0.66, w * 0.76, h * 0.12);
+  return cv;
+}
+
+function _slSkySheet(W, H, px, py) {
+  const cv = _slMk(W, H), g = cv.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, H);
+  [[0, '#060a24'], [0.16, '#0c1344'], [0.36, '#1e2984'], [0.54, '#3a41b2'], [0.72, '#6668cc'], [1, '#8a84da']].forEach(s => gr.addColorStop(s[0], s[1]));
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  // the planet fills the air round it with light
+  const R = Math.max(W, H) * 0.6;
+  const rg = g.createRadialGradient(px, py, 0, px, py, R);
+  for (let i = 0; i <= 14; i++) { const u = i / 14; rg.addColorStop(u, 'rgba(176,196,255,' + (0.30 * Math.pow(1 - u, 2.2)).toFixed(4) + ')'); }
+  g.fillStyle = rg; g.fillRect(0, 0, W, H);
+  // long thin wisps high up
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 7; i++) {
+    const y = H * (0.05 + _slRnd(i * 3.7) * 0.3), x = W * _slRnd(i * 5.1), len = W * (0.2 + _slRnd(i * 2.3) * 0.3), th = 3 + _slRnd(i * 7.9) * 7;
+    const lg = g.createLinearGradient(x - len / 2, 0, x + len / 2, 0);
+    lg.addColorStop(0, 'rgba(190,150,230,0)'); lg.addColorStop(0.5, 'rgba(190,150,230,0.10)'); lg.addColorStop(1, 'rgba(190,150,230,0)');
+    g.fillStyle = lg;
+    g.beginPath(); g.ellipse(x, y, len / 2, th, -0.04, 0, 6.2831853); g.fill();
+  }
+  return cv;
+}
+
+// A tileable strip of cloud: billows along the top, lit from above, solid below.
+// Every billow is drawn at x - W, x and x + W, so the strip closes on itself.
+function _slCloudStrip(W, h, body, mid, rim, seed, n) {
+  const cv = _slMk(W, h), g = cv.getContext('2d');
+  const bill = [];
+  for (let i = 0; i < n; i++) bill.push({ x: (i + _slRnd(seed + i) * 0.6) / n * W, r: h * (0.2 + _slRnd(seed + i * 2.3) * 0.26), y: h * (0.42 + _slRnd(seed + i * 4.1) * 0.22) });
+  const paint = (col, dy, k) => {
+    g.fillStyle = col; g.beginPath();
+    for (const b of bill) for (const o of [-W, 0, W]) { const r = b.r * k; g.moveTo(b.x + o + r, b.y + dy); g.arc(b.x + o, b.y + dy, r, 0, 6.2831853); }
+    g.fill();
+  };
+  paint(rim, 0, 1);
+  paint(mid, h * 0.03, 0.97);
+  paint(body, h * 0.08, 0.93);
+  g.fillStyle = body; g.fillRect(0, h * 0.6, W, h * 0.4);
+  return cv;
+}
+
+// A mesa: a column of rock with a flat top, and a slab of ice on it that has
+// run over the edges and set in drips. `glints` collects points along the
+// lip, where the ice will catch the light now and then.
+function _slMesa(g, x0, x1, top, base, sd, P, glints) {
+  const w = x1 - x0, fl = w * 0.1, N = 8, L = [], R = [];
+  for (let i = 0; i <= N; i++) {
+    const u = i / N, y = top + (base - top) * u;
+    const ledge = (i === 3 || i === 6) ? w * 0.035 : 0;
+    L.push(x0 - fl * u - ledge + (_slRnd(sd + i * 1.7) - 0.5) * w * 0.05, y);
+    R.push(x1 + fl * u + ledge + (_slRnd(sd + i * 2.9) - 0.5) * w * 0.05, y);
+  }
+  const body = () => {
+    g.beginPath(); g.moveTo(L[0], L[1]);
+    for (let i = 1; i <= N; i++) g.lineTo(L[i * 2], L[i * 2 + 1]);
+    for (let i = N; i >= 0; i--) g.lineTo(R[i * 2], R[i * 2 + 1]);
+    g.closePath();
+  };
+  body();
+  const gr = g.createLinearGradient(0, top, 0, base);
+  gr.addColorStop(0, P.rock); gr.addColorStop(1, P.rockDk);
+  g.fillStyle = gr; g.fill();
+  g.save(); body(); g.clip();
+  // grooves: vertical cuts, each with a lit lip on its right
+  for (let x = x0 - fl, k = 0; x < x1 + fl; k++) {
+    const gw = 2 + _slRnd(sd + k * 3.3) * 5;
+    g.globalAlpha = 0.55; g.fillStyle = P.groove; g.fillRect(x, top, gw, base - top);
+    g.globalAlpha = 0.22; g.fillStyle = 'rgb(' + P.lit + ')'; g.fillRect(x + gw, top, 1.5, base - top);
+    x += gw + 6 + _slRnd(sd + k * 5.1) * 18;
+  }
+  g.globalAlpha = 1;
+  // the side toward the planet takes the light
+  const lg = g.createLinearGradient(x1 + fl, 0, x1 - w * 0.32, 0);
+  lg.addColorStop(0, 'rgba(' + P.lit + ',0.8)'); lg.addColorStop(1, 'rgba(' + P.lit + ',0)');
+  g.fillStyle = lg; g.fillRect(x0 - fl, top, w + 2 * fl, base - top);
+  // the ice throws a shadow down the rock under it
+  const sg = g.createLinearGradient(0, top, 0, top + w * 0.25);
+  sg.addColorStop(0, 'rgba(6,8,30,0.55)'); sg.addColorStop(1, 'rgba(6,8,30,0)');
+  g.fillStyle = sg; g.fillRect(x0 - fl, top, w + 2 * fl, w * 0.25);
+  g.restore();
+
+  // the slab
+  const ov = w * 0.06, th = Math.max(7, Math.min(26, w * 0.075));
+  const ix0 = x0 - ov, ix1 = x1 + ov;
+  const nd = Math.max(2, Math.round((ix1 - ix0) / (th * 1.6))), drips = [];
+  for (let k = 0; k < nd; k++) {
+    drips.push({ x: ix0 + (k + 0.2 + _slRnd(sd + k * 7.3) * 0.6) / nd * (ix1 - ix0),
+      l: th * (0.3 + Math.pow(_slRnd(sd + k * 4.4), 1.6) * 1.8), w: th * (0.35 + _slRnd(sd + k * 2.2) * 0.35) });
+  }
+  const edgeY = x => {
+    let y = top + th;
+    for (const d of drips) { const q = (x - d.x) / d.w; if (q > -1 && q < 1) y = Math.max(y, top + th + d.l * Math.sqrt(1 - q * q)); }
+    return y;
+  };
+  g.beginPath();
+  g.moveTo(ix0, top + th * 0.3);
+  g.quadraticCurveTo(ix0, top - th * 0.35, ix0 + th * 0.6, top - th * 0.35);
+  g.lineTo(ix1 - th * 0.6, top - th * 0.35);
+  g.quadraticCurveTo(ix1, top - th * 0.35, ix1, top + th * 0.3);
+  for (let x = ix1; x >= ix0; x -= 3) g.lineTo(x, edgeY(x));
+  g.closePath();
+  const ig = g.createLinearGradient(0, top - th * 0.35, 0, top + th * 2.6);
+  ig.addColorStop(0, P.iceTop); ig.addColorStop(0.3, P.ice); ig.addColorStop(1, P.iceDk);
+  g.fillStyle = ig; g.fill();
+  // the flat top, seen from a little above, catches the planet
+  g.fillStyle = P.iceTop;
+  g.beginPath();
+  g.moveTo(ix0 + th * 0.3, top - th * 0.1);
+  g.quadraticCurveTo(ix0 + th * 0.2, top - th * 0.35, ix0 + th * 0.8, top - th * 0.33);
+  g.lineTo(ix1 - th * 0.8, top - th * 0.33);
+  g.quadraticCurveTo(ix1 - th * 0.2, top - th * 0.35, ix1 - th * 0.3, top - th * 0.1);
+  g.lineTo(ix1 - th * 0.4, top + th * 0.12);
+  g.lineTo(ix0 + th * 0.4, top + th * 0.12);
+  g.closePath(); g.fill();
+  // a bright line on the lip, strongest on the right, toward the light
+  const hg = g.createLinearGradient(ix0, 0, ix1, 0);
+  hg.addColorStop(0, 'rgba(255,255,255,0.25)'); hg.addColorStop(1, 'rgba(255,255,255,0.95)');
+  g.strokeStyle = hg; g.lineWidth = Math.max(1, th * 0.12);
+  g.beginPath(); g.moveTo(ix0 + th * 0.4, top + th * 0.12); g.lineTo(ix1 - th * 0.4, top + th * 0.12); g.stroke();
+  // gloss down the right side of the longer drips
+  g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = Math.max(1, th * 0.1); g.lineCap = 'round';
+  g.beginPath();
+  for (const d of drips) if (d.l > th * 0.6) { const x = d.x + d.w * 0.35; g.moveTo(x, top + th * 0.9); g.lineTo(x, top + th + d.l * 0.6); }
+  g.stroke();
+  if (glints) for (let x = ix0 + th, k = 0; x < ix1 - th; k++) { glints.push([x, top - th * 0.2]); x += 18 + _slRnd(sd + k * 1.9) * 30; }
+}
+
+// haze between two layers, faded at BOTH ends
+function _slHaze(g, W, y0, y1, rgb, a) {
+  const gr = g.createLinearGradient(0, y0, 0, y1);
+  for (let i = 0; i <= 12; i++) { const u = i / 12; gr.addColorStop(u, 'rgba(' + rgb + ',' + (a * Math.sin(Math.PI * u)).toFixed(4) + ')'); }
+  g.fillStyle = gr; g.fillRect(0, y0, W, y1 - y0);
+}
+
+// Bake everything that holds still: the sky, three layers of mesas, two
+// strips of cloud, the vignette. Mesas are placed so the big left cliff's
+// ice shows in the clear band beside the portrait, and the valley between
+// the near cliffs runs back to the planet.
+function _slBake(P, W, H, px, py) {
+  P._sky = _slSkySheet(W, H, px, py);
+  P._glints = [];
+  const far = _slMk(W, H), fg = far.getContext('2d');
+  [[0.30, 0.37, 0.47], [0.45, 0.50, 0.42], [0.58, 0.66, 0.50], [0.74, 0.79, 0.45], [0.90, 0.99, 0.49], [0.05, 0.13, 0.52]]
+    .forEach((m, i) => _slMesa(fg, m[0] * W, m[1] * W, m[2] * H, 0.82 * H, 100 + i * 13, _SL_PAL.far, null));
+  _slHaze(fg, W, 0.38 * H, 0.66 * H, '150,160,236', 0.28);
+  P._far = far;
+  const mid = _slMk(W, H), mg = mid.getContext('2d');
+  [[0.20, 0.33, 0.36], [0.60, 0.70, 0.43], [0.86, 0.98, 0.33]]
+    .forEach((m, i) => _slMesa(mg, m[0] * W, m[1] * W, m[2] * H, 1.04 * H, 200 + i * 17, _SL_PAL.mid, P._glints));
+  _slHaze(mg, W, 0.55 * H, 0.95 * H, '110,118,214', 0.22);
+  P._mid = mid;
+  const near = _slMk(W, H), ng = near.getContext('2d');
+  [[-0.04, 0.24, 0.17], [0.80, 1.05, 0.27], [0.30, 0.72, 0.92]]
+    .forEach((m, i) => _slMesa(ng, m[0] * W, m[1] * W, m[2] * H, 1.08 * H, 300 + i * 19, _SL_PAL.near, P._glints));
+  P._near = near;
+  P._seaFar = _slCloudStrip(W, Math.round(H * 0.26), '#5a60c2', '#7c82dc', '#b8bef6', 11, 14);
+  P._seaNear = _slCloudStrip(W, Math.round(H * 0.36), '#2b3284', '#4450b0', '#8492e8', 29, 11);
+  P._puffs = [_slPuff(3), _slPuff(9), _slPuff(17)];
+  const vg = _slMk(W, H), vc = vg.getContext('2d');
+  const rg = vc.createRadialGradient(W * 0.55, H * 0.4, Math.min(W, H) * 0.25, W * 0.55, H * 0.4, Math.hypot(W, H) * 0.62);
+  for (let i = 0; i <= 12; i++) { const u = i / 12; rg.addColorStop(u, 'rgba(4,6,24,' + (0.55 * Math.pow(u, 1.8)).toFixed(4) + ')'); }
+  vc.fillStyle = rg; vc.fillRect(0, 0, W, H);
+  P._vig = vg;
+  const R = Math.max(24, Math.min(46, H * 0.042));
+  const dg = _slMk(R * 2 + 4, R * 2 + 4), dc = dg.getContext('2d'), c = R + 2;
+  const disc = dc.createRadialGradient(c - R * 0.2, c - R * 0.2, R * 0.1, c, c, R);
+  disc.addColorStop(0, '#ffffff'); disc.addColorStop(0.72, '#f3f5ff'); disc.addColorStop(1, '#c9d2ff');
+  dc.fillStyle = disc; dc.beginPath(); dc.arc(c, c, R, 0, 6.2831853); dc.fill();
+  P._disc = dg; P._R = R;
+  // stars: most small, a few big; thicker toward the top of the sky
+  const n = Math.round(W * H / 6500);
+  P._stars = [];
+  for (let i = 0; i < n; i++) {
+    const r = _slRnd(i * 1.31);
+    P._stars.push({ x: _slRnd(i * 2.7) * W, y: Math.pow(_slRnd(i * 3.9), 1.35) * H * 0.78,
+      s: 0.5 + Math.pow(r, 3) * 1.9, tw: 0.6 + _slRnd(i * 5.3) * 2.4, ph: _slRnd(i * 7.1) * 6.283,
+      c: r < 0.7 ? 0 : r < 0.9 ? 1 : 2 });
+  }
+  P._sparks = [];
+  for (let i = 0; i < 16; i++) {
+    let x, y, k = 0;
+    do { x = _slRnd(i * 11.3 + k) * W; y = _slRnd(i * 13.7 + k) * H * 0.45; k += 0.7; } while (Math.hypot(x - px, y - py) < R * 5 && k < 10);
+    P._sparks.push({ x, y, s: 3 + _slRnd(i * 17.9) * 4, ph: _slRnd(i * 19.1) * 6.283, tw: 0.4 + _slRnd(i * 23.3) * 0.9 });
+  }
+}
+
+// ── the live parts ───────────────────────────────────────────────
+// What the overlay tells the sky, besides where the hole is: a [NULL] that
+// went off, and where the pointer is for the depth. And the song.
+let _slBlast = null;                 // { x, y, t0 } viewport px, set when [NULL] explodes
+const _slPar = { x: 0, y: 0 };       // smoothed pointer offset from the centre, -1..1
+let _slBeat = 0;                     // 0..1: a hit in the song, if one is playing
+let _slEnv = null, _slEnvKey = '', _slLvl = 0, _slBase = 0, _slOnset = 0, _slAC = null;
+
+// The song: the same envelope Juko reads, decoded once from whatever track the
+// theme player actually has loaded and sampled at its playhead. Not an analyser
+// on the element: a media element can only ever feed ONE source node, and Juko
+// may already own it. If the file cannot be fetched, a gentle pulse tied to
+// playback stands in for it.
+function _slEnsureEnvelope(a) {
+  const key = (a.dataset && a.dataset.trackUrl) || a.currentSrc || a.src || '';
+  if (!key || key === _slEnvKey) return;
+  _slEnvKey = key; _slEnv = null;
+  let ac = (typeof _jukoAC !== 'undefined' && _jukoAC) || _slAC;
+  try { if (!ac) ac = _slAC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  const urls = [a.currentSrc || a.src, a.dataset && a.dataset.rawUrl].filter(Boolean);
+  const next = i => {
+    if (i >= urls.length || _slEnvKey !== key) return;
+    fetch(urls[i]).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+      .then(buf => ac.decodeAudioData(buf))
+      .then(ab => { if (_slEnvKey === key) _slEnv = _jukoBuildEnvelope(ab); })
+      .catch(() => next(i + 1));
+  };
+  next(0);
+}
+function _slSampleAudio(dt) {
+  const a = typeof _themeAudio !== 'undefined' ? _themeAudio : null;
+  const playing = !!(a && !a.paused && !a.ended && a.currentTime > 0);
+  let target = 0, onset = 0;
+  if (playing) {
+    _slEnsureEnvelope(a);
+    const E = _slEnv;
+    if (E) {
+      const i = Math.floor(a.currentTime * E.bps);
+      if (i >= 0 && i < E.env.length) { target = E.env[i]; onset = E.flux[i]; }
+    } else {
+      const tt = a.currentTime;
+      target = Math.max(0, Math.min(1, 0.5 + 0.25 * Math.sin(tt * 6.3) + 0.15 * Math.sin(tt * 9.4)));
+      onset = Math.max(0, Math.sin(tt * 6.3)) * 0.3;
+    }
+  }
+  _slLvl += (target - _slLvl) * Math.min(1, dt * (target > _slLvl ? 30 : 14));
+  _slOnset = Math.max(_slOnset * (1 - Math.min(1, dt * 7)), onset);
+  // react to how far the song is above its own recent level, not to how loud
+  // it is: loudness alone sits flat through a whole chorus
+  _slBase += (_slLvl - _slBase) * Math.min(1, dt * 0.7);
+  const beat = playing ? Math.min(1, Math.max(0, _slLvl - _slBase) * 3.4 + _slOnset * 0.95) : 0;
+  if (beat > _slBeat) _slBeat = beat; else _slBeat += (beat - _slBeat) * Math.min(1, dt * 6);
+}
+
+// The [NULL] pulls: every star inside six radii of it is drawn part of the
+// way toward it, the nearer the further, and anything that would land
+// inside it is gone.
+function _slPull(x, y, hx, hy, hr) {
+  if (hr <= 0) return true;
+  const dx = x - hx, dy = y - hy, d = Math.hypot(dx, dy);
+  if (d > hr * 6) { _slPull.x = x; _slPull.y = y; return true; }
+  const k = Math.min(0.85, Math.pow(hr * 1.6 / Math.max(d, 1), 1.2));
+  const nd = d * (1 - k);
+  if (nd < hr * 1.05) return false;
+  _slPull.x = hx + dx / (d || 1) * nd; _slPull.y = hy + dy / (d || 1) * nd;
+  return true;
+}
+// A blast pushes: as the front passes a point it is thrown outward, then
+// rings back into place.
+function _slKick(x, y, bx, by, age) {
+  _slKick.x = x; _slKick.y = y;
+  if (age < 0) return;
+  const dx = x - bx, dy = y - by, d = Math.sqrt(dx * dx + dy * dy) || 1, q = age - d / 1400;
+  if (q <= 0) return;
+  const m = 95 * Math.exp(-d / 900) * Math.exp(-q * 2.4) * Math.cos(q * 7);
+  _slKick.x = x + dx / d * m; _slKick.y = y + dy / d * m;
+}
+
+// The stars. NOT one path of tiny arcs: 261 of them as batched arcs cost
+// 0.3 ms on their own and the sparkles 0.8 ms on theirs, but drawn in the
+// same frame the two together measured 9.3 ms. So nothing on this layer is a
+// path fill: the small stars are squares (at a pixel or two nobody can tell,
+// and fillRect is the cheapest thing a canvas does), the bigger ones a soft
+// round sprite, and every sparkle one baked sprite.
+const _slSX = new Float32Array(2048), _slSY = new Float32Array(2048), _slSA = new Float32Array(2048);
+function _slDots() {
+  if (_slDots._c) return _slDots._c;
+  return (_slDots._c = ['238,242,255', '172,236,255', '255,204,242'].map(rgb => {
+    const cv = _slMk(16, 16), g = cv.getContext('2d');
+    const gr = g.createRadialGradient(8, 8, 0, 8, 8, 8);
+    gr.addColorStop(0, 'rgba(' + rgb + ',1)'); gr.addColorStop(0.35, 'rgba(' + rgb + ',0.8)'); gr.addColorStop(1, 'rgba(' + rgb + ',0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 16, 16);
+    return cv;
+  }));
+}
+function _slSparkle() {
+  if (_slSparkle._c) return _slSparkle._c;
+  const cv = _slMk(64, 64), g = cv.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  for (let i = 0; i <= 10; i++) { const u = i / 10; gr.addColorStop(u, 'rgba(214,224,255,' + (0.5 * Math.pow(1 - u, 2.4)).toFixed(4) + ')'); }
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = '#f2f5ff';
+  g.beginPath();
+  for (let k = 0; k < 8; k++) {
+    const an = k * Math.PI / 4, rr = (k & 1) ? 6.5 : 29;
+    if (k) g.lineTo(32 + Math.cos(an) * rr, 32 + Math.sin(an) * rr); else g.moveTo(32 + rr, 32);
+  }
+  g.closePath(); g.fill();
+  return (_slSparkle._c = cv);
+}
+function _slStars(ctx, P, W, H, t, px, py, R, hx, hy, hr, beat, bx, by, age) {
+  const stars = P._stars, n = Math.min(stars.length, 2048), boost = 1 + beat * 0.6;
+  for (let i = 0; i < n; i++) {
+    const s = stars[i];
+    const dx = s.x - px, dy = s.y - py;
+    let a = Math.min(1, (0.45 + 0.55 * Math.sin(t * s.tw + s.ph)) * boost) * Math.min(1, Math.sqrt(dx * dx + dy * dy) / (R * 7));
+    _slKick(s.x, s.y, bx, by, age);
+    let x = _slKick.x, y = _slKick.y;
+    if (hr > 0) { if (_slPull(x, y, hx, hy, hr)) { x = _slPull.x; y = _slPull.y; } else a = 0; }
+    _slSX[i] = x; _slSY[i] = y; _slSA[i] = a;
+  }
+  for (let c = 0; c < 3; c++) {
+    for (let b = 1; b <= 4; b++) {
+      ctx.fillStyle = _SL_STARCOLS[c][_slA(b / 4)];
+      for (let i = 0; i < n; i++) {
+        const s = stars[i], a = _slSA[i];
+        if (s.c !== c || s.s >= 1.3 || a < 0.05 || Math.min(4, Math.max(1, Math.ceil(a * 4))) !== b) continue;
+        const d = s.s * 1.5;
+        ctx.fillRect(_slSX[i] - d / 2, _slSY[i] - d / 2, d, d);
+      }
+    }
+  }
+  const dots = _slDots();
+  for (let i = 0; i < n; i++) {
+    const s = stars[i];
+    if (s.s < 1.3 || _slSA[i] < 0.05) continue;
+    ctx.globalAlpha = _slSA[i];
+    const d = s.s * 3.6 * (1 + beat * 0.5);
+    ctx.drawImage(dots[s.c], _slSX[i] - d / 2, _slSY[i] - d / 2, d, d);
+  }
+  const sp = _slSparkle();
+  for (const k of P._sparks) {
+    const a = 0.55 + 0.45 * Math.sin(t * k.tw + k.ph);
+    _slKick(k.x, k.y, bx, by, age);
+    let x = _slKick.x, y = _slKick.y;
+    if (hr > 0) { if (!_slPull(x, y, hx, hy, hr)) continue; x = _slPull.x; y = _slPull.y; }
+    const d = k.s * 6 * (0.85 + 0.15 * a) * (1 + beat * 0.4);
+    ctx.globalAlpha = Math.min(1, (0.6 + 0.4 * a) * (1 + beat * 0.3));
+    ctx.drawImage(sp, x - d / 2, y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function _slPlanet(ctx, P, px, py, t, fl, wob) {
+  const R = P._R, G = _slGlow();
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = 1 + 0.05 * Math.sin(t * 0.9);
+  const gr = R * 7.5 * pulse * (1 + fl * 0.6);
+  ctx.globalAlpha = Math.min(1, 0.55 + fl * 0.4);
+  ctx.drawImage(G, px - gr, py - gr, gr * 2, gr * 2);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  const tilt = -0.32 + wob, rx = R * 2.15, ry = R * 0.52;
+  const ring = (a0, a1) => {
+    ctx.strokeStyle = 'rgba(232,238,255,0.85)'; ctx.lineWidth = Math.max(1.5, R * 0.1);
+    ctx.beginPath(); ctx.ellipse(px, py, rx, ry, tilt, a0, a1); ctx.stroke();
+    ctx.strokeStyle = 'rgba(200,214,255,0.35)'; ctx.lineWidth = Math.max(1, R * 0.05);
+    ctx.beginPath(); ctx.ellipse(px, py, rx * 1.14, ry * 1.14, tilt, a0, a1); ctx.stroke();
+  };
+  const mx = px + R * 2.75, my = py + R * 0.4 + Math.sin(t * 0.21) * R * 0.08, mr = R * 0.34;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = Math.min(1, 0.5 + fl * 0.3);
+  ctx.drawImage(G, mx - mr * 4, my - mr * 4, mr * 8, mr * 8);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#f2f5ff';
+  ctx.beginPath(); ctx.arc(mx, my, mr, 0, 6.2831853); ctx.fill();
+  ring(Math.PI, 2 * Math.PI);
+  ctx.drawImage(P._disc, px - R - 2, py - R - 2);
+  ring(0, Math.PI);
+  ctx.globalCompositeOperation = 'lighter';
+  const fw = R * (9 + fl * 12);
+  ctx.globalAlpha = Math.min(1, 0.6 + fl * 0.4);
+  ctx.drawImage(_slFlare(), px - fw, py - R * 0.28, fw * 2, R * 0.56);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// ── shooting stars, and the events ───────────────────────────────
+let _slMeteors = [], _slNextMeteor = 0;
+let _slEv = null, _slEvNext = 0, _slEvLast = '';
+const _SL_EVENTS = ['shower', 'comet', 'flare', 'aurora'];
+
+function _slMeteor(W, H, x, y, ang, sp) {
+  const dir = Math.random() < 0.5 ? 1 : -1;
+  if (ang === undefined) ang = 0.35 + Math.random() * 0.35;
+  if (sp === undefined) sp = 700 + Math.random() * 500;
+  _slMeteors.push({ x: x === undefined ? W * (0.1 + Math.random() * 0.8) : x, y: y === undefined ? H * (0.02 + Math.random() * 0.24) : y,
+    vx: Math.cos(ang) * sp * dir, vy: Math.sin(ang) * sp, life: 0, dur: 0.7 + Math.random() * 0.4, len: 120 + Math.random() * 140 });
+}
+function _slEvTick(now, W, H) {
+  if (_slEv && now - _slEv.t0 > _slEv.dur) _slEv = null;
+  if (!_slEvNext) _slEvNext = now + 7 + Math.random() * 4;
+  if (!_slEv && now >= _slEvNext && !_slRM) {
+    let name;
+    do { name = _SL_EVENTS[Math.floor(Math.random() * _SL_EVENTS.length)]; } while (name === _slEvLast);
+    _slEvLast = name;
+    _slEv = { name, t0: now, dur: { shower: 3, comet: 9, flare: 3.2, aurora: 8 }[name], r1: Math.random(), r2: Math.random(), n: 0 };
+    _slEvNext = now + _slEv.dur + 8 + Math.random() * 6;
+  }
+  // and on their own, a shooting star every few seconds, slow enough to catch
+  if (!_slNextMeteor) _slNextMeteor = now + 2 + Math.random() * 3;
+  if (now >= _slNextMeteor) { _slMeteor(W, H); _slNextMeteor = now + (_slRM ? 12 : 3) + Math.random() * 4; }
+  if (_slEv && _slEv.name === 'shower') {
+    const want = Math.floor((now - _slEv.t0) / _slEv.dur * 7);
+    const rx = W * (0.15 + _slEv.r1 * 0.5), ry = H * (0.03 + _slEv.r2 * 0.1);
+    while (_slEv.n < want) { _slEv.n++; _slMeteor(W, H, rx + (Math.random() - 0.5) * 120, ry + Math.random() * 40, 0.45 + Math.random() * 0.3, 950 + Math.random() * 450); }
+  }
+  return _slEv;
+}
+function _slEvP(name, now) {
+  if (!_slEv || _slEv.name !== name) return -1;
+  const p = (now - _slEv.t0) / _slEv.dur;
+  return p >= 0 && p <= 1 ? p : -1;
+}
+
+// Drawn with the sky layer's offset (ox, oy) added: these reset the transform
+// for their own rotations, so they cannot inherit a translate.
+function _slMeteorsDraw(ctx, dt, hx, hy, hr, ox, oy) {
+  const S = _slStreak(), G = _slGlow();
+  for (let i = _slMeteors.length - 1; i >= 0; i--) {
+    const m = _slMeteors[i];
+    m.life += dt;
+    const p = m.life / m.dur;
+    if (p >= 1) { _slMeteors.splice(i, 1); continue; }
+    // the [NULL] bends them in
+    if (hr > 0) {
+      const dx = hx - m.x, dy = hy - m.y, d2 = Math.max(400, dx * dx + dy * dy), d = Math.sqrt(d2);
+      const acc = hr * hr * 900 / d2;
+      m.vx += dx / d * acc * dt * 60; m.vy += dy / d * acc * dt * 60;
+      if (d < hr) { _slMeteors.splice(i, 1); continue; }
+    }
+    m.x += m.vx * dt; m.y += m.vy * dt;
+    const a = Math.pow(Math.sin(Math.PI * p), 0.6);
+    const len = m.len * Math.min(1, p * 3);
+    const ang = Math.atan2(m.vy, m.vx), c = Math.cos(ang), s = Math.sin(ang);
+    ctx.globalAlpha = a;
+    ctx.setTransform(c * len / 256, s * len / 256, -s, c, m.x + ox, m.y + oy);
+    ctx.drawImage(S, -256, -5);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(G, m.x + ox - 9, m.y + oy - 9, 18, 18);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+  }
+}
+// Is there a shooting star under the pointer? If so it is caught: it leaves
+// the sky and the overlay takes it from there. Generous, because a shooting
+// star is gone in under a second: anywhere near the head, or along the
+// bright end of its tail.
+function _slSegDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy || 1;
+  const u = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l));
+  return Math.hypot(px - (ax + u * dx), py - (ay + u * dy));
+}
+function _slCatchAt(vx, vy) {
+  const pc = document.getElementById('pattern-canvas'), P = _drawSelPattern;
+  if (!pc || !pc._bgR || !_slMeteors.length || !pc.width) return null;
+  const r = pc._bgR, sx = r.width / pc.width, sy = r.height / pc.height, ox = P._pox || 0, oy = P._poy || 0;
+  let best = null, bd = 1e9;
+  for (const m of _slMeteors) {
+    const hx = r.left + (m.x + ox) * sx, hy = r.top + (m.y + oy) * sy;
+    const sp = Math.hypot(m.vx, m.vy) || 1;
+    const d = _slSegDist(vx, vy, hx, hy, hx - m.vx / sp * 70 * sx, hy - m.vy / sp * 70 * sy);
+    if (d < bd) { bd = d; best = { m, x: hx, y: hy }; }
+  }
+  if (!best || bd > 34) return null;
+  _slMeteors.splice(_slMeteors.indexOf(best.m), 1);
+  return best;
+}
+
+// a comet crosses the top of the sky, and its tail points AWAY from the planet
+function _slComet(ctx, W, H, px, py, p, ox, oy) {
+  const x = -0.1 * W + 1.2 * W * p, y = H * (0.07 + 0.05 * Math.sin(Math.PI * p));
+  const dx = x - px, dy = y - py, d = Math.hypot(dx, dy) || 1;
+  const ang = Math.atan2(dy, dx), c = Math.cos(ang), s = Math.sin(ang);
+  const a = Math.min(1, Math.sin(Math.PI * p) * 2.2);
+  const len = 180 + 140 * Math.min(1, 300 / d);
+  ctx.globalAlpha = a * 0.85;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.setTransform(c * len / 320, s * len / 320, -s * 0.5, c * 0.5, x + ox, y + oy);
+  ctx.drawImage(_slTail(), 0, -32);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(_slGlow(), x + ox - 16, y + oy - 16, 32, 32);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#f4fbff';
+  ctx.fillRect(x + ox - 2, y + oy - 2, 4, 4);
+  ctx.globalAlpha = 1;
+}
+// the aurora hangs across the upper left of the sky and ripples, in slices
+function _slAurora(ctx, W, H, t, p) {
+  const A = _slAuroraSheet(), env = Math.sin(Math.PI * p);
+  const x0 = W * 0.04, w = W * 0.62, y0 = H * 0.02, h = H * 0.26, n = 28, sw = A.width / n;
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < n; i++) {
+    const dy = Math.sin(i * 0.45 + t * 0.8) * h * 0.08 + Math.sin(i * 0.17 - t * 0.5) * h * 0.05;
+    ctx.globalAlpha = env * (0.7 + 0.3 * Math.sin(i * 0.9 + t * 1.3));
+    ctx.drawImage(A, i * sw, 0, sw + 0.5, A.height, x0 + i * w / n, y0 + dy, w / n + 1, h);
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+let _slGlints = [];
+function _slGlintsDraw(ctx, P, dt) {
+  if (P._glints.length && _slGlints.length < 4 && Math.random() < dt * 2.2) {
+    const g = P._glints[Math.floor(Math.random() * P._glints.length)];
+    _slGlints.push({ x: g[0], y: g[1], life: 0 });
+  }
+  for (let i = _slGlints.length - 1; i >= 0; i--) {
+    const g = _slGlints[i];
+    g.life += dt;
+    if (g.life > 0.7) { _slGlints.splice(i, 1); continue; }
+    if (g.life < 0) continue;                  // a blast staggers them
+    const a = Math.sin(Math.PI * g.life / 0.7), d = 6 + a * 12;
+    ctx.globalAlpha = a;
+    ctx.drawImage(_slSparkle(), g.x - d / 2, g.y - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// The blast crossing the land: a ring of light going out at the speed the
+// stars are kicked at, and the whole scene lit up once.
+function _slShock(ctx, W, H, x, y, age) {
+  const R = age * 1400, fade = Math.max(0, 1 - age / 1.6);
+  ctx.globalCompositeOperation = 'lighter';
+  if (fade > 0) {
+    ctx.strokeStyle = _SL_WHITE[_slA(0.55 * fade)];
+    ctx.lineWidth = 3 + 16 * fade;
+    ctx.beginPath(); ctx.arc(x, y, R, 0, 6.2831853); ctx.stroke();
+    ctx.strokeStyle = _SL_CYAN[_slA(0.35 * fade)];
+    ctx.lineWidth = 2 + 6 * fade;
+    ctx.beginPath(); ctx.arc(x, y, R * 0.82, 0, 6.2831853); ctx.stroke();
+  }
+  const fl = Math.exp(-age * 5) * 0.45;
+  if (fl > 0.01) { ctx.fillStyle = _SL_WHITE[_slA(fl)]; ctx.fillRect(0, 0, W, H); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function _drawSelPattern(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;
+  const P = _drawSelPattern;
+  // `>= 0`: a clock that jumps backwards must not freeze the layer
+  if (P._lt !== undefined && t - P._lt >= 0 && t - P._lt < 0.033) return;
+  const dt = P._lt === undefined ? 0.016 : Math.min(Math.abs(t - P._lt), 0.05);
+  P._lt = t;
+  const now = _slClock();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  _bgRect(canvas);
+  const px = W * 0.78, py = H * 0.155;
+  if (P._w !== W || P._h !== H) { _slBake(P, W, H, px, py); P._w = W; P._h = H; }
+  _slEvTick(now, W, H);
+  _slSampleAudio(dt);
+  const beat = _slRM ? 0 : _slBeat;
+  // DEPTH: every layer slides against the pointer by its own amount, the sky
+  // not at all and the near cliffs most, so the page has a front and a back
+  const vw = Math.max(1, window.innerWidth || W), vh = Math.max(1, window.innerHeight || H);
+  const live = !_slRM && typeof _slMX !== 'undefined' && _slMX > -9000;
+  const tx = live ? Math.max(-1, Math.min(1, (_slMX / vw - 0.5) * 2)) : 0;
+  const ty = live ? Math.max(-1, Math.min(1, (_slMY / vh - 0.5) * 2)) : 0;
+  _slPar.x += (tx - _slPar.x) * Math.min(1, dt * 2.5);
+  _slPar.y += (ty - _slPar.y) * Math.min(1, dt * 2.5);
+  // a [NULL] that went off: where it is in this canvas, and how long ago
+  let bx = 0, by = 0, age = -1;
+  if (_slBlast) {
+    age = now - _slBlast.t0;
+    if (age > 3.2) { _slBlast = null; age = -1; }
+    else if (!canvas._bgR) age = -1;
+    else {
+      [bx, by] = _bgAt(canvas, W, H, _slBlast.x, _slBlast.y);
+      if (!_slBlast.sky) {
+        // the sky answers it: debris flung out as shooting stars, and the ice flashes
+        _slBlast.sky = true;
+        for (let i = 0; i < 9; i++) {
+          const an = i / 9 * 6.2831853 + Math.random() * 0.5, sp = 700 + Math.random() * 500;
+          _slMeteors.push({ x: bx - (P._pox || 0), y: by - (P._poy || 0), vx: Math.cos(an) * sp, vy: Math.sin(an) * sp, life: 0, dur: 0.8 + Math.random() * 0.5, len: 90 + Math.random() * 120 });
+        }
+        for (let i = 0; i < 14 && P._glints.length; i++) {
+          const g = P._glints[Math.floor(Math.random() * P._glints.length)];
+          _slGlints.push({ x: g[0], y: g[1], life: -Math.random() * 0.5 });
+        }
+      }
+    }
+  }
+  const sh = age >= 0 && age < 0.9 ? 12 * Math.exp(-age * 5) : 0;
+  const shx = (Math.random() - 0.5) * sh, shy = (Math.random() - 0.5) * sh;
+  const ox = d => -_slPar.x * d + shx, oy = d => -_slPar.y * d * 0.5 + shy;
+  ctx.drawImage(P._sky, 0, 0);
+  let hx = 0, hy = 0, hr = 0;
+  if (_slHole.r > 0.5 && canvas._bgR) { [hx, hy] = _bgAt(canvas, W, H, _slHole.x, _slHole.y); hr = _slHole.r * (W / canvas._bgR.width); }
+  // the sky layer: aurora, stars, the comet, shooting stars
+  const sx = ox(3), sy = oy(3);
+  P._pox = sx; P._poy = sy;
+  ctx.setTransform(1, 0, 0, 1, sx, sy);
+  const ap = _slEvP('aurora', now);
+  if (ap >= 0) _slAurora(ctx, W, H, t, ap);
+  _slStars(ctx, P, W, H, t, px, py, P._R, hx - sx, hy - sy, hr, beat, bx - sx, by - sy, age);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const cp = _slEvP('comet', now);
+  if (cp >= 0) _slComet(ctx, W, H, px, py, cp, sx, sy);
+  _slMeteorsDraw(ctx, dt, hx - sx, hy - sy, hr, sx, sy);
+  // the planet flares with an event, with a blast, and a little with the beat
+  const fp = _slEvP('flare', now);
+  let fl = fp >= 0 ? (fp < 0.2 ? fp / 0.2 : fp < 0.55 ? 1 : 1 - (fp - 0.55) / 0.45) : 0;
+  if (age >= 0) fl = Math.max(fl, Math.exp(-age * 1.8) * 0.9);
+  fl = Math.max(fl, beat * 0.45);
+  const wob = age >= 0 ? Math.sin(age * 14) * 0.12 * Math.exp(-age * 2) : 0;
+  _slPlanet(ctx, P, px + ox(5), py + oy(5), t, fl, wob);
+  // pink clouds drift past; a blast shoves them away and they drift back
+  const drift = _slRM ? 0 : t, pw = W + 400;
+  const puffs = [[0.30, 0.235, 1.0, 5], [0.95, 0.30, 0.8, 7], [0.58, 0.085, 0.6, 4]];
+  for (let i = 0; i < puffs.length; i++) {
+    const q = puffs[i], spr = P._puffs[i], s = q[2] * Math.max(0.7, W / 1670);
+    let x = (((q[0] * pw - drift * q[3]) % pw) + pw) % pw - 200 + ox(7), y = q[1] * H - spr.height * s * 0.5 + oy(7);
+    if (age >= 0) {
+      const dx = x + spr.width * s * 0.5 - bx, dy = y + spr.height * s * 0.5 - by, d = Math.hypot(dx, dy) || 1;
+      const push = 80 * Math.exp(-d / 1200) * Math.exp(-age * 1.4) * Math.sin(Math.min(Math.PI, age * 5));
+      x += dx / d * push; y += dy / d * push;
+    }
+    ctx.drawImage(spr, x, y, spr.width * s, spr.height * s);
+  }
+  // the layers, each over only the rows it has anything in, each at its own depth
+  ctx.drawImage(P._far, 0, H * 0.3, W, H * 0.7, ox(8), H * 0.3 + oy(8), W, H * 0.7);
+  const sf = P._seaFar, of = ((drift * 6) % W + W) % W;
+  for (let k = -1; k <= 1; k++) ctx.drawImage(sf, k * W - of + ox(11), H * 0.56 + oy(11));
+  ctx.drawImage(P._mid, 0, H * 0.26, W, H * 0.74, ox(15), H * 0.26 + oy(15), W, H * 0.74);
+  const sn = P._seaNear, on = ((drift * 12) % W + W) % W;
+  for (let k = -1; k <= 1; k++) ctx.drawImage(sn, k * W - on + ox(19), H * 0.72 + oy(19));
+  ctx.drawImage(P._near, 0, H * 0.1, W, H * 0.9, ox(24), H * 0.1 + oy(24), W, H * 0.9);
+  ctx.setTransform(1, 0, 0, 1, ox(15), oy(15));
+  _slGlintsDraw(ctx, P, dt);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (age >= 0) _slShock(ctx, W, H, bx + ox(12), by + oy(12), age);
+  ctx.drawImage(P._vig, 0, 0);
+}
+
+// ── swallowing the interface ─────────────────────────────────────
+// Once [NULL] has been held open long enough to mean it, the text on the
+// page near it comes loose and goes in, letter by letter. Nothing in the DOM
+// changes but one class: an element whose text is taken gets `sl-eaten`,
+// which makes its text transparent and leaves it exactly where it was, and
+// its letters are drawn here instead, from sprites made in its own font and
+// colour. Let go and they fly home; when the last letter of an element is
+// home the class comes off and the real text is there under them. Anything
+// that moves the layout underneath (a scroll, a resize, a re-render) puts
+// everything straight back at once rather than leave letters in the wrong
+// place.
+const _slEat = { letters: [], owners: [], atlas: null, ag: null, slots: new Map(), ax: 0, ay: 0, rowH: 0,
+  cands: null, candGen: -1, scanAt: 0, gen: -1 };
+
+// one sprite per character, font and colour, packed into a single atlas
+function _slGlyph(ch, font, col, w, h) {
+  const E = _slEat, key = ch + '|' + font + '|' + col;
+  let sl = E.slots.get(key);
+  if (sl) return sl;
+  if (!E.atlas) { E.atlas = _slMk(1024, 1024); E.ag = E.atlas.getContext('2d'); E.ax = 0; E.ay = 0; E.rowH = 0; }
+  const sw = Math.ceil(w) + 4, sh = Math.ceil(h) + 4;
+  if (E.ax + sw > 1024) { E.ax = 0; E.ay += E.rowH; E.rowH = 0; }
+  if (E.ay + sh > 1024) return null;
+  const g = E.ag;
+  g.font = font; g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(ch, E.ax + sw / 2, E.ay + sh / 2 + 0.5);
+  sl = { x: E.ax, y: E.ay, w: sw, h: sh };
+  E.slots.set(key, sl);
+  E.ax += sw; E.rowH = Math.max(E.rowH, sh);
+  return sl;
+}
+
+// Take ALL the text under one element, or none of it: hiding an element whose
+// letters were only half taken would make the rest simply vanish.
+function _slEatOwner(el, budget) {
+  const E = _slEat, tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), range = document.createRange();
+  const pend = [];
+  let node;
+  while ((node = tw.nextNode())) {
+    const txt = node.nodeValue;
+    if (!txt || !txt.trim()) continue;
+    const pe = node.parentElement;
+    if (!pe) continue;
+    const cs = getComputedStyle(pe);
+    const font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    let col = cs.color;
+    if (!col || col === 'transparent' || /,\s*0\)$/.test(col)) col = '#ffffff';
+    const tt = cs.textTransform, ls = parseFloat(cs.letterSpacing) || 0;
+    for (let i = 0; i < txt.length; i++) {
+      let ch = txt[i];
+      if (ch === ' ' || ch === '\n' || ch === '\t' || ch === '\r' || ch === ' ') continue;
+      if (tt === 'uppercase') ch = ch.toUpperCase(); else if (tt === 'lowercase') ch = ch.toLowerCase();
+      range.setStart(node, i); range.setEnd(node, i + 1);
+      const r = range.getBoundingClientRect();
+      if (!(r.width > 0 && r.height > 0)) continue;
+      const w = Math.max(1, r.width - ls);
+      pend.push({ ch, font, col, x: r.left + w / 2, y: r.top + r.height / 2, w, h: r.height });
+      if (pend.length > budget) return 0;
+    }
+  }
+  if (!pend.length) return 0;
+  const owner = { el, n: 0, home: 0, dead: false, done: false };
+  const mine = [];
+  for (const q of pend) {
+    const sl = _slGlyph(q.ch, q.font, q.col, q.w, q.h);
+    if (!sl) return 0;              // atlas full: take nothing rather than hide text we cannot draw
+    mine.push({ owner, sl, hx: q.x, hy: q.y, x: q.x, y: q.y, vx: 0, vy: 0, rot: 0, vr: 0, s: 1, st: 0,
+      moved: false, delay: Math.random() * 0.25, bt: 0 });
+  }
+  owner.n = mine.length;
+  for (const L of mine) E.letters.push(L);
+  E.owners.push(owner);
+  el.classList.add('sl-eaten');
+  return mine.length;
+}
+
+function _slEatScan() {
+  const E = _slEat, B = _slBH;
+  if (E.letters.length >= 520) return;
+  if (!E.cands || E.candGen !== _lyGen) {
+    E.cands = []; E.candGen = _lyGen;
+    const root = document.getElementById('char-view');
+    if (!root) return;
+    const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), range = document.createRange(), vh = window.innerHeight;
+    let node;
+    while ((node = tw.nextNode())) {
+      if (!node.nodeValue || !node.nodeValue.trim()) continue;
+      const el = node.parentElement;
+      if (!el || el.ownerSVGElement || /^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|svg)$/i.test(el.tagName)) continue;
+      range.selectNodeContents(node);
+      const r = range.getBoundingClientRect();
+      if (!(r.width > 0) || r.bottom < 0 || r.top > vh) continue;
+      E.cands.push({ el, l: r.left, t: r.top, r: r.right, b: r.bottom, done: false });
+    }
+  }
+  const R = B.r * 3 + 60, R2 = R * R;
+  let budget = 160;
+  for (const c of E.cands) {
+    if (c.done) continue;
+    const dx = Math.max(c.l - B.x, 0, B.x - c.r), dy = Math.max(c.t - B.y, 0, B.y - c.b);
+    if (dx * dx + dy * dy > R2) continue;
+    c.done = true;
+    if (!c.el.isConnected || c.el.closest('.sl-eaten') || c.el.querySelector('.sl-eaten')) continue;
+    budget -= _slEatOwner(c.el, Math.max(0, Math.min(budget + 60, 560 - E.letters.length)));
+    if (budget <= 0 || E.letters.length >= 520) break;
+  }
+}
+
+function _slEatStep(now, dt) {
+  const E = _slEat, B = _slBH;
+  if (E.letters.length && E.gen !== _lyGen) _slEatRestoreAll();
+  E.gen = _lyGen;
+  if (B.on && B.col < 0 && B.r > 60 && B.held > 0.8 && now - E.scanAt > 0.2) { E.scanAt = now; _slEatScan(); }
+  if (!E.letters.length) return;
+  // anything whose element was re-rendered is already showing its new text
+  for (const o of E.owners) if (!o.el.isConnected) o.dead = true;
+  const open = B.on && B.col < 0;
+  for (const L of E.letters) {
+    if (L.owner.dead || L.st === 4) continue;
+    if (L.st === 0) {
+      if (!open) { if (L.moved) L.st = 2; else { L.st = 4; L.owner.home++; } continue; }
+      const dx = B.x - L.x, dy = B.y - L.y, d = Math.hypot(dx, dy) || 1;
+      // anything already inside it when it is taken is simply gone, at once
+      if (d < B.r * 0.95) { L.st = 1; L.moved = true; continue; }
+      if (L.delay > 0) { L.delay -= dt; continue; }
+      if (!L.moved && d > B.r * 3 + 60) continue;
+      L.moved = true;
+      const sp = Math.min(1100, 40 + 2400 * (B.r / d) * (B.r / d)), sw = sp * 0.55;
+      L.x += (dx / d * sp - dy / d * sw) * dt; L.y += (dy / d * sp + dx / d * sw) * dt;
+      L.rot += dt * (1.5 + 5 * (1 - Math.min(1, (d - B.r) / (B.r * 1.5))));
+      L.s = Math.max(0.25, Math.min(1, (d - B.r) / (B.r * 1.2)));
+    } else if (L.st === 1) {
+      if (!open) { L.st = 2; L.x = B.x; L.y = B.y; L.s = 0.2; }
+    } else if (L.st === 3) {
+      const k = 1 - Math.min(1, dt * 2.2);
+      L.vx *= k; L.vy *= k;
+      L.x += L.vx * dt; L.y += L.vy * dt; L.rot += L.vr * dt;
+      L.bt -= dt;
+      if (L.bt <= 0) L.st = 2;
+    } else if (L.st === 2) {
+      const k = Math.min(1, dt * 5);
+      L.x += (L.hx - L.x) * k; L.y += (L.hy - L.y) * k;
+      L.rot -= L.rot * Math.min(1, dt * 6); L.s += (1 - L.s) * Math.min(1, dt * 6);
+      if (Math.abs(L.hx - L.x) < 0.6 && Math.abs(L.hy - L.y) < 0.6) { L.x = L.hx; L.y = L.hy; L.rot = 0; L.s = 1; L.st = 4; L.owner.home++; }
+    }
+  }
+  // every element whose letters are all home gets its real text back
+  let changed = false;
+  for (const o of E.owners) {
+    if (o.dead || o.done) { changed = true; continue; }
+    if (o.home >= o.n) { o.el.classList.remove('sl-eaten'); o.done = true; changed = true; }
+  }
+  if (changed) {
+    E.owners = E.owners.filter(o => !o.dead && !o.done);
+    E.letters = E.letters.filter(L => !L.owner.dead && !L.owner.done);
+    if (!E.letters.length) { E.cands = null; E.slots.clear(); E.atlas = null; E.ag = null; }
+  }
+}
+
+// the explosion throws everything that was taken outward, before it flies home
+function _slEatBlast(x, y) {
+  for (const L of _slEat.letters) {
+    if (L.st === 4 || L.owner.dead) continue;
+    if (L.st === 1) { L.x = x; L.y = y; }
+    const dx = L.x - x, dy = L.y - y, d = Math.hypot(dx, dy);
+    const a = d < 2 ? Math.random() * 6.2831853 : Math.atan2(dy, dx), sp = 450 + Math.random() * 500;
+    L.vx = Math.cos(a) * sp; L.vy = Math.sin(a) * sp; L.vr = (Math.random() - 0.5) * 16;
+    L.bt = 0.5 + Math.random() * 0.35; L.s = 1; L.st = 3; L.moved = true;
+  }
+}
+
+function _slEatDraw(ctx) {
+  const E = _slEat;
+  if (!E.letters.length || !E.atlas) return;
+  const A = E.atlas;
+  for (const L of E.letters) {
+    if (L.st === 1 || L.owner.dead) continue;
+    const sl = L.sl;
+    if (L.s === 1 && L.rot === 0) { ctx.drawImage(A, sl.x, sl.y, sl.w, sl.h, L.x - sl.w / 2, L.y - sl.h / 2, sl.w, sl.h); continue; }
+    const c = Math.cos(L.rot) * L.s, s = Math.sin(L.rot) * L.s;
+    ctx.setTransform(c, s, -s, c, L.x, L.y);
+    ctx.drawImage(A, sl.x, sl.y, sl.w, sl.h, -sl.w / 2, -sl.h / 2, sl.w, sl.h);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+function _slEatRestoreAll() {
+  const E = _slEat;
+  for (const o of E.owners) if (o.el) o.el.classList.remove('sl-eaten');
+  if (typeof document !== 'undefined') for (const el of document.querySelectorAll('.sl-eaten')) el.classList.remove('sl-eaten');
+  E.letters = []; E.owners = []; E.cands = null; E.slots.clear(); E.atlas = null; E.ag = null;
+}
+
+// ════════════════════════════════════════════════════════════════
+// THE OVERLAY: the Solver she points with, and [NULL]
+// The cursor is the Solver: a hexagon, a core inside it, three arms and
+// three heads, in her yellow with a dark edge so it reads over anything.
+// Press and a small black hole opens under it with [NULL] written inside;
+// hold and it grows, drags in the stars, the shooting stars and the text on
+// the page, and pulls scraps of code round itself. Hold it too long and it
+// cannot hold itself together: it shakes, and goes off, and the blast goes
+// through the sky and the land as well as the interface. Let go before
+// that and it collapses. Click a shooting star and the Solver catches it.
+// ════════════════════════════════════════════════════════════════
+let _slMX = -9999, _slMY = -9999, _slPtrDown = false, _slNoHole = false, _slOverlayRaf = null;
+const _slBH = { on: false, x: 0, y: 0, vx: 0, vy: 0, r: 0, r0: 0, held: 0, col: -1, pop: -1, px: 0, py: 0, pr: 0,
+  over: 0, spent: false, jx: 0, jy: 0 };
+let _slGlyphs = [], _slDust = [], _slShards = [];
+let _slRot = 0, _slSpread = 0, _slGlitchT = -9, _slGlitchNext = 0;
+let _slBoom = null, _slCaught = [], _slPlus = [], _slPfpFx = null;
+const _SL_CODE = ['NULL', '0x00', 'void', 'nil', 'ERR', '>>', '01101', '{ }', '::', '#00', 'null', '&0', '[ ]', '0000', '404', '\\0'];
+const _SL_BH_MIN = 30;
+const _SL_Y = _slRamp('255,242,150');
+
+// the shooting stars she has caught, kept per browser
+let _slStarCount = 0;
+try { _slStarCount = parseInt(localStorage.getItem('statsheets_sel_stars') || '0', 10) || 0; } catch (e) {}
+function _slCountStar() {
+  _slStarCount++;
+  try { localStorage.setItem('statsheets_sel_stars', String(_slStarCount)); } catch (e) {}
+  const el = document.getElementById('sel-star-count');
+  if (el) el.textContent = _slStarCount;
+}
+
+function _slYGlow() {
+  if (_slYGlow._c) return _slYGlow._c;
+  const cv = _slMk(128, 128), g = cv.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  for (let i = 0; i <= 14; i++) { const u = i / 14; gr.addColorStop(u, 'rgba(255,226,70,' + Math.pow(1 - u, 2.2).toFixed(4) + ')'); }
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return (_slYGlow._c = cv);
+}
+// the dark a black hole drags round itself
+function _slDark() {
+  if (_slDark._c) return _slDark._c;
+  const cv = _slMk(128, 128), g = cv.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  for (let i = 0; i <= 14; i++) { const u = i / 14; gr.addColorStop(u, 'rgba(2,2,8,' + (0.92 * Math.pow(1 - u, 1.6)).toFixed(4) + ')'); }
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return (_slDark._c = cv);
+}
+
+// The Solver at (x, y), turned by `rot`, scaled by `sc`, its arms pushed out
+// by `spread`. `e` thickens every part, for the dark edge drawn under it.
+// Given an `inner` radius it has no hexagon, and its arms stand round a
+// circle that size: that is how it holds [NULL] open without covering it.
+function _slSolver(ctx, x, y, rot, spread, col, e, inner, sc) {
+  const k = sc || 1, c = Math.cos(rot) * k, s = Math.sin(rot) * k;
+  ctx.setTransform(c, s, -s, c, x, y);
+  const open = inner > 0, a0 = open ? inner / k + 3 : 7.5, arm1 = open ? inner / k + 10 : 14 + spread * 12, tip = arm1 + 8;
+  const ARMS = [-Math.PI / 2, Math.PI / 6, 5 * Math.PI / 6];
+  ctx.lineJoin = 'miter'; ctx.lineCap = 'butt';
+  ctx.strokeStyle = col; ctx.fillStyle = col;
+  if (!open) {
+    ctx.lineWidth = 2.2 + e;
+    ctx.beginPath();
+    for (let q = 0; q < 6; q++) { const a = -Math.PI / 2 + q * Math.PI / 3; if (q) ctx.lineTo(Math.cos(a) * 6.4, Math.sin(a) * 6.4); else ctx.moveTo(Math.cos(a) * 6.4, Math.sin(a) * 6.4); }
+    ctx.closePath(); ctx.stroke();
+  }
+  ctx.lineWidth = 1.8 + e;
+  ctx.beginPath();
+  for (const a of ARMS) { ctx.moveTo(Math.cos(a) * a0, Math.sin(a) * a0); ctx.lineTo(Math.cos(a) * (arm1 + 1), Math.sin(a) * (arm1 + 1)); }
+  ctx.stroke();
+  ctx.beginPath();
+  if (!open) {
+    const hr = 3.4 + e * 0.5;
+    for (let q = 0; q < 6; q++) { const a = -Math.PI / 2 + q * Math.PI / 3; if (q) ctx.lineTo(Math.cos(a) * hr, Math.sin(a) * hr); else ctx.moveTo(Math.cos(a) * hr, Math.sin(a) * hr); }
+    ctx.closePath();
+  }
+  const d = e * 0.6;
+  for (const a of ARMS) {
+    const ca = Math.cos(a), sa = Math.sin(a), nx = -sa, ny = ca;
+    ctx.moveTo(ca * (tip + d), sa * (tip + d));
+    ctx.lineTo(ca * (arm1 - 0.5 - d) + nx * (4.4 + d), sa * (arm1 - 0.5 - d) + ny * (4.4 + d));
+    ctx.lineTo(ca * (arm1 + 1.8), sa * (arm1 + 1.8));
+    ctx.lineTo(ca * (arm1 - 0.5 - d) - nx * (4.4 + d), sa * (arm1 - 0.5 - d) - ny * (4.4 + d));
+    ctx.closePath();
+  }
+  ctx.fill();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+function _slCursorDraw(ctx, now, dt) {
+  if (_slMX < -9000) return;
+  const B = _slBH;
+  _slSpread += ((B.on ? Math.min(1, B.r / 140) : 0) - _slSpread) * Math.min(1, dt * 8);
+  // it turns while it holds something open, and settles back square after
+  if (B.on) _slRot += dt * (_slRM ? 0.3 : 0.6 + B.r / 50);
+  else { const k = 2.0943951, tg = Math.round(_slRot / k) * k; _slRot += (tg - _slRot) * Math.min(1, dt * 6); }
+  if (!_slRM && now > _slGlitchNext) { _slGlitchT = now; _slGlitchNext = now + 5 + Math.random() * 5; }
+  const gl = now - _slGlitchT < 0.16 || (B.over > 0.5 && Math.random() < B.over * 0.5);
+  const jx = gl ? (Math.random() - 0.5) * 4 : 0;
+  const open = B.on && B.r > 2, cx = open ? B.x + B.jx : _slMX, cy = open ? B.y + B.jy : _slMY, inner = open ? B.r : 0;
+  const rot = _slRot + (B.over > 0 ? (Math.random() - 0.5) * B.over * 0.3 : 0);
+  if (!open) {
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.3;
+    ctx.drawImage(_slYGlow(), cx - 30, cy - 30, 60, 60);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  if (gl) {
+    ctx.globalAlpha = 0.65;
+    _slSolver(ctx, cx - 3, cy, rot, _slSpread, '#3ff6ff', 0, inner, 1);
+    _slSolver(ctx, cx + 3, cy + 1, rot, _slSpread, '#ff3fd2', 0, inner, 1);
+    ctx.globalAlpha = 1;
+  }
+  _slSolver(ctx, cx + jx, cy, rot, _slSpread, 'rgba(14,10,0,0.82)', 2.6, inner, 1);
+  _slSolver(ctx, cx + jx, cy, rot, _slSpread, '#fff23a', 0, inner, 1);
+}
+
+// ── [NULL] ───────────────────────────────────────────────────────
+function _slHoleStep(dt, W, H, now) {
+  const B = _slBH;
+  if (B.pop >= 0) { B.pop += dt; if (B.pop > 0.45) B.pop = -1; }
+  if (!B.on) { _slHole.r = 0; return; }
+  const maxR = Math.max(90, Math.min(W, H) * 0.2);
+  if (B.col >= 0) {
+    // let go: it falls in on itself, and pops
+    B.col += dt; B.over = 0;
+    const p = Math.min(1, B.col / 0.4);
+    B.r = B.r0 * (1 - p * p);
+    if (p >= 1) {
+      B.on = false; B.pop = 0; B.px = B.x; B.py = B.y; B.pr = B.r0;
+      _slGlyphs = []; _slDust = [];
+      _slHole.r = 0;
+      return;
+    }
+  } else {
+    B.held += dt;
+    const tgt = _SL_BH_MIN + (maxR - _SL_BH_MIN) * (1 - Math.exp(-B.held / 2.4));
+    B.r += (tgt - B.r) * Math.min(1, dt * 10);
+    // OVERLOAD: held long enough, it cannot hold itself together
+    B.over = _slRM ? 0 : Math.max(0, Math.min(1, (B.held - 4.5) / 1.6));
+    if (B.over >= 1) { _slExplode(now); return; }
+  }
+  // it follows the pointer, and the bigger it gets the heavier it is
+  if (_slMX > -9000) {
+    const k = 140 / (1 + B.r / 70), c = 2 * Math.sqrt(k) * 0.9;
+    B.vx += ((_slMX - B.x) * k - B.vx * c) * dt;
+    B.vy += ((_slMY - B.y) * k - B.vy * c) * dt;
+    B.x += B.vx * dt; B.y += B.vy * dt;
+  }
+  B.jx = (Math.random() - 0.5) * B.over * 12; B.jy = (Math.random() - 0.5) * B.over * 12;
+  _slHole.x = B.x; _slHole.y = B.y; _slHole.r = B.r;
+  if (B.col < 0) {
+    const rate = ((_slRM ? 1 : 2.5) + B.r / 30) * (1 + B.over * 2);
+    if (_slGlyphs.length < 26 && Math.random() < dt * rate) {
+      _slGlyphs.push({ a: Math.random() * 6.283, d: B.r * (2.4 + Math.random() * 1.4) + 20, va: 0.9 + Math.random() * 0.9,
+        txt: _SL_CODE[Math.floor(Math.random() * _SL_CODE.length)], fs: Math.random() < 0.5 ? 8 : 10, life: 0 });
+    }
+    while (_slDust.length < Math.min(60, 12 + B.r * 0.3)) {
+      _slDust.push({ a: Math.random() * 6.283, d: B.r * (1.5 + Math.random() * 2.5), va: 1.2 + Math.random() * 1.6, s: 0.8 + Math.random() * 1.4 });
+    }
+  }
+}
+
+// It goes off. The sky is told (_slBlast) so the land takes the blast too;
+// what was circling it is thrown out, and so is the text it had taken.
+function _slExplode(now) {
+  const B = _slBH;
+  _slBoom = { x: B.x, y: B.y, t0: now, r: B.r };
+  _slBlast = { x: B.x, y: B.y, t0: now };
+  _slShards = [];
+  for (const g of _slGlyphs) {
+    const sp = 500 + Math.random() * 600;
+    _slShards.push({ x: B.x + Math.cos(g.a) * g.d, y: B.y + Math.sin(g.a) * g.d, vx: Math.cos(g.a) * sp, vy: Math.sin(g.a) * sp, txt: g.txt, fs: g.fs, life: 1 });
+  }
+  for (const d of _slDust) {
+    const sp = 400 + Math.random() * 900;
+    _slShards.push({ x: B.x + Math.cos(d.a) * d.d, y: B.y + Math.sin(d.a) * d.d, vx: Math.cos(d.a) * sp, vy: Math.sin(d.a) * sp, s: d.s + 0.5, life: 1 });
+  }
+  _slGlyphs = []; _slDust = [];
+  _slEatBlast(B.x, B.y);
+  B.on = false; B.spent = true; B.over = 0; B.jx = B.jy = 0;
+  _slHole.r = 0;
+}
+
+function _slHoleDraw(ctx, t, dt) {
+  const B = _slBH;
+  if (B.pop >= 0) {
+    const p = B.pop / 0.45;
+    ctx.strokeStyle = _SL_Y[_slA((1 - p) * 0.85)];
+    ctx.lineWidth = 1 + 3 * (1 - p);
+    ctx.beginPath(); ctx.arc(B.px, B.py, B.pr * (0.4 + 2.4 * p), 0, 6.2831853); ctx.stroke();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = (1 - p) * 0.6;
+    const gs = B.pr * 1.6;
+    ctx.drawImage(_slYGlow(), B.px - gs, B.py - gs, gs * 2, gs * 2);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  if (!B.on || B.r < 0.5) return;
+  const ov = B.over, x = B.x + B.jx, y = B.y + B.jy;
+  const r = B.r * (1 + ov * 0.06 * Math.sin(t * 40));
+  ctx.globalAlpha = 0.85;
+  ctx.drawImage(_slDark(), x - r * 2.6, y - r * 2.6, r * 5.2, r * 5.2);
+  ctx.globalAlpha = 1;
+  // light bent round it: a faint ring well outside the disc
+  ctx.strokeStyle = 'rgba(214,220,255,0.25)'; ctx.lineWidth = Math.max(1, r * 0.05);
+  ctx.beginPath(); ctx.arc(x, y, r * 1.75, 0, 6.2831853); ctx.stroke();
+  // the dust spiralling in, as squares: see the note on the stars about paths
+  ctx.fillStyle = _SL_Y[_slA(0.7)];
+  for (let i = _slDust.length - 1; i >= 0; i--) {
+    const d = _slDust[i];
+    d.a += dt * d.va * (1 + r / Math.max(d.d, 1)) * (1 + ov * 2);
+    d.d -= dt * (18 + r * 0.5);
+    if (d.d < r * 1.02) { _slDust.splice(i, 1); continue; }
+    ctx.fillRect(x + Math.cos(d.a) * d.d - d.s, y + Math.sin(d.a) * d.d - d.s, d.s * 2, d.s * 2);
+  }
+  // the ring of stuff going round it: hot inside, cooler out, white as it overloads
+  ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  const spin = t * (1.8 + 30 / (r + 10)) * (1 + ov * 2.5);
+  const passes = ov > 0.4
+    ? [['255,255,240', 1.04, 0.95], ['255,236,170', 1.16, 0.8], ['255,170,90', 1.3, 0.6]]
+    : [['255,250,205', 1.04, 0.9], ['255,204,72', 1.16, 0.7], ['255,134,44', 1.3, 0.45]];
+  for (let pi = 0; pi < 3; pi++) {
+    const P = passes[pi];
+    ctx.strokeStyle = 'rgba(' + P[0] + ',' + P[2] + ')';
+    ctx.lineWidth = Math.max(1, r * (0.09 - pi * 0.02));
+    ctx.beginPath();
+    for (let i = 0; i < 12; i++) {
+      const a0 = i / 12 * 6.2831853 + spin * (1 - pi * 0.18) + pi * 0.4;
+      const rr = r * (P[1] + ((i * 7) % 5) * 0.02);
+      ctx.moveTo(x + Math.cos(a0) * rr, y + Math.sin(a0) * rr);
+      ctx.arc(x, y, rr, a0, a0 + 0.32 + (i % 3) * 0.12);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = Math.min(1, 0.45 + ov * 0.4);
+  ctx.drawImage(_slYGlow(), x - r * 1.9, y - r * 1.9, r * 3.8, r * 3.8);
+  ctx.globalAlpha = 1;
+  // crackling off the rim as it overloads
+  if (ov > 0.2) {
+    ctx.strokeStyle = _SL_Y[_slA(0.5 + ov * 0.5)]; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const n = Math.floor(3 + ov * 8);
+    for (let i = 0; i < n; i++) {
+      let a = Math.random() * 6.2831853, rr = r * 1.02;
+      ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      for (let k = 0; k < 4; k++) { a += (Math.random() - 0.5) * 0.25; rr += r * (0.06 + Math.random() * 0.1); ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    }
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  // the hole, and the thin bright ring right on its edge
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2831853); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,246,170,0.95)'; ctx.lineWidth = Math.max(1, r * 0.035);
+  ctx.beginPath(); ctx.arc(x, y, r * 1.01, 0, 6.2831853); ctx.stroke();
+  // [NULL], sized to fit inside it, and glitching as it overloads
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const fs = Math.max(7, Math.min(30, Math.round(r * 0.26)));
+  ctx.font = fs + "px 'Press Start 2P', monospace";
+  let word = '[NULL]';
+  if (ov > 0.3 && Math.random() < ov * 0.45) word = ['[NU11]', '[N?LL]', '[////]', '[ERR]', '[NULL]'][Math.floor(Math.random() * 5)];
+  if (ov > 0.3) {
+    ctx.fillStyle = 'rgba(63,246,255,0.6)'; ctx.fillText(word, x - 2 - ov * 2, y);
+    ctx.fillStyle = 'rgba(255,63,210,0.6)'; ctx.fillText(word, x + 2 + ov * 2, y);
+  }
+  ctx.fillStyle = 'rgba(255,226,90,0.35)'; ctx.fillText(word, x + 1, y + 1);
+  ctx.fillStyle = _SL_Y[_slA(0.82 + 0.18 * Math.sin(t * 19))];
+  ctx.fillText(word, x, y);
+  // the code, going round and in, faster the closer it gets
+  for (const size of [8, 10]) {
+    ctx.font = size + "px 'Press Start 2P', monospace";
+    for (let i = _slGlyphs.length - 1; i >= 0; i--) {
+      const g = _slGlyphs[i];
+      if (g.fs !== size) continue;
+      g.life += dt;
+      g.a += dt * g.va * (1 + r / Math.max(g.d, 1)) * (1 + ov * 2);
+      g.d -= dt * (20 + r * 0.45);
+      if (g.d < r * 1.05) { _slGlyphs.splice(i, 1); continue; }
+      const a = Math.min(1, g.life * 3) * Math.min(1, (g.d - r) / (r * 0.6));
+      ctx.fillStyle = _SL_Y[_slA(a * 0.85)];
+      ctx.fillText(g.txt, x + Math.cos(g.a) * g.d, y + Math.sin(g.a) * g.d);
+    }
+  }
+}
+
+// the explosion as it crosses the interface: a flash, a thin ring (thinner
+// than the one in the sky, so the page stays readable), and the shrapnel
+function _slBoomDraw(ctx, W, H, now) {
+  const b = _slBoom;
+  if (!b) return;
+  const age = now - b.t0;
+  if (age > 2) { _slBoom = null; return; }
+  ctx.globalCompositeOperation = 'lighter';
+  const fl = Math.exp(-age * 7) * 0.5;
+  if (fl > 0.01) { ctx.fillStyle = _SL_Y[_slA(fl)]; ctx.fillRect(0, 0, W, H); }
+  if (age < 0.35) {
+    ctx.globalAlpha = 1 - age / 0.35;
+    const gs = b.r * (1.2 + age * 4);
+    ctx.drawImage(_slYGlow(), b.x - gs, b.y - gs, gs * 2, gs * 2);
+    ctx.globalAlpha = 1;
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  const fade = Math.max(0, 1 - age / 1.3);
+  if (fade > 0) {
+    ctx.strokeStyle = _SL_Y[_slA(0.7 * fade)]; ctx.lineWidth = 1 + 7 * fade;
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r + age * 1400, 0, 6.2831853); ctx.stroke();
+  }
+}
+function _slShardsDraw(ctx, dt) {
+  if (!_slShards.length) return;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = _slShards.length - 1; i >= 0; i--) {
+    const s = _slShards[i], k = 1 - Math.min(1, dt * 1.6);
+    s.vx *= k; s.vy *= k; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt * 0.8;
+    if (s.life <= 0) { _slShards.splice(i, 1); continue; }
+    ctx.fillStyle = _SL_Y[_slA(s.life)];
+    if (s.txt) { ctx.font = s.fs + "px 'Press Start 2P', monospace"; ctx.fillText(s.txt, s.x, s.y); }
+    else ctx.fillRect(s.x - s.s, s.y - s.s, s.s * 2, s.s * 2);
+  }
+}
+
+// ── catching shooting stars ──────────────────────────────────────
+function _slCatchFx(x, y) {
+  _slCaught.push({ x0: x, y0: y, t0: _slClock() });
+  _slCountStar();
+}
+function _slCaughtDraw(ctx, now) {
+  const sp = _slSparkle();
+  for (let i = _slCaught.length - 1; i >= 0; i--) {
+    const c = _slCaught[i], p = (now - c.t0) / 0.38;
+    if (p >= 1) {
+      _slCaught.splice(i, 1);
+      _slPlus.push({ x: _slMX, y: _slMY - 20, t0: now });
+      _slSpread = Math.max(_slSpread, 0.7);
+      continue;
+    }
+    // it falls into the Solver, curving a little on the way
+    const e = p * p, k = Math.sin(Math.PI * p);
+    const x = c.x0 + (_slMX - c.x0) * e + k * 30, y = c.y0 + (_slMY - c.y0) * e - k * 20;
+    const d = 28 * (1 - p * 0.6);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(sp, x - d / 2, y - d / 2, d, d);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  if (!_slPlus.length) return;
+  ctx.font = "12px 'Press Start 2P', monospace"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = _slPlus.length - 1; i >= 0; i--) {
+    const q = _slPlus[i], p = (now - q.t0) / 0.9;
+    if (p >= 1) { _slPlus.splice(i, 1); continue; }
+    const y = q.y - p * 30;
+    ctx.fillStyle = 'rgba(14,10,0,0.8)'; ctx.fillText('+1', q.x + 1, y + 1);
+    ctx.fillStyle = _SL_Y[_slA(1 - p * p)]; ctx.fillText('+1', q.x, y);
+  }
+}
+
+// ── the portrait: click it and it glitches, and the Solver flashes over it ─
+function _slPfpGlitch(av) {
+  if (av.animate) {
+    if (av._slAnim) av._slAnim.cancel();
+    const k = _slRM ? 0.3 : 1;
+    const f = (x, y, sk, fil) => ({ transform: 'translate(' + (x * k) + 'px,' + (y * k) + 'px) skewX(' + (sk * k) + 'deg)', filter: fil, easing: 'steps(1, end)' });
+    av._slAnim = av.animate([
+      f(0, 0, 0, 'none'),
+      f(-5, 1, -8, 'drop-shadow(-4px 0 #3ff6ff) drop-shadow(4px 0 #ff3fd2) contrast(1.4)'),
+      f(6, -2, 5, 'drop-shadow(5px 0 #3ff6ff) drop-shadow(-5px 0 #ff3fd2) saturate(2)'),
+      f(-3, 2, 0, 'hue-rotate(60deg) drop-shadow(-3px 0 #3ff6ff)'),
+      f(4, 0, -4, 'drop-shadow(3px 0 #ff3fd2) brightness(1.4)'),
+      f(0, 0, 0, 'none'),
+    ], { duration: 520 });
+  }
+  if (!_slOverlayRaf) return;
+  const r = av.getBoundingClientRect();
+  _slPfpFx = { x: r.left + r.width / 2, y: r.top + r.height / 2, s: r.width, t0: _slClock() };
+}
+function _slPfpDraw(ctx, now) {
+  const F = _slPfpFx;
+  if (!F) return;
+  const age = now - F.t0;
+  if (age > 0.95) { _slPfpFx = null; return; }
+  const pop = Math.min(1, age / 0.12), out = age > 0.55 ? (age - 0.55) / 0.4 : 0;
+  const sc = (F.s / 44) * (0.6 + 0.5 * pop + 0.5 * out), a = pop * (1 - out), rot = age * 0.8;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = a * 0.6;
+  const gs = F.s * 1.1;
+  ctx.drawImage(_slYGlow(), F.x - gs, F.y - gs, gs * 2, gs * 2);
+  ctx.globalCompositeOperation = 'source-over';
+  if (age < 0.5 && Math.floor(age * 30) % 2 === 0) {
+    ctx.globalAlpha = a * 0.7;
+    _slSolver(ctx, F.x - 5, F.y, rot, 0, '#3ff6ff', 0, 0, sc);
+    _slSolver(ctx, F.x + 5, F.y + 2, rot, 0, '#ff3fd2', 0, 0, sc);
+  }
+  ctx.globalAlpha = a;
+  _slSolver(ctx, F.x, F.y, rot, 0, 'rgba(14,10,0,0.8)', 2.2, 0, sc);
+  _slSolver(ctx, F.x, F.y, rot, 0, '#fff23a', 0, 0, sc);
+  ctx.globalAlpha = 1;
+}
+function _slPfpClick(e) {
+  const av = e.target && e.target.closest ? e.target.closest('#cv-avatar') : null;
+  if (av && av.classList.contains('selnight-pfp')) _slPfpGlitch(av);
+}
+// Registered once, not per visit: the class is what switches it on, and the
+// class is there even in performance mode, when the overlay never starts.
+if (typeof document !== 'undefined') document.addEventListener('click', _slPfpClick);
+
+// ── the loop ─────────────────────────────────────────────────────
+function _drawSelOverlay(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;
+  const O = _drawSelOverlay;
+  const fresh = O._lt === undefined;
+  if (!fresh && t - O._lt >= 0 && t - O._lt < 0.014) return;
+  const dt = fresh ? 0.016 : Math.min(Math.abs(t - O._lt), 0.05);
+  O._lt = t;
+  const now = _slClock();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.clearRect(0, 0, W, H);
+  _slHoleStep(dt, W, H, now);
+  _slEatStep(now, dt);
+  _slHoleDraw(ctx, t, dt);
+  _slEatDraw(ctx);
+  _slBoomDraw(ctx, W, H, now);
+  _slShardsDraw(ctx, dt);
+  _slCaughtDraw(ctx, now);
+  _slPfpDraw(ctx, now);
+  _slCursorDraw(ctx, now, dt);
+}
+
+function _slMove(e) { _slMX = e.clientX; _slMY = e.clientY; }
+function _slDown(e) {
+  if (e.button !== 0) return;
+  if (typeof e.clientX === 'number') { _slMX = e.clientX; _slMY = e.clientY; }
+  _slPtrDown = true; _slNoHole = false;
+  const tg = e.target;
+  // the portrait has its own answer to a click
+  if (tg && tg.closest && tg.closest('#cv-avatar.selnight-pfp')) { _slNoHole = true; return; }
+  // a shooting star under the Solver is caught, and the click is spent on it
+  const got = _slCatchAt(_slMX, _slMY);
+  if (got) { _slNoHole = true; _slCatchFx(got.x, got.y); return; }
+  const B = _slBH;
+  if (B.spent) return;
+  if (!B.on) {
+    B.on = true; B.x = _slMX; B.y = _slMY; B.vx = B.vy = 0; B.r = 0; B.held = 0; B.col = -1; B.over = 0;
+  } else if (B.col >= 0) {
+    // caught before it closed: it opens up again from where it had got to
+    B.col = -1;
+    const maxR = Math.max(90, Math.min(window.innerWidth, window.innerHeight) * 0.2);
+    B.held = -2.4 * Math.log(Math.max(0.01, 1 - Math.max(0, B.r - _SL_BH_MIN) / (maxR - _SL_BH_MIN)));
+  }
+}
+function _slUp() {
+  const B = _slBH;
+  if (_slPtrDown && !_slNoHole && B.on && B.col < 0) { B.col = 0; B.r0 = B.r; }
+  _slPtrDown = false; _slNoHole = false; B.spent = false;
+}
+function _slOut(e) { if (!e.relatedTarget) { _slMX = -9999; _slMY = -9999; } }
+
+function _slOverlayReset() {
+  _slPtrDown = false; _slNoHole = false;
+  Object.assign(_slBH, { on: false, pop: -1, over: 0, spent: false, jx: 0, jy: 0 });
+  _slGlyphs = []; _slDust = []; _slShards = []; _slHole.r = 0;
+  _slBoom = null; _slBlast = null; _slCaught = []; _slPlus = []; _slPfpFx = null;
+  _slEatRestoreAll();
+}
+function _startSelOverlay() {
+  _stopSelOverlay();
+  _drawSelOverlay._lt = undefined;
+  _slOverlayReset();
+  window.addEventListener('mousemove', _slMove, { passive: true });
+  window.addEventListener('mousedown', _slDown, true);
+  window.addEventListener('mouseup', _slUp, true);
+  window.addEventListener('blur', _slUp);
+  document.addEventListener('mouseout', _slOut);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'sel-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('sel-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawSelOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _slOverlayRaf = requestAnimationFrame(frame);
+  }
+  _slOverlayRaf = requestAnimationFrame(frame);
+}
+function _stopSelOverlay() {
+  if (_slOverlayRaf) { cancelAnimationFrame(_slOverlayRaf); _slOverlayRaf = null; }
+  window.removeEventListener('mousemove', _slMove, { passive: true });
+  window.removeEventListener('mousedown', _slDown, true);
+  window.removeEventListener('mouseup', _slUp, true);
+  window.removeEventListener('blur', _slUp);
+  document.removeEventListener('mouseout', _slOut);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('sel-overlay'); if (cv) cv.remove();
+  _slOverlayReset();
+  _slMeteors = []; _slGlints = []; _slEv = null; _slEvNext = 0; _slNextMeteor = 0;
+  _drawSelOverlay._w = -1;
+  _drawSelPattern._w = -1;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // AH!FLOWEY
 //
 // THE CLAIM. This place has already lost. The vines got here first
@@ -40250,6 +41720,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'flowey_vines')   { _drawFloweyPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'ivy_evil')       { _drawIvyEvilPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'aeden_puppet')   { _drawAedenPattern(canvas, ctx, W, H, t);                return; }
+  if (type === 'sel_night')      { _drawSelPattern(canvas, ctx, W, H, t);                  return; }
 
   // Static noise: handle BEFORE clearRect, skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -40840,6 +42311,8 @@ function startBgAnim(type, params) {
   _drawIvyEvilOverlay._lt     = undefined;
   _drawAedenPattern._lt       = undefined;
   _drawAedenOverlay._lt       = undefined;
+  _drawSelPattern._lt         = undefined;
+  _drawSelOverlay._lt         = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -40939,6 +42412,7 @@ function stopBgAnim() {
   _stopFloweyOverlay();
   _stopIvyEvilOverlay();
   _stopAedenOverlay();
+  _stopSelOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -41623,6 +43097,7 @@ function viewChar(id) {
   else if (_isFlowey(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e0b838'); }
   else if (_isIvyEvil(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d61c30'); }
   else if (_isAedenPuppet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _AP_HEX); }
+  else if (_isSel(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _SL_HEX); }
   else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
   else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
   else if (_isClassicGhost(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d8c46a'); }
@@ -42725,6 +44200,26 @@ function viewChar(id) {
     }
   }
 
+  // ── SEL: glass menus over a frozen night, and the pattern canvas nearly
+  //    opaque because the night IS the page. Every form. After every other
+  //    opacity claimant, so it only has to set the value. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isSel(c)) {
+      _cvRoot.classList.add('selnight-ui');
+      if (_av) _av.classList.add('selnight-pfp');
+      if (_nm) { _nm.classList.add('selnight-name'); _nm.setAttribute('data-text', _nm.textContent || 'SEL'); }
+      if (_pc) _pc.style.opacity = '0.95';
+    } else {
+      _cvRoot.classList.remove('selnight-ui');
+      if (_av) _av.classList.remove('selnight-pfp');
+      if (_nm) { _nm.classList.remove('selnight-name'); if (!_nmHasNameSkin(_nm)) _nm.removeAttribute('data-text'); }
+    }
+  }
+
   // ── Evelynn: elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -42837,7 +44332,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isAedenPuppet(c) ? 'aeden_puppet' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isSel(c) ? 'sel_night' : _isAedenPuppet(c) ? 'aeden_puppet' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -42850,7 +44345,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : _isJuko1(c) ? "Juko · 1, the value left" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && ptype !== 'flowey_vines' && ptype !== 'ivy_evil' && ptype !== 'aeden_puppet' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && ptype !== 'flowey_vines' && ptype !== 'ivy_evil' && ptype !== 'aeden_puppet' && ptype !== 'sel_night' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -42873,6 +44368,14 @@ function viewChar(id) {
         `&#9876; BURGERS SLICED: <span id="mb-slice-count" style="color:#ffe2bc;font-weight:bold;text-shadow:0 0 10px rgba(255,150,80,0.85);">${_mbSliceCount}</span>` +
       `</div>` +
       `<div style="font-size:7.5px;letter-spacing:1px;color:#8a6038;margin-top:5px;">cut clean in half with a fast swing &#9876;</div>`;
+  }
+  // Sel-only: shooting stars caught with the Solver (kept per browser)
+  if (_isSel(c)) {
+    styleEl.innerHTML +=
+      `<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,117,0.22);font-size:9px;letter-spacing:2px;line-height:1.8;color:#fff9c4;">` +
+        `&#10022; STARS CAUGHT: <span id="sel-star-count" style="color:#ffff75;font-weight:bold;text-shadow:0 0 10px rgba(255,242,58,0.7);">${_slStarCount}</span>` +
+      `</div>` +
+      `<div style="font-size:7.5px;letter-spacing:1px;color:#8c93c8;margin-top:5px;">click a shooting star to catch it &#10022;</div>`;
   }
   stopBgAnim();
   // Paint teardown/setup must run BEFORE startBgAnim so a base→BLUE switch
@@ -42963,6 +44466,7 @@ function viewChar(id) {
   if (_isFlowey(c))   _startFloweyOverlay();
   if (_isIvyEvil(c))  _startIvyEvilOverlay();
   if (_isAedenPuppet(c)) _startAedenOverlay();
+  if (_isSel(c)) _startSelOverlay();
   }
 
   renderInventory(c);
@@ -48617,7 +50121,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isAedenPuppet(c) ? 'aeden_puppet' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isSel(c) ? 'sel_night' : _isAedenPuppet(c) ? 'aeden_puppet' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -48694,6 +50198,7 @@ window.addEventListener('resize', () => {
       if (_isFlowey(c))   _startFloweyOverlay();
       if (_isIvyEvil(c))  _startIvyEvilOverlay();
       if (_isAedenPuppet(c)) _startAedenOverlay();
+      if (_isSel(c)) _startSelOverlay();
     }
   }
 });

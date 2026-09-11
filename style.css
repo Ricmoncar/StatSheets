@@ -15563,3 +15563,120 @@ text.lb-cl-glitch-svg {
 @media (prefers-reduced-motion: reduce) {
   .char-name-display.aedenp-name { animation: none; }
 }
+
+
+/* ============================================================
+   SEL: the menus are glass over a frozen night, so the sky and
+   the cliffs show through them. Her yellow stays, but only as a
+   thin edge and on the titles; the Solver's hexagon sits in the
+   corner of every panel.
+   ============================================================ */
+#char-view.selnight-ui .panel {
+  --p-border: rgba(255,255,117,0.5);
+  border: 2px solid rgba(255,255,117,0.3);
+  background: linear-gradient(180deg, rgba(8,12,40,0.46), rgba(6,8,30,0.6));
+  box-shadow:
+    inset 0 1px 0 rgba(190,210,255,0.14),
+    inset 0 0 40px rgba(20,30,90,0.35),
+    0 16px 40px -18px rgba(0,0,0,0.85);
+}
+/* the corner notch every panel has becomes the Solver's hexagon */
+#char-view.selnight-ui .panel::after {
+  top: 9px; right: 9px;
+  width: 12px; height: 13px;
+  border: none;
+  background: #fff23a;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  pointer-events: none;
+}
+#char-view.selnight-ui .panel-title {
+  color: #ffff75 !important;
+  letter-spacing: 4px;
+  border-bottom-color: rgba(255,255,117,0.22);
+  text-shadow: 0 0 10px rgba(255,242,58,0.45), 0 1px 0 rgba(0,0,0,0.9);
+}
+#char-view.selnight-ui .tab-btn { color: #8c93c8; }
+#char-view.selnight-ui .tab-btn:hover { color: #fff9c4; text-shadow: 0 0 10px rgba(255,242,58,0.5); }
+#char-view.selnight-ui .tab-btn.active {
+  color: #ffff75;
+  border-bottom-color: #ffff75;
+  text-shadow: 0 0 12px rgba(255,242,58,0.6);
+}
+
+/* ────── the name: her yellow, and now and then the Solver glitch ────── */
+.char-name-display.selnight-name {
+  color: #ffff75 !important;
+  letter-spacing: 4px;
+  text-shadow: 0 0 12px rgba(255,242,58,0.55), 0 2px 0 rgba(0,0,0,0.9);
+  animation: selnight-glitch 7s steps(1) infinite;
+}
+@keyframes selnight-glitch {
+  0%, 91%, 100% { text-shadow: 0 0 12px rgba(255,242,58,0.55), 0 2px 0 rgba(0,0,0,0.9); transform: none; }
+  92% { text-shadow: -2px 0 rgba(63,246,255,0.8), 2px 0 rgba(255,63,210,0.8), 0 0 12px rgba(255,242,58,0.55); transform: translateX(1px); }
+  94% { text-shadow: 2px 0 rgba(63,246,255,0.8), -2px 0 rgba(255,63,210,0.8); transform: translateX(-1px); }
+  96% { text-shadow: 0 0 12px rgba(255,242,58,0.55), 0 2px 0 rgba(0,0,0,0.9); transform: none; }
+}
+
+/* ────── the portrait ────── */
+.char-avatar-large.selnight-pfp {
+  border-color: rgba(255,255,117,0.85) !important;
+  box-shadow: 0 0 22px rgba(255,242,58,0.3), inset 0 0 18px rgba(6,8,30,0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-name-display.selnight-name { animation: none; }
+}
+
+/* ────── the visor: every panel is a readout ──────
+   Corner brackets, faint scanlines, and titles that type themselves out at
+   a prompt with the cursor still blinking after them. */
+#char-view.selnight-ui .panel {
+  background:
+    repeating-linear-gradient(0deg, rgba(190,210,255,0.035) 0 1px, rgba(0,0,0,0) 1px 3px),
+    linear-gradient(180deg, rgba(8,12,40,0.46), rgba(6,8,30,0.6));
+}
+#char-view.selnight-ui .panel::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255,255,117,0.75), rgba(255,255,117,0.75)) top left / 16px 2px no-repeat,
+    linear-gradient(rgba(255,255,117,0.75), rgba(255,255,117,0.75)) top left / 2px 16px no-repeat,
+    linear-gradient(rgba(255,255,117,0.75), rgba(255,255,117,0.75)) top right / 16px 2px no-repeat,
+    linear-gradient(rgba(255,255,117,0.75), rgba(255,255,117,0.75)) top right / 2px 16px no-repeat,
+    linear-gradient(rgba(255,255,117,0.75), rgba(255,255,117,0.75)) bottom left / 16px 2px no-repeat,
+    linear-gradient(rgba(255,255,117,0.75), rgba(255,255,117,0.75)) bottom left / 2px 16px no-repeat,
+    linear-gradient(rgba(255,255,117,0.75), rgba(255,255,117,0.75)) bottom right / 16px 2px no-repeat,
+    linear-gradient(rgba(255,255,117,0.75), rgba(255,255,117,0.75)) bottom right / 2px 16px no-repeat;
+}
+/* the hexagon moves in, inside the top right bracket, like a marker */
+#char-view.selnight-ui .panel::after { top: 15px; right: 15px; }
+#char-view.selnight-ui .panel-title { animation: selnight-type 0.7s steps(14, end) both; }
+@keyframes selnight-type {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+#char-view.selnight-ui .panel-title::before { content: "> "; white-space: pre; color: rgba(255,255,117,0.7); }
+#char-view.selnight-ui .panel-title::after {
+  content: "_";
+  margin-left: 3px;
+  color: #ffff75;
+  animation: selnight-blink 1.05s steps(1) infinite;
+}
+@keyframes selnight-blink { 50% { opacity: 0; } }
+#char-view.selnight-ui .tab-btn.active::before { content: "[ "; white-space: pre; color: rgba(255,255,117,0.8); }
+#char-view.selnight-ui .tab-btn.active::after { content: " ]"; white-space: pre; color: rgba(255,255,117,0.8); }
+
+/* Text swallowed by [NULL] is drawn by the page while it is gone. The real
+   text never moves; it is only made invisible until its letters are home. */
+.sl-eaten, .sl-eaten * {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #char-view.selnight-ui .panel-title,
+  #char-view.selnight-ui .panel-title::after { animation: none; }
+}

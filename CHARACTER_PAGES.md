@@ -844,8 +844,20 @@ because they are about the document the canvas is sitting in.
    a clear lets Chrome pile up every frame's drawing until the flush, so the
    parts add up to several times the real frame and point at the wrong thing.
 
+13. **Path fills and image draws, interleaved.** Sel's sky drew 261 stars as
+   batched arcs (0.3 ms on their own) and 16 sparkles as a glow sprite plus a
+   small path each (0.8 ms on their own). In the same frame the two together
+   measured 9.3 ms, and they were the whole of a 5 to 6 ms overrun. With no
+   path fill on that layer at all (the small stars as `fillRect` squares,
+   which at a pixel or two nobody can tell from circles, and the big ones and
+   every sparkle as one baked sprite) the whole background came to 0.9 ms. If
+   a layer mixes `fill()` with `drawImage`, time it both ways before trusting
+   either number.
+
 Cheap enough to ignore: `getBoundingClientRect` once a frame, a few hundred
 small `arc` fills batched into one path, blits (a full-canvas blit is 0.11 ms).
+But see item 13: batched arcs stop being cheap the moment they share a frame
+with image draws.
 
 **Baking only pays if the thing actually holds still.** Juko's rain columns were
 baked per cell-crossing, which sounded right and bought 27%, because a column
