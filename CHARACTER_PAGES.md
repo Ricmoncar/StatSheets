@@ -644,6 +644,82 @@ only leaving the page should do the second one.
 are jittered off their row line. This is what makes things look like they are
 floating.
 
+### When the page is mostly covered (Aeden · PUPPET)
+
+**Check what is actually visible before deciding where anything goes.** On a
+full-width layout the panels run edge to edge, so the right gutter the manual
+talks about does not exist; the only open cloth is the header band beside the
+portrait. Worse, `#pattern-canvas` is `position:absolute` inside the scrolling
+`#content`, so it scrolls away with the panels and its bottom edge is rarely
+on screen. Anything that has to be at "the bottom of the page" (the lavender
+here) belongs on the overlay, which is pinned to the viewport. Keep it low in
+the middle, where it stands in front of text, taller at the corners, and make
+it bend away from the pointer, so hovering over what is behind it parts it.
+The landmark (a sleeping felt moon and stars on strings) went in the header
+band, the one part of the cloth nothing covers, at x above 0.7 of the width,
+which is clear of the header on both the wide and the narrow layout.
+
+**A full-screen per-pixel pattern belongs on the GPU.** Eighteen patterns and
+seven transitions would be eighteen per-pixel loops on a 2D canvas. A fragment
+shader on an OFFSCREEN WebGL canvas, drawn into `#pattern-canvas` with one
+`drawImage`, costs 0.7 ms for render plus blit at 1670x1016; the whole
+background frame with props is 1.1 ms. Rules that came with it:
+
+- ONE context for the life of the tab. Browsers cap live WebGL contexts, and a
+  page you can flick in and out of would spend one per visit. Shrink the canvas
+  to 1x1 when the page is left instead of throwing it away.
+- Handle `webglcontextlost` (preventDefault, fall back to a 2D version) and
+  `webglcontextrestored` (rebuild). A page with no GL must still be the page.
+- Filter edges to a pixel with `fwidth` (`OES_standard_derivatives` in
+  WebGL 1). But `atan` has a branch cut, and `fwidth` spikes across it, which
+  draws a blurred line out of the centre of every polar pattern. There, work
+  the width out analytically: an angle's footprint is one pixel over the
+  radius.
+- Give each pattern its OWN clock, the time since it went up, not the page
+  clock. Page time grows for hours and a mediump float loses its fraction;
+  local time stays small, and every pattern starts fresh.
+- GLSL traps: `pow` of a negative base is undefined (write `x * x`), and
+  `smoothstep` with the first edge above the second is undefined (write
+  `1.0 - smoothstep(lo, hi, x)`). Both work on some GPUs and not others.
+
+**A bright seam reads as lightning.** The first versions of two transitions
+(a ragged front, and a noise dissolve) had a narrow additive edge following
+high-frequency raggedness, and on a dark cloth they read as electricity rather
+than as fabric changing. Low-frequency raggedness, a narrower and dimmer seam,
+and let the spot light decide how bright it gets.
+
+**Swinging DOM elements: measure with `offsetLeft`, rotate with `rotate`.**
+Each trait tag swings on the CSS `rotate` property, which is separate from
+`transform`, so the chip's own hover transform still composes and nobody fights
+over one property. `getBoundingClientRect` would include the rotation being
+written; `offsetLeft`/`offsetTop`/`offsetWidth` are layout values and do not,
+so the boxes can be re-measured on any layout generation without feeding the
+swing back into itself. Put `transform-origin` exactly on the thing the canvas
+draws at the pivot (the grommet), and the string drawn to it never has to
+follow the rotation at all. Write only when the angle moved, hold it while the
+button is down, and clear it on teardown. Cap the swing by the element's
+width: a wide tag's top corners move by half its width times the angle, and
+they are inside an `overflow:hidden` collapsible.
+
+**Do not restyle a trait chip's background.** Rarities live in the chip's
+background and pseudo-elements (mythic is a gradient, legendary a sweep), and
+a page rule that sets `background` on `.trait-chip` outranks them and wipes
+them out. Change the shape, the outline, the shadow and the spacing, and draw
+anything extra on the overlay.
+
+**A click effect on a DOM element: one delegated listener, keyed on the
+class.** The portrait wobble is a `document` click listener registered once at
+load, which acts only when `#cv-avatar` has the page's class. It therefore
+also works in performance mode, when the overlay never starts. The wobble is a
+Web Animation on `transform`, which restarts cleanly on a second click with no
+reflow, as long as the element has no transform of its own in that style.
+
+**Springs attached to motion: work the sign out, do not guess it.** The
+bunny's ears were written with the obvious sign and would have streamed
+forward, into the direction of travel, and lifted when climbing. For two ears
+hung at `side * angle`, streaming behind a move to the right means BOTH angles
+increase, and lagging behind a climb means they droop.
+
 ---
 
 ## 4. Performance

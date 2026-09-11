@@ -15416,3 +15416,150 @@ text.lb-cl-glitch-svg {
   .char-name-display.plumky-name,
   .char-name-display.plumky-name::after { animation: none; }
 }
+
+
+/* ============================================================
+   AEDEN · PUPPET: a puppet theatre nobody is running. Every
+   panel is felt, stitched round its edge with a button sewn on;
+   every trait is a tag hanging on a string, and the strings are
+   drawn by the page. Lavender on plum, and nothing is square.
+   ============================================================ */
+#char-view.aedenp-ui .panel {
+  --p-border: rgba(181,150,238,0.55);
+  border-color: rgba(181,150,238,0.42);
+  border-radius: 16px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.014) 0 1px, rgba(0,0,0,0) 1px 3px),
+    linear-gradient(180deg, rgba(28,15,43,0.80), rgba(12,6,20,0.87));
+  box-shadow: 0 14px 30px -14px rgba(0,0,0,0.95), inset 0 0 36px rgba(20,8,34,0.7);
+  outline: 2px dashed rgba(196,168,244,0.30);
+  outline-offset: -10px;
+}
+/* a scalloped valance hanging off the top edge, like the front of a booth */
+#char-view.aedenp-ui .panel::before {
+  content: "";
+  position: absolute;
+  left: 18px; right: 18px; top: 0;
+  height: 9px;
+  pointer-events: none;
+  background: radial-gradient(circle at 9px 0, rgba(181,150,238,0.42) 0 8px, rgba(181,150,238,0) 8.5px) 0 0 / 18px 9px repeat-x;
+}
+/* the corner notch every panel has becomes a button, sewn on with four holes */
+#char-view.aedenp-ui .panel::after {
+  top: 12px; right: 12px;
+  width: 15px; height: 15px;
+  border: 1px solid rgba(40,18,60,0.95);
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 36% 38%, #2a1540 0 1.3px, rgba(0,0,0,0) 1.7px),
+    radial-gradient(circle at 64% 38%, #2a1540 0 1.3px, rgba(0,0,0,0) 1.7px),
+    radial-gradient(circle at 36% 64%, #2a1540 0 1.3px, rgba(0,0,0,0) 1.7px),
+    radial-gradient(circle at 64% 64%, #2a1540 0 1.3px, rgba(0,0,0,0) 1.7px),
+    radial-gradient(circle at 38% 32%, #efe6ff, #9d7fdb 72%);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.7);
+}
+#char-view.aedenp-ui .panel-title {
+  color: #d9c8ff !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  border-bottom: 1px dashed rgba(196,168,244,0.35);
+  text-shadow: 0 2px 0 rgba(26,10,40,0.95), 0 0 12px rgba(181,150,238,0.45);
+}
+#char-view.aedenp-ui .tab-btn { color: #7d69a8; }
+#char-view.aedenp-ui .tab-btn:hover { color: #efe6ff; text-shadow: 0 0 12px rgba(181,150,238,0.7); }
+#char-view.aedenp-ui .tab-btn.active {
+  color: #f3ecff;
+  border-bottom: 2px dashed rgba(196,168,244,0.95);
+  text-shadow: 0 0 14px rgba(181,150,238,0.8);
+}
+/* every lit segment of every bar is a little piece of the cloth: the stat
+   keeps its own colour, the board is laid over it */
+#char-view.aedenp-ui .stat-seg { border-radius: 3px; }
+#char-view.aedenp-ui .stat-seg.fill-fg.on {
+  background-image: repeating-conic-gradient(rgba(10,4,18,0.34) 0 25%, rgba(0,0,0,0) 0 50%);
+  background-size: 6px 6px;
+}
+
+/* ────── the traits: tags on strings ──────
+   The grid gets a rail across its top and room under it for the strings; the
+   page draws the strings, the grommets and the knots, and swings each tag on
+   the CSS `rotate` property about the grommet. Backgrounds are left alone so
+   every rarity keeps its own look. */
+#char-view.aedenp-ui .traits-grid {
+  padding-top: 30px;
+  row-gap: 24px;
+  background: linear-gradient(90deg, rgba(196,168,244,0), rgba(196,168,244,0.6) 5%, rgba(236,226,255,0.75) 50%, rgba(196,168,244,0.6) 95%, rgba(196,168,244,0)) 16px 1px / calc(100% - 32px) 3px no-repeat;
+}
+#char-view.aedenp-ui .trait-chip {
+  transform-origin: 50% 7px;
+  border-radius: 18px 18px 6px 6px / 14px 14px 6px 6px;
+  padding-top: 20px;
+  outline: 1px dashed rgba(236,226,255,0.32);
+  outline-offset: -6px;
+  box-shadow: 0 12px 16px -10px rgba(0,0,0,0.95);
+}
+/* a tag you hover is not lifted off its string: it just catches the light */
+#char-view.aedenp-ui .trait-chip:hover {
+  transform: none;
+  box-shadow: 0 0 18px var(--c-glow, rgba(181,150,238,0.5)), 0 12px 16px -10px rgba(0,0,0,0.95);
+}
+
+/* ────── the name, hanging on two strings like a sign ────── */
+.char-name-display.aedenp-name {
+  position: relative;
+  color: #e9deff !important;
+  letter-spacing: 5px;
+  font-weight: normal;
+  text-shadow: 0 2px 0 #2a1440, 0 0 14px rgba(181,150,238,0.55);
+  transform-origin: 50% -14px;
+  animation: aedenp-dangle 3.8s ease-in-out infinite;
+}
+@keyframes aedenp-dangle {
+  0%, 100% { transform: rotate(-1.6deg); }
+  50%      { transform: rotate(1.6deg); }
+}
+.char-name-display.aedenp-name::before {
+  content: "";
+  position: absolute;
+  left: 14%; right: 14%; top: -14px;
+  height: 14px;
+  pointer-events: none;
+  border-left: 1px solid rgba(236,226,255,0.5);
+  border-right: 1px solid rgba(236,226,255,0.5);
+}
+
+/* ────── the portrait: a felt patch, stitched on, with a button ──────
+   No transform of its own: the wobble is a Web Animation on `transform`,
+   squashing from the bottom the way a plush does when it is poked. */
+.char-avatar-large.aedenp-pfp {
+  border-color: rgba(196,168,244,0.95) !important;
+  border-style: dashed;
+  border-radius: 24px;
+  transform-origin: 50% 100%;
+  box-shadow: 0 0 0 4px rgba(26,12,40,0.92), 0 0 0 6px rgba(181,150,238,0.4), 0 14px 24px -8px rgba(0,0,0,0.9);
+}
+.char-avatar-large.aedenp-pfp img { border-radius: 18px; }
+.char-avatar-large.aedenp-pfp:hover {
+  box-shadow: 0 0 0 4px rgba(26,12,40,0.92), 0 0 0 6px rgba(236,226,255,0.7), 0 0 26px rgba(181,150,238,0.55);
+}
+.char-avatar-large.aedenp-pfp::after {
+  content: "";
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1px solid rgba(40,18,60,0.95);
+  background:
+    radial-gradient(circle at 36% 38%, #2a1540 0 1.4px, rgba(0,0,0,0) 1.8px),
+    radial-gradient(circle at 64% 38%, #2a1540 0 1.4px, rgba(0,0,0,0) 1.8px),
+    radial-gradient(circle at 36% 64%, #2a1540 0 1.4px, rgba(0,0,0,0) 1.8px),
+    radial-gradient(circle at 64% 64%, #2a1540 0 1.4px, rgba(0,0,0,0) 1.8px),
+    radial-gradient(circle at 38% 32%, #efe6ff, #9d7fdb 72%);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-name-display.aedenp-name { animation: none; }
+}

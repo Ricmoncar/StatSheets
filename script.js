@@ -3365,6 +3365,7 @@ const PATTERN_DEFS = {
   classic_ghost:    { label: "Classic · GHOST",             params: [] },
   flowey_vines:     { label: "AH!Flowey · Overgrown",       params: [] },
   ivy_evil:         { label: "Ivy · EVIL creature",         params: [] },
+  aeden_puppet:     { label: "Aeden · PUPPET",              params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -29712,6 +29713,1459 @@ function _stopIvyEvilOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// AEDEN · PUPPET
+//
+// THE CLAIM. This is a puppet theatre that nobody is running. The
+// backdrop is a painted cloth and it will not hold one pattern: it is a
+// purple and black checkerboard until somebody behind it pulls a
+// string, and then it is diamonds, or a spiral, or a tunnel, and the
+// change runs across the cloth the way a wave runs through fabric.
+// Nothing in front of the cloth is painted. The props hang on strings
+// and swing, the lavender along the lip of the stage is alive and gets
+// out of the way of anything that comes near it, and the interface is
+// part of the show: every trait is a tag hanging on a string.
+//
+// ONE LIGHT: a follow spot above the stage, off to the right, wandering
+// slowly over the cloth. Where it lands the cloth is lit and its weave
+// shows; everywhere else the pattern sinks back into the dark. The
+// house is shut, so distance goes DARK.
+//
+// The cloth is a fragment shader on an offscreen WebGL canvas, blitted
+// onto #pattern-canvas. Eighteen patterns and seven ways of changing
+// between them would be eighteen per-pixel loops on a 2D canvas; on the
+// GPU they cost nothing. No WebGL, and the cloth falls back to a plain
+// drifting checkerboard drawn in 2D.
+// ════════════════════════════════════════════════════════════════
+const _AEDEN_RE = /^\s*aeden\s*$/i;
+function _isAeden(c) { return !!(c && c.name && _AEDEN_RE.test(c.name)); }
+const _AP_PUPPET_RE = /puppet/i;
+function _isAedenPuppet(c) { return !!(_isAeden(c) && _AP_PUPPET_RE.test(_activeFormName(c))); }
+const _AP_HEX = '#b596ee';
+
+let _apRM = false;
+if (typeof window !== 'undefined' && window.matchMedia) {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  _apRM = !!mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', e => { _apRM = !!e.matches; });
+}
+function _apRnd(i) { const x = Math.sin(i * 78.233 + 12.9898) * 43758.5453; return x - Math.floor(x); }
+function _apClock() { return performance.now() / 1000; }
+
+// ── what the two layers share ──
+let _apMX = -9999, _apMY = -9999;   // the pointer, viewport px
+let _apMV = 0;                      // its speed, smoothed, px/s
+let _apWarp = 0;                    // how hard the cloth answers it, 0..1
+let _apPtrDown = false;
+
+// ── PERF: interned colour ramps, so no `rgba(...)` string is ever built in a loop ──
+const _AP_STEPS = 24;
+function _apRamp(rgb) {
+  const a = new Array(_AP_STEPS + 1);
+  for (let i = 0; i <= _AP_STEPS; i++) a[i] = 'rgba(' + rgb + ',' + (i / _AP_STEPS).toFixed(3) + ')';
+  return a;
+}
+function _apA(a) { return a <= 0 ? 0 : a >= 1 ? _AP_STEPS : Math.round(a * _AP_STEPS); }
+const _AP_LAV   = _apRamp('196,168,244');   // the lavender, lit
+const _AP_LILAC = _apRamp('236,226,255');   // the brightest thing on the page
+const _AP_PLUM  = _apRamp('34,14,52');      // shadow
+const _AP_STEM  = _apRamp('150,172,146');   // lavender stems, silver green
+
+// ════════════════════════════════════════════════════════════════
+// THE CLOTH
+// ════════════════════════════════════════════════════════════════
+const _AP_PAT_NAMES = ['check', 'harlequin', 'twist', 'tunnel', 'spiral', 'dots', 'rings', 'moire',
+  'chevron', 'wave', 'bulge', 'truchet', 'kaleido', 'gingham', 'triangles', 'swirl', 'argyle', 'tiles'];
+// The board is home: checker-family patterns come round more often than the rest.
+const _AP_PAT_WEIGHT = [3, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 1, 2, 1, 1, 1, 1, 2];
+const _AP_TR_NAMES = ['front', 'flip', 'iris', 'melt', 'blink', 'split', 'clock'];
+// patterns that stay calm enough to show with reduced motion on
+const _AP_CALM = [0, 1, 5, 13, 14, 16];
+
+const _AP_VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.0,1.0);}';
+
+function _apFragSrc(deriv) {
+  return (deriv ? '#extension GL_OES_standard_derivatives : enable\n#define FW(x) fwidth(x)\n'
+                : '#define FW(x) (gpx)\n') + `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec2 u_res;
+uniform float u_px, u_t, u_ta, u_tb, u_a, u_b, u_tr, u_pr, u_ts, u_ir, u_warp, u_spotR, u_gust;
+uniform vec4 u_sa, u_sb, u_inv;
+uniform vec2 u_ca, u_cb, u_tp, u_mouse, u_spot;
+uniform vec3 u_c0, u_c1, u_c2;
+#define TAU 6.2831853
+float gpx;
+float h21(vec2 q) { return fract(sin(dot(q, vec2(127.1, 311.7))) * 43758.5453); }
+mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
+float vn(vec2 q) {
+  vec2 i = floor(q), f = fract(q); f = f * f * (3.0 - 2.0 * f);
+  float a = h21(i), b = h21(i + vec2(1.0, 0.0)), c = h21(i + vec2(0.0, 1.0)), d = h21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 q) { return vn(q) * 0.55 + vn(q * 2.1 + 3.1) * 0.3 + vn(q * 4.3 + 7.7) * 0.15; }
+// A square wave with its edges filtered to a pixel: 1 on the middle half of every unit.
+float bandw(float x, float w) { w = max(w, 1e-4); return smoothstep(-w, w, 0.25 - abs(fract(x) - 0.5)); }
+float band(float x) { return bandw(x, FW(x) * 0.7); }
+float linew(float x, float w) { w = max(w, 1e-4); return 1.0 - smoothstep(w * 0.5, w * 1.6, abs(abs(fract(x) - 0.5) - 0.25)); }
+float line(float x) { return linew(x, FW(x)); }
+float xr(float a, float b) { return a + b - 2.0 * a * b; }
+float chk(vec2 q) { return xr(band(q.x), band(q.y)); }
+float sgn(float s) { return s < 0.5 ? -1.0 : 1.0; }
+
+// Every pattern returns (v, a): v mixes black to purple, a is lavender thread on top.
+vec2 pCheck(vec2 p, float t, vec4 s) { return vec2(chk(p + vec2(0.13, 0.06) * t * sgn(s.z)), 0.0); }
+vec2 pHarl(vec2 p, float t, vec4 s) {
+  float st = 1.55 + 0.18 * sin(t * 0.45);
+  vec2 d = vec2(p.x + p.y / st, -p.x + p.y / st) * 0.72 + vec2(t * 0.05);
+  return vec2(chk(d), max(line(d.x), line(d.y)) * 0.55);
+}
+vec2 pTwist(vec2 p, float t, vec4 s) {
+  float a = sgn(s.z) * 2.4 * sin(t * 0.32) * exp(-length(p) * 0.22);
+  return vec2(chk(rot(a) * p + vec2(0.0, t * 0.04)), 0.0);
+}
+vec2 pTunnel(vec2 p, float t, vec4 s) {
+  float r = max(length(p), 1e-3), th = atan(p.y, p.x);
+  float n = s.w < 0.5 ? 12.0 : 16.0;
+  float tw = s.z < 0.5 ? 0.0 : 1.1;
+  float u = th / TAU * n + tw / r, v = 2.6 / r + t * 0.55;
+  float wu = ((n / TAU) / r + tw / (r * r)) * gpx * 1.4, wv = 2.6 * gpx / (r * r) * 1.4;
+  return vec2(xr(bandw(u, wu), bandw(v, wv)) * smoothstep(0.25, 1.6, r), 0.0);
+}
+vec2 pSpiral(vec2 p, float t, vec4 s) {
+  float r = max(length(p), 1e-3), th = atan(p.y, p.x);
+  float arms = floor(3.0 + s.w * 4.0), k = 1.8;
+  float u = th / TAU * arms + sgn(s.z) * log(r) * k - t * 0.45;
+  float w = (arms / TAU + k) * gpx / r * 1.2, f = smoothstep(0.08, 0.9, r);
+  return vec2(bandw(u, w) * f, linew(u, w) * 0.5 * f);
+}
+vec2 pDots(vec2 p, float t, vec4 s) {
+  vec2 q = p * 1.25 + vec2(0.0, t * 0.08);
+  q.x += mod(floor(q.y), 2.0) * 0.5;
+  vec2 id = floor(q), f = fract(q) - 0.5;
+  float rad = 0.22 + 0.12 * sin(t * 1.3 - (id.x + id.y) * 0.55), d = length(f), w = gpx * 1.1;
+  float ring = (1.0 - smoothstep(w * 0.5, w * 1.8, abs(d - rad - 0.07))) * step(0.5, h21(id)) * 0.6;
+  return vec2(1.0 - smoothstep(rad - w, rad + w, d), ring);
+}
+vec2 pRings(vec2 p, float t, vec4 s) {
+  float r = length(p), th = atan(p.y, p.x), lobes = floor(3.0 + s.w * 5.0);
+  float u = r * 0.9 + 0.22 * sin(th * lobes + t * 0.6) * smoothstep(0.0, 3.0, r) - t * 0.32;
+  return vec2(band(u), 0.0);
+}
+vec2 pMoire(vec2 p, float t, vec4 s) {
+  vec2 c1 = vec2(cos(t * 0.21), sin(t * 0.17)) * 1.6, c2 = -c1 * 0.8 + vec2(sin(t * 0.13), 0.0);
+  float k = 1.6 + s.w * 0.8;
+  return vec2(xr(band(length(p - c1) * k), band(length(p - c2) * k)), 0.0);
+}
+vec2 pChev(vec2 p, float t, vec4 s) {
+  vec2 q = p * 0.9;
+  float zig = abs(fract(q.x * 0.5) - 0.5) * 2.0;
+  float u = q.y * 0.85 + zig * (0.7 + 0.3 * sin(t * 0.5)) - t * 0.22 * sgn(s.z);
+  return vec2(band(u), line(u) * 0.35);
+}
+vec2 pWave(vec2 p, float t, vec4 s) {
+  return vec2(chk(p + vec2(sin(p.y * 1.3 + t * 1.1), sin(p.x * 1.1 + t * 0.9)) * 0.32), 0.0);
+}
+vec2 pBulge(vec2 p, float t, vec4 s) {
+  vec2 c = vec2(sin(t * 0.23), cos(t * 0.19) * 0.6) * 1.5, d = p - c;
+  float k = 0.62 * (0.75 + 0.25 * sin(t * 0.7));
+  return vec2(chk(c + d * (1.0 - k * exp(-dot(d, d) / 7.0))), 0.0);
+}
+vec2 pTru(vec2 p, float t, vec4 s) {
+  vec2 q = p * 1.1 + vec2(t * 0.05, 0.0);
+  vec2 id = floor(q), f = fract(q);
+  float flip = step(0.5, h21(id + floor(t * 0.4 + h21(id + 7.0) * 3.0) * 0.37));
+  if (flip > 0.5) f.x = 1.0 - f.x;
+  float d = min(length(f), length(f - 1.0)), w = gpx * 1.0;
+  float inside = 1.0 - smoothstep(0.5 - w, 0.5 + w, d);
+  float par = mod(id.x + id.y, 2.0);
+  // inside, xor the tile's parity, xor which way it was turned: a true two-colouring
+  float v = abs(inside - abs(par - flip));
+  return vec2(v, (1.0 - smoothstep(w * 0.5, w * 1.8, abs(d - 0.5))) * 0.5);
+}
+vec2 pKal(vec2 p, float t, vec4 s) {
+  float n = floor(5.0 + s.w * 4.0), r = length(p);
+  float th = atan(p.y, p.x) + t * 0.06, sec = TAU / n;
+  th = abs(mod(th, sec) - sec * 0.5);
+  vec2 q = rot(t * 0.11) * (vec2(cos(th), sin(th)) * r) * 1.2 + vec2(t * 0.15, 0.0);
+  return vec2(chk(q), 0.0);
+}
+vec2 pGing(vec2 p, float t, vec4 s) {
+  vec2 q = p * 1.6 + vec2(t * 0.04, t * 0.025);
+  return vec2((band(q.x) + band(q.y)) * 0.5, max(line(q.x * 2.0), line(q.y * 2.0)) * 0.22);
+}
+vec2 pTri(vec2 p, float t, vec4 s) {
+  vec2 q = p * 0.95 + vec2(t * 0.06, -t * 0.03);
+  vec2 k = vec2(q.x - q.y * 0.57735, q.y * 1.1547);
+  // three families of lines at sixty degrees; xor their bands and the triangles alternate
+  return vec2(xr(xr(band(k.x * 0.5 + 0.25), band(k.y * 0.5 + 0.25)), band((k.x + k.y) * 0.5 + 0.25)), 0.0);
+}
+vec2 pSwirl(vec2 p, float t, vec4 s) {
+  vec2 q = p * 0.8;
+  float u = (q.x + q.y) * 0.75 + sin(q.y * 0.9 + t * 0.7) * 0.55 + sin(q.x * 0.6 - t * 0.5) * 0.4;
+  return vec2(band(u), line(u) * 0.3);
+}
+vec2 pArg(vec2 p, float t, vec4 s) {
+  vec2 d = vec2(p.x + p.y / 1.4, -p.x + p.y / 1.4) * 0.6 + vec2(t * 0.03);
+  float st = step(0.5, fract((d.x + d.y) * 3.0));
+  float a = max(line(d.x + 0.25), line(d.y + 0.25)) * (0.25 + 0.4 * st);
+  return vec2(0.22 + 0.6 * chk(d), a);
+}
+vec2 pTiles(vec2 p, float t, vec4 s) {
+  vec2 q = p * 1.15;
+  vec2 id = floor(q), f = fract(q) - 0.5;
+  float ph = t - length(id + 0.5) * 0.45;
+  vec2 g = rot((0.5 + 0.5 * sin(ph)) * 0.785398) * f;
+  float w = gpx * 1.05, dd = max(abs(g.x), abs(g.y)) - (0.27 + 0.08 * sin(ph + 1.2));
+  float v = 1.0 - smoothstep(-w, w, dd);
+  return vec2(mix(v, 1.0 - v, mod(id.x + id.y, 2.0)), 0.0);
+}
+
+vec2 pat(float id, vec2 q0, vec2 ctr, float t, vec4 s) {
+  float sc = 0.8 + s.y * 0.45;
+  vec2 p = rot((s.x - 0.5) * 1.2) * (q0 - ctr * u_px) * sc;
+  gpx = u_px * sc;
+  if (id < 0.5) return pCheck(p, t, s);
+  if (id < 1.5) return pHarl(p, t, s);
+  if (id < 2.5) return pTwist(p, t, s);
+  if (id < 3.5) return pTunnel(p, t, s);
+  if (id < 4.5) return pSpiral(p, t, s);
+  if (id < 5.5) return pDots(p, t, s);
+  if (id < 6.5) return pRings(p, t, s);
+  if (id < 7.5) return pMoire(p, t, s);
+  if (id < 8.5) return pChev(p, t, s);
+  if (id < 9.5) return pWave(p, t, s);
+  if (id < 10.5) return pBulge(p, t, s);
+  if (id < 11.5) return pTru(p, t, s);
+  if (id < 12.5) return pKal(p, t, s);
+  if (id < 13.5) return pGing(p, t, s);
+  if (id < 14.5) return pTri(p, t, s);
+  if (id < 15.5) return pSwirl(p, t, s);
+  if (id < 16.5) return pArg(p, t, s);
+  return pTiles(p, t, s);
+}
+
+void main() {
+  vec2 pix = vec2(gl_FragCoord.x, u_res.y - gl_FragCoord.y);
+  vec2 uv = pix / u_res;
+  // the cloth hangs in slow folds, and it ripples when somebody changes it
+  vec2 q0 = pix * u_px;
+  q0.x += sin(q0.y * 0.45 + u_t * 0.5) * 0.05 + sin(q0.y * 1.3 + q0.x * 0.3 - u_t * 0.9) * 0.12 * u_gust;
+  q0.y += sin(q0.x * 0.5 + u_t * 0.4) * 0.04 + sin(q0.x * 1.1 - u_t * 1.1) * 0.08 * u_gust;
+  // and it bellies out toward the pointer, as if pushed from behind
+  vec2 m = u_mouse * u_px, dm = q0 - m;
+  q0 = m + dm * (1.0 - 0.36 * u_warp * exp(-dot(dm, dm) / 2.4));
+
+  vec2 C = pat(u_a, q0, u_ca, u_ta, u_sa);
+  float lid = 0.0, edge = 0.0;
+  if (u_pr > 0.0) {
+    vec2 B = pat(u_b, q0, u_cb, u_tb, u_sb);
+    float mk = 0.0;
+    if (u_tr < 0.5) {                        // a front across the cloth, ragged
+      float sw = uv.x * 0.85 + uv.y * 0.15 + 0.035 * sin(uv.y * 9.0 + u_ts) + 0.012 * sin(uv.y * 21.0 - u_ts);
+      float f = u_pr * 1.3 - 0.15;
+      mk = 1.0 - smoothstep(f - 0.03, f + 0.03, sw);
+      edge = exp(-(sw - f) * (sw - f) * 900.0) * 0.6;
+    } else if (u_tr < 1.5) {                 // the tiles turn over one at a time
+      float h = h21(floor(q0 * 0.5) + u_ts) * 0.72;
+      float k = clamp((u_pr - h) / 0.28, 0.0, 1.0);
+      mk = step(0.5, k);
+      lid = (1.0 - abs(1.0 - 2.0 * k)) * 0.9;
+    } else if (u_tr < 2.5) {                 // an iris opening from one point
+      float R = u_pr * u_ir, d = length(q0 - u_tp);
+      mk = 1.0 - smoothstep(R - 0.25, R + 0.25, d);
+      edge = exp(-(d - R) * (d - R) * 9.0) * (1.0 - u_pr);
+    } else if (u_tr < 3.5) {                 // it melts through
+      float n = fbm(q0 * 0.33 + u_ts), f = u_pr * 1.2 - 0.1;
+      mk = 1.0 - smoothstep(f - 0.025, f + 0.025, n);
+      edge = exp(-(n - f) * (n - f) * 2200.0) * 0.45;
+    } else if (u_tr < 4.5) {                 // it blinks: the eye shuts, and opens on something else
+      float l = u_pr < 0.5 ? u_pr * 2.0 : (1.0 - u_pr) * 2.0;
+      l = l * l * (3.0 - 2.0 * l);
+      float x = uv.x * 2.0 - 1.0;
+      float open = (1.0 - l) * 0.62 * (1.0 - x * x * 0.55), dy = abs(uv.y - 0.5);
+      lid = smoothstep(open - 0.01, open + 0.01, dy);
+      edge = exp(-(dy - open) * (dy - open) * 8000.0) * l;
+      mk = step(0.5, u_pr);
+    } else if (u_tr < 5.5) {                 // half the squares first, then the other half
+      vec2 cq = q0 / 3.0;
+      float par = mod(floor(cq.x) + floor(cq.y), 2.0);
+      float k = clamp(par < 0.5 ? u_pr * 2.0 : u_pr * 2.0 - 1.0, 0.0, 1.0) * 0.56;
+      vec2 cf = fract(cq) - 0.5;
+      float d = max(abs(cf.x), abs(cf.y));
+      mk = 1.0 - smoothstep(k - 0.02, k + 0.02, d);
+      edge = exp(-(d - k) * (d - k) * 2500.0) * step(0.001, k) * step(k, 0.55);
+    } else {                                 // a clock hand sweeping round, bent into a spiral
+      vec2 d = q0 - u_tp;
+      float a = fract(atan(d.y, d.x) / TAU + 0.5 + length(d) * 0.05);
+      mk = 1.0 - smoothstep(u_pr * 1.08 - 0.04, u_pr * 1.08, a);
+      edge = exp(-(a - u_pr * 1.08) * (a - u_pr * 1.08) * 900.0);
+    }
+    C = mix(C, B, mk);
+  }
+  if (u_inv.z > 0.0) {                       // a beat: the cloth turns inside out from one point
+    float d = length(q0 - u_inv.xy);
+    float ins = 1.0 - smoothstep(u_inv.z - 0.3, u_inv.z + 0.3, d);
+    C.x = mix(C.x, 1.0 - C.x, ins * u_inv.w);
+    edge = max(edge, exp(-(d - u_inv.z) * (d - u_inv.z) * 6.0) * u_inv.w);
+  }
+  vec3 col = mix(u_c0, u_c1, clamp(C.x, 0.0, 1.0));
+  col = mix(col, u_c2, clamp(C.y, 0.0, 1.0) * 0.75);
+  vec2 sd = (pix - u_spot) / u_spotR;
+  float spot = exp(-dot(sd, sd));
+  float fold = 0.9 + 0.1 * sin(q0.x * 0.9 + sin(u_t * 0.25 + q0.y * 0.15) * 1.5);
+  float weave = 0.93 + 0.07 * sin(pix.x * 2.2) * sin(pix.y * 2.2);
+  col *= (0.42 + 0.95 * spot) * fold * mix(1.0, weave, 0.35 + 0.65 * spot);
+  col += u_c2 * edge * (0.25 + 0.3 * spot);
+  col *= 1.0 - lid * 0.92;
+  vec2 vv = (uv - 0.5) * vec2(1.0, 1.15);
+  col *= 1.0 - smoothstep(0.35, 0.95, length(vv)) * 0.7;
+  gl_FragColor = vec4(col, 1.0);
+}`;
+}
+
+const _AP_UNIFORMS = ['u_res', 'u_px', 'u_t', 'u_ta', 'u_tb', 'u_a', 'u_b', 'u_tr', 'u_pr', 'u_ts', 'u_ir',
+  'u_warp', 'u_spotR', 'u_gust', 'u_sa', 'u_sb', 'u_inv', 'u_ca', 'u_cb', 'u_tp', 'u_mouse', 'u_spot',
+  'u_c0', 'u_c1', 'u_c2'];
+const _AP_GL = { cv: null, gl: null, loc: null, ok: false, tried: false, lost: false };
+
+// One context for the life of the tab: made the first time the page is
+// shown, shrunk to a pixel when it is left, never thrown away. Browsers
+// cap live WebGL contexts, and a page you can flick in and out of would
+// otherwise spend one per visit.
+function _apGLInit() {
+  const G = _AP_GL;
+  if (G.ok) return true;
+  if (G.tried || G.lost) return false;
+  G.tried = true;
+  try {
+    if (!G.cv) {
+      G.cv = document.createElement('canvas');
+      G.cv.addEventListener('webglcontextlost', e => { e.preventDefault(); G.ok = false; G.lost = true; }, false);
+      G.cv.addEventListener('webglcontextrestored', () => { G.lost = false; G.tried = false; }, false);
+    }
+    const gl = G.cv.getContext('webgl', { alpha: false, antialias: false, depth: false, stencil: false,
+      premultipliedAlpha: false, preserveDrawingBuffer: false, powerPreference: 'low-power' });
+    if (!gl) return false;
+    const deriv = !!gl.getExtension('OES_standard_derivatives');
+    const sh = (type, src) => {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn('[aeden] shader:', gl.getShaderInfoLog(s)); return null; }
+      return s;
+    };
+    const vs = sh(gl.VERTEX_SHADER, _AP_VS), fs = sh(gl.FRAGMENT_SHADER, _apFragSrc(deriv));
+    if (!vs || !fs) return false;
+    const pr = gl.createProgram();
+    gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { console.warn('[aeden] link:', gl.getProgramInfoLog(pr)); return false; }
+    gl.useProgram(pr);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const al = gl.getAttribLocation(pr, 'a');
+    gl.enableVertexAttribArray(al);
+    gl.vertexAttribPointer(al, 2, gl.FLOAT, false, 0, 0);
+    const loc = {};
+    for (const n of _AP_UNIFORMS) loc[n] = gl.getUniformLocation(pr, n);
+    gl.uniform3f(loc.u_c0, 0.035, 0.020, 0.060);    // black, with plum in it
+    gl.uniform3f(loc.u_c1, 0.360, 0.200, 0.580);    // the purple
+    gl.uniform3f(loc.u_c2, 0.760, 0.660, 0.950);    // lavender thread
+    G.gl = gl; G.loc = loc; G.deriv = deriv; G.ok = true;
+    return true;
+  } catch (e) { console.warn('[aeden] webgl:', e); return false; }
+}
+function _apGLShrink() {
+  const G = _AP_GL;
+  if (G.cv && (G.cv.width > 1 || G.cv.height > 1)) { G.cv.width = 1; G.cv.height = 1; }
+}
+
+// ════════════════════════════════════════════════════════════════
+// THE SHOW: which pattern is up, what it changes into, and how
+// ════════════════════════════════════════════════════════════════
+const _apShow = { a: 0, b: -1, prev: -1, ta0: 0, tb0: 0, sa: [0.5, 0.4, 0, 0], sb: [0, 0, 0, 0],
+  ca: [0.66, 0.2], cb: [0.66, 0.2], tr: 0, lastTr: -1, trT0: -1, trDur: 2.6, pr: 0, tp: [0, 0], ts: 0, ir: 12,
+  next: 0, n: 0, started: false };
+// one event at a time between changes, each a different kind of thing
+let _apEvent = null;          // { name, t0, dur, r1, r2 }
+let _apLastEv = '';
+const _AP_EVENTS = ['invert', 'gust', 'hop', 'yawn', 'yank'];
+
+function _apPickWeighted(exclude) {
+  const pool = _apRM ? _AP_CALM : null;
+  let tot = 0;
+  for (let i = 0; i < _AP_PAT_NAMES.length; i++) {
+    if (exclude.includes(i) || (pool && !pool.includes(i))) continue;
+    tot += _AP_PAT_WEIGHT[i];
+  }
+  let r = Math.random() * tot;
+  for (let i = 0; i < _AP_PAT_NAMES.length; i++) {
+    if (exclude.includes(i) || (pool && !pool.includes(i))) continue;
+    r -= _AP_PAT_WEIGHT[i];
+    if (r <= 0) return i;
+  }
+  return 0;
+}
+function _apSeed() { return [Math.random(), Math.random(), Math.random(), Math.random()]; }
+function _apCentre() { return [0.52 + Math.random() * 0.3, 0.1 + Math.random() * 0.22]; }
+
+function _apShowReset(now) {
+  const S = _apShow;
+  // it always opens on the plain board: that is what the cloth IS, before anyone touches it
+  S.a = 0; S.b = -1; S.prev = -1; S.sa = [0.5, 0.35, 0, 0]; S.ca = [0.66, 0.2];
+  S.ta0 = now; S.trT0 = -1; S.pr = 0; S.lastTr = -1; S.n = 0;
+  S.next = now + 6.5 + Math.random() * 2;
+  S.started = true;
+  _apEvent = null;
+}
+
+function _apShowTick(now, W, H) {
+  const S = _apShow;
+  if (!S.started) _apShowReset(now);
+  if (S.trT0 >= 0) {
+    const p = (now - S.trT0) / S.trDur;
+    if (p >= 1) {
+      S.prev = S.a; S.a = S.b; S.sa = S.sb; S.ca = S.cb; S.ta0 = S.tb0;
+      S.b = -1; S.trT0 = -1; S.pr = 0;
+      const hold = _apRM ? 14 + Math.random() * 6 : 6.5 + Math.random() * 4;
+      S.next = now + hold;
+      // most holds get one event in the middle of them
+      if (Math.random() < 0.7) S.evAt = now + hold * (0.35 + Math.random() * 0.2);
+      else S.evAt = 0;
+    } else S.pr = Math.max(1e-4, p);
+  } else if (now >= S.next) {
+    S.b = _apPickWeighted([S.a, S.prev]);
+    S.sb = _apSeed(); S.cb = _apCentre(); S.tb0 = now; S.trT0 = now;
+    let tr;
+    do { tr = Math.floor(Math.random() * _AP_TR_NAMES.length); } while (tr === S.lastTr);
+    if (_apRM) tr = 3;                       // reduced motion: it only ever melts, slowly
+    S.tr = tr; S.lastTr = tr;
+    S.trDur = _apRM ? 4.5 : tr === 4 ? 2.3 : 2.4 + Math.random() * 1.1;
+    S.ts = Math.random() * 100;
+    // the iris and the clock start somewhere you can see: under the pointer if it is on the page
+    const pc = document.getElementById('pattern-canvas');
+    let ox = W * (0.5 + Math.random() * 0.35), oy = H * (0.12 + Math.random() * 0.2);
+    if (pc && pc._bgR && _apMX > -9000 && Math.random() < 0.5) [ox, oy] = _bgAt(pc, W, H, _apMX, _apMY);
+    S.tp = [ox, oy];
+    S.ir = Math.hypot(W, H) * 1.05;          // px; turned into cloth units at upload
+    S.n++;
+  }
+  // the events
+  if (_apEvent && now - _apEvent.t0 > _apEvent.dur) _apEvent = null;
+  if (!_apEvent && S.evAt && now >= S.evAt && S.trT0 < 0 && !_apRM) {
+    S.evAt = 0;
+    let name;
+    do { name = _AP_EVENTS[Math.floor(Math.random() * _AP_EVENTS.length)]; } while (name === _apLastEv);
+    _apLastEv = name;
+    const dur = { invert: 2.4, gust: 3.2, hop: 5.5, yawn: 4.6, yank: 3.0 }[name];
+    _apEvent = { name, t0: now, dur, r1: Math.random(), r2: Math.random() };
+  }
+}
+// progress of the named event, or -1
+function _apEvP(name, now) {
+  const e = _apEvent;
+  if (!e || e.name !== name) return -1;
+  const p = (now - e.t0) / e.dur;
+  return p >= 0 && p <= 1 ? p : -1;
+}
+// the cloth ripples when it is changed, and in a gust
+function _apGust(now) {
+  let g = 0;
+  const S = _apShow;
+  if (S.trT0 >= 0) g = Math.sin(Math.PI * Math.min(1, S.pr)) * 0.8;
+  const gp = _apEvP('gust', now);
+  if (gp >= 0) g = Math.max(g, Math.sin(Math.PI * gp) * 1.2);
+  return _apRM ? 0 : g;
+}
+
+// Upload this frame's state and draw the cloth onto the GL canvas. False if there is no GL.
+function _apGLRender(W, H, t, now, spotX, spotY) {
+  const G = _AP_GL;
+  if (!_apGLInit() || G.lost) return false;
+  const gl = G.gl, L = G.loc, S = _apShow;
+  const sc = Math.min(1, 1680 / Math.max(W, 1));
+  const gw = Math.max(1, Math.round(W * sc)), gh = Math.max(1, Math.round(H * sc));
+  if (G.cv.width !== gw || G.cv.height !== gh) { G.cv.width = gw; G.cv.height = gh; }
+  gl.viewport(0, 0, gw, gh);
+  const cell = Math.max(46, Math.min(118, H / 9)) * sc, px = 1 / cell;
+  const slow = _apRM ? 0.15 : 1;
+  gl.uniform2f(L.u_res, gw, gh);
+  gl.uniform1f(L.u_px, px);
+  gl.uniform1f(L.u_t, (t * slow) % 628.3185);
+  gl.uniform1f(L.u_ta, (now - S.ta0) * slow);
+  gl.uniform1f(L.u_tb, S.b >= 0 ? (now - S.tb0) * slow : 0);
+  gl.uniform1f(L.u_a, S.a);
+  gl.uniform1f(L.u_b, S.b >= 0 ? S.b : 0);
+  gl.uniform4f(L.u_sa, S.sa[0], S.sa[1], S.sa[2], S.sa[3]);
+  gl.uniform4f(L.u_sb, S.sb[0], S.sb[1], S.sb[2], S.sb[3]);
+  gl.uniform2f(L.u_ca, S.ca[0] * gw, S.ca[1] * gh);
+  gl.uniform2f(L.u_cb, S.cb[0] * gw, S.cb[1] * gh);
+  gl.uniform1f(L.u_tr, S.tr);
+  gl.uniform1f(L.u_pr, S.b >= 0 ? S.pr : 0);
+  gl.uniform1f(L.u_ts, S.ts);
+  gl.uniform1f(L.u_ir, S.ir * sc * px);
+  gl.uniform2f(L.u_tp, S.tp[0] * sc * px, S.tp[1] * sc * px);
+  // the pointer, in this canvas's own pixels
+  const pc = document.getElementById('pattern-canvas');
+  let mx = -9999, my = -9999;
+  if (pc && pc._bgR && _apMX > -9000) [mx, my] = _bgAt(pc, W, H, _apMX, _apMY);
+  gl.uniform2f(L.u_mouse, mx * sc, my * sc);
+  gl.uniform1f(L.u_warp, _apRM ? 0 : _apWarp);
+  gl.uniform2f(L.u_spot, spotX * sc, spotY * sc);
+  gl.uniform1f(L.u_spotR, Math.max(W, H) * 0.34 * sc);
+  gl.uniform1f(L.u_gust, _apGust(now));
+  const ip = _apEvP('invert', now);
+  if (ip >= 0) {
+    const e = _apEvent;
+    const ox = W * (0.45 + e.r1 * 0.4) * sc * px, oy = H * (0.1 + e.r2 * 0.2) * sc * px;
+    gl.uniform4f(L.u_inv, ox, oy, Math.hypot(W, H) * sc * px * 1.1 * ip, ip < 0.8 ? 1 : (1 - ip) / 0.2);
+  } else gl.uniform4f(L.u_inv, 0, 0, -1, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  return true;
+}
+
+// No GL: the board alone, drifting. It is still the right cloth, just never changed.
+function _apClothFallback(ctx, W, H, t, spotX, spotY) {
+  const cell = Math.max(46, Math.min(118, H / 9));
+  const ox = (t * 14) % (cell * 2), oy = (t * 6) % (cell * 2);
+  ctx.fillStyle = '#09050f';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#4a2878';
+  ctx.beginPath();
+  for (let y = -2; y * cell < H + cell * 2; y++) {
+    for (let x = -2; x * cell < W + cell * 2; x++) {
+      if ((x + y) & 1) continue;
+      ctx.rect(x * cell + ox - cell * 2, y * cell + oy - cell * 2, cell, cell);
+    }
+  }
+  ctx.fill();
+  const P = _apClothFallback;
+  if (!P._dark || P._w !== W || P._h !== H) {
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(1, Math.round(W / 4)); cv.height = Math.max(1, Math.round(H / 4));
+    const g = cv.getContext('2d');
+    const gr = g.createRadialGradient(cv.width * 0.5, cv.height * 0.5, 0, cv.width * 0.5, cv.height * 0.5, Math.hypot(cv.width, cv.height) * 0.6);
+    for (let i = 0; i <= 12; i++) { const u = i / 12; gr.addColorStop(u, 'rgba(4,2,8,' + (0.15 + 0.7 * Math.pow(u, 1.6)).toFixed(3) + ')'); }
+    g.fillStyle = gr; g.fillRect(0, 0, cv.width, cv.height);
+    P._dark = cv; P._w = W; P._h = H;
+  }
+  ctx.drawImage(P._dark, 0, 0, W, H);
+}
+
+// ════════════════════════════════════════════════════════════════
+// THE LAVENDER, along the lip of the stage
+// One renderer. It lives on the overlay because the bottom of the
+// screen is the one place on this page that is always in view: the
+// panels run the full width and #pattern-canvas scrolls away with
+// them. Every stalk is a spring. It leans in the breeze, it bends away
+// from the pointer, so hovering over text behind it parts it, and a
+// fast swipe through it throws buds off.
+// ════════════════════════════════════════════════════════════════
+let _apMVX = 0, _apMVY = 0;         // pointer velocity, px/s
+let _apMoveAt = -99;                // clock time of the last pointer move
+let _apPetals = [];
+
+// A spike of florets: whorls up an axis, gapped at the bottom, crowded at the tip.
+// Baked once at twice size, anchored at the bottom centre where the stem joins.
+function _apSpikeSprites() {
+  if (_apSpikeSprites._c) return _apSpikeSprites._c;
+  const out = [];
+  for (let v = 0; v < 3; v++) {
+    const k = 2, w = 18 * k, h = 64 * k, cx = w / 2;
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const g = cv.getContext('2d');
+    g.strokeStyle = 'rgba(120,140,116,0.9)';
+    g.lineWidth = 1.2 * k;
+    g.beginPath(); g.moveTo(cx, h); g.lineTo(cx, 4 * k); g.stroke();
+    const whorls = 7 + v;
+    const buds = (front) => {
+      for (let i = 0; i < whorls; i++) {
+        const u = i / (whorls - 1);
+        const y = h * (1 - (0.07 + 0.88 * Math.pow(u, 0.78)));
+        const wr = (1 - u * 0.6) * 5.2 * k;
+        const n = 5;
+        for (let j = 0; j < n; j++) {
+          const a = (j / n) * 6.2831853 + i * 0.9 + v;
+          const isFront = Math.sin(a) > 0;
+          if (isFront !== front) continue;
+          const bx = cx + Math.cos(a) * wr, by = y + Math.sin(a) * wr * 0.32;
+          const rx = (1.9 - u * 0.5) * k, ry = (2.9 - u * 0.8) * k;
+          g.fillStyle = front ? (u > 0.8 ? '#b79cec' : '#9d7fdb') : '#56398a';
+          g.beginPath(); g.ellipse(bx, by, rx, ry, Math.cos(a) * 0.5, 0, 6.2831853); g.fill();
+          if (front) {
+            // the light is up and to the right
+            g.fillStyle = 'rgba(236,226,255,0.8)';
+            g.beginPath(); g.ellipse(bx + rx * 0.35, by - ry * 0.4, rx * 0.42, ry * 0.36, 0, 0, 6.2831853); g.fill();
+          }
+        }
+      }
+    };
+    buds(false); buds(true);
+    g.fillStyle = '#c9b2f5';
+    g.beginPath(); g.ellipse(cx, 4.5 * k, 1.6 * k, 2.6 * k, 0, 0, 6.2831853); g.fill();
+    out.push(cv);
+  }
+  return (_apSpikeSprites._c = out);
+}
+
+function _apBedBuild(W, H) {
+  const stalks = [];
+  // low in the middle, where it stands in front of text; taller at the corners
+  const midH = Math.max(36, H * 0.045), cornerH = Math.max(90, H * 0.13);
+  const gap = 50, nClumps = Math.ceil(W / gap) + 1;
+  for (let j = 0; j < nClumps; j++) {
+    const cx = (j + (_apRnd(j * 3.3) - 0.5) * 0.6) * gap;
+    const e = Math.min(1, Math.abs(cx / W * 2 - 1));
+    const back = (j % 3) === 1;
+    const hmax = (midH + (cornerH - midH) * Math.pow(e, 1.7)) * (back ? 0.82 : 1);
+    const by = H - (back ? 16 + _apRnd(j * 7.1) * 6 : 2 + _apRnd(j * 5.9) * 4);
+    const n = Math.round(3 + 3 * Math.pow(e, 1.2) + _apRnd(j * 9.7) * 1.5);
+    for (let i = 0; i < n; i++) {
+      const seed = j * 31 + i * 7.7;
+      const r1 = _apRnd(seed), r2 = _apRnd(seed + 1.3), r3 = _apRnd(seed + 2.9);
+      const h = hmax * (0.62 + 0.38 * Math.pow(r1, 0.7));
+      stalks.push({
+        bx: cx + (r2 - 0.5) * 10, by,
+        lean: ((n > 1 ? i / (n - 1) : 0.5) - 0.5) * 0.72 + (r3 - 0.5) * 0.14,
+        h, sp: Math.min(0.34, 0.22 + r2 * 0.1) * h,
+        ph: r1 * 6.283, k: 16 + r3 * 10, v: (j + i) % 3, back,
+        th: 0, w: 0, lw: back ? 1.2 : 1.6,
+      });
+    }
+  }
+  stalks.sort((a, b) => (a.back === b.back ? a.bx - b.bx : a.back ? -1 : 1));
+  return { W, H, stalks, mound: _apMoundBake(W, H, nClumps, gap), gustX: -1 };
+}
+
+// The mass every stalk comes up out of, and a dark lip for it to stand on.
+function _apMoundBake(W, H, nClumps, gap) {
+  const mh = Math.round(Math.max(30, H * 0.045));
+  const cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round(W)); cv.height = mh;
+  const g = cv.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, mh);
+  for (let i = 0; i <= 12; i++) { const u = i / 12; gr.addColorStop(u, 'rgba(8,4,12,' + (0.88 * Math.pow(u, 1.8)).toFixed(3) + ')'); }
+  g.fillStyle = gr; g.fillRect(0, 0, cv.width, mh);
+  for (let j = 0; j < nClumps; j++) {
+    const cx = (j + (_apRnd(j * 3.3) - 0.5) * 0.6) * gap;
+    const nl = 12 + Math.floor(_apRnd(j * 2.2) * 8);
+    for (let i = 0; i < nl; i++) {
+      const s = j * 17 + i * 3.1;
+      const a = (i / (nl - 1) - 0.5) * 2.4 + (_apRnd(s) - 0.5) * 0.3;
+      const len = mh * (0.35 + _apRnd(s + 1) * 0.5);
+      const x0 = cx + (_apRnd(s + 2) - 0.5) * 16, y0 = mh + 2;
+      const x1 = x0 + Math.sin(a) * len, y1 = y0 - Math.cos(a) * len;
+      const nx = Math.cos(a) * 1.4, ny = Math.sin(a) * 1.4;
+      g.fillStyle = _apRnd(s + 3) < 0.5 ? '#3e4d44' : '#56685a';
+      g.beginPath();
+      g.moveTo(x0 - nx, y0 - ny);
+      g.quadraticCurveTo((x0 + x1) / 2 - nx * 1.4, (y0 + y1) / 2 - ny, x1, y1);
+      g.quadraticCurveTo((x0 + x1) / 2 + nx * 1.4, (y0 + y1) / 2 + ny, x0 + nx, y0 + ny);
+      g.fill();
+      g.strokeStyle = 'rgba(160,184,158,0.55)';
+      g.lineWidth = 0.8;
+      g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo((x0 + x1) / 2 + nx, (y0 + y1) / 2, x1, y1); g.stroke();
+    }
+  }
+  return cv;
+}
+
+// Springs. The breeze sets where each stalk wants to be; the pointer pushes.
+function _apBedStep(bed, dt, now, mx, my) {
+  const R = 120, R2 = R * R;
+  const gp = _apEvP('gust', now);
+  if (gp >= 0) bed.gustX = -200 + (bed.W + 400) * gp; else bed.gustX = -1;
+  const pushV = Math.max(-22, Math.min(22, _apMVX * 0.011));
+  const hopP = _apEvP('hop', now);
+  for (const s of bed.stalks) {
+    const breeze = _apRM ? 0 : 0.06 * Math.sin(now * 0.9 + s.bx * 0.004 + s.ph) + 0.03 * Math.sin(now * 2.3 + s.ph * 3.1);
+    let tgt = breeze;
+    if (bed.gustX > -1) { const d = (s.bx - bed.gustX) / 180; tgt += 0.75 * Math.exp(-d * d); }
+    let acc = (tgt - s.th) * s.k - s.w * 4.2;
+    const a = s.lean + s.th;
+    const tx = s.bx + Math.sin(a) * s.h * 0.75, ty = s.by - Math.cos(a) * s.h * 0.75;
+    const dx = tx - mx, dy = (ty - my) * 0.7;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < R2) {
+      const f = 1 - Math.sqrt(d2) / R;
+      acc += (dx >= 0 ? 1 : -1) * 18 * f * f + pushV * f;
+    }
+    s.w += acc * dt;
+    s.th += s.w * dt;
+    if (s.th > 1.1) { s.th = 1.1; s.w = 0; } else if (s.th < -1.1) { s.th = -1.1; s.w = 0; }
+    // hit hard enough, it drops a bud
+    if (Math.abs(s.w) > 3.2 && _apPetals.length < 90 && Math.random() < dt * 5) {
+      const tip = s.h - s.sp * 0.5;
+      _apPetals.push({ x: s.bx + Math.sin(a) * tip, y: s.by - Math.cos(a) * tip,
+        vx: s.w * 22 + (Math.random() - 0.5) * 30, vy: -30 - Math.random() * 40,
+        r: Math.random() * 6.28, vr: (Math.random() - 0.5) * 8, life: 1, size: 1.4 + Math.random() * 1.4,
+        ph: Math.random() * 6.28 });
+    }
+  }
+  // the bunnies hopping through it bend what they pass
+  if (hopP >= 0) {
+    const bx = _apHopX(bed.W, hopP, _apEvent.r1);
+    for (const s of bed.stalks) {
+      const d = (s.bx - bx) / 26;
+      if (d * d < 1) s.w += (d >= 0 ? 1 : -1) * 30 * dt;
+    }
+  }
+}
+// where the lead bunny is, for a hop event running at progress p
+function _apHopX(W, p, r) { return r < 0.5 ? -60 + (W + 120) * p : W + 60 - (W + 120) * p; }
+
+function _apBedDraw(ctx, bed, back) {
+  const sprites = _apSpikeSprites();
+  // stems first, all of one row in one path
+  ctx.strokeStyle = back ? _AP_STEM[_apA(0.62)] : _AP_STEM[_apA(0.95)];
+  ctx.lineWidth = back ? 1.2 : 1.7;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (const s of bed.stalks) {
+    if (s.back !== back) continue;
+    const a = s.lean + s.th, a0 = s.lean + s.th * 0.35;
+    const tx = s.bx + Math.sin(a) * s.h, ty = s.by - Math.cos(a) * s.h;
+    const cx = s.bx + Math.sin(a0) * s.h * 0.55, cy = s.by - Math.cos(a0) * s.h * 0.55;
+    ctx.moveTo(s.bx, s.by);
+    ctx.quadraticCurveTo(cx, cy, tx, ty);
+    s._tx = tx; s._ty = ty; s._cx = cx; s._cy = cy;
+  }
+  ctx.stroke();
+  ctx.globalAlpha = back ? 0.72 : 1;
+  for (const s of bed.stalks) {
+    if (s.back !== back) continue;
+    const sp = sprites[s.v];
+    // the spike runs from 70% of the way up the curve to the tip
+    const u = 0.7, iu = 1 - u;
+    const bx = iu * iu * s.bx + 2 * iu * u * s._cx + u * u * s._tx;
+    const by = iu * iu * s.by + 2 * iu * u * s._cy + u * u * s._ty;
+    const ang = Math.atan2(s._tx - bx, -(s._ty - by));
+    const len = Math.hypot(s._tx - bx, s._ty - by) * 1.08;
+    const sc = len / sp.height;
+    const c = Math.cos(ang) * sc, sn = Math.sin(ang) * sc;
+    ctx.setTransform(c, sn, -sn, c, bx, by);
+    ctx.drawImage(sp, -sp.width / 2, -sp.height);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+}
+
+function _apPetalsStep(dt, now) {
+  for (let i = _apPetals.length - 1; i >= 0; i--) {
+    const p = _apPetals[i];
+    p.vx *= 1 - dt * 0.9;
+    p.vx += Math.sin(now * 3 + p.ph) * 26 * dt;
+    p.vy += 26 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.r += p.vr * dt;
+    p.life -= dt * 0.32;
+    if (p.life <= 0) _apPetals.splice(i, 1);
+  }
+}
+function _apPetalsDraw(ctx) {
+  for (let pass = 0; pass < 2; pass++) {
+    ctx.fillStyle = pass ? _AP_LILAC[_apA(0.85)] : _AP_LAV[_apA(0.9)];
+    ctx.beginPath();
+    for (let i = pass; i < _apPetals.length; i += 2) {
+      const p = _apPetals[i];
+      if (p.life < 0.25 && ((i + Math.floor(p.life * 40)) & 1)) continue;   // they flicker out
+      ctx.moveTo(p.x + Math.cos(p.r) * p.size * 1.6, p.y + Math.sin(p.r) * p.size * 1.6);
+      ctx.ellipse(p.x, p.y, p.size * 1.6, p.size, p.r, 0, 6.2831853);
+    }
+    ctx.fill();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// THE PROPS: a sleeping moon and some felt stars, flown in on strings
+// They hang in the empty band beside the portrait, which is the one
+// part of the cloth the panels never cover. Felt has a THICKNESS, so
+// every prop is a lit face over a plum edge offset away from the
+// light, and it throws a soft shadow onto the cloth behind it. That
+// shadow is what puts it in front of the cloth instead of on it.
+// ════════════════════════════════════════════════════════════════
+function _apTint(src, rgb) {
+  const cv = document.createElement('canvas');
+  cv.width = src.width; cv.height = src.height;
+  const g = cv.getContext('2d');
+  g.drawImage(src, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = 'rgb(' + rgb + ')';
+  g.fillRect(0, 0, cv.width, cv.height);
+  return cv;
+}
+// a cheap blur: down to a sixth and back up with smoothing on
+function _apSoft(src, k) {
+  const w = Math.max(1, Math.round(src.width / k)), h = Math.max(1, Math.round(src.height / k));
+  const a = document.createElement('canvas'); a.width = w; a.height = h;
+  a.getContext('2d').drawImage(src, 0, 0, w, h);
+  const b = document.createElement('canvas'); b.width = src.width; b.height = src.height;
+  b.getContext('2d').drawImage(a, 0, 0, src.width, src.height);
+  return b;
+}
+
+function _apBakeMoon(R) {
+  const pad = Math.ceil(R * 0.45), S = Math.ceil(R * 2 + pad * 2), cx = S / 2, cy = S / 2;
+  const face = document.createElement('canvas');
+  face.width = S; face.height = S;
+  const g = face.getContext('2d');
+  const gr = g.createLinearGradient(cx + R, cy - R, cx - R, cy + R);
+  gr.addColorStop(0, '#f7f1ff'); gr.addColorStop(0.5, '#dccff9'); gr.addColorStop(1, '#a28dd2');
+  g.fillStyle = gr;
+  g.beginPath(); g.arc(cx, cy, R, 0, 6.2831853); g.fill();
+  // the bite: destination-out erases by the SOURCE alpha, so the fill must be opaque
+  g.globalCompositeOperation = 'destination-out';
+  g.fillStyle = '#000';
+  g.beginPath(); g.arc(cx + R * 0.42, cy - R * 0.18, R * 0.86, 0, 6.2831853); g.fill();
+  g.globalCompositeOperation = 'source-atop';
+  // stitched in along both edges
+  g.setLineDash([R * 0.09, R * 0.07]);
+  g.lineWidth = Math.max(1, R * 0.035);
+  g.strokeStyle = 'rgba(118,86,176,0.85)';
+  g.beginPath(); g.arc(cx, cy, R * 0.87, 0, 6.2831853); g.stroke();
+  g.beginPath(); g.arc(cx + R * 0.42, cy - R * 0.18, R * 0.99, 0, 6.2831853); g.stroke();
+  g.setLineDash([]);
+  // the cut face inside the crescent is the surface actually turned to the light
+  g.strokeStyle = 'rgba(255,255,255,0.6)';
+  g.lineWidth = R * 0.05;
+  g.beginPath(); g.arc(cx + R * 0.42, cy - R * 0.18, R * 0.875, 0, 6.2831853); g.stroke();
+  const bl = g.createRadialGradient(cx - R * 0.56, cy + R * 0.3, 0, cx - R * 0.56, cy + R * 0.3, R * 0.2);
+  bl.addColorStop(0, 'rgba(255,150,205,0.55)'); bl.addColorStop(1, 'rgba(255,150,205,0)');
+  g.fillStyle = bl;
+  g.fillRect(cx - R, cy, R, R);
+  g.globalCompositeOperation = 'source-over';
+  return { face, edge: _apTint(face, '52,26,84'), shadow: _apSoft(_apTint(face, '4,2,10'), 6),
+           S, R, cx, cy, top: cy - R };
+}
+
+function _apStarPath(g, cx, cy, r, ri) {
+  g.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5, rr = (i & 1) ? ri : r;
+    if (i) g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+    else g.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+  }
+  g.closePath();
+}
+function _apBakeStar(r, light, dark) {
+  const pad = Math.ceil(r * 0.5), S = Math.ceil(r * 2 + pad * 2), cx = S / 2, cy = S / 2;
+  const face = document.createElement('canvas');
+  face.width = S; face.height = S;
+  const g = face.getContext('2d');
+  const gr = g.createLinearGradient(cx + r, cy - r, cx - r, cy + r);
+  gr.addColorStop(0, light); gr.addColorStop(1, dark);
+  g.fillStyle = gr; g.strokeStyle = gr;
+  g.lineJoin = 'round'; g.lineWidth = r * 0.24;       // felt does not keep a sharp point
+  _apStarPath(g, cx, cy, r, r * 0.5); g.fill(); g.stroke();
+  g.globalCompositeOperation = 'source-atop';
+  g.setLineDash([r * 0.13, r * 0.1]);
+  g.lineWidth = Math.max(1, r * 0.06);
+  g.strokeStyle = 'rgba(255,255,255,0.55)';
+  _apStarPath(g, cx, cy, r * 0.72, r * 0.36); g.stroke();
+  g.setLineDash([]);
+  g.globalCompositeOperation = 'source-over';
+  return { face, edge: _apTint(face, '48,22,78'), shadow: _apSoft(_apTint(face, '4,2,10'), 6),
+           S, R: r, cx, cy, top: cy - r * 1.05 };
+}
+
+let _apProps = [];
+function _apPropsBuild(W, H) {
+  const R = Math.max(30, Math.min(58, H * 0.054));
+  const moon = _apBakeMoon(R);
+  const sr = Math.max(12, Math.min(23, H * 0.021));
+  const st = [_apBakeStar(sr, '#f2eaff', '#b69de6'), _apBakeStar(sr * 0.8, '#d9c4ff', '#8a64c8'),
+              _apBakeStar(sr * 1.1, '#c7b2f2', '#6f4aa8')];
+  const mk = (kind, fx, L, sp, ph, amp, spin) => ({ kind, px: fx * W, L, sp, ph, amp, spin,
+    a: 0, v: 0, psi: ph * 2, om: 2.2 / Math.sqrt(Math.max(40, L) / 100), cx: 0, cy: 0 });
+  _apProps = [
+    mk('moon', 0.83, Math.max(120, H * 0.17), moon, 0.3, 0.045, 0),
+    mk('star', 0.70, Math.max(60, H * 0.10), st[0], 1.7, 0.09, 0.45),
+    mk('star', 0.765, Math.max(90, H * 0.20), st[1], 4.1, 0.07, -0.32),
+    mk('star', 0.905, Math.max(70, H * 0.13), st[2], 2.6, 0.10, 0.27),
+    mk('star', 0.955, Math.max(100, H * 0.23), st[0], 5.2, 0.08, 0.38),
+  ];
+}
+
+function _apDrawProps(ctx, W, H, t, now, dt, spotX, spotY) {
+  const yp = _apEvP('yank', now), yawn = _apEvP('yawn', now);
+  const pc = document.getElementById('pattern-canvas');
+  let mx = -9999, my = -9999;
+  if (pc && pc._bgR && _apMX > -9000) [mx, my] = _bgAt(pc, W, H, _apMX, _apMY);
+  const spotR = Math.max(W, H) * 0.34;
+  for (let i = 0; i < _apProps.length; i++) {
+    const p = _apProps[i], sp = p.sp;
+    // somebody pulls the strings: a kick at the start, then they swing it out
+    if (yp >= 0 && !p._yanked) { p._yanked = true; p.v += (i & 1 ? 1 : -1) * (0.9 + _apEvent.r1 * 0.6); }
+    if (yp < 0) p._yanked = false;
+    // batted by the pointer
+    const bd = Math.hypot(mx - p.cx, my - p.cy);
+    if (bd < sp.R * 1.3 && Math.abs(_apMVX) > 60) p.v += Math.max(-0.08, Math.min(0.08, _apMVX * 0.00006)) * (1 - bd / (sp.R * 1.3)) * 60 * dt;
+    p.v += (-p.om * p.om * p.a - p.v * 0.9) * dt;
+    p.a += p.v * dt;
+    const ang = (_apRM ? 0 : p.amp * Math.sin(now * p.om + p.ph)) + p.a;
+    const lift = yp >= 0 ? -H * 0.035 * Math.sin(Math.PI * Math.min(1, yp * 2.2)) : 0;
+    const ax = p.px + Math.sin(ang) * p.L, ay = -20 + Math.cos(ang) * p.L + lift;
+    // the centre, for batting and for the light
+    p.cx = ax + Math.sin(ang) * (sp.cy - sp.top); p.cy = ay + Math.cos(ang) * (sp.cy - sp.top);
+    const sd = Math.hypot(p.cx - spotX, p.cy - spotY) / spotR;
+    const lit = Math.exp(-sd * sd);
+    // shadow on the cloth, thrown away from the spot
+    const dx = p.cx - spotX, dy = p.cy - spotY, dl = Math.hypot(dx, dy) || 1;
+    const so = sp.R * (0.35 + 0.25 * lit);
+    ctx.globalAlpha = 0.5 + 0.2 * lit;
+    ctx.drawImage(sp.shadow, p.cx + dx / dl * so - sp.cx, p.cy + dy / dl * so * 0.7 + sp.R * 0.15 - sp.cy);
+    ctx.globalAlpha = 1;
+    // strings: a V from the loft for the moon, one line for a star
+    ctx.strokeStyle = _AP_LILAC[_apA(0.32 + 0.3 * lit)];
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (p.kind === 'moon') {
+      ctx.moveTo(p.px - 26, -2); ctx.lineTo(ax, ay); ctx.lineTo(p.px + 26, -2);
+    } else { ctx.moveTo(p.px, -2); ctx.lineTo(ax, ay); }
+    ctx.stroke();
+    // the prop itself, turned with its string
+    const c = Math.cos(-ang), s = Math.sin(-ang);
+    let xs = 1;
+    if (p.kind === 'star') { p.psi += p.spin * dt * (_apRM ? 0.2 : 1); xs = Math.cos(p.psi); }
+    const axs = Math.max(0.08, Math.abs(xs));
+    ctx.setTransform(c * axs, s * axs, -s, c, ax, ay);
+    const ox = -sp.cx, oy = -sp.top;
+    const eo = sp.R * 0.07;
+    ctx.drawImage(sp.edge, ox - eo, oy + eo);
+    ctx.drawImage(xs < 0 ? sp.edge : sp.face, ox, oy);
+    // out of the spot it goes back toward the dark
+    ctx.globalAlpha = (1 - lit) * 0.42;
+    ctx.drawImage(sp.edge, ox, oy);
+    ctx.globalAlpha = 1;
+    if (p.kind === 'moon') _apMoonFace(ctx, sp.R, yawn, now);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+}
+
+// The moon is asleep. Drawn live so it can yawn. Origin is the string's knot,
+// which is the top of the crescent, so the face sits R below it.
+function _apMoonFace(ctx, R, yawn, now) {
+  const ex = -R * 0.7, ey = R * 0.9;
+  ctx.strokeStyle = 'rgba(70,40,110,0.9)';
+  ctx.lineWidth = Math.max(1.2, R * 0.05);
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(ex, ey - R * 0.04, R * 0.13, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  ctx.lineWidth = Math.max(1, R * 0.035);
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const a = 0.3 * Math.PI + i * 0.2 * Math.PI;
+    ctx.moveTo(ex + Math.cos(a) * R * 0.14, ey - R * 0.04 + Math.sin(a) * R * 0.14);
+    ctx.lineTo(ex + Math.cos(a) * R * 0.22, ey - R * 0.04 + Math.sin(a) * R * 0.22);
+  }
+  ctx.stroke();
+  const open = yawn >= 0 ? Math.sin(Math.PI * Math.min(1, yawn * 1.6)) : 0;
+  const mx = -R * 0.6, my = R * 1.28;
+  if (open > 0.05) {
+    ctx.fillStyle = 'rgba(60,24,70,0.9)';
+    ctx.beginPath(); ctx.ellipse(mx, my, R * 0.07 + open * R * 0.03, R * 0.03 + open * R * 0.11, 0, 0, 6.2831853); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.arc(mx, my - R * 0.05, R * 0.07, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
+  }
+  // and the z's come up off it, drifting away from the light
+  if (yawn >= 0.2) {
+    const q = (yawn - 0.2) / 0.8;
+    ctx.fillStyle = _AP_LILAC[_apA(Math.sin(Math.PI * q) * 0.9)];
+    for (let i = 0; i < 3; i++) {
+      const k = Math.max(0, q * 1.6 - i * 0.28);
+      if (k <= 0) continue;
+      const size = Math.round(R * (0.22 + i * 0.08));
+      ctx.font = size + 'px ' + "'Press Start 2P', monospace";
+      ctx.fillText('z', mx - R * 0.5 - k * R * 0.9 - i * R * 0.15, my - R * 0.6 - k * R * 1.4 - i * R * 0.25);
+    }
+  }
+}
+
+// dust hanging in the beam of the spot: only visible where the light is
+function _apMotes(ctx, W, H, t, spotX, spotY) {
+  const P = _apMotes;
+  if (!P._m) {
+    P._m = [];
+    for (let i = 0; i < 46; i++) P._m.push({ x: _apRnd(i * 1.7), y: _apRnd(i * 4.3), s: 0.8 + _apRnd(i * 2.9) * 1.6, ph: _apRnd(i * 6.1) * 6.28 });
+  }
+  const spotR = Math.max(W, H) * 0.3;
+  for (let pass = 0; pass < 3; pass++) {
+    ctx.fillStyle = _AP_LILAC[_apA(0.18 + pass * 0.2)];
+    ctx.beginPath();
+    for (let i = 0; i < P._m.length; i++) {
+      const m = P._m[i];
+      const x = ((m.x * W + Math.sin(t * 0.3 + m.ph) * 30) % W + W) % W;
+      const y = (((m.y * H - t * (6 + m.s * 5)) % H) + H) % H;
+      const d = Math.hypot(x - spotX, y - spotY) / spotR;
+      const a = Math.exp(-d * d) * (0.6 + 0.4 * Math.sin(t * 2 + m.ph));
+      if (Math.min(2, Math.floor(a * 3)) !== pass || a < 0.08) continue;
+      ctx.moveTo(x + m.s, y);
+      ctx.arc(x, y, m.s, 0, 6.2831853);
+    }
+    ctx.fill();
+  }
+}
+
+function _drawAedenPattern(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;
+  const P = _drawAedenPattern;
+  // `>= 0`: a clock that jumps backwards must not freeze the layer
+  if (P._lt !== undefined && t - P._lt >= 0 && t - P._lt < 0.033) return;
+  const dt = P._lt === undefined ? 0.016 : Math.min(Math.abs(t - P._lt), 0.05);
+  P._lt = t;
+  const now = _apClock();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  _bgRect(canvas);
+  _apShowTick(now, W, H);
+  const live = _apMX > -9000 && now - _apMoveAt < 2.5;
+  _apWarp += ((live ? Math.min(1, 0.4 + _apMV / 1400) : 0) - _apWarp) * Math.min(1, dt * 2.5);
+  // the follow spot wanders over the right of the cloth, where the props hang
+  const spotX = W * (0.74 + 0.12 * Math.sin(t * 0.071)), spotY = H * (0.17 + 0.07 * Math.sin(t * 0.113 + 1.3));
+  if (_apGLRender(W, H, t, now, spotX, spotY)) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(_AP_GL.cv, 0, 0, W, H);
+  } else _apClothFallback(ctx, W, H, t, spotX, spotY);
+  if (P._w !== W || P._h !== H) { _apPropsBuild(W, H); P._w = W; P._h = H; }
+  _apMotes(ctx, W, H, t, spotX, spotY);
+  _apDrawProps(ctx, W, H, t, now, dt, spotX, spotY);
+}
+
+// ════════════════════════════════════════════════════════════════
+// THE OVERLAY: the bunny you point with, the lavender, and the strings
+// ════════════════════════════════════════════════════════════════
+let _apOverlayRaf = null;
+let _apActive = false;
+let _apPuffs = [];
+
+// ── the bunny ────────────────────────────────────────────────────
+// A grey-blue plush, sitting, ears too long to hold up. The exact point
+// you click with is a small sparkle that never lags; the bunny bounds
+// after it on a spring and sits just below and to the right of it, so
+// it never covers what you are pointing at. Its ears are springs too:
+// they stream out behind it when it moves and flop when it stops.
+const _apBun = { x: 0, y: 0, vx: 0, vy: 0, ea: 0, ev: 0, ed: 0, edv: 0, sq: 0, sqv: 0, init: false };
+// drawn a quarter up on its design size, so the face reads at a glance
+const _AP_BUN_S = 1.25;
+
+// Drawn live at the origin, which is the bottom centre, about 48 units tall
+// before the scale. A big head on a small sitting body, ears too long and
+// too heavy to hold up (one hangs lower than the other), and eyes that are
+// always OPEN: a round black eye under a heavy brow, lifted well clear of
+// it so it can never read as a lid, and a bigger one with the light in it.
+// `sil` draws a dark silhouette with no face, for the ones that hop by.
+function _apBunnyShape(ctx, ea, ed, sil) {
+  const OUT = sil ? '#150b20' : '#5a6173';
+  const BODY = sil ? '#2c1b3f' : '#b8c1d0';
+  const SHADE = sil ? '#3a2752' : '#929db1';
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  // ears first, behind the head: wide, and heavy enough to hang
+  for (let side = -1; side <= 1; side += 2) {
+    const rx = side * 9, ry = -37.5;
+    const a = side * ((side < 0 ? 2.05 : 2.4) + ed) + ea;
+    const L = side < 0 ? 19 : 23, w = 9;
+    const tx = rx + Math.sin(a) * L, ty = ry - Math.cos(a) * L;
+    const nx = Math.cos(a), ny = Math.sin(a);
+    const mx = (rx + tx) / 2, my = (ry + ty) / 2 + 2.5;
+    ctx.beginPath();
+    ctx.moveTo(rx - nx * 4.5, ry - ny * 4.5);
+    ctx.quadraticCurveTo(mx - nx * w, my - ny * w, tx, ty);
+    ctx.quadraticCurveTo(mx + nx * w, my + ny * w, rx + nx * 4.5, ry + ny * 4.5);
+    ctx.closePath();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 2.4; ctx.stroke();
+    ctx.fillStyle = BODY; ctx.fill();
+    if (!sil) {
+      ctx.strokeStyle = SHADE; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(rx + (tx - rx) * 0.25, ry + (ty - ry) * 0.25);
+      ctx.quadraticCurveTo(mx + nx * 1.5, my + ny * 1.5, rx + (tx - rx) * 0.85, ry + (ty - ry) * 0.85);
+      ctx.stroke();
+    }
+  }
+  // arms, stubby, out at the sides of the body
+  ctx.lineWidth = 2;
+  for (let side = -1; side <= 1; side += 2) {
+    ctx.beginPath(); ctx.ellipse(side * 10.5, -11.5, 3.2, 4.4, side * 0.5, 0, 6.2831853);
+    ctx.strokeStyle = OUT; ctx.stroke(); ctx.fillStyle = BODY; ctx.fill();
+  }
+  // head and body as one blob: stroke the pair, then fill over the seam
+  ctx.beginPath();
+  ctx.ellipse(0, -27.5, 14.5, 12.5, 0, 0, 6.2831853);
+  ctx.moveTo(11, -10);
+  ctx.ellipse(0, -10, 11, 10, 0, 0, 6.2831853);
+  ctx.strokeStyle = OUT; ctx.lineWidth = 2.4; ctx.stroke();
+  ctx.fillStyle = BODY; ctx.fill();
+  if (sil) {
+    ctx.strokeStyle = 'rgba(196,168,244,0.55)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, -27.5, 13.5, -2.4, -0.5); ctx.stroke();
+    return;
+  }
+  // the head shades the top of the body, and the side away from the light
+  ctx.fillStyle = 'rgba(100,112,136,0.35)';
+  ctx.beginPath(); ctx.ellipse(0, -16.5, 9.5, 2.4, 0, 0, 6.2831853); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-6, -7.5, 4.5, 6.5, 0.25, 0, 6.2831853); ctx.fill();
+  // feet
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.6; ctx.fillStyle = BODY;
+  for (let side = -1; side <= 1; side += 2) {
+    ctx.beginPath(); ctx.ellipse(side * 5.8, -0.8, 4, 2.3, 0, 0, 6.2831853); ctx.fill(); ctx.stroke();
+  }
+  // the pale patch on its front, with the little mark in it
+  ctx.fillStyle = '#e2e9d8';
+  ctx.beginPath(); ctx.ellipse(0, -8.5, 6.8, 6.2, 0, 0, 6.2831853); ctx.fill();
+  ctx.lineWidth = 1.1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0.6, -8.6, 1.8, 0.6 * Math.PI, 1.9 * Math.PI); ctx.stroke();
+  // eyes, open
+  ctx.fillStyle = '#16151d';
+  ctx.beginPath(); ctx.ellipse(-5.6, -27.2, 2.6, 3.2, 0, 0, 6.2831853); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(5.8, -27.4, 3.1, 3.7, 0, 0, 6.2831853); ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(-4.8, -28.4, 0.95, 0, 6.2831853);
+  ctx.moveTo(8.15, -28.9);
+  ctx.arc(6.9, -28.9, 1.25, 0, 6.2831853);
+  ctx.moveTo(5.75, -25.8);
+  ctx.arc(5.2, -25.8, 0.55, 0, 6.2831853);
+  ctx.fill();
+  // the brow: heavy, flat, and a clear gap above the eye
+  ctx.strokeStyle = '#16151d'; ctx.lineWidth = 1.9;
+  ctx.beginPath(); ctx.moveTo(-9.8, -34.6); ctx.lineTo(-3.4, -32.8); ctx.stroke();
+  // a small open mouth
+  ctx.fillStyle = '#2a1c28';
+  ctx.beginPath(); ctx.arc(0.4, -21.4, 1.9, 0, Math.PI); ctx.closePath(); ctx.fill();
+}
+
+function _apBunnyStep(dt, now) {
+  const B = _apBun;
+  if (_apMX < -9000) return;
+  const tx = _apMX + 18, ty = _apMY + 60;
+  if (!B.init) { B.x = tx; B.y = ty; B.vx = B.vy = 0; B.init = true; }
+  B.vx += ((tx - B.x) * 210 - B.vx * 24) * dt;
+  B.vy += ((ty - B.y) * 210 - B.vy * 24) * dt;
+  B.x += B.vx * dt; B.y += B.vy * dt;
+  // both ears turn the same way to stream out BEHIND it: moving right swings them left
+  const es = Math.max(-1, Math.min(1, B.vx * 0.0016));
+  B.ev += ((es - B.ea) * 90 - B.ev * 7) * dt; B.ea += B.ev * dt;
+  // and they lag: going up drags them down, dropping lifts them
+  const ds = Math.max(-0.6, Math.min(0.8, -B.vy * 0.0011));
+  B.edv += ((ds - B.ed) * 80 - B.edv * 6) * dt; B.ed += B.edv * dt;
+  B.sqv += (-B.sq * 160 - B.sqv * 12) * dt; B.sq += B.sqv * dt;
+}
+
+function _apSparkle(ctx, x, y, r, rot) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = rot + i * Math.PI / 4, rr = (i & 1) ? r * 0.26 : r;
+    if (i) ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    else ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+  }
+  ctx.closePath();
+}
+
+function _apBunnyDraw(ctx, now) {
+  const B = _apBun;
+  if (!B.init || _apMX < -9000) return;
+  // the hotspot
+  _apSparkle(ctx, _apMX, _apMY, 5.5, now * 0.8);
+  ctx.strokeStyle = 'rgba(34,14,52,0.9)'; ctx.lineWidth = 2.2; ctx.stroke();
+  ctx.fillStyle = '#ece2ff'; ctx.fill();
+  const lean = Math.max(-0.35, Math.min(0.35, B.vx * 0.0005));
+  const sq = Math.max(-0.3, Math.min(0.3, B.sq)) + (_apPtrDown ? 0.12 : 0);
+  const S = _AP_BUN_S, sx = (1 + sq * 0.6) * S, sy = (1 - sq) * S;
+  const c = Math.cos(lean), s = Math.sin(lean);
+  ctx.setTransform(c * sx, s * sx, -s * sy, c * sy, B.x, B.y);
+  _apBunnyShape(ctx, B.ea, B.ed, false);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+// three of them, hopping along the bottom through the lavender
+function _apHopDraw(ctx, W, H, now) {
+  const p = _apEvP('hop', now);
+  if (p < 0) return;
+  const e = _apEvent, dir = e.r1 < 0.5 ? 1 : -1;
+  for (let i = 0; i < 3; i++) {
+    const x = _apHopX(W, p, e.r1) - dir * i * 42;
+    const ph = (p * 15 + i * 0.37) % 1;
+    const y = H - 7 - Math.sin(ph * Math.PI) * 26;
+    const s = 0.62 - i * 0.08;
+    const land = ph < 0.12 ? 0.25 * (1 - ph / 0.12) : 0;
+    ctx.setTransform(s * (1 + land * 0.6), 0, 0, s * (1 - land), x, y);
+    _apBunnyShape(ctx, dir * 0.4, 0.2, true);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+// ── the tags ─────────────────────────────────────────────────────
+// Every trait hangs from a grommet at its top on a string, the first row
+// from a rail along the top of the grid and every row after it from the
+// tag above. They swing on their own, the bunny can bat them, and when
+// somebody yanks the strings they all go at once. The swing is the CSS
+// `rotate` property, one write per tag and only when it moved; the
+// boxes are read from offsetLeft/offsetTop, which are LAYOUT positions
+// and so do not include the rotation being written to them.
+const _apTag = { els: [], gen: -1, at: -9, clip: null, gridTop: 0, yanked: false };
+
+function _apTagsMeasure(now) {
+  const T = _apTag;
+  const grid = document.getElementById('cv-traits');
+  T.els = []; T.clip = null; T.gen = _lyGen; T.at = now;
+  if (!grid) return;
+  const panel = grid.closest('.panel'), box = grid.parentElement, content = document.getElementById('content');
+  if (!panel || !box || !grid.offsetParent) return;
+  const pr = _lyRect(panel), br = _lyRect(box), cr = content ? _lyRect(content) : br;
+  const l = Math.max(br.left, cr.left), t = Math.max(br.top, cr.top);
+  const r = Math.min(br.right, cr.right), b = Math.min(br.bottom, cr.bottom);
+  if (r - l < 4 || b - t < 4) return;
+  T.clip = [l, t, r - l, b - t];
+  const ox = pr.left + panel.clientLeft, oy = pr.top + panel.clientTop;
+  T.gridTop = oy + grid.offsetTop;
+  for (const el of grid.children) {
+    if (!el.classList.contains('trait-chip') || el.offsetParent !== panel) continue;
+    el._apB = { x: ox + el.offsetLeft, y: oy + el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+    if (el._apA === undefined) { el._apA = 0; el._apV = 0; el._apPh = Math.random() * 6.283; }
+    T.els.push(el);
+  }
+}
+
+function _apTags(ctx, dt, now) {
+  const T = _apTag;
+  if (T.gen !== _lyGen || now - T.at > 1 || (T.els.length && !T.els[0].isConnected)) _apTagsMeasure(now);
+  if (!T.els.length || !T.clip) return;
+  const yank = _apEvP('yank', now);
+  const kick = yank >= 0 && !T.yanked;
+  T.yanked = yank >= 0;
+  for (let i = 0; i < T.els.length; i++) {
+    const el = T.els[i], b = el._apB;
+    const amax = Math.min(0.1, 13 / Math.max(40, b.w / 2));
+    let a = el._apA, v = el._apV;
+    // held while the button is down, so nothing moves between a mousedown and its click
+    if (!_apPtrDown) {
+      if (kick) v += (i & 1 ? 0.9 : -0.9);
+      const rest = _apRM ? 0 : Math.sin(now * 1.3 + el._apPh) * amax * 0.35;
+      let acc = (rest - a) * 11 - v * 1.1;
+      if (_apMX > b.x - 8 && _apMX < b.x + b.w + 8 && _apMY > b.y && _apMY < b.y + b.h + 10) {
+        acc -= _apMVX * 0.0022 * ((_apMY - b.y) / b.h);
+      }
+      v += acc * dt; a += v * dt;
+      if (a > amax) { a = amax; v *= -0.4; } else if (a < -amax) { a = -amax; v *= -0.4; }
+      el._apA = a; el._apV = v;
+    }
+    if (_apRM) a *= 0.3;
+    if (Math.abs(a - (el._apW || 0)) > 0.0004) { el.style.rotate = a.toFixed(4) + 'rad'; el._apW = a; }
+  }
+  // the strings
+  ctx.save();
+  ctx.beginPath(); ctx.rect(T.clip[0], T.clip[1], T.clip[2], T.clip[3]); ctx.clip();
+  ctx.strokeStyle = _AP_LILAC[_apA(0.55)];
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const knots = [];
+  for (const el of T.els) {
+    const b = el._apB, kx = b.x + b.w / 2, ky = b.y + 7;
+    // hang from the tag above in the same column, at the point its bottom has swung to
+    let up = null;
+    for (const o of T.els) {
+      const ob = o._apB;
+      if (o === el || ob.y + ob.h > b.y || Math.abs(ob.x + ob.w / 2 - kx) > 12) continue;
+      if (!up || ob.y > up._apB.y) up = o;
+    }
+    let ux = kx, uy = T.gridTop + 2;
+    if (up) {
+      const ub = up._apB, L = ub.h - 7, ua = up._apW || 0;
+      ux = ub.x + ub.w / 2 - Math.sin(ua) * L; uy = ub.y + 7 + Math.cos(ua) * L;
+    } else knots.push(kx);
+    ctx.moveTo(ux, uy); ctx.lineTo(kx, ky);
+  }
+  ctx.stroke();
+  // a knot on the rail for each one
+  ctx.fillStyle = _AP_LILAC[_apA(0.8)];
+  ctx.beginPath();
+  for (const kx of knots) { ctx.moveTo(kx + 2, T.gridTop + 2); ctx.arc(kx, T.gridTop + 2, 2, 0, 6.2831853); }
+  ctx.fill();
+  // and the grommet each tag hangs from. It sits on the pivot, so it never
+  // moves however far the tag swings.
+  ctx.fillStyle = _AP_PLUM[_apA(0.95)];
+  ctx.strokeStyle = _AP_LILAC[_apA(0.9)];
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (const el of T.els) {
+    const b = el._apB, gx = b.x + b.w / 2, gy = b.y + 7;
+    ctx.moveTo(gx + 4.5, gy); ctx.arc(gx, gy, 4.5, 0, 6.2831853);
+  }
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(4,2,8,0.95)';
+  ctx.beginPath();
+  for (const el of T.els) {
+    const b = el._apB, gx = b.x + b.w / 2, gy = b.y + 7;
+    ctx.moveTo(gx + 2.2, gy); ctx.arc(gx, gy, 2.2, 0, 6.2831853);
+  }
+  ctx.fill();
+  ctx.restore();
+}
+function _apTagsClear() {
+  for (const el of document.querySelectorAll('#cv-traits > .trait-chip')) {
+    if (el._apW !== undefined) { el.style.rotate = ''; el._apW = undefined; el._apA = undefined; }
+  }
+  _apTag.els = []; _apTag.gen = -1;
+}
+
+// ── the portrait: click it and it wobbles, and says something ─────
+let _apWobAt = -9, _apWobN = 0;
+function _apWobble(av) {
+  const now = _apClock();
+  _apWobN = now - _apWobAt < 1.1 ? Math.min(3, _apWobN + 1) : 1;
+  _apWobAt = now;
+  const k = (_apRM ? 0.35 : 1) * (0.75 + 0.25 * _apWobN), rk = _apRM ? 0 : k;
+  if (av.animate) {
+    if (av._apAnim) av._apAnim.cancel();
+    const f = (sx, sy, r) => ({ transform: 'scale(' + (1 + (sx - 1) * k).toFixed(3) + ',' + (1 + (sy - 1) * k).toFixed(3) + ') rotate(' + (r * rk).toFixed(2) + 'deg)' });
+    av._apAnim = av.animate([f(1, 1, 0), f(1.17, 0.83, -4), f(0.87, 1.13, 5), f(1.09, 0.93, -3.5),
+      f(0.95, 1.05, 2), f(1.02, 0.98, -1), f(1, 1, 0)], { duration: 950, easing: 'ease-out' });
+  }
+  if (!_apActive) return;
+  const r = av.getBoundingClientRect();
+  const n = _apWobN;
+  for (let i = 0; i < n; i++) {
+    _apPuffs.push({ x: r.right - 10 + (Math.random() - 0.5) * 18, y: r.top + 14 + i * 6,
+      vx: 26 + Math.random() * 44, vy: -46 - Math.random() * 30, life: 1,
+      size: [9, 11, 13][Math.floor(Math.random() * 3)], txt: Math.random() < 0.15 ? 'bleh' : 'mem', delay: i * 0.13 });
+  }
+  if (_apPuffs.length > 10) _apPuffs.splice(0, _apPuffs.length - 10);
+}
+function _apPuffsDraw(ctx, dt) {
+  if (!_apPuffs.length) return;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  for (let i = _apPuffs.length - 1; i >= 0; i--) {
+    const p = _apPuffs[i];
+    if (p.delay > 0) { p.delay -= dt; continue; }
+    p.life -= dt * 0.62;
+    if (p.life <= 0) { _apPuffs.splice(i, 1); continue; }
+    p.vy += 14 * dt; p.vx *= 1 - dt * 0.8;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    const a = Math.min(1, p.life * 2.5), pop = p.life > 0.9 ? 1 + (p.life - 0.9) * 3 : 1;
+    ctx.font = Math.round(p.size * pop) + "px 'Press Start 2P', monospace";
+    ctx.lineWidth = 3; ctx.strokeStyle = _AP_PLUM[_apA(a)]; ctx.strokeText(p.txt, p.x, p.y);
+    ctx.fillStyle = _AP_LILAC[_apA(a)]; ctx.fillText(p.txt, p.x, p.y);
+  }
+}
+function _apClick(e) {
+  const av = e.target && e.target.closest ? e.target.closest('#cv-avatar') : null;
+  if (av && av.classList.contains('aedenp-pfp')) _apWobble(av);
+}
+// Registered once, not per visit: the class is what switches it on, and the
+// class is there even in performance mode, when the overlay never starts.
+if (typeof document !== 'undefined') document.addEventListener('click', _apClick);
+
+// ── the loop ─────────────────────────────────────────────────────
+function _drawAedenOverlay(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;
+  const O = _drawAedenOverlay;
+  const fresh = O._lt === undefined;
+  if (!fresh && t - O._lt >= 0 && t - O._lt < 0.014) return;
+  const dt = fresh ? 0.016 : Math.min(Math.abs(t - O._lt), 0.05);
+  O._lt = t;
+  const now = _apClock();
+  if (O._w !== W || O._h !== H || !O._bed) { O._bed = _apBedBuild(W, H); O._w = W; O._h = H; }
+  if (now - _apMoveAt > 0.06) {
+    const k = Math.max(0, 1 - dt * 8);
+    _apMVX *= k; _apMVY *= k; _apMV *= k;
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.clearRect(0, 0, W, H);
+  const bed = O._bed;
+  _apBedStep(bed, dt, now, _apMX, _apMY);
+  _apPetalsStep(dt, now);
+  _apBedDraw(ctx, bed, true);
+  ctx.drawImage(bed.mound, 0, H - bed.mound.height);
+  _apHopDraw(ctx, W, H, now);
+  _apBedDraw(ctx, bed, false);
+  _apPetalsDraw(ctx);
+  _apTags(ctx, dt, now);
+  _apPuffsDraw(ctx, dt);
+  _apBunnyStep(dt, now);
+  _apBunnyDraw(ctx, now);
+}
+
+function _apMouseMove(e) {
+  const now = _apClock(), x = e.clientX, y = e.clientY;
+  if (_apMX > -9000) {
+    const d = Math.max(0.004, now - _apMoveAt);
+    const vx = Math.max(-4000, Math.min(4000, (x - _apMX) / d)), vy = Math.max(-4000, Math.min(4000, (y - _apMY) / d));
+    _apMVX = _apMVX * 0.55 + vx * 0.45; _apMVY = _apMVY * 0.55 + vy * 0.45;
+    _apMV = Math.hypot(_apMVX, _apMVY);
+  }
+  _apMX = x; _apMY = y; _apMoveAt = now;
+}
+function _apMouseDown() { _apPtrDown = true; _apBun.sqv += 6; }
+function _apMouseUp() {
+  if (_apPtrDown) {
+    _apBun.sqv -= 10;
+    for (let i = 0; i < 6 && _apPetals.length < 90; i++) {
+      const a = Math.random() * 6.283;
+      _apPetals.push({ x: _apMX, y: _apMY, vx: Math.cos(a) * 60, vy: Math.sin(a) * 60 - 30, r: a, vr: 6,
+        life: 0.6, size: 1 + Math.random(), ph: Math.random() * 6.28 });
+    }
+  }
+  _apPtrDown = false;
+}
+function _apMouseOut(e) { if (!e.relatedTarget) { _apMX = -9999; _apMY = -9999; _apBun.init = false; } }
+
+function _startAedenOverlay() {
+  _stopAedenOverlay();
+  _drawAedenOverlay._lt = undefined;
+  _drawAedenOverlay._w = -1;
+  _apActive = true;
+  _apPetals = []; _apPuffs = [];
+  _apBun.init = false;
+  _apPtrDown = false;
+  window.addEventListener('mousemove', _apMouseMove, { passive: true });
+  window.addEventListener('mousedown', _apMouseDown, true);
+  window.addEventListener('mouseup', _apMouseUp, true);
+  window.addEventListener('blur', _apMouseUp);
+  document.addEventListener('mouseout', _apMouseOut);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = 'none';
+  const cv = document.createElement('canvas');
+  cv.id = 'aeden-overlay';
+  cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  document.body.appendChild(cv);
+  const t0 = performance.now();
+  function frame(now) {
+    const cv2 = document.getElementById('aeden-overlay');
+    if (!cv2) return;
+    if (cv2.width !== window.innerWidth || cv2.height !== window.innerHeight) {
+      cv2.width = window.innerWidth; cv2.height = window.innerHeight;
+    }
+    _drawAedenOverlay(cv2, cv2.getContext('2d'), cv2.width, cv2.height, (now - t0) / 1000);
+    _apOverlayRaf = requestAnimationFrame(frame);
+  }
+  _apOverlayRaf = requestAnimationFrame(frame);
+}
+function _stopAedenOverlay() {
+  if (_apOverlayRaf) { cancelAnimationFrame(_apOverlayRaf); _apOverlayRaf = null; }
+  _apActive = false;
+  _apPtrDown = false;
+  window.removeEventListener('mousemove', _apMouseMove, { passive: true });
+  window.removeEventListener('mousedown', _apMouseDown, true);
+  window.removeEventListener('mouseup', _apMouseUp, true);
+  window.removeEventListener('blur', _apMouseUp);
+  document.removeEventListener('mouseout', _apMouseOut);
+  const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
+  const cv = document.getElementById('aeden-overlay'); if (cv) cv.remove();
+  _apTagsClear();
+  _apPetals = []; _apPuffs = [];
+  _drawAedenOverlay._w = -1;
+  _drawAedenPattern._w = -1;
+  _apShow.started = false;      // the next visit opens on the plain board again
+  _apGLShrink();
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // AH!FLOWEY
 //
 // THE CLAIM. This place has already lost. The vines got here first
@@ -38567,6 +40021,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'classic_ghost')  { _drawClassicGhostPattern(canvas, ctx, W, H, t);        return; }
   if (type === 'flowey_vines')   { _drawFloweyPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'ivy_evil')       { _drawIvyEvilPattern(canvas, ctx, W, H, t);              return; }
+  if (type === 'aeden_puppet')   { _drawAedenPattern(canvas, ctx, W, H, t);                return; }
 
   // Static noise: handle BEFORE clearRect, skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -39155,6 +40610,8 @@ function startBgAnim(type, params) {
   _drawFloweyOverlay._lt      = undefined;
   _drawIvyEvilPattern._lt     = undefined;
   _drawIvyEvilOverlay._lt     = undefined;
+  _drawAedenPattern._lt       = undefined;
+  _drawAedenOverlay._lt       = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -39253,6 +40710,7 @@ function stopBgAnim() {
   _stopClassicGhostOverlay();
   _stopFloweyOverlay();
   _stopIvyEvilOverlay();
+  _stopAedenOverlay();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -39936,6 +41394,7 @@ function viewChar(id) {
   else if (_isHaru(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#a23fe0'); }
   else if (_isFlowey(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#e0b838'); }
   else if (_isIvyEvil(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d61c30'); }
+  else if (_isAedenPuppet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _AP_HEX); }
   else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
   else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
   else if (_isClassicGhost(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d8c46a'); }
@@ -41017,6 +42476,27 @@ function viewChar(id) {
     }
   }
 
+  // ── AEDEN · PUPPET: stitched felt over a painted cloth, every trait on a
+  //    string, and the pattern canvas up off its default 0.3 because the
+  //    cloth IS the page. After every other opacity claimant, so it only
+  //    has to set the value. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isAedenPuppet(c)) {
+      _cvRoot.classList.add('aedenp-ui');
+      if (_av) _av.classList.add('aedenp-pfp');
+      if (_nm) { _nm.classList.add('aedenp-name'); _nm.setAttribute('data-text', _nm.textContent || 'AEDEN'); }
+      if (_pc) _pc.style.opacity = '0.92';
+    } else {
+      _cvRoot.classList.remove('aedenp-ui');
+      if (_av) _av.classList.remove('aedenp-pfp');
+      if (_nm) { _nm.classList.remove('aedenp-name'); if (!_nmHasNameSkin(_nm)) _nm.removeAttribute('data-text'); }
+    }
+  }
+
   // ── Evelynn: elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -41129,7 +42609,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isAedenPuppet(c) ? 'aeden_puppet' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -41142,7 +42622,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : _isJuko1(c) ? "Juko · 1, the value left" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && ptype !== 'flowey_vines' && ptype !== 'ivy_evil' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && ptype !== 'flowey_vines' && ptype !== 'ivy_evil' && ptype !== 'aeden_puppet' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -41254,6 +42734,7 @@ function viewChar(id) {
   if (_isClassicGhost(c)) _startClassicGhostOverlay();
   if (_isFlowey(c))   _startFloweyOverlay();
   if (_isIvyEvil(c))  _startIvyEvilOverlay();
+  if (_isAedenPuppet(c)) _startAedenOverlay();
   }
 
   renderInventory(c);
@@ -46908,7 +48389,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isAedenPuppet(c) ? 'aeden_puppet' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -46984,6 +48465,7 @@ window.addEventListener('resize', () => {
       if (_isClassicGhost(c)) _startClassicGhostOverlay();
       if (_isFlowey(c))   _startFloweyOverlay();
       if (_isIvyEvil(c))  _startIvyEvilOverlay();
+      if (_isAedenPuppet(c)) _startAedenOverlay();
     }
   }
 });
