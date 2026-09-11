@@ -30748,99 +30748,50 @@ let _apPuffs = [];
 // it never covers what you are pointing at. Its ears are springs too:
 // they stream out behind it when it moves and flop when it stops.
 const _apBun = { x: 0, y: 0, vx: 0, vy: 0, ea: 0, ev: 0, ed: 0, edv: 0, sq: 0, sqv: 0, init: false };
-// drawn a quarter up on its design size, so the face reads at a glance
-const _AP_BUN_S = 1.25;
+// drawn at its design size: it is a cursor, not a portrait
+const _AP_BUN_S = 1;
 
-// Drawn live at the origin, which is the bottom centre, about 48 units tall
-// before the scale. A big head on a small sitting body, ears too long and
-// too heavy to hold up (one hangs lower than the other), and eyes that are
-// always OPEN: a round black eye under a heavy brow, lifted well clear of
-// it so it can never read as a lid, and a bigger one with the light in it.
-// `sil` draws a dark silhouette with no face, for the ones that hop by.
+// Kept deliberately simple: one silhouette (two drooping ears, a round head,
+// a small sitting body) with ONE outline round the outside and a flat fill,
+// a pale patch on its front, two open eyes and a small mouth. Drawn live at
+// the origin, which is the bottom centre, about 38px tall. `sil` is a dark
+// silhouette with no face, for the ones that hop by.
 function _apBunnyShape(ctx, ea, ed, sil) {
-  const OUT = sil ? '#150b20' : '#5a6173';
-  const BODY = sil ? '#2c1b3f' : '#b8c1d0';
-  const SHADE = sil ? '#3a2752' : '#929db1';
-  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  // ears first, behind the head: wide, and heavy enough to hang
-  for (let side = -1; side <= 1; side += 2) {
-    const rx = side * 9, ry = -37.5;
-    const a = side * ((side < 0 ? 2.05 : 2.4) + ed) + ea;
-    const L = side < 0 ? 19 : 23, w = 9;
-    const tx = rx + Math.sin(a) * L, ty = ry - Math.cos(a) * L;
-    const nx = Math.cos(a), ny = Math.sin(a);
-    const mx = (rx + tx) / 2, my = (ry + ty) / 2 + 2.5;
-    ctx.beginPath();
-    ctx.moveTo(rx - nx * 4.5, ry - ny * 4.5);
-    ctx.quadraticCurveTo(mx - nx * w, my - ny * w, tx, ty);
-    ctx.quadraticCurveTo(mx + nx * w, my + ny * w, rx + nx * 4.5, ry + ny * 4.5);
-    ctx.closePath();
-    ctx.strokeStyle = OUT; ctx.lineWidth = 2.4; ctx.stroke();
-    ctx.fillStyle = BODY; ctx.fill();
-    if (!sil) {
-      ctx.strokeStyle = SHADE; ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(rx + (tx - rx) * 0.25, ry + (ty - ry) * 0.25);
-      ctx.quadraticCurveTo(mx + nx * 1.5, my + ny * 1.5, rx + (tx - rx) * 0.85, ry + (ty - ry) * 0.85);
-      ctx.stroke();
-    }
-  }
-  // arms, stubby, out at the sides of the body
-  ctx.lineWidth = 2;
-  for (let side = -1; side <= 1; side += 2) {
-    ctx.beginPath(); ctx.ellipse(side * 10.5, -11.5, 3.2, 4.4, side * 0.5, 0, 6.2831853);
-    ctx.strokeStyle = OUT; ctx.stroke(); ctx.fillStyle = BODY; ctx.fill();
-  }
-  // head and body as one blob: stroke the pair, then fill over the seam
+  ctx.lineJoin = 'round';
   ctx.beginPath();
-  ctx.ellipse(0, -27.5, 14.5, 12.5, 0, 0, 6.2831853);
-  ctx.moveTo(11, -10);
-  ctx.ellipse(0, -10, 11, 10, 0, 0, 6.2831853);
-  ctx.strokeStyle = OUT; ctx.lineWidth = 2.4; ctx.stroke();
-  ctx.fillStyle = BODY; ctx.fill();
-  if (sil) {
-    ctx.strokeStyle = 'rgba(196,168,244,0.55)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(0, -27.5, 13.5, -2.4, -0.5); ctx.stroke();
-    return;
-  }
-  // the head shades the top of the body, and the side away from the light
-  ctx.fillStyle = 'rgba(100,112,136,0.35)';
-  ctx.beginPath(); ctx.ellipse(0, -16.5, 9.5, 2.4, 0, 0, 6.2831853); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(-6, -7.5, 4.5, 6.5, 0.25, 0, 6.2831853); ctx.fill();
-  // feet
-  ctx.strokeStyle = OUT; ctx.lineWidth = 1.6; ctx.fillStyle = BODY;
   for (let side = -1; side <= 1; side += 2) {
-    ctx.beginPath(); ctx.ellipse(side * 5.8, -0.8, 4, 2.3, 0, 0, 6.2831853); ctx.fill(); ctx.stroke();
+    const a = side * (2.25 + ed) + ea, L = 17;
+    const cx = side * 7 + Math.sin(a) * L * 0.45, cy = -33 - Math.cos(a) * L * 0.45;
+    ctx.moveTo(cx + 4.5 * Math.cos(a), cy + 4.5 * Math.sin(a));
+    ctx.ellipse(cx, cy, 4.5, L * 0.55, a, 0, 6.2831853);
   }
-  // the pale patch on its front, with the little mark in it
-  ctx.fillStyle = '#e2e9d8';
-  ctx.beginPath(); ctx.ellipse(0, -8.5, 6.8, 6.2, 0, 0, 6.2831853); ctx.fill();
-  ctx.lineWidth = 1.1; ctx.stroke();
-  ctx.beginPath(); ctx.arc(0.6, -8.6, 1.8, 0.6 * Math.PI, 1.9 * Math.PI); ctx.stroke();
-  // eyes, open
-  ctx.fillStyle = '#16151d';
-  ctx.beginPath(); ctx.ellipse(-5.6, -27.2, 2.6, 3.2, 0, 0, 6.2831853); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(5.8, -27.4, 3.1, 3.7, 0, 0, 6.2831853); ctx.fill();
+  ctx.moveTo(13, -24); ctx.arc(0, -24, 13, 0, 6.2831853);
+  ctx.moveTo(10, -8); ctx.ellipse(0, -8, 10, 8.5, 0, 0, 6.2831853);
+  // stroke every part, then fill over them all: only the outside edge survives
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = sil ? '#150b20' : '#5c6376'; ctx.stroke();
+  ctx.fillStyle = sil ? '#2c1b3f' : '#bcc5d4'; ctx.fill();
+  if (sil) return;
+  ctx.fillStyle = '#e4eadc';
+  ctx.beginPath(); ctx.ellipse(0, -7, 5.5, 4.6, 0, 0, 6.2831853); ctx.fill();
+  ctx.fillStyle = '#1b1a22';
+  ctx.beginPath();
+  ctx.moveTo(-2.8, -24.5); ctx.arc(-5, -24.5, 2.2, 0, 6.2831853);
+  ctx.moveTo(7.2, -24.5); ctx.arc(5, -24.5, 2.2, 0, 6.2831853);
+  ctx.fill();
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.arc(-4.8, -28.4, 0.95, 0, 6.2831853);
-  ctx.moveTo(8.15, -28.9);
-  ctx.arc(6.9, -28.9, 1.25, 0, 6.2831853);
-  ctx.moveTo(5.75, -25.8);
-  ctx.arc(5.2, -25.8, 0.55, 0, 6.2831853);
+  ctx.moveTo(-3.6, -25.4); ctx.arc(-4.3, -25.4, 0.7, 0, 6.2831853);
+  ctx.moveTo(6.4, -25.4); ctx.arc(5.7, -25.4, 0.7, 0, 6.2831853);
   ctx.fill();
-  // the brow: heavy, flat, and a clear gap above the eye
-  ctx.strokeStyle = '#16151d'; ctx.lineWidth = 1.9;
-  ctx.beginPath(); ctx.moveTo(-9.8, -34.6); ctx.lineTo(-3.4, -32.8); ctx.stroke();
-  // a small open mouth
-  ctx.fillStyle = '#2a1c28';
-  ctx.beginPath(); ctx.arc(0.4, -21.4, 1.9, 0, Math.PI); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#1b1a22'; ctx.lineWidth = 1.1; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(0, -20.6, 1.4, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
 }
 
 function _apBunnyStep(dt, now) {
   const B = _apBun;
   if (_apMX < -9000) return;
-  const tx = _apMX + 18, ty = _apMY + 60;
+  const tx = _apMX + 16, ty = _apMY + 42;
   if (!B.init) { B.x = tx; B.y = ty; B.vx = B.vy = 0; B.init = true; }
   B.vx += ((tx - B.x) * 210 - B.vx * 24) * dt;
   B.vy += ((ty - B.y) * 210 - B.vy * 24) * dt;
@@ -31050,6 +31001,205 @@ function _apPuffsDraw(ctx, dt) {
     ctx.fillStyle = _AP_LILAC[_apA(a)]; ctx.fillText(p.txt, p.x, p.y);
   }
 }
+// ── the butterflies ──────────────────────────────────────────────
+// Purple ones, a lot of them, all over the page. Each one wanders on a
+// random walk, bobs with every stroke of its wings and keeps off the
+// edges. Most of the time it is going nowhere; now and then it settles on
+// the tip of a lavender spike and sways with it; and if you hold still,
+// a few come and sit on the bunny. Come at them fast, or click near them,
+// and they scatter. Click ON one and it goes and rides on the bunny's head.
+let _apFlies = [];
+let _apFlyRide = 0;               // bunny seats taken
+const _AP_FLY_COLS = [
+  ['#ece0ff', '#b48ff0', '#4a2388'],   // lilac
+  ['#dcbcff', '#8f5be0', '#33106a'],   // violet
+  ['#f4d9ff', '#c07ee8', '#521c72'],   // orchid
+  ['#d2c8ff', '#7460dc', '#211862'],   // indigo
+  ['#fcecff', '#d7a6f5', '#62348a'],   // pale
+];
+const _AP_FLY_K = 3, _AP_FLY_OY = 12 * _AP_FLY_K;   // sprite scale, and where the wings join the body
+
+// One side of a butterfly, fore and hind wing, the body's centreline at x = 0.
+function _apWingSprites() {
+  if (_apWingSprites._c) return _apWingSprites._c;
+  const k = _AP_FLY_K, oy = _AP_FLY_OY, out = [];
+  for (const [hi, mid, dark] of _AP_FLY_COLS) {
+    const cv = document.createElement('canvas');
+    cv.width = 16 * k; cv.height = 26 * k;
+    const g = cv.getContext('2d');
+    g.beginPath();
+    g.moveTo(0, oy - 2 * k);
+    g.bezierCurveTo(3 * k, oy - 12 * k, 11 * k, oy - 13 * k, 15 * k, oy - 9 * k);
+    g.bezierCurveTo(15.5 * k, oy - 5 * k, 11 * k, oy - 1 * k, 1 * k, oy + 0.5 * k);
+    g.closePath();
+    g.moveTo(0.5 * k, oy + 0.5 * k);
+    g.bezierCurveTo(8 * k, oy, 12 * k, oy + 5 * k, 10 * k, oy + 9 * k);
+    g.bezierCurveTo(8 * k, oy + 12.5 * k, 3 * k, oy + 11 * k, 0.8 * k, oy + 4 * k);
+    g.closePath();
+    const gr = g.createLinearGradient(0, oy, 14 * k, oy - 8 * k);
+    gr.addColorStop(0, dark); gr.addColorStop(0.4, mid); gr.addColorStop(1, hi);
+    g.fillStyle = gr; g.fill();
+    // a dark margin round the outside: the same path stroked, clipped to itself
+    g.save(); g.clip();
+    g.lineWidth = 2.4 * k; g.strokeStyle = dark; g.stroke();
+    g.restore();
+    g.fillStyle = hi;
+    g.beginPath();
+    for (const [x, y, r] of [[13, -9, 0.8], [10.6, -11.3, 0.7], [14.2, -6.4, 0.6], [9.4, 7.6, 0.7], [6.6, 10.2, 0.55]]) {
+      g.moveTo((x + r) * k, oy + y * k); g.arc(x * k, oy + y * k, r * k, 0, 6.2831853);
+    }
+    g.fill();
+    out.push(cv);
+  }
+  return (_apWingSprites._c = out);
+}
+function _apFlyBody() {
+  if (_apFlyBody._c) return _apFlyBody._c;
+  const k = _AP_FLY_K, oy = _AP_FLY_OY;
+  const cv = document.createElement('canvas');
+  cv.width = 10 * k; cv.height = 26 * k;
+  const g = cv.getContext('2d'), cx = cv.width / 2;
+  g.strokeStyle = '#1a0e2c'; g.fillStyle = '#1a0e2c';
+  g.lineWidth = 0.6 * k; g.lineCap = 'round';
+  g.beginPath();
+  g.moveTo(cx - 0.4 * k, oy - 6 * k); g.quadraticCurveTo(cx - 2 * k, oy - 9 * k, cx - 3.2 * k, oy - 11.5 * k);
+  g.moveTo(cx + 0.4 * k, oy - 6 * k); g.quadraticCurveTo(cx + 2 * k, oy - 9 * k, cx + 3.2 * k, oy - 11.5 * k);
+  g.stroke();
+  g.beginPath();
+  g.arc(cx - 3.2 * k, oy - 11.5 * k, 0.75 * k, 0, 6.2831853);
+  g.moveTo(cx + 3.95 * k, oy - 11.5 * k); g.arc(cx + 3.2 * k, oy - 11.5 * k, 0.75 * k, 0, 6.2831853);
+  g.fill();
+  g.beginPath(); g.ellipse(cx, oy + 1.5 * k, 1.25 * k, 6.5 * k, 0, 0, 6.2831853); g.fill();
+  g.beginPath(); g.arc(cx, oy - 5.5 * k, 1.35 * k, 0, 6.2831853); g.fill();
+  return (_apFlyBody._c = cv);
+}
+
+function _apFliesInit(W, H) {
+  const n = _apRM ? 8 : Math.max(14, Math.min(40, Math.round(W * H / 55000)));
+  _apFlies = [];
+  _apFlyRide = 0;
+  for (let i = 0; i < n; i++) {
+    const r = Math.random();
+    _apFlies.push({ x: 40 + Math.random() * (W - 80), y: 40 + Math.random() * (H - 80), vx: 0, vy: 0,
+      wa: Math.random() * 6.283, hd: -1.57, ph: Math.random() * 6.283,
+      fr: 4.5 + Math.random() * 2.5, sp: 35 + Math.random() * 45,
+      s: 0.55 + r * r * 0.75, v: i % _AP_FLY_COLS.length,
+      mode: 'fly', goal: null, seat: 0, restT: 0, ride: 0, flee: 0 });
+  }
+}
+function _apTurn(a, b, k) { let d = b - a; d -= Math.round(d / 6.2831853) * 6.2831853; return a + d * k; }
+// where a butterfly with somewhere to be is headed
+function _apFlyGoal(b, bed) {
+  if (b.goal === 'bun') {
+    const B = _apBun;
+    if (!B.init || _apMX < -9000) return null;
+    const st = [[-11, -36], [11, -37], [0, -39]][b.seat % 3];
+    return [B.x + st[0] * _AP_BUN_S, B.y + st[1] * _AP_BUN_S];
+  }
+  if (typeof b.goal === 'number') {
+    const s = bed && bed.stalks[b.goal];
+    return s && s._tx !== undefined ? [s._tx, s._ty - 1] : null;
+  }
+  return null;
+}
+function _apFlyOff(b, burst) {
+  if (b.goal === 'bun') _apFlyRide = Math.max(0, _apFlyRide - 1);
+  b.mode = 'fly'; b.goal = null; b.ride = 0;
+  b.vx = (Math.random() - 0.5) * 90; b.vy = -50 - Math.random() * 40;
+  b.flee = burst || 0.25;
+}
+
+function _apFliesStep(dt, now, W, H, bed) {
+  if (!_apFlies.length) _apFliesInit(W, H);
+  const still = _apMX > -9000 && now - _apMoveAt > 1.2;
+  for (const b of _apFlies) {
+    b.ph += dt * 6.2831853 * (b.mode === 'rest' ? (b.goal === 'bun' && _apMV > 200 ? 6 : 0.45) : b.flee > 0 ? 11 : b.fr);
+    if (b.flee > 0) b.flee -= dt;
+    const dx = b.x - _apMX, dy = b.y - _apMY, d = Math.hypot(dx, dy) || 1;
+    // the pointer coming at it fast
+    if (b.goal !== 'bun' && d < 130 && _apMV > 260 && b.flee <= 0) {
+      if (b.mode === 'rest') _apFlyOff(b, 0);
+      b.flee = _apRM ? 0.4 : 0.9;
+      b.vx += dx / d * 220; b.vy += dy / d * 220;
+    }
+    if (b.mode === 'rest') {
+      const g = _apFlyGoal(b, bed);
+      const leave = !g || (b.goal === 'bun' ? (b.ride ? now > b.ride : _apMV > 150) : now > b.restT);
+      if (leave) _apFlyOff(b, 0.3);
+      else { b.x = g[0]; b.y = g[1]; b.hd = _apTurn(b.hd, -1.5708, Math.min(1, dt * 8)); continue; }
+    }
+    let tx = Math.cos(b.wa) * b.sp, ty = Math.sin(b.wa) * b.sp;
+    b.wa += (Math.random() - 0.5) * dt * 4;
+    const m = 50;
+    if (b.x < m) tx += (m - b.x) * 3; else if (b.x > W - m) tx -= (b.x - (W - m)) * 3;
+    if (b.y < m) ty += (m - b.y) * 3; else if (b.y > H - m) ty -= (b.y - (H - m)) * 3;
+    if (b.flee > 0 && b.goal !== 'bun') { tx += dx / d * 300; ty += dy / d * 300; }
+    if (b.goal !== null) {
+      const g = _apFlyGoal(b, bed);
+      if (!g) { if (b.goal === 'bun') _apFlyRide = Math.max(0, _apFlyRide - 1); b.goal = null; }
+      else {
+        const gx = g[0] - b.x, gy = g[1] - b.y, gd = Math.hypot(gx, gy);
+        if (gd < 5) { b.mode = 'rest'; b.restT = now + 2.5 + Math.random() * 4; b.vx = b.vy = 0; continue; }
+        const sp = Math.min(160, 40 + gd * 1.5);
+        tx = gx / gd * sp; ty = gy / gd * sp;
+      }
+    } else if (b.flee <= 0) {
+      // now and then it decides to land: on the lavender, or on the bunny if it is holding still
+      if (still && _apFlyRide < 3 && d < 420 && Math.random() < dt * 0.5) { b.goal = 'bun'; b.seat = _apFlyRide++; }
+      else if (bed && bed.stalks.length && Math.random() < dt * 0.04) b.goal = Math.floor(Math.random() * bed.stalks.length);
+    }
+    const e = Math.min(1, dt * 2.4);
+    b.vx += (tx - b.vx) * e; b.vy += (ty - b.vy) * e;
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    if (b.vx * b.vx + b.vy * b.vy > 25) b.hd = _apTurn(b.hd, Math.atan2(b.vy, b.vx), Math.min(1, dt * 6));
+  }
+}
+
+// A click near them scatters them; a click ON one sends it to ride the bunny.
+function _apFliesClick() {
+  let caught = null, best = 1e9;
+  for (const b of _apFlies) {
+    const d = Math.hypot(b.x - _apMX, b.y - _apMY);
+    if (d < 16 * b.s + 6 && d < best && b.goal !== 'bun') { caught = b; best = d; }
+  }
+  for (const b of _apFlies) {
+    if (b === caught || b.goal === 'bun') continue;
+    const dx = b.x - _apMX, dy = b.y - _apMY, d = Math.hypot(dx, dy) || 1;
+    if (d < 180) {
+      if (b.mode === 'rest') _apFlyOff(b, 0);
+      b.goal = null; b.flee = 1.1;
+      b.vx += dx / d * 320 + (Math.random() - 0.5) * 80; b.vy += dy / d * 320 + (Math.random() - 0.5) * 80;
+    }
+  }
+  if (caught && _apFlyRide < 3) {
+    if (caught.mode === 'rest') caught.mode = 'fly';
+    caught.goal = 'bun'; caught.seat = _apFlyRide++; caught.ride = _apClock() + 9; caught.flee = 0;
+  }
+}
+
+function _apFliesDraw(ctx, now) {
+  if (!_apFlies.length) return;
+  const wings = _apWingSprites(), body = _apFlyBody();
+  const k = _AP_FLY_K, oy = _AP_FLY_OY;
+  for (const b of _apFlies) {
+    const S = b.s / k;
+    const open = b.mode === 'rest' ? 0.55 + 0.45 * Math.cos(b.ph) : Math.abs(Math.cos(b.ph));
+    const sw = Math.max(0.1, open) * S;
+    const rot = b.hd + 1.5708, c = Math.cos(rot), sn = Math.sin(rot);
+    const x = b.x, y = b.y + (b.mode === 'rest' ? 0 : Math.sin(b.ph) * 2 * b.s);
+    const w = wings[b.v];
+    ctx.globalAlpha = 0.7 + 0.3 * Math.min(1, b.s);
+    ctx.setTransform(c * sw, sn * sw, -sn * S, c * S, x, y);
+    ctx.drawImage(w, 0, -oy);
+    ctx.setTransform(-c * sw, -sn * sw, -sn * S, c * S, x, y);
+    ctx.drawImage(w, 0, -oy);
+    ctx.setTransform(c * S, sn * S, -sn * S, c * S, x, y);
+    ctx.drawImage(body, -body.width / 2, -oy);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+}
+
 function _apClick(e) {
   const av = e.target && e.target.closest ? e.target.closest('#cv-avatar') : null;
   if (av && av.classList.contains('aedenp-pfp')) _apWobble(av);
@@ -31086,6 +31236,8 @@ function _drawAedenOverlay(canvas, ctx, W, H, t) {
   _apPetalsDraw(ctx);
   _apTags(ctx, dt, now);
   _apPuffsDraw(ctx, dt);
+  _apFliesStep(dt, now, W, H, bed);
+  _apFliesDraw(ctx, now);
   _apBunnyStep(dt, now);
   _apBunnyDraw(ctx, now);
 }
@@ -31100,7 +31252,7 @@ function _apMouseMove(e) {
   }
   _apMX = x; _apMY = y; _apMoveAt = now;
 }
-function _apMouseDown() { _apPtrDown = true; _apBun.sqv += 6; }
+function _apMouseDown() { _apPtrDown = true; _apBun.sqv += 6; _apFliesClick(); }
 function _apMouseUp() {
   if (_apPtrDown) {
     _apBun.sqv -= 10;
@@ -31119,7 +31271,7 @@ function _startAedenOverlay() {
   _drawAedenOverlay._lt = undefined;
   _drawAedenOverlay._w = -1;
   _apActive = true;
-  _apPetals = []; _apPuffs = [];
+  _apPetals = []; _apPuffs = []; _apFlies = [];
   _apBun.init = false;
   _apPtrDown = false;
   window.addEventListener('mousemove', _apMouseMove, { passive: true });
@@ -31157,7 +31309,7 @@ function _stopAedenOverlay() {
   const _arrow = document.getElementById('cursor'); if (_arrow) _arrow.style.display = '';
   const cv = document.getElementById('aeden-overlay'); if (cv) cv.remove();
   _apTagsClear();
-  _apPetals = []; _apPuffs = [];
+  _apPetals = []; _apPuffs = []; _apFlies = [];
   _drawAedenOverlay._w = -1;
   _drawAedenPattern._w = -1;
   _apShow.started = false;      // the next visit opens on the plain board again

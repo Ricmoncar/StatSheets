@@ -714,6 +714,17 @@ also works in performance mode, when the overlay never starts. The wobble is a
 Web Animation on `transform`, which restarts cleanly on a second click with no
 reflow, as long as the element has no transform of its own in that style.
 
+**A cursor is an icon, not an illustration.** The bunny was drawn twice
+with detail (shading, a brow, arms, feet, a fold in each ear, a patch with a
+mark on it) and was called "horrid" both times; the first version was also
+read as having its eyes shut, because at cursor size a 2 px eye under a brow
+line is a closed eye. What was kept is one flat silhouette with ONE outline
+round the outside (stroke every part, then fill over all of them, and only
+the outer edge survives), a plain patch, two dot eyes with a highlight each,
+and a mouth. Life comes from the motion (springy ears, a lean, a squash),
+not from the drawing. If a cursor needs explaining up close, it is too
+detailed.
+
 **Springs attached to motion: work the sign out, do not guess it.** The
 bunny's ears were written with the obvious sign and would have streamed
 forward, into the direction of travel, and lifted when climbing. For two ears
