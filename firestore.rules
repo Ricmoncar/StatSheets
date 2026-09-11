@@ -15,8 +15,12 @@ service cloud.firestore {
                     && request.resource.data._rev == resource.data.get('_rev', 0) + 1;
     }
 
-    // photo galleries and anything else stored under a character
-    match /characters/{id}/{rest=**} {
+    // Photo galleries and anything else stored UNDER a character. The {sub}
+    // segment is what keeps this off the character itself: in rules version
+    // 2 a {rest=**} wildcard matches ZERO or more segments, so without it
+    // this block matched characters/{id} directly, allowed every write, and
+    // silently switched off the revision check above.
+    match /characters/{id}/{sub}/{rest=**} {
       allow read, write: if true;
     }
 
