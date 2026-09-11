@@ -43393,7 +43393,7 @@ function renderInventory(c) {
     const hc = `hsl(${Math.abs(hash) % 360}, 80%, 60%)`;
 
     let iconHtml = '';
-    if (i.iconImage) iconHtml = `<img src="${i.iconImage}"/>`;
+    if (i.iconImage) iconHtml = `<img src="${_cldImg(i.iconImage)}" onerror="_cldImgError(this)" loading="lazy"/>`;
     else if (i.icon && ITEM_ICONS[i.icon]) iconHtml = `<span class="emoji-icon">${ITEM_ICONS[i.icon]}</span>`;
     else iconHtml = `?`;
 
@@ -43547,17 +43547,39 @@ function pickIcon(key) {
   document.getElementById('ie-selected-icon-name').textContent = key.toUpperCase();
 }
 
+// Item icons are uploaded to Cloudinary and the item keeps a link, the same way
+// theme songs work. They used to be stored inline, uncompressed, inside the
+// character document, which has a hard 1 MB limit: one 706 KB PNG put Aeden
+// within 30 KB of it, one image away from every save on him failing.
+let _itemIconUploading = false;
+let _itemIconToken = 0;          // so an upload that finishes after the editor moved on is ignored
 function handleItemIconUpload(ev) {
   const file = ev.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    currentItemIconImage = e.target.result;
-    currentItemIcon = null;
-    document.querySelectorAll('.icon-btn-item').forEach(el => el.classList.remove('active'));
-    document.getElementById('ie-selected-icon-name').textContent = 'CUSTOM UPLOAD';
+  const token = ++_itemIconToken;
+  const label = document.getElementById('ie-selected-icon-name');
+  _itemIconUploading = true;
+  currentItemIcon = null;
+  document.querySelectorAll('.icon-btn-item').forEach(el => el.classList.remove('active'));
+  if (label) label.textContent = 'UPLOADING...';
+  const done = (img, text) => {
+    if (token !== _itemIconToken) return;
+    _itemIconUploading = false;
+    currentItemIconImage = img;
+    if (label) label.textContent = text;
   };
-  reader.readAsDataURL(file);
+  _uploadMedia(file, 'image', 'items/' + (currentId || 'x') + '_' + Date.now())
+    .then(url => done(url, 'CUSTOM UPLOAD'))
+    .catch(() => {
+      // Cloudinary unreachable: keep a small compressed copy inline rather
+      // than the original file, so the character stays well under the limit
+      const reader = new FileReader();
+      reader.onload = async e => {
+        try { done(await compressImage(e.target.result, 256, 0.85), 'CUSTOM UPLOAD (OFFLINE COPY)'); }
+        catch (err) { done(null, 'UPLOAD FAILED'); notify('IMAGE UPLOAD FAILED', 'err'); }
+      };
+      reader.readAsDataURL(file);
+    });
 }
 
 function renderModRows(mods) {
@@ -43674,6 +43696,7 @@ function openItemEditor(charId, itemId) {
 
   currentItemIcon = item ? (item.icon || 'sword') : 'sword';
   currentItemIconImage = item ? (item.iconImage || null) : null;
+  _itemIconToken++; _itemIconUploading = false;   // forget any upload started for another item
 
   document.getElementById('ie-img-upload').value = '';
   document.getElementById('ie-selected-icon-name').textContent = currentItemIconImage ? 'CUSTOM UPLOAD' : currentItemIcon.toUpperCase();
@@ -43693,6 +43716,7 @@ function closeItemEditor() {
 function saveItem() {
   const c = characters.find(x => x.id === currentId);
   if (!c) return;
+  if (_itemIconUploading) { notify('WAIT FOR THE IMAGE TO FINISH UPLOADING', 'err'); return; }
 
   const name = document.getElementById('ie-name').value.trim();
   if (!name) { notify('Item needs a name!', 'err'); return; }
