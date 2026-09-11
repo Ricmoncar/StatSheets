@@ -830,6 +830,20 @@ because they are about the document the canvas is sitting in.
    edge. Fade at BOTH ends. This is in the composition section too and it still
    happened, so it is here as well.
 
+12. **One fill of many overlapping shapes.** Aeden's lavender stems were
+   first drawn as tapered ribbons: every stem of a row a closed polygon, all
+   of them in one path and one `fill`. That one call measured 0.6 ms a frame,
+   half the overlay, while all 210 floret sprites together cost 0.05 ms. The
+   same stems as batched quadratic STROKES, two widths per row (thick below,
+   thin above, each piece its own quadratic cut from the whole curve) still
+   taper and cost next to nothing. A self-overlapping path is expensive to
+   rasterise however few calls it takes.
+
+   Find a cost like that by switching one part off at a time INSIDE whole
+   frames and timing the difference. Timing each part in its own loop without
+   a clear lets Chrome pile up every frame's drawing until the flush, so the
+   parts add up to several times the real frame and point at the wrong thing.
+
 Cheap enough to ignore: `getBoundingClientRect` once a frame, a few hundred
 small `arc` fills batched into one path, blits (a full-canvas blit is 0.11 ms).
 

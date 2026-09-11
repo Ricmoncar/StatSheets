@@ -30267,107 +30267,165 @@ let _apMVX = 0, _apMVY = 0;         // pointer velocity, px/s
 let _apMoveAt = -99;                // clock time of the last pointer move
 let _apPetals = [];
 
-// A spike of florets: whorls up an axis, gapped at the bottom, crowded at the tip.
-// Baked once at twice size, anchored at the bottom centre where the stem joins.
+// A spike of florets: whorls of buds up an axis, gapped at the bottom and
+// crowded at the tip. Each whorl is a ring seen from the side, so its back
+// half is darker and goes on first; the front buds catch the light from the
+// upper right, and a few of them have opened. Baked once at three times size
+// in three purples and two builds, with a soft glow of their own colour
+// behind them so they read against the near black interface, anchored at the
+// bottom centre where the stem joins.
+const _AP_SPIKE_COLS = [
+  ['#3f2470', '#6d45b0', '#9a78dc', '#e8dcff'],   // violet
+  ['#2f2a74', '#5d56c2', '#948ce6', '#e8e5ff'],   // blue lavender
+  ['#4c2168', '#8a4fb8', '#b88ae0', '#f6e6ff'],   // pink violet
+];
+const _AP_SPK_K = 1.5;          // big enough for the tallest corner spike, small enough to shrink cleanly
 function _apSpikeSprites() {
   if (_apSpikeSprites._c) return _apSpikeSprites._c;
-  const out = [];
-  for (let v = 0; v < 3; v++) {
-    const k = 2, w = 18 * k, h = 64 * k, cx = w / 2;
-    const cv = document.createElement('canvas');
-    cv.width = w; cv.height = h;
-    const g = cv.getContext('2d');
-    g.strokeStyle = 'rgba(120,140,116,0.9)';
-    g.lineWidth = 1.2 * k;
-    g.beginPath(); g.moveTo(cx, h); g.lineTo(cx, 4 * k); g.stroke();
-    const whorls = 7 + v;
-    const buds = (front) => {
-      for (let i = 0; i < whorls; i++) {
-        const u = i / (whorls - 1);
-        const y = h * (1 - (0.07 + 0.88 * Math.pow(u, 0.78)));
-        const wr = (1 - u * 0.6) * 5.2 * k;
-        const n = 5;
-        for (let j = 0; j < n; j++) {
-          const a = (j / n) * 6.2831853 + i * 0.9 + v;
-          const isFront = Math.sin(a) > 0;
-          if (isFront !== front) continue;
-          const bx = cx + Math.cos(a) * wr, by = y + Math.sin(a) * wr * 0.32;
-          const rx = (1.9 - u * 0.5) * k, ry = (2.9 - u * 0.8) * k;
-          g.fillStyle = front ? (u > 0.8 ? '#b79cec' : '#9d7fdb') : '#56398a';
-          g.beginPath(); g.ellipse(bx, by, rx, ry, Math.cos(a) * 0.5, 0, 6.2831853); g.fill();
-          if (front) {
-            // the light is up and to the right
-            g.fillStyle = 'rgba(236,226,255,0.8)';
-            g.beginPath(); g.ellipse(bx + rx * 0.35, by - ry * 0.4, rx * 0.42, ry * 0.36, 0, 0, 6.2831853); g.fill();
+  const out = [], k = _AP_SPK_K, w = 30 * k, h = 82 * k, cx = w / 2;
+  for (let ci = 0; ci < _AP_SPIKE_COLS.length; ci++) {
+    const [cBack, cMid, cFront, cHi] = _AP_SPIKE_COLS[ci];
+    for (let v = 0; v < 2; v++) {
+      const T = document.createElement('canvas');
+      T.width = w; T.height = h;
+      const g = T.getContext('2d');
+      let sd = ci * 17 + v * 5 + 1;
+      const rnd = () => _apRnd(sd++ * 1.37);
+      g.strokeStyle = '#5e7658'; g.lineWidth = 1.4 * k; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(cx, h); g.lineTo(cx, 6 * k); g.stroke();
+      const whorls = 11 + v * 3;
+      const ring = (fr) => {
+        for (let i = 0; i < whorls; i++) {
+          const u = i / (whorls - 1);
+          const y = h - 3 * k - (h - 10 * k) * (0.04 + 0.96 * Math.pow(u, 0.72));
+          const wr = (1 - u * 0.62) * 8 * k;
+          for (let jb = 0; jb < 9; jb++) {
+            const a = (jb / 9) * 6.2831853 + i * 0.7 + v * 1.3, sa = Math.sin(a), ca = Math.cos(a);
+            if ((sa > 0) !== fr) continue;
+            const bx = cx + ca * wr, by = y + sa * wr * 0.3 - (1 - Math.abs(ca)) * 0.6 * k;
+            const rx = (2.4 - u * 0.8) * k, ry = (3.5 - u * 1.1) * k;
+            g.fillStyle = fr ? (sa > 0.55 ? cFront : cMid) : cBack;
+            g.beginPath(); g.ellipse(bx, by, rx, ry, ca * 0.55, 0, 6.2831853); g.fill();
+            if (!fr) continue;
+            g.fillStyle = cHi; g.globalAlpha = 0.7;
+            g.beginPath(); g.ellipse(bx + rx * 0.35, by - ry * 0.45, rx * 0.4, ry * 0.32, 0, 0, 6.2831853); g.fill();
+            g.globalAlpha = 1;
+            // now and then a flower has opened: three pale lobes at the tip of the bud
+            if (u > 0.08 && u < 0.85 && rnd() < 0.2) {
+              const fx = bx + ca * rx * 0.6, fy = by - ry * 0.8, fs = rx * 0.55;
+              g.fillStyle = cHi;
+              g.beginPath();
+              for (let l = 0; l < 3; l++) {
+                const la = -1.5708 + (l - 1) * 1.1;
+                g.moveTo(fx + Math.cos(la) * fs * 1.5, fy + Math.sin(la) * fs * 1.5);
+                g.ellipse(fx + Math.cos(la) * fs * 0.8, fy + Math.sin(la) * fs * 0.8, fs * 0.7, fs * 0.5, la, 0, 6.2831853);
+              }
+              g.fill();
+            }
           }
         }
-      }
-    };
-    buds(false); buds(true);
-    g.fillStyle = '#c9b2f5';
-    g.beginPath(); g.ellipse(cx, 4.5 * k, 1.6 * k, 2.6 * k, 0, 0, 6.2831853); g.fill();
-    out.push(cv);
+      };
+      ring(false); ring(true);
+      g.fillStyle = cMid;
+      g.beginPath(); g.ellipse(cx, 6 * k, 1.7 * k, 3.2 * k, 0, 0, 6.2831853); g.fill();
+      g.fillStyle = cFront;
+      g.beginPath(); g.ellipse(cx + 0.4 * k, 5 * k, 0.9 * k, 1.8 * k, 0, 0, 6.2831853); g.fill();
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      const cg = cv.getContext('2d');
+      cg.globalAlpha = 0.5;
+      cg.drawImage(_apSoft(_apTint(T, '176,140,246'), 5), 0, 0);
+      cg.globalAlpha = 1;
+      cg.drawImage(T, 0, 0);
+      out.push(cv);
+    }
   }
   return (_apSpikeSprites._c = out);
 }
 
+// Bushes, not a row: clumps a little wider apart toward the corners, each a
+// fan of stems out of its own mound of foliage. Low in the middle, where it
+// stands in front of text, tall at the corners.
 function _apBedBuild(W, H) {
-  const stalks = [];
-  // low in the middle, where it stands in front of text; taller at the corners
-  const midH = Math.max(36, H * 0.045), cornerH = Math.max(90, H * 0.13);
-  const gap = 50, nClumps = Math.ceil(W / gap) + 1;
-  for (let j = 0; j < nClumps; j++) {
-    const cx = (j + (_apRnd(j * 3.3) - 0.5) * 0.6) * gap;
-    const e = Math.min(1, Math.abs(cx / W * 2 - 1));
+  const stalks = [], clumps = [];
+  const midH = Math.max(70, H * 0.095), cornerH = Math.max(150, H * 0.24);
+  const nSpr = _AP_SPIKE_COLS.length * 2;
+  for (let x = -20, j = 0; x < W + 40; j++) {
+    const e = Math.min(1, Math.abs(x / W * 2 - 1));
+    const gap = 58 + 34 * e;
+    const cx = x + (_apRnd(j * 3.3) - 0.5) * gap * 0.35;
     const back = (j % 3) === 1;
-    const hmax = (midH + (cornerH - midH) * Math.pow(e, 1.7)) * (back ? 0.82 : 1);
-    const by = H - (back ? 16 + _apRnd(j * 7.1) * 6 : 2 + _apRnd(j * 5.9) * 4);
-    const n = Math.round(3 + 3 * Math.pow(e, 1.2) + _apRnd(j * 9.7) * 1.5);
+    const h = (midH + (cornerH - midH) * Math.pow(e, 1.6)) * (back ? 0.78 : 1) * (0.85 + _apRnd(j * 4.1) * 0.3);
+    const by = H - (back ? 20 + _apRnd(j * 7.1) * 8 : 4 + _apRnd(j * 5.9) * 5);
+    const n = Math.round((back ? 3 : 5) + (back ? 3 : 6) * Math.pow(e, 1.1) + _apRnd(j * 9.7) * 2);
+    clumps.push({ x: cx, back, bush: h * 0.3, bushW: gap * 0.95, seed: j });
     for (let i = 0; i < n; i++) {
-      const seed = j * 31 + i * 7.7;
-      const r1 = _apRnd(seed), r2 = _apRnd(seed + 1.3), r3 = _apRnd(seed + 2.9);
-      const h = hmax * (0.62 + 0.38 * Math.pow(r1, 0.7));
+      const sd = j * 31 + i * 7.7;
+      const r1 = _apRnd(sd), r2 = _apRnd(sd + 1.3), r3 = _apRnd(sd + 2.9), r4 = _apRnd(sd + 4.1);
+      const sh = h * (0.7 + 0.3 * Math.pow(r1, 0.6));
       stalks.push({
-        bx: cx + (r2 - 0.5) * 10, by,
-        lean: ((n > 1 ? i / (n - 1) : 0.5) - 0.5) * 0.72 + (r3 - 0.5) * 0.14,
-        h, sp: Math.min(0.34, 0.22 + r2 * 0.1) * h,
-        ph: r1 * 6.283, k: 16 + r3 * 10, v: (j + i) % 3, back,
-        th: 0, w: 0, lw: back ? 1.2 : 1.6,
+        bx: cx + (r2 - 0.5) * gap * 0.3, by,
+        lean: ((n > 1 ? i / (n - 1) : 0.5) - 0.5) * (0.9 + 0.3 * e) + (r3 - 0.5) * 0.16,
+        bend: (r4 - 0.5) * 0.25, h: sh, sp: (0.24 + r2 * 0.1) * sh,
+        ph: r1 * 6.283, k: 14 + r3 * 8, v: Math.floor(r4 * nSpr) % nSpr, back,
+        lw: (back ? 1.6 : 2.4) * Math.min(1.4, Math.max(0.8, sh / 150)),
+        th: 0, w: 0,
       });
     }
+    x += gap;
   }
   stalks.sort((a, b) => (a.back === b.back ? a.bx - b.bx : a.back ? -1 : 1));
-  return { W, H, stalks, mound: _apMoundBake(W, H, nClumps, gap), gustX: -1 };
+  const bed = { W, H, stalks, clumps, maxBush: cornerH * 0.3, gustX: -1 };
+  bed.moundBack = _apMoundBake(bed, false);
+  bed.moundFront = _apMoundBake(bed, true);
+  return bed;
 }
 
-// The mass every stalk comes up out of, and a dark lip for it to stand on.
-function _apMoundBake(W, H, nClumps, gap) {
-  const mh = Math.round(Math.max(30, H * 0.045));
+// The mass every stem comes up out of: a dome of narrow silver-green leaves
+// per clump, lit on the side toward the light. Baked in two layers, one
+// behind the front stems and a lower one in front of their feet, so the stems
+// grow OUT of the bush instead of standing on top of it. The back layer also
+// carries the dark lip along the bottom that the whole bed stands on.
+function _apMoundBake(bed, front) {
+  const W = bed.W, mh = Math.ceil(bed.maxBush * (front ? 0.55 : 1) + 14);
   const cv = document.createElement('canvas');
   cv.width = Math.max(1, Math.round(W)); cv.height = mh;
   const g = cv.getContext('2d');
-  const gr = g.createLinearGradient(0, 0, 0, mh);
-  for (let i = 0; i <= 12; i++) { const u = i / 12; gr.addColorStop(u, 'rgba(8,4,12,' + (0.88 * Math.pow(u, 1.8)).toFixed(3) + ')'); }
-  g.fillStyle = gr; g.fillRect(0, 0, cv.width, mh);
-  for (let j = 0; j < nClumps; j++) {
-    const cx = (j + (_apRnd(j * 3.3) - 0.5) * 0.6) * gap;
-    const nl = 12 + Math.floor(_apRnd(j * 2.2) * 8);
-    for (let i = 0; i < nl; i++) {
-      const s = j * 17 + i * 3.1;
-      const a = (i / (nl - 1) - 0.5) * 2.4 + (_apRnd(s) - 0.5) * 0.3;
-      const len = mh * (0.35 + _apRnd(s + 1) * 0.5);
-      const x0 = cx + (_apRnd(s + 2) - 0.5) * 16, y0 = mh + 2;
-      const x1 = x0 + Math.sin(a) * len, y1 = y0 - Math.cos(a) * len;
-      const nx = Math.cos(a) * 1.4, ny = Math.sin(a) * 1.4;
-      g.fillStyle = _apRnd(s + 3) < 0.5 ? '#3e4d44' : '#56685a';
+  if (!front) {
+    const gr = g.createLinearGradient(0, Math.max(0, mh - 44), 0, mh);
+    for (let q = 0; q <= 12; q++) { const u = q / 12; gr.addColorStop(u, 'rgba(8,4,12,' + (0.86 * Math.pow(u, 1.7)).toFixed(3) + ')'); }
+    g.fillStyle = gr; g.fillRect(0, Math.max(0, mh - 44), cv.width, 44);
+  }
+  const cols = ['#2c3a31', '#44584a', '#627a64', '#8aa287'];
+  for (const c of bed.clumps) {
+    if (front && c.back) continue;
+    const bushH = c.bush * (front ? 0.5 : 1) * (c.back ? 0.85 : 1);
+    const nl = Math.round((front ? 14 : 26) + bushH * (front ? 0.3 : 0.5));
+    const leaves = [];
+    for (let q = 0; q < nl; q++) {
+      const sd = c.seed * 53 + q * 3.7 + (front ? 900 : 0);
+      const r1 = _apRnd(sd), r2 = _apRnd(sd + 1.1), r3 = _apRnd(sd + 2.3);
+      const a = (r1 - 0.5) * 2.6;
+      leaves.push({ a, len: bushH * (0.45 + 0.55 * r2) * (1 - 0.25 * Math.abs(a)),
+        x0: c.x + (r3 - 0.5) * c.bushW * 0.5, lit: Math.max(0, Math.min(3, Math.floor((a + 1.3) / 2.6 * 3 + r2 * 1.2))) });
+    }
+    leaves.sort((p, q) => q.len - p.len);
+    for (const lf of leaves) {
+      const x0 = lf.x0, y0 = mh + 2;
+      const x1 = x0 + Math.sin(lf.a) * lf.len, y1 = y0 - Math.cos(lf.a) * lf.len;
+      const mx = (x0 + x1) / 2 + Math.sin(lf.a) * lf.len * 0.15, my = (y0 + y1) / 2 + lf.len * 0.08;
+      const hw = 1 + Math.min(1.6, lf.len * 0.03);
+      const nx = Math.cos(lf.a) * hw, ny = Math.sin(lf.a) * hw;
+      g.fillStyle = cols[c.back ? Math.max(0, lf.lit - 1) : lf.lit];
       g.beginPath();
       g.moveTo(x0 - nx, y0 - ny);
-      g.quadraticCurveTo((x0 + x1) / 2 - nx * 1.4, (y0 + y1) / 2 - ny, x1, y1);
-      g.quadraticCurveTo((x0 + x1) / 2 + nx * 1.4, (y0 + y1) / 2 + ny, x0 + nx, y0 + ny);
+      g.quadraticCurveTo(mx - nx * 1.3, my - ny * 1.3, x1, y1);
+      g.quadraticCurveTo(mx + nx * 1.3, my + ny * 1.3, x0 + nx, y0 + ny);
       g.fill();
-      g.strokeStyle = 'rgba(160,184,158,0.55)';
-      g.lineWidth = 0.8;
-      g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo((x0 + x1) / 2 + nx, (y0 + y1) / 2, x1, y1); g.stroke();
+      if (lf.lit >= 2) {
+        g.strokeStyle = 'rgba(190,208,184,0.5)'; g.lineWidth = 0.8;
+        g.beginPath(); g.moveTo((x0 + mx) / 2, (y0 + my) / 2); g.quadraticCurveTo(mx + nx * 0.6, my + ny * 0.6, x1, y1); g.stroke();
+      }
     }
   }
   return cv;
@@ -30375,9 +30433,9 @@ function _apMoundBake(W, H, nClumps, gap) {
 
 // Springs. The breeze sets where each stalk wants to be; the pointer pushes.
 function _apBedStep(bed, dt, now, mx, my) {
-  const R = 120, R2 = R * R;
+  const R = 150, R2 = R * R;
   const gp = _apEvP('gust', now);
-  if (gp >= 0) bed.gustX = -200 + (bed.W + 400) * gp; else bed.gustX = -1;
+  bed.gustX = gp >= 0 ? -200 + (bed.W + 400) * gp : -1;
   const pushV = Math.max(-22, Math.min(22, _apMVX * 0.011));
   const hopP = _apEvP('hop', now);
   for (const s of bed.stalks) {
@@ -30419,22 +30477,39 @@ function _apHopX(W, p, r) { return r < 0.5 ? -60 + (W + 120) * p : W + 60 - (W +
 
 function _apBedDraw(ctx, bed, back) {
   const sprites = _apSpikeSprites();
-  // stems first, all of one row in one path
-  ctx.strokeStyle = back ? _AP_STEM[_apA(0.62)] : _AP_STEM[_apA(0.95)];
-  ctx.lineWidth = back ? 1.2 : 1.7;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
+  // Stems. They taper, but as TWO batched strokes, thick below and thin above,
+  // not as filled ribbons: one fill of two hundred overlapping tapered
+  // polygons measured 0.6 ms a frame on its own, and the strokes cost next to
+  // nothing. The tall corner stems get a thicker pair of their own.
   for (const s of bed.stalks) {
     if (s.back !== back) continue;
-    const a = s.lean + s.th, a0 = s.lean + s.th * 0.35;
-    const tx = s.bx + Math.sin(a) * s.h, ty = s.by - Math.cos(a) * s.h;
-    const cx = s.bx + Math.sin(a0) * s.h * 0.55, cy = s.by - Math.cos(a0) * s.h * 0.55;
-    ctx.moveTo(s.bx, s.by);
-    ctx.quadraticCurveTo(cx, cy, tx, ty);
-    s._tx = tx; s._ty = ty; s._cx = cx; s._cy = cy;
+    const a = s.lean + s.th, a0 = s.lean + s.th * 0.35 + s.bend;
+    s._tx = s.bx + Math.sin(a) * s.h; s._ty = s.by - Math.cos(a) * s.h;
+    s._cx = s.bx + Math.sin(a0) * s.h * 0.55; s._cy = s.by - Math.cos(a0) * s.h * 0.55;
   }
-  ctx.stroke();
-  ctx.globalAlpha = back ? 0.72 : 1;
+  ctx.strokeStyle = back ? '#4b5d48' : '#7a9474';
+  ctx.globalAlpha = back ? 0.8 : 1;
+  ctx.lineCap = 'round';
+  const passes = back ? [[-1, 1.6, 1.0]] : [[0, 2.2, 1.3], [1, 3.0, 1.8]];
+  for (const [big, wLo, wHi] of passes) {
+    for (let k = 0; k < 2; k++) {
+      // each piece of the curve is its own quadratic: the blossom of the whole one
+      const u0 = k ? 0.42 : 0, u1 = k ? 0.8 : 0.42, e0 = 1 - u0, e1 = 1 - u1;
+      const m0 = e0 * e0, m1 = 2 * e0 * u0, m2 = u0 * u0;
+      const n0 = e1 * e1, n1 = 2 * e1 * u1, n2 = u1 * u1;
+      const c0 = e0 * e1, c1 = e0 * u1 + u0 * e1, c2 = u0 * u1;
+      ctx.lineWidth = k ? wHi : wLo;
+      ctx.beginPath();
+      for (const s of bed.stalks) {
+        if (s.back !== back || (big >= 0 && (s.h > 160 ? 1 : 0) !== big)) continue;
+        ctx.moveTo(m0 * s.bx + m1 * s._cx + m2 * s._tx, m0 * s.by + m1 * s._cy + m2 * s._ty);
+        ctx.quadraticCurveTo(c0 * s.bx + c1 * s._cx + c2 * s._tx, c0 * s.by + c1 * s._cy + c2 * s._ty,
+                             n0 * s.bx + n1 * s._cx + n2 * s._tx, n0 * s.by + n1 * s._cy + n2 * s._ty);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = back ? 0.78 : 1;
   for (const s of bed.stalks) {
     if (s.back !== back) continue;
     const sp = sprites[s.v];
@@ -30443,7 +30518,7 @@ function _apBedDraw(ctx, bed, back) {
     const bx = iu * iu * s.bx + 2 * iu * u * s._cx + u * u * s._tx;
     const by = iu * iu * s.by + 2 * iu * u * s._cy + u * u * s._ty;
     const ang = Math.atan2(s._tx - bx, -(s._ty - by));
-    const len = Math.hypot(s._tx - bx, s._ty - by) * 1.08;
+    const len = Math.hypot(s._tx - bx, s._ty - by) * 1.12;
     const sc = len / sp.height;
     const c = Math.cos(ang) * sc, sn = Math.sin(ang) * sc;
     ctx.setTransform(c, sn, -sn, c, bx, by);
@@ -31017,7 +31092,7 @@ const _AP_FLY_COLS = [
   ['#d2c8ff', '#7460dc', '#211862'],   // indigo
   ['#fcecff', '#d7a6f5', '#62348a'],   // pale
 ];
-const _AP_FLY_K = 3, _AP_FLY_OY = 12 * _AP_FLY_K;   // sprite scale, and where the wings join the body
+const _AP_FLY_K = 2, _AP_FLY_OY = 12 * _AP_FLY_K;   // sprite scale, and where the wings join the body
 
 // One side of a butterfly, fore and hind wing, the body's centreline at x = 0.
 function _apWingSprites() {
@@ -31230,9 +31305,10 @@ function _drawAedenOverlay(canvas, ctx, W, H, t) {
   _apBedStep(bed, dt, now, _apMX, _apMY);
   _apPetalsStep(dt, now);
   _apBedDraw(ctx, bed, true);
-  ctx.drawImage(bed.mound, 0, H - bed.mound.height);
+  ctx.drawImage(bed.moundBack, 0, H - bed.moundBack.height);
   _apHopDraw(ctx, W, H, now);
   _apBedDraw(ctx, bed, false);
+  ctx.drawImage(bed.moundFront, 0, H - bed.moundFront.height);
   _apPetalsDraw(ctx);
   _apTags(ctx, dt, now);
   _apPuffsDraw(ctx, dt);
