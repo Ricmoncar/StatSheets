@@ -3367,6 +3367,7 @@ const PATTERN_DEFS = {
   ivy_evil:         { label: "Ivy · EVIL creature",         params: [] },
   aeden_puppet:     { label: "Aeden · PUPPET",              params: [] },
   sel_night:        { label: "Sel · Frozen night",          params: [] },
+  rody_heart:       { label: "Rody · Amethyst heart",       params: [] },
   checkerboard: {
     label: 'Animated Checkerboard',
     params: [
@@ -32864,6 +32865,1797 @@ function _stopSelOverlay() {
 /* ─────────────────────────────────────────────────────────────── */
 
 // ════════════════════════════════════════════════════════════════
+// RODY
+//
+// THE CLAIM. The inside of a geode, and at its heart a heart: cut from
+// amethyst, hanging in the dark, alive. It beats like a heart does, lub,
+// dub and a rest, and when her song is playing it beats to the song. Every
+// beat pushes light out through the facets and sends a ring of it across
+// the cave, and that light is the only light there is: the crystals growing
+// out of the floor and the walls, the shards circling the heart and the
+// ones drifting in the dark only really show when a ring goes past them.
+// ONE LIGHT: the heart. Every crystal is lit on the face turned toward it.
+// Distance goes DARK: the far cave is violet fog.
+// The heart and the cave are the same on every form. What changes is the
+// EDGE of the window, the way Maple's frame does, and the thing you point
+// with: Rody gets a concert and a lightstick, Noelly a nurse's station and
+// a syringe, Lumynette a princess's gold and roses and a sceptre.
+// Everything is purple.
+// ════════════════════════════════════════════════════════════════
+const _RODY_RE = /^\s*rody\s*$/i;
+function _isRody(c) { return !!(c && c.name && _RODY_RE.test(c.name)); }
+function _ryFormKind(c) {
+  const n = _activeFormName(c);
+  return /noel/i.test(n) ? 'nurse' : /lumy/i.test(n) ? 'princess' : 'concert';
+}
+const _RY_HEX = '#b48cff';
+
+let _ryRM = false;
+if (typeof window !== 'undefined' && window.matchMedia) {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  _ryRM = !!mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', e => { _ryRM = !!e.matches; });
+}
+function _ryRnd(i) { const x = Math.sin(i * 57.913 + 21.377) * 43758.5453; return x - Math.floor(x); }
+function _ryClock() { return performance.now() / 1000; }
+function _ryMk(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+
+const _RY_STEPS = 20;
+function _ryRamp(rgb) {
+  const a = new Array(_RY_STEPS + 1);
+  for (let i = 0; i <= _RY_STEPS; i++) a[i] = 'rgba(' + rgb + ',' + (i / _RY_STEPS).toFixed(3) + ')';
+  return a;
+}
+function _ryA(a) { return a <= 0 ? 0 : a >= 1 ? _RY_STEPS : Math.round(a * _RY_STEPS); }
+const _RY_WHITE = _ryRamp('248,242,255');
+const _RY_LILAC = _ryRamp('206,168,255');
+const _RY_VIOLET = _ryRamp('150,84,236');
+const _RY_PINK = _ryRamp('255,130,210');
+
+// a cheap blur: down and back up with smoothing on
+function _rySoft(src, k) {
+  const w = Math.max(1, Math.round(src.width / k)), h = Math.max(1, Math.round(src.height / k));
+  const a = _ryMk(w, h); a.getContext('2d').drawImage(src, 0, 0, w, h);
+  const b = _ryMk(src.width, src.height); b.getContext('2d').drawImage(a, 0, 0, src.width, src.height);
+  return b;
+}
+function _ryTint(src, rgb) {
+  const cv = _ryMk(src.width, src.height), g = cv.getContext('2d');
+  g.drawImage(src, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = 'rgb(' + rgb + ')'; g.fillRect(0, 0, cv.width, cv.height);
+  return cv;
+}
+const _ryGlowC = {};
+function _ryGlow(rgb) {
+  if (_ryGlowC[rgb]) return _ryGlowC[rgb];
+  const cv = _ryMk(128, 128), g = cv.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  for (let i = 0; i <= 14; i++) { const u = i / 14; gr.addColorStop(u, 'rgba(' + rgb + ',' + Math.pow(1 - u, 2.3).toFixed(4) + ')'); }
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return (_ryGlowC[rgb] = cv);
+}
+// a four point sparkle with its own glow, one sprite per colour
+const _rySparkC = {};
+function _rySpark(rgb) {
+  if (_rySparkC[rgb]) return _rySparkC[rgb];
+  const cv = _ryMk(64, 64), g = cv.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  for (let i = 0; i <= 10; i++) { const u = i / 10; gr.addColorStop(u, 'rgba(' + rgb + ',' + (0.55 * Math.pow(1 - u, 2.4)).toFixed(4) + ')'); }
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = 'rgb(' + rgb + ')';
+  g.beginPath();
+  for (let k = 0; k < 8; k++) {
+    const an = k * Math.PI / 4 - Math.PI / 2, rr = (k & 1) ? 5.5 : 29;
+    if (k) g.lineTo(32 + Math.cos(an) * rr, 32 + Math.sin(an) * rr); else g.moveTo(32 + Math.cos(an) * rr, 32 + Math.sin(an) * rr);
+  }
+  g.closePath(); g.fill();
+  g.fillStyle = '#ffffff';
+  g.beginPath(); g.arc(32, 32, 3.2, 0, 6.2831853); g.fill();
+  return (_rySparkC[rgb] = cv);
+}
+
+// ── the heartbeat, and the events, which every layer reads ────────
+// Phase is ACCUMULATED, not read off the clock, so the heart can race and
+// settle back without jumping. With her song playing, the song's own hits
+// drive it (the same envelope Sel's sky reads) and the heartbeat carries
+// on quietly underneath. Every beat also puts .ry-hit on #char-view for a
+// moment, which is what makes the interface flash on it: a class toggle is
+// cheap where a custom property write is not. Each layer calls _ryTick;
+// the second call in a frame returns at once.
+let _ryPer = 60 / 72, _ryPhase = 0, _ryArm = true, _ryPlaying = false, _ryMusic = 0, _ryTickAt = -1;
+let _ryPulse = 0, _ryRings = [], _ryBeatN = 0, _ryBeatStr = 0, _ryBeatAt = -9, _ryLubs = [], _ryHitOff = 0;
+let _ryEv = null, _ryEvNext = 0, _ryEvLast = '';
+const _RY_EVENTS = ['rush', 'rain', 'prism', 'resonance'];
+function _ryEvP(name, now) {
+  if (!_ryEv || _ryEv.name !== name) return -1;
+  const p = (now - _ryEv.t0) / _ryEv.dur;
+  return p >= 0 && p <= 1 ? p : -1;
+}
+function _ryStartEvent(name, now) {
+  _ryEvLast = name;
+  _ryEv = { name, t0: now, dur: { rush: 2.8, rain: 3.6, prism: 1.8, resonance: 2.4 }[name], r1: Math.random() };
+  _ryEvNext = now + _ryEv.dur + 7 + Math.random() * 4;
+}
+function _ryBeat(now, str, lub) {
+  _ryBeatN++; _ryBeatAt = now; _ryBeatStr = str;
+  _ryRings.push({ t0: now, str });
+  if (_ryRings.length > 6) _ryRings.shift();
+  if (lub) { _ryLubs.push(now); if (_ryLubs.length > 8) _ryLubs.shift(); }
+  const cv = document.getElementById('char-view');
+  if (cv) cv.classList.add('ry-hit');
+  _ryHitOff = now + (str > 0.8 ? 0.12 : 0.08);
+}
+function _ryTick(now) {
+  if (_ryTickAt >= 0 && now - _ryTickAt >= 0 && now - _ryTickAt < 0.004) return;
+  const dt = _ryTickAt < 0 ? 0.016 : Math.max(0.001, Math.min(0.05, Math.abs(now - _ryTickAt)));
+  _ryTickAt = now;
+  if (_ryEv && now - _ryEv.t0 > _ryEv.dur) _ryEv = null;
+  if (!_ryEvNext) _ryEvNext = now + 6 + Math.random() * 3;
+  if (!_ryEv && now >= _ryEvNext && !_ryRM) {
+    let name;
+    do { name = _RY_EVENTS[Math.floor(Math.random() * _RY_EVENTS.length)]; } while (name === _ryEvLast);
+    _ryStartEvent(name, now);
+  }
+  const a = typeof _themeAudio !== 'undefined' ? _themeAudio : null;
+  _ryPlaying = !!(a && !a.paused && !a.ended && a.currentTime > 0);
+  // a rush: up to 150 a minute, held, and back down
+  const rush = _ryEvP('rush', now);
+  const bpm = rush < 0 ? 72 : rush < 0.15 ? 72 + (rush / 0.15) * 78 : rush < 0.72 ? 150 : 150 - ((rush - 0.72) / 0.28) * 78;
+  _ryPer = 60 / bpm;
+  _ryPhase += dt / _ryPer;
+  if (_ryPhase >= 1) { _ryPhase -= Math.floor(_ryPhase); _ryBeat(now, _ryPlaying ? 0.3 : rush >= 0 ? 0.7 : 0.6, true); }
+  const ph = _ryPhase;
+  const hb = Math.max(Math.exp(-ph * 14), ph > 0.27 ? 0.6 * Math.exp(-(ph - 0.27) * 14) : 0);
+  _slSampleAudio(dt);
+  _ryMusic = _ryPlaying ? _slBeat : 0;
+  if (_ryPlaying) {
+    if (_ryMusic > 0.62 && _ryArm) { _ryArm = false; _ryBeat(now, 0.95, false); }
+    else if (_ryMusic < 0.35) _ryArm = true;
+  }
+  _ryPulse = (_ryRM ? 0.35 : 1) * (_ryPlaying ? Math.max(hb * 0.45, _ryMusic) : hb);
+  if (_ryHitOff && now > _ryHitOff) {
+    _ryHitOff = 0;
+    const cv = document.getElementById('char-view');
+    if (cv) cv.classList.remove('ry-hit');
+  }
+}
+
+// ── the heart ────────────────────────────────────────────────────
+// The classic heart curve, notch at the top, recentred on its bounding
+// box and scaled so its half width is 1.
+function _ryHeartPt(t) {
+  const s = Math.sin(t);
+  return [s * s * s, (-(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) - 2.6) / 16];
+}
+const _RY_HN = 48;
+const _RY_HEART = (() => {
+  const p = new Float32Array(_RY_HN * 2);
+  for (let i = 0; i < _RY_HN; i++) { const q = _ryHeartPt(i / _RY_HN * 6.2831853); p[i * 2] = q[0]; p[i * 2 + 1] = q[1]; }
+  return p;
+})();
+function _ryHeartPath(ctx, x, y, R) {
+  const P = _RY_HEART;
+  ctx.moveTo(x + P[0] * R, y + P[1] * R);
+  for (let i = 1; i < _RY_HN; i++) ctx.lineTo(x + P[i * 2] * R, y + P[i * 2 + 1] * R);
+  ctx.closePath();
+}
+const _RY_AM = [[0, 26, 6, 52], [0.3, 70, 20, 138], [0.55, 128, 66, 214], [0.78, 190, 146, 255], [1, 246, 236, 255]];
+function _ryAmethyst(v) {
+  v = Math.max(0, Math.min(1, v));
+  let k = 0;
+  while (k < _RY_AM.length - 2 && v > _RY_AM[k + 1][0]) k++;
+  const a = _RY_AM[k], b = _RY_AM[k + 1], u = (v - a[0]) / (b[0] - a[0]);
+  return 'rgb(' + Math.round(a[1] + (b[1] - a[1]) * u) + ',' + Math.round(a[2] + (b[2] - a[2]) * u) + ',' + Math.round(a[3] + (b[3] - a[3]) * u) + ')';
+}
+
+// Cut, not drawn: a ring of facets round the outline, a ring inside it, and
+// a fan to a centre a little above the middle, where the mass of a heart is.
+// Each facet leans out from that centre, alternate ones a little each way,
+// and takes its value from the light. Baked twice, lit from the upper left
+// and from the upper right, so the stone can seem to turn; once white, to
+// flash on the beat; that white copy tinted pink and cyan, for the prism;
+// and once as a mask for the glint.
+function _ryBakeHeart(R) {
+  const pad = Math.ceil(R * 0.12), S = Math.ceil(R * 2 + pad * 2), cx = S / 2, cy = S / 2;
+  const N = 28, P = [], Q = [], C = [cx, cy - R * 0.14];
+  for (let i = 0; i < N; i++) { const p = _ryHeartPt(i / N * 6.2831853); P.push([cx + p[0] * R, cy + p[1] * R]); }
+  for (const p of P) Q.push([C[0] + (p[0] - C[0]) * 0.5, C[1] + (p[1] - C[1]) * 0.5]);
+  const tris = [];
+  for (let i = 0; i < N; i++) {
+    const j = (i + 1) % N;
+    tris.push([P[i], P[j], Q[i], 0, i], [P[j], Q[j], Q[i], 1, i], [Q[i], Q[j], C, 2, i]);
+  }
+  const tri = (ctx, a, b, c) => { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.closePath(); };
+  const outline = ctx => { ctx.beginPath(); P.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); };
+  const shade = (g, LX, LY, LZ) => {
+    const LL = Math.hypot(LX, LY, LZ);
+    for (const [a, b, c, kind, i] of tris) {
+      const gx = (a[0] + b[0] + c[0]) / 3, gy = (a[1] + b[1] + c[1]) / 3;
+      const rx = (gx - C[0]) / R, ry = (gy - C[1]) / R;
+      const tilt = kind === 0 ? 1.15 : kind === 1 ? 0.8 : 0.35;
+      const nx = rx * tilt + (i & 1 ? 0.14 : -0.14) * (kind === 2 ? 0.4 : 1);
+      const ny = ry * tilt + (kind === 1 ? 0.08 : 0), nz = kind === 2 ? 1 : 0.6;
+      const d = Math.max(0, (nx * LX + ny * LY + nz * LZ) / (Math.hypot(nx, ny, nz) * LL));
+      const fs = _ryAmethyst(0.12 + 0.88 * Math.pow(d, 1.25));
+      tri(g, a, b, c); g.fillStyle = fs; g.fill();
+      g.strokeStyle = fs; g.lineWidth = 0.9; g.stroke();          // closes the antialiasing seams
+    }
+    g.strokeStyle = 'rgba(238,222,255,0.3)';
+    g.lineWidth = Math.max(1, R * 0.012);
+    g.beginPath();
+    for (const [a, b, c] of tris) { g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(c[0], c[1]); g.lineTo(a[0], a[1]); }
+    g.stroke();
+    const sg = LX < 0 ? -1 : 1;
+    const rg = g.createLinearGradient(cx + sg * R, cy - R, cx - sg * R, cy + R);
+    rg.addColorStop(0, 'rgba(255,248,255,0.9)'); rg.addColorStop(0.5, 'rgba(210,170,255,0.45)'); rg.addColorStop(1, 'rgba(40,8,70,0.85)');
+    g.strokeStyle = rg; g.lineWidth = Math.max(1.5, R * 0.03);
+    outline(g); g.stroke();
+    g.globalCompositeOperation = 'lighter';
+    g.globalAlpha = 0.75;
+    const hs = R * 0.28;
+    g.drawImage(_ryGlow('255,250,255'), cx + sg * R * 0.52 - hs, cy - R * 0.5 - hs, hs * 2, hs * 2);
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+  };
+  const face = _ryMk(S, S), face2 = _ryMk(S, S), lit = _ryMk(S, S), mask = _ryMk(S, S);
+  shade(face.getContext('2d'), -0.5, -0.72, 0.85);
+  shade(face2.getContext('2d'), 0.55, -0.7, 0.85);
+  const gl = lit.getContext('2d');
+  for (const [a, b, c, kind, i] of tris) {
+    tri(gl, a, b, c);
+    gl.fillStyle = 'rgba(255,236,255,' + (0.15 + 0.85 * _ryRnd(i * 3.7 + kind * 11)).toFixed(3) + ')';
+    gl.fill();
+  }
+  const gm = mask.getContext('2d');
+  gm.fillStyle = '#ffffff'; outline(gm); gm.fill();
+  return { face, face2, lit, pink: _ryTint(lit, '255,110,210'), cyan: _ryTint(lit, '110,220,255'), mask, S, R,
+    pts: P.concat(Q).map(p => [p[0] - cx, p[1] - cy]) };
+}
+
+// ── the cave ─────────────────────────────────────────────────────
+function _ryBakeBg(P, W, H, hx, hy, R) {
+  const base = _ryMk(W, H), g = base.getContext('2d');
+  const gr = g.createRadialGradient(hx, hy, 0, hx, hy, Math.hypot(W, H) * 0.78);
+  [[0, '#3b1170'], [0.14, '#2a0b52'], [0.4, '#16052e'], [0.74, '#0b0218'], [1, '#05010c']].forEach(s => gr.addColorStop(s[0], s[1]));
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  P._base = base;
+  // rays out of the heart: soft wedges, baked at half size and blitted at double
+  const D = Math.ceil(Math.hypot(W, H) / 2), rays = _ryMk(D, D), rc = rays.getContext('2d'), c = D / 2;
+  rc.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * 6.2831853 + _ryRnd(i) * 0.2, w = 0.035 + _ryRnd(i * 2.3) * 0.06;
+    const rg = rc.createRadialGradient(c, c, 0, c, c, c);
+    rg.addColorStop(0, 'rgba(190,140,255,' + (0.14 + _ryRnd(i * 4.1) * 0.12).toFixed(3) + ')');
+    rg.addColorStop(1, 'rgba(190,140,255,0)');
+    rc.fillStyle = rg;
+    rc.beginPath(); rc.moveTo(c, c); rc.arc(c, c, c, a - w, a + w); rc.closePath(); rc.fill();
+  }
+  P._rays = _rySoft(rays, 3);
+  // violet fog, at a quarter size, drifted and blown up
+  const fw = Math.ceil(W / 4), fh = Math.ceil(H / 4), fog = _ryMk(fw, fh), fc = fog.getContext('2d');
+  fc.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 9; i++) {
+    const x = _ryRnd(i * 4.7) * fw, y = (0.2 + _ryRnd(i * 6.1) * 0.8) * fh, r = fw * (0.15 + _ryRnd(i * 8.3) * 0.25);
+    const rgb = ['120,40,200', '170,60,190', '70,40,170'][i % 3];
+    const fg = fc.createRadialGradient(x, y, 0, x, y, r);
+    for (let k = 0; k <= 10; k++) { const u = k / 10; fg.addColorStop(u, 'rgba(' + rgb + ',' + (0.3 * Math.pow(1 - u, 2)).toFixed(4) + ')'); }
+    fc.fillStyle = fg; fc.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  P._fog = fog;
+  const vg = _ryMk(W, H), vc = vg.getContext('2d');
+  const vr = vc.createRadialGradient(W * 0.55, H * 0.42, Math.min(W, H) * 0.3, W * 0.55, H * 0.42, Math.hypot(W, H) * 0.64);
+  for (let i = 0; i <= 12; i++) { const u = i / 12; vr.addColorStop(u, 'rgba(3,0,8,' + (0.6 * Math.pow(u, 1.8)).toFixed(4) + ')'); }
+  vc.fillStyle = vr; vc.fillRect(0, 0, W, H);
+  P._vig = vg;
+  // shards of the same stone, three colours of diamond
+  P._shardSpr = ['226,200,255', '170,110,255', '248,242,255'].map(rgb => {
+    const s = _ryMk(24, 32), sg = s.getContext('2d');
+    sg.beginPath(); sg.moveTo(12, 1); sg.lineTo(22, 16); sg.lineTo(12, 31); sg.lineTo(2, 16); sg.closePath();
+    const lg = sg.createLinearGradient(2, 1, 22, 31);
+    lg.addColorStop(0, 'rgba(255,255,255,0.95)'); lg.addColorStop(0.45, 'rgb(' + rgb + ')'); lg.addColorStop(1, 'rgba(60,16,110,0.9)');
+    sg.fillStyle = lg; sg.fill();
+    sg.strokeStyle = 'rgba(255,255,255,0.35)'; sg.lineWidth = 1;
+    sg.beginPath(); sg.moveTo(12, 1); sg.lineTo(12, 31); sg.moveTo(2, 16); sg.lineTo(22, 16); sg.stroke();
+    return s;
+  });
+  P._shards = [];
+  for (let i = 0; i < 56; i++) {
+    const z = 0.3 + Math.pow(_ryRnd(i * 1.9), 1.6) * 0.7;
+    P._shards.push({ x: _ryRnd(i * 2.7) * W, y: _ryRnd(i * 3.3) * H, z, ph: _ryRnd(i * 5.1) * 6.283,
+      rot: (_ryRnd(i * 7.3) - 0.5) * 1.2, v: i % 3, sp: 6 + _ryRnd(i * 9.1) * 10 });
+  }
+  // the ones circling the heart
+  P._orbit = [];
+  for (let i = 0; i < 18; i++) {
+    P._orbit.push({ a0: i / 18 * 6.2831853 + _ryRnd(i * 3.1) * 0.3, rr: 1.5 + _ryRnd(i * 4.3) * 0.7, sp: 0.25 + _ryRnd(i * 5.9) * 0.15,
+      s: 0.5 + _ryRnd(i * 6.7) * 0.6, v: i % 3, rot: _ryRnd(i * 8.1) * 6.28, vr: (_ryRnd(i * 9.7) - 0.5) * 1.5 });
+  }
+  // faint stars in the far dark
+  P._stars = [];
+  for (let i = 0; i < 110; i++) {
+    P._stars.push({ x: _ryRnd(i * 11.3) * W, y: _ryRnd(i * 13.1) * H * 0.75, s: _ryRnd(i * 15.7) < 0.85 ? 1 : 2,
+      tw: 0.5 + _ryRnd(i * 17.9) * 2, ph: _ryRnd(i * 19.3) * 6.283 });
+  }
+}
+
+// The ring a beat sends out, baked once and scaled. Stroked live, five of
+// these wide heart outlines cost three milliseconds a frame between them.
+function _ryBakeRing(P, R) {
+  const Rb = R * 1.6, pad = Math.ceil(R * 0.25), S = Math.ceil(Rb * 2 + pad * 2), c = S / 2;
+  const glow = _ryMk(S, S), gg = glow.getContext('2d');
+  gg.strokeStyle = 'rgb(150,84,236)'; gg.lineWidth = Math.max(6, R * 0.06);
+  gg.beginPath(); _ryHeartPath(gg, c, c, Rb); gg.stroke();
+  const ring = _ryMk(S, S), rg = ring.getContext('2d');
+  const soft = _rySoft(glow, 4);
+  rg.drawImage(soft, 0, 0); rg.drawImage(soft, 0, 0);
+  rg.strokeStyle = 'rgba(248,242,255,0.9)'; rg.lineWidth = Math.max(1.5, R * 0.012);
+  rg.beginPath(); _ryHeartPath(rg, c, c, Rb); rg.stroke();
+  P._ring = ring; P._ringRb = Rb;
+}
+
+// One crystal: a six sided column seen from the side, three faces showing
+// and a point on top. The face turned toward the heart is lit, the far one
+// is in shadow, and the seams between them are dark. What the heart's light
+// catches (the lit edge and the point) goes on a second sheet, which is the
+// one that flares when a ring goes by.
+function _ryCrystal(g, gg, x, y, ang, w, h, hx, hy) {
+  const ux = Math.sin(ang), uy = -Math.cos(ang), px = Math.cos(ang), py = Math.sin(ang);
+  const tipH = w * 0.95;
+  const Pt = (s, t) => [x + px * s * w + ux * t, y + py * s * w + uy * t];
+  const bl = Pt(-0.5, 0), bm1 = Pt(-0.14, 0), bm2 = Pt(0.22, 0), br = Pt(0.5, 0);
+  const tl = Pt(-0.5, h), tm1 = Pt(-0.14, h + tipH * 0.14), tm2 = Pt(0.22, h + tipH * 0.1), tr = Pt(0.5, h), tip = Pt(0.04, h + tipH);
+  const toward = (hx - x) * px + (hy - y) * py;
+  const lit = toward > 0 ? [0.22, 0.5, 0.88] : [0.88, 0.5, 0.22];
+  const poly = pts => { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]); g.closePath(); };
+  const m0 = Pt(0, 0), m1 = Pt(0, h);
+  const faces = [[bl, bm1, tm1, tl], [bm1, bm2, tm2, tm1], [bm2, br, tr, tm2]];
+  const tips = [[tl, tm1, tip], [tm1, tm2, tip], [tm2, tr, tip]];
+  for (let f = 0; f < 3; f++) {
+    const gr = g.createLinearGradient(m0[0], m0[1], m1[0], m1[1]);
+    gr.addColorStop(0, _ryAmethyst(lit[f] * 0.25)); gr.addColorStop(1, _ryAmethyst(lit[f] * 0.9));
+    poly(faces[f]); g.fillStyle = gr; g.fill();
+    poly(tips[f]); g.fillStyle = _ryAmethyst(Math.min(1, lit[f] + 0.12)); g.fill();
+  }
+  g.strokeStyle = 'rgba(12,2,26,0.7)'; g.lineWidth = 1;
+  g.beginPath();
+  for (const [a, b] of [[bm1, tm1], [bm2, tm2], [tl, tm1], [tm1, tip], [tm2, tip], [tm2, tr]]) { g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); }
+  g.stroke();
+  const e = toward > 0 ? [br, tr] : [bl, tl];
+  gg.strokeStyle = 'rgba(236,210,255,0.9)'; gg.lineWidth = Math.max(1, w * 0.06);
+  gg.beginPath(); gg.moveTo(e[0][0], e[0][1]); gg.lineTo(e[1][0], e[1][1]); gg.lineTo(tip[0], tip[1]); gg.stroke();
+  const gs = w * 0.9;
+  gg.drawImage(_ryGlow('210,160,255'), tip[0] - gs, tip[1] - gs, gs * 2, gs * 2);
+}
+
+// Clusters along the floor, bigger toward the corners, and a few growing in
+// off the walls in the lower half. Each grows out of a lump of dark rock.
+function _ryBakeGeode(P, W, H, hx, hy) {
+  const sheet = _ryMk(W, H), glow = _ryMk(W, H), g = sheet.getContext('2d'), gg = glow.getContext('2d');
+  const cl = [];
+  const nb = Math.max(5, Math.round(W / 200));
+  for (let k = 0; k < nb; k++) {
+    const u = (k + 0.5) / nb, e = Math.abs(u * 2 - 1);
+    cl.push({ x: u * W + (_ryRnd(k * 3.1) - 0.5) * (W / nb) * 0.5, y: H + 8, lean: (u - 0.5) * 0.6,
+      size: H * (0.06 + 0.16 * Math.pow(e, 1.5)) * (0.75 + _ryRnd(k * 5.3) * 0.5),
+      n: 3 + Math.floor(_ryRnd(k * 7.7) * 3) + Math.round(e * 3), seed: k });
+  }
+  for (let k = 0; k < 3; k++) for (const side of [0, 1]) {
+    cl.push({ x: side ? W + 8 : -8, y: H * (0.52 + k * 0.15), lean: side ? -1.25 : 1.25,
+      size: H * (0.05 + _ryRnd(k * 9.1 + side) * 0.05), n: 3 + k, seed: 40 + k * 2 + side });
+  }
+  cl.sort((a, b) => a.size - b.size);
+  for (const c of cl) {
+    g.fillStyle = '#090214';
+    g.beginPath(); g.ellipse(c.x, c.y, c.size * 0.6, c.size * 0.2, c.lean, 0, 6.2831853); g.fill();
+    const cr = [];
+    for (let i = 0; i < c.n; i++) {
+      const r1 = _ryRnd(c.seed * 13 + i * 2.3), r2 = _ryRnd(c.seed * 17 + i * 3.9);
+      const u = c.n > 1 ? i / (c.n - 1) : 0.5;
+      const ang = c.lean + (u - 0.5) * 1.2 + (r1 - 0.5) * 0.25;
+      const h = c.size * (0.4 + 0.6 * r2), w = Math.max(6, h * (0.2 + r1 * 0.1));
+      const off = (u - 0.5) * c.size * 0.5;
+      cr.push({ x: c.x + Math.cos(c.lean) * off, y: c.y + Math.sin(c.lean) * off, ang, w, h });
+    }
+    cr.sort((a, b) => b.h - a.h);
+    for (const q of cr) _ryCrystal(g, gg, q.x, q.y, q.ang, q.w, q.h, hx, hy);
+  }
+  P._geo = sheet; P._geoGlow = glow;
+}
+
+function _ryOrbit(ctx, P, hx, y0, R, t, front, pu) {
+  const SH = P._shardSpr, spin = _ryRM ? 0 : t;
+  for (const o of P._orbit) {
+    const a = o.a0 + spin * o.sp, ez = Math.sin(a);
+    if ((ez > 0) !== front) continue;
+    const x = hx + Math.cos(a) * R * o.rr, y = y0 + ez * R * 0.3 * o.rr + Math.cos(a) * R * 0.14 * o.rr;
+    const depth = 0.5 + 0.5 * ez, sc = o.s * (0.55 + 0.6 * depth);
+    ctx.globalAlpha = Math.min(1, (front ? 0.75 : 0.35) + pu * 0.3);
+    const r = o.rot + spin * o.vr, c = Math.cos(r) * sc, s = Math.sin(r) * sc;
+    ctx.setTransform(c, s, -s, c, x, y);
+    ctx.drawImage(SH[o.v], -12, -16);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+}
+
+function _drawRodyPattern(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;
+  const P = _drawRodyPattern;
+  // `>= 0`: a clock that jumps backwards must not freeze the layer
+  if (P._lt !== undefined && t - P._lt >= 0 && t - P._lt < 0.033) return;
+  const dt = P._lt === undefined ? 0.016 : Math.min(Math.abs(t - P._lt), 0.05);
+  P._lt = t;
+  const now = _ryClock();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  const hx = W * 0.72, hy = H * 0.3, R = Math.max(70, Math.min(W * 0.12, H * 0.2));
+  if (P._w !== W || P._h !== H) {
+    _ryBakeBg(P, W, H, hx, hy, R);
+    _ryBakeGeode(P, W, H, hx, hy);
+    P._heart = _ryBakeHeart(R);
+    P._gl = _ryMk(P._heart.S, P._heart.S);
+    _ryBakeRing(P, R);
+    P._glT0 = -9; P._glNext = now + 3; P._seen = _ryBeatN;
+    P._sparks = []; P._burst = []; P._rain = []; P._rainAcc = 0; P._spin = 0;
+    P._evSeen = null; P._burstSeen = P._burstAt;
+    P._w = W; P._h = H;
+  }
+  P._hx = hx; P._hy = hy; P._R = R;
+  _bgRect(canvas);                      // for clicks on the heart
+  _ryTick(now);
+  const pu = _ryPulse, HT = P._heart, rm = _ryRM;
+  const prism = _ryEvP('prism', now), pk = prism >= 0 ? Math.sin(Math.PI * prism) : 0;
+  const bob = rm ? 0 : Math.sin(t * 0.6) * R * 0.03, y0 = hy + bob;
+  ctx.drawImage(P._base, 0, 0);
+  // far stars, as squares: no path fills on this layer
+  for (let b = 1; b <= 3; b++) {
+    ctx.fillStyle = _RY_LILAC[_ryA(b / 3 * 0.75)];
+    for (const s of P._stars) {
+      const a = 0.5 + 0.5 * Math.sin(t * s.tw + s.ph);
+      if (Math.min(3, Math.max(1, Math.ceil(a * 3))) !== b) continue;
+      ctx.fillRect(s.x, s.y, s.s, s.s);
+    }
+  }
+  // fog, two layers drifting against each other
+  ctx.globalCompositeOperation = 'lighter';
+  const fx = rm ? 0 : Math.sin(t * 0.03) * W * 0.06, fy = rm ? 0 : Math.cos(t * 0.021) * H * 0.04;
+  ctx.globalAlpha = 0.5 + pu * 0.15;
+  ctx.drawImage(P._fog, -W * 0.08 + fx, -H * 0.08 + fy, W * 1.16, H * 1.16);
+  ctx.globalAlpha = 0.28;
+  ctx.drawImage(P._fog, -W * 0.25 - fx * 1.5, -H * 0.1 - fy, W * 1.5, H * 1.3);
+  // the rays, spinning up in a prism burst
+  P._spin += dt * pk * 2.2;
+  const rot = (rm ? 0 : t * 0.02) + P._spin, rc = P._rays.width / 2, co = Math.cos(rot) * 2, si = Math.sin(rot) * 2;
+  ctx.globalAlpha = Math.min(1, 0.35 + pu * 0.55 + pk * 0.5);
+  ctx.setTransform(co, si, -si, co, hx, hy);
+  ctx.drawImage(P._rays, -rc, -rc);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // the rings the beats send out
+  for (let i = _ryRings.length - 1; i >= 0; i--) {
+    const r = _ryRings[i], age = now - r.t0;
+    if (age > 1.7) { _ryRings.splice(i, 1); continue; }
+    const f = 1 - age / 1.7, s = R * (1.05 + age * 2.6), d = P._ring.width * (s / P._ringRb);
+    ctx.globalAlpha = Math.min(1, r.str * f * f * 0.9);
+    ctx.drawImage(P._ring, hx - d / 2, hy - d / 2, d, d);
+  }
+  // shards drifting up through the dark, lit as a ring passes them
+  const SH = P._shardSpr;
+  for (const s of P._shards) {
+    if (!rm) { s.y -= s.sp * s.z * dt; if (s.y < -20) { s.y = H + 20; s.x = Math.random() * W; } }
+    const dn = Math.hypot(s.x - hx, s.y - hy) / R;
+    let boost = 0;
+    for (const r of _ryRings) {
+      const age = now - r.t0, d = dn - (1.05 + age * 2.6);
+      boost += r.str * Math.exp(-d * d / 0.18) * Math.max(0, 1 - age / 1.7);
+    }
+    const tw = 0.5 + 0.5 * Math.sin(t * (1.2 + s.z) + s.ph);
+    ctx.globalAlpha = Math.min(1, 0.12 + 0.3 * s.z * tw + boost * 0.9);
+    const sc = 0.35 + s.z * 0.55, c = Math.cos(s.rot) * sc, sn = Math.sin(s.rot) * sc;
+    ctx.setTransform(c, sn, -sn, c, s.x, s.y);
+    ctx.drawImage(SH[s.v], -12, -16);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // the geode, and its light in strips so a wave can run along it
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(P._geo, 0, 0);
+  ctx.globalCompositeOperation = 'lighter';
+  const res = _ryEvP('resonance', now), ns = 16, sw = W / ns;
+  for (let i = 0; i < ns; i++) {
+    const cx = (i + 0.5) * sw, dd = Math.hypot(cx - hx, H * 0.88 - hy) / R;
+    let a = 0.16 + pu * 0.4;
+    for (const r of _ryRings) { const age = now - r.t0, d = dd - (1.05 + age * 2.6); a += r.str * Math.exp(-d * d / 0.6) * Math.max(0, 1 - age / 1.7); }
+    if (res >= 0) { const d = (i + 0.5) / ns - (res * 1.5 - 0.25); a += Math.exp(-d * d / 0.008) * 1.3; }
+    if (a < 0.02) continue;
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.drawImage(P._geoGlow, i * sw, 0, sw + 1, H, i * sw, 0, sw + 1, H);
+  }
+  ctx.globalAlpha = 1;
+  _ryOrbit(ctx, P, hx, y0, R, t, false, pu);
+  // the heart's own light
+  const gs = R * (2.3 + pu * 0.9 + pk * 0.8);
+  ctx.globalAlpha = Math.min(1, 0.42 + pu * 0.5 + pk * 0.3);
+  ctx.drawImage(_ryGlow('170,100,255'), hx - gs, y0 - gs, gs * 2, gs * 2);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  // the heart, turning a little, so the light moves across it
+  const tw = rm ? 0 : Math.sin(t * 0.28);
+  const k = 1 + pu * 0.06 + pk * 0.05, d = HT.S * k, dx = d * (1 - 0.09 * tw * tw);
+  const lx = hx - dx / 2, ly = y0 - d / 2;
+  ctx.drawImage(HT.face, lx, ly, dx, d);
+  if (tw > 0.02) { ctx.globalAlpha = Math.min(1, tw * 1.1); ctx.drawImage(HT.face2, lx, ly, dx, d); ctx.globalAlpha = 1; }
+  ctx.globalCompositeOperation = 'lighter';
+  if (pu > 0.02) { ctx.globalAlpha = pu * 0.55; ctx.drawImage(HT.lit, lx, ly, dx, d); }
+  if (pk > 0.02) {
+    const off = R * 0.05 * pk;
+    ctx.globalAlpha = pk * 0.7;
+    ctx.drawImage(HT.pink, lx - off, ly, dx, d);
+    ctx.drawImage(HT.cyan, lx + off, ly, dx, d);
+  }
+  ctx.globalAlpha = 1;
+  // now and then a glint runs across the stone
+  const gp = (now - P._glT0) / 1.1;
+  if (gp >= 0 && gp <= 1) {
+    const gg = P._gl.getContext('2d'), S = HT.S, x = -S * 0.4 + S * 1.8 * gp;
+    gg.globalCompositeOperation = 'source-over';
+    gg.clearRect(0, 0, S, S);
+    const lg = gg.createLinearGradient(x - S * 0.16, 0, x + S * 0.16, S * 0.22);
+    lg.addColorStop(0, 'rgba(255,240,255,0)'); lg.addColorStop(0.5, 'rgba(255,240,255,0.8)'); lg.addColorStop(1, 'rgba(255,240,255,0)');
+    gg.fillStyle = lg; gg.fillRect(0, 0, S, S);
+    gg.globalCompositeOperation = 'destination-in';
+    gg.drawImage(HT.mask, 0, 0);
+    ctx.drawImage(P._gl, lx, ly, dx, d);
+  } else if (now > P._glNext && !rm) { P._glT0 = now; P._glNext = now + 7 + Math.random() * 4; }
+  _ryOrbit(ctx, P, hx, y0, R, t, true, pu);
+  // sparkles off the corners of facets, a few on every beat
+  if (P._seen !== _ryBeatN) {
+    P._seen = _ryBeatN;
+    const n = _ryBeatStr > 0.8 ? 5 : 2;
+    for (let i = 0; i < n && P._sparks.length < 14; i++) {
+      const p = HT.pts[Math.floor(Math.random() * HT.pts.length)];
+      P._sparks.push({ x: p[0], y: p[1], t0: now + i * 0.04, s: R * (0.12 + Math.random() * 0.14) });
+    }
+  }
+  const SP = _rySpark('248,236,255');
+  for (let i = P._sparks.length - 1; i >= 0; i--) {
+    const s = P._sparks[i], p = (now - s.t0) / 0.55;
+    if (p >= 1) { P._sparks.splice(i, 1); continue; }
+    if (p < 0) continue;
+    const a = Math.sin(Math.PI * p), z = s.s * (0.5 + a);
+    ctx.globalAlpha = a;
+    ctx.drawImage(SP, hx + s.x * k - z, y0 + s.y * k - z, z * 2, z * 2);
+  }
+  // a prism burst, or a click on the heart, throws light out of it
+  if ((_ryEv && _ryEv.name === 'prism' && P._evSeen !== _ryEv) || P._burstSeen !== P._burstAt) {
+    P._evSeen = _ryEv; P._burstSeen = P._burstAt;
+    for (let i = 0; i < 40 && P._burst.length < 90; i++) {
+      const an = Math.random() * 6.2831853, sp = R * (1.5 + Math.random() * 3.5);
+      P._burst.push({ x: hx, y: y0, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp, t0: now, dur: 0.7 + Math.random() * 0.8,
+        s: R * (0.06 + Math.random() * 0.1), c: i % 3 });
+    }
+  }
+  const BC = [_rySpark('250,244,255'), _rySpark('255,140,220'), _rySpark('140,220,255')];
+  for (let i = P._burst.length - 1; i >= 0; i--) {
+    const b = P._burst[i], p = (now - b.t0) / b.dur;
+    if (p >= 1) { P._burst.splice(i, 1); continue; }
+    const f = Math.max(0, 1 - dt * 2.2);
+    b.vx *= f; b.vy *= f; b.x += b.vx * dt; b.y += b.vy * dt;
+    const z = b.s * (1 - p * 0.5);
+    ctx.globalAlpha = 1 - p;
+    ctx.drawImage(BC[b.c], b.x - z, b.y - z, z * 2, z * 2);
+  }
+  ctx.globalAlpha = 1;
+  // crystal rain: shards falling out of the dark roof of the cave
+  const rn = _ryEvP('rain', now);
+  if (rn >= 0 && rn < 0.8 && !rm) {
+    P._rainAcc += dt * 16;
+    while (P._rainAcc > 1) {
+      P._rainAcc -= 1;
+      if (P._rain.length < 50) P._rain.push({ x: Math.random() * W, y: -30, vx: (Math.random() - 0.5) * 60, vy: 320 + Math.random() * 280,
+        rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 6, s: 0.5 + Math.random() * 0.8, v: Math.floor(Math.random() * 3) });
+    }
+  }
+  if (P._rain.length) {
+    ctx.globalCompositeOperation = 'source-over';
+    for (let i = P._rain.length - 1; i >= 0; i--) {
+      const r = P._rain[i];
+      r.x += r.vx * dt; r.y += r.vy * dt; r.rot += r.vr * dt;
+      if (r.y > H + 30) { P._rain.splice(i, 1); continue; }
+      const c = Math.cos(r.rot) * r.s, s = Math.sin(r.rot) * r.s;
+      ctx.setTransform(c, s, -s, c, r.x, r.y);
+      ctx.drawImage(SH[r.v], -12, -16);
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+    const RG = _ryGlow('200,150,255');
+    for (const r of P._rain) { const z = 14 * r.s; ctx.globalAlpha = 0.6; ctx.drawImage(RG, r.x - z, r.y - z, z * 2, z * 2); }
+    ctx.globalAlpha = 1;
+  }
+  // a big beat lights the whole cave for a moment
+  const fb = Math.max(0, 1 - (now - _ryBeatAt) / 0.45) * Math.max(0, _ryBeatStr - 0.75) * 4;
+  if (fb > 0.02) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = _RY_VIOLET[_ryA(0.14 * fb)]; ctx.fillRect(0, 0, W, H); }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.drawImage(P._vig, 0, 0);
+}
+
+// ════════════════════════════════════════════════════════════════
+// THE EDGES: one frame per form, round the whole window
+// It sits where Maple's frame does, over the page and under the site
+// header (z-index 30), and it stops above the music player at the bottom,
+// which is pinned over everything. What never moves is baked into a sheet
+// once per size; what moves is drawn over it, and all of it keeps time
+// with the heart.
+// ════════════════════════════════════════════════════════════════
+let _ryEdgeRaf = null, _ryKind = 'concert', _ryLabel = 'RODY';
+const _ryE = { key: '', gen: -1, at: -9, T: 0, Bt: 0, seen: 0 };
+
+function _ryBottomInset() {
+  const el = document.getElementById('theme-bar');
+  if (!el) return 0;
+  const r = el.getBoundingClientRect(), vh = window.innerHeight;
+  if (!(r.height > 0) || r.top >= vh - 1) return 0;
+  const cs = getComputedStyle(el);
+  if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) return 0;
+  return Math.max(0, Math.min(120, Math.round(vh - r.top)));
+}
+function _ryEdgeBuild(E, kind, W, H) {
+  E.W = W; E.H = H;
+  E.top = E.T; E.bot = H - E.Bt;
+  E.B = Math.max(24, Math.min(46, Math.min(W, H) * 0.042));
+  E.sheet = _ryMk(W, H);
+  E.acc = 0; E.acc2 = 0;
+  const g = E.sheet.getContext('2d');
+  if (kind === 'nurse') _ryNurseBake(E, g);
+  else if (kind === 'princess') _ryPrincessBake(E, g);
+  else _ryConcertBake(E, g);
+}
+// a soft spill of colour down both sides, faded at both ends
+function _rySideHaze(g, E, rgb, a) {
+  const { W, B, top, bot } = E, w = B * 3, h = bot - top;
+  for (const side of [0, 1]) {
+    const gr = g.createLinearGradient(side ? W : 0, 0, side ? W - w : w, 0);
+    gr.addColorStop(0, 'rgba(' + rgb + ',' + a + ')'); gr.addColorStop(1, 'rgba(' + rgb + ',0)');
+    g.fillStyle = gr; g.fillRect(side ? W - w : 0, top, w, h);
+  }
+  const fade = g.createLinearGradient(0, top, 0, bot);
+  fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(0.12, 'rgba(0,0,0,0)'); fade.addColorStop(0.88, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)');
+  g.globalCompositeOperation = 'destination-out';
+  g.fillStyle = fade;
+  g.fillRect(0, top, w, h); g.fillRect(W - w, top, w, h);
+  g.globalCompositeOperation = 'source-over';
+}
+// a rounded rectangle as subpaths of whatever path is open, and on its own
+function _ryRRPath(g, x, y, w, h, r) {
+  g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.arc(x + w - r, y + r, r, -Math.PI / 2, 0);
+  g.lineTo(x + w, y + h - r); g.arc(x + w - r, y + h - r, r, 0, Math.PI / 2);
+  g.lineTo(x + r, y + h); g.arc(x + r, y + h - r, r, Math.PI / 2, Math.PI);
+  g.lineTo(x, y + r); g.arc(x + r, y + r, r, Math.PI, Math.PI * 1.5);
+  g.closePath();
+}
+function _ryRoundRect(g, x, y, w, h, r) { g.beginPath(); _ryRRPath(g, x, y, w, h, r); }
+// sparkles that live for a moment
+function _ryPopDraw(ctx, list, now, spr) {
+  for (let i = list.length - 1; i >= 0; i--) {
+    const s = list[i], p = (now - s.t0) / s.dur;
+    if (p >= 1) { list.splice(i, 1); continue; }
+    if (p < 0) continue;
+    const a = Math.sin(Math.PI * p), z = s.s * (0.55 + 0.45 * a);
+    ctx.globalAlpha = a;
+    ctx.drawImage(s.spr || spr, s.x - z, s.y - z, z * 2, z * 2);
+  }
+  ctx.globalAlpha = 1;
+}
+function _ryEdgePoint(E) {
+  const { W, B, top, bot } = E, band = B * 1.3;
+  const r = Math.random() * (2 * W + 2 * (bot - top));
+  if (r < W) return [r, top + Math.random() * band];
+  if (r < 2 * W) return [r - W, bot - Math.random() * band];
+  if (r < 2 * W + (bot - top)) return [Math.random() * band, top + (r - 2 * W)];
+  return [W - Math.random() * band, top + (r - 2 * W - (bot - top))];
+}
+
+// ── RODY: a concert ──────────────────────────────────────────────
+function _ryNoteSprites() {
+  if (_ryNoteSprites._c) return _ryNoteSprites._c;
+  const out = [];
+  for (let v = 0; v < 3; v++) {
+    const n = _ryMk(64, 80), g = n.getContext('2d');
+    g.fillStyle = '#ffffff';
+    const head = (x, y) => { g.beginPath(); g.ellipse(x, y, 9, 6.5, -0.4, 0, 6.2831853); g.fill(); };
+    if (v === 2) {
+      head(18, 62); head(44, 56);
+      g.fillRect(25, 18, 3.2, 44); g.fillRect(51, 12, 3.2, 44);
+      g.beginPath(); g.moveTo(25, 18); g.lineTo(54.2, 12); g.lineTo(54.2, 20); g.lineTo(25, 26); g.closePath(); g.fill();
+    } else {
+      head(24, 62); g.fillRect(31, 16, 3.2, 46);
+      if (v === 1) {
+        g.beginPath(); g.moveTo(34, 16);
+        g.bezierCurveTo(46, 26, 50, 34, 42, 48);
+        g.bezierCurveTo(45, 36, 42, 30, 34, 28);
+        g.closePath(); g.fill();
+      }
+    }
+    const cv = _ryMk(64, 80), cg = cv.getContext('2d');
+    const glow = _rySoft(_ryTint(n, '176,110,255'), 5);
+    cg.globalCompositeOperation = 'lighter';
+    cg.drawImage(glow, 0, 0); cg.drawImage(glow, 0, 0);
+    cg.globalCompositeOperation = 'source-over';
+    cg.drawImage(n, 0, 0);
+    out.push(cv);
+  }
+  return (_ryNoteSprites._c = out);
+}
+// a beam: forty nested cones on a bell of alpha give a soft edge with no
+// seams, then it fades along its length. It points UP from its base.
+const _ryBeamC = {};
+function _ryBeam(rgb) {
+  if (_ryBeamC[rgb]) return _ryBeamC[rgb];
+  const w = 160, h = 512, cv = _ryMk(w, h), g = cv.getContext('2d');
+  for (let i = 0; i < 40; i++) {
+    const u = i / 39, half = 5 + (w / 2 - 5) * (1 - u * 0.86);
+    g.fillStyle = 'rgba(' + rgb + ',0.035)';
+    g.beginPath(); g.moveTo(w / 2 - 3, h); g.lineTo(w / 2 + 3, h); g.lineTo(w / 2 + half, 0); g.lineTo(w / 2 - half, 0); g.closePath(); g.fill();
+  }
+  g.globalCompositeOperation = 'destination-in';
+  const lg = g.createLinearGradient(0, h, 0, 0);
+  lg.addColorStop(0, 'rgba(0,0,0,1)'); lg.addColorStop(0.55, 'rgba(0,0,0,0.5)'); lg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = lg; g.fillRect(0, 0, w, h);
+  return (_ryBeamC[rgb] = cv);
+}
+function _ryConeSprite() {
+  if (_ryConeSprite._c) return _ryConeSprite._c;
+  const cv = _ryMk(64, 64), g = cv.getContext('2d');
+  const gr = g.createRadialGradient(28, 26, 2, 32, 32, 30);
+  gr.addColorStop(0, '#6a5494'); gr.addColorStop(0.25, '#2a1c44'); gr.addColorStop(0.8, '#120a20'); gr.addColorStop(1, '#3a2a58');
+  g.fillStyle = gr; g.beginPath(); g.arc(32, 32, 30, 0, 6.2831853); g.fill();
+  g.fillStyle = '#8f78c0'; g.beginPath(); g.arc(32, 32, 7, 0, 6.2831853); g.fill();
+  g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.arc(30, 30, 2.5, 0, 6.2831853); g.fill();
+  return (_ryConeSprite._c = cv);
+}
+function _ryConcertBake(E, g) {
+  const { W, B, top, bot } = E;
+  _rySideHaze(g, E, '120,50,220', 0.2);
+  // the truss: two rails and a zigzag, dark steel catching violet
+  const tY = top + 2, tH = Math.max(12, Math.round(B * 0.42));
+  E.tY = tY; E.tH = tH;
+  g.fillStyle = 'rgba(8,3,16,0.8)'; g.fillRect(0, tY, W, tH);
+  g.strokeStyle = '#3d2f58'; g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(0, tY + 1); g.lineTo(W, tY + 1); g.moveTo(0, tY + tH - 1); g.lineTo(W, tY + tH - 1);
+  for (let x = 0, k = 0; x < W + tH; x += tH, k++) { g.moveTo(x, (k & 1) ? tY + 1 : tY + tH - 1); g.lineTo(x + tH, (k & 1) ? tY + tH - 1 : tY + 1); }
+  g.stroke();
+  g.strokeStyle = 'rgba(210,180,255,0.3)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0, tY + 0.5); g.lineTo(W, tY + 0.5); g.stroke();
+  // moving heads hung under it
+  const nh = Math.max(3, Math.round(W / 360));
+  const HR = ['190,130,255', '255,140,225', '244,236,255', '140,110,255'];
+  E.heads = [];
+  for (let i = 0; i < nh; i++) {
+    const x = (i + 0.5) / nh * W;
+    E.heads.push({ x, y: tY + tH + B * 0.22, rgb: HR[i % 4], ph: i * 1.37 });
+    g.fillStyle = '#1b1030'; g.fillRect(x - B * 0.2, tY + tH, B * 0.4, B * 0.12);
+  }
+  E.leds = [];
+  for (let x = 9; x < W; x += 16) E.leds.push(x);
+  // speaker stacks in the bottom corners
+  const sw = B * 1.5, sh = B * 2.4;
+  E.spk = [];
+  for (const side of [0, 1]) {
+    const x0 = side ? W - sw - 3 : 3, y0 = bot - sh - 2;
+    const cg = g.createLinearGradient(x0, y0, x0 + sw, y0 + sh);
+    cg.addColorStop(0, '#1e1234'); cg.addColorStop(1, '#07030e');
+    _ryRoundRect(g, x0, y0, sw, sh, 4); g.fillStyle = cg; g.fill();
+    g.strokeStyle = 'rgba(190,150,255,0.35)'; g.lineWidth = 1; g.stroke();
+    const cones = [[x0 + sw / 2, y0 + sh * 0.27, sw * 0.25], [x0 + sw / 2, y0 + sh * 0.68, sw * 0.36]];
+    for (const [cx, cy, r] of cones) {
+      g.fillStyle = '#05020a'; g.beginPath(); g.arc(cx, cy, r * 1.14, 0, 6.2831853); g.fill();
+      g.strokeStyle = 'rgba(160,120,230,0.45)'; g.beginPath(); g.arc(cx, cy, r * 1.14, 0, 6.2831853); g.stroke();
+    }
+    E.spk.push({ x0, y0, sw, sh, cones });
+  }
+  // the crowd between the speakers: heads and shoulders, rimmed by the stage light
+  const cx0 = sw + B * 0.6, cx1 = W - sw - B * 0.6, ch = B * 1.3;
+  const LS = ['190,120,255', '255,140,225', '244,236,255', '150,110,255'];
+  E.crowd = [];
+  for (let x = cx0, i = 0; x < cx1; i++) {
+    const hr = B * (0.19 + _ryRnd(i * 3.3) * 0.07), hy = bot - ch * (0.6 + _ryRnd(i * 5.1) * 0.22);
+    E.crowd.push({ x, hy, hr, arm: _ryRnd(i * 7.9) < 0.45, side: _ryRnd(i * 2.2) < 0.5 ? -1 : 1, ph: _ryRnd(i * 1.7) * 6.28, rgb: LS[i % 4] });
+    x += hr * 2.2 + _ryRnd(i * 9.3) * B * 0.2;
+  }
+  g.fillStyle = '#06020d';
+  g.beginPath();
+  for (const p of E.crowd) {
+    g.moveTo(p.x + p.hr, p.hy); g.arc(p.x, p.hy, p.hr, 0, 6.2831853);
+    const shw = p.hr * 1.9, sy = p.hy + p.hr * 1.05;
+    _ryRRPath(g, p.x - shw, sy, shw * 2, bot - sy + 4, p.hr * 0.9);
+  }
+  g.fill();
+  g.strokeStyle = 'rgba(190,130,255,0.4)'; g.lineWidth = 1.2;
+  g.beginPath();
+  for (const p of E.crowd) { g.moveTo(p.x + p.hr * Math.cos(-2.6), p.hy + p.hr * Math.sin(-2.6)); g.arc(p.x, p.hy, p.hr, -2.6, -0.55); }
+  g.stroke();
+  E.eq = new Float32Array(16); E.notes = []; E.shim = []; E.confetti = []; E.laserT0 = -9;
+}
+function _ryConcert(ctx, E, now, dt, beat) {
+  const { W, B, top, bot } = E, pu = _ryPulse;
+  const flash = Math.max(0, 1 - (now - _ryBeatAt) / 0.35) * _ryBeatStr;
+  const prism = _ryEvP('prism', now), strobe = prism >= 0 && Math.floor(now * 14) % 2 === 0 ? 1 : 0;
+  const big = beat && _ryBeatStr > 0.8;
+  // moving heads, their beams sweeping down into the room
+  ctx.globalCompositeOperation = 'lighter';
+  const len = (bot - top) * 0.95, bw = len * 0.34;
+  for (const h of E.heads) {
+    h.ang = _ryRM ? 0 : Math.sin(now * 0.7 + h.ph) * 0.55 + Math.sin(now * 0.31 + h.ph * 2) * 0.2;
+    const spr = _ryBeam(h.rgb), a = Math.PI + h.ang, c = Math.cos(a), s = Math.sin(a), sx = bw / spr.width, sy = len / spr.height;
+    ctx.globalAlpha = Math.min(1, 0.06 + pu * 0.08 + flash * 0.16 + strobe * 0.22);
+    ctx.setTransform(c * sx, s * sx, -s * sy, c * sy, h.x, h.y);
+    ctx.drawImage(spr, -spr.width / 2, -spr.height);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  // lasers out of the top corners on a big beat
+  if (big || (prism >= 0 && now - E.laserT0 > 1.2)) E.laserT0 = now;
+  const lp = (now - E.laserT0) / 0.6;
+  if (lp >= 0 && lp < 1 && !_ryRM) {
+    const la = Math.sin(Math.PI * lp), L = Math.hypot(W, bot - top);
+    for (const [col, lw, k0] of [['190,110,255', 3.2, 0.35], ['250,240,255', 1, 0.8]]) {
+      ctx.strokeStyle = 'rgba(' + col + ',' + (la * k0).toFixed(3) + ')';
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      for (const side of [0, 1]) {
+        const ox = side ? W - B * 0.4 : B * 0.4, oy = E.tY + E.tH, base = side ? Math.PI * 0.72 : Math.PI * 0.28;
+        for (let k = 0; k < 5; k++) {
+          const an = base + (k - 2) * 0.13 * (side ? -1 : 1) + Math.sin(lp * 7 + k) * 0.18;
+          ctx.moveTo(ox, oy); ctx.lineTo(ox + Math.cos(an) * L, oy + Math.sin(an) * L);
+        }
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  // the fixtures, turned with their beams
+  for (const h of E.heads) {
+    const c = Math.cos(h.ang), s = Math.sin(h.ang);
+    ctx.setTransform(c, s, -s, c, h.x, h.y);
+    ctx.fillStyle = '#150a26'; ctx.fillRect(-B * 0.24, -B * 0.1, B * 0.48, B * 0.36);
+    ctx.fillStyle = _RY_WHITE[_ryA(0.5 + pu * 0.3 + flash * 0.2)]; ctx.fillRect(-B * 0.17, B * 0.22, B * 0.34, B * 0.07);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // LEDs chasing along the bottom rail
+  const ly = E.tY + E.tH - 4;
+  for (let b = 0; b < 3; b++) {
+    ctx.fillStyle = b === 2 ? '#fbf6ff' : b === 1 ? '#c7a0ff' : '#5a2d9c';
+    for (let i = 0; i < E.leds.length; i++) {
+      const v = Math.sin(i * 0.45 - now * 5) + pu * 0.8 + flash;
+      if ((v > 1.2 ? 2 : v > 0.3 ? 1 : 0) !== b) continue;
+      ctx.fillRect(E.leds[i] - 1.5, ly, 3, 2);
+    }
+  }
+  // notes rising off the crowd and up the sides
+  const NS = _ryNoteSprites();
+  E.acc += dt * (1.2 + pu * 2.2);
+  if (big) E.acc += 3;
+  while (E.acc > 1) {
+    E.acc -= 1;
+    if (E.notes.length >= 26 || _ryRM) continue;
+    const r = Math.random(), x = r < 0.35 ? B * (0.4 + Math.random() * 1.6) : r < 0.7 ? W - B * (0.4 + Math.random() * 1.6) : W * (0.15 + Math.random() * 0.7);
+    E.notes.push({ x, y: bot - B * (r < 0.7 ? 2.8 : 1.4), vy: -(30 + Math.random() * 45), ph: Math.random() * 6.28, v: Math.floor(Math.random() * 3),
+      s: B / 64 * (0.8 + Math.random() * 0.5), life: 0, dur: r < 0.7 ? 5 + Math.random() * 4 : 3 + Math.random() * 2, rot: (Math.random() - 0.5) * 0.5 });
+  }
+  for (let i = E.notes.length - 1; i >= 0; i--) {
+    const n = E.notes[i];
+    n.life += dt;
+    if (n.life > n.dur) { E.notes.splice(i, 1); continue; }
+    n.y += n.vy * dt;
+    const p = n.life / n.dur, a = Math.min(1, p * 5) * Math.min(1, (1 - p) * 3);
+    const x = n.x + Math.sin(n.life * 1.6 + n.ph) * B * 0.35, sc = n.s * (1 + pu * 0.12), rr = n.rot + Math.sin(n.life * 1.2 + n.ph) * 0.2;
+    ctx.globalAlpha = a;
+    ctx.setTransform(Math.cos(rr) * sc, Math.sin(rr) * sc, -Math.sin(rr) * sc, Math.cos(rr) * sc, x, n.y);
+    ctx.drawImage(NS[n.v], -32, -40);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  // the crowd's arms, waving in a wave that runs along them, and their lightsticks
+  ctx.strokeStyle = '#06020d'; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(3, B * 0.13);
+  ctx.beginPath();
+  const sticks = [];
+  for (const p of E.crowd) {
+    if (!p.arm) continue;
+    const wave = _ryRM ? 0 : Math.sin(now * 2.6 - p.x * 0.012 + p.ph * 0.3) * 0.5;
+    const ang = -Math.PI / 2 + p.side * 0.35 + wave + p.side * (pu * 0.15 + flash * 0.2);
+    const sx0 = p.x + p.side * p.hr * 1.3, sy0 = p.hy + p.hr * 1.3, L = p.hr * 3.4;
+    const ex = sx0 + Math.cos(ang) * L, ey = sy0 + Math.sin(ang) * L;
+    ctx.moveTo(sx0, sy0); ctx.lineTo(ex, ey);
+    sticks.push([ex + Math.cos(ang) * p.hr * 0.9, ey + Math.sin(ang) * p.hr * 0.9, p]);
+  }
+  ctx.stroke();
+  ctx.globalCompositeOperation = 'lighter';
+  const gz = B * (0.35 + pu * 0.35 + flash * 0.2);
+  ctx.globalAlpha = 0.75;
+  for (const [x, y, p] of sticks) ctx.drawImage(_ryGlow(p.rgb), x - gz, y - gz, gz * 2, gz * 2);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#fbf6ff';
+  for (const [x, y] of sticks) ctx.fillRect(x - 2, y - 2, 4, 4);
+  // the speakers push
+  const CS = _ryConeSprite();
+  for (const s of E.spk) for (const [cx, cy, r] of s.cones) {
+    const k = r * (1 + pu * 0.1 + flash * 0.08);
+    ctx.drawImage(CS, cx - k, cy - k, k * 2, k * 2);
+  }
+  // equalizer bars sitting on the speakers
+  const bars = 6, gap = 2, maxH = B * 1.3, seg = Math.max(3, B * 0.09);
+  for (let side = 0; side < 2; side++) {
+    const s = E.spk[side], bwid = (s.sw - 4 - gap * (bars - 1)) / bars;
+    for (let i = 0; i < bars; i++) {
+      const k = side * bars + i;
+      const tgt = Math.min(1, 0.1 + (pu * 0.8 + _ryMusic * 0.3 + flash * 0.3) * (0.55 + 0.45 * Math.sin(now * (5 + i * 1.7) + k * 2.1)));
+      E.eq[k] += (tgt - E.eq[k]) * Math.min(1, dt * (tgt > E.eq[k] ? 22 : 7));
+      const x = s.x0 + 2 + i * (bwid + gap), n = Math.round(E.eq[k] * maxH / (seg + 1));
+      for (let j = 0; j < n; j++) {
+        const f = j / (maxH / (seg + 1));
+        ctx.fillStyle = f > 0.75 ? '#f4ecff' : f > 0.45 ? '#c9a2ff' : '#8a4fe6';
+        ctx.fillRect(x, s.y0 - 3 - (j + 1) * (seg + 1), bwid, seg);
+      }
+    }
+  }
+  // confetti cannons on a big beat
+  if ((big || (prism >= 0 && prism < 0.05)) && !_ryRM) {
+    for (const side of [0, 1]) for (let i = 0; i < 26 && E.confetti.length < 150; i++) {
+      const s = E.spk[side], an = -Math.PI / 2 + (side ? -1 : 1) * (0.2 + Math.random() * 0.45), sp = 500 + Math.random() * 500;
+      E.confetti.push({ x: s.x0 + s.sw / 2, y: s.y0, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp, rot: Math.random() * 6.28,
+        vr: (Math.random() - 0.5) * 14, w: 4 + Math.random() * 4, h: 7 + Math.random() * 5, c: Math.floor(Math.random() * 4), life: 0 });
+    }
+  }
+  const CC = ['#b983ff', '#ff8fd8', '#f6efff', '#7d4fe0'];
+  for (let i = E.confetti.length - 1; i >= 0; i--) {
+    const q = E.confetti[i];
+    q.life += dt; q.vy += 520 * dt;
+    const dr = 1 - Math.min(1, dt * 1.6);
+    q.vx = q.vx * dr + Math.sin(q.rot) * 30 * dt; q.vy *= dr;
+    q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.vr * dt;
+    if (q.y > bot + 10 || q.life > 4) { E.confetti.splice(i, 1); continue; }
+    const c = Math.cos(q.rot), s = Math.sin(q.rot), fl = Math.cos(q.rot * 1.7);
+    ctx.setTransform(c, s, -s * fl, c * fl, q.x, q.y);
+    ctx.fillStyle = CC[q.c]; ctx.fillRect(-q.w / 2, -q.h / 2, q.w, q.h);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // white shimmies all round the edge, a shower of them on a big beat
+  E.acc2 += dt * (3 + pu * 5);
+  let spawn = Math.floor(E.acc2) + (beat ? (big ? 10 : 3) : 0);
+  E.acc2 -= Math.floor(E.acc2);
+  while (spawn-- > 0 && E.shim.length < 46) {
+    const [x, y] = _ryEdgePoint(E);
+    E.shim.push({ x, y, t0: now + Math.random() * 0.1, dur: 0.45 + Math.random() * 0.6, s: 6 + Math.random() * 12 });
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  _ryPopDraw(ctx, E.shim, now, _rySpark('250,246,255'));
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// ── NOELLY: a nurse's station ────────────────────────────────────
+const _ryMedC = {};
+function _ryMedSprites(B) {
+  const key = Math.round(B);
+  if (_ryMedC[key]) return _ryMedC[key];
+  const k = key / 32, out = {};
+  { // a capsule, half purple and half white
+    const w = 46 * k, h = 20 * k, cv = _ryMk(w + 6, h + 6), g = cv.getContext('2d'), x = 3, y = 3, r = h / 2;
+    g.save(); _ryRoundRect(g, x, y, w, h, r); g.clip();
+    g.fillStyle = '#8f4be0'; g.fillRect(x, y, w / 2, h);
+    g.fillStyle = '#f2e9ff'; g.fillRect(x + w / 2, y, w / 2, h);
+    g.fillStyle = 'rgba(40,10,70,0.25)'; g.fillRect(x, y + h * 0.62, w, h * 0.38);
+    g.fillStyle = 'rgba(255,255,255,0.7)'; g.fillRect(x + r * 0.7, y + h * 0.18, w - r * 1.4, h * 0.14);
+    g.restore();
+    _ryRoundRect(g, x, y, w, h, r); g.strokeStyle = '#2b0c4e'; g.lineWidth = 1.6 * k; g.stroke();
+    g.beginPath(); g.moveTo(x + w / 2, y); g.lineTo(x + w / 2, y + h); g.stroke();
+    out.capsule = cv;
+  }
+  { // a round pill with a score across it
+    const r = 11 * k, cv = _ryMk(r * 2 + 6, r * 2 + 6), g = cv.getContext('2d'), c = r + 3;
+    g.fillStyle = '#efe6ff'; g.beginPath(); g.arc(c, c, r, 0, 6.2831853); g.fill();
+    g.fillStyle = 'rgba(120,70,190,0.3)'; g.beginPath(); g.arc(c + r * 0.25, c + r * 0.25, r * 0.85, 0, 6.2831853); g.fill();
+    g.fillStyle = '#f7f2ff'; g.beginPath(); g.arc(c - r * 0.12, c - r * 0.12, r * 0.78, 0, 6.2831853); g.fill();
+    g.strokeStyle = '#3a1466'; g.lineWidth = 1.4 * k;
+    g.beginPath(); g.arc(c, c, r, 0, 6.2831853); g.stroke();
+    g.strokeStyle = 'rgba(90,40,150,0.55)';
+    g.beginPath(); g.moveTo(c - r * 0.6, c); g.lineTo(c + r * 0.6, c); g.stroke();
+    out.pill = cv;
+  }
+  { // a syringe, needle to the left
+    const L = 72 * k, h = 20 * k, cv = _ryMk(L + 6, h + 6), g = cv.getContext('2d'), y = 3 + h / 2;
+    g.strokeStyle = '#d6cfe8'; g.lineWidth = 1.3 * k;
+    g.beginPath(); g.moveTo(3, y); g.lineTo(3 + 10 * k, y); g.stroke();
+    g.fillStyle = '#b7a6d8'; g.fillRect(3 + 10 * k, y - 2.5 * k, 6 * k, 5 * k);
+    const bx = 3 + 16 * k, bw = 34 * k, bh = 12 * k;
+    g.fillStyle = 'rgba(236,226,255,0.55)'; g.fillRect(bx, y - bh / 2, bw, bh);
+    g.fillStyle = '#9b55ee'; g.fillRect(bx, y - bh / 2 + 1.5 * k, bw * 0.62, bh - 3 * k);
+    g.fillStyle = 'rgba(255,255,255,0.6)'; g.fillRect(bx, y - bh / 2 + 1.5 * k, bw, 1.5 * k);
+    g.strokeStyle = 'rgba(60,20,100,0.6)'; g.lineWidth = k;
+    g.beginPath(); for (let i = 1; i < 6; i++) { g.moveTo(bx + bw * i / 6, y - bh / 2); g.lineTo(bx + bw * i / 6, y - bh / 2 + 4 * k); } g.stroke();
+    g.strokeStyle = '#3a1466'; g.lineWidth = 1.4 * k; g.strokeRect(bx, y - bh / 2, bw, bh);
+    g.fillStyle = '#d9cdef'; g.fillRect(bx + bw, y - h / 2 + 1, 3 * k, h - 2);
+    g.fillStyle = '#c4b4e6'; g.fillRect(bx + bw + 3 * k, y - 1.6 * k, 14 * k, 3.2 * k);
+    g.fillStyle = '#e9e0fb'; g.fillRect(bx + bw + 17 * k, y - 7 * k, 3.5 * k, 14 * k);
+    out.syringe = cv;
+  }
+  { // a plaster: pad in the middle, holes at each end
+    const w = 70 * k, h = 20 * k, cv = _ryMk(w + 6, h + 6), g = cv.getContext('2d'), x = 3, y = 3;
+    _ryRoundRect(g, x, y, w, h, 6 * k); g.fillStyle = '#eee0f8'; g.fill();
+    g.strokeStyle = '#9b7cc4'; g.lineWidth = 1.2 * k; g.stroke();
+    g.fillStyle = '#d4bcef'; g.fillRect(x + w / 2 - 12 * k, y + 3 * k, 24 * k, h - 6 * k);
+    g.fillStyle = 'rgba(120,80,170,0.45)';
+    for (const ex of [x + 8 * k, x + w - 16 * k]) for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) g.fillRect(ex + i * 3.5 * k, y + 6 * k + j * 6 * k, 1.6 * k, 1.6 * k);
+    out.plaster = cv;
+  }
+  { // a small medical cross
+    const s = 22 * k, cv = _ryMk(s + 8, s + 8), g = cv.getContext('2d'), c = s / 2 + 4, a = s * 0.18;
+    g.fillStyle = '#b680ff';
+    g.fillRect(c - a, c - s / 2, a * 2, s); g.fillRect(c - s / 2, c - a, s, a * 2);
+    g.fillStyle = 'rgba(255,255,255,0.75)'; g.fillRect(c - a * 0.4, c - s / 2 + 2, a * 0.8, s * 0.3);
+    out.cross = cv;
+  }
+  { // a bubble with a heart in it
+    const r = 12 * k, cv = _ryMk(r * 2 + 4, r * 2 + 4), g = cv.getContext('2d'), c = r + 2;
+    g.fillStyle = 'rgba(220,180,255,0.12)'; g.beginPath(); g.arc(c, c, r, 0, 6.2831853); g.fill();
+    g.strokeStyle = 'rgba(236,214,255,0.7)'; g.lineWidth = 1.2; g.stroke();
+    g.fillStyle = 'rgba(255,150,220,0.8)'; g.beginPath(); _ryHeartPath(g, c, c + r * 0.05, r * 0.45); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.ellipse(c - r * 0.4, c - r * 0.45, r * 0.22, r * 0.12, -0.6, 0, 6.2831853); g.fill();
+    out.bubble = cv;
+  }
+  return (_ryMedC[key] = out);
+}
+function _ryNurseBake(E, g) {
+  const { W, B, top, bot } = E, S = _ryMedSprites(B);
+  _rySideHaze(g, E, '190,90,220', 0.16);
+  // crossed plasters in every corner
+  const pl = S.plaster;
+  for (const [x, y, sx, sy] of [[0, top, 1, 1], [W, top, -1, 1], [0, bot, 1, -1], [W, bot, -1, -1]]) {
+    for (const a of [0.785, -0.785]) {
+      g.setTransform(sx, 0, 0, sy, x, y);
+      g.translate(B * 1.15, B * 1.15); g.rotate(a);
+      g.drawImage(pl, -pl.width / 2, -pl.height / 2);
+    }
+  }
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  // a drip, hanging in the top right corner
+  const bw = B * 1.35, bh = B * 1.9, bx = W - B * 3.1, by = top + B * 0.9;
+  g.strokeStyle = 'rgba(210,190,240,0.6)'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(bx + bw / 2, top); g.lineTo(bx + bw / 2, by - 8); g.stroke();
+  g.beginPath(); g.arc(bx + bw / 2, by - 4, 4, Math.PI, 0); g.stroke();
+  _ryRoundRect(g, bx, by, bw, bh, B * 0.3); g.fillStyle = 'rgba(236,226,255,0.18)'; g.fill();
+  g.save(); _ryRoundRect(g, bx, by, bw, bh, B * 0.3); g.clip();
+  const lv = by + bh * 0.3, fg = g.createLinearGradient(0, lv, 0, by + bh);
+  fg.addColorStop(0, 'rgba(180,110,255,0.75)'); fg.addColorStop(1, 'rgba(110,40,200,0.9)');
+  g.fillStyle = fg; g.fillRect(bx, lv, bw, by + bh - lv);
+  g.fillStyle = 'rgba(255,255,255,0.5)'; g.fillRect(bx + bw * 0.14, by + bh * 0.08, bw * 0.08, bh * 0.8);
+  g.fillStyle = 'rgba(248,244,255,0.9)'; g.fillRect(bx + bw * 0.28, by + bh * 0.4, bw * 0.5, bh * 0.28);
+  g.fillStyle = '#7a3fd0'; g.font = Math.round(B * 0.28) + "px 'Press Start 2P', monospace";
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('Rx', bx + bw * 0.53, by + bh * 0.545);
+  g.restore();
+  _ryRoundRect(g, bx, by, bw, bh, B * 0.3); g.strokeStyle = 'rgba(220,200,255,0.75)'; g.lineWidth = 1.5; g.stroke();
+  const dcx = bx + bw / 2, dy0 = by + bh + 4, dh = B * 0.8, dw = B * 0.34;
+  g.fillStyle = '#c9b6ea'; g.fillRect(dcx - 2, by + bh, 4, 5);
+  _ryRoundRect(g, dcx - dw / 2, dy0, dw, dh, 3); g.fillStyle = 'rgba(236,226,255,0.2)'; g.fill();
+  g.strokeStyle = 'rgba(220,200,255,0.7)'; g.lineWidth = 1; g.stroke();
+  g.fillStyle = 'rgba(160,90,240,0.8)'; g.fillRect(dcx - dw / 2 + 1, dy0 + dh * 0.72, dw - 2, dh * 0.28 - 1);
+  E.iv = { x: dcx, y0: dy0 + 3, y1: dy0 + dh * 0.72, bx, by, bw, bh };
+  const tube = () => {
+    g.beginPath(); g.moveTo(dcx, dy0 + dh);
+    g.bezierCurveTo(dcx, dy0 + dh + B * 2, W - B * 0.35, dy0 + dh + B * 1.5, W - B * 0.35, dy0 + dh + B * 4);
+    g.lineTo(W - B * 0.35, bot - B * 2.6);
+  };
+  tube(); g.strokeStyle = 'rgba(210,190,245,0.55)'; g.lineWidth = 3.5; g.stroke();
+  tube(); g.strokeStyle = 'rgba(170,110,245,0.55)'; g.lineWidth = 1.2; g.stroke();
+  // a stethoscope down the left side
+  const cy0 = top + (bot - top) * 0.42, chx = B * 1.9, chy = bot - B * 3.2;
+  g.lineCap = 'round';
+  for (const [w, c] of [[5, '#1a0a30'], [3.2, '#6d45b0'], [1, 'rgba(230,210,255,0.6)']]) {
+    g.strokeStyle = c; g.lineWidth = w;
+    g.beginPath();
+    g.moveTo(B * 0.25, cy0 - B * 0.9); g.quadraticCurveTo(B * 0.95, cy0 - B * 0.2, B * 0.6, cy0 + B * 0.4);
+    g.moveTo(B * 0.25, cy0 + B * 0.1); g.quadraticCurveTo(B * 0.7, cy0 + B * 0.2, B * 0.6, cy0 + B * 0.4);
+    g.moveTo(B * 0.6, cy0 + B * 0.4); g.bezierCurveTo(B * 0.3, cy0 + B * 3, B * 2.8, chy - B * 2.5, chx, chy - B * 0.55);
+    g.stroke();
+  }
+  g.fillStyle = '#d7ccef'; g.beginPath(); g.arc(chx, chy, B * 0.55, 0, 6.2831853); g.fill();
+  g.fillStyle = '#9a86c8'; g.beginPath(); g.arc(chx, chy, B * 0.4, 0, 6.2831853); g.fill();
+  g.fillStyle = '#efe8ff'; g.beginPath(); g.arc(chx - B * 0.12, chy - B * 0.12, B * 0.14, 0, 6.2831853); g.fill();
+  g.strokeStyle = '#2a1648'; g.lineWidth = 1.5; g.beginPath(); g.arc(chx, chy, B * 0.55, 0, 6.2831853); g.stroke();
+  // the monitor along the bottom: a bezel, a grid, labels, and room for the readout
+  const sh = B * 1.6, sx0 = B * 3.2, sw = Math.max(B * 7, W - B * 6.4), sy0 = bot - B * 0.35 - sh, ro = B * 3.2;
+  _ryRoundRect(g, sx0 - 3, sy0 - 3, sw + 6, sh + 6, 10); g.fillStyle = 'rgba(40,24,64,0.7)'; g.fill();
+  _ryRoundRect(g, sx0, sy0, sw, sh, 8); g.fillStyle = 'rgba(6,2,14,0.72)'; g.fill();
+  g.strokeStyle = 'rgba(190,140,255,0.4)'; g.lineWidth = 1; g.stroke();
+  g.save(); _ryRoundRect(g, sx0, sy0, sw, sh, 8); g.clip();
+  g.strokeStyle = 'rgba(190,140,255,0.07)';
+  g.beginPath();
+  for (let x = sx0; x < sx0 + sw; x += 12) { g.moveTo(x + 0.5, sy0); g.lineTo(x + 0.5, sy0 + sh); }
+  for (let y = sy0; y < sy0 + sh; y += 12) { g.moveTo(sx0, y + 0.5); g.lineTo(sx0 + sw, y + 0.5); }
+  g.stroke();
+  g.restore();
+  g.strokeStyle = 'rgba(190,140,255,0.3)';
+  g.beginPath(); g.moveTo(sx0 + sw - ro + 0.5, sy0 + 6); g.lineTo(sx0 + sw - ro + 0.5, sy0 + sh - 6); g.stroke();
+  g.font = Math.max(6, Math.round(B * 0.2)) + "px 'Press Start 2P', monospace";
+  g.textAlign = 'left'; g.textBaseline = 'top';
+  g.fillStyle = 'rgba(210,180,255,0.75)';
+  g.fillText(E.label || 'NOELLY', sx0 + 10, sy0 + 6);
+  g.fillText('ECG II', sx0 + 10 + B * 2.4, sy0 + 6);
+  g.fillText('HR', sx0 + sw - ro + 8, sy0 + 6);
+  g.fillStyle = 'rgba(150,230,255,0.75)';
+  g.textBaseline = 'bottom';
+  g.fillText('SpO2 98%', sx0 + sw - ro + 8, sy0 + sh - 6);
+  E.strip = { x: sx0 + 34, y: sy0 + sh * 0.62, w: sw - 44 - ro, A: sh * 0.4, y0: sy0, h: sh, x0: sx0, sw, ro };
+  E.ecgN = Math.max(8, Math.floor(E.strip.w / 3));
+  E.ecg = new Float32Array(E.ecgN);
+  E.head = 0; E.bpm = 72; E.beep = -9;
+  // things floating in the side margins, clear of the drip and the stethoscope's end
+  const kinds = ['capsule', 'pill', 'syringe', 'capsule', 'cross', 'pill', 'syringe'];
+  const n = Math.max(3, Math.round((bot - top) / (B * 3.4)));
+  E.items = [];
+  for (let i = 0; i < n * 2; i++) {
+    const side = i % 2, u = (Math.floor(i / 2) + 0.5) / n;
+    const y = top + B * 3 + (bot - top - B * 6.6) * u + (_ryRnd(i * 1.7) - 0.5) * B;
+    if (side && y < dy0 + dh + B * 1.5) continue;
+    E.items.push({ side, x: side ? W - B * (0.95 + _ryRnd(i) * 0.3) : B * (0.75 + _ryRnd(i) * 0.3), y,
+      k: kinds[(i * 3 + side * 2) % kinds.length], rot: (_ryRnd(i * 3.3) - 0.5) * 2.4, ph: _ryRnd(i * 7.7) * 6.28, sp: 0.35 + _ryRnd(i * 2.1) * 0.4 });
+  }
+  E.shim = []; E.bub = []; E.drops = [];
+}
+// a heartbeat trace, P, QRS and T, with the R peak on the lub; the heart's
+// real beats, so a rush shows up on the monitor too
+function _ryPqrst(x) {
+  const g = (c, w, a) => { const d = (x - c) / w; return a * Math.exp(-0.5 * d * d); };
+  return g(-0.17, 0.03, 0.13) + g(-0.018, 0.009, -0.16) + g(0, 0.012, 1) + g(0.022, 0.011, -0.32) + g(0.24, 0.05, 0.27);
+}
+function _ryEcgV(t) {
+  const L = _ryLubs;
+  let v = 0;
+  for (let i = L.length - 1; i >= 0; i--) {
+    const x = t - L[i];
+    if (x < -0.3) continue;
+    if (x > 0.6) break;
+    v += _ryPqrst(x);
+  }
+  const last = L.length ? L[L.length - 1] : t;
+  if (t - last < _ryPer) v += _ryPqrst(t - (last + _ryPer));
+  return v;
+}
+function _ryNurse(ctx, E, now, dt, beat) {
+  const S = _ryMedSprites(E.B), pu = _ryPulse, B = E.B, rush = _ryEvP('rush', now), rm = _ryRM;
+  // a drop falls in the drip chamber on every beat, and light moves over the bag
+  if (beat) { E.drops.push(now); E.beep = now; }
+  const iv = E.iv;
+  ctx.fillStyle = 'rgba(210,160,255,0.95)';
+  for (let i = E.drops.length - 1; i >= 0; i--) {
+    const p = (now - E.drops[i]) / 0.32;
+    if (p >= 1) { E.drops.splice(i, 1); continue; }
+    ctx.fillRect(iv.x - 1.5, iv.y0 + (iv.y1 - iv.y0) * p * p - 2, 3, 4);
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.25 + pu * 0.2;
+  ctx.fillStyle = '#b98cff'; ctx.fillRect(iv.bx + 2, iv.by + ((now * 0.25) % 1) * iv.bh, iv.bw - 4, 2);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  // the monitor sweeps across and writes over itself, like a real one
+  const st = E.strip, n = E.ecgN, speed = n / 4.2, amp = 1 + _ryMusic * 0.25;
+  const h0 = E.head, h1 = h0 + speed * dt;
+  for (let s = Math.ceil(h0); s <= h1; s++) E.ecg[((s % n) + n) % n] = _ryEcgV(now - (h1 - s) / speed) * amp;
+  E.head = h1 >= n ? h1 - n : h1;
+  const hi = Math.floor(E.head), gap = 10;
+  const bucket = i => { const rel = (hi - i + n) % n; return rel >= n - gap ? -1 : rel < n * 0.34 ? 0 : rel < n * 0.67 ? 1 : 2; };
+  const hue = rush >= 0 ? ['255,120,200', '255,200,235'] : ['200,120,255', '240,226,255'];
+  ctx.lineJoin = 'round';
+  for (let b = 0; b < 3; b++) {
+    ctx.beginPath();
+    let pen = false;
+    for (let i = 0; i < n; i++) {
+      if (bucket(i) !== b) { pen = false; continue; }
+      const x = st.x + i * 3, y = st.y - E.ecg[i] * st.A;
+      if (pen) ctx.lineTo(x, y);
+      else {
+        if (i > 0 && bucket(i - 1) >= 0) { ctx.moveTo(st.x + (i - 1) * 3, st.y - E.ecg[i - 1] * st.A); ctx.lineTo(x, y); }
+        else ctx.moveTo(x, y);
+        pen = true;
+      }
+    }
+    const a = [1, 0.6, 0.3][b];
+    ctx.strokeStyle = 'rgba(' + hue[0] + ',' + (0.3 * a).toFixed(3) + ')'; ctx.lineWidth = 4.5; ctx.stroke();
+    ctx.strokeStyle = 'rgba(' + hue[1] + ',' + (0.95 * a).toFixed(3) + ')'; ctx.lineWidth = 1.6; ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  const hx = st.x + hi * 3, hy = st.y - E.ecg[hi] * st.A, bf = Math.max(0, 1 - (now - E.beep) / 0.25), hz = 12 + bf * 16;
+  ctx.drawImage(_ryGlow(rush >= 0 ? '255,150,220' : '220,170,255'), hx - hz, hy - hz, hz * 2, hz * 2);
+  ctx.globalCompositeOperation = 'source-over';
+  // the readout: the rate as it really is, from the last few beats
+  const L = _ryLubs, m = Math.min(L.length, 5);
+  const bpm = m >= 3 ? 60 * (m - 1) / Math.max(0.1, L[L.length - 1] - L[L.length - m]) : 72;
+  E.bpm += (bpm - E.bpm) * Math.min(1, dt * 3);
+  const alarm = rush >= 0 && Math.floor(now * 6) % 2 === 0;
+  const rx = st.x0 + st.sw - st.ro, rcy = st.y0 + st.h * 0.58;
+  ctx.fillStyle = alarm ? '#ff8fd0' : _RY_LILAC[_ryA(0.75 + pu * 0.25)];
+  ctx.beginPath(); _ryHeartPath(ctx, rx + B * 0.55, rcy, B * 0.22 * (1 + pu * 0.3)); ctx.fill();
+  ctx.font = Math.round(B * 0.62) + "px 'Press Start 2P', monospace";
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = alarm ? '#ff8fd0' : '#eadbff';
+  ctx.fillText(String(Math.round(E.bpm)), st.x0 + st.sw - 12, rcy);
+  if (rush >= 0) {
+    ctx.strokeStyle = alarm ? 'rgba(255,120,200,0.9)' : 'rgba(255,120,200,0.3)'; ctx.lineWidth = 2;
+    _ryRoundRect(ctx, st.x0 - 1, st.y0 - 1, st.sw + 2, st.h + 2, 9); ctx.stroke();
+  }
+  // the pills and syringes, bobbing, giving a little on the beat, shaking in a rush
+  for (const it of E.items) {
+    const spr = S[it.k], bob = rm ? 0 : Math.sin(now * it.sp + it.ph) * B * 0.3;
+    const jit = rush >= 0 ? (Math.random() - 0.5) * 3 : 0;
+    const rot = it.rot + (rm ? 0 : Math.sin(now * it.sp * 0.7 + it.ph) * 0.35), sc = 0.72 * (1 + pu * 0.08);
+    const c = Math.cos(rot) * sc, s = Math.sin(rot) * sc;
+    ctx.setTransform(c, s, -s, c, it.x + jit, it.y + bob);
+    ctx.drawImage(spr, -spr.width / 2, -spr.height / 2);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // bubbles with hearts in them, rising up the sides
+  if (!rm && Math.random() < dt * (1.2 + pu) && E.bub.length < 16) {
+    const side = Math.random() < 0.5;
+    E.bub.push({ x: side ? B * (0.6 + Math.random() * 1.4) : E.W - B * (0.6 + Math.random() * 1.4), y: E.bot - B * 2.2,
+      vy: -(35 + Math.random() * 35), ph: Math.random() * 6.28, s: 0.5 + Math.random() * 0.6, life: 0, dur: 4 + Math.random() * 3 });
+  }
+  for (let i = E.bub.length - 1; i >= 0; i--) {
+    const b = E.bub[i];
+    b.life += dt; b.y += b.vy * dt;
+    if (b.life > b.dur || b.y < E.top + B) { E.bub.splice(i, 1); continue; }
+    const p = b.life / b.dur, z = S.bubble.width * b.s;
+    ctx.globalAlpha = Math.min(1, p * 4) * Math.min(1, (1 - p) * 3);
+    ctx.drawImage(S.bubble, b.x + Math.sin(b.life * 2 + b.ph) * B * 0.3 - z / 2, b.y - z / 2, z, z);
+  }
+  ctx.globalAlpha = 1;
+  // crosses and sparkles lighting up round the edge on the beat
+  if (beat) {
+    const cnt = _ryBeatStr > 0.8 || rush >= 0 ? 5 : 2;
+    for (let i = 0; i < cnt && E.shim.length < 24; i++) {
+      const [x, y] = _ryEdgePoint(E);
+      E.shim.push({ x, y, t0: now + i * 0.05, dur: 0.6, s: 7 + Math.random() * 8, spr: i & 1 ? S.cross : null });
+    }
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  _ryPopDraw(ctx, E.shim, now, _rySpark('236,190,255'));
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// ── LUMYNETTE: a princess ────────────────────────────────────────
+const _RY_ROSE_RGB = '146,70,214';
+const _RY_GOLD = _ryRamp('255,214,130');
+function _ryGoldGrad(g, x0, y0, x1, y1) {
+  const gr = g.createLinearGradient(x0, y0, x1, y1);
+  [[0, '#7a4c12'], [0.2, '#f6d27a'], [0.42, '#a0701f'], [0.62, '#ffe8a6'], [0.82, '#b07a22'], [1, '#f0c86a']].forEach(s => gr.addColorStop(s[0], s[1]));
+  return gr;
+}
+function _ryLeaf(g, x, y, ang, len) {
+  g.save(); g.translate(x, y); g.rotate(ang);
+  g.beginPath(); g.moveTo(0, 0);
+  g.quadraticCurveTo(len * 0.5, -len * 0.32, len, 0);
+  g.quadraticCurveTo(len * 0.5, len * 0.32, 0, 0);
+  g.fillStyle = '#2f4a3c'; g.fill();
+  g.strokeStyle = 'rgba(160,210,170,0.35)'; g.lineWidth = 0.8;
+  g.beginPath(); g.moveTo(len * 0.1, 0); g.lineTo(len * 0.9, 0); g.stroke();
+  g.restore();
+}
+// one corner, drawn top left and mirrored round
+function _ryFiligree(g, B) {
+  const m = B * 0.55, R = B * 3.4;
+  g.lineCap = 'round';
+  for (const [w, c] of [[4.2, '#2a1606'], [2.4, '#d9a441'], [0.9, '#fff1b8']]) {
+    g.strokeStyle = c; g.lineWidth = w;
+    g.beginPath();
+    g.moveTo(m, R); g.bezierCurveTo(m, B * 1.4, B * 1.4, m, R, m);
+    g.moveTo(R, m); g.arc(R + B * 0.32, m + B * 0.32, B * 0.45, Math.PI * 1.25, Math.PI * 3.0);
+    g.moveTo(m, R); g.arc(m + B * 0.32, R + B * 0.32, B * 0.45, Math.PI * 0.75, Math.PI * 2.5, true);
+    g.moveTo(m + B * 0.6, m + B * 0.6); g.bezierCurveTo(B * 2.1, B * 1.3, B * 1.3, B * 2.1, B * 2.3, B * 2.3);
+    g.arc(B * 2.3 + B * 0.22, B * 2.3 - B * 0.22, B * 0.31, Math.PI * 0.75, Math.PI * 2.4);
+    g.stroke();
+  }
+  g.fillStyle = '#fff4d0';
+  for (const [x, y] of [[m + B * 0.45, m + B * 0.45], [m, R * 0.62], [R * 0.62, m]]) { g.beginPath(); g.arc(x, y, Math.max(1.5, B * 0.07), 0, 6.2831853); g.fill(); }
+  _ryLeaf(g, m + B * 0.9, m + B * 0.9, 0.3, B * 1.1);
+  _ryLeaf(g, m + B * 0.9, m + B * 0.9, 1.3, B * 1.0);
+  _ryLeaf(g, m + B * 1.9, m + B * 0.4, -0.2, B * 0.8);
+  _ryLeaf(g, m + B * 0.4, m + B * 1.9, 1.75, B * 0.8);
+  for (const [x, y, px, seed] of [[m + B * 0.75, m + B * 0.75, B * 0.42, 2], [m + B * 1.95, m + B * 0.35, B * 0.27, 7], [m + B * 0.35, m + B * 1.95, B * 0.27, 11]]) {
+    const r = Math.max(4, Math.round(px)), spr = _mahRoseSprite(r, _RY_ROSE_RGB, seed, false), d = r * 3.2;
+    g.drawImage(spr, x - d / 2, y - d / 2, d, d);
+  }
+}
+function _ryCrown(g, cx, top, w) {
+  const h = w * 0.62, by = top + h;
+  const peaks = [[-0.5, 0.3], [-0.25, 0.12], [0, 0], [0.25, 0.12], [0.5, 0.3]];
+  g.beginPath();
+  g.moveTo(cx - w * 0.5, by);
+  peaks.forEach(([px, py], i) => {
+    g.lineTo(cx + px * w, top + py * h);
+    if (i < 4) g.lineTo(cx + (px + 0.125) * w, top + 0.62 * h);
+  });
+  g.lineTo(cx + w * 0.5, by);
+  g.closePath();
+  g.fillStyle = _ryGoldGrad(g, cx - w / 2, top, cx + w / 2, by); g.fill();
+  g.strokeStyle = '#3a2208'; g.lineWidth = 1.5; g.stroke();
+  g.fillStyle = '#6e4412'; g.fillRect(cx - w * 0.5, by - h * 0.26, w, h * 0.26);
+  g.strokeRect(cx - w * 0.5, by - h * 0.26, w, h * 0.26);
+  g.fillStyle = '#fff4d0';
+  for (const [px, py] of peaks) { g.beginPath(); g.arc(cx + px * w, top + py * h, Math.max(1.8, w * 0.045), 0, 6.2831853); g.fill(); }
+  for (const px of [-0.28, 0, 0.28]) {
+    g.fillStyle = '#9b4fe8'; g.beginPath(); g.arc(cx + px * w, by - h * 0.13, Math.max(2, w * 0.06), 0, 6.2831853); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.arc(cx + px * w - 1, by - h * 0.15, Math.max(0.8, w * 0.02), 0, 6.2831853); g.fill();
+  }
+  return [cx, by - h * 0.13, top];
+}
+// a teardrop of amethyst on a gold cap, hanging from its top centre
+function _ryGemSprite() {
+  if (_ryGemSprite._c) return _ryGemSprite._c;
+  const cv = _ryMk(24, 40), g = cv.getContext('2d');
+  g.fillStyle = '#d9a441'; g.fillRect(9, 0, 6, 5);
+  g.strokeStyle = '#3a2208'; g.lineWidth = 1; g.strokeRect(9.5, 0.5, 5, 4);
+  g.beginPath(); g.moveTo(12, 5); g.bezierCurveTo(22, 14, 22, 26, 12, 38); g.bezierCurveTo(2, 26, 2, 14, 12, 5); g.closePath();
+  const lg = g.createLinearGradient(4, 8, 20, 36);
+  lg.addColorStop(0, '#f2e2ff'); lg.addColorStop(0.35, '#b27aff'); lg.addColorStop(0.7, '#6a2bc4'); lg.addColorStop(1, '#2a0a55');
+  g.fillStyle = lg; g.fill();
+  g.strokeStyle = 'rgba(40,10,70,0.8)'; g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,0.35)';
+  g.beginPath(); g.moveTo(12, 6); g.lineTo(12, 37); g.moveTo(6, 19); g.lineTo(18, 19); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.ellipse(9, 15, 1.6, 3, 0.4, 0, 6.2831853); g.fill();
+  return (_ryGemSprite._c = cv);
+}
+function _ryPetalSprite() {
+  if (_ryPetalSprite._c) return _ryPetalSprite._c;
+  const cv = _ryMk(24, 16), g = cv.getContext('2d');
+  const gr = g.createRadialGradient(9, 6, 1, 12, 8, 12);
+  gr.addColorStop(0, '#e2c4ff'); gr.addColorStop(0.5, '#9a55e6'); gr.addColorStop(1, '#4e1b8c');
+  g.fillStyle = gr;
+  g.beginPath(); g.moveTo(2, 8); g.quadraticCurveTo(10, -2, 22, 7); g.quadraticCurveTo(12, 17, 2, 8); g.fill();
+  return (_ryPetalSprite._c = cv);
+}
+function _ryPrincessBake(E, g) {
+  const { W, B, top, bot } = E, m = B * 0.55, midY = (top + bot) / 2;
+  _rySideHaze(g, E, '150,70,214', 0.18);
+  // rose vines climbing the side lines from every corner toward the middle
+  E.buds = [];
+  g.lineCap = 'round';
+  for (const side of [0, 1]) for (const dir of [1, -1]) {
+    const sg = side ? -1 : 1, x = side ? W - m : m;
+    const y0 = dir > 0 ? top + B * 3.6 : bot - B * 3.6, y1 = midY - dir * B * 1.2;
+    const nseg = Math.max(4, Math.round(Math.abs(y1 - y0) / (B * 0.9)));
+    const pts = [];
+    g.strokeStyle = '#2d4a3a'; g.lineWidth = Math.max(1.6, B * 0.07);
+    g.beginPath(); g.moveTo(x, y0);
+    let px0 = x, py0 = y0;
+    for (let k = 1; k <= nseg; k++) {
+      const u = k / nseg, yy = y0 + (y1 - y0) * u, xx = x + sg * Math.sin(u * Math.PI * 3 + side) * B * 0.28;
+      g.quadraticCurveTo((px0 + xx) / 2 + sg * B * 0.2, (py0 + yy) / 2, xx, yy);
+      pts.push([xx, yy, u]); px0 = xx; py0 = yy;
+    }
+    g.stroke();
+    pts.forEach(([xx, yy, u], k) => {
+      _ryLeaf(g, xx, yy, (side ? Math.PI : 0) + (k & 1 ? -0.7 : 0.7) * sg, B * (0.55 - u * 0.2));
+      if (k % 2 === 1) E.buds.push({ x: xx + sg * B * 0.12, y: yy, px: Math.max(4, Math.round(B * (0.2 - u * 0.05))), seed: k + side * 7 + (dir > 0 ? 0 : 3), ph: u });
+    });
+  }
+  // a double gold line all round, just inside the edge
+  const gold = _ryGoldGrad(g, 0, top, W, bot);
+  g.strokeStyle = gold;
+  g.lineWidth = 2; g.strokeRect(m, top + m, W - m * 2, bot - top - m * 2);
+  g.lineWidth = 1; g.strokeRect(m + 5, top + m + 5, W - m * 2 - 10, bot - top - m * 2 - 10);
+  E.rect = [m, top + m, W - m * 2, bot - top - m * 2];
+  for (const [x, y, sx, sy] of [[0, top, 1, 1], [W, top, -1, 1], [0, bot, 1, -1], [W, bot, -1, -1]]) {
+    g.setTransform(sx, 0, 0, sy, x, y);
+    _ryFiligree(g, B);
+  }
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  // a gold diamond in the middle of each side
+  for (const [x, y] of [[m, midY], [W - m, midY]]) {
+    g.beginPath(); g.moveTo(x, y - B * 0.35); g.lineTo(x + B * 0.22, y); g.lineTo(x, y + B * 0.35); g.lineTo(x - B * 0.22, y); g.closePath();
+    g.fillStyle = _ryGoldGrad(g, x - B * 0.3, y - B * 0.3, x + B * 0.3, y + B * 0.3); g.fill();
+    g.strokeStyle = '#3a2208'; g.lineWidth = 1; g.stroke();
+    g.fillStyle = '#9b4fe8'; g.beginPath(); g.arc(x, y, B * 0.08, 0, 6.2831853); g.fill();
+  }
+  // strings of pearls swagged along the top, a gem hanging from each
+  const crownW = B * 2.1, lineY = top + m, xL0 = B * 3.9, xL1 = W / 2 - crownW * 0.75;
+  E.pend = [];
+  if (xL1 - xL0 > B * 2) {
+    const nsw = Math.max(1, Math.round((xL1 - xL0) / 280)), segs = [];
+    for (let i = 0; i < nsw; i++) {
+      const a = xL0 + (xL1 - xL0) * i / nsw, b = xL0 + (xL1 - xL0) * (i + 1) / nsw;
+      segs.push([a, b], [W - b, W - a]);
+    }
+    const pr = Math.max(1.8, B * 0.075);
+    for (const [a, b] of segs) {
+      const depth = Math.min(B * 1.1, (b - a) * 0.18), n = Math.max(6, Math.round((b - a) / 9));
+      g.fillStyle = '#f3ead6';
+      g.beginPath();
+      for (let k = 0; k <= n; k++) { const u = k / n, x = a + (b - a) * u, y = lineY + 3 + Math.sin(Math.PI * u) * depth; g.moveTo(x + pr, y); g.arc(x, y, pr, 0, 6.2831853); }
+      g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.9)';
+      for (let k = 0; k <= n; k++) { const u = k / n; g.fillRect(a + (b - a) * u - pr * 0.4, lineY + 3 + Math.sin(Math.PI * u) * depth - pr * 0.5, 1, 1); }
+      E.pend.push({ x: (a + b) / 2, y: lineY + 3 + depth + pr, ph: a * 0.01, kick: 0, gx: 0, gy: 0 });
+    }
+  }
+  // her name on a ribbon at the bottom
+  const text = E.label || 'LUMYNETTE', fs = Math.max(8, Math.round(B * 0.34));
+  g.font = fs + "px 'Press Start 2P', monospace";
+  const tw = g.measureText(text).width, bw = tw + B * 1.6, bh = B * 0.9, bcx = W / 2, bcy = bot - m;
+  g.fillStyle = '#4a1a86';
+  for (const s of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(bcx + s * (bw / 2 - B * 0.2), bcy - bh * 0.25);
+    g.lineTo(bcx + s * (bw / 2 + B * 0.7), bcy - bh * 0.15);
+    g.lineTo(bcx + s * (bw / 2 + B * 0.4), bcy + bh * 0.25);
+    g.lineTo(bcx + s * (bw / 2 + B * 0.75), bcy + bh * 0.62);
+    g.lineTo(bcx + s * (bw / 2 - B * 0.2), bcy + bh * 0.62);
+    g.closePath(); g.fill();
+  }
+  const rg = g.createLinearGradient(0, bcy - bh / 2, 0, bcy + bh / 2);
+  rg.addColorStop(0, '#9a5ae8'); rg.addColorStop(0.5, '#6a2ec0'); rg.addColorStop(1, '#3e1478');
+  g.fillStyle = rg; g.fillRect(bcx - bw / 2, bcy - bh / 2, bw, bh);
+  g.strokeStyle = _ryGoldGrad(g, bcx - bw / 2, 0, bcx + bw / 2, 0); g.lineWidth = 2;
+  g.strokeRect(bcx - bw / 2 + 3, bcy - bh / 2 + 3, bw - 6, bh - 6);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#2a1206'; g.fillText(text, bcx + 1, bcy + 2);
+  g.fillStyle = _ryGoldGrad(g, bcx - tw / 2, bcy - fs, bcx + tw / 2, bcy + fs); g.fillText(text, bcx, bcy + 1);
+  // and a crown at the top, sitting on the line
+  E.jewel = _ryCrown(g, W / 2, top + m - B * 0.85, crownW);
+  // where the glitter twinkles
+  E.glit = [];
+  for (let i = 0; i < 60; i++) { const [x, y] = _ryEdgePoint(E); E.glit.push({ x, y, ph: Math.random() * 6.28, tw: 1 + Math.random() * 3 }); }
+  E.petals = []; E.shim = []; E.gold = [];
+  E.runners = [0, 0.33, 0.66];
+}
+function _ryPrincess(ctx, E, now, dt, beat) {
+  const { W, B, top, bot } = E, pu = _ryPulse, rm = _ryRM;
+  const gs = _rySpark('255,222,140');
+  // the buds on the vines open on the beat, one after another up the vine
+  const since = now - _ryBeatAt;
+  for (const b of E.buds) {
+    const q = since - b.ph * 0.25;
+    const open = q > 0 ? Math.max(0, 1 - q / 0.5) : 0;
+    const sc = 0.72 + pu * 0.12 + open * 0.3 * _ryBeatStr;
+    const spr = _mahRoseSprite(b.px, _RY_ROSE_RGB, b.seed, false), d = b.px * 3.2 * sc;
+    ctx.drawImage(spr, b.x - d / 2, b.y - d / 2, d, d);
+  }
+  // the gems, swinging, kicked by a big beat
+  const GEM = _ryGemSprite(), gk = B / 40 * 1.6;
+  for (const p of E.pend) {
+    if (beat && _ryBeatStr > 0.8) p.kick += 0.35;
+    p.kick *= Math.max(0, 1 - dt * 2.5);
+    const a = (rm ? 0 : Math.sin(now * 1.3 + p.ph) * 0.22) + Math.sin(now * 8 + p.ph) * p.kick;
+    const c = Math.cos(a) * gk, s = Math.sin(a) * gk;
+    ctx.setTransform(c, s, -s, c, p.x, p.y);
+    ctx.drawImage(GEM, -12, 0);
+    p.gx = p.x - Math.sin(a) * 24 * gk; p.gy = p.y + Math.cos(a) * 24 * gk;
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of E.pend) {
+    const z = B * (0.18 + pu * 0.35);
+    ctx.globalAlpha = 0.3 + pu * 0.7;
+    ctx.drawImage(_rySpark('236,200,255'), p.gx - z, p.gy - z, z * 2, z * 2);
+  }
+  ctx.globalAlpha = 1;
+  // glints running round the gold line
+  const [rx, ry, rw, rh] = E.rect, per = 2 * (rw + rh);
+  for (let i = 0; i < E.runners.length; i++) {
+    let s = ((now * 0.045 + E.runners[i]) % 1) * per, x, y;
+    if (s < rw) { x = rx + s; y = ry; } else if ((s -= rw) < rh) { x = rx + rw; y = ry + s; }
+    else if ((s -= rh) < rw) { x = rx + rw - s; y = ry + rh; } else { s -= rw; x = rx; y = ry + rh - s; }
+    const z = B * (0.35 + pu * 0.2);
+    ctx.globalAlpha = 0.75;
+    ctx.drawImage(gs, x - z, y - z, z * 2, z * 2);
+  }
+  // the crown's jewel catches the beat, and sparkles circle over the crown
+  const jz = B * (0.3 + pu * 0.55);
+  ctx.globalAlpha = 0.4 + pu * 0.6;
+  ctx.drawImage(_rySpark('236,200,255'), E.jewel[0] - jz, E.jewel[1] - jz, jz * 2, jz * 2);
+  for (let i = 0; i < 5; i++) {
+    const a = now * 1.4 + i * 1.2566, front = Math.sin(a);
+    const x = E.jewel[0] + Math.cos(a) * B * 1.25, y = E.jewel[2] - B * 0.15 + front * B * 0.22, z = B * 0.2 * (0.7 + 0.3 * front);
+    ctx.globalAlpha = 0.45 + 0.35 * front + pu * 0.2;
+    ctx.drawImage(gs, x - z, y - z, z * 2, z * 2);
+  }
+  ctx.globalAlpha = 1;
+  // glitter twinkling along the edges
+  for (let b = 1; b <= 3; b++) {
+    ctx.fillStyle = _RY_GOLD[_ryA(b / 3 * (0.6 + pu * 0.4))];
+    for (const q of E.glit) {
+      const a = 0.5 + 0.5 * Math.sin(now * q.tw + q.ph);
+      if (Math.min(3, Math.max(1, Math.ceil(a * 3))) !== b) continue;
+      ctx.fillRect(q.x - 1, q.y - 1, b === 3 ? 3 : 2, b === 3 ? 3 : 2);
+    }
+  }
+  // gold sparkles at the corners on the beat
+  if (beat) {
+    const cnt = _ryBeatStr > 0.8 ? 8 : 3;
+    for (let i = 0; i < cnt && E.shim.length < 24; i++) {
+      const cx = Math.random() < 0.5 ? B * 1.6 : W - B * 1.6, cy = Math.random() < 0.5 ? top + B * 1.6 : bot - B * 1.6;
+      E.shim.push({ x: cx + (Math.random() - 0.5) * B * 2.6, y: cy + (Math.random() - 0.5) * B * 2.6, t0: now + i * 0.05, dur: 0.55 + Math.random() * 0.4, s: 6 + Math.random() * 10 });
+    }
+  }
+  _ryPopDraw(ctx, E.shim, now, gs);
+  // in a crystal rain, gold comes down off the top line
+  const rn = _ryEvP('rain', now);
+  if (rn >= 0 && rn < 0.85 && !rm) {
+    for (let i = 0; i < 3 && E.gold.length < 160; i++) {
+      E.gold.push({ x: rx + Math.random() * rw, y: ry, vx: (Math.random() - 0.5) * 40, vy: 30 + Math.random() * 90, life: 0, dur: 1.4 + Math.random() * 1.2, ph: Math.random() * 6 });
+    }
+  }
+  for (let i = E.gold.length - 1; i >= 0; i--) {
+    const q = E.gold[i];
+    q.life += dt; q.vy += 60 * dt; q.x += q.vx * dt; q.y += q.vy * dt;
+    if (q.life > q.dur || q.y > bot) { E.gold.splice(i, 1); continue; }
+    const a = (1 - q.life / q.dur) * (0.6 + 0.4 * Math.sin(now * 12 + q.ph));
+    ctx.fillStyle = _RY_GOLD[_ryA(a)];
+    ctx.fillRect(q.x - 1, q.y - 1, 2.5, 2.5);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  // purple petals falling down the sides, more of them in a rain
+  if (!rm) {
+    E.acc += dt * (rn >= 0 ? 9 : 2.2);
+    while (E.acc > 1) {
+      E.acc -= 1;
+      if (E.petals.length >= 26) continue;
+      const side = Math.random() < 0.5;
+      E.petals.push({ x: side ? B * (0.4 + Math.random() * 1.8) : W - B * (0.4 + Math.random() * 1.8), y: top + B * 1.5 + Math.random() * B,
+        vy: 22 + Math.random() * 22, ph: Math.random() * 6.28, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 2.5, s: 0.6 + Math.random() * 0.6 });
+    }
+  }
+  const PS = _ryPetalSprite();
+  for (let i = E.petals.length - 1; i >= 0; i--) {
+    const p = E.petals[i];
+    p.y += p.vy * dt; p.rot += p.vr * dt;
+    if (p.y > bot - B * 0.8) { E.petals.splice(i, 1); continue; }
+    const x = p.x + Math.sin(now * 1.1 + p.ph) * B * 0.5, flip = Math.cos(now * 2 + p.ph);
+    const c = Math.cos(p.rot) * p.s, s = Math.sin(p.rot) * p.s;
+    ctx.globalAlpha = Math.min(1, (bot - B * 0.8 - p.y) / (B * 1.5));
+    ctx.setTransform(c * flip, s * flip, -s, c, x, p.y);
+    ctx.drawImage(PS, -12, -8);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+}
+
+// ════════════════════════════════════════════════════════════════
+// WHAT SHE POINTS WITH
+// A lightstick with a crystal heart on it for the concert, a syringe for
+// the nurse, a sceptre for the princess. The heart on the lightstick and
+// the sceptre is the same stone as the big one, and beats with it. The
+// hotspot is the top of the heart, or the point of the needle.
+// Clicking anywhere throws off a little of each; clicking the big heart
+// itself makes it beat hard and burst.
+// ════════════════════════════════════════════════════════════════
+let _ryMX = -9999, _ryMY = -9999, _ryMoveAt = -9, _ryTrail = [], _ryCurFx = [], _ryCurBits = [];
+function _ryCurHeart() { return _ryCurHeart._c || (_ryCurHeart._c = _ryBakeHeart(10)); }
+function _ryCursorArt(kind) {
+  const C = _ryCursorArt;
+  C._c = C._c || {};
+  if (C._c[kind]) return C._c[kind];
+  let art;
+  if (kind === 'nurse') {
+    // the syringe turned so its needle points up and to the left, tip on the hotspot
+    const syr = _ryMedSprites(32).syringe, S = 80, cv = _ryMk(S, S), g = cv.getContext('2d'), hx = 5, hy = 5, sc = 0.78;
+    const c = Math.cos(0.785) * sc, s = Math.sin(0.785) * sc;
+    g.setTransform(c, s, -s, c, hx, hy);
+    g.drawImage(syr, -3, -syr.height / 2);
+    art = { cv, hx, hy, heart: null };
+  } else {
+    const S = 72, cv = _ryMk(S, S), g = cv.getContext('2d'), hx = 4, hy = 4, hc = [15, 16];
+    const a0 = [hc[0] + 7, hc[1] + 9], a1 = [60, 62];
+    const line = (w, col) => { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(a0[0], a0[1]); g.lineTo(a1[0], a1[1]); g.stroke(); };
+    g.lineCap = 'round';
+    if (kind === 'princess') {
+      line(6, '#3a2208'); line(3.4, _ryGoldGrad(g, a0[0], a0[1], a1[0], a1[1]));
+      g.fillStyle = '#f0c86a';
+      for (const u of [0.35, 0.7, 1]) { g.beginPath(); g.arc(a0[0] + (a1[0] - a0[0]) * u, a0[1] + (a1[1] - a0[1]) * u, u === 1 ? 3.5 : 2.6, 0, 6.2831853); g.fill(); }
+      for (const [w, col] of [[4, '#3a2208'], [2.2, '#e8b84e']]) { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.arc(hc[0], hc[1], 13.5, 0, 6.2831853); g.stroke(); }
+      g.fillStyle = '#f6d27a';
+      for (const a of [-2.2, -1.5708, -0.94]) {
+        const x = hc[0] + Math.cos(a) * 14, y = hc[1] + Math.sin(a) * 14;
+        g.beginPath(); g.moveTo(x + Math.cos(a) * 6, y + Math.sin(a) * 6); g.lineTo(x + Math.cos(a + 1.57) * 2.5, y + Math.sin(a + 1.57) * 2.5); g.lineTo(x - Math.cos(a + 1.57) * 2.5, y - Math.sin(a + 1.57) * 2.5); g.closePath(); g.fill();
+      }
+    } else {
+      line(8, '#0c0616'); line(5, '#3b2764');
+      g.strokeStyle = '#8a4fe6'; g.lineWidth = 5;
+      g.beginPath();
+      for (let k = 0; k < 4; k++) {
+        const u0 = 0.5 + k * 0.11, u1 = u0 + 0.05;
+        g.moveTo(a0[0] + (a1[0] - a0[0]) * u0, a0[1] + (a1[1] - a0[1]) * u0);
+        g.lineTo(a0[0] + (a1[0] - a0[0]) * u1, a0[1] + (a1[1] - a0[1]) * u1);
+      }
+      g.stroke();
+      g.fillStyle = '#d8c2ff'; g.beginPath(); g.arc(a0[0], a0[1], 3.8, 0, 6.2831853); g.fill();
+    }
+    art = { cv, hx, hy, heart: hc };
+  }
+  return (C._c[kind] = art);
+}
+function _ryBit(x, y, vx, vy, k, gv, now) {
+  if (_ryCurBits.length < 90) _ryCurBits.push({ x, y, vx, vy, k, g: gv, t0: now, dur: 0.5 + Math.random() * 0.5 });
+}
+function _drawRodyCursor(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;
+  const O = _drawRodyCursor, fresh = O._lt === undefined;
+  if (!fresh && t - O._lt >= 0 && t - O._lt < 0.014) return;
+  const dt = fresh ? 0.016 : Math.min(Math.abs(t - O._lt), 0.05);
+  O._lt = t;
+  const now = _ryClock();
+  _ryTick(now);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.clearRect(0, 0, W, H);
+  const kind = _ryKind, pu = _ryPulse, on = _ryMX > -9000, A = _ryCursorArt(kind);
+  const tipX = A.heart ? _ryMX - A.hx + A.heart[0] : _ryMX, tipY = A.heart ? _ryMY - A.hy + A.heart[1] : _ryMY;
+  if (on && now - _ryMoveAt < 0.05) {
+    const last = _ryTrail[_ryTrail.length - 1];
+    if (!last || Math.hypot(last.x - tipX, last.y - tipY) > 3) { _ryTrail.push({ x: tipX, y: tipY, t0: now }); if (_ryTrail.length > 18) _ryTrail.shift(); }
+    if (kind !== 'concert' && Math.random() < dt * 34) {
+      _ryBit(tipX + (Math.random() - 0.5) * 8, tipY + (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 30,
+        kind === 'nurse' ? -30 : 20, kind === 'nurse' ? 'bubble' : 'gold', kind === 'nurse' ? -40 : 160, now);
+    }
+  }
+  while (_ryTrail.length && now - _ryTrail[0].t0 > 0.4) _ryTrail.shift();
+  ctx.globalCompositeOperation = 'lighter';
+  if (kind === 'concert') {
+    for (let i = 0; i < _ryTrail.length; i++) {
+      const p = _ryTrail[i], a = 1 - (now - p.t0) / 0.4, z = 10 * a + 2;
+      ctx.globalAlpha = a * 0.8;
+      ctx.drawImage(_ryGlow(i & 1 ? '255,130,220' : '180,110,255'), p.x - z, p.y - z, z * 2, z * 2);
+    }
+  }
+  for (let i = _ryCurBits.length - 1; i >= 0; i--) {
+    const b = _ryCurBits[i], p = (now - b.t0) / b.dur;
+    if (p >= 1) { _ryCurBits.splice(i, 1); continue; }
+    b.vy += b.g * dt; b.vx *= 1 - Math.min(1, dt * 2);
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    ctx.globalAlpha = 1 - p;
+    if (b.k === 'bubble') { const z = 14 * (0.5 + p * 0.5); ctx.drawImage(_ryMedSprites(32).bubble, b.x - z / 2, b.y - z / 2, z, z); }
+    else if (b.k === 'gold') { ctx.fillStyle = '#ffd98a'; ctx.fillRect(b.x - 1.5, b.y - 1.5, 3, 3); }
+    else { const z = 9 * (1 - p * 0.5); ctx.drawImage(_rySpark(i & 1 ? '255,150,225' : '200,150,255'), b.x - z, b.y - z, z * 2, z * 2); }
+  }
+  const ramp = kind === 'princess' ? _RY_GOLD : kind === 'nurse' ? _RY_PINK : _RY_LILAC;
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = 2;
+  for (let i = _ryCurFx.length - 1; i >= 0; i--) {
+    const f = _ryCurFx[i], p = (now - f.t0) / 0.45;
+    if (p >= 1) { _ryCurFx.splice(i, 1); continue; }
+    ctx.strokeStyle = ramp[_ryA((1 - p) * 0.9)];
+    ctx.beginPath(); _ryHeartPath(ctx, f.x, f.y, 6 + p * 34); ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  if (on) {
+    ctx.drawImage(A.cv, Math.round(_ryMX - A.hx), Math.round(_ryMY - A.hy));
+    if (A.heart) {
+      const HT = _ryCurHeart(), gz = 16 + pu * 14;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.5 + pu * 0.5;
+      ctx.drawImage(_ryGlow(kind === 'princess' ? '255,210,130' : '190,120,255'), tipX - gz, tipY - gz, gz * 2, gz * 2);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+      const d = HT.S * (1 + pu * 0.18);
+      ctx.drawImage(HT.face, tipX - d / 2, tipY - d / 2, d, d);
+      if (pu > 0.05) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = pu * 0.6; ctx.drawImage(HT.lit, tipX - d / 2, tipY - d / 2, d, d); }
+    } else if (pu > 0.25) {
+      const z = 10 * pu;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = pu;
+      ctx.drawImage(_rySpark('255,200,240'), tipX - z, tipY - z, z * 2, z * 2);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+}
+function _ryMove(e) { _ryMX = e.clientX; _ryMY = e.clientY; _ryMoveAt = _ryClock(); }
+function _ryOut(e) { if (!e.relatedTarget) { _ryMX = -9999; _ryMY = -9999; } }
+function _ryDown(e) {
+  if (e.button !== 0) return;
+  const now = _ryClock(), x = e.clientX, y = e.clientY, kind = _ryKind;
+  _ryMX = x; _ryMY = y;
+  _ryCurFx.push({ x, y, t0: now });
+  for (let i = 0; i < 14; i++) {
+    const an = Math.random() * 6.2831853, sp = 60 + Math.random() * 170;
+    _ryBit(x, y, Math.cos(an) * sp, Math.sin(an) * sp - 40, kind === 'princess' ? 'gold' : kind === 'nurse' ? 'bubble' : 'spark',
+      kind === 'princess' ? 320 : kind === 'nurse' ? -60 : 90, now);
+  }
+  // the big heart itself, when nothing on the page is being clicked instead
+  const tg = e.target;
+  if (tg && tg.closest && tg.closest('button, a, input, select, textarea, label, [onclick], .trait-chip, .char-entry, #cv-avatar, #theme-bar, #header')) return;
+  const pc = document.getElementById('pattern-canvas'), P = _drawRodyPattern;
+  if (!pc || !pc._bgR || !P._R) return;
+  const [bx, by] = _bgAt(pc, pc.width, pc.height, x, y);
+  if (Math.hypot(bx - P._hx, (by - P._hy) * 1.1) > P._R * 1.05) return;
+  _ryBeat(now, 1, false);
+  P._burstAt = now;
+  if (!_ryEv) _ryStartEvent('prism', now);
+}
+
+// ── the loop ─────────────────────────────────────────────────────
+function _drawRodyEdges(canvas, ctx, W, H, t) {
+  if (!(W > 0 && H > 0)) return;
+  const O = _drawRodyEdges;
+  const fresh = O._lt === undefined;
+  if (!fresh && t - O._lt >= 0 && t - O._lt < 0.014) return;
+  const dt = fresh ? 0.016 : Math.min(Math.abs(t - O._lt), 0.05);
+  O._lt = t;
+  const now = _ryClock();
+  _ryTick(now);
+  const E = _ryE;
+  // the header and the music player can come and go without a resize, so look once a second
+  if (E.gen !== _lyGen || now - E.at > 1) {
+    E.gen = _lyGen; E.at = now;
+    E.T = _mahTopInset(); E.Bt = _ryBottomInset();
+  }
+  const key = _ryKind + '|' + W + '|' + H + '|' + E.T + '|' + E.Bt + '|' + E.label;
+  if (E.key !== key) { _ryEdgeBuild(E, _ryKind, W, H); E.key = key; }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(E.sheet, 0, 0);
+  const beat = E.seen !== _ryBeatN;
+  E.seen = _ryBeatN;
+  if (_ryKind === 'nurse') _ryNurse(ctx, E, now, dt, beat);
+  else if (_ryKind === 'princess') _ryPrincess(ctx, E, now, dt, beat);
+  else _ryConcert(ctx, E, now, dt, beat);
+}
+
+function _startRodyEdges() {
+  _stopRodyEdges();
+  const c = (typeof characters !== 'undefined' && characters) ? characters.find(x => x.id === currentId) : null;
+  _ryKind = _ryFormKind(c);
+  _ryLabel = String(_activeFormName(c) || (c && c.name) || 'Rody').toUpperCase();
+  _drawRodyEdges._lt = undefined;
+  _drawRodyCursor._lt = undefined;
+  Object.assign(_ryE, { key: '', gen: -1, at: -9, seen: _ryBeatN, label: _ryLabel });
+  _ryTrail = []; _ryCurFx = []; _ryCurBits = [];
+  window.addEventListener('mousemove', _ryMove, { passive: true });
+  window.addEventListener('mousedown', _ryDown, true);
+  document.addEventListener('mouseout', _ryOut);
+  const arrow = document.getElementById('cursor'); if (arrow) arrow.style.display = 'none';
+  for (const [id, z] of [['rody-edges', 30], ['rody-cursor', 9999]]) {
+    const cv = document.createElement('canvas');
+    cv.id = id;
+    cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:' + z + ';pointer-events:none;';
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    document.body.appendChild(cv);
+  }
+  const t0 = performance.now();
+  function frame(now) {
+    const e = document.getElementById('rody-edges'), k = document.getElementById('rody-cursor');
+    if (!e || !k) return;
+    const w = window.innerWidth, h = window.innerHeight;
+    for (const cv of [e, k]) if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const tt = (now - t0) / 1000;
+    _drawRodyEdges(e, e.getContext('2d'), e.width, e.height, tt);
+    _drawRodyCursor(k, k.getContext('2d'), k.width, k.height, tt);
+    _ryEdgeRaf = requestAnimationFrame(frame);
+  }
+  _ryEdgeRaf = requestAnimationFrame(frame);
+}
+function _stopRodyEdges() {
+  if (_ryEdgeRaf) { cancelAnimationFrame(_ryEdgeRaf); _ryEdgeRaf = null; }
+  window.removeEventListener('mousemove', _ryMove, { passive: true });
+  window.removeEventListener('mousedown', _ryDown, true);
+  document.removeEventListener('mouseout', _ryOut);
+  const arrow = document.getElementById('cursor'); if (arrow) arrow.style.display = '';
+  for (const id of ['rody-edges', 'rody-cursor']) { const cv = document.getElementById(id); if (cv) cv.remove(); }
+  _ryE.key = ''; _ryE.sheet = null;
+  _ryRings = []; _ryTrail = []; _ryCurFx = []; _ryCurBits = [];
+  _ryHitOff = 0;
+  const cvr = document.getElementById('char-view'); if (cvr) cvr.classList.remove('ry-hit');
+  _drawRodyEdges._w = -1;
+  _drawRodyPattern._w = -1;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
+// ════════════════════════════════════════════════════════════════
 // AH!FLOWEY
 //
 // THE CLAIM. This place has already lost. The vines got here first
@@ -41721,6 +43513,7 @@ function drawPattern(canvas, type, params, t) {
   if (type === 'ivy_evil')       { _drawIvyEvilPattern(canvas, ctx, W, H, t);              return; }
   if (type === 'aeden_puppet')   { _drawAedenPattern(canvas, ctx, W, H, t);                return; }
   if (type === 'sel_night')      { _drawSelPattern(canvas, ctx, W, H, t);                  return; }
+  if (type === 'rody_heart')     { _drawRodyPattern(canvas, ctx, W, H, t);                 return; }
 
   // Static noise: handle BEFORE clearRect, skip frames cost only a drawImage
   if (type === 'static_noise') {
@@ -42313,6 +44106,8 @@ function startBgAnim(type, params) {
   _drawAedenOverlay._lt       = undefined;
   _drawSelPattern._lt         = undefined;
   _drawSelOverlay._lt         = undefined;
+  _drawRodyPattern._lt        = undefined;
+  _drawRodyEdges._lt          = undefined;
 
   if (type === 'none' || !type) return;
   const targetFps = 60;
@@ -42413,6 +44208,7 @@ function stopBgAnim() {
   _stopIvyEvilOverlay();
   _stopAedenOverlay();
   _stopSelOverlay();
+  _stopRodyEdges();
   const c = document.getElementById('pattern-canvas');
   if (c) {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
@@ -43098,6 +44894,7 @@ function viewChar(id) {
   else if (_isIvyEvil(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d61c30'); }
   else if (_isAedenPuppet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _AP_HEX); }
   else if (_isSel(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _SL_HEX); }
+  else if (_isRody(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', _RY_HEX); }
   else if (_isClassicDet(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ff1a1a'); }
   else if (_isClassicSave(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#ffffff'); }
   else if (_isClassicGhost(c)) { _stopNaraRaf(); _stopBizzyRaf(); _stopKatieOverlay(); _stopLeonOverlay(); _stopValkyrieOverlay(); _stopAdamOverlay(); _stopFuryOverlay(); _stopAnnieOverlay(); _stopVikadanOverlay(); _stopNaraOceanOverlay(); _stopNaraWhiteOverlay(); _stopNaraGreenOverlay(); _stopJukoOverlay(); _stopLuciferOverlay(); _stopShiOverlay(); _stopLunarOverlay(); _stopHeliosOverlay(); _stopZoeOverlay(); _stopIrisOverlay(); _stopMbOverlay(); _stopSorrowOverlay(); _stopDivineOverlay(); document.getElementById('char-view').style.setProperty('--char-color', '#d8c46a'); }
@@ -44220,6 +46017,27 @@ function viewChar(id) {
     }
   }
 
+  // ── RODY: violet glass over an amethyst heart, on every form. The panels,
+  //    the name and the portrait light up on the heart's beats: the page
+  //    toggles .ry-hit on #char-view for each one. After every other opacity
+  //    claimant, so it only has to set the value. ──
+  {
+    const _cvRoot = document.getElementById('char-view');
+    const _av = document.getElementById('cv-avatar');
+    const _nm = document.getElementById('cv-name');
+    const _pc = document.getElementById('pattern-canvas');
+    if (_isRody(c)) {
+      _cvRoot.classList.add('rody-ui');
+      if (_av) { _av.classList.add('rody-pfp'); _av.style.animationDelay = ''; }
+      if (_nm) { _nm.classList.add('rody-name'); _nm.style.animationDelay = ''; _nm.setAttribute('data-text', _nm.textContent || 'RODY'); }
+      if (_pc) _pc.style.opacity = '0.95';
+    } else {
+      _cvRoot.classList.remove('rody-ui', 'ry-hit');
+      if (_av) { _av.classList.remove('rody-pfp'); _av.style.animationDelay = ''; }
+      if (_nm) { _nm.classList.remove('rody-name'); _nm.style.animationDelay = ''; if (!_nmHasNameSkin(_nm)) _nm.removeAttribute('data-text'); }
+    }
+  }
+
   // ── Evelynn: elegant blood-moon UI chrome (deep crimson panels + a softly
   // glowing crimson name). ──
   {
@@ -44332,7 +46150,7 @@ function viewChar(id) {
   renderSubstatsDisplay(c, effStats);
 
   const styleEl = document.getElementById('cv-pattern-info');
-  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isSel(c) ? 'sel_night' : _isAedenPuppet(c) ? 'aeden_puppet' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
+  const ptype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isRody(c) ? 'rody_heart' : _isSel(c) ? 'sel_night' : _isAedenPuppet(c) ? 'aeden_puppet' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : _isClassicSave(c) ? 'classic_save' : _isClassicGhost(c) ? 'classic_ghost' : (c.pattern?.type || 'none');
   const pdef = PATTERN_DEFS[ptype];
   const _stPanel = document.querySelector('#tab-style .panel');
   const _stPanelTitle = document.querySelector('#tab-style .panel-title');
@@ -44345,7 +46163,7 @@ function viewChar(id) {
   if (_stPanelTitle) _stPanelTitle.textContent = 'BACKGROUND PATTERN';
   const _patternLabel = _isIrisStarsForm(c) ? 'Iris · Lady of the Stars!' : _isJuko0Inf(c) ? "Juko's Code Garden · 0∞ BREAKDOWN" : _isJuko1(c) ? "Juko · 1, the value left" : (pdef?.label || 'None');
   styleEl.innerHTML = `<div style="font-size:9px;letter-spacing:2px;margin-bottom:14px;line-height:1.8;">PATTERN: <span class="text-yellow">${_patternLabel}</span></div>`;
-  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && ptype !== 'flowey_vines' && ptype !== 'ivy_evil' && ptype !== 'aeden_puppet' && ptype !== 'sel_night' && pdef) {
+  if (ptype !== 'none' && ptype !== 'bizzy_bees' && ptype !== 'blackjack_neon' && ptype !== 'katie_pond' && ptype !== 'snaps_scales' && ptype !== 'leon_swords' && ptype !== 'leon_warlord' && ptype !== 'valkyrie_rain' && ptype !== 'adam_ice' && ptype !== 'adam_kingdom' && ptype !== 'libra_entropy' && ptype !== 'plumky_hallows' && ptype !== 'fury_fire' && ptype !== 'annie_blitz' && ptype !== 'vikadan_casino' && ptype !== 'nara_ocean' && ptype !== 'nara_white' && ptype !== 'nara_green' && ptype !== 'sorrow_fire' && ptype !== 'juko_code' && ptype !== 'juko_one' && ptype !== 'lucifer_unleashed' && ptype !== 'divine_light' && ptype !== 'jimmy_muffin' && ptype !== 'aether_forest' && ptype !== 'cappy_milk' && ptype !== 'diva_virus' && ptype !== 'evelynn_moon' && ptype !== 'oliver_west' && ptype !== 'spruce_roses' && ptype !== 'momo_waste' && ptype !== 'ronnette_scrap' && ptype !== 'miami_aero' && ptype !== 'joni_jungle' && ptype !== 'shi_souls' && ptype !== 'lunar_moon' && ptype !== 'helios_sun' && ptype !== 'zoe_garden' && ptype !== 'iris_starlight' && ptype !== 'amber_arcana' && ptype !== 'lele_cold' && ptype !== 'mahogany_thorns' && ptype !== 'kurio_nightgarden' && ptype !== 'actarius_mycelium' && ptype !== 'ball_checks' && ptype !== 'oblitus_void' && ptype !== 'tobu_ward' && ptype !== 'xyliar_sanctum' && ptype !== 'rady_wasteland' && ptype !== 'sevach_bloodsea' && ptype !== 'lala_ward' && ptype !== 'mouseburger_dusk' && ptype !== 'emporium_range' && ptype !== 'alsace_spiral' && ptype !== 'jeckely_box' && ptype !== 'mimzy_bloom' && ptype !== 'omen_stage' && ptype !== 'ex_glitch' && ptype !== 'riegen_phoenix' && ptype !== 'lorraine_brass' && ptype !== 'simmer_tide' && ptype !== 'omen_bar' && ptype !== 'omen_janitor' && ptype !== 'gonela_frontier' && ptype !== 'justin_cotton' && ptype !== 'anti_sanctuary' && ptype !== 'leonor_muertos' && ptype !== 'cuckoo_clockwork' && ptype !== 'layla_aurora' && ptype !== 'pawn_chess' && ptype !== 'astra_waterfall' && ptype !== 'jihau_vaporwave' && ptype !== 'andy_goat' && ptype !== 'shooshi_sushi' && ptype !== 'kardia_void' && ptype !== 'jasmine_ribcage' && ptype !== 'cory_office' && ptype !== 'rook_slam' && ptype !== 'starry_aero' && ptype !== 'haru_parasite' && ptype !== 'classic_det' && ptype !== 'classic_save' && ptype !== 'classic_ghost' && ptype !== 'flowey_vines' && ptype !== 'ivy_evil' && ptype !== 'aeden_puppet' && ptype !== 'sel_night' && ptype !== 'rody_heart' && pdef) {
     const pp = c.pattern?.params || {};
     pdef.params.forEach(p => {
       const v = pp[p.id] !== undefined ? pp[p.id] : p.default;
@@ -44467,6 +46285,7 @@ function viewChar(id) {
   if (_isIvyEvil(c))  _startIvyEvilOverlay();
   if (_isAedenPuppet(c)) _startAedenOverlay();
   if (_isSel(c)) _startSelOverlay();
+  if (_isRody(c)) _startRodyEdges();
   }
 
   renderInventory(c);
@@ -50121,7 +51940,7 @@ if (sidebarList && db) {
 window.addEventListener('resize', () => {
   if (currentId && bgAnim) {
     const c = characters.find(x => x.id === currentId);
-    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isSel(c) ? 'sel_night' : _isAedenPuppet(c) ? 'aeden_puppet' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
+    const _rePtype = _isNaraBlue(c) ? 'nara_ocean' : _isNaraWhite(c) ? 'nara_white' : _isNaraGreen(c) ? 'nara_green' : _isBizzy(c) ? 'bizzy_bees' : _isBlackjack(c) ? 'blackjack_neon' : _isKatie(c) ? 'katie_pond' : _isSnaps(c) ? 'snaps_scales' : _isLeonHuman(c) ? 'leon_warlord' : _isLeon(c) ? 'leon_swords' : _isValkyrie(c) ? 'valkyrie_rain' : _isPlumky(c) ? 'plumky_hallows' : _isLibra(c) ? 'libra_entropy' : _isAdamHuman(c) ? 'adam_kingdom' : _isAdam(c) ? 'adam_ice' : _isFury(c) ? 'fury_fire' : _isAnnie(c) ? 'annie_blitz' : _isVikadan(c) ? 'vikadan_casino' : _isSorrow(c) ? 'sorrow_fire' : _isJuko1(c) ? 'juko_one' : _isJuko(c) ? 'juko_code' : _isLuciferUnleashed(c) ? 'lucifer_unleashed' : _isDivine(c) ? 'divine_light' : _isJimmy(c) ? 'jimmy_muffin' : _isAether(c) ? 'aether_forest' : _isCappy(c) ? 'cappy_milk' : _isDiva(c) ? 'diva_virus' : _isEvelynn(c) ? 'evelynn_moon' : _isOliver(c) ? 'oliver_west' : _isSpruce(c) ? 'spruce_roses' : _isMomo(c) ? 'momo_waste' : _isRonnette(c) ? 'ronnette_scrap' : _isMiami(c) ? 'miami_aero' : _isJoni(c) ? 'joni_jungle' : _isShi(c) ? 'shi_souls' : _isLunar(c) ? 'lunar_moon' : _isHelios(c) ? 'helios_sun' : _isZoe(c) ? 'zoe_garden' : _isSevach(c) ? 'sevach_bloodsea' : _isRady(c) ? 'rady_wasteland' : _isXyliar(c) ? 'xyliar_sanctum' : _isTobu(c) ? 'tobu_ward' : _isLala(c) ? 'lala_ward' : _isOblitus(c) ? 'oblitus_void' : _isBall(c) ? 'ball_checks' : _isActarius(c) ? 'actarius_mycelium' : _isKurio(c) ? 'kurio_nightgarden' : _isMahogany(c) ? 'mahogany_thorns' : _isLele(c) ? 'lele_cold' : _isAmber(c) ? 'amber_arcana' : _isIris(c) ? 'iris_starlight' : _isMb(c) ? 'mouseburger_dusk' : _isEmporium(c) ? 'emporium_range' : _isAlsace(c) ? 'alsace_spiral' : _isJeckely(c) ? 'jeckely_box' : _isMimzy(c) ? 'mimzy_bloom' : _isOmen(c) ? 'omen_stage' : _isEx(c) ? 'ex_glitch' : _isRiegen(c) ? 'riegen_phoenix' : _isLorraine(c) ? 'lorraine_brass' : _isSimmer(c) ? 'simmer_tide' : _isOmenBartender(c) ? 'omen_bar' : _isOmenJanitor(c) ? 'omen_janitor' : _isGonela(c) ? 'gonela_frontier' : _isJustin(c) ? 'justin_cotton' : _isAnti(c) ? 'anti_sanctuary' : _isLeonor(c) ? 'leonor_muertos' : _isCuckoo(c) ? 'cuckoo_clockwork' : _isLayla(c) ? 'layla_aurora' : _isPawn(c) ? 'pawn_chess' : _isAstra(c) ? 'astra_waterfall' : _isJihau(c) ? 'jihau_vaporwave' : _isAndy(c) ? 'andy_goat' : _isShooShi(c) ? 'shooshi_sushi' : _isKardia(c) ? 'kardia_void' : _isJasmine(c) ? 'jasmine_ribcage' : _isCory(c) ? 'cory_office' : _isRook(c) ? 'rook_slam' : _isStarry(c) ? 'starry_aero' : _isHaru(c) ? 'haru_parasite' : _isRody(c) ? 'rody_heart' : _isSel(c) ? 'sel_night' : _isAedenPuppet(c) ? 'aeden_puppet' : _isIvyEvil(c) ? 'ivy_evil' : _isFlowey(c) ? 'flowey_vines' : _isClassicDet(c) ? 'classic_det' : c?.pattern?.type;
     if (_rePtype && _rePtype !== 'none') {
       stopBgAnim(); // also kills Katie/Leon overlays
       startBgAnim(_rePtype, c?.pattern?.params || {});
@@ -50199,6 +52018,7 @@ window.addEventListener('resize', () => {
       if (_isIvyEvil(c))  _startIvyEvilOverlay();
       if (_isAedenPuppet(c)) _startAedenOverlay();
       if (_isSel(c)) _startSelOverlay();
+      if (_isRody(c)) _startRodyEdges();
     }
   }
 });

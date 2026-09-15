@@ -731,6 +731,60 @@ forward, into the direction of travel, and lifted when climbing. For two ears
 hung at `side * angle`, streaming behind a move to the right means BOTH angles
 increase, and lagging behind a climb means they droop.
 
+### Pages that reach into the interface and the song (Sel, Rody)
+
+**Taking the page's own text: draw it, never move it.** Sel's [NULL] pulls
+letters out of the panels. Nothing in the DOM moves: every text node near the
+hole is measured letter by letter with a `Range`, drawn into one glyph atlas
+in its own computed font and colour, and its element gets a single class that
+makes its text transparent. The letters fly on the overlay; when the last
+letter of an element is home the class comes off and the real text is under
+it. Take ALL of an element's letters or none (hiding half an element makes
+the rest vanish), give up if the atlas is full rather than hide text you
+cannot draw, and put everything back at once on any layout generation change,
+because a scroll moves the text out from under its letters.
+
+**An event on the overlay can hit the background too.** Sel's explosion sets
+one shared variable (where and when) and the sky reads it: stars are kicked
+outward and ring back, the clouds are shoved, the planet wobbles and flares,
+and debris goes out as shooting stars. Stated in viewport pixels, converted
+with `_bgAt`, exactly like the pointer.
+
+**Clicking something drawn on the background needs the whole chain of
+offsets.** Catching a shooting star compares the click (viewport) with a
+meteor (canvas pixels, plus the sky layer's parallax offset that frame, times
+the canvas's CSS scale). Store the offset the draw actually used and read it
+back; do not recompute it.
+
+**The song: one envelope, sampled at the playhead.** `_slSampleAudio` decodes
+whatever track the theme player has loaded (the same envelope Juko builds) and
+reacts to how far the song is above its own recent level. Do not attach an
+analyser to the player element: a media element can feed only one source node
+and Juko may already own it. Rody's heart reuses the same sampler.
+
+**Three layers, one clock.** Rody's heartbeat is ticked by whichever layer
+draws first in a frame (the later calls return at once), and beats are
+counted, so each layer reacts exactly once per beat by comparing the count
+with the last one it saw. Keep the phase ACCUMULATED (`phase += dt / period`)
+rather than reading it off the wall clock, or the heart cannot speed up for an
+event without jumping. The interface keeps time the same way: a class
+(`.ry-hit`) goes on `#char-view` for a tenth of a second on every beat, heart
+or song, and CSS transitions do the rest. An infinite CSS animation with its
+`animation-delay` set to the phase was tried first; it drifts as soon as the
+tempo changes and cannot follow the music at all.
+
+**An edge frame must know what is pinned over it.** The frame canvas sits at
+z-index 30, like Maple's, under the sticky header (z 100) and under the music
+player pinned to the bottom (z 500). Anything drawn in those strips is simply
+hidden, so the frame is laid out between the header's bottom and the player's
+top, re-measured once a second because the player appears without a resize.
+
+**Wide strokes of a big path are expensive even when there are few.** Rody's
+beat rings were five heart outlines stroked 3 to 12 px wide: 3 ms a frame, the
+entire overrun of that layer, while everything else on it cost 0.8 ms. Baked
+once as a soft glow with a thin line in it and drawn scaled, all five cost
+0.1 ms. A ring that grows and fades does not need to stay crisp.
+
 ---
 
 ## 4. Performance

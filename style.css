@@ -15680,3 +15680,136 @@ text.lb-cl-glitch-svg {
   #char-view.selnight-ui .panel-title,
   #char-view.selnight-ui .panel-title::after { animation: none; }
 }
+
+
+/* ============================================================
+   RODY: amethyst. Every panel is dark violet glass over the
+   heart, with a sheen running along its top edge and a cut gem
+   on its corner, and all of it lights up on the heart's beats:
+   the page puts .ry-hit on #char-view for a moment on each one.
+   ============================================================ */
+#char-view.rody-ui .panel {
+  --p-border: rgba(196,150,255,0.6);
+  border-color: rgba(176,124,255,0.42);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 22%, rgba(255,255,255,0) 78%, rgba(200,160,255,0.05) 100%),
+    linear-gradient(180deg, rgba(38,12,70,0.5), rgba(18,5,38,0.64));
+  box-shadow:
+    inset 0 1px 0 rgba(236,220,255,0.14),
+    inset 0 0 44px rgba(110,40,200,0.2),
+    0 16px 40px -18px rgba(0,0,0,0.85);
+  transition: border-color 0.5s ease-out, box-shadow 0.5s ease-out;
+}
+#char-view.rody-ui.ry-hit .panel {
+  border-color: rgba(228,204,255,0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(246,236,255,0.32),
+    inset 0 0 64px rgba(150,80,255,0.3),
+    0 0 26px rgba(170,100,255,0.42),
+    0 16px 40px -18px rgba(0,0,0,0.85);
+  transition-duration: 0.06s;
+}
+/* a sheen running along the top edge */
+#char-view.rody-ui .panel::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: -2px;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(190,150,255,0), #f8f2ff 50%, rgba(190,150,255,0)) 0 0 / 28% 100% no-repeat;
+  animation: ry-sheen 3.6s linear infinite;
+}
+@keyframes ry-sheen {
+  from { background-position: -40% 0; }
+  to   { background-position: 140% 0; }
+}
+/* the corner notch every panel has becomes a cut gem */
+#char-view.rody-ui .panel::after {
+  top: -8px; right: -8px;
+  width: 16px; height: 16px;
+  border: none;
+  pointer-events: none;
+  background: linear-gradient(135deg, #fbf6ff 0%, #d2b0ff 35%, #7a3ad6 58%, #2a0a55 100%);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+#char-view.rody-ui .panel-title {
+  color: #dcc4ff !important;
+  letter-spacing: 4px;
+  border-bottom-color: rgba(196,150,255,0.25);
+  text-shadow: 0 0 12px rgba(170,100,255,0.55), 0 1px 0 rgba(0,0,0,0.9);
+}
+#char-view.rody-ui .panel-title::before {
+  content: "\25C6  ";
+  white-space: pre;
+  color: #c9a2ff;
+  text-shadow: 0 0 8px rgba(190,130,255,0.9);
+}
+#char-view.rody-ui .tab-btn { color: #8f76c4; }
+#char-view.rody-ui .tab-btn:hover { color: #f0e4ff; text-shadow: 0 0 10px rgba(170,100,255,0.6); }
+#char-view.rody-ui .tab-btn.active {
+  color: #f4ebff;
+  border-bottom-color: #c9a2ff;
+  text-shadow: 0 0 12px rgba(170,100,255,0.85), 0 0 2px #ffffff;
+}
+#char-view.rody-ui .trait-chip { box-shadow: inset 0 0 18px rgba(80,20,150,0.35); }
+/* every lit bar segment is a little cut crystal: a bright top and a dark foot */
+#char-view.rody-ui .stat-seg.on:not(.peak) {
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.28), inset 0 -2px 0 rgba(0,0,0,0.22);
+}
+
+/* ────── the name: light running through amethyst ────── */
+.char-name-display.rody-name {
+  letter-spacing: 4px;
+  background: linear-gradient(100deg, #efe2ff 0%, #b98cff 28%, #ffffff 44%, #f0d8ff 50%, #9a5cf0 68%, #efe2ff 100%) 0 0 / 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 7px rgba(170,100,255,0.75));
+  animation: ry-name-sheen 5s linear infinite;
+  transition: transform 0.45s ease-out;
+}
+@keyframes ry-name-sheen {
+  from { background-position: 100% 0; }
+  to   { background-position: 0% 0; }
+}
+#char-view.ry-hit .char-name-display.rody-name { transform: scale(1.06); transition-duration: 0.06s; }
+
+/* ────── the portrait: a glint across it, a gem on its corner, and it beats ────── */
+.char-avatar-large.rody-pfp {
+  border-color: rgba(196,150,255,0.9) !important;
+  box-shadow: 0 0 14px rgba(170,100,255,0.4), inset 0 0 18px rgba(60,10,110,0.5);
+  transition: box-shadow 0.45s ease-out, transform 0.45s ease-out;
+}
+#char-view.ry-hit .char-avatar-large.rody-pfp {
+  box-shadow: 0 0 34px rgba(190,120,255,0.95), inset 0 0 24px rgba(130,60,230,0.55);
+  transform: scale(1.035);
+  transition-duration: 0.06s;
+}
+.char-avatar-large.rody-pfp::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255,255,255,0) 42%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 58%) 0 0 / 320% 100% no-repeat;
+  animation: ry-pfp-glint 4.8s ease-in-out infinite;
+}
+@keyframes ry-pfp-glint {
+  0%, 60% { background-position: 100% 0; }
+  100%    { background-position: 0% 0; }
+}
+.char-avatar-large.rody-pfp::after {
+  content: "";
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 16px; height: 16px;
+  pointer-events: none;
+  background: linear-gradient(135deg, #fbf6ff 0%, #d2b0ff 35%, #7a3ad6 58%, #2a0a55 100%);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #char-view.rody-ui .panel::before,
+  .char-name-display.rody-name,
+  .char-avatar-large.rody-pfp::before { animation: none; }
+  #char-view.ry-hit .char-name-display.rody-name,
+  #char-view.ry-hit .char-avatar-large.rody-pfp { transform: none; }
+}
