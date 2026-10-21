@@ -25,6 +25,8 @@ import { StatBar } from '../../ui/stat-bar';
 import { TipDirective } from '../../ui/tooltip';
 import { RadarChart } from '../stats/radar-chart';
 import { PowerModal } from '../stats/power-modal';
+import { CompareModal } from '../compare/compare-modal';
+import { StatIcon } from '../../ui/stat-icon';
 import { statBreakdown } from '../../core/game/breakdown';
 import { MusicTab } from '../music/music-tab';
 import { StyleTab } from '../style/style-tab';
@@ -36,7 +38,7 @@ const CLASSIC = /^Classic$/i;
 /** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal, MusicTab, StyleTab, TipDirective, RadarChart, PowerModal],
+  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal, MusicTab, StyleTab, TipDirective, RadarChart, PowerModal, CompareModal, StatIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
@@ -99,7 +101,7 @@ export class CharacterView {
   protected readonly tab = signal<'stats' | 'style' | 'info' | 'music' | 'abilities'>('stats');
 
   /** Which overlay is open over the sheet. */
-  protected readonly open = signal<'roll' | 'gold' | 'codex' | 'history' | 'cultivation' | 'soul' | 'power' | null>(null);
+  protected readonly open = signal<'roll' | 'gold' | 'codex' | 'history' | 'cultivation' | 'soul' | 'power' | 'compare' | null>(null);
   /** The radar under the bars stays shown across characters, as before. */
   protected readonly radar = signal(false);
   protected readonly hasCultivation = computed(() => cultivationRows(this.character()).length > 0);
@@ -136,9 +138,5 @@ export class CharacterView {
     this.notifier.notify('DELETED', 'err');
     await this.router.navigate(['/']);
     void this.store.remove(c.id);
-  }
-
-  protected notYet(what: string): void {
-    this.notifier.notify(`${what}: NOT REBUILT YET`, 'info');
   }
 }

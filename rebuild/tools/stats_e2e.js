@@ -54,6 +54,20 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   await page.waitForTimeout(100);
   check((await page.locator('ss-power-modal').count()) === 0, 'Escape closes it');
 
+  // compare
+  await page.locator('button', { hasText: 'CMP' }).click();
+  const cmp = page.locator('ss-compare-modal ss-modal');
+  await cmp.waitFor();
+  check(/SELECT TWO DIFFERENT CHARACTERS/.test(await cmp.textContent()), 'compare starts with the open character and asks for a second');
+  const second = await cmp.locator('select').nth(1).locator('option').nth(1).getAttribute('value');
+  await cmp.locator('select').nth(1).selectOption(second);
+  check((await cmp.locator('.row').count()) === 15, 'compare lists fifteen stats');
+  check((await cmp.locator('.row ss-stat-icon').count()) === 15, 'each with its pixel icon');
+  const atkA = await cmp.locator('.row').nth(1).locator('.val').first().textContent();
+  check(atkA.trim() === '165', `the left side is the open character (ATK ${atkA.trim()})`);
+  await page.screenshot({ path: out + '/stats-compare.png' });
+  await page.keyboard.press('Escape');
+
   check(errors.length === 0, 'no page errors' + (errors.length ? ': ' + errors.join(' | ') : ''));
   await browser.close();
   console.log('PASS ' + ok.length + '\n  ' + ok.join('\n  '));

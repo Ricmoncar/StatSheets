@@ -29,7 +29,7 @@
       @if (c.bio) { <p class="bio">{{ c.bio }}</p> }
     </div>
     <div class="actions">
-      <button type="button" class="btn" (click)="notYet('COMPARE')" title="Compare with another character">CMP</button>
+      <button type="button" class="btn" (click)="open.set('compare')" title="Compare with another character">CMP</button>
       <button type="button" class="btn accent" (click)="edit()">EDIT</button>
       <button type="button" class="btn danger" (click)="remove()">DEL</button>
     </div>
@@ -59,7 +59,7 @@
     <div class="bars">
       @for (k of main; track k) {
         <div class="row">
-          <span class="label">{{ k.toUpperCase() }}</span>
+          <span class="label"><ss-stat-icon [stat]="k" [size]="10" />{{ k.toUpperCase() }}</span>
           <ss-stat-bar [stat]="k" [value]="eff()[k]" />
           <span class="num">{{ eff()[k] }}
             @if (statDiff()[k]; as d) {
@@ -106,5 +106,6 @@
 @if (open() === 'soul') { <ss-soul-editor [character]="c" (closed)="open.set(null)" /> }
 @if (open() === 'codex') { <ss-codex-modal (closed)="open.set(null)" /> }
 @if (open() === 'history') { <ss-roll-history-modal [character]="c" (closed)="open.set(null)" /> }
+@if (open() === 'compare') { <ss-compare-modal [first]="c.id" (closed)="open.set(null)" /> }
 @if (open() === 'power') { <ss-power-modal [tier]="plIndex()" [name]="c.name" (closed)="open.set(null)" /> }
 @if (open() === 'cultivation') { <ss-cultivation-modal [character]="c" (closed)="open.set(null)" /> }
