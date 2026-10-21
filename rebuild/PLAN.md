@@ -31,14 +31,14 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Abilities tab: passives, ability cards with the six types, editor with image, text colour toolbar (rendered as text: the old renderer let HTML through)
 - [x] SOUL builder: every layer (fill modes, palettes up to 8, nested soul, outline, shattered, monster, glow, heartbeat, cycle), presets, reset; the SVG is built from validated values only
 - [x] Character chat: per-sender inbox, live, arrayUnion sends (rebuild/tools/chat_e2e.js)
-- [ ] Compare, tier list, leaderboard, height chart, status roller, suggestion box
+- [x] Compare, tier list, leaderboard, height chart, status roller, suggestion box
 - [x] Generic background patterns, redesigned in pixel art (all 15, old settings kept; rebuild/tools/patterns_shot.js), and the STYLE tab
 
 ## Secondary pages
 
 - [x] Utilities: dice roller, crit calculator, stat checker, status roller (pixel status orbs), trait and general suggestion boxes, shared tier lists, stat leaderboard in five views, compatibility tester (rebuild/tools/utilities_e2e.js), height chart (rebuild/tools/heightchart_e2e.js), game worlds: NO MORE TIME, ASYM HORROR, AUT, LOL, CRTL (rebuild/tools/games_e2e.js)
 - [ ] Encyclopaedia
-- [ ] Gallery
+- [x] Gallery: character cards with server-counted picture badges, upload by picking or dropping (compressed to fit a document), rename, delete, lightbox with arrow keys (rebuild/tools/gallery_e2e.js)
 - [ ] Playlists
 - [ ] Spin a Baddie
 - [ ] BK's Corner

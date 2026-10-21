@@ -14,7 +14,7 @@ export const routes: Routes = [
   { path: 'new', loadComponent: () => import('./features/editor/character-editor').then(m => m.CharacterEditor), title: 'STATSHEETS - NEW CHARACTER' },
   { path: 'edit/:id', loadComponent: () => import('./features/editor/character-editor').then(m => m.CharacterEditor), title: 'STATSHEETS - EDIT' },
   { path: 'utilities', loadComponent: () => import('./features/utilities/utilities-page').then(m => m.UtilitiesPage), title: 'STATSHEETS - UTILITIES' },
-  { path: 'gallery', ...todo('GALLERY') },
+  { path: 'gallery', loadComponent: () => import('./features/gallery/gallery-page').then(m => m.GalleryPage), title: 'STATSHEETS - GALLERY' },
   { path: 'encyclopedia', ...todo('ENCYCLOPAEDIA') },
   { path: 'playlists', ...todo('PLAYLISTS') },
   { path: 'bkscorner', ...todo("BK'S CORNER") },

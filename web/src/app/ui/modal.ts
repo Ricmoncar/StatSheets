@@ -7,7 +7,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 @Component({
   selector: 'ss-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'closed.emit()' },
+  host: { '(document:keydown.escape)': 'onEscape()' },
   template: `
     <div class="backdrop" (click)="closed.emit()"></div>
     <section class="dialog" role="dialog" aria-modal="true" [attr.aria-label]="title()" [style.max-width]="width()">
@@ -30,5 +30,11 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 export class Modal {
   readonly title = input.required<string>();
   readonly width = input('640px');
+  /** Off while something on top of the dialog (a lightbox, say) takes Escape for itself. */
+  readonly escape = input(true);
   readonly closed = output<void>();
+
+  protected onEscape(): void {
+    if (this.escape()) this.closed.emit();
+  }
 }
