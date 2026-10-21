@@ -2,10 +2,26 @@ import { DOCUMENT } from '@angular/common';
 import { Injectable, inject, signal } from '@angular/core';
 import { FRAMES, FrameDef, paintFrame } from './frames';
 import { Painter, canvas, rows } from './painter';
-import { Colours, DEFAULT_ACCENT, FIXED } from './palette';
+import { Colours, DEFAULT_ACCENT, FIXED, KEY } from './palette';
 import { Ramp, ramp } from './ramp';
 import { HEART9, SPRITES, SpriteDef } from './sprites';
 import { TEXTURES, TextureDef } from './textures';
+
+// an 11x12 rose on its stem, the old BK's Corner cursor in pixels
+const ROSE = [
+  '..00000....',
+  '.0RRrRR0...',
+  '0RKRRRrR0..',
+  '0RrKKRRR0..',
+  '0RRrRKrR0..',
+  '.0RRRRR0...',
+  '..00G00....',
+  '.0G0G0.....',
+  '0GG0G0.....',
+  '.00.G0.....',
+  '....G0.....',
+  '....00.....',
+];
 
 /**
  * THE UNDERGROUND theme at runtime. Every sprite, 9-slice frame and tile is
@@ -107,5 +123,17 @@ export class PixelTheme {
     this.root.style.setProperty('--cur-soul', `url("${ring('red', 'void')}") 16 14, auto`);
     this.root.style.setProperty('--cur-point', `url("${ring('red', 'yel')}") 16 14, pointer`);
     this.root.style.setProperty('--cur-no', `url("${ring('mt2', 'void', true)}") 16 14, not-allowed`);
+    // BK's Corner keeps its rose: the bloom outlined in yellow over things you can press
+    const rose = (hot: boolean) => {
+      const s = this.painter(11, 12);
+      ROSE.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') s.p(x, y, ch === '0' && hot && y < 7 ? 'yel' : KEY[ch]); }));
+      const big = this.painter(33, 36);
+      big.x.drawImage(s.c, 0, 0, 33, 36);
+      return big.c.toDataURL();
+    };
+    const bloom = rose(false);
+    this.root.style.setProperty('--i-rose', `url("${bloom}")`);
+    this.root.style.setProperty('--cur-rose', `url("${bloom}") 4 4, auto`);
+    this.root.style.setProperty('--cur-rose-hot', `url("${rose(true)}") 4 4, pointer`);
   }
 }

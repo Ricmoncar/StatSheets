@@ -21,7 +21,7 @@ import { Icon } from './icon';
     </section>
   `,
   styles: `
-    :host { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+    :host { position: fixed; inset: 0; z-index: 40; display: grid; grid-template-rows: minmax(0, 1fr); place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
     .scrim { position: absolute; inset: 0; animation: scrim 0.2s steps(2, end) both; }
     .dialog { position: relative; width: 100%; max-height: 100%; display: flex; flex-direction: column; box-shadow: 0 var(--p3) 0 var(--c-void); }
     .bar { display: flex; align-items: center; justify-content: space-between; gap: var(--p4); padding: var(--p3) var(--p3) var(--p3) var(--p5); border-bottom: var(--px) solid var(--c-ash); }

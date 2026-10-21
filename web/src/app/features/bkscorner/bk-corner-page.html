@@ -1,0 +1,246 @@
+<header class="bar">
+  <i class="rose" aria-hidden="true"></i>
+  <h1 class="title u-display">BK'S CORNER</h1>
+</header>
+
+<div class="u-tabs" role="tablist">
+  <button type="button" class="u-btn u-tab" role="tab" [attr.aria-selected]="view() === 'requests'" (click)="setView('requests')">ART REQUESTS</button>
+  <button type="button" class="u-btn u-tab" role="tab" [attr.aria-selected]="view() === 'gallery'" (click)="setView('gallery')">GALLERY</button>
+</div>
+
+@if (view() === 'requests') {
+  <div class="toolbar">
+    <button type="button" class="u-btn primary" (click)="openCreate()"><ss-icon name="plus" [soul]="false" />NEW ART REQUEST</button>
+    <div class="filters" role="group" aria-label="Show">
+      @for (f of ['all', 'pending', 'completed']; track f) {
+        <button type="button" class="chip" [class.on]="filter() === f" [attr.aria-pressed]="filter() === f" (click)="filter.set($any(f))">{{ f.toUpperCase() }}</button>
+      }
+    </div>
+    <span class="count">{{ done() }}</span>
+  </div>
+
+  @if (requests() === null) {
+    <p class="empty">LOADING...</p>
+  } @else if (shown().length) {
+    <div class="grid">
+      @for (r of shown(); track r.id) {
+        <button type="button" class="card u-fr u-wood" (click)="openDetail(r)" [attr.aria-label]="(r.title || 'Untitled') + (r.completed ? ', done' : ', pending')">
+          <span class="pic">
+            @if (cover(r)) { <img [src]="cover(r)" alt="" draggable="false" loading="lazy" /> } @else { <span class="nopic">NO<br />REFERENCES</span> }
+            <span class="status" [class.done]="r.completed">{{ r.completed ? 'DONE' : 'PENDING' }}</span>
+          </span>
+          <span class="body">
+            <span class="ctitle">{{ r.title || 'UNTITLED' }}</span>
+            @if (r.description) { <span class="cdesc">{{ r.description }}</span> }
+            @let cs = charsOf(r.charIds);
+            @if (cs.length) {
+              <span class="chips">
+                @for (c of cs.slice(0, 3); track c.id) { <ss-char-chip [c]="c" /> }
+                @if (cs.length > 3) { <span class="more">+{{ cs.length - 3 }}</span> }
+              </span>
+            }
+          </span>
+        </button>
+      }
+    </div>
+  } @else {
+    <div class="u-empty">
+      <i class="rose big" aria-hidden="true"></i>
+      @if (requests()!.length) { NO {{ filter().toUpperCase() }} REQUESTS }
+      @else { NO ART REQUESTS YET<br />CLICK "+ NEW ART REQUEST" TO START ONE }
+    </div>
+  }
+} @else {
+  <div class="toolbar">
+    <button type="button" class="u-btn primary" (click)="openUpload()"><ss-icon name="upload" />ADD IMAGES</button>
+    <span class="hint">Link characters and the image also shows on their Gallery page</span>
+    <span class="count">{{ board()?.length ? board()!.length + ' IMAGE' + (board()!.length !== 1 ? 'S' : '') : '' }}</span>
+  </div>
+  @if (board() === null) {
+    <p class="empty">LOADING...</p>
+  } @else if (board()!.length) {
+    <div class="grid">
+      @for (img of board(); track img.id) {
+        @let cs = charsOf(img.charIds);
+        <button type="button" class="card u-fr u-wood" (click)="openImage(img)" [attr.aria-label]="img.name || 'Image'">
+          <span class="pic">
+            <img [src]="img.thumb || img.dataUrl" alt="" draggable="false" loading="lazy" />
+            @if ((img.charIds || []).length) { <span class="synced" title="Linked characters">↪ {{ img.charIds!.length }}</span> }
+          </span>
+          @if (img.name || cs.length) {
+            <span class="body">
+              @if (img.name) { <span class="ctitle">{{ img.name }}</span> }
+              @if (cs.length) {
+                <span class="chips">
+                  @for (c of cs.slice(0, 3); track c.id) { <ss-char-chip [c]="c" /> }
+                  @if (cs.length > 3) { <span class="more">+{{ cs.length - 3 }}</span> }
+                </span>
+              }
+            </span>
+          }
+        </button>
+      }
+    </div>
+  } @else {
+    <div class="u-empty"><i class="rose big" aria-hidden="true"></i>NO IMAGES YET<br />CLICK "+ ADD IMAGES" TO SHARE SOME ART</div>
+  }
+}
+
+<!-- ── a new request ── -->
+@if (creating()) {
+  <ss-modal title="NEW ART REQUEST" width="680px" (closed)="creating.set(false)">
+    <div class="form">
+      <label class="field">
+        <span class="lbl">TITLE</span>
+        <span class="u-field"><input class="f-title" type="text" maxlength="120" autocomplete="off" [value]="draftTitle()" (input)="draftTitle.set($any($event.target).value)" /></span>
+      </label>
+      <label class="field">
+        <span class="lbl">DESCRIPTION <small>: what should the art be?</small></span>
+        <span class="u-field area"><textarea rows="4" [value]="draftDesc()" (input)="draftDesc.set($any($event.target).value)"></textarea></span>
+      </label>
+      <div class="field">
+        <span class="lbl">CHARACTERS <small>: tap to add</small></span>
+        <ss-char-pick [chars]="chars()" [(selected)]="draftChars" label="Characters for this request" />
+      </div>
+      <div class="field">
+        <span class="lbl">REFERENCE IMAGES <small>: optional, pick as many as you like</small></span>
+        <div class="drop u-drop u-fr u-inset" [class.over]="dropOver() === 'ref'" role="button" tabindex="0"
+             (click)="pick('.in-ref')" (keydown.enter)="pick('.in-ref')" (dragover)="dragOver($event, 'ref')" (dragleave)="dropOver.set(null)" (drop)="onRefDrop($event)">
+          DROP IMAGES HERE OR CLICK TO BROWSE
+        </div>
+        <input class="in-ref" type="file" accept="image/*" multiple hidden (change)="onRefs($event)" />
+        @if (staging() !== null) { <div class="u-progress" role="progressbar" [attr.aria-valuenow]="staging()"><span [style.width.%]="staging()"></span></div> }
+        @if (draftRefs().length) {
+          <div class="thumbs">
+            @for (r of draftRefs(); track $index; let i = $index) {
+              <span class="thumb"><img [src]="r.thumb" alt="" /><button type="button" class="x" (click)="unstageRef(i)" aria-label="Remove image"><ss-icon name="x" [soul]="false" /></button></span>
+            }
+          </div>
+        }
+      </div>
+      <div class="foot">
+        <button type="button" class="u-btn" (click)="creating.set(false)">CANCEL</button>
+        <button type="button" class="u-btn primary" (click)="submitRequest()" [disabled]="saving()">{{ saving() ? 'SAVING...' : 'CREATE REQUEST' }}</button>
+      </div>
+    </div>
+  </ss-modal>
+}
+
+<!-- ── one request ── -->
+@if (detailId()) {
+  @let r = detail();
+  <ss-modal [title]="r?.title || 'REQUEST'" width="760px" [escape]="!lb()" (closed)="closeDetail()">
+    @if (detailErr()) {
+      <p class="empty">ERROR: {{ detailErr() }}</p>
+    } @else if (!r) {
+      <p class="empty">REQUEST NOT FOUND</p>
+    } @else if (detailImgs() === null) {
+      <p class="empty">LOADING...</p>
+    } @else {
+      <div class="detail">
+        <div class="row">
+          <span class="status inline" [class.done]="r.completed">{{ r.completed ? 'COMPLETED' : 'PENDING' }}</span>
+          @if (r.createdAt) { <span class="when">REQUESTED {{ date(r.createdAt) }}</span> }
+        </div>
+        @if (r.description) { <span class="mini-h">DESCRIPTION</span><p class="desc">{{ r.description }}</p> }
+        @let cs = charsOf(r.charIds);
+        @if (cs.length) {
+          <span class="mini-h">CHARACTERS</span>
+          <div class="chips">@for (c of cs; track c.id) { <ss-char-chip [c]="c" /> }</div>
+        }
+        <span class="mini-h">REFERENCES{{ refs().length ? ' (' + refs().length + ')' : '' }}</span>
+        @if (refs().length) {
+          <div class="refs">
+            @for (img of refs(); track img.id; let i = $index) {
+              <button type="button" class="ref" (click)="openLightbox(refUrls(), i)" [attr.aria-label]="'Reference ' + (i + 1)"><img [src]="img.dataUrl" alt="" /></button>
+            }
+          </div>
+        } @else { <p class="none">No reference images.</p> }
+
+        <span class="mini-h">FINISHED ART</span>
+        @if (result(); as res) {
+          <button type="button" class="result u-fr u-wood" (click)="openLightbox([res.dataUrl])" aria-label="Finished art, full size"><img [src]="res.dataUrl" alt="finished art" /></button>
+        } @else {
+          <p class="result-empty u-fr u-inset">{{ r.completed ? 'COMPLETED: UPLOAD THE FINISHED ART BELOW' : 'MARK THIS REQUEST COMPLETED TO UPLOAD THE FINISHED ART' }}</p>
+        }
+        @if (working() !== null) { <div class="u-progress" role="progressbar" [attr.aria-valuenow]="working()"><span [style.width.%]="working()"></span></div> }
+
+        <span class="mini-h">ACTIONS</span>
+        <div class="actions">
+          <button type="button" class="u-btn sm" [class.on]="!r.completed" (click)="toggleCompleted()">
+            <ss-icon [name]="r.completed ? 'left' : 'check'" [soul]="false" />{{ r.completed ? 'MARK AS PENDING' : 'MARK AS COMPLETED' }}
+          </button>
+          <button type="button" class="u-btn sm primary" [disabled]="!r.completed" (click)="pick('.in-result')">
+            <ss-icon name="upload" [soul]="false" />{{ result() ? 'REPLACE FINISHED ART' : 'UPLOAD FINISHED ART' }}
+          </button>
+          <button type="button" class="u-btn sm" (click)="pick('.in-more')"><ss-icon name="plus" [soul]="false" />ADD REFERENCES</button>
+          <button type="button" class="u-btn sm danger" (click)="deleteRequest()"><ss-icon name="trash" [soul]="false" />DELETE REQUEST</button>
+        </div>
+        <input class="in-result" type="file" accept="image/*" hidden (change)="onResult($event)" />
+        <input class="in-more" type="file" accept="image/*" multiple hidden (change)="onMoreRefs($event)" />
+      </div>
+    }
+  </ss-modal>
+}
+
+<!-- ── adding pictures to the board ── -->
+@if (upOpen()) {
+  <ss-modal title="ADD IMAGES" width="680px" (closed)="upOpen.set(false)">
+    <div class="form">
+      <div class="field">
+        <span class="lbl">IMAGES</span>
+        <div class="drop u-drop u-fr u-inset" [class.over]="dropOver() === 'up'" role="button" tabindex="0"
+             (click)="pick('.in-up')" (keydown.enter)="pick('.in-up')" (dragover)="dragOver($event, 'up')" (dragleave)="dropOver.set(null)" (drop)="onUpDrop($event)">
+          DROP IMAGES HERE OR CLICK TO BROWSE
+        </div>
+        <input class="in-up" type="file" accept="image/*" multiple hidden (change)="onUpFiles($event)" />
+        @if (staging() !== null) { <div class="u-progress" role="progressbar" [attr.aria-valuenow]="staging()"><span [style.width.%]="staging()"></span></div> }
+        @if (upRefs().length) {
+          <div class="thumbs">
+            @for (r of upRefs(); track $index; let i = $index) {
+              <span class="thumb"><img [src]="r.thumb" [alt]="r.name" /><button type="button" class="x" (click)="unstageUp(i)" aria-label="Remove image"><ss-icon name="x" [soul]="false" /></button></span>
+            }
+          </div>
+        }
+      </div>
+      <div class="field">
+        <span class="lbl">LINK TO CHARACTERS <small>: optional · syncs to their Gallery page · pick as many as you like</small></span>
+        <ss-char-pick [chars]="chars()" [(selected)]="upChars" label="Characters to link" />
+      </div>
+      <div class="foot">
+        <button type="button" class="u-btn" (click)="upOpen.set(false)">CANCEL</button>
+        <button type="button" class="u-btn primary" (click)="submitUpload()" [disabled]="upProgress() !== null">{{ upProgress() || 'ADD TO GALLERY' }}</button>
+      </div>
+    </div>
+  </ss-modal>
+}
+
+<!-- ── one picture on the board ── -->
+@if (editId()) {
+  <ss-modal title="IMAGE" width="680px" [escape]="!lb()" (closed)="editId.set(null)">
+    @if (editing(); as img) {
+      <div class="form">
+        <button type="button" class="big-pic u-fr u-wood" (click)="openLightbox([img.dataUrl])" aria-label="Full size"><img [src]="img.dataUrl" [alt]="img.name || ''" /></button>
+        <label class="field">
+          <span class="lbl">NAME</span>
+          <span class="u-field"><input type="text" maxlength="120" autocomplete="off" [value]="editName()" (input)="editName.set($any($event.target).value)" /></span>
+        </label>
+        <div class="field">
+          <span class="lbl">LINKED CHARACTERS <small>: tap to toggle · syncs to their Gallery page</small></span>
+          <ss-char-pick [chars]="chars()" [(selected)]="editChars" label="Linked characters" />
+          <p class="sync-note">{{ note(editChars().length) }}</p>
+        </div>
+        <div class="foot">
+          <button type="button" class="u-btn danger" (click)="deleteImage()"><ss-icon name="trash" [soul]="false" />DELETE IMAGE</button>
+          <button type="button" class="u-btn primary" (click)="saveImage()">SAVE CHANGES</button>
+        </div>
+      </div>
+    } @else {
+      <p class="empty">IMAGE NOT FOUND</p>
+    }
+  </ss-modal>
+}
+
+@if (lb(); as urls) {
+  <ss-lightbox [urls]="urls" [(index)]="lbIndex" (closed)="lb.set(null)" />
+}

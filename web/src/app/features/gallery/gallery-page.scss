@@ -33,17 +33,7 @@ ss-modal { --c: #fff; }
 .tools { display: flex; align-items: center; gap: var(--p4); flex-wrap: wrap; margin-bottom: var(--p4); }
 .status { font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-mute); }
 
-// the drop zone: a metal inset; while files hover over it, marching ants walk its edge
-.drop { --ant: var(--c-yel); display: grid; place-items: center; min-height: calc(24 * var(--px)); padding: var(--p5); margin-bottom: var(--p4); text-align: center; font: var(--fs-ui) / 2 var(--f-ui); color: var(--c-mute); cursor: var(--cur-point, pointer);
-  &:hover, &:focus-visible { color: var(--c-yel); border-image-source: var(--f-inset-hi); outline: none; }
-  &.over { color: var(--c-yel); border-image-source: var(--f-inset-on);
-    background-image: linear-gradient(90deg, var(--ant) 50%, transparent 50%), linear-gradient(90deg, var(--ant) 50%, transparent 50%), linear-gradient(0deg, var(--ant) 50%, transparent 50%), linear-gradient(0deg, var(--ant) 50%, transparent 50%);
-    background-repeat: repeat-x, repeat-x, repeat-y, repeat-y; background-size: var(--p4) var(--px), var(--p4) var(--px), var(--px) var(--p4), var(--px) var(--p4);
-    background-position: 0 0, 0 100%, 0 0, 100% 0; animation: ants 0.6s steps(4) infinite; } }
-@keyframes ants { to { background-position: var(--p4) 0, calc(-1 * var(--p4)) 100%, 0 calc(-1 * var(--p4)), 100% var(--p4); } }
-
-.progress { height: calc(5 * var(--px)); margin-bottom: var(--p4); padding: var(--px); background: var(--c-void); box-shadow: inset 0 0 0 var(--px) var(--c-ink3);
-  span { display: block; height: 100%; background: repeating-linear-gradient(90deg, var(--ac2) 0 calc(5 * var(--px)), transparent calc(5 * var(--px)) calc(6 * var(--px))); transition: width 0.2s steps(4); } }
+.drop, .progress { margin-bottom: var(--p4); }
 
 .pics { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(50 * var(--px)), 1fr)); gap: var(--p4); }
 .pic { position: relative; margin: 0; aspect-ratio: 1; overflow: hidden; cursor: zoom-in; background: var(--c-ink2); box-shadow: 0 0 0 var(--px) var(--c-void), 0 0 0 var(--p1) var(--c-ash);
@@ -59,23 +49,12 @@ ss-modal { --c: #fff; }
 
 @media (hover: none) { .acts { opacity: 1; } }
 
-// ── full size: the picture on the void, in a white frame ──
-.lightbox { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: 56px max(64px, env(safe-area-inset-right, 0px)) 56px max(64px, env(safe-area-inset-left, 0px)); background: rgb(0 0 0 / 0.94); cursor: zoom-out; }
-.lb-img { max-width: 100%; max-height: calc(100dvh - 112px); object-fit: contain; box-shadow: 0 0 0 var(--p1) var(--c-white), 0 0 0 calc(2 * var(--p1)) var(--c-void); }
-.lb-x { position: absolute; top: var(--p4); right: var(--p4); }
-.lb-name { position: absolute; top: var(--p6); left: 50%; transform: translateX(-50%); max-width: calc(100% - 140px); font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-white); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lb-count { position: absolute; bottom: var(--p6); left: 50%; transform: translateX(-50%); font: var(--fs-num) / 1 var(--f-body); color: var(--c-mute); }
-.lb-nav { position: absolute; top: 50%; transform: translateY(-50%); &.prev { left: var(--p4); } &.next { right: var(--p4); } }
-
 @media (max-width: 560px) {
   .grid { grid-template-columns: repeat(auto-fill, minmax(calc(40 * var(--px)), 1fr)); gap: var(--p6) var(--p4); }
   .pics { grid-template-columns: repeat(auto-fill, minmax(calc(44 * var(--px)), 1fr)); }
-  .lightbox { padding-left: 16px; padding-right: 16px; }
-  .lb-nav { top: auto; bottom: var(--p3); transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .frame, .progress span { transition: none; }
+  .frame { transition: none; }
   .frame::after { display: none; }
-  .drop { animation: none !important; }
 }

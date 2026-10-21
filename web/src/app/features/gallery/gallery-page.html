@@ -33,12 +33,12 @@
       <input #file type="file" accept="image/*" multiple hidden (change)="onFiles($event)" />
       <span class="status">{{ status() }}</span>
     </div>
-    <div class="drop u-fr u-inset" [class.over]="dragOver()" role="button" tabindex="0" (click)="pickFiles()" (keydown.enter)="pickFiles()"
+    <div class="drop u-drop u-fr u-inset" [class.over]="dragOver()" role="button" tabindex="0" (click)="pickFiles()" (keydown.enter)="pickFiles()"
          (dragover)="onDragOver($event)" (dragleave)="dragOver.set(false)" (drop)="onDrop($event)">
       DROP IMAGES HERE OR CLICK TO UPLOAD
     </div>
     @if (progress() !== null) {
-      <div class="progress" role="progressbar" [attr.aria-valuenow]="progress()" aria-valuemin="0" aria-valuemax="100"><span [style.width.%]="progress()"></span></div>
+      <div class="progress u-progress" role="progressbar" [attr.aria-valuenow]="progress()" aria-valuemin="0" aria-valuemax="100"><span [style.width.%]="progress()"></span></div>
     }
 
     @if (error()) {
@@ -70,15 +70,5 @@
 }
 
 @if (shown(); as img) {
-  @let n = images()?.length || 0;
-  <div class="lightbox" role="dialog" aria-modal="true" [attr.aria-label]="img.name || 'Picture'" (click)="lightbox.set(null)">
-    <button type="button" class="lb-x u-btn icon" (click)="lightbox.set(null)" aria-label="Close"><ss-icon name="x" [soul]="false" /></button>
-    @if (img.name) { <div class="lb-name">{{ img.name }}</div> }
-    @if (n > 1) {
-      <button type="button" class="lb-nav prev u-btn icon" (click)="$event.stopPropagation(); step(-1)" aria-label="Previous"><ss-icon name="left" [soul]="false" /></button>
-      <button type="button" class="lb-nav next u-btn icon" (click)="$event.stopPropagation(); step(1)" aria-label="Next"><ss-icon name="right" [soul]="false" /></button>
-    }
-    <img class="lb-img" [src]="img.dataUrl" [alt]="img.name || ''" />
-    <div class="lb-count">{{ (lightbox() ?? 0) + 1 }} / {{ n }}</div>
-  </div>
+  <ss-lightbox [urls]="urls()" [index]="lightbox()!" (indexChange)="lightbox.set($event)" [label]="img.name" (closed)="lightbox.set(null)" />
 }

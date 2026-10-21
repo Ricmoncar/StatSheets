@@ -7,6 +7,7 @@ import { FIRESTORE, col } from '../../core/firebase';
 import { NotifyService } from '../../core/notify.service';
 import { Modal } from '../../ui/modal';
 import { Icon } from '../../ui/icon';
+import { Lightbox } from '../../ui/lightbox';
 import { GalleryImage, compressToFit, genId, imageLabel } from './gallery-images';
 
 // a 9x7 camera, '#' is a pixel
@@ -22,11 +23,10 @@ const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
  */
 @Component({
   selector: 'ss-gallery-page',
-  imports: [Modal, Icon],
+  imports: [Modal, Icon, Lightbox],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gallery-page.html',
   styleUrl: './gallery-page.scss',
-  host: { '(document:keydown)': 'onKey($event)' },
 })
 export class GalleryPage {
   private readonly db = inject(FIRESTORE);
@@ -50,6 +50,7 @@ export class GalleryPage {
   protected readonly renaming = signal<string | null>(null);
   protected readonly lightbox = signal<number | null>(null);
   protected readonly shown = computed(() => { const i = this.lightbox(), l = this.images(); return i !== null && l ? l[i] ?? null : null; });
+  protected readonly urls = computed(() => (this.images() || []).map(i => i.dataUrl));
 
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('file');
   private unsub: Unsubscribe | null = null;
@@ -180,17 +181,5 @@ export class GalleryPage {
       console.error('delete error:', e);
       this.notifier.notify('DELETE FAILED: ' + (e as Error).message, 'err');
     }
-  }
-
-  // ── full size ──
-  protected step(dir: number): void {
-    const n = this.images()?.length || 0, i = this.lightbox();
-    if (n && i !== null) this.lightbox.set((i + dir + n) % n);
-  }
-  protected onKey(ev: KeyboardEvent): void {
-    if (this.lightbox() === null) return;   // the gallery itself closes on Escape through ss-modal
-    if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') { ev.preventDefault(); this.step(-1); }
-    if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') { ev.preventDefault(); this.step(1); }
-    if (ev.key === 'Escape') this.lightbox.set(null);
   }
 }

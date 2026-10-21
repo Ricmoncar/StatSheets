@@ -41,7 +41,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Gallery: character cards with server-counted picture badges, upload by picking or dropping (compressed to fit a document), rename, delete, lightbox with arrow keys (rebuild/tools/gallery_e2e.js)
 - [x] Playlists: every character's playlist with cover, title and description edited in place, MP3 uploads, reordering by dragging or the keyboard, and a player bar with shuffle, repeat, seek, volume and mute; playback follows the playlist it started in (rebuild/tools/playlists_e2e.js)
 - [ ] Spin a Baddie
-- [ ] BK's Corner
+- [x] BK's Corner: art requests (filters, create with characters and references, complete, finished art, more references, delete) and the shared board that mirrors linked pictures into character galleries; the rose cursor kept as pixel art (rebuild/tools/bkscorner_e2e.js)
 - [x] Admin: the old password gate (remembered for the session), trait editor with three-way merged saves, quick stat override, rename, give / remove / nuke / wipe for every character (a batch that fails is retried one character at a time, and the ones that still fail are named), overview table (rebuild/tools/admin_e2e.js)
 - [ ] sq.html, test.html (find out if still used)
 

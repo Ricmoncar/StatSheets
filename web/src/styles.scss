@@ -332,6 +332,19 @@ input[type=range]:hover::-webkit-slider-thumb, input[type=range]:focus-visible::
 .u-indet i { position: absolute; top: 0; bottom: 0; left: calc(-16 * var(--px)); width: calc(16 * var(--px)); background: var(--ac2); box-shadow: inset 0 var(--px) 0 var(--ac3); animation: u-indet 1.2s steps(16, end) infinite; }
 @keyframes u-indet { to { transform: translateX(calc(96 * var(--px))); } }
 
+// ── file drop zone: a metal inset; while files hover over it, marching ants walk its edge ──
+.u-drop { --ant: var(--c-yel); display: grid; place-items: center; min-height: calc(24 * var(--px)); padding: var(--p5); text-align: center; font: var(--fs-ui) / 2 var(--f-ui); color: var(--c-mute); cursor: var(--cur-point, pointer); }
+.u-drop:hover, .u-drop:focus-visible { color: var(--c-yel); border-image-source: var(--f-inset-hi); outline: none; }
+.u-drop.over { color: var(--c-yel); border-image-source: var(--f-inset-on);
+  background-image: linear-gradient(90deg, var(--ant) 50%, transparent 50%), linear-gradient(90deg, var(--ant) 50%, transparent 50%), linear-gradient(0deg, var(--ant) 50%, transparent 50%), linear-gradient(0deg, var(--ant) 50%, transparent 50%);
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y; background-size: var(--p4) var(--px), var(--p4) var(--px), var(--px) var(--p4), var(--px) var(--p4);
+  background-position: 0 0, 0 100%, 0 0, 100% 0; animation: u-ants 0.6s steps(4) infinite; }
+@keyframes u-ants { to { background-position: var(--p4) 0, calc(-1 * var(--p4)) 100%, 0 calc(-1 * var(--p4)), 100% var(--p4); } }
+
+// ── a progress bar: accent blocks filling a void track ──
+.u-progress { height: calc(5 * var(--px)); padding: var(--px); background: var(--c-void); box-shadow: inset 0 0 0 var(--px) var(--c-ink3); }
+.u-progress > span { display: block; height: 100%; background: repeating-linear-gradient(90deg, var(--ac2) 0 calc(5 * var(--px)), transparent calc(5 * var(--px)) calc(6 * var(--px))); transition: width 0.2s steps(4); }
+
 // ── performance mode and reduced motion: loops pause on a frame, decoration goes ──
 .perf .u-anim, .perf .u-indet i, .perf .u-empty .soulf { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) {
