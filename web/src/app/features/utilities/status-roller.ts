@@ -36,12 +36,12 @@ const TYPE_COLORS: Record<string, string> = { BUFF: '#44ff88', DEBUFF: '#ff4444'
     }
   `,
   styles: `
-    .intro { margin: 0 0 18px; font-size: var(--ss-text-sm); letter-spacing: 1px; color: var(--ss-fg-faint); }
+    .intro { margin: 0 0 18px; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
     .types { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
-    .type { --t: var(--ss-fg); padding: 5px 8px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: 1px solid color-mix(in srgb, var(--t) 30%, transparent); color: var(--t);
+    .type { --t: var(--ss-fg); padding: 5px 8px; font-size: var(--ss-text-xs); background: none; border: 1px solid color-mix(in srgb, var(--t) 30%, transparent); color: var(--t);
       &.on { border-color: var(--t); background: color-mix(in srgb, var(--t) 15%, transparent); } }
-    .pool { margin: 0 0 14px; font-size: var(--ss-text-sm); letter-spacing: 2px; color: var(--ss-fg-faint); }
-    .btn { padding: 10px 14px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: var(--ss-border) solid var(--ss-fg-dim); color: var(--ss-fg);
+    .pool { margin: 0 0 14px; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
+    .btn { padding: 10px 14px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-fg-dim); color: var(--ss-fg);
       &.accent { border-color: var(--ss-accent); color: var(--ss-accent); &:hover:not(:disabled) { background: var(--ss-accent); color: var(--ss-bg); } }
       &:disabled { opacity: 0.5; } }
     .result { --s: #aaa; display: flex; gap: 20px; align-items: center; margin: 24px 0 12px; padding: 18px 20px;
@@ -50,9 +50,9 @@ const TYPE_COLORS: Record<string, string> = { BUFF: '#44ff88', DEBUFF: '#ff4444'
     @keyframes shake { 50% { translate: 2px 0; } }
     .info { flex: 1; min-width: 0; display: grid; gap: 8px; }
     .top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .name { font-size: 11px; }
-    .badge { --t: #aaa; font-size: 7px; letter-spacing: 2px; padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--t) 40%, transparent); color: var(--t); }
-    .desc { margin: 0; font-size: var(--ss-text-sm); letter-spacing: 1px; line-height: 1.8; color: var(--ss-fg-dim); white-space: pre-wrap; }
+    .name { font-size: var(--fs-body); }
+    .badge { --t: #aaa; font-size: var(--fs-ui); padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--t) 40%, transparent); color: var(--t); }
+    .desc { margin: 0; font-size: var(--ss-text-sm); line-height: 1.8; color: var(--ss-fg-dim); white-space: pre-wrap; }
   `,
 })
 export class StatusRoller {

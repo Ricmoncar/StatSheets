@@ -40,11 +40,11 @@ import { GeneralSuggestions, TraitSuggestions } from './suggestions';
   styles: `
     :host { display: grid; gap: 24px; max-width: 1200px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 80px max(16px, env(safe-area-inset-left, 0px)); }
     .bar { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-    .title { margin: 0; font-size: var(--ss-text-lg); letter-spacing: 4px; color: var(--ss-accent); }
-    .hc-btn { padding: 8px 12px; font-size: var(--ss-text-sm); letter-spacing: 1px; background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent); &:hover { background: var(--ss-accent); color: var(--ss-bg); } }
+    .title { margin: 0; font-size: var(--ss-text-lg); color: var(--ss-accent); }
+    .hc-btn { padding: 8px 12px; font-size: var(--ss-text-sm); background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent); &:hover { background: var(--ss-accent); color: var(--ss-bg); } }
     .top { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
     .col { display: grid; gap: 20px; align-content: start; }
-    .todo { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); letter-spacing: 1px; }
+    .todo { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); }
     @media (max-width: 860px) { .top { grid-template-columns: 1fr; } }
   `,
 })

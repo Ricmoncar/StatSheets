@@ -46,7 +46,7 @@ import { Modal } from '../../ui/modal';
   `,
   styles: `
     .balance { display: grid; gap: 6px; justify-items: center; padding-bottom: 16px; }
-    .label { font-size: var(--ss-text-xs); color: var(--ss-fg-dim); letter-spacing: 2px; }
+    .label { font-size: var(--ss-text-xs); color: var(--ss-fg-dim); }
     .amount { font-size: var(--ss-text-xl); color: var(--ss-gold); &.neg { color: var(--ss-err); } }
     .controls { display: grid; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--ss-line-dim); }
     .field { display: grid; gap: 6px; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); }
@@ -58,7 +58,7 @@ import { Modal } from '../../ui/modal';
     .tx-amount { color: var(--ss-ok); }
     .tx.neg .tx-amount { color: var(--ss-err); }
     .tx-note { color: var(--ss-fg); overflow-wrap: anywhere; }
-    .tx-meta { color: var(--ss-fg-faint); text-align: right; font-size: 6px; line-height: 1.8; }
+    .tx-meta { color: var(--ss-fg-faint); text-align: right; font-size: var(--fs-ui); line-height: 1.8; }
     .none { text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); }
   `,
 })

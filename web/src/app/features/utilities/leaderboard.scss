@@ -1,13 +1,13 @@
 :host { display: block; }
 .views, .stats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .views { justify-content: flex-end; }
-.chip { padding: 5px 8px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim);
+.chip { padding: 5px 8px; font-size: var(--ss-text-xs); background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim);
   &:hover { color: var(--ss-fg); border-color: var(--ss-fg-dim); }
   &.on { border-color: var(--ss-accent); color: var(--ss-accent); background: color-mix(in srgb, var(--ss-accent) 10%, transparent); } }
-.none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); letter-spacing: 1px; }
+.none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); }
 
 .list { list-style: none; margin: 0; padding: 0; }
-.row { --rk: transparent; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid var(--ss-panel-2); font-size: var(--ss-text-sm); letter-spacing: 1px;
+.row { --rk: transparent; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid var(--ss-panel-2); font-size: var(--ss-text-sm);
   background: color-mix(in srgb, var(--rk) 7%, transparent);
   img, svg { width: 28px; height: 28px; flex: none; object-fit: cover; image-rendering: pixelated; border: 1px solid; }
   svg { border: 0; }
@@ -23,8 +23,8 @@
 @keyframes jit { 50% { translate: 1px -1px; } }
 
 .chart { display: block; width: 100%; height: auto; font-family: inherit; }
-.axis-t { fill: #4a4a66; font-size: 7.5px; letter-spacing: 1.5px; }
-.axis-v { fill: #2c2c40; font-size: 6px; }
+.axis-t { fill: #4a4a66; font-size: var(--fs-ui); }
+.axis-v { fill: #2c2c40; font-size: var(--fs-ui); }
 .cl-bar { fill: #ff1a1a; fill-opacity: 0.55; animation: flick 0.26s steps(2) infinite; }
 .cl-arc, .cl-poly { fill: #ff1a1a; fill-opacity: 0.35; stroke: #ff1a1a; animation: flick 0.3s steps(2) infinite; }
 .cl-poly { fill-opacity: 0.1; stroke-width: 1.5; }

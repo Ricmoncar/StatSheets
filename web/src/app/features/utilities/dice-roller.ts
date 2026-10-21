@@ -29,7 +29,7 @@ const FAST = 45, SLOW = 380;   // the scramble's gap between face changes, start
     @if (cinematic()) { <div class="overlay" (click)="dismiss()" title="Click to close"></div> }
   `,
   styles: `
-    .field { display: grid; gap: 6px; font-size: var(--ss-text-xs); letter-spacing: 1px; color: var(--ss-fg-dim);
+    .field { display: grid; gap: 6px; font-size: var(--ss-text-xs); color: var(--ss-fg-dim);
       input { padding: 8px; font-size: var(--ss-text-sm); background: var(--ss-bg); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); width: 100%; } }
     .wrap { display: grid; justify-items: center; gap: 18px; padding: 24px 0 8px; }
     .stage { width: 80px; height: 80px; display: grid; place-items: center; perspective: 600px; }
@@ -39,7 +39,7 @@ const FAST = 45, SLOW = 380;   // the scramble's gap between face changes, start
     .cube { --c: var(--ss-accent); width: 60px; height: 60px; position: relative; transform-style: preserve-3d; }
     .face {
       position: absolute; inset: 0; display: grid; place-items: center; backface-visibility: hidden;
-      font-size: 16px; color: var(--c); background: var(--ss-panel);
+      font-size: var(--fs-voice); color: var(--c); background: var(--ss-panel);
       border: 4px solid var(--c); box-shadow: inset 4px 4px 0 rgb(255 255 255 / 0.08), inset -4px -4px 0 rgb(0 0 0 / 0.5);
       &[data-face='0'] { transform: rotateY(0deg) translateZ(30px); }
       &[data-face='1'] { transform: rotateY(180deg) translateZ(30px); }
@@ -56,7 +56,7 @@ const FAST = 45, SLOW = 380;   // the scramble's gap between face changes, start
     .cube[data-tier='low'] { --c: #ff3333; }
     .cube[data-tier='high'] { --c: #00ffff; .face { box-shadow: 0 0 0 2px #003a3a, inset 4px 4px 0 rgb(255 255 255 / 0.12); } }
     .cube[data-tier='max'] { --c: #ff8000; .face { color: #fff; background: #3a1d00; } }
-    .btn { padding: 10px 14px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent);
+    .btn { padding: 10px 14px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent);
       &:hover:not(:disabled) { background: var(--ss-accent); color: var(--ss-bg); } &:disabled { opacity: 0.5; } }
   `,
 })

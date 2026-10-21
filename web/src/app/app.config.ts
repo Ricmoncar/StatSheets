@@ -3,6 +3,7 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 import { CharacterStore } from './core/data/character-store';
 import { EncyclopediaStore } from './core/data/encyclopedia-store';
+import { PixelTheme } from './core/pixel/pixel-theme.service';
 import { SoundService } from './core/sound.service';
 import { ThemeMusic } from './core/theme-music.service';
 
@@ -11,6 +12,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
     provideAppInitializer(() => {
+      inject(PixelTheme).start();
       inject(CharacterStore).start();
       inject(EncyclopediaStore).start();
       inject(SoundService).wireGlobalSounds();

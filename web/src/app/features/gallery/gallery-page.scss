@@ -8,10 +8,10 @@
 .bar { display: flex; align-items: center; gap: 16px; }
 .cam { width: 45px; height: 35px; flex: none; fill: var(--ss-accent); }
 .titles { display: grid; gap: 8px; }
-.title { margin: 0; font-size: var(--ss-text-lg); letter-spacing: 4px; color: var(--ss-accent); }
-.sub { font-size: var(--ss-text-xs); letter-spacing: 2px; color: var(--ss-fg-faint); }
+.title { margin: 0; font-size: var(--ss-text-lg); color: var(--ss-accent); }
+.sub { font-size: var(--ss-text-xs); color: var(--ss-fg-faint); }
 
-.empty { margin: 0; padding: 48px 16px; text-align: center; font-size: var(--ss-text-xs); line-height: 2.2; letter-spacing: 2px; color: var(--ss-fg-faint);
+.empty { margin: 0; padding: 48px 16px; text-align: center; font-size: var(--ss-text-xs); line-height: 2.2; color: var(--ss-fg-faint);
   &.wide { grid-column: 1 / -1; } }
 
 // ── characters ──
@@ -26,23 +26,23 @@
   img { width: 100%; height: 100%; object-fit: cover; filter: saturate(0.85) brightness(0.92); }
   // a diagonal glint that sweeps across on hover, in nine hard steps
   &::after { content: ''; position: absolute; inset: -20%; background: linear-gradient(115deg, transparent 40%, rgb(255 255 255 / 0.22) 40% 48%, transparent 48% 54%, rgb(255 255 255 / 0.12) 54% 57%, transparent 57%); transform: translateX(-110%); pointer-events: none; } }
-.none { font-size: var(--ss-text-xs); line-height: 2; letter-spacing: 2px; color: color-mix(in srgb, var(--c) 45%, #000); }
-.count { position: absolute; top: 6px; right: 6px; padding: 4px 5px 3px 8px; font-size: 6px; letter-spacing: 1px; color: #fff; background: rgb(0 0 0 / 0.82); box-shadow: inset 3px 0 0 var(--c), 2px 2px 0 #000;
+.none { font-size: var(--ss-text-xs); line-height: 2; color: color-mix(in srgb, var(--c) 45%, #000); }
+.count { position: absolute; top: 6px; right: 6px; padding: 4px 5px 3px 8px; font-size: var(--fs-ui); color: #fff; background: rgb(0 0 0 / 0.82); box-shadow: inset 3px 0 0 var(--c), 2px 2px 0 #000;
   &.zero { color: var(--ss-fg-faint); } }
-.name { color: color-mix(in oklab, var(--c), #fff 30%); font-size: var(--ss-text-xs); letter-spacing: 1px; line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 2px 2px 0 #000; }
+.name { color: color-mix(in oklab, var(--c), #fff 30%); font-size: var(--ss-text-xs); line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 2px 2px 0 #000; }
 
 @keyframes shine { to { transform: translateX(110%); } }
 
 // ── one character's gallery ──
 ss-modal { --c: #fff; }
 .tools { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
-.btn { padding: 8px 12px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: var(--ss-border) solid var(--ss-line-dim); color: var(--ss-fg-dim);
+.btn { padding: 8px 12px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-line-dim); color: var(--ss-fg-dim);
   &:hover { border-color: var(--ss-fg); color: var(--ss-fg); }
   &.accent { border-color: var(--c); color: var(--c); &:hover { background: var(--c); color: #000; } } }
-.status { font-size: var(--ss-text-xs); letter-spacing: 2px; color: var(--ss-fg-dim); }
+.status { font-size: var(--ss-text-xs); color: var(--ss-fg-dim); }
 
 // marching ants: four dashed edges, walked along while files hover over it
-.drop { --ant: color-mix(in srgb, var(--c) 55%, transparent); display: grid; place-items: center; min-height: 72px; padding: 18px; margin-bottom: 14px; text-align: center; font-size: var(--ss-text-xs); line-height: 2; letter-spacing: 2px; color: var(--ss-fg-faint); cursor: pointer;
+.drop { --ant: color-mix(in srgb, var(--c) 55%, transparent); display: grid; place-items: center; min-height: 72px; padding: 18px; margin-bottom: 14px; text-align: center; font-size: var(--ss-text-xs); line-height: 2; color: var(--ss-fg-faint); cursor: pointer;
   background-image: linear-gradient(90deg, var(--ant) 50%, transparent 50%), linear-gradient(90deg, var(--ant) 50%, transparent 50%), linear-gradient(0deg, var(--ant) 50%, transparent 50%), linear-gradient(0deg, var(--ant) 50%, transparent 50%);
   background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
   background-size: 8px 2px, 8px 2px, 2px 8px, 2px 8px;
@@ -58,10 +58,10 @@ ss-modal { --c: #fff; }
   img { width: 100%; height: 100%; object-fit: cover; display: block; }
   &:hover, &:focus-within { border-color: var(--c); .acts { opacity: 1; } } }
 .acts { position: absolute; top: 5px; right: 5px; display: flex; gap: 4px; opacity: 0; }
-.act { padding: 4px 6px; font-size: 6px; letter-spacing: 1px; background: rgb(0 0 0 / 0.85); border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim);
+.act { padding: 4px 6px; font-size: var(--fs-ui); background: rgb(0 0 0 / 0.85); border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim);
   &:hover, &:focus-visible { color: var(--ss-fg); border-color: var(--ss-fg); }
   &.del:hover, &.del:focus-visible { color: var(--ss-err); border-color: var(--ss-err); } }
-.cap, .rename { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; padding: 6px 7px 5px; font-size: 6px; letter-spacing: 1px; line-height: 1.6; }
+.cap, .rename { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; padding: 6px 7px 5px; font-size: var(--fs-ui); line-height: 1.6; }
 .cap { color: var(--ss-fg-dim); background: rgb(0 0 0 / 0.78); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rename { width: 100%; background: #000; border: 0; border-top: var(--ss-border) solid var(--c); color: var(--ss-fg); outline: none; }
 
@@ -71,8 +71,8 @@ ss-modal { --c: #fff; }
 .lightbox { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: 56px max(64px, env(safe-area-inset-right, 0px)) 56px max(64px, env(safe-area-inset-left, 0px)); background: rgb(0 0 0 / 0.94); cursor: zoom-out; }
 .lb-img { max-width: 100%; max-height: calc(100dvh - 112px); object-fit: contain; @include px-frame(#fff, 3px); }
 .lb-x { position: absolute; top: 14px; right: 14px; padding: 6px 9px; font-size: var(--ss-text-sm); background: none; border: var(--ss-border) solid var(--ss-line-dim); color: var(--ss-fg-dim); &:hover { color: var(--ss-fg); border-color: var(--ss-fg); } }
-.lb-name { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 140px); font-size: var(--ss-text-xs); letter-spacing: 2px; color: var(--ss-fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lb-count { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); font-size: var(--ss-text-xs); letter-spacing: 2px; color: var(--ss-fg-faint); }
+.lb-name { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 140px); font-size: var(--ss-text-xs); color: var(--ss-fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-count { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); font-size: var(--ss-text-xs); color: var(--ss-fg-faint); }
 .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 56px; padding: 0; font-size: var(--ss-text-md); background: rgb(0 0 0 / 0.6); border: var(--ss-border) solid var(--ss-line-dim); color: var(--ss-fg-dim);
   &:hover { color: var(--ss-accent); border-color: var(--ss-accent); }
   &.prev { left: 12px; } &.next { right: 12px; } }

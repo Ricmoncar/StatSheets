@@ -32,11 +32,11 @@ import { PatternCanvas } from '../../ui/pattern-canvas';
     </ss-panel>
   `,
   styles: `
-    .label { margin: 0 0 14px; font-size: 9px; letter-spacing: 2px; span { color: var(--ss-accent); } }
+    .label { margin: 0 0 14px; font-size: var(--fs-body); span { color: var(--ss-accent); } }
     .edit { font-size: var(--ss-text-xs); padding: 5px 8px; border: 1px solid var(--ss-line-dim); color: var(--ss-fg); text-decoration: none; &:hover { border-color: var(--ss-accent); color: var(--ss-accent); } }
     .preview { position: relative; height: 140px; margin-bottom: 14px; border: 1px solid var(--ss-line-dim); background: var(--ss-bg); }
     .params { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px 16px; margin: 0; }
-    .row { display: flex; gap: 8px; align-items: center; font-size: var(--ss-text-sm); letter-spacing: 1px; }
+    .row { display: flex; gap: 8px; align-items: center; font-size: var(--ss-text-sm); }
     dt { color: var(--ss-fg-faint); &::after { content: ':'; } }
     dd { margin: 0; display: inline-flex; gap: 6px; align-items: center; color: #ccc; }
     .swatch { width: 10px; height: 10px; border: 1px solid var(--ss-line-dim); }

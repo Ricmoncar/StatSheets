@@ -22,7 +22,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
     :host { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
     .backdrop { position: absolute; inset: 0; background: rgb(0 0 0 / 0.8); }
     .dialog { position: relative; width: 100%; max-height: 100%; display: flex; flex-direction: column; background: var(--ss-bg); border: var(--ss-border) solid var(--ss-line); }
-    .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: var(--ss-border) solid var(--ss-line); font-size: var(--ss-text-sm); letter-spacing: 3px; }
+    .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: var(--ss-border) solid var(--ss-line); font-size: var(--ss-text-sm); }
     .x { background: none; border: 1px solid var(--ss-line-dim); padding: 4px 7px; font-size: var(--ss-text-xs); }
     .body { overflow-y: auto; padding: 16px; }
   `,

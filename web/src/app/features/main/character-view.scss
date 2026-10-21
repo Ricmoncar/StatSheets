@@ -19,7 +19,7 @@
 
 .who { display: grid; gap: 6px; min-width: 0; flex: 1; }
 .name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.name { margin: 0; font-size: var(--ss-text-xl); color: var(--ss-accent); letter-spacing: 3px; overflow-wrap: anywhere; }
+.name { margin: 0; font-size: var(--ss-text-xl); color: var(--ss-accent); overflow-wrap: anywhere; }
 .forms { display: flex; gap: 4px; flex-wrap: wrap; }
 .chip {
   font-size: var(--ss-text-xs);
@@ -29,8 +29,8 @@
   color: var(--ss-fg-dim);
   &.on { border-color: var(--ss-atk); color: var(--ss-atk); }
 }
-.owner { margin: 0; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); letter-spacing: 2px; }
-.pl { margin: 0; font-size: var(--ss-text-sm); letter-spacing: 2px; }
+.owner { margin: 0; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); }
+.pl { margin: 0; font-size: var(--ss-text-sm); }
 .gold {
   justify-self: start;
   background: none;
@@ -49,7 +49,6 @@
   padding: 6px 8px;
   background: none;
   border: var(--ss-border) solid var(--ss-fg);
-  letter-spacing: 1px;
   &.accent { border-color: var(--ss-gold); color: var(--ss-gold); }
   &.danger { border-color: var(--ss-err); color: var(--ss-err); }
   &.on { background: var(--ss-accent); border-color: var(--ss-accent); color: var(--ss-bg); }
@@ -57,7 +56,7 @@
 }
 .radar { padding: 6px 0 14px; }
 
-.none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); letter-spacing: 1px; }
+.none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); }
 
 .traits { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
 .trait {
@@ -74,7 +73,7 @@
   &[data-rarity='hexxed'] { --r: var(--ss-hexxed); }
   &.shimmy { box-shadow: 0 0 0 2px var(--ss-bg), 0 0 0 4px var(--r); }
 }
-.rarity { justify-self: start; font-size: 6px; letter-spacing: 1px; padding: 3px 5px; border: 1px solid var(--r); color: var(--r); }
+.rarity { justify-self: start; font-size: var(--fs-ui); padding: 3px 5px; border: 1px solid var(--r); color: var(--r); }
 .tname { font-size: var(--ss-text-sm); color: var(--r); }
 .tdesc { font-size: var(--ss-text-xs); color: var(--ss-fg-dim); line-height: 1.8; }
 
@@ -101,7 +100,7 @@
 }
 .iname { font-size: var(--ss-text-sm); }
 .idesc { font-size: var(--ss-text-xs); color: var(--ss-fg-dim); }
-.eq { font-size: 6px; color: var(--ss-ok); letter-spacing: 1px; }
+.eq { font-size: var(--fs-ui); color: var(--ss-ok); }
 
 @media (max-width: 600px) {
   :host { padding: 16px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px)); }
@@ -112,7 +111,6 @@
 .tabs { display: flex; gap: 0; flex-wrap: wrap; border-bottom: var(--ss-border) solid var(--ss-line-dim); }
 .tab {
   font-size: var(--ss-text-xs);
-  letter-spacing: 2px;
   padding: 10px 16px;
   background: none;
   border: 0;

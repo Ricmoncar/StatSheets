@@ -62,7 +62,7 @@ const MSG_MAX = 500;
   styles: `
     .chat { display: grid; grid-template-columns: 180px 1fr; gap: 14px; min-height: 360px; }
     .convs { display: grid; align-content: start; gap: 4px; padding-right: 12px; border-right: 1px solid var(--ss-panel-2); overflow-y: auto; max-height: 60vh; }
-    .label { font-size: 6px; letter-spacing: 2px; color: var(--ss-fg-faint); padding-bottom: 4px; }
+    .label { font-size: var(--fs-ui); color: var(--ss-fg-faint); padding-bottom: 4px; }
     .conv { display: grid; grid-template-columns: 8px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; background: none; border: 1px solid transparent; text-align: left; font-size: var(--ss-text-xs);
       &.on { border-color: var(--who); } &:hover { background: var(--ss-panel-2); } }
     .cname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -72,14 +72,14 @@ const MSG_MAX = 500;
     .messages { list-style: none; margin: 0; padding: 0; display: grid; align-content: start; gap: 12px; overflow-y: auto; max-height: 52vh; }
     .msg { display: grid; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--ss-panel-2); }
     .head { display: flex; gap: 8px; align-items: center; font-size: var(--ss-text-xs); }
-    time { margin-left: auto; font-size: 6px; color: var(--ss-fg-faint); }
+    time { margin-left: auto; font-size: var(--fs-ui); color: var(--ss-fg-faint); }
     .text { font-size: var(--ss-text-sm); line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
-    .empty { display: grid; gap: 8px; padding: 48px 12px; text-align: center; color: var(--ss-fg-dim); font-size: var(--ss-text-sm); letter-spacing: 2px; span { font-size: 6px; color: var(--ss-fg-faint); } }
+    .empty { display: grid; gap: 8px; padding: 48px 12px; text-align: center; color: var(--ss-fg-dim); font-size: var(--ss-text-sm); span { font-size: var(--fs-ui); color: var(--ss-fg-faint); } }
     .send { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
-    .as { display: flex; gap: 6px; align-items: center; font-size: 6px; color: var(--ss-fg-faint); }
+    .as { display: flex; gap: 6px; align-items: center; font-size: var(--fs-ui); color: var(--ss-fg-faint); }
     select, input { padding: 7px 8px; font-size: var(--ss-text-xs); background: var(--ss-panel); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); min-width: 0; }
     select { max-width: 160px; }
-    .btn { padding: 8px 12px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: var(--ss-border) solid var(--ss-gold); color: var(--ss-gold); &:hover { background: var(--ss-gold); color: var(--ss-bg); } }
+    .btn { padding: 8px 12px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-gold); color: var(--ss-gold); &:hover { background: var(--ss-gold); color: var(--ss-bg); } }
     @media (max-width: 700px) {
       .chat { grid-template-columns: 1fr; }
       .convs { grid-auto-flow: column; grid-auto-columns: max-content; border: 0; padding: 0 0 8px; max-height: none; overflow-x: auto; }

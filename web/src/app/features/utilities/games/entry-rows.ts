@@ -28,7 +28,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output }
     .fields { flex: 1; min-width: 0; display: grid; gap: 4px; }
     input, textarea { width: 100%; padding: 6px 8px; font-size: var(--ss-text-sm); line-height: 1.7; background: var(--ss-bg); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); resize: vertical; }
     .x { padding: 5px 7px; font-size: var(--ss-text-xs); background: none; border: 1px solid var(--ss-err); color: var(--ss-err); }
-    .add { justify-self: start; margin-top: 4px; padding: 5px 9px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: 1px dashed var(--ss-line-dim); color: var(--ss-fg-dim); &:hover { color: var(--ss-fg); } }
+    .add { justify-self: start; margin-top: 4px; padding: 5px 9px; font-size: var(--ss-text-xs); background: none; border: 1px dashed var(--ss-line-dim); color: var(--ss-fg-dim); &:hover { color: var(--ss-fg); } }
   `,
 })
 export class EntryRows {

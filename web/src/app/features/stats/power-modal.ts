@@ -68,9 +68,9 @@ const range = (stat: string, i: number) => `${PL_THRESHOLDS[stat][i]}-${i === TI
       &.here { border: var(--ss-border) solid var(--c); box-shadow: 4px 4px 0 color-mix(in srgb, var(--c) 35%, black); } }
     .icon { image-rendering: pixelated; }
     .text { display: grid; gap: 4px; min-width: 0; }
-    .title { font-size: var(--ss-text-sm); letter-spacing: 2px; em { font-style: normal; color: var(--ss-fg); } }
-    .stats { font-size: 6.5px; letter-spacing: 1px; color: var(--ss-fg-dim); line-height: 1.8; }
-    .cap { margin: 14px 0 0; text-align: center; font-size: var(--ss-text-xs); letter-spacing: 3px; color: var(--ss-fg-faint); animation: blink 1.2s steps(2) infinite; }
+    .title { font-size: var(--ss-text-sm); em { font-style: normal; color: var(--ss-fg); } }
+    .stats { font-size: var(--fs-ui); color: var(--ss-fg-dim); line-height: 1.8; }
+    .cap { margin: 14px 0 0; text-align: center; font-size: var(--ss-text-xs); color: var(--ss-fg-faint); animation: blink 1.2s steps(2) infinite; }
     @keyframes blink { 50% { opacity: 0.3; } }
   `,
 })

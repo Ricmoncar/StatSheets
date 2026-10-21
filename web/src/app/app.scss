@@ -15,7 +15,6 @@
 
 .logo {
   font-size: var(--ss-text-lg);
-  letter-spacing: 4px;
   color: var(--ss-fg);
   text-decoration: none;
   span { color: var(--ss-accent); }
@@ -30,7 +29,6 @@
 
 .nav-link, .mute {
   font-size: var(--ss-text-sm);
-  letter-spacing: 1px;
   padding: 8px 10px;
   border: var(--ss-border) solid var(--ss-gold);
   color: var(--ss-gold);

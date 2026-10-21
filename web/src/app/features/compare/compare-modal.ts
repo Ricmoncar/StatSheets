@@ -57,16 +57,16 @@ const NARA = /^NARA!+$/;
   `,
   styles: `
     .pick { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
-    select { flex: 1; min-width: 0; padding: 6px; font-size: var(--ss-text-sm); letter-spacing: 1px; background: var(--ss-panel); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); }
+    select { flex: 1; min-width: 0; padding: 6px; font-size: var(--ss-text-sm); background: var(--ss-panel); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); }
     .vs { font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
-    .names { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 12px; font-size: var(--ss-text-md); letter-spacing: 2px; }
+    .names { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 12px; font-size: var(--ss-text-md); }
     .rows { display: grid; gap: 6px; }
     .row { display: grid; grid-template-columns: 6ch 1fr 13ch 1fr 6ch; gap: 8px; align-items: center; font-size: var(--ss-text-xs); }
     .val { text-align: right; color: var(--ss-fg-dim); &.win { color: var(--ss-fg); } &.lose { color: var(--ss-fg-faint); } }
     .row > .val:last-child { text-align: left; }
     .bar { height: 8px; background: var(--ss-panel-2); display: flex; > span { display: block; height: 100%; } &.a { justify-content: flex-end; } }
-    .key { display: flex; gap: 6px; align-items: center; justify-content: center; letter-spacing: 1px; color: var(--ss-fg-dim); white-space: nowrap; }
-    .none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); letter-spacing: 1px; }
+    .key { display: flex; gap: 6px; align-items: center; justify-content: center; color: var(--ss-fg-dim); white-space: nowrap; }
+    .none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); }
     .rainbow { animation: rbw 2.5s linear infinite; }
     .rainbow-bg { animation: rbw-bg 2.5s linear infinite; }
     @keyframes rbw { 0%, 100% { color: hsl(0 100% 65%); } 33% { color: hsl(120 100% 65%); } 67% { color: hsl(240 100% 70%); } }

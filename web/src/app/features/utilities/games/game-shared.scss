@@ -1,9 +1,9 @@
 // Shared by the five game worlds: the view card, the editor and its sections.
 :host { display: block; }
-.desc-line { margin: 0 0 16px; font-size: var(--ss-text-sm); letter-spacing: 1px; line-height: 1.9; color: var(--ss-fg-faint); }
+.desc-line { margin: 0 0 16px; font-size: var(--ss-text-sm); line-height: 1.9; color: var(--ss-fg-faint); }
 .work { margin-top: 16px; padding-top: 18px; border-top: 1px solid var(--ss-panel-2); }
 
-.btn { display: inline-flex; gap: 5px; align-items: center; padding: 5px 9px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim); cursor: pointer;
+.btn { display: inline-flex; gap: 5px; align-items: center; padding: 5px 9px; font-size: var(--ss-text-xs); background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim); cursor: pointer;
   &:hover:not(:disabled) { color: var(--ss-fg); border-color: var(--ss-fg-dim); }
   &:disabled { opacity: 0.35; cursor: default; }
   &.accent { color: var(--ss-accent); border-color: var(--ss-accent); }
@@ -21,36 +21,36 @@
   img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
   .init { font-size: 28px; color: var(--nc); } }
 .hero-text { flex: 1; min-width: 0; display: grid; gap: 8px; }
-.cname { font-size: 12px; letter-spacing: 2px; line-height: 1.6; color: var(--nc); text-shadow: 3px 3px 0 #000; overflow-wrap: anywhere; }
-.tag { font-size: 6px; letter-spacing: 5px; color: var(--ss-fg-faint); }
+.cname { font-size: var(--fs-body); line-height: 1.6; color: var(--nc); text-shadow: 3px 3px 0 #000; overflow-wrap: anywhere; }
+.tag { font-size: var(--fs-ui); color: var(--ss-fg-faint); }
 .rule { height: 2px; margin: 0 22px 18px; background: repeating-linear-gradient(90deg, var(--nc) 0 6px, transparent 6px 10px); opacity: 0.6; }
 .sections { display: grid; gap: 16px; padding: 0 22px 18px; }
-.sec-head { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; font-size: 7px; letter-spacing: 4px; color: var(--sc);
+.sec-head { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; font-size: var(--fs-ui); color: var(--sc);
   &::before { content: ''; width: 4px; height: 12px; background: var(--sc); } }
 .entry { --sc: #888; display: flex; gap: 11px; align-items: flex-start; margin-bottom: 7px; padding: 10px 13px; background: rgb(0 0 0 / 0.45); border: 1px solid rgb(255 255 255 / 0.05); border-left: 3px solid color-mix(in srgb, var(--sc) 50%, transparent);
   &:hover { border-left-color: var(--sc); translate: 3px 0; }
-  .bullet { flex: none; padding-top: 2px; font-size: 9px; color: var(--sc); }
+  .bullet { flex: none; padding-top: 2px; font-size: var(--fs-body); color: var(--sc); }
   .body { flex: 1; min-width: 0; display: grid; gap: 4px; }
-  .ename { font-size: var(--ss-text-sm); letter-spacing: 2px; color: var(--sc); }
-  .etext { font-size: var(--ss-text-sm); line-height: 2; letter-spacing: 0.5px; color: rgb(255 255 255 / 0.55); white-space: pre-wrap; overflow-wrap: anywhere; } }
-.empty { margin: 0; padding: 18px 0; text-align: center; font-size: var(--ss-text-sm); letter-spacing: 2px; color: var(--ss-fg-faint); }
+  .ename { font-size: var(--ss-text-sm); color: var(--sc); }
+  .etext { font-size: var(--ss-text-sm); line-height: 2; color: rgb(255 255 255 / 0.55); white-space: pre-wrap; overflow-wrap: anywhere; } }
+.empty { margin: 0; padding: 18px 0; text-align: center; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
 .footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 22px; border-top: 1px solid rgb(255 255 255 / 0.05); }
-.pager { display: flex; gap: 9px; align-items: center; font-size: 7px; letter-spacing: 2px; color: var(--ss-fg-faint); }
+.pager { display: flex; gap: 9px; align-items: center; font-size: var(--fs-ui); color: var(--ss-fg-faint); }
 
 // ── the editor ──
 .ed-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .ed-av { width: 40px; height: 40px; flex: none; overflow: hidden; border: 2px solid var(--nc); display: grid; place-items: center;
   img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; } .init { color: var(--nc); } }
-.ed-name { font-size: var(--ss-text-md); letter-spacing: 2px; color: var(--nc); }
-.status { margin-left: auto; font-size: 7px; letter-spacing: 2px; color: var(--ss-fg-faint); &[data-s='saved'] { color: var(--ss-ok); } }
+.ed-name { font-size: var(--ss-text-md); color: var(--nc); }
+.status { margin-left: auto; font-size: var(--fs-ui); color: var(--ss-fg-faint); &[data-s='saved'] { color: var(--ss-ok); } }
 .section { display: grid; gap: 8px; margin-bottom: 18px; }
-.sec-title { font-size: 7px; letter-spacing: 3px; color: var(--ss-fg-dim); }
+.sec-title { font-size: var(--fs-ui); color: var(--ss-fg-dim); }
 .toggle { display: flex; gap: 6px; margin-bottom: 16px;
-  button { flex: 1; padding: 9px; font-size: var(--ss-text-sm); letter-spacing: 3px; background: rgb(255 255 255 / 0.02); border: 1px solid rgb(255 255 255 / 0.08); color: var(--ss-fg-faint);
+  button { flex: 1; padding: 9px; font-size: var(--ss-text-sm); background: rgb(255 255 255 / 0.02); border: 1px solid rgb(255 255 255 / 0.08); color: var(--ss-fg-faint);
     &.on { color: var(--tc); border-color: var(--tc); background: color-mix(in srgb, var(--tc) 12%, transparent); } } }
 .text-in { width: 100%; padding: 6px 8px; font-size: var(--ss-text-sm); line-height: 1.7; background: var(--ss-bg); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); resize: vertical; }
 select.text-in { width: auto; max-width: 100%; }
 .chips { display: flex; flex-wrap: wrap; gap: 5px;
-  button { padding: 5px 10px; font-size: 7px; letter-spacing: 2px; background: rgb(255 255 255 / 0.02); border: 1px solid rgb(255 255 255 / 0.08); color: var(--ss-fg-faint);
+  button { padding: 5px 10px; font-size: var(--fs-ui); background: rgb(255 255 255 / 0.02); border: 1px solid rgb(255 255 255 / 0.08); color: var(--ss-fg-faint);
     &.on { color: var(--tc, var(--nc)); border-color: var(--tc, var(--nc)); background: color-mix(in srgb, var(--tc, var(--nc)) 10%, transparent); } } }
 @media (max-width: 560px) { .hero { gap: 12px; padding: 18px 14px 14px; } .avatar { width: 60px; height: 60px; } .sections, .footer { padding-inline: 14px; } }

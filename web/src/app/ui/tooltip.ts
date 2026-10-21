@@ -68,7 +68,7 @@ export class TipDirective {
     .tip {
       --r: var(--ss-fg);
       position: fixed; z-index: 90; min-width: min(200px, calc(100vw - 24px)); max-width: min(320px, calc(100vw - 24px)); padding: 10px 12px; pointer-events: none;
-      display: grid; gap: 8px; font-size: var(--ss-text-xs); letter-spacing: 1px; line-height: 1.7;
+      display: grid; gap: 8px; font-size: var(--ss-text-xs); line-height: 1.7;
       background: var(--ss-bg); border: var(--ss-border) solid var(--r); box-shadow: 4px 4px 0 #000;
       &[data-rarity='common'] { --r: var(--ss-common); }
       &[data-rarity='rare'] { --r: var(--ss-rare); }
@@ -80,7 +80,7 @@ export class TipDirective {
     }
     p { margin: 0; }
     .pic { width: 52px; height: 52px; object-fit: cover; image-rendering: pixelated; border: 2px solid var(--r); }
-    .title { color: var(--r); font-size: var(--ss-text-sm); letter-spacing: 2px; }
+    .title { color: var(--r); font-size: var(--ss-text-sm); }
     .desc { color: var(--ss-fg-dim); }
     .lines { margin: 0; display: grid; gap: 2px; }
     .line { display: flex; justify-content: space-between; gap: 16px; }

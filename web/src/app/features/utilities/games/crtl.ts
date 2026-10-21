@@ -114,14 +114,14 @@ const ENTITY = '#dd4455', CLASS = '#36c98a';
   `,
   styleUrls: ['./game-shared.scss'],
   styles: `
-    .badge { justify-self: start; padding: 3px 9px; font-size: 6px; letter-spacing: 3px; color: var(--sc); border: 1px solid var(--sc); }
-    .stars { display: flex; gap: 6px; font-size: 17px; line-height: 1; color: #2a2a2a;
+    .badge { justify-self: start; padding: 3px 9px; font-size: var(--fs-ui); color: var(--sc); border: 1px solid var(--sc); }
+    .stars { display: flex; gap: 6px; font-size: var(--fs-voice); line-height: 1; color: #2a2a2a;
       .on { color: #ffd24a; text-shadow: 2px 2px 0 #4a3a00; }
-      &.edit button { padding: 0; font-size: 17px; background: none; border: 0; color: #2a2a2a; &.on { color: #ffd24a; text-shadow: 2px 2px 0 #4a3a00; } } }
+      &.edit button { padding: 0; font-size: var(--fs-voice); background: none; border: 0; color: #2a2a2a; &.on { color: #ffd24a; text-shadow: 2px 2px 0 #4a3a00; } } }
     .hp { height: 10px; background: var(--ss-panel-2); border: 1px solid var(--ss-line-dim);
       span { display: block; height: 100%; background: repeating-linear-gradient(90deg, #36c98a 0 6px, #2a9e6c 6px 8px); } }
     .hp-row { display: flex; gap: 12px; align-items: center; input { flex: 1; accent-color: #36c98a; } b { font-weight: normal; font-size: var(--ss-text-sm); color: #36c98a; } }
-    .sec-head b { font-weight: normal; letter-spacing: 1px; }
+    .sec-head b { font-weight: normal; }
   `,
 })
 export class CrtlGame {

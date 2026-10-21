@@ -63,7 +63,7 @@ button { background: transparent; padding: 0; flex-shrink: 0; }
   height: 28px;
   display: inline-grid;
   place-items: center;
-  font-size: 9px;
+  font-size: var(--fs-body);
   border: 1px solid var(--bar-accent);
   color: var(--bar-accent);
   &:hover { background: var(--bar-accent); color: #000; box-shadow: 0 0 10px var(--bar-accent); }
@@ -97,10 +97,10 @@ button { background: transparent; padding: 0; flex-shrink: 0; }
   &:hover .title { color: var(--bar-accent); }
 }
 .title, .who { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.title { font-size: var(--ss-text-sm); letter-spacing: 1px; color: #ccc; }
-.who { font-size: 6.5px; letter-spacing: 1.5px; text-transform: uppercase; }
+.title { font-size: var(--ss-text-sm); color: #ccc; }
+.who { font-size: var(--fs-ui); text-transform: uppercase; }
 
-.vol-label { width: 22px; text-align: right; font-size: 6.5px; color: var(--ss-fg-faint); flex-shrink: 0; }
+.vol-label { width: 22px; text-align: right; font-size: var(--fs-ui); color: var(--ss-fg-faint); flex-shrink: 0; }
 
 .vol {
   --val: 20%;
@@ -126,12 +126,11 @@ button { background: transparent; padding: 0; flex-shrink: 0; }
 }
 .bg {
   width: 24px;
-  font-size: 7px;
-  letter-spacing: 1px;
+  font-size: var(--fs-ui);
   &:hover { color: #999; border-color: #555; }
   &.on { color: var(--bar-accent); border-color: var(--bar-accent); box-shadow: 0 0 8px var(--bar-accent); }
 }
-.stop { width: 22px; font-size: 9px; &:hover { color: var(--ss-err); border-color: var(--ss-err); } }
+.stop { width: 22px; font-size: var(--fs-body); &:hover { color: var(--ss-err); border-color: var(--ss-err); } }
 
 @media (max-width: 700px) {
   :host { gap: 8px; padding-inline: 12px; }

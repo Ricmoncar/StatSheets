@@ -25,7 +25,7 @@ const SYMBOLS = ['#', '?', '!', 'X', 'O', '&'];
   `,
   styles: `
     .fields { display: grid; gap: 12px; }
-    .field { display: grid; gap: 6px; font-size: var(--ss-text-xs); letter-spacing: 1px; color: var(--ss-fg-dim);
+    .field { display: grid; gap: 6px; font-size: var(--ss-text-xs); color: var(--ss-fg-dim);
       input { padding: 8px; font-size: var(--ss-text-sm); background: var(--ss-bg); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); width: 100%; } }
     .wrap { display: grid; justify-items: center; gap: 18px; padding: 24px 0 4px; }
     .result { font-size: 40px; line-height: 1.2; color: var(--ss-accent); text-shadow: 3px 3px 0 rgb(255 0 255 / 0.45), -3px -3px 0 rgb(0 255 255 / 0.45);
@@ -35,7 +35,7 @@ const SYMBOLS = ['#', '?', '!', 'X', 'O', '&'];
     @keyframes jitter { 50% { translate: 2px -2px; } }
     @keyframes pulse { 50% { filter: brightness(1.6); } }
     .detail { margin: 10px 0 0; min-height: 1.6em; text-align: center; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
-    .btn { padding: 10px 14px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent);
+    .btn { padding: 10px 14px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent);
       &:hover:not(:disabled) { background: var(--ss-accent); color: var(--ss-bg); } &:disabled { opacity: 0.5; } }
   `,
 })

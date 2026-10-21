@@ -19,7 +19,7 @@ import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core
   styles: `
     :host { display: block; border: var(--ss-border) solid var(--ss-accent); background: var(--ss-panel); }
     .head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; flex-wrap: wrap; }
-    .title { display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 0; font-size: var(--ss-text-sm); letter-spacing: 3px; }
+    .title { display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 0; font-size: var(--ss-text-sm); }
     .chev { font-size: var(--ss-text-xs); transition: transform 0.2s; }
     .chev.shut { transform: rotate(-90deg); }
     .actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }

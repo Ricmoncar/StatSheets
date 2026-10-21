@@ -33,9 +33,9 @@
 .name { font-size: var(--ss-text-sm); overflow-wrap: anywhere; }
 .desc { font-size: var(--ss-text-xs); color: var(--ss-fg-dim); line-height: 1.8; overflow-wrap: anywhere; }
 .mods, .passives { display: flex; flex-wrap: wrap; gap: 4px; }
-.mod { font-size: 6px; padding: 3px 4px; border: 1px solid var(--ss-ok); color: var(--ss-ok); &[data-op='sub'], &[data-op='div'] { border-color: var(--ss-err); color: var(--ss-err); } &[data-op='mul'] { border-color: var(--ss-gold); color: var(--ss-gold); } }
-.passive { font-size: 6px; padding: 3px 4px; border: 1px dashed var(--ss-line-dim); color: var(--ss-fg-dim); }
+.mod { font-size: var(--fs-ui); padding: 3px 4px; border: 1px solid var(--ss-ok); color: var(--ss-ok); &[data-op='sub'], &[data-op='div'] { border-color: var(--ss-err); color: var(--ss-err); } &[data-op='mul'] { border-color: var(--ss-gold); color: var(--ss-gold); } }
+.passive { font-size: var(--fs-ui); padding: 3px 4px; border: 1px dashed var(--ss-line-dim); color: var(--ss-fg-dim); }
 .equip { position: absolute; left: 12px; bottom: 10px; }
 .tools { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 4px; }
 .tool { font-size: var(--ss-text-xs); padding: 4px 6px; background: none; border: 1px solid var(--ss-line-dim); &.danger:hover { border-color: var(--ss-err); color: var(--ss-err); } }
-.none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); letter-spacing: 1px; }
+.none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); }

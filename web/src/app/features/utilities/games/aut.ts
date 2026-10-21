@@ -114,14 +114,14 @@ function normalize(raw: Partial<AutDoc> | undefined): AutDoc {
   `,
   styleUrls: ['./game-shared.scss'],
   styles: `
-    .stand { font-size: var(--ss-text-sm); letter-spacing: 2px; color: rgb(255 255 255 / 0.6); }
+    .stand { font-size: var(--ss-text-sm); color: rgb(255 255 255 / 0.6); }
     .tier { --t: #44cc88; width: 54px; height: 54px; flex: none; display: grid; place-items: center; font-size: 24px; color: var(--t); border: 3px solid var(--t); background: color-mix(in srgb, var(--t) 10%, transparent); box-shadow: 4px 4px 0 #000; text-shadow: 3px 3px 0 #000; }
     .stats { display: grid; grid-template-columns: 9ch 1fr 3ch; gap: 8px 12px; align-items: center; }
-    .slabel { font-size: 6px; letter-spacing: 3px; color: var(--ss-fg-faint); }
+    .slabel { font-size: var(--fs-ui); color: var(--ss-fg-faint); }
     .track { height: 8px; background: var(--ss-panel-2); span { display: block; height: 100%; background: repeating-linear-gradient(90deg, var(--nc) 0 9%, transparent 9% 10%); transition: width 0.6s steps(10); } }
     .sval { font-size: var(--ss-text-sm); text-align: right; color: var(--ss-fg-dim); }
-    .input { flex: none; min-width: 34px; padding: 3px 6px; font-size: 7px; text-align: center; color: var(--sc); border: 1px solid var(--sc); background: color-mix(in srgb, var(--sc) 10%, transparent); }
-    .slider { display: grid; grid-template-columns: 9ch 1fr 3ch; gap: 10px; align-items: center; font-size: 6px; letter-spacing: 3px; color: var(--ss-fg-faint);
+    .input { flex: none; min-width: 34px; padding: 3px 6px; font-size: var(--fs-ui); text-align: center; color: var(--sc); border: 1px solid var(--sc); background: color-mix(in srgb, var(--sc) 10%, transparent); }
+    .slider { display: grid; grid-template-columns: 9ch 1fr 3ch; gap: 10px; align-items: center; font-size: var(--fs-ui); color: var(--ss-fg-faint);
       input { accent-color: var(--nc); } b { font-weight: normal; font-size: var(--ss-text-sm); text-align: right; color: var(--ss-fg-dim); } }
     .move { display: flex; gap: 8px; align-items: flex-start; }
     .mfields { flex: 1; min-width: 0; display: grid; gap: 4px; }

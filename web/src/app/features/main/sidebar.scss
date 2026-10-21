@@ -8,7 +8,7 @@
 .head { display: flex; align-items: center; gap: 8px; padding: 14px 12px 10px; border-bottom: var(--ss-border) solid var(--ss-line); }
 .head .icon { margin-left: auto; }
 .icon { padding: 2px 6px; font-size: var(--ss-text-xs); background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim); &:hover { color: var(--ss-fg); border-color: var(--ss-fg-dim); } &.danger:hover { color: var(--ss-err); border-color: var(--ss-err); } }
-.title { color: var(--ss-gold); letter-spacing: 3px; font-size: var(--ss-text-sm); }
+.title { color: var(--ss-gold); font-size: var(--ss-text-sm); }
 
 .search {
   margin: 8px;
@@ -16,12 +16,11 @@
   background: var(--ss-panel);
   border: 1px solid var(--ss-line-dim);
   font-size: var(--ss-text-xs);
-  letter-spacing: 1px;
 }
 
 .list { overflow-y: auto; min-height: 0; flex: 1; padding-bottom: 24px; }
 
-.empty { padding: 16px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); letter-spacing: 1px; }
+.empty { padding: 16px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); }
 
 .folder-head {
   display: flex;
@@ -101,9 +100,9 @@
 .info { display: grid; gap: 4px; min-width: 0; }
 .name { color: var(--char); font-size: var(--ss-text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .draft .name { color: var(--ss-fg-faint); }
-small { font-size: 6px; color: var(--ss-fg-faint); }
+small { font-size: var(--fs-ui); color: var(--ss-fg-faint); }
 .tags { display: flex; flex-wrap: wrap; gap: 4px; }
-.tag { font-size: 6px; color: var(--ss-fg-dim); border: 1px solid var(--ss-line-dim); padding: 2px 4px; }
+.tag { font-size: var(--fs-ui); color: var(--ss-fg-dim); border: 1px solid var(--ss-line-dim); padding: 2px 4px; }
 
 // drag and drop: a solid edge where the row will land
 .dragging { opacity: 0.35; }
@@ -120,18 +119,18 @@ small { font-size: 6px; color: var(--ss-fg-faint); }
   background: var(--ss-bg);
   border: var(--ss-border) solid var(--ss-line);
   box-shadow: 4px 4px 0 #000;
-  button { padding: 8px 10px; background: none; border: 0; text-align: left; font-size: var(--ss-text-xs); letter-spacing: 1px; color: var(--ss-fg);
+  button { padding: 8px 10px; background: none; border: 0; text-align: left; font-size: var(--ss-text-xs); color: var(--ss-fg);
     &:hover, &:focus-visible { background: var(--ss-panel-2); outline: none; }
     &.danger { color: var(--ss-err); } }
   hr { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--ss-line-dim); }
 }
-.menu-label { padding: 6px 10px 2px; font-size: 6px; letter-spacing: 2px; color: var(--ss-fg-faint); }
+.menu-label { padding: 6px 10px 2px; font-size: var(--fs-ui); color: var(--ss-fg-faint); }
 
 .folder-form { display: grid; gap: 16px; }
-.field { display: grid; gap: 8px; font-size: var(--ss-text-xs); letter-spacing: 1px; color: var(--ss-fg-dim);
+.field { display: grid; gap: 8px; font-size: var(--ss-text-xs); color: var(--ss-fg-dim);
   input[type='text'] { padding: 8px; background: var(--ss-panel); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); font-size: var(--ss-text-sm); } }
 .swatches { display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
   input[type='color'] { width: 28px; height: 22px; padding: 0; border: 1px solid var(--ss-line-dim); background: none; } }
 .swatch { width: 22px; height: 22px; padding: 0; border: 2px solid #000; box-shadow: 0 0 0 1px var(--ss-line-dim); &.on { box-shadow: 0 0 0 2px var(--ss-fg); } }
 .buttons { display: flex; gap: 8px; }
-.btn { padding: 8px 12px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: var(--ss-border) solid var(--ss-fg); &.ok { border-color: var(--ss-ok); color: var(--ss-ok); } }
+.btn { padding: 8px 12px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-fg); &.ok { border-color: var(--ss-ok); color: var(--ss-ok); } }

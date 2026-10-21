@@ -40,6 +40,9 @@
               }
             ],
             "styles": [
+              "node_modules/@fontsource/silkscreen/400.css",
+              "node_modules/@fontsource/silkscreen/700.css",
+              "node_modules/@fontsource/tiny5/400.css",
               "src/styles.scss"
             ]
           },

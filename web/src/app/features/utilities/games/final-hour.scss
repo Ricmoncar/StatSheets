@@ -1,16 +1,16 @@
 .card { --rc: #22bb77;
   &::before { background: var(--rc); } }
-.role { justify-self: start; padding: 3px 9px; font-size: 6px; letter-spacing: 3px; color: var(--rc); border: 1px solid var(--rc); background: color-mix(in srgb, var(--rc) 8%, transparent); }
+.role { justify-self: start; padding: 3px 9px; font-size: var(--fs-ui); color: var(--rc); border: 1px solid var(--rc); background: color-mix(in srgb, var(--rc) 8%, transparent); }
 .role-rule { background: repeating-linear-gradient(90deg, var(--rc) 0 6px, transparent 6px 10px); }
 .big, .special { --sc: var(--rc); display: grid; gap: 5px; margin-bottom: 6px; padding: 12px 14px; background: color-mix(in srgb, var(--sc) 6%, transparent); border: 1px solid color-mix(in srgb, var(--sc) 20%, transparent); border-left: 4px solid var(--sc); }
-.big-label { font-size: 6px; letter-spacing: 4px; color: color-mix(in srgb, var(--sc) 60%, #000); }
-.big-name { font-size: 9px; letter-spacing: 2px; color: var(--sc); }
+.big-label { font-size: var(--fs-ui); color: color-mix(in srgb, var(--sc) 60%, #000); }
+.big-name { font-size: var(--fs-body); color: var(--sc); }
 .etext { font-size: var(--ss-text-sm); line-height: 1.9; color: rgb(255 255 255 / 0.5); white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .lms { display: grid; gap: 8px; padding: 12px; border: 1px solid rgb(220 175 0 / 0.2); background: rgb(220 175 0 / 0.03); }
-.lms-label { font-size: 6px; letter-spacing: 4px; color: #c9a600; }
+.lms-label { font-size: var(--fs-ui); color: #c9a600; }
 .vs { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
-.who { display: flex; align-items: center; gap: 8px; font-size: var(--ss-text-xs); letter-spacing: 1px; }
+.who { display: flex; align-items: center; gap: 8px; font-size: var(--ss-text-xs); }
 .mini-av { --c: #888; width: 28px; height: 28px; display: grid; place-items: center; overflow: hidden; border: 2px solid var(--c); color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent);
   img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; } }
 .vs-sign { font-size: var(--ss-text-sm); color: #c9a600; text-shadow: 2px 2px 0 #000; }
@@ -18,19 +18,19 @@
 .music { display: grid; gap: 6px; }
 .track-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; text-align: left; background: rgb(0 0 0 / 0.35); border: 1px solid rgb(255 255 255 / 0.06);
   &:hover, &.on { border-color: rgb(255 255 255 / 0.2); }
-  .pp { width: 2ch; color: var(--ss-fg); } .tt { font-size: 6px; letter-spacing: 3px; } .tn { flex: 1; min-width: 0; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+  .pp { width: 2ch; color: var(--ss-fg); } .tt { font-size: var(--fs-ui); } .tn { flex: 1; min-width: 0; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
 
 .lms-edit { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid rgb(220 175 0 / 0.15); b { font-weight: normal; } }
 .mini { display: grid; gap: 5px; }
-.mini-label { font-size: 6px; letter-spacing: 3px; color: #7a6000; }
+.mini-label { font-size: var(--fs-ui); color: #7a6000; }
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; .tn { flex: 1; min-width: 0; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
 
 // the game world's own music bar
 .mp { --mc: #888; position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 32; display: flex; align-items: center; gap: 10px; width: min(360px, calc(100vw - 32px)); padding: 8px 10px;
   background: var(--ss-bg); border: 2px solid var(--mc); box-shadow: 4px 4px 0 #000;
   input { width: 80px; accent-color: var(--mc); } }
-.mp-pp { width: 28px; height: 28px; padding: 0; display: grid; place-items: center; font-size: 9px; background: none; border: 1px solid var(--mc); color: var(--mc); }
+.mp-pp { width: 28px; height: 28px; padding: 0; display: grid; place-items: center; font-size: var(--fs-body); background: none; border: 1px solid var(--mc); color: var(--mc); }
 .mp-info { flex: 1; min-width: 0; display: grid; gap: 3px; }
-.mp-label { font-size: 6px; letter-spacing: 3px; color: var(--mc); }
+.mp-label { font-size: var(--fs-ui); color: var(--mc); }
 .mp-name { font-size: var(--ss-text-xs); color: var(--ss-fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mp-x { padding: 4px 6px; font-size: 8px; background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim); &:hover { color: var(--ss-err); border-color: var(--ss-err); } }
+.mp-x { padding: 4px 6px; font-size: var(--fs-ui); background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim); &:hover { color: var(--ss-err); border-color: var(--ss-err); } }

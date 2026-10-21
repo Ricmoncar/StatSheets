@@ -46,17 +46,17 @@ interface Row { base: number; add: number; mult: number; div: number; max: numbe
   `,
   styles: `
     .row { display: grid; gap: 10px; padding-bottom: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--ss-panel-2); }
-    .lbl { display: inline-flex; gap: 6px; align-items: center; font-size: var(--ss-text-xs); letter-spacing: 1px; color: var(--ss-fg-dim); b { color: var(--ss-fg); font-weight: normal; } }
+    .lbl { display: inline-flex; gap: 6px; align-items: center; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); b { color: var(--ss-fg); font-weight: normal; } }
     .base { display: grid; gap: 8px; input { width: 100%; accent-color: var(--ss-accent); } }
     .ghost { opacity: 0.3; }
     .math { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-      label { display: grid; gap: 4px; font-size: 7px; letter-spacing: 1px; color: var(--ss-fg-dim); }
+      label { display: grid; gap: 4px; font-size: var(--fs-ui); color: var(--ss-fg-dim); }
       input { width: 100%; padding: 5px; font-size: var(--ss-text-sm); background: var(--ss-bg); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); } }
     .res { display: grid; gap: 6px; }
     .subs { padding: 16px; border-top: 1px solid var(--ss-line-dim); background: rgb(0 0 0 / 0.4); }
-    .head { display: block; margin-bottom: 12px; font-size: var(--ss-text-md); letter-spacing: 2px; color: var(--ss-accent); }
+    .head { display: block; margin-bottom: 12px; font-size: var(--ss-text-md); color: var(--ss-accent); }
     dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .sub { display: flex; gap: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--ss-panel-2); font-size: var(--ss-text-sm); letter-spacing: 1px; cursor: help; }
+    .sub { display: flex; gap: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--ss-panel-2); font-size: var(--ss-text-sm); cursor: help; }
     dt { color: var(--ss-fg-dim); } dd { margin: 0; color: var(--ss-fg); }
     @media (max-width: 560px) { dl { grid-template-columns: 1fr; } }
   `,

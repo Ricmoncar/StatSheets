@@ -82,27 +82,27 @@ export function compatHash(str: string): number {
     }
   `,
   styles: `
-    .intro { margin: 0 0 20px; font-size: var(--ss-text-sm); letter-spacing: 1px; color: var(--ss-fg-faint); }
+    .intro { margin: 0 0 20px; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
     .modes { display: flex; gap: 8px; margin-bottom: 18px; }
-    .mode { display: inline-flex; gap: 8px; align-items: center; padding: 8px 12px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim);
+    .mode { display: inline-flex; gap: 8px; align-items: center; padding: 8px 12px; font-size: var(--ss-text-xs); background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim);
       &.rel.on { color: #ff6eb4; border-color: #ff6eb4; background: rgb(255 110 180 / 0.08); }
       &.fr.on { color: #7ed7ff; border-color: #7ed7ff; background: rgb(126 215 255 / 0.08); } }
     .pick { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: end;
-      label { display: grid; gap: 6px; font-size: var(--ss-text-xs); letter-spacing: 1px; color: var(--ss-fg-dim); min-width: 0; }
+      label { display: grid; gap: 6px; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); min-width: 0; }
       select { padding: 7px; font-size: var(--ss-text-sm); background: var(--ss-panel); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); min-width: 0; } }
     .vs { color: var(--ss-fg-faint); padding-bottom: 4px; &.lit { animation: beat 0.8s steps(2) infinite; } }
     @keyframes beat { 50% { scale: 1.25; } }
-    .btn { margin-top: 18px; min-width: 200px; padding: 10px 14px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent);
+    .btn { margin-top: 18px; min-width: 200px; padding: 10px 14px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent);
       &:hover { background: var(--ss-accent); color: var(--ss-bg); } }
     .result { display: grid; gap: 12px; margin-top: 20px; padding: 18px; border: 2px solid var(--ss-panel-2); background: rgb(0 0 0 / 0.4); box-shadow: 4px 4px 0 #000; }
     .names { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: var(--ss-text-sm); }
     .who { display: inline-flex; gap: 6px; align-items: center; }
     .dot { width: 8px; height: 8px; }
     .x { color: var(--ss-fg-faint); }
-    .score { display: flex; gap: 14px; align-items: baseline; .num { font-size: 28px; } .tier { font-size: var(--ss-text-md); letter-spacing: 3px; } }
+    .score { display: flex; gap: 14px; align-items: baseline; .num { font-size: 28px; } .tier { font-size: var(--ss-text-md); } }
     .meter { height: 12px; background: var(--ss-panel-2); border: 1px solid var(--ss-line-dim);
       span { display: block; height: 100%; transition: width 1s steps(20); background-image: repeating-linear-gradient(90deg, transparent 0 8px, rgb(0 0 0 / 0.35) 8px 10px); } }
-    .msg { margin: 0; font-size: var(--ss-text-sm); letter-spacing: 1px; line-height: 1.8; }
+    .msg { margin: 0; font-size: var(--ss-text-sm); line-height: 1.8; }
     .flavor { margin: 0; font-size: var(--ss-text-xs); color: var(--ss-fg-faint); }
     .rainbow { animation: rbw-bg 2.5s linear infinite; } .rainbow-text { animation: rbw 2.5s linear infinite; }
     @keyframes rbw { 0%, 100% { color: hsl(0 100% 65%); } 33% { color: hsl(120 100% 65%); } 67% { color: hsl(240 100% 70%); } }

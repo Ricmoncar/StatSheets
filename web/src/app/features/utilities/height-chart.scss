@@ -2,11 +2,11 @@
 .backdrop { position: absolute; inset: 0; background: rgb(0 0 0 / 0.85); }
 .modal { position: relative; width: min(1280px, 100%); height: min(760px, 100%); display: flex; flex-direction: column; background: var(--ss-bg); border: var(--ss-border) solid var(--ss-line); box-shadow: 6px 6px 0 #000; }
 .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-bottom: var(--ss-border) solid var(--ss-line); }
-.title { font-size: var(--ss-text-sm); letter-spacing: 3px; }
+.title { font-size: var(--ss-text-sm); }
 .actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .units, .zoom { display: inline-flex; gap: 2px; align-items: center; }
 .zoom-val { width: 5ch; text-align: center; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); }
-.btn { display: inline-flex; gap: 5px; align-items: center; padding: 5px 8px; font-size: var(--ss-text-xs); letter-spacing: 1px; background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim); cursor: pointer;
+.btn { display: inline-flex; gap: 5px; align-items: center; padding: 5px 8px; font-size: var(--ss-text-xs); background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim); cursor: pointer;
   &:hover { color: var(--ss-fg); border-color: var(--ss-fg-dim); }
   &.on { color: var(--ss-bg); background: var(--ss-fg); border-color: var(--ss-fg); }
   &.accent { color: var(--ss-accent); border-color: var(--ss-accent); }
@@ -17,7 +17,7 @@
 .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 230px; }
 .chart { display: grid; grid-template-columns: 48px 1fr; min-width: 0; min-height: 0; }
 .ruler { position: relative; border-right: 1px solid var(--ss-panel-2); overflow: hidden; }
-.tick { position: absolute; right: 6px; translate: 0 -50%; font-size: 6px; color: var(--ss-fg-faint); &.major { color: var(--ss-fg-dim); } }
+.tick { position: absolute; right: 6px; translate: 0 -50%; font-size: var(--fs-ui); color: var(--ss-fg-faint); &.major { color: var(--ss-fg-dim); } }
 .stage { position: relative; overflow: hidden; cursor: grab; user-select: none; touch-action: none;
   background: linear-gradient(#08080c, #0d0d14); &:active { cursor: grabbing; } }
 .grid { position: absolute; left: 0; right: 0; height: 1px; background: rgb(255 255 255 / 0.04); pointer-events: none; &.major { background: rgb(255 255 255 / 0.08); } }
@@ -30,11 +30,11 @@
   &.dragging { opacity: 0.4; }
   &.selected .sprite { filter: drop-shadow(2px 0 0 var(--cc)) drop-shadow(-2px 0 0 var(--cc)) drop-shadow(0 2px 0 var(--cc)) drop-shadow(0 -2px 0 var(--cc)); } }
 .anchor { position: relative; height: 100%; display: flex; justify-content: center; }
-.tag { position: absolute; white-space: nowrap; font-size: 7px; letter-spacing: 1px; color: var(--cc); text-shadow: 1px 1px 0 #000; }
-.height { position: absolute; top: calc(100% + 10px); white-space: nowrap; font-size: 7px; color: var(--ss-fg-dim); }
+.tag { position: absolute; white-space: nowrap; font-size: var(--fs-ui); color: var(--cc); text-shadow: 1px 1px 0 #000; }
+.height { position: absolute; top: calc(100% + 10px); white-space: nowrap; font-size: var(--fs-ui); color: var(--ss-fg-dim); }
 .sprite { position: absolute; bottom: 0; max-width: none; image-rendering: pixelated; pointer-events: none; }
 .person { color: var(--cc); }
-.order { position: absolute; bottom: -30px; z-index: 2; padding: 2px 5px; font-size: 9px; background: var(--ss-bg); border: 1px solid var(--cc); color: var(--cc);
+.order { position: absolute; bottom: -30px; z-index: 2; padding: 2px 5px; font-size: var(--fs-body); background: var(--ss-bg); border: 1px solid var(--cc); color: var(--cc);
   &.left { right: calc(50% + 6px); } &.right { left: calc(50% + 6px); } }
 
 // ── auras: the old ten, stepped like sprite animation ──
@@ -83,16 +83,16 @@
 .side { border-left: var(--ss-border) solid var(--ss-panel-2); overflow-y: auto; min-height: 0; }
 .bar { height: 6px; }
 .edit { display: grid; gap: 14px; padding: 14px; }
-.field { display: grid; gap: 6px; font-size: 7px; letter-spacing: 1px; color: var(--ss-fg-dim);
+.field { display: grid; gap: 6px; font-size: var(--fs-ui); color: var(--ss-fg-dim);
   input[type='text'], input[type='number'] { padding: 6px 8px; font-size: var(--ss-text-sm); background: var(--ss-panel); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); width: 100%; }
   input[type='range'] { width: 100%; accent-color: var(--ss-fg); }
   input[type='color'] { width: 34px; height: 24px; padding: 0; border: 1px solid var(--ss-line-dim); background: none; } }
 .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; b { font-weight: normal; color: var(--ss-fg); } }
 .auras { justify-content: flex-start; flex-wrap: wrap; }
 .dot { display: inline-block; width: 6px; height: 6px; }
-.aura-name { font-size: 6px; letter-spacing: 2px; color: var(--ss-fg-faint); }
+.aura-name { font-size: var(--fs-ui); color: var(--ss-fg-faint); }
 hr { width: 100%; margin: 0; border: 0; border-top: 1px solid var(--ss-panel-2); }
-.empty { margin: 0; padding: 40px 14px; text-align: center; font-size: var(--ss-text-xs); letter-spacing: 2px; line-height: 2; color: var(--ss-fg-faint); }
+.empty { margin: 0; padding: 40px 14px; text-align: center; font-size: var(--ss-text-xs); line-height: 2; color: var(--ss-fg-faint); }
 
 .import { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: rgb(0 0 0 / 0.6); }
 .import-box { width: min(360px, calc(100% - 24px)); max-height: 70%; display: flex; flex-direction: column; background: var(--ss-bg); border: var(--ss-border) solid var(--ss-line); }
@@ -101,7 +101,7 @@ hr { width: 100%; margin: 0; border: 0; border-top: 1px solid var(--ss-panel-2);
 .imp { display: flex; gap: 8px; align-items: center; padding: 7px 8px; background: none; border: 0; border-bottom: 1px solid var(--ss-panel-2); text-align: left; font-size: var(--ss-text-xs);
   &:hover { background: var(--ss-panel-2); } &.added { opacity: 0.5; }
   .dot { width: 8px; height: 8px; } .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .badge { font-size: 6px; color: var(--ss-ok); } }
+  .badge { font-size: var(--fs-ui); color: var(--ss-ok); } }
 
 @media (max-width: 760px) {
   .body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }

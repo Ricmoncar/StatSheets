@@ -30,10 +30,10 @@ import { Character } from '../../../core/data/models';
       &.on { border-color: color-mix(in srgb, var(--c) 60%, transparent); background: color-mix(in srgb, var(--c) 8%, transparent); .name { color: var(--c); } } }
     .av { width: 46px; height: 46px; overflow: hidden; border: 2px solid color-mix(in srgb, var(--c) 45%, transparent); display: grid; place-items: center; background: color-mix(in srgb, var(--c) 12%, transparent);
       img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; } }
-    .init { font-size: 16px; color: var(--c); }
-    .name { width: 100%; font-size: 6.5px; letter-spacing: 0.5px; text-align: center; color: var(--ss-fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .init { font-size: var(--fs-voice); color: var(--c); }
+    .name { width: 100%; font-size: var(--fs-ui); text-align: center; color: var(--ss-fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dot { position: absolute; top: 5px; right: 5px; width: 5px; height: 5px; }
-    .none { grid-column: 1 / -1; margin: 0; padding: 24px 0; text-align: center; font-size: var(--ss-text-sm); letter-spacing: 2px; color: var(--ss-fg-faint); }
+    .none { grid-column: 1 / -1; margin: 0; padding: 24px 0; text-align: center; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
   `,
 })
 export class GamePicker {
