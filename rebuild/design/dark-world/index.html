@@ -99,13 +99,13 @@ a { color: var(--a4); }
 .tbar {
   position: sticky; top: 0; z-index: 60;
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--u3) var(--u8);
-  padding: var(--u3) 0 var(--u3);
+  padding: var(--u2) 0 var(--u2);
   background: var(--c-void);
   border-bottom: var(--px) solid var(--c-ink3);
   box-shadow: 0 var(--px) 0 var(--c-void);
 }
 .tb-brand { display: flex; align-items: center; gap: var(--u3); min-width: 0; }
-.tb-brand h1 { font: 700 30px/1 var(--ff-d); color: var(--c-white); letter-spacing: 1px; text-shadow: var(--px) var(--px) 0 var(--a2); white-space: nowrap; }
+.tb-brand h1 { font: 700 26px/1 var(--ff-d); color: var(--c-white); letter-spacing: 1px; text-shadow: var(--px) var(--px) 0 var(--a2); white-space: nowrap; }
 .tb-brand small { display: block; font: 400 var(--fs-l)/1 var(--ff-l); color: var(--text-dim); margin-top: var(--u1); letter-spacing: 1px; }
 .tb-group { display: flex; align-items: center; gap: var(--u3); flex-wrap: wrap; }
 .tb-group > .lbl { color: var(--text-dim); }
@@ -130,7 +130,7 @@ a { color: var(--a4); }
 
 .sec { margin-top: calc(14 * var(--px)); }
 .sec:first-of-type { margin-top: var(--u4); }
-.sec-h { display: flex; align-items: flex-end; gap: var(--u3) var(--u6); flex-wrap: wrap; margin: 0 0 var(--u3); }
+.sec-h { display: flex; align-items: center; gap: var(--u3) var(--u6); flex-wrap: wrap; margin: 0 0 var(--u3); }
 .sec-h .n { font: 400 var(--fs-l)/1 var(--ff-l); color: var(--c-void); background: var(--a3); padding: var(--u1) var(--u2); align-self: center; }
 .sec-h h2 {
   font: 700 var(--fs-h2)/1 var(--ff-d); color: var(--c-white); letter-spacing: 1px;
@@ -250,7 +250,7 @@ a { color: var(--a4); }
 .scrim { display: none; }
 
 /* sheet */
-.sheet { position: relative; z-index: 2; display: flex; flex-direction: column; gap: var(--u4); padding: var(--u4) var(--u8) var(--u6); min-width: 0; }
+.sheet { position: relative; z-index: 2; display: flex; flex-direction: column; gap: var(--u4); padding: var(--u4) var(--u8) var(--u4); min-width: 0; }
 .head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--u4) var(--u6); align-items: start; }
 .port { position: relative; width: max-content; }
 .port canvas { display: block; width: calc(32 * var(--px)); height: calc(32 * var(--px)); }
@@ -336,11 +336,11 @@ a { color: var(--a4); }
 .bonus { font: 400 24px/1 var(--ff-n); color: var(--good); min-width: 5ch; }
 
 .stat-foot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--u6); align-items: start; }
-.radar { position: relative; width: calc(64 * var(--px)); height: calc(58 * var(--px)); flex: none; }
+.radar { position: relative; width: calc(60 * var(--px)); height: calc(54 * var(--px)); flex: none; }
 .radar canvas { display: block; width: 100%; height: 100%; }
 .radar span { position: absolute; transform: translate(-50%, -50%); font: 400 var(--fs-l)/1 var(--ff-l); color: var(--sc); text-shadow: var(--px) var(--px) 0 var(--c-void); }
-.subs { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(64 * var(--px)), 1fr)); gap: var(--u2); }
-.sub { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--u2); padding: var(--u1) var(--u2); background: var(--c-ink2); box-shadow: inset 0 calc(-1 * var(--px)) 0 var(--c-void); color: var(--sc); }
+.subs { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(64 * var(--px)), 1fr)); gap: var(--u1) var(--u2); }
+.sub { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--u2); padding: 0 var(--u2); background: var(--c-ink2); box-shadow: inset 0 calc(-1 * var(--px)) 0 var(--c-void); color: var(--sc); }
 .sub .k { font: 400 var(--fs-l)/1 var(--ff-l); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
 .sub .v { font: 400 26px/1 var(--ff-n); color: var(--c-white); text-align: right; white-space: nowrap; }
 .sub .v small { font-size: 20px; color: var(--good); margin-left: var(--u1); }
@@ -817,8 +817,8 @@ pre.code .k { color: var(--a4); }
 <!-- ================================================================ 01 -->
 <section class="sec" id="main-screen" aria-labelledby="h-main">
   <div class="sec-h">
-    <span class="n">01</span><h2 id="h-main">MAIN SCREEN</h2>
-    <p>The SOUL-and-box language of the original, pushed into a deeper, saturated dark world. Every frame, texture and sparkle on this page is drawn on one art grid and recoloured from the character accent. <span class="sample">SAMPLE DATA</span></p>
+    <span class="n">01</span><h2 id="h-main">MAIN SCREEN</h2><span class="sample">SAMPLE DATA</span>
+    <p>The SOUL-and-box language, pushed into a saturated dark world. One art grid, everything recoloured from the accent.</p>
   </div>
   <div class="sec-rule"></div>
 
@@ -918,7 +918,7 @@ pre.code .k { color: var(--a4); }
                 <div class="bars" id="bars"></div>
                 <div class="rule"></div>
                 <div class="stat-foot">
-                  <div class="radar" id="radar"><canvas width="64" height="58" aria-label="Radar chart of the six core stats" role="img"></canvas></div>
+                  <div class="radar" id="radar"><canvas width="60" height="54" aria-label="Radar chart of the six core stats" role="img"></canvas></div>
                   <div class="subs" id="subs"></div>
                 </div>
               </div>
@@ -1631,7 +1631,7 @@ const BJ = [
   '..........kqppppppppmk..........',
   '..........kqppppkkkkkkk.........',
   '..........kqppppkwwwwwk.........',
-  '..........kqppppkwwRwwk.........',
+  '..........kqppppkwRwRwk.........',
   '..........kqppppkwRRRwk.........',
   '..........k33333kwwRwwk.........',
   '..........k22222kwwwwwk.........',
@@ -2076,7 +2076,7 @@ function buildAtlas() {
 
   // textures
   const d50 = new Grid(2, 2); d50.set(0, 0, 'k'); d50.set(1, 1, 'k'); regTex('d50', d50);
-  const d75 = new Grid(4, 4); for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if (bay(x, y) < 0.75) d75.set(x, y, (x + y) % 4 === 0 ? 'n' : 'k'); regTex('d75', d75);
+  const d75 = new Grid(4, 4); for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if (bay(x, y) < 0.75) d75.set(x, y, 'k'); regTex('d75', d75);
   const band = new Grid(4, 13); dgrad(band, 0, 0, 4, 13, ['2', '1', '0'], true, 0.6); for (let x = 0; x < 4; x++) { band.set(x, 0, '3'); band.set(x, 12, 'k'); } regTex('band', band);
   const top = new Grid(4, 22); dgrad(top, 0, 0, 4, 22, ['m', 'n', 'k'], true, 0.6); regTex('topbar', top);
   const side = new Grid(8, 8); for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) side.set(x, y, ((x + y) % 8 === 0) ? 'm' : 'n'); regTex('side', side);
@@ -2389,7 +2389,7 @@ function buildBars() {
   $('#subs').innerHTML = SUBS.map(([k, ic, c, v, b]) => `<div class="sub" style="--sc:${c}"><i class="ic" style="--ic:var(--ic-${ic})"></i><span class="k">${k}</span><span class="v">${v}${b ? `<small>${b}</small>` : ''}</span></div>`).join('');
 }
 function drawRadar() {
-  const wrap = $('#radar'), c = $('canvas', wrap), W = 64, H = 58, cx = 32, cy = 29, RR = 22;
+  const wrap = $('#radar'), c = $('canvas', wrap), W = 60, H = 54, cx = 30, cy = 27, RR = 20;
   const g = new Grid(W, H);
   const ang = i => -Math.PI / 2 + i * Math.PI / 3;
   const pt = (i, r) => [cx + Math.cos(ang(i)) * r, cy + Math.sin(ang(i)) * r];

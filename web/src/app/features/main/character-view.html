@@ -37,7 +37,10 @@
 
   <ss-panel title="TRAITS">
     <ng-container actions>
+      @if (hasCultivation()) { <button type="button" class="btn" (click)="open.set('cultivation')" title="Cultivation / scaling traits">SCALING</button> }
       <button type="button" class="btn accent" (click)="open.set('roll')" title="Roll for a new trait">ROLL</button>
+      <button type="button" class="btn info" (click)="open.set('history')" title="Roll history" aria-label="Roll history">H</button>
+      <button type="button" class="btn info" (click)="open.set('codex')" title="Trait Codex" aria-label="Trait Codex">i</button>
     </ng-container>
     @if (traits().length) {
       <div class="traits">
@@ -94,3 +97,6 @@
 
 @if (open() === 'roll') { <ss-roll-overlay [character]="c" (closed)="open.set(null)" /> }
 @if (open() === 'gold') { <ss-gold-modal [character]="c" (closed)="open.set(null)" /> }
+@if (open() === 'codex') { <ss-codex-modal (closed)="open.set(null)" /> }
+@if (open() === 'history') { <ss-roll-history-modal [character]="c" (closed)="open.set(null)" /> }
+@if (open() === 'cultivation') { <ss-cultivation-modal [character]="c" (closed)="open.set(null)" /> }

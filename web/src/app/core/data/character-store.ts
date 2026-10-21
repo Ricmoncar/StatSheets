@@ -118,6 +118,21 @@ export class CharacterStore {
     return this.save(copy);
   }
 
+  /**
+   * Changes the character on screen only, without saving (a slider being
+   * dragged). The copy keeps its baseline, so the save that follows the drag
+   * sends exactly what changed.
+   */
+  patchLocal(id: string, edit: (c: Character) => void): void {
+    const current = this.byId().get(id);
+    if (!current) return;
+    const copy = structuredClone(current);
+    const base = this.objBase.get(current);
+    if (base) this.objBase.set(copy, base);
+    edit(copy);
+    this.replaceLocal(copy);
+  }
+
   /** Writes a brand new character whole, with _rev 1. */
   create(c: Character): Promise<void> {
     return this.save(c);
