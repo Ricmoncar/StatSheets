@@ -30,12 +30,12 @@
               },
               {
                 "glob": "**/*",
-                "input": "../sounds",
+                "input": "shared-assets/sounds",
                 "output": "sounds"
               },
               {
                 "glob": "**/*",
-                "input": "../baddies",
+                "input": "shared-assets/baddies",
                 "output": "baddies"
               }
             ],
