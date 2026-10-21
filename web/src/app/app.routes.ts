@@ -13,7 +13,7 @@ export const routes: Routes = [
   { path: 'c/:id', loadComponent: () => import('./features/main/main-page').then(m => m.MainPage), title: 'STATSHEETS' },
   { path: 'new', loadComponent: () => import('./features/editor/character-editor').then(m => m.CharacterEditor), title: 'STATSHEETS - NEW CHARACTER' },
   { path: 'edit/:id', loadComponent: () => import('./features/editor/character-editor').then(m => m.CharacterEditor), title: 'STATSHEETS - EDIT' },
-  { path: 'utilities', ...todo('UTILITIES') },
+  { path: 'utilities', loadComponent: () => import('./features/utilities/utilities-page').then(m => m.UtilitiesPage), title: 'STATSHEETS - UTILITIES' },
   { path: 'gallery', ...todo('GALLERY') },
   { path: 'encyclopedia', ...todo('ENCYCLOPAEDIA') },
   { path: 'playlists', ...todo('PLAYLISTS') },
