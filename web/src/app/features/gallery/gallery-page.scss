@@ -21,7 +21,7 @@
   img { width: 100%; height: 100%; object-fit: cover; }
   // a diagonal glint that sweeps across on hover, in nine hard steps
   &::after { content: ''; position: absolute; inset: -20%; background: linear-gradient(115deg, transparent 40%, rgb(255 255 255 / 0.22) 40% 48%, transparent 48% 54%, rgb(255 255 255 / 0.12) 54% 57%, transparent 57%); transform: translateX(-110%); pointer-events: none; } }
-.none { font: var(--fs-ui) / 2 var(--f-ui); color: color-mix(in srgb, var(--c), #000 40%); }
+.none { align-self: end; margin-bottom: var(--p3); font: var(--fs-ui) / 2 var(--f-ui); color: color-mix(in srgb, var(--c), #000 40%); }   // under the count tag, not behind it
 .count { position: absolute; top: var(--p2); right: var(--p2); padding: var(--px) var(--p2); font: var(--fs-small) / 1 var(--f-body); color: var(--c-white); background: var(--c-void); box-shadow: inset var(--px) 0 0 var(--c);
   &.zero { color: var(--c-mute); } }
 .name { font: var(--fs-ui) / 18px var(--f-ui); text-transform: uppercase; color: color-mix(in oklab, var(--c), #fff 30%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -50,7 +50,7 @@ ss-modal { --c: #fff; }
 @media (hover: none) { .acts { opacity: 1; } }
 
 @media (max-width: 560px) {
-  .grid { grid-template-columns: repeat(auto-fill, minmax(calc(40 * var(--px)), 1fr)); gap: var(--p6) var(--p4); }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(calc(52 * var(--px)), 1fr)); gap: var(--p6) var(--p4); }   // three across on a phone
   .pics { grid-template-columns: repeat(auto-fill, minmax(calc(44 * var(--px)), 1fr)); }
 }
 
