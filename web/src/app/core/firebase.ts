@@ -2,6 +2,7 @@ import { InjectionToken } from '@angular/core';
 import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
 import {
   Firestore,
+  connectFirestoreEmulator,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -30,9 +31,14 @@ function app(): FirebaseApp {
 export function createFirestore(): Firestore {
   // Offline persistence shared between tabs, as on the old site: writes hit
   // the local cache at once, so the UI reflects them before the server confirms.
-  return initializeFirestore(app(), {
+  const db = initializeFirestore(app(), {
     localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
   });
+  if (environment.firestoreEmulator) {
+    const [host, port] = environment.firestoreEmulator.split(':');
+    connectFirestoreEmulator(db, host, +port);
+  }
+  return db;
 }
 
 export const FIRESTORE = new InjectionToken<Firestore>('Firestore', {

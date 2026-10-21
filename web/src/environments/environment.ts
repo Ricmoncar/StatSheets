@@ -15,4 +15,6 @@ export const environment = {
    * the old site already serves one folder up.
    */
   assetBase: '',
+  /** host:port of a local Firestore emulator to use instead of the real project (the e2e build), or null. */
+  firestoreEmulator: null as string | null,
 };

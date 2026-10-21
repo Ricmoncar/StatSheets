@@ -17,6 +17,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   // the songs live on Cloudinary, which this machine cannot reach: hand back a local mp3
   await ctx.route(/res\.cloudinary\.com/, r => r.fulfill({ path: MP3, contentType: 'audio/mpeg' }));
   const page = await ctx.newPage();
+  await require('./e2e_guard')(page);   // only ever against the local emulator
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });

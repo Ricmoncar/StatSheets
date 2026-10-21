@@ -5,4 +5,5 @@ export const environment = {
   collectionPrefix: 'next_',
   sandboxLabel: 'PREVIEW: TEST DATA',
   assetBase: '../',
+  firestoreEmulator: null as string | null,
 };

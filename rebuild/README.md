@@ -38,6 +38,31 @@ newer Node from the npm registry (nodejs.org itself may be blocked):
 
 Then in `web/`: `npm ci`, `npx ng build`, `npx ng test --watch=false`.
 
+### End-to-end tests: local emulator only
+
+The `next_` copy keeps test writes away from the real data, but it lives in
+the same Firebase project, and every read counts against the project's daily
+free quota, which the live site needs. A day of test runs used all of it once
+and the live site could not load until the quota reset. So the `*_e2e.js`
+tests run against a local Firestore emulator, and refuse to start otherwise
+(`tools/e2e_guard.js` checks for the e2e build and blocks any request to the
+real Firestore).
+
+    # once: the emulator (Java 21 is in the container; checksum from firebase-tools' downloadableEmulatorInfo.json)
+    curl -LO https://storage.googleapis.com/firebase-preview-drop/emulator/cloud-firestore-emulator-v1.22.0.jar
+    java -Xmx4g -jar cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8085 \
+      --project_id statsheets-3668d --rules firestore.rules &
+    # the data: a read-only snapshot, with big inline pictures scaled down
+    # (full-size avatars made the emulator run out of memory), plus fixtures
+    python3 rebuild/tools/slim_snapshot.py <snapshot-dir> <slim-dir>
+    node rebuild/tools/seed_emulator.js <slim-dir> rebuild/tools/fixtures
+    # the app built against it, served on :8790, then any test
+    (cd web && npx ng build -c e2e)
+    node rebuild/tools/stats_e2e.js <screenshot-dir>
+
+Reseed between runs when a test leaves something behind; it replaces
+everything in the emulator.
+
 ### Driving the OLD site headless (`tools/oldsite.js`)
 
 gstatic.com is blocked in the container, so the helper serves the Firebase SDK
@@ -54,4 +79,5 @@ Both use the globally installed Playwright with the pre-installed Chromium.
 
 Reads every real collection (GET only) and writes it into the `next_`
 collections. Refuses any write path outside `next_`. Run without arguments for
-a dry run, with `--write` to copy.
+a dry run, with `--write` to copy. It reads the whole database, so it spends
+the same daily quota as the live site: run it rarely.

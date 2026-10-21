@@ -10,6 +10,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   const proxy = (process.env.HTTPS_PROXY || 'http://127.0.0.1:32937').replace(/^https?:\/\//, '').replace(/\/$/, '');
   const browser = await chromium.launch({ args: ['--proxy-server=https=' + proxy, '--proxy-bypass-list=127.0.0.1;localhost'] });
   const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  await require('./e2e_guard')(page);   // only ever against the local emulator
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
@@ -23,6 +24,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   await entry('Katie').click({ button: 'right' });
   const menu = page.locator('ss-sidebar .menu');
   await menu.waitFor();
+  await menu.locator('button', { hasText: 'NO FOLDER' }).waitFor({ timeout: 8000 }).catch(() => undefined);
   const items = (await menu.locator('button').allTextContents()).map(t => t.replace(/\s+/g, ' ').trim());
   check(items[0].includes('EDIT') && items[1].includes('DUPLICATE') && items[2].includes('DELETE'), 'right click opens EDIT / DUPLICATE / DELETE');
   check(items.some(t => t.includes('NO FOLDER')), 'and MOVE TO FOLDER');
@@ -69,28 +71,28 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   const names = async () => (await travelers.locator('.entry .name').allTextContents()).map(t => t.trim());
   const before = await names();
   const a = before[0], b = before[1];
+  // after each drop, wait for the order (and the database's echo of it) to settle before the next
+  const settle = async want => { const t = Date.now(); while (Date.now() - t < 8000 && JSON.stringify(await names()) !== JSON.stringify(want)) await page.waitForTimeout(100); await page.waitForTimeout(1200); return JSON.stringify(await names()) === JSON.stringify(want); };
   await entry(a).dragTo(entry(b), { targetPosition: { x: 40, y: 34 } });   // lower half: after
-  await page.waitForTimeout(500);
-  const moved = await names();
-  check(moved[0] === b && moved[1] === a, `drag reorders (${a} after ${b})`);
+  check(await settle([b, a, ...before.slice(2)]), `drag reorders (${a} after ${b})`);
   await entry(a).dragTo(entry(b), { targetPosition: { x: 40, y: 4 } });    // upper half: before
-  await page.waitForTimeout(500);
-  check(JSON.stringify(await names()) === JSON.stringify(before), 'and drags back');
+  check(await settle(before), 'and drags back');
 
   const cappies = page.locator('ss-sidebar .folder', { has: page.locator('.folder-name', { hasText: 'Cappies' }) });
   const third = before[2];
   await entry(third).dragTo(cappies.locator('.folder-head'), { targetPosition: { x: 60, y: 30 } });
   await cappies.locator('.entry', { hasText: third }).waitFor({ timeout: 10000 });
   check(true, `dropping on a folder files the character (${third} into Cappies)`);
+  await settle(before.filter(x => x !== third));
   await entry(third).dragTo(entry(before[1]), { targetPosition: { x: 40, y: 34 } });
-  await page.waitForTimeout(500);
-  check(JSON.stringify(await names()) === JSON.stringify(before), 'and dragging onto a row brings it back');
+  check(await settle(before), 'and dragging onto a row brings it back' + (process.env.V ? ' ' + JSON.stringify({ before, now: await names() }) : ''));
 
   // the order survives a reload (it was saved)
   await page.reload();
   await page.waitForSelector('ss-sidebar .entry', { timeout: 20000 });
-  await page.waitForTimeout(1500);
-  check(JSON.stringify(await names()) === JSON.stringify(before), 'the order is saved');
+  const saved = async () => JSON.stringify(await names()) === JSON.stringify(before);
+  const t0 = Date.now(); while (Date.now() - t0 < 6000 && !(await saved())) await page.waitForTimeout(100);
+  check(await saved(), 'the order is saved');
 
   check(errors.length === 0, 'no page errors' + (errors.length ? ': ' + errors.join(' | ') : ''));
   await browser.close();

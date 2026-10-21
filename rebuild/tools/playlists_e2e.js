@@ -11,7 +11,6 @@ const BLACKJACK = 'mp7grig28yapvrdxg4';    // an empty playlist with a descripti
 // a short sound repeated into about a minute of audio (mp3 frames join end to end)
 const MP3 = Buffer.concat(Array(12).fill(require('fs').readFileSync(path.resolve(__dirname, '../../sounds/minimum.mp3'))));
 const PNG = path.resolve(__dirname, '../../baddies/beebaddie.png');
-const KEY = 'AIzaSyBRtoLzS--wz_6sD4rWMgzcwZnHVHUBNdg';
 const OUT = process.argv[2] || '.';
 
 const ok = [], bad = [];
@@ -32,6 +31,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ secure_url: `https://res.cloudinary.com/dhdfz1iud/${image ? 'image' : 'video'}/upload/e2e-${uploads}.${image ? 'png' : 'mp3'}` }) });
   });
   const page = await ctx.newPage();
+  await require('./e2e_guard')(page);   // only ever against the local emulator
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (process.env.V) console.log('[' + m.type() + '] ' + m.text()); if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
@@ -167,12 +167,12 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   check(await page.locator('.song').count() === 0, 'removing songs (after asking)');
   await page.waitForTimeout(1200);
 
-  // put the cover back as it was (no cover) straight in the test data
-  const restored = await page.evaluate(async ({ id, key }) => {
-    const u = `https://firestore.googleapis.com/v1/projects/statsheets-3668d/databases/(default)/documents/next_playlists/${id}?updateMask.fieldPaths=image&key=${key}`;
-    const r = await fetch(u, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fields: { image: { nullValue: null } } }) });
+  // put the cover back as it was (no cover) straight in the emulator's test data
+  const restored = await page.evaluate(async ({ id }) => {
+    const u = `http://127.0.0.1:8085/v1/projects/statsheets-3668d/databases/(default)/documents/next_playlists/${id}?updateMask.fieldPaths=image`;
+    const r = await fetch(u, { method: 'PATCH', headers: { 'content-type': 'application/json', authorization: 'Bearer owner' }, body: JSON.stringify({ fields: { image: { nullValue: null } } }) });
     return r.ok;
-  }, { id: BLACKJACK, key: KEY });
+  }, { id: BLACKJACK });
   check(restored, 'test cover removed again');
 
   // ── leaving stops the music ──

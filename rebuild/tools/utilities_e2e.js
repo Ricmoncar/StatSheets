@@ -10,6 +10,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   const proxy = (process.env.HTTPS_PROXY || 'http://127.0.0.1:32937').replace(/^https?:\/\//, '').replace(/\/$/, '');
   const browser = await chromium.launch({ args: ['--proxy-server=https=' + proxy, '--proxy-bypass-list=127.0.0.1;localhost'] });
   const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  await require('./e2e_guard')(page);   // only ever against the local emulator
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
