@@ -1,0 +1,101 @@
+<div class="tab">
+  <header class="head"><span>CHARACTER PASSIVES</span><button type="button" class="btn" (click)="addPassive()">+ ADD</button></header>
+  @for (p of passives(); track $index; let i = $index) {
+    <div class="passive">
+      <span class="gem" aria-hidden="true">&#9670;</span>
+      <input type="text" placeholder="DESCRIBE PASSIVE TRAIT..." [maxLength]="passiveMax" [value]="p" (change)="setPassive(i, $any($event.target).value)" aria-label="Passive" />
+      <button type="button" class="x" (click)="removePassive(i)" title="Remove" aria-label="Remove passive">&#10005;</button>
+    </div>
+  } @empty {
+    <p class="empty">NO PASSIVES DEFINED</p>
+  }
+
+  <hr />
+
+  <header class="head"><span>ABILITIES</span><button type="button" class="btn accent" (click)="openEditor(null)">+ NEW</button></header>
+  <div class="cards">
+    @for (ab of abilities(); track ab.id || $index; let i = $index) {
+      @let tc = typeOf(ab.type);
+      <article class="card" [style.--ab-bg]="tc.bg" [style.--ab-border]="tc.border" [style.--ab-text]="tc.text" data-sfx-hover>
+        <div class="main">
+          @if (ab.image) {
+            <div class="visual"><img [ssCldSrc]="ab.image" alt="" /></div>
+          } @else {
+            <div class="visual icon"><span [style.color]="tc.iconColor || tc.text">{{ tc.icon }}</span></div>
+          }
+          <div class="content">
+            <div class="top"><span class="name">{{ ab.name || 'Unnamed' }}</span><span class="badge">{{ tc.icon }} {{ ab.type || 'ACTIVE' }}</span></div>
+            @if (ab.desc) { <div class="desc"><ss-color-text [text]="ab.desc" /></div> }
+            <div class="metas">
+              @for (m of meta; track m.key) { @if (ab[m.key]) { <span class="meta"><span class="ml">{{ m.label }}</span><span>{{ ab[m.key] }}</span></span> } }
+            </div>
+            @if (tagsOf(ab.tags).length) { <div class="tags">@for (t of tagsOf(ab.tags); track t) { <span class="tag">{{ t }}</span> }</div> }
+            @if (ab.notes) { <div class="notes">&#10022; <ss-color-text [text]="ab.notes" /></div> }
+            @if (ab.req) { <div class="req">&#9888; <span class="ml">REQ</span> <ss-color-text [text]="ab.req" /></div> }
+          </div>
+        </div>
+        <footer class="foot">
+          <button type="button" class="btn" (click)="openEditor(i)">EDIT</button>
+          <button type="button" class="btn danger" (click)="remove(i)">&#10005; DELETE</button>
+        </footer>
+      </article>
+    } @empty {
+      <p class="empty">NO ABILITIES DEFINED</p>
+    }
+  </div>
+</div>
+
+@if (editIdx() !== null) {
+  @let d = draft();
+  <ss-modal [title]="editIdx() === 'new' ? 'NEW ABILITY' : 'EDIT ABILITY'" width="720px" (closed)="closeEditor()">
+    <div class="editor" [style.--ss-accent]="character().color || '#888'">
+      <label class="field"><span>NAME</span><input type="text" maxlength="40" placeholder="e.g. Fireball" [value]="d.name" (input)="set('name', $any($event.target).value)" /></label>
+      <div class="field">
+        <span>TYPE</span>
+        <div class="types">
+          @for (t of typeOrder; track t) {
+            <button type="button" class="type" [class.on]="d.type === t" [style.--t]="types[t].text" (click)="set('type', t)">{{ types[t].icon }} {{ t }}</button>
+          }
+        </div>
+      </div>
+      <div class="field">
+        <span>IMAGE</span>
+        <div class="img-row">
+          <div class="preview">@if (d.image) { <img [ssCldSrc]="d.image" alt="Ability image" /> } @else { <span>NO IMAGE</span> }</div>
+          <label class="btn">UPLOAD<input type="file" accept="image/*" hidden (change)="pickImage($event)" /></label>
+          @if (d.image) { <button type="button" class="btn" (click)="set('image', null)">&#10005; CLEAR IMAGE</button> }
+        </div>
+      </div>
+      <label class="field"><span>DESCRIPTION <small>(select text to colour it)</small></span>
+        <textarea rows="4" placeholder="What does this ability do? Include mechanics, conditions, effects..." [value]="d.desc" (input)="set('desc', $any($event.target).value)" (mouseup)="onSelect($event, 'desc')"></textarea>
+      </label>
+      <label class="field"><span>NOTES</span>
+        <textarea rows="2" placeholder="Background lore, flavor text..." [value]="d.notes" (input)="set('notes', $any($event.target).value)" (mouseup)="onSelect($event, 'notes')"></textarea>
+      </label>
+      <label class="field"><span>REQUIREMENT</span><input type="text" maxlength="80" placeholder="e.g. Level 5, must be bloodied" [value]="d.req" (input)="set('req', $any($event.target).value)" /></label>
+      <div class="grid">
+        <label class="field"><span>COST</span><input type="text" maxlength="30" placeholder="e.g. 3 MP / 1 Soul" [value]="d.cost" (input)="set('cost', $any($event.target).value)" /></label>
+        <label class="field"><span>COOLDOWN</span><input type="text" maxlength="30" placeholder="e.g. 2 turns / once/day" [value]="d.cd" (input)="set('cd', $any($event.target).value)" /></label>
+        <label class="field"><span>RANGE</span><input type="text" maxlength="30" placeholder="e.g. Melee / 30ft" [value]="d.range" (input)="set('range', $any($event.target).value)" /></label>
+        <label class="field"><span>CAST TIME</span><input type="text" maxlength="30" placeholder="e.g. 1 action / instant" [value]="d.cast" (input)="set('cast', $any($event.target).value)" /></label>
+        <label class="field"><span>DAMAGE</span><input type="text" maxlength="40" placeholder="e.g. 2d6 + ATK" [value]="d.dmg" (input)="set('dmg', $any($event.target).value)" /></label>
+        <label class="field"><span>DURATION</span><input type="text" maxlength="30" placeholder="e.g. 3 turns / permanent" [value]="d.duration" (input)="set('duration', $any($event.target).value)" /></label>
+      </div>
+      <label class="field"><span>TAGS</span><input type="text" maxlength="100" placeholder="fire, projectile, aoe  (comma separated)" [value]="d.tags" (input)="set('tags', $any($event.target).value)" /></label>
+      <div class="actions">
+        <button type="button" class="btn" (click)="closeEditor()">CANCEL</button>
+        <button type="button" class="btn accent" (click)="save()">SAVE ABILITY</button>
+      </div>
+    </div>
+  </ss-modal>
+}
+
+@if (toolbar(); as t) {
+  <div class="toolbar" [style.left.px]="t.x" [style.top.px]="t.y" role="toolbar" aria-label="Text colour">
+    @for (c of colors; track c.title) {
+      <button type="button" class="sw" [class.clear]="!c.color" [style.background]="c.color || 'transparent'" [title]="c.title" [attr.aria-label]="c.title" (mousedown)="$event.preventDefault()" (click)="colour(c.color)">@if (!c.color) { &#10005; }</button>
+    }
+    <input type="text" placeholder="#hex" [value]="hex()" (input)="hex.set($any($event.target).value)" (keydown.enter)="colourCustom()" aria-label="Custom colour" />
+    <button type="button" class="sw ok" (click)="colourCustom()" aria-label="Apply custom colour">&#10003;</button>
+  </div>
+}

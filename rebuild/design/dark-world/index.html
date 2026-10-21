@@ -777,6 +777,13 @@ pre.code .k { color: var(--a4); }
 .bg-strip { grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(100 * var(--px))), 1fr)); }
 .bgc .cap { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
 .bgc .cap p { grid-column: 1 / -1; }
+.bgc .cap .gap { display: none; }
+.codex { display: flex; flex-direction: column; gap: var(--u3); }
+.codex .lbl { color: var(--a4); }
+.codex-grid { display: grid; grid-template-columns: repeat(auto-fill, calc(13 * var(--px))); gap: var(--u2); }
+.cx { position: relative; width: calc(13 * var(--px)); height: calc(13 * var(--px)); display: grid; place-items: center; background: var(--c-void); box-shadow: inset 0 0 0 var(--px) var(--rc, var(--c-ink3)); color: var(--rc); }
+.cx.unseen { --rc: var(--c-ink3); background: var(--c-void) var(--tx-d50) 0 0 / var(--tx-d50-size); color: var(--c-ink5); font: 400 22px/1 var(--ff-n); }
+.cx.new::after { content: ""; position: absolute; right: calc(-1 * var(--px)); top: calc(-1 * var(--px)); width: var(--u2); height: var(--u2); background: var(--c-gold); animation: pipb 0.5s steps(1) infinite; }
 .ramp i span.dk { color: var(--c-void); text-shadow: none; }
 @media (max-width: 640px) {
   .subs { grid-template-columns: minmax(0, 1fr); }
@@ -1230,6 +1237,11 @@ pre.code .k { color: var(--a4); }
         <div class="reveal" id="reveal">
           <div class="reveal-row"></div>
         </div>
+        <div class="rule"></div>
+        <div class="codex">
+          <div class="pity-top"><span class="lbl">CODEX</span><span class="n">41<small>/180 SEEN</small></span><span class="hint">UNSEEN TRAITS STAY DITHERED</span></div>
+          <div class="codex-grid" id="codexGrid" role="list" aria-label="Trait codex sample"></div>
+        </div>
         <p class="spec-note"><b>Cards flip as 7 drawn frames at 12 fps</b> (full, two squashes, edge, and back out). A Legendary or better shakes the panel for 5 frames and throws a sparkle burst. The loop restarts every 6 seconds.</p>
       </div>
     </article>
@@ -1354,7 +1366,7 @@ border-image: url(panel.png) 18 24 24 18 fill / 18px 24px 24px 18px / 0 stretch;
         <li>Accent hex to HSL. Greys stay grey; anything else gets a saturation floor of 60% so dark-world ramps stay rich.</li>
         <li>Six steps at fixed lightness bands (9, 18, 31, accent, 72, 88%). Shadows hue-shift toward indigo (250 deg) by 40 / 25 / 12%, highlights toward yellow (55 deg) by 10 / 18%. That is the pixel-art ramp rule, done in code.</li>
         <li><code>--a0</code> to <code>--a5</code> go on <code>:root</code>; <code>--on-a</code> flips to void or white by luminance so text on accent fills always reads.</li>
-        <li>The atlas re-renders every sprite, frame and texture that uses keys <code>0</code> to <code>5</code> (about 40 ms) and swaps one injected stylesheet. Canvas scenes reinit their cached layers.</li>
+        <li>The atlas re-renders every sprite, frame and texture that uses keys <code>0</code> to <code>5</code> (about 0.1 s, once per change) and swaps one injected stylesheet. Canvas scenes reinit their cached layers.</li>
         <li>Rarity, stat and SOUL colours never recolour: they are meaning, not theme.</li>
       </ol>
     </div></section>
@@ -1365,7 +1377,7 @@ border-image: url(panel.png) 18 24 24 18 fill / 18px 24px 24px 18px / 0 stretch;
         <li>Static textures and frames cost nothing either way: they are small PNG data URLs generated once.</li>
         <li><b>prefers-reduced-motion</b> (or the REDUCE MOTION toggle): all CSS animation off, scenes static, typewriter prints instantly, no shake, dice land at once.</li>
         <li>Offscreen canvases stop ticking (IntersectionObserver). One shared 10 fps clock drives every scene.</li>
-        <li>Budget on this page: under 2 ms per tick for all scenes, one stylesheet swap per accent change.</li>
+        <li>Measured here: about 0.5 ms per tick for the sheet scene, 1 to 2 ms with all six scenes on screen. One stylesheet swap per accent change. <b>Live now:</b> <code id="tickMs">waiting</code></li>
       </ul>
     </div></section>
 
@@ -2273,22 +2285,23 @@ const SCENES = {
       const { W, H } = v; const cols = { k: hex2rgb(PAL.k), n: hex2rgb(PAL.n), m: hex2rgb(PAL.m), p: hex2rgb(PAL.p), a: hex2rgb(ACC[1]), b: hex2rgb(ACC[2]) };
       v.noise = [0, 1, 2, 3].map(k => {
         const [c, g] = cv(W, H), id = g.createImageData(W, H); let s = 1234 + k * 999; const rnd = () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296;
-        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let col = cols.k; if ((x + y) % 8 === 0 && (x & 2)) col = cols.n; if ((x - y + 4096) % 8 === 0 && (y & 2)) col = cols.n; const r = rnd(); if (r < 0.05) col = cols.n; else if (r < 0.07) col = cols.m; else if (r < 0.076) col = cols.p; else if (r < 0.08) col = cols.a; const p = (y * W + x) * 4; id.data[p] = col[0]; id.data[p + 1] = col[1]; id.data[p + 2] = col[2]; id.data[p + 3] = 255; }
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let col = cols.k; if ((x + y) % 8 === 0 && (x & 2)) col = cols.m; if ((x - y + 4096) % 8 === 0 && (y & 2)) col = cols.n; const r = rnd(); if (r < 0.08) col = cols.n; else if (r < 0.12) col = cols.m; else if (r < 0.135) col = cols.p; else if (r < 0.145) col = cols.a; else if (r < 0.148) col = cols.b; const p = (y * W + x) * 4; id.data[p] = col[0]; id.data[p + 1] = col[1]; id.data[p + 2] = col[2]; id.data[p + 3] = 255; }
         g.putImageData(id, 0, 0); return c;
       });
       v.sig = RARS.map(r => [art1(rows(ICONS['r_' + r], { '#': '3' })), art1(rows(ICONS['r_' + r], { '#': 'H' }))]);
     },
     draw(v, f) {
       const { g, W, H, c } = v; g.drawImage(v.noise[f % 4], 0, 0);
+      for (let k = 0; k < 3; k++) { const yy = Math.floor(((f * (1 + k) * 0.5) + k * H / 3) % H); g.fillStyle = k === 1 ? ACC[2] : ACC[1]; for (let x = (k * 5 + f) % 3; x < W; x += 3) g.fillRect(x, yy, 1, 1); }
       const by = (f * 3) % (H + 40) - 20;
       for (let y = by; y < by + 10; y++) { if (y < 0 || y >= H) continue; const sh = ((y * 7 + f * 5) % 9) - 4; g.drawImage(v.noise[(f + 1) % 4], 0, y, W, 1, sh, y, W, 1); g.fillStyle = (y - by) < 3 ? ACC[3] : ACC[2]; for (let x = (y * 3 + f) % 5; x < W; x += 5) g.fillRect(x, y, 1, 1); }
       if (f % 48 < 2) { const ty = Math.floor(hash(Math.floor(f / 48)) * Math.max(1, H - 20)); g.drawImage(c, 0, ty, W, 16, 6, ty, W, 16); }
-      for (let i = 0; i < 9; i++) { const ph = (f + i * 7) % 30; if (ph < 4) { const x = Math.floor(hash(i * 3 + Math.floor((f + i * 7) / 30)) * (W - 8)), y = Math.floor(hash(i * 5 + 2 + Math.floor((f + i * 7) / 30)) * (H - 8)); g.drawImage(v.sig[i % 6][1], x + 1, y); g.drawImage(v.sig[i % 6][0], x, y); } }
+      for (let i = 0; i < 14; i++) { const ph = (f + i * 7) % 30; if (ph < 9) { const x = Math.floor(hash(i * 3 + Math.floor((f + i * 7) / 30)) * (W - 8)), y = Math.floor(hash(i * 5 + 2 + Math.floor((f + i * 7) / 30)) * (H - 8)); g.drawImage(v.sig[i % 6][1], x + 1, y); g.drawImage(v.sig[i % 6][0], x, y); } }
     }
   }
 };
 const VIEWS = new Set();
-let F = 0, lastT = 0, accT = 0;
+let F = 0, lastT = 0, accT = 0, tickAcc = 0, tickN = 0;
 class BgView {
   constructor(c, key) { this.c = c; this.g = c.getContext('2d'); this.key = key; this.vis = true; this.W = 0; this.H = 0; VIEWS.add(this); }
   resize(force) {
@@ -2304,7 +2317,11 @@ function tick(t) {
   if (!motionOK() || perfOn()) { lastT = t; return; }
   accT += Math.min(250, t - (lastT || t)); lastT = t;
   let stepped = false; while (accT >= 100) { accT -= 100; F++; stepped = true; }
-  if (stepped) VIEWS.forEach(v => { if (v.vis) v.draw(F); });
+  if (stepped) {
+    const t0 = performance.now(); let n = 0; VIEWS.forEach(v => { if (v.vis) { v.draw(F); n++; } });
+    tickAcc += performance.now() - t0; tickN++;
+    if (tickN >= 10) { const el = document.getElementById('tickMs'); if (el) el.textContent = (tickAcc / tickN).toFixed(2) + ' ms per tick, ' + n + (n === 1 ? ' scene' : ' scenes'); tickAcc = 0; tickN = 0; }
+  }
 }
 
 /* =====================================================================
@@ -2565,12 +2582,14 @@ function bindTips() {
 
 /* ---------- accent ---------- */
 function applyAccent(hex, name, quiet) {
+  const t0 = performance.now();
   ACCENT = hex; ACC = makeRamp(hex);
   buildAtlas(); drawPortraits(); buildSidebarColours(); drawRadar(); buildRevealFrames(); $$('#reveal .rv').forEach((el, i) => paintRv(i, el.classList.contains('done') ? 6 : 0)); paintDice(false); updateRampView();
   VIEWS.forEach(v => { v.init(); v.draw(F); });
   $$('[data-acc]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.acc.toLowerCase() === hex.toLowerCase())));
   $('#accName').textContent = name || hex.toUpperCase();
   $$('input[type=color]').forEach(i => { i.value = hex; });
+  window.__accMs = Math.round(performance.now() - t0);
   if (!quiet) toast('ACCENT: ' + (name || hex.toUpperCase()), '* The colours of the world shift around you.');
 }
 function buildSidebarColours() {
@@ -2678,6 +2697,10 @@ function boot() {
   buildAccentUI(); buildBMatrix(); buildSidebar(); buildBars(); drawRadar();
   $('#mockHand').innerHTML = TRAITS.mock.map(cardHTML).join('');
   $('#rarityHand').innerHTML = TRAITS.six.map(cardHTML).join('');
+  { const seq = 'cccrcceccrlcrcrcemcrcchcrecrcclcrmcceccrcrhcclrcc'; let h = '';
+    for (let i = 0; i < 48; i++) { const k = seq[i % seq.length], r = { c: 'common', r: 'rare', e: 'epic', l: 'legendary', m: 'mythic', h: 'hexxed' }[k], seen = hash(i * 13 + 7) < 0.62 || i < 6;
+      h += seen ? `<span class="cx r-${r}${i === 9 ? ' new' : ''}" role="listitem" data-tip="${r.toUpperCase()} trait (sample)"><i class="ic" style="--ic:var(--ic-r_${r})"></i></span>` : '<span class="cx unseen" role="listitem" aria-label="Unseen">?</span>'; }
+    $('#codexGrid').innerHTML = h; }
   $('#rarLine').innerHTML = RARS.map(r => `<span class="r-${r}"><i class="ic" style="--ic:var(--ic-r_${r})"></i>${r.toUpperCase()}</span>`).join('');
   $$('.pity').forEach(buildPity);
   clonePanes();

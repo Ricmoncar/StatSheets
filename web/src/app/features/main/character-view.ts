@@ -17,6 +17,7 @@ import { RollOverlay } from '../roll/roll-overlay';
 import { TraitCard } from '../traits/trait-card';
 import { InventoryPanel } from '../inventory/inventory-panel';
 import { InfoTab } from '../info/info-tab';
+import { AbilitiesTab } from '../abilities/abilities-tab';
 import { CodexModal, CultivationModal, RollHistoryModal } from '../traits/trait-modals';
 import { cultivationRows } from '../../core/game/codex';
 import { GENERIC_PATTERNS } from '../../core/game/patterns';
@@ -28,7 +29,7 @@ const CLASSIC = /^Classic$/i;
 /** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, CodexModal, CultivationModal, RollHistoryModal],
+  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, CodexModal, CultivationModal, RollHistoryModal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',

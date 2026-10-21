@@ -85,6 +85,7 @@
     <ss-inventory-panel [character]="c" />
   </ss-panel>
 }
+@case ('abilities') { <ss-abilities-tab [character]="c" /> }
 @case ('info') { <ss-info-tab [character]="c" (openSoul)="notYet('SOUL EDITOR')" /> }
 @case ('style') {
   <ss-panel title="BACKGROUND PATTERN">

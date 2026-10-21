@@ -28,7 +28,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Editor: every field, alt forms (12), tags (8), avatar compression, drafts, pattern settings; Gaster easter egg (pattern preview waits for the redesigned patterns)
 - [x] Info tab: every profile field (saves as you type, never overwrites text being typed), markdown preview, [[glitch]] affiliations, soundtrack and voice-claim links with YouTube player and MP3 upload
 - [ ] Music: per-character theme player and mini-player bar
-- [ ] Abilities tab
+- [x] Abilities tab: passives, ability cards with the six types, editor with image, text colour toolbar (rendered as text: the old renderer let HTML through)
 - [ ] SOUL builder
 - [ ] Character chat
 - [ ] Compare, tier list, leaderboard, height chart, status roller, suggestion box
