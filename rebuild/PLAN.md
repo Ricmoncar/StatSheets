@@ -14,7 +14,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Effective stats (items, traits, derived sub-stats): matches the old site on 212 live form cases
 - [x] Trait rolls, odds, pity, fortune: identical hands to the old site on 400 seeded rolls
 - [x] Stat bars and prestige tiers, power levels, accent presets, gold transactions
-- [ ] Design system (waiting on the chosen direction in `rebuild/design/`)
+- [x] Design system: THE UNDERGROUND (`rebuild/design/`). The pixel engine in `core/pixel/` (palette, OKLCH accent ramps, sprites, 9-slice frames, textures, icons) paints everything to CSS variables at start-up, the accent follows the open character, and the `u-` building blocks in `styles.scss` (plus `ui/_underground.scss` mixins) are used across every ported screen. Seven generic patterns are drawn as animated scenes (`core/pixel/scenes.ts`)
 - [x] App shell, routing, sound engine, PERF mode (shared `perf_mode` key), SFX volume panel (the old site had no FPS setting)
 
 ## Main app (index.html + script.js core)
@@ -32,7 +32,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] SOUL builder: every layer (fill modes, palettes up to 8, nested soul, outline, shattered, monster, glow, heartbeat, cycle), presets, reset; the SVG is built from validated values only
 - [x] Character chat: per-sender inbox, live, arrayUnion sends (rebuild/tools/chat_e2e.js)
 - [x] Compare, tier list, leaderboard, height chart, status roller, suggestion box
-- [x] Generic background patterns, redesigned in pixel art (all 15, old settings kept; rebuild/tools/patterns_shot.js), and the STYLE tab
+- [x] Generic background patterns, redesigned in pixel art (all 15, old settings kept; rebuild/tools/patterns_shot.js), and the STYLE tab. Bouncing diamonds, falling pixels, scrolling lines, matrix rain, checkerboard, heartbeat and pulse rings now show the Underground scenes (wishing room, leaffall, waterfall, snowfall, puzzle floor, core pulse, echo ripples), keeping colour, count, speed and opacity
 
 ## Secondary pages
 
