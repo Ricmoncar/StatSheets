@@ -3,7 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { environment } from '../environments/environment';
 import { NotifyService } from './core/notify.service';
-import { BADDIE_PAGE } from './core/pages';
+import { BADDIE_PAGE, ENCYCLOPEDIA_PAGE } from './core/pages';
 import { SettingsService } from './core/settings.service';
 import { ConfirmHost } from './ui/confirm-host';
 import { ThemeBar } from './features/music/theme-bar';
@@ -27,13 +27,13 @@ export class App {
   protected readonly moreOpen = signal(false);
 
   /**
-   * Top bar links, in the old site's order. SPIN A BADDIE stays the old
-   * page as it is (`href`), shipped next to the app.
+   * Top bar links, in the old site's order. The Encyclopaedia and SPIN A
+   * BADDIE stay the old pages as they are (`href`), shipped next to the app.
    */
   protected readonly nav: { path: string; label: string; href?: string }[] = [
     { path: '/utilities', label: 'UTILITIES' },
     { path: '/gallery', label: 'GALLERY' },
-    { path: '/encyclopedia', label: 'ENCYCLOPAEDIA' },
+    { path: '/encyclopedia', label: 'ENCYCLOPAEDIA', href: ENCYCLOPEDIA_PAGE },
     { path: '/playlists', label: 'PLAYLISTS' },
     { path: '/bkscorner', label: "BK'S CORNER" },
     { path: '/baddie', label: 'SPIN A BADDIE', href: BADDIE_PAGE },

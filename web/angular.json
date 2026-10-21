@@ -40,7 +40,7 @@
                 "output": "baddies"
               },
               {
-                "glob": "baddie.html",
+                "glob": "*",
                 "input": "shared-assets/pages",
                 "output": "."
               }

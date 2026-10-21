@@ -1,14 +1,7 @@
 import { Routes } from '@angular/router';
-import { BADDIE_PAGE } from './core/pages';
+import { BADDIE_PAGE, ENCYCLOPEDIA_PAGE, toOldPage } from './core/pages';
 
-// One route per page of the old site. Pages not ported yet show a placeholder
-// that says so, rather than a blank screen.
-const todo = (title: string) => ({
-  loadComponent: () => import('./features/not-ported/not-ported').then(m => m.NotPorted),
-  data: { title },
-  title: `STATSHEETS - ${title}`,
-});
-
+// One route per page of the old site.
 export const routes: Routes = [
   { path: '', loadComponent: () => import('./features/main/main-page').then(m => m.MainPage), title: 'STATSHEETS' },
   { path: 'c/:id', loadComponent: () => import('./features/main/main-page').then(m => m.MainPage), title: 'STATSHEETS' },
@@ -16,11 +9,11 @@ export const routes: Routes = [
   { path: 'edit/:id', loadComponent: () => import('./features/editor/character-editor').then(m => m.CharacterEditor), title: 'STATSHEETS - EDIT' },
   { path: 'utilities', loadComponent: () => import('./features/utilities/utilities-page').then(m => m.UtilitiesPage), title: 'STATSHEETS - UTILITIES' },
   { path: 'gallery', loadComponent: () => import('./features/gallery/gallery-page').then(m => m.GalleryPage), title: 'STATSHEETS - GALLERY' },
-  { path: 'encyclopedia', ...todo('ENCYCLOPAEDIA') },
+  // the Encyclopaedia and SPIN A BADDIE stay the old pages, as they are; their addresses lead there
+  { path: 'encyclopedia', canActivate: [toOldPage(ENCYCLOPEDIA_PAGE)], children: [] },
   { path: 'playlists', loadComponent: () => import('./features/playlists/playlists-page').then(m => m.PlaylistsPage), title: 'STATSHEETS - PLAYLISTS' },
   { path: 'bkscorner', loadComponent: () => import('./features/bkscorner/bk-corner-page').then(m => m.BkCornerPage), title: "STATSHEETS - BK'S CORNER" },
-  // SPIN A BADDIE stays the old page, as it is; its old address leads there
-  { path: 'baddie', canActivate: [() => { location.assign(new URL(BADDIE_PAGE, document.baseURI).href); return false; }], children: [] },
+  { path: 'baddie', canActivate: [toOldPage(BADDIE_PAGE)], children: [] },
   { path: 'admin', loadComponent: () => import('./features/admin/admin-page').then(m => m.AdminPage), title: 'STATSHEETS - ADMIN' },
   { path: '**', redirectTo: '' },
 ];
