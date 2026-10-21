@@ -1,9 +1,11 @@
 @let c = character();
 <article class="sheet">
   <section class="hero u-fr u-slate" aria-label="Character header">
-    <div class="scene" aria-hidden="true">
-      <ss-pattern-canvas [type]="c.pattern?.type" [params]="c.pattern?.params" [rainbow]="rainbow()" />
-    </div>
+    @if (!page()) {
+      <div class="scene" aria-hidden="true">
+        <ss-pattern-canvas [type]="c.pattern?.type" [params]="c.pattern?.params" [rainbow]="rainbow()" />
+      </div>
+    }
     <i class="u-spr s-torch u-anim torch l" aria-hidden="true"></i>
     <i class="u-spr s-torch u-anim torch r" style="--delay: -0.35s" aria-hidden="true"></i>
     <header class="head">

@@ -1,0 +1,48 @@
+// The characters' own pages (phase 2). A page replaces the generic pattern
+// behind the sheet with a world of its own, may draw over the whole window,
+// and restyles the sheet through its chrome (pages/_pages.scss, keyed on the
+// sheet's data-page). Its drawing code is downloaded only when its character
+// is opened.
+import { Character } from '../core/data/models';
+import { activeFormName } from './host';
+
+/** A page's drawing code. */
+export interface PageModule {
+  /** Draws the world behind the sheet; t is in seconds. Throttles itself. */
+  drawBackground(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, W: number, H: number, t: number): void;
+  /** Called before a new clock starts. */
+  resetBackground(): void;
+  /** The layer over the whole window (cursor, weather, cuts), started and stopped with the page. */
+  startOverlay?(): void;
+  stopOverlay?(): void;
+}
+
+export interface CustomPage {
+  /** The old pattern type, and the sheet's data-page. */
+  key: string;
+  label: string;
+  /** The colour the whole interface takes (the old page's --char-color). */
+  accent: string;
+  /** How strongly the world shows behind the sheet: a generic pattern sits at 0.3, a page that IS the page raises it. */
+  opacity: number;
+  /** The page draws its own cursor, so the system one is hidden while a mouse points. */
+  ownCursor: boolean;
+  matches(c: Character): boolean;
+  load(): Promise<PageModule>;
+}
+
+const IVY = /^\s*ivy\s*$/i;
+const EVIL = /evil/i;
+
+export const CUSTOM_PAGES: readonly CustomPage[] = [
+  {
+    key: 'ivy_evil', label: 'Ivy · EVIL creature', accent: '#d61c30', opacity: 0.97, ownCursor: true,
+    matches: c => IVY.test(c.name || '') && EVIL.test(activeFormName(c)),
+    load: () => import('./ivy-evil/ivy-evil'),
+  },
+];
+
+/** The page a character opens on in its current form, if it has one. */
+export function customPageFor(c: Character | null | undefined): CustomPage | null {
+  return (c && CUSTOM_PAGES.find(p => p.matches(c))) || null;
+}

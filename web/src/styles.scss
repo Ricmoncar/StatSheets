@@ -15,6 +15,9 @@
 //
 // Building blocks are prefixed u- so they never collide with component classes.
 
+// the characters' own pages: their chrome over the shared blocks below
+@use 'app/pages/pages';
+
 :root {
   color-scheme: dark;
   --px: 3px;

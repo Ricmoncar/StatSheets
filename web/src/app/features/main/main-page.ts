@@ -8,6 +8,8 @@ import { CharacterView } from './character-view';
 import { Sidebar } from './sidebar';
 import { PatternCanvas } from '../../ui/pattern-canvas';
 import { Icon } from '../../ui/icon';
+import { WorldCanvas } from '../../pages/world-canvas';
+import { customPageFor } from '../../pages/registry';
 
 /** Where the character list becomes a drawer (the styles below switch at the same width). */
 const PHONE = '(max-width: 760px)';
@@ -21,10 +23,11 @@ const NARA = /^NARA!+$/;
 
 @Component({
   selector: 'ss-main-page',
-  imports: [Sidebar, CharacterView, PatternCanvas, Icon],
+  imports: [Sidebar, CharacterView, PatternCanvas, WorldCanvas, Icon],
   host: {
     '(document:keydown.escape)': 'drawer.set(false)',
     '[class.styling]': 'styling()',
+    '[class.custom]': '!!page()',
     '(pointermove)': 'lean($event)',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,7 +36,11 @@ const NARA = /^NARA!+$/;
     @if (drawer()) { <div class="scrim u-scrim" (click)="drawer.set(false)"></div> }
     <section class="stage">
       <button type="button" class="drawer-btn u-btn sm" (click)="drawer.set(true)" [attr.aria-expanded]="drawer()"><ss-icon name="menu" [soul]="false" />CHARACTERS</button>
-      <ss-pattern-canvas #bg class="bg" [type]="pattern()?.type" [params]="pattern()?.params" [rainbow]="rainbow()" />
+      @if (page(); as pg) {
+        <ss-world-canvas #bg class="bg" [page]="pg" [style.opacity]="pg.opacity" />
+      } @else {
+        <ss-pattern-canvas #bg class="bg" [type]="pattern()?.type" [params]="pattern()?.params" [rainbow]="rainbow()" />
+      }
       <div class="view">
         @if (current(); as c) {
           <ss-character-view [character]="c" (styling)="styling.set($event)" />
@@ -60,7 +67,8 @@ const NARA = /^NARA!+$/;
       // the header already shows the scene; a second, full-page copy costs a phone too much,
       // except on STYLE, where it is the point: it stays put while the sheet scrolls over it
       .bg { display: none; }
-      :host(.styling) .bg { display: block; position: fixed; inset: var(--topbar-h, 60px) 0 0; transform: none; }
+      // a character's own page is its world, so that one always shows
+      :host(.styling) .bg, :host(.custom) .bg { display: block; position: fixed; inset: var(--topbar-h, 60px) 0 0; transform: none; }
       .drawer-btn { display: inline-flex; position: relative; z-index: 2; margin: var(--p4) 0 0 max(16px, env(safe-area-inset-left, 0px)); }
       ss-sidebar { position: fixed; z-index: 34; left: 0; top: var(--topbar-h, 60px); bottom: 0; width: min(calc(150 * var(--px)), 88vw); transform: translateX(-105%); transition: transform 0.2s steps(4, end); }
       ss-sidebar.open { transform: none; box-shadow: var(--p2) 0 0 var(--c-void); }
@@ -94,7 +102,9 @@ export class MainPage {
 
   private readonly music = inject(ThemeMusic);
 
-  /** The generic background pattern (the custom pages come in phase 2). */
+  /** The character's own page in its current form, which replaces the background pattern. */
+  protected readonly page = computed(() => customPageFor(this.current()));
+  /** The generic background pattern, for everyone without a page of their own. */
   protected readonly pattern = computed(() => this.current()?.pattern ?? null);
   protected readonly rainbow = computed(() => NARA.test(this.current()?.name || ''));
 
@@ -121,9 +131,9 @@ export class MainPage {
     mq.addEventListener('change', onPhone);
     inject(DestroyRef).onDestroy(() => mq.removeEventListener('change', onPhone));
     effect(() => { if (this.drawer()) untracked(() => this.drawerOpened.set(true)); });
-    // the whole page takes the open character's colour: frames, gems, buttons, scenes
+    // the whole page takes the open character's colour (or their own page's): frames, gems, buttons, scenes
     const theme = inject(PixelTheme);
-    effect(() => theme.setAccent(this.current()?.color));
+    effect(() => theme.setAccent(this.page()?.accent ?? this.current()?.color));
     inject(DestroyRef).onDestroy(() => theme.setAccent(null));
     // At / (or an unknown id), open the start character once the list has loaded.
     effect(() => {

@@ -5,6 +5,8 @@
 // ── the hero: one frame, the only border; the character's own place fills
 // all of it and fades to black behind the name and details ──
 .hero { position: relative; overflow: hidden; background-color: var(--c-void); box-shadow: var(--hard); }
+// a character's own page has no scene here: its world, behind the whole sheet, shows through instead
+:host([data-page]) .hero { background-color: transparent; }
 .scene { position: absolute; inset: 0; ss-pattern-canvas { position: absolute; inset: 0; } }
 // wall torches in the top corners of the frame
 .torch { position: absolute; z-index: 1; top: var(--p4); &.l { left: var(--p4); } &.r { right: var(--p4); } }

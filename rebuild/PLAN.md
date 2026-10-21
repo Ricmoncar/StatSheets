@@ -47,8 +47,12 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 
 ## Phase 2
 
-- [ ] Custom character pages, and the features that live inside them
-  (Nara's shared paint canvas, Sel's shooting star counter, games, scoreboards)
+- [~] Custom character pages, and the features that live inside them
+  (Nara's shared paint canvas, Sel's shooting star counter, games, scoreboards).
+  How a page is ported: see "Porting a character page" in README.md.
+  - [x] Ivy · EVIL creature (the test page): the hall behind the sheet, the rapier, the
+        window frame, the sway and the cuts through the interface, the lacquer chrome
+        (rebuild/tools/ivy_e2e.js)
 
 ## Cutover
 

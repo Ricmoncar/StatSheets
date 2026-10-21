@@ -33,6 +33,7 @@ import { StyleTab } from '../style/style-tab';
 import { ThemeMusic } from '../../core/theme-music.service';
 import { Icon } from '../../ui/icon';
 import { PatternCanvas } from '../../ui/pattern-canvas';
+import { customPageFor } from '../../pages/registry';
 
 const MAIN = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'] as const;
 const CLASSIC = /^Classic$/i;
@@ -44,8 +45,9 @@ const CLASSIC = /^Classic$/i;
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
-  // on STYLE the sheet turns to a ghost so the character's own background shows (the page behind reacts to this class)
-  host: { '[class.styling]': "tab() === 'style'" },
+  // on STYLE the sheet turns to a ghost so the character's own background shows (the page behind reacts to this class);
+  // a character's own page restyles the sheet through data-page (pages/_pages.scss)
+  host: { '[class.styling]': "tab() === 'style'", '[attr.data-page]': 'page()?.key ?? null' },
 })
 export class CharacterView {
   private readonly store = inject(CharacterStore);
@@ -105,6 +107,8 @@ export class CharacterView {
     { key: 'stats', label: 'STATS', icon: 'bars' }, { key: 'style', label: 'STYLE', icon: 'gear' }, { key: 'info', label: 'INFO', icon: 'book' },
     { key: 'music', label: 'MUSIC', icon: 'note' }, { key: 'abilities', label: 'ABILITIES', icon: 'star' },
   ] as const;
+  /** The character's own page, if their current form has one: its world shows through the header instead of a scene. */
+  protected readonly page = computed(() => customPageFor(this.character()));
   /** NARA!'s background cycles through the rainbow, as on the old site. */
   protected readonly rainbow = computed(() => /^NARA!+$/.test(this.character().name || ''));
   protected readonly tab = signal<'stats' | 'style' | 'info' | 'music' | 'abilities'>('stats');

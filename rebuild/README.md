@@ -63,6 +63,43 @@ real Firestore).
 Reseed between runs when a test leaves something behind; it replaces
 everything in the emulator.
 
+### Porting a character page (phase 2)
+
+A page in the old `script.js` is a background drawn on `#pattern-canvas`, an
+overlay canvas over the window, and a block of CSS in `style.css`
+(`CHARACTER_PAGES.md` at the root is the manual they were built by). In the
+new app (`web/src/app/pages/`):
+
+1. **The code, nearly verbatim.** Copy the page's section of `script.js` into
+   `pages/<key>/<key>.ts` with `// @ts-nocheck`, and mark every change
+   `[port]`. Do the copy with a script that asserts each substitution's count
+   (`tools/port_ivy_evil.py` is the pattern), not by hand. What the old code reached for
+   outside itself comes from `pages/host.ts`: `_activeFormName`, the layout
+   cache (`_lyRect`, `_lyGen`), the page canvas (`worldCanvas()` for
+   `document.getElementById('pattern-canvas')`), the interface it moves or
+   tears (`interfaceTargets()`), and what counts as a control. Export
+   `drawBackground`, `resetBackground` and, if it has one, `startOverlay` /
+   `stopOverlay`.
+2. **Moving the interface goes on `translate`**, not `transform`: the music bar
+   and the phone drawer slide on their own transforms, and the two compose.
+3. **Register it** in `pages/registry.ts`: who gets it (name and form), the
+   accent the whole interface takes (the old `--char-color`), how strongly the
+   world shows behind the sheet (the old page canvas opacity), and whether it
+   draws its own cursor. The code is a lazy import, so it is downloaded only
+   when that character is opened.
+4. **The chrome** goes in `pages/<key>/_chrome.scss`, keyed on
+   `ss-character-view[data-page='<key>']`, and redrawn in the pixel style
+   rather than copied: hard steps instead of soft gradients and glows,
+   `scale` / `translate` rather than `transform` in animations.
+5. **Touch screens** have no pointer for a cursor to sit on: draw no cursor
+   there, but let a tap do what a click does.
+
+`ss-world-canvas` runs it: the background at 30 frames a second (15 on
+phones), stopped off screen and in performance mode, and the overlay started
+and stopped with the page. An e2e test per page (`tools/ivy_e2e.js` is the
+pattern) checks it turns on, that clicks on controls still work, performance
+mode, and that leaving the page puts the interface back exactly.
+
 ### Driving the OLD site headless (`tools/oldsite.js`)
 
 gstatic.com is blocked in the container, so the helper serves the Firebase SDK

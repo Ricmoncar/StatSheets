@@ -1,0 +1,124 @@
+// IVY · EVIL CREATURE: the sheet as a piece of the same room (the old page's
+// ivyevil-ui, -name and -pfp, redrawn in pixels). Black lacquer under every
+// panel in a frame of the accent, which this page sets to arterial red, blood
+// on every title, and pure white kept for the one edge that cuts.
+$void: #070305;
+$clot: #34050b;
+$blood: #8a0e1e;
+$hot: #d61c30;
+$ember: #ff564a;
+$bone: #ffecec;
+
+@property --ivy-spin { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+ss-character-view[data-page='ivy_evil'] {
+  // ── the panels: lacquer, in a red crystal frame, with a blood rail along the top
+  //    edge (the one nearest the chandelier) ──
+  ss-panel {
+    border-width: calc(5 * var(--px));
+    border-image-source: var(--f-crystal);
+    border-image-slice: 5;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 calc(4 * var(--px)), rgb(255 86 74 / 0.035) calc(4 * var(--px)) calc(6 * var(--px))),
+      linear-gradient(rgb(22 8 12 / 0.96), rgb(7 3 5 / 0.985));
+    background-clip: padding-box;
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: var(--px);
+      pointer-events: none;
+      background: linear-gradient(90deg, transparent 0 8%, $hot 8% 22%, $ember 22% 40%, $bone 40% 60%, $ember 60% 78%, $hot 78% 92%, transparent 92%);
+    }
+    > .head > .title {
+      position: relative;
+      z-index: 1;   // the plaque hangs in front of the rail, not behind it
+      border-image-source: var(--f-crystal);
+      background-color: $void;
+      color: $ember;
+      text-shadow: var(--px) var(--px) 0 $clot;
+      .chev { color: $hot; }
+      &:hover { color: $bone; }
+    }
+  }
+
+  // ── the tabs: dried blood until they are open ──
+  .sheet > .tabs .u-tab { --fg: #b23a44; --fgh: #{$bone}; }
+  .sheet > .tabs .u-tab.on { --fg: #{$bone}; --fgh: #{$bone}; }
+
+  // ── the bars fill clotted to arterial to white, in hard steps ──
+  ss-stat-bar .fill {
+    --f: #{$hot} !important;
+    background: linear-gradient(90deg, $blood 0 34%, $hot 34% 82%, $ember 82% 96%, $bone 96%) !important;
+  }
+
+  // ── the name, and the heartbeat under it: two thumps, then a wait, on the
+  //    hall's own clock (1.43 s). On `scale`, so the sway's `translate` still applies. ──
+  .head .name {
+    position: relative;
+    color: #ff4a44;
+    animation: ivy-beat 1.43s ease-out infinite;
+    // a rococo bead under it: a row of blood pixels, brightest in the middle
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: calc(-4 * var(--px));
+      height: var(--px);
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, transparent 0 30%, $ember 30% 70%, transparent 70%) center / 100% 100% no-repeat,
+        repeating-linear-gradient(90deg, $hot 0 var(--p1), transparent var(--p1) calc(4 * var(--px)));
+    }
+  }
+
+  // ── the portrait, in a gilt frame that is not gilt any more: a ring of red
+  //    spokes turning round it, and one drop about to fall off the bottom ──
+  .head .portrait {
+    overflow: visible;   // the ring and the drop sit outside the frame; the picture fills it exactly
+    &::before {
+      content: '';
+      position: absolute;
+      inset: calc(-9 * var(--px));
+      padding: calc(2 * var(--px));
+      pointer-events: none;
+      background: repeating-conic-gradient(from var(--ivy-spin), rgb(214 28 48 / 0.85) 0deg 4deg, transparent 4deg 15deg);
+      // only a band round the outside: the content box is cut away
+      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+      animation: ivy-ring 46s steps(92) infinite;
+    }
+    &::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: calc(-3 * var(--px));
+      width: var(--p2);
+      height: calc(3 * var(--px));
+      margin-left: calc(-1 * var(--px));
+      pointer-events: none;
+      background: linear-gradient($ember 0 33%, $hot 33% 75%, $blood 75%);
+      animation: ivy-drip 3.6s steps(1, end) infinite;
+    }
+  }
+}
+
+@keyframes ivy-beat {
+  0% { scale: 1.035; }
+  9% { scale: 1; }
+  16% { scale: 1.022; }
+  26%, 100% { scale: 1; }
+}
+@keyframes ivy-ring { to { --ivy-spin: 360deg; } }
+// the drop hangs, stretches, falls in steps, and is gone
+@keyframes ivy-drip {
+  0%, 55% { translate: 0 0; scale: 1 1; opacity: 1; }
+  62% { translate: 0 calc(2 * var(--px)); scale: 1 1.34; }
+  70% { translate: 0 calc(6 * var(--px)); scale: 1 1.67; }
+  78% { translate: 0 calc(11 * var(--px)); opacity: 0.6; }
+  85%, 100% { translate: 0 calc(16 * var(--px)); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ss-character-view[data-page='ivy_evil'] {
+    .head .name, .head .portrait::before, .head .portrait::after { animation: none; }
+  }
+}
