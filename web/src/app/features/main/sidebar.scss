@@ -49,7 +49,26 @@
 .folder-name { color: var(--folder); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .count { color: var(--ss-fg-faint); font-size: var(--ss-text-xs); }
 
+.row { position: relative; &:hover .chat, &:focus-within .chat { opacity: 1; } }
+.chat {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  translate: 0 -50%;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  opacity: 0;
+  background: var(--ss-bg);
+  border: 1px solid var(--ss-line-dim);
+  color: var(--ss-fg-dim);
+  &:hover { color: var(--ss-fg); border-color: var(--ss-fg-dim); }
+}
+@media (hover: none) { .chat { opacity: 1; } }
 .entry {
+  padding-right: 40px !important;
   color: inherit;
   text-decoration: none;
   display: flex;

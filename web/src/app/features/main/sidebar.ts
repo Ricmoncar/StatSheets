@@ -7,6 +7,7 @@ import { ConfirmService } from '../../core/confirm.service';
 import { NotifyService } from '../../core/notify.service';
 import { SoundService } from '../../core/sound.service';
 import { Modal } from '../../ui/modal';
+import { ChatModal } from '../chat/chat-modal';
 
 interface FolderGroup { folder: Folder; chars: Character[] }
 type DropCls = 'before' | 'after' | 'into';
@@ -24,7 +25,7 @@ const FOLDER_NAME_MAX = 30;
  */
 @Component({
   selector: 'ss-sidebar',
-  imports: [NgTemplateOutlet, RouterLink, Modal],
+  imports: [NgTemplateOutlet, RouterLink, Modal, ChatModal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:click)': 'closeMenu()', '(document:keydown.escape)': 'closeMenu()' },
   templateUrl: './sidebar.html',
@@ -40,6 +41,8 @@ export class Sidebar {
   readonly activeId = input<string | null>(null);
   readonly pick = output<Character>();
   protected readonly query = signal('');
+  /** Whose inbox is open. */
+  protected readonly chatFor = signal<string | null>(null);
 
   protected readonly matches = computed(() => {
     const q = this.query().toLowerCase();

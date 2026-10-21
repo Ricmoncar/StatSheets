@@ -54,6 +54,7 @@
 </div>
 
 <ng-template #entry let-c let-folder="folder">
+  <div class="row">
   <a class="entry" role="listitem" data-sfx-silent data-sfx-hover [routerLink]="link(c)"
      [class.active]="c.id === activeId()" [class.draft]="c.isPlaceholder" [class.dragging]="dragging() === c.id"
      [class.drop-before]="dropClass(c.id) === 'before'" [class.drop-after]="dropClass(c.id) === 'after'"
@@ -71,7 +72,15 @@
       }
     </span>
   </a>
+  @if (!c.isPlaceholder) {
+    <button type="button" class="chat" (click)="chatFor.set(c.id)" title="Open chat" [attr.aria-label]="'Open chat for ' + c.name">
+      <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" shape-rendering="crispEdges"><path d="M2 2h12v9H9l-3 3v-3H2z" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+    </button>
+  }
+  </div>
 </ng-template>
+
+@if (chatFor(); as id) { <ss-chat-modal [charId]="id" (closed)="chatFor.set(null)" /> }
 
 @if (menu(); as m) {
   <div #menuEl class="menu" role="menu" [attr.aria-label]="m.char.name" [style.left.px]="m.x" [style.top.px]="m.y"

@@ -19,7 +19,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 
 ## Main app (index.html + script.js core)
 
-- [~] Sidebar: search, folders with shared collapse, drafts, new/edit/delete folder, drag and drop of characters and folders (one batched write), right-click menu with edit/duplicate/delete/move (rebuild/tools/sidebar_e2e.js, 16 checks); chat button comes with the chat
+- [x] Sidebar: search, folders with shared collapse, drafts, new/edit/delete folder, drag and drop of characters and folders (one batched write), right-click menu with edit/duplicate/delete/move (rebuild/tools/sidebar_e2e.js, 16 checks), chat button
 - [x] Character view header: portrait, name, owner, power level, gold, bio, shared form switcher, edit, delete
 - [x] Stats: bars, prestige tiers, sub-stats with diffs, SANITY, breakdown tooltips (parity-tested), radar chart, power level window (rebuild/tools/stats_e2e.js)
 - [x] Traits: per-form ownership, every interactive trait card, roll overlay with form chooser and auto-roll (replay-tested), codex, roll history, cultivation window, per-trait stat tooltips (parity-tested against 224 live tooltips)
@@ -30,7 +30,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Music: per-character theme player and mini-player bar (rebuild/tools/music_e2e.js: 20 checks)
 - [x] Abilities tab: passives, ability cards with the six types, editor with image, text colour toolbar (rendered as text: the old renderer let HTML through)
 - [x] SOUL builder: every layer (fill modes, palettes up to 8, nested soul, outline, shattered, monster, glow, heartbeat, cycle), presets, reset; the SVG is built from validated values only
-- [ ] Character chat
+- [x] Character chat: per-sender inbox, live, arrayUnion sends (rebuild/tools/chat_e2e.js)
 - [ ] Compare, tier list, leaderboard, height chart, status roller, suggestion box
 - [x] Generic background patterns, redesigned in pixel art (all 15, old settings kept; rebuild/tools/patterns_shot.js), and the STYLE tab
 
