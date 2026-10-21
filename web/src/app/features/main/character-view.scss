@@ -3,7 +3,7 @@
 .sheet { display: flex; flex-direction: column; gap: var(--p8); max-width: calc(440 * var(--px)); }
 
 // ── the hero: one frame, the only border; the character's own place fills
-// its top and dithers into the dark where the name and details sit ──
+// all of it, behind the name and details too ──
 .hero { position: relative; overflow: hidden; background-color: var(--c-void); box-shadow: var(--hard); }
 .scene { position: absolute; inset: 0; ss-pattern-canvas { position: absolute; inset: 0; } }
 // wall torches in the top corners of the frame
@@ -16,9 +16,10 @@
   align-items: start;
   margin-top: calc(40 * var(--px));
   padding: var(--p4) var(--p8) var(--p6);
-  background: var(--c-void);
-  // the scene breaks up into the dark in a band of checker dither, not a hard edge
-  &::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--p6); background: var(--t-dither) 0 0 / var(--p2) var(--p2); pointer-events: none; }
+  // no backing, so the text carries a dark pixel outline to read on any scene: --edge for the big
+  // type, --edge-sm (2px, one pixel of the small fonts) for the small
+  --edge: var(--px) 0 0 var(--c-void), calc(-1 * var(--px)) 0 0 var(--c-void), 0 var(--px) 0 var(--c-void), 0 calc(-1 * var(--px)) 0 var(--c-void);
+  --edge-sm: 2px 0 0 var(--c-void), -2px 0 0 var(--c-void), 0 2px 0 var(--c-void), 0 -2px 0 var(--c-void), 2px 2px 0 var(--c-void);
 }
 
 .portrait {
@@ -35,7 +36,7 @@
 
 .who { display: flex; flex-direction: column; gap: var(--p3); min-width: 0; padding-top: var(--p1); }
 .name-row { display: flex; align-items: flex-end; gap: var(--p4); flex-wrap: wrap; }
-.name { margin: 0; font: 700 var(--fs-name) / 1 var(--f-display); letter-spacing: -0.125em; color: var(--c-white); text-shadow: var(--p1) var(--p1) 0 var(--ac1); overflow-wrap: anywhere; }
+.name { margin: 0; font: 700 var(--fs-name) / 1 var(--f-display); letter-spacing: -0.125em; color: var(--c-white); text-shadow: var(--edge), var(--p1) var(--p1) 0 var(--ac1); overflow-wrap: anywhere; }
 .pl {
   --pl: var(--c-mute);
   padding: var(--p1) var(--p3);
@@ -48,7 +49,7 @@
   &.omni { animation: omni 2s steps(8) infinite; }
 }
 @keyframes omni { 0%, 100% { color: #ff1f3d; } 25% { color: #ffe23b; } 50% { color: #45d65a; } 75% { color: #6fd2ff; } }
-.owner { margin: 0; font: var(--fs-ui) / 1 var(--f-ui); color: var(--ac3); text-transform: uppercase; }
+.owner { margin: 0; font: var(--fs-ui) / 1 var(--f-ui); color: var(--ac3); text-transform: uppercase; text-shadow: var(--edge-sm); }
 .meta { display: flex; align-items: center; gap: var(--p4) var(--p8); flex-wrap: wrap; }
 .gold {
   display: inline-flex;
@@ -56,11 +57,11 @@
   gap: var(--p2);
   font: var(--fs-big) / 1 var(--f-body);
   color: var(--c-yel);
-  text-shadow: var(--p1) var(--p1) 0 var(--c-gd);
+  text-shadow: var(--edge), var(--p1) var(--p1) 0 var(--c-gd);
   // the G in the same face as the amount, two thirds its size, so it reads as part of it
-  small { font: var(--fs-voice) / 1 var(--f-body); color: var(--c-em3); text-shadow: var(--p1) var(--p1) 0 var(--c-gd); }
+  small { font: var(--fs-voice) / 1 var(--f-body); color: var(--c-em3); text-shadow: var(--edge-sm), var(--p1) var(--p1) 0 var(--c-gd); }
   &:hover { color: var(--c-white); }
-  &.neg { color: var(--c-red); text-shadow: var(--p1) var(--p1) 0 var(--c-red-d); }
+  &.neg { color: var(--c-red); text-shadow: var(--edge), var(--p1) var(--p1) 0 var(--c-red-d); }
 }
 .forms { display: inline-flex; flex-wrap: wrap; padding: var(--px); background: var(--c-void); outline: var(--px) solid var(--c-ink3); }
 .chip {
@@ -72,7 +73,7 @@
   &.on { background: var(--ac2); color: var(--on-ac); }
 }
 .tags { display: flex; gap: var(--p2); flex-wrap: wrap; }
-.bio { margin: 0; color: var(--c-bone); max-width: 70ch; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bio { margin: 0; color: var(--c-bone); max-width: 70ch; white-space: pre-wrap; overflow-wrap: anywhere; text-shadow: var(--edge-sm); }
 
 .actions { display: flex; gap: var(--p3); align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
