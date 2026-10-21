@@ -57,7 +57,8 @@
 
 .pp { flex: none; }
 :host(.blocked) .pp { animation: unlock 1.2s steps(2, jump-none) infinite; }
-@keyframes unlock { 50% { --fg: var(--c-yel); border-image-source: var(--f-btn-stone-hi); } }
+// a blink the GPU runs (it used to swap the frame and colour, restyling every frame until the first tap)
+@keyframes unlock { 50% { opacity: 0.45; } }
 
 .eq { flex: none; }
 

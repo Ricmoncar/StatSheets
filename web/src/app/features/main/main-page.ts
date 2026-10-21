@@ -8,6 +8,9 @@ import { CharacterView } from './character-view';
 import { Sidebar } from './sidebar';
 import { PatternCanvas } from '../../ui/pattern-canvas';
 import { Icon } from '../../ui/icon';
+
+/** Where the character list becomes a drawer (the styles below switch at the same width). */
+const PHONE = '(max-width: 760px)';
 import { PixelTheme } from '../../core/pixel/pixel-theme.service';
 
 // Which character the page opens on: the last one THIS browser looked at
@@ -22,7 +25,7 @@ const NARA = /^NARA!+$/;
   host: { '(document:keydown.escape)': 'drawer.set(false)' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <ss-sidebar [class.open]="drawer()" [activeId]="current()?.id ?? null" (pick)="open($event)" />
+    <ss-sidebar [class.open]="drawer()" [activeId]="current()?.id ?? null" [avatars]="sidebarAvatars()" (pick)="open($event)" />
     @if (drawer()) { <div class="scrim u-scrim" (click)="drawer.set(false)"></div> }
     <section class="stage">
       <button type="button" class="drawer-btn u-btn sm" (click)="drawer.set(true)" [attr.aria-expanded]="drawer()"><ss-icon name="menu" [soul]="false" />CHARACTERS</button>
@@ -48,6 +51,8 @@ const NARA = /^NARA!+$/;
     @media (max-width: 760px) {
       :host { grid-template-columns: minmax(0, 1fr); height: auto; }
       .view { height: auto; }
+      // the header already shows the scene; a second, full-page copy costs a phone too much
+      .bg { display: none; }
       .drawer-btn { display: inline-flex; position: relative; z-index: 2; margin: var(--p4) 0 0 max(16px, env(safe-area-inset-left, 0px)); }
       ss-sidebar { position: fixed; z-index: 34; left: 0; top: var(--topbar-h, 60px); bottom: 0; width: min(calc(150 * var(--px)), 88vw); transform: translateX(-105%); transition: transform 0.2s steps(4, end); }
       ss-sidebar.open { transform: none; box-shadow: var(--p2) 0 0 var(--c-void); }
@@ -62,6 +67,10 @@ export class MainPage {
 
   /** On phones the character list is a drawer. */
   protected readonly drawer = signal(false);
+  private readonly phone = signal(matchMedia(PHONE).matches);
+  private readonly drawerOpened = signal(false);
+  /** The list's pictures load once it can be seen: at once on wider screens, on a phone when the drawer first opens. */
+  protected readonly sidebarAvatars = computed(() => !this.phone() || this.drawerOpened());
 
   /** From the route /c/:id */
   readonly id = input<string>();
@@ -91,7 +100,15 @@ export class MainPage {
       if (!this.themeKey()) return;
       untracked(() => this.music.playFor(this.current()!));
     });
-    effect(() => this.music.preload(this.store.characters()));
+    // Wider screens warm up every theme so switching starts at once. A phone
+    // only warms the open character's: the start of every song in the roster,
+    // each kept in its own player, cost a phone data and memory for nothing.
+    effect(() => this.music.preload(this.phone() ? (this.current() ? [this.current()!] : []) : this.store.characters()));
+    const mq = matchMedia(PHONE);
+    const onPhone = () => this.phone.set(mq.matches);
+    mq.addEventListener('change', onPhone);
+    inject(DestroyRef).onDestroy(() => mq.removeEventListener('change', onPhone));
+    effect(() => { if (this.drawer()) untracked(() => this.drawerOpened.set(true)); });
     // the whole page takes the open character's colour: frames, gems, buttons, scenes
     const theme = inject(PixelTheme);
     effect(() => theme.setAccent(this.current()?.color));

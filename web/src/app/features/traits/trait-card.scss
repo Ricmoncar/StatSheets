@@ -48,22 +48,27 @@
 .ring { position: absolute; z-index: -1; inset: calc(-4 * var(--px)); padding: var(--p2); pointer-events: none;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
-[data-look='rare'] .ring, [data-look='mercyful'] .ring { z-index: 1; background: var(--t-water) 0 0 / calc(16 * var(--px)) calc(8 * var(--px)); animation: flow 1.6s steps(16, end) infinite; }
-[data-look='hexxed'] .ring { z-index: 1; background: var(--t-glitch) 0 0 / calc(16 * var(--px)) calc(16 * var(--px)); animation: glitch 0.5s steps(1, end) infinite; }
-@keyframes flow { to { background-position: calc(16 * var(--px)) 0; } }
-@keyframes glitch { 0% { background-position: 0 0; } 17% { background-position: calc(7 * var(--px)) calc(3 * var(--px)); } 33% { background-position: calc(-5 * var(--px)) calc(9 * var(--px)); } 50% { background-position: calc(11 * var(--px)) calc(-6 * var(--px)); } 67% { background-position: calc(2 * var(--px)) calc(13 * var(--px)); } 83% { background-position: calc(-9 * var(--px)) calc(5 * var(--px)); } }
+// the living rings slide a texture layer under the mask (a transform, not a moving background)
+[data-look='rare'] .ring, [data-look='mercyful'] .ring, [data-look='hexxed'] .ring { z-index: 1; overflow: hidden;
+  &::before { content: ''; position: absolute; } }
+[data-look='rare'] .ring::before, [data-look='mercyful'] .ring::before { inset: 0 0 0 calc(-16 * var(--px)); background: var(--t-water) 0 0 / calc(16 * var(--px)) calc(8 * var(--px)); animation: flow 1.6s steps(16, end) infinite; }
+[data-look='hexxed'] .ring::before { inset: calc(-16 * var(--px)); background: var(--t-glitch) 0 0 / calc(16 * var(--px)) calc(16 * var(--px)); animation: glitch 0.5s steps(1, end) infinite; }
+@keyframes flow { to { transform: translateX(calc(16 * var(--px))); } }
+@keyframes glitch { 0% { transform: none; } 17% { transform: translate(calc(7 * var(--px)), calc(3 * var(--px))); } 33% { transform: translate(calc(-5 * var(--px)), calc(9 * var(--px))); } 50% { transform: translate(calc(11 * var(--px)), calc(-6 * var(--px))); } 67% { transform: translate(calc(2 * var(--px)), calc(13 * var(--px))); } 83% { transform: translate(calc(-9 * var(--px)), calc(5 * var(--px))); } }
 
 .dec { position: absolute; z-index: 2; pointer-events: none; }
 .dec.c1 { left: calc(-6 * var(--px)); top: calc(-7 * var(--px)); }
 .dec.s1 { right: calc(-3 * var(--px)); top: calc(-3 * var(--px)); }
 .dec.s2 { left: calc(-3 * var(--px)); bottom: calc(-3 * var(--px)); }
 
-.sweep { position: absolute; z-index: 2; top: calc(-5 * var(--px)); left: 0; width: calc(5 * var(--px)); height: calc(3 * var(--px)); background: var(--c-white); animation: sweep 2.4s steps(24, end) infinite; pointer-events: none; }
-@keyframes sweep { 0% { left: 0; opacity: 1; } 60% { left: calc(100% - 5 * var(--px)); opacity: 1; } 61%, 100% { left: calc(100% - 5 * var(--px)); opacity: 0; } }
+.sweep { position: absolute; z-index: 2; top: calc(-5 * var(--px)); left: 0; right: 0; height: calc(3 * var(--px)); pointer-events: none;
+  // a glint along the top edge: a full-width layer with the glint at its right end, slid across
+  &::before { content: ''; display: block; height: 100%; background: linear-gradient(to left, var(--c-white) calc(5 * var(--px)), transparent calc(5 * var(--px))); animation: sweep 2.4s steps(24, end) infinite; } }
+@keyframes sweep { 0% { transform: translateX(calc(-100% + 5 * var(--px))); opacity: 1; } 60% { transform: none; opacity: 1; } 61%, 100% { transform: none; opacity: 0; } }
 
-.crest { position: absolute; z-index: 2; left: calc(-3 * var(--px)); right: calc(-3 * var(--px)); top: calc(-11 * var(--px)); height: calc(8 * var(--px));
-  background: var(--s-crest) 0 0 / calc(32 * var(--px)) calc(8 * var(--px)) repeat-x; animation: crest 0.5s steps(4, end) infinite; pointer-events: none; }
-@keyframes crest { to { background-position-x: calc(32 * var(--px)); } }
+.crest { position: absolute; z-index: 2; left: calc(-3 * var(--px)); right: calc(-3 * var(--px)); top: calc(-11 * var(--px)); height: calc(8 * var(--px)); overflow: hidden; pointer-events: none;
+  &::before { content: ''; position: absolute; inset: 0 0 0 calc(-32 * var(--px)); background: var(--s-crest) 0 0 / calc(32 * var(--px)) calc(8 * var(--px)) repeat-x; animation: crest 0.5s steps(4, end) infinite; } }
+@keyframes crest { to { transform: translateX(calc(32 * var(--px))); } }
 .embers { position: absolute; z-index: 2; inset: 0; pointer-events: none; overflow: visible;
   i { position: absolute; top: calc(-8 * var(--px)); width: var(--p1); height: var(--p1); background: var(--c-em3); animation: ember var(--d, 2s) steps(12, end) infinite; animation-delay: var(--dl, 0s); }
   i:nth-child(2n) { background: var(--c-em2); width: var(--p2); height: var(--p2); } }

@@ -40,6 +40,12 @@ export class Sidebar {
   private readonly router = inject(Router);
 
   readonly activeId = input<string | null>(null);
+  /**
+   * Off while the list is a closed drawer on a phone: every avatar is a full
+   * picture inside the character, and handing all of them to their images
+   * cost a phone most of a second before anyone looked at the list.
+   */
+  readonly avatars = input(true);
   readonly pick = output<Character>();
   protected readonly query = signal('');
   /** Whose inbox is open. */

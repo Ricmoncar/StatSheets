@@ -65,7 +65,7 @@
      draggable="true" (dragstart)="dragStart($event, 'char', c.id)" (dragend)="dragEnd()"
      (dragover)="overEntry($event, c)" (drop)="dropOnEntry($event, c, folder)">
     <span class="avatar">
-      @if (c.avatar) { <img [src]="c.avatar" alt="" loading="lazy" draggable="false" /> }
+      @if (c.avatar && avatars()) { <img [src]="c.avatar" alt="" loading="lazy" decoding="async" draggable="false" /> }
       @else { <i class="u-spr s-soul" aria-hidden="true"></i> }
     </span>
     <span class="info">

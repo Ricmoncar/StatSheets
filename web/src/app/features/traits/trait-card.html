@@ -15,7 +15,7 @@
   }
   @if (shimmy(); as s) { <i class="star u-spr s-spark u-anim" [attr.data-rarity]="s" role="img" aria-label="Shimmyful"></i> }
   <div class="top">
-    <span class="art"><i class="u-spr u-anim" [style.background-image]="'var(--s-art-' + look() + ')'" style="--w: 20; --h: 20; --n: 8; --fps: 8"></i></span>
+    <span class="art"><i class="u-spr u-anim" [style.--sheet]="'var(--s-art-' + look() + ')'" style="--w: 20; --h: 20; --n: 8; --fps: 8"></i></span>
     <span class="rr"><span class="label">{{ face().label }}</span>@if (num()) { <span class="no">#{{ num() }}</span> }</span>
     <span class="name"><ss-rich-desc [text]="face().name" [name]="c.name" /></span>
   </div>

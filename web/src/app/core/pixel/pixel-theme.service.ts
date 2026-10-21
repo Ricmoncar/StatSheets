@@ -32,7 +32,11 @@ const ROSE = [
  */
 @Injectable({ providedIn: 'root' })
 export class PixelTheme {
-  private readonly root = inject(DOCUMENT).documentElement;
+  private readonly doc = inject(DOCUMENT);
+  private readonly root = this.doc.documentElement;
+  /** Every variable the theme sets, written together by flush(). */
+  private readonly vars = new Map<string, string>();
+  private varSheet: HTMLStyleElement | null = null;
   private readonly colourMap: Colours = { ...FIXED, ...ramp(DEFAULT_ACCENT) } as Colours;
   private started = false;
 
@@ -50,6 +54,7 @@ export class PixelTheme {
     this.spriteClasses();
     this.renderAll(false);
     this.cursors();
+    this.flush();
   }
 
   /** Recolours the theme to a character's colour, or back to the site's own with null. */
@@ -60,6 +65,7 @@ export class PixelTheme {
     this.accent.set(next);
     this.applyRamp(ramp(next));
     this.renderAll(true);
+    this.flush();
     this.version.update(v => v + 1);
   }
 
@@ -69,12 +75,26 @@ export class PixelTheme {
   private applyRamp(r: Ramp): void {
     for (const k of ['ac0', 'ac1', 'ac2', 'ac3', 'ac4', 'sn0', 'sn1', 'sn2', 'sn3'] as const) {
       this.colourMap[k] = r[k];
-      this.root.style.setProperty('--' + k, r[k]);
+      this.vars.set('--' + k, r[k]);
     }
-    this.root.style.setProperty('--on-ac', r.on);
+    this.vars.set('--on-ac', r.on);
   }
 
-  private setUrl(name: string, url: string): void { this.root.style.setProperty(name, `url("${url}")`); }
+  private setUrl(name: string, url: string): void { this.vars.set(name, `url("${url}")`); }
+
+  /**
+   * Writes every variable into one :root rule at once. (Setting about a hundred
+   * long image URLs one by one on the root element restyled the whole page
+   * for each, which a phone felt on every character it opened.)
+   */
+  private flush(): void {
+    if (!this.varSheet) {
+      this.varSheet = this.doc.createElement('style');
+      this.varSheet.dataset['pixel'] = 'vars';
+      this.doc.head.appendChild(this.varSheet);
+    }
+    this.varSheet.textContent = ':root{' + [...this.vars].map(([k, v]) => `${k}:${v}`).join(';') + '}';
+  }
 
   private renderAll(accentOnly: boolean): void {
     for (const d of SPRITES) if (!accentOnly || d.acc) this.setUrl('--s-' + d.id, this.sprite(d));
@@ -102,7 +122,7 @@ export class PixelTheme {
     const doc = this.root.ownerDocument;
     const st = doc.createElement('style');
     st.dataset['pixel'] = 'sprites';
-    st.textContent = SPRITES.map(d => `.s-${d.id}{--w:${d.w};--h:${d.h};--n:${d.n};--fps:${d.fps};background-image:var(--s-${d.id})}`).join('\n');
+    st.textContent = SPRITES.map(d => `.s-${d.id}{--w:${d.w};--h:${d.h};--n:${d.n};--fps:${d.fps};--sheet:var(--s-${d.id});background-image:var(--sheet)}`).join('\n');
     doc.head.appendChild(st);
   }
 
@@ -120,9 +140,9 @@ export class PixelTheme {
       big.x.drawImage(s.c, 0, 0, 33, 30);
       return big.c.toDataURL();
     };
-    this.root.style.setProperty('--cur-soul', `url("${ring('red', 'void')}") 16 14, auto`);
-    this.root.style.setProperty('--cur-point', `url("${ring('red', 'yel')}") 16 14, pointer`);
-    this.root.style.setProperty('--cur-no', `url("${ring('mt2', 'void', true)}") 16 14, not-allowed`);
+    this.vars.set('--cur-soul', `url("${ring('red', 'void')}") 16 14, auto`);
+    this.vars.set('--cur-point', `url("${ring('red', 'yel')}") 16 14, pointer`);
+    this.vars.set('--cur-no', `url("${ring('mt2', 'void', true)}") 16 14, not-allowed`);
     // BK's Corner keeps its rose: the bloom outlined in yellow over things you can press
     const rose = (hot: boolean) => {
       const s = this.painter(11, 12);
@@ -132,8 +152,8 @@ export class PixelTheme {
       return big.c.toDataURL();
     };
     const bloom = rose(false);
-    this.root.style.setProperty('--i-rose', `url("${bloom}")`);
-    this.root.style.setProperty('--cur-rose', `url("${bloom}") 4 4, auto`);
-    this.root.style.setProperty('--cur-rose-hot', `url("${rose(true)}") 4 4, pointer`);
+    this.vars.set('--i-rose', `url("${bloom}")`);
+    this.vars.set('--cur-rose', `url("${bloom}") 4 4, auto`);
+    this.vars.set('--cur-rose-hot', `url("${rose(true)}") 4 4, pointer`);
   }
 }

@@ -142,8 +142,17 @@ a { color: inherit; }
   background-size: calc(var(--w) * var(--n, 1) * var(--px) * var(--sc, 1)) 100%;
   background-position: calc(var(--f, 0) * var(--w) * var(--px) * var(--sc, 1) * -1) 0;
 }
-.u-anim { animation: u-sprite calc(var(--n) * 1s / var(--fps)) steps(var(--n)) infinite; animation-delay: var(--delay, 0s); }
-@keyframes u-sprite { from { background-position-x: 0; } to { background-position-x: calc(var(--w) * var(--n) * var(--px) * var(--sc, 1) * -1); } }
+// An animated sprite plays its strip by sliding it (a transform the GPU runs),
+// not by moving the background: a moving background is repainted on the main
+// thread every frame, and a page of them kept phones busy doing nothing.
+// The sheet comes from --sheet (set by the .s-<id> class, or inline).
+.u-spr.u-anim { overflow: hidden; background-image: none; }
+.u-spr.u-anim::before {
+  content: ''; display: block; width: calc(100% * var(--n)); height: 100%;
+  background: var(--sheet) 0 0 / 100% 100% no-repeat; image-rendering: pixelated;
+  animation: u-sprite calc(var(--n) * 1s / var(--fps)) steps(var(--n)) infinite; animation-delay: var(--delay, 0s);
+}
+@keyframes u-sprite { to { transform: translateX(-100%); } }
 
 // ── icons (ss-icon): 7x7, and the SOUL takes the icon's place under the menu rule ──
 svg.ico { display: block; width: calc(7 * var(--px)); height: calc(7 * var(--px)); fill: currentColor; overflow: visible; }
@@ -346,9 +355,10 @@ input[type=range]:hover::-webkit-slider-thumb, input[type=range]:focus-visible::
 .u-progress > span { display: block; height: 100%; background: repeating-linear-gradient(90deg, var(--ac2) 0 calc(5 * var(--px)), transparent calc(5 * var(--px)) calc(6 * var(--px))); transition: width 0.2s steps(4); }
 
 // ── performance mode and reduced motion: loops pause on a frame, decoration goes ──
-.perf .u-anim, .perf .u-indet i, .perf .u-empty .soulf { animation-play-state: paused !important; }
+// performance mode stops every loop and makes every entrance instant, as reduced motion does
+.perf *, .perf *::before, .perf *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 @media (prefers-reduced-motion: reduce) {
-  .u-anim, .u-indet i, .u-empty .soulf { animation-play-state: paused !important; }
+  .u-anim::before, .u-indet i, .u-empty .soulf { animation-play-state: paused !important; }
   .u-tog .knob { transition: none !important; }
   // everything else ends at once, so nothing waits on an entrance or keeps moving
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }

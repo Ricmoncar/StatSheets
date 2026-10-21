@@ -36,7 +36,7 @@
             <span class="rarity">???</span>
           } @else {
             <span class="top">
-              <span class="art"><i class="u-spr u-anim" [style.background-image]="'var(--s-art-' + look(c.rarity) + ')'" style="--w: 20; --h: 20; --n: 8; --fps: 8"></i></span>
+              <span class="art"><i class="u-spr u-anim" [style.--sheet]="'var(--s-art-' + look(c.rarity) + ')'" style="--w: 20; --h: 20; --n: 8; --fps: 8"></i></span>
               <span class="rarity">{{ rarityLabel(c.rarity) }} @if (c.shimmy) { <span class="mark">{{ shimmyMark(c.shimmy) }}</span> }</span>
             </span>
             <span class="name">{{ c.name }}</span>
