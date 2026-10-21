@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { BADDIE_PAGE } from './core/pages';
 
 // One route per page of the old site. Pages not ported yet show a placeholder
 // that says so, rather than a blank screen.
@@ -18,7 +19,8 @@ export const routes: Routes = [
   { path: 'encyclopedia', ...todo('ENCYCLOPAEDIA') },
   { path: 'playlists', loadComponent: () => import('./features/playlists/playlists-page').then(m => m.PlaylistsPage), title: 'STATSHEETS - PLAYLISTS' },
   { path: 'bkscorner', loadComponent: () => import('./features/bkscorner/bk-corner-page').then(m => m.BkCornerPage), title: "STATSHEETS - BK'S CORNER" },
-  { path: 'baddie', ...todo('SPIN A BADDIE') },
+  // SPIN A BADDIE stays the old page, as it is; its old address leads there
+  { path: 'baddie', canActivate: [() => { location.assign(new URL(BADDIE_PAGE, document.baseURI).href); return false; }], children: [] },
   { path: 'admin', loadComponent: () => import('./features/admin/admin-page').then(m => m.AdminPage), title: 'STATSHEETS - ADMIN' },
   { path: '**', redirectTo: '' },
 ];

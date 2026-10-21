@@ -38,6 +38,11 @@
                 "glob": "**/*",
                 "input": "shared-assets/baddies",
                 "output": "baddies"
+              },
+              {
+                "glob": "baddie.html",
+                "input": "shared-assets/pages",
+                "output": "."
               }
             ],
             "styles": [
