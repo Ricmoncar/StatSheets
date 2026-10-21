@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { CharacterStore } from '../../core/data/character-store';
 import { Character } from '../../core/data/models';
@@ -9,6 +9,8 @@ import { effectiveStats, formTraits, getTraitDef, isShimmyful } from '../../core
 import { sanityRow, substatRows } from '../../core/game/substats';
 import { TRAITS } from '../../core/game/traits-data';
 import { Panel } from '../../ui/panel';
+import { GoldModal } from '../gold/gold-modal';
+import { RollOverlay } from '../roll/roll-overlay';
 import { StatBar } from '../../ui/stat-bar';
 
 const MAIN = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'] as const;
@@ -17,7 +19,7 @@ const CLASSIC = /^Classic$/i;
 /** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar, Panel, DecimalPipe],
+  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
@@ -64,6 +66,9 @@ export class CharacterView {
   });
 
   protected readonly items = computed(() => this.character().inventory || []);
+
+  /** Which overlay is open over the sheet. */
+  protected readonly open = signal<'roll' | 'gold' | null>(null);
 
   /** Switching form is shared: it saves activeFormIdx on the character, as on the old site. */
   protected switchForm(idx: number): void {

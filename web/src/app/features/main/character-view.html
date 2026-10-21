@@ -18,7 +18,7 @@
       </div>
       @if (c.info?.owner) { <p class="owner">BY {{ c.info?.owner }}</p> }
       <p class="pl" [style.color]="pl().color" [class.omni]="pl().short === 'OMNI'">{{ pl().label }} LEVEL</p>
-      <button type="button" class="gold" [class.neg]="(c.gold || 0) < 0" (click)="notYet('TREASURY')" title="Open treasury">G {{ gold() }}</button>
+      <button type="button" class="gold" [class.neg]="(c.gold || 0) < 0" (click)="open.set('gold')" title="Open treasury">G {{ gold() }}</button>
       @if (c.bio) { <p class="bio">{{ c.bio }}</p> }
     </div>
     <div class="actions">
@@ -30,7 +30,7 @@
 
   <ss-panel title="TRAITS">
     <ng-container actions>
-      <button type="button" class="btn accent" (click)="notYet('ROLL')">ROLL</button>
+      <button type="button" class="btn accent" (click)="open.set('roll')" title="Roll for a new trait">ROLL</button>
     </ng-container>
     @if (traits().length) {
       <div class="traits">
@@ -96,3 +96,6 @@
     }
   </ss-panel>
 </article>
+
+@if (open() === 'roll') { <ss-roll-overlay [character]="c" (closed)="open.set(null)" /> }
+@if (open() === 'gold') { <ss-gold-modal [character]="c" (closed)="open.set(null)" /> }

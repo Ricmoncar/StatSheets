@@ -1,0 +1,55 @@
+<div class="backdrop"></div>
+
+@if (choosing()) {
+  <section class="chooser" role="dialog" aria-modal="true" aria-label="Roll for which form?">
+    <header class="bar">
+      <span>ROLL FOR WHICH FORM?</span>
+      <button type="button" class="x" (click)="closed.emit()" aria-label="Close">&#10005;</button>
+    </header>
+    @for (r of formRows(); track r.idx) {
+      <button type="button" class="form-row" [class.on]="r.idx === activeForm()" (click)="chooseForm(r.idx)">
+        <span class="fname">{{ r.name }}</span>
+        <span class="ftraits">{{ r.traits }}@if (r.inherits) { (inherits base) }</span>
+      </button>
+    }
+  </section>
+} @else {
+  <section class="stage" role="dialog" aria-modal="true" aria-label="Trait roll">
+    <div class="pity">
+      <span class="pity-label">PITY <span class="pity-count" [class.max]="pity() >= 100" [class.high]="pity() >= 75 && pity() < 100">{{ pity() }}</span> / 100</span>
+      <span class="pity-track"><span class="pity-fill" [class.max]="pity() >= 100" [style.width.%]="pity()"></span></span>
+    </div>
+
+    <h2 class="title">{{ title() }}</h2>
+    <p class="sub">{{ sub() }}</p>
+
+    <div class="cards">
+      @for (c of cards(); track $index) {
+        <button type="button" class="card" [attr.data-rarity]="c.rarity" [class.rolling]="c.rolling" [class.flash]="c.flash"
+                [class.shimmy]="!!c.shimmy" [class.notable]="c.notable" [disabled]="!interactive()" (click)="pick($index)">
+          <span class="rarity">@if (c.rolling) { ??? } @else { {{ rarityLabel(c.rarity) }} @if (c.shimmy) { <span class="mark">{{ shimmyMark(c.shimmy) }}</span> } }</span>
+          <span class="name">{{ c.name }}</span>
+          <span class="desc">{{ c.desc }}</span>
+          <span class="cta" [class.hidden]="!interactive()">CLICK TO TAKE</span>
+        </button>
+      }
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn" (click)="cancel()">CANCEL</button>
+      <button type="button" class="btn accent" [disabled]="dealing()" (click)="reroll()">REROLL HAND</button>
+      <button type="button" class="btn" [class.accent]="autoMode()" [attr.aria-pressed]="autoMode()" (click)="toggleAuto()">AUTO: {{ autoMode() ? 'ON' : 'OFF' }}</button>
+    </div>
+
+    @if (autoMode()) {
+      <div class="auto">
+        <span class="ar-label">STOP AT</span>
+        @for (r of stopOptions; track r) {
+          <button type="button" class="ar" [class.on]="stopRarity() === r" [attr.data-rarity]="r" (click)="stopRarity.set(r)">{{ r.toUpperCase() }}</button>
+        }
+        <span class="divider"></span>
+        <button type="button" class="ar" [class.on]="stopShimmy()" [attr.aria-pressed]="stopShimmy()" (click)="stopShimmy.set(!stopShimmy())">&#10022; SHIMMY</button>
+      </div>
+    }
+  </section>
+}
