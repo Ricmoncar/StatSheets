@@ -91,12 +91,12 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   // delete: cancel first, then confirm
   await mine.hover();
   await mine.locator('.act', { hasText: 'DEL' }).click();
-  await page.locator('ss-confirm-host .btn', { hasText: 'CANCEL' }).click();
+  await page.locator('ss-confirm-host .u-opt', { hasText: 'CANCEL' }).click();
   await page.waitForTimeout(300);
   check(await pics.count() === p0 + 1, 'cancelling the delete keeps it');
   await mine.hover();
   await mine.locator('.act', { hasText: 'DEL' }).click();
-  await page.locator('ss-confirm-host .btn.yes').click();
+  await page.locator('ss-confirm-host .u-opt', { hasText: 'CONFIRM' }).click();
   const gone = await page.locator('.toast', { hasText: 'IMAGE DELETED' }).waitFor({ timeout: 6000 }).then(() => true, () => false);
   await page.waitForTimeout(300);
   check(gone && await pics.count() === p0, 'confirming deletes it');

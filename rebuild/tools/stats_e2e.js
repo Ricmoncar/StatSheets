@@ -38,9 +38,11 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   await page.mouse.move(5, 5);
 
   await page.locator('button[aria-label="Stat radar chart"]').click();
-  await page.waitForSelector('ss-radar-chart svg');
-  check((await page.locator('ss-radar-chart text').count()) === 12, 'radar draws six labels with percentages');
-  check((await page.locator('ss-radar-chart rect').count()) >= 6, 'radar marks each stat');
+  await page.waitForSelector('ss-radar-chart canvas');
+  await page.waitForTimeout(400);
+  check((await page.locator('ss-radar-chart .rl').count()) === 6 && /%/.test(await page.locator('ss-radar-chart .rl small').first().textContent()), 'radar draws six labels with percentages');
+  const inked = await page.locator('ss-radar-chart canvas').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n; });
+  check(inked > 300, 'radar draws its shape in pixels (' + inked + ')');
   await page.locator('ss-radar-chart').scrollIntoViewIfNeeded();
   await page.locator('ss-radar-chart').screenshot({ path: out + '/stats-radar.png' });
 
@@ -55,7 +57,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   check((await page.locator('ss-power-modal').count()) === 0, 'Escape closes it');
 
   // compare
-  await page.locator('button', { hasText: 'CMP' }).click();
+  await page.locator('button[aria-label="Compare"]').click();
   const cmp = page.locator('ss-compare-modal ss-modal');
   await cmp.waitFor();
   check(/SELECT TWO DIFFERENT CHARACTERS/.test(await cmp.textContent()), 'compare starts with the open character and asks for a second');

@@ -10,6 +10,7 @@ import {
 import { SeenTraits } from '../../core/game/seen-traits.service';
 import { getShimmyfulDef } from '../../core/game/stats';
 import { TRAITS } from '../../core/game/traits-data';
+import { Icon } from '../../ui/icon';
 
 /** Rank used by auto-roll to decide whether a hand is worth stopping on. */
 const AR_RANK: Record<string, number> = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4, hexxed: 99, duality: 99, determined: 99 };
@@ -36,6 +37,7 @@ interface FormRow { idx: number; name: string; traits: string; inherits: boolean
  */
 @Component({
   selector: 'ss-roll-overlay',
+  imports: [Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'cancel()' },
   templateUrl: './roll-overlay.html',
@@ -58,6 +60,10 @@ export class RollOverlay implements OnInit, OnDestroy {
   protected readonly interactive = signal(false);
   protected readonly dealing = signal(false);
   protected readonly autoMode = signal(false);
+  /** Pity as twenty crystal cells, five points each. */
+  protected readonly cells = Array.from({ length: 20 }, (_, i) => i + 1);
+  /** The hand shakes as a high card lands. */
+  protected readonly shakeHand = computed(() => this.cards().some(c => c.flash && ['legendary', 'mythic', 'hexxed', 'duality', 'determined'].includes(c.rarity)));
   protected readonly stopRarity = signal<'rare' | 'epic' | 'legendary' | 'mythic'>('legendary');
   protected readonly stopShimmy = signal(true);
   protected readonly stopOptions = ['rare', 'epic', 'legendary', 'mythic'] as const;
@@ -255,6 +261,11 @@ export class RollOverlay implements OnInit, OnDestroy {
     this.intervals = [];
   }
 
+  /** Which card frame and art window a rarity wears. */
+  protected look(r: string): string {
+    if (r === 'duality') return 'heavenly';
+    return ['common', 'rare', 'epic', 'legendary', 'mythic', 'hexxed', 'determined'].includes(r) ? r : 'common';
+  }
   protected rarityLabel(r: string): string {
     return RARITY_LABEL[r] || r.toUpperCase();
   }

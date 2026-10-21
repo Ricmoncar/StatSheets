@@ -1,13 +1,14 @@
-<div class="backdrop"></div>
+<div class="backdrop u-scrim"></div>
 
 @if (choosing()) {
-  <section class="chooser" role="dialog" aria-modal="true" aria-label="Roll for which form?">
+  <section class="chooser u-voice" role="dialog" aria-modal="true" aria-label="Roll for which form?">
     <header class="bar">
-      <span>ROLL FOR WHICH FORM?</span>
-      <button type="button" class="x" (click)="closed.emit()" aria-label="Close">&#10005;</button>
+      <span class="u-ast">ROLL FOR WHICH FORM?</span>
+      <button type="button" class="u-btn icon sm" (click)="closed.emit()" aria-label="Close"><ss-icon name="x" [soul]="false" /></button>
     </header>
     @for (r of formRows(); track r.idx) {
-      <button type="button" class="form-row" [class.on]="r.idx === activeForm()" (click)="chooseForm(r.idx)">
+      <button type="button" class="form-row u-soul-on" [class.on]="r.idx === activeForm()" [class.is-on]="r.idx === activeForm()" (click)="chooseForm(r.idx)">
+        <ss-icon name="ast" />
         <span class="fname">{{ r.name }}</span>
         <span class="ftraits">{{ r.traits }}@if (r.inherits) { (inherits base) }</span>
       </button>
@@ -16,29 +17,41 @@
 } @else {
   <section class="stage" role="dialog" aria-modal="true" aria-label="Trait roll">
     <div class="pity">
-      <span class="pity-label">PITY <span class="pity-count" [class.max]="pity() >= 100" [class.high]="pity() >= 75 && pity() < 100">{{ pity() }}</span> / 100</span>
-      <span class="pity-track"><span class="pity-fill" [class.max]="pity() >= 100" [style.width.%]="pity()"></span></span>
+      <span class="pity-label">PITY <span class="pity-count" [class.max]="pity() >= 100" [class.high]="pity() >= 75 && pity() < 100">{{ pity() }}</span><small>/ 100</small></span>
+      <span class="pity-cells" aria-hidden="true">
+        @for (n of cells; track n) { <i class="u-spr s-cell" [style.--f]="pity() >= n * 5 ? 2 : pity() > (n - 1) * 5 ? 1 : 0"></i> }
+      </span>
     </div>
 
     <h2 class="title">{{ title() }}</h2>
     <p class="sub">{{ sub() }}</p>
 
-    <div class="cards">
+    <div class="cards" [class.shake]="shakeHand()">
       @for (c of cards(); track $index) {
         <button type="button" class="card" [attr.data-rarity]="c.rarity" [class.rolling]="c.rolling" [class.flash]="c.flash"
-                [class.shimmy]="!!c.shimmy" [class.notable]="c.notable" [disabled]="!interactive()" (click)="pick($index)">
-          <span class="rarity">@if (c.rolling) { ??? } @else { {{ rarityLabel(c.rarity) }} @if (c.shimmy) { <span class="mark">{{ shimmyMark(c.shimmy) }}</span> } }</span>
-          <span class="name">{{ c.name }}</span>
-          <span class="desc">{{ c.desc }}</span>
-          <span class="cta" [class.hidden]="!interactive()">CLICK TO TAKE</span>
+                [class.shimmy]="!!c.shimmy" [class.notable]="c.notable" [disabled]="!interactive()" (click)="pick($index)"
+                [style.border-image-source]="c.rolling ? 'var(--f-cardback)' : 'var(--f-tc-' + look(c.rarity) + ')'">
+          @if (c.rolling) {
+            <span class="back" aria-hidden="true"><i class="u-spr s-soul" style="--sc: 2"></i></span>
+            <span class="rarity">???</span>
+          } @else {
+            <span class="top">
+              <span class="art"><i class="u-spr u-anim" [style.background-image]="'var(--s-art-' + look(c.rarity) + ')'" style="--w: 20; --h: 20; --n: 8; --fps: 8"></i></span>
+              <span class="rarity">{{ rarityLabel(c.rarity) }} @if (c.shimmy) { <span class="mark">{{ shimmyMark(c.shimmy) }}</span> }</span>
+            </span>
+            <span class="name">{{ c.name }}</span>
+            <span class="desc">{{ c.desc }}</span>
+            @if (c.notable) { <i class="burst u-spr s-burst u-anim" aria-hidden="true"></i> }
+          }
+          <span class="cta" [class.hidden]="!interactive()"><ss-icon name="ast" [soul]="false" />TAKE IT</span>
         </button>
       }
     </div>
 
     <div class="actions">
-      <button type="button" class="btn" (click)="cancel()">CANCEL</button>
-      <button type="button" class="btn accent" [disabled]="dealing()" (click)="reroll()">REROLL HAND</button>
-      <button type="button" class="btn" [class.accent]="autoMode()" [attr.aria-pressed]="autoMode()" (click)="toggleAuto()">AUTO: {{ autoMode() ? 'ON' : 'OFF' }}</button>
+      <button type="button" class="u-btn" (click)="cancel()"><ss-icon name="x" />CANCEL</button>
+      <button type="button" class="u-btn primary" [disabled]="dealing()" (click)="reroll()"><ss-icon name="dice" />REROLL HAND</button>
+      <button type="button" class="u-btn" [class.on]="autoMode()" [attr.aria-pressed]="autoMode()" (click)="toggleAuto()"><ss-icon name="play" />AUTO: {{ autoMode() ? 'ON' : 'OFF' }}</button>
     </div>
 
     @if (autoMode()) {

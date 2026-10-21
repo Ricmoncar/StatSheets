@@ -50,9 +50,9 @@ const range = (stat: string, i: number) => `${PL_THRESHOLDS[stat][i]}-${i === TI
       <ol class="tiers">
         @for (t of tiers; track t.title; let i = $index) {
           <li class="tier" [class.here]="i === current()" [style.--c]="t.color" tabindex="0" [ssTip]="{ title: t.title, desc: t.desc, lines: [], notes: [] }">
-            <svg class="icon" viewBox="0 0 12 12" width="36" height="36" shape-rendering="crispEdges" aria-hidden="true"><path [attr.d]="t.icon" fill="currentColor" /></svg>
+            <svg class="icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path [attr.d]="t.icon" fill="currentColor" /></svg>
             <div class="text">
-              <span class="title">{{ t.title }}@if (i === current()) { <em> &#9664; {{ name() }}</em> }</span>
+              <span class="title">{{ t.title }}@if (i === current()) { <em><i class="u-spr s-soul" aria-hidden="true"></i>{{ name() }}</em> }</span>
               <span class="stats">{{ t.stats }}</span>
             </div>
           </li>
@@ -62,15 +62,17 @@ const range = (stat: string, i: number) => `${PL_THRESHOLDS[stat][i]}-${i === TI
     </ss-modal>
   `,
   styles: `
-    .tiers { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-    .tier { --c: var(--ss-fg); display: grid; grid-template-columns: 36px 1fr; gap: 14px; align-items: center; padding: 10px 12px; border: 1px solid var(--ss-panel-2); color: var(--c);
-      &:hover, &:focus-visible { border-color: var(--c); }
-      &.here { border: var(--ss-border) solid var(--c); box-shadow: 4px 4px 0 color-mix(in srgb, var(--c) 35%, black); } }
-    .icon { image-rendering: pixelated; }
-    .text { display: grid; gap: 4px; min-width: 0; }
-    .title { font-size: var(--ss-text-sm); em { font-style: normal; color: var(--ss-fg); } }
-    .stats { font-size: var(--fs-ui); color: var(--ss-fg-dim); line-height: 1.8; }
-    .cap { margin: 14px 0 0; text-align: center; font-size: var(--ss-text-xs); color: var(--ss-fg-faint); animation: blink 1.2s steps(2) infinite; }
+    .tiers { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--p2); }
+    // a menu of tiers: the one the character reaches is lit, with the SOUL beside the name
+    .tier { --c: var(--c-white); display: grid; grid-template-columns: calc(12 * var(--px)) minmax(0, 1fr); gap: var(--p4); align-items: center; padding: var(--p2) var(--p3); color: var(--c); background: var(--c-ink2);
+      &:hover, &:focus-visible { background: var(--c-ink3); }
+      &.here { background: var(--c-ink); box-shadow: inset var(--p1) 0 0 var(--c), 0 0 0 var(--px) var(--c); } }
+    .icon { width: calc(12 * var(--px)); height: calc(12 * var(--px)); }
+    .text { display: grid; gap: var(--p1); min-width: 0; }
+    .title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p2) var(--p3); font: var(--fs-ui) / 20px var(--f-ui); text-transform: uppercase;
+      em { display: inline-flex; align-items: center; gap: var(--p2); font-style: normal; color: var(--c-white); } }
+    .stats { font: var(--fs-small) / 20px var(--f-body); color: var(--c-mute); }
+    .cap { margin: var(--p4) 0 0; text-align: center; font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-mute); animation: blink 1.2s steps(2) infinite; }
     @keyframes blink { 50% { opacity: 0.3; } }
   `,
 })

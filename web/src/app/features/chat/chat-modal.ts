@@ -5,6 +5,7 @@ import { CharacterStore } from '../../core/data/character-store';
 import { FIRESTORE, col } from '../../core/firebase';
 import { NotifyService } from '../../core/notify.service';
 import { Modal } from '../../ui/modal';
+import { Icon } from '../../ui/icon';
 
 interface ChatMsg { text: string; ts: number }
 const MSG_MAX = 500;
@@ -16,7 +17,7 @@ const MSG_MAX = 500;
  */
 @Component({
   selector: 'ss-chat-modal',
-  imports: [Modal, DatePipe],
+  imports: [Modal, DatePipe, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (recipient(); as r) {
@@ -25,7 +26,7 @@ const MSG_MAX = 500;
           <nav class="convs" aria-label="Conversations">
             <span class="label">CONVERSATIONS</span>
             <button type="button" class="conv" [class.on]="!filter()" (click)="filter.set(null)">
-              <span class="dot" style="background:#555"></span><span class="cname">ALL</span><span class="count">{{ total() }}</span>
+              <span class="dot" style="background: var(--c-mute)"></span><span class="cname">ALL</span><span class="count">{{ total() }}</span>
             </button>
             @for (s of senders(); track s.id) {
               <button type="button" class="conv" [class.on]="filter() === s.id" (click)="filter.set(s.id)">
@@ -38,21 +39,21 @@ const MSG_MAX = 500;
               @for (m of messages(); track $index) {
                 <li class="msg">
                   <span class="head"><span class="dot" [style.background]="m.color"></span><span class="sender" [style.color]="m.color">{{ m.name }}</span><time>{{ m.ts | date: 'MMM d, HH:mm' }}</time></span>
-                  <span class="text">{{ m.text }}</span>
+                  <span class="text bubble">{{ m.text }}</span>
                 </li>
               } @empty {
-                <li class="empty">NO MESSAGES YET<span>SELECT A CHARACTER BELOW AND START TYPING</span></li>
+                <li class="empty"><i class="u-spr s-soul soulf" aria-hidden="true"></i>NO MESSAGES YET<span>Pick who is typing below and say something.</span></li>
               }
             </ol>
             <form class="send" (submit)="$event.preventDefault(); send()">
-              <label class="as"><span>AS</span>
+              <label class="as"><span class="aslbl">AS</span>
                 <select [value]="sender()" (change)="sender.set($any($event.target).value)" aria-label="Who is typing">
                   <option value="">-- WHO IS TYPING? --</option>
                   @for (c of others(); track c.id) { <option [value]="c.id">{{ c.name || 'UNNAMED' }}</option> }
                 </select>
               </label>
-              <input #box type="text" [maxLength]="max" placeholder="TYPE A MESSAGE..." aria-label="Message" [value]="draft()" (input)="draft.set($any($event.target).value)" />
-              <button type="submit" class="btn">SEND</button>
+              <input #box type="text" [maxLength]="max" placeholder="Type a message..." aria-label="Message" [value]="draft()" (input)="draft.set($any($event.target).value)" />
+              <button type="submit" class="btn u-btn primary"><ss-icon name="chat" />SEND</button>
             </form>
           </div>
         </div>
@@ -60,30 +61,32 @@ const MSG_MAX = 500;
     }
   `,
   styles: `
-    .chat { display: grid; grid-template-columns: 180px 1fr; gap: 14px; min-height: 360px; }
-    .convs { display: grid; align-content: start; gap: 4px; padding-right: 12px; border-right: 1px solid var(--ss-panel-2); overflow-y: auto; max-height: 60vh; }
-    .label { font-size: var(--fs-ui); color: var(--ss-fg-faint); padding-bottom: 4px; }
-    .conv { display: grid; grid-template-columns: 8px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; background: none; border: 1px solid transparent; text-align: left; font-size: var(--ss-text-xs);
-      &.on { border-color: var(--who); } &:hover { background: var(--ss-panel-2); } }
+    @use 'underground' as u;
+    .chat { display: grid; grid-template-columns: calc(62 * var(--px)) minmax(0, 1fr); gap: var(--p5); min-height: calc(120 * var(--px)); }
+    .convs { display: grid; align-content: start; gap: var(--p1); padding-right: var(--p4); box-shadow: inset calc(-1 * var(--px)) 0 0 var(--c-ink3); overflow-y: auto; max-height: 60vh; }
+    .label { @include u.label; color: var(--c-mute); padding-bottom: var(--p2); }
+    .conv { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--p2); align-items: center; padding: var(--p1) var(--p2); text-align: left; font: var(--fs-ui) / 20px var(--f-ui); text-transform: uppercase;
+      &:hover { background: var(--c-ink2); } &.on { background: var(--ac0); box-shadow: inset var(--px) 0 0 var(--ac2); } }
     .cname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .count { color: var(--ss-fg-faint); }
-    .dot { width: 8px; height: 8px; display: inline-block; }
-    .main { display: grid; grid-template-rows: 1fr auto; gap: 10px; min-width: 0; }
-    .messages { list-style: none; margin: 0; padding: 0; display: grid; align-content: start; gap: 12px; overflow-y: auto; max-height: 52vh; }
-    .msg { display: grid; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--ss-panel-2); }
-    .head { display: flex; gap: 8px; align-items: center; font-size: var(--ss-text-xs); }
-    time { margin-left: auto; font-size: var(--fs-ui); color: var(--ss-fg-faint); }
-    .text { font-size: var(--ss-text-sm); line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
-    .empty { display: grid; gap: 8px; padding: 48px 12px; text-align: center; color: var(--ss-fg-dim); font-size: var(--ss-text-sm); span { font-size: var(--fs-ui); color: var(--ss-fg-faint); } }
-    .send { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
-    .as { display: flex; gap: 6px; align-items: center; font-size: var(--fs-ui); color: var(--ss-fg-faint); }
-    select, input { padding: 7px 8px; font-size: var(--ss-text-xs); background: var(--ss-panel); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); min-width: 0; }
-    select { max-width: 160px; }
-    .btn { padding: 8px 12px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-gold); color: var(--ss-gold); &:hover { background: var(--ss-gold); color: var(--ss-bg); } }
+    .count { font: var(--fs-small) / 1 var(--f-body); color: var(--c-mute); }
+    .dot { width: var(--p2); height: var(--p2); display: inline-block; box-shadow: 0 0 0 var(--px) var(--c-void); }
+    .main { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--p4); min-width: 0; }
+    .messages { list-style: none; margin: 0; padding: 0 var(--p1) 0 calc(9 * var(--px)); display: flex; flex-direction: column; gap: var(--p5); overflow-y: auto; max-height: 52vh; }
+    .msg { display: flex; flex-direction: column; align-items: flex-start; gap: var(--p1); min-width: 0; }
+    .head { display: flex; gap: var(--p2); align-items: center; width: 100%; font: var(--fs-ui) / 1 var(--f-ui); text-transform: uppercase; }
+    time { margin-left: auto; font: var(--fs-small) / 1 var(--f-body); color: var(--c-mute); text-transform: none; }
+    // a white speech bubble with a pixel tail, as in the style tile
+    .bubble { position: relative; max-width: 100%; padding: var(--p2) var(--p4) var(--p3); font: var(--fs-body) / var(--lh-body) var(--f-body); color: var(--c-void); background: var(--c-white) padding-box; border: calc(3 * var(--px)) solid transparent; border-image: var(--f-bubble) 3 repeat; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .bubble::before { content: ''; position: absolute; left: calc(-8 * var(--px)); top: var(--p2); width: calc(6 * var(--px)); height: calc(5 * var(--px)); background: var(--s-btail) 0 0 / 100% 100%; }
+    .empty { display: flex; flex-direction: column; align-items: center; gap: var(--p3); padding: var(--p12) var(--p4); text-align: center; font: var(--fs-voice) / 1 var(--f-body); color: var(--c-white); span { font: var(--fs-body) / var(--lh-body) var(--f-body); color: var(--c-mute); } .soulf { animation: u-bob 1.2s steps(2, end) infinite; } }
+    .send { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--p3); align-items: center; }
+    .as { display: flex; gap: var(--p2); align-items: center; .aslbl { @include u.label; color: var(--c-mute); } }
+    select, input { @include u.field; }
+    select { max-width: calc(56 * var(--px)); }
     @media (max-width: 700px) {
       .chat { grid-template-columns: 1fr; }
-      .convs { grid-auto-flow: column; grid-auto-columns: max-content; border: 0; padding: 0 0 8px; max-height: none; overflow-x: auto; }
-      .send { grid-template-columns: 1fr auto; .as { grid-column: 1 / -1; } }
+      .convs { grid-auto-flow: column; grid-auto-columns: max-content; box-shadow: none; padding: 0 0 var(--p2); max-height: none; overflow-x: auto; }
+      .send { grid-template-columns: minmax(0, 1fr) auto; .as { grid-column: 1 / -1; } }
     }
   `,
 })

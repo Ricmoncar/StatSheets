@@ -43,35 +43,41 @@ const NARA = /^NARA!+$/;
           @for (row of r.rows; track row.key) {
             <div class="row">
               <span class="val" [class.win]="row.va > row.vb" [class.lose]="row.va < row.vb">{{ row.va }}</span>
-              <span class="bar a"><span [style.width.%]="row.pa" [class.rainbow-bg]="row.va > row.vb && r.a.rainbow" [style.background]="row.va > row.vb ? (r.a.rainbow ? null : r.a.color) : '#333'"></span></span>
-              <span class="key"><ss-stat-icon [stat]="row.key" [size]="12" />{{ row.label }}</span>
-              <span class="bar b"><span [style.width.%]="row.pb" [class.rainbow-bg]="row.vb > row.va && r.b.rainbow" [style.background]="row.vb > row.va ? (r.b.rainbow ? null : r.b.color) : '#333'"></span></span>
+              <span class="bar a"><span [style.width.%]="row.pa" [class.rainbow-bg]="row.va > row.vb && r.a.rainbow" [style.background]="row.va > row.vb ? (r.a.rainbow ? null : r.a.color) : 'var(--c-ash)'"></span></span>
+              <span class="key"><ss-stat-icon [stat]="row.key" [size]="21" />{{ row.label }}</span>
+              <span class="bar b"><span [style.width.%]="row.pb" [class.rainbow-bg]="row.vb > row.va && r.b.rainbow" [style.background]="row.vb > row.va ? (r.b.rainbow ? null : r.b.color) : 'var(--c-ash)'"></span></span>
               <span class="val" [class.win]="row.vb > row.va" [class.lose]="row.vb < row.va">{{ row.vb }}</span>
             </div>
           }
         </div>
       } @else {
-        <p class="none">SELECT TWO DIFFERENT CHARACTERS</p>
+        <p class="none u-empty">SELECT TWO DIFFERENT CHARACTERS</p>
       }
     </ss-modal>
   `,
   styles: `
-    .pick { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
-    select { flex: 1; min-width: 0; padding: 6px; font-size: var(--ss-text-sm); background: var(--ss-panel); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); }
-    .vs { font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
-    .names { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 12px; font-size: var(--ss-text-md); }
-    .rows { display: grid; gap: 6px; }
-    .row { display: grid; grid-template-columns: 6ch 1fr 13ch 1fr 6ch; gap: 8px; align-items: center; font-size: var(--ss-text-xs); }
-    .val { text-align: right; color: var(--ss-fg-dim); &.win { color: var(--ss-fg); } &.lose { color: var(--ss-fg-faint); } }
+    @use 'underground' as u;
+    .pick { display: flex; gap: var(--p3); align-items: center; margin-bottom: var(--p5); }
+    select { flex: 1; @include u.field; }
+    .vs { font: 700 var(--fs-plaque) / 1 var(--f-display); letter-spacing: -0.125em; color: var(--c-red); text-shadow: var(--p1) var(--p1) 0 var(--c-red-d); }
+    .names { display: flex; justify-content: space-between; align-items: center; gap: var(--p4); margin: 0 0 var(--p4); font: 700 var(--fs-plaque) / 1 var(--f-display); letter-spacing: -0.125em; text-shadow: var(--p1) var(--p1) 0 var(--c-void); text-transform: uppercase;
+      > span:not(.vs) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+    .rows { display: grid; gap: var(--p2); }
+    .row { display: grid; grid-template-columns: calc(18 * var(--px)) 1fr calc(44 * var(--px)) 1fr calc(18 * var(--px)); gap: var(--p3); align-items: center; }
+    .val { text-align: right; font: var(--fs-num) / 1 var(--f-body); color: var(--c-mute); font-variant-numeric: tabular-nums; &.win { color: var(--c-white); } &.lose { color: var(--t-off); } }
     .row > .val:last-child { text-align: left; }
-    .bar { height: 8px; background: var(--ss-panel-2); display: flex; > span { display: block; height: 100%; } &.a { justify-content: flex-end; } }
-    .key { display: flex; gap: 6px; align-items: center; justify-content: center; color: var(--ss-fg-dim); white-space: nowrap; }
-    .none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); }
-    .rainbow { animation: rbw 2.5s linear infinite; }
-    .rainbow-bg { animation: rbw-bg 2.5s linear infinite; }
-    @keyframes rbw { 0%, 100% { color: hsl(0 100% 65%); } 33% { color: hsl(120 100% 65%); } 67% { color: hsl(240 100% 70%); } }
-    @keyframes rbw-bg { 0%, 100% { background: hsl(0 100% 65%); } 33% { background: hsl(120 100% 65%); } 67% { background: hsl(240 100% 70%); } }
-    @media (max-width: 560px) { .row { grid-template-columns: 5ch 1fr 4ch 1fr 5ch; } .key { font-size: 0; gap: 0; } }
+    // each side's bar grows outward from the stat name; the winner's is in its colour
+    .bar { height: calc(5 * var(--px)); padding: var(--px); background: var(--c-void); box-shadow: inset 0 0 0 var(--px) var(--c-ink3); display: flex;
+      > span { display: block; height: 100%; box-shadow: inset 0 var(--px) 0 rgb(255 255 255 / 0.45), inset 0 calc(-1 * var(--px)) 0 rgb(0 0 0 / 0.35); }
+      &.a { justify-content: flex-end; } }
+    .key { display: flex; gap: var(--p2); align-items: center; justify-content: center; font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-bone); white-space: nowrap;
+      ::ng-deep svg { width: calc(7 * var(--px)); height: calc(7 * var(--px)); } }
+    .none { margin: 0; }
+    .rainbow { animation: rbw 2.4s steps(6) infinite; }
+    .rainbow-bg { animation: rbw-bg 2.4s steps(6) infinite; }
+    @keyframes rbw { 0%, 100% { color: #ff1f3d; } 33% { color: #45d65a; } 67% { color: #6fd2ff; } }
+    @keyframes rbw-bg { 0%, 100% { background: #ff1f3d; } 33% { background: #45d65a; } 67% { background: #6fd2ff; } }
+    @media (max-width: 560px) { .row { grid-template-columns: calc(14 * var(--px)) 1fr calc(9 * var(--px)) 1fr calc(14 * var(--px)); } .key { font-size: 0; gap: 0; } }
   `,
 })
 export class CompareModal implements OnInit {

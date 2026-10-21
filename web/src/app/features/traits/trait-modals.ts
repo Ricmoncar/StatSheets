@@ -51,7 +51,7 @@ import { RichDesc } from '../../ui/rich-desc';
               }
             </div>
           } @empty {
-            <p class="none">NOTHING UNLOCKED YET</p>
+            <p class="none u-empty">NOTHING UNLOCKED YET</p>
           }
         </section>
       }
@@ -78,11 +78,11 @@ export class CodexModal {
           <span class="desc"><ss-rich-desc [text]="r.def.desc" [name]="character().name" /></span>
           <span class="stack-label">{{ r.label }}</span>
           <div class="counter">
-            <button type="button" class="mini" (click)="adjust(r.key, -10)">--</button>
-            <button type="button" class="mini" (click)="adjust(r.key, -1)">-</button>
+            <button type="button" class="mini u-btn sm" (click)="adjust(r.key, -10)">--</button>
+            <button type="button" class="mini u-btn sm" (click)="adjust(r.key, -1)">-</button>
             <input type="number" min="0" [max]="r.max" [value]="r.stacks" (input)="set(r.key, $any($event.target).value)" [attr.aria-label]="r.label" />
-            <button type="button" class="mini" (click)="adjust(r.key, 1)">+</button>
-            <button type="button" class="mini" (click)="adjust(r.key, 10)">++</button>
+            <button type="button" class="mini u-btn sm" (click)="adjust(r.key, 1)">+</button>
+            <button type="button" class="mini u-btn sm" (click)="adjust(r.key, 10)">++</button>
           </div>
           <input type="range" min="0" [max]="r.max" [value]="r.stacks" (input)="set(r.key, $any($event.target).value)" [attr.aria-label]="r.label + ' slider'" />
           <div class="preview">
@@ -147,7 +147,7 @@ export class CultivationModal implements OnDestroy {
           <span class="hd">{{ date(h.ts) }}</span>
         </div>
       } @empty {
-        <p class="none">NO ROLLS YET</p>
+        <p class="none u-empty">NO ROLLS YET</p>
       }
     </ss-modal>
   `,

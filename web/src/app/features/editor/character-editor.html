@@ -2,13 +2,13 @@
 <ss-pattern-canvas class="backdrop" [type]="draft.pattern.type" [params]="draft.pattern.params" />
 <div class="editor" [style.--ss-accent]="draft.color">
   <header class="top">
-    <button type="button" class="btn" (click)="cancel()" aria-label="Go back">&#9664; BACK</button>
+    <button type="button" class="u-btn" (click)="cancel()" aria-label="Go back"><ss-icon name="left" />BACK</button>
     <h1>{{ title() }}</h1>
   </header>
 
   <div class="cols">
-    <section class="panel">
-      <h2>IDENTITY</h2>
+    <section class="panel u-fr u-stone">
+      <h2 class="u-fr u-wood u-plaque">IDENTITY</h2>
       <label class="field">
         <span>NAME</span>
         <input type="text" [maxLength]="limits.name" placeholder="Enter name..." [value]="draft.name" (input)="patch({ name: $any($event.target).value })" />
@@ -22,11 +22,11 @@
         <div class="row">
           <input type="text" [maxLength]="limits.tag" placeholder="Add tag, press Enter..." [value]="tagInput()"
                  (input)="tagInput.set($any($event.target).value)" (keydown.enter)="$event.preventDefault(); addTag()" aria-label="New tag" />
-          <button type="button" class="mini" (click)="addTag()" aria-label="Add tag">+</button>
+          <button type="button" class="mini u-btn icon sm" (click)="addTag()" aria-label="Add tag"><ss-icon name="plus" [soul]="false" /></button>
         </div>
         @if (draft.tags.length) {
           <div class="tags">
-            @for (t of draft.tags; track t) { <span class="tag">{{ t }}<button type="button" (click)="removeTag($index)" [attr.aria-label]="'Remove ' + t">&times;</button></span> }
+            @for (t of draft.tags; track t) { <span class="tag u-tag">{{ t }}<button type="button" (click)="removeTag($index)" [attr.aria-label]="'Remove ' + t"><ss-icon name="x" [soul]="false" /></button></span> }
           </div>
         }
       </div>
@@ -38,7 +38,7 @@
             @else { <span class="up">CLICK TO UPLOAD</span> }
             <input type="file" accept="image/*" hidden (change)="pickAvatar($event, null)" />
           </label>
-          @if (draft.avatar) { <button type="button" class="mini" (click)="patch({ avatar: null })">CLEAR</button> }
+          @if (draft.avatar) { <button type="button" class="mini u-btn sm" (click)="patch({ avatar: null })"><ss-icon name="x" />CLEAR</button> }
         </div>
       </div>
       <div class="field">
@@ -55,8 +55,8 @@
       </div>
     </section>
 
-    <section class="panel">
-      <h2>STATS</h2>
+    <section class="panel u-fr u-stone">
+      <h2 class="u-fr u-wood u-plaque">STATS</h2>
       @for (s of statRows; track s.key) {
         @let v = draft.stats[s.key];
         @let tier = tierOf(s.key, v);
@@ -65,15 +65,15 @@
           <div class="row">
             <input type="range" min="1" [max]="baseMax[s.key]" [value]="v" (input)="setStat(s.key, $any($event.target).value)" [attr.aria-label]="s.label" />
             <input type="number" min="1" [max]="baseMax[s.key]" [value]="v" class="num" (input)="setStat(s.key, $any($event.target).value)" [attr.aria-label]="s.label + ' value'" />
-            <button type="button" class="mini" (click)="setStat(s.key, v + 1)" [attr.aria-label]="'Raise ' + s.label">+</button>
-            <button type="button" class="mini" (click)="setStat(s.key, v - 1)" [attr.aria-label]="'Lower ' + s.label">-</button>
+            <button type="button" class="mini u-btn icon sm" (click)="setStat(s.key, v + 1)" [attr.aria-label]="'Raise ' + s.label">+</button>
+            <button type="button" class="mini u-btn icon sm" (click)="setStat(s.key, v - 1)" [attr.aria-label]="'Lower ' + s.label">-</button>
           </div>
           <ss-stat-bar [stat]="s.key" [value]="v" />
         </div>
       }
       <p class="overall">OVERALL <span [style.color]="overall().color">{{ overall().label }}</span></p>
 
-      <h2>BASE SUBSTATS</h2>
+      <h2 class="u-fr u-wood u-plaque">BASE SUBSTATS</h2>
       <div class="subs">
         @for (f of subFields; track f.key) {
           <label class="sub" [title]="f.help">
@@ -89,18 +89,18 @@
     </section>
   </div>
 
-  <section class="panel">
-    <h2>ALTERNATE FORMS <span class="count">({{ draft.forms.length }}/{{ limits.forms }})</span></h2>
+  <section class="panel u-fr u-stone">
+    <h2 class="u-fr u-wood u-plaque">ALTERNATE FORMS <span class="count">({{ draft.forms.length }}/{{ limits.forms }})</span></h2>
     @for (f of draft.forms; track $index; let i = $index) {
-      <div class="form">
-        <div class="form-head"><span>FORM {{ i + 1 }}</span><button type="button" class="mini danger" (click)="removeForm(i)">&#10005; REMOVE</button></div>
+      <div class="form u-fr u-slate">
+        <div class="form-head"><span>FORM {{ i + 1 }}</span><button type="button" class="mini u-btn sm danger" (click)="removeForm(i)"><ss-icon name="trash" />REMOVE</button></div>
         <div class="form-top">
           <div>
             <label class="avatar small">
               @if (f.avatar) { <img [src]="f.avatar" alt="" /> } @else { <span class="up">IMAGE</span> }
               <input type="file" accept="image/*" hidden (change)="pickAvatar($event, i)" />
             </label>
-            @if (f.avatar) { <button type="button" class="mini" (click)="updateForm(i, { avatar: null })">CLEAR</button> }
+            @if (f.avatar) { <button type="button" class="mini u-btn sm" (click)="updateForm(i, { avatar: null })"><ss-icon name="x" />CLEAR</button> }
           </div>
           <div class="form-name">
             <label class="field">
@@ -121,8 +121,8 @@
             <div class="row">
               <input type="range" min="1" [max]="formMax[s.key]" [value]="fv" (input)="setFormStat(i, s.key, $any($event.target).value)" [attr.aria-label]="'Form ' + (i + 1) + ' ' + s.label" />
               <input type="number" min="1" [max]="formMax[s.key]" [value]="fv" class="num" (input)="setFormStat(i, s.key, $any($event.target).value)" />
-              <button type="button" class="mini" (click)="setFormStat(i, s.key, fv + 1)">+</button>
-              <button type="button" class="mini" (click)="setFormStat(i, s.key, fv - 1)">-</button>
+              <button type="button" class="mini u-btn icon sm" (click)="setFormStat(i, s.key, fv + 1)" aria-label="Raise">+</button>
+              <button type="button" class="mini u-btn icon sm" (click)="setFormStat(i, s.key, fv - 1)" aria-label="Lower">-</button>
             </div>
             <ss-stat-bar [stat]="s.key" [value]="fv" />
           </div>
@@ -140,11 +140,11 @@
     } @empty {
       <p class="hint">NO ALTERNATE FORMS YET.</p>
     }
-    <button type="button" class="btn" [disabled]="draft.forms.length >= limits.forms" (click)="addForm()">+ ADD FORM</button>
+    <button type="button" class="u-btn" [disabled]="draft.forms.length >= limits.forms" (click)="addForm()"><ss-icon name="plus" />ADD FORM</button>
   </section>
 
-  <section class="panel">
-    <h2>BACKGROUND PATTERN</h2>
+  <section class="panel u-fr u-stone">
+    <h2 class="u-fr u-wood u-plaque">BACKGROUND PATTERN</h2>
     <label class="field">
       <span>PATTERN TYPE</span>
       <select [value]="draft.pattern.type" (change)="setPattern($any($event.target).value)">
@@ -173,7 +173,7 @@
   </section>
 
   <div class="actions">
-    <button type="button" class="btn ok" (click)="save()">SAVE CHARACTER</button>
-    <button type="button" class="btn" (click)="cancel()">CANCEL</button>
+    <button type="button" class="btn ok u-btn primary" (click)="save()"><ss-icon name="check" />SAVE CHARACTER</button>
+    <button type="button" class="btn u-btn" (click)="cancel()"><ss-icon name="x" />CANCEL</button>
   </div>
 </div>

@@ -1,40 +1,45 @@
-[data-rarity] { --r: var(--ss-common); }
-[data-rarity='rare'] { --r: var(--ss-rare); }
-[data-rarity='epic'] { --r: var(--ss-epic); }
-[data-rarity='legendary'] { --r: var(--ss-legendary); }
-[data-rarity='mythic'] { --r: var(--ss-mythic); }
-[data-rarity='hexxed'] { --r: var(--ss-hexxed); }
-[data-rarity='duality'] { --r: #fff4c2; }
-[data-rarity='determined'] { --r: #ff2a2a; }
+@use 'underground' as u;
 
-.sec { display: grid; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--ss-panel-2); }
-.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.tag { font-size: var(--ss-text-xs); padding: 4px 6px; border: 1px solid var(--r); color: var(--r); }
-.tag.split { background: linear-gradient(90deg, #88c8ff 0 50%, #ffd04a 50% 100%); -webkit-background-clip: text; background-clip: text; color: transparent; border-image: linear-gradient(90deg, #88c8ff, #ffd04a) 1; }
-.chance { font-size: var(--fs-ui); color: var(--ss-fg-faint); }
-.role { font-size: var(--fs-ui); color: var(--ss-fg-faint); padding-top: 4px; }
-.entries { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
-.entry { display: grid; gap: 6px; align-content: start; padding: 10px; border: 1px solid var(--r); }
-.entry.duality { grid-column: 1 / -1; grid-template-columns: 1fr auto 1fr; align-items: center; }
-.side { display: grid; gap: 4px; }
-.side-label { font-size: var(--fs-ui); color: var(--ss-fg-faint); }
-.heaven .name { color: #88c8ff; } .heaven .desc { color: #4a7abf; }
-.hell .name { color: #ffd04a; } .hell .desc { color: #cc9930; }
-.yy { font-size: var(--ss-text-lg); color: var(--ss-fg-dim); }
-.name { font-size: var(--ss-text-xs); color: var(--r); }
-.desc { font-size: var(--fs-ui); color: var(--ss-fg-dim); line-height: 1.8; }
-.paths { display: flex; gap: 12px; flex-wrap: wrap; font-size: var(--fs-ui); color: var(--ss-fg-dim); .hatred { color: #ff2a2a; } .mercy { color: #7fffd4; } }
-.none { margin: 0; font-size: var(--ss-text-xs); color: var(--ss-fg-faint); padding: 8px; }
+[data-rarity] { --r: var(--c-mt3); }
+[data-rarity='rare'] { --r: var(--c-ec2); }
+[data-rarity='epic'] { --r: var(--c-vi2); }
+[data-rarity='legendary'] { --r: var(--c-em3); }
+[data-rarity='mythic'] { --r: var(--c-em2); }
+[data-rarity='hexxed'] { --r: var(--c-vi3); }
+[data-rarity='duality'] { --r: var(--c-fr1); }
+[data-rarity='determined'] { --r: var(--c-red); }
 
-.cult { display: grid; gap: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid var(--r); }
-.stack-label { font-size: var(--fs-ui); color: var(--ss-fg-dim); }
-.counter { display: flex; gap: 6px; align-items: center; input { width: 90px; text-align: right; background: var(--ss-bg); border: 1px solid var(--ss-line-dim); padding: 6px; font-size: var(--ss-text-xs); color: var(--ss-fg); } }
-input[type='range'] { width: 100%; accent-color: var(--r); }
-.mini { font-size: var(--fs-ui); padding: 5px 7px; background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg); }
-.preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 16px; padding-top: 8px; border-top: 1px solid var(--ss-panel-2); }
-.ptitle { grid-column: 1 / -1; font-size: var(--fs-ui); color: var(--ss-fg-faint); }
-.prow { display: flex; justify-content: space-between; font-size: var(--fs-ui); .pos { color: var(--ss-ok); } .neg { color: var(--ss-err); } }
+// the codex: one section per rarity, its traits as small tiles edged in the rarity's colour
+.sec { display: grid; gap: var(--p3); padding: var(--p4) 0; border-bottom: var(--px) dashed var(--c-ink3); }
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: var(--p3); flex-wrap: wrap; }
+.tag { padding: var(--p1) var(--p2); font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-void); background: var(--r); box-shadow: 0 0 0 var(--px) var(--c-void); }
+.tag.split { background: linear-gradient(90deg, var(--c-fr1) 0 50%, var(--c-em3) 50% 100%); }
+.chance { font: var(--fs-small) / 1 var(--f-body); color: var(--c-mute); }
+.role { @include u.mini-h; padding-top: var(--p1); }
+.entries { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(74 * var(--px))), 1fr)); gap: var(--p3); }
+.entry { display: grid; gap: var(--p1); align-content: start; padding: var(--p2) var(--p3); background: var(--c-ink2); box-shadow: inset var(--p1) 0 0 var(--r); }
+.entry.duality { grid-column: 1 / -1; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--p4); }
+.side { display: grid; gap: var(--p1); }
+.side-label { font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-mute); }
+.heaven .name { color: var(--c-fr1); }
+.hell .name { color: var(--c-em3); }
+.yy { font-size: var(--fs-voice); color: var(--c-mute); }
+.name { font: var(--fs-ui) / 20px var(--f-ui); color: var(--r); text-transform: uppercase; }
+.desc { font: var(--fs-body) / var(--lh-body) var(--f-body); color: var(--c-bone); }
+.paths { display: flex; gap: var(--p4); flex-wrap: wrap; font: var(--fs-small) / 20px var(--f-body); color: var(--c-mute); .hatred { color: var(--c-red); font-weight: 400; } .mercy { color: var(--c-grn); font-weight: 400; } }
+.none { margin: 0; }
 
-.hist { display: grid; grid-template-columns: 11ch 1fr auto; gap: 10px; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--ss-panel-2); font-size: var(--ss-text-xs); }
-.hr { color: var(--r); font-size: var(--fs-ui); }
-.hd { color: var(--ss-fg-faint); font-size: var(--fs-ui); }
+// cultivation: a slate tile per scaling trait with its counter and what it adds right now
+.cult { display: grid; gap: var(--p3); margin-bottom: var(--p5); padding: var(--p3) var(--p4) var(--p4); background: var(--c-ink2); box-shadow: inset var(--p1) 0 0 var(--r), var(--hard); }
+.stack-label { @include u.label; color: var(--c-mute); }
+.counter { display: flex; gap: var(--p2); align-items: center; flex-wrap: wrap; input { width: calc(30 * var(--px)); text-align: right; @include u.field; } }
+input[type='range'] { width: 100%; }
+.preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(46 * var(--px))), 1fr)); gap: 0 var(--p6); padding-top: var(--p3); background: var(--t-rule) 0 0 / calc(8 * var(--px)) var(--px) repeat-x; }
+.ptitle { grid-column: 1 / -1; @include u.label; color: var(--c-mute); padding-bottom: var(--p1); }
+.prow { display: flex; justify-content: space-between; gap: var(--p2); font: var(--fs-small) / 20px var(--f-body); color: var(--c-bone); .pos { color: var(--good); } .neg { color: var(--bad); } }
+
+// roll history: rarity chip, name, when
+.hist { display: grid; grid-template-columns: calc(40 * var(--px)) minmax(0, 1fr) auto; gap: var(--p3); align-items: center; padding: var(--p2) 0; border-bottom: var(--px) dashed var(--c-ink3); }
+.hr { justify-self: start; padding: var(--p1) var(--p2); font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-void); background: var(--r); }
+.hn { font: var(--fs-body) / 1.2 var(--f-body); color: var(--c-white); overflow-wrap: anywhere; }
+.hd { font: var(--fs-small) / 1 var(--f-body); color: var(--c-mute); }

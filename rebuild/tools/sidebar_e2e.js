@@ -17,7 +17,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   await page.goto(BASE + '/');
   await page.waitForSelector('ss-sidebar .entry', { timeout: 20000 });
   const entry = name => page.locator('ss-sidebar .entry', { has: page.locator('.name', { hasText: new RegExp('^' + name + '$') }) });
-  const confirmYes = () => page.locator('ss-confirm-host .yes').click();
+  const confirmYes = () => page.locator('ss-confirm-host .u-opt', { hasText: 'CONFIRM' }).click();
 
   // ── the menu ──
   await entry('Katie').click({ button: 'right' });
@@ -53,7 +53,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   await entry('Katie').click({ button: 'right' });
   await menu.locator('button', { hasText: 'E2E FOLDER' }).click();
   await folder.locator('.entry', { hasText: 'Katie' }).waitFor({ timeout: 10000 });
-  check((await folder.locator('.count').textContent()).includes('(1)'), 'MOVE TO FOLDER files the character');
+  check((await folder.locator('.count').textContent()).trim() === '1', 'MOVE TO FOLDER files the character');
   await folder.locator('.entry', { hasText: 'Katie' }).click({ button: 'right' });
   await menu.locator('button', { hasText: 'Travelers' }).click();
   const travelers = page.locator('ss-sidebar .folder', { has: page.locator('.folder-name', { hasText: 'Travelers' }) });

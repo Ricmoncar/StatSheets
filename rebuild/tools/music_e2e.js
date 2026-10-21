@@ -29,7 +29,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   check((await bar.locator('.title').textContent()).trim() === 'Leon', 'bar shows the base song title');
   check(/LEON/i.test(await bar.locator('.who').textContent()), 'bar shows the character');
   await page.waitForTimeout(800);
-  check(!(await bar.locator('.eq').evaluate(e => e.classList.contains('paused'))), 'equaliser runs while playing');
+  check(await bar.locator('.eq').evaluate(e => e.classList.contains('u-anim')), 'equaliser runs while playing');
   await page.waitForTimeout(1200);
   check((await barState()) === 'peeked', 'bar tucks away after 1.5 s');
   await page.mouse.move(700, 880);
@@ -38,7 +38,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
 
   await bar.locator('.pp').click();
   await page.waitForTimeout(200);
-  check(await bar.locator('.eq').evaluate(e => e.classList.contains('paused')), 'pause stops the equaliser');
+  check(await bar.locator('.eq').evaluate(e => !e.classList.contains('u-anim')), 'pause stops the equaliser');
   await bar.locator('.pp').click();
   await page.waitForTimeout(300);
   check(!(await bar.locator('.eq').evaluate(e => e.classList.contains('paused'))), 'play resumes');
@@ -101,7 +101,9 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   check((await page.locator('ss-music-tab input[type=file]').count()) === 0, 'no upload controls for Juko');
 
   // leaving the sheet stops the music
-  await page.locator('a.nav-link', { hasText: 'UTILITIES' }).click();
+  // the page links sit in the bar on wide screens and in the menu otherwise
+  if (await page.locator('a.nav-link', { hasText: 'UTILITIES' }).isVisible()) await page.locator('a.nav-link', { hasText: 'UTILITIES' }).click();
+  else { await page.locator('.more-btn').click(); await page.locator('.more-menu a', { hasText: 'UTILITIES' }).click(); }
   await page.waitForTimeout(500);
   check((await barState()) === 'hidden', 'music stops on other pages');
 

@@ -15,6 +15,7 @@ import { GENERIC_PATTERNS } from '../../core/game/patterns';
 import { PL_TIERS, overallPowerLevel, statPowerLevel } from '../../core/game/sheet';
 import { TRAITS } from '../../core/game/traits-data';
 import { StatBar } from '../../ui/stat-bar';
+import { Icon } from '../../ui/icon';
 
 const STAT_ROWS = [
   { key: 'hp', label: 'HP' }, { key: 'atk', label: 'ATTACK' }, { key: 'def', label: 'DEFENSE' },
@@ -28,7 +29,7 @@ type StatKey = typeof STAT_ROWS[number]['key'];
  */
 @Component({
   selector: 'ss-character-editor',
-  imports: [StatBar, PatternCanvas],
+  imports: [StatBar, PatternCanvas, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-editor.html',
   styleUrl: './character-editor.scss',
