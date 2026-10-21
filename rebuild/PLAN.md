@@ -52,7 +52,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 
 ## Cutover
 
-- [ ] `/next/` preview on `main` (built with base href `/StatSheets/next/`)
+- [~] `/next/` preview: `rebuild/tools/build_next.sh` builds it into `next/` (base href `/StatSheets/next/`, addresses after `#/` so a reload works on Pages); live once `next/` is on `main`
 - [ ] Live build (`environment.live.ts`, real collections) and GitHub Pages
       switched to build from GitHub Actions
 - [ ] Redirect stubs for old page URLs (`utilities.html` and so on), but NOT for the pages kept as they are: baddie.html, encyclopedia.html, sq.html, test.html, which must stay served along with the files they load (encyclopedia.js, traits.js, style.css, gifshot.min.js, sounds/, baddies/)

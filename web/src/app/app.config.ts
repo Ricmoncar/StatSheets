@@ -1,5 +1,6 @@
 import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
+import { provideRouter, withComponentInputBinding, withHashLocation } from '@angular/router';
+import { environment } from '../environments/environment';
 import { routes } from './app.routes';
 import { CharacterStore } from './core/data/character-store';
 import { EncyclopediaStore } from './core/data/encyclopedia-store';
@@ -10,7 +11,7 @@ import { ThemeMusic } from './core/theme-music.service';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes, withComponentInputBinding()),
+    provideRouter(routes, withComponentInputBinding(), ...(environment.hashRouting ? [withHashLocation()] : [])),
     provideAppInitializer(() => {
       inject(PixelTheme).start();
       inject(CharacterStore).start();

@@ -6,4 +6,5 @@ export const environment = {
   sandboxLabel: 'TEST: LOCAL EMULATOR',
   assetBase: '',
   firestoreEmulator: '127.0.0.1:8085' as string | null,
+  hashRouting: false,
 };

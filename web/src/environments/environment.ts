@@ -17,4 +17,6 @@ export const environment = {
   assetBase: '',
   /** host:port of a local Firestore emulator to use instead of the real project (the e2e build), or null. */
   firestoreEmulator: null as string | null,
+  /** Routes after a # (the /next/ preview on GitHub Pages needs it). */
+  hashRouting: false,
 };
