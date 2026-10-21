@@ -1,3 +1,5 @@
+import { TipDirective } from '../../ui/tooltip';
+import { traitTip } from '../../core/game/breakdown';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { CharacterStore } from '../../core/data/character-store';
 import { Character } from '../../core/data/models';
@@ -24,7 +26,7 @@ const MERCYFUL_DESC = 'Revive infinitely without losing stats. x10 Heal Power, x
  */
 @Component({
   selector: 'ss-trait-card',
-  imports: [RichDesc],
+  imports: [RichDesc, TipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './trait-card.html',
   styleUrl: './trait-card.scss',
@@ -51,6 +53,8 @@ export class TraitCard {
     const c = this.character(), k = this.traitKey();
     return isShimmyful(c, k) && !!getShimmyfulDef(k) ? this.rarity() : null;
   });
+  /** Built on hover: what this trait changes on the sheet right now. */
+  protected readonly tip = () => traitTip(this.character(), this.traitKey());
   protected readonly stacks = computed(() => (this.character().traitStacks || {}) as Record<string, any>);
 
   // duality

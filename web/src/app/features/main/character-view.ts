@@ -7,7 +7,7 @@ import { ConfirmService } from '../../core/confirm.service';
 import { SoundService } from '../../core/sound.service';
 import { Router } from '@angular/router';
 import { RARITY_LABEL } from '../../core/game/roll';
-import { formatGold, overallPowerLevel } from '../../core/game/sheet';
+import { PL_TIERS, formatGold, overallPowerLevel } from '../../core/game/sheet';
 import { effectiveStats, formTraits, getTraitDef, isShimmyful } from '../../core/game/stats';
 import { sanityRow, substatRows } from '../../core/game/substats';
 import { TRAITS } from '../../core/game/traits-data';
@@ -22,6 +22,10 @@ import { SoulEditor } from '../soul/soul-editor';
 import { CodexModal, CultivationModal, RollHistoryModal } from '../traits/trait-modals';
 import { cultivationRows } from '../../core/game/codex';
 import { StatBar } from '../../ui/stat-bar';
+import { TipDirective } from '../../ui/tooltip';
+import { RadarChart } from '../stats/radar-chart';
+import { PowerModal } from '../stats/power-modal';
+import { statBreakdown } from '../../core/game/breakdown';
 import { MusicTab } from '../music/music-tab';
 import { StyleTab } from '../style/style-tab';
 import { ThemeMusic } from '../../core/theme-music.service';
@@ -32,7 +36,7 @@ const CLASSIC = /^Classic$/i;
 /** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal, MusicTab, StyleTab],
+  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal, MusicTab, StyleTab, TipDirective, RadarChart, PowerModal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
@@ -47,9 +51,18 @@ export class CharacterView {
 
   protected readonly eff = computed(() => effectiveStats(this.character()));
   protected readonly pl = computed(() => overallPowerLevel(this.eff()));
+  protected readonly plIndex = computed(() => PL_TIERS.indexOf(this.pl()));
   protected readonly gold = computed(() => formatGold(this.character().gold || 0));
   protected readonly subRows = computed(() => substatRows(this.character(), this.eff()));
   protected readonly sanity = computed(() => sanityRow(this.character()));
+  /** Effective minus the form's own base value, per main stat. */
+  protected readonly statDiff = computed(() => {
+    const c = this.character(), idx = c.activeFormIdx || 0;
+    const base = ((idx > 0 ? c.altForms?.[idx - 1]?.stats : null) || c.stats || {}) as unknown as Record<string, number>;
+    const eff = this.eff() as unknown as Record<string, number>;
+    return Object.fromEntries(MAIN.map(k => [k, Math.round((eff[k] - (Number(base[k]) || 0)) * 100) / 100])) as Record<string, number>;
+  });
+  protected readonly breakdown = (stat: string) => () => statBreakdown(this.character(), stat);
 
   /** The active form's portrait, falling back to the base one. */
   protected readonly avatar = computed(() => {
@@ -86,7 +99,9 @@ export class CharacterView {
   protected readonly tab = signal<'stats' | 'style' | 'info' | 'music' | 'abilities'>('stats');
 
   /** Which overlay is open over the sheet. */
-  protected readonly open = signal<'roll' | 'gold' | 'codex' | 'history' | 'cultivation' | 'soul' | null>(null);
+  protected readonly open = signal<'roll' | 'gold' | 'codex' | 'history' | 'cultivation' | 'soul' | 'power' | null>(null);
+  /** The radar under the bars stays shown across characters, as before. */
+  protected readonly radar = signal(false);
   protected readonly hasCultivation = computed(() => cultivationRows(this.character()).length > 0);
 
   constructor() {

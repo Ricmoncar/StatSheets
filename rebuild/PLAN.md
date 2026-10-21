@@ -21,8 +21,8 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 
 - [~] Sidebar: search, folders with shared collapse, drafts (done); drag and drop, right-click menu, chat button not yet
 - [x] Character view header: portrait, name, owner, power level, gold, bio, shared form switcher, edit, delete
-- [~] Stats: bars, prestige tiers, sub-stats with diffs, SANITY (done); breakdown tooltips, radar chart, power level modal not yet
-- [~] Traits: per-form ownership, every interactive trait card, roll overlay with form chooser and auto-roll (replay-tested), codex, roll history, cultivation window (done); per-trait stat tooltips not yet
+- [x] Stats: bars, prestige tiers, sub-stats with diffs, SANITY, breakdown tooltips (parity-tested), radar chart, power level window (rebuild/tools/stats_e2e.js)
+- [x] Traits: per-form ownership, every interactive trait card, roll overlay with form chooser and auto-roll (replay-tested), codex, roll history, cultivation window, per-trait stat tooltips (parity-tested against 224 live tooltips)
 - [x] Inventory: items, icon picker, image icons, mods, passives, equip, copy and paste
 - [x] Gold manager
 - [x] Editor: every field, alt forms (12), tags (8), avatar compression, drafts, pattern settings with a live preview and the faint full-screen pattern behind; Gaster easter egg

@@ -2,7 +2,7 @@
 @let k = traitKey();
 <div class="card" [attr.data-rarity]="variant() === 'capitalist' ? 'hexxed' : variant() === 'determination' ? 'determined' : rarity()"
      [attr.data-side]="variant() === 'duality' ? duState() : null" [attr.data-det]="variant() === 'determination' ? detState() : null"
-     [class.shimmy]="!!shimmy()" [class.cap-on]="variant() === 'capitalist' && capitalist().active" [attr.data-flip]="flipping()" data-sfx-hover>
+     [class.shimmy]="!!shimmy()" [class.cap-on]="variant() === 'capitalist' && capitalist().active" [attr.data-flip]="flipping()" [ssTip]="tip" data-sfx-hover>
   @if (shimmy(); as s) { <span class="star" [attr.data-rarity]="s" aria-label="Shimmyful">{{ s === 'legendary' ? '★' : '✦' }}</span> }
   <span class="label">{{ face().label }}</span>
   <span class="name"><ss-rich-desc [text]="face().name" [name]="c.name" /></span>

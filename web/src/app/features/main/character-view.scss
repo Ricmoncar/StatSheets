@@ -52,8 +52,10 @@
   letter-spacing: 1px;
   &.accent { border-color: var(--ss-gold); color: var(--ss-gold); }
   &.danger { border-color: var(--ss-err); color: var(--ss-err); }
+  &.on { background: var(--ss-accent); border-color: var(--ss-accent); color: var(--ss-bg); }
   &:hover { background: var(--ss-panel-2); }
 }
+.radar { padding: 6px 0 14px; }
 
 .none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); letter-spacing: 1px; }
 
@@ -77,9 +79,9 @@
 .tdesc { font-size: var(--ss-text-xs); color: var(--ss-fg-dim); line-height: 1.8; }
 
 .bars { display: grid; gap: 10px; padding-bottom: 14px; }
-.row { display: grid; grid-template-columns: 5ch 1fr 7ch; align-items: center; gap: 12px; font-size: var(--ss-text-xs); }
+.row { display: grid; grid-template-columns: 5ch 1fr auto; align-items: center; gap: 12px; font-size: var(--ss-text-xs); }
 .label { color: var(--ss-fg-dim); }
-.num { text-align: right; font-variant-numeric: tabular-nums; }
+.num { min-width: 7ch; display: inline-flex; gap: 6px; justify-content: flex-end; text-align: right; font-variant-numeric: tabular-nums; .diff { cursor: help; } }
 
 .subs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 24px; padding-top: 14px; border-top: 1px solid var(--ss-line-dim); }
 .sub { display: flex; justify-content: space-between; gap: 8px; font-size: var(--ss-text-xs); padding-bottom: 4px; border-bottom: 1px solid var(--ss-panel-2); }

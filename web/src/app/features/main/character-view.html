@@ -52,15 +52,24 @@
   </ss-panel>
 
   <ss-panel title="STATS">
+    <ng-container actions>
+      <button type="button" class="btn info" [class.on]="radar()" [attr.aria-pressed]="radar()" (click)="radar.set(!radar())" title="Toggle stat radar chart" aria-label="Stat radar chart">?</button>
+      <button type="button" class="btn info" (click)="open.set('power')" title="Power level reference" aria-label="Power level reference">i</button>
+    </ng-container>
     <div class="bars">
       @for (k of main; track k) {
         <div class="row">
           <span class="label">{{ k.toUpperCase() }}</span>
           <ss-stat-bar [stat]="k" [value]="eff()[k]" />
-          <span class="num">{{ eff()[k] }}</span>
+          <span class="num">{{ eff()[k] }}
+            @if (statDiff()[k]; as d) {
+              <span class="diff" [class.neg]="d < 0" tabindex="0" [ssTip]="breakdown(k)">({{ d > 0 ? '+' : '' }}{{ d }})</span>
+            }
+          </span>
         </div>
       }
     </div>
+    @if (radar()) { <ss-radar-chart class="radar" [charId]="c.id" [color]="c.color || '#888888'" [stats]="$any(eff())" /> }
     <div class="subs">
       @for (r of subRows(); track r.def.key) {
         <div class="sub" [title]="r.def.label + ': ' + r.def.help">
@@ -97,4 +106,5 @@
 @if (open() === 'soul') { <ss-soul-editor [character]="c" (closed)="open.set(null)" /> }
 @if (open() === 'codex') { <ss-codex-modal (closed)="open.set(null)" /> }
 @if (open() === 'history') { <ss-roll-history-modal [character]="c" (closed)="open.set(null)" /> }
+@if (open() === 'power') { <ss-power-modal [tier]="plIndex()" [name]="c.name" (closed)="open.set(null)" /> }
 @if (open() === 'cultivation') { <ss-cultivation-modal [character]="c" (closed)="open.set(null)" /> }

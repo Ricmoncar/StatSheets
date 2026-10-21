@@ -6,10 +6,11 @@ import { SettingsService } from './core/settings.service';
 import { ConfirmHost } from './ui/confirm-host';
 import { ThemeBar } from './features/music/theme-bar';
 import { SfxControl } from './ui/sfx-control';
+import { TooltipHost } from './ui/tooltip';
 
 @Component({
   selector: 'ss-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmHost, ThemeBar, SfxControl],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmHost, ThemeBar, SfxControl, TooltipHost],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
   styleUrl: './app.scss',
