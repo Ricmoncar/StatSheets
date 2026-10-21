@@ -1,0 +1,196 @@
+<p class="desc-line">If your character survived the nightmare... or became it. Pick a role, define your power &amp; perks.</p>
+<ss-game-picker [selected]="sel()" [dotFor]="dot" (pick)="select($event)" />
+@if (char(); as c) {
+  @let d = doc();
+  @let isH = d.role === 'hunter';
+  @let rc = isH ? hunterColor : survivorColor;
+  <div class="work" [style.--nc]="c.color || '#888'">
+    @if (mode() === 'view') {
+      <article class="card" [attr.data-role]="d.role" [style.--rc]="rc">
+        <ss-pattern-canvas [type]="c.pattern?.type" [params]="c.pattern?.params" />
+        <div class="inner">
+          <div class="hero">
+            <div class="avatar">@if (c.avatar) { <img [src]="c.avatar" alt="" /> } @else { <span class="init">{{ (c.name || '?')[0].toUpperCase() }}</span> }</div>
+            <div class="hero-text">
+              <span class="cname">{{ c.name || 'UNNAMED' }}</span>
+              <span class="role">{{ isH ? '☠ HUNTER' : '◉ SURVIVOR' }}</span>
+            </div>
+          </div>
+          <div class="rule role-rule"></div>
+          <div class="sections">
+            @let big = filledList(isH ? d.powers : d.abilities);
+            @if (big.length) {
+              <div>
+                <div class="sec-head" [style.--sc]="rc">{{ isH ? 'POWERS' : 'ABILITIES' }}</div>
+                @for (p of big; track $index; let i = $index) {
+                  <div class="big">
+                    <span class="big-label">{{ isH ? 'POWER' : 'ABILITY' }} {{ big.length > 1 ? roman[i] : '' }}</span>
+                    @if (p.name) { <span class="big-name">{{ p.name }}</span> }
+                    @if (p.desc) { <span class="etext">{{ p.desc }}</span> }
+                  </div>
+                }
+              </div>
+            }
+            <div>
+              <div class="sec-head" style="--sc:#777">PERKS</div>
+              @for (p of filledList(d.perks); track $index; let i = $index) {
+                <div class="entry" [style.--sc]="rc"><span class="bullet">{{ perkIcon(d.role, i) }}</span><div class="body">
+                  @if (p.name) { <span class="ename">{{ p.name }}</span> }
+                  @if (p.desc) { <span class="etext">{{ p.desc }}</span> }
+                </div></div>
+              } @empty { <p class="empty">NO PERKS SET. CLICK EDIT.</p> }
+            </div>
+            @for (m of matchups(); track m.key) {
+              <div class="lms">
+                <span class="lms-label">&#9889; SPECIAL LMS</span>
+                @if (m.opp) {
+                  <div class="vs">
+                    <span class="who"><span class="mini-av" [style.--c]="m.owner.color || '#888'">@if (m.owner.avatar) { <img [src]="m.owner.avatar" alt="" /> } @else { {{ (m.owner.name || '?')[0] }} }</span><span [style.color]="m.owner.color || '#888'">{{ m.owner.name || '?' }}</span></span>
+                    <span class="vs-sign">VS</span>
+                    <span class="who"><span class="mini-av" [style.--c]="m.opp.color || '#888'">@if (m.opp.avatar) { <img [src]="m.opp.avatar" alt="" /> } @else { {{ (m.opp.name || '?')[0] }} }</span><span [style.color]="m.opp.color || '#888'">{{ m.opp.name || '?' }}</span></span>
+                  </div>
+                }
+                @if (m.s.desc) { <p class="lms-desc">{{ m.s.desc }}</p> }
+                @for (sp of [{ v: m.s.special, h: m.ownerRole === 'hunter' }, { v: m.s.specialOpponent, h: m.oppRole === 'hunter' }]; track $index) {
+                  @if (sp.v && (sp.v.name || sp.v.desc)) {
+                    <div class="special" [style.--sc]="sp.h ? hunterColor : survivorColor">
+                      <span class="big-label">SPECIAL {{ sp.h ? 'POWER' : 'ABILITY' }}</span>
+                      @if (sp.v.name) { <span class="big-name">{{ sp.v.name }}</span> }
+                      @if (sp.v.desc) { <span class="etext">{{ sp.v.desc }}</span> }
+                    </div>
+                  }
+                }
+                @if (m.s.music; as mu) {
+                  <button type="button" class="track-row" [class.on]="isOn(m.key)" (click)="play(m.key, mu.url, 'SPECIAL LMS', mu.name || 'Special LMS Theme', m.owner.color || '#888')">
+                    <span class="pp">{{ isOn(m.key) ? '⏸' : '▶' }}</span><span class="tt" style="color:#c9a600">THEME</span><span class="tn">{{ mu.name || 'Special LMS Theme' }}</span>
+                  </button>
+                }
+              </div>
+            }
+            @if (d.chaseMusic || d.lmsMusic) {
+              <div class="music">
+                @if (d.chaseMusic; as mu) {
+                  <button type="button" class="track-row" [class.on]="isOn('chase_' + c.id)" (click)="play('chase_' + c.id, mu.url, 'CHASE', mu.name || 'Chase Music', c.color || '#888')">
+                    <span class="pp">{{ isOn('chase_' + c.id) ? '⏸' : '▶' }}</span><span class="tt" style="color:#ff8833">CHASE</span><span class="tn">{{ mu.name || 'Chase Music' }}</span>
+                  </button>
+                }
+                @if (d.lmsMusic; as mu) {
+                  <button type="button" class="track-row" [class.on]="isOn('lms_' + c.id)" (click)="play('lms_' + c.id, mu.url, 'LMS', mu.name || 'LMS Music', c.color || '#888')">
+                    <span class="pp">{{ isOn('lms_' + c.id) ? '⏸' : '▶' }}</span><span class="tt" style="color:#bb99ff">LMS</span><span class="tn">{{ mu.name || 'LMS Music' }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+          <div class="footer"><span></span><button type="button" class="btn" (click)="mode.set('edit')">EDIT</button></div>
+        </div>
+      </article>
+    } @else {
+      <div class="ed-head">
+        <span class="ed-av">@if (c.avatar) { <img [src]="c.avatar" alt="" /> } @else { <span class="init">{{ (c.name || '?')[0] }}</span> }</span>
+        <span class="ed-name">{{ c.name || 'UNNAMED' }}</span>
+        <span class="status" [attr.data-s]="docs.state()">{{ docs.state() === 'saving' ? 'SAVING...' : docs.state() === 'saved' ? '✓ SAVED' : '' }}</span>
+        <button type="button" class="btn accent" (click)="mode.set('view')">VIEW</button>
+      </div>
+      <div class="toggle">
+        <button type="button" [class.on]="isH" [style.--tc]="hunterColor" (click)="set(x => x.role = 'hunter')">&#9760; HUNTER</button>
+        <button type="button" [class.on]="!isH" [style.--tc]="survivorColor" (click)="set(x => x.role = 'survivor')">&#9673; SURVIVOR</button>
+      </div>
+      @if (isH) {
+        <div class="section"><span class="sec-title">POWERS</span>
+          <ss-entry-rows [items]="d.powers" namePh="Power name..." descPh="Describe the power..." [max]="4" addLabel="POWER" (edit)="editRow('powers', $event)" (add)="addRow('powers')" (remove)="removeRow('powers', $event)" />
+        </div>
+      } @else {
+        <div class="section"><span class="sec-title">ABILITIES</span>
+          <ss-entry-rows [items]="d.abilities" namePh="Ability name..." descPh="Describe the ability..." [max]="4" addLabel="ABILITY" (edit)="editRow('abilities', $event)" (add)="addRow('abilities')" (remove)="removeRow('abilities', $event)" />
+        </div>
+      }
+      <div class="section"><span class="sec-title">PERKS</span>
+        <ss-entry-rows [items]="d.perks" namePh="Perk name..." descPh="Perk description..." [max]="4" addLabel="PERK" (edit)="editRow('perks', $event)" (add)="addRow('perks')" (remove)="removeRow('perks', $event)" />
+      </div>
+
+      <div class="section"><span class="sec-title">SPECIAL LMS</span>
+        @for (s of d.specialLms; track $index; let i = $index) {
+          <div class="lms-edit">
+            <span class="row-between"><span class="mini-label">ENTRY {{ i + 1 }}</span><button type="button" class="btn danger" (click)="removeLms(i)">&#10005; REMOVE</button></span>
+            <label class="mini"><span class="mini-label">CHARACTER</span>
+              <select class="text-in" (change)="editLms(i, x => x.charId = $any($event.target).value || null)">
+                <option value="">: NONE: </option>
+                @for (o of others(); track o.id) { <option [value]="o.id" [selected]="o.id === s.charId">{{ o.name || 'UNNAMED' }}</option> }
+              </select>
+            </label>
+            <label class="mini"><span class="mini-label">DESCRIPTION</span>
+              <textarea class="text-in" rows="2" placeholder="What makes this LMS special..." [value]="s.desc || ''" (input)="editLms(i, x => x.desc = $any($event.target).value)"></textarea>
+            </label>
+            <div class="mini"><span class="mini-label" [style.color]="isH ? hunterColor : survivorColor">SPECIAL {{ isH ? 'POWER' : 'ABILITY' }} <span style="color:#444">(OPTIONAL)</span></span>
+              @if (s.special) {
+                <input class="text-in" type="text" maxlength="60" [placeholder]="(isH ? 'Power' : 'Ability') + ' name...'" [value]="s.special.name || ''" (input)="editLms(i, x => setSpecialField(x, 'special', 'name', $any($event.target).value))" />
+                <textarea class="text-in" rows="2" placeholder="Description..." [value]="s.special.desc || ''" (input)="editLms(i, x => setSpecialField(x, 'special', 'desc', $any($event.target).value))"></textarea>
+                <button type="button" class="btn danger" style="justify-self:start" (click)="editLms(i, x => x.special = null)">&#10005; REMOVE</button>
+              } @else {
+                <button type="button" class="btn" style="justify-self:start" (click)="editLms(i, x => x.special = { name: '', desc: '' })">+ ADD {{ isH ? 'POWER' : 'ABILITY' }}</button>
+              }
+            </div>
+            <div class="mini"><span class="mini-label" style="color:#c9a600">THEME</span>
+              @if (s.music; as mu) {
+                <span class="row-between">
+                  <button type="button" class="btn" (click)="play('slms_' + c.id + '_' + i, mu.url, 'SPECIAL LMS', mu.name || 'Theme', c.color || '#888')">{{ isOn('slms_' + c.id + '_' + i) ? '⏸' : '▶' }}</button>
+                  <span class="tn">{{ mu.name || 'Theme' }}</span>
+                  <button type="button" class="btn danger" (click)="removeLmsMusic(i)" aria-label="Remove theme">&#10005;</button>
+                </span>
+              } @else {
+                <label class="btn" style="justify-self:start">{{ uploading() === 'slms' + i ? 'UPLOADING...' : '+ UPLOAD MP3' }}<input type="file" accept="audio/mpeg,audio/mp3,.mp3" hidden (change)="upload($event, i)" [disabled]="!!uploading()" /></label>
+              }
+            </div>
+          </div>
+        }
+        <button type="button" class="btn" style="justify-self:start" (click)="addLms()">+ SPECIAL LMS</button>
+      </div>
+
+      @if (incoming().length) {
+        <div class="section"><span class="sec-title">INCOMING SPECIAL LMS</span>
+          @for (m of incoming(); track m.key) {
+            <div class="lms-edit">
+              <span class="mini-label">FROM <b [style.color]="m.owner.color || '#888'">{{ m.owner.name || 'UNNAMED' }}</b></span>
+              @if (m.s.desc) { <p class="lms-desc">{{ m.s.desc }}</p> }
+              <span class="mini-label" [style.color]="isH ? hunterColor : survivorColor">YOUR SPECIAL {{ isH ? 'POWER' : 'ABILITY' }} <span style="color:#444">(OPTIONAL)</span></span>
+              @if (m.s.specialOpponent; as so) {
+                <input class="text-in" type="text" maxlength="60" [placeholder]="(isH ? 'Power' : 'Ability') + ' name...'" [value]="so.name || ''" (input)="editOpp(m.owner.id, m.i, x => setSpecialField(x, 'specialOpponent', 'name', $any($event.target).value))" />
+                <textarea class="text-in" rows="2" placeholder="Description..." [value]="so.desc || ''" (input)="editOpp(m.owner.id, m.i, x => setSpecialField(x, 'specialOpponent', 'desc', $any($event.target).value))"></textarea>
+                <button type="button" class="btn danger" style="justify-self:start" (click)="editOpp(m.owner.id, m.i, x => x.specialOpponent = null)">&#10005; REMOVE</button>
+              } @else {
+                <button type="button" class="btn" style="justify-self:start" (click)="editOpp(m.owner.id, m.i, x => x.specialOpponent = { name: '', desc: '' })">+ ADD {{ isH ? 'POWER' : 'ABILITY' }}</button>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <div class="section"><span class="sec-title">MUSIC</span>
+        @for (k of ['chase', 'lms']; track k) {
+          @let mu = k === 'chase' ? d.chaseMusic : d.lmsMusic;
+          <div class="mini"><span class="mini-label" [style.color]="k === 'chase' ? '#ff8833' : '#bb99ff'">{{ k === 'chase' ? 'CHASE MUSIC' : 'LMS MUSIC' }}</span>
+            @if (mu) {
+              <span class="row-between">
+                <button type="button" class="btn" (click)="play(k + '_' + c.id, mu.url, k === 'chase' ? 'CHASE' : 'LMS', mu.name || '', c.color || '#888')">{{ isOn(k + '_' + c.id) ? '⏸' : '▶' }}</button>
+                <span class="tn">{{ mu.name || (k === 'chase' ? 'Chase Music' : 'LMS Music') }}</span>
+                <button type="button" class="btn danger" (click)="removeMusic($any(k))" aria-label="Remove music">&#10005;</button>
+              </span>
+            } @else {
+              <label class="btn" style="justify-self:start">{{ uploading() === k ? 'UPLOADING...' : '+ UPLOAD MP3' }}<input type="file" accept="audio/mpeg,audio/mp3,.mp3" hidden (change)="upload($event, $any(k))" [disabled]="!!uploading()" /></label>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+}
+
+@if (nowPlaying(); as np) {
+  <div class="mp" [style.--mc]="np.color" role="region" aria-label="Music player">
+    <button type="button" class="mp-pp" (click)="toggle()" [attr.aria-label]="playing() ? 'Pause' : 'Play'">{{ playing() ? '⏸' : '▶' }}</button>
+    <span class="mp-info"><span class="mp-label">{{ np.label }}</span><span class="mp-name">{{ np.name }}</span></span>
+    <input type="range" min="0" max="1" step="0.02" [value]="volume()" (input)="setVolume(+$any($event.target).value)" aria-label="Volume" />
+    <button type="button" class="mp-x" (click)="stop()" title="Stop" aria-label="Stop">&#10005;</button>
+  </div>
+}

@@ -1,0 +1,132 @@
+<p class="desc-line">Your character joins the Rift. Define their passive, Q, W, E, and R, and pick the colors that make each ability theirs.</p>
+<ss-game-picker [selected]="sel()" [dotFor]="dot" (pick)="select($event)" />
+@if (char(); as c) {
+  @let d = doc();
+  <div class="work" [style.--nc]="c.color || '#00b4de'">
+    @if (mode() === 'view') {
+      <article class="card">
+        <ss-pattern-canvas [type]="c.pattern?.type" [params]="c.pattern?.params" />
+        <div class="inner">
+          <div class="hero">
+            <div class="avatar">@if (c.avatar) { <img [src]="c.avatar" alt="" /> } @else { <span class="init">{{ (c.name || '?')[0].toUpperCase() }}</span> }</div>
+            <div class="hero-text">
+              <span class="cname">{{ c.name || 'UNNAMED' }}</span>
+              <span class="badges">
+                @for (r of d.roles; track r) { <span class="role">{{ roles[r] || r.toUpperCase() }}</span> }
+                <span class="res" [style.--rc]="resColors[d.resource] || '#444'">{{ resources[d.resource] || 'MANA' }}</span>
+              </span>
+            </div>
+          </div>
+          <div class="rule"></div>
+          @if (statRows().length) {
+            <div class="stats-sec">
+              <div class="stats-head">
+                <span>BASE STATS</span>
+                <label class="lvl">LVL <b>{{ level() }}</b><input type="range" min="1" max="18" [value]="level()" (input)="level.set(+$any($event.target).value)" aria-label="Level" /></label>
+              </div>
+              @for (s of statRows(); track s.k) {
+                <div class="srow">
+                  <span class="slabel">{{ s.label }}</span>
+                  <span class="track"><span class="fill" [style.width.%]="s.pct"></span><span class="bonus" [style.width.%]="s.bonusPct"></span></span>
+                  <span class="sval">{{ s.value }}</span>
+                </div>
+              }
+            </div>
+          }
+          <div class="sections">
+            @if (hasKit(d)) {
+              @if (d.passive.name || d.passive.desc) {
+                <div><div class="sec-head" style="--sc:#888">PASSIVE</div><ng-container *ngTemplateOutlet="ability; context: { $implicit: 'passive' }" /></div>
+              }
+              @if (kitAny(d)) {
+                <div><div class="sec-head" style="--sc:#888">KIT</div>
+                  @for (k of ['q', 'w', 'e']; track k) { <ng-container *ngTemplateOutlet="ability; context: { $implicit: k }" /> }
+                </div>
+              }
+              @if (d.r.name || d.r.desc) { <div class="ult"><ng-container *ngTemplateOutlet="ability; context: { $implicit: 'r' }" /></div> }
+            } @else {
+              <p class="empty">NO KIT SET. CLICK EDIT.</p>
+            }
+            @if (anyItem(d)) {
+              <div class="build">
+                @for (id of d.items; track $index) {
+                  @if (item(id); as it) { <img class="icon" [src]="lol.image(it.image)" [alt]="it.name" loading="lazy" [ssTip]="itemTip(it)" /> }
+                }
+              </div>
+            }
+          </div>
+          <div class="footer"><span></span><button type="button" class="btn" (click)="mode.set('edit')">EDIT</button></div>
+        </div>
+      </article>
+      <ng-template #ability let-k>
+        @let ab = $any(d)[k];
+        @if (ab.name || ab.desc) {
+          <div class="ab" [style.--ab]="ab.color">
+            <span class="key" [class.passive]="k === 'passive'">{{ k === 'passive' ? '' : k.toUpperCase() }}</span>
+            <div class="body">
+              @if (ab.name) { <span class="ename">{{ ab.name }}</span> }
+              @if (ab.desc) { <span class="etext">{{ ab.desc }}</span> }
+            </div>
+          </div>
+        }
+      </ng-template>
+    } @else {
+      <div class="ed-head">
+        <span class="ed-av">@if (c.avatar) { <img [src]="c.avatar" alt="" /> } @else { <span class="init">{{ (c.name || '?')[0] }}</span> }</span>
+        <span class="ed-name">{{ c.name || 'UNNAMED' }}</span>
+        <span class="status" [attr.data-s]="docs.state()">{{ docs.state() === 'saving' ? 'SAVING...' : docs.state() === 'saved' ? '✓ SAVED' : '' }}</span>
+        <button type="button" class="btn accent" (click)="mode.set('view')">VIEW</button>
+      </div>
+      <div class="section"><span class="sec-title">ROLE <span style="color:#555">(UP TO TWO)</span></span>
+        <div class="chips">@for (r of roleKeys; track r) { <button type="button" [class.on]="d.roles.includes(r)" [attr.aria-pressed]="d.roles.includes(r)" (click)="toggleRole(r)">{{ roles[r] }}</button> }</div>
+      </div>
+      <div class="section"><span class="sec-title">RESOURCE</span>
+        <div class="chips">@for (r of resourceKeys; track r) { <button type="button" [class.on]="d.resource === r" [style.--tc]="resColors[r]" (click)="set(x => x.resource = r)">{{ resources[r] }}</button> }</div>
+      </div>
+      <div class="section"><span class="sec-title">BUILD</span>
+        <div class="slots">
+          @for (id of d.items; track $index; let i = $index) {
+            @let it = item(id);
+            <button type="button" class="slot" [class.on]="pickerSlot() === i" (click)="pick(i)" [title]="it ? it.name : 'Empty slot'" [attr.aria-label]="it ? it.name : 'Empty slot ' + (i + 1)">
+              @if (it) { <img [src]="lol.image(it.image)" [alt]="it.name" loading="lazy" /> } @else { <span class="plus">+</span> }
+            </button>
+            @if (it) { <button type="button" class="unequip" (click)="equip(null, i)" [attr.aria-label]="'Remove ' + it.name">&#10005;</button> }
+          }
+        </div>
+        @if (pickerSlot() !== null) {
+          <div class="picker">
+            <input class="text-in" type="text" placeholder="Search items..." [value]="search()" (input)="search.set($any($event.target).value)" aria-label="Search items" />
+            <div class="items">
+              @if (matches(); as list) {
+                @for (it of list; track it.id) {
+                  <button type="button" class="opt" (click)="equip(it.id)" [ssTip]="itemTip(it)"><img [src]="lol.image(it.image)" [alt]="it.name" loading="lazy" /></button>
+                } @empty { <p class="empty">NO ITEMS FOUND</p> }
+              } @else { <p class="empty">LOADING...</p> }
+            </div>
+          </div>
+        }
+      </div>
+      <div class="section"><span class="sec-title">BASE STATS</span>
+        <div class="st-head"><span></span><span>LVL 1</span><span>+ PER LEVEL</span></div>
+        @for (k of statKeys; track k) {
+          <div class="st-row">
+            <span class="st-name">{{ k === 'mana' ? (resources[d.resource] || 'MANA') : statNames[k] }}<small>{{ hintBase[k] }}</small></span>
+            <span class="st-field"><input class="text-in" type="number" min="0" [step]="statStep[k]" [value]="d.stats[k].base" (input)="editStat(k, 'base', +$any($event.target).value)" [attr.aria-label]="statNames[k] + ' at level 1'" /></span>
+            <span class="st-field"><input class="text-in" type="number" min="0" [step]="statStep[k]" [value]="d.stats[k].growth" (input)="editStat(k, 'growth', +$any($event.target).value)" [attr.aria-label]="statNames[k] + ' per level'" /><small>{{ hintGrow[k] }}</small></span>
+          </div>
+        }
+      </div>
+      @for (s of slots; track s) {
+        @let ab = $any(d)[s];
+        <div class="section slot-sec" [style.--ab]="ab.color">
+          <span class="sec-title" [style.color]="ab.color">{{ slotLabels[s] }}</span>
+          <span class="name-row">
+            <input class="text-in" type="text" maxlength="60" [placeholder]="s === 'passive' ? 'Passive name...' : slotLabels[s].split(' ')[0].replace(':', '') + ' ability name...'" [value]="ab.name" (input)="editSlot(s, 'name', $any($event.target).value)" />
+            <input type="color" class="swatch" [value]="ab.color" (input)="editSlot(s, 'color', $any($event.target).value)" title="Ability color" aria-label="Ability color" />
+          </span>
+          <textarea class="text-in" rows="3" [placeholder]="s === 'passive' ? 'What does the passive do...' : 'What does ' + slotLabels[s].split(' ')[0].replace(':', '') + ' do...'" [value]="ab.desc" (input)="editSlot(s, 'desc', $any($event.target).value)"></textarea>
+        </div>
+      }
+    }
+  </div>
+}
