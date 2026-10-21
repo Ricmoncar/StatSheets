@@ -19,7 +19,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 
 ## Main app (index.html + script.js core)
 
-- [~] Sidebar: search, folders with shared collapse, drafts (done); drag and drop, right-click menu, chat button not yet
+- [~] Sidebar: search, folders with shared collapse, drafts, new/edit/delete folder, drag and drop of characters and folders (one batched write), right-click menu with edit/duplicate/delete/move (rebuild/tools/sidebar_e2e.js, 16 checks); chat button comes with the chat
 - [x] Character view header: portrait, name, owner, power level, gold, bio, shared form switcher, edit, delete
 - [x] Stats: bars, prestige tiers, sub-stats with diffs, SANITY, breakdown tooltips (parity-tested), radar chart, power level window (rebuild/tools/stats_e2e.js)
 - [x] Traits: per-form ownership, every interactive trait card, roll overlay with form chooser and auto-roll (replay-tested), codex, roll history, cultivation window, per-trait stat tooltips (parity-tested against 224 live tooltips)

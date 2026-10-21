@@ -1,16 +1,19 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   Firestore,
+  addDoc,
   collection,
   deleteDoc,
   deleteField,
   doc,
+  increment,
   onSnapshot,
   orderBy,
   query,
   runTransaction,
   setDoc,
   updateDoc,
+  writeBatch,
   Unsubscribe,
 } from 'firebase/firestore';
 import { FIRESTORE, col } from '../firebase';
@@ -141,6 +144,107 @@ export class CharacterStore {
   /** Folder collapse state is shared: it is stored on the folder, for everyone (as on the old site). */
   async setFolderCollapsed(id: string, collapsed: boolean): Promise<void> {
     await updateDoc(doc(this.db, col('folders'), id), { collapsed });
+  }
+
+  // ── ordering and folders (the old sidebar drag and drop) ──
+
+  /**
+   * Moves a character before or after another, into `folderId` (null for no
+   * folder). Without `toId` it lands at the end of that folder.
+   */
+  moveCharacter(fromId: string, toId: string | null, after: boolean, folderId: string | null): void {
+    if (!fromId || fromId === toId) return;
+    const arr = [...this.characters()];
+    const fromIdx = arr.findIndex(x => x.id === fromId);
+    if (fromIdx < 0) return;
+    const [moved] = arr.splice(fromIdx, 1);
+    let at: number;
+    if (toId) {
+      const toIdx = arr.findIndex(x => x.id === toId);
+      if (toIdx < 0) return;
+      at = after ? toIdx + 1 : toIdx;
+    } else {
+      if ((moved.folderId || null) === folderId) return;
+      at = arr.reduce((last, x, i) => (x.folderId === folderId ? i : last), -1) + 1;
+    }
+    arr.splice(at, 0, this.withFields(moved, { folderId }));
+    this.commitOrder(arr);
+  }
+
+  /**
+   * Numbers the list in order and writes only the rows whose order or folder
+   * moved, in one batch, bumping _rev (the old _commitCharOrder).
+   */
+  private commitOrder(arr: Character[]): void {
+    const prev = new Map(this.characters().map(c => [c.id, { order: c.order, folderId: c.folderId || null }]));
+    const next = arr.map((c, i) => (c.order === i ? c : this.withFields(c, { order: i })));
+    this.characters.set(next);
+    const batch = writeBatch(this.db);
+    let n = 0;
+    for (const c of next) {
+      const p = prev.get(c.id);
+      const fid = c.folderId || null;
+      if (!p || p.order !== c.order || p.folderId !== fid) {
+        batch.update(doc(this.db, col('characters'), c.id), { order: c.order, folderId: fid, _rev: increment(1) });
+        n++;
+      }
+    }
+    if (n) batch.commit().catch(err => { console.error('Reorder write failed:', err); this.notifier.notify('REORDER FAILED', 'err'); });
+  }
+
+  /** A copy with some fields changed that keeps the original's baseline. */
+  private withFields(c: Character, fields: Partial<Character>): Character {
+    const next = { ...c, ...fields };
+    const base = this.objBase.get(c);
+    if (base) this.objBase.set(next, base);
+    return next;
+  }
+
+  moveFolder(fromId: string, toId: string, after: boolean): void {
+    if (!fromId || fromId === toId) return;
+    const arr = [...this.folders()];
+    const fromIdx = arr.findIndex(f => f.id === fromId);
+    if (fromIdx < 0) return;
+    const [moved] = arr.splice(fromIdx, 1);
+    const toIdx = arr.findIndex(f => f.id === toId);
+    if (toIdx < 0) return;
+    arr.splice(after ? toIdx + 1 : toIdx, 0, moved);
+    const prev = new Map(this.folders().map(f => [f.id, f['order']]));
+    const next = arr.map((f, i) => ({ ...f, order: i }));
+    this.folders.set(next);
+    const batch = writeBatch(this.db);
+    let n = 0;
+    for (const f of next) if (prev.get(f.id) !== f['order']) { batch.update(doc(this.db, col('folders'), f.id), { order: f['order'] }); n++; }
+    if (n) batch.commit().catch(err => { console.error('Folder reorder failed:', err); this.notifier.notify('REORDER FAILED', 'err'); });
+  }
+
+  async saveFolder(id: string | null, name: string, color: string): Promise<void> {
+    if (id) await updateDoc(doc(this.db, col('folders'), id), { name, color });
+    else await addDoc(collection(this.db, col('folders')), { name, color, collapsed: false, order: this.folders().length });
+  }
+
+  /** Its characters become ungrouped, then the folder goes. */
+  async deleteFolder(id: string): Promise<void> {
+    for (const c of this.characters().filter(x => x.folderId === id)) void this.update(c.id, x => { x.folderId = null; });
+    await deleteDoc(doc(this.db, col('folders'), id));
+  }
+
+  /** A copy under the next free "Name (n)", at the end of the list. */
+  duplicate(id: string): Character | null {
+    const src = this.byId().get(id);
+    if (!src) return null;
+    const copy = structuredClone(src);
+    copy.id = genId();
+    copy.createdAt = Date.now();
+    copy.order = this.characters().reduce((m, c) => Math.max(m, c.order ?? 0), 0) + 1;
+    copy.isPlaceholder = false;
+    delete copy._rev;
+    const base = (src.name || '').replace(/ \(\d+\)$/, '');
+    let n = 1;
+    while (this.characters().some(c => c.name === `${base} (${n})`)) n++;
+    copy.name = `${base} (${n})`;
+    void this.create(copy);
+    return copy;
   }
 
   async remove(id: string): Promise<void> {

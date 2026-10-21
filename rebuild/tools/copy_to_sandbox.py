@@ -11,6 +11,8 @@ collection does not start with `next_`.
 Usage:
   python3 copy_to_sandbox.py            # dry run: counts what would be copied
   python3 copy_to_sandbox.py --write    # copy for real
+  ... --only=characters,folders         # just these top-level collections
+  ... --no-subs                         # skip the subcollections (much faster)
 """
 import json
 import sys
@@ -104,6 +106,8 @@ def write_batch(writes, dry):
 
 def main():
     dry = "--write" not in sys.argv
+    only = next((a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--only=")), None)
+    no_subs = "--no-subs" in sys.argv
     pending, size, total_docs, total_bytes = [], 0, 0, 0
 
     def add(doc):
@@ -120,6 +124,10 @@ def main():
         total_bytes += n
 
     for top, subs in COLLECTIONS.items():
+        if only and top not in only:
+            continue
+        if no_subs:
+            subs = []
         docs = list_docs(top)
         sub_count = 0
         for d in docs:
