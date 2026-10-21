@@ -18,6 +18,7 @@ import { TraitCard } from '../traits/trait-card';
 import { InventoryPanel } from '../inventory/inventory-panel';
 import { InfoTab } from '../info/info-tab';
 import { AbilitiesTab } from '../abilities/abilities-tab';
+import { SoulEditor } from '../soul/soul-editor';
 import { CodexModal, CultivationModal, RollHistoryModal } from '../traits/trait-modals';
 import { cultivationRows } from '../../core/game/codex';
 import { GENERIC_PATTERNS } from '../../core/game/patterns';
@@ -29,7 +30,7 @@ const CLASSIC = /^Classic$/i;
 /** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, CodexModal, CultivationModal, RollHistoryModal],
+  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
@@ -87,7 +88,7 @@ export class CharacterView {
   });
 
   /** Which overlay is open over the sheet. */
-  protected readonly open = signal<'roll' | 'gold' | 'codex' | 'history' | 'cultivation' | null>(null);
+  protected readonly open = signal<'roll' | 'gold' | 'codex' | 'history' | 'cultivation' | 'soul' | null>(null);
   protected readonly hasCultivation = computed(() => cultivationRows(this.character()).length > 0);
 
   /** Switching form is shared: it saves activeFormIdx on the character, as on the old site. */

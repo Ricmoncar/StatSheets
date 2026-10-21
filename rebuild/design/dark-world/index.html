@@ -312,6 +312,12 @@ a { color: var(--a4); }
 
 /* stat bars */
 .bars { display: flex; flex-direction: column; gap: var(--u2); }
+.bars { container-type: inline-size; }
+@container (max-width: 739px) {
+  .srow { grid-template-columns: calc(7 * var(--px)) minmax(0, 1fr) auto auto; row-gap: var(--u1); }
+  .srow .bar { grid-column: 1 / -1; grid-row: 2; }
+  .srow .k { grid-column: 2; }
+}
 .srow { display: grid; grid-template-columns: calc(7 * var(--px)) calc(33 * var(--px)) auto minmax(calc(14 * var(--px)), 1fr) auto; align-items: center; gap: var(--u3); color: var(--sc); }
 .srow .k { font: 400 var(--fs-l)/1 var(--ff-l); letter-spacing: 1px; display: flex; align-items: center; gap: var(--u2); white-space: nowrap; }
 .tier { display: inline-flex; align-items: center; gap: var(--px); font: 400 var(--fs-l)/1 var(--ff-l); color: var(--c-void); background: var(--c-gold); padding: 0 var(--px); box-shadow: 0 0 0 var(--px) var(--c-void); }
@@ -715,8 +721,10 @@ pre.code .k { color: var(--a4); }
   .stat-foot { grid-template-columns: minmax(0, 1fr); justify-items: center; }
   .stat-foot .subs { width: 100%; }
 }
+@media (max-width: 760px) { .app-act .hide-sm { display: none !important; } }
 @media (max-width: 640px) {
   .tb-brand h1 { font-size: 24px; }
+  .tb-brand small, .acc-name { display: none; }
   .tbar { position: static; gap: var(--u3) var(--u4); }
   .tb-right { margin-left: 0; }
   .logo { font-size: 22px; }

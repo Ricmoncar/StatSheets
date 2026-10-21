@@ -29,7 +29,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Info tab: every profile field (saves as you type, never overwrites text being typed), markdown preview, [[glitch]] affiliations, soundtrack and voice-claim links with YouTube player and MP3 upload
 - [ ] Music: per-character theme player and mini-player bar
 - [x] Abilities tab: passives, ability cards with the six types, editor with image, text colour toolbar (rendered as text: the old renderer let HTML through)
-- [ ] SOUL builder
+- [x] SOUL builder: every layer (fill modes, palettes up to 8, nested soul, outline, shattered, monster, glow, heartbeat, cycle), presets, reset; the SVG is built from validated values only
 - [ ] Character chat
 - [ ] Compare, tier list, leaderboard, height chart, status roller, suggestion box
 - [ ] Generic background patterns, redesigned in pixel art

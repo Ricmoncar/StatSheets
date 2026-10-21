@@ -86,7 +86,7 @@
   </ss-panel>
 }
 @case ('abilities') { <ss-abilities-tab [character]="c" /> }
-@case ('info') { <ss-info-tab [character]="c" (openSoul)="notYet('SOUL EDITOR')" /> }
+@case ('info') { <ss-info-tab [character]="c" (openSoul)="open.set('soul')" /> }
 @case ('style') {
   <ss-panel title="BACKGROUND PATTERN">
     <p class="none">{{ patternLabel() }}</p>
@@ -98,6 +98,7 @@
 
 @if (open() === 'roll') { <ss-roll-overlay [character]="c" (closed)="open.set(null)" /> }
 @if (open() === 'gold') { <ss-gold-modal [character]="c" (closed)="open.set(null)" /> }
+@if (open() === 'soul') { <ss-soul-editor [character]="c" (closed)="open.set(null)" /> }
 @if (open() === 'codex') { <ss-codex-modal (closed)="open.set(null)" /> }
 @if (open() === 'history') { <ss-roll-history-modal [character]="c" (closed)="open.set(null)" /> }
 @if (open() === 'cultivation') { <ss-cultivation-modal [character]="c" (closed)="open.set(null)" /> }

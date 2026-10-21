@@ -1,0 +1,114 @@
+@let soul = s();
+<ss-modal title="SOUL" width="880px" (closed)="closed.emit()">
+  <div class="layout">
+    <div class="stage">
+      <ss-soul-view [soul]="soul" [px]="150" />
+      <span class="sname" [style.color]="primary()">{{ soul.name || 'Vessel' }}</span>
+      <span class="sdesc">{{ desc() }}</span>
+    </div>
+
+    <div class="controls">
+      <section class="group">
+        <h3>NAME</h3>
+        <input type="text" class="name" maxlength="32" placeholder="Vessel" [value]="soul.name" (input)="setName($any($event.target).value)" aria-label="Soul name" />
+        <div class="presets">
+          @for (p of presets; track p.name; let i = $index) {
+            <button type="button" class="preset" [title]="p.name" (click)="preset(i)">
+              <span class="dot" [class.monster]="p.monster" [class.rainbow]="p.fill === 'rainbow'" [style.background]="p.color"></span>{{ p.name.toUpperCase() }}
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="group">
+        <h3>BODY</h3>
+        <ng-container *ngTemplateOutlet="modesTpl; context: { key: 'fill', label: 'FILL STYLE' }" />
+        <ng-container *ngTemplateOutlet="paletteTpl; context: { scope: 'body', label: 'COLOURS' }" />
+        @if (when('angle')) { <ng-container *ngTemplateOutlet="sliderTpl; context: { key: 'angle', label: 'ANGLE', min: 0, max: 360, step: 15 }" /> }
+        <ng-container *ngTemplateOutlet="toggleTpl; context: { key: 'cycle', label: 'COLOUR CYCLE' }" />
+      </section>
+
+      <section class="group">
+        <h3>SOUL WITHIN</h3>
+        <ng-container *ngTemplateOutlet="toggleTpl; context: { key: 'inner', label: 'NESTED SOUL' }" />
+        @if (when('inner')) {
+          <ng-container *ngTemplateOutlet="modesTpl; context: { key: 'innerFill', label: 'INNER FILL' }" />
+          <ng-container *ngTemplateOutlet="paletteTpl; context: { scope: 'inner', label: 'INNER COLOURS' }" />
+          @if (when('innerangle')) { <ng-container *ngTemplateOutlet="sliderTpl; context: { key: 'innerAngle', label: 'INNER ANGLE', min: 0, max: 360, step: 15 }" /> }
+          <ng-container *ngTemplateOutlet="sliderTpl; context: { key: 'innerSize', label: 'INNER SIZE', min: 0.15, max: 0.85, step: 0.05 }" />
+          <ng-container *ngTemplateOutlet="sliderTpl; context: { key: 'innerOffsetY', label: 'INNER VERTICAL NUDGE', min: -6, max: 6, step: 0.5 }" />
+          <ng-container *ngTemplateOutlet="toggleTpl; context: { key: 'innerMonster', label: 'INNER IS A MONSTER SOUL' }" />
+        }
+      </section>
+
+      <section class="group">
+        <h3>OUTLINE</h3>
+        <ng-container *ngTemplateOutlet="toggleTpl; context: { key: 'outline', label: 'OUTLINED SOUL' }" />
+        @if (when('outline')) {
+          <ng-container *ngTemplateOutlet="wheelTpl; context: { key: 'outlineColor', label: 'OUTLINE COLOUR' }" />
+          <ng-container *ngTemplateOutlet="sliderTpl; context: { key: 'outlineWidth', label: 'THICKNESS', min: 1, max: 6, step: 1 }" />
+          <ng-container *ngTemplateOutlet="sliderTpl; context: { key: 'outlineOffsetY', label: 'OUTLINE VERTICAL NUDGE', min: -6, max: 6, step: 0.5 }" />
+        }
+      </section>
+
+      <section class="group">
+        <h3>NATURE</h3>
+        <div class="toggles">
+          <ng-container *ngTemplateOutlet="toggleTpl; context: { key: 'monster', label: 'MONSTER SOUL (UPSIDE DOWN)' }" />
+          <ng-container *ngTemplateOutlet="toggleTpl; context: { key: 'cracked', label: 'CRACKED' }" />
+          <ng-container *ngTemplateOutlet="toggleTpl; context: { key: 'pulse', label: 'HEARTBEAT' }" />
+        </div>
+        @if (when('cracked')) {
+          <ng-container *ngTemplateOutlet="wheelTpl; context: { key: 'crackColor', label: 'CRACK COLOUR' }" />
+          <ng-container *ngTemplateOutlet="sliderTpl; context: { key: 'crackSpread', label: 'SHATTER', min: 0, max: 100, step: 5 }" />
+        }
+        <ng-container *ngTemplateOutlet="sliderTpl; context: { key: 'glow', label: 'GLOW', min: 0, max: 40, step: 1 }" />
+        <button type="button" class="reset" (click)="reset()">RESET TO VESSEL</button>
+      </section>
+    </div>
+  </div>
+</ss-modal>
+
+<ng-template #modesTpl let-key="key" let-label="label">
+  <div class="ctl">
+    <span class="lbl">{{ label }}</span>
+    <div class="modes">
+      @for (m of modes; track m[0]) { <button type="button" class="mode" [class.on]="$any(soul)[key] === m[0]" (click)="set(key, m[0])">{{ m[1] }}</button> }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #paletteTpl let-scope="scope" let-label="label">
+  <div class="ctl">
+    <span class="lbl">{{ label }}</span>
+    <div class="palette">
+      @for (c of palette(scope); track $index; let i = $index) {
+        <div class="swatch">
+          <label class="wheel"><span class="wdot" [style.background]="c"></span><input type="color" [value]="c" (input)="setColor(scope, i, $any($event.target).value)" [attr.aria-label]="label + ' ' + (i + 1)" /></label>
+          <span class="hex">{{ c.toUpperCase() }}</span>
+          @if (palette(scope).length > 1) { <button type="button" class="del" (click)="removeColor(scope, i)" title="Remove this colour" aria-label="Remove colour">&times;</button> }
+        </div>
+      }
+      @if (canAdd(scope)) { <button type="button" class="add" (click)="addColor(scope)" title="Add another colour" aria-label="Add colour">+</button> }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #sliderTpl let-key="key" let-label="label" let-min="min" let-max="max" let-step="step">
+  <label class="ctl">
+    <span class="lbl">{{ label }} <span class="num">{{ numLabel(key, $any(soul)[key]) }}</span></span>
+    <input type="range" [min]="min" [max]="max" [step]="step" [value]="$any(soul)[key]" (input)="set(key, +$any($event.target).value)" />
+  </label>
+</ng-template>
+
+<ng-template #toggleTpl let-key="key" let-label="label">
+  <button type="button" class="toggle" [class.on]="$any(soul)[key]" [attr.aria-pressed]="!!$any(soul)[key]" (click)="toggle(key)"><span class="box">{{ $any(soul)[key] ? '✕' : '' }}</span>{{ label }}</button>
+</ng-template>
+
+<ng-template #wheelTpl let-key="key" let-label="label">
+  <div class="ctl row">
+    <span class="lbl">{{ label }}</span>
+    <label class="wheel"><span class="wdot" [style.background]="$any(soul)[key]"></span><input type="color" [value]="$any(soul)[key]" (input)="set(key, $any($event.target).value)" [attr.aria-label]="label" /></label>
+    <span class="hex">{{ $any(soul)[key].toUpperCase() }}</span>
+  </div>
+</ng-template>

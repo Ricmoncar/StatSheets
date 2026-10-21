@@ -9,11 +9,13 @@ import {
   affiliationPieces, hasGlitch, platformOf, renderMarkdown, youTubeId,
 } from '../../core/game/info';
 import { LiveField } from '../../ui/live-field';
+import { SoulView } from '../soul/soul-view';
+import { normalizeSoul, soulPrimary } from '../../core/game/soul';
 
 /** The INFO tab: the character's dossier. Every field saves as you type. */
 @Component({
   selector: 'ss-info-tab',
-  imports: [LiveField],
+  imports: [LiveField, SoulView],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './info-tab.html',
   styleUrl: './info-tab.scss',
@@ -29,7 +31,9 @@ export class InfoTab {
   protected readonly lines = INFO_LINE_FIELDS;
   protected readonly texts = INFO_TEXT_FIELDS;
   protected readonly info = computed(() => (this.character().info || {}) as Record<string, any>);
-  protected readonly soulName = computed(() => (this.info()['soul'] as any)?.name || 'Vessel');
+  protected readonly soul = computed(() => normalizeSoul(this.info()['soul']));
+  protected readonly soulName = computed(() => this.soul().name || 'Vessel');
+  protected readonly soulColor = computed(() => soulPrimary(this.soul()));
 
   /** Which markdown fields are showing their preview. */
   protected readonly preview = signal<Record<string, boolean>>({});

@@ -10,8 +10,8 @@
   <section class="sec">
     <h3>SOUL</h3>
     <button type="button" class="soul" (click)="openSoul.emit()" title="Click to edit this character's SOUL">
-      <span class="heart" aria-hidden="true">&#9829;</span>
-      <span class="soul-meta"><span class="tiny">SOUL TYPE</span><span class="soul-name">{{ soulName() }}</span><span class="soul-edit">&#9998; EDIT SOUL</span></span>
+      <ss-soul-view [soul]="soul()" [px]="72" />
+      <span class="soul-meta"><span class="tiny">SOUL TYPE</span><span class="soul-name" [style.color]="soulColor()" [style.text-shadow]="'0 0 14px ' + soulColor()">{{ soulName() }}</span><span class="soul-edit">&#9998; EDIT SOUL</span></span>
     </button>
   </section>
 
