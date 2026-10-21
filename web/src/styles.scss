@@ -1,1 +1,78 @@
-/* You can add global styles to this file, and also import other style files */
+// Global tokens and base styles.
+//
+// Provisional: this is a plain version of the current look, so features can be
+// built before the pixel-art direction is chosen. The chosen design system
+// replaces these tokens and the shared building blocks in src/app/ui/; feature
+// components only use the tokens and the building blocks, never raw colours.
+
+:root {
+  color-scheme: dark;
+
+  // surfaces
+  --ss-bg: #000;
+  --ss-panel: #07070a;
+  --ss-panel-2: #101016;
+  --ss-line: #ffffff;
+  --ss-line-dim: #3a3a44;
+
+  // text
+  --ss-fg: #ffffff;
+  --ss-fg-dim: #9a9aa6;
+  --ss-fg-faint: #55555f;
+
+  // the character's accent colour, set at runtime on the character view
+  --ss-accent: #ffff00;
+  --ss-gold: #ffd700;
+  --ss-ok: #4cff7a;
+  --ss-err: #ff4444;
+
+  // stat colours (same hues as the old bars)
+  --ss-hp: #22cc55;
+  --ss-atk: #ff7a1a;
+  --ss-def: #2f6bff;
+  --ss-mag: #b326e6;
+  --ss-spd: #f2e600;
+  --ss-iq: #1fd3a8;
+
+  // rarity colours
+  --ss-common: #9a9aa6;
+  --ss-rare: #3aa0ff;
+  --ss-epic: #b04cff;
+  --ss-legendary: #ffd23a;
+  --ss-mythic: #ff3a6e;
+  --ss-hexxed: #9dff00;
+
+  // type and spacing
+  --ss-font: 'Press Start 2P', ui-monospace, 'Courier New', monospace;
+  --ss-text-xs: 7px;
+  --ss-text-sm: 8px;
+  --ss-text-md: 10px;
+  --ss-text-lg: 14px;
+  --ss-text-xl: 22px;
+  --ss-gap: 8px;
+  --ss-border: 2px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--ss-bg);
+  color: var(--ss-fg);
+  font-family: var(--ss-font);
+  font-size: var(--ss-text-md);
+  line-height: 1.6;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+button { cursor: pointer; }
+
+:focus-visible { outline: 2px solid var(--ss-accent); outline-offset: 2px; }
+
+img { max-width: 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

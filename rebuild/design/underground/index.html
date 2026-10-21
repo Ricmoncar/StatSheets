@@ -440,8 +440,8 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .tc.hexxed{--tcf:var(--f-tc-hexxed);--r1:var(--c-void);--r2:var(--c-hx);--r3:var(--c-vi2);--r4:var(--c-vi3);background-color:var(--c-void)}
 /* animated ring: a tiled texture masked to the middle band of the frame */
 .tc .ring{position:absolute;z-index:-1;inset:calc(-4*var(--px));pointer-events:none;padding:calc(2*var(--px));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+  -webkit-mask:linear-gradient(var(--c-void) 0 0) content-box,linear-gradient(var(--c-void) 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(var(--c-void) 0 0) content-box exclude,linear-gradient(var(--c-void) 0 0)}
 .tc.rare .ring{z-index:1;background:var(--t-water) 0 0/calc(16*var(--px)) calc(8*var(--px));animation:flow 1.6s steps(16,end) infinite}
 @keyframes flow{to{background-position:calc(16*var(--px)) 0}}
 .tc.hexxed .ring{z-index:1;background:var(--t-glitch) 0 0/calc(16*var(--px)) calc(16*var(--px));animation:glitch .5s steps(1,end) infinite}
@@ -518,8 +518,8 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .tx .amt{grid-row:1/3;grid-column:3;text-align:right;font:var(--fs-num)/1 var(--f-body);white-space:nowrap}
 .tx .amt small{display:block;font:var(--fs-ui)/1.3 var(--f-ui);color:var(--c-mute)}
 
-.roll-stage{display:flex;justify-content:center;gap:var(--p5);padding:var(--p6) 0 var(--p2);min-height:calc(78*var(--px));align-items:flex-start}
-.rc{position:relative;width:calc(44*var(--px));height:calc(64*var(--px));display:flex;justify-content:center}
+.roll-stage{display:flex;justify-content:center;gap:var(--p4);padding:var(--p6) 0 var(--p2);min-height:calc(78*var(--px));align-items:flex-start}
+.rc{--rcw:40;position:relative;width:calc(var(--rcw)*var(--px));height:calc(64*var(--px));display:flex;justify-content:center}
 .rc .face{position:relative;height:100%;overflow:hidden;display:grid;place-items:center;align-content:center;gap:var(--p2);text-align:center;padding:0 var(--p1)}
 .rc .face.back{background-color:var(--ac0);background-image:var(--t-cardback);background-size:calc(8*var(--px)) calc(8*var(--px));background-clip:padding-box}
 .rc .face .rar{font:var(--fs-ui)/1 var(--f-ui)}
@@ -659,6 +659,9 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
 }
 @media (max-width:720px){
   .deck{position:relative;gap:var(--p3) var(--p6)}
+  #screen .sec-d{display:none}
+  .mast-pitch{font-size:20px}
+  .deck{margin-bottom:var(--p4)}
   .mast{padding-top:var(--p10)}
   .mast-sign{padding:var(--p3) var(--p4) var(--p4)}
   .main{padding:var(--p6) var(--p4) var(--p8)}
@@ -682,7 +685,9 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
   .voice{grid-template-columns:minmax(0,1fr);padding:var(--p4)}
   .voice .say{font-size:26px}
   .opt{font-size:26px}
-  .roll-stage{gap:var(--p3)}
+  .roll-stage{gap:var(--p2)}
+  .rc{--rcw:50}
+  .rc .face .nm{font-size:20px}
   .tip{min-width:0}
   .btn-grid{grid-template-columns:repeat(2,max-content);gap:var(--p2) var(--p4)}
   .btn-grid>span:first-child{display:none}
@@ -2577,7 +2582,7 @@ function setPerf(on) {
 const ROLL = ['epic', 'common', 'mythic'], RNAME = { epic: 'CARD COUNTER', common: 'STICKY', mythic: 'HOUSE ALWAYS WINS', legendary: 'LOADED DICE', rare: 'RIPTIDE', hexxed: 'NOBODY CAME' };
 let rollTimers = [];
 function buildRoll() {
-  $('#roll-stage').innerHTML = [0, 1, 2].map(i => `<div class="rc"><div class="face back fr" style="width:${pxc(44)};border-width:${pxc(6)};border-image-source:var(--f-cardback);border-image-slice:6"><i class="spr s-soul"></i></div></div>`).join('');
+  $('#roll-stage').innerHTML = [0, 1, 2].map(i => `<div class="rc"><div class="face back fr" style="width:calc(var(--rcw) * var(--px));border-width:${pxc(6)};border-image-source:var(--f-cardback);border-image-slice:6"><i class="spr s-soul"></i></div></div>`).join('');
 }
 function setFace(face, r) {
   if (!r) { face.className = 'face back fr'; face.style.borderImageSource = 'var(--f-cardback)'; face.innerHTML = '<i class="spr s-soul"></i>'; return; }
@@ -2586,13 +2591,14 @@ function setFace(face, r) {
   face.style.minHeight = '0'; face.style.boxShadow = 'none'; face.style.padding = '0 var(--px)';
 }
 function flip(face, r, done) {
-  const W = [44, 30, 16, 12, 16, 30, 44]; let i = 0;
-  const tick = () => { face.style.width = pxc(W[i]); if (i === 3) setFace(face, r); i++; if (i < W.length) rollTimers.push(setTimeout(tick, 1000 / 12)); else if (done) done(); };
+  const full = parseInt(getComputedStyle(face.parentElement).getPropertyValue('--rcw'), 10) || 44;
+  const W = [full, Math.round(full * .66), Math.round(full * .33), 12, Math.round(full * .33), Math.round(full * .66), full]; let i = 0;
+  const tick = () => { face.style.width = i === W.length - 1 ? 'calc(var(--rcw) * var(--px))' : pxc(W[i]); if (i === 3) setFace(face, r); i++; if (i < W.length) rollTimers.push(setTimeout(tick, 1000 / 12)); else if (done) done(); };
   tick();
 }
 function rollOnce() {
   rollTimers.forEach(clearTimeout); rollTimers = [];
-  const faces = $$('#roll-stage .face'); faces.forEach(f => { setFace(f, null); f.style.width = pxc(44); });
+  const faces = $$('#roll-stage .face'); faces.forEach(f => { setFace(f, null); f.style.width = 'calc(var(--rcw) * var(--px))'; });
   if (PERF) { faces.forEach((f, i) => setFace(f, ROLL[i])); return; }
   faces.forEach((f, i) => rollTimers.push(setTimeout(() => flip(f, ROLL[i]), 500 + i * 650)));
 }
