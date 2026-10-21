@@ -4,12 +4,13 @@ import { CritCalc } from './crit-calc';
 import { DiceRoller } from './dice-roller';
 import { StatChecker } from './stat-checker';
 import { StatusRoller } from './status-roller';
+import { TierListBoard } from './tier-list';
 import { GeneralSuggestions, TraitSuggestions } from './suggestions';
 
 /** UTILITIES & TOOLS (the old utilities.html), section by section. */
 @Component({
   selector: 'ss-utilities-page',
-  imports: [Panel, DiceRoller, CritCalc, StatChecker, StatusRoller, TraitSuggestions, GeneralSuggestions],
+  imports: [Panel, DiceRoller, CritCalc, StatChecker, StatusRoller, TraitSuggestions, GeneralSuggestions, TierListBoard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="title">UTILITIES &amp; TOOLS</h1>
@@ -18,7 +19,7 @@ import { GeneralSuggestions, TraitSuggestions } from './suggestions';
         <ss-panel title="DICE ROLLER"><ss-dice-roller /></ss-panel>
         <ss-panel title="CRIT CALCULATOR"><ss-crit-calc /></ss-panel>
       </div>
-      <ss-panel title="TIER LIST"><p class="todo">NOT REBUILT YET</p></ss-panel>
+      <ss-panel title="TIER LIST"><ss-tier-list /></ss-panel>
     </div>
     <ss-panel title="STAT CHECKER (SIMULATOR)"><ss-stat-checker /></ss-panel>
     <ss-panel title="STAT LEADERBOARD"><p class="todo">NOT REBUILT YET</p></ss-panel>
