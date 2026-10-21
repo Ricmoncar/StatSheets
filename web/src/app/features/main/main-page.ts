@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { CharacterStore } from '../../core/data/character-store';
 import { Character } from '../../core/data/models';
@@ -7,6 +7,7 @@ import { ThemeMusic, formTheme } from '../../core/theme-music.service';
 import { CharacterView } from './character-view';
 import { Sidebar } from './sidebar';
 import { PatternCanvas } from '../../ui/pattern-canvas';
+import { PixelTheme } from '../../core/pixel/pixel-theme.service';
 
 // Which character the page opens on: the last one THIS browser looked at
 // (shared key with the old site, same origin), then Blackjack, then the first.
@@ -32,12 +33,13 @@ const NARA = /^NARA!+$/;
     </section>
   `,
   styles: `
-    :host { display: grid; grid-template-columns: 260px 1fr; height: calc(100dvh - 60px); min-height: 0; }
+    :host { display: grid; grid-template-columns: calc(104 * var(--px)) minmax(0, 1fr); height: calc(100dvh - var(--topbar-h, 84px)); min-height: 0; }
     .stage { position: relative; min-height: 0; overflow: hidden; }
     .bg { opacity: 0.3; }
     .view { position: relative; z-index: 1; height: 100%; overflow-y: auto; }
-    .empty { padding: 64px 16px; text-align: center; color: var(--ss-fg-dim); }
-    @media (max-width: 760px) { :host { grid-template-columns: 1fr; height: auto; } .view { height: auto; } }
+    .empty { padding: var(--p12) 16px; text-align: center; color: var(--c-mute); font: var(--fs-ui) / 20px var(--f-ui); }
+    @media (max-width: 1000px) { :host { grid-template-columns: calc(90 * var(--px)) minmax(0, 1fr); } }
+    @media (max-width: 760px) { :host { grid-template-columns: minmax(0, 1fr); height: auto; } .view { height: auto; } }
   `,
 })
 export class MainPage {
@@ -74,6 +76,10 @@ export class MainPage {
       untracked(() => this.music.playFor(this.current()!));
     });
     effect(() => this.music.preload(this.store.characters()));
+    // the whole page takes the open character's colour: frames, gems, buttons, scenes
+    const theme = inject(PixelTheme);
+    effect(() => theme.setAccent(this.current()?.color));
+    inject(DestroyRef).onDestroy(() => theme.setAccent(null));
     // At / (or an unknown id), open the start character once the list has loaded.
     effect(() => {
       const chars = this.store.characters();

@@ -1,63 +1,27 @@
-:host { display: block; min-height: 180px; border: var(--ss-border) solid var(--ss-accent); background: var(--ss-panel); }
+@use 'underground' as u;
+
+:host { display: block; min-height: calc(60 * var(--px)); padding: var(--p2) var(--p4); box-shadow: var(--hard); }
 
 .forms { list-style: none; margin: 0; padding: 0; }
-.form {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--ss-panel-2);
-}
-.label { min-width: 64px; flex-shrink: 0; font-size: var(--fs-ui); color: var(--ss-fg-faint); }
-.none { font-size: var(--ss-text-xs); color: var(--ss-fg-faint); }
+// one row per form: its name, the song, where it starts, and the controls
+.form { display: flex; align-items: center; flex-wrap: wrap; gap: var(--p4); padding: var(--p4) var(--p2); border-bottom: var(--px) dashed var(--c-ink3); }
+.label { min-width: calc(26 * var(--px)); flex-shrink: 0; padding: var(--p1) var(--p2); font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-white); background: var(--c-ink2); box-shadow: inset var(--px) 0 0 var(--ac2); }
+.none { display: inline-flex; align-items: center; gap: var(--p2); font: var(--fs-body) / 1 var(--f-body); color: var(--c-mute); }
 
-.note {
-  font-size: var(--fs-voice);
-  line-height: 1;
-  color: var(--ss-accent);
-  opacity: 0.4;
-  &.on { opacity: 1; animation: bob 0.8s steps(2) infinite; }
-}
-@keyframes bob { 50% { translate: 0 -3px; } }
+.note { opacity: 0.35; &.on { opacity: 1; } }
 
-.details { flex: 1; min-width: 160px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.name { flex-basis: 100%; font-size: var(--ss-text-md); color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.start {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  span { font-size: var(--fs-ui); color: var(--ss-fg-faint); }
-  input {
-    width: 48px;
-    padding: 3px 5px;
-    font-size: var(--ss-text-sm);
-    text-align: center;
-    background: var(--ss-bg);
-    border: 1px solid var(--ss-line-dim);
-    color: var(--ss-fg-dim);
-    &:focus { color: var(--ss-fg); border-color: var(--ss-accent); }
-  }
-}
+.details { flex: 1; min-width: calc(54 * var(--px)); display: flex; flex-wrap: wrap; align-items: center; gap: var(--p2) var(--p3); }
+.name { flex-basis: 100%; font: var(--fs-ui) / 20px var(--f-ui); color: var(--c-white); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.start { display: inline-flex; align-items: center; gap: var(--p2);
+  .slbl { @include u.label; color: var(--c-mute); }
+  input { width: calc(24 * var(--px)); text-align: center; @include u.field; } }
 
-.controls { display: flex; flex-wrap: wrap; gap: 6px; }
-.btn {
-  display: inline-flex;
-  align-items: center;
-  font-size: var(--ss-text-xs);
-  padding: 6px 8px;
-  background: none;
-  border: 1px solid var(--ss-line-dim);
-  color: var(--ss-fg);
-  cursor: pointer;
-  &:hover { border-color: var(--ss-accent); color: var(--ss-accent); }
-  &.accent { border-color: var(--ss-accent); color: var(--ss-accent); &:hover { background: var(--ss-accent); color: var(--ss-bg); } }
-  &.danger { color: var(--ss-err); &:hover { border-color: var(--ss-err); color: var(--ss-err); } }
-}
+.controls { display: flex; flex-wrap: wrap; gap: var(--p2); }
+.btn.danger:hover { color: var(--c-yel); }
 
-.limit { margin: 0; padding: 10px 18px; font-size: var(--fs-ui); color: var(--ss-fg-faint); }
+.limit { margin: 0; padding: var(--p3) var(--p2); font: var(--fs-small) / 20px var(--f-body); color: var(--c-mute); }
 
-.locked { padding: 26px 18px; text-align: center; }
-.locked-title { margin: 0; font-size: var(--fs-voice); color: var(--ss-accent); text-shadow: 0 0 14px var(--ss-accent); }
-.locked-text { margin: 12px 0 0; font-size: var(--fs-body); line-height: 1.9; color: #9fd6a4; em { font-style: normal; color: #eaffb0; } }
-.locked-tag { margin: 14px 0 0; font-size: var(--ss-text-sm); color: #5a7a5e; }
+.locked { padding: var(--p8) var(--p4); text-align: center; }
+.locked-title { display: flex; align-items: center; justify-content: center; gap: var(--p4); margin: 0; font: 700 var(--fs-plaque) / 1 var(--f-display); letter-spacing: -0.125em; color: var(--c-white); text-shadow: var(--p1) var(--p1) 0 var(--ac1); text-transform: uppercase; }
+.locked-text { margin: var(--p4) 0 0; font: var(--fs-voice) / var(--lh-voice) var(--f-body); color: var(--c-grn); em { font-style: normal; color: var(--c-yel); } }
+.locked-tag { margin: var(--p4) 0 0; font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-mute); }

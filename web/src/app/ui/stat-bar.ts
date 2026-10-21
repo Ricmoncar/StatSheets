@@ -2,7 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { statBar, tierLabel } from '../core/game/sheet';
 
 /** Prestige tiers stack in this order over the battle bar's yellow (tier 0). */
-export const TIER_FILLS = ['var(--c-yel)', 'var(--c-kr)', 'var(--c-ec2)', 'var(--c-grn)', 'var(--c-em2)', 'var(--c-vi3)', 'var(--c-white)', 'var(--c-red)'];
+export const TIER_FILLS: string[] = ['var(--c-yel)', 'var(--c-kr)', 'var(--c-ec2)', 'var(--c-grn)', 'var(--c-em2)', 'var(--c-vi3)', 'var(--c-white)', 'var(--c-red)'];
+
+/** Tier 0 is yellow; prestige tiers cycle through the rest. */
+export function tierFill(t: number): string { return t <= 0 ? TIER_FILLS[0] : TIER_FILLS[1 + ((t - 1) % (TIER_FILLS.length - 1))]; }
 
 /**
  * A stat bar in Undertale's HP language: 20 segments, yellow over red, with
@@ -22,7 +25,7 @@ export const TIER_FILLS = ['var(--c-yel)', 'var(--c-kr)', 'var(--c-ec2)', 'var(-
           </span>
         }
       </span>
-      @if (tier()) { <span class="tier" [style.--f]="fill(m.tier)">{{ tier() }}</span> }
+      @if (tier() && showTier()) { <span class="tier" [style.--f]="fill(m.tier)">{{ tier() }}</span> }
     }
   `,
   styles: `
@@ -38,9 +41,10 @@ export const TIER_FILLS = ['var(--c-yel)', 'var(--c-kr)', 'var(--c-ec2)', 'var(-
 export class StatBar {
   readonly stat = input.required<string>();
   readonly value = input.required<number>();
+  /** Off where the tier is shown beside the label instead, so every bar keeps the same length. */
+  readonly showTier = input(true);
   protected readonly model = computed(() => statBar(this.value(), this.stat()));
   protected readonly tier = computed(() => tierLabel(this.model()?.tier ?? 0));
 
-  /** Tier 0 is yellow; prestige tiers cycle through the rest. */
-  protected fill(t: number): string { return t <= 0 ? TIER_FILLS[0] : TIER_FILLS[1 + ((t - 1) % (TIER_FILLS.length - 1))]; }
+  protected readonly fill = tierFill;
 }

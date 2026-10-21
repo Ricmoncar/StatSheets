@@ -1,66 +1,80 @@
 @let c = character();
-<article class="sheet" [style.--ss-accent]="c.color || '#ffff00'">
-  <nav class="tabs" role="tablist" aria-label="Character sections">
+<article class="sheet">
+  <section class="hero" aria-label="Character header">
+    <div class="scene u-fr u-slate" aria-hidden="true">
+      <ss-pattern-canvas [type]="c.pattern?.type" [params]="c.pattern?.params" [rainbow]="rainbow()" />
+    </div>
+    <header class="head u-voice">
+      <i class="u-spr s-torch u-anim torch l" aria-hidden="true"></i>
+      <i class="u-spr s-torch u-anim torch r" style="--delay: -0.35s" aria-hidden="true"></i>
+      <div class="portrait u-fr u-crystal">
+        @if (avatar(); as a) { <img [src]="a" alt="" /> }
+        @else { <i class="u-spr s-soul" style="--sc: 3" aria-hidden="true"></i> }
+      </div>
+      <div class="who">
+        <div class="name-row">
+          <h1 class="name">{{ c.name }}</h1>
+          <button type="button" class="pl" [style.--pl]="pl().color" [class.omni]="pl().short === 'OMNI'" (click)="open.set('power')" title="Power level reference">{{ pl().label }} LEVEL</button>
+        </div>
+        @if (c.info?.owner) { <p class="owner">BY {{ c.info?.owner }}</p> }
+        <div class="meta">
+          <button type="button" class="gold" [class.neg]="(c.gold || 0) < 0" (click)="open.set('gold')" title="Open treasury">
+            <i class="u-spr s-coin u-anim" aria-hidden="true"></i>{{ gold() }}<small>G</small>
+          </button>
+          @if (forms().length) {
+            <div class="forms" role="group" aria-label="Form">
+              @for (f of forms(); track $index) {
+                <button type="button" class="chip" [class.on]="$index === activeForm()" [attr.aria-pressed]="$index === activeForm()" (click)="switchForm($index)">{{ f }}</button>
+              }
+            </div>
+          }
+        </div>
+        @if (c.tags?.length) {
+          <div class="tags">@for (t of c.tags; track t) { <span class="u-tag">{{ t }}</span> }</div>
+        }
+        @if (c.bio) { <p class="bio">{{ c.bio }}</p> }
+      </div>
+      <div class="actions">
+        <button type="button" class="u-btn icon" (click)="open.set('compare')" title="Compare with another character" aria-label="Compare"><ss-icon name="cmp" /></button>
+        <button type="button" class="u-btn" (click)="edit()"><ss-icon name="pencil" />EDIT</button>
+        <button type="button" class="u-btn danger" (click)="remove()"><ss-icon name="trash" />DEL</button>
+      </div>
+    </header>
+  </section>
+
+  <nav class="tabs u-tabs" role="tablist" aria-label="Character sections">
     @for (t of tabs; track t.key) {
-      <button type="button" role="tab" class="tab" [class.on]="tab() === t.key" [attr.aria-selected]="tab() === t.key" (click)="tab.set(t.key)">{{ t.label }}</button>
+      <button type="button" role="tab" class="tab u-btn u-tab" [class.on]="tab() === t.key" [attr.aria-selected]="tab() === t.key" (click)="tab.set(t.key)"><ss-icon [name]="t.icon" />{{ t.label }}</button>
     }
   </nav>
 @switch (tab()) {
 @case ('stats') {
-  <header class="head">
-    <div class="portrait">
-      @if (avatar(); as a) { <img [src]="a" alt="" /> }
-      @else { <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="12" y="2" width="8" height="8"/><rect x="10" y="10" width="12" height="10"/><rect x="8" y="20" width="6" height="8"/><rect x="18" y="20" width="6" height="8"/></svg> }
-    </div>
-    <div class="who">
-      <div class="name-row">
-        <h1 class="name">{{ c.name }}</h1>
-        @if (forms().length) {
-          <div class="forms" role="group" aria-label="Form">
-            @for (f of forms(); track $index) {
-              <button type="button" class="chip" [class.on]="$index === activeForm()" [attr.aria-pressed]="$index === activeForm()" (click)="switchForm($index)">{{ f }}</button>
-            }
-          </div>
-        }
-      </div>
-      @if (c.info?.owner) { <p class="owner">BY {{ c.info?.owner }}</p> }
-      <p class="pl" [style.color]="pl().color" [class.omni]="pl().short === 'OMNI'">{{ pl().label }} LEVEL</p>
-      <button type="button" class="gold" [class.neg]="(c.gold || 0) < 0" (click)="open.set('gold')" title="Open treasury">G {{ gold() }}</button>
-      @if (c.bio) { <p class="bio">{{ c.bio }}</p> }
-    </div>
-    <div class="actions">
-      <button type="button" class="btn" (click)="open.set('compare')" title="Compare with another character">CMP</button>
-      <button type="button" class="btn accent" (click)="edit()">EDIT</button>
-      <button type="button" class="btn danger" (click)="remove()">DEL</button>
-    </div>
-  </header>
-
   <ss-panel title="TRAITS">
     <ng-container actions>
-      @if (hasCultivation()) { <button type="button" class="btn" (click)="open.set('cultivation')" title="Cultivation / scaling traits">SCALING</button> }
-      <button type="button" class="btn accent" (click)="open.set('roll')" title="Roll for a new trait">ROLL</button>
-      <button type="button" class="btn info" (click)="open.set('history')" title="Roll history" aria-label="Roll history">H</button>
-      <button type="button" class="btn info" (click)="open.set('codex')" title="Trait Codex" aria-label="Trait Codex">i</button>
+      @if (hasCultivation()) { <button type="button" class="u-btn sm" (click)="open.set('cultivation')" title="Cultivation / scaling traits">SCALING</button> }
+      <button type="button" class="u-btn sm primary" (click)="open.set('roll')" title="Roll for a new trait"><ss-icon name="dice" />ROLL</button>
+      <button type="button" class="u-btn icon sm" (click)="open.set('history')" title="Roll history" aria-label="Roll history"><ss-icon name="book" /></button>
+      <button type="button" class="u-btn icon sm" (click)="open.set('codex')" title="Trait Codex" aria-label="Trait Codex"><ss-icon name="info" /></button>
     </ng-container>
     @if (traits().length) {
       <div class="traits">
         @for (t of traits(); track t.key) { <ss-trait-card [character]="c" [traitKey]="t.key" /> }
       </div>
     } @else {
-      <p class="none">NO TRAITS</p>
+      <div class="u-empty"><i class="u-spr s-soul soulf" aria-hidden="true"></i>NO TRAITS YET</div>
     }
   </ss-panel>
 
   <ss-panel title="STATS">
     <ng-container actions>
-      <button type="button" class="btn info" [class.on]="radar()" [attr.aria-pressed]="radar()" (click)="radar.set(!radar())" title="Toggle stat radar chart" aria-label="Stat radar chart">?</button>
-      <button type="button" class="btn info" (click)="open.set('power')" title="Power level reference" aria-label="Power level reference">i</button>
+      <button type="button" class="u-btn icon sm" [attr.aria-pressed]="radar()" (click)="radar.set(!radar())" title="Toggle stat radar chart" aria-label="Stat radar chart"><ss-icon name="eye" /></button>
+      <button type="button" class="u-btn icon sm" (click)="open.set('power')" title="Power level reference" aria-label="Power level reference"><ss-icon name="info" /></button>
     </ng-container>
     <div class="bars">
       @for (k of main; track k) {
         <div class="row">
-          <span class="label"><ss-stat-icon [stat]="k" [size]="10" />{{ k.toUpperCase() }}</span>
-          <ss-stat-bar [stat]="k" [value]="eff()[k]" />
+          <span class="label"><ss-stat-icon [stat]="k" [size]="21" />{{ k.toUpperCase() }}@if (tierOf(k); as t) { <span class="tier" [style.--f]="tierFill(t)">T{{ t }}</span> }</span>
+          <ss-stat-bar [stat]="k" [value]="eff()[k]" [showTier]="false" />
           <span class="num">{{ eff()[k] }}
             @if (statDiff()[k]; as d) {
               <span class="diff" [class.neg]="d < 0" tabindex="0" [ssTip]="breakdown(k)">({{ d > 0 ? '+' : '' }}{{ d }})</span>

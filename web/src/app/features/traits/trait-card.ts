@@ -11,10 +11,12 @@ import { effectiveStats, getShimmyfulDef, getTraitDef, isShimmyful } from '../..
 import * as A from '../../core/game/trait-actions';
 import { TRAITS } from '../../core/game/traits-data';
 import { RichDesc } from '../../ui/rich-desc';
+import { Icon } from '../../ui/icon';
 
 type Variant = 'duality' | 'capitalist' | 'determination' | 'plain';
 interface SitButton { id: string; label: string; desc: string; on: boolean }
 
+const TRAIT_KEYS = Object.keys(TRAITS);
 const HATRED_DESC = 'Absorb every defeated enemy: permanently add all their non-HP main stats to yours for the rest of that fight. Lose -1% HP per absorb. Revive infinitely with no stat loss.';
 const MERCYFUL_DESC = 'Revive infinitely without losing stats. x10 Heal Power, x10 DEF. Healing received is divided by 5.';
 
@@ -26,7 +28,7 @@ const MERCYFUL_DESC = 'Revive infinitely without losing stats. x10 Heal Power, x
  */
 @Component({
   selector: 'ss-trait-card',
-  imports: [RichDesc, TipDirective],
+  imports: [RichDesc, TipDirective, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './trait-card.html',
   styleUrl: './trait-card.scss',
@@ -53,6 +55,17 @@ export class TraitCard {
     const c = this.character(), k = this.traitKey();
     return isShimmyful(c, k) && !!getShimmyfulDef(k) ? this.rarity() : null;
   });
+  /** Which frame and art the card wears: its rarity, or the state a special trait is in. */
+  protected readonly look = computed(() => {
+    const v = this.variant();
+    if (v === 'duality') return this.duState() === 'hellforged' ? 'hellforged' : 'heavenly';
+    if (v === 'determination') { const d = this.detState(); return d === 'hatred' || d === 'mercyful' ? d : 'determined'; }
+    if (v === 'capitalist') return 'hexxed';
+    const r = this.rarity();
+    return ['common', 'rare', 'epic', 'legendary', 'mythic', 'hexxed'].includes(r) ? r : 'common';
+  });
+  /** The card's number: where the trait sits in the full list, as in the codex. */
+  protected readonly num = computed(() => { const i = TRAIT_KEYS.indexOf(this.traitKey()); return i < 0 ? '' : String(i + 1).padStart(3, '0'); });
   /** Built on hover: what this trait changes on the sheet right now. */
   protected readonly tip = () => traitTip(this.character(), this.traitKey());
   protected readonly stacks = computed(() => (this.character().traitStacks || {}) as Record<string, any>);

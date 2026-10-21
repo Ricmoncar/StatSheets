@@ -11,11 +11,12 @@ import {
 import { LiveField } from '../../ui/live-field';
 import { SoulView } from '../soul/soul-view';
 import { normalizeSoul, soulPrimary } from '../../core/game/soul';
+import { Icon } from '../../ui/icon';
 
 /** The INFO tab: the character's dossier. Every field saves as you type. */
 @Component({
   selector: 'ss-info-tab',
-  imports: [LiveField, SoulView],
+  imports: [LiveField, SoulView, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './info-tab.html',
   styleUrl: './info-tab.scss',

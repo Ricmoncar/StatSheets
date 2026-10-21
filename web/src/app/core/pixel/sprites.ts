@@ -1,4 +1,4 @@
-import { Painter, rng, rows } from './painter';
+import { Ink, Painter, rng, rows } from './painter';
 
 /**
  * Sprites: palette grids drawn frame by frame into one horizontal strip.
@@ -302,6 +302,33 @@ const RARITY_ART: Record<string, (P: Painter, f: number) => void> = {
     });
     if (f === 5 || f === 7) { P.r(0, 10, 20, 1, 'vi3'); P.r(2, 11, 6, 1, 'red'); }
   },
+};
+/** A big SOUL that beats (frames 6 and 7 swell it with a ring), for Determination's states. */
+const soulArt = (fill: Ink, edge: Ink, hi: Ink, ring: Ink, bg: Ink, speck: Ink, crack = false) => (P: Painter, f: number) => {
+  P.r(0, 0, 20, 20, bg);
+  const R2 = rng(7); for (let i = 0; i < 14; i++) P.p(Math.floor(R2() * 20), Math.floor(R2() * 20), speck);
+  const beat = f === 6 || f === 7;
+  HEART14.forEach((row, y) => {
+    for (let x = 0; x < 14; x++) {
+      if (row[x] !== 'X') { if (beat && (row[x - 1] === 'X' || row[x + 1] === 'X' || HEART14[y - 1]?.[x] === 'X' || HEART14[y + 1]?.[x] === 'X')) P.p(3 + x, 5 + y, ring); continue; }
+      const edgePx = y === 0 || x === 0 || x === 13 || row[x - 1] !== 'X' || row[x + 1] !== 'X' || !HEART14[y + 1] || HEART14[y + 1][x] !== 'X';
+      const crackPx = crack && ((x === 7 && y % 3 !== 2) || (x === 6 && y % 3 === 2));
+      P.p(3 + x, 5 + y, crackPx ? 'void' : edgePx ? edge : x >= 2 && x <= 3 && y >= 1 && y <= 2 ? hi : fill);
+    }
+  });
+  if (f % 4 < 2) { P.p(16, 3, 'yel'); P.p(15, 3, 'em3'); P.p(17, 3, 'em3'); P.p(16, 2, 'em3'); P.p(16, 4, 'em3'); } else P.p(16, 3, 'em3');
+};
+RARITY_ART['determined'] = soulArt('red', 'red-d', 'white', 'yel', 'void', 'red-d');
+RARITY_ART['hatred'] = soulArt('red-d', 'void', 'red', 'red', 'void', 'em0', true);
+RARITY_ART['mercyful'] = soulArt('grn', 'ec1', 'fr1', 'fr1', 'ec0', 'ec1');
+RARITY_ART['hellforged'] = RARITY_ART['mythic'];
+RARITY_ART['heavenly'] = (P, f) => { // light falls through the clouds onto a haloed SOUL
+  P.r(0, 0, 20, 20, 'fr0'); P.dither(0, 0, 20, 8, 'fr1', 0.5); P.dither(0, 8, 20, 6, 'fr1', 0.25);
+  P.r(0, 17, 20, 3, 'fr1'); P.r(0, 17, 20, 1, 'white');
+  for (let i = 0; i < 3; i++) { const x0 = ((f * 2 + i * 7) % 26) - 4; for (let y = 0; y < 17; y++) { const x = x0 + (y >> 1); if (x >= 0 && x < 20 && y % 2 === 0) P.p(x, y, 'white'); } }
+  P.ell(10, 5, 4.5, 1.6, 'gd'); P.ell(10, 5, 3.4, 0.8, 'fr0'); P.p(6, 5, 'yel'); P.p(14, 5, 'yel');
+  P.g(HEART9, 5, 8, { R: 'white' }); P.p(7, 9, 'fr1');
+  if (f % 4 === 0) P.p(10, 3, 'white');
 };
 for (const [k, fn] of Object.entries(RARITY_ART)) S('art-' + k, 20, 20, 8, k === 'hexxed' ? 10 : 8, false, fn);
 

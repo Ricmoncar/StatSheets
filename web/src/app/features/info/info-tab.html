@@ -1,5 +1,5 @@
 @let i = info();
-<div class="dossier">
+<div class="dossier u-fr u-stone">
   <h2 class="title">{{ character().name }}</h2>
 
   <label class="owner">
@@ -9,9 +9,9 @@
 
   <section class="sec">
     <h3>SOUL</h3>
-    <button type="button" class="soul" (click)="openSoul.emit()" title="Click to edit this character's SOUL">
+    <button type="button" class="soul u-fr u-slate" (click)="openSoul.emit()" title="Click to edit this character's SOUL">
       <ss-soul-view [soul]="soul()" [px]="72" />
-      <span class="soul-meta"><span class="tiny">SOUL TYPE</span><span class="soul-name" [style.color]="soulColor()" [style.text-shadow]="'0 0 14px ' + soulColor()">{{ soulName() }}</span><span class="soul-edit">&#9998; EDIT SOUL</span></span>
+      <span class="soul-meta"><span class="tiny">SOUL TYPE</span><span class="soul-name" [style.color]="soulColor()" >{{ soulName() }}</span><span class="soul-edit u-btn sm"><ss-icon name="pencil" />EDIT SOUL</span></span>
     </button>
   </section>
 
@@ -56,7 +56,7 @@
               } @else {
                 <textarea [rows]="f.rows" [placeholder]="f.placeholder" [ssLiveField]="i[f.key]" (commit)="save(f.key, $event)"></textarea>
               }
-              <button type="button" class="mdbtn" (click)="togglePreview(f.key)">{{ preview()[f.key] ? '✎ EDIT' : '▶ PREVIEW' }}</button>
+              <button type="button" class="mdbtn u-btn sm" (click)="togglePreview(f.key)"><ss-icon [name]="preview()[f.key] ? 'pencil' : 'eye'" />{{ preview()[f.key] ? 'EDIT' : 'PREVIEW' }}</button>
             </div>
           }
         }
@@ -71,15 +71,15 @@
       <div class="links">
         <span class="tiny">{{ list.label }}</span>
         @for (l of links(key); track $index; let idx = $index) {
-          <div class="link">
+          <div class="link u-fr u-slate">
             <div class="link-row">
               <input type="text" class="ltitle" placeholder="Title (optional)..." [ssLiveField]="l.title" (commit)="updateLink(key, idx, 'title', $event)" />
               <span class="plat" [attr.data-platform]="platform(l.url)" aria-hidden="true">{{ platform(l.url) === 'youtube' ? '▶' : platform(l.url) === 'spotify' ? '♫' : '↗' }}</span>
               <input type="text" class="lurl" placeholder="YouTube or Spotify URL..." [ssLiveField]="l.url" (commit)="updateLink(key, idx, 'url', $event)" />
               <input type="text" class="lnote" placeholder="add a note..." [ssLiveField]="l.note" (commit)="updateLink(key, idx, 'note', $event)" />
-              @if (ytId(l.url)) { <button type="button" class="mini" (click)="togglePlay(key, idx)">{{ playing()[key + ':' + idx] ? '■ STOP' : '▶ PLAY' }}</button> }
-              @if (l.url) { <a class="mini" [href]="l.url" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a> }
-              <button type="button" class="mini x" (click)="removeLink(key, idx)" title="Remove" aria-label="Remove link">&times;</button>
+              @if (ytId(l.url)) { <button type="button" class="mini u-btn sm" (click)="togglePlay(key, idx)"><ss-icon [name]="playing()[key + ':' + idx] ? 'pause' : 'play'" />{{ playing()[key + ':' + idx] ? 'STOP' : 'PLAY' }}</button> }
+              @if (l.url) { <a class="mini u-btn icon sm" [href]="l.url" target="_blank" rel="noopener" title="Open in new tab" aria-label="Open in new tab"><ss-icon name="right" [soul]="false" /></a> }
+              <button type="button" class="mini x u-btn icon sm" (click)="removeLink(key, idx)" title="Remove" aria-label="Remove link"><ss-icon name="x" [soul]="false" /></button>
             </div>
             @if (playing()[key + ':' + idx] && embed(l.url); as src) {
               <iframe class="player" [src]="src" title="YouTube player" allow="autoplay; encrypted-media" allowfullscreen></iframe>
@@ -89,15 +89,15 @@
                 @if (l.audio) {
                   <audio controls preload="none" [src]="l.audio"></audio>
                   <span class="fname" [title]="l.fileName || 'audio'">{{ l.fileName || 'audio.mp3' }}</span>
-                  <button type="button" class="mini" (click)="clearClip(idx)">&#10005; MP3</button>
+                  <button type="button" class="mini u-btn sm" (click)="clearClip(idx)"><ss-icon name="x" />MP3</button>
                 } @else {
-                  <label class="mini">UPLOAD MP3<input type="file" accept="audio/*" hidden (change)="uploadClip(idx, $event)" /></label>
+                  <label class="mini u-btn sm"><ss-icon name="upload" />UPLOAD MP3<input type="file" accept="audio/*" hidden (change)="uploadClip(idx, $event)" /></label>
                 }
               </div>
             }
           </div>
         }
-        <button type="button" class="add" (click)="addLink(key)">{{ list.add }}</button>
+        <button type="button" class="add u-btn sm" (click)="addLink(key)"><ss-icon name="plus" />{{ list.add.replace('+ ', '') }}</button>
       </div>
     }
   </section>

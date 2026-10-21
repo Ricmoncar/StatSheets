@@ -7,7 +7,7 @@ import { ConfirmService } from '../../core/confirm.service';
 import { SoundService } from '../../core/sound.service';
 import { Router } from '@angular/router';
 import { RARITY_LABEL } from '../../core/game/roll';
-import { PL_TIERS, formatGold, overallPowerLevel } from '../../core/game/sheet';
+import { PL_TIERS, formatGold, overallPowerLevel, statBar } from '../../core/game/sheet';
 import { effectiveStats, formTraits, getTraitDef, isShimmyful } from '../../core/game/stats';
 import { sanityRow, substatRows } from '../../core/game/substats';
 import { TRAITS } from '../../core/game/traits-data';
@@ -21,7 +21,7 @@ import { AbilitiesTab } from '../abilities/abilities-tab';
 import { SoulEditor } from '../soul/soul-editor';
 import { CodexModal, CultivationModal, RollHistoryModal } from '../traits/trait-modals';
 import { cultivationRows } from '../../core/game/codex';
-import { StatBar } from '../../ui/stat-bar';
+import { StatBar, tierFill } from '../../ui/stat-bar';
 import { TipDirective } from '../../ui/tooltip';
 import { RadarChart } from '../stats/radar-chart';
 import { PowerModal } from '../stats/power-modal';
@@ -31,6 +31,8 @@ import { statBreakdown } from '../../core/game/breakdown';
 import { MusicTab } from '../music/music-tab';
 import { StyleTab } from '../style/style-tab';
 import { ThemeMusic } from '../../core/theme-music.service';
+import { Icon } from '../../ui/icon';
+import { PatternCanvas } from '../../ui/pattern-canvas';
 
 const MAIN = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'] as const;
 const CLASSIC = /^Classic$/i;
@@ -38,7 +40,7 @@ const CLASSIC = /^Classic$/i;
 /** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal, MusicTab, StyleTab, TipDirective, RadarChart, PowerModal, CompareModal, StatIcon],
+  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal, MusicTab, StyleTab, TipDirective, RadarChart, PowerModal, CompareModal, StatIcon, Icon, PatternCanvas],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
@@ -65,6 +67,9 @@ export class CharacterView {
     return Object.fromEntries(MAIN.map(k => [k, Math.round((eff[k] - (Number(base[k]) || 0)) * 100) / 100])) as Record<string, number>;
   });
   protected readonly breakdown = (stat: string) => () => statBreakdown(this.character(), stat);
+  protected readonly tierFill = tierFill;
+  /** A stat's prestige tier, shown beside its label (0 for none). */
+  protected tierOf(k: string): number { return statBar((this.eff() as unknown as Record<string, number>)[k], k)?.tier || 0; }
 
   /** The active form's portrait, falling back to the base one. */
   protected readonly avatar = computed(() => {
@@ -95,9 +100,11 @@ export class CharacterView {
 
 
   protected readonly tabs = [
-    { key: 'stats', label: 'STATS' }, { key: 'style', label: 'STYLE' }, { key: 'info', label: 'INFO' },
-    { key: 'music', label: 'MUSIC' }, { key: 'abilities', label: 'ABILITIES' },
+    { key: 'stats', label: 'STATS', icon: 'bars' }, { key: 'style', label: 'STYLE', icon: 'gear' }, { key: 'info', label: 'INFO', icon: 'book' },
+    { key: 'music', label: 'MUSIC', icon: 'note' }, { key: 'abilities', label: 'ABILITIES', icon: 'star' },
   ] as const;
+  /** NARA!'s background cycles through the rainbow, as on the old site. */
+  protected readonly rainbow = computed(() => /^NARA!+$/.test(this.character().name || ''));
   protected readonly tab = signal<'stats' | 'style' | 'info' | 'music' | 'abilities'>('stats');
 
   /** Which overlay is open over the sheet. */

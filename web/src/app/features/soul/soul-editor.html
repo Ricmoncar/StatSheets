@@ -1,7 +1,7 @@
 @let soul = s();
 <ss-modal title="SOUL" width="880px" (closed)="closed.emit()">
   <div class="layout">
-    <div class="stage">
+    <div class="stage u-fr u-slate">
       <ss-soul-view [soul]="soul" [px]="150" />
       <span class="sname" [style.color]="primary()">{{ soul.name || 'Vessel' }}</span>
       <span class="sdesc">{{ desc() }}</span>
@@ -63,7 +63,7 @@
           <ng-container *ngTemplateOutlet="sliderTpl; context: { key: 'crackSpread', label: 'SHATTER', min: 0, max: 100, step: 5 }" />
         }
         <ng-container *ngTemplateOutlet="sliderTpl; context: { key: 'glow', label: 'GLOW', min: 0, max: 40, step: 1 }" />
-        <button type="button" class="reset" (click)="reset()">RESET TO VESSEL</button>
+        <button type="button" class="reset u-btn sm danger" (click)="reset()"><ss-icon name="x" />RESET TO VESSEL</button>
       </section>
     </div>
   </div>
@@ -89,7 +89,7 @@
           @if (palette(scope).length > 1) { <button type="button" class="del" (click)="removeColor(scope, i)" title="Remove this colour" aria-label="Remove colour">&times;</button> }
         </div>
       }
-      @if (canAdd(scope)) { <button type="button" class="add" (click)="addColor(scope)" title="Add another colour" aria-label="Add colour">+</button> }
+      @if (canAdd(scope)) { <button type="button" class="add u-btn icon sm" (click)="addColor(scope)" title="Add another colour" aria-label="Add colour"><ss-icon name="plus" [soul]="false" /></button> }
     </div>
   </div>
 </ng-template>
@@ -102,7 +102,7 @@
 </ng-template>
 
 <ng-template #toggleTpl let-key="key" let-label="label">
-  <button type="button" class="toggle" [class.on]="$any(soul)[key]" [attr.aria-pressed]="!!$any(soul)[key]" (click)="toggle(key)"><span class="box">{{ $any(soul)[key] ? '✕' : '' }}</span>{{ label }}</button>
+  <button type="button" class="toggle" [class.on]="$any(soul)[key]" [attr.aria-pressed]="!!$any(soul)[key]" (click)="toggle(key)"><span class="box u-spr" aria-hidden="true"></span>{{ label }}</button>
 </ng-template>
 
 <ng-template #wheelTpl let-key="key" let-label="label">

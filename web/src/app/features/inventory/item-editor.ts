@@ -8,6 +8,7 @@ import { ICON_CATEGORIES, ITEM_ICONS } from '../../core/game/item-icons';
 import { ITEM_NAME_MAX, MOD_OPS, MOD_STATS, NEW_MOD, PASSIVE_MAX, iconHue, saveItem } from '../../core/game/items';
 import { CldSrc } from '../../ui/cld-src';
 import { Modal } from '../../ui/modal';
+import { Icon } from '../../ui/icon';
 
 /**
  * NEW ITEM / EDIT ITEM: name, description, an emoji icon or an uploaded image,
@@ -16,7 +17,7 @@ import { Modal } from '../../ui/modal';
  */
 @Component({
   selector: 'ss-item-editor',
-  imports: [Modal, CldSrc],
+  imports: [Modal, CldSrc, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './item-editor.html',
   styleUrl: './item-editor.scss',

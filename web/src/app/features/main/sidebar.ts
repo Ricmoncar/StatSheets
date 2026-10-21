@@ -6,6 +6,7 @@ import { Character, Folder } from '../../core/data/models';
 import { ConfirmService } from '../../core/confirm.service';
 import { NotifyService } from '../../core/notify.service';
 import { SoundService } from '../../core/sound.service';
+import { Icon } from '../../ui/icon';
 import { Modal } from '../../ui/modal';
 import { ChatModal } from '../chat/chat-modal';
 
@@ -25,9 +26,9 @@ const FOLDER_NAME_MAX = 30;
  */
 @Component({
   selector: 'ss-sidebar',
-  imports: [NgTemplateOutlet, RouterLink, Modal, ChatModal],
+  imports: [NgTemplateOutlet, RouterLink, Modal, ChatModal, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:click)': 'closeMenu()', '(document:keydown.escape)': 'closeMenu()' },
+  host: { class: 'u-fr u-stone', '(document:click)': 'closeMenu()', '(document:keydown.escape)': 'closeMenu()' },
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
 })

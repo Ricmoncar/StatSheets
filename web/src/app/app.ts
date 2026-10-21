@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DOCUMENT, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, ElementRef, afterNextRender, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { environment } from '../environments/environment';
@@ -40,6 +40,16 @@ export class App {
     const root = inject(DOCUMENT).documentElement;
     effect(() => root.classList.toggle('perf', this.settings.perfMode()));
     inject(Router).events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(() => this.moreOpen.set(false));
+    // pages that fill the screen (the character sheet) size themselves under the bar
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    let ro: ResizeObserver | undefined;
+    afterNextRender(() => {
+      const bar = host.querySelector<HTMLElement>('.topbar');
+      if (!bar) return;
+      ro = new ResizeObserver(() => root.style.setProperty('--topbar-h', bar.offsetHeight + 'px'));
+      ro.observe(bar);
+    });
+    inject(DestroyRef).onDestroy(() => ro?.disconnect());
   }
 
   protected outside(e: Event): void {

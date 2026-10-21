@@ -170,6 +170,12 @@ export const RARITY_FRAME: Record<string, { r: Ink[]; pat: (o: FramePx) => numbe
   legendary: { r: ['wd1', 'gd', 'em3', 'yel'], pat: o => (o.along % 8 === 4 ? 3 : 2) },
   mythic: { r: ['em0', 'em1', 'em2', 'em3'], pat: o => (o.along % 8 === 4 ? 3 : 1) },
   hexxed: { r: ['void', 'vi1', 'vi2', 'vi3'], pat: o => { const h = hash(o.x, o.y, 9) % 6; return h === 0 ? 3 : h < 3 ? 1 : 0; } },
+  // the special traits: Duality's two sides and Determination's three states
+  heavenly: { r: ['mt2', 'fr0', 'fr1', 'white'], pat: o => (o.along % 6 === 3 ? 3 : 2) },
+  hellforged: { r: ['em0', 'red-d', 'red', 'em2'], pat: o => (o.along % 6 === 3 ? 3 : 1) },
+  determined: { r: ['red-d', 'red-d', 'red', 'white'], pat: o => (o.along % 8 === 4 ? 3 : 2) },
+  hatred: { r: ['void', 'red-d', 'red-d', 'red'], pat: o => (hash(o.x, o.y, 4) % 5 === 0 ? 3 : 1) },
+  mercyful: { r: ['ec0', 'ec1', 'grn', 'fr1'], pat: o => (o.along % 8 === 4 ? 3 : 2) },
 };
 for (const [name, def] of Object.entries(RARITY_FRAME)) {
   F('tc-' + name, 6, 16, false, o => {

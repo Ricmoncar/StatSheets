@@ -8,6 +8,7 @@ import {
 } from '../../core/game/soul';
 import { NgTemplateOutlet } from '@angular/common';
 import { Modal } from '../../ui/modal';
+import { Icon } from '../../ui/icon';
 import { SoulView } from './soul-view';
 
 type Scope = 'body' | 'inner';
@@ -19,7 +20,7 @@ type Scope = 'body' | 'inner';
  */
 @Component({
   selector: 'ss-soul-editor',
-  imports: [Modal, SoulView, NgTemplateOutlet],
+  imports: [Modal, SoulView, NgTemplateOutlet, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './soul-editor.html',
   styleUrl: './soul-editor.scss',

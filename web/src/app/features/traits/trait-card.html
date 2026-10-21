@@ -1,18 +1,31 @@
 @let c = character();
 @let k = traitKey();
-<div class="card" [attr.data-rarity]="variant() === 'capitalist' ? 'hexxed' : variant() === 'determination' ? 'determined' : rarity()"
+<div class="card" [attr.data-rarity]="variant() === 'capitalist' ? 'hexxed' : variant() === 'determination' ? 'determined' : rarity()" [attr.data-look]="look()"
      [attr.data-side]="variant() === 'duality' ? duState() : null" [attr.data-det]="variant() === 'determination' ? detState() : null"
-     [class.shimmy]="!!shimmy()" [class.cap-on]="variant() === 'capitalist' && capitalist().active" [attr.data-flip]="flipping()" [ssTip]="tip" data-sfx-hover>
-  @if (shimmy(); as s) { <span class="star" [attr.data-rarity]="s" aria-label="Shimmyful">{{ s === 'legendary' ? '★' : '✦' }}</span> }
-  <span class="label">{{ face().label }}</span>
-  <span class="name"><ss-rich-desc [text]="face().name" [name]="c.name" /></span>
+     [class.shimmy]="!!shimmy()" [class.cap-on]="variant() === 'capitalist' && capitalist().active" [attr.data-flip]="flipping()" [ssTip]="tip" data-sfx-hover
+     [style.border-image-source]="'var(--f-tc-' + look() + ')'">
+  <span class="ring" aria-hidden="true"></span>
+  @switch (look()) {
+    @case ('epic') { <i class="dec c1 u-spr s-crystal-epic" aria-hidden="true"></i><i class="dec s1 u-spr s-spark-epic u-anim" aria-hidden="true"></i><i class="dec s2 u-spr s-spark-epic u-anim" style="--delay: -0.3s" aria-hidden="true"></i> }
+    @case ('legendary') { <i class="sweep" aria-hidden="true"></i> }
+    @case ('heavenly') { <i class="sweep" aria-hidden="true"></i> }
+    @case ('mythic') { <i class="crest" aria-hidden="true"></i><span class="embers" aria-hidden="true"><i style="left: 12%; --d: 2.2s"></i><i style="left: 34%; --d: 1.8s; --dl: -0.6s"></i><i style="left: 58%; --d: 2.6s; --dl: -1.2s"></i><i style="left: 80%; --d: 2s; --dl: -0.3s"></i></span> }
+    @case ('hellforged') { <i class="crest" aria-hidden="true"></i> }
+    @case ('hexxed') { <i class="eye u-spr s-eye u-anim" aria-hidden="true"></i> }
+  }
+  @if (shimmy(); as s) { <i class="star u-spr s-spark u-anim" [attr.data-rarity]="s" role="img" aria-label="Shimmyful"></i> }
+  <div class="top">
+    <span class="art"><i class="u-spr u-anim" [style.background-image]="'var(--s-art-' + look() + ')'" style="--w: 20; --h: 20; --n: 8; --fps: 8"></i></span>
+    <span class="rr"><span class="label">{{ face().label }}</span>@if (num()) { <span class="no">#{{ num() }}</span> }</span>
+    <span class="name"><ss-rich-desc [text]="face().name" [name]="c.name" /></span>
+  </div>
   <span class="desc"><ss-rich-desc [text]="face().desc" [name]="c.name" /></span>
 
   @switch (variant()) {
     @case ('capitalist') {
       <div class="controls">
         <span class="line">TREASURY {{ fmtGold(capitalist().gold) }} G &middot; SCALE x{{ capitalist().mult.toFixed(2) }}</span>
-        <button type="button" class="tbtn" (click)="toggleCapitalist()" title="Use this character's treasury to calculate the capitalist trait bonus.">{{ capitalist().active ? 'DEACTIVATE' : 'ACTIVATE' }}</button>
+        <button type="button" class="tbtn u-btn sm" (click)="toggleCapitalist()" title="Use this character's treasury to calculate the capitalist trait bonus.">{{ capitalist().active ? 'DEACTIVATE' : 'ACTIVATE' }}</button>
       </div>
     }
     @case ('determination') {
@@ -20,44 +33,44 @@
         <div class="row">
           @switch (detState()) {
             @case ('hatred') {
-              <button type="button" class="tbtn on" disabled title="Currently in HATRED mode">&#9876; HATRED</button>
-              <button type="button" class="tbtn" (click)="setDet('determined')">&#10226; RETURN</button>
+              <button type="button" class="tbtn u-btn sm on" disabled title="Currently in HATRED mode">&#9876; HATRED</button>
+              <button type="button" class="tbtn u-btn sm" (click)="setDet('determined')">&#10226; RETURN</button>
             }
             @case ('mercyful') {
-              <button type="button" class="tbtn" (click)="setDet('determined')">&#10226; RETURN</button>
-              <button type="button" class="tbtn on" disabled title="Currently in MERCYFUL mode">&#10022; MERCYFUL</button>
+              <button type="button" class="tbtn u-btn sm" (click)="setDet('determined')">&#10226; RETURN</button>
+              <button type="button" class="tbtn u-btn sm on" disabled title="Currently in MERCYFUL mode">&#10022; MERCYFUL</button>
             }
             @default {
-              <button type="button" class="tbtn" (click)="setDet('hatred')">&#9876; HATRED</button>
-              <button type="button" class="tbtn on" disabled title="Already in DETERMINED mode">&#9829; RESET</button>
-              <button type="button" class="tbtn" (click)="setDet('mercyful')">&#10022; MERCYFUL</button>
+              <button type="button" class="tbtn u-btn sm" (click)="setDet('hatred')">&#9876; HATRED</button>
+              <button type="button" class="tbtn u-btn sm on" disabled title="Already in DETERMINED mode">&#9829; RESET</button>
+              <button type="button" class="tbtn u-btn sm" (click)="setDet('mercyful')">&#10022; MERCYFUL</button>
             }
           }
         </div>
-        <div class="counter"><span>DEFEATS: {{ det().deaths }}</span><button type="button" class="pm" (click)="adjust('deaths', 1)" aria-label="Add a defeat">+</button><button type="button" class="pm" (click)="adjust('deaths', -1)" aria-label="Remove a defeat">-</button></div>
+        <div class="counter"><span>DEFEATS: {{ det().deaths }}</span><button type="button" class="pm u-btn icon sm" (click)="adjust('deaths', 1)" aria-label="Add a defeat">+</button><button type="button" class="pm u-btn icon sm" (click)="adjust('deaths', -1)" aria-label="Remove a defeat">-</button></div>
         @if (detState() === 'hatred') {
-          <div class="counter"><span>ABSORBS: {{ det().kills }}</span><button type="button" class="pm" (click)="adjust('kills', 1)">+</button><button type="button" class="pm" (click)="adjust('kills', -1)">-</button></div>
+          <div class="counter"><span>ABSORBS: {{ det().kills }}</span><button type="button" class="pm u-btn icon sm" (click)="adjust('kills', 1)">+</button><button type="button" class="pm u-btn icon sm" (click)="adjust('kills', -1)">-</button></div>
           @if (others().length) {
             <div class="row">
-              <select class="pick" [value]="absorbPick()" (change)="absorbPick.set($any($event.target).value)" aria-label="Character to absorb">
+              <select class="pick u-input" [value]="absorbPick()" (change)="absorbPick.set($any($event.target).value)" aria-label="Character to absorb">
                 <option value="">-- SELECT CHARACTER TO ABSORB --</option>
                 @for (o of others(); track o.id) { <option [value]="o.id">{{ o.name }}</option> }
               </select>
-              <button type="button" class="tbtn" (click)="absorb()">&#10022; ABSORB STATS</button>
+              <button type="button" class="tbtn u-btn sm" (click)="absorb()">&#10022; ABSORB STATS</button>
             </div>
           }
           @for (a of absorbed(); track a.id) {
             <div class="absorbed">
               <span class="aname">{{ a.name }}</span>
               <span class="astats">+{{ a.atk }} ATK &middot; +{{ a.def }} DEF &middot; +{{ a.mag }} MAG &middot; +{{ a.spd }} SPD</span>
-              <button type="button" class="pm" (click)="unabsorb(a.id)" title="Remove this absorb">&#10005;</button>
+              <button type="button" class="pm u-btn icon sm" (click)="unabsorb(a.id)" title="Remove this absorb">&#10005;</button>
             </div>
           }
         } @else if (detState() === 'mercyful') {
-          <div class="counter"><span>MERCIES: {{ det().spares }}</span><button type="button" class="pm" (click)="adjust('spares', 1)">+</button><button type="button" class="pm" (click)="adjust('spares', -1)">-</button></div>
+          <div class="counter"><span>MERCIES: {{ det().spares }}</span><button type="button" class="pm u-btn icon sm" (click)="adjust('spares', 1)">+</button><button type="button" class="pm u-btn icon sm" (click)="adjust('spares', -1)">-</button></div>
         } @else {
-          <div class="counter"><span>KILLS: {{ det().kills }}/10</span><button type="button" class="pm" (click)="adjust('kills', 1)">+</button><button type="button" class="pm" (click)="adjust('kills', -1)">-</button></div>
-          <div class="counter"><span>SPARES: {{ det().spares }}/10</span><button type="button" class="pm" (click)="adjust('spares', 1)">+</button><button type="button" class="pm" (click)="adjust('spares', -1)">-</button></div>
+          <div class="counter"><span>KILLS: {{ det().kills }}/10</span><button type="button" class="pm u-btn icon sm" (click)="adjust('kills', 1)">+</button><button type="button" class="pm u-btn icon sm" (click)="adjust('kills', -1)">-</button></div>
+          <div class="counter"><span>SPARES: {{ det().spares }}/10</span><button type="button" class="pm u-btn icon sm" (click)="adjust('spares', 1)">+</button><button type="button" class="pm u-btn icon sm" (click)="adjust('spares', -1)">-</button></div>
         }
       </div>
     }
@@ -66,22 +79,22 @@
         @case ('missingno') {
           <div class="controls">
             @if (rollsLine()) { <span class="line">{{ rollsLine() }}</span> }
-            <button type="button" class="tbtn" (click)="missingNo()" title="Randomize all stats between x0.5-x3 (x0.25-x5.5 for SHIMMYFUL). Simulates the start-of-battle chaos roll.">&#9889; REROLL STATS</button>
+            <button type="button" class="tbtn u-btn sm" (click)="missingNo()" title="Randomize all stats between x0.5-x3 (x0.25-x5.5 for SHIMMYFUL). Simulates the start-of-battle chaos roll.">&#9889; REROLL STATS</button>
           </div>
         }
         @case ('glitch') {
           <div class="controls">
             @if (rollsLine()) { <span class="line">{{ rollsLine() }}</span> }
-            <button type="button" class="tbtn" (click)="glitch()" [title]="'Randomize all stats between x0.01-x' + glitchMax() + '. Simulates a round-start Glitch roll.'">&#9889; REROLL STATS</button>
+            <button type="button" class="tbtn u-btn sm" (click)="glitch()" [title]="'Randomize all stats between x0.01-x' + glitchMax() + '. Simulates a round-start Glitch roll.'">&#9889; REROLL STATS</button>
           </div>
         }
         @case ('thousanddoors') {
           <div class="controls">
             @if (rollsLine()) { <span class="line">{{ rollsLine() }}</span> }
             <div class="row">
-              <button type="button" class="tbtn" (click)="doorsRoll()" title="Roll a random stat multiplier for a random stat. Results compound and are permanent.">&#9889; ROLL ENCOUNTER</button>
-              @if (doors().canUndo) { <button type="button" class="tbtn" (click)="doorsUndo()" title="Undo the last roll.">&#8592; UNDO</button> }
-              @if (doors().canReset) { <button type="button" class="tbtn" (click)="doorsReset()" title="Reset all stat multipliers back to x1.00.">&#8635; RESET</button> }
+              <button type="button" class="tbtn u-btn sm" (click)="doorsRoll()" title="Roll a random stat multiplier for a random stat. Results compound and are permanent.">&#9889; ROLL ENCOUNTER</button>
+              @if (doors().canUndo) { <button type="button" class="tbtn u-btn sm" (click)="doorsUndo()" title="Undo the last roll.">&#8592; UNDO</button> }
+              @if (doors().canReset) { <button type="button" class="tbtn u-btn sm" (click)="doorsReset()" title="Reset all stat multipliers back to x1.00.">&#8635; RESET</button> }
             </div>
           </div>
         }
@@ -89,10 +102,10 @@
           <div class="controls">
             @if (rollsLine()) { <span class="line">{{ rollsLine() }}</span> }
             <div class="row">
-              <button type="button" class="tbtn" (click)="drunk('atkmag')" title="Randomize ATK and MAG (bias toward lower values). Simulates landing a hit.">&#9889; REROLL ATK/MAG</button>
-              <button type="button" class="tbtn" (click)="drunk('defhp')" title="Randomize DEF and HP (bias toward lower values). Simulates taking a hit.">&#9889; REROLL DEF/HP</button>
+              <button type="button" class="tbtn u-btn sm" (click)="drunk('atkmag')" title="Randomize ATK and MAG (bias toward lower values). Simulates landing a hit.">&#9889; REROLL ATK/MAG</button>
+              <button type="button" class="tbtn u-btn sm" (click)="drunk('defhp')" title="Randomize DEF and HP (bias toward lower values). Simulates taking a hit.">&#9889; REROLL DEF/HP</button>
               @for (s of situationals(); track s.id) {
-                <button type="button" class="tbtn" [class.on]="s.on" (click)="toggleTrigger(s.id)">&#9889; {{ s.label }}{{ s.on ? ' ON' : '' }}</button>
+                <button type="button" class="tbtn u-btn sm" [class.on]="s.on" (click)="toggleTrigger(s.id)">&#9889; {{ s.label }}{{ s.on ? ' ON' : '' }}</button>
               }
             </div>
           </div>
@@ -100,7 +113,7 @@
         @case ('perfectsoul') {
           <div class="controls soul">
             @if (souls().length) {
-              <button type="button" class="tbtn" (click)="soulListOpen.set(!soulListOpen())" [attr.aria-expanded]="soulListOpen()">SOULS ABSORBED ({{ souls().length }}) {{ soulListOpen() ? '▴' : '▾' }}</button>
+              <button type="button" class="tbtn u-btn sm" (click)="soulListOpen.set(!soulListOpen())" [attr.aria-expanded]="soulListOpen()">SOULS ABSORBED ({{ souls().length }}) {{ soulListOpen() ? '▴' : '▾' }}</button>
               @if (soulListOpen()) {
                 <div class="soul-list">
                   @for (s of souls(); track $index) {
@@ -109,7 +122,7 @@
                       <span class="sname">&#9670; {{ s.name || '?' }}</span>
                       <span class="pct">({{ s.pct }}%)</span>
                       <span class="sstats">@for (x of soulStats(s.stats); track x.k) { <span [attr.data-stat]="x.k">+{{ x.v }} {{ x.k.toUpperCase() }}</span> }</span>
-                      <button type="button" class="pm" (click)="soulRemove($index)" title="Remove this soul.">&#10005;</button>
+                      <button type="button" class="pm u-btn icon sm" (click)="soulRemove($index)" title="Remove this soul.">&#10005;</button>
                     </div>
                   }
                 </div>
@@ -122,13 +135,13 @@
                   <span class="pname">{{ t.name }}</span>
                   <span class="pstats">{{ statLine($any(t.stats)) }}</span>
                 </button>
-                <button type="button" class="pm" (click)="pickSoul(null)" aria-label="Clear">&#10005;</button>
+                <button type="button" class="pm u-btn icon sm" (click)="pickSoul(null)" aria-label="Clear">&#10005;</button>
               } @else {
-                <button type="button" class="tbtn" (click)="soulPickerOpen.set(!soulPickerOpen())">+ SELECT CHARACTER &#9660;</button>
+                <button type="button" class="tbtn u-btn sm" (click)="soulPickerOpen.set(!soulPickerOpen())">+ SELECT CHARACTER &#9660;</button>
               }
               @if (soulPickerOpen()) {
                 <div class="dropdown">
-                  <input type="text" placeholder="SEARCH..." autocomplete="off" [value]="soulQuery()" (input)="soulQuery.set($any($event.target).value)" aria-label="Search characters" />
+                  <input class="u-input" type="text" placeholder="Search..." autocomplete="off" [value]="soulQuery()" (input)="soulQuery.set($any($event.target).value)" aria-label="Search characters" />
                   <div class="choices">
                     @for (o of soulChoices(); track o.id) {
                       <button type="button" class="choice" [class.on]="o.name === soulTarget()" (click)="pickSoul(o.name)">
@@ -142,9 +155,9 @@
               }
             </div>
             <div class="row">
-              <button type="button" class="tbtn" (click)="soulAbsorb()" [title]="'Roll ' + soulRange() + ' of the selected character’s stats and absorb permanently.'">&#9889; ABSORB SOUL</button>
-              @if (soulHistory()) { <button type="button" class="tbtn" (click)="soulUndo()" title="Undo the last absorption.">&#8630; UNDO</button> }
-              @if (souls().length) { <button type="button" class="tbtn" (click)="soulReset()" title="Remove all absorbed souls.">&#8635; RESET</button> }
+              <button type="button" class="tbtn u-btn sm" (click)="soulAbsorb()" [title]="'Roll ' + soulRange() + ' of the selected character’s stats and absorb permanently.'">&#9889; ABSORB SOUL</button>
+              @if (soulHistory()) { <button type="button" class="tbtn u-btn sm" (click)="soulUndo()" title="Undo the last absorption.">&#8630; UNDO</button> }
+              @if (souls().length) { <button type="button" class="tbtn u-btn sm" (click)="soulReset()" title="Remove all absorbed souls.">&#8635; RESET</button> }
             </div>
           </div>
         }
@@ -152,7 +165,7 @@
           @if (situationals().length) {
             <div class="controls row">
               @for (s of situationals(); track s.id) {
-                <button type="button" class="tbtn" [class.on]="s.on" [title]="s.desc" (click)="toggleTrigger(s.id)">{{ bolt() }}{{ s.label }}{{ s.on ? ' ON' : '' }}</button>
+                <button type="button" class="tbtn u-btn sm" [class.on]="s.on" [title]="s.desc" (click)="toggleTrigger(s.id)">{{ bolt() }}{{ s.label }}{{ s.on ? ' ON' : '' }}</button>
               }
             </div>
           }
@@ -165,12 +178,12 @@
     @if (situationals().length) {
       <div class="controls row">
         @for (s of situationals(); track s.id) {
-          <button type="button" class="tbtn" [class.on]="s.on" [title]="s.desc" (click)="toggleTrigger(s.id)">{{ bolt() }}{{ s.label }}{{ s.on ? ' ON' : '' }}</button>
+          <button type="button" class="tbtn u-btn sm" [class.on]="s.on" [title]="s.desc" (click)="toggleTrigger(s.id)">{{ bolt() }}{{ s.label }}{{ s.on ? ' ON' : '' }}</button>
         }
       </div>
     }
-    <button type="button" class="yinyang" (click)="toggleDuality()" title="Switch between HEAVENLY and HELLFORGED">&#9775;</button>
+    <button type="button" class="yinyang u-btn sm" (click)="toggleDuality()" title="Switch between HEAVENLY and HELLFORGED">&#9775;</button>
   }
 
-  <button type="button" class="remove" (click)="remove()" title="Remove trait" aria-label="Remove trait">&#10005;</button>
+  <button type="button" class="remove u-btn ghost icon sm" (click)="remove()" title="Remove trait" aria-label="Remove trait"><ss-icon name="x" [soul]="false" /></button>
 </div>

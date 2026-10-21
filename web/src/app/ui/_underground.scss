@@ -1,0 +1,40 @@
+// Mixins for component styles that cannot take the global u- classes (form
+// controls styled by element, headings inside dense layouts). They produce
+// the same look as the matching building blocks in styles.scss.
+
+// a Hotland metal inset for inputs, textareas and selects
+@mixin field {
+  min-width: 0;
+  padding: var(--p1) var(--p2);
+  color: var(--c-white);
+  caret-color: var(--ac3);
+  font: var(--fs-body) / var(--lh-body) var(--f-body);
+  background: var(--c-ink) padding-box;
+  border: calc(3 * var(--px)) solid transparent;
+  border-image: var(--f-inset) 3 repeat;
+  border-radius: 0;
+  outline: none;
+  &::placeholder { color: var(--c-mute); opacity: 1; }
+  &:hover { border-image-source: var(--f-inset-hi); }
+  &:focus, &:focus-visible { outline: none; box-shadow: none; border-image-source: var(--f-inset-on); }
+  &:disabled { color: var(--t-off); border-image-source: var(--f-btn-dis); }
+  option { background: var(--c-ink); color: var(--c-bone); }
+}
+
+// a small caps label above a field or a group
+@mixin label {
+  font: var(--fs-ui) / 1 var(--f-ui);
+  color: var(--c-bone);
+  text-transform: uppercase;
+}
+
+// the accent heading with a dashed rule running to the edge
+@mixin mini-h {
+  display: flex;
+  align-items: center;
+  gap: var(--p3);
+  font: var(--fs-ui) / 1 var(--f-ui);
+  color: var(--ac3);
+  text-transform: uppercase;
+  &::after { content: ''; flex: 1; height: var(--px); background: var(--t-rule) 0 0 / calc(8 * var(--px)) var(--px) repeat-x; }
+}

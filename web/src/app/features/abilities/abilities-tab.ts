@@ -10,6 +10,7 @@ import {
 import { CldSrc } from '../../ui/cld-src';
 import { ColorText } from '../../ui/color-text';
 import { Modal } from '../../ui/modal';
+import { Icon } from '../../ui/icon';
 
 /**
  * The ABILITIES tab: character passives (free text) and ability cards, with
@@ -18,7 +19,7 @@ import { Modal } from '../../ui/modal';
  */
 @Component({
   selector: 'ss-abilities-tab',
-  imports: [Modal, CldSrc, ColorText],
+  imports: [Modal, CldSrc, ColorText, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './abilities-tab.html',
   styleUrl: './abilities-tab.scss',
