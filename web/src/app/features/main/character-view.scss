@@ -1,0 +1,40 @@
+:host { display: block; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 48px 24px; }
+
+.sheet { display: grid; gap: 24px; max-width: 1200px; }
+
+.head { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+
+.portrait {
+  width: 112px;
+  height: 112px;
+  border: 3px solid var(--ss-accent);
+  background: var(--ss-panel);
+  overflow: hidden;
+  img { width: 100%; height: 100%; object-fit: cover; }
+}
+
+.who { display: grid; gap: 6px; min-width: 0; }
+.name { margin: 0; font-size: var(--ss-text-xl); color: var(--ss-accent); letter-spacing: 3px; overflow-wrap: anywhere; }
+.form { justify-self: start; font-size: var(--ss-text-xs); padding: 3px 6px; border: 1px solid var(--ss-atk); color: var(--ss-atk); }
+.owner { margin: 0; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); letter-spacing: 2px; }
+.pl { margin: 0; font-size: var(--ss-text-sm); letter-spacing: 2px; }
+.gold { margin: 0; color: var(--ss-gold); font-size: var(--ss-text-sm); &.neg { color: var(--ss-err); } }
+.bio { margin: 0; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); max-width: 60ch; }
+
+.panel {
+  border: var(--ss-border) solid var(--ss-accent);
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+  h2 { margin: 0 0 6px; font-size: var(--ss-text-sm); letter-spacing: 3px; }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 5ch 1fr 7ch;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--ss-text-xs);
+}
+.label { color: var(--ss-fg-dim); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }

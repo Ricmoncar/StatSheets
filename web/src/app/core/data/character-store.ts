@@ -10,6 +10,7 @@ import {
   query,
   runTransaction,
   setDoc,
+  updateDoc,
   Unsubscribe,
 } from 'firebase/firestore';
 import { FIRESTORE, col } from '../firebase';
@@ -107,6 +108,11 @@ export class CharacterStore {
   /** Writes a brand new character whole, with _rev 1. */
   create(c: Character): Promise<void> {
     return this.save(c);
+  }
+
+  /** Folder collapse state is shared: it is stored on the folder, for everyone (as on the old site). */
+  async setFolderCollapsed(id: string, collapsed: boolean): Promise<void> {
+    await updateDoc(doc(this.db, col('folders'), id), { collapsed });
   }
 
   async remove(id: string): Promise<void> {

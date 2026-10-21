@@ -1,0 +1,73 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: var(--ss-border) solid var(--ss-line);
+}
+
+.head { padding: 14px 12px 10px; border-bottom: var(--ss-border) solid var(--ss-line); }
+.title { color: var(--ss-gold); letter-spacing: 3px; font-size: var(--ss-text-sm); }
+
+.search {
+  margin: 8px;
+  padding: 8px;
+  background: var(--ss-panel);
+  border: 1px solid var(--ss-line-dim);
+  font-size: var(--ss-text-xs);
+  letter-spacing: 1px;
+}
+
+.list { overflow-y: auto; min-height: 0; flex: 1; padding-bottom: 24px; }
+
+.empty { padding: 16px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); letter-spacing: 1px; }
+
+.folder-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 8px;
+  background: none;
+  border: 0;
+  border-left: 3px solid var(--folder);
+  text-align: left;
+  font-size: var(--ss-text-sm);
+}
+.caret { font-size: var(--ss-text-xs); color: var(--ss-fg-dim); }
+.folder-name { color: var(--folder); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.count { color: var(--ss-fg-faint); font-size: var(--ss-text-xs); }
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--ss-panel-2);
+  text-align: left;
+  &:hover { background: var(--ss-panel-2); }
+  &.active { background: var(--ss-panel-2); box-shadow: inset 3px 0 0 var(--char); }
+  &.draft { opacity: 0.6; border-left: 2px dashed var(--ss-line-dim); }
+}
+
+.avatar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: var(--ss-border) solid var(--ss-line);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--char);
+  img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+  svg { width: 18px; height: 18px; fill: currentColor; }
+}
+
+.info { display: grid; gap: 4px; min-width: 0; }
+.name { color: var(--char); font-size: var(--ss-text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.draft .name { color: var(--ss-fg-faint); }
+small { font-size: 6px; color: var(--ss-fg-faint); }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-size: 6px; color: var(--ss-fg-dim); border: 1px solid var(--ss-line-dim); padding: 2px 4px; }
