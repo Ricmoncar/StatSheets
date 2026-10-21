@@ -1,0 +1,87 @@
+:host { display: block; min-width: 0; }
+
+.card {
+  --r: var(--ss-common);
+  position: relative;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 14px;
+  height: 100%;
+  border: var(--ss-border) solid var(--r);
+  background: var(--ss-panel);
+  transition: filter 0.48s steps(6), transform 0.48s steps(6);
+  &[data-rarity='rare'] { --r: var(--ss-rare); }
+  &[data-rarity='epic'] { --r: var(--ss-epic); }
+  &[data-rarity='legendary'] { --r: var(--ss-legendary); }
+  &[data-rarity='mythic'] { --r: var(--ss-mythic); }
+  &[data-rarity='hexxed'] { --r: var(--ss-hexxed); }
+  &[data-rarity='duality'][data-side='heavenly'] { --r: #fff4c2; }
+  &[data-rarity='duality'][data-side='hellforged'] { --r: #ff5a3c; }
+  &[data-rarity='determined'] { --r: #ff2a2a; }
+  &[data-det='mercyful'] { --r: #7fffd4; }
+  &.shimmy { box-shadow: 0 0 0 2px var(--ss-bg), 0 0 0 4px var(--r); }
+  &.cap-on { background: color-mix(in srgb, var(--ss-hexxed) 10%, var(--ss-panel)); }
+  &[data-flip='to-hell'] { filter: brightness(0.4) sepia(1) hue-rotate(-40deg); transform: scaleX(0.92); }
+  &[data-flip='to-heaven'] { filter: brightness(2.2); transform: scaleX(0.92); }
+}
+
+.star { position: absolute; top: 8px; right: 30px; color: var(--r); font-size: var(--ss-text-sm); }
+.label { justify-self: start; font-size: 6px; letter-spacing: 1px; padding: 3px 5px; border: 1px solid var(--r); color: var(--r); }
+.name { font-size: var(--ss-text-sm); color: var(--r); padding-right: 24px; }
+.desc { font-size: var(--ss-text-xs); color: var(--ss-fg-dim); line-height: 1.9; }
+
+.controls { display: grid; gap: 6px; padding-top: 6px; border-top: 1px solid var(--ss-panel-2); }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.line { font-size: 7px; color: var(--ss-fg-dim); letter-spacing: 1px; }
+
+.tbtn {
+  font-size: 7px;
+  padding: 5px 7px;
+  background: none;
+  border: 1px solid var(--r);
+  color: var(--r);
+  letter-spacing: 1px;
+  &.on { background: var(--r); color: var(--ss-bg); }
+  &:disabled { cursor: default; }
+}
+.pm { font-size: 7px; padding: 3px 6px; background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim); }
+.counter { display: flex; align-items: center; gap: 6px; font-size: 7px; span { min-width: 12ch; } }
+
+.pick, .dropdown input { font-size: 7px; padding: 5px; background: var(--ss-bg); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); max-width: 100%; }
+.absorbed { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 7px; padding: 6px; border: 1px solid var(--ss-panel-2); }
+.astats { grid-column: 1; color: var(--ss-fg-dim); }
+.absorbed .pm { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+
+.soul-list { display: grid; gap: 4px; max-height: 180px; overflow-y: auto; }
+.soul-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 7px; padding: 4px 6px; border: 1px solid var(--ss-panel-2); }
+.idx { color: var(--ss-fg-faint); }
+.pct { color: var(--ss-fg-dim); }
+.sstats { display: flex; gap: 6px; flex-wrap: wrap; }
+[data-stat='hp'] { color: var(--ss-hp); }
+[data-stat='atk'] { color: var(--ss-atk); }
+[data-stat='def'] { color: var(--ss-def); }
+[data-stat='mag'] { color: var(--ss-mag); }
+[data-stat='spd'] { color: var(--ss-spd); }
+
+.picker { position: relative; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.selected, .choice { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: none; border: 1px solid var(--ss-line-dim); padding: 5px 7px; font-size: 7px; text-align: left; }
+.dot { width: 6px; height: 6px; flex: none; }
+.pstats { color: var(--ss-fg-faint); }
+.dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 5; display: grid; gap: 4px; padding: 6px; background: var(--ss-bg); border: 1px solid var(--ss-line); }
+.choices { display: grid; gap: 2px; max-height: 220px; overflow-y: auto; }
+.choice { border: 0; width: 100%; &.on, &:hover { background: var(--ss-panel-2); } }
+
+.yinyang { justify-self: start; font-size: var(--ss-text-md); padding: 2px 8px; background: none; border: 1px solid var(--r); color: var(--r); }
+
+.remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 7px;
+  padding: 3px 5px;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--ss-fg-faint);
+  &:hover { border-color: var(--ss-err); color: var(--ss-err); }
+}

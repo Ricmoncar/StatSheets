@@ -2,6 +2,7 @@ import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalE
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 import { CharacterStore } from './core/data/character-store';
+import { EncyclopediaStore } from './core/data/encyclopedia-store';
 import { SoundService } from './core/sound.service';
 
 export const appConfig: ApplicationConfig = {
@@ -10,6 +11,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withComponentInputBinding()),
     provideAppInitializer(() => {
       inject(CharacterStore).start();
+      inject(EncyclopediaStore).start();
       inject(SoundService).wireGlobalSounds();
     }),
   ],

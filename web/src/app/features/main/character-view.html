@@ -34,16 +34,10 @@
     </ng-container>
     @if (traits().length) {
       <div class="traits">
-        @for (t of traits(); track t.key) {
-          <div class="trait" [attr.data-rarity]="t.rarity" [class.shimmy]="t.shimmyful">
-            <span class="rarity">{{ rarityLabel[t.rarity] || t.rarity.toUpperCase() }}</span>
-            <span class="tname">{{ t.name }}</span>
-            <span class="tdesc">{{ t.desc }}</span>
-          </div>
-        }
+        @for (t of traits(); track t.key) { <ss-trait-card [character]="c" [traitKey]="t.key" /> }
       </div>
     } @else {
-      <p class="none">NO TRAITS YET. ROLL FOR ONE.</p>
+      <p class="none">NO TRAITS</p>
     }
   </ss-panel>
 
