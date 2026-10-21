@@ -21,7 +21,7 @@ import { ConfirmService } from '../core/confirm.service';
   styles: `
     .backdrop { position: fixed; inset: 0; z-index: 70; background: rgb(0 0 0 / 0.8); }
     .box { position: fixed; z-index: 71; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, calc(100% - 32px)); display: grid; gap: 18px; padding: 20px; background: var(--ss-bg); border: var(--ss-border) solid var(--ss-line); }
-    .msg { margin: 0; font-size: var(--ss-text-sm); line-height: 2; text-align: center; }
+    .msg { margin: 0; font-size: var(--ss-text-sm); line-height: 2; text-align: center; white-space: pre-line; }
     .row { display: flex; gap: 10px; justify-content: center; }
     .btn { font-size: var(--ss-text-xs); padding: 8px 12px; background: none; border: var(--ss-border) solid var(--ss-fg); &.yes { border-color: var(--ss-err); color: var(--ss-err); } }
   `,

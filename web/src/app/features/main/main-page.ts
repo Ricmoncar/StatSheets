@@ -61,8 +61,7 @@ export class MainPage {
 
   protected open(c: Character): void {
     if (c.isPlaceholder) {
-      // drafts open in the editor on the old site; the editor is not ported yet
-      void this.router.navigate(['/c', c.id]);
+      void this.router.navigate(['/edit', c.id]);   // a draft resumes in the editor
       return;
     }
     this.sound.play('characterchange', { volume: 0.7 });

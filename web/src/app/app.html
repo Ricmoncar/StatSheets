@@ -5,6 +5,7 @@
       <a class="nav-link" [routerLink]="n.path" routerLinkActive="active" data-sfx-click data-sfx-hover>{{ n.label }}</a>
     }
   </nav>
+  <a class="nav-link new" routerLink="/new" data-sfx-click>+ NEW CHARACTER</a>
   <button class="mute" type="button" (click)="sound.toggleMute()" [attr.aria-pressed]="sound.muted()"
           [attr.aria-label]="sound.muted() ? 'Unmute sounds' : 'Mute sounds'">
     {{ sound.muted() ? 'SFX OFF' : 'SFX ON' }}

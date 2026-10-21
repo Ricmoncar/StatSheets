@@ -15,17 +15,17 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Trait rolls, odds, pity, fortune: identical hands to the old site on 400 seeded rolls
 - [x] Stat bars and prestige tiers, power levels, accent presets, gold transactions
 - [ ] Design system (waiting on the chosen direction in `rebuild/design/`)
-- [ ] App shell, routing, sound engine, settings (performance mode, FPS cap, volume)
+- [~] App shell, routing, sound engine (done); settings (performance mode, FPS cap, volume UI) not yet
 
 ## Main app (index.html + script.js core)
 
-- [ ] Sidebar: search, folders (shared collapse state, order), drag and drop, right-click menu
-- [ ] Character view header: portrait, name, owner, level, gold, tags, forms
-- [ ] Stats tab: bars, sub-stats, breakdown tooltips, radar chart, power level modal
-- [ ] Traits: per-form ownership, trait widgets (situational triggers, duality, determination, perfect soul, cultivation stacks...), codex, roll overlay with auto-roll
-- [ ] Inventory: items, icon picker, image icons, mods, equip
-- [ ] Gold manager
-- [ ] Editor: every field, alt forms, tags, avatar upload and compression
+- [~] Sidebar: search, folders with shared collapse, drafts (done); drag and drop, right-click menu, chat button not yet
+- [x] Character view header: portrait, name, owner, power level, gold, bio, shared form switcher, edit, delete
+- [~] Stats: bars, prestige tiers, sub-stats with diffs, SANITY (done); breakdown tooltips, radar chart, power level modal not yet
+- [~] Traits: per-form ownership, every interactive trait card, roll overlay with form chooser and auto-roll (done, replay-tested); codex, roll history, cultivation window, trait tooltips not yet
+- [x] Inventory: items, icon picker, image icons, mods, passives, equip, copy and paste
+- [x] Gold manager
+- [x] Editor: every field, alt forms (12), tags (8), avatar compression, drafts, pattern settings; Gaster easter egg (pattern preview waits for the redesigned patterns)
 - [ ] Info tab: profile fields, media links, voice claims, theme song
 - [ ] Music: per-character theme player and mini-player bar
 - [ ] Abilities tab

@@ -42,7 +42,13 @@ export class CharacterStore {
   readonly characters = signal<Character[]>([]);
   readonly folders = signal<Folder[]>([]);
   readonly status = signal<SyncStatus>('connecting');
-  readonly byId = computed(() => new Map(this.characters().map(c => [c.id, c])));
+  readonly byId = computed(() => new Map([...this.drafts(), ...this.characters()].map(c => [c.id, c])));
+  /**
+   * Drafts: NEW characters whose editor was cancelled. Local to this session
+   * and never saved to the database, as on the old site (where they lasted
+   * until the next snapshot; here they last until the page is closed).
+   */
+  readonly drafts = signal<Character[]>([]);
 
   /** What the database held for each character at the last snapshot. */
   private readonly dbBase = new Map<string, Baseline>();
@@ -123,7 +129,40 @@ export class CharacterStore {
   }
 
   async remove(id: string): Promise<void> {
-    await deleteDoc(doc(this.db, col('characters'), id));
+    if (this.drafts().some(d => d.id === id)) { this.drafts.update(ds => ds.filter(d => d.id !== id)); return; }
+    // update the list at once for a snappy screen; the snapshot confirms it
+    this.characters.update(list => list.filter(c => c.id !== id));
+    try {
+      await deleteDoc(doc(this.db, col('characters'), id));
+    } catch (err) {
+      console.error('Firestore delete error:', err);
+      this.notifier.notify('DELETE FAILED', 'err');
+    }
+  }
+
+  /** The baseline a character object was built from: what the editor diffs against. */
+  baselineOf(c: Character): Baseline | undefined {
+    return this.objBase.get(c);
+  }
+
+  /**
+   * Saves the editor's result. It diffs against the character as it was when
+   * the EDITOR OPENED, so a field the user did not touch is left alone even
+   * if someone else changed it meanwhile. A saved draft leaves the drafts.
+   */
+  saveFromEditor(c: Character, openedWith: Baseline | undefined): Promise<void> {
+    this.drafts.update(ds => ds.filter(d => d.id !== c.id));
+    if (openedWith) this.objBase.set(c, openedWith);
+    return this.save(c);
+  }
+
+  /** Keeps a cancelled new character as a local draft; starting another new character drops older drafts. */
+  keepDraft(c: Character): void {
+    this.drafts.set([c]);
+  }
+
+  clearDrafts(): void {
+    this.drafts.set([]);
   }
 
   /**

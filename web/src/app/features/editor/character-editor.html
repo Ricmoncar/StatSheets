@@ -1,0 +1,175 @@
+@let draft = d();
+<div class="editor" [style.--ss-accent]="draft.color">
+  <header class="top">
+    <button type="button" class="btn" (click)="cancel()" aria-label="Go back">&#9664; BACK</button>
+    <h1>{{ title() }}</h1>
+  </header>
+
+  <div class="cols">
+    <section class="panel">
+      <h2>IDENTITY</h2>
+      <label class="field">
+        <span>NAME</span>
+        <input type="text" [maxLength]="limits.name" placeholder="Enter name..." [value]="draft.name" (input)="patch({ name: $any($event.target).value })" />
+      </label>
+      <label class="field">
+        <span>BIO / LORE</span>
+        <textarea rows="3" placeholder="A short description..." [value]="draft.bio" (input)="patch({ bio: $any($event.target).value })"></textarea>
+      </label>
+      <div class="field">
+        <span>TAGS</span>
+        <div class="row">
+          <input type="text" [maxLength]="limits.tag" placeholder="Add tag, press Enter..." [value]="tagInput()"
+                 (input)="tagInput.set($any($event.target).value)" (keydown.enter)="$event.preventDefault(); addTag()" aria-label="New tag" />
+          <button type="button" class="mini" (click)="addTag()" aria-label="Add tag">+</button>
+        </div>
+        @if (draft.tags.length) {
+          <div class="tags">
+            @for (t of draft.tags; track t) { <span class="tag">{{ t }}<button type="button" (click)="removeTag($index)" [attr.aria-label]="'Remove ' + t">&times;</button></span> }
+          </div>
+        }
+      </div>
+      <div class="field">
+        <span>CHARACTER IMAGE</span>
+        <div class="avatar-row">
+          <label class="avatar">
+            @if (draft.avatar) { <img [src]="draft.avatar" alt="Character image" /> }
+            @else { <span class="up">CLICK TO UPLOAD</span> }
+            <input type="file" accept="image/*" hidden (change)="pickAvatar($event, null)" />
+          </label>
+          @if (draft.avatar) { <button type="button" class="mini" (click)="patch({ avatar: null })">CLEAR</button> }
+        </div>
+      </div>
+      <div class="field">
+        <span>COLOUR</span>
+        <div class="row">
+          <input type="color" [value]="draft.color" (input)="patch({ color: $any($event.target).value })" aria-label="Accent colour" />
+          <span class="hex">{{ draft.color.toUpperCase() }}</span>
+        </div>
+        <div class="swatches">
+          @for (s of swatches; track s) {
+            <button type="button" class="sw" [style.background]="s" [class.on]="s === draft.color.toLowerCase()" [title]="s" (click)="patch({ color: s })" [attr.aria-label]="'Colour ' + s"></button>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>STATS</h2>
+      @for (s of statRows; track s.key) {
+        @let v = draft.stats[s.key];
+        @let tier = tierOf(s.key, v);
+        <div class="stat">
+          <span class="slabel">{{ s.label }} <b>{{ v }}</b> <span class="pl" [style.color]="tier.color">{{ tier.short }}</span></span>
+          <div class="row">
+            <input type="range" min="1" [max]="baseMax[s.key]" [value]="v" (input)="setStat(s.key, $any($event.target).value)" [attr.aria-label]="s.label" />
+            <input type="number" min="1" [max]="baseMax[s.key]" [value]="v" class="num" (input)="setStat(s.key, $any($event.target).value)" [attr.aria-label]="s.label + ' value'" />
+            <button type="button" class="mini" (click)="setStat(s.key, v + 1)" [attr.aria-label]="'Raise ' + s.label">+</button>
+            <button type="button" class="mini" (click)="setStat(s.key, v - 1)" [attr.aria-label]="'Lower ' + s.label">-</button>
+          </div>
+          <ss-stat-bar [stat]="s.key" [value]="v" />
+        </div>
+      }
+      <p class="overall">OVERALL <span [style.color]="overall().color">{{ overall().label }}</span></p>
+
+      <h2>BASE SUBSTATS</h2>
+      <div class="subs">
+        @for (f of subFields; track f.key) {
+          <label class="sub" [title]="f.help">
+            <span [style.color]="f.color">{{ f.label }}</span>
+            @if (f.editable) {
+              <input type="number" min="0" [max]="f.max" [step]="f.step || 1" [value]="draft.substats[f.key]" (input)="setSub(f.key, $any($event.target).value, f.max || 100)" />
+            } @else {
+              <input type="number" value="0" readonly class="locked" />
+            }
+          </label>
+        }
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>ALTERNATE FORMS <span class="count">({{ draft.forms.length }}/{{ limits.forms }})</span></h2>
+    @for (f of draft.forms; track $index; let i = $index) {
+      <div class="form">
+        <div class="form-head"><span>FORM {{ i + 1 }}</span><button type="button" class="mini danger" (click)="removeForm(i)">&#10005; REMOVE</button></div>
+        <div class="form-top">
+          <div>
+            <label class="avatar small">
+              @if (f.avatar) { <img [src]="f.avatar" alt="" /> } @else { <span class="up">IMAGE</span> }
+              <input type="file" accept="image/*" hidden (change)="pickAvatar($event, i)" />
+            </label>
+            @if (f.avatar) { <button type="button" class="mini" (click)="updateForm(i, { avatar: null })">CLEAR</button> }
+          </div>
+          <div class="form-name">
+            <label class="field">
+              <span>FORM NAME</span>
+              <input type="text" [maxLength]="limits.formName" placeholder="e.g. Awakened, Final Boss..." [value]="f.name" (input)="updateForm(i, { name: $any($event.target).value })" />
+            </label>
+            <p class="hint">
+              @if (f.traits?.length) { Trait: {{ formTraitNames(f.traits) }}. Reroll it from the ROLL button. }
+              @else { No trait of its own: inherits the base form's. }
+            </p>
+          </div>
+        </div>
+        @for (s of statRows; track s.key) {
+          @let fv = f.stats[s.key];
+          @let ft = tierOf(s.key, fv);
+          <div class="stat">
+            <span class="slabel">{{ s.label }} <b>{{ fv }}</b> <span class="pl" [style.color]="ft.color">{{ ft.short }}</span></span>
+            <div class="row">
+              <input type="range" min="1" [max]="formMax[s.key]" [value]="fv" (input)="setFormStat(i, s.key, $any($event.target).value)" [attr.aria-label]="'Form ' + (i + 1) + ' ' + s.label" />
+              <input type="number" min="1" [max]="formMax[s.key]" [value]="fv" class="num" (input)="setFormStat(i, s.key, $any($event.target).value)" />
+              <button type="button" class="mini" (click)="setFormStat(i, s.key, fv + 1)">+</button>
+              <button type="button" class="mini" (click)="setFormStat(i, s.key, fv - 1)">-</button>
+            </div>
+            <ss-stat-bar [stat]="s.key" [value]="fv" />
+          </div>
+        }
+        <p class="overall">OVERALL <span [style.color]="formOverall(i).color">{{ formOverall(i).label }}</span></p>
+        <div class="subs">
+          @for (sf of formSubFields; track sf.key) {
+            <label class="sub">
+              <span [style.color]="sf.color">{{ sf.label }} (%)</span>
+              <input type="number" min="0" [max]="sf.max" [step]="sf.step" [value]="+(f.substats[sf.key] || 0).toFixed(2)" (input)="setFormSub(i, sf.key, $any($event.target).value)" />
+            </label>
+          }
+        </div>
+      </div>
+    } @empty {
+      <p class="hint">NO ALTERNATE FORMS YET.</p>
+    }
+    <button type="button" class="btn" [disabled]="draft.forms.length >= limits.forms" (click)="addForm()">+ ADD FORM</button>
+  </section>
+
+  <section class="panel">
+    <h2>BACKGROUND PATTERN</h2>
+    <label class="field">
+      <span>PATTERN TYPE</span>
+      <select [value]="draft.pattern.type" (change)="setPattern($any($event.target).value)">
+        @for (p of patterns; track p.key) { <option [value]="p.key" [selected]="p.key === draft.pattern.type">{{ p.label }}</option> }
+      </select>
+    </label>
+    <div class="params">
+      @for (p of patternParams(); track p.id) {
+        <label class="field">
+          <span>{{ p.label }}</span>
+          @switch (p.type) {
+            @case ('range') { <input type="range" [min]="p.min ?? 0" [max]="p.max ?? 100" [step]="p.step ?? 1" [value]="paramValue(p)" (input)="setParam(p.id, $any($event.target).value, 'range')" /> }
+            @case ('color') { <input type="color" [value]="paramValue(p)" (input)="setParam(p.id, $any($event.target).value, 'color')" /> }
+            @case ('select') {
+              <select (change)="setParam(p.id, $any($event.target).value, 'select')">
+                @for (o of $any(p.options) || []; track $index) { <option [value]="o.value ?? o" [selected]="(o.value ?? o) === paramValue(p)">{{ o.label ?? o }}</option> }
+              </select>
+            }
+          }
+        </label>
+      }
+    </div>
+  </section>
+
+  <div class="actions">
+    <button type="button" class="btn ok" (click)="save()">SAVE CHARACTER</button>
+    <button type="button" class="btn" (click)="cancel()">CANCEL</button>
+  </div>
+</div>

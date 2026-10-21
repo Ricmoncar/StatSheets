@@ -11,6 +11,8 @@ const todo = (title: string) => ({
 export const routes: Routes = [
   { path: '', loadComponent: () => import('./features/main/main-page').then(m => m.MainPage), title: 'STATSHEETS' },
   { path: 'c/:id', loadComponent: () => import('./features/main/main-page').then(m => m.MainPage), title: 'STATSHEETS' },
+  { path: 'new', loadComponent: () => import('./features/editor/character-editor').then(m => m.CharacterEditor), title: 'STATSHEETS - NEW CHARACTER' },
+  { path: 'edit/:id', loadComponent: () => import('./features/editor/character-editor').then(m => m.CharacterEditor), title: 'STATSHEETS - EDIT' },
   { path: 'utilities', ...todo('UTILITIES') },
   { path: 'gallery', ...todo('GALLERY') },
   { path: 'encyclopedia', ...todo('ENCYCLOPAEDIA') },

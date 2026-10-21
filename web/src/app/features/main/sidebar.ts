@@ -44,6 +44,9 @@ interface FolderGroup { folder: Folder; chars: Character[] }
             }
           </div>
         }
+        @for (c of store.drafts(); track c.id) {
+          <ng-container *ngTemplateOutlet="entry; context: { $implicit: c }" />
+        }
         @for (c of unfiled(); track c.id) {
           <ng-container *ngTemplateOutlet="entry; context: { $implicit: c }" />
         }

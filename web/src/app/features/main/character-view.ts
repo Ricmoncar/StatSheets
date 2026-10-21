@@ -3,6 +3,9 @@ import { DecimalPipe } from '@angular/common';
 import { CharacterStore } from '../../core/data/character-store';
 import { Character } from '../../core/data/models';
 import { NotifyService } from '../../core/notify.service';
+import { ConfirmService } from '../../core/confirm.service';
+import { SoundService } from '../../core/sound.service';
+import { Router } from '@angular/router';
 import { RARITY_LABEL } from '../../core/game/roll';
 import { formatGold, overallPowerLevel } from '../../core/game/sheet';
 import { effectiveStats, formTraits, getTraitDef, isShimmyful } from '../../core/game/stats';
@@ -75,6 +78,24 @@ export class CharacterView {
   protected switchForm(idx: number): void {
     if (idx === this.activeForm()) return;
     void this.store.update(this.character().id, c => { c.activeFormIdx = idx; });
+  }
+
+  private readonly confirm = inject(ConfirmService);
+  private readonly sound = inject(SoundService);
+  private readonly router = inject(Router);
+
+  protected edit(): void {
+    void this.router.navigate(['/edit', this.character().id]);
+  }
+
+  /** Deletes after the old question; the page then opens the start character. */
+  protected async remove(): Promise<void> {
+    const c = this.character();
+    if (!(await this.confirm.ask(`DELETE "${c.name}"?\n\nThis cannot be undone.`))) return;
+    this.sound.play('delete');
+    this.notifier.notify('DELETED', 'err');
+    await this.router.navigate(['/']);
+    void this.store.remove(c.id);
   }
 
   protected notYet(what: string): void {
