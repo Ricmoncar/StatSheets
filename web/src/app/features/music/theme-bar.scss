@@ -1,0 +1,140 @@
+@property --bar-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffff00;
+}
+
+:host {
+  --bar-accent: var(--ss-accent);
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 35;   // under modals and toasts
+  height: calc(46px + env(safe-area-inset-bottom, 0px));
+  padding: 0 max(18px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(18px, env(safe-area-inset-left, 0px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(#111, #070707);
+  border-top: var(--ss-border) solid var(--bar-accent);
+  box-shadow: 0 -4px 28px rgb(0 0 0 / 0.75);
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.22, 0.68, 0, 1.1), border-color 0.55s;
+  pointer-events: none;
+}
+:host(.visible) { transform: translateY(0); pointer-events: auto; }
+// tucked away: only the coloured edge shows, with a pill to say something is there
+:host(.peeked) {
+  transform: translateY(calc(100% - 4px));
+  pointer-events: auto;
+  transition-duration: 0.5s, 0.55s;
+  &::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    translate: -50% 0;
+    background: var(--bar-accent);
+    animation: pill 2s steps(6) infinite alternate;
+    pointer-events: none;
+  }
+}
+@keyframes pill { from { opacity: 0.35; } to { opacity: 0.75; } }
+
+:host(.rainbow) { animation: rainbow 2.5s linear infinite; }
+:host(.rainbow) .who { animation: rainbow-text 2.5s linear infinite; }
+@keyframes rainbow {
+  0%, 100% { --bar-accent: hsl(0 100% 62%); }
+  17% { --bar-accent: hsl(60 100% 62%); }
+  33% { --bar-accent: hsl(120 100% 62%); }
+  50% { --bar-accent: hsl(180 100% 62%); }
+  67% { --bar-accent: hsl(240 100% 62%); }
+  83% { --bar-accent: hsl(300 100% 62%); }
+}
+@keyframes rainbow-text { 0%, 100% { color: hsl(0 100% 62%); } 33% { color: hsl(120 100% 62%); } 67% { color: hsl(240 100% 62%); } }
+
+button { background: transparent; padding: 0; flex-shrink: 0; }
+
+.pp {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 9px;
+  border: 1px solid var(--bar-accent);
+  color: var(--bar-accent);
+  &:hover { background: var(--bar-accent); color: #000; box-shadow: 0 0 10px var(--bar-accent); }
+}
+:host(.blocked) .pp { animation: unlock 1.4s steps(2) infinite; }
+@keyframes unlock { 50% { opacity: 0.45; box-shadow: 0 0 8px var(--bar-accent); } }
+
+// the equaliser: blocky bars that jump in whole pixel steps
+.eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 20px;
+  flex-shrink: 0;
+  span { width: 3px; background: var(--bar-accent); animation: eq 0.65s steps(5) infinite alternate; }
+  span:nth-child(1) { animation-duration: 0.5s; }
+  span:nth-child(2) { animation-duration: 0.72s; animation-delay: 0.1s; }
+  span:nth-child(3) { animation-duration: 0.44s; animation-delay: 0.22s; }
+  span:nth-child(4) { animation-duration: 0.82s; animation-delay: 0.07s; }
+  &.paused span { animation-play-state: paused; height: 5px; opacity: 0.2; }
+}
+@keyframes eq { from { height: 4px; opacity: 0.45; } to { height: 18px; opacity: 1; } }
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  border: 0;
+  &:hover .title { color: var(--bar-accent); }
+}
+.title, .who { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.title { font-size: var(--ss-text-sm); letter-spacing: 1px; color: #ccc; }
+.who { font-size: 6.5px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.vol-label { width: 22px; text-align: right; font-size: 6.5px; color: var(--ss-fg-faint); flex-shrink: 0; }
+
+.vol {
+  --val: 20%;
+  appearance: none;
+  width: 86px;
+  height: 4px;
+  padding: 0;
+  flex-shrink: 0;
+  background: linear-gradient(to right, var(--bar-accent) var(--val), #242424 var(--val));
+  border: 1px solid #2e2e2e;
+  &:hover { border-color: #555; }
+  &::-webkit-slider-thumb { appearance: none; width: 10px; height: 22px; background: #fff; border: 2px solid #000; box-shadow: 0 0 0 1px #333; }
+  &:hover::-webkit-slider-thumb { background: var(--bar-accent); box-shadow: 0 0 8px var(--bar-accent), 0 0 0 1px #000; }
+  &::-moz-range-thumb { width: 10px; height: 22px; background: #fff; border: 2px solid #000; border-radius: 0; }
+}
+
+.bg, .stop {
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #2a2a2a;
+  color: #555;
+}
+.bg {
+  width: 24px;
+  font-size: 7px;
+  letter-spacing: 1px;
+  &:hover { color: #999; border-color: #555; }
+  &.on { color: var(--bar-accent); border-color: var(--bar-accent); box-shadow: 0 0 8px var(--bar-accent); }
+}
+.stop { width: 22px; font-size: 9px; &:hover { color: var(--ss-err); border-color: var(--ss-err); } }
+
+@media (max-width: 700px) {
+  :host { gap: 8px; padding-inline: 12px; }
+  .vol { width: 64px; }
+  .vol-label { display: none; }
+}

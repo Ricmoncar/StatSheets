@@ -27,7 +27,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Gold manager
 - [x] Editor: every field, alt forms (12), tags (8), avatar compression, drafts, pattern settings; Gaster easter egg (pattern preview waits for the redesigned patterns)
 - [x] Info tab: every profile field (saves as you type, never overwrites text being typed), markdown preview, [[glitch]] affiliations, soundtrack and voice-claim links with YouTube player and MP3 upload
-- [ ] Music: per-character theme player and mini-player bar
+- [x] Music: per-character theme player and mini-player bar (rebuild/tools/music_e2e.js: 20 checks)
 - [x] Abilities tab: passives, ability cards with the six types, editor with image, text colour toolbar (rendered as text: the old renderer let HTML through)
 - [x] SOUL builder: every layer (fill modes, palettes up to 8, nested soul, outline, shattered, monster, glow, heartbeat, cycle), presets, reset; the SVG is built from validated values only
 - [ ] Character chat

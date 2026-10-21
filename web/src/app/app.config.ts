@@ -4,6 +4,7 @@ import { routes } from './app.routes';
 import { CharacterStore } from './core/data/character-store';
 import { EncyclopediaStore } from './core/data/encyclopedia-store';
 import { SoundService } from './core/sound.service';
+import { ThemeMusic } from './core/theme-music.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -13,6 +14,7 @@ export const appConfig: ApplicationConfig = {
       inject(CharacterStore).start();
       inject(EncyclopediaStore).start();
       inject(SoundService).wireGlobalSounds();
+      inject(ThemeMusic).wire();
     }),
   ],
 };

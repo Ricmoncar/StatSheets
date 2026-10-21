@@ -47,7 +47,7 @@
   position: fixed;
   left: max(8px, env(safe-area-inset-left, 0px));
   bottom: max(8px, env(safe-area-inset-bottom, 0px));
-  z-index: 50;
+  z-index: 30;   // the music bar covers it while up
   font-size: var(--ss-text-xs);
   padding: 6px 8px;
   border: var(--ss-border) solid var(--ss-mythic);

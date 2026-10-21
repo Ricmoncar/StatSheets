@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { CharacterStore } from '../../core/data/character-store';
 import { Character } from '../../core/data/models';
 import { SoundService } from '../../core/sound.service';
+import { ThemeMusic, formTheme } from '../../core/theme-music.service';
 import { CharacterView } from './character-view';
 import { Sidebar } from './sidebar';
 
@@ -45,7 +46,23 @@ export class MainPage {
     return id ? this.store.byId().get(id) ?? null : null;
   });
 
+  private readonly music = inject(ThemeMusic);
+
+  /** What should be playing: the open character's form and its song. */
+  private readonly themeKey = computed(() => {
+    const c = this.current();
+    if (!c) return null;
+    const idx = c.activeFormIdx || 0;
+    return `${c.id}:${idx}:${formTheme(c, idx)?.url || ''}`;
+  });
+
   constructor() {
+    // The song follows the form the sheet shows, whoever switched it.
+    effect(() => {
+      if (!this.themeKey()) return;
+      untracked(() => this.music.playFor(this.current()!));
+    });
+    effect(() => this.music.preload(this.store.characters()));
     // At / (or an unknown id), open the start character once the list has loaded.
     effect(() => {
       const chars = this.store.characters();

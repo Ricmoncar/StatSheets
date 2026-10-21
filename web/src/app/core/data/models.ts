@@ -47,12 +47,15 @@ export interface TraitHistoryEntry {
   [k: string]: unknown;
 }
 
+/** A form's theme music. startAt (seconds) is where it starts and loops back to. */
+export interface ThemeSong { url: string; name?: string; startAt?: number; locked?: boolean; [k: string]: unknown }
+
 export interface AltForm {
   name: string;
   avatar?: string | null;
   stats?: Stats;
   substats?: Substats;
-  themeSong?: string;
+  themeSong?: ThemeSong;
   traits?: string[];
   shimmyfulTraits?: string[];
   [k: string]: unknown;
@@ -73,7 +76,7 @@ export interface CharacterInfo {
   goals?: string;
   bio?: string;
   notes?: string;
-  themeSong?: string;
+  themeSong?: ThemeSong;
   soundtrack?: unknown;
   voiceclaims?: unknown;
   [k: string]: unknown;

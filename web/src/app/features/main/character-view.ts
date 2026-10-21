@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { CharacterStore } from '../../core/data/character-store';
 import { Character } from '../../core/data/models';
@@ -23,6 +23,8 @@ import { CodexModal, CultivationModal, RollHistoryModal } from '../traits/trait-
 import { cultivationRows } from '../../core/game/codex';
 import { GENERIC_PATTERNS } from '../../core/game/patterns';
 import { StatBar } from '../../ui/stat-bar';
+import { MusicTab } from '../music/music-tab';
+import { ThemeMusic } from '../../core/theme-music.service';
 
 const MAIN = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'] as const;
 const CLASSIC = /^Classic$/i;
@@ -30,7 +32,7 @@ const CLASSIC = /^Classic$/i;
 /** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal],
+  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal, MusicTab],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
@@ -90,6 +92,16 @@ export class CharacterView {
   /** Which overlay is open over the sheet. */
   protected readonly open = signal<'roll' | 'gold' | 'codex' | 'history' | 'cultivation' | 'soul' | null>(null);
   protected readonly hasCultivation = computed(() => cultivationRows(this.character()).length > 0);
+
+  constructor() {
+    // the mini-player's song title opens this tab
+    const music = inject(ThemeMusic);
+    effect(() => {
+      if (!music.wantTab()) return;
+      this.tab.set('music');
+      music.wantTab.set(false);
+    });
+  }
 
   /** Switching form is shared: it saves activeFormIdx on the character, as on the old site. */
   protected switchForm(idx: number): void {

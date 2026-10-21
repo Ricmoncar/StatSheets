@@ -4,10 +4,11 @@ import { environment } from '../environments/environment';
 import { NotifyService } from './core/notify.service';
 import { SoundService } from './core/sound.service';
 import { ConfirmHost } from './ui/confirm-host';
+import { ThemeBar } from './features/music/theme-bar';
 
 @Component({
   selector: 'ss-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmHost],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmHost, ThemeBar],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
   styleUrl: './app.scss',
