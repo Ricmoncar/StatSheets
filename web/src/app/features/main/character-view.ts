@@ -21,9 +21,9 @@ import { AbilitiesTab } from '../abilities/abilities-tab';
 import { SoulEditor } from '../soul/soul-editor';
 import { CodexModal, CultivationModal, RollHistoryModal } from '../traits/trait-modals';
 import { cultivationRows } from '../../core/game/codex';
-import { GENERIC_PATTERNS } from '../../core/game/patterns';
 import { StatBar } from '../../ui/stat-bar';
 import { MusicTab } from '../music/music-tab';
+import { StyleTab } from '../style/style-tab';
 import { ThemeMusic } from '../../core/theme-music.service';
 
 const MAIN = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'] as const;
@@ -32,7 +32,7 @@ const CLASSIC = /^Classic$/i;
 /** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal, MusicTab],
+  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab, AbilitiesTab, SoulEditor, CodexModal, CultivationModal, RollHistoryModal, MusicTab, StyleTab],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
@@ -84,10 +84,6 @@ export class CharacterView {
     { key: 'music', label: 'MUSIC' }, { key: 'abilities', label: 'ABILITIES' },
   ] as const;
   protected readonly tab = signal<'stats' | 'style' | 'info' | 'music' | 'abilities'>('stats');
-  protected readonly patternLabel = computed(() => {
-    const t = this.character().pattern?.type || 'none';
-    return GENERIC_PATTERNS[t]?.label || t;
-  });
 
   /** Which overlay is open over the sheet. */
   protected readonly open = signal<'roll' | 'gold' | 'codex' | 'history' | 'cultivation' | 'soul' | null>(null);

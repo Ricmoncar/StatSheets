@@ -86,14 +86,9 @@
   </ss-panel>
 }
 @case ('abilities') { <ss-abilities-tab [character]="c" /> }
+@case ('style') { <ss-style-tab [character]="c" /> }
 @case ('music') { <ss-music-tab [character]="c" /> }
 @case ('info') { <ss-info-tab [character]="c" (openSoul)="open.set('soul')" /> }
-@case ('style') {
-  <ss-panel title="BACKGROUND PATTERN">
-    <p class="none">{{ patternLabel() }}</p>
-  </ss-panel>
-}
-@default { <ss-panel [title]="tab().toUpperCase()"><p class="none">NOT REBUILT YET</p></ss-panel> }
 }
 </article>
 

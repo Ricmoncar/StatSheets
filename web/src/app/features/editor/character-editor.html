@@ -1,4 +1,5 @@
 @let draft = d();
+<ss-pattern-canvas class="backdrop" [type]="draft.pattern.type" [params]="draft.pattern.params" />
 <div class="editor" [style.--ss-accent]="draft.color">
   <header class="top">
     <button type="button" class="btn" (click)="cancel()" aria-label="Go back">&#9664; BACK</button>
@@ -150,6 +151,9 @@
         @for (p of patterns; track p.key) { <option [value]="p.key" [selected]="p.key === draft.pattern.type">{{ p.label }}</option> }
       </select>
     </label>
+    @if (draft.pattern.type !== 'none') {
+      <div class="preview" aria-label="Pattern preview"><ss-pattern-canvas [type]="draft.pattern.type" [params]="draft.pattern.params" /></div>
+    }
     <div class="params">
       @for (p of patternParams(); track p.id) {
         <label class="field">

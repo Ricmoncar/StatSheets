@@ -10,6 +10,7 @@ import {
   BASE_STAT_MAX, BASE_SUBSTAT_FIELDS, EditorDraft, FORM_NAME_MAX, FORM_STAT_MAX, FORM_SUBSTAT_FIELDS, FORMS_MAX,
   NAME_MAX, SOUL_SWATCHES, TAG_MAX_LEN, TAGS_MAX, addTag, buildCharacter, clampStat, draftFrom, newDraft, newForm, placeholderFrom,
 } from '../../core/game/editor';
+import { PatternCanvas } from '../../ui/pattern-canvas';
 import { GENERIC_PATTERNS } from '../../core/game/patterns';
 import { PL_TIERS, overallPowerLevel, statPowerLevel } from '../../core/game/sheet';
 import { TRAITS } from '../../core/game/traits-data';
@@ -27,7 +28,7 @@ type StatKey = typeof STAT_ROWS[number]['key'];
  */
 @Component({
   selector: 'ss-character-editor',
-  imports: [StatBar],
+  imports: [StatBar, PatternCanvas],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-editor.html',
   styleUrl: './character-editor.scss',

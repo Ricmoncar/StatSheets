@@ -6,10 +6,11 @@
     }
   </nav>
   <a class="nav-link new" routerLink="/new" data-sfx-click>+ NEW CHARACTER</a>
-  <button class="mute" type="button" (click)="sound.toggleMute()" [attr.aria-pressed]="sound.muted()"
-          [attr.aria-label]="sound.muted() ? 'Unmute sounds' : 'Mute sounds'">
-    {{ sound.muted() ? 'SFX OFF' : 'SFX ON' }}
+  <button class="mute" type="button" (click)="settings.togglePerfMode()" [attr.aria-pressed]="settings.perfMode()"
+          [title]="settings.perfMode() ? 'Performance mode is ON: animated backgrounds are off. Click to turn off.' : 'Performance mode: turn off the animated backgrounds if the site lags.'">
+    {{ settings.perfMode() ? 'PERF: ON' : 'PERF' }}
   </button>
+  <ss-sfx-control />
 </header>
 
 <main class="page">

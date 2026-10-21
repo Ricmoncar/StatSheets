@@ -2,20 +2,21 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { environment } from '../environments/environment';
 import { NotifyService } from './core/notify.service';
-import { SoundService } from './core/sound.service';
+import { SettingsService } from './core/settings.service';
 import { ConfirmHost } from './ui/confirm-host';
 import { ThemeBar } from './features/music/theme-bar';
+import { SfxControl } from './ui/sfx-control';
 
 @Component({
   selector: 'ss-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmHost, ThemeBar],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmHost, ThemeBar, SfxControl],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
 export class App {
   protected readonly notifier = inject(NotifyService);
-  protected readonly sound = inject(SoundService);
+  protected readonly settings = inject(SettingsService);
   protected readonly sandboxLabel = environment.collectionPrefix ? environment.sandboxLabel : '';
 
   /** Top bar links, in the old site's order. */

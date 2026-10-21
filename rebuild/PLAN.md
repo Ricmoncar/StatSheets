@@ -15,7 +15,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Trait rolls, odds, pity, fortune: identical hands to the old site on 400 seeded rolls
 - [x] Stat bars and prestige tiers, power levels, accent presets, gold transactions
 - [ ] Design system (waiting on the chosen direction in `rebuild/design/`)
-- [~] App shell, routing, sound engine (done); settings (performance mode, FPS cap, volume UI) not yet
+- [x] App shell, routing, sound engine, PERF mode (shared `perf_mode` key), SFX volume panel (the old site had no FPS setting)
 
 ## Main app (index.html + script.js core)
 
@@ -25,14 +25,14 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [~] Traits: per-form ownership, every interactive trait card, roll overlay with form chooser and auto-roll (replay-tested), codex, roll history, cultivation window (done); per-trait stat tooltips not yet
 - [x] Inventory: items, icon picker, image icons, mods, passives, equip, copy and paste
 - [x] Gold manager
-- [x] Editor: every field, alt forms (12), tags (8), avatar compression, drafts, pattern settings; Gaster easter egg (pattern preview waits for the redesigned patterns)
+- [x] Editor: every field, alt forms (12), tags (8), avatar compression, drafts, pattern settings with a live preview and the faint full-screen pattern behind; Gaster easter egg
 - [x] Info tab: every profile field (saves as you type, never overwrites text being typed), markdown preview, [[glitch]] affiliations, soundtrack and voice-claim links with YouTube player and MP3 upload
 - [x] Music: per-character theme player and mini-player bar (rebuild/tools/music_e2e.js: 20 checks)
 - [x] Abilities tab: passives, ability cards with the six types, editor with image, text colour toolbar (rendered as text: the old renderer let HTML through)
 - [x] SOUL builder: every layer (fill modes, palettes up to 8, nested soul, outline, shattered, monster, glow, heartbeat, cycle), presets, reset; the SVG is built from validated values only
 - [ ] Character chat
 - [ ] Compare, tier list, leaderboard, height chart, status roller, suggestion box
-- [ ] Generic background patterns, redesigned in pixel art
+- [x] Generic background patterns, redesigned in pixel art (all 15, old settings kept; rebuild/tools/patterns_shot.js), and the STYLE tab
 
 ## Secondary pages
 
