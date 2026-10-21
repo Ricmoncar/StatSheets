@@ -22,11 +22,12 @@ import { Icon } from './icon';
   `,
   styles: `
     :host { display: block; position: relative; min-width: 0; padding: var(--p4) var(--p6) var(--p6); box-shadow: var(--hard); }
-    .head { display: flex; align-items: center; gap: var(--p3); flex-wrap: wrap; margin: calc(-12 * var(--px)) 0 var(--p5) calc(-2 * var(--px)); }
+    // the plaque hangs over the top edge; the header's buttons sit inside the frame, below it
+    .head { display: flex; align-items: flex-start; gap: var(--p3); flex-wrap: wrap; margin: calc(-12 * var(--px)) 0 var(--p5) calc(-2 * var(--px)); }
     .title { max-width: 100%; overflow: hidden; text-overflow: ellipsis; &:hover { color: var(--c-yel); } }
     .chev { display: inline-flex; color: var(--c-wd3); }
     .chev.shut { transform: rotate(-90deg); }
-    .actions { margin-left: auto; display: flex; gap: var(--p3); flex-wrap: wrap; align-items: center; }
+    .actions { margin: calc(12 * var(--px)) 0 0 auto; display: flex; gap: var(--p3); flex-wrap: wrap; align-items: center; }
     :host:has(.head > .title[aria-expanded='false']) .head { margin-bottom: 0; }
     @media (max-width: 720px) { :host { padding: var(--p4) var(--p4) var(--p5); } }
   `,

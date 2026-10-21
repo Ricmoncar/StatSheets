@@ -30,7 +30,7 @@ export class ItemClipboard {
       <div class="grid">
         @for (i of items(); track i.id) {
           <div class="item u-fr" [class.u-slate]="!i.equipped" [class.u-crystal]="i.equipped" [class.equipped]="i.equipped" [style.--hc]="hue(i.icon)" data-sfx-hover>
-            <div class="icon">
+            <div class="pic">
               @if (i.iconImage) { <img [ssCldSrc]="i.iconImage" alt="" /> }
               @else if (i.icon && icons[i.icon]) { <span class="emoji">{{ icons[i.icon] }}</span> }
               @else { <span class="q">?</span> }

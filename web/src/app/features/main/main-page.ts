@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { CharacterStore } from '../../core/data/character-store';
 import { Character } from '../../core/data/models';
@@ -22,17 +22,21 @@ const NARA = /^NARA!+$/;
 @Component({
   selector: 'ss-main-page',
   imports: [Sidebar, CharacterView, PatternCanvas, Icon],
-  host: { '(document:keydown.escape)': 'drawer.set(false)' },
+  host: {
+    '(document:keydown.escape)': 'drawer.set(false)',
+    '[class.styling]': 'styling()',
+    '(pointermove)': 'lean($event)',
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ss-sidebar [class.open]="drawer()" [activeId]="current()?.id ?? null" [avatars]="sidebarAvatars()" (pick)="open($event)" />
     @if (drawer()) { <div class="scrim u-scrim" (click)="drawer.set(false)"></div> }
     <section class="stage">
       <button type="button" class="drawer-btn u-btn sm" (click)="drawer.set(true)" [attr.aria-expanded]="drawer()"><ss-icon name="menu" [soul]="false" />CHARACTERS</button>
-      <ss-pattern-canvas class="bg" [type]="pattern()?.type" [params]="pattern()?.params" [rainbow]="rainbow()" />
+      <ss-pattern-canvas #bg class="bg" [type]="pattern()?.type" [params]="pattern()?.params" [rainbow]="rainbow()" />
       <div class="view">
         @if (current(); as c) {
-          <ss-character-view [character]="c" />
+          <ss-character-view [character]="c" (styling)="styling.set($event)" />
         } @else if (store.status() === 'live' && !store.characters().length) {
           <p class="empty">NO CHARACTERS YET</p>
         }
@@ -42,7 +46,9 @@ const NARA = /^NARA!+$/;
   styles: `
     :host { display: grid; grid-template-columns: calc(104 * var(--px)) minmax(0, 1fr); height: calc(100dvh - var(--topbar-h, 84px)); min-height: 0; }
     .stage { position: relative; min-height: 0; overflow: hidden; }
-    .bg { opacity: 0.3; }
+    .bg { opacity: 0.3; transition: opacity 0.3s steps(3, end), transform 0.25s ease-out; }
+    // on STYLE the background comes to full strength, a little larger, and leans away from the pointer
+    :host(.styling) .bg { opacity: 1; transform: scale(1.06) translate(calc(var(--mx, 0) * -1.5%), calc(var(--my, 0) * -1.5%)); }
     .view { position: relative; z-index: 1; height: 100%; overflow-y: auto; }
     .empty { padding: var(--p12) 16px; text-align: center; color: var(--c-mute); font: var(--fs-ui) / 20px var(--f-ui); }
     @media (max-width: 1000px) { :host { grid-template-columns: calc(90 * var(--px)) minmax(0, 1fr); } }
@@ -51,8 +57,10 @@ const NARA = /^NARA!+$/;
     @media (max-width: 760px) {
       :host { grid-template-columns: minmax(0, 1fr); height: auto; }
       .view { height: auto; }
-      // the header already shows the scene; a second, full-page copy costs a phone too much
+      // the header already shows the scene; a second, full-page copy costs a phone too much,
+      // except on STYLE, where it is the point: it stays put while the sheet scrolls over it
       .bg { display: none; }
+      :host(.styling) .bg { display: block; position: fixed; inset: var(--topbar-h, 60px) 0 0; transform: none; }
       .drawer-btn { display: inline-flex; position: relative; z-index: 2; margin: var(--p4) 0 0 max(16px, env(safe-area-inset-left, 0px)); }
       ss-sidebar { position: fixed; z-index: 34; left: 0; top: var(--topbar-h, 60px); bottom: 0; width: min(calc(150 * var(--px)), 88vw); transform: translateX(-105%); transition: transform 0.2s steps(4, end); }
       ss-sidebar.open { transform: none; box-shadow: var(--p2) 0 0 var(--c-void); }
@@ -65,6 +73,10 @@ export class MainPage {
   private readonly router = inject(Router);
   private readonly sound = inject(SoundService);
 
+  /** The sheet is on its STYLE tab: the background comes forward. */
+  protected readonly styling = signal(false);
+  private readonly bg = viewChild('bg', { read: ElementRef });
+  private leanFrame = 0;
   /** On phones the character list is a drawer. */
   protected readonly drawer = signal(false);
   private readonly phone = signal(matchMedia(PHONE).matches);
@@ -138,5 +150,17 @@ export class MainPage {
     if (id && chars.some(x => x.id === id)) return id;
     const bj = chars.find(x => BLACKJACK.test((x.name || '').trim()));
     return bj ? bj.id : chars[0]?.id ?? null;
+  }
+
+  /** On STYLE the background leans a little away from a mouse pointer (set on the background alone, once a frame). */
+  protected lean(ev: PointerEvent): void {
+    if (!this.styling() || ev.pointerType !== 'mouse' || this.leanFrame) return;
+    const { clientX, clientY } = ev;
+    this.leanFrame = requestAnimationFrame(() => {
+      this.leanFrame = 0;
+      const el = this.bg()?.nativeElement as HTMLElement | undefined;
+      el?.style.setProperty('--mx', ((clientX / innerWidth) * 2 - 1).toFixed(3));
+      el?.style.setProperty('--my', ((clientY / innerHeight) * 2 - 1).toFixed(3));
+    });
   }
 }

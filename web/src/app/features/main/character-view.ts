@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { CharacterStore } from '../../core/data/character-store';
 import { Character } from '../../core/data/models';
@@ -44,6 +44,8 @@ const CLASSIC = /^Classic$/i;
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
+  // on STYLE the sheet turns to a ghost so the character's own background shows (the page behind reacts to this class)
+  host: { '[class.styling]': "tab() === 'style'" },
 })
 export class CharacterView {
   private readonly store = inject(CharacterStore);
@@ -106,6 +108,8 @@ export class CharacterView {
   /** NARA!'s background cycles through the rainbow, as on the old site. */
   protected readonly rainbow = computed(() => /^NARA!+$/.test(this.character().name || ''));
   protected readonly tab = signal<'stats' | 'style' | 'info' | 'music' | 'abilities'>('stats');
+  /** Tells the page behind when STYLE opens and closes, so it can bring the background forward. */
+  readonly styling = output<boolean>();
 
   /** Which overlay is open over the sheet. */
   protected readonly open = signal<'roll' | 'gold' | 'codex' | 'history' | 'cultivation' | 'soul' | 'power' | 'compare' | null>(null);
@@ -114,6 +118,8 @@ export class CharacterView {
   protected readonly hasCultivation = computed(() => cultivationRows(this.character()).length > 0);
 
   constructor() {
+    effect(() => this.styling.emit(this.tab() === 'style'));
+    inject(DestroyRef).onDestroy(() => this.styling.emit(false));
     // the mini-player's song title opens this tab
     const music = inject(ThemeMusic);
     effect(() => {

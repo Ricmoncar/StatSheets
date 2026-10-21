@@ -57,7 +57,8 @@
   font: var(--fs-big) / 1 var(--f-body);
   color: var(--c-yel);
   text-shadow: var(--p1) var(--p1) 0 var(--c-gd);
-  small { font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-em3); text-shadow: none; }
+  // the G in the same face as the amount, two thirds its size, so it reads as part of it
+  small { font: var(--fs-voice) / 1 var(--f-body); color: var(--c-em3); text-shadow: var(--p1) var(--p1) 0 var(--c-gd); }
   &:hover { color: var(--c-white); }
   &.neg { color: var(--c-red); text-shadow: var(--p1) var(--p1) 0 var(--c-red-d); }
 }
@@ -112,3 +113,11 @@
   .torch { display: none; }
   .row { grid-template-columns: calc(26 * var(--px)) minmax(0, 1fr); .num { grid-column: 1 / -1; justify-content: flex-end; margin-top: calc(-2 * var(--px)); } }
 }
+
+// ── STYLE: everything but the tabs fades to a ghost so the background shows through;
+// the style panel comes back when the pointer or focus is on it ──
+.sheet > :not(.tabs) { transition: opacity 0.3s steps(3, end); }
+:host(.styling) .sheet > :not(.tabs) { opacity: 0.12; }
+:host(.styling) .sheet > ss-style-tab:hover, :host(.styling) .sheet > ss-style-tab:focus-within { opacity: 0.92; }
+@media (hover: none) { :host(.styling) .sheet > ss-style-tab { opacity: 0.6; } }
+
