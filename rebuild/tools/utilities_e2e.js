@@ -87,6 +87,24 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   check(/IQ/.test(await page.locator('ss-tooltip-host .tip').textContent()), 'hovering a line shows that character');
   await page.mouse.move(5, 5);
 
+  // compatibility
+  const cp = page.locator('ss-compat-tester');
+  await cp.scrollIntoViewIfNeeded();
+  await cp.locator('.btn').click();
+  await page.waitForTimeout(1600);
+  const s1 = (await cp.locator('.num').textContent()).trim();
+  check(/^\d+%$/.test(s1) && (await cp.locator('.tier').textContent()).trim().length > 0, `two characters get a score and a verdict (${s1})`);
+  await cp.locator('.btn').click();
+  await page.waitForTimeout(1600);
+  check((await cp.locator('.num').textContent()).trim() === s1, 'the same pair scores the same again');
+  await cp.locator('.mode.fr').click();
+  check(await cp.locator('.result').count() === 0, 'changing mode clears it');
+  const firstId = await cp.locator('select').first().inputValue();
+  await cp.locator('select').nth(1).selectOption(firstId);
+  await cp.locator('.btn').click();
+  await page.waitForTimeout(150);
+  check(/SAME CHARACTER/.test(await cp.locator('.result').textContent()), 'the same character twice gets the joke');
+
   // stat checker
   const atk = page.locator('ss-stat-checker .row').nth(1);
   await atk.locator('.math input').nth(0).fill('40');

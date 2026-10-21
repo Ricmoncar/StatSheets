@@ -6,12 +6,13 @@ import { StatChecker } from './stat-checker';
 import { StatusRoller } from './status-roller';
 import { TierListBoard } from './tier-list';
 import { Leaderboard } from './leaderboard';
+import { CompatTester } from './compat-tester';
 import { GeneralSuggestions, TraitSuggestions } from './suggestions';
 
 /** UTILITIES & TOOLS (the old utilities.html), section by section. */
 @Component({
   selector: 'ss-utilities-page',
-  imports: [Panel, DiceRoller, CritCalc, StatChecker, StatusRoller, TraitSuggestions, GeneralSuggestions, TierListBoard, Leaderboard],
+  imports: [Panel, DiceRoller, CritCalc, StatChecker, StatusRoller, TraitSuggestions, GeneralSuggestions, TierListBoard, Leaderboard, CompatTester],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="title">UTILITIES &amp; TOOLS</h1>
@@ -25,7 +26,7 @@ import { GeneralSuggestions, TraitSuggestions } from './suggestions';
     <ss-panel title="STAT CHECKER (SIMULATOR)"><ss-stat-checker /></ss-panel>
     <ss-panel title="STAT LEADERBOARD"><ss-leaderboard /></ss-panel>
     <ss-panel title="STATUS EFFECT ROLLER"><ss-status-roller /></ss-panel>
-    <ss-panel title="COMPATIBILITY TESTER ✦"><p class="todo">NOT REBUILT YET</p></ss-panel>
+    <ss-panel title="COMPATIBILITY TESTER ✦"><ss-compat-tester /></ss-panel>
     <ss-panel title="GAME WORLDS"><p class="todo">NOT REBUILT YET</p></ss-panel>
     <ss-panel title="TRAIT SUGGESTION BOX"><ss-trait-suggestions /></ss-panel>
     <ss-panel title="GENERAL SUGGESTION BOX"><ss-general-suggestions /></ss-panel>

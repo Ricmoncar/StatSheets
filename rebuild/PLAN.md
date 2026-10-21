@@ -36,7 +36,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 
 ## Secondary pages
 
-- [~] Utilities: dice roller, crit calculator, stat checker, status roller (pixel status orbs), trait and general suggestion boxes, shared tier lists, stat leaderboard in five views (rebuild/tools/utilities_e2e.js); compatibility tester, game worlds, height chart not yet
+- [~] Utilities: dice roller, crit calculator, stat checker, status roller (pixel status orbs), trait and general suggestion boxes, shared tier lists, stat leaderboard in five views, compatibility tester (rebuild/tools/utilities_e2e.js); game worlds, height chart not yet
 - [ ] Encyclopaedia
 - [ ] Gallery
 - [ ] Playlists
