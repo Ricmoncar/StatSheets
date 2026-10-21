@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { Unsubscribe, collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc, updateDoc } from 'firebase/firestore';
 import { CharacterStore } from '../../core/data/character-store';
 import { Character } from '../../core/data/models';
@@ -19,18 +19,23 @@ const TIER_COLORS: Record<TierKey, string> = { S: '#ff4a4a', A: '#ff884a', B: '#
 type TierList = { id: string; name: string; createdAt?: number } & Partial<Record<TierKey, string[]>>;
 
 /**
- * The shared tier lists: tabs for each list (double-click to rename), rows
- * S to F and an UNRANKED pool. Characters move by drag and drop, or by
- * clicking one and then the row it goes in.
+ * The shared tier lists: a one-line switcher (arrows, and the current list's
+ * name, which opens a searchable menu of all of them; double-click it to
+ * rename), rows S to F and an UNRANKED pool. Characters move by drag and
+ * drop, or by clicking one and then the row it goes in.
  */
 @Component({
   selector: 'ss-tier-list',
   imports: [TipDirective, NgTemplateOutlet, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:click)': 'outside($event)', '(document:keydown.escape)': 'menuOpen() && closeMenu(true)' },
   templateUrl: './tier-list.html',
   styleUrl: './tier-list.scss',
 })
 export class TierListBoard implements OnInit {
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly newBox = viewChild<ElementRef<HTMLInputElement>>('nm');
+  private readonly renameBox = viewChild<ElementRef<HTMLInputElement>>('ren');
   private readonly db = inject(FIRESTORE);
   private readonly store = inject(CharacterStore);
   private readonly confirm = inject(ConfirmService);
@@ -45,8 +50,15 @@ export class TierListBoard implements OnInit {
   protected readonly naming = signal(false);
   protected readonly renaming = signal<string | null>(null);
   protected readonly dropAt = signal<string | null>(null);
+  protected readonly menuOpen = signal(false);
+  protected readonly query = signal('');
 
   protected readonly active = computed(() => this.lists().find(l => l.id === this.activeId()) ?? null);
+  protected readonly index = computed(() => this.lists().findIndex(l => l.id === this.activeId()));
+  protected readonly found = computed(() => {
+    const q = this.query().trim().toLowerCase();
+    return q ? this.lists().filter(l => (l.name || '').toLowerCase().includes(q)) : this.lists();
+  });
   private readonly byId = computed(() => this.store.byId());
 
   protected readonly rows = computed(() => {
@@ -87,10 +99,70 @@ export class TierListBoard implements OnInit {
     setTimeout(() => { const el = document.querySelector<HTMLInputElement>('ss-tier-list .tab-input'); el?.focus(); el?.select(); });
   }
 
-  protected confirmNew(input: HTMLInputElement): void {
-    const name = input.value.trim();
+  protected confirmNew(): void {
+    const name = this.newBox()?.nativeElement.value.trim();
     this.naming.set(false);
     if (name) void this.create(name);
+  }
+
+  /** The tick next to a name box: creates the new list, or saves the rename (the box saves on blur). */
+  protected commitName(): void {
+    if (this.naming()) this.confirmNew();
+    else this.renameBox()?.nativeElement.blur();
+  }
+
+  protected cancelName(): void {
+    if (this.naming()) { this.naming.set(false); return; }
+    const a = this.active(), el = this.renameBox()?.nativeElement;
+    if (a && el) { el.value = a.name; el.blur(); }
+  }
+
+  /** The previous or next list, wrapping around. */
+  protected step(by: number): void {
+    const ls = this.lists();
+    if (ls.length < 2) return;
+    this.activeId.set(ls[(Math.max(0, this.index()) + by + ls.length) % ls.length].id);
+  }
+
+  // ── the menu of every list ──
+  protected toggleMenu(): void {
+    if (this.menuOpen()) { this.closeMenu(); return; }
+    this.query.set('');
+    this.menuOpen.set(true);
+    setTimeout(() => {
+      // the current list in view; the search box focused, except on touch where it would pop the keyboard up
+      const opts = this.host.querySelector<HTMLElement>('.opts'), on = opts?.querySelector<HTMLElement>('.opt.on');
+      if (opts && on) opts.scrollTop = on.offsetTop - (opts.clientHeight - on.offsetHeight) / 2;
+      if (!matchMedia('(pointer: coarse)').matches) this.host.querySelector<HTMLInputElement>('.find')?.focus();
+    });
+  }
+
+  protected closeMenu(refocus = false): void {
+    this.menuOpen.set(false);
+    if (refocus) setTimeout(() => this.host.querySelector<HTMLElement>('.cur')?.focus());
+  }
+
+  protected pick(id: string): void {
+    this.activeId.set(id);
+    this.closeMenu(true);
+  }
+
+  protected outside(e: Event): void {
+    if (this.menuOpen() && !this.host.querySelector('.pick')?.contains(e.target as Node)) this.closeMenu();
+  }
+
+  /** Arrow keys between the search box and the options; above the first one is the search box. */
+  protected focusOpt(e: Event, i: number): void {
+    e.preventDefault();
+    const opts = this.host.querySelectorAll<HTMLElement>('.opt');
+    if (i < 0) this.host.querySelector<HTMLElement>('.find')?.focus();
+    else opts[Math.min(i, opts.length - 1)]?.focus();
+  }
+
+  /** How many characters a list has ranked (ones since deleted not counted). */
+  protected rankedCount(l: TierList): number {
+    const byId = this.byId();
+    return TIERS.reduce((n, t) => n + (l[t] || []).filter(id => byId.has(id)).length, 0);
   }
 
   protected async remove(l: TierList): Promise<void> {

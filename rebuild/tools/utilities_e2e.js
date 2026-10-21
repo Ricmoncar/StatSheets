@@ -40,8 +40,33 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   check((await page.locator('ss-crit-calc .result').textContent()).trim() === 'CRIT!', '100% crit chance always crits');
   check(/FINAL: x\d/.test(await page.locator('ss-crit-calc .detail').textContent()), 'with the multiplier shown');
 
+  // tier list switcher: one line however many lists, with a searchable menu of all of them
+  const tl = page.locator('ss-tier-list');
+  await page.waitForFunction(() => /\d+\/\d+/.test(document.querySelector('ss-tier-list .cur .pos')?.textContent || ''), null, { timeout: 15000 });
+  const curName = async () => (await tl.locator('.cur .nm').textContent()).trim();
+  const first = await curName(), total = +(await tl.locator('.cur .pos').textContent()).split('/')[1];
+  const barBox = await tl.locator('.bar').boundingBox(), curBox = await tl.locator('.cur').boundingBox();
+  check(barBox.height < curBox.height * 1.5, `the list switcher is one line for ${total} lists (${Math.round(barBox.height)}px high)`);
+  await tl.locator('.bar [aria-label="Next list"]').click();
+  const second = await curName();
+  await tl.locator('.bar [aria-label="Previous list"]').click();
+  check(second !== first && await curName() === first, `the arrows step through them (${first} -> ${second} -> back)`);
+  await tl.locator('.cur').click();
+  check(await tl.locator('.opt').count() === total && await tl.locator('.opt.on .nm').textContent() === first, `the menu lists all ${total}, the current one marked`);
+  await tl.locator('.find').fill(second.slice(0, 4));
+  const hits = await tl.locator('.opt .nm').allTextContents();
+  check(hits.length >= 1 && hits.length < total && hits.every(h => h.toLowerCase().includes(second.slice(0, 4).toLowerCase())), `searching narrows it (${hits.length} for "${second.slice(0, 4)}")`);
+  await tl.locator('.opt', { hasText: second }).first().click();
+  check(await curName() === second && await tl.locator('.menu').count() === 0, 'picking one shows it and closes the menu');
+  await tl.locator('.cur').click();
+  await page.keyboard.press('Escape');
+  check(await tl.locator('.menu').count() === 0, 'Escape closes the menu');
+  await tl.locator('.cur').click();
+  await tl.locator('.find').fill(first);
+  await tl.locator('.find').press('Enter');
+  check(await curName() === first, 'Enter picks the first match');
+
   // tier list (moves one character and puts it back)
-  await page.waitForSelector('ss-tier-list .tab', { timeout: 15000 });
   check((await page.locator('ss-tier-list .row').count()) === 6, 'the tier list has rows S to F');
   const poolChip = page.locator('ss-tier-list .pool .chip').first();
   const who = (await poolChip.locator('.name').textContent()).trim();

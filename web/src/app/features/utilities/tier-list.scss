@@ -1,9 +1,22 @@
 :host { display: block; }
-.tabs { display: flex; flex-wrap: wrap; gap: var(--p2); align-items: center; margin-bottom: var(--p5); }
-.tab { display: inline-flex; align-items: center; gap: var(--p1); }
-.tab-input { width: calc(30 * var(--px)); padding: var(--p1) var(--p2); font: var(--fs-ui) / 1 var(--f-ui); text-transform: uppercase; color: var(--c-white); background: var(--c-ink); border: 0; box-shadow: inset 0 0 0 var(--px) var(--c-yel); outline: none; }
-.tab-del { display: inline-flex; padding: var(--px); color: var(--c-mute); &:hover { color: var(--c-red); } }
-.new { display: inline-flex; align-items: center; gap: var(--p1); }
+// the list switcher, one line however many lists: arrows, the current list (a menu of all of them), its tools
+.bar { display: flex; align-items: center; gap: var(--p2); margin-bottom: var(--p5); }
+.pick { position: relative; display: flex; flex: 1 1 auto; min-width: 0; max-width: calc(120 * var(--px)); }
+.cur { flex: 1; min-width: 0; justify-content: flex-start;
+  .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .pos { margin-left: auto; color: var(--c-wd3); }
+  &:hover .pos { color: inherit; } }
+.tab-input { flex: 1; min-width: 0; min-height: calc(12 * var(--px)); padding: 0 var(--p2); font: var(--fs-ui) / 1 var(--f-ui); text-transform: uppercase; color: var(--c-white); background: var(--c-ink); border: 0; box-shadow: inset 0 0 0 var(--px) var(--c-yel); outline: none;
+  &::placeholder { color: var(--c-mute); } }
+.tools { display: inline-flex; gap: var(--p2); margin-left: auto; }
+
+.menu { position: absolute; z-index: 30; left: 0; top: calc(100% + var(--p2)); display: grid; gap: var(--p2); width: max(100%, calc(124 * var(--px))); max-width: calc(100vw - 32px); padding: var(--p2); box-shadow: var(--hard); }
+.opts { position: relative; max-height: min(calc(104 * var(--px)), 50dvh); overflow-y: auto; overscroll-behavior: contain; }
+.opt { .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .n { margin-left: auto; padding-left: var(--p2); font: var(--fs-small) / 1 var(--f-body); color: var(--c-mute); }
+  // the SOUL marks the list on screen, as on the other menus
+  &.on { color: var(--c-yel); svg.ico:has(.soul) .g { display: none; } svg.ico .soul { display: inline; } } }
+.none { margin: 0; padding: var(--p3); text-align: center; font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-mute); }
 
 // a tier: its letter on a block of its colour, then the characters ranked there
 .row { display: flex; min-height: calc(20 * var(--px)); background: var(--c-ink); box-shadow: inset 0 calc(-1 * var(--px)) 0 var(--c-ink3); }

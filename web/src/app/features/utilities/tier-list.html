@@ -1,28 +1,54 @@
-<div class="tabs" role="tablist" aria-label="Tier lists">
-  @for (l of lists(); track l.id) {
-    <div class="tab" [class.on]="l.id === activeId()">
-      @if (renaming() === l.id) {
-        <input #ren class="tab-input" type="text" maxlength="16" [value]="l.name" aria-label="List name"
-               (keydown.enter)="ren.blur()" (keydown.escape)="ren.value = l.name; ren.blur()" (blur)="finishRename(l, ren.value)" />
-      } @else {
-        <button type="button" role="tab" class="tab-name u-btn u-tab sm" [class.on]="l.id === activeId()" [attr.aria-selected]="l.id === activeId()" (click)="activeId.set(l.id)"
-                (dblclick)="edit(l.id)" title="Double-click to rename">{{ l.name }}</button>
-      }
-      @if (lists().length > 1) {
-        <button type="button" class="tab-del" (click)="remove(l)" [attr.aria-label]="'Delete ' + l.name"><ss-icon name="x" [soul]="false" /></button>
-      }
-    </div>
-  }
-  @if (naming()) {
-    <span class="tab new">
-      <input #nm class="tab-input" type="text" maxlength="16" placeholder="NAME" aria-label="New list name"
-             (keydown.enter)="confirmNew(nm)" (keydown.escape)="naming.set(false)" />
-      <button type="button" class="ok u-btn icon sm" (click)="confirmNew(nm)" aria-label="Create"><ss-icon name="check" [soul]="false" /></button>
-      <button type="button" class="tab-del" (click)="naming.set(false)" aria-label="Cancel"><ss-icon name="x" [soul]="false" /></button>
-    </span>
-  } @else {
-    <button type="button" class="add u-btn icon sm" (click)="edit('new')" title="New tier list" aria-label="New tier list"><ss-icon name="plus" [soul]="false" /></button>
-  }
+<!-- one line however many lists there are: step through them, or pick one from a searchable menu -->
+@let a = active();
+<div class="bar">
+  <button type="button" class="u-btn icon sm" (click)="step(-1)" [disabled]="lists().length < 2" aria-label="Previous list"><ss-icon name="left" /></button>
+  <div class="pick">
+    @if (naming()) {
+      <input #nm class="tab-input" type="text" maxlength="16" placeholder="NEW LIST NAME" aria-label="New list name"
+             (keydown.enter)="confirmNew()" (keydown.escape)="naming.set(false)" />
+    } @else if (a && renaming() === a.id) {
+      <input #ren class="tab-input" type="text" maxlength="16" [value]="a.name" aria-label="List name"
+             (keydown.enter)="ren.blur()" (keydown.escape)="ren.value = a.name; ren.blur()" (blur)="finishRename(a, ren.value)" />
+    } @else {
+      <button type="button" class="cur u-btn sm" (click)="toggleMenu()" (dblclick)="a && edit(a.id)" title="Pick a list (double-click to rename)"
+              aria-haspopup="listbox" [attr.aria-expanded]="menuOpen()" aria-controls="tier-lists">
+        <span class="nm">{{ a?.name || '…' }}</span>
+        @if (lists().length > 1) { <span class="pos">{{ index() + 1 }}/{{ lists().length }}</span> }
+        <ss-icon name="chev" [soul]="false" />
+      </button>
+    }
+    @if (menuOpen()) {
+      <div class="menu u-fr u-frost">
+        <label class="u-field">
+          <ss-icon name="search" [soul]="false" />
+          <input #find class="find" type="search" placeholder="Find a list" aria-label="Find a list" [value]="query()"
+                 (input)="query.set(find.value)" (keydown.enter)="found()[0] && pick(found()[0].id)" (keydown.arrowdown)="focusOpt($event, 0)" />
+        </label>
+        <div class="opts" id="tier-lists" role="listbox" aria-label="Tier lists">
+          @for (l of found(); track l.id; let i = $index) {
+            <button type="button" role="option" class="opt u-menu-item" [class.on]="l.id === activeId()" [attr.aria-selected]="l.id === activeId()"
+                    (click)="pick(l.id)" (keydown.arrowdown)="focusOpt($event, i + 1)" (keydown.arrowup)="focusOpt($event, i - 1)">
+              <ss-icon name="ast" /><span class="nm">{{ l.name }}</span><span class="n" title="Characters ranked">{{ rankedCount(l) }}</span>
+            </button>
+          } @empty {
+            <p class="none">NO MATCHES</p>
+          }
+        </div>
+      </div>
+    }
+  </div>
+  <button type="button" class="u-btn icon sm" (click)="step(1)" [disabled]="lists().length < 2" aria-label="Next list"><ss-icon name="right" /></button>
+  <span class="tools">
+    @if (naming() || (a && renaming() === a.id)) {
+      <!-- mousedown kept from moving focus, so the rename box is not blurred (and saved) before CANCEL runs -->
+      <button type="button" class="u-btn icon sm primary" (mousedown)="$event.preventDefault()" (click)="commitName()" aria-label="Save name"><ss-icon name="check" [soul]="false" /></button>
+      <button type="button" class="u-btn icon sm" (mousedown)="$event.preventDefault()" (click)="cancelName()" aria-label="Cancel"><ss-icon name="x" [soul]="false" /></button>
+    } @else {
+      <button type="button" class="u-btn icon sm" (click)="a && edit(a.id)" [disabled]="!a" title="Rename this list" aria-label="Rename this list"><ss-icon name="pencil" /></button>
+      <button type="button" class="u-btn icon sm" (click)="a && remove(a)" [disabled]="!a || lists().length < 2" title="Delete this list" aria-label="Delete this list"><ss-icon name="trash" /></button>
+      <button type="button" class="add u-btn icon sm" (click)="edit('new')" title="New tier list" aria-label="New tier list"><ss-icon name="plus" /></button>
+    }
+  </span>
 </div>
 
 @for (r of rows(); track r.tier) {
