@@ -2,27 +2,22 @@
 
 .sheet { display: flex; flex-direction: column; gap: var(--p8); max-width: calc(440 * var(--px)); }
 
-// ── the hero: the character's own place, with the white box of focus over it ──
-.hero { position: relative; }
-.scene {
-  position: relative;
-  height: calc(62 * var(--px));
-  overflow: hidden;
-  background: var(--c-void);
-  box-shadow: var(--hard);
-  ss-pattern-canvas { position: absolute; inset: 0; }
-}
+// ── the hero: one frame holding the character's own place, with the white
+// box of focus inside it, the same distance from the frame on every side ──
+.hero { position: relative; overflow: hidden; background-color: var(--c-void); box-shadow: var(--hard); }
+.scene { position: absolute; inset: 0; ss-pattern-canvas { position: absolute; inset: 0; } }
+// wall torches in the top corners of the frame
+.torch { position: absolute; z-index: 1; top: var(--p4); &.l { left: var(--p4); } &.r { right: var(--p4); } }
 .head {
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: var(--p8);
   align-items: start;
-  margin: calc(-24 * var(--px)) var(--p10) 0;
+  margin: calc(40 * var(--px)) var(--p6) var(--p6);
   padding: var(--p4) var(--p6) var(--p5);
   box-shadow: var(--hard);
 }
-.torch { position: absolute; top: calc(-14 * var(--px)); &.l { left: calc(-10 * var(--px)); } &.r { right: calc(-10 * var(--px)); } }
 
 .portrait {
   position: relative;
@@ -108,8 +103,9 @@
 }
 @media (max-width: 720px) {
   :host { padding: var(--p6) max(16px, env(safe-area-inset-right, 0px)) calc(var(--p12) * 2) max(16px, env(safe-area-inset-left, 0px)); }
-  .scene { height: calc(48 * var(--px)); }
-  .head { gap: var(--p3) var(--p5); padding: var(--p4); margin: calc(-20 * var(--px)) var(--p3) 0; }
+  .head { gap: var(--p3) var(--p5); padding: var(--p4); margin: calc(28 * var(--px)) var(--p3) var(--p3); }
+  // a step down on phones (in whole multiples of the font's 8 px grid, so it stays sharp), so a name breaks between words, not inside one
+  .name { font-size: 24px; }
   .portrait { width: calc(40 * var(--px)); height: calc(40 * var(--px)); margin-top: calc(-14 * var(--px)); }
   .torch { display: none; }
   .row { grid-template-columns: calc(26 * var(--px)) minmax(0, 1fr); .num { grid-column: 1 / -1; justify-content: flex-end; margin-top: calc(-2 * var(--px)); } }
