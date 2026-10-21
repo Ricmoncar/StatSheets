@@ -4,40 +4,62 @@
   min-height: 100%;
 }
 
+// Hotland metal across the top: the logo, "* PAGE" links (the SOUL marks the open one) and the actions
 .topbar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 35;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px max(16px, env(safe-area-inset-left, 0px));
-  border-bottom: var(--ss-border) solid var(--ss-line);
-  flex-wrap: wrap;
+  gap: var(--p6);
+  padding: var(--p2) max(16px, env(safe-area-inset-right, 0px)) var(--p2) max(16px, env(safe-area-inset-left, 0px));
+  border-width: calc(5 * var(--px)) 0;
+  box-shadow: var(--hard);
 }
 
 .logo {
-  font-size: var(--ss-text-lg);
-  color: var(--ss-fg);
+  display: inline-flex;
+  font: 700 var(--fs-logo) / 1 var(--f-display);
+  letter-spacing: -0.125em;
+  color: var(--c-white);
+  text-shadow: var(--p1) var(--p1) 0 var(--ac1);
   text-decoration: none;
-  span { color: var(--ss-accent); }
+  white-space: nowrap;
+  span { color: var(--ac3); }
 }
 
-.nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.nav-link, .mute {
-  font-size: var(--ss-text-sm);
-  padding: 8px 10px;
-  border: var(--ss-border) solid var(--ss-gold);
-  color: var(--ss-gold);
-  background: transparent;
+.nav { display: flex; gap: var(--p2); margin-left: auto; min-width: 0; }
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p2);
+  padding: var(--p2) var(--p2) var(--p2) var(--p1);
+  font: var(--fs-ui) / 1 var(--f-ui);
+  color: var(--c-bone);
   text-decoration: none;
-  &.active, &:hover { background: var(--ss-gold); color: var(--ss-bg); }
+  white-space: nowrap;
+  ::ng-deep svg.ico .g { fill: var(--c-mute); }
+  &:hover, &:focus-visible { color: var(--c-yel); }
+  &[aria-current='page'] { color: var(--c-white); }
 }
 
-.mute { border-color: var(--ss-line-dim); color: var(--ss-fg-dim); }
+.more { position: relative; display: none; margin-left: auto; }
+.more-btn { color: var(--c-wd3); &[aria-expanded='true'] { color: var(--c-yel); } }
+.more-menu { position: absolute; right: 0; top: calc(100% + 8 * var(--px)); z-index: 40; min-width: calc(96 * var(--px)); a { text-decoration: none; } }
+
+.acts { display: flex; align-items: center; gap: var(--p3); }
+
+// the nav folds into the menu when the bar runs out of room; phones keep only icons
+@media (max-width: 1640px) {
+  .nav { display: none; }
+  .more { display: block; }
+}
+@media (max-width: 720px) {
+  .topbar { gap: var(--p3); }
+  .logo { margin-right: auto; }
+  .more { margin-left: 0; }
+  .new { width: calc(15 * var(--px)); padding: 0; span { display: none; } }
+}
 
 .page { min-height: 0; }
 
@@ -46,30 +68,49 @@
   left: max(8px, env(safe-area-inset-left, 0px));
   bottom: max(8px, env(safe-area-inset-bottom, 0px));
   z-index: 30;   // the music bar covers it while up
-  font-size: var(--ss-text-xs);
-  padding: 6px 8px;
-  border: var(--ss-border) solid var(--ss-mythic);
-  color: var(--ss-mythic);
-  background: var(--ss-bg);
+  padding: var(--p1) var(--p3);
+  font: var(--fs-ui) / 20px var(--f-ui);
+  color: var(--c-kr);
+  background: var(--c-void);
+  outline: var(--px) dashed var(--c-kr);
   pointer-events: none;
 }
 
+// toasts: frost layers with snow on top, a save star (or a heart for errors) and a timer
 .toasts {
   position: fixed;
   right: max(16px, env(safe-area-inset-right, 0px));
   bottom: max(16px, env(safe-area-inset-bottom, 0px));
   z-index: 60;
-  display: grid;
-  gap: 8px;
-  justify-items: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--p6);
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
 }
-
 .toast {
-  font-size: var(--ss-text-sm);
-  padding: 10px 12px;
-  border: var(--ss-border) solid var(--ss-ok);
-  color: var(--ss-ok);
-  background: var(--ss-bg);
-  cursor: pointer;
-  &.err { border-color: var(--ss-err); color: var(--ss-err); }
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--p3);
+  align-items: center;
+  width: min(100%, calc(140 * var(--px)));
+  padding: var(--p2) var(--p3) var(--p3);
+  box-shadow: var(--hard);
+  pointer-events: auto;
+  animation: toast-in 0.24s steps(4, end) both;
+  p { margin: 0; color: var(--c-bone); font: var(--fs-body) / var(--lh-body) var(--f-body); overflow-wrap: anywhere; }
+  &.err p { color: var(--c-white); }
+  .mark { align-self: start; }
 }
+.timer {
+  grid-column: 1 / -1;
+  position: relative;
+  height: var(--p2);
+  background: var(--c-ink3);
+  overflow: hidden;
+  i { position: absolute; inset: 0 auto 0 0; width: 100%; background: var(--ac2); animation: timer 2.6s steps(16, end) both; }
+}
+.toast.err .timer i { background: var(--c-red); }
+@keyframes toast-in { from { transform: translateX(calc(40 * var(--px))); } to { transform: none; } }
+@keyframes timer { from { width: 100%; } to { width: 0; } }

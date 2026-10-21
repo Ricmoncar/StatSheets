@@ -1,16 +1,33 @@
-<header class="topbar">
+<header class="topbar u-fr u-metal">
   <a class="logo" routerLink="/" aria-label="StatSheets home">STAT<span>SHEETS</span></a>
   <nav class="nav" aria-label="Pages">
     @for (n of nav; track n.path) {
-      <a class="nav-link" [routerLink]="n.path" routerLinkActive="active" data-sfx-click data-sfx-hover>{{ n.label }}</a>
+      <a class="nav-link u-soul-on" [routerLink]="n.path" routerLinkActive #rla="routerLinkActive" [attr.aria-current]="rla.isActive ? 'page' : null" data-sfx-click data-sfx-hover>
+        <ss-icon name="ast" />{{ n.label }}
+      </a>
     }
   </nav>
-  <a class="nav-link new" routerLink="/new" data-sfx-click>+ NEW CHARACTER</a>
-  <button class="mute" type="button" (click)="settings.togglePerfMode()" [attr.aria-pressed]="settings.perfMode()"
-          [title]="settings.perfMode() ? 'Performance mode is ON: animated backgrounds are off. Click to turn off.' : 'Performance mode: turn off the animated backgrounds if the site lags.'">
-    {{ settings.perfMode() ? 'PERF: ON' : 'PERF' }}
-  </button>
-  <ss-sfx-control />
+  <div class="more" [class.open]="moreOpen()">
+    <button type="button" class="u-btn icon more-btn" (click)="moreOpen.set(!moreOpen())" [attr.aria-expanded]="moreOpen()" aria-controls="more-menu" aria-label="Pages">
+      <ss-icon name="menu" [soul]="false" />
+    </button>
+    @if (moreOpen()) {
+      <div class="more-menu u-fr u-frost u-menu" id="more-menu" role="menu">
+        @for (n of nav; track n.path) {
+          <a class="u-menu-item" role="menuitem" [routerLink]="n.path" (click)="moreOpen.set(false)" data-sfx-click><ss-icon name="ast" />{{ n.label }}</a>
+        }
+      </div>
+    }
+  </div>
+  <div class="acts">
+    <a class="u-btn primary new" routerLink="/new" data-sfx-click aria-label="New character"><ss-icon name="plus" /><span>NEW CHARACTER</span></a>
+    <button class="u-btn icon" type="button" (click)="settings.togglePerfMode()" [attr.aria-pressed]="settings.perfMode()"
+            [attr.aria-label]="settings.perfMode() ? 'Performance mode is on' : 'Performance mode'"
+            [title]="settings.perfMode() ? 'Performance mode is ON: animated backgrounds are off. Click to turn off.' : 'Performance mode: turn off the animated backgrounds if the site lags.'">
+      <ss-icon name="bolt" [soul]="false" />
+    </button>
+    <ss-sfx-control />
+  </div>
 </header>
 
 <main class="page">
@@ -28,6 +45,11 @@
 
 <div class="toasts" aria-live="polite">
   @for (n of notifier.notices(); track n.id) {
-    <div class="toast" [class.err]="n.kind === 'err'" (click)="notifier.dismiss(n.id)">{{ n.text }}</div>
+    <div class="toast u-fr u-frost u-snowcap" [class.err]="n.kind === 'err'" role="status">
+      @if (n.kind === 'err') { <i class="u-spr s-heart7 mark" aria-hidden="true"></i> } @else { <i class="u-spr s-save u-anim mark" aria-hidden="true"></i> }
+      <p>{{ n.text }}</p>
+      <button type="button" class="u-btn icon sm" (click)="notifier.dismiss(n.id)" aria-label="Dismiss"><ss-icon name="x" [soul]="false" /></button>
+      <span class="timer" aria-hidden="true"><i [style.animation-duration.ms]="n.ms"></i></span>
+    </div>
   }
 </div>

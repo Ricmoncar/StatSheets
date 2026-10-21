@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { ThemeMusic } from '../../core/theme-music.service';
+import { Icon } from '../../ui/icon';
 
 const MOBILE = '(max-width: 700px)';
 
@@ -11,9 +12,11 @@ const MOBILE = '(max-width: 700px)';
  */
 @Component({
   selector: 'ss-theme-bar',
+  imports: [Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'region',
+    class: 'u-fr u-metal',
     'aria-label': 'Theme music',
     '[class.visible]': "state() === 'visible'",
     '[class.peeked]': "state() === 'peeked'",
@@ -26,18 +29,18 @@ const MOBILE = '(max-width: 700px)';
   },
   template: `
     @if (last(); as cur) {
-      <button type="button" class="pp" (click)="music.toggle()" title="Play / Pause" [attr.aria-label]="music.playing() ? 'Pause' : 'Play'">{{ music.playing() ? '⏸' : '▶' }}</button>
-      <div class="eq" [class.paused]="!music.playing()" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <button type="button" class="pp u-btn icon" (click)="music.toggle()" title="Play / Pause" [attr.aria-label]="music.playing() ? 'Pause' : 'Play'"><ss-icon [name]="music.playing() ? 'pause' : 'play'" [soul]="false" /></button>
+      <i class="eq u-spr s-eq" [class.u-anim]="music.playing()" aria-hidden="true"></i>
       <button type="button" class="info" (click)="openTab(cur.charId)" title="Open Music tab">
         <span class="title">{{ cur.title }}</span>
         <span class="who" [style.color]="cur.rainbow ? null : cur.color">{{ cur.who }}</span>
       </button>
-      <span class="vol-label" aria-hidden="true">{{ music.volume() }}</span>
-      <input type="range" class="vol" min="0" max="100" [value]="music.volume()" [style.--val]="music.volume() + '%'"
+      <input type="range" class="vol" min="0" max="100" [value]="music.volume()"
              (input)="music.setVolume(+$any($event.target).value)" title="Volume" aria-label="Volume" />
-      <button type="button" class="bg" [class.on]="music.keepInBackground()" [attr.aria-pressed]="music.keepInBackground()"
+      <span class="vol-label" aria-hidden="true">{{ music.volume() }}</span>
+      <button type="button" class="bg u-btn sm" [class.on]="music.keepInBackground()" [attr.aria-pressed]="music.keepInBackground()"
               (click)="music.keepInBackground.set(!music.keepInBackground())" title="Keep playing when tab is hidden (off by default)">BG</button>
-      <button type="button" class="stop" (click)="music.stop()" title="Hide player (theme stays assigned)" aria-label="Hide player">&#x2715;</button>
+      <button type="button" class="stop u-btn icon sm" (click)="music.stop()" title="Hide player (theme stays assigned)" aria-label="Hide player"><ss-icon name="x" [soul]="false" /></button>
     }
   `,
   styleUrl: './theme-bar.scss',

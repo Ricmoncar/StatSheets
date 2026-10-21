@@ -50,7 +50,7 @@ export class TipDirective {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (tips.tip(); as t) {
-      <div class="tip" role="tooltip" [style.left.px]="tips.at().x" [style.top.px]="tips.at().y" [style.transform]="flip()" [attr.data-rarity]="t.rarity" [style.--r]="t.color">
+      <div class="tip u-fr u-frost u-snowcap" role="tooltip" [style.left.px]="tips.at().x" [style.top.px]="tips.at().y" [style.transform]="flip()" [attr.data-rarity]="t.rarity" [style.--r]="t.color">
         @if (t.image) { <img class="pic" [src]="t.image" alt="" /> }
         <p class="title">{{ t.title }}</p>
         @if (t.desc) { <p class="desc"><ss-rich-desc [text]="t.desc" [name]="t.name" /></p> }
@@ -66,28 +66,27 @@ export class TipDirective {
   `,
   styles: `
     .tip {
-      --r: var(--ss-fg);
-      position: fixed; z-index: 90; min-width: min(200px, calc(100vw - 24px)); max-width: min(320px, calc(100vw - 24px)); padding: 10px 12px; pointer-events: none;
-      display: grid; gap: 8px; font-size: var(--ss-text-xs); line-height: 1.7;
-      background: var(--ss-bg); border: var(--ss-border) solid var(--r); box-shadow: 4px 4px 0 #000;
+      --r: var(--c-fr1);
+      position: fixed; z-index: 90; min-width: min(calc(70 * var(--px)), calc(100vw - 24px)); max-width: min(calc(120 * var(--px)), calc(100vw - 24px)); padding: var(--p2) var(--p4) var(--p3); pointer-events: none;
+      display: grid; gap: var(--p2); font: var(--fs-body) / var(--lh-body) var(--f-body); color: var(--c-bone); box-shadow: var(--hard);
       &[data-rarity='common'] { --r: var(--ss-common); }
       &[data-rarity='rare'] { --r: var(--ss-rare); }
       &[data-rarity='epic'] { --r: var(--ss-epic); }
       &[data-rarity='legendary'] { --r: var(--ss-legendary); }
       &[data-rarity='mythic'] { --r: var(--ss-mythic); }
       &[data-rarity='hexxed'] { --r: var(--ss-hexxed); }
-      &[data-rarity='determined'] { --r: #ff2a2a; }
+      &[data-rarity='determined'] { --r: var(--c-red); }
     }
     p { margin: 0; }
-    .pic { width: 52px; height: 52px; object-fit: cover; image-rendering: pixelated; border: 2px solid var(--r); }
-    .title { color: var(--r); font-size: var(--ss-text-sm); }
-    .desc { color: var(--ss-fg-dim); }
-    .lines { margin: 0; display: grid; gap: 2px; }
-    .line { display: flex; justify-content: space-between; gap: 16px; }
-    dt { color: var(--ss-fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    dd { margin: 0; color: var(--ss-fg); &[data-tone='pos'] { color: var(--ss-ok); } &[data-tone='neg'] { color: var(--ss-err); } }
-    .total { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--ss-line-dim); dt, dd { color: var(--ss-accent); } }
-    .note { color: var(--ss-fg-faint); }
+    .pic { width: calc(18 * var(--px)); height: calc(18 * var(--px)); object-fit: cover; box-shadow: 0 0 0 var(--px) var(--c-void), 0 0 0 var(--p2) var(--r); }
+    .title { color: var(--r); font: var(--fs-ui) / 20px var(--f-ui); text-transform: uppercase; }
+    .desc { color: var(--c-bone); }
+    .lines { margin: 0; display: grid; gap: 0; }
+    .line { display: flex; justify-content: space-between; gap: var(--p8); }
+    dt { color: var(--c-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    dd { margin: 0; color: var(--c-white); text-align: right; &[data-tone='pos'] { color: var(--good); } &[data-tone='neg'] { color: var(--bad); } }
+    .total { margin-top: var(--p1); padding-top: var(--p1); border-top: var(--px) dashed var(--c-fr0); dt, dd { color: var(--c-fr1); } }
+    .note { color: var(--c-mute); }
   `,
 })
 export class TooltipHost {
@@ -103,6 +102,6 @@ export class TooltipHost {
   protected readonly flip = computed(() => {
     const { x, y } = this.tips.at();
     const left = x > innerWidth * 0.6, up = y > innerHeight * 0.55;
-    return `translate(${left ? 'calc(-100% - 14px)' : '14px'}, ${up ? 'calc(-100% - 14px)' : '14px'})`;
+    return `translate(${left ? 'calc(-100% - 14px)' : '14px'}, ${up ? 'calc(-100% - 14px)' : '28px'})`;   // room below for the snow
   });
 }

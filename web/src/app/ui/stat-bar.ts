@@ -1,42 +1,38 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { statBar, tierLabel } from '../core/game/sheet';
 
+/** Prestige tiers stack in this order over the battle bar's yellow (tier 0). */
+export const TIER_FILLS = ['var(--c-yel)', 'var(--c-kr)', 'var(--c-ec2)', 'var(--c-grn)', 'var(--c-em2)', 'var(--c-vi3)', 'var(--c-white)', 'var(--c-red)'];
+
 /**
- * A segmented stat bar: 20 segments, partial fill on the last one, and
- * prestige tiers drawn over the previous tier's solid colour.
- * Colours come from --ss-<stat> and the --ss-tier-N tokens.
+ * A stat bar in Undertale's HP language: 20 segments, yellow over red, with
+ * a partial fill on the last one. Prestige tiers fill in KR magenta (then
+ * cyan, green...) over a bar already full of the tier below. The stat's own
+ * colour lives on its icon, not here.
  */
 @Component({
   selector: 'ss-stat-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (model(); as m) {
-      <span class="segs" [attr.data-stat]="stat()" role="img" [attr.aria-label]="stat().toUpperCase() + ' ' + value()">
+      <span class="segs" role="img" [attr.aria-label]="stat().toUpperCase() + ' ' + value()">
         @for (s of m.segments; track $index) {
-          <span class="seg" [class.back]="s.backTier >= 0" [attr.data-back]="s.backTier" [attr.data-tier]="s.fillTier">
-            <span class="fill" [class.peak]="s.peak" [style.width.%]="s.fill"></span>
+          <span class="seg" [class.back]="s.backTier >= 0" [style.--e]="s.backTier >= 0 ? fill(s.backTier) : null">
+            <span class="fill" [class.peak]="s.peak" [style.width.%]="s.fill" [style.--f]="fill(s.fillTier)"></span>
           </span>
         }
       </span>
-      @if (tier()) { <span class="tier">{{ tier() }}</span> }
+      @if (tier()) { <span class="tier" [style.--f]="fill(m.tier)">{{ tier() }}</span> }
     }
   `,
   styles: `
-    :host { display: flex; align-items: center; gap: 6px; min-width: 0; --c: var(--ss-fg); }
-    .segs { flex: 1; display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; height: 10px; min-width: 0; }
-    .seg { position: relative; background: var(--ss-panel-2); overflow: hidden; }
-    .seg.back { background: color-mix(in srgb, var(--c) 45%, black); }
-    .seg.back[data-back='0'] { background: var(--c); }
-    .fill { position: absolute; inset: 0 auto 0 0; background: var(--c); }
-    .seg[data-tier]:not([data-tier='0']) .fill { background: var(--ss-tier, #fff); filter: brightness(1.15); }
-    .fill.peak { filter: brightness(1.4); }
-    .tier { font-size: var(--ss-text-xs); color: var(--ss-accent); }
-    [data-stat='hp'] { --c: var(--ss-hp); }
-    [data-stat='atk'] { --c: var(--ss-atk); }
-    [data-stat='def'] { --c: var(--ss-def); }
-    [data-stat='mag'] { --c: var(--ss-mag); }
-    [data-stat='spd'] { --c: var(--ss-spd); }
-    [data-stat='iq'] { --c: var(--ss-iq); }
+    :host { display: flex; align-items: center; gap: var(--p2); min-width: 0; }
+    .segs { flex: 1; display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: var(--px); padding: var(--px); min-width: 0; background: var(--c-void); }
+    .seg { position: relative; height: calc(5 * var(--px)); overflow: hidden; background: var(--c-red-d); box-shadow: inset 0 var(--px) 0 var(--c-red); }
+    .seg.back { background: var(--e); box-shadow: inset 0 var(--px) 0 color-mix(in srgb, var(--e), #fff 55%), inset 0 calc(-1 * var(--px)) 0 color-mix(in srgb, var(--e), #000 35%); }
+    .fill { --f: var(--c-yel); position: absolute; inset: 0 auto 0 0; background: var(--f); box-shadow: inset 0 var(--px) 0 color-mix(in srgb, var(--f), #fff 55%), inset 0 calc(-1 * var(--px)) 0 color-mix(in srgb, var(--f), #000 35%); }
+    .fill.peak { box-shadow: inset 0 var(--px) 0 #fff, inset 0 calc(-1 * var(--px)) 0 color-mix(in srgb, var(--f), #000 35%); }
+    .tier { --f: var(--c-kr); display: inline-grid; place-items: center; height: calc(8 * var(--px)); padding: 0 var(--p1); font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-void); background: var(--f); box-shadow: 0 0 0 var(--px) var(--c-void); white-space: nowrap; }
   `,
 })
 export class StatBar {
@@ -44,4 +40,7 @@ export class StatBar {
   readonly value = input.required<number>();
   protected readonly model = computed(() => statBar(this.value(), this.stat()));
   protected readonly tier = computed(() => tierLabel(this.model()?.tier ?? 0));
+
+  /** Tier 0 is yellow; prestige tiers cycle through the rest. */
+  protected fill(t: number): string { return t <= 0 ? TIER_FILLS[0] : TIER_FILLS[1 + ((t - 1) % (TIER_FILLS.length - 1))]; }
 }

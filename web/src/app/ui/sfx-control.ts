@@ -1,45 +1,40 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal } from '@angular/core';
 import { SoundService } from '../core/sound.service';
+import { Icon } from './icon';
 
-/** The header's sound button: a panel with mute and the SFX volume. */
+/** The header's sound button: a frost panel with the SFX switch and volume. */
 @Component({
   selector: 'ss-sfx-control',
+  imports: [Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:click)': 'outside($event)', '(keydown.escape)': 'open.set(false)' },
   template: `
-    <button type="button" class="btn" (click)="open.set(!open())" [attr.aria-expanded]="open()" aria-controls="sfx-panel" title="Sound effects">
-      <svg viewBox="0 0 13 13" width="13" height="13" aria-hidden="true" shape-rendering="crispEdges">
-        <path d="M1 4h3v5H1zM4 3h1v7H4zM5 2h1v9H5zM6 1h1v11H6z" fill="currentColor" />
-        @if (level() > 0) { <path d="M9 5h1v3H9z" fill="currentColor" /> }
-        @if (level() > 1) { <path d="M11 3h1v7h-1z" fill="currentColor" /> }
-        @if (level() === 0) { <path d="M9 4h1v1H9zM10 5h1v1h-1zM11 6h1v1h-1zM10 7h1v1h-1zM9 8h1v1H9zM11 4h1v1h-1zM11 8h1v1h-1z" fill="currentColor" /> }
-      </svg>
-      <span class="sr">{{ sound.muted() ? 'SFX OFF' : 'SFX ON' }}</span>
+    <button type="button" class="u-btn icon" (click)="open.set(!open())" [attr.aria-expanded]="open()" aria-controls="sfx-panel"
+            [attr.aria-label]="sound.muted() ? 'Sound effects off' : 'Sound effects on'" title="Sound effects">
+      <ss-icon [name]="sound.muted() || sound.volume() === 0 ? 'mute' : 'speaker'" [soul]="false" />
     </button>
     @if (open()) {
-      <div class="panel" id="sfx-panel" role="group" aria-label="Sound effects">
-        <span class="label">SOUND EFFECTS</span>
+      <div class="panel u-fr u-frost u-snowcap" id="sfx-panel" role="group" aria-label="Sound effects">
+        <span class="u-tip-h">SOUND EFFECTS</span>
+        <label class="u-tog">
+          <input type="checkbox" role="switch" [checked]="!sound.muted()" (change)="sound.toggleMute()" />
+          <span class="trk u-spr"><span class="knob u-spr"></span></span>
+          <span>SFX</span><span class="state">{{ sound.muted() ? 'OFF' : 'ON' }}</span>
+        </label>
         <div class="row">
-          <button type="button" class="mute" (click)="sound.toggleMute()" [attr.aria-pressed]="sound.muted()">{{ sound.muted() ? 'OFF' : 'ON' }}</button>
-          <input type="range" min="0" max="100" [value]="percent()" [style.--val]="percent() + '%'"
-                 (input)="sound.setVolume(+$any($event.target).value)" title="Volume" aria-label="Sound effects volume" />
-          <span class="val">{{ percent() }}</span>
+          <input type="range" min="0" max="100" [value]="percent()" (input)="sound.setVolume(+$any($event.target).value)" aria-label="Sound effects volume" />
+          <output class="val">{{ percent() }}</output>
         </div>
       </div>
     }
   `,
   styles: `
     :host { position: relative; display: inline-block; }
-    .btn { display: inline-flex; gap: 8px; align-items: center; padding: 8px 10px; font-size: var(--ss-text-sm); background: transparent; border: var(--ss-border) solid var(--ss-line-dim); color: var(--ss-fg-dim); &:hover { color: var(--ss-fg); border-color: var(--ss-fg-dim); } }
-    .sr { font-size: var(--ss-text-sm); }
-    .panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; display: grid; gap: 8px; padding: 10px 12px; min-width: 210px; background: var(--ss-bg); border: var(--ss-border) solid var(--ss-line-dim); box-shadow: 4px 4px 0 #000; }
-    .label { font-size: var(--ss-text-xs); color: var(--ss-fg-faint); }
-    .row { display: flex; gap: 8px; align-items: center; }
-    .mute { width: 36px; padding: 4px 0; font-size: var(--ss-text-xs); background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-ok); &[aria-pressed='true'] { color: var(--ss-err); } }
-    input { flex: 1; appearance: none; height: 4px; background: linear-gradient(to right, var(--ss-gold) var(--val), #242424 var(--val)); border: 1px solid #2e2e2e;
-      &::-webkit-slider-thumb { appearance: none; width: 8px; height: 16px; background: #fff; border: 2px solid #000; }
-      &::-moz-range-thumb { width: 8px; height: 16px; background: #fff; border: 2px solid #000; border-radius: 0; } }
-    .val { width: 24px; text-align: right; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); }
+    .panel { position: absolute; right: 0; top: calc(100% + 12 * var(--px)); z-index: 40; display: grid; gap: var(--p3); padding: var(--p2) var(--p4) var(--p4); min-width: calc(90 * var(--px)); box-shadow: var(--hard); }
+    .state { min-width: 4ch; color: var(--c-mute); }
+    .u-tog input:checked ~ .state { color: var(--ac3); }
+    .row { display: flex; gap: var(--p3); align-items: center; input { flex: 1; min-width: 0; } }
+    .val { min-width: 3ch; text-align: right; font: var(--fs-num) / 1 var(--f-body); color: var(--c-white); }
   `,
 })
 export class SfxControl {
@@ -47,8 +42,6 @@ export class SfxControl {
   private readonly el = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   protected readonly open = signal(false);
   protected readonly percent = computed(() => Math.round(this.sound.volume() * 100));
-  /** 0 muted or silent, 1 quiet, 2 loud: the speaker's sound waves */
-  protected readonly level = computed(() => (this.sound.muted() || this.sound.volume() === 0 ? 0 : this.sound.volume() < 0.4 ? 1 : 2));
 
   protected outside(e: Event): void {
     if (this.open() && !this.el.contains(e.target as Node)) this.open.set(false);
