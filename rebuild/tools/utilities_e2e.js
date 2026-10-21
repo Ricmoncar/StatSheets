@@ -62,6 +62,31 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   await page.locator('ss-tier-list .pool .chip', { hasText: who }).first().waitFor({ timeout: 5000 });
   check(await page.locator('ss-tier-list .row .chip', { hasText: who }).count() === 0, 'and back to UNRANKED');
 
+  // leaderboard
+  const lb = page.locator('ss-leaderboard');
+  await lb.scrollIntoViewIfNeeded();
+  const rowsN = await lb.locator('.row').count();
+  check(rowsN > 100, `the leaderboard lists everyone (${rowsN})`);
+  const lastName = (await lb.locator('.row').last().locator('.name').textContent()).trim();
+  check(/^Classic$/i.test(lastName), 'Classic is pinned last, unrankable');
+  check((await lb.locator('.row').first().locator('.rank').textContent()).trim() === '#1', 'the top row is #1');
+  await lb.locator('.stats .chip', { hasText: /^ATK$/ }).click();
+  const v1 = parseFloat(await lb.locator('.row').nth(0).locator('.val').textContent());
+  const v2 = parseFloat(await lb.locator('.row').nth(1).locator('.val').textContent());
+  check(v1 >= v2, `sorted by the chosen stat (ATK ${v1} >= ${v2})`);
+  for (const v of ['RADAR', 'BARS', 'RADIAL', 'LINES']) {
+    await lb.locator('.views .chip', { hasText: v }).click();
+    await page.waitForTimeout(150);
+    check(await lb.locator('svg.chart').count() === 1, v + ' view draws');
+    await lb.screenshot({ path: out + '/util-lb-' + v.toLowerCase() + '.png' });
+  }
+  const box = await lb.locator('svg.chart g').nth(3).boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + 3);
+  await page.mouse.move(box.x + box.width / 2 + 2, box.y + 4);
+  await page.locator('ss-tooltip-host .tip').waitFor({ timeout: 3000 });
+  check(/IQ/.test(await page.locator('ss-tooltip-host .tip').textContent()), 'hovering a line shows that character');
+  await page.mouse.move(5, 5);
+
   // stat checker
   const atk = page.locator('ss-stat-checker .row').nth(1);
   await atk.locator('.math input').nth(0).fill('40');

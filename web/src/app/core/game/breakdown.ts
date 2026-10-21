@@ -15,6 +15,10 @@ export interface Tip {
   lines: TipLine[];
   total?: TipLine;
   notes: string[];
+  /** a picture above the title (a character's portrait) */
+  image?: string | null;
+  /** the border and title colour, instead of the rarity's */
+  color?: string;
 }
 
 const signed = (v: number, digits = 0) => (v > 0 ? '+' : '') + v.toFixed(digits);

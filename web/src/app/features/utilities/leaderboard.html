@@ -1,0 +1,104 @@
+<div class="views" role="group" aria-label="View">
+  @for (v of views; track v) {
+    <button type="button" class="chip" [class.on]="view() === v" [attr.aria-pressed]="view() === v" (click)="view.set(v)">{{ v.toUpperCase() }}</button>
+  }
+</div>
+@if (view() === 'list' || view() === 'bars' || view() === 'radial') {
+  <div class="stats" role="group" aria-label="Stat">
+    @for (k of statKeys; track k) {
+      <button type="button" class="chip" [class.on]="stat() === k" [attr.aria-pressed]="stat() === k" (click)="stat.set(k)">{{ labels[k] }}</button>
+    }
+  </div>
+}
+
+@if (!sorted().length) {
+  <p class="none">NO CHARACTERS</p>
+} @else {
+  @switch (view()) {
+    @case ('list') {
+      <ol class="list">
+        @for (e of sorted(); track e.c.id; let i = $index) {
+          <li class="row" [class.cl]="e.classic" [style.--rk]="!e.classic && i < 3 ? rankColors[i] : null" [ssTip]="tip(e)">
+            <span class="rank">{{ e.classic ? glitch(2) : '#' + (i + 1) }}</span>
+            @if (e.c.avatar) { <img [src]="e.c.avatar" alt="" [style.border-color]="e.c.color" /> }
+            @else { <svg viewBox="0 0 32 32" [style.fill]="e.c.color" aria-hidden="true"><rect x="12" y="2" width="8" height="8"/><rect x="10" y="10" width="12" height="10"/><rect x="8" y="20" width="6" height="8"/><rect x="18" y="20" width="6" height="8"/></svg> }
+            <span class="name" [style.color]="e.classic ? null : e.c.color">{{ e.c.name }}</span>
+            <span class="val">{{ e.classic ? glitch(5) : fmt(e.vals[stat()]) }}</span>
+          </li>
+        }
+      </ol>
+    }
+    @case ('bars') {
+      @let b = bars();
+      <svg class="chart" [attr.viewBox]="'0 0 ' + W + ' ' + b.h" shape-rendering="crispEdges">
+        <rect [attr.width]="W" [attr.height]="b.h" fill="#050508" />
+        <text [attr.x]="W / 2" [attr.y]="b.pad.t - 2" text-anchor="middle" class="axis-t">{{ labels[stat()] }}</text>
+        @for (r of b.rows; track r.e.c.id; let i = $index) {
+          <g [ssTip]="tip(r.e)" [class.cl]="r.e.classic">
+            <rect x="0" [attr.y]="r.y" [attr.width]="W" [attr.height]="b.rowH" [attr.fill]="i % 2 ? 'transparent' : 'rgba(255,255,255,0.012)'" />
+            <text x="5" [attr.y]="r.y + b.rowH / 2 + 3" [attr.fill]="r.color || '#3a3a50'" font-size="7">{{ r.e.classic ? glitch(1) : r.label }}</text>
+            <text [attr.x]="b.pad.l - 5" [attr.y]="r.y + b.rowH / 2 + 3" text-anchor="end" [attr.fill]="r.e.classic ? '#ff1a1a' : r.e.c.color" font-size="7.5">{{ (r.e.c.name || '?').substring(0, 11) }}</text>
+            @if (r.e.classic) {
+              <rect [attr.x]="b.pad.l" [attr.y]="r.y + 4" [attr.width]="glitchWidth(b.pw)" [attr.height]="b.rowH - 8" class="cl-bar" />
+              <text [attr.x]="b.pad.l + b.pw * 0.5 + 5" [attr.y]="r.y + b.rowH / 2 + 3" fill="#ff1a1a" font-size="7">{{ glitch(4) }}</text>
+            } @else {
+              <rect [attr.x]="b.pad.l + 2" [attr.y]="r.y + 6" [attr.width]="r.bw" [attr.height]="b.rowH - 8" fill="#000" />
+              <rect [attr.x]="b.pad.l" [attr.y]="r.y + 4" [attr.width]="r.bw" [attr.height]="b.rowH - 8" [attr.fill]="r.e.c.color || '#888'" />
+              <rect [attr.x]="b.pad.l" [attr.y]="r.y + 4" [attr.width]="r.bw" height="2" fill="#fff" fill-opacity="0.35" />
+              <text [attr.x]="b.pad.l + r.bw + 5" [attr.y]="r.y + b.rowH / 2 + 3" [attr.fill]="r.e.c.color || '#888'" font-size="7" opacity="0.8">{{ r.e.vals[stat()].toFixed(1) }}</text>
+            }
+          </g>
+        }
+      </svg>
+    }
+    @case ('radar') {
+      @let r = radar();
+      <svg class="chart" [attr.viewBox]="'0 0 ' + W + ' ' + r.h">
+        <rect [attr.width]="W" [attr.height]="r.h" fill="#050508" />
+        @for (ring of r.rings; track ring.t) { <polygon [attr.points]="ring.points" [attr.fill]="ring.t === 1 ? 'none' : 'rgba(255,255,255,0.012)'" [attr.stroke]="ring.t === 1 ? '#2a2a3c' : '#14141f'" shape-rendering="crispEdges" /> }
+        @for (s of r.spokes; track $index) { <line [attr.x1]="r.cx" [attr.y1]="r.cy" [attr.x2]="s.x" [attr.y2]="s.y" stroke="#14141f" shape-rendering="crispEdges" /> }
+        @for (l of r.labels; track l.label) {
+          <text [attr.x]="l.x" [attr.y]="l.y + 2" [attr.text-anchor]="l.anchor" class="axis-t">{{ l.label }}</text>
+          <text [attr.x]="l.x" [attr.y]="l.y + 12" [attr.text-anchor]="l.anchor" class="axis-v">{{ l.max }}</text>
+        }
+        @for (p of r.polys; track p.e.c.id) {
+          @if (p.e.classic) { <polygon [attr.points]="p.points" class="cl-poly" [ssTip]="tip(p.e)" /> }
+          @else { <polygon [attr.points]="p.points" [attr.fill]="p.e.c.color || '#888'" fill-opacity="0.08" [attr.stroke]="p.e.c.color || '#888'" stroke-width="1.5" stroke-opacity="0.7" stroke-linejoin="miter" [ssTip]="tip(p.e)" /> }
+        }
+        @if (r.note) { <text [attr.x]="W / 2" [attr.y]="r.h - 5" text-anchor="middle" class="axis-v">{{ r.note }}</text> }
+      </svg>
+    }
+    @case ('radial') {
+      @let d = radial();
+      <svg class="chart" [attr.viewBox]="'0 0 ' + W + ' ' + d.h">
+        <rect [attr.width]="W" [attr.height]="d.h" fill="#050508" />
+        @for (r of d.rings; track $index) { <circle [attr.cx]="d.cx" [attr.cy]="d.cy" [attr.r]="r" fill="none" stroke="#14141f" [attr.stroke-width]="$last ? 1.5 : 0.8" /> }
+        @for (a of d.arcs; track a.e.c.id) {
+          @if (a.e.classic) { <path [attr.d]="a.d" class="cl-arc" [ssTip]="tip(a.e)" /> }
+          @else { <path [attr.d]="a.d" [attr.fill]="a.e.c.color || '#888'" [attr.fill-opacity]="0.4 + a.t * 0.55" stroke="#000" stroke-width="0.6" [ssTip]="tip(a.e)" /> }
+        }
+        <circle [attr.cx]="d.cx" [attr.cy]="d.cy" [attr.r]="d.ri" fill="#07070e" stroke="#1d1d2c" stroke-width="2" />
+        <text [attr.x]="d.cx" [attr.y]="d.cy + 3" text-anchor="middle" class="axis-t">{{ labels[stat()] }}</text>
+      </svg>
+    }
+    @case ('lines') {
+      @let l = lines();
+      <svg class="chart" [attr.viewBox]="'0 0 ' + W + ' ' + l.h">
+        <rect [attr.width]="W" [attr.height]="l.h" fill="#050508" />
+        @for (p of l.paths; track p.e.c.id) {
+          <g [ssTip]="tip(p.e)" [class.cl]="p.e.classic">
+            <path [attr.d]="p.d" fill="none" [attr.stroke]="p.e.classic ? '#ff1a1a' : p.e.c.color || '#888'" stroke-width="1.5" [attr.stroke-opacity]="p.e.classic ? 0.9 : 0.5" stroke-linejoin="miter" />
+            @for (pt of p.pts; track $index) { <rect [attr.x]="pt[0] - 2" [attr.y]="pt[1] - 2" width="4" height="4" [attr.fill]="p.e.classic ? '#ff1a1a' : p.e.c.color || '#888'" shape-rendering="crispEdges" /> }
+          </g>
+        }
+        @for (a of l.axes; track a.label) {
+          <line [attr.x1]="a.x" [attr.y1]="l.top" [attr.x2]="a.x" [attr.y2]="l.bottom" stroke="#2a2a3c" stroke-width="2" shape-rendering="crispEdges" />
+          @for (t of a.ticks; track $index) { <line [attr.x1]="a.x - 3" [attr.y1]="t" [attr.x2]="a.x + 3" [attr.y2]="t" stroke="#2a2a3c" shape-rendering="crispEdges" /> }
+          <text [attr.x]="a.x" [attr.y]="l.top - 16" text-anchor="middle" class="axis-t">{{ a.label }}</text>
+          <text [attr.x]="a.x" [attr.y]="l.top - 5" text-anchor="middle" class="axis-v">{{ a.max }}</text>
+          <text [attr.x]="a.x" [attr.y]="l.bottom + 13" text-anchor="middle" class="axis-v">{{ a.min }}</text>
+        }
+      </svg>
+    }
+  }
+}

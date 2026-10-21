@@ -50,7 +50,8 @@ export class TipDirective {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (tips.tip(); as t) {
-      <div class="tip" role="tooltip" [style.left.px]="tips.at().x" [style.top.px]="tips.at().y" [style.transform]="flip()" [attr.data-rarity]="t.rarity">
+      <div class="tip" role="tooltip" [style.left.px]="tips.at().x" [style.top.px]="tips.at().y" [style.transform]="flip()" [attr.data-rarity]="t.rarity" [style.--r]="t.color">
+        @if (t.image) { <img class="pic" [src]="t.image" alt="" /> }
         <p class="title">{{ t.title }}</p>
         @if (t.desc) { <p class="desc"><ss-rich-desc [text]="t.desc" [name]="t.name" /></p> }
         @if (t.lines.length || t.total) {
@@ -78,6 +79,7 @@ export class TipDirective {
       &[data-rarity='determined'] { --r: #ff2a2a; }
     }
     p { margin: 0; }
+    .pic { width: 52px; height: 52px; object-fit: cover; image-rendering: pixelated; border: 2px solid var(--r); }
     .title { color: var(--r); font-size: var(--ss-text-sm); letter-spacing: 2px; }
     .desc { color: var(--ss-fg-dim); }
     .lines { margin: 0; display: grid; gap: 2px; }
