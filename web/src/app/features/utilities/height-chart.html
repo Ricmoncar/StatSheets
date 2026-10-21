@@ -1,0 +1,126 @@
+<div class="backdrop" (click)="closed.emit()"></div>
+<section class="modal" role="dialog" aria-modal="true" aria-label="Height chart">
+  <header class="head">
+    <span class="title">HEIGHT CHART</span>
+    <div class="actions">
+      <span class="units" role="radiogroup" aria-label="Units">
+        <button type="button" role="radio" class="btn" [class.on]="unit() === 'cm'" [attr.aria-checked]="unit() === 'cm'" (click)="unit.set('cm')">CM</button>
+        <button type="button" role="radio" class="btn" [class.on]="unit() === 'in'" [attr.aria-checked]="unit() === 'in'" (click)="unit.set('in')">IN</button>
+      </span>
+      <button type="button" class="btn accent" (click)="add()">+ ADD</button>
+      <button type="button" class="btn" (click)="importQuery.set(''); importing.set(true)">IMPORT</button>
+      <button type="button" class="btn" (click)="sortByHeight()">SORT &#8593;</button>
+      <span class="zoom">
+        <button type="button" class="btn" (click)="setZoom(zoom() - 0.25)" aria-label="Zoom out">-</button>
+        <span class="zoom-val">{{ (zoom() * 100).toFixed(0) }}%</span>
+        <button type="button" class="btn" (click)="setZoom(zoom() + 0.25)" aria-label="Zoom in">+</button>
+      </span>
+      <button type="button" class="x" (click)="closed.emit()" aria-label="Close">&#10005;</button>
+    </div>
+  </header>
+
+  @let L = layout();
+  <div class="body">
+    <div class="chart">
+      <div class="ruler" aria-hidden="true">
+        @for (t of L.ticks; track t.cm) { <span class="tick" [class.major]="t.major" [style.top.px]="t.y">{{ t.label }}</span> }
+      </div>
+      <div #stage class="stage" (mousedown)="stageDown($event)" (touchstart)="stageDown($event)">
+        @for (t of L.ticks; track t.cm) { <span class="grid" [class.major]="t.major" [style.bottom.px]="36 + t.cm * L.pxPerCm"></span> }
+        <div class="canvas" [style.width.px]="L.canvasW" [style.transform]="'translateX(' + -pan() + 'px)'">
+          @for (ch of L.chars; track ch.e.id) {
+            <div class="char" [class.selected]="ch.e.id === selectedId()" [class.dragging]="ch.e.id === draggingId()" [attr.data-aura]="ch.e.aura || null"
+                 [style.left.px]="ch.x" [style.height.px]="ch.hPx" [style.width.px]="ch.hPx * 0.39" [style.--cc]="ch.e.color || '#555'"
+                 (mousedown)="charDown($event, ch.e.id)" (touchstart)="charDown($event, ch.e.id)" (click)="charClick(ch.e.id)">
+              <div class="anchor">
+                <span class="tag" [style.bottom.px]="ch.hPx + 8">{{ ch.e.name || '???' }}</span>
+                @if (ch.e.aura) {
+                  <div class="aura" [attr.data-aura]="ch.e.aura" [style.width.px]="ch.hPx * 0.8" [style.height.px]="ch.hPx * 1.25" [style.animation-delay]="ch.delay">
+                    @for (p of ch.particles; track $index) {
+                      <span class="particle" [attr.data-aura]="ch.e.aura" [style.left.%]="p.left" [style.bottom.%]="p.bottom" [style.animation-duration]="p.dur" [style.animation-delay]="p.delay"></span>
+                    }
+                  </div>
+                }
+                @if (ch.src) {
+                  <img class="sprite" [ssCldSrc]="ch.src" alt="" draggable="false" [style.height.px]="ch.fullH" [style.bottom.px]="ch.bottom" [style.animation-delay]="ch.delay" />
+                } @else {
+                  <svg class="sprite person" viewBox="0 0 12 31" [style.height.px]="ch.hPx" shape-rendering="crispEdges" [style.animation-delay]="ch.delay" aria-hidden="true"><path [attr.d]="personPath" fill="currentColor" /></svg>
+                }
+                <span class="height">{{ ch.label }}</span>
+                @if (ch.e.id === selectedId()) {
+                  @if (ch.i > 0) { <button type="button" class="order left" (click)="$event.stopPropagation(); move(ch.e.id, -1)" (mousedown)="$event.stopPropagation()" aria-label="Move left">&#8592;</button> }
+                  @if (ch.i < L.chars.length - 1) { <button type="button" class="order right" (click)="$event.stopPropagation(); move(ch.e.id, 1)" (mousedown)="$event.stopPropagation()" aria-label="Move right">&#8594;</button> }
+                }
+              </div>
+            </div>
+          }
+          @if (dropX() !== null) { <span class="drop" [style.left.px]="dropX()"></span> }
+        </div>
+        <div class="floor"></div>
+      </div>
+    </div>
+
+    <aside class="side">
+      @if (selected(); as e) {
+        <div class="bar" [style.background]="e.color || '#555'"></div>
+        <div class="edit">
+          <label class="field"><span>NAME</span>
+            <input type="text" maxlength="30" placeholder="Character name..." [value]="e.name" (input)="setName($any($event.target).value)" />
+          </label>
+          <label class="field"><span>HEIGHT ({{ unit().toUpperCase() }})</span>
+            <input type="number" min="1" max="1500" placeholder="170" [value]="heightValue(e)" (input)="setHeight(+$any($event.target).value)" />
+          </label>
+          <label class="field"><span class="row">SPACING <b>{{ (e.xOffset || 0) > 0 ? '+' : '' }}{{ e.xOffset || 0 }}</b></span>
+            <input type="range" min="-300" max="300" step="5" [value]="e.xOffset || 0" (input)="setOffset(+$any($event.target).value)" />
+          </label>
+          <label class="field"><span>COLOR</span>
+            <span class="row"><input type="color" [value]="e.color || '#aaaaaa'" (input)="setColor($any($event.target).value)" /><b>{{ e.color }}</b></span>
+          </label>
+          <hr />
+          <div class="field"><span>SPRITE</span>
+            <span class="row">
+              <label class="btn">UPLOAD<input type="file" accept="image/*" hidden (change)="upload($event)" /></label>
+              @if (e.spriteBase64 || e.spriteUrl) { <button type="button" class="btn" (click)="clearSprite()">CLEAR</button> }
+            </span>
+          </div>
+          @if (e.spriteBase64 || e.spriteUrl) {
+            <label class="field"><span class="row">HEAD CROP <b>{{ ((e.spriteTopFrac || 0) * 100).toFixed(0) }}%</b></span>
+              <input type="range" min="0" max="99" [value]="((e.spriteTopFrac || 0) * 100).toFixed(0)" (input)="setCropTop(+$any($event.target).value)" />
+            </label>
+          }
+          <div class="row auras">
+            <button type="button" class="btn" [class.on]="e.aura === 'soft'" (click)="toggleSoft()" title="Soft glow in character colour">DEFAULT</button>
+            <button type="button" class="btn" [class.on]="!!e.aura && e.aura !== 'soft'" (click)="cycleAura()">AURA
+              @if (e.aura && e.aura !== 'soft') { <span class="dot" [style.background]="auraDot[e.aura]"></span> }
+            </button>
+            @if (e.aura) { <button type="button" class="btn" (click)="clearAura()">NONE</button> }
+          </div>
+          @if (e.aura) { <span class="aura-name">{{ e.aura.toUpperCase() }}</span> }
+          <hr />
+          <button type="button" class="btn danger wide" (click)="remove()">DELETE</button>
+        </div>
+      } @else {
+        <p class="empty">SELECT A CHARACTER<br />TO EDIT</p>
+      }
+    </aside>
+  </div>
+
+  @if (importing()) {
+    <div class="import" (click)="importing.set(false)">
+      <div class="import-box" (click)="$event.stopPropagation()">
+        <header class="head"><span>PICK FROM ROSTER</span><button type="button" class="x" (click)="importing.set(false)" aria-label="Close">&#10005;</button></header>
+        <input class="search" type="text" placeholder="SEARCH..." [value]="importQuery()" (input)="importQuery.set($any($event.target).value)" aria-label="Search roster" />
+        <div class="list">
+          @for (r of rosterMatches(); track r.c.id) {
+            <button type="button" class="imp" [class.added]="r.added" (click)="importChar(r.c.id)">
+              <span class="dot" [style.background]="r.c.color || '#666'"></span><span class="name">{{ r.c.name || r.c.id }}</span>
+              @if (r.added) { <span class="badge">ADDED</span> }
+            </button>
+          } @empty {
+            <p class="empty">{{ importQuery() ? 'NO MATCH' : 'NO CHARACTERS LOADED' }}</p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>
