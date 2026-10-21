@@ -105,7 +105,8 @@ small { font: var(--fs-small) / 1 var(--f-body); color: var(--c-mute); }
 .folder.drop-into { outline: var(--px) dashed var(--folder); outline-offset: calc(-1 * var(--px)); background: color-mix(in srgb, var(--folder) 8%, transparent); }
 
 .menu { position: fixed; z-index: 55; display: grid; max-height: calc(100dvh - 32px); overflow-y: auto; }
-.menu .u-menu-item[style*='--fc'] svg.ico .g { fill: var(--fc); }
+// a class, not [style*=...]: a selector on the style attribute makes every inline style change anywhere restyle these
+.menu .u-menu-item.tinted svg.ico .g { fill: var(--fc); }
 .fname { overflow: hidden; text-overflow: ellipsis; }
 .tick { margin-left: auto; color: var(--ac3); }
 .menu-label { padding: var(--p1) var(--p3) 0; font: var(--fs-ui) / 20px var(--f-ui); color: var(--c-mute); }

@@ -18,7 +18,7 @@
     @case ('list') {
       <ol class="list">
         @for (e of sorted(); track e.c.id; let i = $index) {
-          <li class="row" [class.cl]="e.classic" [style.--rk]="!e.classic && i < 3 ? rankColors[i] : null" [ssTip]="tip(e)">
+          <li class="row" [class.cl]="e.classic" [class.ranked]="!e.classic && i < 3" [style.--rk]="!e.classic && i < 3 ? rankColors[i] : null" [ssTip]="tip(e)">
             <span class="rank">{{ e.classic ? glitch(2) : '#' + (i + 1) }}</span>
             @if (e.c.avatar) { <img [src]="e.c.avatar" alt="" [style.border-color]="e.c.color" /> }
             @else { <i class="u-spr s-soul" aria-hidden="true"></i> }

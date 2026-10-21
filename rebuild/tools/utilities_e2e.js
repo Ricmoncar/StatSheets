@@ -15,6 +15,8 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
 
+  // the app draws a change on its next frame: a check right after a click or key waits for that frame
+  const settle = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
   await page.goto(BASE + '/utilities');
   await page.waitForSelector('ss-dice-roller');
   await page.screenshot({ path: out + '/util-top.png' });
@@ -60,10 +62,12 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   check(await curName() === second && await tl.locator('.menu').count() === 0, 'picking one shows it and closes the menu');
   await tl.locator('.cur').click();
   await page.keyboard.press('Escape');
+  await settle();
   check(await tl.locator('.menu').count() === 0, 'Escape closes the menu');
   await tl.locator('.cur').click();
   await tl.locator('.find').fill(first);
   await tl.locator('.find').press('Enter');
+  await settle();
   check(await curName() === first, 'Enter picks the first match');
 
   // tier list (moves one character and puts it back)
@@ -97,6 +101,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   check(/^Classic$/i.test(lastName), 'Classic is pinned last, unrankable');
   check((await lb.locator('.row').first().locator('.rank').textContent()).trim() === '#1', 'the top row is #1');
   await lb.locator('.stats .chip', { hasText: /^ATK$/ }).click();
+  await settle();
   const v1 = parseFloat(await lb.locator('.row').nth(0).locator('.val').textContent());
   const v2 = parseFloat(await lb.locator('.row').nth(1).locator('.val').textContent());
   check(v1 >= v2, `sorted by the chosen stat (ATK ${v1} >= ${v2})`);

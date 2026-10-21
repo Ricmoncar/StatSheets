@@ -49,10 +49,13 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 
 - [~] Custom character pages, and the features that live inside them
   (Nara's shared paint canvas, Sel's shooting star counter, games, scoreboards).
-  How a page is ported: see "Porting a character page" in README.md.
-  - [x] Ivy · EVIL creature (the test page): the hall behind the sheet, the rapier, the
-        window frame, the sway and the cuts through the interface, the lacquer chrome
-        (rebuild/tools/ivy_e2e.js)
+  Each page is remade from scratch in the pixel style, case by case: see "Building a
+  character page" in README.md.
+  - [x] Ivy · EVIL creature (the test page), remade: a ruined rococo ballroom behind the
+        sheet (rose window and moon, red chandelier that drips into a pool, mirror, piano,
+        candles, moonlight), eight events (lunge, bleed, sweep, bloom, hunger, waltz,
+        shatter, mirror), the rapier cursor, cuts through the interface, the heartbeat
+        shoving the sheet, thorned portrait and lacquer chrome (rebuild/tools/ivy_e2e.js)
 
 ## Cutover
 

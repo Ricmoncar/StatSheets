@@ -1,8 +1,9 @@
 // node ivy_e2e.js [screenshot-dir]  (needs the e2e build served on :8790 and the emulator)
 //
-// Ivy · EVIL creature, the first character page ported from the old site:
-// the hall behind the sheet, the rapier and the frame over the window, the
-// interface swaying and tearing, and everything put back when you leave.
+// Ivy · EVIL creature, the first character page made for the new site: the
+// ballroom behind the sheet, the rapier and the frame over the window, the
+// interface thumping and tearing in whole pixels, the events, and everything
+// put back when you leave.
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const BASE = 'http://127.0.0.1:8790';
 const IVY = 'mtow23ogt9yab1yg7qr';      // EVIL creature is her active form in the fixtures
@@ -44,10 +45,34 @@ const until = async (fn, ms = 5000) => { const end = Date.now() + ms; while (Dat
     return { r: r / n, g: g / n };
   });
   check(px.r > 6 && px.r > px.g * 1.5, `the hall is drawn, and red (mean r ${px.r.toFixed(1)}, g ${px.g.toFixed(1)})`);
-  check(s.swayed >= 4, `the interface sways on the heartbeat (${s.swayed} elements moving)`);
+  let most = 0;
+  // the blocks in sight that are off the middle (the rest stay put: a block moved out of sight is work for nobody)
+  await until(async () => { most = Math.max(most, (await state()).swayed); return most >= 3; }, 4000);
+  check(most >= 3, `the sheet thumps on the heartbeat (${most} blocks moved a pixel)`);
+  const art = await page.evaluate(() => { const c = document.querySelector('ss-world-canvas canvas'); return [c.width, Math.ceil(c.getBoundingClientRect().width / 3)]; });
+  check(art[0] === art[1], `the room is drawn at art resolution, one canvas pixel per art pixel (${art[0]} wide)`);
   const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ac2').trim());
   check(/^#?[a-f0-9]{6}$/i.test(accent) && parseInt(accent.replace('#', '').slice(0, 2), 16) > parseInt(accent.replace('#', '').slice(2, 4), 16) * 2, `the interface takes her red (--ac2 ${accent})`);
   await page.screenshot({ path: out + '/ivy-desk.png' });
+
+  // the events: each one starts on demand, and the room shows it
+  const mean = () => page.evaluate(() => {
+    const c = document.querySelector('ss-world-canvas canvas'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let r = 0, g = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4 * 31) { r += d[i]; g += d[i + 1]; n++; }
+    return { r: r / n, g: g / n };
+  });
+  const force = n => page.evaluate(n => document.getElementById('ivyevil-overlay').force(n), n);
+  const calm = await mean();
+  await force('bleed'); await page.waitForTimeout(1900);
+  const drained = await mean();
+  check(drained.r / Math.max(1, drained.g) < (calm.r / Math.max(1, calm.g)) * 0.6, `bleed drains the colour out of the room (red to green ${(calm.r / calm.g).toFixed(1)} -> ${(drained.r / Math.max(1, drained.g)).toFixed(1)})`);
+  await force('hunger'); await page.waitForTimeout(2900);
+  const dark = await mean();
+  check(dark.r < calm.r * 0.6, `hunger puts the candles out (mean red ${calm.r.toFixed(0)} -> ${dark.r.toFixed(0)})`);
+  for (const n of ['sweep', 'bloom', 'waltz', 'shatter', 'mirror']) { await force(n); await page.waitForTimeout(1300); }
+  await page.waitForTimeout(4000);
+  check(errors.length === 0, 'every event runs without an error');
 
   // a cut through the window, and it heals
   await page.mouse.click(1300, 700);

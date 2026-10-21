@@ -1,59 +1,27 @@
-// What the old site's character pages reached for outside themselves, for the
-// pages ported from script.js: the active form's name, the layout cache, the
-// page's background canvas, and the parts of the interface a page may move or
-// tear. Old ids map onto the new app's elements here, so a ported page keeps
-// its own code close to the original.
+// What every character page shares with the app around it: the active form's
+// name, the size of an art pixel, the parts of the interface a page may move
+// or tear, and what counts as a control (a click on one must stay a click).
 import { Character } from '../core/data/models';
 
-/** The active form's name, '' for the base form (the old _activeFormName). */
+/** The active form's name, '' for the base form. */
 export function activeFormName(c: Character | null | undefined): string {
   if (!c) return '';
   const idx = c.activeFormIdx || 0;
   return idx ? ((c.altForms || [])[idx - 1]?.name || '') : '';
 }
 
-// ── the layout cache (the old _lyGen / _lyRect) ──
-// A layout read inside an animation frame forces a full recalc whenever
-// anything changed, which on an animated page is every frame. Boxes only move
-// when something moves them, so reads are cached against a generation that
-// resizes, scrolls and a ResizeObserver bump. The cache lives on the element
-// (_lyG, _lyR) because the pages read those fields directly.
-type Cached = Element & { _lyG?: number; _lyR?: DOMRect };
-export let lyGen = 0;
-export function lyBump(): void { lyGen++; }
-export function lyRect(el: Element): DOMRect {
-  const e = el as Cached;
-  if (e._lyG === lyGen && e._lyR) return e._lyR;
-  e._lyG = lyGen;
-  return (e._lyR = el.getBoundingClientRect());
+let narrow: MediaQueryList | null = null;
+/** One art pixel in CSS pixels: --px in styles.scss, 2 at 720 px wide and under, else 3. */
+export function artPx(): number {
+  return (narrow ??= matchMedia('(max-width: 720px)')).matches ? 2 : 3;
 }
 
-/** Starts bumping the generation; returns the stop. Observes the given elements' sizes. */
-export function watchLayout(...els: Element[]): () => void {
-  const opts = { passive: true, capture: true };
-  addEventListener('resize', lyBump, { passive: true });
-  addEventListener('scroll', lyBump, opts);
-  const ro = new ResizeObserver(lyBump);
-  for (const el of els) ro.observe(el);
-  // and a slow net for anything none of the above catches (a panel opening, an image arriving)
-  const net = setInterval(lyBump, 2000);
-  return () => {
-    removeEventListener('resize', lyBump);
-    removeEventListener('scroll', lyBump, opts);
-    ro.disconnect();
-    clearInterval(net);
-  };
-}
-
-// ── the page's background canvas (the old #pattern-canvas) ──
-let world: HTMLCanvasElement | null = null;
-export function setWorldCanvas(c: HTMLCanvasElement | null): void { world = c; }
-export function worldCanvas(): HTMLCanvasElement | null { return world; }
+/** Phones and touch screens: the pages draw at half the rate there, and the room and the overlay share one tick. */
+export const SMALL = '(max-width: 760px), (pointer: coarse)';
 
 // ── the interface a page may move or tear ──
-// The old ids, in the old order: the containers, then the blocks inside the
-// sheet, which the pages shove harder (the second number) because they are
-// what you are looking at.
+// The containers first, then the blocks inside the sheet (the second number
+// is how much harder a page may shove them: they are what you are looking at).
 const SHELL = ['ss-character-view', 'ss-sidebar', 'header.topbar', 'ss-theme-bar'];
 const BLOCKS = 'ss-character-view ss-panel, ss-character-view .head .portrait, ss-character-view .head .name, ss-character-view .sheet > .tabs';
 

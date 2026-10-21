@@ -8,7 +8,7 @@ import { activeFormName } from './host';
 
 /** A page's drawing code. */
 export interface PageModule {
-  /** Draws the world behind the sheet; t is in seconds. Throttles itself. */
+  /** Draws the world behind the sheet into a canvas at art resolution (W x H art pixels); t is in seconds. */
   drawBackground(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, W: number, H: number, t: number): void;
   /** Called before a new clock starts. */
   resetBackground(): void;

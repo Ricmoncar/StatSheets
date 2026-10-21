@@ -1,20 +1,19 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, effect, inject, input, untracked, viewChild } from '@angular/core';
 import { SettingsService } from '../core/settings.service';
 import { CustomPage, PageModule } from './registry';
-import { setWorldCanvas, watchLayout, worldCanvas } from './host';
+import { SMALL, artPx } from './host';
 
-const FRAME_MS = 1000 / 30;   // the pages cap their own background at 30 fps
+const FRAME_MS = 1000 / 30;   // the pages draw their rooms at 30 fps
 // phones and touch screens get half that: the room still moves, at half the work
-const SMALL = '(max-width: 760px), (pointer: coarse)';
 const SMALL_FRAME_MS = 1000 / 15;
 
 /**
  * A character page's world, drawn behind the sheet by the page's own code
  * (downloaded when it is first needed), and the page's layer over the whole
- * window. The canvas is its box's size in CSS pixels, as the old page canvas
- * was: the pages draw into a buffer a fraction of that and scale it up
- * pixelated themselves. Nothing is drawn in performance mode, as for every
- * background, and the background stops while it is off screen.
+ * window. The canvas is at art resolution, one pixel per art pixel, scaled
+ * up pixelated like every scene, so the room's pixels are the interface's.
+ * Nothing is drawn in performance mode, as for every background, and the
+ * background stops while it is off screen.
  */
 @Component({
   selector: 'ss-world-canvas',
@@ -22,7 +21,7 @@ const SMALL_FRAME_MS = 1000 / 15;
   template: `<canvas #cv aria-hidden="true"></canvas>`,
   styles: `
     :host { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-    canvas { display: block; width: 100%; height: 100%; }
+    canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
   `,
 })
 export class WorldCanvas {
@@ -54,11 +53,8 @@ export class WorldCanvas {
       this.visible = e.isIntersecting;
       this.restart();
     });
-    let unwatch: (() => void) | null = null;
     afterNextRender(() => {
       this.ready = true;
-      setWorldCanvas(this.canvas().nativeElement);
-      unwatch = watchLayout(this.host);
       resize.observe(this.host);
       seen.observe(this.host);   // both report once straight away
     });
@@ -72,8 +68,6 @@ export class WorldCanvas {
       this.overlay(false);
       resize.disconnect();
       seen.disconnect();
-      unwatch?.();
-      if (worldCanvas() === this.canvas().nativeElement) setWorldCanvas(null);
     });
   }
 
@@ -117,7 +111,8 @@ export class WorldCanvas {
     const perf = this.settings.perfMode();
     this.overlay(!perf);
     const cv = this.canvas().nativeElement;
-    const { w, h } = this.size;
+    const px = artPx();
+    const w = Math.ceil(this.size.w / px), h = Math.ceil(this.size.h / px);
     if (!w || !h) return;   // not measured yet: the first resize report starts it
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
     const ctx = cv.getContext('2d');

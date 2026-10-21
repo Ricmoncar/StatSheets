@@ -97,7 +97,7 @@
       <span class="menu-label">MOVE TO FOLDER</span>
       <button type="button" role="menuitem" class="u-menu-item" (click)="menuMove(m.char, null)"><ss-icon name="ast" />NO FOLDER</button>
       @for (f of store.folders(); track f.id) {
-        <button type="button" role="menuitem" class="u-menu-item" [style.--fc]="f.color" (click)="menuMove(m.char, f.id)"><ss-icon name="folder" /><span class="fname">{{ f.name }}</span>@if (m.char.folderId === f.id) { <ss-icon class="tick" name="check" [soul]="false" /> }</button>
+        <button type="button" role="menuitem" class="u-menu-item" [class.tinted]="!!f.color" [style.--fc]="f.color" (click)="menuMove(m.char, f.id)"><ss-icon name="folder" /><span class="fname">{{ f.name }}</span>@if (m.char.folderId === f.id) { <ss-icon class="tick" name="check" [soul]="false" /> }</button>
       }
     }
   </div>

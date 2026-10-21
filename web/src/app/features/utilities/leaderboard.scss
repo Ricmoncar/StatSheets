@@ -14,7 +14,7 @@
   .rank { width: 4ch; font: var(--fs-num) / 1 var(--f-body); color: var(--rk, var(--c-mute)); }
   .name { flex: 1; min-width: 0; font: var(--fs-ui) / 20px var(--f-ui); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .val { font: var(--fs-num) / 1 var(--f-body); color: var(--c-white); font-variant-numeric: tabular-nums; } }
-.row:not([style*='--rk']) .rank { color: var(--c-mute); }
+.row:not(.ranked) .rank { color: var(--c-mute); }
 
 // Classic: unrankable, red and jittering
 .row.cl { background: rgb(255 31 61 / 0.06);

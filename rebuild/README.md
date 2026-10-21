@@ -63,42 +63,71 @@ real Firestore).
 Reseed between runs when a test leaves something behind; it replaces
 everything in the emulator.
 
-### Porting a character page (phase 2)
+### Building a character page (phase 2)
 
-A page in the old `script.js` is a background drawn on `#pattern-canvas`, an
-overlay canvas over the window, and a block of CSS in `style.css`
-(`CHARACTER_PAGES.md` at the root is the manual they were built by). In the
-new app (`web/src/app/pages/`):
+Each custom page is remade from scratch in the pixel style, one at a time:
+the same idea as the old page (`CHARACTER_PAGES.md` at the root describes
+them, and `script.js` / `style.css` still hold the old code to look at), but
+drawn anew rather than copied. Everything lives in `web/src/app/pages/`;
+`ivy-evil/` is the worked example.
 
-1. **The code, nearly verbatim.** Copy the page's section of `script.js` into
-   `pages/<key>/<key>.ts` with `// @ts-nocheck`, and mark every change
-   `[port]`. Do the copy with a script that asserts each substitution's count
-   (`tools/port_ivy_evil.py` is the pattern), not by hand. What the old code reached for
-   outside itself comes from `pages/host.ts`: `_activeFormName`, the layout
-   cache (`_lyRect`, `_lyGen`), the page canvas (`worldCanvas()` for
-   `document.getElementById('pattern-canvas')`), the interface it moves or
-   tears (`interfaceTargets()`), and what counts as a control. Export
-   `drawBackground`, `resetBackground` and, if it has one, `startOverlay` /
-   `stopOverlay`.
-2. **Moving the interface goes on `translate`**, not `transform`: the music bar
-   and the phone drawer slide on their own transforms, and the two compose.
-3. **Register it** in `pages/registry.ts`: who gets it (name and form), the
-   accent the whole interface takes (the old `--char-color`), how strongly the
-   world shows behind the sheet (the old page canvas opacity), and whether it
-   draws its own cursor. The code is a lazy import, so it is downloaded only
-   when that character is opened.
-4. **The chrome** goes in `pages/<key>/_chrome.scss`, keyed on
-   `ss-character-view[data-page='<key>']`, and redrawn in the pixel style
-   rather than copied: hard steps instead of soft gradients and glows,
-   `scale` / `translate` rather than `transform` in animations.
-5. **Touch screens** have no pointer for a cursor to sit on: draw no cursor
+1. **Pixels only, through a palette.** `pages/raster.ts` is the toolkit: a
+   `Raster` holds palette indices (0 is clear) and draws with whole-pixel
+   primitives (lines, ovals, polygons, lit tubes, sprites from strings,
+   outlines, ordered dither); a `Screen` shows it on a canvas through a
+   colour table. Drains, darkness and flashes are edits to that table, not
+   redraws. Everything is drawn at art resolution (`artPx()` from
+   `pages/host.ts`: 3 CSS pixels to an art pixel, 2 on phones) and scaled up
+   pixelated, so the page's pixels are the interface's.
+2. **Three files per page.** `look.ts`: the palette in ramps (with the
+   lighter / darker neighbour of every colour, for shading), the sprites, and
+   one clock that both layers keep time by (heartbeat, scheduled events, the
+   colour table for the frame). A background file (Ivy's `hall.ts`): bakes
+   everything that never moves into layers once per size, and per frame
+   copies them and adds only what moves. An overlay file (Ivy's `blade.ts`):
+   whatever the page draws over the whole window, the cursor, and anything
+   it does to the interface.
+3. **Keep frames cheap**, because a phone feels every one:
+   - bake what does not move; keep a light's or a shape's pixels the first
+     time it is drawn at a size, and reuse them wherever it moves;
+   - split the overlay into small canvases shown again only when they change
+     (corners, edge strips, the cursor moved with a CSS transform), and draw
+     the full-window layer only while something is on it;
+   - on phones (`SMALL` in `host.ts`) the overlay draws in the background's
+     frames (the page module calls it from `drawBackground`), 15 a second;
+   - never run a CSS animation of a layout property (height, width, top) on
+     the sheet: it repaints the page every frame. Step it from the page's own
+     frames with an attribute instead (Ivy's blood drop, `data-drip`);
+   - restyle as few elements as possible: put a flag class on the two
+     elements that flare, not on the sheet; give the blocks you move
+     `will-change: translate` in the chrome; leave blocks that are out of
+     sight where they are.
+   `tools/page_perf.js` is how to tell: main thread busy against an ordinary
+   sheet, on a desktop and on a phone at 4x CPU.
+4. **Moving the interface goes on `translate`**, not `transform` (the music
+   bar and the phone drawer slide on their own transforms, and the two
+   compose), always in whole art pixels. `interfaceTargets()` lists what a
+   page may move or tear; `isInteractive()` says what is a control, and a
+   click on a control must stay a click.
+5. **Register it** in `pages/registry.ts`: who gets it (name and form), the
+   accent the whole interface takes, how strongly the world shows behind the
+   sheet, and whether it draws its own cursor. The module is a lazy import
+   exporting `drawBackground`, `resetBackground` and, if it has one,
+   `startOverlay` / `stopOverlay`, so it is downloaded only when that
+   character is opened.
+6. **The chrome** goes in `pages/<key>/_chrome.scss`, keyed on
+   `ss-character-view[data-page='<key>']`: hard steps instead of soft
+   gradients and glows. A sprite the chrome needs (a frame, a rose) can be
+   drawn by the page with its own palette and handed over as a CSS variable.
+7. **Touch screens** have no pointer for a cursor to sit on: draw no cursor
    there, but let a tap do what a click does.
 
 `ss-world-canvas` runs it: the background at 30 frames a second (15 on
 phones), stopped off screen and in performance mode, and the overlay started
 and stopped with the page. An e2e test per page (`tools/ivy_e2e.js` is the
-pattern) checks it turns on, that clicks on controls still work, performance
-mode, and that leaving the page puts the interface back exactly.
+pattern) checks it turns on, that every event runs, that clicks on controls
+still work, performance mode, and that leaving the page puts the interface
+back exactly.
 
 ### Driving the OLD site headless (`tools/oldsite.js`)
 
