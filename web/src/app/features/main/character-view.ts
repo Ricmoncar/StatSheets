@@ -1,62 +1,77 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { CharacterStore } from '../../core/data/character-store';
 import { Character } from '../../core/data/models';
+import { NotifyService } from '../../core/notify.service';
+import { RARITY_LABEL } from '../../core/game/roll';
 import { formatGold, overallPowerLevel } from '../../core/game/sheet';
-import { effectiveStats } from '../../core/game/stats';
+import { effectiveStats, formTraits, getTraitDef, isShimmyful } from '../../core/game/stats';
+import { sanityRow, substatRows } from '../../core/game/substats';
+import { TRAITS } from '../../core/game/traits-data';
+import { Panel } from '../../ui/panel';
 import { StatBar } from '../../ui/stat-bar';
 
 const MAIN = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'] as const;
+const CLASSIC = /^Classic$/i;
 
-/** The open character sheet (first slice: header and core stats). */
+/** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar],
+  imports: [StatBar, Panel, DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    @let c = character();
-    <article class="sheet" [style.--ss-accent]="c.color || '#ffff00'">
-      <header class="head">
-        <div class="portrait">
-          @if (avatar(); as a) { <img [src]="a" alt="" /> }
-        </div>
-        <div class="who">
-          <h1 class="name">{{ c.name }}</h1>
-          @if (formName(); as f) { <span class="form">{{ f }}</span> }
-          @if (c.info?.owner) { <p class="owner">BY {{ c.info?.owner }}</p> }
-          <p class="pl" [style.color]="pl().color">{{ pl().label }} LEVEL</p>
-          <p class="gold" [class.neg]="(c.gold || 0) < 0">G {{ gold() }}</p>
-          @if (c.bio) { <p class="bio">{{ c.bio }}</p> }
-        </div>
-      </header>
-
-      <section class="panel" aria-labelledby="stats-h">
-        <h2 id="stats-h">STATS</h2>
-        @for (k of main; track k) {
-          <div class="row">
-            <span class="label">{{ k.toUpperCase() }}</span>
-            <ss-stat-bar [stat]="k" [value]="eff()[k]" />
-            <span class="num">{{ eff()[k] }}</span>
-          </div>
-        }
-      </section>
-    </article>
-  `,
+  templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
 })
 export class CharacterView {
+  private readonly store = inject(CharacterStore);
+  private readonly notifier = inject(NotifyService);
+
   readonly character = input.required<Character>();
   protected readonly main = MAIN;
+  protected readonly rarityLabel = RARITY_LABEL;
+
   protected readonly eff = computed(() => effectiveStats(this.character()));
   protected readonly pl = computed(() => overallPowerLevel(this.eff()));
   protected readonly gold = computed(() => formatGold(this.character().gold || 0));
+  protected readonly subRows = computed(() => substatRows(this.character(), this.eff()));
+  protected readonly sanity = computed(() => sanityRow(this.character()));
+
   /** The active form's portrait, falling back to the base one. */
   protected readonly avatar = computed(() => {
     const c = this.character();
     const idx = c.activeFormIdx || 0;
     return (idx > 0 && c.altForms?.[idx - 1]?.avatar) || c.avatar || null;
   });
-  protected readonly formName = computed(() => {
+
+  /** BASE (GHOST for Classic) plus each alternate form; empty without forms. */
+  protected readonly forms = computed(() => {
     const c = this.character();
-    const idx = c.activeFormIdx || 0;
-    return idx > 0 ? (c.altForms?.[idx - 1]?.name || `FORM ${idx}`) : (c.altForms?.length ? 'BASE' : '');
+    const alt = c.altForms || [];
+    if (!alt.length) return [];
+    const base = CLASSIC.test(c.name || '') ? 'GHOST' : 'BASE';
+    return [base, ...alt.map((f, i) => f.name || `FORM ${i + 1}`)];
   });
+  protected readonly activeForm = computed(() => this.character().activeFormIdx || 0);
+
+  protected readonly traits = computed(() => {
+    const c = this.character();
+    return formTraits(c).map(key => {
+      const def = getTraitDef(c, key);
+      // shimmyful variants carry no rarity of their own: it is always the base trait's
+      const rarity = (TRAITS[key]?.rarity || def?.rarity || 'common') as string;
+      return { key, name: def?.name || key, rarity, desc: def?.desc || '', shimmyful: isShimmyful(c, key) };
+    });
+  });
+
+  protected readonly items = computed(() => this.character().inventory || []);
+
+  /** Switching form is shared: it saves activeFormIdx on the character, as on the old site. */
+  protected switchForm(idx: number): void {
+    if (idx === this.activeForm()) return;
+    void this.store.update(this.character().id, c => { c.activeFormIdx = idx; });
+  }
+
+  protected notYet(what: string): void {
+    this.notifier.notify(`${what}: NOT REBUILT YET`, 'info');
+  }
 }

@@ -1,0 +1,98 @@
+@let c = character();
+<article class="sheet" [style.--ss-accent]="c.color || '#ffff00'">
+  <header class="head">
+    <div class="portrait">
+      @if (avatar(); as a) { <img [src]="a" alt="" /> }
+      @else { <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="12" y="2" width="8" height="8"/><rect x="10" y="10" width="12" height="10"/><rect x="8" y="20" width="6" height="8"/><rect x="18" y="20" width="6" height="8"/></svg> }
+    </div>
+    <div class="who">
+      <div class="name-row">
+        <h1 class="name">{{ c.name }}</h1>
+        @if (forms().length) {
+          <div class="forms" role="group" aria-label="Form">
+            @for (f of forms(); track $index) {
+              <button type="button" class="chip" [class.on]="$index === activeForm()" [attr.aria-pressed]="$index === activeForm()" (click)="switchForm($index)">{{ f }}</button>
+            }
+          </div>
+        }
+      </div>
+      @if (c.info?.owner) { <p class="owner">BY {{ c.info?.owner }}</p> }
+      <p class="pl" [style.color]="pl().color" [class.omni]="pl().short === 'OMNI'">{{ pl().label }} LEVEL</p>
+      <button type="button" class="gold" [class.neg]="(c.gold || 0) < 0" (click)="notYet('TREASURY')" title="Open treasury">G {{ gold() }}</button>
+      @if (c.bio) { <p class="bio">{{ c.bio }}</p> }
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" (click)="notYet('COMPARE')" title="Compare with another character">CMP</button>
+      <button type="button" class="btn accent" (click)="notYet('EDITOR')">EDIT</button>
+      <button type="button" class="btn danger" (click)="notYet('DELETE')">DEL</button>
+    </div>
+  </header>
+
+  <ss-panel title="TRAITS">
+    <ng-container actions>
+      <button type="button" class="btn accent" (click)="notYet('ROLL')">ROLL</button>
+    </ng-container>
+    @if (traits().length) {
+      <div class="traits">
+        @for (t of traits(); track t.key) {
+          <div class="trait" [attr.data-rarity]="t.rarity" [class.shimmy]="t.shimmyful">
+            <span class="rarity">{{ rarityLabel[t.rarity] || t.rarity.toUpperCase() }}</span>
+            <span class="tname">{{ t.name }}</span>
+            <span class="tdesc">{{ t.desc }}</span>
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="none">NO TRAITS YET. ROLL FOR ONE.</p>
+    }
+  </ss-panel>
+
+  <ss-panel title="STATS">
+    <div class="bars">
+      @for (k of main; track k) {
+        <div class="row">
+          <span class="label">{{ k.toUpperCase() }}</span>
+          <ss-stat-bar [stat]="k" [value]="eff()[k]" />
+          <span class="num">{{ eff()[k] }}</span>
+        </div>
+      }
+    </div>
+    <div class="subs">
+      @for (r of subRows(); track r.def.key) {
+        <div class="sub" [title]="r.def.label + ': ' + r.def.help">
+          <span class="sublabel" [style.color]="r.def.color">{{ r.def.label }}</span>
+          <span class="subval">{{ r.value | number: '1.1-1' }}%
+            @if (r.diff > 0.05 || r.diff < -0.05) {
+              <span class="diff" [class.neg]="r.diff < 0">{{ r.diff > 0 ? '+' : '' }}{{ r.diff | number: '1.1-1' }}</span>
+            }
+          </span>
+        </div>
+      }
+      @if (sanity(); as s) {
+        <div class="sub" title="SANITY">
+          <span class="sublabel sanity">SANITY</span>
+          <span class="subval" [attr.data-level]="s.level">{{ s.value }}</span>
+        </div>
+      }
+    </div>
+  </ss-panel>
+
+  <ss-panel title="INVENTORY">
+    <ng-container actions>
+      <button type="button" class="btn accent" (click)="notYet('ADD ITEM')">+ ADD ITEM</button>
+    </ng-container>
+    @if (items().length) {
+      <div class="items">
+        @for (i of items(); track i.id) {
+          <div class="item" [class.equipped]="i.equipped">
+            <span class="iname">{{ i.name }}</span>
+            @if (i.desc) { <span class="idesc">{{ i.desc }}</span> }
+            @if (i.equipped) { <span class="eq">EQUIPPED</span> }
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="none">NO ITEMS IN INVENTORY</p>
+    }
+  </ss-panel>
+</article>
