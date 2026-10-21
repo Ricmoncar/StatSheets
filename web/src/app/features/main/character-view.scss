@@ -3,7 +3,7 @@
 .sheet { display: flex; flex-direction: column; gap: var(--p8); max-width: calc(440 * var(--px)); }
 
 // ── the hero: one frame, the only border; the character's own place fills
-// all of it, behind the name and details too ──
+// all of it and fades to black behind the name and details ──
 .hero { position: relative; overflow: hidden; background-color: var(--c-void); box-shadow: var(--hard); }
 .scene { position: absolute; inset: 0; ss-pattern-canvas { position: absolute; inset: 0; } }
 // wall torches in the top corners of the frame
@@ -16,8 +16,15 @@
   align-items: start;
   margin-top: calc(40 * var(--px));
   padding: var(--p4) var(--p8) var(--p6);
-  // no backing, so the text carries a dark pixel outline to read on any scene: --edge for the big
-  // type, --edge-sm (2px, one pixel of the small fonts) for the small
+  // eased, so there is no line where the fade starts or where it reaches black
+  background: linear-gradient(to bottom,
+    transparent,
+    color-mix(in srgb, var(--c-void) 30%, transparent) 25%,
+    color-mix(in srgb, var(--c-void) 65%, transparent) 50%,
+    color-mix(in srgb, var(--c-void) 90%, transparent) 75%,
+    var(--c-void));
+  // the top of the fade is still mostly scene, so the text carries a dark pixel outline: --edge for
+  // the big type, --edge-sm (2px, one pixel of the small fonts) for the small
   --edge: var(--px) 0 0 var(--c-void), calc(-1 * var(--px)) 0 0 var(--c-void), 0 var(--px) 0 var(--c-void), 0 calc(-1 * var(--px)) 0 var(--c-void);
   --edge-sm: 2px 0 0 var(--c-void), -2px 0 0 var(--c-void), 0 2px 0 var(--c-void), 0 -2px 0 var(--c-void), 2px 2px 0 var(--c-void);
 }
