@@ -72,22 +72,7 @@
   </ss-panel>
 
   <ss-panel title="INVENTORY">
-    <ng-container actions>
-      <button type="button" class="btn accent" (click)="notYet('ADD ITEM')">+ ADD ITEM</button>
-    </ng-container>
-    @if (items().length) {
-      <div class="items">
-        @for (i of items(); track i.id) {
-          <div class="item" [class.equipped]="i.equipped">
-            <span class="iname">{{ i.name }}</span>
-            @if (i.desc) { <span class="idesc">{{ i.desc }}</span> }
-            @if (i.equipped) { <span class="eq">EQUIPPED</span> }
-          </div>
-        }
-      </div>
-    } @else {
-      <p class="none">NO ITEMS IN INVENTORY</p>
-    }
+    <ss-inventory-panel [character]="c" />
   </ss-panel>
 </article>
 

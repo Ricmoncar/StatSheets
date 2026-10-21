@@ -22,7 +22,7 @@ export interface InventoryItem {
   id: string;
   name: string;
   desc?: string;
-  icon?: string;
+  icon?: string | null;
   iconImage?: string | null;
   equipped?: boolean;
   mods?: ItemMod[];

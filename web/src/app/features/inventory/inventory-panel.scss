@@ -1,0 +1,41 @@
+:host { display: grid; gap: 12px; }
+.bar { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.btn {
+  font-size: var(--ss-text-xs);
+  padding: 6px 8px;
+  background: none;
+  border: var(--ss-border) solid var(--ss-fg);
+  &.accent { border-color: var(--ss-gold); color: var(--ss-gold); }
+}
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
+  padding: 12px 12px 44px;
+  border: 1px solid var(--ss-line-dim);
+  background: var(--ss-panel);
+  &.equipped { border-color: var(--ss-accent); box-shadow: inset 0 0 0 1px var(--ss-accent); }
+  &.equipped .name { color: var(--ss-accent); }
+}
+.icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: var(--ss-border) solid var(--hc);
+  overflow: hidden;
+  img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+}
+.emoji { font-size: 24px; line-height: 1; }
+.info { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.name { font-size: var(--ss-text-sm); overflow-wrap: anywhere; }
+.desc { font-size: var(--ss-text-xs); color: var(--ss-fg-dim); line-height: 1.8; overflow-wrap: anywhere; }
+.mods, .passives { display: flex; flex-wrap: wrap; gap: 4px; }
+.mod { font-size: 6px; padding: 3px 4px; border: 1px solid var(--ss-ok); color: var(--ss-ok); &[data-op='sub'], &[data-op='div'] { border-color: var(--ss-err); color: var(--ss-err); } &[data-op='mul'] { border-color: var(--ss-gold); color: var(--ss-gold); } }
+.passive { font-size: 6px; padding: 3px 4px; border: 1px dashed var(--ss-line-dim); color: var(--ss-fg-dim); }
+.equip { position: absolute; left: 12px; bottom: 10px; }
+.tools { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 4px; }
+.tool { font-size: var(--ss-text-xs); padding: 4px 6px; background: none; border: 1px solid var(--ss-line-dim); &.danger:hover { border-color: var(--ss-err); color: var(--ss-err); } }
+.none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); letter-spacing: 1px; }

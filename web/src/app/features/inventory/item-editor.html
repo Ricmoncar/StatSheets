@@ -1,0 +1,65 @@
+<ss-modal [title]="itemId() ? 'EDIT ITEM' : 'NEW ITEM'" width="720px" (closed)="closed.emit()">
+  <div class="form">
+    <label class="field">
+      <span>NAME</span>
+      <input type="text" [maxLength]="nameMax" placeholder="e.g. Master Sword" [value]="name()" (input)="name.set($any($event.target).value)" />
+    </label>
+    <label class="field">
+      <span>DESCRIPTION</span>
+      <textarea rows="3" placeholder="A brief description..." [value]="desc()" (input)="desc.set($any($event.target).value)"></textarea>
+    </label>
+
+    <div class="field">
+      <span class="row-head">ICON
+        <label class="upload">UPLOAD IMAGE<input type="file" accept="image/*" (change)="upload($event)" hidden /></label>
+      </span>
+      @if (iconImage(); as img) { <div class="preview"><img [ssCldSrc]="img" alt="Uploaded icon" /></div> }
+      <div class="picker">
+        @for (cat of categories; track cat.label) {
+          <span class="cat">{{ cat.label }}</span>
+          <div class="icons">
+            @for (k of cat.keys; track k) {
+              <button type="button" class="ic" [class.on]="icon() === k" [style.--hc]="hue(k)" [title]="k" (click)="pickIcon(k)" data-sfx-hover>{{ icons[k] }}</button>
+            }
+          </div>
+        }
+      </div>
+      <span class="selected">Selected: {{ iconLabel() }}</span>
+    </div>
+
+    <div class="field">
+      <span class="row-head">STAT MODIFIERS <button type="button" class="mini" (click)="addMod()">+ ADD</button></span>
+      @for (m of mods(); track $index) {
+        <div class="mod">
+          <select [value]="m.stat" (change)="setMod($index, { stat: $any($event.target).value })" aria-label="Stat">
+            @for (s of stats; track s.key) { <option [value]="s.key" [selected]="s.key === m.stat">{{ s.label }}</option> }
+          </select>
+          <select [value]="m.op" (change)="setMod($index, { op: $any($event.target).value })" aria-label="Operation">
+            @for (o of ops; track o.key) { <option [value]="o.key" [selected]="o.key === m.op">{{ o.label }}</option> }
+          </select>
+          <input type="number" step="0.1" [value]="m.value" (input)="setMod($index, { value: $any($event.target).value })" aria-label="Value" />
+          <button type="button" class="mini danger" (click)="removeMod($index)" aria-label="Remove modifier">&#10005;</button>
+        </div>
+      } @empty {
+        <span class="hint">No modifiers. This item has no stat effect.</span>
+      }
+    </div>
+
+    <div class="field">
+      <span class="row-head">PASSIVES <button type="button" class="mini" (click)="addPassive()">+ ADD</button></span>
+      @for (p of passives(); track $index) {
+        <div class="mod">
+          <input type="text" class="wide" [maxLength]="passiveMax" placeholder="e.g. This sword makes u very big" [value]="p" (input)="setPassive($index, $any($event.target).value)" />
+          <button type="button" class="mini danger" (click)="removePassive($index)" aria-label="Remove passive">&#10005;</button>
+        </div>
+      } @empty {
+        <span class="hint">No passives.</span>
+      }
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn" (click)="closed.emit()">CANCEL</button>
+      <button type="button" class="btn accent" (click)="save()">SAVE ITEM</button>
+    </div>
+  </div>
+</ss-modal>

@@ -12,6 +12,7 @@ import { Panel } from '../../ui/panel';
 import { GoldModal } from '../gold/gold-modal';
 import { RollOverlay } from '../roll/roll-overlay';
 import { TraitCard } from '../traits/trait-card';
+import { InventoryPanel } from '../inventory/inventory-panel';
 import { StatBar } from '../../ui/stat-bar';
 
 const MAIN = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'] as const;
@@ -20,7 +21,7 @@ const CLASSIC = /^Classic$/i;
 /** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard],
+  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
@@ -66,7 +67,6 @@ export class CharacterView {
     });
   });
 
-  protected readonly items = computed(() => this.character().inventory || []);
 
   /** Which overlay is open over the sheet. */
   protected readonly open = signal<'roll' | 'gold' | null>(null);

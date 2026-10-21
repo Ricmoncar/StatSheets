@@ -19,6 +19,8 @@
   <div class="sandbox" role="status">{{ sandboxLabel }}</div>
 }
 
+<ss-confirm-host />
+
 <div class="toasts" aria-live="polite">
   @for (n of notifier.notices(); track n.id) {
     <div class="toast" [class.err]="n.kind === 'err'" (click)="notifier.dismiss(n.id)">{{ n.text }}</div>
