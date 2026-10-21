@@ -1,5 +1,12 @@
 @let c = character();
 <article class="sheet" [style.--ss-accent]="c.color || '#ffff00'">
+  <nav class="tabs" role="tablist" aria-label="Character sections">
+    @for (t of tabs; track t.key) {
+      <button type="button" role="tab" class="tab" [class.on]="tab() === t.key" [attr.aria-selected]="tab() === t.key" (click)="tab.set(t.key)">{{ t.label }}</button>
+    }
+  </nav>
+@switch (tab()) {
+@case ('stats') {
   <header class="head">
     <div class="portrait">
       @if (avatar(); as a) { <img [src]="a" alt="" /> }
@@ -74,6 +81,15 @@
   <ss-panel title="INVENTORY">
     <ss-inventory-panel [character]="c" />
   </ss-panel>
+}
+@case ('info') { <ss-info-tab [character]="c" (openSoul)="notYet('SOUL EDITOR')" /> }
+@case ('style') {
+  <ss-panel title="BACKGROUND PATTERN">
+    <p class="none">{{ patternLabel() }}</p>
+  </ss-panel>
+}
+@default { <ss-panel [title]="tab().toUpperCase()"><p class="none">NOT REBUILT YET</p></ss-panel> }
+}
 </article>
 
 @if (open() === 'roll') { <ss-roll-overlay [character]="c" (closed)="open.set(null)" /> }

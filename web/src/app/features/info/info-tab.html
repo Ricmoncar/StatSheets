@@ -1,0 +1,104 @@
+@let i = info();
+<div class="dossier">
+  <h2 class="title">{{ character().name }}</h2>
+
+  <label class="owner">
+    <span class="tiny">OWNER / CREATOR</span>
+    <input type="text" maxlength="48" placeholder="Unknown" [ssLiveField]="i['owner']" (commit)="save('owner', $event)" />
+  </label>
+
+  <section class="sec">
+    <h3>SOUL</h3>
+    <button type="button" class="soul" (click)="openSoul.emit()" title="Click to edit this character's SOUL">
+      <span class="heart" aria-hidden="true">&#9829;</span>
+      <span class="soul-meta"><span class="tiny">SOUL TYPE</span><span class="soul-name">{{ soulName() }}</span><span class="soul-edit">&#9998; EDIT SOUL</span></span>
+    </button>
+  </section>
+
+  @for (sec of ['IDENTITY', 'ORIGIN']; track sec) {
+    <section class="sec">
+      <h3>{{ sec }}</h3>
+      <div class="grid">
+        @for (f of lines; track f.key) {
+          @if (f.section === sec) {
+            <label class="line">
+              <span class="tiny">{{ f.label }}</span>
+              <input type="text" placeholder="-" [maxLength]="f.max" [ssLiveField]="i[f.key]" (commit)="save(f.key, $event)" />
+            </label>
+          }
+        }
+        @if (sec === 'ORIGIN') {
+          <div class="line wide">
+            <span class="tiny">AFFILIATION(S)</span>
+            @if (showGlitch()) {
+              <button type="button" class="fx" title="click to edit" (click)="editingAffiliation.set(true)">
+                @for (p of affiliation(); track $index) { @if (p.glitch) { <span class="glitch" [attr.data-text]="p.text">{{ p.text }}</span> } @else { {{ p.text }} } }
+              </button>
+            } @else {
+              <input type="text" placeholder="-" maxlength="80" [ssLiveField]="i['affiliation']" (commit)="save('affiliation', $event)" (blur)="editingAffiliation.set(false)" />
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @for (sec of ['PROFILE', 'LORE']; track sec) {
+    <section class="sec">
+      <h3>{{ sec }}</h3>
+      <div class="mds">
+        @for (f of texts; track f.key) {
+          @if (f.section === sec) {
+            <div class="md">
+              <span class="tiny">{{ f.label }}</span>
+              @if (preview()[f.key]) {
+                <div class="rendered" (click)="togglePreview(f.key)" [innerHTML]="md(i[f.key])"></div>
+              } @else {
+                <textarea [rows]="f.rows" [placeholder]="f.placeholder" [ssLiveField]="i[f.key]" (commit)="save(f.key, $event)"></textarea>
+              }
+              <button type="button" class="mdbtn" (click)="togglePreview(f.key)">{{ preview()[f.key] ? '✎ EDIT' : '▶ PREVIEW' }}</button>
+            </div>
+          }
+        }
+      </div>
+    </section>
+  }
+
+  <section class="sec last">
+    <h3>MEDIA</h3>
+    @for (list of [{ key: 'soundtrack', label: 'SOUNDTRACK', add: '+ ADD SONG' }, { key: 'voiceclaims', label: 'VOICE CLAIM', add: '+ ADD VOICE CLAIM' }]; track list.key) {
+      @let key = $any(list.key);
+      <div class="links">
+        <span class="tiny">{{ list.label }}</span>
+        @for (l of links(key); track $index; let idx = $index) {
+          <div class="link">
+            <div class="link-row">
+              <input type="text" class="ltitle" placeholder="Title (optional)..." [ssLiveField]="l.title" (commit)="updateLink(key, idx, 'title', $event)" />
+              <span class="plat" [attr.data-platform]="platform(l.url)" aria-hidden="true">{{ platform(l.url) === 'youtube' ? '▶' : platform(l.url) === 'spotify' ? '♫' : '↗' }}</span>
+              <input type="text" class="lurl" placeholder="YouTube or Spotify URL..." [ssLiveField]="l.url" (commit)="updateLink(key, idx, 'url', $event)" />
+              <input type="text" class="lnote" placeholder="add a note..." [ssLiveField]="l.note" (commit)="updateLink(key, idx, 'note', $event)" />
+              @if (ytId(l.url)) { <button type="button" class="mini" (click)="togglePlay(key, idx)">{{ playing()[key + ':' + idx] ? '■ STOP' : '▶ PLAY' }}</button> }
+              @if (l.url) { <a class="mini" [href]="l.url" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a> }
+              <button type="button" class="mini x" (click)="removeLink(key, idx)" title="Remove" aria-label="Remove link">&times;</button>
+            </div>
+            @if (playing()[key + ':' + idx] && embed(l.url); as src) {
+              <iframe class="player" [src]="src" title="YouTube player" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            }
+            @if (key === 'voiceclaims') {
+              <div class="mp3">
+                @if (l.audio) {
+                  <audio controls preload="none" [src]="l.audio"></audio>
+                  <span class="fname" [title]="l.fileName || 'audio'">{{ l.fileName || 'audio.mp3' }}</span>
+                  <button type="button" class="mini" (click)="clearClip(idx)">&#10005; MP3</button>
+                } @else {
+                  <label class="mini">UPLOAD MP3<input type="file" accept="audio/*" hidden (change)="uploadClip(idx, $event)" /></label>
+                }
+              </div>
+            }
+          </div>
+        }
+        <button type="button" class="add" (click)="addLink(key)">{{ list.add }}</button>
+      </div>
+    }
+  </section>
+</div>

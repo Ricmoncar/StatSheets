@@ -129,15 +129,15 @@ a { color: var(--a4); }
 .acc-name { min-width: 9ch; color: var(--a4); }
 
 .sec { margin-top: calc(14 * var(--px)); }
-.sec:first-of-type { margin-top: var(--u8); }
+.sec:first-of-type { margin-top: var(--u4); }
 .sec-h { display: flex; align-items: flex-end; gap: var(--u3) var(--u6); flex-wrap: wrap; margin: 0 0 var(--u3); }
 .sec-h .n { font: 400 var(--fs-l)/1 var(--ff-l); color: var(--c-void); background: var(--a3); padding: var(--u1) var(--u2); align-self: center; }
 .sec-h h2 {
   font: 700 var(--fs-h2)/1 var(--ff-d); color: var(--c-white); letter-spacing: 1px;
   text-shadow: var(--px) var(--px) 0 var(--a2), var(--u2) var(--u2) 0 var(--c-void);
 }
-.sec-h p { color: var(--text-dim); max-width: 78ch; flex: 1 1 360px; }
-.sec-rule { height: calc(5 * var(--px)); margin-bottom: var(--u6); background: var(--tx-chain, none) repeat-x 0 0 / var(--tx-chain-size, auto); }
+.sec-h p { color: var(--text-dim); max-width: 112ch; flex: 1 1 360px; }
+.sec-rule { height: calc(5 * var(--px)); margin-bottom: var(--u4); background: var(--tx-chain, none) repeat-x 0 0 / var(--tx-chain-size, auto); }
 
 /* =====================================================================
    FRAMES (fallbacks; the atlas injects the real 9-slice border-images)
@@ -186,7 +186,7 @@ a { color: var(--a4); }
 .app-top {
   position: relative; z-index: 6;
   display: flex; align-items: center; gap: var(--u3) var(--u4);
-  padding: var(--u3) var(--u4);
+  padding: var(--u2) var(--u4);
   background-color: var(--c-ink1);
   background-image: var(--tx-topbar, none); background-repeat: repeat-x; background-size: var(--tx-topbar-size, auto);
   border-bottom: var(--px) solid var(--c-void);
@@ -250,7 +250,7 @@ a { color: var(--a4); }
 .scrim { display: none; }
 
 /* sheet */
-.sheet { position: relative; z-index: 2; display: flex; flex-direction: column; gap: var(--u4); padding: var(--u6) var(--u6) var(--u8); min-width: 0; }
+.sheet { position: relative; z-index: 2; display: flex; flex-direction: column; gap: var(--u4); padding: var(--u4) var(--u8) var(--u6); min-width: 0; }
 .head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--u4) var(--u6); align-items: start; }
 .port { position: relative; width: max-content; }
 .port canvas { display: block; width: calc(32 * var(--px)); height: calc(32 * var(--px)); }
@@ -305,7 +305,7 @@ a { color: var(--a4); }
 .ph .ic { color: var(--a5); }
 .ph .gap { flex: 1; }
 .ph .lbl.dim { color: var(--a4); }
-.pb { padding: var(--u4) var(--u4) var(--u4); display: flex; flex-direction: column; gap: var(--u4); min-width: 0; }
+.pb { padding: var(--u3) var(--u4) var(--u4); display: flex; flex-direction: column; gap: var(--u4); min-width: 0; }
 
 .sheet-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--u4); align-items: start; }
 .pane[hidden] { display: none !important; }
@@ -336,7 +336,7 @@ a { color: var(--a4); }
 .bonus { font: 400 24px/1 var(--ff-n); color: var(--good); min-width: 5ch; }
 
 .stat-foot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--u6); align-items: start; }
-.radar { position: relative; width: calc(72 * var(--px)); height: calc(66 * var(--px)); flex: none; }
+.radar { position: relative; width: calc(64 * var(--px)); height: calc(58 * var(--px)); flex: none; }
 .radar canvas { display: block; width: 100%; height: 100%; }
 .radar span { position: absolute; transform: translate(-50%, -50%); font: 400 var(--fs-l)/1 var(--ff-l); color: var(--sc); text-shadow: var(--px) var(--px) 0 var(--c-void); }
 .subs { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(64 * var(--px)), 1fr)); gap: var(--u2); }
@@ -380,7 +380,7 @@ a { color: var(--a4); }
 .pity-top .n small { font-size: 22px; color: var(--text-dim); }
 .pity-top .hint { font: 400 var(--fs-l)/1 var(--ff-l); color: var(--text-dim); letter-spacing: 0; }
 .pips { display: flex; gap: var(--px); padding: var(--px); background: var(--c-void); width: max-content; align-items: center; max-width: 100%; }
-.pip { flex: none; width: var(--u2); height: calc(6 * var(--px)); background: var(--c-ink2); box-shadow: inset 0 var(--px) 0 var(--c-void); }
+.pip { flex: none; width: var(--px); height: calc(6 * var(--px)); background: var(--c-ink2); box-shadow: inset 0 var(--px) 0 var(--c-void); }
 .pip.on { background: linear-gradient(var(--pl) 0 var(--px), var(--pc) var(--px) calc(100% - var(--px)), var(--pd) calc(100% - var(--px))); box-shadow: none; }
 .pip.cur { animation: pipb 0.5s steps(1) infinite; }
 @keyframes pipb { 50% { background: var(--c-white); } }
@@ -402,13 +402,13 @@ a { color: var(--a4); }
   .spanall { grid-column: 1 / -1; }
 }
 
-.bmatrix { display: grid; grid-template-columns: auto repeat(5, max-content); gap: var(--u4) var(--u4); align-items: center; overflow: hidden; }
+.bmatrix { display: grid; grid-template-columns: auto repeat(5, max-content); gap: var(--u6) var(--u4); align-items: center; }
 .bmatrix .lbl { color: var(--text-dim); }
 .bmatrix .colh { color: var(--text-dim); font: 400 var(--fs-l)/1 var(--ff-l); }
-@media (max-width: 1100px) {
-  .bmatrix { grid-template-columns: repeat(auto-fill, minmax(calc(36 * var(--px)), max-content)); }
-  .bmatrix .colh { display: none; }
-  .bmatrix .rowh { grid-column: 1 / -1; margin-top: var(--u2); }
+@media (max-width: 1240px) {
+  .bmatrix { display: flex; flex-wrap: wrap; gap: var(--u4); }
+  .bmatrix > span:first-child, .bmatrix .colh { display: none; }
+  .bmatrix .rowh { flex-basis: 100%; margin-top: var(--u2); }
 }
 
 /* form fields */
@@ -508,7 +508,7 @@ select.inp option { background: var(--c-ink1); color: var(--c-white); }
 .dlg-face canvas { display: block; width: calc(32 * var(--px)); height: calc(32 * var(--px)); }
 .dlg-face { padding: var(--px); box-shadow: inset 0 0 0 var(--px) var(--c-ink4); }
 .tw { font: 400 var(--fs-dlg)/1.15 var(--ff-n); color: var(--c-white); min-height: 3.45em; }
-.tw p { position: relative; padding-left: 1.2ch; }
+.tw p { position: relative; padding-left: 2ch; }
 .tw p + p { margin-top: 0.15em; }
 .tw p::before { content: "*"; position: absolute; left: 0; }
 .tw p.unborn::before { visibility: hidden; }
@@ -751,7 +751,40 @@ pre.code .k { color: var(--a4); }
   .dlg-body { grid-template-columns: minmax(0, 1fr); }
   .dlg-face { display: none; }
   .loading { grid-template-columns: auto minmax(0, 1fr); }
-  .pips .pip { width: var(--px); }
+}
+
+
+/* layout blocks for the component sheet */
+.comp-block { display: grid; gap: var(--u6); margin-bottom: var(--u6); align-items: stretch; }
+.comp-block.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.comp-cols { columns: 4 calc(140 * var(--px)); column-gap: var(--u6); margin-bottom: var(--u6); }
+.comp-cols > .panel { break-inside: avoid; margin-bottom: var(--u6); width: 100%; }
+@media (max-width: 1240px) { .comp-block.two { grid-template-columns: minmax(0, 1fr); } }
+.hand-row { display: flex; gap: var(--u8); align-items: flex-start; flex-wrap: wrap; }
+.anatomy { flex: 1 1 calc(120 * var(--px)); min-width: 0; display: flex; flex-direction: column; gap: var(--u3); padding: var(--u3) var(--u4); background: var(--c-void); box-shadow: inset 0 0 0 var(--px) var(--c-ink3); }
+.anatomy h4 { color: var(--a4); }
+.anatomy dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--u2) var(--u4); margin: 0; }
+.anatomy dt { font: 400 var(--fs-l)/1.3 var(--ff-l); color: var(--c-white); letter-spacing: 1px; }
+.anatomy dd { margin: 0; font: 400 16px/1.35 var(--ff-d); color: var(--text-dim); }
+.rar-line { display: flex; flex-wrap: wrap; gap: var(--u2) var(--u4); padding-top: var(--u2); }
+.rar-line span { display: inline-flex; align-items: center; gap: var(--u1); font: 400 var(--fs-l)/1 var(--ff-l); color: var(--rc); }
+.traits-panel .pip { width: var(--u2); }
+/* screen-door glass: the sheet header lets the animated background through 1 pixel in 4 */
+.panel.glass { background: var(--tx-d75, var(--c-ink1)) 0 0 / var(--tx-d75-size, auto); background-clip: padding-box; }
+.notes { display: block; columns: 3 calc(160 * var(--px)); column-gap: var(--u6); }
+.notes > .panel { break-inside: avoid; margin-bottom: var(--u6); width: 100%; }
+.type-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(140 * var(--px))), 1fr)); }
+.bg-strip { grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(100 * var(--px))), 1fr)); }
+.bgc .cap { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.bgc .cap p { grid-column: 1 / -1; }
+.ramp i span.dk { color: var(--c-void); text-shadow: none; }
+@media (max-width: 640px) {
+  .subs { grid-template-columns: minmax(0, 1fr); }
+  .scale th:nth-child(5), .scale td:nth-child(5) { display: none; }
+  .scale { table-layout: fixed; }
+  .ramp i span { font-size: 14px; writing-mode: vertical-rl; bottom: var(--u1); }
+  .ramp i { height: calc(26 * var(--px)); }
+  .traits-panel .pip { width: var(--px); }
 }
 
 /* =====================================================================
@@ -836,7 +869,7 @@ pre.code .k { color: var(--a4); }
         <div class="scrim" id="scrim"></div>
 
         <main class="sheet" id="sheet">
-          <section class="panel head-panel">
+          <section class="panel glass head-panel">
             <div class="pb">
               <div class="head">
                 <div class="port"><canvas id="portBig" width="32" height="32" aria-label="Sample pixel portrait of BLACKJACK" role="img"></canvas><span class="lv">LV 21</span></div>
@@ -851,8 +884,8 @@ pre.code .k { color: var(--a4); }
                     <span class="lbl by">BY BK</span>
                     <span class="chip plate"><i class="ic" style="--ic:var(--ic-r_legendary)"></i>WALL LEVEL</span>
                     <span class="gold-inline"><span class="sp sp-coin keep"></span>1,250 G</span>
+                    <span class="tagline">* The house always wins. Except tonight.</span>
                   </div>
-                  <p class="tagline">* Feeling lucky. The house always wins, except tonight.</p>
                   <div class="tags">
                     <span class="chip">#GAMBLER</span><span class="chip">#CARD-SHARK</span><span class="chip">#TRAVELERS</span><span class="chip gold"><i class="ic" style="--ic:var(--ic-note)"></i>RULER OF MY HEART</span>
                   </div>
@@ -885,7 +918,7 @@ pre.code .k { color: var(--a4); }
                 <div class="bars" id="bars"></div>
                 <div class="rule"></div>
                 <div class="stat-foot">
-                  <div class="radar" id="radar"><canvas width="72" height="66" aria-label="Radar chart of the six core stats" role="img"></canvas></div>
+                  <div class="radar" id="radar"><canvas width="64" height="58" aria-label="Radar chart of the six core stats" role="img"></canvas></div>
                   <div class="subs" id="subs"></div>
                 </div>
               </div>
@@ -952,16 +985,37 @@ pre.code .k { color: var(--a4); }
   </div>
   <div class="sec-rule"></div>
 
-  <div class="comp-grid">
+  <div class="comp-block two">
     <!-- C01 buttons -->
-    <article class="panel spec span2">
+    <article class="panel spec">
       <header class="ph"><span class="n">C01</span><h3>BUTTONS</h3></header>
       <div class="pb">
         <div class="bmatrix" id="bmatrix"></div>
         <p class="spec-note"><b>Selected = gold + SOUL.</b> Hover swaps the frame to gold and the icon to the SOUL, exactly like an Undertale menu. Press drops the frame one art pixel into its own hard shadow. Disabled is a 50% dither, never transparency.</p>
       </div>
     </article>
-
+    <!-- C07 dialogue -->
+    <article class="panel spec">
+      <header class="ph"><span class="n">C07</span><h3>DIALOGUE BOX (MODAL)</h3></header>
+      <div class="pb">
+        <div class="dlg" id="dlgDemo">
+          <div class="dlg-body">
+            <div class="dlg-face"><canvas class="face-c" width="32" height="32"></canvas></div>
+            <div>
+              <div class="tw" id="tw1" data-lines="BLACKJACK shuffles the deck without looking at it.|The odds are not in your favour. They never were.|Roll a new hand of traits?"></div>
+              <div class="dlg-opts" role="group" aria-label="Choose">
+                <button class="opt is-sel">ROLL AGAIN</button><button class="opt">KEEP HAND</button>
+              </div>
+            </div>
+          </div>
+          <span class="sp sp-more dlg-more"></span>
+        </div>
+        <div style="display:flex;gap:var(--u3);flex-wrap:wrap"><button class="btn" id="twReplay"><i class="ic" style="--ic:var(--ic-play)"></i>REPLAY TEXT</button><button class="btn" id="openModal"><i class="ic" style="--ic:var(--ic-chat)"></i>OPEN AS MODAL</button></div>
+        <p class="spec-note"><b>Modals are Undertale text boxes</b>: white 3 art px border, black fill, portrait, VT323 typewriter at 30 characters a second with pauses on punctuation. Choices use the SOUL. Esc closes. Reduced motion prints the text at once.</p>
+      </div>
+    </article>
+  </div>
+  <div class="comp-cols">
     <!-- C02 fields -->
     <article class="panel spec">
       <header class="ph"><span class="n">C02</span><h3>TEXT FIELDS</h3></header>
@@ -973,7 +1027,6 @@ pre.code .k { color: var(--a4); }
         <p class="spec-note"><b>Wells are sunken 9-slice frames</b>: dark top-left, lit bottom-right. Focus turns the rim accent. Inputs use VT323 so numbers line up.</p>
       </div>
     </article>
-
     <!-- C03 choices -->
     <article class="panel spec">
       <header class="ph"><span class="n">C03</span><h3>CHOICES</h3></header>
@@ -992,16 +1045,6 @@ pre.code .k { color: var(--a4); }
         <p class="spec-note"><b>The SOUL is the knob.</b> Toggles jump, never slide. Slider fill snaps to whole art pixels.</p>
       </div>
     </article>
-
-    <!-- C04 swatches -->
-    <article class="panel spec">
-      <header class="ph"><span class="n">C04</span><h3>ACCENT PICKER</h3></header>
-      <div class="pb">
-        <div class="swatches" id="swatches" role="group" aria-label="Accent presets"></div>
-        <p class="spec-note"><b>The 16 presets of the current app plus any custom colour.</b> Choosing one re-themes this whole page; that is the same call the character editor makes.</p>
-      </div>
-    </article>
-
     <!-- C05 tabs + tooltip -->
     <article class="panel spec">
       <header class="ph"><span class="n">C05</span><h3>TABS + TOOLTIP</h3></header>
@@ -1021,7 +1064,14 @@ pre.code .k { color: var(--a4); }
         <p class="spec-note"><b>Tooltips are tiny dialogue boxes</b> with a pixel tail. Hover any stat row or icon button in the mockup for the live one. Arrow keys move between tabs.</p>
       </div>
     </article>
-
+    <!-- C04 swatches -->
+    <article class="panel spec">
+      <header class="ph"><span class="n">C04</span><h3>ACCENT PICKER</h3></header>
+      <div class="pb">
+        <div class="swatches" id="swatches" role="group" aria-label="Accent presets"></div>
+        <p class="spec-note"><b>The 16 presets of the current app plus any custom colour.</b> Choosing one re-themes this whole page; that is the same call the character editor makes.</p>
+      </div>
+    </article>
     <!-- C06 toast + context menu -->
     <article class="panel spec">
       <header class="ph"><span class="n">C06</span><h3>TOAST + MENU</h3></header>
@@ -1039,28 +1089,6 @@ pre.code .k { color: var(--a4); }
         <p class="spec-note"><b>Right-click a character in the mockup sidebar</b> for the live menu. Toasts enter in 4 stepped frames from the right.</p>
       </div>
     </article>
-
-    <!-- C07 dialogue -->
-    <article class="panel spec span2">
-      <header class="ph"><span class="n">C07</span><h3>DIALOGUE BOX (MODAL)</h3></header>
-      <div class="pb">
-        <div class="dlg" id="dlgDemo">
-          <div class="dlg-body">
-            <div class="dlg-face"><canvas class="face-c" width="32" height="32"></canvas></div>
-            <div>
-              <div class="tw" id="tw1" data-lines="BLACKJACK shuffles the deck without looking at it.|The odds are not in your favour. They never were.|Roll a new hand of traits?"></div>
-              <div class="dlg-opts" role="group" aria-label="Choose">
-                <button class="opt is-sel">ROLL AGAIN</button><button class="opt">KEEP HAND</button>
-              </div>
-            </div>
-          </div>
-          <span class="sp sp-more dlg-more"></span>
-        </div>
-        <div style="display:flex;gap:var(--u3);flex-wrap:wrap"><button class="btn" id="twReplay"><i class="ic" style="--ic:var(--ic-play)"></i>REPLAY TEXT</button><button class="btn" id="openModal"><i class="ic" style="--ic:var(--ic-chat)"></i>OPEN AS MODAL</button></div>
-        <p class="spec-note"><b>Modals are Undertale text boxes</b>: white 3 art px border, black fill, portrait, VT323 typewriter at 30 characters a second with pauses on punctuation. Choices use the SOUL. Esc closes. Reduced motion prints the text at once.</p>
-      </div>
-    </article>
-
     <!-- C08 confirm -->
     <article class="panel spec">
       <header class="ph"><span class="n">C08</span><h3>CONFIRM</h3></header>
@@ -1072,9 +1100,104 @@ pre.code .k { color: var(--a4); }
         <p class="spec-note"><b>Safe choice selected by default.</b> The destructive option is red until the SOUL lands on it. Try DEL in the mockup header.</p>
       </div>
     </article>
-
+    <!-- C11 pity + gold -->
+    <article class="panel spec">
+      <header class="ph"><span class="n">C11</span><h3>PITY + GOLD</h3></header>
+      <div class="pb">
+        <div class="pity" data-n="37" data-max="50">
+          <div class="pity-top"><span class="lbl">PITY</span><span class="n">37<small>/50</small></span><span class="hint">LEGENDARY+ AT 50</span></div>
+          <div class="pips"></div>
+        </div>
+        <div class="pity sm" data-n="8" data-max="10" data-tone="epic">
+          <div class="pity-top"><span class="lbl">EPIC PITY</span><span class="n">8<small>/10</small></span></div>
+          <div class="pips"></div>
+        </div>
+        <div class="rule"></div>
+        <div data-src="gold">
+          <div class="gold-ctr"><span class="sp sp-coinbig keep"></span><span class="gnum" data-g>1,250</span><span class="gG">G</span><span class="gdelta">+100</span><span class="gap"></span><button class="btn" data-addg><i class="ic" style="--ic:var(--ic-plus)"></i>100 G</button></div>
+          <ul class="txs">
+            <li class="tx"><span class="d">OCT 19</span><span class="t">Won a hand at the back table</span><span class="a up">+300 G</span><span class="b">1,250 G</span></li>
+            <li class="tx"><span class="d">OCT 18</span><span class="t">Bought: Loaded Dice</span><span class="a dn">-120 G</span><span class="b">950 G</span></li>
+            <li class="tx"><span class="d">OCT 16</span><span class="t">Quest reward from BK</span><span class="a up">+70 G</span><span class="b">1,070 G</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+    <!-- C13 chat -->
+    <article class="panel spec">
+      <header class="ph"><span class="n">C13</span><h3>CHAT</h3></header>
+      <div class="pb" data-src="chat">
+        <div class="chat">
+          <div class="msg"><span class="av" data-av="0"></span><div class="bub"><b class="who">BLACKJACK</b><p>Double or nothing? I have a feeling about this deck.</p><time>21:04</time></div></div>
+          <div class="msg me"><div class="bub me"><b class="who">YOU</b><p>Last time you said that, you lost the hat.</p><time>21:05</time></div></div>
+          <div class="msg"><span class="av" data-av="0"></span><div class="bub"><b class="who">BLACKJACK</b><span class="typing keep" aria-label="typing"><i></i><i></i><i></i></span></div></div>
+        </div>
+      </div>
+    </article>
+    <!-- C14 dice -->
+    <article class="panel spec">
+      <header class="ph"><span class="n">C14</span><h3>DICE</h3></header>
+      <div class="pb">
+        <div class="dice">
+          <button class="die inset" id="d6" aria-label="Roll a d6"><canvas width="14" height="14"></canvas></button>
+          <button class="die inset" id="d20" aria-label="Roll a d20"><canvas width="22" height="22"></canvas><span class="d20n">17</span></button>
+          <div class="roll-out" aria-live="polite"><span class="lbl">D20 + D6</span><b id="rollSum">21</b></div>
+        </div>
+        <p class="spec-note"><b>Click a die.</b> Faces cycle at 12 fps while it hops in whole art pixels, then it lands.</p>
+      </div>
+    </article>
+    <!-- C15 empty -->
+    <article class="panel spec">
+      <header class="ph"><span class="n">C15</span><h3>EMPTY STATE</h3></header>
+      <div class="pb" data-src="empty">
+        <div class="empty">
+          <span class="sp sp-soulbig keep"></span>
+          <div class="tw" style="min-height:0"><p>But nobody came.</p></div>
+          <p class="spec-note">Nothing here yet. Make the first one and it will show up in the sidebar.</p>
+          <button class="btn pri"><i class="ic" style="--ic:var(--ic-plus)"></i>NEW CHARACTER</button>
+        </div>
+      </div>
+    </article>
+    <!-- C16 loading -->
+    <article class="panel spec">
+      <header class="ph"><span class="n">C16</span><h3>LOADING</h3></header>
+      <div class="pb">
+        <div class="loading">
+          <span class="sp sp-star keep"></span>
+          <div><span class="lbl">LOADING<span class="ldots keep">...</span></span><div class="lbar"><i class="keep"></i></div></div>
+        </div>
+        <div class="skel"><i></i><i></i><i></i></div>
+        <p class="spec-note"><b>The save-point star twinkles</b> while data loads; the bar fills one segment per step. Skeleton rows scroll a dithered band. These keep running in PERF mode; reduced motion freezes them.</p>
+      </div>
+    </article>
+  </div>
+  <div class="comp-block">
+    <!-- C10 trait cards -->
+    <article class="panel spec">
+      <header class="ph"><span class="n">C10</span><h3>TRAIT CARDS: SIX RARITIES</h3><span class="gap"></span><span class="lbl dim">REAL TRAIT TEXT, SAMPLE IDS</span></header>
+      <div class="pb">
+        <div class="hand-row">
+          <div class="hand" id="rarityHand"></div>
+          <aside class="anatomy">
+            <h4 class="lbl">CARD ANATOMY</h4>
+            <dl>
+              <dt>RIM</dt><dd>9-slice frame in the rarity palette. Epic and up cycle it frame by frame.</dd>
+              <dt>RIBBON</dt><dd>7 x 7 sigil + rarity name, Silkscreen 16.</dd>
+              <dt>ART</dt><dd>52 x 22 art px window, 6 to 12 drawn frames. Codex id in VT323 on top.</dd>
+              <dt>TEXT</dt><dd>Name Pixelify 700 / 22, description Pixelify 400 / 17.</dd>
+              <dt>MODS</dt><dd>VT323 chips in stat colours, soul red when negative, pinned to the card foot.</dd>
+              <dt>SIZE</dt><dd>64 art px wide on desktop. On phones the card lies down: art left, text right.</dd>
+            </dl>
+            <div class="rar-line" id="rarLine"></div>
+          </aside>
+        </div>
+        <p class="spec-note"><b>Each rarity owns one motion.</b> Common: the stone hops. Rare: a glint sweeps the crystal. Epic: the rim pulses through a 4-step palette cycle and the orb throws rings. Legendary: corner stars twinkle and a dithered foil band crosses the crown. Mythic: the rim chases sun colours, rays turn, foil, the label flashes. Hexxed: the rim glitches on an irregular beat, the eye tears and blinks, the whole card jolts one art pixel with a magenta and teal split. All of it is frame swaps, no tweens.</p>
+      </div>
+    </article>
+  </div>
+  <div class="comp-block two">
     <!-- C09 items -->
-    <article class="panel spec span2">
+    <article class="panel spec">
       <header class="ph"><span class="n">C09</span><h3>ITEM CARDS</h3></header>
       <div class="pb">
         <div class="items" id="itemsSrc">
@@ -1100,99 +1223,14 @@ pre.code .k { color: var(--a4); }
         <p class="spec-note"><b>Equipped items get the accent frame with a 4-frame rim blink</b> and the Undertale <b>[E]</b> marker. Item icons are 16 x 16 sprites in a sunken slot.</p>
       </div>
     </article>
-
-    <!-- C10 trait cards -->
-    <article class="panel spec spanall">
-      <header class="ph"><span class="n">C10</span><h3>TRAIT CARDS: SIX RARITIES</h3><span class="gap"></span><span class="lbl dim">REAL TRAIT TEXT, SAMPLE IDS</span></header>
-      <div class="pb">
-        <div class="hand" id="rarityHand"></div>
-        <p class="spec-note"><b>Each rarity owns one motion.</b> Common: the stone hops. Rare: a glint sweeps the crystal. Epic: the rim pulses through a 4-step palette cycle and the orb throws rings. Legendary: corner stars twinkle and a dithered foil band crosses the crown. Mythic: the rim chases sun colours, rays turn, foil, the label flashes. Hexxed: the rim glitches on an irregular beat, the eye tears and blinks, the whole card jolts one art pixel with a magenta and teal split. All of it is frame swaps, no tweens.</p>
-      </div>
-    </article>
-
-    <!-- C11 pity + gold -->
-    <article class="panel spec">
-      <header class="ph"><span class="n">C11</span><h3>PITY + GOLD</h3></header>
-      <div class="pb">
-        <div class="pity" data-n="37" data-max="50">
-          <div class="pity-top"><span class="lbl">PITY</span><span class="n">37<small>/50</small></span><span class="hint">LEGENDARY+ AT 50</span></div>
-          <div class="pips"></div>
-        </div>
-        <div class="pity sm" data-n="8" data-max="10" data-tone="epic">
-          <div class="pity-top"><span class="lbl">EPIC PITY</span><span class="n">8<small>/10</small></span></div>
-          <div class="pips"></div>
-        </div>
-        <div class="rule"></div>
-        <div data-src="gold">
-          <div class="gold-ctr"><span class="sp sp-coinbig keep"></span><span class="gnum" data-g>1,250</span><span class="gG">G</span><span class="gdelta">+100</span><span class="gap"></span><button class="btn" data-addg><i class="ic" style="--ic:var(--ic-plus)"></i>100 G</button></div>
-          <ul class="txs">
-            <li class="tx"><span class="d">OCT 19</span><span class="t">Won a hand at the back table</span><span class="a up">+300 G</span><span class="b">1,250 G</span></li>
-            <li class="tx"><span class="d">OCT 18</span><span class="t">Bought: Loaded Dice</span><span class="a dn">-120 G</span><span class="b">950 G</span></li>
-            <li class="tx"><span class="d">OCT 16</span><span class="t">Quest reward from BK</span><span class="a up">+70 G</span><span class="b">1,070 G</span></li>
-          </ul>
-        </div>
-      </div>
-    </article>
-
     <!-- C12 reveal -->
-    <article class="panel spec span2">
+    <article class="panel spec">
       <header class="ph"><span class="n">C12</span><h3>TRAIT ROLL: HAND OF 3</h3><span class="gap"></span><button class="btn" id="revealBtn"><i class="ic" style="--ic:var(--ic-spark)"></i>REPLAY</button></header>
       <div class="pb">
         <div class="reveal" id="reveal">
           <div class="reveal-row"></div>
         </div>
         <p class="spec-note"><b>Cards flip as 7 drawn frames at 12 fps</b> (full, two squashes, edge, and back out). A Legendary or better shakes the panel for 5 frames and throws a sparkle burst. The loop restarts every 6 seconds.</p>
-      </div>
-    </article>
-
-    <!-- C13 chat -->
-    <article class="panel spec">
-      <header class="ph"><span class="n">C13</span><h3>CHAT</h3></header>
-      <div class="pb" data-src="chat">
-        <div class="chat">
-          <div class="msg"><span class="av" data-av="0"></span><div class="bub"><b class="who">BLACKJACK</b><p>Double or nothing? I have a feeling about this deck.</p><time>21:04</time></div></div>
-          <div class="msg me"><div class="bub me"><b class="who">YOU</b><p>Last time you said that, you lost the hat.</p><time>21:05</time></div></div>
-          <div class="msg"><span class="av" data-av="0"></span><div class="bub"><b class="who">BLACKJACK</b><span class="typing keep" aria-label="typing"><i></i><i></i><i></i></span></div></div>
-        </div>
-      </div>
-    </article>
-
-    <!-- C14 dice -->
-    <article class="panel spec">
-      <header class="ph"><span class="n">C14</span><h3>DICE</h3></header>
-      <div class="pb">
-        <div class="dice">
-          <button class="die inset" id="d6" aria-label="Roll a d6"><canvas width="14" height="14"></canvas></button>
-          <button class="die inset" id="d20" aria-label="Roll a d20"><canvas width="22" height="22"></canvas><span class="d20n">17</span></button>
-          <div class="roll-out" aria-live="polite"><span class="lbl">D20 + D6</span><b id="rollSum">21</b></div>
-        </div>
-        <p class="spec-note"><b>Click a die.</b> Faces cycle at 12 fps while it hops in whole art pixels, then it lands.</p>
-      </div>
-    </article>
-
-    <!-- C15 empty -->
-    <article class="panel spec">
-      <header class="ph"><span class="n">C15</span><h3>EMPTY STATE</h3></header>
-      <div class="pb" data-src="empty">
-        <div class="empty">
-          <span class="sp sp-soulbig keep"></span>
-          <div class="tw" style="min-height:0"><p>But nobody came.</p></div>
-          <p class="spec-note">Nothing here yet. Make the first one and it will show up in the sidebar.</p>
-          <button class="btn pri"><i class="ic" style="--ic:var(--ic-plus)"></i>NEW CHARACTER</button>
-        </div>
-      </div>
-    </article>
-
-    <!-- C16 loading -->
-    <article class="panel spec">
-      <header class="ph"><span class="n">C16</span><h3>LOADING</h3></header>
-      <div class="pb">
-        <div class="loading">
-          <span class="sp sp-star keep"></span>
-          <div><span class="lbl">LOADING<span class="ldots keep">...</span></span><div class="lbar"><i class="keep"></i></div></div>
-        </div>
-        <div class="skel"><i></i><i></i><i></i></div>
-        <p class="spec-note"><b>The save-point star twinkles</b> while data loads; the bar fills one segment per step. Skeleton rows scroll a dithered band. These keep running in PERF mode; reduced motion freezes them.</p>
       </div>
     </article>
   </div>
@@ -1254,7 +1292,7 @@ pre.code .k { color: var(--a4); }
       <tr><td>Body, descriptions</td><td>Pixelify 400</td><td>17 to 18</td><td>16 to 17</td><td>Line height 1.3 to 1.4</td></tr>
       <tr><td>Labels, buttons, tabs</td><td>Silkscreen 400</td><td>16</td><td>16</td><td>Uppercase, line box 7 art px</td></tr>
       <tr><td>Stat values, gold</td><td>VT323</td><td>30 / 64</td><td>26 / 52</td><td>Right aligned</td></tr>
-      <tr><td>Dialogue, chat</td><td>VT323</td><td>32 / 26</td><td>24 / 26</td><td>Paragraphs start with a hanging "*"</td></tr>
+      <tr><td>Dialogue, chat</td><td>VT323</td><td>32 / 26</td><td>24 / 26</td><td>Paragraphs start with a hanging asterisk</td></tr>
     </table>
   </div></section>
 </section>
@@ -1664,6 +1702,7 @@ const SUN5 = n => n ? rows(['z...z', '..Y..', '.YwY.', '..Y..', 'z...z']) : rows
 const HEXO = n => n === 0 ? rows(['.....', '.....', '..H..', '.....', '.....']) : n === 1 ? rows(['H.H..', '.....', 'H.T..', '.....', '..H..']) : rows(['.....', '.T...', '..HH.', '.....', 'H....']);
 const FR = {
   panel: { p: ['k', 'w', 'w', 'k', ['4', '2']], n: 2, sh: 2, f: 'n', o: GEM },
+  glass: { p: ['k', 'w', 'w', 'k', ['4', '2'], 'k'], n: 2, sh: 2, f: null, o: GEM },
   well: { p: ['k', 'p', ['q', 'm']], n: 2, sh: 0, f: 'n' },
   bezel: { p: ['k', 'q', 'p', 'm', 'k'], n: 3, sh: 3, f: null },
   dialog: { p: ['w', 'w', 'w'], n: 0, sh: 0, f: 'k' },
@@ -1939,12 +1978,12 @@ function d20Grid(hot) {
   const pts = Array.from({ length: 6 }, (_, i) => { const a = -Math.PI / 2 + i * Math.PI / 3; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; });
   for (let y = 0; y < 22; y++) for (let x = 0; x < 22; x++) if (inPoly(x + 0.5, y + 0.5, pts)) g.set(x, y, (x + y) < 20 ? '3' : '2');
   const tri = [[cx, 4], [cx + 6.5, 15], [cx - 6.5, 15]];
-  for (let y = 0; y < 22; y++) for (let x = 0; x < 22; x++) if (inPoly(x + 0.5, y + 0.5, tri)) g.set(x, y, hot ? 'Y' : '4');
+  for (let y = 0; y < 22; y++) for (let x = 0; x < 22; x++) if (inPoly(x + 0.5, y + 0.5, tri)) g.set(x, y, hot ? 'y' : '1');
   const P = pts.map(([x, y]) => [Math.round(x - 0.5), Math.round(y - 0.5)]);
   for (let i = 0; i < 6; i++) line(g, P[i][0], P[i][1], P[(i + 1) % 6][0], P[(i + 1) % 6][1], 'k');
   const T = tri.map(([x, y]) => [Math.round(x - 0.5), Math.round(y - 0.5)]);
-  for (let i = 0; i < 3; i++) line(g, T[i][0], T[i][1], T[(i + 1) % 3][0], T[(i + 1) % 3][1], '1');
-  line(g, P[0][0], P[0][1], T[0][0], T[0][1], '1'); line(g, P[2][0], P[2][1], T[1][0], T[1][1], '1'); line(g, P[4][0], P[4][1], T[2][0], T[2][1], '1');
+  for (let i = 0; i < 3; i++) line(g, T[i][0], T[i][1], T[(i + 1) % 3][0], T[(i + 1) % 3][1], hot ? 'z' : '4');
+  line(g, P[0][0], P[0][1], T[0][0], T[0][1], '4'); line(g, P[2][0], P[2][1], T[1][0], T[1][1], '4'); line(g, P[4][0], P[4][1], T[2][0], T[2][1], '4');
   return g;
 }
 function itemDice() { const g = new Grid(16, 16); stamp(g, dieFace(5, 14, 'R', true), 1, 1); return g; }
@@ -2037,6 +2076,7 @@ function buildAtlas() {
 
   // textures
   const d50 = new Grid(2, 2); d50.set(0, 0, 'k'); d50.set(1, 1, 'k'); regTex('d50', d50);
+  const d75 = new Grid(4, 4); for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if (bay(x, y) < 0.75) d75.set(x, y, (x + y) % 4 === 0 ? 'n' : 'k'); regTex('d75', d75);
   const band = new Grid(4, 13); dgrad(band, 0, 0, 4, 13, ['2', '1', '0'], true, 0.6); for (let x = 0; x < 4; x++) { band.set(x, 0, '3'); band.set(x, 12, 'k'); } regTex('band', band);
   const top = new Grid(4, 22); dgrad(top, 0, 0, 4, 22, ['m', 'n', 'k'], true, 0.6); regTex('topbar', top);
   const side = new Grid(8, 8); for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) side.set(x, y, ((x + y) % 8 === 0) ? 'm' : 'n'); regTex('side', side);
@@ -2050,6 +2090,7 @@ function buildAtlas() {
 
   // frames
   regFrame('.panel', FR.panel);
+  regFrame('.panel.glass', FR.glass);
   regFrame('.well, .bgc', FR.well);
   regFrame('.mock', FR.bezel);
   regFrame('.dlg', FR.dialog);
@@ -2300,7 +2341,7 @@ const TRAITS = {
     ['common', 'Favored', '+15% Crit Chance', [['+15% CRIT RATE', 'atk-lt', 'atk-dk']], '#001'],
     ['rare', 'Lethal', '+30% True Damage.', [['+30% TRUE DMG', 'white', 'ink4']], '#027'],
     ['epic', 'Vampiric', '+75% Lifesteal', [['+75% LIFESTEAL', 'soul', 'soul-dk']], '#044'],
-    ['legendary', 'Temporal', 'You get 2 turns per round.', [['2 TURNS PER ROUND', 'gold', 'gold-dk']], '#118'],
+    ['legendary', 'Temporal', 'You get 2 turns per round.', [['x2 TURNS', 'gold', 'gold-dk']], '#118'],
     ['mythic', 'Glass Cannon', '+200% ATK, -90% DEF, -80% HP', [['+200% ATK', 'atk', 'atk-dk'], ['-90% DEF', 'soul', 'soul-dk', 1], ['-80% HP', 'soul', 'soul-dk', 1]], '#205'],
     ['hexxed', 'Abyssal Voided', '50% chance attacks spawn a black hole on hit. Trapped enemies lose their turn.', [['50% PROC', 'hex', 'hex-dk']], '#X04']
   ]
@@ -2348,7 +2389,7 @@ function buildBars() {
   $('#subs').innerHTML = SUBS.map(([k, ic, c, v, b]) => `<div class="sub" style="--sc:${c}"><i class="ic" style="--ic:var(--ic-${ic})"></i><span class="k">${k}</span><span class="v">${v}${b ? `<small>${b}</small>` : ''}</span></div>`).join('');
 }
 function drawRadar() {
-  const wrap = $('#radar'), c = $('canvas', wrap), W = 72, H = 66, cx = 36, cy = 33, RR = 26;
+  const wrap = $('#radar'), c = $('canvas', wrap), W = 64, H = 58, cx = 32, cy = 29, RR = 22;
   const g = new Grid(W, H);
   const ang = i => -Math.PI / 2 + i * Math.PI / 3;
   const pt = (i, r) => [cx + Math.cos(ang(i)) * r, cy + Math.sin(ang(i)) * r];
@@ -2363,7 +2404,7 @@ function drawRadar() {
   P.forEach(([x, y], i) => { g.rect(x - 1, y - 1, 3, 3, 'k'); g.set(x, y, keyOf[STATS[i].c]); });
   c.width = W; c.height = H; const ctx = c.getContext('2d'); ctx.clearRect(0, 0, W, H); ctx.drawImage(toCanvas(g, 1), 0, 0);
   $$('span', wrap).forEach(s => s.remove());
-  STATS.forEach((s, i) => { const [x, y] = pt(i, RR + 6); const sp = document.createElement('span'); sp.textContent = s.k; sp.style.left = (x / W * 100) + '%'; sp.style.top = (y / H * 100) + '%'; sp.style.setProperty('--sc', `var(--c-${s.c}${s.c === 'gold' ? '' : '-lt'})`); wrap.appendChild(sp); });
+  STATS.forEach((s, i) => { const [x, y] = pt(i, RR + 5); const sp = document.createElement('span'); sp.textContent = s.k; sp.style.left = (x / W * 100) + '%'; sp.style.top = (y / H * 100) + '%'; sp.style.setProperty('--sc', `var(--c-${s.c}${s.c === 'gold' ? '' : '-lt'})`); wrap.appendChild(sp); });
 }
 function buildPity(el) {
   const n = +el.dataset.n, max = +el.dataset.max, epic = el.dataset.tone === 'epic';
@@ -2395,7 +2436,7 @@ function buildPalette() {
   const names = { k: 'void', n: 'ink1', m: 'ink2', p: 'ink3', q: 'ink4', r: 'ink5', s: 'mist', b: 'bone', w: 'white', R: 'soul', e: 'soul-dk', Y: 'gold', y: 'gold-dk', z: 'gold-lt', G: 'hp', g: 'hp-dk', J: 'hp-lt', O: 'atk', o: 'atk-dk', P: 'atk-lt', B: 'def', v: 'def-dk', D: 'def-lt', M: 'mag', u: 'mag-dk', K: 'mag-lt', T: 'iq', t: 'iq-dk', Q: 'iq-lt', H: 'hex', x: 'hex-void', X: 'hex-dk' };
   $('#palList').innerHTML = Object.entries(names).map(([k, n]) => `<div><i style="--sw:var(--c-${n})"></i><span><b>${k} ${n}</b>${PAL[k]}</span></div>`).join('');
 }
-function updateRampView() { $('#rampView').innerHTML = ACC.map((c, i) => `<i style="--sw:${c}"><span>a${i} ${c}</span></i>`).join(''); }
+function updateRampView() { $('#rampView').innerHTML = ACC.map((c, i) => `<i style="--sw:${c}"><span${luma(c) > 0.36 ? ' class="dk"' : ''}>a${i} ${c}</span></i>`).join(''); }
 
 /* ---------- bg strip ---------- */
 let mockView, mockKey = 'castle';
@@ -2637,6 +2678,7 @@ function boot() {
   buildAccentUI(); buildBMatrix(); buildSidebar(); buildBars(); drawRadar();
   $('#mockHand').innerHTML = TRAITS.mock.map(cardHTML).join('');
   $('#rarityHand').innerHTML = TRAITS.six.map(cardHTML).join('');
+  $('#rarLine').innerHTML = RARS.map(r => `<span class="r-${r}"><i class="ic" style="--ic:var(--ic-r_${r})"></i>${r.toUpperCase()}</span>`).join('');
   $$('.pity').forEach(buildPity);
   clonePanes();
   $$('.pity').forEach(buildPity);

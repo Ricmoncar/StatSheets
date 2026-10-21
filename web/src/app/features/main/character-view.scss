@@ -106,3 +106,16 @@
   .portrait { width: 80px; height: 80px; }
   .name { font-size: var(--ss-text-lg); }
 }
+
+.tabs { display: flex; gap: 0; flex-wrap: wrap; border-bottom: var(--ss-border) solid var(--ss-line-dim); }
+.tab {
+  font-size: var(--ss-text-xs);
+  letter-spacing: 2px;
+  padding: 10px 16px;
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  margin-bottom: calc(-1 * var(--ss-border));
+  color: var(--ss-fg-dim);
+  &.on { color: var(--ss-accent); border-bottom-color: var(--ss-accent); }
+}

@@ -16,6 +16,8 @@ import { GoldModal } from '../gold/gold-modal';
 import { RollOverlay } from '../roll/roll-overlay';
 import { TraitCard } from '../traits/trait-card';
 import { InventoryPanel } from '../inventory/inventory-panel';
+import { InfoTab } from '../info/info-tab';
+import { GENERIC_PATTERNS } from '../../core/game/patterns';
 import { StatBar } from '../../ui/stat-bar';
 
 const MAIN = ['hp', 'atk', 'def', 'mag', 'spd', 'iq'] as const;
@@ -24,7 +26,7 @@ const CLASSIC = /^Classic$/i;
 /** The open character sheet: header, traits, stats and inventory panels. */
 @Component({
   selector: 'ss-character-view',
-  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel],
+  imports: [StatBar, Panel, DecimalPipe, GoldModal, RollOverlay, TraitCard, InventoryPanel, InfoTab],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-view.html',
   styleUrl: './character-view.scss',
@@ -70,6 +72,16 @@ export class CharacterView {
     });
   });
 
+
+  protected readonly tabs = [
+    { key: 'stats', label: 'STATS' }, { key: 'style', label: 'STYLE' }, { key: 'info', label: 'INFO' },
+    { key: 'music', label: 'MUSIC' }, { key: 'abilities', label: 'ABILITIES' },
+  ] as const;
+  protected readonly tab = signal<'stats' | 'style' | 'info' | 'music' | 'abilities'>('stats');
+  protected readonly patternLabel = computed(() => {
+    const t = this.character().pattern?.type || 'none';
+    return GENERIC_PATTERNS[t]?.label || t;
+  });
 
   /** Which overlay is open over the sheet. */
   protected readonly open = signal<'roll' | 'gold' | null>(null);

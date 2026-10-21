@@ -26,7 +26,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Inventory: items, icon picker, image icons, mods, passives, equip, copy and paste
 - [x] Gold manager
 - [x] Editor: every field, alt forms (12), tags (8), avatar compression, drafts, pattern settings; Gaster easter egg (pattern preview waits for the redesigned patterns)
-- [ ] Info tab: profile fields, media links, voice claims, theme song
+- [x] Info tab: every profile field (saves as you type, never overwrites text being typed), markdown preview, [[glitch]] affiliations, soundtrack and voice-claim links with YouTube player and MP3 upload
 - [ ] Music: per-character theme player and mini-player bar
 - [ ] Abilities tab
 - [ ] SOUL builder
