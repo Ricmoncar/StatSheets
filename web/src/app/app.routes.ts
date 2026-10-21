@@ -19,6 +19,6 @@ export const routes: Routes = [
   { path: 'playlists', loadComponent: () => import('./features/playlists/playlists-page').then(m => m.PlaylistsPage), title: 'STATSHEETS - PLAYLISTS' },
   { path: 'bkscorner', ...todo("BK'S CORNER") },
   { path: 'baddie', ...todo('SPIN A BADDIE') },
-  { path: 'admin', ...todo('ADMIN') },
+  { path: 'admin', loadComponent: () => import('./features/admin/admin-page').then(m => m.AdminPage), title: 'STATSHEETS - ADMIN' },
   { path: '**', redirectTo: '' },
 ];

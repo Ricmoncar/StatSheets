@@ -1,0 +1,171 @@
+@if (!unlocked()) {
+  <form class="gate u-voice" (submit)="$event.preventDefault(); unlock(pw)">
+    <h1 class="gate-title u-display">* ADMIN</h1>
+    <p class="gate-sub">STATSHEETS // RESTRICTED</p>
+    <label class="u-field">
+      <ss-icon name="lock" [soul]="false" />
+      <input #pw type="password" placeholder="PASSWORD" autocomplete="off" aria-label="Password" autofocus (input)="authErr.set('')" />
+    </label>
+    <button type="submit" class="u-btn primary">ENTER</button>
+    <p class="gate-err" role="alert">{{ authErr() ? '* ' + authErr() : '' }}</p>
+  </form>
+} @else {
+  <header class="bar">
+    <ss-icon class="crest" name="crown" [soul]="false" />
+    <div class="titles">
+      <h1 class="title u-display">ADMIN PANEL</h1>
+      <span class="sub">{{ store.status() === 'connecting' ? 'CONNECTING...' : chars().length + ' CHARACTERS LOADED' }}</span>
+    </div>
+    <span class="meta">STATSHEETS // RESTRICTED ACCESS</span>
+  </header>
+
+  <datalist id="trait-keys">
+    @for (k of knownKeys(); track k) { <option [value]="k">{{ traitName(k) }}</option> }
+  </datalist>
+
+  <ss-panel class="te" title="TRAIT EDITOR">
+    <div class="te-grid">
+      <div class="picker">
+        <span class="mini-h">SELECT CHARACTER</span>
+        <label class="u-field">
+          <ss-icon name="search" [soul]="false" />
+          <input type="search" placeholder="SEARCH..." aria-label="Search characters" [value]="search()" (input)="search.set($any($event.target).value)" />
+        </label>
+        <div class="clist u-fr u-inset" role="list">
+          @for (c of filtered(); track c.id) {
+            <button type="button" class="cc" role="listitem" [class.on]="c.id === selId()" [attr.aria-current]="c.id === selId() ? 'true' : null"
+                    [style.--char]="c.color || '#444444'" (click)="load(c)">
+              <span class="dot" aria-hidden="true"></span>
+              <span class="cname">{{ c.name || c.id }}</span>
+              <small>{{ count((c.traits || []).length, 'TRAIT') }}</small>
+            </button>
+          } @empty {
+            <p class="none">{{ search() ? 'NO MATCH' : store.status() === 'connecting' ? 'CONNECTING...' : 'NO CHARACTERS' }}</p>
+          }
+        </div>
+      </div>
+
+      <div class="right">
+        <section class="traits">
+          <span class="mini-h">TRAITS{{ sel() ? ' · ' + (sel()!.name || sel()!.id) : '' }}</span>
+          <div class="chips">
+            @if (pending(); as p) {
+              @for (k of p.traits; track k) {
+                @let s = p.shimmy.includes(k);
+                <span class="chip" [class.shimmy]="s" [style.--tc]="'var(--ss-' + rarity(k) + ', var(--c-bone))'" [title]="traitName(k)">
+                  {{ k }}@if (s) { <span class="star" aria-label="shimmyful">✦</span> }
+                  <button type="button" class="chip-x" (click)="removeTrait(k)" [attr.aria-label]="'Remove ' + k"><ss-icon name="x" [soul]="false" /></button>
+                </span>
+              } @empty { <span class="none">No traits yet.</span> }
+            } @else { <span class="none">No character selected.</span> }
+          </div>
+          <div class="add">
+            <label class="u-field grow">
+              <input #addKey type="text" list="trait-keys" placeholder="TRAIT KEY..." aria-label="Trait key" (keydown.enter)="addTrait(addKey, addShimmy)" />
+            </label>
+            <label class="u-tog">
+              <input #addShimmy type="checkbox" />
+              <span class="trk u-spr"><span class="knob u-spr"></span></span>SHIMMYFUL
+            </label>
+            <button type="button" class="u-btn sm primary" (click)="addTrait(addKey, addShimmy)"><ss-icon name="plus" [soul]="false" />ADD</button>
+          </div>
+          <div class="row">
+            <button type="button" class="u-btn sm" (click)="saveTraits()" [class.on]="dirty()">SAVE TRAITS</button>
+            <button type="button" class="u-btn sm danger" (click)="clearAll()">CLEAR ALL</button>
+            <span class="msg ok" role="status">{{ teMsg() ? '* ' + teMsg() : dirty() ? '* UNSAVED CHANGES' : '' }}</span>
+          </div>
+        </section>
+
+        <div class="bottom">
+          <section>
+            <span class="mini-h">QUICK STAT OVERRIDE</span>
+            @if (sel()) {
+              <div class="stats">
+                @for (k of STATS; track k) {
+                  <label class="stat" [style.--sc]="'var(--stat-' + k + ')'">
+                    <span>{{ k.toUpperCase() }}</span>
+                    <input type="number" min="1" [value]="statsText()[k]" (input)="typeStat(k, $any($event.target).value)" [attr.aria-label]="k.toUpperCase()" />
+                  </label>
+                }
+              </div>
+              <button type="button" class="u-btn sm primary" (click)="saveStats()">SAVE STATS</button>
+            } @else { <p class="none">Select a character first.</p> }
+          </section>
+          <section>
+            <span class="mini-h">RENAME CHARACTER</span>
+            <label class="u-field">
+              <input type="text" placeholder="NEW NAME..." aria-label="New name" [value]="renameText()" (input)="renameText.set($any($event.target).value)" (keydown.enter)="rename()" />
+            </label>
+            <button type="button" class="u-btn sm" (click)="rename()">RENAME</button>
+          </section>
+        </div>
+      </div>
+    </div>
+  </ss-panel>
+
+  <ss-panel title="BULK TRAIT OPERATIONS">
+    <div class="bulk">
+      <section>
+        <span class="mini-h">GIVE TO ALL</span>
+        <label class="lbl" for="bulk-key">TRAIT KEY</label>
+        <label class="u-field"><input #bulkKey id="bulk-key" type="text" list="trait-keys" placeholder="e.g. perfectsoul" /></label>
+        <label class="u-tog">
+          <input #bulkShimmy type="checkbox" />
+          <span class="trk u-spr"><span class="knob u-spr"></span></span>MAKE SHIMMYFUL
+        </label>
+        <div class="row">
+          <button type="button" class="u-btn sm primary" (click)="giveAll(bulkKey, bulkShimmy)">GIVE TO ALL CHARS</button>
+          <button type="button" class="u-btn sm danger" (click)="removeAll(bulkKey, 'bulk')">REMOVE FROM ALL</button>
+        </div>
+        <p class="msg ok" role="status">{{ bulkMsg() ? '* ' + bulkMsg() : '' }}</p>
+      </section>
+      <section class="danger-zone">
+        <span class="mini-h">DANGER ZONE</span>
+        <label class="lbl" for="nuke-key">NUKE A SPECIFIC TRAIT FROM EVERYONE</label>
+        <div class="row">
+          <label class="u-field grow"><input #nukeKey id="nuke-key" type="text" list="trait-keys" placeholder="TRAIT KEY..." /></label>
+          <button type="button" class="u-btn sm danger" (click)="removeAll(nukeKey, 'nuke')">NUKE</button>
+        </div>
+        <span class="lbl">WIPE ALL TRAITS FROM EVERY CHARACTER</span>
+        <div class="row"><button type="button" class="u-btn sm danger" (click)="wipeAll()">WIPE EVERYONE</button></div>
+        <p class="msg ok" role="status">{{ nukeMsg() ? '* ' + nukeMsg() : '' }}</p>
+      </section>
+    </div>
+  </ss-panel>
+
+  <ss-panel title="CHARACTER OVERVIEW">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>NAME</th><th>TRAITS</th><th>SHIMMYFUL</th><th>BASE STATS</th><th></th></tr></thead>
+        <tbody>
+          @for (c of chars(); track c.id) {
+            @let traits = c.traits || [];
+            <tr [style.--char]="c.color || '#333333'">
+              <td class="nm">
+                <span class="who"><span class="dot" aria-hidden="true"></span>{{ c.name || c.id }}</span>
+                <small>{{ count(traits.length, 'TRAIT') }}</small>
+              </td>
+              <td class="tchips">
+                @for (k of traits; track k) {
+                  <span class="chip sm" [class.shimmy]="isShimmy(c, k)" [style.--tc]="'var(--ss-' + rarity(k) + ', var(--c-bone))'" [title]="traitName(k)">{{ k }}@if (isShimmy(c, k)) { ✦ }</span>
+                } @empty { <span class="none">-</span> }
+              </td>
+              <td class="shim">
+                @for (k of c.shimmyfulTraits || []; track k; let last = $last) { <span>{{ k }}</span>@if (!last) { <span class="sep"> · </span> } }
+                @empty { <span class="none">-</span> }
+              </td>
+              <td class="st">
+                @for (k of STATS; track k; let last = $last) {
+                  <span [style.color]="'var(--stat-' + k + ')'" [title]="k.toUpperCase()">{{ $any(c.stats)?.[k] || 0 }}</span>@if (!last) { <span class="sep"> / </span> }
+                }
+              </td>
+              <td><button type="button" class="u-btn sm" (click)="jumpToEdit(c)" [attr.aria-label]="'Edit ' + (c.name || c.id)">EDIT</button></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="none">{{ store.status() === 'connecting' ? 'Loading...' : 'No characters.' }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </ss-panel>
+}

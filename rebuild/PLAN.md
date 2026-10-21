@@ -42,7 +42,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Playlists: every character's playlist with cover, title and description edited in place, MP3 uploads, reordering by dragging or the keyboard, and a player bar with shuffle, repeat, seek, volume and mute; playback follows the playlist it started in (rebuild/tools/playlists_e2e.js)
 - [ ] Spin a Baddie
 - [ ] BK's Corner
-- [ ] Admin
+- [x] Admin: the old password gate (remembered for the session), trait editor with three-way merged saves, quick stat override, rename, give / remove / nuke / wipe for every character (a batch that fails is retried one character at a time, and the ones that still fail are named), overview table (rebuild/tools/admin_e2e.js)
 - [ ] sq.html, test.html (find out if still used)
 
 ## Phase 2
