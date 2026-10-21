@@ -148,7 +148,7 @@ a { color: inherit; }
 // ── icons (ss-icon): 7x7, and the SOUL takes the icon's place under the menu rule ──
 svg.ico { display: block; width: calc(7 * var(--px)); height: calc(7 * var(--px)); fill: currentColor; overflow: visible; }
 svg.ico .soul { display: none; fill: var(--c-red); }
-.u-soul-on:hover svg.ico .g, .u-soul-on:focus-visible svg.ico .g, .u-soul-on[aria-current=page] svg.ico .g, .u-soul-on[aria-current=true] svg.ico .g, .u-soul-on[aria-expanded=true] svg.ico .g, .u-soul-on.is-on svg.ico .g { display: none; }
+.u-soul-on:hover svg.ico:has(.soul) .g, .u-soul-on:focus-visible svg.ico:has(.soul) .g, .u-soul-on[aria-current=page] svg.ico:has(.soul) .g, .u-soul-on[aria-current=true] svg.ico:has(.soul) .g, .u-soul-on[aria-expanded=true] svg.ico:has(.soul) .g, .u-soul-on.is-on svg.ico:has(.soul) .g { display: none; }
 .u-soul-on:hover svg.ico .soul, .u-soul-on:focus-visible svg.ico .soul, .u-soul-on[aria-current=page] svg.ico .soul, .u-soul-on[aria-current=true] svg.ico .soul, .u-soul-on[aria-expanded=true] svg.ico .soul, .u-soul-on.is-on svg.ico .soul { display: inline; }
 
 // ── frames: 9-slice materials with faint interior textures ──
@@ -186,7 +186,7 @@ svg.ico .soul { display: none; fill: var(--c-red); }
   box-shadow: var(--hard); user-select: none; -webkit-user-select: none; vertical-align: middle;
 }
 .u-btn:hover, .u-btn.is-hover { color: var(--fgh); background-color: var(--bgh); border-image-source: var(--bfh); }
-.u-btn:hover svg.ico .g { display: none; }
+.u-btn:hover svg.ico:has(.soul) .g { display: none; }
 .u-btn:hover svg.ico .soul { display: inline; }
 .u-btn:active { transform: translateY(var(--p2)); box-shadow: none; border-image-source: var(--bfh); }
 .u-btn:focus-visible { outline: var(--px) solid var(--focus); outline-offset: var(--px); box-shadow: var(--hard), 0 0 0 var(--p1) var(--c-void); }
@@ -197,6 +197,7 @@ svg.ico .soul { display: none; fill: var(--c-red); }
 .u-btn.danger { --bf: var(--f-btn-hot); --bfh: var(--f-btn-hot-hi); --bg: var(--c-em1); --bgh: var(--c-red-d); --fg: var(--c-white); --fgh: var(--c-yel); }
 .u-btn.stone { --bf: var(--f-btn-stone); --bfh: var(--f-btn-stone-hi); --bg: var(--sn1); --bgh: var(--sn1); --fg: var(--c-bone); }
 .u-btn.icon { --bf: var(--f-btn-stone); --bfh: var(--f-btn-stone-hi); --bg: var(--sn1); --bgh: var(--sn1); --fg: var(--c-bone); width: calc(15 * var(--px)); padding: 0; }
+.u-btn.icon.primary, .u-btn.icon[aria-pressed=true], .u-btn.icon.on { --bf: var(--f-btn-acc); --bfh: var(--f-btn-acc-hi); --bg: var(--ac2); --bgh: var(--ac3); --fg: var(--on-ac); --fgh: var(--on-ac); }
 .u-btn.ghost { --bf: none; --bfh: none; --bg: transparent; --bgh: transparent; box-shadow: none; border-color: transparent; border-image: none; }
 .u-btn.sm { min-height: calc(12 * var(--px)); padding: 0 var(--p2); }
 .u-btn.icon.sm { width: calc(12 * var(--px)); padding: 0; }
@@ -305,7 +306,7 @@ input[type=range]:hover::-webkit-slider-thumb, input[type=range]:focus-visible::
   font: var(--fs-ui) / calc(9 * var(--px)) var(--f-ui); color: var(--c-bone); text-transform: uppercase; }
 .u-menu-item svg.ico .g { fill: var(--c-mute); }
 .u-menu-item:hover, .u-menu-item:focus-visible { background: var(--c-ink2); color: var(--c-yel); outline: none; box-shadow: none; }
-.u-menu-item:hover svg.ico .g, .u-menu-item:focus-visible svg.ico .g { display: none; }
+.u-menu-item:hover svg.ico:has(.soul) .g, .u-menu-item:focus-visible svg.ico:has(.soul) .g { display: none; }
 .u-menu-item:hover svg.ico .soul, .u-menu-item:focus-visible svg.ico .soul { display: inline; }
 .u-menu-item.danger { color: var(--c-red); }
 .u-menu-sep { border: 0; height: var(--px); margin: var(--p1) var(--p2); background: var(--t-rule) 0 0 / calc(8 * var(--px)) var(--px) repeat-x; }
@@ -315,7 +316,7 @@ input[type=range]:hover::-webkit-slider-thumb, input[type=range]:focus-visible::
 .u-opt { display: inline-flex; align-items: center; gap: var(--p3); padding: 0 var(--p1); font: var(--fs-voice) / calc(11 * var(--px)) var(--f-body); color: var(--c-white); }
 .u-opt svg.ico .g { fill: var(--c-white); }
 .u-opt:hover, .u-opt:focus-visible { color: var(--c-yel); outline: none; box-shadow: none; }
-.u-opt:hover svg.ico .g, .u-opt:focus-visible svg.ico .g { display: none; }
+.u-opt:hover svg.ico:has(.soul) .g, .u-opt:focus-visible svg.ico:has(.soul) .g { display: none; }
 .u-opt:hover svg.ico .soul, .u-opt:focus-visible svg.ico .soul { display: inline; }
 .u-opt.danger { color: var(--c-red); }
 .u-opt.danger:hover, .u-opt.danger:focus-visible { color: var(--c-yel); }

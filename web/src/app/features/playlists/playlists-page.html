@@ -1,0 +1,136 @@
+<aside class="side u-fr u-stone" aria-label="Characters">
+  <div class="side-head"><span class="u-fr u-wood u-plaque">CHARACTERS</span></div>
+  <div class="list">
+    @for (c of chars(); track c.id) {
+      <button type="button" class="entry" [class.active]="c.id === selId()" [style.--char]="c.color || '#7777bb'"
+              [attr.aria-current]="c.id === selId() ? 'true' : null" (click)="select(c)">
+        <span class="avatar">
+          @if (c.avatar) { <img [src]="c.avatar" alt="" loading="lazy" draggable="false" /> } @else { <span class="letter">{{ initial(c) }}</span> }
+        </span>
+        <span class="name">{{ c.name || 'UNNAMED' }}</span>
+        @if (playId() === c.id && playing()) { <i class="eq u-spr s-eq u-anim" aria-label="Playing"></i> }
+      </button>
+    } @empty {
+      <p class="empty">{{ store.status() === 'connecting' ? 'CONNECTING...' : 'NO CHARACTERS' }}</p>
+    }
+  </div>
+</aside>
+
+<main class="main">
+  @if (view(); as p) {
+    @let c = selected();
+    <button type="button" class="back u-btn sm" (click)="mobMain.set(false)"><ss-icon name="left" [soul]="false" />CHARACTERS</button>
+
+    <header class="head u-voice">
+      <button type="button" class="cover u-fr u-crystal" (click)="pick('.in-img')" title="Change cover image" aria-label="Change cover image">
+        @if (p.image || c?.avatar) { <img [src]="p.image || c?.avatar" alt="" draggable="false" /> }
+        @else { <span class="blank"><ss-icon name="note" [soul]="false" /></span> }
+        <span class="over"><ss-icon name="camera" [soul]="false" />CHANGE IMAGE</span>
+      </button>
+      <div class="info">
+        <span class="label">* PLAYLIST</span>
+        @if (editing() === 'title') {
+          <input class="edit-in title-in" type="text" maxlength="120" [value]="p.title" aria-label="Playlist title"
+                 (blur)="commit('title', $any($event.target).value)" (keydown)="onEditKey($event, 'title')" />
+        } @else {
+          <button type="button" class="title u-display" (click)="edit('title')" title="Rename">{{ p.title || UNTITLED }}</button>
+        }
+        @if (editing() === 'desc') {
+          <textarea class="edit-in desc-in" rows="3" maxlength="1000" [value]="p.description" aria-label="Playlist description"
+                    (blur)="commit('desc', $any($event.target).value)" (keydown)="onEditKey($event, 'desc')"></textarea>
+        } @else {
+          <button type="button" class="desc" [class.none]="!p.description" (click)="edit('desc')">{{ p.description || 'Add a description...' }}</button>
+        }
+        <p class="meta">
+          <span class="who">{{ c?.name }}</span>
+          · {{ p.songs.length }} SONG{{ p.songs.length !== 1 ? 'S' : '' }}
+          @if (total()) { · {{ fmt(total()) }} TOTAL }
+        </p>
+      </div>
+    </header>
+
+    <div class="actions">
+      <button type="button" class="u-btn primary" (click)="play(0)" [disabled]="!p.songs.length"><ss-icon name="play" [soul]="false" />PLAY ALL</button>
+      <button type="button" class="u-btn" (click)="pick('.in-audio')" [disabled]="uploadingId() === selId()">
+        <ss-icon name="upload" />{{ uploadingId() === selId() ? 'UPLOADING...' : 'ADD SONGS' }}
+      </button>
+    </div>
+
+    <section class="songs u-fr u-stone" aria-label="Songs">
+      @if (p.songs.length) {
+        <div class="row cols" aria-hidden="true"><span></span><span>#</span><span>TITLE</span><span>TIME</span><span></span></div>
+        <ol class="rows">
+          @for (s of p.songs; track s.id; let i = $index) {
+            @let isNow = playId() === selId() && nowSongId() === s.id;
+            <li class="row song" [class.now]="isNow" [class.dragging]="dragFrom() === i"
+                [class.drop-above]="dropAt()?.i === i && dropAt()?.above" [class.drop-below]="dropAt()?.i === i && !dropAt()?.above"
+                draggable="true" (dragstart)="dragStart($event, i)" (dragover)="dragOver($event, i)" (dragleave)="dropAt.set(null)"
+                (drop)="drop($event, i)" (dragend)="dragEnd()">
+              <button type="button" class="grip" [attr.aria-label]="'Move ' + (s.title || 'Untitled') + ' (arrow keys)'" title="Drag to reorder"
+                      (keydown)="onGripKey($event, i)"><ss-icon name="grip" [soul]="false" /></button>
+              <span class="idx">
+                @if (isNow) { <i class="u-spr s-eq" [class.u-anim]="playing()" aria-label="Now playing"></i> } @else { {{ pad(i + 1) }} }
+              </span>
+              <button type="button" class="stitle" (click)="play(i)" [title]="'Play ' + (s.title || 'Untitled')">{{ s.title || 'Untitled' }}</button>
+              <span class="dur">{{ s.duration ? fmt(s.duration) : '-' }}</span>
+              <button type="button" class="del u-btn icon sm" (click)="remove(s)" [attr.aria-label]="'Remove ' + (s.title || 'Untitled')" title="Remove"><ss-icon name="x" [soul]="false" /></button>
+            </li>
+          }
+        </ol>
+      } @else {
+        <div class="u-empty">
+          <i class="u-spr s-eq" aria-hidden="true"></i>
+          NO SONGS YET<br />CLICK "ADD SONGS" TO UPLOAD MP3 FILES
+        </div>
+      }
+    </section>
+  } @else if (selId()) {
+    <p class="hint">LOADING...</p>
+  } @else {
+    <div class="hint">
+      <i class="u-spr s-eq u-anim" aria-hidden="true"></i>
+      <span>* SELECT A CHARACTER</span>
+      <small>TO VIEW THEIR PLAYLIST</small>
+    </div>
+  }
+</main>
+
+<input class="in-audio" type="file" accept="audio/*" multiple hidden (change)="onAudio($event)" />
+<input class="in-img" type="file" accept="image/*" hidden (change)="onCover($event)" />
+
+@if (barShown()) {
+  @let n = now();
+  <div class="player u-fr u-metal" role="region" aria-label="Playlist player">
+    <div class="np">
+      @if (n?.art) { <img class="art" [src]="n!.art" alt="" /> }
+      <div class="now-text">
+        <span class="now-title">{{ n?.title || '-' }}</span>
+        <span class="now-by">{{ n?.by || '-' }}</span>
+      </div>
+    </div>
+    <div class="center">
+      <div class="ctrls">
+        <button type="button" class="u-btn icon sm" [attr.aria-pressed]="shuffled()" (click)="toggleShuffle()" title="Shuffle" aria-label="Shuffle"><ss-icon name="shuf" [soul]="false" /></button>
+        <button type="button" class="u-btn icon sm" (click)="prev()" title="Previous" aria-label="Previous"><ss-icon name="prev" [soul]="false" /></button>
+        <button type="button" class="pp u-btn icon primary" (click)="toggle()" title="Play / Pause" [attr.aria-label]="playing() ? 'Pause' : 'Play'"><ss-icon [name]="playing() ? 'pause' : 'play'" [soul]="false" /></button>
+        <button type="button" class="u-btn icon sm" (click)="next()" title="Next" aria-label="Next"><ss-icon name="next" [soul]="false" /></button>
+        <button type="button" class="u-btn icon sm" [attr.aria-pressed]="repeat()" (click)="toggleRepeat()" title="Repeat" aria-label="Repeat"><ss-icon name="rep" [soul]="false" /></button>
+      </div>
+      <div class="prog">
+        <span class="t">{{ fmt(time()) }}</span>
+        <input type="range" class="seek" min="0" [max]="duration() || 0" step="0.1" [value]="time()" aria-label="Seek"
+               [style.--val]="(duration() ? (time() / duration()) * 100 : 0) + '%'"
+               (pointerdown)="seeking = true" (pointerup)="seeking = false" (pointercancel)="seeking = false"
+               (input)="seek(+$any($event.target).value)" />
+        <span class="t">{{ fmt(duration()) }}</span>
+      </div>
+    </div>
+    <div class="vol">
+      <button type="button" class="u-btn icon sm" (click)="toggleMute()" [attr.aria-label]="muted() ? 'Unmute' : 'Mute'" [title]="muted() ? 'Unmute' : 'Mute'">
+        <ss-icon [name]="muted() || volume() === 0 ? 'mute' : 'speaker'" [soul]="false" />
+      </button>
+      <input type="range" min="0" max="100" [value]="muted() ? 0 : volume() * 100" aria-label="Volume"
+             [style.--val]="(muted() ? 0 : volume() * 100) + '%'" (input)="setVolume(+$any($event.target).value / 100)" />
+    </div>
+  </div>
+}

@@ -16,7 +16,7 @@ export const routes: Routes = [
   { path: 'utilities', loadComponent: () => import('./features/utilities/utilities-page').then(m => m.UtilitiesPage), title: 'STATSHEETS - UTILITIES' },
   { path: 'gallery', loadComponent: () => import('./features/gallery/gallery-page').then(m => m.GalleryPage), title: 'STATSHEETS - GALLERY' },
   { path: 'encyclopedia', ...todo('ENCYCLOPAEDIA') },
-  { path: 'playlists', ...todo('PLAYLISTS') },
+  { path: 'playlists', loadComponent: () => import('./features/playlists/playlists-page').then(m => m.PlaylistsPage), title: 'STATSHEETS - PLAYLISTS' },
   { path: 'bkscorner', ...todo("BK'S CORNER") },
   { path: 'baddie', ...todo('SPIN A BADDIE') },
   { path: 'admin', ...todo('ADMIN') },

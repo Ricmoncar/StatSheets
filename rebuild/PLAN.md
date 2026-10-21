@@ -39,7 +39,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Utilities: dice roller, crit calculator, stat checker, status roller (pixel status orbs), trait and general suggestion boxes, shared tier lists, stat leaderboard in five views, compatibility tester (rebuild/tools/utilities_e2e.js), height chart (rebuild/tools/heightchart_e2e.js), game worlds: NO MORE TIME, ASYM HORROR, AUT, LOL, CRTL (rebuild/tools/games_e2e.js)
 - [ ] Encyclopaedia
 - [x] Gallery: character cards with server-counted picture badges, upload by picking or dropping (compressed to fit a document), rename, delete, lightbox with arrow keys (rebuild/tools/gallery_e2e.js)
-- [ ] Playlists
+- [x] Playlists: every character's playlist with cover, title and description edited in place, MP3 uploads, reordering by dragging or the keyboard, and a player bar with shuffle, repeat, seek, volume and mute; playback follows the playlist it started in (rebuild/tools/playlists_e2e.js)
 - [ ] Spin a Baddie
 - [ ] BK's Corner
 - [ ] Admin
