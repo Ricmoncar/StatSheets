@@ -3,20 +3,10 @@
 // form; this port must return the same numbers. Skipped when the fixture
 // (git-ignored, it holds live data) has not been generated.
 import { describe, expect, it } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
 import { effectiveStats } from './stats';
 
-const fixturePath = new URL('../../../testing/fixtures/stats.json', import.meta.url);
-
-async function loadFixture(): Promise<any | null> {
-  try {
-    const fs = await import('node:fs');
-    const p = fixturePath.protocol === 'file:' ? fixturePath : new URL('file://' + process.cwd() + '/src/testing/fixtures/stats.json');
-    if (!fs.existsSync(p)) return null;
-    return JSON.parse(fs.readFileSync(p, 'utf8'));
-  } catch {
-    return null;
-  }
-}
+const FIXTURE = 'src/testing/fixtures/stats.json';
 
 function close(a: number | null, b: number): boolean {
   if (a === null) return Number.isNaN(b);          // JSON turns NaN into null
@@ -24,8 +14,8 @@ function close(a: number | null, b: number): boolean {
   return Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a));
 }
 
-describe('effectiveStats matches the old site', async () => {
-  const fx = await loadFixture();
+describe('effectiveStats matches the old site', () => {
+  const fx = existsSync(FIXTURE) ? JSON.parse(readFileSync(FIXTURE, 'utf8')) : null;
   it.skipIf(!fx)('for every live character in every form', () => {
     const mismatches: string[] = [];
     let cases = 0;
