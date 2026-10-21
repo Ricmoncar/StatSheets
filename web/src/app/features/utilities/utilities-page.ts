@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { Panel } from '../../ui/panel';
+import { Icon } from '../../ui/icon';
 import { CritCalc } from './crit-calc';
 import { DiceRoller } from './dice-roller';
 import { StatChecker } from './stat-checker';
@@ -14,12 +15,12 @@ import { GeneralSuggestions, TraitSuggestions } from './suggestions';
 /** UTILITIES & TOOLS (the old utilities.html), section by section. */
 @Component({
   selector: 'ss-utilities-page',
-  imports: [Panel, DiceRoller, CritCalc, StatChecker, StatusRoller, TraitSuggestions, GeneralSuggestions, TierListBoard, Leaderboard, CompatTester, HeightChart, GameWorlds],
+  imports: [Panel, DiceRoller, CritCalc, StatChecker, StatusRoller, TraitSuggestions, GeneralSuggestions, TierListBoard, Leaderboard, CompatTester, HeightChart, GameWorlds, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="bar">
-      <h1 class="title">UTILITIES &amp; TOOLS</h1>
-      <button type="button" class="hc-btn" (click)="heightChart.set(true)">HEIGHT CHART</button>
+      <h1 class="title u-display">UTILITIES &amp; TOOLS</h1>
+      <button type="button" class="hc-btn u-btn" (click)="heightChart.set(true)"><ss-icon name="bars" />HEIGHT CHART</button>
     </header>
     @if (heightChart()) { <ss-height-chart (closed)="heightChart.set(false)" /> }
     <div class="top">
@@ -38,12 +39,11 @@ import { GeneralSuggestions, TraitSuggestions } from './suggestions';
     <ss-panel title="GENERAL SUGGESTION BOX"><ss-general-suggestions /></ss-panel>
   `,
   styles: `
-    :host { display: grid; gap: 24px; max-width: 1200px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 80px max(16px, env(safe-area-inset-left, 0px)); }
-    .bar { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-    .title { margin: 0; font-size: var(--ss-text-lg); color: var(--ss-accent); }
-    .hc-btn { padding: 8px 12px; font-size: var(--ss-text-sm); background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent); &:hover { background: var(--ss-accent); color: var(--ss-bg); } }
-    .top { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
-    .col { display: grid; gap: 20px; align-content: start; }
+    :host { display: grid; gap: var(--p12); max-width: calc(420 * var(--px)); margin: 0 auto; padding: var(--p10) max(16px, env(safe-area-inset-right, 0px)) calc(var(--p12) * 2) max(16px, env(safe-area-inset-left, 0px)); }
+    .bar { display: flex; gap: var(--p5); align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .title { margin: 0; text-transform: uppercase; }
+    .top { display: grid; grid-template-columns: 1fr 1fr; gap: var(--p12) var(--p8); align-items: stretch; }
+    .col { display: grid; gap: var(--p12); align-content: start; }
     .todo { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); }
     @media (max-width: 860px) { .top { grid-template-columns: 1fr; } }
   `,

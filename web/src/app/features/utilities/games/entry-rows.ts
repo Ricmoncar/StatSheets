@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output } from '@angular/core';
+import { Icon } from '../../../ui/icon';
 
 /**
  * Editable rows of name + description (powers, perks, passives...), with
@@ -7,6 +8,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output }
  */
 @Component({
   selector: 'ss-entry-rows',
+  imports: [Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (e of items(); track $index; let i = $index) {
@@ -16,19 +18,20 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output }
           <input type="text" maxlength="60" [placeholder]="namePh()" [value]="$any(e).name || ''" (input)="edit.emit({ i, field: 'name', value: $any($event.target).value })" />
           <textarea rows="2" [placeholder]="descPh()" [value]="$any(e)[descKey()] || ''" (input)="edit.emit({ i, field: descKey(), value: $any($event.target).value })"></textarea>
         </div>
-        <button type="button" class="x" (click)="remove.emit(i)" aria-label="Remove">&#10005;</button>
+        <button type="button" class="x u-btn icon sm" (click)="remove.emit(i)" aria-label="Remove"><ss-icon name="x" [soul]="false" /></button>
       </div>
     }
-    @if (items().length < max()) { <button type="button" class="add" (click)="add.emit(); focusLast()">+ {{ addLabel() }}</button> }
+    @if (items().length < max()) { <button type="button" class="add u-btn sm" (click)="add.emit(); focusLast()"><ss-icon name="plus" />{{ addLabel() }}</button> }
   `,
   styles: `
-    :host { display: grid; gap: 6px; }
-    .row { display: flex; gap: 8px; align-items: flex-start; }
-    .num { width: 2ch; padding-top: 8px; font-size: var(--ss-text-xs); color: var(--ss-fg-faint); }
-    .fields { flex: 1; min-width: 0; display: grid; gap: 4px; }
-    input, textarea { width: 100%; padding: 6px 8px; font-size: var(--ss-text-sm); line-height: 1.7; background: var(--ss-bg); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); resize: vertical; }
-    .x { padding: 5px 7px; font-size: var(--ss-text-xs); background: none; border: 1px solid var(--ss-err); color: var(--ss-err); }
-    .add { justify-self: start; margin-top: 4px; padding: 5px 9px; font-size: var(--ss-text-xs); background: none; border: 1px dashed var(--ss-line-dim); color: var(--ss-fg-dim); &:hover { color: var(--ss-fg); } }
+    @use 'underground' as u;
+    :host { display: grid; gap: var(--p2); }
+    .row { display: flex; gap: var(--p2); align-items: flex-start; }
+    .num { width: 2ch; padding-top: var(--p2); font: var(--fs-num) / 1 var(--f-body); color: var(--c-mute); }
+    .fields { flex: 1; min-width: 0; display: grid; gap: var(--p1); }
+    input, textarea { width: 100%; @include u.field; resize: vertical; }
+    .x:hover { color: var(--c-red); }
+    .add { justify-self: start; margin-top: var(--p1); }
   `,
 })
 export class EntryRows {

@@ -24,16 +24,18 @@ import { Character } from '../../../core/data/models';
     </div>
   `,
   styles: `
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; max-height: 300px; overflow-y: auto; padding: 2px 4px 4px 2px; }
-    .card { --c: #888; position: relative; display: grid; justify-items: center; gap: 6px; padding: 10px 6px; background: rgb(255 255 255 / 0.015); border: 1px solid rgb(255 255 255 / 0.05);
-      &:hover { background: rgb(255 255 255 / 0.06); border-color: rgb(255 255 255 / 0.18); translate: 0 -2px; box-shadow: 3px 3px 0 #000; }
-      &.on { border-color: color-mix(in srgb, var(--c) 60%, transparent); background: color-mix(in srgb, var(--c) 8%, transparent); .name { color: var(--c); } } }
-    .av { width: 46px; height: 46px; overflow: hidden; border: 2px solid color-mix(in srgb, var(--c) 45%, transparent); display: grid; place-items: center; background: color-mix(in srgb, var(--c) 12%, transparent);
-      img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; } }
-    .init { font-size: var(--fs-voice); color: var(--c); }
-    .name { width: 100%; font-size: var(--fs-ui); text-align: center; color: var(--ss-fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dot { position: absolute; top: 5px; right: 5px; width: 5px; height: 5px; }
-    .none { grid-column: 1 / -1; margin: 0; padding: 24px 0; text-align: center; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(28 * var(--px)), 1fr)); gap: var(--p2); max-height: calc(100 * var(--px)); overflow-y: auto; padding: var(--p1); }
+    // each character as a framed portrait; the picked one is lit with the SOUL beside it
+    .card { --c: #888; position: relative; display: grid; justify-items: center; gap: var(--p1); padding: var(--p2) var(--p1); background: var(--c-ink2);
+      &:hover { background: var(--c-ink3); .name { color: var(--c-yel); } }
+      &.on { background: var(--ac0); box-shadow: inset 0 0 0 var(--px) var(--ac2); .name { color: var(--c-white); }
+        &::before { content: ''; position: absolute; left: var(--p1); top: var(--p1); width: calc(7 * var(--px)); height: calc(6 * var(--px)); background: var(--s-heart7) 0 0 / 100% 100%; } } }
+    .av { width: calc(16 * var(--px)); height: calc(16 * var(--px)); overflow: hidden; display: grid; place-items: center; background: var(--c-void); box-shadow: 0 0 0 var(--px) var(--c-void), 0 0 0 var(--p1) color-mix(in srgb, var(--c), #000 35%);
+      img { width: 100%; height: 100%; object-fit: cover; } }
+    .init { font: 700 var(--fs-plaque) / 1 var(--f-display); color: var(--c); }
+    .name { width: 100%; font: var(--fs-small) / 1 var(--f-body); text-align: center; color: color-mix(in oklab, var(--c), #fff 30%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dot { position: absolute; top: var(--p1); right: var(--p1); width: var(--p2); height: var(--p2); box-shadow: 0 0 0 var(--px) var(--c-void); }
+    .none { grid-column: 1 / -1; margin: 0; padding: var(--p8) 0; text-align: center; font: var(--fs-ui) / 20px var(--f-ui); color: var(--c-mute); }
   `,
 })
 export class GamePicker {

@@ -38,3 +38,31 @@
   text-transform: uppercase;
   &::after { content: ''; flex: 1; height: var(--px); background: var(--t-rule) 0 0 / calc(8 * var(--px)) var(--px) repeat-x; }
 }
+
+// the wooden button (u-btn), for templates whose buttons carry a local class;
+// .accent / .on read as the accent button, .danger as the hot one
+@mixin btn($size: sm) {
+  --bf: var(--f-btn-wood); --bfh: var(--f-btn-wood-hi); --bg: var(--c-wd1); --bgh: var(--c-wd1); --fg: var(--c-bone); --fgh: var(--c-yel);
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--p2);
+  min-height: calc(#{if($size == sm, 12, 14)} * var(--px)); padding: 0 var(--p2);
+  font: var(--fs-ui) / 1 var(--f-ui); text-transform: uppercase; white-space: nowrap; color: var(--fg); text-decoration: none;
+  background: var(--bg) padding-box; border: calc(4 * var(--px)) solid transparent; border-image: var(--bf) 4 repeat;
+  box-shadow: var(--hard); user-select: none;
+  &:hover:not(:disabled) { color: var(--fgh); background-color: var(--bgh); border-image-source: var(--bfh); }
+  &:active:not(:disabled) { transform: translateY(var(--p2)); box-shadow: none; }
+  &:disabled { --bf: var(--f-btn-dis); --bfh: var(--f-btn-dis); --bg: var(--c-ink2); --fg: var(--t-off); box-shadow: none; }
+  &.accent, &.on, &[aria-pressed='true'] { --bf: var(--f-btn-acc); --bfh: var(--f-btn-acc-hi); --bg: var(--ac2); --bgh: var(--ac3); --fg: var(--on-ac); --fgh: var(--on-ac); }
+  &.danger { --bf: var(--f-btn-hot); --bfh: var(--f-btn-hot-hi); --bg: var(--c-em1); --bgh: var(--c-red-d); --fg: var(--c-white); --fgh: var(--c-yel); }
+}
+
+// a selectable chip: ink by default, the accent (or --tc) when chosen
+@mixin chip {
+  padding: var(--p1) var(--p3);
+  font: var(--fs-ui) / 20px var(--f-ui);
+  text-transform: uppercase;
+  color: var(--tc, var(--c-bone));
+  background: var(--c-ink2);
+  box-shadow: inset var(--px) 0 0 var(--tc, var(--c-ash));
+  &:hover { color: var(--c-yel); }
+  &.on { color: var(--c-void); background: var(--tc, var(--ac2)); box-shadow: 0 0 0 var(--px) var(--c-void); }
+}

@@ -21,7 +21,7 @@ const GAMES = [
   template: `
     <div class="tabs" role="tablist" aria-label="Game">
       @for (g of games; track g.key) {
-        <button type="button" role="tab" class="tab" [class.on]="active() === g.key" [attr.aria-selected]="active() === g.key" [style.--g]="g.color" (click)="active.set(g.key)">
+        <button type="button" role="tab" class="tab u-btn u-tab" [class.on]="active() === g.key" [attr.aria-selected]="active() === g.key" [style.--g]="g.color" (click)="active.set(g.key)">
           <span class="icon" aria-hidden="true">{{ g.icon }}</span>{{ g.label }}
         </button>
       }
@@ -35,11 +35,12 @@ const GAMES = [
     }
   `,
   styles: `
-    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--ss-panel-2); }
-    .tab { --g: #888; flex: 1; min-width: 110px; display: flex; gap: 8px; align-items: center; justify-content: center; padding: 11px 6px; font-size: var(--fs-ui); background: rgb(255 255 255 / 0.015); border: 1px solid rgb(255 255 255 / 0.06); color: var(--ss-fg-faint);
-      &:hover { color: color-mix(in srgb, var(--g) 70%, #fff 0%); border-color: color-mix(in srgb, var(--g) 30%, transparent); }
-      &.on { color: var(--g); border-color: var(--g); background: color-mix(in srgb, var(--g) 8%, transparent); box-shadow: inset 0 -3px 0 var(--g); } }
-    .icon { font-size: var(--fs-body); letter-spacing: 0; }
+    .tabs { display: flex; gap: var(--p2); flex-wrap: wrap; margin-bottom: var(--p6); padding-bottom: var(--p2); }
+    // wooden tabs; the open game is underlined in its own colour
+    .tab { --g: #888; flex: 1; min-width: calc(36 * var(--px)); gap: var(--p2); }
+    .tab.on::after { background: var(--g); }
+    .icon { font-size: var(--fs-body); line-height: 1; color: var(--g); }
+    .tab.on .icon { color: var(--c-white); }
   `,
 })
 export class GameWorlds {

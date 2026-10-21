@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { addDoc, collection, doc, getDocs, increment, limit, orderBy, query, updateDoc } from 'firebase/firestore';
 import { FIRESTORE, col } from '../../core/firebase';
 import { NotifyService } from '../../core/notify.service';
+import { Icon } from '../../ui/icon';
 
 const RARITIES = ['common', 'rare', 'epic', 'legendary', 'mythic', 'hexxed', 'duality', 'determined'] as const;
 const RAR_COLORS: Record<string, { fg: string; border: string; bg: string }> = {
@@ -28,7 +29,7 @@ function readVoted(): string[] {
 /** The trait suggestion box: submit an idea, upvote others (once per browser). */
 @Component({
   selector: 'ss-trait-suggestions',
-  imports: [DatePipe],
+  imports: [DatePipe, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p class="intro">Got an idea for a new trait? Fill it in below. The more detail the better.</p>
@@ -53,7 +54,7 @@ function readVoted(): string[] {
         <input type="text" maxlength="32" placeholder="Leave blank for Anonymous" [value]="submitter()" (input)="submitter.set($any($event.target).value)" />
       </label>
       <div class="send">
-        <button type="submit" class="btn accent">SUBMIT SUGGESTION</button>
+        <button type="submit" class="btn u-btn primary"><ss-icon name="star" />SUBMIT SUGGESTION</button>
         <span class="status" [attr.data-tone]="status().tone" aria-live="polite">{{ status().text }}</span>
       </div>
     </form>
@@ -68,7 +69,7 @@ function readVoted(): string[] {
               <header>
                 <span class="tag">{{ (s.rarity || 'common').toUpperCase() }}</span>
                 <span class="sname">{{ s.name }}</span>
-                <button type="button" class="vote" [class.voted]="voted().includes(s.id)" (click)="vote(s)" [title]="voted().includes(s.id) ? 'Already voted' : 'Upvote this trait'">&#9650; {{ s.votes || 0 }}</button>
+                <button type="button" class="vote" [class.voted]="voted().includes(s.id)" (click)="vote(s)" [title]="voted().includes(s.id) ? 'Already voted' : 'Upvote this trait'"><i class="u-spr s-heart7" aria-hidden="true"></i>{{ s.votes || 0 }}</button>
               </header>
               <p class="sdesc">{{ s.desc }}</p>
               @if (s.effect) { <p class="effect"><span>STAT IDEA</span>{{ s.effect }}</p> }
@@ -76,7 +77,7 @@ function readVoted(): string[] {
             </article>
           }
         } @else {
-          <p class="none">NO SUGGESTIONS YET: BE THE FIRST.</p>
+          <p class="none u-empty">NO SUGGESTIONS YET: BE THE FIRST.</p>
         }
       }
     </div>
@@ -146,7 +147,7 @@ export class TraitSuggestions implements OnInit {
 /** Anything else: bugs, features, feedback. Shows the newest twenty. */
 @Component({
   selector: 'ss-general-suggestions',
-  imports: [DatePipe],
+  imports: [DatePipe, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p class="intro">Anything else: bugs, features, feedback, whatever.</p>
@@ -155,7 +156,7 @@ export class TraitSuggestions implements OnInit {
         <textarea rows="4" placeholder="Type your suggestion here..." [value]="text()" (input)="text.set($any($event.target).value)"></textarea>
       </label>
       <div class="send">
-        <button type="submit" class="btn">SUBMIT</button>
+        <button type="submit" class="btn u-btn primary"><ss-icon name="chat" />SUBMIT</button>
         <span class="status" [attr.data-tone]="status().tone" aria-live="polite">{{ status().text }}</span>
       </div>
     </form>
@@ -167,7 +168,7 @@ export class TraitSuggestions implements OnInit {
             <article class="note"><p>{{ s.text }}</p><time>{{ s.createdAt | date: 'shortDate' }}</time></article>
           }
         } @else {
-          <p class="none">NONE YET.</p>
+          <p class="none u-empty">NONE YET.</p>
         }
       }
     </div>

@@ -11,6 +11,7 @@ import { effectiveStats, formTraits, getTraitDef } from '../../core/game/stats';
 import { TRAITS } from '../../core/game/traits-data';
 import { NgTemplateOutlet } from '@angular/common';
 import { TipDirective } from '../../ui/tooltip';
+import { Icon } from '../../ui/icon';
 
 const TIERS = ['S', 'A', 'B', 'C', 'D', 'F'] as const;
 type TierKey = typeof TIERS[number];
@@ -24,7 +25,7 @@ type TierList = { id: string; name: string; createdAt?: number } & Partial<Recor
  */
 @Component({
   selector: 'ss-tier-list',
-  imports: [TipDirective, NgTemplateOutlet],
+  imports: [TipDirective, NgTemplateOutlet, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tier-list.html',
   styleUrl: './tier-list.scss',

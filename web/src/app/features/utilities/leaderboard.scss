@@ -1,33 +1,35 @@
 :host { display: block; }
-.views, .stats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.views, .stats { display: flex; flex-wrap: wrap; gap: var(--p2); margin-bottom: var(--p4); }
 .views { justify-content: flex-end; }
-.chip { padding: 5px 8px; font-size: var(--ss-text-xs); background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim);
-  &:hover { color: var(--ss-fg); border-color: var(--ss-fg-dim); }
-  &.on { border-color: var(--ss-accent); color: var(--ss-accent); background: color-mix(in srgb, var(--ss-accent) 10%, transparent); } }
-.none { margin: 0; padding: 24px; text-align: center; color: var(--ss-fg-faint); font-size: var(--ss-text-sm); }
+.chip { padding: var(--p1) var(--p3); font: var(--fs-ui) / 20px var(--f-ui); color: var(--c-bone); background: var(--c-ink2); text-transform: uppercase;
+  &:hover { color: var(--c-yel); }
+  &.on { color: var(--on-ac); background: var(--ac2); box-shadow: 0 0 0 var(--px) var(--c-void); } }
+.none { margin: 0; }
 
+// the ranking: gold, silver and bronze tint the first three rows
 .list { list-style: none; margin: 0; padding: 0; }
-.row { --rk: transparent; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid var(--ss-panel-2); font-size: var(--ss-text-sm);
-  background: color-mix(in srgb, var(--rk) 7%, transparent);
-  img, svg { width: 28px; height: 28px; flex: none; object-fit: cover; image-rendering: pixelated; border: 1px solid; }
-  svg { border: 0; }
-  .rank { width: 4ch; color: var(--rk, var(--ss-fg-faint)); }
-  .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .val { color: var(--ss-fg); font-variant-numeric: tabular-nums; } }
-.row:not([style*='--rk']) .rank { color: var(--ss-fg-faint); }
+.row { --rk: transparent; display: flex; align-items: center; gap: var(--p3); padding: var(--p2) var(--p3); border-bottom: var(--px) dashed var(--c-ink3);
+  background: color-mix(in srgb, var(--rk) 10%, transparent); box-shadow: inset var(--p1) 0 0 var(--rk);
+  img { width: calc(10 * var(--px)); height: calc(10 * var(--px)); flex: none; object-fit: cover; box-shadow: 0 0 0 var(--px) var(--c-void); }
+  .rank { width: 4ch; font: var(--fs-num) / 1 var(--f-body); color: var(--rk, var(--c-mute)); }
+  .name { flex: 1; min-width: 0; font: var(--fs-ui) / 20px var(--f-ui); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .val { font: var(--fs-num) / 1 var(--f-body); color: var(--c-white); font-variant-numeric: tabular-nums; } }
+.row:not([style*='--rk']) .rank { color: var(--c-mute); }
 
 // Classic: unrankable, red and jittering
-.row.cl { background: rgb(255 26 26 / 0.05);
-  .name { color: #ff1a1a; text-shadow: 1px 0 #00ffff, -1px 0 #ff00ff; animation: jit 0.32s steps(2) infinite; }
-  .rank, .val { color: #ff1a1a; animation: jit 0.3s steps(2) infinite; } }
-@keyframes jit { 50% { translate: 1px -1px; } }
+.row.cl { background: rgb(255 31 61 / 0.06);
+  .name { color: var(--c-red); text-shadow: var(--px) 0 var(--c-ec2), calc(-1 * var(--px)) 0 var(--c-kr); animation: jit 0.32s steps(2) infinite; }
+  .rank, .val { color: var(--c-red); animation: jit 0.3s steps(2) infinite; } }
+@keyframes jit { 50% { translate: var(--px) calc(-1 * var(--px)); } }
 
-.chart { display: block; width: 100%; height: auto; font-family: inherit; }
-.axis-t { fill: #4a4a66; font-size: var(--fs-ui); }
-.axis-v { fill: #2c2c40; font-size: var(--fs-ui); }
-.cl-bar { fill: #ff1a1a; fill-opacity: 0.55; animation: flick 0.26s steps(2) infinite; }
-.cl-arc, .cl-poly { fill: #ff1a1a; fill-opacity: 0.35; stroke: #ff1a1a; animation: flick 0.3s steps(2) infinite; }
+// the charts are drawn in SVG units (520 wide); text sizes are in those units
+.chart { display: block; width: 100%; height: auto; font-family: var(--f-body); box-shadow: 0 0 0 var(--px) var(--c-void), 0 0 0 var(--p2) var(--c-ash); }
+.chart text { font-family: var(--f-body); }
+.axis-t { fill: #d7d0e4; font: 8px var(--f-ui); }
+.axis-v { fill: #8a83a3; font: 8px var(--f-body); }
+.cl-bar { fill: #ff1f3d; fill-opacity: 0.55; animation: flick 0.26s steps(2) infinite; }
+.cl-arc, .cl-poly { fill: #ff1f3d; fill-opacity: 0.35; stroke: #ff1f3d; animation: flick 0.3s steps(2) infinite; }
 .cl-poly { fill-opacity: 0.1; stroke-width: 1.5; }
 g.cl { animation: flick 0.3s steps(2) infinite; }
 @keyframes flick { 50% { opacity: 0.5; } }
-g, polygon, path { cursor: pointer; }
+g, polygon, path { cursor: var(--cur-point, pointer); }

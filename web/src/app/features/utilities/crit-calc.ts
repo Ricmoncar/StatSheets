@@ -5,38 +5,40 @@ import { SoundService } from '../../core/sound.service';
 const SYMBOLS = ['#', '?', '!', 'X', 'O', '&'];
 
 /** Rolls against a crit chance: a crit is x1.5 to x2.0, times the extra multiplier. */
+import { Icon } from '../../ui/icon';
+
 @Component({
   selector: 'ss-crit-calc',
+  imports: [Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fields">
-      <label class="field"><span>CRIT CHANCE (%)</span>
+      <label class="field"><span class="lbl">CRIT CHANCE (%)</span>
         <input type="number" min="0" max="100" [value]="chance()" (input)="chance.set(+$any($event.target).value)" />
       </label>
-      <label class="field"><span>EXTRA CRIT DMG (MULT)</span>
+      <label class="field"><span class="lbl">EXTRA CRIT DMG (MULT)</span>
         <input type="number" min="1" step="0.1" [value]="extra()" (input)="extra.set(+$any($event.target).value)" />
       </label>
     </div>
     <div class="wrap">
       <output class="result" [attr.data-state]="state()" aria-live="polite">{{ shown() }}</output>
-      <button type="button" class="btn accent" (click)="roll()" [disabled]="state() === 'rolling'">ROLL CRIT</button>
+      <button type="button" class="btn u-btn primary" (click)="roll()" [disabled]="state() === 'rolling'"><ss-icon name="star" />ROLL CRIT</button>
     </div>
     <p class="detail">{{ detail() }}</p>
   `,
   styles: `
-    .fields { display: grid; gap: 12px; }
-    .field { display: grid; gap: 6px; font-size: var(--ss-text-xs); color: var(--ss-fg-dim);
-      input { padding: 8px; font-size: var(--ss-text-sm); background: var(--ss-bg); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); width: 100%; } }
-    .wrap { display: grid; justify-items: center; gap: 18px; padding: 24px 0 4px; }
-    .result { font-size: 40px; line-height: 1.2; color: var(--ss-accent); text-shadow: 3px 3px 0 rgb(255 0 255 / 0.45), -3px -3px 0 rgb(0 255 255 / 0.45);
+    @use 'underground' as u;
+    .fields { display: grid; gap: var(--p4); }
+    .field { display: grid; gap: var(--p2); .lbl { @include u.label; } input { width: 100%; @include u.field; } }
+    .wrap { display: grid; justify-items: center; gap: var(--p5); padding: var(--p6) 0 var(--p1); }
+    // the result in big battle numbers: a hit in white, a CRIT in red that throbs, a miss greyed out
+    .result { font: var(--fs-big) / 1 var(--f-body); color: var(--c-white); text-shadow: var(--p1) var(--p1) 0 var(--ac1);
       &[data-state='rolling'] { animation: jitter 0.1s steps(2) infinite; }
-      &[data-state='crit'] { color: var(--ss-err); text-shadow: 4px 4px 0 #400; animation: pulse 0.8s steps(2) infinite; }
-      &[data-state='miss'] { color: var(--ss-fg-faint); text-shadow: none; } }
-    @keyframes jitter { 50% { translate: 2px -2px; } }
-    @keyframes pulse { 50% { filter: brightness(1.6); } }
-    .detail { margin: 10px 0 0; min-height: 1.6em; text-align: center; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
-    .btn { padding: 10px 14px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent);
-      &:hover:not(:disabled) { background: var(--ss-accent); color: var(--ss-bg); } &:disabled { opacity: 0.5; } }
+      &[data-state='crit'] { color: var(--c-red); text-shadow: var(--p1) var(--p1) 0 var(--c-red-d); animation: pulse 0.8s steps(2) infinite; }
+      &[data-state='miss'] { color: var(--t-off); text-shadow: none; } }
+    @keyframes jitter { 50% { translate: var(--px) calc(-1 * var(--px)); } }
+    @keyframes pulse { 50% { color: var(--c-yel); } }
+    .detail { margin: var(--p3) 0 0; min-height: var(--lh-body); text-align: center; font: var(--fs-body) / var(--lh-body) var(--f-body); color: var(--c-mute); }
   `,
 })
 export class CritCalc {

@@ -5,6 +5,7 @@ import { FIRESTORE, col } from '../../core/firebase';
 import { NotifyService } from '../../core/notify.service';
 import { readAsDataURL, uploadMedia } from '../../core/media';
 import { CldSrc } from '../../ui/cld-src';
+import { Icon } from '../../ui/icon';
 
 export interface HcEntry {
   id: string;
@@ -72,7 +73,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
  */
 @Component({
   selector: 'ss-height-chart',
-  imports: [CldSrc],
+  imports: [CldSrc, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'importing() ? importing.set(false) : closed.emit()' },
   templateUrl: './height-chart.html',

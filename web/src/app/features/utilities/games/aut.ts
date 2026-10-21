@@ -114,18 +114,21 @@ function normalize(raw: Partial<AutDoc> | undefined): AutDoc {
   `,
   styleUrls: ['./game-shared.scss'],
   styles: `
-    .stand { font-size: var(--ss-text-sm); color: rgb(255 255 255 / 0.6); }
-    .tier { --t: #44cc88; width: 54px; height: 54px; flex: none; display: grid; place-items: center; font-size: 24px; color: var(--t); border: 3px solid var(--t); background: color-mix(in srgb, var(--t) 10%, transparent); box-shadow: 4px 4px 0 #000; text-shadow: 3px 3px 0 #000; }
-    .stats { display: grid; grid-template-columns: 9ch 1fr 3ch; gap: 8px 12px; align-items: center; }
-    .slabel { font-size: var(--fs-ui); color: var(--ss-fg-faint); }
-    .track { height: 8px; background: var(--ss-panel-2); span { display: block; height: 100%; background: repeating-linear-gradient(90deg, var(--nc) 0 9%, transparent 9% 10%); transition: width 0.6s steps(10); } }
-    .sval { font-size: var(--ss-text-sm); text-align: right; color: var(--ss-fg-dim); }
-    .input { flex: none; min-width: 34px; padding: 3px 6px; font-size: var(--fs-ui); text-align: center; color: var(--sc); border: 1px solid var(--sc); background: color-mix(in srgb, var(--sc) 10%, transparent); }
-    .slider { display: grid; grid-template-columns: 9ch 1fr 3ch; gap: 10px; align-items: center; font-size: var(--fs-ui); color: var(--ss-fg-faint);
-      input { accent-color: var(--nc); } b { font-weight: normal; font-size: var(--ss-text-sm); text-align: right; color: var(--ss-fg-dim); } }
-    .move { display: flex; gap: 8px; align-items: flex-start; }
-    .mfields { flex: 1; min-width: 0; display: grid; gap: 4px; }
-    .mtop { display: flex; gap: 4px; .in { width: 74px; flex: none; } }
+    .stand { font: var(--fs-ui) / 20px var(--f-ui); color: var(--c-bone); text-transform: uppercase; }
+    // the tier as a big lettered block in its colour
+    .tier { --t: #44cc88; width: calc(18 * var(--px)); height: calc(18 * var(--px)); flex: none; display: grid; place-items: center; font: 700 var(--fs-h) / 1 var(--f-display); color: var(--c-void); background: var(--t);
+      box-shadow: inset 0 var(--px) 0 color-mix(in srgb, var(--t), #fff 45%), inset 0 calc(-1 * var(--px)) 0 color-mix(in srgb, var(--t), #000 40%), 0 0 0 var(--px) var(--c-void), var(--hard); }
+    .stats { display: grid; grid-template-columns: calc(30 * var(--px)) 1fr 3ch; gap: var(--p2) var(--p4); align-items: center; }
+    .slabel { font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-mute); }
+    .track { height: calc(5 * var(--px)); padding: var(--px); background: var(--c-void); box-shadow: inset 0 0 0 var(--px) var(--c-ink3);
+      span { display: block; height: 100%; background: repeating-linear-gradient(90deg, var(--nc) 0 9%, transparent 9% 10%); transition: width 0.6s steps(10); } }
+    .sval { font: var(--fs-num) / 1 var(--f-body); text-align: right; color: var(--c-white); }
+    .input { flex: none; min-width: calc(12 * var(--px)); padding: var(--p1) var(--p2); font: var(--fs-ui) / 1 var(--f-ui); text-align: center; color: var(--c-void); background: var(--sc); }
+    .slider { display: grid; grid-template-columns: calc(30 * var(--px)) 1fr 3ch; gap: var(--p3); align-items: center; font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-mute);
+      b { font: var(--fs-num) / 1 var(--f-body); text-align: right; color: var(--c-white); } }
+    .move { display: flex; gap: var(--p2); align-items: flex-start; }
+    .mfields { flex: 1; min-width: 0; display: grid; gap: var(--p1); }
+    .mtop { display: flex; gap: var(--p1); .in { width: calc(24 * var(--px)); flex: none; } }
   `,
 })
 export class AutGame {

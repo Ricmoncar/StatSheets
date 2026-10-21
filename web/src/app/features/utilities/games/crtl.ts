@@ -114,13 +114,14 @@ const ENTITY = '#dd4455', CLASS = '#36c98a';
   `,
   styleUrls: ['./game-shared.scss'],
   styles: `
-    .badge { justify-self: start; padding: 3px 9px; font-size: var(--fs-ui); color: var(--sc); border: 1px solid var(--sc); }
-    .stars { display: flex; gap: 6px; font-size: var(--fs-voice); line-height: 1; color: #2a2a2a;
-      .on { color: #ffd24a; text-shadow: 2px 2px 0 #4a3a00; }
-      &.edit button { padding: 0; font-size: var(--fs-voice); background: none; border: 0; color: #2a2a2a; &.on { color: #ffd24a; text-shadow: 2px 2px 0 #4a3a00; } } }
-    .hp { height: 10px; background: var(--ss-panel-2); border: 1px solid var(--ss-line-dim);
-      span { display: block; height: 100%; background: repeating-linear-gradient(90deg, #36c98a 0 6px, #2a9e6c 6px 8px); } }
-    .hp-row { display: flex; gap: 12px; align-items: center; input { flex: 1; accent-color: #36c98a; } b { font-weight: normal; font-size: var(--ss-text-sm); color: #36c98a; } }
+    .badge { justify-self: start; padding: var(--p1) var(--p3); font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-void); background: var(--sc); box-shadow: 0 0 0 var(--px) var(--c-void); }
+    // speed as save stars: gold when earned, ash when not
+    .stars { display: flex; gap: var(--p2); font: var(--fs-voice) / 1 var(--f-body); color: var(--c-ash);
+      .on { color: var(--c-yel); text-shadow: var(--p1) var(--p1) 0 var(--c-gd); }
+      &.edit button { padding: 0; font: var(--fs-voice) / 1 var(--f-body); color: var(--c-ash); &:hover { color: var(--c-em3); } &.on { color: var(--c-yel); text-shadow: var(--p1) var(--p1) 0 var(--c-gd); } } }
+    .hp { height: calc(5 * var(--px)); padding: var(--px); background: var(--c-void); box-shadow: inset 0 0 0 var(--px) var(--c-ink3);
+      span { display: block; height: 100%; background: repeating-linear-gradient(90deg, #36c98a 0 calc(5 * var(--px)), #1d6b4a calc(5 * var(--px)) calc(6 * var(--px))); } }
+    .hp-row { display: flex; gap: var(--p4); align-items: center; input { flex: 1; } b { font: var(--fs-num) / 1 var(--f-body); color: #36c98a; } }
     .sec-head b { font-weight: normal; }
   `,
 })

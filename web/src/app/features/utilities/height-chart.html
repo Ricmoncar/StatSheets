@@ -4,18 +4,18 @@
     <span class="title">HEIGHT CHART</span>
     <div class="actions">
       <span class="units" role="radiogroup" aria-label="Units">
-        <button type="button" role="radio" class="btn" [class.on]="unit() === 'cm'" [attr.aria-checked]="unit() === 'cm'" (click)="unit.set('cm')">CM</button>
-        <button type="button" role="radio" class="btn" [class.on]="unit() === 'in'" [attr.aria-checked]="unit() === 'in'" (click)="unit.set('in')">IN</button>
+        <button type="button" role="radio" class="btn u-btn sm" [class.on]="unit() === 'cm'" [attr.aria-checked]="unit() === 'cm'" (click)="unit.set('cm')">CM</button>
+        <button type="button" role="radio" class="btn u-btn sm" [class.on]="unit() === 'in'" [attr.aria-checked]="unit() === 'in'" (click)="unit.set('in')">IN</button>
       </span>
-      <button type="button" class="btn accent" (click)="add()">+ ADD</button>
-      <button type="button" class="btn" (click)="importQuery.set(''); importing.set(true)">IMPORT</button>
-      <button type="button" class="btn" (click)="sortByHeight()">SORT &#8593;</button>
+      <button type="button" class="btn accent u-btn sm primary" (click)="add()">+ ADD</button>
+      <button type="button" class="btn u-btn sm" (click)="importQuery.set(''); importing.set(true)">IMPORT</button>
+      <button type="button" class="btn u-btn sm" (click)="sortByHeight()">SORT &#8593;</button>
       <span class="zoom">
-        <button type="button" class="btn" (click)="setZoom(zoom() - 0.25)" aria-label="Zoom out">-</button>
+        <button type="button" class="btn u-btn sm" (click)="setZoom(zoom() - 0.25)" aria-label="Zoom out">-</button>
         <span class="zoom-val">{{ (zoom() * 100).toFixed(0) }}%</span>
-        <button type="button" class="btn" (click)="setZoom(zoom() + 0.25)" aria-label="Zoom in">+</button>
+        <button type="button" class="btn u-btn sm" (click)="setZoom(zoom() + 0.25)" aria-label="Zoom in">+</button>
       </span>
-      <button type="button" class="x" (click)="closed.emit()" aria-label="Close">&#10005;</button>
+      <button type="button" class="x u-btn icon sm" (click)="closed.emit()" aria-label="Close"><ss-icon name="x" [soul]="false" /></button>
     </div>
   </header>
 
@@ -79,8 +79,8 @@
           <hr />
           <div class="field"><span>SPRITE</span>
             <span class="row">
-              <label class="btn">UPLOAD<input type="file" accept="image/*" hidden (change)="upload($event)" /></label>
-              @if (e.spriteBase64 || e.spriteUrl) { <button type="button" class="btn" (click)="clearSprite()">CLEAR</button> }
+              <label class="btn u-btn sm">UPLOAD<input type="file" accept="image/*" hidden (change)="upload($event)" /></label>
+              @if (e.spriteBase64 || e.spriteUrl) { <button type="button" class="btn u-btn sm" (click)="clearSprite()">CLEAR</button> }
             </span>
           </div>
           @if (e.spriteBase64 || e.spriteUrl) {
@@ -89,15 +89,15 @@
             </label>
           }
           <div class="row auras">
-            <button type="button" class="btn" [class.on]="e.aura === 'soft'" (click)="toggleSoft()" title="Soft glow in character colour">DEFAULT</button>
-            <button type="button" class="btn" [class.on]="!!e.aura && e.aura !== 'soft'" (click)="cycleAura()">AURA
+            <button type="button" class="btn u-btn sm" [class.on]="e.aura === 'soft'" (click)="toggleSoft()" title="Soft glow in character colour">DEFAULT</button>
+            <button type="button" class="btn u-btn sm" [class.on]="!!e.aura && e.aura !== 'soft'" (click)="cycleAura()">AURA
               @if (e.aura && e.aura !== 'soft') { <span class="dot" [style.background]="auraDot[e.aura]"></span> }
             </button>
-            @if (e.aura) { <button type="button" class="btn" (click)="clearAura()">NONE</button> }
+            @if (e.aura) { <button type="button" class="btn u-btn sm" (click)="clearAura()">NONE</button> }
           </div>
           @if (e.aura) { <span class="aura-name">{{ e.aura.toUpperCase() }}</span> }
           <hr />
-          <button type="button" class="btn danger wide" (click)="remove()">DELETE</button>
+          <button type="button" class="btn danger wide u-btn sm danger block" (click)="remove()">DELETE</button>
         </div>
       } @else {
         <p class="empty">SELECT A CHARACTER<br />TO EDIT</p>
@@ -107,8 +107,8 @@
 
   @if (importing()) {
     <div class="import" (click)="importing.set(false)">
-      <div class="import-box" (click)="$event.stopPropagation()">
-        <header class="head"><span>PICK FROM ROSTER</span><button type="button" class="x" (click)="importing.set(false)" aria-label="Close">&#10005;</button></header>
+      <div class="import-box u-fr u-frost" (click)="$event.stopPropagation()">
+        <header class="head"><span>PICK FROM ROSTER</span><button type="button" class="x u-btn icon sm" (click)="importing.set(false)" aria-label="Close"><ss-icon name="x" [soul]="false" /></button></header>
         <input class="search" type="text" placeholder="SEARCH..." [value]="importQuery()" (input)="importQuery.set($any($event.target).value)" aria-label="Search roster" />
         <div class="list">
           @for (r of rosterMatches(); track r.c.id) {

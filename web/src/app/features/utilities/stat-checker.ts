@@ -20,7 +20,7 @@ interface Row { base: number; add: number; mult: number; div: number; max: numbe
       @let r = rows()[k];
       <div class="row">
         <label class="base">
-          <span class="lbl"><ss-stat-icon [stat]="k" [size]="10" />{{ k.toUpperCase() }} BASE: <b>{{ r.base }}</b></span>
+          <span class="lbl"><ss-stat-icon [stat]="k" [size]="21" />{{ k.toUpperCase() }} BASE: <b>{{ r.base }}</b></span>
           <input type="range" min="1" [max]="r.max" [value]="r.base" (input)="set(k, 'base', $any($event.target).value)" [attr.aria-label]="k + ' base'" />
           <ss-stat-bar class="ghost" [stat]="k" [value]="r.base" />
         </label>
@@ -45,20 +45,21 @@ interface Row { base: number; add: number; mult: number; div: number; max: numbe
     </div>
   `,
   styles: `
-    .row { display: grid; gap: 10px; padding-bottom: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--ss-panel-2); }
-    .lbl { display: inline-flex; gap: 6px; align-items: center; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); b { color: var(--ss-fg); font-weight: normal; } }
-    .base { display: grid; gap: 8px; input { width: 100%; accent-color: var(--ss-accent); } }
-    .ghost { opacity: 0.3; }
-    .math { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-      label { display: grid; gap: 4px; font-size: var(--fs-ui); color: var(--ss-fg-dim); }
-      input { width: 100%; padding: 5px; font-size: var(--ss-text-sm); background: var(--ss-bg); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); } }
-    .res { display: grid; gap: 6px; }
-    .subs { padding: 16px; border-top: 1px solid var(--ss-line-dim); background: rgb(0 0 0 / 0.4); }
-    .head { display: block; margin-bottom: 12px; font-size: var(--ss-text-md); color: var(--ss-accent); }
-    dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .sub { display: flex; gap: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--ss-panel-2); font-size: var(--ss-text-sm); cursor: help; }
-    dt { color: var(--ss-fg-dim); } dd { margin: 0; color: var(--ss-fg); }
-    @media (max-width: 560px) { dl { grid-template-columns: 1fr; } }
+    @use 'underground' as u;
+    .row { display: grid; gap: var(--p3); padding-bottom: var(--p5); margin-bottom: var(--p5); border-bottom: var(--px) dashed var(--c-ink3); }
+    .lbl { display: inline-flex; gap: var(--p2); align-items: center; @include u.label; b { font: var(--fs-num) / 1 var(--f-body); color: var(--c-white); } ::ng-deep svg { width: calc(7 * var(--px)); height: calc(7 * var(--px)); } }
+    .base { display: grid; gap: var(--p2); input { width: 100%; } }
+    .ghost { opacity: 0.35; }
+    .math { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--p3);
+      label { display: grid; gap: var(--p1); span { @include u.label; color: var(--c-mute); } }
+      input { width: 100%; @include u.field; } }
+    .res { display: grid; gap: var(--p2); }
+    .subs { padding: var(--p4); background: var(--c-ink2); box-shadow: inset 0 var(--px) 0 var(--c-void); }
+    .head { display: flex; margin-bottom: var(--p3); @include u.mini-h; }
+    dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--p8); }
+    .sub { display: flex; justify-content: space-between; gap: var(--p2); padding: var(--p1) 0; border-bottom: var(--px) solid var(--c-ink3); cursor: help; }
+    dt { font: var(--fs-ui) / 20px var(--f-ui); color: var(--c-mute); text-transform: uppercase; } dd { margin: 0; font: var(--fs-num) / 1 var(--f-body); color: var(--c-white); }
+    @media (max-width: 560px) { dl { grid-template-columns: 1fr; } .math { grid-template-columns: 1fr; } }
   `,
 })
 export class StatChecker {

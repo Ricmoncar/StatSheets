@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CharacterStore } from '../../core/data/character-store';
+import { Icon } from '../../ui/icon';
 
 type Mode = 'relationship' | 'friendship';
 interface CompatTier { min: number; label: string; color: string; msg: string; flavor: string }
@@ -37,36 +38,38 @@ export function compatHash(str: string): number {
 /** How well do two characters click? Deterministic per pair and mode. */
 @Component({
   selector: 'ss-compat-tester',
+  imports: [Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p class="intro">HOW WELL DO TWO CHARACTERS CLICK? RESULTS ARE UNIQUE TO YOU AND STAY CONSISTENT.</p>
     <div class="modes" role="radiogroup" aria-label="Mode">
       <button type="button" role="radio" class="mode rel" [class.on]="mode() === 'relationship'" [attr.aria-checked]="mode() === 'relationship'" (click)="setMode('relationship')">
-        <svg viewBox="0 0 9 9" width="12" height="12" shape-rendering="crispEdges" aria-hidden="true"><path [attr.d]="heart" fill="currentColor" /></svg> RELATIONSHIP</button>
+        <svg viewBox="0 0 9 9" class="mi" shape-rendering="crispEdges" aria-hidden="true"><path [attr.d]="heart" fill="currentColor" /></svg>RELATIONSHIP</button>
       <button type="button" role="radio" class="mode fr" [class.on]="mode() === 'friendship'" [attr.aria-checked]="mode() === 'friendship'" (click)="setMode('friendship')">
-        <svg viewBox="0 0 9 9" width="12" height="12" shape-rendering="crispEdges" aria-hidden="true"><path [attr.d]="spark" fill="currentColor" /></svg> FRIENDSHIP</button>
+        <svg viewBox="0 0 9 9" class="mi" shape-rendering="crispEdges" aria-hidden="true"><path [attr.d]="spark" fill="currentColor" /></svg>FRIENDSHIP</button>
     </div>
     <div class="pick">
-      <label><span>CHARACTER A</span>
+      <label><span class="lbl">CHARACTER A</span>
         <select (change)="a.set($any($event.target).value); clear()">
           @for (c of chars(); track c.id) { <option [value]="c.id" [selected]="c.id === a()">{{ c.name || 'UNNAMED' }}</option> }
         </select>
       </label>
       <span class="vs" [class.lit]="!!result()" [style.color]="result()?.tier?.color">
-        <svg viewBox="0 0 9 9" width="22" height="22" shape-rendering="crispEdges" aria-hidden="true"><path [attr.d]="mode() === 'relationship' ? heart : spark" fill="currentColor" /></svg>
+        <svg viewBox="0 0 9 9" class="vi" shape-rendering="crispEdges" aria-hidden="true"><path [attr.d]="mode() === 'relationship' ? heart : spark" fill="currentColor" /></svg>
       </span>
-      <label><span>CHARACTER B</span>
+      <label><span class="lbl">CHARACTER B</span>
         <select (change)="b.set($any($event.target).value); clear()">
           @for (c of chars(); track c.id) { <option [value]="c.id" [selected]="c.id === b()">{{ c.name || 'UNNAMED' }}</option> }
         </select>
       </label>
     </div>
-    <button type="button" class="btn accent" (click)="test()">TEST COMPATIBILITY</button>
+    <button type="button" class="btn u-btn primary" (click)="test()"><ss-icon name="heart" />TEST COMPATIBILITY</button>
 
     @if (result(); as r) {
-      <div class="result">
+      <div class="result u-voice">
         @if (r.same) {
-          <p class="msg">THAT'S THE SAME CHARACTER. COMPATIBILITY WITH YOURSELF IS... COMPLICATED.</p>
+          <p class="msg u-say">* That's the same character.
+* Compatibility with yourself is... complicated.</p>
         } @else {
           <div class="names">
             <span class="who"><span class="dot" [class.rainbow]="r.aRainbow" [style.background]="r.aRainbow ? null : r.aColor"></span><span [class.rainbow-text]="r.aRainbow" [style.color]="r.aRainbow ? null : r.aColor">{{ r.aName }}</span></span>
@@ -75,38 +78,42 @@ export function compatHash(str: string): number {
           </div>
           <div class="score" [style.color]="r.tier!.color"><span class="num">{{ shownScore() }}%</span><span class="tier">{{ r.tier!.label }}</span></div>
           <div class="meter"><span [style.width.%]="fillTo()" [style.background]="r.tier!.color"></span></div>
-          <p class="msg">{{ r.tier!.msg }}</p>
+          <p class="msg u-say">* {{ r.tier!.msg }}</p>
           <p class="flavor">{{ r.tier!.flavor }}</p>
         }
       </div>
     }
   `,
   styles: `
-    .intro { margin: 0 0 20px; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
-    .modes { display: flex; gap: 8px; margin-bottom: 18px; }
-    .mode { display: inline-flex; gap: 8px; align-items: center; padding: 8px 12px; font-size: var(--ss-text-xs); background: none; border: 1px solid var(--ss-line-dim); color: var(--ss-fg-dim);
-      &.rel.on { color: #ff6eb4; border-color: #ff6eb4; background: rgb(255 110 180 / 0.08); }
-      &.fr.on { color: #7ed7ff; border-color: #7ed7ff; background: rgb(126 215 255 / 0.08); } }
-    .pick { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: end;
-      label { display: grid; gap: 6px; font-size: var(--ss-text-xs); color: var(--ss-fg-dim); min-width: 0; }
-      select { padding: 7px; font-size: var(--ss-text-sm); background: var(--ss-panel); border: 1px solid var(--ss-line-dim); color: var(--ss-fg); min-width: 0; } }
-    .vs { color: var(--ss-fg-faint); padding-bottom: 4px; &.lit { animation: beat 0.8s steps(2) infinite; } }
+    @use 'underground' as u;
+    .intro { margin: 0 0 var(--p5); font: var(--fs-body) / var(--lh-body) var(--f-body); color: var(--c-mute); }
+    .modes { display: flex; gap: var(--p2); margin-bottom: var(--p5); flex-wrap: wrap; }
+    .mode { display: inline-flex; gap: var(--p2); align-items: center; padding: var(--p1) var(--p3); font: var(--fs-ui) / 20px var(--f-ui); color: var(--c-bone); background: var(--c-ink2);
+      &:hover { color: var(--c-yel); }
+      &.rel.on { color: var(--c-void); background: var(--c-kr); }
+      &.fr.on { color: var(--c-void); background: var(--c-ec2); } }
+    .mi { width: calc(5 * var(--px)); height: calc(5 * var(--px)); }
+    .pick { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--p4); align-items: end;
+      label { display: grid; gap: var(--p2); min-width: 0; .lbl { @include u.label; } }
+      select { @include u.field; } }
+    .vs { color: var(--c-mute); padding-bottom: var(--p2); &.lit { animation: beat 0.8s steps(2) infinite; } }
+    .vi { width: calc(9 * var(--px)); height: calc(9 * var(--px)); display: block; }
     @keyframes beat { 50% { scale: 1.25; } }
-    .btn { margin-top: 18px; min-width: 200px; padding: 10px 14px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-accent); color: var(--ss-accent);
-      &:hover { background: var(--ss-accent); color: var(--ss-bg); } }
-    .result { display: grid; gap: 12px; margin-top: 20px; padding: 18px; border: 2px solid var(--ss-panel-2); background: rgb(0 0 0 / 0.4); box-shadow: 4px 4px 0 #000; }
-    .names { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: var(--ss-text-sm); }
-    .who { display: inline-flex; gap: 6px; align-items: center; }
-    .dot { width: 8px; height: 8px; }
-    .x { color: var(--ss-fg-faint); }
-    .score { display: flex; gap: 14px; align-items: baseline; .num { font-size: 28px; } .tier { font-size: var(--ss-text-md); } }
-    .meter { height: 12px; background: var(--ss-panel-2); border: 1px solid var(--ss-line-dim);
-      span { display: block; height: 100%; transition: width 1s steps(20); background-image: repeating-linear-gradient(90deg, transparent 0 8px, rgb(0 0 0 / 0.35) 8px 10px); } }
-    .msg { margin: 0; font-size: var(--ss-text-sm); line-height: 1.8; }
-    .flavor { margin: 0; font-size: var(--ss-text-xs); color: var(--ss-fg-faint); }
-    .rainbow { animation: rbw-bg 2.5s linear infinite; } .rainbow-text { animation: rbw 2.5s linear infinite; }
-    @keyframes rbw { 0%, 100% { color: hsl(0 100% 65%); } 33% { color: hsl(120 100% 65%); } 67% { color: hsl(240 100% 70%); } }
-    @keyframes rbw-bg { 0%, 100% { background: hsl(0 100% 65%); } 33% { background: hsl(120 100% 65%); } 67% { background: hsl(240 100% 70%); } }
+    .btn { margin-top: var(--p5); }
+    // the verdict as a dialogue: names, the score in the tier's colour, a meter, and what it means
+    .result { display: grid; gap: var(--p3); margin-top: var(--p6); padding: var(--p5) var(--p6); box-shadow: 0 var(--p3) 0 var(--c-void); }
+    .names { display: flex; gap: var(--p3); align-items: center; flex-wrap: wrap; font: var(--fs-ui) / 20px var(--f-ui); text-transform: uppercase; }
+    .who { display: inline-flex; gap: var(--p2); align-items: center; }
+    .dot { width: var(--p2); height: var(--p2); box-shadow: 0 0 0 var(--px) var(--c-void); }
+    .x { color: var(--c-mute); }
+    .score { display: flex; gap: var(--p4); align-items: baseline; flex-wrap: wrap; .num { font: var(--fs-big) / 1 var(--f-body); text-shadow: var(--p1) var(--p1) 0 var(--c-void); } .tier { font: 700 var(--fs-plaque) / 1 var(--f-display); letter-spacing: -0.125em; text-transform: uppercase; } }
+    .meter { height: calc(5 * var(--px)); padding: var(--px); background: var(--c-void); box-shadow: inset 0 0 0 var(--px) var(--c-ink3);
+      span { display: block; height: 100%; transition: width 1s steps(20); background-image: repeating-linear-gradient(90deg, transparent 0 calc(8 * var(--px)), rgb(0 0 0 / 0.6) calc(8 * var(--px)) calc(9 * var(--px))); } }
+    .msg { margin: 0; }
+    .flavor { margin: 0; font: var(--fs-body) / var(--lh-body) var(--f-body); color: var(--c-mute); }
+    .rainbow { animation: rbw-bg 2.4s steps(6) infinite; } .rainbow-text { animation: rbw 2.4s steps(6) infinite; }
+    @keyframes rbw { 0%, 100% { color: #ff1f3d; } 33% { color: #45d65a; } 67% { color: #6fd2ff; } }
+    @keyframes rbw-bg { 0%, 100% { background: #ff1f3d; } 33% { background: #45d65a; } 67% { background: #6fd2ff; } }
     @media (max-width: 560px) { .pick { grid-template-columns: 1fr; } .vs { justify-self: center; } }
   `,
 })

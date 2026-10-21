@@ -1,29 +1,26 @@
 :host { display: block; }
-.tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
-.tab { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px 0 0; border: 1px solid var(--ss-panel-2); background: var(--ss-bg);
-  &.on { border-color: #00ffff; background: #001a1a; .tab-name { color: #00ffff; } } }
-.tab-name { padding: 6px 4px 6px 10px; background: none; border: 0; font-size: var(--fs-ui); color: var(--ss-fg-dim); &:hover { color: var(--ss-fg); } }
-.tab-input { width: 80px; padding: 6px 8px; font-size: var(--fs-ui); text-transform: uppercase; background: none; border: 0; color: var(--ss-fg); outline: none; }
-.tab-del { padding: 0 2px; background: none; border: 0; font-size: var(--fs-body); color: var(--ss-fg-faint); &:hover { color: var(--ss-err); } }
-.ok { padding: 0 2px; background: none; border: 0; font-size: var(--fs-body); color: var(--ss-ok); }
-.new { padding-right: 6px; border-style: dashed; }
-.add { padding: 2px 8px; font-size: var(--fs-voice); line-height: 1; background: none; border: 1px dashed var(--ss-line-dim); color: var(--ss-fg-faint); &:hover { color: var(--ss-ok); border-color: var(--ss-ok); } }
+.tabs { display: flex; flex-wrap: wrap; gap: var(--p2); align-items: center; margin-bottom: var(--p5); }
+.tab { display: inline-flex; align-items: center; gap: var(--p1); }
+.tab-input { width: calc(30 * var(--px)); padding: var(--p1) var(--p2); font: var(--fs-ui) / 1 var(--f-ui); text-transform: uppercase; color: var(--c-white); background: var(--c-ink); border: 0; box-shadow: inset 0 0 0 var(--px) var(--c-yel); outline: none; }
+.tab-del { display: inline-flex; padding: var(--px); color: var(--c-mute); &:hover { color: var(--c-red); } }
+.new { display: inline-flex; align-items: center; gap: var(--p1); }
 
-.row { display: flex; min-height: 56px; border-bottom: 1px solid var(--ss-panel-2); }
-.label { width: 40px; flex: none; display: grid; place-items: center; font-size: var(--fs-voice); color: var(--t); border-right: var(--ss-border) solid var(--t);
-  background: color-mix(in srgb, var(--t) 8%, transparent); text-shadow: 2px 2px 0 #000; }
-.slots, .pool { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 10px; min-height: 52px;
-  &.over { background: rgb(255 255 0 / 0.05); outline: 1px dashed rgb(255 255 0 / 0.3); outline-offset: -2px; } }
-.pool-label { display: block; padding: 10px 10px 4px; font-size: var(--fs-ui); color: var(--ss-fg-faint); }
-.pool { border-top: 1px solid var(--ss-panel-2); }
+// a tier: its letter on a block of its colour, then the characters ranked there
+.row { display: flex; min-height: calc(20 * var(--px)); background: var(--c-ink); box-shadow: inset 0 calc(-1 * var(--px)) 0 var(--c-ink3); }
+.label { width: calc(16 * var(--px)); flex: none; display: grid; place-items: center; font: 700 var(--fs-plaque) / 1 var(--f-display); color: var(--c-void); background: var(--t);
+  box-shadow: inset 0 var(--px) 0 color-mix(in srgb, var(--t), #fff 45%), inset calc(-1 * var(--px)) 0 0 color-mix(in srgb, var(--t), #000 40%), inset 0 calc(-1 * var(--px)) 0 color-mix(in srgb, var(--t), #000 40%); }
+.slots, .pool { flex: 1; display: flex; flex-wrap: wrap; gap: var(--p2); align-items: center; padding: var(--p2) var(--p3); min-height: calc(20 * var(--px));
+  &.over { background: var(--t-dither) 0 0 / var(--p2) var(--p2), var(--c-ink2); box-shadow: inset 0 0 0 var(--px) var(--c-yel); } }
+.pool-label { display: block; padding: var(--p4) 0 var(--p2); font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-mute); }
+.pool { background: var(--c-ink2); }
 
-.chip { --c: #888; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 5px; background: var(--ss-bg); border: 1px solid var(--c); cursor: grab;
-  img, svg { width: 22px; height: 22px; object-fit: cover; image-rendering: pixelated; }
-  svg { fill: var(--c); }
-  .name { max-width: 70px; font-size: var(--fs-ui); color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  &:hover { translate: 0 -1px; box-shadow: 2px 2px 0 #000; }
-  &.selected { outline: 2px solid var(--ss-accent); outline-offset: 1px; animation: blink 0.8s steps(2) infinite; }
-  &.before { box-shadow: -3px 0 0 var(--ss-accent); }
-  &.after { box-shadow: 3px 0 0 var(--ss-accent); } }
+// a character: a small framed portrait with its name under it
+.chip { --c: #888; display: flex; flex-direction: column; align-items: center; gap: var(--p1); padding: var(--p1); cursor: grab;
+  img, .u-spr { width: calc(12 * var(--px)); height: calc(12 * var(--px)); object-fit: cover; box-shadow: 0 0 0 var(--px) var(--c-void), 0 0 0 var(--p1) var(--c); }
+  .u-spr { width: calc(9 * var(--px)); height: calc(8 * var(--px)); box-shadow: none; }
+  .name { max-width: calc(24 * var(--px)); font: var(--fs-small) / 1 var(--f-body); color: color-mix(in oklab, var(--c), #fff 30%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &:hover { translate: 0 calc(-1 * var(--px)); .name { color: var(--c-yel); } }
+  &.selected { outline: var(--px) solid var(--c-yel); outline-offset: var(--px); animation: blink 0.8s steps(2) infinite; }
+  &.before { box-shadow: calc(-1 * var(--p1)) 0 0 var(--c-yel); }
+  &.after { box-shadow: var(--p1) 0 0 var(--c-yel); } }
 @keyframes blink { 50% { outline-color: transparent; } }
-@media (max-width: 560px) { .label { width: 32px; font-size: var(--fs-voice); } .chip .name { max-width: 56px; } }

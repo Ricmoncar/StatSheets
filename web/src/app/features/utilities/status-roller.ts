@@ -7,10 +7,12 @@ import { StatusOrb } from '../../ui/status-orb';
 const TYPES = ['ALL', 'BUFF', 'DEBUFF', 'UNIQUE', 'PASSIVE', 'NEUTRAL'] as const;
 const TYPE_COLORS: Record<string, string> = { BUFF: '#44ff88', DEBUFF: '#ff4444', NEUTRAL: '#aaaaaa', PASSIVE: '#cc99ff', UNIQUE: '#ffcc44' };
 
+import { Icon } from '../../ui/icon';
+
 /** Rolls a random status effect from the encyclopaedia, optionally of one type. */
 @Component({
   selector: 'ss-status-roller',
-  imports: [StatusOrb],
+  imports: [StatusOrb, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p class="intro">Roll a random status effect from your encyclopedia. Filter by type to narrow the pool.</p>
@@ -20,9 +22,9 @@ const TYPE_COLORS: Record<string, string> = { BUFF: '#44ff88', DEBUFF: '#ff4444'
       }
     </div>
     <p class="pool">{{ pool().length }} STATUS EFFECT{{ pool().length !== 1 ? 'S' : '' }} IN POOL</p>
-    <button type="button" class="btn accent" (click)="roll()" [disabled]="rolling()">&#9860; ROLL STATUS EFFECT</button>
+    <button type="button" class="btn accent u-btn primary" (click)="roll()" [disabled]="rolling()"><ss-icon name="dice" />ROLL STATUS EFFECT</button>
     @if (shown(); as s) {
-      <div class="result" [class.scrambling]="rolling()" [style.--s]="s.color || '#aaa'">
+      <div class="result u-fr u-slate" [class.scrambling]="rolling()" [style.--s]="s.color || '#aaa'">
         <ss-status-orb [shape]="$any(s['shape'])" [color]="s.color || '#aaa'" [size]="56" />
         <div class="info">
           <div class="top">
@@ -32,27 +34,25 @@ const TYPE_COLORS: Record<string, string> = { BUFF: '#44ff88', DEBUFF: '#ff4444'
           @if (!rolling()) { <p class="desc">{{ s.desc }}</p> }
         </div>
       </div>
-      @if (!rolling()) { <button type="button" class="btn" (click)="roll()">&#8634; REROLL</button> }
+      @if (!rolling()) { <button type="button" class="btn u-btn" (click)="roll()"><ss-icon name="dice" />REROLL</button> }
     }
   `,
   styles: `
-    .intro { margin: 0 0 18px; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
-    .types { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
-    .type { --t: var(--ss-fg); padding: 5px 8px; font-size: var(--ss-text-xs); background: none; border: 1px solid color-mix(in srgb, var(--t) 30%, transparent); color: var(--t);
-      &.on { border-color: var(--t); background: color-mix(in srgb, var(--t) 15%, transparent); } }
-    .pool { margin: 0 0 14px; font-size: var(--ss-text-sm); color: var(--ss-fg-faint); }
-    .btn { padding: 10px 14px; font-size: var(--ss-text-xs); background: none; border: var(--ss-border) solid var(--ss-fg-dim); color: var(--ss-fg);
-      &.accent { border-color: var(--ss-accent); color: var(--ss-accent); &:hover:not(:disabled) { background: var(--ss-accent); color: var(--ss-bg); } }
-      &:disabled { opacity: 0.5; } }
-    .result { --s: #aaa; display: flex; gap: 20px; align-items: center; margin: 24px 0 12px; padding: 18px 20px;
-      border: 2px solid color-mix(in srgb, var(--s) 45%, transparent); background: color-mix(in srgb, var(--s) 7%, transparent);
+    .intro { margin: 0 0 var(--p5); font: var(--fs-body) / var(--lh-body) var(--f-body); color: var(--c-mute); }
+    .types { display: flex; flex-wrap: wrap; gap: var(--p2); margin-bottom: var(--p5); }
+    .type { --t: var(--c-white); padding: var(--p1) var(--p3); font: var(--fs-ui) / 20px var(--f-ui); color: var(--t); background: var(--c-ink2); box-shadow: inset var(--px) 0 0 var(--t);
+      &:hover { color: var(--c-yel); }
+      &.on { color: var(--c-void); background: var(--t); box-shadow: 0 0 0 var(--px) var(--c-void); } }
+    .pool { margin: 0 0 var(--p4); font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-mute); }
+    // the effect that came up, on a slate tile edged in its colour
+    .result { --s: #aaa; display: flex; gap: var(--p6); align-items: center; margin: var(--p6) 0 var(--p4); padding: var(--p4) var(--p5); box-shadow: var(--hard), inset var(--p1) 0 0 var(--s);
       &.scrambling ss-status-orb { animation: shake 0.1s steps(2) infinite; } }
-    @keyframes shake { 50% { translate: 2px 0; } }
-    .info { flex: 1; min-width: 0; display: grid; gap: 8px; }
-    .top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .name { font-size: var(--fs-body); }
-    .badge { --t: #aaa; font-size: var(--fs-ui); padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--t) 40%, transparent); color: var(--t); }
-    .desc { margin: 0; font-size: var(--ss-text-sm); line-height: 1.8; color: var(--ss-fg-dim); white-space: pre-wrap; }
+    @keyframes shake { 50% { translate: var(--px) 0; } }
+    .info { flex: 1; min-width: 0; display: grid; gap: var(--p2); }
+    .top { display: flex; gap: var(--p3); align-items: center; flex-wrap: wrap; }
+    .name { font: 700 var(--fs-plaque) / 1 var(--f-display); letter-spacing: -0.125em; text-shadow: var(--p1) var(--p1) 0 var(--c-void); text-transform: uppercase; }
+    .badge { --t: #aaa; padding: var(--p1) var(--p2); font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-void); background: var(--t); }
+    .desc { margin: 0; font: var(--fs-body) / var(--lh-body) var(--f-body); color: var(--c-bone); white-space: pre-wrap; }
   `,
 })
 export class StatusRoller {

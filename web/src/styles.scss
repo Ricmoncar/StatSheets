@@ -92,6 +92,8 @@
 
 html {
   height: 100%;
+  // things scrolled into view land below the sticky top bar, not under it
+  scroll-padding-top: calc(var(--topbar-h, 84px) + 8px);
   background: var(--c-void);
   cursor: var(--cur-soul, auto);
   image-rendering: pixelated;

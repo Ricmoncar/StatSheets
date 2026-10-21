@@ -1,7 +1,7 @@
 <header class="bar">
   <svg class="cam" viewBox="0 0 9 7" shape-rendering="crispEdges" aria-hidden="true"><path [attr.d]="cameraPath" /></svg>
   <div class="titles">
-    <h1 class="title">CHARACTER GALLERY</h1>
+    <h1 class="title u-display">CHARACTER GALLERY</h1>
     <span class="sub">{{ store.characters().length }} CHARACTERS · {{ total() }} PICTURES</span>
   </div>
 </header>
@@ -29,11 +29,11 @@
 @if (active(); as c) {
   <ss-modal [title]="(c.name || 'UNNAMED') + ' // GALLERY'" width="1000px" [escape]="lightbox() === null" (closed)="close()" [style.--c]="c.color || '#ffffff'">
     <div class="tools">
-      <button type="button" class="btn accent" (click)="pickFiles()">+ ADD IMAGES</button>
+      <button type="button" class="btn u-btn primary" (click)="pickFiles()"><ss-icon name="upload" />ADD IMAGES</button>
       <input #file type="file" accept="image/*" multiple hidden (change)="onFiles($event)" />
       <span class="status">{{ status() }}</span>
     </div>
-    <div class="drop" [class.over]="dragOver()" role="button" tabindex="0" (click)="pickFiles()" (keydown.enter)="pickFiles()"
+    <div class="drop u-fr u-inset" [class.over]="dragOver()" role="button" tabindex="0" (click)="pickFiles()" (keydown.enter)="pickFiles()"
          (dragover)="onDragOver($event)" (dragleave)="dragOver.set(false)" (drop)="onDrop($event)">
       DROP IMAGES HERE OR CLICK TO UPLOAD
     </div>
@@ -72,11 +72,11 @@
 @if (shown(); as img) {
   @let n = images()?.length || 0;
   <div class="lightbox" role="dialog" aria-modal="true" [attr.aria-label]="img.name || 'Picture'" (click)="lightbox.set(null)">
-    <button type="button" class="lb-x" (click)="lightbox.set(null)" aria-label="Close">&#10005;</button>
+    <button type="button" class="lb-x u-btn icon" (click)="lightbox.set(null)" aria-label="Close"><ss-icon name="x" [soul]="false" /></button>
     @if (img.name) { <div class="lb-name">{{ img.name }}</div> }
     @if (n > 1) {
-      <button type="button" class="lb-nav prev" (click)="$event.stopPropagation(); step(-1)" aria-label="Previous">&#9664;</button>
-      <button type="button" class="lb-nav next" (click)="$event.stopPropagation(); step(1)" aria-label="Next">&#9654;</button>
+      <button type="button" class="lb-nav prev u-btn icon" (click)="$event.stopPropagation(); step(-1)" aria-label="Previous"><ss-icon name="left" [soul]="false" /></button>
+      <button type="button" class="lb-nav next u-btn icon" (click)="$event.stopPropagation(); step(1)" aria-label="Next"><ss-icon name="right" [soul]="false" /></button>
     }
     <img class="lb-img" [src]="img.dataUrl" [alt]="img.name || ''" />
     <div class="lb-count">{{ (lightbox() ?? 0) + 1 }} / {{ n }}</div>

@@ -6,6 +6,7 @@ import { ConfirmService } from '../../core/confirm.service';
 import { FIRESTORE, col } from '../../core/firebase';
 import { NotifyService } from '../../core/notify.service';
 import { Modal } from '../../ui/modal';
+import { Icon } from '../../ui/icon';
 import { GalleryImage, compressToFit, genId, imageLabel } from './gallery-images';
 
 // a 9x7 camera, '#' is a pixel
@@ -21,7 +22,7 @@ const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
  */
 @Component({
   selector: 'ss-gallery-page',
-  imports: [Modal],
+  imports: [Modal, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gallery-page.html',
   styleUrl: './gallery-page.scss',

@@ -27,7 +27,9 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
     const host = gw.locator(sel);
     await host.locator('.card').first().waitFor({ timeout: 15000 });
     const withDot = host.locator('ss-game-picker .card:has(.dot)');
-    await page.waitForTimeout(800);
+    // the game's documents load when its tab opens; wait for the marks rather than a fixed time
+    if (opts.marks !== false) await withDot.first().waitFor({ timeout: 8000 }).catch(() => undefined);
+    else await page.waitForTimeout(800);
     const n = await withDot.count();
     if (opts.marks !== false) check(n > 0, `${tab}: characters with something filled in are marked (${n})`);
     await (n ? withDot.first() : host.locator('ss-game-picker .card').first()).click();
@@ -56,8 +58,10 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
       const pages = async () => (await h.locator('.pager').first().textContent()).match(/\/\s*(\d+)/)[1];
       const n0 = +(await pages());
       await h.locator('.btn', { hasText: '+ LOADOUT' }).click();
+      await page.waitForTimeout(150);
       check(+(await pages()) === n0 + 1, 'NMT: + LOADOUT adds a page');
       await h.locator('.btn.danger', { hasText: 'LOADOUT' }).click();
+      await page.waitForTimeout(150);
       check(+(await pages()) === n0, 'NMT: and removes it');
       await page.waitForTimeout(1300);
     },

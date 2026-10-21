@@ -79,6 +79,7 @@ const check = (cond, what) => (cond ? ok : bad).push(what);
   check((await lb.locator('.lb-name').textContent()).trim() === 'E2E RENAMED', 'and its name');
   if (p0 > 0) {
     await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(150);
     check((await lb.locator('.lb-count').textContent()).trim() === `1 / ${p0 + 1}`, 'arrow keys wrap around');
     await page.keyboard.press('ArrowLeft');
   }
