@@ -1,55 +1,61 @@
 <title>StatSheets Underground</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Silkscreen&family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Tiny5&display=swap" rel="stylesheet">
 <style>
 /* =====================================================================
-   THE UNDERGROUND . StatSheets style tile
+   THE UNDERGROUND . StatSheets style tile (revision 2)
    One art pixel = --px CSS px (3 desktop, 2 phone). Every sprite,
-   frame, border, gap and texture is a whole number of art pixels.
+   frame, border, gap and texture is a whole number of art pixels,
+   and every font size is a whole multiple of that face's own pixel.
    ===================================================================== */
 *,*::before,*::after{box-sizing:border-box}
 :root{
   color-scheme:dark;
   --px:3px;
   /* ---- fixed palette: 35 colours in 11 families ---- */
-  --c-void:#07060c; --c-ink:#0e0c17; --c-ink2:#181427; --c-ink3:#262038;
+  --c-void:#000000; --c-ink:#0c0b10; --c-ink2:#16141c; --c-ink3:#252230;
   --c-ash:#3e3753;  --c-mute:#8a83a3; --c-bone:#d7d0e4; --c-white:#ffffff;
-  --c-red:#ff1f3d;  --c-red-d:#8c0b24; --c-yel:#ffe23b;
+  --c-red:#ff1f3d;  --c-red-d:#8c0b24; --c-yel:#ffe23b; --c-kr:#ff3ce6;
   --c-wd0:#2b170d;  --c-wd1:#553118; --c-wd2:#85532a; --c-wd3:#c08448;
   --c-mt0:#1b1d27;  --c-mt1:#3a3f55; --c-mt2:#6a7190; --c-mt3:#b2b9d1;
   --c-fr0:#8fb4e0;  --c-fr1:#d6ebff;
   --c-ec0:#0f2350;  --c-ec1:#2f6fe0; --c-ec2:#6fd2ff;
   --c-em0:#5c0d12;  --c-em1:#c22a1c; --c-em2:#ff7a1e; --c-em3:#ffc23a;
   --c-vi0:#2a0f55;  --c-vi1:#5b23b0; --c-vi2:#a24dff; --c-vi3:#dcb4ff;
-  --c-gd:#b47812;   --c-grn:#45d65a; --c-hx:#4b0090;
+  --c-gd:#b47812;   --c-grn:#45d65a;
   /* ---- derived ramps (JS rewrites these from the accent) ---- */
   --ac0:#3a1203; --ac1:#7a2e00; --ac2:#ff8000; --ac3:#ffb067; --ac4:#ffe2c4;
   --sn0:#1c1517; --sn1:#2f2527; --sn2:#463839; --sn3:#685455;
-  --on-ac:#07060c;
+  --on-ac:#000000;
   /* ---- roles ---- */
   --stat-hp:var(--c-grn); --stat-atk:var(--c-em2); --stat-def:var(--c-ec1);
   --stat-mag:var(--c-vi2); --stat-spd:var(--c-yel); --stat-iq:var(--c-ec2);
   --good:var(--c-grn); --bad:var(--c-red); --focus:var(--c-yel);
-  /* ---- type ---- */
-  --f-display:'Jersey 10','Silkscreen','Courier New',monospace;
+  --t-off:var(--c-mt2); /* disabled text: 4:1 on ink, never used for labels */
+  /* ---- type: two faces, sizes locked to each face's own pixel ----
+     Silkscreen: 1 font px = size/8.  Tiny5: 1 font px = size/8.
+     Desktop (px 3): body 24 = 1 art px, display 48 = 2 art px.
+     Phone   (px 2): body 16 = 1 art px, display 32 = 2 art px.   */
+  --f-display:'Silkscreen','Courier New',monospace;
   --f-ui:'Silkscreen','Courier New',monospace;
-  --f-body:'VT323','Courier New',monospace;
-  --fs-ui:16px; --fs-body:24px; --fs-num:28px; --fs-plaque:30px; --fs-name:60px; --fs-h:60px;
+  --f-body:'Tiny5','Courier New',monospace;
+  --fs-ui:16px; --fs-small:16px; --fs-body:24px; --fs-num:24px; --fs-big:48px; --fs-voice:32px; --fs-plaque:24px; --fs-tn:16px; --fs-logo:32px; --fs-name:48px; --fs-h:48px;
+  --lh-body:30px; --lh-voice:40px; --lh-tn:20px;
   /* ---- art pixel multiples ---- */
   --p1:var(--px); --p2:calc(var(--px)*2); --p3:calc(var(--px)*3); --p4:calc(var(--px)*4);
   --p5:calc(var(--px)*5); --p6:calc(var(--px)*6); --p8:calc(var(--px)*8); --p10:calc(var(--px)*10); --p12:calc(var(--px)*12);
   --hard:0 var(--p2) 0 var(--c-void);
 }
 @media (max-width:720px){
-  :root{--px:2px; --fs-body:22px; --fs-num:24px; --fs-plaque:30px; --fs-name:40px; --fs-h:40px}
+  :root{--px:2px; --fs-body:16px; --fs-num:16px; --fs-big:32px; --fs-voice:24px; --fs-plaque:16px; --fs-tn:16px; --fs-logo:24px; --fs-name:24px; --fs-h:32px; --lh-body:20px; --lh-voice:30px; --lh-tn:20px}
 }
 html{background:var(--c-void);cursor:var(--cur-soul,auto);image-rendering:pixelated;-webkit-text-size-adjust:100%}
 body{
   margin:0;min-height:100vh;color:var(--c-bone);
   background-color:var(--c-void);background-image:var(--t-cave);
   background-size:calc(48*var(--px)) calc(48*var(--px));
-  font:var(--fs-body)/1.05 var(--f-body);
+  font:var(--fs-body)/var(--lh-body) var(--f-body);
   padding-left:max(16px, env(safe-area-inset-left, 0px));
   padding-right:max(16px, env(safe-area-inset-right, 0px));
   padding-bottom:var(--p12);
@@ -78,19 +84,24 @@ canvas{image-rendering:pixelated;display:block}
 .ico{display:inline-block;flex:none;vertical-align:middle;width:calc(7*var(--px));height:calc(7*var(--px));fill:currentColor;overflow:visible}
 .ico .soul{display:none;fill:var(--c-red)}
 
-/* ---------- frames (9-slice, border-image) ---------- */
+/* ---------- frames (9-slice, border-image) + interior textures ----------
+   the interior texture is one ramp step off the fill (dL < .04),
+   so text and numbers on top keep their full contrast */
 .fr{border-style:solid;border-color:transparent;background-clip:padding-box;border-image-repeat:repeat}
-.f-stone{border-width:calc(7*var(--px));border-image-source:var(--f-stone);border-image-slice:7;background-color:var(--c-ink)}
+.f-stone{border-width:calc(7*var(--px));border-image-source:var(--f-stone);border-image-slice:7;background-color:var(--c-ink);
+  background-image:var(--t-in-stone);background-size:calc(24*var(--px)) calc(10*var(--px))}
 .f-slate{border-width:calc(5*var(--px));border-image-source:var(--f-slate);border-image-slice:5;background-color:var(--c-ink)}
-.f-wood{border-width:calc(5*var(--px));border-image-source:var(--f-wood);border-image-slice:5;background-color:var(--c-wd1)}
-.f-metal{border-width:calc(5*var(--px));border-image-source:var(--f-metal);border-image-slice:5;background-color:var(--c-mt0)}
+.f-wood{border-width:calc(5*var(--px));border-image-source:var(--f-wood);border-image-slice:5;background-color:var(--c-wd1);
+  background-image:var(--t-in-wood);background-size:calc(32*var(--px)) calc(6*var(--px))}
+.f-metal{border-width:calc(5*var(--px));border-image-source:var(--f-metal);border-image-slice:5;background-color:var(--c-mt0);
+  background-image:var(--t-in-metal);background-size:calc(4*var(--px)) calc(3*var(--px))}
 .f-frost{border-width:calc(4*var(--px));border-image-source:var(--f-frost);border-image-slice:4;background-color:var(--c-ink)}
 .f-inset{border-width:calc(3*var(--px));border-image-source:var(--f-inset);border-image-slice:3;background-color:var(--c-ink)}
 .f-crystal{border-width:calc(5*var(--px));border-image-source:var(--f-crystal);border-image-slice:5;background-color:var(--c-ink)}
 .f-voice{border:calc(3*var(--px)) solid var(--c-white);background:var(--c-void)}
 
 /* ---------- type ---------- */
-.t-ui{font:var(--fs-ui)/1.25 var(--f-ui);text-transform:uppercase}
+.t-ui{font:var(--fs-ui)/20px var(--f-ui);text-transform:uppercase}
 .t-num{font:var(--fs-num)/1 var(--f-body);font-variant-numeric:tabular-nums}
 .t-dim{color:var(--c-mute)}
 .t-acc{color:var(--ac3)}
@@ -102,14 +113,14 @@ canvas{image-rendering:pixelated;display:block}
    ===================================================================== */
 .mast{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--p8);align-items:center;padding:calc(16*var(--px)) 0 var(--p5)}
 .mast-sign{position:relative;padding:var(--p4) var(--p8) var(--p5);box-shadow:var(--hard)}
-.mast-sign h1{font:var(--fs-h)/.9 var(--f-display);color:var(--c-white);letter-spacing:0;text-shadow:var(--p1) var(--p1) 0 var(--c-wd0),var(--p2) var(--p2) 0 var(--c-void);white-space:nowrap}
-.mast-sign .kick{font:var(--fs-ui)/1.2 var(--f-ui);color:var(--c-wd3);display:block;margin-bottom:var(--p2)}
+.mast-sign h1{font:700 var(--fs-h)/1 var(--f-display);color:var(--c-white);letter-spacing:-.125em;text-shadow:var(--p1) var(--p1) 0 var(--c-wd0);white-space:nowrap}
+.mast-sign .kick{font:var(--fs-ui)/20px var(--f-ui);color:var(--c-em3);display:block;margin-bottom:var(--p2)}
 .mast-sign .torch{position:absolute;top:calc(-13*var(--px))}
 .mast-sign .torch.l{left:var(--p4)} .mast-sign .torch.r{right:var(--p4)}
-.mast-pitch{max-width:118ch;color:var(--c-bone);font-size:22px;line-height:1.1}
+.mast-pitch{max-width:96ch;color:var(--c-bone)}
 .mast-pitch p+p{margin-top:var(--p3)}
 .mast-pitch b{color:var(--c-yel);font-weight:400}
-.sample-note{color:var(--c-mute);font:var(--fs-ui)/1.3 var(--f-ui)}
+.sample-note{color:var(--c-mute);font:var(--fs-ui)/20px var(--f-ui)}
 
 .deck{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:var(--p4) var(--p8);padding:var(--p2) var(--p4);margin-bottom:var(--p8);box-shadow:var(--hard)}
 .deck-grp{display:flex;align-items:center;gap:var(--p3);flex-wrap:wrap}
@@ -122,6 +133,7 @@ canvas{image-rendering:pixelated;display:block}
 .gem-btn:focus-visible{outline-offset:0}
 .gem-name{font:var(--fs-ui)/1 var(--f-ui);color:var(--ac3);min-width:9ch}
 .custom-col{position:relative;display:inline-flex;align-items:center;gap:var(--p2);font:var(--fs-ui)/1 var(--f-ui);color:var(--c-bone)}
+.perf-ms{font:var(--fs-small)/1 var(--f-body);color:var(--c-mute);min-width:calc(30*var(--px))}
 .custom-col input{width:calc(11*var(--px));height:calc(11*var(--px));padding:0;border:var(--px) solid var(--c-void);background:var(--c-ink);outline:var(--px) solid var(--c-mt2)}
 
 /* =====================================================================
@@ -130,23 +142,23 @@ canvas{image-rendering:pixelated;display:block}
 .sec{margin:var(--p12) 0 var(--p6)}
 #screen.sec{margin-top:var(--p4)}
 .sec-h{display:flex;align-items:center;gap:var(--p4);flex-wrap:wrap}
-.sec-h h2{font:var(--fs-h)/.9 var(--f-display);color:var(--c-white);text-shadow:var(--p1) var(--p1) 0 var(--ac0),var(--p2) var(--p2) 0 var(--c-void)}
-.sec-no{display:inline-grid;place-items:center;min-width:calc(24*var(--px));height:calc(24*var(--px));padding:0 var(--p1);font:var(--fs-plaque)/.8 var(--f-display);color:var(--c-white);text-shadow:var(--p1) var(--p1) 0 var(--c-void);background-color:var(--ac1)}
-.sec-d{color:var(--c-mute);max-width:130ch;margin-top:var(--p3);font-size:22px;line-height:1.1}
+.sec-h h2{letter-spacing:-.125em;font:700 var(--fs-h)/1 var(--f-display);color:var(--c-white);text-shadow:var(--p1) var(--p1) 0 var(--ac1)}
+.sec-no{display:inline-grid;place-items:center;min-width:calc(24*var(--px));height:calc(24*var(--px));padding:0 var(--p1);font:700 var(--fs-plaque)/1 var(--f-display);color:var(--c-white);text-shadow:var(--p1) var(--p1) 0 var(--c-void);background-color:var(--ac1)}
+.sec-d{color:var(--c-mute);max-width:110ch;margin-top:var(--p3)}
 .rule{height:var(--p2);margin:var(--p4) 0 var(--p6);background:var(--t-rule) 0 0/calc(8*var(--px)) var(--p2) repeat-x}
 
 .sheet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(150*var(--px))),1fr));gap:var(--p6);align-items:start}
-.spec{position:relative;padding:var(--p4) var(--p5) var(--p5);min-width:0}
+.spec{position:relative;padding:var(--p4) var(--p5) var(--p5);min-width:0;contain:layout}
 .spec.wide{grid-column:1/-1}
 .spec.w2{grid-column:span 2}
 .spec-h{display:flex;align-items:center;justify-content:space-between;gap:var(--p3);margin-bottom:var(--p4)}
 .spec-h h3{font:var(--fs-ui)/1 var(--f-ui);color:var(--ac3);text-transform:uppercase}
 .spec-h .tag{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-mute)}
-.cap{display:block;font:var(--fs-ui)/1.2 var(--f-ui);color:var(--c-mute);text-transform:uppercase;margin-top:var(--p2)}
+.cap{display:block;font:var(--fs-ui)/20px var(--f-ui);color:var(--c-mute);text-transform:uppercase;margin-top:var(--p2)}
 .row{display:flex;flex-wrap:wrap;gap:var(--p4) var(--p5);align-items:flex-end}
 .stack{display:flex;flex-direction:column;gap:var(--p4)}
 .cell{display:flex;flex-direction:column;align-items:flex-start}
-.note{color:var(--c-mute);font-size:20px;line-height:1.1;margin-top:var(--p3)}
+.note{color:var(--c-mute);font:var(--fs-small)/20px var(--f-body);margin-top:var(--p3)}
 
 /* =====================================================================
    BUTTONS
@@ -163,11 +175,11 @@ canvas{image-rendering:pixelated;display:block}
 .btn:hover .ico .soul,.btn.is-hover .ico .soul{display:inline}
 .btn:active,.btn.is-active{transform:translateY(var(--p2));box-shadow:none;border-image-source:var(--bfh)}
 .btn:focus-visible,.btn.is-focus{outline:var(--px) solid var(--focus);outline-offset:var(--px);box-shadow:var(--hard),0 0 0 var(--p1) var(--c-void)}
-.btn.btn.btn:disabled,.btn.btn.btn.is-disabled{--bf:var(--f-btn-dis);--bfh:var(--f-btn-dis);--bg:var(--c-ink2);--bgh:var(--c-ink2);--fg:var(--c-ash);--fgh:var(--c-ash);cursor:var(--cur-no,not-allowed);transform:none;box-shadow:none}
+.btn.btn.btn:disabled,.btn.btn.btn.is-disabled{--bf:var(--f-btn-dis);--bfh:var(--f-btn-dis);--bg:var(--c-ink2);--bgh:var(--c-ink2);--fg:var(--t-off);--fgh:var(--t-off);cursor:var(--cur-no,not-allowed);transform:none;box-shadow:none}
 .btn.btn:disabled .ico .soul,.btn.btn.is-disabled .ico .soul{display:none!important}
 .btn:disabled .ico .g,.btn.is-disabled .ico .g{display:inline!important}
 .btn.primary{--bf:var(--f-btn-acc);--bfh:var(--f-btn-acc-hi);--bg:var(--ac2);--bgh:var(--ac3);--fg:var(--on-ac);--fgh:var(--on-ac)}
-.btn.danger{--bf:var(--f-btn-hot);--bfh:var(--f-btn-hot-hi);--bg:var(--c-em1);--bgh:var(--c-em1);--fg:var(--c-white);--fgh:var(--c-yel)}
+.btn.danger{--bf:var(--f-btn-hot);--bfh:var(--f-btn-hot-hi);--bg:var(--c-em1);--bgh:var(--c-red-d);--fg:var(--c-white);--fgh:var(--c-yel)}
 .btn.icon{--bf:var(--f-btn-stone);--bfh:var(--f-btn-stone-hi);--bg:var(--sn1);--bgh:var(--sn1);--fg:var(--c-bone);width:calc(15*var(--px));padding:0}
 .btn.ghost{--bf:none;--bfh:none;--bg:transparent;--bgh:transparent;box-shadow:none;border-color:transparent;border-image:none}
 .btn.sm{min-height:calc(12*var(--px));padding:0 var(--p2)}
@@ -177,50 +189,53 @@ canvas{image-rendering:pixelated;display:block}
 /* =====================================================================
    FORM CONTROLS
    ===================================================================== */
-.field{display:flex;align-items:center;gap:var(--p2);min-height:calc(14*var(--px));padding:0 var(--p2);
+.field{display:flex;align-items:center;gap:var(--p2);min-height:calc(15*var(--px));padding:0 var(--p2);
   background:var(--c-ink) padding-box;border:calc(3*var(--px)) solid transparent;border-image:var(--f-inset) 3 repeat;color:var(--c-mute)}
 .field:hover{border-image-source:var(--f-inset-hi)}
 .field:focus-within,.field.is-focus{border-image-source:var(--f-inset-on);color:var(--ac3)}
-.field.is-disabled{border-image-source:var(--f-btn-dis);background-color:var(--c-ink2);color:var(--c-ash)}
+.field.is-disabled{border-image-source:var(--f-btn-dis);background-color:var(--c-ink2);color:var(--t-off)}
 .field input,.field select,.field textarea{flex:1;min-width:0;width:100%;background:none;border:0;outline:0;color:var(--c-white);
-  font:var(--fs-body)/1.1 var(--f-body);padding:var(--p1) 0;caret-color:var(--ac3);border-radius:0}
+  font:var(--fs-body)/var(--lh-body) var(--f-body);padding:var(--p1) 0;caret-color:var(--ac3);border-radius:0}
 .field input::placeholder,.field textarea::placeholder{color:var(--c-mute);opacity:1}
-.field input:disabled{color:var(--c-ash)}
+.field input:disabled{color:var(--t-off)}
 .field select{appearance:none;-webkit-appearance:none;padding-right:var(--p2)}
 .field select option{background:var(--c-ink);color:var(--c-bone)}
 .field.area{align-items:stretch;padding:var(--p1) var(--p2)}
 .field textarea{resize:vertical;min-height:calc(26*var(--px));display:block}
 .lbl{display:block;font:var(--fs-ui)/1 var(--f-ui);color:var(--c-bone);text-transform:uppercase;margin-bottom:var(--p2)}
-.help{display:block;color:var(--c-mute);font-size:20px;margin-top:var(--p1)}
+.help{display:block;color:var(--c-mute);font:var(--fs-small)/20px var(--f-body);margin-top:var(--p1)}
 
 .listbox{margin-top:var(--p1);padding:var(--p1) 0;position:relative}
-.listbox li{display:flex;align-items:center;gap:var(--p2);padding:var(--p1) var(--p3);color:var(--c-bone)}
-.listbox li .ico.mk{visibility:hidden;color:var(--c-red)}
+.listbox li{display:flex;align-items:center;gap:var(--p2);padding:var(--p1) var(--p3);color:var(--c-bone);line-height:calc(9*var(--px))}
+.listbox li .ico.mk .g{fill:var(--c-mute)} .listbox li .ico.mk .soul{display:none;fill:var(--c-red)}
 .listbox li.is-hover{color:var(--c-yel);background:var(--c-ink2)}
-.listbox li.is-hover .ico.mk{visibility:visible}
+.listbox li.is-hover .ico.mk .g{display:none} .listbox li.is-hover .ico.mk .soul{display:inline}
 .listbox li[aria-selected=true]{color:var(--ac3)}
 .listbox li .tick{margin-left:auto;visibility:hidden;color:var(--ac3)}
 .listbox li[aria-selected=true] .tick{visibility:visible}
 
-.chk{position:relative;display:inline-flex;align-items:center;gap:var(--p3);font:var(--fs-ui)/1.2 var(--f-ui);text-transform:uppercase;color:var(--c-bone)}
+.chk{position:relative;display:inline-flex;align-items:center;gap:var(--p3);font:var(--fs-ui)/20px var(--f-ui);text-transform:uppercase;color:var(--c-bone)}
 .chk input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
 .chk .box{--w:9;--h:9;--n:6;--f:0;background-image:var(--s-chk)}
 .chk input:checked+.box{--f:1}
 .chk:hover input+.box,.chk.is-hover input+.box{--f:2}
 .chk:hover input:checked+.box,.chk.is-hover input:checked+.box{--f:3}
 .chk input:disabled+.box{--f:4} .chk input:disabled:checked+.box{--f:5}
-.chk input:disabled~span{color:var(--c-ash)}
+.chk input:disabled~span{color:var(--t-off)}
 .chk input:focus-visible+.box,.chk.is-focus .box{outline:var(--px) solid var(--focus);outline-offset:var(--px);box-shadow:0 0 0 var(--px) var(--c-void)}
 
-.tog{position:relative;display:inline-flex;align-items:center;gap:var(--p3);font:var(--fs-ui)/1.2 var(--f-ui);text-transform:uppercase;color:var(--c-bone)}
+.tog{position:relative;display:inline-flex;align-items:center;gap:var(--p3);font:var(--fs-ui)/20px var(--f-ui);text-transform:uppercase;color:var(--c-bone)}
 .tog input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
-.tog .trk{--w:19;--h:9;--n:2;--f:0;position:relative;background-image:var(--s-trk)}
-.tog .knob{--w:9;--h:9;--n:3;--f:0;position:absolute;left:0;top:0;background-image:var(--s-knob);transition:transform .24s steps(4,end)}
+.tog .trk{--w:19;--h:9;--n:3;--f:0;position:relative;background-image:var(--s-trk)}
+.tog .knob{--w:9;--h:9;--n:5;--f:0;position:absolute;left:0;top:0;background-image:var(--s-knob);transition:transform .25s steps(5,end)}
 .tog input:checked+.trk{--f:1}
 .tog input:checked+.trk .knob{--f:1;transform:translateX(calc(10*var(--px)))}
 .tog:hover .knob,.tog.is-hover .knob{--f:2}
+.tog:hover input:checked+.trk .knob,.tog.is-hover input:checked+.trk .knob{--f:3}
 .tog input:focus-visible+.trk,.tog.is-focus .trk{outline:var(--px) solid var(--focus);outline-offset:var(--px);box-shadow:0 0 0 var(--px) var(--c-void)}
-.tog input:disabled+.trk{opacity:1;filter:grayscale(1) brightness(.6)}
+.tog input:disabled+.trk.trk{--f:2}
+.tog input:disabled+.trk .knob.knob{--f:4}
+.tog input:disabled~span{color:var(--t-off)}
 .tog .state{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-mute);min-width:4ch}
 .tog input:checked~.state{color:var(--ac3)}
 
@@ -239,7 +254,11 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .swatches{display:grid;grid-template-columns:repeat(8,calc(13*var(--px)));gap:var(--p2) var(--p2);justify-content:start}
 .swatches .gem-btn{height:calc(13*var(--px))}
 
-/* tabs: wooden planks */
+/* tabs: wooden planks on a rail; a dithered fade + arrow says there is more */
+.rail{position:relative;min-width:0}
+.rail::after{content:'';position:absolute;right:0;top:0;bottom:var(--p3);width:calc(12*var(--px));background:var(--t-fade) 0 0/calc(12*var(--px)) var(--p2);pointer-events:none;visibility:hidden}
+.rail-arrow{position:absolute;right:0;top:calc(4*var(--px));z-index:2;visibility:hidden;pointer-events:none}
+.rail.more-r::after,.rail.more-r .rail-arrow{visibility:visible}
 .tabs{display:flex;gap:var(--p2);overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--ac1) var(--c-ink);padding:var(--p1) var(--p1) var(--p3)}
 .tab{--bf:var(--f-btn-wood);--bfh:var(--f-btn-wood-hi);--bg:var(--c-wd0);--bgh:var(--c-wd0);--fg:var(--c-wd3);--fgh:var(--c-yel)}
 .tab[aria-selected=true]{--bf:var(--f-tab-on);--bfh:var(--f-tab-on);--bg:var(--c-wd2);--bgh:var(--c-wd2);--fg:var(--c-white);--fgh:var(--c-white);transform:translateY(calc(-1*var(--px)))}
@@ -251,17 +270,19 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
   background:var(--t-snowcap) 0 0/calc(16*var(--px)) calc(6*var(--px)) repeat-x;pointer-events:none}
 .tip .tail{position:absolute;left:calc(12*var(--px));bottom:calc(-9*var(--px))}
 .tip-h{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-fr1);margin-bottom:var(--p2)}
-.tip dl{display:grid;grid-template-columns:auto auto;gap:0 var(--p8);font:var(--fs-body)/1 var(--f-body)}
+.tip dl{display:grid;grid-template-columns:auto auto;gap:0 var(--p8);font:var(--fs-body)/var(--lh-body) var(--f-body)}
 .tip dt{color:var(--c-mute)} .tip dd{margin:0;text-align:right;color:var(--c-white)}
 .tip .tot{border-top:var(--px) dashed var(--c-fr0);padding-top:var(--p1);margin-top:var(--p1)}
 
 /* toast */
 .toast{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--p3);align-items:center;padding:var(--p2) var(--p3) var(--p3);width:min(100%,calc(140*var(--px)));box-shadow:var(--hard)}
-.toast b{display:block;font:var(--fs-ui)/1.2 var(--f-ui);color:var(--c-yel);font-weight:400}
-.toast p{color:var(--c-bone);font-size:22px;line-height:1}
-.toast .timer{grid-column:1/-1;height:var(--p2);background:var(--c-ink3);position:relative}
-.toast .timer i{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--ac2);transform-origin:left;animation:timer 4s steps(16,end) infinite}
-@keyframes timer{to{transform:scaleX(0)}}
+.toast>.spr{align-self:start}
+.toast b{display:block;font:var(--fs-ui)/20px var(--f-ui);color:var(--c-yel);font-weight:400}
+.toast p{color:var(--c-bone)}
+.toast .timer{grid-column:1/-1;height:var(--p2);width:calc(96*var(--px));max-width:100%;background:var(--c-ink3);position:relative;overflow:hidden}
+.toast .timer i{position:absolute;left:0;top:0;bottom:0;width:calc(96*var(--px));background:var(--ac2);animation:timer 4s steps(16,end) infinite}
+#toasts .toast .timer i{animation-iteration-count:1;animation-fill-mode:both}
+@keyframes timer{from{width:calc(96*var(--px))}to{width:0}}
 #toasts{position:fixed;right:max(16px, env(safe-area-inset-right, 0px));bottom:16px;z-index:90;display:flex;flex-direction:column;gap:var(--p4);align-items:flex-end;pointer-events:none;max-width:calc(100vw - 32px)}
 #toasts .toast{pointer-events:auto;animation:toast-in .24s steps(4,end) both}
 #toasts .toast.out{animation:toast-out .2s steps(3,end) both}
@@ -270,12 +291,15 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 
 /* context menu: frost layer */
 .ctx{position:relative;display:inline-block;min-width:calc(84*var(--px));padding:var(--p1) 0;box-shadow:var(--hard)}
-.ctx li{display:flex;align-items:center;gap:var(--p2);padding:var(--p1) var(--p3) var(--p1) var(--p2);font:var(--fs-ui)/1.4 var(--f-ui);color:var(--c-bone);text-transform:uppercase}
-.ctx li .ico.mark{color:var(--c-red);visibility:hidden}
-.ctx li.is-hover{background:var(--c-ink2);color:var(--c-yel)}
-.ctx li.is-hover .ico.mark{visibility:visible}
-.ctx li .k{margin-left:auto;color:var(--c-mute);font:20px/1 var(--f-body);padding-left:var(--p4)}
-.ctx li.dis{color:var(--c-ash)}
+.ctx li{display:flex;align-items:center;gap:var(--p2);padding:var(--p1) var(--p3) var(--p1) var(--p2);font:var(--fs-ui)/calc(9*var(--px)) var(--f-ui);color:var(--c-bone);text-transform:uppercase}
+.ctx li .ico.mark .g{fill:var(--c-mute)} .ctx li .ico.mark .soul{display:none;fill:var(--c-red)}
+.ctx li.is-hover,.ctx li:hover,.ctx li:focus-within{background:var(--c-ink2);color:var(--c-yel)}
+.ctx li.is-hover .ico.mark .g,.ctx li:hover .ico.mark .g,.ctx li:focus-within .ico.mark .g{display:none}
+.ctx li.is-hover .ico.mark .soul,.ctx li:hover .ico.mark .soul,.ctx li:focus-within .ico.mark .soul{display:inline}
+.ctx li.dis .ico.mark .g{fill:var(--c-ash)}
+.ctx li a{outline-offset:0}
+.ctx li .k{margin-left:auto;color:var(--c-mute);font:var(--fs-small)/1 var(--f-body);padding-left:var(--p4)}
+.ctx li.dis{color:var(--t-off)}
 .ctx li.danger{color:var(--c-red)}
 .ctx hr{border:0;height:var(--px);margin:var(--p1) var(--p2);background:var(--t-rule) 0 0/calc(8*var(--px)) var(--px) repeat-x}
 
@@ -285,16 +309,16 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .voice{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--p6);align-items:start;padding:var(--p5) var(--p6) var(--p5);min-height:calc(56*var(--px))}
 .voice .face{border:var(--px) solid var(--c-white);padding:var(--px);background:var(--c-void)}
 .voice .face canvas{width:calc(40*var(--px));height:calc(40*var(--px))}
-.voice .say{font:32px/1.15 var(--f-body);color:var(--c-white);min-height:3.45em;white-space:pre-wrap}
+.voice .say{font:var(--fs-voice)/var(--lh-voice) var(--f-body);color:var(--c-white);min-height:calc(3 * var(--lh-voice));white-space:pre-wrap}
 .voice .say .caret{display:inline-block;width:var(--p4);height:var(--p5);background:var(--c-white);vertical-align:baseline;animation:blink 1s steps(2,jump-none) infinite}
 @keyframes blink{50%{opacity:0}}
 .voice .opts{display:flex;gap:var(--p12);margin-top:var(--p4);flex-wrap:wrap}
-.opt{display:inline-flex;align-items:center;gap:var(--p3);font:32px/1 var(--f-body);color:var(--c-white);padding:0 var(--p1)}
-.opt .ico{visibility:hidden}
+.opt{display:inline-flex;align-items:center;gap:var(--p3);font:var(--fs-voice)/calc(11*var(--px)) var(--f-body);color:var(--c-white);padding:0 var(--p1)}
+.opt .ico .g{fill:var(--c-white)} .opt .ico .soul{display:none}
 .opt:hover,.opt.is-hover,.opt:focus{color:var(--c-yel)}
-.opt:hover .ico,.opt.is-hover .ico,.opt:focus .ico{visibility:visible}
+.opt:hover .ico .g,.opt.is-hover .ico .g,.opt:focus .ico .g{display:none}
+.opt:hover .ico .soul,.opt.is-hover .ico .soul,.opt:focus .ico .soul{display:inline}
 .opt:focus:not(:focus-visible){outline:none;box-shadow:none}
-.opt .ico .g{display:none} .opt .ico .soul{display:inline}
 .opt.danger{color:var(--c-red)} .opt.danger:hover,.opt.danger.is-hover{color:var(--c-yel)}
 .scrim-demo{position:relative;padding:var(--p8) var(--p6);background:var(--c-ink2);overflow:hidden}
 .scrim-demo::before{content:'';position:absolute;inset:0;background:var(--t-dither) 0 0/var(--p2) var(--p2)}
@@ -314,86 +338,106 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
   outline:var(--px) solid var(--c-ink3);box-shadow:0 var(--p3) 0 var(--c-void)}
 .app-bgwrap{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
 .app-bgwrap canvas{position:absolute;left:0;top:0}
-.sample-stamp{position:absolute;right:var(--p4);bottom:calc(30*var(--px));z-index:3;font:var(--fs-ui)/1 var(--f-ui);color:var(--c-mute);background:var(--c-void);padding:var(--p1) var(--p2);outline:var(--px) dashed var(--c-ash)}
+.sample-stamp{align-self:flex-end;font:var(--fs-ui)/20px var(--f-ui);color:var(--c-mute);background:var(--c-void);padding:var(--p1) var(--p3);outline:var(--px) dashed var(--c-ash);text-align:right}
 
 .topbar{grid-area:top;position:relative;z-index:6;display:flex;align-items:center;gap:var(--p6);padding:var(--p2) var(--p4);border-width:calc(5*var(--px)) 0 calc(5*var(--px)) 0}
-.logo{display:inline-flex;align-items:center;gap:0;font:40px/1 var(--f-display);color:var(--c-white);text-shadow:var(--p1) var(--p1) 0 var(--ac0),var(--p2) var(--p2) 0 var(--c-void);white-space:nowrap}
+.logo{display:inline-flex;align-items:center;gap:0;letter-spacing:-.125em;font:700 var(--fs-logo)/1 var(--f-display);color:var(--c-white);text-shadow:var(--p1) var(--p1) 0 var(--ac1);white-space:nowrap}
 .logo span{color:var(--ac3)}
-.mainnav{display:flex;gap:var(--p1);margin-left:auto;flex-wrap:nowrap;min-width:0}
-.nav{display:inline-flex;align-items:center;gap:var(--p2);padding:var(--p2) var(--p2) var(--p2) var(--p1);font:var(--fs-ui)/1 var(--f-ui);color:var(--c-mt3);white-space:nowrap}
-.nav .ico{visibility:hidden}
-.nav .ico .g{display:none}.nav .ico .soul{display:inline}
-.nav:hover,.nav.is-hover{color:var(--c-yel)} .nav:hover .ico,.nav.is-hover .ico{visibility:visible}
+.mainnav{display:flex;gap:var(--p2);margin-left:auto;flex-wrap:nowrap;min-width:0}
+/* THE MENU RULE: every option is "* LABEL"; the SOUL replaces the * on the
+   one you are on, and the label turns yellow. Nav, menus, lists, choices. */
+.nav{display:inline-flex;align-items:center;gap:var(--p2);padding:var(--p2) var(--p2) var(--p2) var(--p1);font:var(--fs-ui)/1 var(--f-ui);color:var(--c-bone);white-space:nowrap}
+.mk-ico .g,.nav .ico .g{fill:var(--c-mute)}
+.mk-ico .soul,.nav .ico .soul{display:none}
+.nav:hover,.nav.is-hover,.nav:focus-visible{color:var(--c-yel)}
+.nav:hover .ico .g,.nav.is-hover .ico .g,.nav:focus-visible .ico .g,.nav[aria-current=page] .ico .g,.nav[aria-expanded=true] .ico .g{display:none}
+.nav:hover .ico .soul,.nav.is-hover .ico .soul,.nav:focus-visible .ico .soul,.nav[aria-current=page] .ico .soul,.nav[aria-expanded=true] .ico .soul{display:inline}
 .nav[aria-current=page]{color:var(--c-white)}
+.more{position:relative;display:none;margin-left:calc(-2*var(--px))}
+.more-btn .mi{display:none}
+.more-menu{position:absolute;right:0;top:calc(100% + 8*var(--px));z-index:40;min-width:calc(90*var(--px))}
+.more-menu[hidden]{display:none}
+.more-menu a{display:flex;align-items:center;gap:var(--p2);width:100%;color:inherit}
 .top-act{display:flex;gap:var(--p3);align-items:center}
 .only-m{display:none!important}
 
 .side{grid-area:side;position:relative;z-index:4;display:flex;flex-direction:column;gap:var(--p3);padding:var(--p3) var(--p2) 0;min-height:0;overflow:hidden;border-top-width:0}
 .side-h{display:flex;align-items:center;justify-content:space-between;gap:var(--p2);padding:0 var(--p1)}
-.plaque{display:inline-flex;align-items:center;gap:var(--p2);padding:var(--p1) var(--p4) var(--p2);font:var(--fs-plaque)/.8 var(--f-display);color:var(--c-white);text-shadow:var(--p1) var(--p1) 0 var(--c-wd0);box-shadow:var(--hard);white-space:nowrap}
-.plaque.sm{font:var(--fs-ui)/1 var(--f-ui);padding:var(--p1) var(--p3);text-shadow:none;color:var(--c-fr1)}
+.plaque{display:inline-flex;align-items:center;gap:var(--p2);padding:var(--p1) var(--p4) var(--p2);font:700 var(--fs-plaque)/1 var(--f-display);letter-spacing:-.125em;color:var(--c-white);text-shadow:var(--p1) var(--p1) 0 var(--c-wd0);box-shadow:var(--hard);white-space:nowrap}
+.plaque.sm{letter-spacing:0;font:var(--fs-ui)/1 var(--f-ui);padding:var(--p1) var(--p3);text-shadow:none;color:var(--c-fr1)}
 .folders{display:flex;flex-direction:column;gap:var(--p2);overflow:hidden;flex:1;min-height:0}
-.folder-h{display:flex;align-items:center;gap:var(--p2);width:100%;padding:var(--p2) var(--p2);font:var(--fs-ui)/1 var(--f-ui);color:var(--fc,var(--c-bone));text-transform:uppercase;background:var(--c-ink2);border-left:var(--p2) solid var(--fc,var(--c-ash))}
-.folder-h .n{margin-left:auto;color:var(--c-mute);font:20px/1 var(--f-body)}
+.folder-h{display:flex;align-items:center;gap:var(--p2);width:100%;padding:var(--p2) var(--p2);font:var(--fs-ui)/1 var(--f-ui);color:var(--fl,var(--c-bone));text-transform:uppercase;background:var(--c-ink2);border-left:var(--p2) solid var(--fc,var(--c-ash))}
+.folder-h .n{margin-left:auto;color:var(--c-mute);font:var(--fs-small)/1 var(--f-body)}
 .folder-h[aria-expanded=false] .chev{transform:rotate(-90deg)}
 .ents{display:flex;flex-direction:column;padding:var(--p1) 0 0}
 .ent{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:var(--p3);align-items:center;padding:var(--p1) var(--p2) var(--p1) var(--p4);position:relative}
 .ent .mini{grid-row:1/3;width:calc(18*var(--px));height:calc(18*var(--px))}
-.ent .nm{font:var(--fs-ui)/1.1 var(--f-ui);color:var(--cc3,var(--c-bone));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
-.ent .gp{display:flex;align-items:center;gap:var(--p1);font:20px/1 var(--f-body);color:var(--c-mute)}
+.ent .nm{font:var(--fs-ui)/18px var(--f-ui);color:var(--cc3,var(--c-bone));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.ent .gp{display:flex;align-items:center;gap:var(--p1);height:calc(7*var(--px));font:var(--fs-small)/1 var(--f-body);color:var(--c-mute)}
 .ent::before{content:'';position:absolute;left:calc(-1*var(--px));top:50%;margin-top:calc(-3*var(--px));width:calc(7*var(--px));height:calc(6*var(--px));background:var(--s-heart7) 0 0/100% 100%;visibility:hidden}
 .ent:hover,.ent.is-hover{background:var(--c-ink2)}
 .ent:hover::before,.ent.is-hover::before,.ent[aria-current=true]::before{visibility:visible}
 .ent[aria-current=true]{background:var(--ac0);box-shadow:inset var(--p1) 0 0 var(--ac2)}
 .ent[aria-current=true] .nm{color:var(--c-white)}
-.side-foot{position:relative;margin:auto calc(-2*var(--px)) 0;height:calc(26*var(--px));flex:none}
+.side-sum{display:flex;align-items:center;gap:var(--p3);margin-top:auto;padding:var(--p2) var(--p2) 0;font:var(--fs-ui)/20px var(--f-ui);color:var(--c-mute)}
+.side-sum b{font:var(--fs-small)/20px var(--f-body);color:var(--c-yel)}
+.side-foot{position:relative;margin:0 calc(-2*var(--px)) 0;height:calc(26*var(--px));flex:none}
 .side-foot canvas{position:absolute;left:0;bottom:0}
 
 .main{grid-area:main;position:relative;z-index:2;padding:var(--p8) var(--p10) var(--p10);min-width:0;display:flex;flex-direction:column;gap:var(--p6)}
-.hdr{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--p8);align-items:start;padding:var(--p5) var(--p6) var(--p6);box-shadow:var(--hard)}
-.hdr .torch{position:absolute;top:calc(-6*var(--px))}
-.hdr .torch.l{left:calc(-12*var(--px))} .hdr .torch.r{right:calc(-12*var(--px))}
-.port{position:relative;padding:0;box-shadow:var(--hard)}
+/* the hero: the character's own place (scene) with the white box of focus over it */
+.hero{position:relative}
+.scene{position:relative;height:calc(62*var(--px));padding:0;overflow:hidden;background-color:var(--c-void);background-image:none;box-shadow:var(--hard)}
+.scene canvas{position:absolute;left:0;top:0}
+.scene-tag{position:absolute;right:var(--p3);top:var(--p3);z-index:2}
+.hdr{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--p8);align-items:start;margin:calc(-24*var(--px)) var(--p10) 0;padding:var(--p4) var(--p6) var(--p5);box-shadow:var(--hard)}
+.hdr .torch{position:absolute;top:calc(-14*var(--px))}
+.hdr .torch.l{left:calc(-10*var(--px))} .hdr .torch.r{right:calc(-10*var(--px))}
+.port{position:relative;padding:0;box-shadow:var(--hard);margin-top:calc(-16*var(--px))}
 .port canvas{width:calc(48*var(--px));height:calc(48*var(--px))}
 .port .glint{position:absolute;right:calc(-4*var(--px));top:calc(-4*var(--px))}
 .hdr-main{min-width:0;display:flex;flex-direction:column;gap:var(--p3);padding-top:var(--p1)}
 .name-row{display:flex;align-items:flex-end;gap:var(--p4);flex-wrap:wrap}
-.cname{font:var(--fs-name)/.75 var(--f-display);color:var(--c-white);text-shadow:var(--p1) var(--p1) 0 var(--ac1),var(--p2) var(--p2) 0 var(--c-void);letter-spacing:0}
+.cname{font:700 var(--fs-name)/1 var(--f-display);color:var(--c-white);text-shadow:var(--p1) var(--p1) 0 var(--ac1);letter-spacing:-.125em}
 .owner{font:var(--fs-ui)/1 var(--f-ui);color:var(--ac3)}
-.lvl{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-white);padding:var(--p1) var(--p3);text-shadow:none}
-.meta{display:flex;align-items:center;gap:var(--p4) var(--p8);flex-wrap:wrap}
-.gold{display:inline-flex;align-items:center;gap:var(--p2);font:40px/.8 var(--f-display);color:var(--c-yel);text-shadow:var(--p1) var(--p1) 0 var(--c-gd),var(--p2) var(--p2) 0 var(--c-void)}
+.lvl{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-white);padding:var(--p1) var(--p3);text-shadow:none}.meta{display:flex;align-items:center;gap:var(--p4) var(--p8);flex-wrap:wrap}
+.gold{display:inline-flex;align-items:center;gap:var(--p2);font:var(--fs-big)/1 var(--f-body);color:var(--c-yel);text-shadow:var(--p1) var(--p1) 0 var(--c-gd)}
 .gold small{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-em3);text-shadow:none}
 .tags{display:flex;gap:var(--p2);flex-wrap:wrap}
 .tagc{display:inline-flex;align-items:center;gap:var(--p1);padding:0 var(--p2);min-height:calc(10*var(--px));font:var(--fs-ui)/1 var(--f-ui);color:var(--c-wd3);background:var(--c-wd0) padding-box;border:calc(2*var(--px)) solid transparent;border-image:var(--f-tag) 2 repeat}
 .tagc::before{content:'';width:var(--p2);height:var(--p2);background:var(--ac2);box-shadow:0 0 0 var(--px) var(--c-void)}
 .forms{display:inline-flex;gap:0;background:var(--c-void);padding:var(--px);outline:var(--px) solid var(--c-ink3)}
-.form{display:inline-flex;align-items:center;gap:var(--p1);padding:var(--p1) var(--p3);font:var(--fs-ui)/1.2 var(--f-ui);color:var(--c-mute);text-transform:uppercase}
+.form{display:inline-flex;align-items:center;gap:var(--p1);padding:var(--p1) var(--p3);font:var(--fs-ui)/20px var(--f-ui);color:var(--c-mute);text-transform:uppercase}
 .form:hover{color:var(--c-yel)}
 .form[aria-selected=true]{background:var(--ac2);color:var(--on-ac)}
 .hdr-act{display:flex;gap:var(--p3);align-items:center;flex-wrap:wrap;justify-content:flex-end}
 
-.content{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:var(--p6);align-items:start}
+.content{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--p8);align-items:start}
 .panel{position:relative;padding:var(--p4) var(--p6) var(--p6);box-shadow:var(--hard);min-width:0}
 .panel-h{display:flex;align-items:center;gap:var(--p3);margin:calc(-12*var(--px)) 0 var(--p5) calc(-2*var(--px))}
 .panel-h .sp{flex:1}
 .span2{grid-column:1/-1}
 
 /* stats */
+.stat-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--p10);align-items:center}
 .stats{display:flex;flex-direction:column;gap:var(--p3)}
-.st{display:grid;grid-template-columns:calc(9*var(--px)) calc(26*var(--px)) minmax(0,1fr) 4ch 5ch;align-items:center;gap:var(--p3);position:relative}
+.st{display:grid;grid-template-columns:calc(9*var(--px)) calc(26*var(--px)) minmax(0,1fr) calc(14*var(--px)) calc(16*var(--px));align-items:center;gap:var(--p3);position:relative}
 .st .lab{display:flex;align-items:center;gap:var(--p1);font:var(--fs-ui)/1 var(--f-ui);color:var(--c-bone)}
 .st .val{font:var(--fs-num)/1 var(--f-body);color:var(--c-white);text-align:right}
 .st .bon{font:var(--fs-num)/1 var(--f-body);color:var(--good);text-align:left}
-.tier{display:inline-grid;place-items:center;height:calc(8*var(--px));padding:0 var(--p1);font:var(--fs-ui)/1 var(--f-ui);color:var(--c-void);background:var(--c-em3);box-shadow:inset 0 var(--px) 0 var(--c-yel),inset 0 calc(-1*var(--px)) 0 var(--c-gd),0 0 0 var(--px) var(--c-void)}
-.bar{--c:var(--stat-hp);--segw:calc(9*var(--px));position:relative;display:grid;grid-template-columns:repeat(20,var(--segw));gap:var(--px);justify-content:start;padding:var(--px);background:var(--c-void);width:max-content;max-width:100%}
-.seg{height:calc(5*var(--px));background:var(--c-ink3);box-shadow:inset 0 var(--px) 0 var(--c-ink2)}
-.seg.on{background:var(--c);box-shadow:inset 0 var(--px) 0 var(--hi),inset 0 calc(-1*var(--px)) 0 var(--lo)}
-.seg.part{background:linear-gradient(90deg,var(--c) 0 var(--pw),var(--c-ink3) var(--pw) 100%);box-shadow:inset 0 var(--px) 0 var(--c-ink2)}
-.bar{--hi:color-mix(in srgb,var(--c) 55%,var(--c-white));--lo:color-mix(in srgb,var(--c) 55%,var(--c-void))}
-.bar.t1 .seg{background:var(--lo);box-shadow:inset 0 var(--px) 0 color-mix(in srgb,var(--c) 75%,var(--c-void))}
-.bar.t1 .seg.on{background:var(--c-em3);box-shadow:inset 0 var(--px) 0 var(--c-yel),inset 0 calc(-1*var(--px)) 0 var(--c-gd)}
-.bar.t1 .seg.part{background:linear-gradient(90deg,var(--c-em3) 0 var(--pw),var(--lo) var(--pw) 100%)}
+.tier{display:inline-grid;place-items:center;height:calc(8*var(--px));padding:0 var(--p1);font:var(--fs-ui)/1 var(--f-ui);color:var(--c-void);background:var(--c-kr);box-shadow:inset 0 var(--px) 0 var(--c-vi3),inset 0 calc(-1*var(--px)) 0 var(--c-vi1),0 0 0 var(--px) var(--c-void)}
+/* bars speak Undertale's HP language: yellow over red, prestige is KR magenta
+   laid over a full yellow bar. Stat colour lives only on the icon. */
+.bar{--segw:calc(9*var(--px));--f0:var(--c-yel);--f1:var(--c-white);--f2:var(--c-gd);--e0:var(--c-red-d);--e1:var(--c-red);
+  position:relative;display:grid;grid-template-columns:repeat(20,var(--segw));gap:var(--px);justify-content:start;padding:var(--px);background:var(--c-void);width:max-content;max-width:100%}
+.seg{height:calc(5*var(--px));background:var(--e0);box-shadow:inset 0 var(--px) 0 var(--e1)}
+.seg.on{background:var(--f0);box-shadow:inset 0 var(--px) 0 var(--f1),inset 0 calc(-1*var(--px)) 0 var(--f2)}
+.seg.part{background:linear-gradient(90deg,var(--f1) 0 var(--pw),var(--e1) var(--pw)) 0 0/100% var(--px) no-repeat,linear-gradient(90deg,var(--f0) 0 var(--pw),var(--e0) var(--pw))}
+.bar.t1{--e0:var(--c-yel);--e1:var(--c-white);--f0:var(--c-kr);--f1:var(--c-vi3);--f2:var(--c-vi1)}
+.bar.t1 .seg{box-shadow:inset 0 var(--px) 0 var(--e1),inset 0 calc(-1*var(--px)) 0 var(--c-gd)}
+.bar.t1 .seg.on{box-shadow:inset 0 var(--px) 0 var(--f1),inset 0 calc(-1*var(--px)) 0 var(--f2)}
+.legend{display:flex;gap:var(--p2) var(--p5);flex-wrap:wrap;font:var(--fs-ui)/1 var(--f-ui);color:var(--c-mute)}
+.legend i{display:inline-block;width:var(--p4);height:var(--p4);margin-right:var(--p1);vertical-align:-1px;box-shadow:0 0 0 var(--px) var(--c-void)}
 .bar .glint{position:absolute;top:var(--px);left:var(--px);width:var(--p1);height:calc(5*var(--px));background:var(--c-white);box-shadow:var(--p1) 0 0 var(--c-yel);
   animation:glint calc(var(--gs2)*.1s + 1.6s) steps(var(--gs2),end) infinite,glintv calc(var(--gs2)*.1s + 1.6s) steps(1,end) infinite}
 @keyframes glint{0%{transform:translateX(0)}60%,100%{transform:translateX(calc(var(--gs2)*(var(--segw) + var(--px))))}}
@@ -401,12 +445,14 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .st:hover .tipwrap,.st:focus-within .tipwrap{display:block}
 .tipwrap{display:none;position:absolute;z-index:10;left:calc(34*var(--px));bottom:calc(100% + 6*var(--px))}
 
-.subs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--p1) var(--p6)}
+.mini-h{display:flex;align-items:center;gap:var(--p3);margin:var(--p6) 0 var(--p2);font:var(--fs-ui)/1 var(--f-ui);color:var(--ac3);font-weight:400}
+.mini-h::after{content:'';flex:1;height:var(--px);background:var(--t-rule) 0 0/calc(8*var(--px)) var(--px) repeat-x}
+.subs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 var(--p8)}
 .sub{display:flex;align-items:baseline;gap:var(--p2);padding:var(--p1) 0;border-bottom:var(--px) solid var(--c-ink2)}
-.sub .k{font:var(--fs-ui)/1.2 var(--f-ui);color:var(--c-mute);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub .k{font:var(--fs-ui)/20px var(--f-ui);color:var(--c-mute);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sub .v{font:var(--fs-num)/1 var(--f-body);color:var(--c-white)}
-.sub .d{font:20px/1 var(--f-body);color:var(--good);min-width:5ch}
-.radar-wrap{position:relative;width:calc(76*var(--px));height:calc(70*var(--px));margin:var(--p4) auto var(--p6)}
+.sub .d{font:var(--fs-small)/1 var(--f-body);color:var(--good);min-width:calc(16*var(--px));text-align:right}
+.radar-wrap{position:relative;width:calc(76*var(--px));height:calc(70*var(--px));margin:0 var(--p4) 0 0}
 .radar-wrap canvas{position:absolute;left:calc(8*var(--px));top:calc(5*var(--px));width:calc(60*var(--px));height:calc(60*var(--px))}
 .radar-wrap .rl{position:absolute;font:var(--fs-ui)/1 var(--f-ui);color:var(--c-mute);transform:translate(-50%,-50%);white-space:nowrap}
 .radar-wrap .rl.over{color:var(--c-em3)}
@@ -419,25 +465,29 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .pity-cells{display:flex;gap:var(--px);align-items:center;flex-wrap:nowrap;min-width:0}
 .pity-cells .spr{--sc:1}
 .pity .cnt{font:var(--fs-num)/1 var(--f-body);color:var(--c-white)}
-.pity .cnt small{color:var(--c-mute);font-size:20px}
-.pity-note{grid-column:1/-1;color:var(--c-mute);font-size:20px;margin-top:calc(-1*var(--px))}
+.pity .cnt small{color:var(--c-mute);font-size:var(--fs-small)}
+.pity-note{grid-column:1/-1;color:var(--c-mute);font:var(--fs-small)/20px var(--f-body);margin-top:calc(-1*var(--px))}
 
 /* trait card */
 .tc{--r0:var(--c-void);--r1:var(--c-mt0);--r2:var(--c-mt1);--r3:var(--c-mt2);--r4:var(--c-mt3);
   position:relative;display:flex;flex-direction:column;gap:var(--p2);padding:var(--p3) var(--p4) var(--p4);min-height:calc(66*var(--px));
   background:var(--c-ink) padding-box;border:calc(6*var(--px)) solid transparent;border-image:var(--tcf) 6 repeat;box-shadow:var(--hard);isolation:isolate}
+.tc .top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--p2) var(--p4);align-items:start}
+.tc .art{grid-row:1/3;position:relative;padding:var(--px);background:var(--c-void);box-shadow:0 0 0 var(--px) var(--r2),var(--p1) var(--p2) 0 var(--px) var(--c-void)}
+.tc .art .spr{--w:20;--h:20;display:block}
+.tc .rr{display:flex;align-items:center;justify-content:space-between;gap:var(--p2);min-width:0}
+.tc .no{font:var(--fs-small)/1 var(--f-body);color:var(--c-mute);white-space:nowrap}
 .tc .rar{display:inline-flex;align-items:center;gap:var(--p2);align-self:flex-start;padding:var(--p1) var(--p2);font:var(--fs-ui)/1 var(--f-ui);color:var(--c-void);background:var(--r3);box-shadow:inset 0 var(--px) 0 var(--r4),inset 0 calc(-1*var(--px)) 0 var(--r2),0 0 0 var(--px) var(--c-void)}
-.tc .tn{font:var(--fs-plaque)/.85 var(--f-display);color:var(--r4);text-shadow:var(--p1) var(--p1) 0 var(--c-void)}
-.tc .td{font:22px/1.05 var(--f-body);color:var(--c-bone)}
+.tc .tn{letter-spacing:-.125em;font:700 var(--fs-tn)/var(--lh-tn) var(--f-display);color:var(--r4);text-shadow:var(--p1) var(--p1) 0 var(--c-void)}
+.tc .td{font:var(--fs-body)/var(--lh-body) var(--f-body);color:var(--c-bone)}
 .tc .fx-l{display:flex;flex-wrap:wrap;gap:var(--p1) var(--p2);margin-top:auto;padding-top:var(--p2)}
-.mod{display:inline-flex;align-items:center;gap:var(--p1);padding:0 var(--p2);font:20px/1.1 var(--f-body);color:var(--mc,var(--c-bone));background:var(--c-ink2);box-shadow:inset var(--px) 0 0 var(--mc,var(--c-ash))}
-.tc .smp{position:absolute;right:var(--p2);bottom:var(--p1);font:var(--fs-ui)/1 var(--f-ui);color:var(--c-ash);transform:scale(1)}
-.tc.common{--tcf:var(--f-tc-common)}
+.mod{display:inline-flex;align-items:center;gap:var(--p1);padding:0 var(--p2);font:var(--fs-small)/20px var(--f-body);color:var(--mc,var(--c-bone));background:var(--c-ink2);box-shadow:inset var(--px) 0 0 var(--mc,var(--c-ash))}
+.tc.common{--tcf:var(--f-tc-common);--r3:var(--c-mt3);--r4:var(--c-white)}
 .tc.rare{--tcf:var(--f-tc-rare);--r1:var(--c-ec0);--r2:var(--c-ec1);--r3:var(--c-ec2);--r4:var(--c-fr1)}
 .tc.epic{--tcf:var(--f-tc-epic);--r1:var(--c-vi0);--r2:var(--c-vi1);--r3:var(--c-vi2);--r4:var(--c-vi3)}
 .tc.legendary{--tcf:var(--f-tc-legendary);--r1:var(--c-wd1);--r2:var(--c-gd);--r3:var(--c-em3);--r4:var(--c-yel)}
 .tc.mythic{--tcf:var(--f-tc-mythic);--r1:var(--c-em0);--r2:var(--c-em1);--r3:var(--c-em2);--r4:var(--c-em3)}
-.tc.hexxed{--tcf:var(--f-tc-hexxed);--r1:var(--c-void);--r2:var(--c-hx);--r3:var(--c-vi2);--r4:var(--c-vi3);background-color:var(--c-void)}
+.tc.hexxed{--tcf:var(--f-tc-hexxed);--r1:var(--c-void);--r2:var(--c-vi1);--r3:var(--c-vi2);--r4:var(--c-vi3);background-color:var(--c-void)}
 /* animated ring: a tiled texture masked to the middle band of the frame */
 .tc .ring{position:absolute;z-index:-1;inset:calc(-4*var(--px));pointer-events:none;padding:calc(2*var(--px));
   -webkit-mask:linear-gradient(var(--c-void) 0 0) content-box,linear-gradient(var(--c-void) 0 0);-webkit-mask-composite:xor;
@@ -467,43 +517,42 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .tc.hexxed .eye{position:absolute;z-index:3;left:calc(50% - 7*var(--px));top:calc(-11*var(--px))}
 .tc.hexxed .tn{animation:hexjit 2.2s steps(1,end) infinite}
 @keyframes hexjit{0%,86%,100%{text-shadow:var(--p1) var(--p1) 0 var(--c-void)}88%{text-shadow:var(--p1) 0 0 var(--c-red),calc(-1*var(--px)) 0 0 var(--c-ec2);transform:translateX(var(--px))}92%{text-shadow:calc(-1*var(--px)) 0 0 var(--c-red),var(--p1) 0 0 var(--c-ec2);transform:translateX(calc(-1*var(--px)))}}
-.tc.hexxed .runes{position:absolute;z-index:2;right:var(--p2);top:var(--p2)}
-.tc.common .dec{right:var(--p2);top:var(--p2)}
-.tc.rare .dec{right:calc(-4*var(--px));bottom:calc(-3*var(--px))}
 
 /* player bar */
 .player{grid-area:player;position:relative;z-index:6;display:flex;align-items:center;gap:var(--p5);padding:var(--p2) var(--p5);border-width:calc(5*var(--px)) 0 0 0}
 .player .trk-t{min-width:0;display:flex;flex-direction:column;gap:var(--p1)}
 .player .trk-t b{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-white);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .player .trk-t small{font:var(--fs-ui)/1 var(--f-ui);color:var(--ac3)}
-.eq{display:flex;align-items:flex-end;gap:var(--px);height:calc(10*var(--px))}
-.eq i{width:var(--p2);background:var(--ac2);height:calc(var(--h0)*var(--px));animation:eq .9s steps(1,end) infinite;animation-delay:var(--dl)}
-@keyframes eq{0%{height:calc(3*var(--px))}25%{height:calc(9*var(--px))}50%{height:calc(5*var(--px))}75%{height:calc(10*var(--px))}}
-.progress{flex:1;display:flex;align-items:center;gap:var(--p3);min-width:0;font:20px/1 var(--f-body);color:var(--c-mute)}
+.eq{flex:none}
+.progress{flex:1;display:flex;align-items:center;gap:var(--p3);min-width:0;font:var(--fs-small)/1 var(--f-body);color:var(--c-mute)}
 .progress .pb{flex:1;height:calc(4*var(--px));background:var(--c-ink3);box-shadow:0 0 0 var(--px) var(--c-void);position:relative}
 .progress .pb i{position:absolute;left:0;top:0;bottom:0;width:38%;background:var(--ac2);box-shadow:inset 0 var(--px) 0 var(--ac3)}
 .player .slider{width:calc(70*var(--px));flex:none}
 
 /* drawer scrim (phones) */
+.sm-t{font:var(--fs-small)/1 var(--f-body)}
 .scrim{display:none}
 
 /* =====================================================================
    COMPONENT SPECIMENS
    ===================================================================== */
 .btn-grid{display:grid;grid-template-columns:auto repeat(5,auto);gap:var(--p4) var(--p5);align-items:center;justify-content:start}
+.btn-grid .br{display:contents}
+.bc{display:inline-flex;flex-direction:column;align-items:flex-start;gap:var(--p1)}
+.bc small{display:none;font:var(--fs-ui)/1 var(--f-ui);color:var(--c-mute)}
 .btn-grid .rh{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-mute);text-transform:uppercase}
-.btn-grid .ch{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-ash);text-transform:uppercase}
+.btn-grid .ch{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-mute);text-transform:uppercase}
 
 .item{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--p2) var(--p4);padding:var(--p3) var(--p4) var(--p4)}
 .item .slot{grid-row:1/3;width:calc(22*var(--px));height:calc(22*var(--px));display:grid;place-items:center;background:var(--c-void);box-shadow:inset 0 var(--px) 0 var(--c-ink3),0 0 0 var(--px) var(--sn2)}
 .item .slot canvas{width:calc(16*var(--px));height:calc(16*var(--px))}
-.item h4{font:var(--fs-ui)/1.1 var(--f-ui);color:var(--c-white);text-transform:uppercase;font-weight:400}
-.item .ty{font:20px/1 var(--f-body);color:var(--c-mute)}
-.item p{grid-column:1/-1;font:22px/1.05 var(--f-body);color:var(--c-bone)}
+.item h4{font:var(--fs-ui)/18px var(--f-ui);color:var(--c-white);text-transform:uppercase;font-weight:400}
+.item .ty{font:var(--fs-small)/1 var(--f-body);color:var(--c-mute)}
+.item p{grid-column:1/-1;font:var(--fs-body)/var(--lh-body) var(--f-body);color:var(--c-bone)}
 .item .mods{grid-column:1/-1;display:flex;gap:var(--p1) var(--p2);flex-wrap:wrap}
 .item .foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:var(--p3);margin-top:var(--p1)}
 .item.equipped{border-image-source:var(--f-crystal)}
-.eqb{display:inline-flex;align-items:center;gap:var(--p1);font:var(--fs-ui)/1 var(--f-ui);color:var(--ac3)}
+.eqb{display:inline-flex;align-items:center;gap:var(--p1);font:var(--fs-ui)/calc(7*var(--px)) var(--f-ui);color:var(--ac3)}
 .item:not(.equipped) .eqb{color:var(--c-mute)}
 
 .coin-row{display:flex;align-items:center;gap:var(--p4);flex-wrap:wrap}
@@ -513,17 +562,19 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .tx .ti{grid-row:1/3;grid-column:1}
 .tx .what{grid-column:2;grid-row:1}
 .tx .when{grid-column:2;grid-row:2}
-.tx .what{font:22px/1 var(--f-body);color:var(--c-bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tx .when{font:var(--fs-ui)/1.2 var(--f-ui);color:var(--c-mute)}
+.tx .what{font:var(--fs-body)/1 var(--f-body);color:var(--c-bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .when{font:var(--fs-ui)/20px var(--f-ui);color:var(--c-mute)}
 .tx .amt{grid-row:1/3;grid-column:3;text-align:right;font:var(--fs-num)/1 var(--f-body);white-space:nowrap}
-.tx .amt small{display:block;font:var(--fs-ui)/1.3 var(--f-ui);color:var(--c-mute)}
+.tx .amt small{display:block;font:var(--fs-small)/20px var(--f-body);color:var(--c-mute)}
 
 .roll-stage{display:flex;justify-content:center;gap:var(--p4);padding:var(--p6) 0 var(--p2);min-height:calc(78*var(--px));align-items:flex-start}
 .rc{--rcw:40;position:relative;width:calc(var(--rcw)*var(--px));height:calc(64*var(--px));display:flex;justify-content:center}
 .rc .face{position:relative;height:100%;overflow:hidden;display:grid;place-items:center;align-content:center;gap:var(--p2);text-align:center;padding:0 var(--p1)}
 .rc .face.back{background-color:var(--ac0);background-image:var(--t-cardback);background-size:calc(8*var(--px)) calc(8*var(--px));background-clip:padding-box}
 .rc .face .rar{font:var(--fs-ui)/1 var(--f-ui)}
-.rc .face .nm{font:24px/.9 var(--f-display);color:var(--r4)}
+.rc .face .nm{font:700 16px/18px var(--f-display);letter-spacing:-.125em;color:var(--r4)}
+.roll-stage.shake{animation:shake .33s steps(1,end) 1}
+@keyframes shake{0%{transform:translate(var(--px),0)}25%{transform:translate(calc(-1*var(--px)),var(--px))}50%{transform:translate(var(--px),calc(-1*var(--px)))}75%{transform:translate(calc(-1*var(--px)),0)}100%{transform:none}}
 .rc .burst{position:absolute;left:calc(50% - 8*var(--px));top:calc(50% - 8*var(--px));pointer-events:none;animation-iteration-count:2;animation-fill-mode:forwards}
 
 .chat{display:flex;flex-direction:column;gap:var(--p4)}
@@ -533,7 +584,7 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .msg.me>div{align-items:flex-end}
 .msg .who{font:var(--fs-ui)/1 var(--f-ui);color:var(--ac3);margin-bottom:var(--p1)}
 .msg.me .who{text-align:right;color:var(--c-mute)}
-.bubble{position:relative;padding:var(--p2) var(--p4) var(--p3);font:24px/1.05 var(--f-body);color:var(--c-void);background:var(--c-white) padding-box;border:calc(3*var(--px)) solid transparent;border-image:var(--f-bubble) 3 repeat}
+.bubble{position:relative;padding:var(--p2) var(--p4) var(--p3);font:var(--fs-body)/var(--lh-body) var(--f-body);color:var(--c-void);background:var(--c-white) padding-box;border:calc(3*var(--px)) solid transparent;border-image:var(--f-bubble) 3 repeat}
 .bubble::before{content:'';position:absolute;left:calc(-8*var(--px));top:var(--p2);width:calc(6*var(--px));height:calc(5*var(--px));background:var(--s-btail) 0 0/100% 100%}
 .msg.me .bubble{color:var(--c-white);background-color:var(--ac0);border-image-source:var(--f-bubble-me)}
 .msg.me .bubble::before{left:auto;right:calc(-8*var(--px));transform:scaleX(-1);background-image:var(--s-btail-me)}
@@ -546,33 +597,39 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .dice-box{display:flex;gap:var(--p8);align-items:center;flex-wrap:wrap}
 .d20{position:relative;width:calc(26*var(--px));height:calc(28*var(--px))}
 .d20 canvas{width:100%;height:100%}
-.d20 b{position:absolute;inset:0;display:grid;place-items:center;padding-top:var(--p2);font:30px/1 var(--f-display);color:var(--c-void);font-weight:400}
-.roll-out{font:var(--fs-body)/1.1 var(--f-body);color:var(--c-white)}
+.d20 b{position:absolute;inset:0;display:grid;place-items:center;padding-top:var(--p2);font:700 var(--fs-plaque)/1 var(--f-display);color:var(--c-void)}
+.roll-out{font:var(--fs-body)/var(--lh-body) var(--f-body);color:var(--c-white)}
 
 .empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--p3);padding:var(--p8) var(--p4) 0;position:relative;overflow:hidden}
 .empty .soulf{animation:bob 1.2s steps(2,end) infinite}
 @keyframes bob{50%{transform:translateY(calc(-2*var(--px)))}}
-.empty .big{font:32px/1 var(--f-body);color:var(--c-white)}
+.empty .big{font:var(--fs-voice)/1 var(--f-body);color:var(--c-white)}
 .empty canvas.pile{margin-top:var(--p2)}
 
+.codex{display:grid;grid-template-columns:repeat(auto-fill,calc(24*var(--px)));gap:var(--p2);justify-content:start}
+.cx{position:relative;width:calc(24*var(--px));height:calc(28*var(--px));padding:var(--px);background:var(--c-void);box-shadow:0 0 0 var(--px) var(--r2,var(--c-ink3))}
+.cx .spr{--w:20;--h:20;display:block;margin:var(--px)}
+.cx b{position:absolute;left:0;right:0;bottom:var(--px);text-align:center;font:var(--fs-small)/1 var(--f-body);color:var(--c-mute);font-weight:400}
+.cx.unseen{background:var(--c-ink2) var(--t-skel) 0 0/var(--p2) var(--p2)}
+.cx.unseen i{display:block;width:calc(20*var(--px));height:calc(20*var(--px));margin:var(--px);background:var(--t-dither) 0 0/var(--p2) var(--p2)}
+.cx.unseen b{color:var(--t-off)}
 .loading{display:flex;flex-direction:column;align-items:center;gap:var(--p3);padding:var(--p4) 0}
 .loading .lt{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-yel)}
 .loading .lt i{animation:dot 1.2s steps(1,end) infinite;opacity:0}
 .loading .lt i:nth-child(2){animation-delay:.3s}.loading .lt i:nth-child(3){animation-delay:.6s}
 @keyframes dot{0%{opacity:0}30%,100%{opacity:1}}
 .indet{position:relative;width:calc(80*var(--px));height:calc(5*var(--px));background:var(--c-ink3);box-shadow:0 0 0 var(--px) var(--c-void);overflow:hidden}
-.indet i{position:absolute;top:0;bottom:0;width:calc(16*var(--px));background:var(--ac2);box-shadow:inset 0 var(--px) 0 var(--ac3);animation:indet 1.2s steps(16,end) infinite}
-@keyframes indet{from{left:calc(-16*var(--px))}to{left:100%}}
+.indet i{position:absolute;top:0;bottom:0;left:calc(-16*var(--px));width:calc(16*var(--px));background:var(--ac2);box-shadow:inset 0 var(--px) 0 var(--ac3);animation:indet 1.2s steps(16,end) infinite}
+@keyframes indet{to{transform:translateX(calc(96*var(--px)))}}
 .skel{display:grid;gap:var(--p2);width:100%}
-.skel i{display:block;height:calc(5*var(--px));background:var(--t-skel) 0 0/var(--p2) var(--p2);position:relative;overflow:hidden}
-.skel i:nth-child(1){width:70%}.skel i:nth-child(2){width:100%}.skel i:nth-child(3){width:45%}
-.skel i::after{content:'';position:absolute;top:0;bottom:0;width:calc(6*var(--px));background:var(--c-ink3);animation:skel 1.6s steps(20,end) infinite}
-@keyframes skel{from{left:calc(-6*var(--px))}to{left:100%}}
+.skel i{display:block;height:calc(5*var(--px));background:var(--t-skelband) 0 0/calc(40*var(--px)) 100% repeat-x,var(--t-skel) 0 0/var(--p2) var(--p2);animation:skel 1.6s steps(20,end) infinite}
+.skel i:nth-child(1){width:calc(60*var(--px))}.skel i:nth-child(2){width:calc(90*var(--px));max-width:100%}.skel i:nth-child(3){width:calc(40*var(--px))}
+@keyframes skel{to{background-position:calc(40*var(--px)) 0,0 0}}
 
 /* accent proof */
-.proof{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(96*var(--px))),1fr));gap:var(--p4)}
+.proof{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(100*var(--px))),1fr));gap:var(--p4)}
 .proof figure{padding:var(--p2) var(--p3) var(--p3)}
-.proof canvas{width:100%;height:auto}
+.proof canvas{margin:0 auto}
 .proof figcaption{display:flex;justify-content:space-between;align-items:center;font:var(--fs-ui)/1 var(--f-ui);color:var(--c-bone);margin-bottom:var(--p2)}
 .ramp{display:flex;margin-top:var(--p2);box-shadow:0 0 0 var(--px) var(--c-void)}
 .ramp i{flex:1;height:calc(5*var(--px))}
@@ -584,62 +641,75 @@ input[type=range]:focus-visible{outline:var(--px) solid var(--focus);outline-off
 .bgt .cv canvas{position:absolute;left:0;top:0}
 .bgt figcaption{display:flex;justify-content:space-between;gap:var(--p3);align-items:baseline;padding:var(--p2) var(--p3) var(--p2);flex-wrap:wrap}
 .bgt figcaption b{font:var(--fs-ui)/1 var(--f-ui);color:var(--c-white);font-weight:400}
-.bgt figcaption span{font:20px/1 var(--f-body);color:var(--c-mute)}
+.bgt figcaption span{font:var(--fs-small)/20px var(--f-body);color:var(--c-mute)}
 .bgt .use{position:absolute;right:var(--p3);top:var(--p3);z-index:2}
 
 /* cursor */
 .cursors{display:flex;gap:var(--p10);flex-wrap:wrap;align-items:flex-end}
 .cursors figure{display:flex;flex-direction:column;align-items:center;gap:var(--p2)}
 .cursors canvas{background:var(--c-ink2);box-shadow:0 0 0 var(--px) var(--c-ink3)}
-.try{display:grid;place-items:center;height:calc(40*var(--px));min-width:calc(90*var(--px));flex:1;font:var(--fs-ui)/1.3 var(--f-ui);color:var(--c-mute);text-align:center;background:var(--t-skel) 0 0/var(--p2) var(--p2)}
+.try{display:grid;place-items:center;height:calc(40*var(--px));min-width:calc(90*var(--px));flex:1;font:var(--fs-ui)/20px var(--f-ui);color:var(--c-mute);text-align:center;background:var(--t-skel) 0 0/var(--p2) var(--p2)}
 
 /* notes */
 .notes{columns:3 calc(170*var(--px));column-gap:var(--p6)}
 .notes article{display:block;break-inside:avoid;margin-bottom:var(--p6);padding:var(--p4) var(--p6) var(--p6)}
-.notes h3{font:var(--fs-plaque)/.9 var(--f-display);color:var(--c-white);margin-bottom:var(--p3)}
-.notes p,.notes li{font:22px/1.1 var(--f-body);color:var(--c-bone)}
+.notes h3{letter-spacing:-.125em;font:700 var(--fs-plaque)/1 var(--f-display);color:var(--c-white);margin-bottom:var(--p3)}
+.notes p,.notes li{font:var(--fs-body)/var(--lh-body) var(--f-body);color:var(--c-bone)}
 .notes p+p,.notes p+ul,.notes ul+p{margin-top:var(--p3)}
 .notes li{padding-left:var(--p5);position:relative;margin-top:var(--p1)}
 .notes li::before{content:'*';position:absolute;left:0;color:var(--ac3)}
-.notes code,.mono{font:22px/1 var(--f-body);color:var(--ac3);background:var(--c-ink2);padding:0 var(--p1)}
-.notes table{width:100%;border-collapse:collapse;font:22px/1.1 var(--f-body);margin-top:var(--p2)}
-.notes th{font:var(--fs-ui)/1.2 var(--f-ui);color:var(--c-mute);text-align:left;font-weight:400;padding:var(--p1) var(--p2) var(--p1) 0;border-bottom:var(--px) solid var(--c-ink3)}
+.notes b{color:var(--c-white);font-weight:400}
+.tscale{margin-top:var(--p4)!important}
+.sheet-grid{counter-reset:comp}
+.spec-h h3::before{counter-increment:comp;content:'C' counter(comp,decimal-leading-zero) ' ';color:var(--c-mute)}
+.notes code,.mono{font:var(--fs-body)/1 var(--f-body);color:var(--ac3);background:var(--c-ink2);padding:0 var(--p1)}
+.notes table{width:100%;border-collapse:collapse;font:var(--fs-body)/var(--lh-body) var(--f-body);margin-top:var(--p2)}
+.notes th{font:var(--fs-ui)/20px var(--f-ui);color:var(--c-mute);text-align:left;font-weight:400;padding:var(--p1) var(--p2) var(--p1) 0;border-bottom:var(--px) solid var(--c-ink3)}
 .notes td{padding:var(--p1) var(--p2) var(--p1) 0;border-bottom:var(--px) dashed var(--c-ink3);vertical-align:top}
 .pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(38*var(--px)),1fr));gap:var(--p2)}
-.pal div{display:flex;align-items:center;gap:var(--p2);font:18px/1 var(--f-body);color:var(--c-mute);min-width:0}
+.pal div{display:flex;align-items:center;gap:var(--p2);font:var(--fs-small)/1 var(--f-body);color:var(--c-mute);min-width:0}
 .pal i{flex:none;width:calc(8*var(--px));height:calc(8*var(--px));box-shadow:0 0 0 var(--px) var(--c-void),0 0 0 var(--p2) var(--c-ink3)}
 .pal span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .slice{position:relative;display:inline-block}
-.slice canvas{width:calc(30*var(--px)*3);height:calc(30*var(--px)*3)}
+.slice canvas{width:calc(38*var(--px)*3);height:calc(38*var(--px)*3)}
 .slice .gl{position:absolute;background:var(--c-yel)}
 .slice-demo{display:flex;gap:var(--p6);align-items:flex-start;flex-wrap:wrap}
 .slice-demo .s1{width:calc(40*var(--px));height:calc(26*var(--px))}
 .slice-demo .s2{width:calc(80*var(--px));height:calc(16*var(--px))}
 .type-spec{display:flex;flex-direction:column;gap:var(--p4)}
 .type-spec .ts{display:grid;grid-template-columns:calc(46*var(--px)) minmax(0,1fr);gap:var(--p4);align-items:baseline;border-bottom:var(--px) dashed var(--c-ink3);padding-bottom:var(--p3)}
-.type-spec .ts small{font:var(--fs-ui)/1.3 var(--f-ui);color:var(--c-mute)}
-footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:var(--p4);flex-wrap:wrap;color:var(--c-mute);font:var(--fs-ui)/1.4 var(--f-ui)}
+.type-spec .ts small{font:var(--fs-ui)/20px var(--f-ui);color:var(--c-mute)}
+footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:var(--p4);flex-wrap:wrap;color:var(--c-mute);font:var(--fs-ui)/22px var(--f-ui)}
 
 /* =====================================================================
    PERFORMANCE MODE + REDUCED MOTION
    ===================================================================== */
-.perf .anim,.perf .tc .ring,.perf .tc.mythic .crest,.perf .bar .glint,.perf .eq i,.perf .delta,.perf .empty .soulf,.perf .tc.hexxed .tn,
-.perf .loading .lt i,.perf .indet i,.perf .skel i::after,.perf .typing i,.perf .toast .timer i,.perf .tc.legendary .sweep{animation-play-state:paused!important}
+.perf .anim,.perf .tc .ring,.perf .tc.mythic .crest,.perf .bar .glint,.perf .delta,.perf .empty .soulf,.perf .tc.hexxed .tn,
+.perf .loading .lt i,.perf .indet i,.perf .skel i,.perf .typing i,.perf .toast .timer i,.perf .tc.legendary .sweep{animation-play-state:paused!important}
 .perf .fxp,.perf .tc .embers,.perf .tc.legendary .sweep,.perf .bar .glint{display:none}
 .perf .loading .lt i{opacity:1}
 @media (prefers-reduced-motion:reduce){
-  .anim,.tc .ring,.tc.mythic .crest,.eq i,.delta,.empty .soulf,.tc.hexxed .tn,.indet i,.skel i::after,.typing i,.toast .timer i{animation-play-state:paused!important}
+  /* loops pause on their current frame; entrances simply end */
+  .anim,.tc .ring,.tc.mythic .crest,.delta,.empty .soulf,.tc.hexxed .tn,.indet i,.skel i,.typing i,.toast .timer i{animation-play-state:paused!important}
   .tc .embers,.tc.legendary .sweep,.bar .glint{display:none}
-  .tog .knob,#toasts .toast{transition:none;animation:none}
+  .tog .knob,.side{transition:none!important}
+  #toasts .toast,.modal-root::before,.roll-stage.shake{animation:none!important}
 }
 
 /* =====================================================================
-   PHONE (390): art pixel 2, sidebar becomes a drawer
+   RESPONSIVE: the nav folds into MORE, then the sidebar becomes a drawer
+   and the art pixel drops to 2 at phone width
    ===================================================================== */
+@media (max-width:1800px){
+  .mainnav .nav.pg5,.mainnav .nav.pg6,.mainnav .nav.pg7{display:none}
+  .more{display:block}
+  .more-menu .pg1,.more-menu .pg2,.more-menu .pg3,.more-menu .pg4{display:none}
+}
 @media (max-width:1280px){
-  .mainnav .nav:nth-child(n+5){display:none}
-  .content{grid-template-columns:minmax(0,1fr)}
   .hand{grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(110*var(--px))),1fr))}
+  .subs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat-grid{grid-template-columns:minmax(0,1fr)}
+  .radar-wrap{margin:var(--p2) auto 0}
 }
 @media (max-width:1000px){
   .spec.w2{grid-column:1/-1}
@@ -647,55 +717,60 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
   .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "main" "player"}
   .only-m{display:inline-flex!important}
   .mainnav{display:none}
+  .more-menu .pg1,.more-menu .pg2,.more-menu .pg3,.more-menu .pg4{display:flex}
+  .more-btn{width:calc(15*var(--px));justify-content:center;padding:0}
+  .more-btn .more-l,.more-btn>svg:first-child{display:none}
+  .more-btn .mi{display:inline;color:var(--c-wd3)}
+  .more-btn[aria-expanded=true] .mi{color:var(--c-yel)}
   .top-act .btn.primary span{display:none}
   .top-act .btn.primary{width:calc(15*var(--px));padding:0}
-  .topbar{justify-content:space-between}
-  .side{position:absolute;z-index:30;left:0;top:calc(24*var(--px));bottom:0;width:min(86%,calc(140*var(--px)));transform:translateX(-102%);transition:transform .2s steps(4,end);border-top-width:calc(7*var(--px))}
+  .topbar{justify-content:space-between;gap:var(--p3)}
+  .logo{margin-right:auto}
+  .side{position:absolute;z-index:30;left:0;top:calc(24*var(--px));bottom:0;width:calc(140*var(--px));max-width:100%;transform:translateX(calc(-148*var(--px)));transition:transform .2s steps(4,end);border-top-width:calc(7*var(--px))}
   .app.drawer-open .side{transform:none}
   .scrim{display:block;position:absolute;inset:0;z-index:25;background:var(--t-dither) 0 0/var(--p2) var(--p2);visibility:hidden}
   .app.drawer-open .scrim{visibility:visible}
-  .btn-grid{grid-template-columns:auto repeat(3,auto)}
-  .btn-grid .ch:nth-child(n+5),.btn-grid .cx{display:none}
+  /* the full button state matrix, stacked: one row per variant, captioned cells */
+  .btn-grid{display:flex;flex-direction:column;gap:var(--p2)}
+  .btn-grid>.ch,.btn-grid>span:first-child{display:none}
+  .btn-grid .br{display:flex;flex-wrap:wrap;gap:var(--p4) var(--p5);align-items:flex-end;padding-bottom:var(--p3)}
+  .btn-grid .rh{width:100%;margin-top:var(--p2)}
+  .bc small{display:block}
 }
 @media (max-width:720px){
   .deck{position:relative;gap:var(--p3) var(--p6)}
   #screen .sec-d{display:none}
-  .mast-pitch{font-size:20px}
   .deck{margin-bottom:var(--p4)}
   .mast{padding-top:var(--p10)}
   .mast-sign{padding:var(--p3) var(--p4) var(--p4)}
+  .mast-sign h1{white-space:normal}
   .main{padding:var(--p6) var(--p4) var(--p8)}
-  .hdr{grid-template-columns:auto minmax(0,1fr);gap:var(--p3) var(--p5);padding:var(--p4)}
+  .scene{height:calc(48*var(--px))}
+  .hdr{grid-template-columns:auto minmax(0,1fr);gap:var(--p3) var(--p5);padding:var(--p4);margin:calc(-20*var(--px)) var(--p3) 0}
   .hdr-main{display:contents}
-  .port{grid-row:1/3}
+  .port{grid-row:1/3;margin-top:calc(-14*var(--px))}
   .name-row{grid-column:2;align-self:end}
   .owner{grid-column:2;align-self:start}
   .meta,.tags{grid-column:1/-1}
   .hdr-act{grid-column:1/-1;justify-content:flex-start}
   .hdr .torch{display:none}
-  .gold{font-size:30px}
+  .owner .fo{display:none}
   .panel{padding:var(--p4) var(--p4) var(--p5)}
-  .st{grid-template-columns:calc(8*var(--px)) calc(30*var(--px)) minmax(0,1fr) 3.4ch;gap:var(--p2)}
-  .st .bon{grid-column:3/-1;text-align:right;margin-top:calc(-2*var(--px));font-size:20px}
+  .legend{display:none}
+  .st{grid-template-columns:calc(8*var(--px)) calc(30*var(--px)) minmax(0,1fr) calc(14*var(--px));gap:var(--p2)}
+  .st .bon{grid-column:3/-1;text-align:right;margin-top:calc(-2*var(--px))}
   .st .lab .tier{height:calc(8*var(--px))}
   .subs{grid-template-columns:minmax(0,1fr)}
   .player{gap:var(--p3);padding:var(--p2) var(--p3)}
   .player .slider,.progress span{display:none}
-  .logo{font-size:30px}
   .voice{grid-template-columns:minmax(0,1fr);padding:var(--p4)}
-  .voice .say{font-size:26px}
-  .opt{font-size:26px}
   .roll-stage{gap:var(--p2)}
   .rc{--rcw:50}
-  .rc .face .nm{font-size:20px}
   .tip{min-width:0}
-  .btn-grid{grid-template-columns:repeat(2,max-content);gap:var(--p2) var(--p4)}
-  .btn-grid>span:first-child{display:none}
-  .btn-grid .rh{grid-column:1/-1;margin-top:var(--p2)}
-  .btn-grid .ch:nth-child(n+4),.btn-grid .cx2{display:none}
   .swatches{grid-template-columns:repeat(8,calc(13*var(--px)))}
-  .slice canvas{width:calc(30*var(--px)*2);height:calc(30*var(--px)*2)}
+  .slice canvas{width:calc(38*var(--px)*2);height:calc(38*var(--px)*2)}
   .type-spec .ts{grid-template-columns:minmax(0,1fr)}
+  .tscale td:nth-child(3){display:none}
 }
 </style>
 
@@ -710,7 +785,7 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
     <h1>THE UNDERGROUND</h1>
   </div>
   <div class="mast-pitch">
-    <p class="ast">Every surface is a material from the Underground. <b>Ruins stone</b> holds things, <b>wooden signboards</b> name things, <b>Hotland metal</b> is anything you press or type into, <b>Snowdin frost</b> is anything that floats, and <b>Waterfall crystal</b> is light: the accent, focus and rarity. The SOUL is the cursor, and yellow always means the SOUL is on it.</p>
+    <p class="ast">Every surface is a material from the Underground. <b>Ruins stone</b> holds things, <b>wooden signboards</b> name things, <b>Hotland metal</b> is anything you press or type into, <b>Snowdin frost</b> is anything that floats, and <b>Waterfall crystal</b> is light: the accent, focus and rarity. The SOUL is the cursor, and yellow always means the SOUL is on it. The plain white Undertale box is kept for what you are focused on: dialogues and the open character.</p>
     <p class="sample-note">ALL CHARACTERS, NUMBERS, TRAITS AND ITEMS HERE ARE SAMPLE CONTENT. PORTRAITS ARE PLACEHOLDER PIXEL ART.</p>
   </div>
 </header>
@@ -729,13 +804,14 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
   </div>
   <div class="deck-grp">
     <label class="tog"><input type="checkbox" role="switch" id="perf-tog"><span class="trk spr"><span class="knob spr"></span></span><span>PERF MODE</span><span class="state" id="perf-state">OFF</span></label>
+    <span class="perf-ms" id="perf-ms" title="Average canvas cost per background tick">BG -- MS</span>
   </div>
 </nav>
 
 <!-- ================= 01 MAIN SCREEN ================= -->
 <section class="sec" id="screen" aria-labelledby="h-screen">
   <div class="sec-h"><span class="sec-no fr f-crystal">01</span><h2 id="h-screen">MAIN SCREEN</h2></div>
-  <p class="sec-d">Desktop at 1920: folders sidebar, an open sheet on the STATS tab, the music bar. Behind the sheet runs the character's own animated background (pick another in the deck). Under 1000px the sidebar becomes a drawer behind the menu button.</p>
+  <p class="sec-d">Desktop at 1920: folders sidebar, an open sheet on the STATS tab, the music bar. The character's own animated place plays in the scene above the white box and behind the whole sheet (pick another in the deck). Under 1800px the nav folds into MORE; under 1000px the sidebar becomes a drawer.</p>
   <div class="rule"></div>
 
   <div class="app" id="app">
@@ -745,14 +821,26 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
       <button class="btn icon only-m" id="drawer-btn" aria-label="Characters" aria-expanded="false" aria-controls="side"><i class="ico" data-i="menu"></i></button>
       <a class="logo" href="#screen" aria-label="StatSheets home">STAT<span>SHEETS</span></a>
       <nav class="mainnav" aria-label="Site">
-        <a class="nav" href="#components"><i class="ico" data-i="dot"></i>UTILITIES</a>
-        <a class="nav" href="#components"><i class="ico" data-i="dot"></i>GALLERY</a>
-        <a class="nav is-hover" href="#components"><i class="ico" data-i="dot"></i>ENCYCLOPAEDIA</a>
-        <a class="nav" href="#components"><i class="ico" data-i="dot"></i>PLAYLISTS</a>
-        <a class="nav" href="#components"><i class="ico" data-i="dot"></i>BK'S CORNER</a>
-        <a class="nav" href="#components"><i class="ico" data-i="dot"></i>SPIN A BADDIE</a>
-        <a class="nav" href="#components"><i class="ico" data-i="dot"></i>ADMIN</a>
+        <a class="nav pg1" href="#pages"><i class="ico" data-i="ast"></i>UTILITIES</a>
+        <a class="nav pg2" href="#pages"><i class="ico" data-i="ast"></i>GALLERY</a>
+        <a class="nav pg3 is-hover" href="#pages"><i class="ico" data-i="ast"></i>ENCYCLOPAEDIA</a>
+        <a class="nav pg4" href="#pages"><i class="ico" data-i="ast"></i>PLAYLISTS</a>
+        <a class="nav pg5" href="#pages"><i class="ico" data-i="ast"></i>BK'S CORNER</a>
+        <a class="nav pg6" href="#pages"><i class="ico" data-i="ast"></i>SPIN A BADDIE</a>
+        <a class="nav pg7" href="#pages"><i class="ico" data-i="ast"></i>ADMIN</a>
       </nav>
+      <div class="more" id="more">
+        <button class="nav more-btn" id="more-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="more-menu"><i class="ico" data-i="ast"></i><span class="more-l">MORE</span><i class="ico mi" data-i="sign"></i></button>
+        <ul class="ctx fr f-frost snowcap more-menu" id="more-menu" role="menu" aria-label="Pages" hidden>
+          <li role="none" class="pg1"><a role="menuitem" href="#pages"><i class="ico mark" data-i="ast"></i>UTILITIES</a></li>
+          <li role="none" class="pg2"><a role="menuitem" href="#pages"><i class="ico mark" data-i="ast"></i>GALLERY</a></li>
+          <li role="none" class="pg3"><a role="menuitem" href="#pages"><i class="ico mark" data-i="ast"></i>ENCYCLOPAEDIA</a></li>
+          <li role="none" class="pg4"><a role="menuitem" href="#pages"><i class="ico mark" data-i="ast"></i>PLAYLISTS</a></li>
+          <li role="none" class="pg5"><a role="menuitem" href="#pages"><i class="ico mark" data-i="ast"></i>BK'S CORNER</a></li>
+          <li role="none" class="pg6"><a role="menuitem" href="#pages"><i class="ico mark" data-i="ast"></i>SPIN A BADDIE</a></li>
+          <li role="none" class="pg7"><a role="menuitem" href="#pages"><i class="ico mark" data-i="ast"></i>ADMIN</a></li>
+        </ul>
+      </div>
       <div class="top-act">
         <button class="btn icon" aria-label="Performance mode" data-act="perf"><i class="ico" data-i="bolt"></i></button>
         <button class="btn icon" aria-label="Sound on"><i class="ico" data-i="speaker"></i></button>
@@ -765,38 +853,42 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
       <div class="side-h"><span class="plaque fr f-wood">CHARACTERS</span><button class="btn icon sm" aria-label="New folder"><i class="ico" data-i="plus"></i></button></div>
       <label class="field"><i class="ico" data-i="search"></i><span class="vh">Search characters</span><input type="search" placeholder="SEARCH..."></label>
       <div class="folders" id="folders"></div>
+      <p class="side-sum"><i class="spr s-save anim" aria-hidden="true"></i><span>15 CHARACTERS<br><b>9,116 G</b> BETWEEN THEM</span></p>
       <div class="side-foot" aria-hidden="true"><canvas id="side-foot"></canvas></div>
     </aside>
 
     <main class="main" id="sheet">
-      <section class="hdr fr f-stone" aria-label="Character header">
-        <i class="spr s-torch anim torch l" aria-hidden="true"></i>
-        <i class="spr s-torch anim torch r" style="--delay:-.25s" aria-hidden="true"></i>
-        <div class="port fr f-crystal"><canvas class="pt" data-pt="blackjack" width="48" height="48" aria-label="BLACKJACK portrait, placeholder art" role="img"></canvas><i class="spr s-spark anim glint" style="--delay:-.3s" aria-hidden="true"></i></div>
-        <div class="hdr-main">
-          <div class="name-row">
-            <h3 class="cname">BLACKJACK</h3>
-            <span class="lvl fr f-wood">WALL LEVEL</span>
-          </div>
-          <div class="owner">BY BK . FORM 1 OF 3</div>
-          <div class="meta">
-            <span class="gold"><i class="spr s-coin anim" aria-hidden="true"></i>1,250<small>G</small></span>
-            <div class="forms" role="tablist" aria-label="Forms">
-              <button class="form" role="tab" aria-selected="true">BASE</button>
-              <button class="form" role="tab" aria-selected="false">ALL IN</button>
-              <button class="form" role="tab" aria-selected="false">BUST</button>
+      <section class="hero" aria-label="Character header">
+        <div class="scene fr f-stone" id="scene"><canvas class="bgc" id="scene-bg" data-bg="wish" role="img" aria-label="BLACKJACK's background: Wishing Room"></canvas><span class="plaque sm fr f-wood scene-tag" id="scene-tag">WISHING ROOM</span></div>
+        <div class="hdr f-voice">
+          <i class="spr s-torch anim torch l" aria-hidden="true"></i>
+          <i class="spr s-torch anim torch r" style="--delay:-.25s" aria-hidden="true"></i>
+          <div class="port fr f-crystal"><canvas class="pt" data-pt="blackjack" width="48" height="48" aria-label="BLACKJACK portrait, placeholder art" role="img"></canvas><i class="spr s-spark anim glint" style="--delay:-.3s" aria-hidden="true"></i></div>
+          <div class="hdr-main">
+            <div class="name-row">
+              <h3 class="cname">BLACKJACK</h3>
+              <span class="lvl fr f-wood">WALL LEVEL</span>
             </div>
+            <div class="owner">BY BK<span class="fo"> . FORM 1 OF 3</span></div>
+            <div class="meta">
+              <span class="gold"><i class="spr s-coin anim" aria-hidden="true"></i>1,250<small>G</small></span>
+              <div class="forms" role="tablist" aria-label="Forms">
+                <button class="form" role="tab" aria-selected="true">BASE</button>
+                <button class="form" role="tab" aria-selected="false">ALL IN</button>
+                <button class="form" role="tab" aria-selected="false">BUST</button>
+              </div>
+            </div>
+            <ul class="tags" aria-label="Tags"><li class="tagc">GAMBLER</li><li class="tagc">TRAVELER</li><li class="tagc">CARD SHARK</li><li class="tagc">+2</li></ul>
           </div>
-          <ul class="tags" aria-label="Tags"><li class="tagc">GAMBLER</li><li class="tagc">TRAVELER</li><li class="tagc">CARD SHARK</li><li class="tagc">+2</li></ul>
-        </div>
-        <div class="hdr-act">
-          <button class="btn icon" aria-label="Compare"><i class="ico" data-i="cmp"></i></button>
-          <button class="btn"><i class="ico" data-i="pencil"></i>EDIT</button>
-          <button class="btn danger" data-open="confirm"><i class="ico" data-i="trash"></i>DEL</button>
+          <div class="hdr-act">
+            <button class="btn icon" aria-label="Compare"><i class="ico" data-i="cmp"></i></button>
+            <button class="btn"><i class="ico" data-i="pencil"></i>EDIT</button>
+            <button class="btn danger" data-open="confirm"><i class="ico" data-i="trash"></i>DEL</button>
+          </div>
         </div>
       </section>
 
-      <nav class="tabs" role="tablist" aria-label="Sheet sections" id="sheet-tabs">
+      <div class="rail" id="rail"><nav class="tabs" role="tablist" aria-label="Sheet sections" id="sheet-tabs">
         <button class="btn tab" role="tab" aria-selected="true"><i class="ico" data-i="bars"></i>STATS</button>
         <button class="btn tab" role="tab" aria-selected="false"><i class="ico" data-i="bag"></i>ITEMS</button>
         <button class="btn tab" role="tab" aria-selected="false"><i class="ico" data-i="star"></i>ABILITIES</button>
@@ -805,18 +897,19 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
         <button class="btn tab" role="tab" aria-selected="false"><i class="ico" data-i="note"></i>MUSIC</button>
         <button class="btn tab" role="tab" aria-selected="false"><i class="ico" data-i="chat"></i>CHAT</button>
         <button class="btn tab" role="tab" aria-selected="false"><i class="ico" data-i="gear"></i>STYLE</button>
-      </nav>
+      </nav><i class="spr s-more rail-arrow anim" aria-hidden="true"></i></div>
 
       <div class="content">
         <section class="panel fr f-stone" aria-labelledby="h-stats">
-          <div class="panel-h"><h4 class="plaque fr f-wood" id="h-stats">STATS</h4><span class="sp"></span><button class="btn icon sm" aria-label="Stat help"><i class="ico" data-i="q"></i></button></div>
-          <div class="stats" id="stats"></div>
-        </section>
-
-        <section class="panel fr f-stone side-panel" aria-labelledby="h-subs">
-          <div class="panel-h"><h4 class="plaque fr f-wood" id="h-subs">SUB-STATS</h4></div>
-          <div class="radar-wrap" id="radar"><canvas id="radar-cv" width="60" height="60" role="img" aria-label="Radar chart of the six core stats"></canvas></div>
-          <div class="subs" id="subs"></div>
+          <div class="panel-h"><h4 class="plaque fr f-wood" id="h-stats">STATS</h4><span class="sp"></span>
+            <span class="legend" aria-hidden="true"><span><i style="background:var(--c-yel)"></i>VALUE</span><span><i style="background:var(--c-red-d)"></i>TO MAX</span><span><i style="background:var(--c-kr)"></i>PRESTIGE</span></span>
+            <button class="btn icon sm" aria-label="Stat help"><i class="ico" data-i="q"></i></button></div>
+          <div class="stat-grid">
+            <div class="stats" id="stats"></div>
+            <div class="radar-wrap" id="radar"><canvas id="radar-cv" width="60" height="60" role="img" aria-label="Radar chart of the six core stats"></canvas></div>
+          </div>
+          <h5 class="mini-h" id="h-subs">SUB-STATS</h5>
+          <div class="subs" id="subs" aria-labelledby="h-subs"></div>
         </section>
 
         <section class="panel fr f-stone span2" aria-labelledby="h-traits">
@@ -833,16 +926,16 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
           </div>
         </section>
       </div>
+      <p class="sample-stamp">SAMPLE DATA . EVERY CHARACTER, TRAIT AND NUMBER HERE IS MADE UP</p>
     </main>
 
     <footer class="player fr f-metal" aria-label="Theme music">
       <button class="btn icon sm" aria-label="Play"><i class="ico" data-i="play"></i></button>
-      <div class="eq" aria-hidden="true"><i style="--h0:4;--dl:0s"></i><i style="--h0:8;--dl:-.3s"></i><i style="--h0:6;--dl:-.6s"></i><i style="--h0:9;--dl:-.15s"></i></div>
+      <i class="spr s-eq anim eq" aria-hidden="true"></i>
       <div class="trk-t"><b>CASINO UNDERGROUND (SAMPLE TRACK)</b><small>BLACKJACK</small></div>
       <div class="progress"><span>1:12</span><div class="pb"><i></i></div><span>3:08</span></div>
       <label class="slider"><span class="vh">Volume</span><i class="ico" data-i="speaker"></i><input type="range" min="0" max="100" value="60"><output>60</output></label>
     </footer>
-    <span class="sample-stamp" aria-hidden="true">SAMPLE DATA</span>
   </div>
 </section>
 
@@ -858,31 +951,35 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
     <article class="spec fr f-slate wide">
       <div class="spec-h"><h3>Buttons</h3><span class="tag">wood . hotland plate . hot iron . stone</span></div>
       <div class="btn-grid" id="btn-grid">
-        <span></span><span class="ch">DEFAULT</span><span class="ch">HOVER</span><span class="ch cx2">ACTIVE</span><span class="ch cx">FOCUS</span><span class="ch cx">DISABLED</span>
-        <span class="rh">PRIMARY</span>
-        <button class="btn primary"><i class="ico" data-i="check"></i>SAVE SHEET</button>
-        <button class="btn primary is-hover"><i class="ico" data-i="check"></i>SAVE SHEET</button>
-        <button class="btn primary is-active cx2"><i class="ico" data-i="check"></i>SAVE SHEET</button>
-        <button class="btn primary is-focus cx"><i class="ico" data-i="check"></i>SAVE SHEET</button>
-        <button class="btn primary cx" disabled><i class="ico" data-i="check"></i>SAVE SHEET</button>
-        <span class="rh">SECONDARY</span>
-        <button class="btn"><i class="ico" data-i="pencil"></i>EDIT</button>
-        <button class="btn is-hover"><i class="ico" data-i="pencil"></i>EDIT</button>
-        <button class="btn is-active cx2"><i class="ico" data-i="pencil"></i>EDIT</button>
-        <button class="btn is-focus cx"><i class="ico" data-i="pencil"></i>EDIT</button>
-        <button class="btn cx" disabled><i class="ico" data-i="pencil"></i>EDIT</button>
-        <span class="rh">DANGER</span>
-        <button class="btn danger"><i class="ico" data-i="trash"></i>DELETE</button>
-        <button class="btn danger is-hover"><i class="ico" data-i="trash"></i>DELETE</button>
-        <button class="btn danger is-active cx2"><i class="ico" data-i="trash"></i>DELETE</button>
-        <button class="btn danger is-focus cx"><i class="ico" data-i="trash"></i>DELETE</button>
-        <button class="btn danger cx" disabled><i class="ico" data-i="trash"></i>DELETE</button>
-        <span class="rh">ICON</span>
-        <button class="btn icon" aria-label="Dice"><i class="ico" data-i="dice"></i></button>
-        <button class="btn icon is-hover" aria-label="Dice"><i class="ico" data-i="dice"></i></button>
-        <button class="btn icon is-active cx2" aria-label="Dice"><i class="ico" data-i="dice"></i></button>
-        <button class="btn icon is-focus cx" aria-label="Dice"><i class="ico" data-i="dice"></i></button>
-        <button class="btn icon cx" disabled aria-label="Dice"><i class="ico" data-i="dice"></i></button>
+        <span></span><span class="ch">DEFAULT</span><span class="ch">HOVER</span><span class="ch">ACTIVE</span><span class="ch">FOCUS</span><span class="ch">DISABLED</span>
+        <div class="br"><span class="rh">PRIMARY</span>
+          <span class="bc"><button class="btn primary"><i class="ico" data-i="check"></i>SAVE SHEET</button><small>DEFAULT</small></span>
+          <span class="bc"><button class="btn primary is-hover"><i class="ico" data-i="check"></i>SAVE SHEET</button><small>HOVER</small></span>
+          <span class="bc"><button class="btn primary is-active"><i class="ico" data-i="check"></i>SAVE SHEET</button><small>ACTIVE</small></span>
+          <span class="bc"><button class="btn primary is-focus"><i class="ico" data-i="check"></i>SAVE SHEET</button><small>FOCUS</small></span>
+          <span class="bc"><button class="btn primary" disabled><i class="ico" data-i="check"></i>SAVE SHEET</button><small>DISABLED</small></span>
+        </div>
+        <div class="br"><span class="rh">SECONDARY</span>
+          <span class="bc"><button class="btn"><i class="ico" data-i="pencil"></i>EDIT</button><small>DEFAULT</small></span>
+          <span class="bc"><button class="btn is-hover"><i class="ico" data-i="pencil"></i>EDIT</button><small>HOVER</small></span>
+          <span class="bc"><button class="btn is-active"><i class="ico" data-i="pencil"></i>EDIT</button><small>ACTIVE</small></span>
+          <span class="bc"><button class="btn is-focus"><i class="ico" data-i="pencil"></i>EDIT</button><small>FOCUS</small></span>
+          <span class="bc"><button class="btn" disabled><i class="ico" data-i="pencil"></i>EDIT</button><small>DISABLED</small></span>
+        </div>
+        <div class="br"><span class="rh">DANGER</span>
+          <span class="bc"><button class="btn danger"><i class="ico" data-i="trash"></i>DELETE</button><small>DEFAULT</small></span>
+          <span class="bc"><button class="btn danger is-hover"><i class="ico" data-i="trash"></i>DELETE</button><small>HOVER</small></span>
+          <span class="bc"><button class="btn danger is-active"><i class="ico" data-i="trash"></i>DELETE</button><small>ACTIVE</small></span>
+          <span class="bc"><button class="btn danger is-focus"><i class="ico" data-i="trash"></i>DELETE</button><small>FOCUS</small></span>
+          <span class="bc"><button class="btn danger" disabled><i class="ico" data-i="trash"></i>DELETE</button><small>DISABLED</small></span>
+        </div>
+        <div class="br"><span class="rh">ICON</span>
+          <span class="bc"><button class="btn icon" aria-label="Dice"><i class="ico" data-i="dice"></i></button><small>DEFAULT</small></span>
+          <span class="bc"><button class="btn icon is-hover" aria-label="Dice"><i class="ico" data-i="dice"></i></button><small>HOVER</small></span>
+          <span class="bc"><button class="btn icon is-active" aria-label="Dice"><i class="ico" data-i="dice"></i></button><small>ACTIVE</small></span>
+          <span class="bc"><button class="btn icon is-focus" aria-label="Dice"><i class="ico" data-i="dice"></i></button><small>FOCUS</small></span>
+          <span class="bc"><button class="btn icon" disabled aria-label="Dice"><i class="ico" data-i="dice"></i></button><small>DISABLED</small></span>
+        </div>
       </div>
       <p class="note">* Rule: every button owns a 7 by 7 icon slot. On hover the SOUL takes that slot and the label turns yellow, exactly like picking FIGHT. Active drops 2 art pixels onto its own shadow. Focus is a 1 pixel yellow ring with a black gap. Disabled is unlit: no shadow, no SOUL.</p>
     </article>
@@ -909,16 +1006,16 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
       <div style="margin-top:var(--p4)">
         <span class="field is-focus"><span style="flex:1;color:var(--c-white)">CITY LEVEL</span><i class="ico" data-i="chev"></i></span>
         <ul class="listbox fr f-frost snowcap" role="listbox" aria-label="Level label sample">
-          <li role="option"><i class="ico mk" data-i="heart"></i>STREET LEVEL<i class="ico tick" data-i="check"></i></li>
-          <li role="option" class="is-hover"><i class="ico mk" data-i="heart"></i>WALL LEVEL<i class="ico tick" data-i="check"></i></li>
-          <li role="option" aria-selected="true"><i class="ico mk" data-i="heart"></i>CITY LEVEL<i class="ico tick" data-i="check"></i></li>
-          <li role="option"><i class="ico mk" data-i="heart"></i>MOUNTAIN LEVEL<i class="ico tick" data-i="check"></i></li>
+          <li role="option"><i class="ico mk" data-i="ast"></i>STREET LEVEL<i class="ico tick" data-i="check"></i></li>
+          <li role="option" class="is-hover"><i class="ico mk" data-i="ast"></i>WALL LEVEL<i class="ico tick" data-i="check"></i></li>
+          <li role="option" aria-selected="true"><i class="ico mk" data-i="ast"></i>CITY LEVEL<i class="ico tick" data-i="check"></i></li>
+          <li role="option"><i class="ico mk" data-i="ast"></i>MOUNTAIN LEVEL<i class="ico tick" data-i="check"></i></li>
         </ul>
       </div>
     </article>
 
     <article class="spec fr f-slate">
-      <div class="spec-h"><h3>Checkbox + toggle</h3><span class="tag">stone well . ruins lever</span></div>
+      <div class="spec-h"><h3>Checkbox + toggle</h3><span class="tag">stone well . soul knob</span></div>
       <div class="stack">
         <label class="chk"><input type="checkbox"><span class="box spr"></span><span>SHOW ON LEADERBOARD</span></label>
         <label class="chk"><input type="checkbox" checked><span class="box spr"></span><span>EQUIP ON ROLL</span></label>
@@ -926,6 +1023,7 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
         <label class="chk"><input type="checkbox" disabled><span class="box spr"></span><span>LOCKED (ADMIN)</span></label>
         <label class="tog"><input type="checkbox" role="switch"><span class="trk spr"><span class="knob spr"></span></span><span>PRIVATE SHEET</span></label>
         <label class="tog"><input type="checkbox" role="switch" checked><span class="trk spr"><span class="knob spr"></span></span><span>THEME MUSIC</span></label>
+        <label class="tog"><input type="checkbox" role="switch" disabled><span class="trk spr"><span class="knob spr"></span></span><span>LOCKED (ADMIN)</span></label>
       </div>
     </article>
 
@@ -982,13 +1080,13 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
     <article class="spec fr f-slate">
       <div class="spec-h"><h3>Context menu</h3><span class="tag">frost layer</span></div>
       <ul class="ctx fr f-frost snowcap" role="menu" aria-label="Character menu sample">
-        <li role="menuitem"><i class="ico mark" data-i="heart"></i>OPEN SHEET<span class="k">ENTER</span></li>
-        <li role="menuitem" class="is-hover"><i class="ico mark" data-i="heart"></i>EDIT<span class="k">E</span></li>
-        <li role="menuitem"><i class="ico mark" data-i="heart"></i>COMPARE WITH<span class="k">C</span></li>
-        <li role="menuitem"><i class="ico mark" data-i="heart"></i>MOVE TO FOLDER<span class="k">&gt;</span></li>
-        <li role="menuitem" class="dis" aria-disabled="true"><i class="ico mark" data-i="heart"></i>PASTE FORM</li>
+        <li role="menuitem"><i class="ico mark" data-i="ast"></i>OPEN SHEET<span class="k">ENTER</span></li>
+        <li role="menuitem" class="is-hover"><i class="ico mark" data-i="ast"></i>EDIT<span class="k">E</span></li>
+        <li role="menuitem"><i class="ico mark" data-i="ast"></i>COMPARE WITH<span class="k">C</span></li>
+        <li role="menuitem"><i class="ico mark" data-i="ast"></i>MOVE TO FOLDER<span class="k">&gt;</span></li>
+        <li role="menuitem" class="dis" aria-disabled="true"><i class="ico mark" data-i="ast"></i>PASTE FORM</li>
         <hr>
-        <li role="menuitem" class="danger"><i class="ico mark" data-i="heart"></i>DELETE<span class="k">DEL</span></li>
+        <li role="menuitem" class="danger"><i class="ico mark" data-i="ast"></i>DELETE<span class="k">DEL</span></li>
       </ul>
     </article>
 
@@ -1000,7 +1098,7 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
           <div class="face"><canvas class="pt" data-pt="blackjack-face" width="40" height="40" aria-hidden="true"></canvas></div>
           <div>
             <p class="say" id="tw" aria-live="off"></p>
-            <div class="opts"><button class="opt is-hover"><i class="ico" data-i="heart"></i>SURE</button><button class="opt"><i class="ico" data-i="heart"></i>LATER</button></div>
+            <div class="opts"><button class="opt is-hover"><i class="ico" data-i="ast"></i>SURE</button><button class="opt"><i class="ico" data-i="ast"></i>LATER</button></div>
           </div>
         </div>
       </div>
@@ -1013,7 +1111,7 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
         <div class="voice f-voice" role="alertdialog" aria-label="Confirm sample" style="grid-template-columns:minmax(0,1fr)">
           <div>
             <p class="say" style="min-height:0">* Delete BLACKJACK forever?<br>* His traits, items and 1,250 G go with him.</p>
-            <div class="opts"><button class="opt danger"><i class="ico" data-i="heart"></i>DELETE</button><button class="opt is-hover"><i class="ico" data-i="heart"></i>KEEP HIM</button></div>
+            <div class="opts"><button class="opt danger"><i class="ico" data-i="ast"></i>DELETE</button><button class="opt is-hover"><i class="ico" data-i="ast"></i>KEEP HIM</button></div>
           </div>
         </div>
       </div>
@@ -1029,8 +1127,8 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
           <div><h4>LUCKY TOP HAT</h4><span class="ty">ARMOR . HEAD</span></div>
           <span class="eqb"><i class="spr s-gem-s" aria-hidden="true"></i>EQUIPPED</span>
           <p>* A battered top hat. Something rattles inside when you lose.</p>
-          <div class="mods"><span class="mod" style="--mc:var(--stat-def)">+12 DEF</span><span class="mod" style="--mc:var(--c-yel)">+5% CRIT RATE</span><span class="mod" style="--mc:var(--c-red)">-4 SPD</span></div>
-          <div class="foot"><span class="t-dim" style="font-size:20px">SELL 40 G</span><button class="btn sm"><i class="ico" data-i="x"></i>UNEQUIP</button></div>
+          <div class="mods"><span class="mod" style="--mc:var(--c-fr0)">+12 DEF</span><span class="mod" style="--mc:var(--c-yel)">+5% CRIT RATE</span><span class="mod" style="--mc:var(--c-red)">-4 SPD</span></div>
+          <div class="foot"><span class="t-dim sm-t">SELL 40 G</span><button class="btn sm"><i class="ico" data-i="x"></i>UNEQUIP</button></div>
         </div>
         <div class="item fr f-stone">
           <span class="slot"><canvas class="pt" data-pt="item-die" width="16" height="16" aria-hidden="true"></canvas></span>
@@ -1038,7 +1136,7 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
           <span class="eqb"><i class="spr s-gem-off" aria-hidden="true"></i>IN BAG</span>
           <p>* It always lands on six. Always. Do not ask how.</p>
           <div class="mods"><span class="mod" style="--mc:var(--stat-atk)">+12 ATK</span><span class="mod" style="--mc:var(--c-grn)">+3% LIFESTEAL</span></div>
-          <div class="foot"><span class="t-dim" style="font-size:20px">SELL 65 G</span><button class="btn primary sm"><i class="ico" data-i="check"></i>EQUIP</button></div>
+          <div class="foot"><span class="t-dim sm-t">SELL 65 G</span><button class="btn primary sm"><i class="ico" data-i="check"></i>EQUIP</button></div>
         </div>
       </div>
     </article>
@@ -1099,10 +1197,16 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
       <div class="empty">
         <i class="spr s-soul soulf" aria-hidden="true"></i>
         <p class="big">* But nobody came.</p>
-        <p class="t-dim" style="font-size:22px">No characters match "zzz".</p>
+        <p class="t-dim">No characters match "zzz".</p>
         <button class="btn sm"><i class="ico" data-i="x"></i>CLEAR SEARCH</button>
         <canvas class="pile" id="pile" width="60" height="10" style="width:calc(60*var(--px));height:calc(10*var(--px))" aria-hidden="true"></canvas>
       </div>
+    </article>
+
+    <article class="spec fr f-slate">
+      <div class="spec-h"><h3>Codex grid</h3><span class="tag">seen . unseen</span></div>
+      <div class="codex" id="codex" role="list" aria-label="Trait codex sample"></div>
+      <p class="note">* 9 of 128 found. Unseen traits are a dithered stone tile with their number; rarity shows only once seen.</p>
     </article>
 
     <article class="spec fr f-slate">
@@ -1157,81 +1261,131 @@ footer.end{margin-top:var(--p12);display:flex;justify-content:space-between;gap:
     <article class="fr f-slate">
       <h3>TYPE</h3>
       <div class="type-spec">
-        <div class="ts"><small>JERSEY 10<br>DISPLAY</small><span style="font:60px/.8 var(--f-display);color:var(--c-white)">BLACKJACK 1,250</span></div>
-        <div class="ts"><small>SILKSCREEN<br>UI LABELS</small><span style="font:16px/1.2 var(--f-ui);color:var(--c-white)">STATS . CRIT RATE . EQUIP . LEGENDARY</span></div>
-        <div class="ts"><small>VT323<br>BODY + NUMBERS</small><span style="font:24px/1.05 var(--f-body);color:var(--c-white)">* Absorb a SOUL below 30% HP. 358 +258 18.5%</span></div>
+        <div class="ts"><small>SILKSCREEN 700<br>DISPLAY</small><span style="font:700 var(--fs-h)/1 var(--f-display);letter-spacing:-.125em;color:var(--c-white)">BLACKJACK</span></div>
+        <div class="ts"><small>SILKSCREEN 400<br>UI LABELS</small><span style="font:16px/20px var(--f-ui);color:var(--c-white)">STATS . CRIT RATE . EQUIP . LEGENDARY</span></div>
+        <div class="ts"><small>TINY5<br>BODY + NUMBERS</small><span style="font:var(--fs-body)/var(--lh-body) var(--f-body);color:var(--c-white)">* Absorb a SOUL below 30% HP. 358 +258 18.5% 1,250 G</span></div>
       </div>
-      <p style="margin-top:var(--p4)">Three fonts, three jobs. <b>Jersey 10</b> is tall and condensed like painted signboards: names, plaques, gold, big numbers (sizes 30, 40, 60). <b>Silkscreen</b> is small pixel caps for every label, button and tab, used only at 16px so each font pixel is exactly 2 CSS px. <b>VT323</b> is monospaced, so stat columns line up, and it reads like the game's dialogue: body text, descriptions, every dense number (20 to 32px). Press Start 2P is retired: it is too wide for dense sheets.</p>
+      <table class="tscale"><tr><th>ROLE</th><th>FACE</th><th>1920</th><th>390</th></tr>
+        <tr><td>names, section titles</td><td>Silk 700</td><td>48 (2)</td><td>32 / 24</td></tr>
+        <tr><td>plaques, logo</td><td>Silk 700</td><td>24 (1)</td><td>16 (1)</td></tr>
+        <tr><td>card titles</td><td>Silk 700</td><td>16</td><td>16 (1)</td></tr>
+        <tr><td>labels, buttons, tabs</td><td>Silk 400</td><td>16</td><td>16 (1)</td></tr>
+        <tr><td>body, values</td><td>Tiny5</td><td>24 (1)</td><td>16 (1)</td></tr>
+        <tr><td>big gold</td><td>Tiny5</td><td>48 (2)</td><td>32 (2)</td></tr>
+        <tr><td>dialogue</td><td>Tiny5</td><td>32</td><td>24</td></tr>
+        <tr><td>meta, chips</td><td>Tiny5</td><td>16</td><td>16 (1)</td></tr>
+      </table>
+      <p style="margin-top:var(--p3)">Two faces, both drawn on an 8 unit em, so 1 font pixel = size / 8. Every size is a multiple of 8 and the number in brackets is font pixels per art pixel. <b>Silkscreen</b> is the sign painter: names, plaques and labels, bold for anything that names a thing, tracked in by exactly 1 font pixel (<code>letter-spacing: -.125em</code>). <b>Tiny5</b> is the voice: body text, dialogue and every number. Its digits are all 4 font pixels wide, so columns line up. One hard shadow at 1 art pixel, never stacked. Line heights are whole pixels.</p>
+      <p>Retired, with measurements: VT323 is never crisp (tested 10 to 44px in .25px steps, every size anti-aliases on Linux Chrome). Jersey 10 is crisp only at 56px. Press Start 2P is crisp but too wide for dense sheets.</p>
     </article>
 
     <article class="fr f-slate">
       <h3>PIXEL GRID</h3>
       <ul>
         <li>One art pixel is <code>--px</code>: 3 CSS px on desktop, 2 below 720px. Nothing is ever drawn at a fraction of it.</li>
-        <li>All sizes are written as <code>calc(N * var(--px))</code>: borders, gaps, sprites, shadows, focus rings.</li>
-        <li>Bitmaps are drawn at 1:1 into canvases, exported as data URLs and scaled by an integer with <code>image-rendering: pixelated</code>.</li>
-        <li>Icons are inline SVG on a 7 by 7 grid with <code>shape-rendering="crispEdges"</code> so they take <code>currentColor</code>.</li>
-        <li>No blur, no soft shadow, no smooth gradient. Shadows are a solid 2 pixel drop in void. Fades are dithers or banded ramps.</li>
-        <li>Text is allowed one finer step (16px Silkscreen = 2 CSS px per font pixel) and never smaller.</li>
+        <li>All sizes are written as <code>calc(N * var(--px))</code>: borders, gaps, sprites, shadows, focus rings, bar segments.</li>
+        <li>Bitmaps are drawn 1:1 into canvases, exported as data URLs and scaled by a whole number with <code>image-rendering: pixelated</code>. Canvases are sized to <code>N * --px</code>, never to 100%.</li>
+        <li>Icons are 7 by 7 inline SVG with <code>shape-rendering="crispEdges"</code> and take <code>currentColor</code>, so one-colour icons recolour with zero JS.</li>
+        <li>No blur, no soft shadow, no smooth gradient. Shadows are a solid 2 art px drop in void. Fades are dithers or banded ramps. Disabled states are drawn from palette indices, never filtered.</li>
+        <li>Acceptance test: screenshot the page and count distinct colours. This tile shows <b id="colour-count">127 colours</b> in the first 1920 by 1080 viewport, almost all of them palette and ramp entries; any glyph or sprite that lands off-grid shows up as hundreds of in-between greys.</li>
       </ul>
-    </article>
-
-    <article class="fr f-slate">
-      <h3>FRAMES . 9-SLICE</h3>
-      <div class="slice-demo">
-        <div class="slice" id="slice"><canvas id="slice-cv" width="30" height="30"></canvas></div>
-        <div class="stack"><div class="fr f-stone s1"></div><div class="fr f-stone s2"></div></div>
-      </div>
-      <p>Every frame is one small canvas: corners of D by D, edge tiles of length L that repeat, an empty centre. CSS draws it with <code>border-image-source</code>, <code>border-image-slice: D</code>, <code>border-width: D * --px</code> and <code>border-image-repeat: repeat</code>, so a panel of any size keeps whole pixels and the bricks never stretch. The fill is a flat <code>background-color</code> clipped to the padding box.</p>
-      <table><tr><th>FRAME</th><th>D</th><th>ROLE</th></tr>
-        <tr><td>stone</td><td>7</td><td>panels, sidebar, sheet header</td></tr>
-        <tr><td>slate</td><td>5</td><td>cards, specimens, secondary panels</td></tr>
-        <tr><td>wood</td><td>5 / 4</td><td>plaques, tabs, secondary buttons</td></tr>
-        <tr><td>metal</td><td>5 / 4</td><td>top bar, player, primary + danger</td></tr>
-        <tr><td>inset</td><td>3</td><td>inputs, selects, wells</td></tr>
-        <tr><td>frost</td><td>4</td><td>tooltips, menus, toasts, popovers</td></tr>
-        <tr><td>crystal</td><td>5</td><td>portrait, equipped, selected</td></tr>
-        <tr><td>rarity</td><td>6</td><td>trait cards, one per rarity</td></tr>
-        <tr><td>voice</td><td>3</td><td>dialogues only: plain white, no material</td></tr>
-      </table>
-    </article>
-
-    <article class="fr f-slate">
-      <h3>ANIMATION</h3>
-      <table>
-        <tr><th>THING</th><th>FPS</th><th>HOW</th></tr>
-        <tr><td>sprites (torch, coin, sparkle, eye)</td><td>6 to 12</td><td>strip + <code>steps(n)</code></td></tr>
-        <tr><td>textures (water, crest)</td><td>10</td><td>move 1 art px per step, tile wraps</td></tr>
-        <tr><td>glitch, static</td><td>12</td><td>jump the noise tile by random offsets</td></tr>
-        <tr><td>backgrounds</td><td>8 to 12</td><td>canvas at art res, own frame timer</td></tr>
-        <tr><td>UI motion (drawer, toast, knob)</td><td>4 steps</td><td><code>steps(4)</code>, under 250ms</td></tr>
-        <tr><td>card flip</td><td>12</td><td>frame redrawn at narrower widths</td></tr>
-      </table>
-      <p>Never an easing curve on pixel art. Position only moves in whole art pixels. Nothing loops faster than 12 fps, so it reads as sprite animation, not as a web transition.</p>
     </article>
 
     <article class="fr f-slate">
       <h3>ACCENT RECOLOUR</h3>
       <p>The character's accent goes through OKLCH and comes out as two ramps, written to <code>:root</code> as tokens:</p>
       <ul>
-        <li><code>--ac0..4</code>: shadow, dark, base, light, highlight. Shadows shift hue toward violet, highlights toward yellow, lightness is fixed per step so any custom colour gives a usable ramp.</li>
-        <li><code>--sn0..3</code>: the stone ramp. Accent hue at very low chroma, so a violet accent gives Ruins purple and a lime one gives mossy slate.</li>
-        <li><code>--on-ac</code>: void or white, whichever reads on the base.</li>
+        <li><code>--ac0..4</code>: shadow, dark, base, light, highlight. Shadows lean violet, highlights lean yellow, and lightness is fixed per step, so any custom colour gives a usable ramp.</li>
+        <li><code>--sn0..3</code>: the stone ramp, the accent's hue at very low chroma. Violet gives Ruins purple, lime gives mossy slate.</li>
+        <li><code>--on-ac</code>: void or white, whichever has more contrast on <code>--ac2</code>.</li>
       </ul>
-      <p>Sprites are palette-index grids. When the accent changes, every sprite that uses an accent index is redrawn from the new ramp and its data URL is swapped. Wood, metal, snow, fire and the SOUL never use accent indices, so materials stay recognisable.</p>
+      <p>Sprites are palette-index grids. When the accent changes, every sprite, frame and texture flagged <code>acc</code> is redrawn from the new ramp and its data URL swapped (about 200ms, once). Crystal takes the full ramp; stone takes the low-chroma ramp; wood takes it only on its inner inlay and nail heads. Metal, snow, fire and the SOUL never change, so the materials stay recognisable.</p>
       <div class="ramp" id="ramp-now" style="margin-top:var(--p3)"></div>
       <div class="ramp" id="ramp-stone" style="margin-top:var(--p2)"></div>
     </article>
 
     <article class="fr f-slate">
+      <h3>FRAMES . 9-SLICE</h3>
+      <div class="slice-demo">
+        <div class="slice" id="slice"><canvas id="slice-cv" width="38" height="38"></canvas></div>
+        <div class="stack"><div class="fr f-stone s1"></div><div class="fr f-stone s2"></div></div>
+      </div>
+      <p>Every frame is one small canvas: corners of D by D, edge tiles of length L that repeat, an empty centre. CSS draws it with <code>border-image-source</code>, <code>border-image-slice: D</code>, <code>border-width: D * --px</code> and <code>border-image-repeat: repeat</code>, so a panel of any size keeps whole pixels and no block ever stretches. Stone is one course of tall blocks (4 art px), 12 long on the top and bottom and 6 tall on the sides, with L = 24 so both periods tile.</p>
+      <table><tr><th>FRAME</th><th>D</th><th>ROLE</th><th>INSIDE</th></tr>
+        <tr><td>stone</td><td>7</td><td>app shell: sidebar, sheet panels, scene</td><td>faint courses</td></tr>
+        <tr><td>slate</td><td>5</td><td>cards and specimens</td><td>flat</td></tr>
+        <tr><td>wood</td><td>5 / 4</td><td>plaques, tabs, secondary buttons</td><td>grain</td></tr>
+        <tr><td>metal</td><td>5 / 4</td><td>top bar, player, deck, primary, danger</td><td>scanline</td></tr>
+        <tr><td>inset</td><td>3</td><td>inputs, selects, wells</td><td>flat</td></tr>
+        <tr><td>frost</td><td>4</td><td>tooltips, menus, toasts</td><td>flat</td></tr>
+        <tr><td>crystal</td><td>5</td><td>portrait, equipped, selected</td><td>flat</td></tr>
+        <tr><td>rarity</td><td>6</td><td>trait cards, one per rarity</td><td>flat</td></tr>
+        <tr><td>voice</td><td>3</td><td>the white box: dialogues and the open character</td><td>void</td></tr>
+      </table>
+      <p style="margin-top:var(--p3)">Stone or slate? Stone holds the app and anything titled with a wooden plaque. Slate holds a card that sits inside or beside stone. The list is frozen at nine: a new component picks a role from this table, it never gets a new frame.</p>
+    </article>
+
+    <article class="fr f-slate">
+      <h3>UNDERTALE RULES</h3>
+      <ul>
+        <li><b>The menu rule.</b> Every option reads <code>* LABEL</code>. The SOUL replaces the * on the one you are on and the label turns yellow. It is the same in the nav, the MORE menu, context menus, select lists and dialogue choices. Yellow always means the SOUL is on it.</li>
+        <li><b>The white box is focus.</b> Only two things get the plain white Undertale box: dialogues, and the open character's header. Everything else is a material.</li>
+        <li><b>HP language.</b> Core stat bars are yellow over red, 20 segments. A stat past its cap goes prestige: the base tier shows as a full yellow bar and the overflow is laid over it in KR magenta, with a <span class="tier" style="display:inline-grid">T1</span> chip. Stat colours live on the icons only.</li>
+        <li><b>The SOUL is the hand.</b> It is the cursor, the toggle knob, the selected-character marker, the card back and the empty state.</li>
+        <li><b>Copy is narrated.</b> Toasts, empty states and confirms speak in "* " lines: "* But nobody came.", "DELETE / KEEP HIM", and the safe choice is selected first.</li>
+      </ul>
+    </article>
+
+    <article class="fr f-slate">
+      <h3>ANIMATION</h3>
+      <table>
+        <tr><th>THING</th><th>FPS</th><th>HOW</th></tr>
+        <tr><td>sprites (torch, coin, eye, eq)</td><td>6 to 12</td><td>strip + <code>steps(n)</code></td></tr>
+        <tr><td>rarity art windows</td><td>8 to 10</td><td>20 by 20, 8 drawn frames</td></tr>
+        <tr><td>textures (water, crest)</td><td>10</td><td>1 art px per step, tile wraps</td></tr>
+        <tr><td>glitch, static</td><td>12</td><td>jump the noise tile by set offsets</td></tr>
+        <tr><td>backgrounds</td><td>8 to 12</td><td>canvas at art res, own frame timer</td></tr>
+        <tr><td>knob, toast, drawer</td><td>5 / 4 / 4 steps</td><td>2, 10 and 37 art px per step</td></tr>
+        <tr><td>card flip, deal</td><td>12</td><td>frame redrawn at narrower widths, 1 art px shake for LEGENDARY and up</td></tr>
+      </table>
+      <p style="margin-top:var(--p3)">Never an easing curve on pixel art. Every distance divides by its step count, so motion lands on whole art pixels. Nothing loops faster than 12 fps, so it reads as sprite animation, not as a web transition. No animation changes layout: sprites move <code>background-position</code>, motion uses <code>transform</code>, and the toast timer steps the width of a fixed 96 art px bar.</p>
+    </article>
+
+
+    <article class="fr f-slate" id="pages">
+      <h3>PAGES MAP</h3>
+      <table>
+        <tr><th>PAGE</th><th>BUILT FROM</th></tr>
+        <tr><td>Sheet</td><td>scene + white box header, stone panels with wood plaques, bars, trait cards, metal player</td></tr>
+        <tr><td>Utilities</td><td>stone panel per tool, slate cards, metal inputs; dice, compare, tier list, leaderboard and height chart reuse bars and portraits</td></tr>
+        <tr><td>Gallery</td><td>crystal frames on a stone wall, frost lightbox, menu-rule filters</td></tr>
+        <tr><td>Encyclopaedia</td><td>menu-rule index in stone, entries read in the white box with typewriter text, codex grid of trait cards (unseen ones dithered)</td></tr>
+        <tr><td>Playlists</td><td>wood plaque per playlist, menu-rule track list, metal player</td></tr>
+        <tr><td>BK's Corner</td><td>the white box: BK talks, you pick "*" choices; slate notes</td></tr>
+        <tr><td>Spin a Baddie</td><td>wheel canvas in a crystal frame, card flip and shake on the reveal, toast</td></tr>
+        <tr><td>Admin</td><td>metal forms, toggles, danger buttons, the confirm box</td></tr>
+      </table>
+    </article>
+
+    <article class="fr f-slate">
+      <h3>ATLAS + BUILD</h3>
+      <ul>
+        <li>One atlas module owns all art: <code>sprite(id, w, h, frames, fps, draw)</code>, <code>frame(id, D, L, fn)</code> and <code>texture(id, w, h, draw)</code>. <code>render()</code> writes <code>--s-*</code>, <code>--f-*</code> and <code>--t-*</code> to <code>:root</code>.</li>
+        <li>In Angular it is an <code>AtlasService</code> that runs at bootstrap and on accent change. Components only use classes (<code>.fr .f-stone</code>, <code>.spr .s-coin .anim</code>) and tokens, never canvas.</li>
+        <li>Components are numbered C01 and up in section 02, one spec card each, with its states.</li>
+        <li>Accessibility baseline: visible 1 art px yellow focus ring with a void gap, the drawer moves focus to search and closes on Esc, MORE opens with the arrow keys, toggles are <code>role=switch</code>, toasts are <code>role=status</code>, the pity bar is <code>role=meter</code>, label text is 4.5:1 or better.</li>
+      </ul>
+    </article>
+
+    <article class="fr f-slate">
       <h3>PERFORMANCE MODE</h3>
       <ul>
-        <li>Background canvases draw one frame and stop their timers.</li>
-        <li>All sprite and texture animations pause on their current frame.</li>
-        <li>Particles (embers, glints, sweeps) are removed.</li>
+        <li>Background canvases draw one frame and stop their timers. The deck shows the measured canvas cost per tick.</li>
+        <li>All sprite and texture animations pause on their current frame. Particles (embers, glints, sweeps) are removed.</li>
         <li>Typewriter text appears at once. Card flips jump to the result.</li>
+        <li>Even with it off, canvases and demo loops only run while on screen (IntersectionObserver), so an idle page does no layout.</li>
         <li>Frames and textures stay: they are static images and cost nothing.</li>
-        <li><code>prefers-reduced-motion: reduce</code> turns this on automatically.</li>
+        <li><code>prefers-reduced-motion: reduce</code> turns this on; loops pause and entrance animations simply end.</li>
       </ul>
     </article>
 
@@ -1274,14 +1428,14 @@ let AV = 0; // accent version, bumps on every recolour
 
 /* palette: read once from the CSS tokens so CSS stays the single source */
 const C = {};
-const FIX = 'void ink ink2 ink3 ash mute bone white red red-d yel wd0 wd1 wd2 wd3 mt0 mt1 mt2 mt3 fr0 fr1 ec0 ec1 ec2 em0 em1 em2 em3 vi0 vi1 vi2 vi3 gd grn hx'.split(' ');
+const FIX = 'void ink ink2 ink3 ash mute bone white red red-d yel kr wd0 wd1 wd2 wd3 mt0 mt1 mt2 mt3 fr0 fr1 ec0 ec1 ec2 em0 em1 em2 em3 vi0 vi1 vi2 vi3 gd grn'.split(' ');
 { const cs = getComputedStyle(root); FIX.forEach(k => C[k] = cs.getPropertyValue('--c-' + k).trim()); }
 
 /* one character per palette index, used by every sprite grid */
 const KEY = { '0':'void','1':'ink','2':'ink2','3':'ink3','4':'ash','5':'mute','6':'bone','7':'white',
   R:'red', r:'red-d', Y:'yel', w:'wd0', x:'wd1', y:'wd2', z:'wd3', m:'mt0', n:'mt1', o:'mt2', p:'mt3',
   f:'fr0', F:'fr1', q:'ec0', Q:'ec1', k:'ec2', L:'em0', M:'em1', N:'em2', O:'em3',
-  v:'vi0', V:'vi1', u:'vi2', U:'vi3', g:'gd', G:'grn', h:'hx',
+  v:'vi0', V:'vi1', u:'vi2', U:'vi3', g:'gd', G:'grn', h:'vi1', K:'kr',
   A:'ac0', B:'ac1', C:'ac2', D:'ac3', E:'ac4', S:'sn0', T:'sn1', I:'sn2', J:'sn3' };
 
 const hash = (x, y = 0, z = 0) => { let h = (x * 374761393 + y * 668265263 + z * 2147483647) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return (h ^ (h >>> 16)) >>> 0; };
@@ -1334,7 +1488,7 @@ function oklch(L, Cc, H) {
   return '#808080';
 }
 const hueTo = (h, t, a) => { const d = ((t - h + 540) % 360) - 180; return (h + d * a + 360) % 360; };
-function ramp(hex) {
+let ramp = function (hex) {
   const [L, Cc, H] = toOklch(hex);
   const Lb = Math.min(0.86, Math.max(0.6, L));
   const sH = hueTo(H, 300, 0.2), sc = Math.min(Cc, 0.12) * 0.5;
@@ -1345,9 +1499,12 @@ function ramp(hex) {
     ac3: oklch(Math.max(0.82, Lb + 0.07), Cc * 0.72, hueTo(H, 95, 0.12)),
     ac4: oklch(0.945, Cc * 0.38, hueTo(H, 95, 0.2)),
     sn0: oklch(0.16, sc * 0.7, sH), sn1: oklch(0.28, sc * 0.85, sH), sn2: oklch(0.4, sc, sH), sn3: oklch(0.56, sc * 0.9, sH),
-    on: Lb > 0.7 ? C.void : C.white,
   };
 }
+const relLum = hex => { const [r, g, b] = hexToRgb(hex).map(toLin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const contrast = (a, b) => { const x = relLum(a), y = relLum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const _ramp = ramp;
+ramp = hex => { const r = _ramp(hex); r.on = contrast(r.ac2, '#000000') >= contrast(r.ac2, '#ffffff') ? C.void : C.white; return r; };
 function applyRamp(rp) {
   for (const k of ['ac0', 'ac1', 'ac2', 'ac3', 'ac4', 'sn0', 'sn1', 'sn2', 'sn3']) { C[k] = rp[k]; root.style.setProperty('--' + k, rp[k]); }
   root.style.setProperty('--on-ac', rp.on);
@@ -1551,22 +1708,107 @@ RRRRR
 .RRR.
 ..R..`, 2, 3, dis ? { R: 'ash' } : {});
 });
-S('trk', 19, 9, 2, 1, true, (P, f) => {
+/* toggle: a carved groove, and the SOUL is the knob (grey off, red on,
+   yellow ring when the pointer is on it). Disabled is drawn, not filtered. */
+S('trk', 19, 9, 3, 1, true, (P, f) => {
   P.r(0, 1, 19, 7, 'void');
-  P.r(1, 2, 17, 5, 'sn0');
+  P.r(1, 2, 17, 5, f === 2 ? 'ink2' : 'sn0');
   P.r(1, 2, 17, 1, 'void');
   if (f === 1) { P.r(2, 3, 15, 3, 'ac1'); for (let x = 3; x < 17; x += 3) P.p(x, 4, 'ac2'); }
+  else if (f === 2) { for (let x = 2; x < 17; x += 2) P.p(x, 4, 'ink3'); }
   else { P.r(2, 3, 15, 3, 'ink2'); }
-  P.r(1, 6, 17, 1, 'sn2');
+  P.r(1, 6, 17, 1, f === 2 ? 'ink3' : 'sn2');
 });
-S('knob', 9, 9, 3, 1, true, (P, f) => {
-  P.r(0, 0, 9, 9, 'void');
-  P.r(1, 1, 7, 7, 'mt2');
-  P.r(1, 1, 7, 1, 'mt3'); P.r(1, 1, 1, 7, 'mt3');
-  P.r(1, 7, 7, 1, 'mt0'); P.r(7, 1, 1, 7, 'mt1');
-  const lit = f === 1 ? ['ac2', 'ac4'] : f === 2 ? ['em3', 'yel'] : ['ink3', 'ash'];
-  P.r(3, 3, 3, 3, lit[0]); P.p(4, 4, lit[1]); P.p(3, 3, lit[1]);
+const HEART_M = HEART7.split('\n').map(r => r.trim()).filter(Boolean);
+S('knob', 9, 9, 5, 1, false, (P, f) => {
+  const on = (x, y) => y >= 0 && y < 6 && x >= 0 && x < 7 && HEART_M[y][x] === 'R';
+  const fill = [['mt2', 'mt3'], ['red', 'white'], ['mt2', 'mt3'], ['red', 'white'], ['ink3', 'ash']][f];
+  const ring = f === 2 || f === 3 ? 'yel' : f === 4 ? 'ash' : 'void';
+  for (let y = -1; y <= 6; y++) for (let x = -1; x <= 7; x++) {
+    if (on(x, y)) P.p(x + 1, y + 2, (x === 1 && y === 1) ? fill[1] : fill[0]);
+    else if (on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1)) P.p(x + 1, y + 2, ring);
+  }
 });
+S('eq', 11, 10, 6, 8, true, (P, f) => {
+  const H = [[4, 8, 6, 9], [7, 5, 9, 4], [9, 3, 7, 6], [5, 9, 4, 8], [8, 6, 3, 10], [3, 7, 8, 5]][f];
+  H.forEach((h, i) => { P.r(i * 3, 10 - h, 2, h, 'ac2'); P.r(i * 3, 10 - h, 2, 1, 'ac4'); P.r(i * 3 + 1, 10 - h + 1, 1, h - 1, 'ac1'); });
+});
+S('more', 7, 7, 4, 6, true, (P, f) => P.g(`
+C......
+CD.....
+CDC....
+CDCC...
+CDC....
+CD.....
+C......`, [0, 1, 2, 1][f], 0));
+/* ---- rarity art windows: 20x20, 8 frames each, drawn per rarity ---- */
+const ART = 20;
+const HEART14 = `
+..XXXX..XXXX..
+.XXXXXXXXXXXX.
+XXXXXXXXXXXXXX
+XXXXXXXXXXXXXX
+XXXXXXXXXXXXXX
+.XXXXXXXXXXXX.
+..XXXXXXXXXX..
+...XXXXXXXX...
+....XXXXXX....
+.....XXXX.....
+......XX......`.split('\n').map(r => r.trim()).filter(Boolean);
+const RART = {
+  common(P, f) { // a pebble that glints, lint drifting up
+    P.r(0, 0, 20, 20, 'mt0'); P.dither(0, 0, 20, 8, 'ink2', .25);
+    P.r(0, 15, 20, 5, 'mt1'); P.r(0, 15, 20, 1, 'mt2'); P.dither(0, 17, 20, 3, 'mt0', .5);
+    P.ell(10, 12.5, 6, 3.6, 'void'); P.ell(10, 12.5, 5.2, 2.9, 'mt2');
+    P.r(6, 10, 6, 1, 'mt3'); P.p(5, 11, 'mt3'); P.r(7, 15, 7, 1, 'mt1'); P.p(14, 14, 'mt1'); P.p(11, 12, 'mt1'); P.p(8, 13, 'mt1');
+    if (f < 2) { P.p(7, 11, 'white'); if (f === 0) { P.p(7, 10, 'mt3'); P.p(6, 11, 'mt3'); P.p(8, 11, 'mt3'); } }
+    [[4, 0], [13, 3], [16, 6]].forEach(([x, o]) => { const y = 13 - ((f + o) % 8) * 1.5 | 0; if (y > 1) P.p(x + ((f + o) % 4 < 2 ? 0 : 1), y, (f + o) % 8 > 5 ? 'mt2' : 'mt3'); });
+  },
+  rare(P, f) { // a drip falls into the pool and rings out
+    P.r(0, 0, 20, 20, 'ec0'); P.dither(0, 0, 20, 4, 'void', .5);
+    P.r(0, 14, 20, 6, 'ec1'); P.r(0, 14, 20, 1, 'ec2'); P.dither(0, 16, 20, 4, 'ec0', .25);
+    P.r(8, 0, 4, 2, 'ink2'); P.p(9, 2, 'ec2');
+    if (f < 4) { const y = 3 + f * 3; P.p(10, y, 'fr1'); P.r(9, y + 1, 3, 2, 'ec2'); P.p(10, y + 1, 'white'); P.r(10, y + 3, 1, 1, 'ec1'); }
+    if (f === 4) { P.p(8, 12, 'fr1'); P.p(12, 12, 'fr1'); P.p(7, 11, 'white'); P.p(13, 11, 'white'); P.p(10, 11, 'fr1'); P.r(8, 14, 5, 1, 'white'); }
+    if (f >= 5) { const w = [5, 8, 11][f - 5]; P.r(10 - w, 14, 3, 1, 'fr1'); P.r(10 + w - 2, 14, 3, 1, 'fr1'); P.r(10 - w + 2, 15, 2, 1, 'ec2'); P.r(10 + w - 3, 15, 2, 1, 'ec2'); }
+  },
+  epic(P, f) { // a crystal cluster; a glint climbs the big face
+    P.r(0, 0, 20, 20, 'vi0'); P.dither(0, 0, 20, 20, 'void', .25);
+    P.r(0, 17, 20, 3, 'void'); P.r(0, 17, 20, 1, 'vi1');
+    const cr = (x, top, w, k) => { for (let y = top; y < 17; y++) { const hw = Math.min(w, 1 + ((y - top) >> 1)); for (let i = -hw; i < hw; i++) P.p(x + i, y, i < 0 ? k[0] : k[1]); } P.p(x - 1, top, k[2]); };
+    cr(5, 9, 2, ['vi2', 'vi1', 'vi3']); cr(15, 7, 2, ['vi2', 'vi1', 'vi3']); cr(10, 2, 3, ['vi3', 'vi2', 'white']);
+    const gy = 15 - f * 2; if (gy >= 3) { P.r(8, gy, 2, 1, 'white'); P.p(9, gy - 1, 'vi3'); }
+    if (f === 6 || f === 7) { const k = f === 6 ? 'white' : 'vi3'; P.p(10, 0, k); P.p(9, 1, 'vi3'); P.p(11, 1, 'vi3'); if (f === 6) { P.p(8, 1, 'vi2'); P.p(12, 1, 'vi2'); } }
+  },
+  legendary(P, f) { // a crown; a white glint sweeps across the band
+    P.r(0, 0, 20, 20, 'wd0'); P.dither(0, 0, 20, 20, 'wd1', .25);
+    P.r(0, 17, 20, 3, 'void'); P.r(0, 17, 20, 1, 'gd');
+    P.r(3, 11, 14, 5, 'void'); P.r(4, 12, 12, 3, 'em3'); P.r(4, 14, 12, 1, 'gd'); P.r(4, 12, 12, 1, 'yel');
+    [[4, 5], [9, 3], [14, 5]].forEach(([x, t]) => { P.r(x - 1, t, 4, 9 - (t - 3), 'void'); P.r(x, t + 1, 2, 11 - t - 1, 'em3'); P.p(x, t + 1, 'yel'); P.p(x + 1, 11, 'gd'); });
+    P.p(10, 2, 'void'); P.p(9, 2, 'void'); P.r(9, 2, 2, 1, 'yel');
+    P.p(6, 13, 'red'); P.p(10, 13, 'ec2'); P.p(14, 13, 'grn');
+    const gx = f * 3 - 2; for (let y = 4; y < 15; y++) { const x = gx + ((15 - y) >> 2); if (x >= 4 && x < 16) { P.p(x, y, 'white'); } }
+  },
+  mythic(P, f) { // a living flame with embers
+    P.r(0, 0, 20, 20, 'em0'); P.dither(0, 0, 20, 20, 'void', .5);
+    P.r(0, 18, 20, 2, 'void'); P.r(0, 18, 20, 1, 'em1');
+    for (let y = 0; y < 16; y++) { const yy = 17 - y, t = y / 15, hw = Math.round(6 * Math.sin(Math.PI * (t * .85 + .12)) * (1 - t * .35));
+      const sx = Math.round(Math.sin(y * .7 + f * 1.6) * 1.4 * t); const cx = 10 + sx;
+      for (let i = -hw; i < hw; i++) { const e = Math.abs(i + .5) / Math.max(1, hw); P.p(cx + i, yy, e > .75 ? 'em1' : e > .45 ? 'em2' : y < 7 ? 'yel' : 'em3'); } }
+    [[4, 0], [15, 3], [8, 5]].forEach(([x, o]) => { const q = (f + o) % 8, y = 15 - q * 2; if (y > 0) P.p(x + (q & 1), y, q > 5 ? 'em2' : 'em3'); });
+  },
+  hexxed(P, f) { // a broken SOUL that will not hold still
+    P.r(0, 0, 20, 20, 'void');
+    const R2 = rng(40 + f); for (let i = 0; i < 26; i++) P.p(Math.floor(R2() * 20), Math.floor(R2() * 20), R2() < .7 ? 'vi0' : 'vi1');
+    const shift = f === 5 ? [5, 7, 2] : f === 7 ? [3, 5, -2] : null; const flash = f === 6;
+    HEART14.forEach((row, y) => { const dx = shift && y >= shift[0] && y <= shift[1] ? shift[2] : 0; for (let x = 0; x < 14; x++) { if (row[x] !== 'X') continue;
+      const crack = (x === 7 && y % 3 !== 2) || (x === 6 && y % 3 === 2) || (x === 8 && y === 4);
+      const edge = y === 0 || x === 0 || x === 13 || row[x - 1] !== 'X' || row[x + 1] !== 'X' || !HEART14[y + 1] || HEART14[y + 1][x] !== 'X';
+      P.p(3 + x + dx, 5 + y, crack ? (flash ? 'vi3' : 'void') : flash ? 'red' : edge ? 'vi1' : (x < 4 && y < 4 ? 'vi3' : 'vi2')); } });
+    if (f === 5 || f === 7) { P.r(0, 10, 20, 1, 'vi3'); P.r(2, 11, 6, 1, 'red'); }
+  },
+};
+for (const [k, fn] of Object.entries(RART)) S('art-' + k, ART, ART, 8, k === 'hexxed' ? 10 : 8, false, fn);
 S('thumb', 9, 11, 2, 1, true, (P, f) => P.g(GEM9, 0, 1, f ? { '0': 'yel' } : {}));
 S('gem-s', 7, 7, 1, 1, true, P => P.g(GEM7));
 S('gem-off', 7, 7, 1, 1, false, P => P.g(GEM7, 0, 0, { D: 'ash', E: 'mute', C: 'ink3', B: 'ink2' }));
@@ -1588,18 +1830,6 @@ S('cell', 7, 9, 3, 1, true, (P, f) => {
 .0CBB0.
 ..0B0..`, 0, 4);
   else P.g(full, 0, 0, { D: 'ink3', E: 'ash', C: 'ink2', B: 'ink2' });
-});
-S('pebble', 7, 7, 8, 8, false, (P, f) => {
-  P.g(`
-..000..
-.0ppo0.
-0ponon0
-0pooon0
-0onnnm0
-.0nmm0.
-..000..`);
-  if (f === 0) P.p(2, 2, 'white');
-  if (f === 1) { P.p(2, 2, 'white'); P.p(1, 2, 'fr1'); P.p(3, 2, 'fr1'); P.p(2, 1, 'fr1'); P.p(2, 3, 'fr1'); }
 });
 S('flower', 7, 11, 4, 6, false, (P, f) => {
   const sx = [0, 1, 0, -1][f];
@@ -1658,13 +1888,7 @@ hhhhhhhhhhhhhhh
 ...............
 ...............
 ...............`];
-S('eye', 15, 9, 8, 6, false, (P, f) => P.g(EYE[[0, 0, 0, 0, 0, 1, 2, 1][f]], 0, 0, { h: 'hx', '0': 'void', R: 'red' }));
-S('runes', 9, 9, 4, 6, false, (P, f) => {
-  const ring = [[2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [1, 1], [7, 1], [0, 2], [8, 2], [0, 3], [8, 3], [0, 4], [8, 4], [0, 5], [8, 5], [0, 6], [8, 6], [1, 7], [7, 7], [2, 8], [3, 8], [4, 8], [5, 8], [6, 8]];
-  ring.forEach(([a, b], i) => P.p(a, b, (i + f * 6) % 8 < 2 ? 'vi3' : 'hx'));
-  const L = [[[4, 2], [4, 6]], [[2, 2], [6, 6]], [[2, 4], [6, 4]], [[6, 2], [2, 6]]][f];
-  P.line(L[0][0], L[0][1], L[1][0], L[1][1], 'vi2'); P.p(4, 4, 'white');
-});
+S('eye', 15, 9, 8, 6, false, (P, f) => P.g(EYE[[0, 0, 0, 0, 0, 1, 2, 1][f]], 0, 0, { h: 'vi1', '0': 'void', R: 'red' }));
 S('crest', 8, 8, 4, 8, false, (P, f) => {
   const base = [2, 4, 6, 3, 1, 5, 7, 3];
   for (let x = 0; x < 8; x++) {
@@ -1768,29 +1992,48 @@ const gemAt = (o, cxp, cyp, set) => { // small diamond gem inside a corner block
   if (dx === 0 && dy === 1) return set[4];
   return null;
 };
-/* stone: Ruins brick, cornerstones with an accent gem */
+/* stone: ONE course of tall Ruins blocks (4 art px), 12 long on the
+   top and bottom, 6 tall on the sides, so a panel edge reads as masonry
+   and not as a dotted line. Cornerstones carry a 2x2 accent gem. */
+const brick = (r, c, P, x, y) => { // r,c: position inside a block of P; 4 rows tall
+  if (c === 0) return 'sn0';
+  const sp = hash(x, y, 7) % 13;
+  if (r === 0 || c === 1) return sp === 0 ? 'sn2' : 'sn3';
+  if (r === 3 || c === P - 1) return 'sn1';
+  return sp === 1 ? 'sn1' : sp === 2 ? 'sn3' : 'sn2';
+};
 const stoneFn = o => {
   if (round1(o)) return null;
   if (o.d === 0) return 'void';
+  const D = o.D;
   if (o.corner) {
-    const lu = o.cx === 'l' ? o.u : o.D - 1 - o.u, lv = o.cy === 't' ? o.v : o.D - 1 - o.v;
-    if (lu === o.D - 1 || lv === o.D - 1) return 'void';
-    const g = gemAt(o, 3, 3, ['ac4', 'ac3', 'ac2', 'ac1', 'ac0']); if (g) return g;
-    if (o.u === 1 && o.cx === 'l' || o.v === 1 && o.cy === 't') return 'sn3';
-    if (o.u === o.D - 2 && o.cx === 'r' || o.v === o.D - 2 && o.cy === 'b') return 'sn0';
-    if (lu === 1 || lv === 1) return 'sn3';
-    if (lu === o.D - 2 || lv === o.D - 2) return 'sn1';
+    const lu = o.cx === 'l' ? o.u : D - 1 - o.u, lv = o.cy === 't' ? o.v : D - 1 - o.v;
+    const ax = o.cx === 'l' ? lu - 1 : 4 - lu, ay = o.cy === 't' ? lv - 1 : 4 - lv; // 0..3 inside the cornerstone, top-left origin
+    if (lu >= 1 && lu <= 4 && lv >= 1 && lv <= 4) {
+      if ((ax === 1 || ax === 2) && (ay === 1 || ay === 2)) return ax === 1 && ay === 1 ? 'ac4' : ax === 2 && ay === 2 ? 'ac1' : 'ac2';
+      if (ay === 0 || ax === 0) return 'sn3';
+      if (ay === 3 || ax === 3) return 'sn1';
+      return 'sn2';
+    }
+    const dd = Math.min(lu, lv);
+    if (dd >= 5) return dd === 5 ? 'void' : ((o.cy === 'b' && o.cx === 'r') ? 'ink' : 'void');
+    // continuation of an edge course next to the cornerstone
+    if (lu >= 5) { const k = lu === 5 ? 'sn0' : (o.cx === 'l' ? 'sn3' : 'sn1'); return k; }
+    if (lv >= 5) { const k = lv === 5 ? 'sn0' : (o.cy === 't' ? 'sn3' : 'sn1'); return k; }
     return 'sn2';
   }
-  if (o.d === o.D - 1) return 'void';
-  if (o.d === 3) return 'sn0';
-  const course = o.d > 3 ? 1 : 0, row = course ? o.d - 4 : o.d - 1, off = course ? 4 : 0, j = (o.along + off) % 8;
-  if (j === 0) return 'sn0';
-  if (row === 0) { if (j === 1) return o.lit ? 'sn3' : 'sn2'; return o.lit ? (hash(o.x, o.y, 5) % 9 === 0 ? 'sn2' : 'sn3') : 'sn2'; }
-  if (j === 7 && !o.lit) return 'sn0';
-  return (hash(o.x, o.y, 7) % 11 === 0) ? 'sn1' : (o.lit ? 'sn2' : 'sn1');
+  if (o.d === 5) return 'void';
+  if (o.d === 6) return o.lit ? 'void' : 'ink';
+  if (o.side === 't' || o.side === 'b') { const r = o.side === 't' ? o.y - 1 : o.y - (o.H - 5); return brick(r, (o.x + 7) % 12, 12, o.x, o.y); }
+  const c = o.side === 'l' ? o.x - 1 : o.x - (o.W - 5); // across, 0..3
+  const rr = (o.y + 1) % 6;
+  if (rr === 0) return 'sn0';
+  const sp = hash(o.x, o.y, 7) % 13;
+  if (rr === 1 || c === 0) return sp === 0 ? 'sn2' : 'sn3';
+  if (rr === 5 || c === 3) return 'sn1';
+  return sp === 1 ? 'sn1' : sp === 2 ? 'sn3' : 'sn2';
 };
-F('stone', 7, 16, true, stoneFn);
+F('stone', 7, 24, true, stoneFn);
 F('slate', 5, 16, true, o => {
   if (round1(o)) return null;
   if (o.d === 0) return 'void';
@@ -1800,11 +2043,11 @@ F('slate', 5, 16, true, o => {
   if (o.d === 2) return (o.along % 8 === 0 && !o.corner) ? 'sn0' : (o.lit ? 'sn2' : 'sn1');
   return o.lit ? 'sn1' : 'sn0';
 });
-F('wood', 5, 16, false, o => {
+F('wood', 5, 16, true, o => { // the inner bevel is an accent inlay, nail heads are accent brass
   if (round1(o)) return null;
   if (o.d === 0) return 'void';
-  if (o.d === 4) return 'wd0';
-  if (o.corner) { const lu = o.cx === 'l' ? o.u : 4 - o.u, lv = o.cy === 't' ? o.v : 4 - o.v; if (lu === 2 && lv === 2) return 'mt3'; if (lu === 3 && lv === 2 || lu === 2 && lv === 3) return 'mt1'; }
+  if (o.d === 4) return o.lit ? 'ac1' : 'wd0';
+  if (o.corner) { const lu = o.cx === 'l' ? o.u : 4 - o.u, lv = o.cy === 't' ? o.v : 4 - o.v; if (lu === 2 && lv === 2) return 'ac3'; if (lu === 3 && lv === 2 || lu === 2 && lv === 3) return 'ac1'; }
   if (o.d === 1) return o.lit ? 'wd3' : 'wd0';
   if (o.d === 2) return (hash(o.along >> 2, o.side.charCodeAt(0)) % 4 === 0) ? 'wd1' : 'wd2';
   return (hash(o.along >> 1, o.d, o.side.charCodeAt(0)) % 5 === 0) ? 'wd2' : 'wd1';
@@ -1879,7 +2122,7 @@ const RAR = {
   epic:     { r: ['vi0', 'vi1', 'vi2', 'vi3'], pat: o => ((o.along + o.d) % 4 < 2) ? 3 : 2 },
   legendary:{ r: ['wd1', 'gd', 'em3', 'yel'], pat: o => o.along % 8 === 4 ? 3 : 2 },
   mythic:   { r: ['em0', 'em1', 'em2', 'em3'], pat: o => o.along % 8 === 4 ? 3 : 1 },
-  hexxed:   { r: ['void', 'hx', 'vi2', 'vi3'], pat: o => { const h = hash(o.x, o.y, 9) % 6; return h === 0 ? 3 : h < 3 ? 1 : 0; } },
+  hexxed:   { r: ['void', 'vi1', 'vi2', 'vi3'], pat: o => { const h = hash(o.x, o.y, 9) % 6; return h === 0 ? 3 : h < 3 ? 1 : 0; } },
 };
 for (const [name, def] of Object.entries(RAR)) {
   F('tc-' + name, 6, 16, false, o => {
@@ -1929,7 +2172,7 @@ T('water', 16, 8, false, P => {
 });
 T('glitch', 16, 16, false, P => {
   const R = rng(5);
-  for (let y = 0; y < 16; y++) { const rowShift = R() < .2; for (let x = 0; x < 16; x++) { const v = R(); P.p(x, y, rowShift ? (v < .5 ? 'vi2' : 'hx') : v < .45 ? 'hx' : v < .7 ? 'void' : v < .9 ? 'vi1' : v < .97 ? 'vi3' : 'white'); } }
+  for (let y = 0; y < 16; y++) { const rowShift = R() < .2; for (let x = 0; x < 16; x++) { const v = R(); P.p(x, y, rowShift ? (v < .5 ? 'vi2' : 'vi0') : v < .45 ? 'vi0' : v < .7 ? 'void' : v < .9 ? 'vi1' : v < .97 ? 'vi3' : 'white'); } }
 });
 T('snowcap', 16, 6, false, P => {
   const h = [3, 4, 4, 5, 5, 4, 3, 3, 4, 5, 5, 5, 4, 4, 3, 3];
@@ -1938,12 +2181,23 @@ T('snowcap', 16, 6, false, P => {
   P.p(9, 4, 'fr1');
 });
 T('dither', 2, 2, false, P => { P.p(0, 0, 'void'); P.p(1, 1, 'void'); });
+/* interior textures: one step off the fill, transparent elsewhere */
+T('in-stone', 24, 10, true, P => { // two courses of faint blocks
+  P.r(0, 4, 24, 1, 'sn0'); P.r(0, 9, 24, 1, 'sn0');
+  P.r(0, 0, 1, 4, 'sn1'); P.r(12, 0, 1, 4, 'sn1'); P.r(6, 5, 1, 4, 'sn1'); P.r(18, 5, 1, 4, 'sn1');
+});
+T('in-wood', 32, 6, false, P => { // sparse grain on the plank colour
+  P.r(2, 1, 7, 1, 'wd0'); P.r(14, 4, 9, 1, 'wd0'); P.r(26, 2, 4, 1, 'wd0'); P.p(11, 3, 'wd2'); P.r(22, 0, 3, 1, 'wd2');
+});
+T('in-metal', 4, 3, false, P => { P.r(0, 2, 4, 1, 'ink2'); });
+T('fade', 12, 2, false, P => { for (let x = 0; x < 12; x++) for (let y = 0; y < 2; y++) { const d = x / 11; const on = d > .8 ? true : d > .55 ? ((x + y) & 1) === 0 : d > .3 ? ((x & 1) === 0 && y === 0) : false; if (on) P.p(x, y, 'void'); } });
 T('cardback', 8, 8, true, P => {
   P.r(0, 0, 8, 8, 'ac0');
   for (let i = 0; i < 8; i++) { P.p(i, i, 'ac1'); P.p(7 - i, i, 'ac1'); }
   P.p(4, 4, 'ac2'); P.p(0, 4, 'ac2');
 });
 T('skel', 2, 2, false, P => { P.r(0, 0, 2, 2, 'ink2'); P.p(0, 0, 'ink3'); P.p(1, 1, 'ink3'); });
+T('skelband', 40, 1, false, P => { P.r(0, 0, 6, 1, 'ash'); P.r(6, 0, 2, 1, 'ink3'); });
 
 /* =====================================================================
    5. RENDER -> CSS VARIABLES
@@ -1968,6 +2222,8 @@ function spriteClasses() {
    ===================================================================== */
 const ICON = {
   dot: ``,
+  ast: `.......\n...X...\n.X.X.X.\n..XXX..\n.X.X.X.\n...X...\n.......`,
+  sign: `...X...\nXXXXXX.\nXXXXXXX\nXXXXXX.\n...X...\n..XXX..\n...X...`,
   menu: `.......\nXXXXXXX\n.......\nXXXXXXX\n.......\nXXXXXXX\n.......`,
   bolt: `....XX.\n...XX..\n..XX...\n.XXXXX.\n...XX..\n..XX...\n.XX....`,
   speaker: `...X...\n..XX..X\nXXXX.X.\nXXXX.X.\nXXXX.X.\n..XX..X\n...X...`,
@@ -2100,6 +2356,10 @@ const FOLDERS = [
     { id: 'frostbyte', n: 'FROSTBYTE', c: '#0080ff', g: '730', st: 'hood' },
     { id: 'marrow', n: 'MARROW', c: '#ff6600', g: '58', st: 'bob' },
     { id: 'quill', n: 'QUILL', c: '#cc00cc', g: '1,404', st: 'ears' }] },
+  { n: 'HOTLAND HEAT', c: '#ff6600', list: [
+    { id: 'emberly', n: 'EMBERLY', c: '#ff4040', g: '640', st: 'spiky' },
+    { id: 'rivet', n: 'RIVET', c: '#6666ff', g: '1,120', st: 'hat2' },
+    { id: 'cinders', n: 'CINDERS', c: '#ffff00', g: '33', st: 'hood' }] },
   { n: 'ARCHIVE', c: '#6a7190', closed: 12, list: [] },
 ];
 const ALLC = FOLDERS.flatMap(f => f.list);
@@ -2110,19 +2370,19 @@ const STATS = [
 ];
 const SUBS = [['CRIT RATE', '18.5%', '+5.0'], ['CRIT DMG', '150%', '+25'], ['HEAL POWER', '5.0%', '+5.0'], ['STATUS RES', '12.0%', ''], ['DEXTERITY', '22%', '+15'],
   ['RESILIENCE', '10%', ''], ['TRUE DMG', '15%', '+15'], ['LIFESTEAL', '4.0%', '+3.0'], ['COOLDOWN RED', '20%', '']];
-const MC = { atk: 'var(--stat-atk)', def: 'var(--stat-def)', mag: 'var(--stat-mag)', spd: 'var(--stat-spd)', iq: 'var(--stat-iq)', hp: 'var(--stat-hp)', yel: 'var(--c-yel)', grn: 'var(--c-grn)', red: 'var(--c-red)', vi3: 'var(--c-vi3)', mute: 'var(--c-mute)' };
+const MC = { atk: 'var(--stat-atk)', def: 'var(--c-fr0)', mag: 'var(--c-vi3)', spd: 'var(--stat-spd)', iq: 'var(--stat-iq)', hp: 'var(--stat-hp)', yel: 'var(--c-yel)', grn: 'var(--c-grn)', red: 'var(--c-red)', vi3: 'var(--c-vi3)', mute: 'var(--c-mute)' };
 const HAND = [
-  { r: 'epic', n: 'CARD COUNTER', d: '+30% IQ, +15% Dexterity. Once per battle, see the enemy\'s next action.', fx: [['+30% IQ', 'iq'], ['+15% DEXTERITY', 'grn']] },
-  { r: 'legendary', n: 'LOADED DICE', d: '+25% Crit Rate. Crits roll twice and keep the higher result.', fx: [['+25% CRIT RATE', 'yel'], ['DOUBLE ROLL', 'mute']] },
-  { r: 'mythic', n: 'HOUSE ALWAYS WINS', d: 'Each turn, flip a coin. Heads: +40% ATK and +20% Crit Rate. Tails: the enemy drops 10% of their gold.', fx: [['+40% ATK', 'atk'], ['+20% CRIT RATE', 'yel']] },
+  { r: 'epic', no: '041', n: 'CARD COUNTER', d: '+30% IQ, +15% Dexterity. Once per battle, see the enemy\'s next action.', fx: [['+30% IQ', 'iq'], ['+15% DEXTERITY', 'grn']] },
+  { r: 'legendary', no: '112', n: 'LOADED DICE', d: '+25% Crit Rate. Crits roll twice and keep the higher result.', fx: [['+25% CRIT RATE', 'yel'], ['DOUBLE ROLL', 'mute']] },
+  { r: 'mythic', no: '007', n: 'HOUSE ALWAYS WINS', d: 'Each turn, flip a coin. Heads: +40% ATK and +20% Crit Rate. Tails: the enemy drops 10% of their gold.', fx: [['+40% ATK', 'atk'], ['+20% CRIT RATE', 'yel']] },
 ];
 const RARS = [
-  { r: 'common', n: 'POCKET LINT', d: '+5% Dexterity. Find 1 G after every battle.', fx: [['+5% DEXTERITY', 'grn']] },
-  { r: 'rare', n: 'RIPTIDE', d: '+20% SPD. Attacks push the enemy back one space.', fx: [['+20% SPD', 'spd']] },
-  { r: 'epic', n: 'ECHO CHAMBER', d: '+15% MAG. Your last ability repeats at 50% power.', fx: [['+15% MAG', 'mag']] },
-  { r: 'legendary', n: 'TORCHBEARER', d: '+60% ATK while BURNING. Allies near you are immune to FREEZE.', fx: [['+60% ATK', 'atk']] },
-  { r: 'mythic', n: 'CORE MELTDOWN', d: 'Below 30% HP: all stats +50% and hits inflict BURNING. Lose 5% HP each turn.', fx: [['+50% ALL', 'yel'], ['-5% HP / TURN', 'red']] },
-  { r: 'hexxed', n: 'NOBODY CAME', d: 'Enemies at or below 20% HP are erased. You can never gain gold again.', fx: [['ERASE BELOW 20%', 'vi3'], ['NO GOLD', 'red']] },
+  { r: 'common', no: '003', n: 'POCKET LINT', d: '+5% Dexterity. Find 1 G after every battle.', fx: [['+5% DEXTERITY', 'grn']] },
+  { r: 'rare', no: '058', n: 'RIPTIDE', d: '+20% SPD. Attacks push the enemy back one space.', fx: [['+20% SPD', 'spd']] },
+  { r: 'epic', no: '066', n: 'ECHO CHAMBER', d: '+15% MAG. Your last ability repeats at 50% power.', fx: [['+15% MAG', 'mag']] },
+  { r: 'legendary', no: '121', n: 'TORCHBEARER', d: '+60% ATK while BURNING. Allies near you are immune to FREEZE.', fx: [['+60% ATK', 'atk']] },
+  { r: 'mythic', no: '009', n: 'CORE MELTDOWN', d: 'Below 30% HP: all stats +50% and hits inflict BURNING. Lose 5% HP each turn.', fx: [['+50% ALL', 'yel'], ['-5% HP / TURN', 'red']] },
+  { r: 'hexxed', no: '000', n: 'NOBODY CAME', d: 'Enemies at or below 20% HP are erased. You can never gain gold again.', fx: [['ERASE BELOW 20%', 'vi3'], ['NO GOLD', 'red']] },
 ];
 const ACCENTS = [['ORANGE', '#ff8000'], ['HOT PINK', '#ff3fa4'], ['CYAN', '#00e5ff'], ['LIME', '#80ff00'], ['VIOLET', '#8000ff'], ['YELLOW', '#ffff00']];
 const PRESETS = ['#ffff00', '#ff0000', '#00ff80', '#00ffff', '#ff8000', '#ff80ff', '#8000ff', '#ffffff', '#0080ff', '#ff4040', '#80ff00', '#40ffff', '#ff6600', '#cc00cc', '#00cc66', '#6666ff'];
@@ -2133,7 +2393,7 @@ const PRESETS = ['#ffff00', '#ff0000', '#00ff80', '#00ffff', '#ff8000', '#ff80ff
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function buildFolders() {
   $('#folders').innerHTML = FOLDERS.map((f, i) => `
-    <div class="folder" style="--fc:${f.c}">
+    <div class="folder" style="--fc:${f.c};--fl:${f.closed ? 'var(--c-mute)' : ramp(f.c).ac3}">
       <button class="folder-h" aria-expanded="${f.closed ? 'false' : 'true'}" aria-controls="fold-${i}"><i class="ico chev" data-i="chev"></i>${esc(f.n)}<span class="n">${f.closed || f.list.length}</span></button>
       <ul class="ents" id="fold-${i}" ${f.closed ? 'hidden' : ''}>${f.list.map(c => `
         <li><a class="ent" href="#sheet" ${c.cur ? 'aria-current="true"' : ''} style="--cc3:${ramp(c.c).ac3}">
@@ -2153,7 +2413,7 @@ function buildStats() {
     return `<div class="st" tabindex="0" ${s.k === 'atk' ? 'aria-describedby="tip-atk"' : ''} aria-label="${s.l} ${s.v}${tier ? ', prestige tier ' + tier : ''}">
       <i class="spr s-st-${s.k}" aria-hidden="true"></i>
       <span class="lab">${s.l}${tier ? `<span class="tier">T${tier}</span>` : ''}</span>
-      <div class="bw"><div class="bar${tier ? ' t' + Math.min(tier, 1) : ''}" style="--c:var(--stat-${s.k})" data-full="${full}">${cells}${tier ? '<i class="glint" aria-hidden="true"></i>' : ''}</div></div>
+      <div class="bw"><div class="bar${tier ? ' t' + Math.min(tier, 1) : ''}" data-full="${full}">${cells}${tier ? '<i class="glint" aria-hidden="true"></i>' : ''}</div></div>
       <span class="val">${s.v}</span><span class="bon">${s.b ? '+' + s.b : ''}</span>${tip}</div>`;
   }).join('');
   $('#subs').innerHTML = SUBS.map(([k, v, d]) => `<div class="sub"><span class="k">${k}</span><span class="v">${v}</span><span class="d">${d}</span></div>`).join('');
@@ -2170,20 +2430,28 @@ function sizeBars() {
 }
 function tcHTML(t) {
   const dec = {
-    common: `<i class="spr s-pebble anim dec" aria-hidden="true"></i>`,
-    rare: `<span class="ring" aria-hidden="true"></span><i class="spr s-flower anim dec" aria-hidden="true"></i>`,
+    common: ``,
+    rare: `<span class="ring" aria-hidden="true"></span>`,
     epic: `<i class="spr s-crystal-epic dec c1" aria-hidden="true"></i><i class="spr s-crystal-epic dec c2" aria-hidden="true" style="transform:scaleX(-1)"></i><i class="spr s-spark-epic anim dec s1" aria-hidden="true"></i><i class="spr s-spark-epic anim dec s2" style="--delay:-.25s" aria-hidden="true"></i>`,
     legendary: `<i class="spr s-torch anim dec tl" aria-hidden="true"></i><i class="spr s-torch anim dec tr" style="--delay:-.3s" aria-hidden="true"></i><i class="sweep" aria-hidden="true"></i>`,
     mythic: `<span class="crest" aria-hidden="true"></span><span class="embers" aria-hidden="true">${[8, 22, 37, 55, 71, 88].map((l, i) => `<i style="left:${l}%;--d:${1.6 + (i % 3) * .5}s;--dl:-${(i * .37).toFixed(2)}s;--st:${10 + i % 3 * 2}"></i>`).join('')}</span>`,
-    hexxed: `<span class="ring" aria-hidden="true"></span><i class="spr s-eye anim eye" aria-hidden="true"></i><i class="spr s-runes anim runes" aria-hidden="true"></i>`,
+    hexxed: `<span class="ring" aria-hidden="true"></span><i class="spr s-eye anim eye" aria-hidden="true"></i>`,
   }[t.r];
-  return `<article class="tc ${t.r}">${dec}<span class="rar">${t.r.toUpperCase()}</span><h5 class="tn">${esc(t.n)}</h5><p class="td">${esc(t.d)}</p>
-    <div class="fx-l">${t.fx.map(([a, c]) => `<span class="mod" style="--mc:${MC[c]}">${esc(a)}</span>`).join('')}</div><span class="smp">SAMPLE</span></article>`;
+  return `<article class="tc ${t.r}">${dec}<div class="top"><span class="art" aria-hidden="true"><i class="spr s-art-${t.r} anim"></i></span>
+    <div class="rr"><span class="rar">${t.r.toUpperCase()}</span><span class="no">No.${t.no}</span></div><h5 class="tn">${esc(t.n)}</h5></div><p class="td">${esc(t.d)}</p>
+    <div class="fx-l">${t.fx.map(([a, c]) => `<span class="mod" style="--mc:${MC[c]}">${esc(a)}</span>`).join('')}</div></article>`;
 }
 function buildTraits() {
   $('#hand').innerHTML = HAND.map(tcHTML).join('');
   $('#hand').style.paddingTop = pxc(10);
   $('#rarities').innerHTML = RARS.map(tcHTML).join('');
+}
+function buildCodex() {
+  const R2 = { common: ['mt1'], rare: ['ec1'], epic: ['vi1'], legendary: ['gd'], mythic: ['em1'], hexxed: ['vi1'] };
+  const cells = [['003', 'common'], ['011', 0], ['041', 'epic'], ['058', 'rare'], ['066', 'epic'], ['077', 0], ['112', 'legendary'], ['121', 'legendary'], ['007', 'mythic'], ['009', 'mythic'], ['000', 'hexxed'], ['124', 0]];
+  $('#codex').innerHTML = cells.map(([n, r]) => r
+    ? `<div class="cx" role="listitem" aria-label="No.${n} ${r}" style="--r2:var(--c-${R2[r][0]})"><i class="spr s-art-${r}" style="--f:${n.charCodeAt(2) % 8}"></i><b>${n}</b></div>`
+    : `<div class="cx unseen" role="listitem" aria-label="No.${n} not found yet"><i></i><b>${n}</b></div>`).join('');
 }
 function buildPity() {
   $$('.pity-cells').forEach(el => {
@@ -2209,7 +2477,7 @@ function buildAccentButtons() {
     });
   });
   $('#acc-custom').addEventListener('input', e => setAccent(e.target.value, 'CUSTOM ' + e.target.value.toUpperCase(), false));
-  $('#acc-custom').addEventListener('change', e => toast('NEW ACCENT', `* The Underground turns ${e.target.value.toUpperCase()}.`));
+  $('#acc-custom').addEventListener('change', e => toast('NEW ACCENT', `* The Underground turns ${e.target.value.toUpperCase()}.`, 'accent'));
 }
 function syncAccentButtons() {
   $$('.gem-btn').forEach(b => { const on = b.dataset.hex.toLowerCase() === CURRENT.toLowerCase(); b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; });
@@ -2225,20 +2493,20 @@ function buildRamps() {
 function buildProof() {
   const saved = {}; ['ac0', 'ac1', 'ac2', 'ac3', 'ac4', 'sn0', 'sn1', 'sn2', 'sn3'].forEach(k => saved[k] = C[k]);
   const stone = FR.find(d => d.id === 'stone'), acc = FR.find(d => d.id === 'btn-acc'), crys = FR.find(d => d.id === 'crystal');
-  $('#proof').innerHTML = ACCENTS.map(([n, h]) => `<figure class="fr f-slate"><figcaption><span>${n}</span><span class="t-dim">${h.toUpperCase()}</span></figcaption><canvas width="96" height="56" data-hex="${h}"></canvas><div class="ramp"></div><div class="ramp"></div></figure>`).join('');
+  $('#proof').innerHTML = ACCENTS.map(([n, h]) => `<figure class="fr f-slate"><figcaption><span>${n}</span><span class="t-dim">${h.toUpperCase()}</span></figcaption><canvas width="84" height="56" data-hex="${h}" style="width:calc(84*var(--px));height:calc(56*var(--px))"></canvas><div class="ramp"></div><div class="ramp"></div></figure>`).join('');
   $$('#proof figure').forEach(fig => {
     const cv = $('canvas', fig), hex = cv.dataset.hex, rp = ramp(hex);
     Object.assign(C, { ac0: rp.ac0, ac1: rp.ac1, ac2: rp.ac2, ac3: rp.ac3, ac4: rp.ac4, sn0: rp.sn0, sn1: rp.sn1, sn2: rp.sn2, sn3: rp.sn3 });
     const P = wrap(cv);
-    P.r(0, 0, 96, 56, 'void'); P.dither(0, 0, 96, 56, 'ac0', .25);
-    paintFrame(P, 0, 0, 96, 56, 7, stone.fn);
-    P.r(7, 7, 82, 42, 'ink');
-    paintFrame(P, 11, 10, 34, 14, 4, acc.fn); P.r(15, 14, 26, 6, 'ac2');
-    P.g(HEART7, 17, 14); P.r(26, 16, 12, 2, rp.on === C.void ? 'void' : 'white');
-    paintFrame(P, 52, 9, 32, 34, 5, crys.fn); P.r(57, 14, 22, 24, 'ac0'); P.dither(57, 14, 22, 24, 'ac1', .25);
-    P.g(CRYS, 60, 24); P.g(CRYS, 68, 26); P.g(SPARK[2], 72, 15);
-    for (let i = 0; i < 6; i++) P.g(GEM7, 12 + i * 5, 30, i > 3 ? { D: 'ink3', E: 'ash', C: 'ink2', B: 'ink2' } : {});
-    for (let x = 12; x < 46; x += 4) { P.r(x, 41, 3, 2, 'ac2'); P.p(x + 1, 40, 'ac3'); P.p(x, 43, 'ac1'); }
+    P.r(0, 0, 84, 56, 'void');
+    paintFrame(P, 0, 0, 84, 56, 7, stone.fn);
+    P.r(7, 7, 70, 42, 'ink'); for (let y = 7; y < 49; y++) for (let x = 7; x < 77; x++) { const xx = x - 7, yy = y - 7; if (yy % 5 === 4 || (yy % 10 < 4 ? xx % 12 === 0 : xx % 12 === 6)) P.p(x, y, 'sn0'); }
+    paintFrame(P, 10, 10, 32, 14, 4, acc.fn); P.r(14, 14, 24, 6, 'ac2');
+    P.g(HEART7, 16, 14); P.r(25, 16, 11, 2, rp.on === C.void ? 'void' : 'white');
+    paintFrame(P, 46, 9, 30, 34, 5, crys.fn); P.r(51, 14, 20, 24, 'ac0'); P.dither(51, 14, 20, 24, 'ac1', .25);
+    P.g(CRYS, 53, 24); P.g(CRYS, 61, 26); P.g(SPARK[2], 64, 15);
+    for (let i = 0; i < 6; i++) P.g(GEM7, 11 + i * 5, 29, i > 3 ? { D: 'ink3', E: 'ash', C: 'ink2', B: 'ink2' } : {});
+    for (let x = 11; x < 42; x += 4) { P.r(x, 41, 3, 2, 'ac2'); P.p(x + 1, 40, 'ac3'); P.p(x, 43, 'ac1'); }
     const rr = $$('.ramp', fig);
     rr[0].innerHTML = ['ac0', 'ac1', 'ac2', 'ac3', 'ac4'].map(k => `<i style="background:${rp[k]}"></i>`).join('');
     rr[1].innerHTML = ['sn0', 'sn1', 'sn2', 'sn3'].map(k => `<i style="background:${rp[k]}"></i>`).join('');
@@ -2261,10 +2529,10 @@ function buildCursors() {
 }
 function buildSlice() {
   const d = FR.find(f => f.id === 'stone'), c = renderFrame(d), cv = $('#slice-cv'), x = cv.getContext('2d');
-  x.clearRect(0, 0, 30, 30); x.drawImage(c, 0, 0);
+  x.clearRect(0, 0, 38, 38); x.drawImage(c, 0, 0);
   const box = $('#slice'); $$('.gl', box).forEach(e => e.remove());
   const k = matchMedia('(max-width:720px)').matches ? 2 : 3;
-  [7, 23].forEach(p => {
+  [7, 31].forEach(p => {
     box.insertAdjacentHTML('beforeend', `<i class="gl" style="left:calc(${p * k} * var(--px));top:0;width:var(--px);height:100%"></i><i class="gl" style="top:calc(${p * k} * var(--px));left:0;height:var(--px);width:100%"></i>`);
   });
 }
@@ -2455,10 +2723,13 @@ function bgFit(o, force) {
   bgDraw(o); return true;
 }
 function bgDraw(o) { o.P.x.drawImage(o.base.c, 0, 0); BG[o.id].frame(o.P, o.s, o.t); }
+let msAcc = 0, msN = 0, msAt = 0;
 function bgLoop(now) {
   requestAnimationFrame(bgLoop);
   if (PERF) return;
-  for (const o of LIVE) { if (!o.vis) continue; const fps = BG[o.id].fps; if (now - o.last < 1000 / fps - 2) continue; o.last = now; o.t++; bgDraw(o); }
+  for (const o of LIVE) { if (!o.vis) continue; const fps = BG[o.id].fps; if (now - o.last < 1000 / fps - 2) continue; o.last = now; o.t++;
+    const t0 = performance.now(); bgDraw(o); msAcc += performance.now() - t0; msN++; }
+  if (now - msAt > 2000 && msN) { $('#perf-ms').textContent = `BG ${(msAcc / msN).toFixed(2)} MS / TICK`; msAcc = 0; msN = 0; msAt = now; }
 }
 function buildBgStrip() {
   $('#bg-pick').innerHTML = Object.entries(BG).map(([k, d]) => `<option value="${k}">${d.name}</option>`).join('');
@@ -2469,7 +2740,8 @@ function buildBgStrip() {
   $('#bg-pick').addEventListener('change', e => useBg(e.target.value, false));
 }
 function useBg(id, scroll) {
-  const o = LIVE.find(l => l.cv.id === 'app-bg'); if (!o) return; o.id = id; o.cv.dataset.bg = id; o.inited = false; o.s = null; bgFit(o, true); $('#bg-pick').value = id;
+  for (const o of LIVE.filter(l => l.cv.id === 'app-bg' || l.cv.id === 'scene-bg')) { o.id = id; o.cv.dataset.bg = id; o.inited = false; o.s = null; bgFit(o, true); }
+  $('#bg-pick').value = id; $('#scene-tag').textContent = BG[id].name; $('#scene-bg').setAttribute('aria-label', `BLACKJACK's background: ${BG[id].name}`);
   if (scroll) $('#screen').scrollIntoView({ behavior: RM.matches ? 'auto' : 'smooth' });
 }
 
@@ -2488,19 +2760,21 @@ function setAccent(hex, name, announce) {
   if ($('#acc-custom').value.toLowerCase() !== hex.toLowerCase()) $('#acc-custom').value = hex;
   syncAccentButtons();
   ACC_NAME = $('#acc-name').textContent;
-  if (announce) toast('NEW ACCENT', `* The Underground turns ${ACC_NAME}.`);
+  if (announce) toast('NEW ACCENT', `* The Underground turns ${ACC_NAME}.`, 'accent');
 }
 let ACC_NAME = 'ORANGE';
 
 /* =====================================================================
    12. TOASTS, TYPEWRITER, MODALS, DRAWER, ROLL, DICE
    ===================================================================== */
-function toast(title, text) {
-  const box = $('#toasts'); const el = document.createElement('div');
+function toast(title, text, kind) {
+  const box = $('#toasts'); kind = kind || title;
+  $$('.toast', box).forEach(t => { if (t.dataset.kind === kind) t.remove(); });
+  const el = document.createElement('div'); el.dataset.kind = kind;
   el.className = 'toast fr f-frost snowcap'; el.setAttribute('role', 'status');
   el.innerHTML = `<i class="spr s-save anim" aria-hidden="true"></i><div><b>${esc(title)}</b><p>${esc(text)}</p></div><button class="btn icon sm" aria-label="Dismiss"><i class="ico" data-i="x"></i></button><span class="timer"><i></i></span>`;
   inflateIcons(el); box.appendChild(el);
-  while (box.children.length > 3) box.firstElementChild.remove();
+  while (box.children.length > 2) box.firstElementChild.remove();
   const kill = () => { el.classList.add('out'); setTimeout(() => el.remove(), 220); };
   $('button', el).addEventListener('click', kill); setTimeout(kill, 4000);
 }
@@ -2509,10 +2783,16 @@ const LINES = () => [
   `* Every trait you roll gets\n  carved into the stone.`,
   `* ...you're gonna press DEL\n  on me, aren't ya.`,
 ];
+/* demo loops only run while their card is on screen, so an idle page does no layout */
+const SEEN = new WeakMap();
+const vio = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => SEEN.set(e.target, e.isIntersecting))) : null;
+const watchVis = el => { const c = el && (el.closest('.spec') || el); if (vio && c) { SEEN.set(c, false); vio.observe(c); } };
+const isVis = el => { const c = el && (el.closest('.spec') || el); return !vio || !c || SEEN.get(c) !== false; };
 function typewriter(el, getLines, loop) {
   let li = 0, ci = 0, timer = null, stopped = false;
   const step = () => {
     if (stopped) return; const lines = getLines(), line = lines[li % lines.length];
+    if (loop && !isVis(el)) { if (el.textContent !== line) el.textContent = line; ci = 0; timer = setTimeout(step, 600); return; }
     if (PERF) { el.textContent = line; timer = setTimeout(() => { li++; step(); }, loop ? 4000 : 1e9); return; }
     ci++; el.innerHTML = esc(line.slice(0, ci)) + '<span class="caret"></span>';
     if (ci < line.length) { const ch = line[ci - 1]; timer = setTimeout(step, ch === '.' || ch === ',' ? 160 : ch === '\n' ? 220 : 34); }
@@ -2531,7 +2811,7 @@ const MODALS = {
 function openModal(kind) {
   const m = MODALS[kind], root2 = $('#modal'); lastFocus = document.activeElement;
   $('#modal-face').hidden = !m.face; $('#modal-box').style.gridTemplateColumns = m.face ? '' : 'minmax(0,1fr)';
-  $('#modal-opts').innerHTML = m.opts.map(([l, a, c]) => `<button class="opt ${c || ''}" data-a="${a}"><i class="ico" data-i="heart"></i>${l}</button>`).join('');
+  $('#modal-opts').innerHTML = m.opts.map(([l, a, c]) => `<button class="opt ${c || ''}" data-a="${a}"><i class="ico" data-i="ast"></i>${l}</button>`).join('');
   inflateIcons($('#modal-opts'));
   root2.hidden = false;
   if (modalTW) modalTW.stop();
@@ -2562,6 +2842,40 @@ function wireModal() {
     const p = e.target.closest('[data-act=perf]'); if (p) { $('#perf-tog').checked = !$('#perf-tog').checked; setPerf($('#perf-tog').checked); }
   });
 }
+/* SNAP: grid tracks are floored to whole art pixels, then any sprite still
+   left on a fractional CSS pixel (centring, text widths) is nudged onto the
+   pixel grid with the independent translate property. */
+function snapTracks() {
+  const px = PX();
+  $$('.sheet-grid, .hand, .bgs, .proof').forEach(g => {
+    if (g.dataset.gtc === undefined) g.dataset.gtc = g.style.gridTemplateColumns || '';
+    g.style.gridTemplateColumns = g.dataset.gtc;
+    const cols = getComputedStyle(g).gridTemplateColumns.split(' ').map(parseFloat).filter(n => n > 0);
+    if (cols.length > 1) g.style.gridTemplateColumns = cols.map(c => Math.floor(c / px) * px + 'px').join(' ');
+  });
+  const n = $('.notes'); if (n) { n.style.width = ''; const W = n.clientWidth, gap = 6 * px, min = 170 * px, k = Math.max(1, Math.min(3, Math.floor((W + gap) / (min + gap))));
+    const col = Math.floor((W - gap * (k - 1)) / k / px) * px; n.style.width = (col * k + gap * (k - 1)) + 'px'; }
+}
+function snapSprites(scope) {
+  const els = $$('.spr, svg.ico, canvas', scope || document).filter(e => !e.parentElement.closest('.spr'));
+  els.forEach(e => { e.style.translate = ''; });
+  const rs = els.map(e => e.getBoundingClientRect());
+  els.forEach((e, i) => { const r = rs[i]; if (!r.width) return; const dx = Math.round(r.x) - r.x, dy = Math.round(r.y) - r.y;
+    if (Math.abs(dx) > .01 || Math.abs(dy) > .01) e.style.translate = `${dx.toFixed(3)}px ${dy.toFixed(3)}px`; });
+}
+const snapAll = () => { snapTracks(); sizeBars(); snapSprites(); };
+function railCue() { const r = $('#rail'), t = $('#sheet-tabs'); if (r && t) r.classList.toggle('more-r', t.scrollWidth - t.clientWidth - t.scrollLeft > 4); }
+function wireMore() {
+  const btn = $('#more-btn'), menu = $('#more-menu'), items = () => $$('a', menu).filter(a => a.offsetParent);
+  const set = (open, focus) => { btn.setAttribute('aria-expanded', open); menu.hidden = !open; if (open && focus) { const f = items()[0]; if (f) f.focus(); } };
+  btn.addEventListener('click', e => { e.stopPropagation(); set(menu.hidden, e.detail === 0); });
+  btn.addEventListener('keydown', e => { if (e.key === 'ArrowDown') { e.preventDefault(); set(true, true); } });
+  document.addEventListener('click', e => { if (!menu.hidden && !e.target.closest('#more')) set(false); });
+  menu.addEventListener('keydown', e => { const it = items(), i = it.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const d = e.key === 'ArrowDown' ? 1 : -1; it[(i + d + it.length) % it.length].focus(); }
+    if (e.key === 'Escape') { e.preventDefault(); set(false); btn.focus(); } });
+  menu.addEventListener('click', e => { if (e.target.closest('a')) set(false); });
+}
 function toggleDrawer(open) {
   const app = $('#app'); app.classList.toggle('drawer-open', open); $('#drawer-btn').setAttribute('aria-expanded', open);
   if (open) { const f = $('#side input'); if (f) f.focus({ preventScroll: true }); } else $('#drawer-btn').focus({ preventScroll: true });
@@ -2576,6 +2890,7 @@ function wireApp() {
 }
 function setPerf(on) {
   PERF = on; root.classList.toggle('perf', on); $('#perf-state').textContent = on ? 'ON' : 'OFF'; $('#perf-tog').checked = on;
+  if (on) $('#perf-ms').textContent = 'BG STOPPED';
   if (!on) { for (const o of LIVE) o.last = 0; } else { for (const o of LIVE) bgDraw(o); }
 }
 /* trait roll reveal: the card frame is redrawn at narrower whole-pixel widths */
@@ -2583,6 +2898,7 @@ const ROLL = ['epic', 'common', 'mythic'], RNAME = { epic: 'CARD COUNTER', commo
 let rollTimers = [];
 function buildRoll() {
   $('#roll-stage').innerHTML = [0, 1, 2].map(i => `<div class="rc"><div class="face back fr" style="width:calc(var(--rcw) * var(--px));border-width:${pxc(6)};border-image-source:var(--f-cardback);border-image-slice:6"><i class="spr s-soul"></i></div></div>`).join('');
+  $$('#roll-stage .face').forEach((f, i) => setFace(f, ROLL[i])); // a still of the revealed hand until the loop runs
 }
 function setFace(face, r) {
   if (!r) { face.className = 'face back fr'; face.style.borderImageSource = 'var(--f-cardback)'; face.innerHTML = '<i class="spr s-soul"></i>'; return; }
@@ -2593,7 +2909,9 @@ function setFace(face, r) {
 function flip(face, r, done) {
   const full = parseInt(getComputedStyle(face.parentElement).getPropertyValue('--rcw'), 10) || 44;
   const W = [full, Math.round(full * .66), Math.round(full * .33), 12, Math.round(full * .33), Math.round(full * .66), full]; let i = 0;
-  const tick = () => { face.style.width = i === W.length - 1 ? 'calc(var(--rcw) * var(--px))' : pxc(W[i]); if (i === 3) setFace(face, r); i++; if (i < W.length) rollTimers.push(setTimeout(tick, 1000 / 12)); else if (done) done(); };
+  const tick = () => { face.style.width = i === W.length - 1 ? 'calc(var(--rcw) * var(--px))' : pxc(W[i]); if (i === 3) setFace(face, r);
+    if (i === W.length - 1 && /legendary|mythic|hexxed/.test(r || '')) { const st = $('#roll-stage'); st.classList.remove('shake'); void st.offsetWidth; st.classList.add('shake'); }
+    i++; if (i < W.length) rollTimers.push(setTimeout(tick, 1000 / 12)); else if (done) done(); };
   tick();
 }
 function rollOnce() {
@@ -2602,7 +2920,7 @@ function rollOnce() {
   if (PERF) { faces.forEach((f, i) => setFace(f, ROLL[i])); return; }
   faces.forEach((f, i) => rollTimers.push(setTimeout(() => flip(f, ROLL[i]), 500 + i * 650)));
 }
-function rollLoop() { rollOnce(); setTimeout(rollLoop, PERF ? 6000 : 5600); }
+function rollLoop() { if (!isVis($('#roll-stage'))) { setTimeout(rollLoop, 800); return; } rollOnce(); setTimeout(rollLoop, PERF ? 6000 : 5600); }
 let dieBusy = false;
 function rollDie(announce) {
   if (dieBusy) return; dieBusy = true; const result = announce ? 1 + Math.floor(Math.random() * 20) : [17, 4, 20, 9, 12][Math.floor(Date.now() / 4000) % 5];
@@ -2617,7 +2935,7 @@ function rollDie(announce) {
 applyRamp(ramp(CURRENT));
 spriteClasses();
 renderAll(false);
-buildFolders(); buildStats(); buildTraits(); buildPity(); buildAccentButtons(); buildRamps(); buildProof(); buildBgStrip(); buildRoll();
+buildFolders(); buildStats(); buildTraits(); buildCodex(); buildPity(); buildAccentButtons(); buildRamps(); buildProof(); buildBgStrip(); buildRoll();
 inflateIcons();
 buildCursors(); drawStatic(); buildSlice();
 syncAccentButtons();
@@ -2625,13 +2943,16 @@ $$('canvas.bgc').forEach(bgAttach);
 wireApp(); wireModal();
 sizeBars();
 if ('ResizeObserver' in window) { const ro = new ResizeObserver(() => { sizeBars(); }); $$('.bw').forEach(b => ro.observe(b)); }
-let rz = 0; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { for (const o of LIVE) bgFit(o); drawSideFoot(); buildSlice(); sizeBars(); }, 120); });
+let rz = 0; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { snapTracks(); for (const o of LIVE) bgFit(o); drawSideFoot(); buildSlice(); sizeBars(); railCue(); snapSprites(); }, 120); });
 setPerf(RM.matches);
 RM.addEventListener && RM.addEventListener('change', e => setPerf(e.matches));
+[$('#tw'), $('#roll-stage'), $('#d20')].forEach(watchVis);
 typewriter($('#tw'), LINES, true);
 rollLoop();
-setInterval(() => { if (!PERF && !dieBusy) rollDie(false); }, 4000);
+setInterval(() => { if (!PERF && !dieBusy && isVis($('#d20'))) rollDie(false); }, 4000);
+wireMore(); railCue(); $('#sheet-tabs').addEventListener('scroll', railCue, { passive: true });
 requestAnimationFrame(bgLoop);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { sizeBars(); drawSideFoot(); for (const o of LIVE) bgFit(o); });
+snapTracks();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { snapTracks(); sizeBars(); drawSideFoot(); for (const o of LIVE) bgFit(o); railCue(); snapSprites(); });
 })();
 </script>

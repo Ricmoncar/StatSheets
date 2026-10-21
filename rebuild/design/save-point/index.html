@@ -19,17 +19,22 @@
   --heal:#3ee05a;
   --gold:#ffd23d; --gold-l:#fff3a0; --gold-d:#c98a00; --gold-o:#6a3c00;
   --s-orange:#ffa13d; --s-cyan:#3cf0ff; --s-blue:#4a6cff; --s-purple:#cf45ff;
+  /* fixed materials: Waterfall water, Snowdin snow and pines (they keep their colours under any accent) */
+  --w0:#03081a; --w1:#081430; --w2:#0f2350; --w3:#1d3d80; --w4:#6fa8e8; --snow:#dfe8f0; --snow-d:#9fb3c8; --pine:#0f2420;
   --r-common:var(--g5); --r-rare:#4aa8ff; --r-epic:#b55cff; --r-legend:var(--gold); --r-mythic:#ff5cc8; --r-hex:#ff1e8c;
   /* accent ramp: JS derives these from the character colour; defaults are the screenshot orange */
-  --accent:#ff8a1f; --a0:#2c0d1a; --a1:#8a2d14; --a2:#ff8a1f; --a3:#ffb648; --a4:#fff0a6; --a-ink:#000000; --a-text:#ff8a1f;
+  --accent:#ff8a1f; --a0:#2c0d1a; --a1:#8a2d14; --a2:#ff8a1f; --a3:#ffb648; --a4:#fff0a6; --a-ink:#000000; --a3-ink:#000000; --a1-ink:#ffffff; --a-text:#ff8a1f;
+  /* muted ramp: the accent hue at low chroma, for structural materials (brick, flagstone, felt) */
+  --m0:#120c0a; --m1:#21160f; --m2:#332215; --m3:#4a301c;
   --font-hud:"Silkscreen","Tiny5",ui-monospace,"Courier New",monospace;
   --font-text:"Tiny5","Silkscreen",ui-monospace,"Courier New",monospace;
 }
 :root,.px-scope{
   --u1:var(--px); --u2:calc(var(--px)*2); --u3:calc(var(--px)*3); --u4:calc(var(--px)*4);
   --u6:calc(var(--px)*6); --u8:calc(var(--px)*8); --u12:calc(var(--px)*12); --u16:calc(var(--px)*16);
-  /* type scale: every size is a whole multiple of the face's native pixel, so glyph edges never blur */
-  --fs-s:16px; --fs-m:calc(var(--px)*8); --fs-l:calc(var(--px)*16); --fs-xl:calc(var(--px)*24);
+  /* type scale: every size is a whole multiple of the face's native pixel, so glyph edges never blur.
+     Both faces are drawn on an 8-unit em, so 8 art px of font-size = 1 art px per glyph pixel. */
+  --fs-s:16px; --fs-m:calc(var(--px)*8); --fs-d:calc(var(--px)*8); --fs-l:calc(var(--px)*16); --fs-xl:calc(var(--px)*24);
 }
 @media (max-width:640px){ :root{ --px:2px } }
 .px2{ --px:2px }
@@ -57,6 +62,9 @@ a{ color:inherit; text-decoration:none }
 .t-l{ font:700 var(--fs-l)/1 var(--font-hud); letter-spacing:0; text-transform:uppercase }
 .t-body{ font:400 16px/24px var(--font-text) }
 .t-dlg{ font:400 var(--fs-m)/1.5 var(--font-text) }
+/* DATA: numbers, gold, percentages and list names. Tiny5 at 8 art px, so one glyph pixel = one art pixel */
+.t-d{ font:400 var(--fs-d)/1 var(--font-text); letter-spacing:0 }
+.t-name{ font:400 var(--fs-l)/1 var(--font-text); letter-spacing:0; text-transform:uppercase }
 .mut{ color:var(--g4) }
 .num{ font-variant-numeric:tabular-nums }
 .up{ color:var(--heal) } .dn{ color:var(--hurt-l) }
@@ -73,6 +81,15 @@ a{ color:inherit; text-decoration:none }
 .spr-soul.acc{ --sheet:var(--sh-soul-acc) }
 .spr-eq{ --w:7; --h:8; --f:4; --fps:8; --sheet:var(--sh-eq) }
 .spr-gem{ --w:5; --h:5; --f:6; --fps:6; --sheet:var(--sh-gem) }
+.spr-leaf{ --w:5; --h:5; --f:4; --fps:6; --sheet:var(--sh-leaf) }
+/* rarity art windows: 24x24 art px sheets drawn once at load, fixed rarity palettes */
+.art{ --w:24; --h:24 }
+.art-common{ --f:1; --sheet:var(--art-common); animation:none }
+.art-rare{ --f:8; --fps:8; --sheet:var(--art-rare) }
+.art-epic{ --f:8; --fps:8; --sheet:var(--art-epic) }
+.art-legend{ --f:8; --fps:8; --sheet:var(--art-legend) }
+.art-mythic{ --f:28; --fps:10; --sheet:var(--art-mythic) }
+.art-hex{ --f:16; --fps:8; --sheet:var(--art-hex) }
 .bob{ animation:bob 1s steps(2,jump-none) infinite alternate }
 @keyframes bob{ to{ transform:translateY(calc(var(--px)*-1)) } }
 
@@ -94,13 +111,17 @@ a{ color:inherit; text-decoration:none }
 .sample{ display:inline-block; padding:0 var(--u2); border:var(--u1) solid var(--g3); color:var(--g4); font:400 var(--fs-s)/20px var(--font-hud); letter-spacing:0; text-transform:uppercase }
 
 /* ---------- frame system ---------- */
-/* .box = the battle box: 2 art px of white around a black void, with a dithered accent fade tiled along the floor */
+/* .box = the battle box: 2 art px of white around a black void, with a dithered accent fade tiled along the floor.
+   A box with a title hangs from a LINTEL: a 12 art px band of Ruins brick (muted accent) under the top edge,
+   the title sits on a black plate on it. The void below stays clean for data. */
 .box{ position:relative; border:var(--u2) solid var(--ink); background:var(--tex-fade,none) left bottom/var(--u4) var(--u16) repeat-x,var(--void); padding:var(--u6) }
 .box.flat{ background:var(--void) }
 .box.thin{ border-width:var(--u1) }
-.lg{ position:absolute; top:calc(var(--px)*-5); left:var(--u4); z-index:2; padding:0 var(--u2); background:var(--void); font:700 var(--fs-s)/24px var(--font-hud); letter-spacing:0; text-transform:uppercase; white-space:nowrap; line-height:calc(var(--px)*8) }
+.box:has(> .lg){ padding-top:calc(var(--px)*18) }
+.box:has(> .lg)::before{ content:""; position:absolute; left:0; right:0; top:0; height:calc(var(--px)*12); background:var(--tex-lintel,none) 0 0/calc(var(--px)*16) calc(var(--px)*12) repeat-x; pointer-events:none }
+.lg{ position:absolute; top:var(--u1); left:var(--u3); z-index:2; padding:0 var(--u2); background:var(--void); font:700 var(--fs-s)/24px var(--font-hud); letter-spacing:0; text-transform:uppercase; white-space:nowrap; line-height:calc(var(--px)*8); box-shadow:var(--px) var(--px) 0 var(--m0) }
 .lg::before{ content:"* " }
-.lg-r{ position:absolute; top:calc(var(--px)*-5); right:var(--u4); z-index:2; padding:0 var(--u2); background:var(--void); color:var(--g4); line-height:calc(var(--px)*8) }
+.lg-r{ position:absolute; top:var(--u1); right:var(--u3); z-index:2; padding:0 var(--u2); background:var(--void); color:var(--g5); line-height:calc(var(--px)*8) }
 /* 9-slice frames generated in JS: --fr-* holds the sprite, slice/width in art px */
 .nine{ border-style:solid; border-color:var(--ink); border-image-source:var(--fr); border-image-slice:var(--sl) fill; border-image-width:calc(var(--sl)*var(--px)); border-image-repeat:repeat; border-width:calc(var(--sl)*var(--px)) }
 
@@ -110,21 +131,23 @@ a{ color:inherit; text-decoration:none }
 .cmd .ico{ color:var(--c) }
 .cmd.sec{ --c:var(--ink) }
 .cmd.dng{ --c:var(--hurt-l) }
-.cmd.solid{ --bgc:var(--a2); color:var(--a-ink); border-color:var(--a2) }
+/* solid = the pressable face: a banded bevel (1 art px a3 lip on top, 1 art px a1 shadow below), hard pixel only */
+.cmd.solid{ --bgc:var(--a2); color:var(--a-ink); border-color:var(--a2); box-shadow:inset 0 var(--px) 0 var(--a3),inset 0 calc(var(--px)*-1) 0 var(--a1) }
 .cmd.solid .ico{ color:var(--a-ink) }
-/* hover / keyboard: the SOUL replaces the icon, colour steps toward yellow like the battle menu */
-.cmd:hover,.cmd.is-hover,.cmd:focus-visible,.cmd.is-focus{ --c:var(--a4) }
-.cmd.sec:hover,.cmd.sec.is-hover,.cmd.sec:focus-visible,.cmd.sec.is-focus{ --c:var(--hp) }
+/* hover / keyboard: the SOUL replaces the icon and the command turns SOUL yellow (#FFFF00), exactly like the battle menu.
+   Outline commands also get a 50% dither of the accent shadow as a face texture. */
+.cmd:hover,.cmd.is-hover,.cmd:focus-visible,.cmd.is-focus{ --c:var(--hp); background:var(--tex-check-a0,none) 0 0/var(--u2) var(--u2),var(--bgc) }
 .cmd.dng:hover,.cmd.dng.is-hover,.cmd.dng:focus-visible,.cmd.dng.is-focus{ --c:#ff9a9a }
 .cmd:hover .ico,.cmd.is-hover .ico,.cmd:focus-visible .ico,.cmd.is-focus .ico{ --io:var(--i-heart); color:var(--soul) }
-.cmd.solid:hover,.cmd.solid.is-hover,.cmd.solid:focus-visible,.cmd.solid.is-focus{ --bgc:var(--a3); border-color:var(--a3); color:var(--a-ink) }
-.cmd.solid:hover .ico,.cmd.solid.is-hover .ico,.cmd.solid:focus-visible .ico,.cmd.solid.is-focus .ico{ color:var(--soul-d) }
+.cmd.solid:hover,.cmd.solid.is-hover,.cmd.solid:focus-visible,.cmd.solid.is-focus{ --bgc:var(--hp); background:var(--hp); border-color:var(--hp); color:#000; box-shadow:inset 0 var(--px) 0 var(--hp-l),inset 0 calc(var(--px)*-1) 0 var(--hp-d) }
+.cmd.solid:hover .ico,.cmd.solid.is-hover .ico,.cmd.solid:focus-visible .ico,.cmd.solid.is-focus .ico{ color:var(--soul) }
 .cmd:focus-visible,.cmd.is-focus{ outline:var(--px) solid var(--hp); outline-offset:var(--px) }
-.cmd:active,.cmd.is-active{ --bgc:var(--a0); transform:translateY(var(--px)) }
-.cmd.solid:active,.cmd.solid.is-active{ --bgc:var(--a1); border-color:var(--a1); color:var(--ink) }
-.cmd.sec:active,.cmd.sec.is-active{ --bgc:var(--g2) }
-.cmd.dng:active,.cmd.dng.is-active{ --bgc:var(--hurt-d) }
-.cmd:disabled,.cmd.is-disabled{ --c:var(--g4); --bgc:var(--void); background:var(--tex-check-g2,none) 0 0/var(--u2) var(--u2),var(--void); color:var(--g4); border-color:var(--g3); transform:none; cursor:not-allowed; outline:0 }
+.cmd:active,.cmd.is-active{ --bgc:var(--a0); background:var(--a0); transform:translateY(var(--px)) }
+.cmd.solid:active,.cmd.solid.is-active{ --bgc:var(--a1); background:var(--a1); border-color:var(--a1); color:var(--a1-ink); box-shadow:inset 0 var(--px) 0 var(--a0) }
+.cmd.solid:active .ico,.cmd.solid.is-active .ico{ color:var(--a1-ink) }
+.cmd.sec:active,.cmd.sec.is-active{ --bgc:var(--g2); background:var(--g2) }
+.cmd.dng:active,.cmd.dng.is-active{ --bgc:var(--hurt-d); background:var(--hurt-d) }
+.cmd:disabled,.cmd.is-disabled{ --c:var(--g4); --bgc:var(--void); background:var(--tex-check-g2,none) 0 0/var(--u2) var(--u2),var(--void); color:var(--g4); border-color:var(--g3); box-shadow:none; transform:none; cursor:not-allowed; outline:0 }
 .cmd:disabled .ico,.cmd.is-disabled .ico{ --io:var(--i-x); color:var(--g4) }
 /* soul-sliding nav: one heart travels between commands in stepped frames */
 .soulnav{ position:relative }
@@ -134,7 +157,7 @@ a{ color:inherit; text-decoration:none }
 
 .ibtn{ --c:var(--g5); display:inline-grid; place-items:center; flex:none; width:calc(var(--px)*12); height:calc(var(--px)*12); border:var(--u1) solid var(--c); color:var(--c); background:var(--void) }
 .ibtn.sm{ width:calc(var(--px)*10); height:calc(var(--px)*10) }
-.ibtn:hover,.ibtn.is-hover,.ibtn:focus-visible,.ibtn.is-focus{ --c:var(--a4); background:var(--a0) }
+.ibtn:hover,.ibtn.is-hover,.ibtn:focus-visible,.ibtn.is-focus{ --c:var(--hp); background:var(--tex-check-a0,none) 0 0/var(--u2) var(--u2),var(--void) }
 .ibtn:active,.ibtn.is-active{ --c:var(--a3); background:var(--a1); transform:translateY(var(--px)) }
 .ibtn:focus-visible,.ibtn.is-focus{ outline:var(--px) solid var(--hp); outline-offset:var(--px) }
 .ibtn:disabled,.ibtn.is-disabled{ --c:var(--g3); background:var(--tex-check-g2,none) 0 0/var(--u2) var(--u2),var(--void); color:var(--g4); transform:none; outline:0 }
@@ -173,10 +196,11 @@ a{ color:inherit; text-decoration:none }
 .chk input:checked::after{ opacity:1 }
 .chk input:focus-visible{ outline:var(--px) solid var(--hp); outline-offset:var(--px) }
 .tog{ display:inline-flex; align-items:center; gap:var(--u3); user-select:none }
-.tog input{ appearance:none; -webkit-appearance:none; margin:0; position:relative; width:calc(var(--px)*16); height:calc(var(--px)*8); border:var(--u1) solid var(--g5); background:var(--g2); cursor:var(--cur-point,pointer) }
-.tog input::after{ content:""; position:absolute; top:var(--u1); left:var(--u1); width:calc(var(--px)*4); height:calc(var(--px)*4); background:var(--g5); transition:transform .12s steps(2) }
-.tog input:checked{ background:var(--a2); border-color:var(--a3) }
-.tog input:checked::after{ background:var(--ink); transform:translateX(calc(var(--px)*8)) }
+/* toggle: the SOUL is the knob. Off it is a grey SOUL on the left, on it turns red and hops right in 2 frames */
+.tog input{ appearance:none; -webkit-appearance:none; margin:0; position:relative; flex:none; width:calc(var(--px)*21); height:calc(var(--px)*10); border:var(--u1) solid var(--g5); background:var(--tex-check-g2,none) 0 0/var(--u2) var(--u2),var(--void); cursor:var(--cur-point,pointer) }
+.tog input::after{ content:""; position:absolute; top:0; left:0; width:calc(var(--px)*9); height:calc(var(--px)*8); background:var(--g4); -webkit-mask:var(--i-soul) center/100% no-repeat; mask:var(--i-soul) center/100% no-repeat; transition:transform .12s steps(2) }
+.tog input:checked{ background:var(--a1); border-color:var(--a3) }
+.tog input:checked::after{ background:var(--soul); transform:translateX(calc(var(--px)*10)) }
 .tog input:focus-visible{ outline:var(--px) solid var(--hp); outline-offset:var(--px) }
 .rng{ display:grid; gap:var(--u1) }
 .rng input{ -webkit-appearance:none; appearance:none; width:100%; height:calc(var(--px)*8); background:transparent; margin:0 }
@@ -190,28 +214,37 @@ a{ color:inherit; text-decoration:none }
 
 /* swatches */
 .sws{ display:flex; flex-wrap:wrap; gap:var(--u2) }
-.sw{ position:relative; width:calc(var(--px)*10); height:calc(var(--px)*10); border:var(--u1) solid var(--void); outline:var(--u1) solid var(--g3); background:var(--sw); outline-offset:0 }
-.sw:hover,.sw:focus-visible{ outline:var(--u1) solid var(--ink) }
+.sw{ position:relative; width:calc(var(--px)*10); height:calc(var(--px)*10); border:var(--u1) solid var(--void); outline:var(--u1) solid var(--g3); background:var(--gem,none) center/calc(var(--px)*8) calc(var(--px)*8) no-repeat,var(--swbg,var(--sw)); outline-offset:0 }
+.sw:hover,.sw:focus-visible{ outline:var(--u1) solid var(--hp) }
 .sw[aria-checked="true"],.sw.on{ outline:var(--u1) solid var(--ink); border-color:var(--void) }
-.sw[aria-checked="true"]::after,.sw.on::after{ content:""; position:absolute; left:50%; top:calc(var(--px)*-9); width:calc(var(--px)*9); height:calc(var(--px)*8); margin-left:calc(var(--px)*-4.5); background:var(--soul); -webkit-mask:var(--i-soul) center/100% no-repeat; mask:var(--i-soul) center/100% no-repeat }
+.sw[aria-checked="true"]::after,.sw.on::after{ content:""; position:absolute; left:calc(50% - var(--px)*5); top:calc(var(--px)*-10); width:calc(var(--px)*9); height:calc(var(--px)*8); background:var(--soul); -webkit-mask:var(--i-soul) center/100% no-repeat; mask:var(--i-soul) center/100% no-repeat }
 .sws.big .sw{ width:calc(var(--px)*12); height:calc(var(--px)*12) }
 .sw.cus{ background:var(--void); display:grid; place-items:center; color:var(--g5) }
 .sw.cus input{ position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:var(--cur-point,pointer); border:0; padding:0 }
-.tb .sws{ padding-top:calc(var(--px)*9) }
+.tb .sws{ padding-top:calc(var(--px)*10) }
+.tb-perf{ color:var(--g4); white-space:nowrap; min-width:calc(var(--px)*44) }
 
 /* tabs in the battle-menu language: "* LABEL", the active one swaps its star for the SOUL */
-.tabs{ display:flex; flex-wrap:wrap; gap:var(--u1) var(--u6); border-bottom:var(--u2) solid var(--ink); padding:0 var(--u2) var(--u2) }
+.tabs{ display:flex; flex-wrap:wrap; gap:var(--u1) var(--u6); border-bottom:var(--u2) solid var(--ink); padding:var(--u1) var(--u2) var(--u2); background:var(--void) }
 .tab{ display:inline-flex; align-items:center; gap:var(--u2); min-height:calc(var(--px)*10); font:700 var(--fs-s)/1 var(--font-hud); letter-spacing:0; text-transform:uppercase; color:var(--g5) }
 .tab .mk{ width:calc(var(--px)*9); height:calc(var(--px)*8); display:inline-grid; place-items:center; color:var(--g4); flex:none }
 .tab .mk::before{ content:"*"; font:700 16px/1 var(--font-hud) }
-.tab:hover,.tab:focus-visible{ color:var(--a4) }
+.tab:hover,.tab:focus-visible{ color:var(--hp) }
+/* one row that scrolls sideways when it runs out of room, with a dithered fade at the right edge (never wraps) */
+.tabs-x{ position:relative; min-width:0 }
+.tabs-x .tabs{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none }
+.tabs-x .tabs::-webkit-scrollbar{ display:none }
+.tabs-x .tab{ flex:none; white-space:nowrap }
+.tabs-x::after{ content:""; position:absolute; right:0; top:0; bottom:var(--u2); width:var(--u16); background:var(--tex-fade-x,none) 0 0/var(--u16) var(--u4) repeat-y; pointer-events:none; display:none }
+.tabs-x.more::after{ display:block }
 .tab[aria-selected="true"]{ color:var(--hp) }
 .tab[aria-selected="true"] .mk::before{ content:none }
 .tab[aria-selected="true"] .mk{ background:var(--soul); -webkit-mask:var(--i-soul) center/100% no-repeat; mask:var(--i-soul) center/100% no-repeat }
 .chips{ display:inline-flex; flex-wrap:wrap; border:var(--u1) solid var(--g5) }
 .chip{ min-height:calc(var(--px)*9); padding:0 var(--u3); font:700 16px/1 var(--font-hud); letter-spacing:0; text-transform:uppercase; color:var(--g5); display:inline-flex; align-items:center; gap:var(--u1) }
 .chip + .chip{ border-left:var(--u1) solid var(--g3) }
-.chip:hover,.chip:focus-visible{ color:var(--a4); background:var(--a0) }
+.chips{ background:var(--void) }
+.chip:hover,.chip:focus-visible{ color:var(--hp); background:var(--a0) }
 .chip[aria-selected="true"],.chip.on{ background:var(--a2); color:var(--a-ink) }
 
 /* tooltip + speech tail (tail is a sprite, never a rotated square) */
@@ -236,16 +269,19 @@ a{ color:inherit; text-decoration:none }
 .ctx li.on .mk::before{ content:none }
 .ctx li.on .mk{ background:var(--soul); -webkit-mask:var(--i-soul) center/100% no-repeat; mask:var(--i-soul) center/100% no-repeat }
 .ctx li.dng{ color:var(--hurt-l) }
+.menus{ display:flex; flex-wrap:wrap; gap:var(--u6); align-items:flex-start }
+.pm-demo{ display:grid; gap:var(--u2); justify-items:start }
+.pmenu-demo{ min-width:calc(var(--px)*70) }
 .ctx li.sep{ min-height:0; height:var(--u1); padding:0; margin:var(--u2) var(--u3); background:repeating-linear-gradient(90deg,var(--g3) 0 var(--u1),transparent 0 var(--u2)) }
 .ctx li.sub::after{ content:""; margin-left:auto; width:var(--u8); height:var(--u8); background:currentColor; -webkit-mask:var(--i-play) center/100% 100% no-repeat; mask:var(--i-play) center/100% 100% no-repeat }
 
 /* dialogue box (modal) */
 .dlg{ display:grid; grid-template-columns:auto 1fr; gap:var(--u6); align-items:start; border:var(--u2) solid var(--ink); background:var(--void); padding:var(--u6) }
-.dlg .face{ width:calc(var(--px)*32); height:calc(var(--px)*32) }
-.dlg .say{ min-height:calc(var(--px)*32); min-width:0 }
+.dlg .face{ width:calc(var(--px)*48); height:calc(var(--px)*48) }
+.dlg .say{ min-height:calc(var(--px)*48); min-width:0; contain:content }
 .dlg .say p{ font:400 var(--fs-m)/1.5 var(--font-text) }
 .dlg .say p + p{ margin-top:var(--u2) }
-.opts{ grid-column:1/-1; display:flex; flex-wrap:wrap; gap:var(--u2) var(--u16); padding-left:calc(var(--px)*32 + var(--u6)) }
+.opts{ grid-column:1/-1; display:flex; flex-wrap:wrap; gap:var(--u2) var(--u16); padding-left:calc(var(--px)*48 + var(--u6)) }
 .opt{ display:inline-flex; align-items:center; gap:var(--u3); font:700 var(--fs-m)/1 var(--font-hud); letter-spacing:0; text-transform:uppercase; color:var(--ink); min-height:calc(var(--px)*10) }
 .opt .mk{ width:calc(var(--px)*9); height:calc(var(--px)*8); flex:none }
 .opt.on{ color:var(--hp) }
@@ -257,106 +293,129 @@ a{ color:inherit; text-decoration:none }
 
 /* ---------- app mockup ---------- */
 .app{ container:app/inline-size; position:relative; border:var(--u2) solid var(--ink); background:var(--void); display:grid; grid-template-rows:auto 1fr auto; overflow:hidden }
-.app-top{ display:flex; align-items:center; gap:var(--u4); padding:var(--u3) var(--u4); border-bottom:var(--u2) solid var(--ink); min-width:0 }
+.app-top{ position:relative; z-index:7; display:flex; align-items:center; gap:var(--u4); padding:var(--u3) var(--u4); border-bottom:var(--u2) solid var(--ink); min-width:0; background:var(--void) }
 .logo{ display:flex; align-items:center; gap:var(--u2); font:700 var(--fs-m)/1 var(--font-hud); letter-spacing:0; white-space:nowrap }
 .logo b{ color:var(--a-text) }
 .app-nav{ display:flex; flex-wrap:nowrap; gap:var(--u2); margin-left:auto; justify-content:flex-end }
 .app-act{ display:flex; gap:var(--u2); align-items:center }
-.app-menu,.app-new-i{ display:none }
-.app-body{ display:grid; grid-template-columns:calc(var(--px)*100) minmax(0,1fr); min-height:0 }
+.app-menu,.app-new-i,.app-pages{ display:none }
+/* below 1700 app px the seven page commands fold into one "* MENU" command that drops a menu list */
+.app-pages{ position:relative; margin-left:auto }
+.pmenu{ position:absolute; right:0; top:calc(100% + var(--u3)); z-index:9; display:none; min-width:calc(var(--px)*92) }
+.app-pages.open .pmenu{ display:block }
+.pmenu li{ display:block; min-height:0; padding:0 }
+.pmenu a{ display:flex; align-items:center; gap:var(--u2); min-height:calc(var(--px)*12); padding:0 var(--u4) 0 var(--u2) }
+.pmenu a .mk{ width:calc(var(--px)*9); height:calc(var(--px)*8); display:inline-grid; place-items:center; color:var(--g4); flex:none }
+.pmenu a .mk::before{ content:"*" }
+.pmenu a .ico{ color:var(--a-text) }
+.pmenu a:hover,.pmenu a:focus-visible{ color:var(--hp) }
+.pmenu a:hover .mk::before,.pmenu a:focus-visible .mk::before{ content:none }
+.pmenu a:hover .mk,.pmenu a:focus-visible .mk{ background:var(--soul); -webkit-mask:var(--i-soul) center/100% no-repeat; mask:var(--i-soul) center/100% no-repeat }
+.app-body{ display:grid; grid-template-columns:calc(var(--px)*112) minmax(0,1fr); min-height:0 }
 .side{ border-right:var(--u2) solid var(--ink); background:var(--void); display:flex; flex-direction:column; min-width:0 }
 .side-h{ display:flex; align-items:center; gap:var(--u2); padding:var(--u3) var(--u4); border-bottom:var(--u1) solid var(--g3) }
 .side-h .t-sb{ flex:1 }
 .side-s{ padding:var(--u3) var(--u4) var(--u2) }
 .side-s .inp{ min-height:calc(var(--px)*11) }
 .fold{ --fc:var(--g5) }
-.fold-h{ width:100%; display:flex; white-space:nowrap; align-items:center; gap:var(--u2); padding:var(--u2) var(--u4); font:700 16px/24px var(--font-hud); letter-spacing:0; text-transform:uppercase; color:var(--fc); text-align:left }
+.fold-h{ width:100%; display:flex; white-space:nowrap; align-items:center; gap:var(--u2); min-height:calc(var(--px)*11); padding:0 var(--u4); font:700 16px/24px var(--font-hud); letter-spacing:0; text-transform:uppercase; color:var(--fc); text-align:left }
 .fold-h .ico{ --s:8; color:var(--g4) }
 .fold-h[aria-expanded="false"] .ico{ transform:rotate(-90deg) }
 .fold-h .pip{ width:var(--u2); height:var(--u6); background:var(--fc) }
-.fold-h b{ margin-left:auto; color:var(--g4); font-weight:400 }
+.fold-h b{ margin-left:auto; color:var(--g4); font:400 var(--fs-d)/1 var(--font-text) }
 .fold-h:hover{ background:var(--g1) }
-.ent{ position:relative; display:grid; grid-template-columns:calc(var(--px)*9) auto minmax(0,1fr) auto; align-items:center; gap:var(--u2); padding:var(--u1) var(--u4) var(--u1) var(--u1); min-height:calc(var(--px)*18) }
-.ent .mk{ width:calc(var(--px)*9); height:calc(var(--px)*8) }
+/* entry: SOUL slot, 16x16 portrait, name over gold. Names are DATA type (Tiny5), so 13 letters fit */
+.ent{ position:relative; display:grid; grid-template-columns:calc(var(--px)*9) auto minmax(0,1fr); grid-template-rows:auto auto; column-gap:var(--u2); align-items:center; padding:var(--u1) var(--u4) var(--u1) var(--u1); min-height:calc(var(--px)*18) }
+.ent .mk{ grid-row:1/span 2; width:calc(var(--px)*9); height:calc(var(--px)*8) }
 .ent.on .mk{ background:var(--soul); -webkit-mask:var(--i-soul) center/100% no-repeat; mask:var(--i-soul) center/100% no-repeat }
-.ent .av{ width:calc(var(--px)*16); height:calc(var(--px)*16); outline:var(--u1) solid var(--g3) }
-.ent .nm{ color:var(--ca,var(--ink)); font:700 16px/1.25 var(--font-hud); letter-spacing:0; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-.ent .gd{ display:flex; align-items:center; gap:var(--u1); color:var(--g5); font:16px/1 var(--font-text); white-space:nowrap }
+.ent .av{ grid-row:1/span 2; width:calc(var(--px)*16); height:calc(var(--px)*16); outline:var(--u1) solid var(--g3) }
+.ent .nm{ align-self:end; color:var(--ca,var(--ink)); font:400 var(--fs-d)/1 var(--font-text); letter-spacing:0; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.ent .gd{ align-self:start; display:flex; align-items:center; gap:var(--u2); color:var(--g5); font:400 var(--fs-d)/1 var(--font-text); white-space:nowrap }
 .ent .gd .spr{ animation:none }
 .ent:hover,.ent:focus-visible{ background:var(--g1) }
 .ent:hover .av{ outline-color:var(--ca) }
-.ent.on{ background:var(--a0) }
+.ent.on{ background:var(--tex-check-a0,none) 0 0/var(--u2) var(--u2),var(--void); box-shadow:inset var(--px) 0 0 var(--a2) }
 .ent.on .av{ outline-color:var(--ca) }
 .ent.draft .nm{ color:var(--g4) }
-.ent.draft .nm::after{ content:" (draft)"; font-family:var(--font-text); text-transform:none; letter-spacing:0; color:var(--g4) }
+.ent.draft .gd::after{ content:"draft"; margin-left:var(--u2); padding:0 var(--u1); border:var(--u1) solid var(--g3); font:16px/1 var(--font-text); color:var(--g4) }
 .side-f{ margin-top:auto; padding:var(--u3) var(--u4); border-top:var(--u1) solid var(--g3); color:var(--g4); display:flex; gap:var(--u2); align-items:center }
 
 .sheet{ position:relative; min-width:0; overflow:hidden }
-.bgc{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none }
+.bgc{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none }
 .sheet-in{ position:relative; padding:var(--u6) var(--u8) var(--u8); display:grid; gap:var(--u8); align-content:start }
-.hdr{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:var(--u6); align-items:start; padding:var(--u6) }
-.pf{ position:relative; padding:var(--u1); border:var(--u2) solid var(--ink); background:var(--void); line-height:0 }
-.pf canvas{ width:calc(var(--px)*32); height:calc(var(--px)*32) }
+/* sheet header: a Ruins wall (24 art px, muted accent) with a twinkling SAVE star; the portrait hangs over it */
+.hdr{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:var(--u2) var(--u6); align-items:start; padding:var(--u6) var(--u6) var(--u6) }
+.hdr::before{ content:""; position:absolute; left:0; right:0; top:0; height:calc(var(--px)*24); background:var(--tex-wall,none) 0 0/calc(var(--px)*16) calc(var(--px)*24) repeat-x; pointer-events:none }
+.hdr > *{ position:relative }
+.hdr .hstar{ position:absolute; top:calc(var(--px)*5); right:calc(var(--px)*30) }
+.hdr .hstar2{ position:absolute; top:calc(var(--px)*11); right:calc(var(--px)*70); animation-delay:-.4s }
+.pf{ position:relative; padding:var(--u1); border:var(--u2) solid var(--ink); background:var(--void); line-height:0; box-shadow:var(--u2) var(--u2) 0 var(--m0) }
+.pf canvas{ width:calc(var(--px)*48); height:calc(var(--px)*48) }
 .pf .spr-soul{ position:absolute; right:calc(var(--px)*-6); bottom:calc(var(--px)*-5) }
-.hdr-i{ display:grid; gap:var(--u2); min-width:0 }
+.hdr-i{ display:grid; gap:var(--u2); min-width:0; padding-top:calc(var(--px)*20) }
 .nm-row{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--u2) var(--u4) }
-.cname{ font:700 var(--fs-l)/1 var(--font-hud); letter-spacing:0; text-shadow:var(--px) var(--px) 0 var(--a1); text-transform:uppercase; overflow-wrap:anywhere }
-.meta{ display:flex; flex-wrap:wrap; gap:var(--u1) var(--u4); align-items:center; font:700 16px/24px var(--font-hud); letter-spacing:0; text-transform:uppercase }
+.cname{ font:400 var(--fs-l)/1 var(--font-text); letter-spacing:0; text-shadow:0 var(--u2) 0 var(--a1); text-transform:uppercase; overflow-wrap:anywhere }
+.meta{ display:flex; flex-wrap:wrap; gap:var(--u1) var(--u6); align-items:center; font:700 16px/24px var(--font-hud); letter-spacing:0; text-transform:uppercase }
 .meta .by{ color:var(--g4) }
 .meta .by b{ color:var(--a-text) }
 .lv{ display:inline-flex; gap:var(--u2); align-items:center }
 .lv i{ font-style:normal; color:var(--hp) }
-.goldc{ display:inline-flex; align-items:center; gap:var(--u2); font:700 16px/24px var(--font-hud); letter-spacing:0; color:var(--gold) }
+.goldc{ display:inline-flex; align-items:center; gap:var(--u2); font:400 var(--fs-d)/1 var(--font-text); letter-spacing:0; color:var(--gold) }
 .tags{ display:flex; flex-wrap:wrap; gap:var(--u2) }
-.tag{ display:inline-flex; align-items:center; min-height:calc(var(--px)*8); padding:0 var(--u2); border:var(--u1) solid var(--a1); color:var(--a3); font:16px/1 var(--font-text) }
+.tag{ display:inline-flex; align-items:center; min-height:calc(var(--px)*8); padding:0 var(--u2); border:var(--u1) solid var(--a1); color:var(--a3); font:16px/1 var(--font-text); background:var(--void) }
 .tag::before{ content:"#"; color:var(--a1) }
-.hdr-s{ display:grid; gap:var(--u3); justify-items:end }
+.hdr-s{ display:grid; gap:var(--u3); justify-items:end; padding-top:calc(var(--px)*20) }
 .hdr-a{ display:flex; gap:var(--u2) }
 
 .cols{ display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:var(--u8) }
 .span2{ grid-column:1/-1 }
-/* stat rows: label, 20-segment HP-style bar, value */
-.stats{ container:stats/inline-size; display:grid; gap:var(--u3) }
-.stat{ --sw:10; display:grid; grid-template-columns:calc(var(--px)*8) calc(var(--px)*22) auto minmax(0,1fr); align-items:center; gap:var(--u3) }
+/* stat rows: label, 20-segment HP-style bar, value. Bars all speak HP (yellow over red); the stat's own
+   colour lives on its icon and label so HP and SPD still differ at a glance */
+.stats{ --sw:10; display:grid; gap:var(--u3) }
+.stat{ display:grid; grid-template-columns:calc(var(--px)*8) calc(var(--px)*22) auto minmax(0,1fr); align-items:center; gap:var(--u3) }
 .stat .ico{ color:var(--sc) }
-.stat .k{ font:700 16px/1 var(--font-hud); letter-spacing:0; color:var(--g5) }
+.stat .k{ font:700 16px/1 var(--font-hud); letter-spacing:0; color:var(--sc,var(--g5)) }
 .stat .k i{ font-style:normal; color:var(--kr); margin-left:var(--u1) }
-.stat .v{ display:flex; align-items:baseline; justify-content:flex-end; gap:var(--u2); font:700 16px/1 var(--font-hud); letter-spacing:0; white-space:nowrap }
-.stat .v small{ font:16px/1 var(--font-text); color:var(--heal) }
+.stat .v{ display:flex; align-items:baseline; justify-content:flex-end; gap:var(--u3); font:400 var(--fs-d)/1 var(--font-text); letter-spacing:0; white-space:nowrap }
+.stat .v small{ font:400 var(--fs-d)/1 var(--font-text); color:var(--heal) }
 .bar{ position:relative; height:calc(var(--px)*6); width:calc((20*(var(--sw) + 1) - 1)*var(--px)); background:linear-gradient(var(--hurt-l) 0 var(--px),var(--hurt) var(--px) calc(100% - var(--px)),var(--hurt-d) 0); -webkit-mask:repeating-linear-gradient(90deg,#000 0 calc(var(--sw)*var(--px)),transparent 0 calc((var(--sw) + 1)*var(--px))); mask:repeating-linear-gradient(90deg,#000 0 calc(var(--sw)*var(--px)),transparent 0 calc((var(--sw) + 1)*var(--px))) }
 .bar i{ position:absolute; inset:0 auto 0 0; width:calc(var(--fill,0)*var(--px)); background:linear-gradient(var(--hp-l) 0 var(--px),var(--hp) var(--px) calc(100% - var(--px)),var(--hp-d) 0) }
 .bar[data-tier="1"]{ background:linear-gradient(var(--hp-l) 0 var(--px),var(--hp) var(--px) calc(100% - var(--px)),var(--hp-d) 0) }
 .bar[data-tier="1"] i{ background:linear-gradient(var(--kr-l) 0 var(--px),var(--kr) var(--px) calc(100% - var(--px)),var(--kr-d) 0) }
 .bar[data-tier="1"] i::after{ content:""; position:absolute; right:0; top:0; bottom:0; width:var(--px); background:var(--ink); animation:blink 1s steps(1) infinite }
-@container stats (max-width:760px){ .stat{ --sw:8 } }
-@container stats (max-width:640px){ .stat{ --sw:6 } }
-@container stats (max-width:520px){ .stat{ --sw:4; grid-template-columns:calc(var(--px)*8) minmax(0,1fr) auto } .stat .bar{ grid-column:1/-1; grid-row:2; --sw:6 } }
-.subs{ display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(var(--px)*80)),1fr)); gap:var(--u1) var(--u8); margin-top:var(--u4); padding-top:var(--u4); border-top:var(--u1) solid var(--g3) }
-.sub{ display:flex; align-items:baseline; gap:var(--u2); min-height:calc(var(--px)*8) }
+.stats.stack .stat{ grid-template-columns:calc(var(--px)*8) minmax(0,1fr) auto } .stats.stack .stat .bar{ grid-column:1/-1; grid-row:2 }
+.subs{ display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(var(--px)*84)),1fr)); gap:var(--u1) var(--u8); margin-top:var(--u4); padding-top:var(--u4); border-top:var(--u1) solid var(--g3) }
+.sub{ display:flex; align-items:baseline; gap:var(--u2); min-height:calc(var(--px)*9) }
 .sub .k{ font:16px/24px var(--font-text); color:var(--g5); white-space:nowrap }
 .sub .dots{ flex:1; min-width:var(--u4); height:var(--u1); align-self:center; background:repeating-linear-gradient(90deg,var(--g3) 0 var(--px),transparent 0 calc(var(--px)*2)) }
-.sub .v{ font:700 16px/24px var(--font-hud); letter-spacing:0; white-space:nowrap }
-.sub .v small{ font:16px/1 var(--font-text); color:var(--heal); margin-left:var(--u1) }
+.sub .v{ font:400 var(--fs-d)/24px var(--font-text); letter-spacing:0; white-space:nowrap }
+.sub .v small{ font:400 var(--fs-d)/1 var(--font-text); color:var(--heal); margin-left:var(--u2) }
 .radar{ position:relative; display:grid; place-items:center; padding:var(--u4) 0 }
 .radar canvas{ width:calc(var(--px)*72); height:calc(var(--px)*72); max-width:100% }
-.radar .rl{ position:absolute; font:700 16px/1 var(--font-hud); letter-spacing:0; color:var(--g5); transform:translate(-50%,-50%); white-space:nowrap }
+.radar .rl{ position:absolute; font:700 16px/1 var(--font-hud); letter-spacing:0; color:var(--sc,var(--g5)); transform:translate(-50%,-50%); white-space:nowrap }
 .radar .rl b{ color:var(--ink); font-weight:700 }
 
-/* traits */
+/* traits: a 9-slice rarity frame, a 24x24 animated ART WINDOW (rarity lives in the art, never over the text),
+   a codex number, then the text on clean void */
 .tr-head{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--u3) var(--u6); margin-bottom:var(--u6) }
-.tr-head .pity-mini{ flex:1; min-width:calc(var(--px)*60) }
+.tr-head .pity-mini{ flex:1 1 calc(var(--px)*152); min-width:0 }
 .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(var(--px)*104)),1fr)); gap:var(--u6) }
-.trait{ --rc:var(--r-common); --rl:#ffffff; --rd:#5a5a66; position:relative; display:flex; flex-direction:column; gap:var(--u2); padding:var(--u4) var(--u4) var(--u4); border-style:solid; border-color:var(--rc); border-width:calc(var(--px)*4); border-image-source:var(--fr-common); border-image-slice:4 fill; border-image-width:calc(var(--px)*4); border-image-repeat:repeat; background:var(--void); min-width:0; isolation:isolate }
+.trait{ --rc:var(--r-common); --rl:#ffffff; --rd:#5a5a66; position:relative; display:flex; flex-direction:column; gap:var(--u3); padding:var(--u4); border-style:solid; border-color:var(--rc); border-width:calc(var(--px)*4); border-image-source:var(--fr-common); border-image-slice:4 fill; border-image-width:calc(var(--px)*4); border-image-repeat:repeat; background:var(--void); min-width:0; isolation:isolate }
 .trait > *{ position:relative; z-index:1 }
-.rar{ align-self:flex-start; display:inline-flex; align-items:center; gap:var(--u2); padding:0 var(--u2); min-height:calc(var(--px)*8); background:var(--rc); color:var(--void); font:700 16px/1 var(--font-hud); letter-spacing:0; text-transform:uppercase }
-.trait h4{ font:700 16px/24px var(--font-hud); letter-spacing:0; text-transform:uppercase; color:var(--rl) }
-.trait h4 q{ display:block; quotes:none; font:400 16px/24px var(--font-text); letter-spacing:0; text-transform:none; color:var(--g5) }
+.th{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--u4); align-items:start }
+.win{ display:block; line-height:0; border:var(--u1) solid var(--rc); box-shadow:var(--u1) var(--u1) 0 var(--rd); background:var(--void) }
+.tt{ display:grid; gap:var(--u2); min-width:0 }
+.rr{ display:flex; align-items:center; justify-content:space-between; gap:var(--u2) }
+.rar{ display:inline-flex; align-items:center; gap:var(--u2); padding:0 var(--u2); min-height:calc(var(--px)*8); background:var(--rc); color:var(--void); font:700 16px/1 var(--font-hud); letter-spacing:0; text-transform:uppercase }
+.no{ font:16px/1 var(--font-text); color:var(--g4); white-space:nowrap }
+.trait h4{ font:400 var(--fs-d)/1 var(--font-text); letter-spacing:0; text-transform:uppercase; color:var(--rl) }
+.trait h4 q{ display:block; margin-top:var(--u2); quotes:none; font:400 16px/24px var(--font-text); letter-spacing:0; text-transform:none; color:var(--g5) }
 .trait p{ font:16px/24px var(--font-text); color:var(--ink) }
 .trait .foot{ margin-top:auto; padding-top:var(--u2); display:flex; flex-wrap:wrap; gap:var(--u2); align-items:center; color:var(--g4) }
 .ctr{ display:inline-flex; align-items:center; border:var(--u1) solid var(--rc) }
-.ctr b{ min-width:calc(var(--px)*12); text-align:center; font:700 16px/1 var(--font-hud); color:var(--rl) }
-.ctr button{ width:calc(var(--px)*9); height:calc(var(--px)*9); display:grid; place-items:center; color:var(--rc) }
-.ctr button:hover{ background:var(--rc); color:var(--void) }
+.ctr b{ min-width:calc(var(--px)*12); text-align:center; font:400 var(--fs-d)/1 var(--font-text); color:var(--rl) }
+.ctr button{ width:calc(var(--px)*10); height:calc(var(--px)*10); display:grid; place-items:center; color:var(--rc); font:400 var(--fs-d)/1 var(--font-text) }
+.ctr button:hover,.ctr button:focus-visible{ background:var(--rc); color:var(--void) }
 .trait.rare{ --rc:var(--r-rare); --rl:#bfe2ff; --rd:#163c78; border-image-source:var(--fr-rare) }
 .trait.epic{ --rc:var(--r-epic); --rl:#e6c4ff; --rd:#3e1470; border-image-source:var(--fr-epic) }
 .trait.legend{ --rc:var(--r-legend); --rl:var(--gold-l); --rd:var(--gold-o); border-image-source:var(--fr-legend) }
@@ -378,27 +437,29 @@ a{ color:inherit; text-decoration:none }
 .trait .tw{ position:absolute; z-index:2 }
 .trait .tw.a{ right:calc(var(--px)*-6); top:calc(var(--px)*-6) }
 .trait .tw.b{ left:calc(var(--px)*-6); bottom:calc(var(--px)*-6); animation-delay:-.33s }
-/* mythic: the seven SOUL colours cycle around the frame (palette cycling) and motes rise */
+/* mythic: the seven SOUL colours cycle around the frame (palette cycling); the seven SOULs orbit in the window */
 .trait.mythic::before{ content:""; position:absolute; inset:calc(var(--px)*-4); z-index:0; pointer-events:none;
   background:var(--cyc-h) 0 0/calc(var(--px)*14) var(--u2) repeat-x,var(--cyc-h) 0 100%/calc(var(--px)*14) var(--u2) repeat-x,var(--cyc-v) 0 0/var(--u2) calc(var(--px)*14) repeat-y,var(--cyc-v) 100% 0/var(--u2) calc(var(--px)*14) repeat-y;
   animation:cyc .875s steps(7) infinite }
 @keyframes cyc{ to{ background-position:calc(var(--px)*14) 0,calc(var(--px)*-14) 100%,0 calc(var(--px)*-14),100% calc(var(--px)*14) } }
-.trait.mythic::after{ content:""; position:absolute; inset:0; z-index:0; pointer-events:none; background:var(--motes) 0 0/calc(var(--px)*32) calc(var(--px)*32) repeat; animation:motes 3.2s steps(32) infinite }
-@keyframes motes{ to{ background-position:0 calc(var(--px)*-32) } }
-/* hexxed: static, split colour text, periodic slice glitch (JS adds .glitch for 2 frames) */
-.trait.hex::before{ content:""; position:absolute; inset:0; z-index:0; pointer-events:none; background:var(--sh-noise) 0 0/calc(var(--px)*128) calc(var(--px)*32); animation:noise .5s steps(4) infinite }
+.trait.mythic .win{ border-color:#fff; box-shadow:var(--u1) var(--u1) 0 var(--r-mythic) }
+/* hexxed: static lives in a 3 art px band just inside the torn frame (masked off the text), the eye opens in the
+   window, and every few seconds a 2-frame slice glitch tears the window and the title (JS adds .glitch) */
+.trait.hex::before{ content:""; position:absolute; inset:0; z-index:0; pointer-events:none; background:var(--sh-noise) 0 0/calc(var(--px)*128) calc(var(--px)*32); animation:noise .5s steps(4) infinite;
+  -webkit-mask:linear-gradient(#000 0 0) 0 0/100% var(--u3) no-repeat,linear-gradient(#000 0 0) 0 100%/100% var(--u3) no-repeat,linear-gradient(#000 0 0) 0 0/var(--u3) 100% no-repeat,linear-gradient(#000 0 0) 100% 0/var(--u3) 100% no-repeat;
+  mask:linear-gradient(#000 0 0) 0 0/100% var(--u3) no-repeat,linear-gradient(#000 0 0) 0 100%/100% var(--u3) no-repeat,linear-gradient(#000 0 0) 0 0/var(--u3) 100% no-repeat,linear-gradient(#000 0 0) 100% 0/var(--u3) 100% no-repeat }
 @keyframes noise{ to{ background-position:calc(var(--px)*-128) 0 } }
-.trait.hex h4{ text-shadow:2px 0 0 var(--r-hex) }
+.trait.hex h4{ text-shadow:var(--px) 0 0 var(--r-hex) }
 .trait.hex .rar{ background:var(--ink); color:var(--void) }
-.trait.hex.glitch{ transform:translateX(var(--u2)) }
-.trait.hex.glitch h4{ transform:translateX(calc(var(--px)*-4)); text-shadow:calc(var(--px)*-1) 0 0 var(--r-hex),var(--px) 0 0 var(--s-cyan) }
-.trait.hex.glitch p{ clip-path:inset(0 0 40% 0); transform:translateX(var(--u3)) }
+.trait.hex .win{ border-color:var(--r-hex); box-shadow:var(--u1) var(--u1) 0 var(--s-cyan) }
+.trait.hex.glitch .win{ transform:translateX(var(--u2)); box-shadow:calc(var(--px)*-2) 0 0 var(--s-cyan) }
+.trait.hex.glitch h4{ transform:translateX(calc(var(--px)*-3)); text-shadow:calc(var(--px)*-1) 0 0 var(--r-hex),var(--px) 0 0 var(--s-cyan) }
 .trait.on{ outline:var(--u1) solid var(--ink); outline-offset:var(--u2) }
 
 /* pity meter */
 .pity{ display:grid; gap:var(--u2) }
 .pity-top{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:var(--u2); align-items:baseline }
-.pity-top b{ font:700 16px/24px var(--font-hud); letter-spacing:0; color:var(--gold) }
+.pity-top b{ font:400 var(--fs-d)/24px var(--font-text); letter-spacing:0; color:var(--gold) }
 .pbar{ --n:50; --sw:3; position:relative; display:flex; height:calc(var(--px)*6); gap:var(--px) }
 .pbar span{ flex:none; width:var(--u2); background:linear-gradient(var(--g3) 0 var(--px),var(--g2) var(--px)) }
 .pbar span.f{ background:linear-gradient(var(--gold-l) 0 var(--px),var(--gold) var(--px) calc(100% - var(--px)),var(--gold-d) 0) }
@@ -409,18 +470,19 @@ a{ color:inherit; text-decoration:none }
 /* gold */
 .goldbig{ display:flex; align-items:center; gap:var(--u4) }
 .spr-coin16{ --w:16; --h:16; --f:8; --fps:8; --sheet:var(--sh-coin16) }
-.goldbig b{ font:700 var(--fs-l)/1 var(--font-hud); letter-spacing:0; color:var(--gold); text-shadow:var(--px) var(--px) 0 var(--gold-o) }
-.goldbig b small{ font-size:var(--fs-m); margin-left:var(--u2) }
+.goldbig b{ font:400 var(--fs-l)/1 var(--font-text); letter-spacing:0; color:var(--gold); text-shadow:0 var(--u2) 0 var(--gold-o) }
+.goldbig b small{ font-size:var(--fs-d); margin-left:var(--u2); text-shadow:var(--px) var(--px) 0 var(--gold-o) }
+.goldbig em{ display:block; font:16px/24px var(--font-text); font-style:normal; color:var(--g4) }
 .spark{ display:flex; align-items:flex-end; gap:var(--u1); height:calc(var(--px)*18); padding-bottom:var(--u1); border-bottom:var(--u1) solid var(--g3) }
 .spark span{ flex:none; width:var(--u4); height:calc(var(--h)*var(--px)); background:linear-gradient(var(--gold-l) 0 var(--px),var(--gold-d) var(--px)) }
-.spark span.now{ background:linear-gradient(var(--ink) 0 var(--px),var(--gold) var(--px)) }
+.spark span.now{ background:linear-gradient(var(--ink) 0 var(--px),var(--hurt-l) var(--px)); min-height:var(--u1) }
 .spark em{ font-style:normal; margin-left:var(--u4); align-self:center }
 .txs{ display:grid; border-top:var(--u1) solid var(--g3) }
 .tx{ display:grid; grid-template-columns:calc(var(--px)*22) minmax(0,1fr) auto auto; gap:var(--u4); align-items:baseline; padding:var(--u1) 0; border-bottom:var(--u1) solid var(--g2) }
-.tx .d{ color:var(--g4); font:400 16px/24px var(--font-hud); letter-spacing:0 }
+.tx .d{ color:var(--g4); font:400 16px/24px var(--font-hud); letter-spacing:0; white-space:nowrap }
 .tx .w{ min-width:0 }
-.tx .a{ font:700 16px/24px var(--font-hud); letter-spacing:0; text-align:right }
-.tx .bal{ color:var(--g4); text-align:right; min-width:calc(var(--px)*22) }
+.tx .a{ font:400 var(--fs-d)/24px var(--font-text); letter-spacing:0; text-align:right; white-space:nowrap }
+.tx .bal{ color:var(--g4); text-align:right; min-width:calc(var(--px)*26); white-space:nowrap }
 
 /* item card */
 .item{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--u2) var(--u4); padding:var(--u4); border:var(--u1) solid var(--g5); background:var(--void); position:relative }
@@ -429,7 +491,7 @@ a{ color:inherit; text-decoration:none }
 .item h4{ font:700 16px/24px var(--font-hud); letter-spacing:0; text-transform:uppercase; display:flex; flex-wrap:wrap; gap:var(--u1) var(--u3); align-items:center }
 .item p{ color:var(--g5) }
 .mods{ grid-column:1/-1; display:flex; flex-wrap:wrap; gap:var(--u2) }
-.mod{ display:inline-flex; align-items:center; gap:var(--u1); padding:0 var(--u2); min-height:calc(var(--px)*8); border:var(--u1) solid var(--g3); font:700 16px/1 var(--font-hud); letter-spacing:0 }
+.mod{ display:inline-flex; align-items:center; gap:var(--u2); padding:0 var(--u2); min-height:calc(var(--px)*10); border:var(--u1) solid var(--g3); font:400 var(--fs-d)/1 var(--font-text); letter-spacing:0 }
 .mod .ico{ --s:8; color:var(--sc) }
 .mod.up{ color:var(--heal) } .mod.dn{ color:var(--hurt-l) }
 .item .acts{ grid-column:1/-1; display:flex; gap:var(--u2); align-items:center; flex-wrap:wrap }
@@ -456,7 +518,7 @@ a{ color:inherit; text-decoration:none }
 .dice{ display:flex; flex-wrap:wrap; gap:var(--u6); align-items:center }
 .dice canvas{ width:calc(var(--px)*24); height:calc(var(--px)*24) }
 .dice .res{ display:grid; gap:var(--u2); justify-items:start }
-.dice .res b{ font:700 var(--fs-l)/1 var(--font-hud); color:var(--hp) }
+.dice .res b{ font:400 var(--fs-l)/1 var(--font-text); color:var(--hp); text-shadow:0 var(--u2) 0 var(--hp-d) }
 
 /* empty + loading */
 .empty{ display:grid; justify-items:center; text-align:center; gap:var(--u4); padding:var(--u8) var(--u4) }
@@ -465,17 +527,23 @@ a{ color:inherit; text-decoration:none }
 .loadbox canvas{ width:calc(var(--px)*64); height:calc(var(--px)*32); max-width:100% }
 .dots-a::after{ content:""; animation:dots 1.2s steps(1) infinite }
 @keyframes dots{ 0%{ content:"" } 25%{ content:"." } 50%{ content:".." } 75%{ content:"..." } }
+.loadwrap{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--u8); align-items:start }
+.skel{ display:flex; gap:var(--u4); margin-top:var(--u6); padding-top:var(--u4); border-top:var(--u1) solid var(--g2) }
+.skel div{ display:grid; gap:var(--u2); align-content:start; flex:1; min-width:0 }
+.skel i{ display:block; width:min(100%,calc(var(--w)*var(--px))); height:calc(var(--h,6)*var(--px)); background:linear-gradient(var(--g3) 0 0) calc(var(--px)*-2) 0/var(--px) 100% no-repeat,var(--tex-check-g2,none) 0 0/var(--u2) var(--u2); animation:skel 2s steps(16) infinite }
+@keyframes skel{ to{ background-position:calc(var(--px)*62) 0,0 0 } }
 .lbar{ display:flex; gap:var(--px); height:var(--u4) }
 .lbar span{ flex:none; width:var(--u3); background:var(--g2) }
 .lbar span.f{ background:var(--ink) }
 
 /* trait roll reveal */
-.hand{ display:flex; flex-wrap:wrap; gap:var(--u6); justify-content:center; align-items:flex-start }
-.hand figure{ display:grid; justify-items:center; gap:var(--u2); width:calc(var(--px)*44) }
-.hand canvas{ width:calc(var(--px)*32); height:calc(var(--px)*44) }
-.hand figcaption{ text-align:center; min-height:48px; font:700 16px/24px var(--font-hud); letter-spacing:0; text-transform:uppercase }
+.hand{ display:flex; flex-wrap:wrap; gap:var(--u8); justify-content:center; align-items:flex-start; contain:layout }
+.hand.shake{ translate:var(--u1) 0 }
+.hand figure{ display:grid; justify-items:center; gap:var(--u2); width:calc(var(--px)*52) }
+.hand canvas{ width:calc(var(--px)*40); height:calc(var(--px)*52) }
+.hand figcaption{ text-align:center; min-height:72px; font:400 var(--fs-d)/24px var(--font-text); letter-spacing:0; text-transform:uppercase; color:var(--rl,var(--ink)) }
 .story{ display:flex; flex-wrap:wrap; justify-content:center; gap:var(--u3); margin-top:var(--u6); padding-top:var(--u6); border-top:var(--u1) solid var(--g3) }
-.story canvas{ width:calc(var(--px)*32); height:calc(var(--px)*44) }
+.story canvas{ width:calc(var(--px)*40); height:calc(var(--px)*52) }
 .hand figcaption small{ display:block; font:16px/24px var(--font-text); letter-spacing:0; text-transform:none; color:var(--g4) }
 
 /* mini player */
@@ -483,6 +551,7 @@ a{ color:inherit; text-decoration:none }
 .player .ttl{ min-width:0; display:grid }
 .player .ttl b{ font:16px/24px var(--font-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
 .player .ttl span{ font:700 16px/1 var(--font-hud); letter-spacing:0; color:var(--a-text) }
+.player .tm{ font:400 var(--fs-d)/1 var(--font-text) }
 .player .prog{ flex:1; display:flex; align-items:center; gap:var(--u3); min-width:0 }
 .player .prog .rng{ flex:1 }
 .player .tm{ color:var(--g4); white-space:nowrap }
@@ -493,16 +562,19 @@ a{ color:inherit; text-decoration:none }
 
 /* ---------- component sheet ---------- */
 .kit{ display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:var(--u12) var(--u8); align-items:stretch }
-.kit > .box{ grid-column:span 4; min-width:0; padding-top:var(--u8) }
+.kit > .box{ grid-column:span 4; min-width:0 }
 .items2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--u6) }
 .kit > .w6{ grid-column:span 6 }
 .kit > .kcol{ grid-column:span 4; display:grid; gap:var(--u12); align-content:start; min-width:0 }
-.kcol > .box{ padding-top:var(--u8); min-width:0 } .kit > .w8{ grid-column:span 8 } .kit > .w12{ grid-column:1/-1 } .kit > .w3{ grid-column:span 3 }
+.kcol > .box{ min-width:0 } .kit > .w8{ grid-column:span 8 } .kit > .w12{ grid-column:1/-1 } .kit > .w3{ grid-column:span 3 }
 .cap{ color:var(--g4); font:16px/24px var(--font-text); margin-top:var(--u3) }
 .stack{ display:grid; gap:var(--u4) }
 .row{ display:flex; flex-wrap:wrap; gap:var(--u3) var(--u4); align-items:center }
 .bmx{ display:grid; grid-template-columns:auto repeat(5,minmax(0,1fr)); gap:var(--u4) var(--u4); align-items:center; justify-items:start }
 .bmx .h{ color:var(--g4); font:400 16px/24px var(--font-hud); letter-spacing:0; text-transform:uppercase }
+.kit{ counter-reset:comp }
+.kit .box > .lg{ counter-increment:comp }
+.kit .box > .lg::after{ content:"  C" counter(comp,decimal-leading-zero); color:var(--g4) }
 .raregrid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--u8) var(--u8) }
 
 /* backgrounds strip */
@@ -543,6 +615,14 @@ a{ color:inherit; text-decoration:none }
 .ramp{ display:flex; gap:var(--u1) }
 .ramp i{ flex:1; height:var(--u12); background:var(--c); display:grid; place-items:end start; padding:var(--u1); font:16px/1 var(--font-text); font-style:normal; color:var(--void) }
 .ramp i.dk{ color:var(--ink) }
+.tiles{ display:flex; flex-wrap:wrap; gap:var(--u6); margin-top:var(--u4) }
+.tiles figure{ display:grid; gap:var(--u1) }
+.tiles canvas{ width:calc(var(--width)*var(--px)); height:calc(var(--height)*var(--px)) }
+.proof{ display:grid; grid-template-columns:repeat(auto-fill,calc(var(--px)*54)); gap:var(--u4) var(--u6); margin-top:var(--u4) }
+.proof figure{ display:grid; gap:var(--u1) }
+.proof canvas{ width:calc(var(--px)*54); height:calc(var(--px)*25) }
+.tscale td:nth-child(4),.tscale td:nth-child(5){ color:var(--ink) }
+.spec .scrollx{ margin-bottom:var(--u4) }
 .nineviz{ display:flex; flex-wrap:wrap; gap:var(--u8); align-items:center }
 .nineviz figure{ display:grid; gap:var(--u2); justify-items:start }
 .nineviz canvas{ width:calc(var(--px)*45); height:calc(var(--px)*45) }
@@ -567,27 +647,43 @@ a{ color:inherit; text-decoration:none }
 .foot-note{ margin-top:var(--u16); padding-top:var(--u4); border-top:var(--u1) solid var(--g3); color:var(--g4); display:flex; flex-wrap:wrap; gap:var(--u2) var(--u8); align-items:center }
 
 /* ---------- app: compact layouts ---------- */
-@container app (max-width:1500px){ .app-nav .cmd span{ display:none } .app-nav .cmd{ padding:var(--u1) var(--u2) } }
-@container app (max-width:1100px){ .cols{ grid-template-columns:minmax(0,1fr) } .hdr{ grid-template-columns:auto minmax(0,1fr) } .hdr-s{ grid-column:1/-1; justify-items:start; grid-auto-flow:column; justify-content:space-between } }
+@container app (max-width:1720px){ .app-nav{ display:none } .app-pages{ display:block } }
+@container app (max-width:1300px){ .cols{ grid-template-columns:minmax(0,1fr) } }
+@container app (max-width:1100px){ .hdr{ grid-template-columns:auto minmax(0,1fr) } .pf{ grid-row:1/span 2 } .hdr-s{ grid-column:2; padding-top:0; justify-items:start; grid-auto-flow:column; justify-content:start } }
 @container app (max-width:760px){
   .app-top{ padding:var(--u2) var(--u3); gap:var(--u2) }
-  .app-nav,.app-act .perf,.app-act .newfull{ display:none }
+  .app-act .perf,.app-act .newfull{ display:none }
   .app-menu,.app-new-i{ display:inline-grid }
   .logo{ margin-right:auto; font-size:16px; letter-spacing:0 }
+  .logo .spr{ display:none }
+  .app-top .cmd.sm{ padding:0 var(--u2) }
+  .app-pages{ margin-left:0 }
   .app-body{ grid-template-columns:minmax(0,1fr) }
-  .side{ position:absolute; z-index:6; top:0; bottom:0; left:0; width:min(86%,calc(var(--px)*150)); border-right:var(--u2) solid var(--ink); transform:translateX(-102%); transition:transform .2s steps(4); visibility:hidden }
+  .side{ position:absolute; z-index:6; top:0; bottom:0; left:0; width:min(88%,calc(var(--px)*160)); border-right:var(--u2) solid var(--ink); transform:translateX(-102%); transition:transform .2s steps(4); visibility:hidden }
   .app[data-drawer="open"] .side{ transform:none; visibility:visible }
   .app[data-drawer="open"] .scrim-d{ display:block; position:absolute; inset:0; z-index:5; background:var(--tex-check,none) 0 0/var(--u2) var(--u2) }
   .app-body{ position:relative }
   .sheet-in{ padding:var(--u4) var(--u3) var(--u6); gap:var(--u8) }
-  .hdr{ grid-template-columns:auto minmax(0,1fr); gap:var(--u4); padding:var(--u4) }
+  .hdr{ grid-template-columns:auto minmax(0,1fr); gap:var(--u3) var(--u4); padding:var(--u4) }
+  .hdr-i{ padding-top:calc(var(--px)*22) }
+  .pf{ grid-row:auto }
   .hdr-s{ grid-column:1/-1; grid-auto-flow:row; justify-items:start; justify-content:start }
-  .pf canvas{ width:calc(var(--px)*32); height:calc(var(--px)*32) }
-  .cname{ font-size:var(--fs-m) }
-  .tabs{ gap:0 var(--u4) }
-  .player .vol,.player .tm{ display:none }
+  .hdr .hstar2{ display:none }
   .box{ padding:var(--u4) }
+  .box:has(> .lg){ padding-top:calc(var(--px)*16) }
   .cards{ grid-template-columns:minmax(0,1fr) }
+  .player .vol,.player .tm{ display:none }
+  /* touch: every hit area is at least 16 art px (32 CSS px at the phone grid) */
+  .ibtn,.ibtn.sm{ width:calc(var(--px)*16); height:calc(var(--px)*16) }
+  .cmd.sm,.cmd{ min-height:calc(var(--px)*16) }
+  .tab{ min-height:calc(var(--px)*16) }
+  .chip{ min-height:calc(var(--px)*16); padding:0 var(--u4) }
+  .fold-h{ min-height:calc(var(--px)*16) }
+  .ent{ min-height:calc(var(--px)*22) }
+  .ctr button{ width:calc(var(--px)*16); height:calc(var(--px)*16) }
+  .pmenu a{ min-height:calc(var(--px)*16) }
+  .side-s .inp{ min-height:calc(var(--px)*16) }
+  .rng input{ height:calc(var(--px)*16) }
 }
 
 /* ---------- page: responsive ---------- */
@@ -606,11 +702,21 @@ a{ color:inherit; text-decoration:none }
   .tx .d{ grid-column:1/-1 } .tx .bal{ display:none }
   .kit{ gap:var(--u12) 0 }
 }
+@media (max-width:640px){ .lg{ white-space:normal; max-width:calc(100% - var(--u6)) } .kit .box > .lg::after{ content:none } }
+@media (max-width:640px),(pointer:coarse){ .sw,.sws.big .sw{ width:calc(var(--px)*16); height:calc(var(--px)*16) } .tog input{ width:calc(var(--px)*21); height:calc(var(--px)*12) } .tog input::after{ top:var(--u1) } }
 
 /* ---------- motion policy ---------- */
+/* loops pause on frame 0 (every loop is drawn so frame 0 reads on its own); ENTRANCES are switched off, not paused,
+   so nothing is left parked off-screen half way in */
 :root[data-motion="off"] *, :root[data-motion="off"] *::before, :root[data-motion="off"] *::after{ animation-play-state:paused!important; transition:none!important }
+:root[data-motion="off"] .toast.in{ animation:none!important }
+:root[data-motion="off"] .hand.shake{ translate:none }
 :root[data-perf="on"] .trait::before, :root[data-perf="on"] .trait::after, :root[data-perf="on"] .spr, :root[data-perf="on"] .bob, :root[data-perf="on"] .pbar span, :root[data-perf="on"] .bar i::after{ animation-play-state:paused!important }
-@media (prefers-reduced-motion:reduce){ *,*::before,*::after{ animation-play-state:paused!important; transition:none!important } }
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ animation-play-state:paused!important; transition:none!important }
+  .toast.in,.tw-cur::after,.caret{ animation:none!important }
+  .hand.shake{ translate:none }
+}
 </style>
 <div class="tile">
 
@@ -629,8 +735,9 @@ a{ color:inherit; text-decoration:none }
       <span class="inp sel" style="min-height:calc(var(--px)*10)"><select id="bg-pick"></select><i class="ico" style="--i:var(--i-chev)"></i></span>
     </div>
     <div class="tb-grp">
-      <label class="tog"><input type="checkbox" id="perf-t"><span class="t-s">Perf</span></label>
-      <label class="tog"><input type="checkbox" id="motion-t" checked><span class="t-s">Motion</span></label>
+      <label class="tog"><input type="checkbox" role="switch" id="perf-t"><span class="t-s">Perf</span></label>
+      <label class="tog"><input type="checkbox" role="switch" id="motion-t" checked><span class="t-s">Motion</span></label>
+      <span class="t-body tb-perf num" id="perf-read" title="Average main-thread time the shared frame timer spends per tick" aria-live="off">tick -- ms</span>
     </div>
   </div>
 </header>
@@ -643,7 +750,7 @@ a{ color:inherit; text-decoration:none }
 
   <div class="app" id="app" data-drawer="closed">
     <div class="app-top">
-      <button class="ibtn app-menu" type="button" aria-label="Open character list" data-drawer-toggle><i class="ico" style="--i:var(--i-menu)"></i></button>
+      <button class="ibtn app-menu" type="button" aria-label="Open character list" aria-expanded="false" aria-controls="side" data-drawer-toggle><i class="ico" style="--i:var(--i-menu)"></i></button>
       <div class="logo"><i class="spr spr-star" aria-hidden="true"></i>STAT<b>SHEETS</b></div>
       <nav class="app-nav soulnav" aria-label="Pages">
         <i class="ico runner" style="--i:var(--i-heart)" aria-hidden="true"></i>
@@ -653,9 +760,22 @@ a{ color:inherit; text-decoration:none }
         <a class="cmd sm" href="#playlists"><i class="ico" style="--i:var(--i-note)"></i><span>Playlists</span></a>
         <a class="cmd sm" href="#bks-corner"><i class="ico" style="--i:var(--i-house)"></i><span>BK's Corner</span></a>
         <a class="cmd sm" href="#spin"><i class="ico" style="--i:var(--i-wheel)"></i><span>Spin a Baddie</span></a>
+        <a class="cmd sm" href="#admin"><i class="ico" style="--i:var(--i-key)"></i><span>Admin</span></a>
       </nav>
+      <div class="app-pages">
+        <button class="cmd sm" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="pmenu" data-pages-toggle><i class="ico" style="--i:var(--i-menu)"></i><span>Menu</span></button>
+        <ul class="ctx pmenu" role="menu" id="pmenu" aria-label="Pages">
+          <li role="none"><a role="menuitem" href="#utilities"><i class="mk"></i><i class="ico" style="--i:var(--i-gear)"></i>Utilities</a></li>
+          <li role="none"><a role="menuitem" href="#gallery"><i class="mk"></i><i class="ico" style="--i:var(--i-frame)"></i>Gallery</a></li>
+          <li role="none"><a role="menuitem" href="#encyclopaedia"><i class="mk"></i><i class="ico" style="--i:var(--i-book)"></i>Encyclopaedia</a></li>
+          <li role="none"><a role="menuitem" href="#playlists"><i class="mk"></i><i class="ico" style="--i:var(--i-note)"></i>Playlists</a></li>
+          <li role="none"><a role="menuitem" href="#bks-corner"><i class="mk"></i><i class="ico" style="--i:var(--i-house)"></i>BK's Corner</a></li>
+          <li role="none"><a role="menuitem" href="#spin"><i class="mk"></i><i class="ico" style="--i:var(--i-wheel)"></i>Spin a Baddie</a></li>
+          <li role="none"><a role="menuitem" href="#admin"><i class="mk"></i><i class="ico" style="--i:var(--i-key)"></i>Admin</a></li>
+        </ul>
+      </div>
       <div class="app-act">
-        <button class="cmd sm sec perf" type="button"><i class="ico" style="--i:var(--i-bolt)"></i><span>Perf</span></button>
+        <button class="ibtn perf" type="button" aria-label="Performance mode" title="Performance mode"><i class="ico" style="--i:var(--i-bolt)"></i></button>
         <button class="cmd sm solid newfull" type="button"><i class="ico" style="--i:var(--i-plus)"></i><span>New character</span></button>
         <button class="ibtn app-new-i" type="button" aria-label="New character"><i class="ico" style="--i:var(--i-plus)"></i></button>
         <button class="ibtn" type="button" aria-label="Sound on"><i class="ico" style="--i:var(--i-speaker)"></i></button>
@@ -663,7 +783,7 @@ a{ color:inherit; text-decoration:none }
     </div>
 
     <div class="app-body">
-      <aside class="side" aria-label="Characters">
+      <aside class="side" id="side" aria-label="Characters">
         <div class="side-h"><span class="t-sb">* Characters</span><span class="mut num">23</span><button class="ibtn sm" type="button" aria-label="New folder"><i class="ico" style="--i:var(--i-plus)"></i></button></div>
         <div class="side-s"><label class="inp"><i class="ico" style="--i:var(--i-search)"></i><input type="search" id="side-search" placeholder="Search characters" aria-label="Search characters"></label></div>
         <div class="fold" style="--fc:#4aa8ff">
@@ -697,7 +817,8 @@ a{ color:inherit; text-decoration:none }
         <canvas class="bgc" data-bg="main" aria-hidden="true"></canvas>
         <div class="sheet-in">
           <header class="box hdr">
-            <div class="pf"><canvas class="portrait" width="32" height="32" aria-label="BLACKJACK portrait (placeholder art)"></canvas><i class="spr spr-soul acc" aria-hidden="true"></i></div>
+            <i class="spr spr-star hstar" aria-hidden="true"></i><i class="spr spr-star hstar2" aria-hidden="true"></i>
+            <div class="pf"><canvas class="portrait" width="48" height="48" role="img" aria-label="BLACKJACK portrait (placeholder art)"></canvas><i class="spr spr-soul acc" aria-hidden="true"></i></div>
             <div class="hdr-i">
               <div class="nm-row"><h3 class="cname">Blackjack</h3><span class="sample">Sample</span></div>
               <div class="meta"><span class="by">By <b>BK</b></span><span class="lv"><i>LV</i>Wall Level</span><span class="goldc"><i class="spr spr-coin"></i>1 G</span></div>
@@ -713,14 +834,19 @@ a{ color:inherit; text-decoration:none }
             </div>
           </header>
 
+          <div class="tabs-x">
           <div class="tabs" role="tablist" aria-label="Sheet sections">
             <button class="tab" role="tab" aria-selected="true" type="button"><i class="mk"></i>Stats</button>
             <button class="tab" role="tab" aria-selected="false" type="button"><i class="mk"></i>Abilities</button>
             <button class="tab" role="tab" aria-selected="false" type="button"><i class="mk"></i>Items</button>
+            <button class="tab" role="tab" aria-selected="false" type="button"><i class="mk"></i>Traits</button>
+            <button class="tab" role="tab" aria-selected="false" type="button"><i class="mk"></i>Gold</button>
             <button class="tab" role="tab" aria-selected="false" type="button"><i class="mk"></i>Info</button>
             <button class="tab" role="tab" aria-selected="false" type="button"><i class="mk"></i>Soul</button>
             <button class="tab" role="tab" aria-selected="false" type="button"><i class="mk"></i>Music</button>
+            <button class="tab" role="tab" aria-selected="false" type="button"><i class="mk"></i>Chat</button>
             <button class="tab" role="tab" aria-selected="false" type="button"><i class="mk"></i>Style</button>
+          </div>
           </div>
 
           <div class="cols">
@@ -751,15 +877,15 @@ a{ color:inherit; text-decoration:none }
               <h4 class="lg">Spread</h4>
               <div class="radar">
                 <canvas class="radar-c" width="72" height="72" aria-label="Radar chart of the six core stats"></canvas>
-                <span class="rl" style="left:50%;top:4%">HP</span>
-                <span class="rl" style="left:88%;top:27%">ATK</span>
-                <span class="rl" style="left:88%;top:73%">DEF</span>
-                <span class="rl" style="left:50%;top:96%">MAG</span>
-                <span class="rl" style="left:12%;top:73%">SPD</span>
-                <span class="rl" style="left:12%;top:27%">IQ</span>
+                <span class="rl" style="left:50%;top:4%;--sc:var(--heal)">HP</span>
+                <span class="rl" style="left:88%;top:27%;--sc:var(--s-orange)">ATK</span>
+                <span class="rl" style="left:88%;top:73%;--sc:var(--s-blue)">DEF</span>
+                <span class="rl" style="left:50%;top:96%;--sc:var(--s-purple)">MAG</span>
+                <span class="rl" style="left:12%;top:73%;--sc:var(--hp)">SPD</span>
+                <span class="rl" style="left:12%;top:27%;--sc:var(--s-cyan)">IQ</span>
               </div>
               <div class="subs" style="grid-template-columns:minmax(0,1fr)">
-                <div class="sub"><span class="k">Equipped</span><i class="dots"></i><span class="v">2 / 4</span></div>
+                <div class="sub"><span class="k">Equipped</span><i class="dots"></i><span class="v num">2 / 4</span></div>
                 <div class="sub"><span class="k">Strongest vs. Snaps</span><i class="dots"></i><span class="v up">ATK</span></div>
               </div>
             </section>
@@ -777,21 +903,18 @@ a{ color:inherit; text-decoration:none }
               <div class="cards">
                 <article class="trait legend">
                   <i class="spr spr-star tw a" aria-hidden="true"></i><i class="spr spr-star tw b" aria-hidden="true"></i>
-                  <span class="rar">Legendary</span>
-                  <h4>All In<q>"Everything on red."</q></h4>
+                  <div class="th"><span class="win"><i class="spr art art-legend" aria-hidden="true"></i></span><div class="tt"><div class="rr"><span class="rar">Legendary</span><span class="no">No.112</span></div><h4>All In<q>"Everything on red."</q></h4></div></div>
                   <p>Spend all your G when a fight starts. Gain +1 ATK for every 10 G spent until it ends. Win, and the pot comes back doubled.</p>
                   <div class="foot"><span class="t-s">Chips in pot</span><span class="ctr"><button type="button" aria-label="Remove chip">-</button><b class="num">3</b><button type="button" aria-label="Add chip">+</button></span></div>
                 </article>
                 <article class="trait epic">
-                  <span class="rar">Epic</span>
-                  <h4>House Edge<q>"The house always wins."</q></h4>
+                  <div class="th"><span class="win"><i class="spr art art-epic" aria-hidden="true"></i></span><div class="tt"><div class="rr"><span class="rar">Epic</span><span class="no">No.041</span></div><h4>House Edge<q>"The house always wins."</q></h4></div></div>
                   <p>Enemies below 50% HP take +15% True DMG from your hits. Doesn't stack with other execute traits.</p>
                   <div class="foot"><span class="t-s">Passive</span></div>
                 </article>
                 <article class="trait rare">
                   <i class="spr spr-gem gem tl" aria-hidden="true"></i><i class="spr spr-gem gem br" aria-hidden="true"></i>
-                  <span class="rar">Rare</span>
-                  <h4>Card Counter<q>"Ten, jack, queen..."</q></h4>
+                  <div class="th"><span class="win"><i class="spr art art-rare" aria-hidden="true"></i></span><div class="tt"><div class="rr"><span class="rar">Rare</span><span class="no">No.027</span></div><h4>Card Counter<q>"Ten, jack, queen..."</q></h4></div></div>
                   <p>+5% Crit Rate for each card drawn this turn, up to +25%. Resets when you take damage.</p>
                   <div class="foot"><span class="t-s">Stacks</span><span class="ctr"><button type="button" aria-label="Remove stack">-</button><b class="num">2</b><button type="button" aria-label="Add stack">+</button></span></div>
                 </article>
@@ -813,7 +936,7 @@ a{ color:inherit; text-decoration:none }
 </section>
 
 <section class="sect phones-sec" aria-labelledby="h-phone">
-  <div class="sect-h"><h2 id="h-phone">* AT 390 WIDE</h2><p>The same markup at phone width. Art pixel drops from 3 to 2 CSS px, the sidebar becomes a drawer that steps in from the left, nav folds into the menu button.</p></div>
+  <div class="sect-h"><h2 id="h-phone">* AT 390 WIDE</h2><p>The same markup at phone width. The art pixel drops from 3 to 2 CSS px, the sidebar becomes a drawer that steps in from the left (focus moves to search, the sheet goes inert), the seven page commands fold into MENU, tabs stay on one scrolling row, and every hit area grows to 16 art px.</p></div>
   <div class="phones">
     <figure class="phone"><div class="scr px-scope px2" data-clone="closed"></div><figcaption class="t-s mut">Drawer closed</figcaption></figure>
     <figure class="phone"><div class="scr px-scope px2" data-clone="open"></div><figcaption class="t-s mut">Drawer open</figcaption></figure>
@@ -823,18 +946,19 @@ a{ color:inherit; text-decoration:none }
 <section class="sect" aria-labelledby="h-pitch">
   <div class="pitch">
     <div class="dlg" style="align-self:start">
-      <canvas class="face" width="32" height="32" data-face="talk" aria-hidden="true"></canvas>
+      <canvas class="face" width="48" height="48" data-face="talk" aria-hidden="true"></canvas>
       <div class="say" data-tw>
         <p>* You found a SAVE POINT.</p>
         <p>* Every page is a battle box now. White frame, black void, the SOUL shows where you are.</p>
-        <p>* Pixel art is drawn on one grid and recoloured by each character's accent.</p>
+        <p>* Behind the boxes, the Underground: Ruins brick, Waterfall, Snowdin. All drawn on one grid, all recoloured by the character.</p>
       </div>
     </div>
-    <div class="box" style="padding-top:var(--u8)">
+    <div class="box">
       <h2 class="lg" id="h-pitch">Why this direction</h2>
       <ul>
       <li><i class="spr spr-soul"></i><div><b>Instant read</b><span class="mut">Black, white, orange commands, yellow over red bars. Nobody has to be told what game this is.</span></div></li>
       <li><i class="spr spr-soul"></i><div><b>One system</b><span class="mut">Six pieces build every page: box, command, menu list, dialogue, bar, sprite. Legacy pages map onto them.</span></div></li>
+      <li><i class="spr spr-soul"></i><div><b>Real places</b><span class="mut">Boxes hang from Ruins brick lintels, the sheet stands on a tiled floor with leaves falling, and every trait has its own animated art window.</span></div></li>
       <li><i class="spr spr-soul"></i><div><b>Real pixels</b><span class="mut">No glow, no blur, no smooth gradient. Dither, banded ramps and stepped sprite animation only.</span></div></li>
       <li><i class="spr spr-soul"></i><div><b>Motion is earned</b><span class="mut">Common things sit still. Save stars, rare traits and rolls move, at 6 to 12 frames a second.</span></div></li>
       </ul>
@@ -851,7 +975,7 @@ a{ color:inherit; text-decoration:none }
       <div class="bmx" id="bmx">
         <span></span><span class="h">Idle</span><span class="h">Hover</span><span class="h x3">Active</span><span class="h x3">Focus</span><span class="h x3">Disabled</span>
       </div>
-      <p class="cap">Hover and keyboard focus swap the icon for the SOUL and step the colour toward yellow. Active presses 1 art px down. Disabled turns grey on a dither and shows an X.</p>
+      <p class="cap">Hover and keyboard focus swap the icon for the SOUL and turn the command SOUL yellow (#FFFF00) on an accent dither, like the battle menu. Solid commands have a 1 art px bevel lip. Active presses 1 art px down. Disabled turns grey on a dither and shows an X. Labels on an accent use that step's ink token.</p>
     </div>
 
     <div class="box">
@@ -884,8 +1008,8 @@ a{ color:inherit; text-decoration:none }
       <div class="stack">
         <label class="chk"><input type="checkbox" id="k-c1" checked><span>Show in leaderboard</span></label>
         <label class="chk"><input type="checkbox" id="k-c2"><span>Hide gold from others</span></label>
-        <label class="tog"><input type="checkbox" id="k-t1" checked><span>Autoplay theme music</span></label>
-        <label class="tog"><input type="checkbox" id="k-t2"><span>Performance mode</span></label>
+        <label class="tog"><input type="checkbox" role="switch" id="k-t1" checked><span>Autoplay theme music</span></label>
+        <label class="tog"><input type="checkbox" role="switch" id="k-t2"><span>Performance mode</span></label>
         <div class="rng"><label class="t-s" for="k-r1">Music volume</label><input type="range" id="k-r1" min="0" max="100" value="60"><span class="rng-v t-body"><span>0</span><span class="num" data-out="k-r1">60</span><span>100</span></span></div>
       </div>
     </div>
@@ -893,7 +1017,7 @@ a{ color:inherit; text-decoration:none }
     <div class="box">
       <h3 class="lg">Colour swatches</h3>
       <div class="stack">
-        <div class="sws big" role="radiogroup" aria-label="Accent presets" id="kit-sw" style="padding-top:calc(var(--px)*9)"></div>
+        <div class="sws big" role="radiogroup" aria-label="Accent presets" id="kit-sw" style="padding-top:calc(var(--px)*10)"></div>
         <p class="t-body"><span class="mut">Accent</span> <b class="hud" id="sw-name">ORANGE</b> <span class="num mut" id="sw-hex">#FF8A1F</span></p>
         <p class="cap" style="margin:0">16 presets plus a custom colour. Picking one recolours this whole page, sprites included.</p>
       </div>
@@ -922,7 +1046,7 @@ a{ color:inherit; text-decoration:none }
 
     <div class="box">
       <h3 class="lg">Toast</h3>
-      <div class="stack" id="toasts">
+      <div class="stack" id="toasts" role="status" aria-live="polite">
         <div class="toast in"><i class="spr spr-star"></i><span class="t-dlg">* Saved. BLACKJACK is safe.</span></div>
         <div class="toast err in"><i class="ico" style="--i:var(--i-broken); color:var(--soul)"></i><span class="t-dlg">* Couldn't save. You're offline; it retries when you reconnect.</span></div>
       </div>
@@ -930,7 +1054,8 @@ a{ color:inherit; text-decoration:none }
     </div>
 
     <div class="box">
-      <h3 class="lg">Context menu</h3>
+      <h3 class="lg">Context and page menus</h3>
+      <div class="menus">
       <ul class="ctx" role="menu" aria-label="Character actions">
         <li role="menuitem"><i class="mk"></i>Edit<kbd>E</kbd></li>
         <li role="menuitem" class="on"><i class="mk"></i>Duplicate<kbd>D</kbd></li>
@@ -939,13 +1064,27 @@ a{ color:inherit; text-decoration:none }
         <li class="sep" role="separator"></li>
         <li role="menuitem" class="dng"><i class="mk"></i>Delete<kbd>Del</kbd></li>
       </ul>
+      <div class="pm-demo">
+        <span class="t-s mut">Nav folded into MENU</span>
+        <button class="cmd sm is-hover" type="button" tabindex="-1"><i class="ico" style="--i:var(--i-menu)"></i>Menu</button>
+        <ul class="ctx pmenu-demo" role="menu" aria-label="Pages (example)">
+          <li role="menuitem"><i class="mk"></i>Utilities</li>
+          <li role="menuitem" class="on"><i class="mk"></i>Gallery</li>
+          <li role="menuitem"><i class="mk"></i>Encyclopaedia</li>
+          <li role="menuitem"><i class="mk"></i>Playlists</li>
+          <li role="menuitem"><i class="mk"></i>BK's Corner</li>
+          <li role="menuitem"><i class="mk"></i>Spin a Baddie</li>
+          <li role="menuitem"><i class="mk"></i>Admin</li>
+        </ul>
+      </div>
+      </div>
     </div>
 
     <div class="box w8">
       <h3 class="lg">Modal dialogue</h3>
       <div class="scrim">
         <div class="dlg" role="dialog" aria-label="Roll traits">
-          <canvas class="face" width="32" height="32" data-face="talk" aria-hidden="true"></canvas>
+          <canvas class="face" width="48" height="48" data-face="talk" aria-hidden="true"></canvas>
           <div class="say" data-tw>
             <p>* So you wanna roll again, huh?</p>
             <p>* Three cards, 50 G. The house is feeling generous tonight.</p>
@@ -997,43 +1136,37 @@ a{ color:inherit; text-decoration:none }
       <h3 class="lg">Trait cards, six rarities</h3>
       <div class="raregrid">
         <article class="trait">
-          <span class="rar">Common</span>
-          <h4>Pocket Lint<q>"Huh. Lint."</q></h4>
-          <p>Once per rest, find 1 G in a pocket you forgot about.</p>
-          <div class="foot"><span class="t-s">Static. Commons never move.</span></div>
-        </article>
+                  <div class="th"><span class="win"><i class="spr art art-common" aria-hidden="true"></i></span><div class="tt"><div class="rr"><span class="rar">Common</span><span class="no">No.003</span></div><h4>Pocket Lint<q>"Huh. Lint."</q></h4></div></div>
+                  <p>Once per rest, find 1 G in a pocket you forgot about.</p>
+                  <div class="foot"><span class="t-s">Static. Commons never move.</span></div>
+                </article>
         <article class="trait rare">
-          <i class="spr spr-gem gem tl" aria-hidden="true"></i><i class="spr spr-gem gem br" aria-hidden="true"></i>
-          <span class="rar">Rare</span>
-          <h4>Card Counter<q>"Ten, jack, queen..."</q></h4>
-          <p>+5% Crit Rate for each card drawn this turn, up to +25%. Resets when you take damage.</p>
-          <div class="foot"><span class="t-s">Corner gems glint, 6 fps</span></div>
-        </article>
+                  <i class="spr spr-gem gem tl" aria-hidden="true"></i><i class="spr spr-gem gem br" aria-hidden="true"></i>
+                  <div class="th"><span class="win"><i class="spr art art-rare" aria-hidden="true"></i></span><div class="tt"><div class="rr"><span class="rar">Rare</span><span class="no">No.027</span></div><h4>Card Counter<q>"Ten, jack, queen..."</q></h4></div></div>
+                  <p>+5% Crit Rate for each card drawn this turn, up to +25%. Resets when you take damage.</p>
+                  <div class="foot"><span class="t-s">Crystal glint + corner gems, 8 fps</span></div>
+                </article>
         <article class="trait epic">
-          <span class="rar">Epic</span>
-          <h4>House Edge<q>"The house always wins."</q></h4>
-          <p>Enemies below 50% HP take +15% True DMG from your hits. Doesn't stack with other execute traits.</p>
-          <div class="foot"><span class="t-s">Marching pixels, 8 fps</span></div>
-        </article>
+                  <div class="th"><span class="win"><i class="spr art art-epic" aria-hidden="true"></i></span><div class="tt"><div class="rr"><span class="rar">Epic</span><span class="no">No.041</span></div><h4>House Edge<q>"The house always wins."</q></h4></div></div>
+                  <p>Enemies below 50% HP take +15% True DMG from your hits. Doesn't stack with other execute traits.</p>
+                  <div class="foot"><span class="t-s">Orbiting orb + marching pixels, 8 fps</span></div>
+                </article>
         <article class="trait legend">
-          <i class="spr spr-star tw a" aria-hidden="true"></i><i class="spr spr-star tw b" aria-hidden="true"></i>
-          <span class="rar">Legendary</span>
-          <h4>All In<q>"Everything on red."</q></h4>
-          <p>Spend all your G when a fight starts. Gain +1 ATK for every 10 G spent until it ends.</p>
-          <div class="foot"><span class="t-s">Save stars + shine sweep</span></div>
-        </article>
+                  <i class="spr spr-star tw a" aria-hidden="true"></i><i class="spr spr-star tw b" aria-hidden="true"></i>
+                  <div class="th"><span class="win"><i class="spr art art-legend" aria-hidden="true"></i></span><div class="tt"><div class="rr"><span class="rar">Legendary</span><span class="no">No.112</span></div><h4>All In<q>"Everything on red."</q></h4></div></div>
+                  <p>Spend all your G when a fight starts. Gain +1 ATK for every 10 G spent until it ends.</p>
+                  <div class="foot"><span class="t-s">Golden flower, save stars, shine</span></div>
+                </article>
         <article class="trait mythic">
-          <span class="rar">Mythic</span>
-          <h4>Second Deck<q>"Shuffle up and deal."</q></h4>
-          <p>When you would be knocked out, reshuffle: restore 30% HP and switch to your other form. Once per rest.</p>
-          <div class="foot"><span class="t-s">7 SOUL colours cycle, motes rise</span></div>
-        </article>
+                  <div class="th"><span class="win"><i class="spr art art-mythic" aria-hidden="true"></i></span><div class="tt"><div class="rr"><span class="rar">Mythic</span><span class="no">No.188</span></div><h4>Second Deck<q>"Shuffle up and deal."</q></h4></div></div>
+                  <p>When you would be knocked out, reshuffle: restore 30% HP and switch to your other form. Once per rest.</p>
+                  <div class="foot"><span class="t-s">Seven SOULs orbit, rim cycles, 10 fps</span></div>
+                </article>
         <article class="trait hex">
-          <span class="rar">Hexxed</span>
-          <h4 data-glitch="&#9632;&#9633;&#9650; &#9670;&#9674;&#9632;&#9633;&#9650;">Missing Number<q>"* ...."</q></h4>
-          <p>Your highest stat is hidden from everyone, including you. It changes every roll.</p>
-          <div class="foot"><span class="t-s">Static, split colour, slice glitch</span></div>
-        </article>
+                  <div class="th"><span class="win"><i class="spr art art-hex" aria-hidden="true"></i></span><div class="tt"><div class="rr"><span class="rar">Hexxed</span><span class="no">No.???</span></div><h4 data-glitch="M&#9608;SS&#9617;NG N&#9619;MB&#9608;R">Missing Number<q>"* ...."</q></h4></div></div>
+                  <p>Your highest stat is hidden from everyone, including you. It changes every roll.</p>
+                  <div class="foot"><span class="t-s">The eye opens. Static on the rim only.</span></div>
+                </article>
       </div>
     </div>
 
@@ -1066,13 +1199,13 @@ a{ color:inherit; text-decoration:none }
     <div class="box w8">
       <h3 class="lg">Trait roll, hand of 3</h3>
       <div class="hand" id="hand">
-        <figure><canvas width="32" height="44" data-card="0"></canvas><figcaption>&nbsp;</figcaption></figure>
-        <figure><canvas width="32" height="44" data-card="1"></canvas><figcaption>&nbsp;</figcaption></figure>
-        <figure><canvas width="32" height="44" data-card="2"></canvas><figcaption>&nbsp;</figcaption></figure>
+        <figure><canvas width="40" height="52" data-card="0"></canvas><figcaption>&nbsp;</figcaption></figure>
+        <figure><canvas width="40" height="52" data-card="1"></canvas><figcaption>&nbsp;</figcaption></figure>
+        <figure><canvas width="40" height="52" data-card="2"></canvas><figcaption>&nbsp;</figcaption></figure>
       </div>
       <div class="row" style="justify-content:center; margin-top:var(--u4)"><button class="cmd solid" type="button" id="reroll"><i class="ico" style="--i:var(--i-dice)"></i>Roll again</button><span class="t-body mut">Deal in 3 frames, flip in 7, 10 fps. Rarer cards spark on landing.</span></div>
       <div class="story" aria-label="Flip storyboard, one frame per card">
-        <canvas width="32" height="44" data-story="0"></canvas><canvas width="32" height="44" data-story="1"></canvas><canvas width="32" height="44" data-story="2"></canvas><canvas width="32" height="44" data-story="3"></canvas><canvas width="32" height="44" data-story="4"></canvas><canvas width="32" height="44" data-story="5"></canvas><canvas width="32" height="44" data-story="6"></canvas><canvas width="32" height="44" data-story="7"></canvas>
+        <canvas width="40" height="52" data-story="0"></canvas><canvas width="40" height="52" data-story="1"></canvas><canvas width="40" height="52" data-story="2"></canvas><canvas width="40" height="52" data-story="3"></canvas><canvas width="40" height="52" data-story="4"></canvas><canvas width="40" height="52" data-story="5"></canvas><canvas width="40" height="52" data-story="6"></canvas><canvas width="40" height="52" data-story="7"></canvas>
       </div>
       <p class="cap" style="text-align:center">Storyboard: back, three squash frames drawn at art resolution (never a CSS scaleX), front, spark.</p>
     </div>
@@ -1081,17 +1214,17 @@ a{ color:inherit; text-decoration:none }
       <h3 class="lg">Gold treasury</h3>
       <div class="stack">
         <div class="row" style="justify-content:space-between">
-          <div class="goldbig"><i class="spr spr-coin16"></i><b class="num">1,250<small>G</small></b></div>
+          <div class="goldbig"><i class="spr spr-coin16"></i><div><b class="num">1<small>G</small></b><em>Was 1,250 G on Oct 18</em></div></div>
           <div class="row"><button class="cmd sm" type="button"><i class="ico" style="--i:var(--i-plus)"></i>Add</button><button class="cmd sm sec" type="button"><i class="ico" style="--i:var(--i-minus)"></i>Spend</button></div>
         </div>
         <div class="spark" aria-label="Balance over the last 10 transactions">
-          <span style="--h:9"></span><span style="--h:12"></span><span style="--h:7"></span><span style="--h:10"></span><span style="--h:15"></span><span style="--h:13"></span><span style="--h:16"></span><span style="--h:12"></span><span style="--h:11"></span><span class="now" style="--h:13"></span>
+          <span style="--h:9"></span><span style="--h:12"></span><span style="--h:7"></span><span style="--h:10"></span><span style="--h:13"></span><span style="--h:12"></span><span style="--h:14"></span><span style="--h:13"></span><span style="--h:16"></span><span class="now" style="--h:1"></span>
           <em class="t-body mut">Balance, last 10 changes</em>
         </div>
         <div class="txs">
+          <div class="tx"><span class="d">Oct 19</span><span class="w t-body">Went ALL IN against Snaps. Lost.</span><span class="a dn num">-1,249 G</span><span class="bal t-body num">1 G</span></div>
           <div class="tx"><span class="d">Oct 18</span><span class="w t-body">Sold MARKED DECK (copy) to Juniper</span><span class="a up num">+120 G</span><span class="bal t-body num">1,250 G</span></div>
           <div class="tx"><span class="d">Oct 17</span><span class="w t-body">Lost a bet on Spin a Baddie</span><span class="a dn num">-50 G</span><span class="bal t-body num">1,130 G</span></div>
-          <div class="tx"><span class="d">Oct 15</span><span class="w t-body">Bought VELVET GLOVES</span><span class="a dn num">-200 G</span><span class="bal t-body num">1,180 G</span></div>
         </div>
       </div>
     </div>
@@ -1123,13 +1256,15 @@ a{ color:inherit; text-decoration:none }
         <p class="t-dlg dots-a">* Loading save file</p>
         <div class="lbar" id="lbar" aria-label="Loading progress"></div>
       </div>
+      <div class="skel" aria-hidden="true"><i style="--w:16;--h:16"></i><div><i style="--w:44"></i><i style="--w:28"></i><i style="--w:60"></i></div></div>
+      <p class="cap">Skeletons are 50% dither blocks in the sheet's real shapes; a 1 art px band of g3 steps across them 4 art px at a time, 8 fps.</p>
     </div>
 
   </div>
 </section>
 
 <section class="sect" aria-labelledby="h-bg">
-  <div class="sect-h"><h2 id="h-bg">* BACKGROUNDS</h2><p>Six sprite backgrounds that replace the generic ones. All draw at art resolution on a frame timer, all take the accent ramp. Pick one to put it behind the main screen.</p></div>
+  <div class="sect-h"><h2 id="h-bg">* BACKGROUNDS</h2><p>Six places that replace the ten generic backgrounds. Tiled textures plus sprite layers, drawn at art resolution on one shared frame timer. Structural materials (brick, flagstone, felt) take the muted accent, lights and sprites take the accent ramp, fixed materials (water, snow, steel) keep their own colours. Pick one to put it behind the main screen.</p></div>
   <div class="bgs" id="bgs"></div>
 </section>
 
@@ -1143,20 +1278,33 @@ a{ color:inherit; text-decoration:none }
 </section>
 
 <section class="sect" aria-labelledby="h-type">
-  <div class="sect-h"><h2 id="h-type">* TYPE</h2><p>Two Google pixel faces, both crisp only at whole multiples of their native size, so the scale is set in art pixels. Press Start 2P is retired: too wide for numbers and paragraphs.</p></div>
+  <div class="sect-h"><h2 id="h-type">* TYPE</h2><p>Two Google pixel faces, seven roles. Both are drawn on an 8 unit em, so a font size of 8 art px puts one glyph pixel on one art pixel. Silkscreen is the HUD (commands and labels, like the LV and HP line). Tiny5 is the voice and the data (dialogue, names, every number). Press Start 2P is retired, and VT323 was tested and dropped: in Chromium it anti-aliases at every size (17 to 240 grey levels a line), while these two render with 2 colours.</p></div>
   <div class="box flat spec">
-    <h3 class="lg">Specimen</h3>
-    <div class="spec-row"><div class="meta2"><b>Display XL</b>Silkscreen 700, 24 art px (72 / 48)</div><div class="t-l" style="font-size:var(--fs-xl)">SAVE</div></div>
-    <div class="spec-row"><div class="meta2"><b>Display L</b>Silkscreen 700, 16 art px (48 / 32). Names, big numbers.</div><div class="t-l">BLACKJACK 1,250 G</div></div>
-    <div class="spec-row"><div class="meta2"><b>Command M</b>Silkscreen 700, 8 art px (24 / 16). Buttons, section titles.</div><div class="t-m">FIGHT ACT ITEM MERCY</div></div>
-    <div class="spec-row"><div class="meta2"><b>Dialogue M</b>Tiny5, 8 art px (24 / 16). Dialogue boxes, toasts.</div><div class="t-dlg">* Three cards, 50 G. The house is feeling generous.</div></div>
-    <div class="spec-row"><div class="meta2"><b>Label S</b>Silkscreen 400 and 700, 16 px, no extra tracking (the face is already wide). Labels, stat keys, values.</div><div class="t-sb">HP 358 ATK 121 DEF 86 MAG 15 SPD 78 IQ 95</div></div>
-    <div class="spec-row"><div class="meta2"><b>Body S</b>Tiny5, 16 px on 24 px lines. Descriptions, lists, data.</div><div class="t-body">Enemies below 50% HP take +15% True DMG from your hits. 0123456789 % + - G</div></div>
+    <h3 class="lg">Scale</h3>
+    <div class="scrollx"><table class="tbl tscale">
+      <thead><tr><th>Role</th><th>Face</th><th>Size</th><th>Desktop</th><th>Phone</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>Display</td><td>Silkscreen 700</td><td>24 art px</td><td class="num">72 px</td><td class="num">48 px</td><td>Page titles only</td></tr>
+        <tr><td>Name</td><td>Tiny5</td><td>16 art px</td><td class="num">48 px</td><td class="num">32 px</td><td>Character name in the sheet header, gold total</td></tr>
+        <tr><td>Command</td><td>Silkscreen 700</td><td>8 art px</td><td class="num">24 px</td><td class="num">16 px</td><td>Commands, section titles, logo</td></tr>
+        <tr><td>Data</td><td>Tiny5</td><td>8 art px</td><td class="num">24 px</td><td class="num">16 px</td><td>Every number, %, G, delta, list name, trait name</td></tr>
+        <tr><td>Dialogue</td><td>Tiny5</td><td>8 art px, 1.5 lines</td><td class="num">24 px</td><td class="num">16 px</td><td>Dialogue boxes, toasts, empty states</td></tr>
+        <tr><td>Label</td><td>Silkscreen 400 / 700</td><td>16 px</td><td class="num">16 px</td><td class="num">16 px</td><td>Tabs, panel titles, stat keys, small caps</td></tr>
+        <tr><td>Body</td><td>Tiny5</td><td>16 px on 24 px</td><td class="num">16 px</td><td class="num">16 px</td><td>Descriptions, captions, sub-stat keys</td></tr>
+      </tbody>
+    </table></div>
+    <div class="spec-row"><div class="meta2"><b>Display</b>Silkscreen 700, 24 art px</div><div class="t-l" style="font-size:var(--fs-xl)">SAVE</div></div>
+    <div class="spec-row"><div class="meta2"><b>Name</b>Tiny5, 16 art px</div><div class="t-name">Blackjack <span style="color:var(--gold)">1 G</span></div></div>
+    <div class="spec-row"><div class="meta2"><b>Command</b>Silkscreen 700, 8 art px</div><div class="t-m">FIGHT ACT ITEM MERCY</div></div>
+    <div class="spec-row"><div class="meta2"><b>Data</b>Tiny5, 8 art px. Lines up in columns, and its % reads as %.</div><div class="t-d">358 <span class="up">+258</span> &nbsp; 12% &nbsp; 150% &nbsp; 5.0% <span class="up">+5.0</span> &nbsp; <span style="color:var(--gold)">1,249 G</span> &nbsp; TESS IRONHIDE</div></div>
+    <div class="spec-row"><div class="meta2"><b>Dialogue</b>Tiny5, 8 art px</div><div class="t-dlg">* Three cards, 50 G. The house is feeling generous.</div></div>
+    <div class="spec-row"><div class="meta2"><b>Label</b>Silkscreen, 16 px</div><div class="t-sb">* STATS &nbsp; HP &nbsp; ATK &nbsp; DEF &nbsp; MAG &nbsp; SPD &nbsp; IQ &nbsp; BY BK</div></div>
+    <div class="spec-row"><div class="meta2"><b>Body</b>Tiny5, 16 px on 24 px</div><div class="t-body">Enemies below 50% HP take +15% True DMG from your hits. 0123456789 % + - G</div></div>
   </div>
 </section>
 
 <section class="sect" aria-labelledby="h-notes">
-  <div class="sect-h"><h2 id="h-notes">* DESIGN NOTES</h2><p>Enough to build it. Everything below is live: change the accent and the ramps, frames and sprites redraw.</p></div>
+  <div class="sect-h"><h2 id="h-notes">* DESIGN NOTES</h2><p>Enough to build it. Everything below is live: change the accent and the ramps, tiles, frames and sprites redraw.</p></div>
   <div class="notes">
     <div class="note">
       <h3>Pixel grid</h3>
@@ -1165,72 +1313,123 @@ a{ color:inherit; text-decoration:none }
         <li>Panel frame 2 art px. Controls and cards 1 art px. Rarity frames 4 art px with corner ornaments.</li>
         <li>Shadows are hard offsets of 1 or 2 art px. No blur, no glow, no smooth gradient, no radius.</li>
         <li>Fades are 4x4 Bayer dither or banded ramps with hard stops at whole art pixels.</li>
-        <li><code>image-rendering: pixelated</code> is set on the root and inherited by every image, mask and canvas.</li>
+        <li><code>image-rendering: pixelated</code> is set on the root and inherited by every image, mask and canvas. Background canvases are sized in whole art pixels, so their scale is exactly 3 (or 2).</li>
+        <li>Grid snap: after layout, one pass nudges every sprite, canvas and frame by its sub-pixel remainder (<code>translate</code>), so fr columns and centring never put an art pixel across two device pixels. In Angular this is one directive on the shell.</li>
+        <li>Type: data, names, dialogue and commands sit exactly on the grid. 16 px labels and body copy use a 2 px glyph pixel on desktop: the one allowed mixel, never inside art.</li>
       </ul>
     </div>
     <div class="note">
       <h3>Palette tokens</h3>
       <div class="pal" id="pal"></div>
+      <p>31 system colours and 8 material colours, plus 9 derived from the accent (below). Each rarity frame adds 2 tints.</p>
     </div>
     <div class="note">
       <h3>Accent recolouring</h3>
       <div class="ramp" id="ramp"></div>
-      <p>The character colour is the base, <code>--a2</code>. JS converts it to HSL and builds 5 steps: shadows shift hue toward blue-violet (250&deg;) and darken, lights shift toward yellow (60&deg;) and brighten, the classic pixel art ramp. <code>--a-text</code> is the first step with 4.5:1 contrast on black, so dark colours like deep violet stay legible. Orange hovers toward yellow, exactly like the battle menu.</p>
-      <p>One-colour sprites are CSS masks filled with a token, so they recolour for free. Multi-colour sprites (portraits, coins, frames, backgrounds) keep palette-index grids and redraw to canvas when the accent changes, then publish as data URL custom properties.</p>
+      <p>The character colour is the base, <code>--a2</code>. JS converts it to HSL and builds 5 steps: shadows shift hue toward blue-violet (250&deg;) and darken, lights shift toward yellow (60&deg;) and brighten, the classic pixel art ramp. <code>--m0</code> to <code>--m3</code> are the same hue at about a third of the chroma and very dark: the stone that boxes hang from and the floor the sheet stands on, so the accent runs through the whole page without turning it one colour.</p>
+      <p><code>--a-text</code> is the first step with 4.5:1 on black. Text sitting on a step uses that step's ink (<code>--a-ink</code>, <code>--a3-ink</code>, <code>--a1-ink</code>): black or white, whichever has more contrast, so deep violet buttons get white labels and lemon ones get black.</p>
+      <p>One-colour sprites are CSS masks filled with a token, so they recolour for free. Multi-colour sprites and tiles keep palette-index grids and redraw to canvas when the accent changes, then publish as data URL custom properties.</p>
+      <div class="proof" id="proof" aria-label="The same sprites drawn from six accent ramps"></div>
+      <p class="cap">Proof: the same portrait, lintel, flagstone and leaf from six ramps, with a0 to a4 and m0 to m3 under each.</p>
     </div>
     <div class="note">
       <h3>Frame system</h3>
       <div class="nineviz"><figure><canvas width="45" height="45" id="nine-legend"></canvas><figcaption class="t-body mut">9 x 9 sprite, slice 4</figcaption></figure><figure><div class="nv nv1"></div><figcaption class="t-body mut">40 x 16 art px</figcaption></figure><figure><div class="nv nv2"></div><figcaption class="t-body mut">20 x 30 art px</figcaption></figure></div>
-      <p>Frames are 9-slice sprites drawn as <code>border-image</code>: corners keep their art, edges are 1 art px tiles that repeat, the centre fills. Any size works and no pixel stretches. Plain panels use a 2 art px solid border with the same result. A panel title sits on the top edge on black, prefixed with "*".</p>
+      <p>Rarity frames are 9-slice sprites drawn as <code>border-image</code>: corners keep their art, edges are 1 art px tiles that repeat, the centre fills. Any size works and no pixel stretches. The battle box is a plain 2 art px white border. A box with a title hangs from a LINTEL: a 12 art px band tiled with <code>repeat-x</code> under the top edge, the title on a black plate. The sheet header stands in front of a 24 art px WALL. Tiles only ever repeat, so any width works.</p>
+      <div class="tiles"><figure><canvas width="32" height="12" id="tile-lintel" style="--width:32;--height:12"></canvas><figcaption class="t-body mut">Lintel 16x12</figcaption></figure><figure><canvas width="32" height="24" id="tile-wall" style="--width:32;--height:24"></canvas><figcaption class="t-body mut">Wall 16x24</figcaption></figure><figure><canvas width="32" height="16" id="tile-floor" style="--width:32;--height:16"></canvas><figcaption class="t-body mut">Flagstone 16x16</figcaption></figure><figure><canvas width="32" height="8" id="tile-water" style="--width:32;--height:8"></canvas><figcaption class="t-body mut">Water 32x8</figcaption></figure></div>
+    </div>
+    <div class="note">
+      <h3>Materials</h3>
+      <div class="scrollx"><table class="tbl">
+        <thead><tr><th>Material</th><th>Tile</th><th>Job</th><th>Colour</th></tr></thead>
+        <tbody>
+          <tr><td>Void</td><td>flat</td><td>The ground. Data always sits on it</td><td>#000, fixed</td></tr>
+          <tr><td>Battle box</td><td>2 art px</td><td>The thing you are focused on</td><td>white, fixed</td></tr>
+          <tr><td>Ruins brick</td><td>16x12, 16x24</td><td>Holds: lintels and the header wall</td><td>muted accent m0 to m3</td></tr>
+          <tr><td>Flagstone</td><td>16x16</td><td>The floor the sheet stands on</td><td>muted accent</td></tr>
+          <tr><td>Felt</td><td>8x8</td><td>Card table</td><td>muted accent</td></tr>
+          <tr><td>Bevel face</td><td>1 art px lip</td><td>Pressable: solid commands</td><td>a3, a2, a1</td></tr>
+          <tr><td>Dither 50%</td><td>2x2</td><td>Hover face, selected entry, disabled</td><td>a0 or g2</td></tr>
+          <tr><td>Water, snow, steel</td><td>32x8, drawn, 8x8</td><td>Places in backgrounds</td><td>fixed; lights take the accent</td></tr>
+        </tbody>
+      </table></div>
+      <p>Rule for a new component: if it holds things it is a box (with a lintel when it has a title); if you press it, it is a command with the bevel or the outline; if it is data, it sits on void. Texture never goes under text.</p>
+    </div>
+    <div class="note">
+      <h3>Rarity art windows</h3>
+      <div class="scrollx"><table class="tbl">
+        <thead><tr><th>Rarity</th><th>Art, 24x24</th><th>Frames</th><th>Frame treatment</th></tr></thead>
+        <tbody>
+          <tr><td>Common</td><td>A pebble</td><td>1, still</td><td>Grey bevel</td></tr>
+          <tr><td>Rare</td><td>Waterfall crystal, a glint crosses</td><td>8 at 8 fps</td><td>Blue bevel, corner gems glint</td></tr>
+          <tr><td>Epic</td><td>Orb in a ring, three sparks orbit</td><td>8 at 8 fps</td><td>Marching pixels</td></tr>
+          <tr><td>Legendary</td><td>Golden flower, save stars pop</td><td>8 at 8 fps</td><td>Gold bevel, shine sweep, stars</td></tr>
+          <tr><td>Mythic</td><td>Seven human SOULs orbit a monster SOUL</td><td>28 at 10 fps</td><td>Seven SOUL colours cycle on the rim</td></tr>
+          <tr><td>Hexxed</td><td>An eye opens, looks, tears</td><td>16 at 8 fps</td><td>Torn frame, static on a 3 art px rim, 2-frame slice glitch</td></tr>
+        </tbody>
+      </table></div>
+      <p>Rarity lives in the art, never over the text. Each rarity is one sprite sheet built at load from code, shared by every trait of that rarity, the codex and the card faces in a roll.</p>
     </div>
     <div class="note">
       <h3>Animation rules</h3>
       <div class="scrollx"><table class="tbl">
         <thead><tr><th>Kind</th><th>Rate</th><th>How</th></tr></thead>
         <tbody>
-          <tr><td>Sprite loops</td><td>6 to 8 fps</td><td>Strip sheets, <code>steps(frames)</code> on background-position</td></tr>
-          <tr><td>Backgrounds</td><td>6 to 12 fps</td><td>Canvas at art res, one shared frame timer, off-screen ones skip</td></tr>
-          <tr><td>Texture scroll</td><td>1 art px a frame</td><td><code>steps(tile)</code> over a seamless tile</td></tr>
-          <tr><td>UI moves</td><td>2 to 4 frames</td><td>SOUL hops, toasts, drawer: stepped, snapped to art px</td></tr>
-          <tr><td>Typewriter</td><td>30 chars/s</td><td>Battle text speed; instant on reduced motion</td></tr>
+          <tr><td>Sprite loops</td><td>6 to 10 fps</td><td>Strip sheets, <code>steps(frames)</code> on background-position</td></tr>
+          <tr><td>Backgrounds</td><td>8 to 12 fps</td><td>Canvas at art res, tiles as patterns, sprites on top, one shared frame timer</td></tr>
+          <tr><td>Texture scroll</td><td>1 art px a frame</td><td>Seamless tile, whole-pixel offsets, alternate rows run opposite ways</td></tr>
+          <tr><td>Card flip</td><td>7 frames at 10 fps</td><td>Columns dropped at art res, never scaleX. Legendary and up shake 1 art px and burst</td></tr>
+          <tr><td>UI moves</td><td>2 to 4 frames</td><td>SOUL hops, toggle knob, toasts, drawer: stepped, snapped to art px</td></tr>
+          <tr><td>Typewriter</td><td>30 chars/s</td><td>Battle text speed; the mouth flaps on 2 frames</td></tr>
         </tbody>
       </table></div>
-      <p>No eased tweens on pixel art, ever. Motion is earned: common UI is still, rarity and rolls move.</p>
+      <p>No eased tweens on pixel art, ever. Motion is earned: common UI is still, rarity, places and rolls move.</p>
     </div>
     <div class="note">
       <h3>Performance mode and reduced motion</h3>
       <ul>
-        <li>PERF on: backgrounds draw one frame and stop, sprite loops pause on frame 0, the Hexxed glitch stops. Dither, frames and sprites stay, they cost nothing.</li>
-        <li>Every animated sprite is designed so frame 0 reads on its own: the Mythic frame still shows all seven colours, Hexxed still shows static.</li>
-        <li><code>prefers-reduced-motion</code> does the same plus: typewriter text appears whole, the SOUL jumps instead of hopping, toasts appear in place.</li>
-        <li>The frame timer runs at most one rAF loop, draws only canvases on screen, and stops while the tab is hidden.</li>
+        <li>PERF on: backgrounds draw one frame and stop, sprite loops pause on frame 0, the Hexxed glitch stops. Dither, tiles, frames and sprites stay; they cost nothing once drawn.</li>
+        <li>Every animated sprite is designed so frame 0 reads on its own: the Mythic rim still shows all seven colours, the Hexxed eye is still torn.</li>
+        <li>Reduced motion and MOTION off: loops pause on frame 0, but entrances (toasts, the roll shake) are switched off with <code>animation:none</code>, not paused, so nothing is parked off-screen. Typewriter text appears whole, the SOUL jumps instead of hopping.</li>
+        <li>One rAF loop runs every canvas, draws only what IntersectionObserver says is on screen, and stops while the tab is hidden. The toolbar shows its measured cost per tick. Panels with ticking text use <code>contain:content</code>.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>Accessibility baseline</h3>
+      <ul>
+        <li>Focus is a 1 art px #FFFF00 ring with a 1 art px gap, on everything.</li>
+        <li>Drawer toggle: <code>aria-expanded</code> and <code>aria-controls</code>; opening moves focus to search; Esc and the scrim close it and return focus; the sheet behind is <code>inert</code>.</li>
+        <li>MENU command: <code>aria-haspopup="menu"</code>, arrow keys move between pages, Esc closes. Toggles are <code>role="switch"</code>, toasts are a <code>role="status"</code> live region.</li>
+        <li>Touch: at the phone layout every hit area is at least 16 art px (32 CSS px). Tabs stay on one row and scroll, with a dithered fade showing there is more.</li>
+        <li>Text on any accent step uses that step's ink token, never a fixed white.</li>
       </ul>
     </div>
     <div class="note">
       <h3>Building blocks</h3>
       <ul>
-        <li><b class="hud">Box</b>: the battle box. Every panel, dialog and page section.</li>
-        <li><b class="hud">Command</b>: icon plus caps label. SOUL replaces the icon on hover and focus.</li>
-        <li><b class="hud">Menu list</b>: "*" items with a SOUL on the current one. Tabs, sidebar, context menu, select, dialogue choices.</li>
+        <li><b class="hud">Box</b>: the battle box, with a lintel when it has a title. Every panel, dialog and page section.</li>
+        <li><b class="hud">Command</b>: icon plus caps label. The SOUL replaces the icon on hover and focus and the command turns #FFFF00.</li>
+        <li><b class="hud">Menu list</b>: "*" items with a SOUL on the current one. Nav, tabs, sidebar, context menu, select, dialogue choices.</li>
         <li><b class="hud">Dialogue</b>: portrait and typewriter text. Modals, confirms, empty states, toasts.</li>
-        <li><b class="hud">Bar</b>: banded yellow over red, 20 segments, magenta for prestige tiers like KR.</li>
-        <li><b class="hud">Sprite</b>: palette-index grid, mask or canvas, stepped animation.</li>
+        <li><b class="hud">Bar</b>: banded yellow over red, 20 segments, magenta for prestige tiers like KR. The stat's own colour is on its icon and label.</li>
+        <li><b class="hud">Sprite</b> and <b class="hud">Tile</b>: palette-index grids drawn once, published as CSS variables. In Angular, one AtlasService (<code>icon()</code>, <code>sprite()</code>, <code>frame()</code>, <code>tile()</code>) owns them and redraws on an accent change; components only use classes and tokens.</li>
       </ul>
     </div>
     <div class="note">
       <h3>Secondary pages</h3>
       <ul>
+        <li><b class="hud">Navigation</b>: all seven pages as commands from 1720 app px; below that they fold into one MENU command with the same list, so no page disappears.</li>
         <li><b class="hud">Utilities</b>: a grid of boxes, one tool each, commands along the floor of every box.</li>
         <li><b class="hud">Gallery</b>: portrait frames in a grid; opening one shows it in a dialogue box with its caption typed out.</li>
         <li><b class="hud">Encyclopaedia</b>: menu list on the left, reading pane box on the right, entries open with "*" headings.</li>
         <li><b class="hud">Playlists</b>: menu list of tracks, the SOUL marks the playing one, the player bar is shared with the sheet.</li>
-        <li><b class="hud">BK's Corner</b>: posts are dialogue boxes with BK's portrait.</li>
+        <li><b class="hud">BK's Corner</b>: posts are dialogue boxes with BK's portrait, on the Ruins floor.</li>
         <li><b class="hud">Spin a Baddie</b>: the wheel is a canvas sprite in a battle box, the SOUL is the pointer, results reveal like a trait roll.</li>
         <li><b class="hud">Admin</b>: tables in boxes, danger commands only, every destructive action goes through the confirm dialogue.</li>
       </ul>
     </div>
   </div>
-  <p class="foot-note t-body"><i class="spr spr-star"></i>All art on this page is drawn by code at load: sprite grids, canvas and CSS. No images are fetched. Character names other than BLACKJACK and Cappy are placeholders.</p>
+  <p class="foot-note t-body"><i class="spr spr-star"></i>All art on this page is drawn by code at load: sprite grids, canvas and CSS. No images are fetched. Character names other than BLACKJACK and Cappy are placeholders, and all stats, traits and gold are sample data.</p>
 </section>
 
 </div>
@@ -1254,6 +1453,8 @@ function rgb2hsl(r, g, b) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r,
 function hsl2rgb(h, s, l) { h = ((h % 360) + 360) % 360 / 360; const f = n => { const k = (n + h * 12) % 12, a = s * Math.min(l, 1 - l); return 255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))); }; return [f(0), f(8), f(4)]; }
 const lum = hex => { const c = hex2rgb(hex).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
 const contrastBlack = hex => (lum(hex) + .05) / .05;
+/* label colour for text sitting ON a ramp step: whichever of black or white has more contrast */
+const inkFor = hex => { const L = lum(hex); return (L + .05) / .05 >= 1.05 / (L + .05) ? '#000000' : '#ffffff'; };
 const toward = (h, t, amt) => { const d = ((t - h + 540) % 360) - 180; return h + Math.sign(d) * Math.min(Math.abs(d), amt); };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function makeRamp(base) {
@@ -1267,8 +1468,11 @@ function makeRamp(base) {
     a3: st(toward(h, 60, 14), s, clamp(l + .14, .58, .8)),
     a4: st(toward(h, 60, 28), s * .95, clamp(l + .3, .8, .9)),
   };
+  /* muted ramp for structural materials: same hue, a third of the chroma, very dark */
+  const ms = s0 < .08 ? s0 : Math.min(.5, s0 * .42), mh = toward(h, 250, 10);
+  r.m0 = st(mh, ms, .05); r.m1 = st(mh, ms, .095); r.m2 = st(h, ms * 1.1, .15); r.m3 = st(h, ms * 1.15, .225);
   r.text = [r.a2, r.a3, r.a4].find(c => contrastBlack(c) >= 4.5) || r.a4;
-  r.ink = lum(r.a2) > .18 ? '#000000' : '#ffffff';
+  r.ink = inkFor(r.a2); r.ink3 = inkFor(r.a3); r.ink1 = inkFor(r.a1);
   return r;
 }
 let RAMP = makeRamp('#ff8a1f');
@@ -1278,12 +1482,29 @@ const cv = (w, h) => { const c = document.createElement('canvas'); c.width = w; 
 function paint(ctx, rows, pal, ox = 0, oy = 0) { for (let y = 0; y < rows.length; y++) { const r = rows[y]; for (let x = 0; x < r.length; x++) { const col = pal[r[x]]; if (col) { ctx.fillStyle = col; ctx.fillRect(ox + x, oy + y, 1, 1); } } } }
 function sprite(rows, pal) { const c = cv(rows[0].length, rows.length); paint(c.getContext('2d'), rows, pal); return c; }
 function sheet(frames, pal) { const w = frames[0][0].length, h = frames[0].length, c = cv(w * frames.length, h), x = c.getContext('2d'); frames.forEach((f, i) => paint(x, f, pal, i * w, 0)); return c; }
+function sheetOf(canvases) { const w = canvases[0].width, h = canvases[0].height, c = cv(w * canvases.length, h), x = c.getContext('2d'); canvases.forEach((f, i) => x.drawImage(f, i * w, 0)); return c; }
 const url = c => `url(${c.toDataURL()})`;
 const mirrorX = rows => rows.map(r => [...r].reverse().join(''));
 const flipY = rows => [...rows].reverse();
 function scaleUp(src, k) { const c = cv(src.width * k, src.height * k), x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(src, 0, 0, c.width, c.height); return c; }
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+/* a tiny pixel painter: a grid of palette keys with rect, ellipse, polygon and an auto outline pass */
+function grid(w, h) {
+  const g = Array.from({ length: h }, () => Array(w).fill('.'));
+  const set = (x, y, k) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < w && y < h) g[y][x] = k; };
+  const api = {
+    g, w, h, set,
+    get: (x, y) => (x >= 0 && y >= 0 && x < w && y < h) ? g[y][x] : '.',
+    rect(x0, y0, x1, y1, k) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, k); return api; },
+    ell(cx, cy, rx, ry, k, test) { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const dx = (x + .5 - cx) / rx, dy = (y + .5 - cy) / ry; if (dx * dx + dy * dy <= 1 && (!test || test(x, y))) set(x, y, k); } return api; },
+    poly(pts, k) { let y0 = Infinity, y1 = -Infinity; pts.forEach(p => { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }); for (let y = Math.floor(y0); y <= Math.ceil(y1); y++) for (let x = 0; x < w; x++) { const px = x + .5, py = y + .5; let inside = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) inside = !inside; } if (inside) set(x, y, k); } return api; },
+    outline(k = 'K') { const add = []; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (g[y][x] === '.') { for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const v = api.get(x + dx, y + dy); if (v !== '.' && v !== k) { add.push([x, y]); break; } } } add.forEach(([x, y]) => g[y][x] = k); return api; },
+    rows() { return g.map(r => r.join('')); },
+  };
+  return api;
+}
+function dither(x, x0, y0, w, h, col, level) { x.fillStyle = col; for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) if (BAYER[(y0 + yy) & 3][(x0 + xx) & 3] < level) x.fillRect(x0 + xx, y0 + yy, 1, 1); }
 
 /* ============ one-colour icons (8x8 masks) ============ */
 const I = {
@@ -1300,6 +1521,7 @@ const I = {
   note: ['..######', '..#....#', '..######', '..#....#', '..#....#', '###..###', '###..###', '........'],
   house: ['...##...', '..####..', '.######.', '########', '.#....#.', '.#.##.#.', '.#.##.#.', '.######.'],
   wheel: ['..####..', '.#.##.#.', '#..##..#', '########', '########', '#..##..#', '.#.##.#.', '..####..'],
+  key: ['.###....', '#...#...', '#...#...', '.###....', '..#.....', '..###...', '..#.....', '..##....'],
   plus: ['........', '...##...', '...##...', '.######.', '.######.', '...##...', '...##...', '........'],
   minus: ['........', '........', '........', '.######.', '.######.', '........', '........', '........'],
   search: ['.####...', '#....#..', '#....#..', '#....#..', '#....#..', '.#####..', '.....##.', '......##'],
@@ -1336,6 +1558,7 @@ const COIN = [
   ['..ooo...', '.oYLLo..', 'oyYYLo..', 'oyoYLo..', 'oyoYLo..', 'oyyYYo..', '.oyyo...', '..ooo...'],
 ];
 const GEM = (() => { const b = ['..L..', '.LMM.', 'LMMMd', '.MMd.', '..d..']; const g = ['..W..', '.WLM.', 'WLMMd', '.MMd.', '..d..']; const g2 = ['W.L.W', '.WMM.', 'LMWMd', '.MMd.', 'W.d.W']; return [b, b, b, g, g2, g]; })();
+const LEAF = [['...aA', '..aAa', '.aAa.', 'aAa..', 'd....'], ['..a..', '.aAa.', '.aAa.', '.aAa.', '..d..'], ['Aa...', 'aAa..', '.aAa.', '..aAa', '....d'], ['.....', '.aaa.', 'daAAa', '.aaa.', '.....']];
 const PALS = {
   star: { Y: '#ffff00', W: '#ffffff' },
   coin: { o: '#6a3c00', L: '#fff3a0', Y: '#ffd23d', y: '#c98a00' },
@@ -1358,12 +1581,54 @@ const TAIL_L = ['....W', '...WK', '..WKK', '.WKKK', 'WWWWW'];
 setVar('--tail-l', url(sprite(TAIL_L, { W: '#fff', K: '#000' })));
 const tailR = () => setVar('--tail-r', url(sprite(mirrorX(TAIL_L), { W: RAMP.a2, K: RAMP.a0 })));
 
-/* textures */
+/* ============ textures ============ */
 function checker(col) { const c = cv(2, 2), x = c.getContext('2d'); x.fillStyle = col; x.fillRect(0, 0, 1, 1); x.fillRect(1, 1, 1, 1); return c; }
 setVar('--tex-check', url(checker('#000000')));
 setVar('--tex-check-g1', url(checker('#101016')));
 setVar('--tex-check-g2', url(checker('#22222c')));
 function fadeTex(col) { const c = cv(4, 16), x = c.getContext('2d'); x.fillStyle = col; for (let y = 0; y < 16; y++) for (let i = 0; i < 4; i++) if (BAYER[y % 4][i] < (y + 1)) x.fillRect(i, y, 1, 1); return c; }
+/* horizontal dither fade to black (16 x 4), used at the edge of a scrolling tab row */
+function fadeX() { const c = cv(16, 4), x = c.getContext('2d'); x.fillStyle = '#000'; for (let y = 0; y < 4; y++) for (let i = 0; i < 16; i++) if (BAYER[y][i % 4] < i + 1) x.fillRect(i, y, 1, 1); return c; }
+setVar('--tex-fade-x', url(fadeX()));
+/* masonry: one function draws every brick and flagstone family. bw/bh include the 1 px mortar joint */
+function masonry(x, W, H, bw, bh, off, R, seed, oy = 0) {
+  const r = rng(seed);
+  for (let y = 0; y < H; y++) for (let i = 0; i < W; i++) {
+    const row = Math.floor(y / bh), ly = y % bh, lx = (i + (row % 2) * off) % bw;
+    let c;
+    if (ly === bh - 1 || lx === bw - 1) c = R.j;
+    else if (ly === 0 || lx === 0) c = R.hi;
+    else if (ly === bh - 2 || lx === bw - 2) c = R.lo;
+    else c = r() < .07 ? R.lo : R.face;
+    x.fillStyle = c; x.fillRect(i, y + oy, 1, 1);
+  }
+}
+/* LINTEL 16x12: two courses of Ruins brick, a ledge, a dithered drop into the void */
+function lintelTile(R) { const c = cv(16, 12), x = c.getContext('2d');
+  masonry(x, 16, 8, 8, 4, 4, { j: R.m0, hi: R.m3, lo: R.m1, face: R.m2 }, 3);
+  x.fillStyle = R.m3; x.fillRect(0, 8, 16, 1); x.fillStyle = R.m1; x.fillRect(0, 9, 16, 1);
+  dither(x, 0, 10, 16, 2, R.m1, 8); return c; }
+/* WALL 16x24: four courses, a two-row ledge, a 4-row dither fade. The sheet header stands in front of it */
+function wallTile(R) { const c = cv(16, 24), x = c.getContext('2d');
+  masonry(x, 16, 16, 8, 4, 4, { j: R.m0, hi: R.m3, lo: R.m1, face: R.m2 }, 9);
+  x.fillStyle = R.a1; x.fillRect(0, 16, 16, 1); x.fillStyle = R.m3; x.fillRect(0, 17, 16, 1); x.fillStyle = R.m1; x.fillRect(0, 18, 16, 1);
+  x.fillStyle = R.m1; for (let y = 19; y < 24; y++) for (let i = 0; i < 16; i++) if (BAYER[y & 3][i & 3] < 16 - (y - 19) * 4) x.fillRect(i, y, 1, 1);
+  return c; }
+/* RUINS FLOOR 16x16: offset flagstones, darker than the lintel so boxes stay on top */
+function floorTile(R) { const c = cv(16, 16), x = c.getContext('2d');
+  masonry(x, 16, 16, 8, 8, 4, { j: '#000000', hi: R.m2, lo: R.m0, face: R.m1 }, 5); return c; }
+/* FELT 8x8 for the card table */
+function feltTile(R) { const c = cv(8, 8), x = c.getContext('2d'), r = rng(31); x.fillStyle = R.m1; x.fillRect(0, 0, 8, 8); for (let y = 0; y < 8; y++) for (let i = 0; i < 8; i++) { const v = r(); if (v < .14) { x.fillStyle = R.m0; x.fillRect(i, y, 1, 1); } else if (v < .22) { x.fillStyle = R.m2; x.fillRect(i, y, 1, 1); } } return c; }
+/* STEEL GRATE 8x8, fixed palette (Core) */
+const grateTile = (() => { const c = cv(8, 8), x = c.getContext('2d'); x.fillStyle = '#101016'; x.fillRect(0, 0, 8, 8); x.fillStyle = '#22222c'; x.fillRect(0, 0, 8, 1); x.fillRect(0, 0, 1, 8); x.fillStyle = '#000'; x.fillRect(1, 7, 7, 1); x.fillRect(7, 1, 1, 7); x.fillStyle = '#05050a'; x.fillRect(3, 3, 2, 2); x.fillStyle = '#464654'; x.fillRect(1, 1, 1, 1); return c; })();
+/* WATER 32x8, fixed Waterfall palette; ripple dashes tile seamlessly */
+const WATER = { w0: '#03081a', w1: '#081430', w2: '#0f2350', w3: '#1d3d80', w4: '#6fa8e8' };
+const waterTile = (() => { const c = cv(32, 8), x = c.getContext('2d'); x.fillStyle = WATER.w1; x.fillRect(0, 0, 32, 8);
+  x.fillStyle = WATER.w0; x.fillRect(0, 7, 32, 1);
+  const dash = (a, y, n, col) => { x.fillStyle = col; x.fillRect(a, y, n, 1); };
+  dash(2, 1, 6, WATER.w2); dash(14, 2, 9, WATER.w2); dash(26, 1, 5, WATER.w2); dash(6, 4, 7, WATER.w2); dash(20, 5, 8, WATER.w2);
+  dash(4, 1, 2, WATER.w3); dash(17, 2, 3, WATER.w3); dash(8, 4, 2, WATER.w3); dash(23, 5, 2, WATER.w3); x.fillStyle = WATER.w4; x.fillRect(18, 2, 1, 1);
+  return c; })();
 
 /* rarity effects */
 (() => {
@@ -1372,14 +1637,11 @@ function fadeTex(col) { const c = cv(4, 16), x = c.getContext('2d'); x.fillStyle
   const souls = ['#ff0000', '#ffa13d', '#ffff00', '#3ee05a', '#3cf0ff', '#4a6cff', '#cf45ff'];
   const ch = cv(14, 2), x3 = ch.getContext('2d'); souls.forEach((c, i) => { x3.fillStyle = c; x3.fillRect(i * 2, 0, 2, 2); }); setVar('--cyc-h', url(ch));
   const cvv = cv(2, 14), x4 = cvv.getContext('2d'); souls.forEach((c, i) => { x4.fillStyle = c; x4.fillRect(0, i * 2, 2, 2); }); setVar('--cyc-v', url(cvv));
-  const m = cv(32, 32), x5 = m.getContext('2d'), r = rng(7);
-  [[3, 4, '#fff'], [19, 9, '#ffd0ee'], [27, 22, '#fff'], [9, 17, '#ffd0ee'], [14, 28, '#3cf0ff'], [24, 2, '#ffff00']].forEach(([a, b, c]) => { x5.fillStyle = c; x5.fillRect(a, b, 1, 1); });
-  setVar('--motes', url(m));
   const n = cv(128, 32), x6 = n.getContext('2d');
-  for (let f = 0; f < 4; f++) { const rr = rng(100 + f); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { const v = rr(); if (v < .008) { x6.fillStyle = '#ffffff'; x6.fillRect(f * 32 + x, y, 1, 1); } else if (v < .02) { x6.fillStyle = '#464654'; x6.fillRect(f * 32 + x, y, 1, 1); } else if (v < .026) { x6.fillStyle = '#ff1e8c'; x6.fillRect(f * 32 + x, y, 1, 1); } else if (v < .029) { x6.fillStyle = '#3cf0ff'; x6.fillRect(f * 32 + x, y, 1, 1); } } }
+  for (let f = 0; f < 4; f++) { const rr = rng(100 + f); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { const v = rr(); if (v < .03) { x6.fillStyle = '#ffffff'; x6.fillRect(f * 32 + x, y, 1, 1); } else if (v < .1) { x6.fillStyle = '#464654'; x6.fillRect(f * 32 + x, y, 1, 1); } else if (v < .14) { x6.fillStyle = '#ff1e8c'; x6.fillRect(f * 32 + x, y, 1, 1); } else if (v < .16) { x6.fillStyle = '#3cf0ff'; x6.fillRect(f * 32 + x, y, 1, 1); } } }
   setVar('--sh-noise', url(n));
   const s = cv(32, 160), x7 = s.getContext('2d');
-  for (let y = 0; y < 160; y++) { const x0 = 26 - Math.floor(y / 5); x7.fillStyle = 'rgba(255,243,160,1)'; x7.fillRect(x0 - 1, y, 1, 1); x7.fillStyle = '#ffffff'; x7.fillRect(x0, y, 3, 1); x7.fillStyle = '#fff3a0'; x7.fillRect(x0 + 5, y, 1, 1); }
+  for (let y = 0; y < 160; y++) { const x0 = 26 - Math.floor(y / 5); x7.fillStyle = '#fff3a0'; x7.fillRect(x0 - 1, y, 1, 1); x7.fillStyle = '#ffffff'; x7.fillRect(x0, y, 3, 1); x7.fillStyle = '#fff3a0'; x7.fillRect(x0 + 5, y, 1, 1); }
   setVar('--shine', url(s));
 })();
 
@@ -1411,18 +1673,97 @@ setVar('--cur-soul', `url("${scaleUp(curSoulC, 3).toDataURL()}") 13 12, default`
 setVar('--cur-point', `url("${scaleUp(curPointC, 3).toDataURL()}") 13 1, pointer`);
 $$('canvas[data-cur]').forEach(c => { const x = c.getContext('2d'); x.clearRect(0, 0, 10, 10); x.drawImage(c.dataset.cur === 'soul' ? curSoulC : curPointC, 1, 1); });
 
+/* ============ rarity ART WINDOWS: 24x24 sprite sheets, fixed rarity palettes, drawn once at load ============ */
+const SOULS7 = ['#ff0000', '#ffa13d', '#ffff00', '#3ee05a', '#3cf0ff', '#4a6cff', '#cf45ff'];
+const px1 = (x, a, b, col) => { x.fillStyle = col; x.fillRect(a, b, 1, 1); };
+const plus = (x, a, b, arm, core, big) => { px1(x, a, b, core); x.fillStyle = arm; x.fillRect(a - 1, b, 1, 1); x.fillRect(a + 1, b, 1, 1); x.fillRect(a, b - 1, 1, 1); x.fillRect(a, b + 1, 1, 1); if (big) { x.fillRect(a - 2, b, 1, 1); x.fillRect(a + 2, b, 1, 1); x.fillRect(a, b - 2, 1, 1); x.fillRect(a, b + 2, 1, 1); } };
+function artFrames(n, draw) { return Array.from({ length: n }, (_, f) => { const c = cv(24, 24), x = c.getContext('2d'); draw(x, f); return c; }); }
+function winBg(x, base, dots, level) { x.fillStyle = base; x.fillRect(0, 0, 24, 24); if (dots) dither(x, 0, 0, 24, 24, dots, level); }
+const ART = {};
+/* COMMON: a pebble. One frame: commons never move */
+ART.common = artFrames(1, x => { winBg(x, '#101016', '#16161e', 6);
+  x.fillStyle = '#22222c'; for (let a = 5; a <= 19; a++) x.fillRect(a, 20, 1, 1); x.fillRect(7, 21, 11, 1);
+  const G = grid(24, 24); G.ell(12, 15.5, 7.5, 5, 'M').ell(12, 15.5, 7.5, 5, 'd', (a, b) => (a - 12) + (b - 15) * 1.5 > 4).ell(10, 14, 3.4, 2.2, 'L'); G.set(9, 13, 'W'); G.set(15, 12, 'L'); G.outline('K');
+  paint(x, G.rows(), { M: '#808080', d: '#464654', L: '#c3c3c3', W: '#ffffff', K: '#000000' });
+  px1(x, 6, 7, '#808080'); px1(x, 17, 5, '#464654'); });
+/* RARE: a Waterfall crystal; a glint crosses it in 8 frames */
+ART.rare = artFrames(8, (x, f) => { winBg(x, '#06102a', '#0c1c44', 6);
+  const G = grid(24, 24), g0 = f * 6 - 20;
+  for (let b = 0; b < 24; b++) for (let a = 0; a < 24; a++) { if (Math.abs(a + .5 - 12) / 7.5 + Math.abs(b + .5 - 12) / 10.5 > 1) continue; let k = a < 12 ? (b < 12 ? 'L' : 'M') : (b < 12 ? 'M' : 'd'); if (a === 12 && b > 3 && b < 20) k = b < 12 ? 'L' : 'M'; if (a - b === g0 || a - b === g0 + 1) k = 'W'; G.set(a, b, k); }
+  G.outline('K'); paint(x, G.rows(), { L: '#bfe2ff', M: '#4aa8ff', d: '#163c78', W: '#ffffff', K: '#020814' });
+  if (f < 2) plus(x, 19, 5, '#bfe2ff', '#ffffff', f === 1);
+  if (f >= 4 && f < 6) plus(x, 4, 18, '#4aa8ff', '#bfe2ff', false); });
+/* EPIC: a violet orb with a ring; three sparks orbit (back half behind the orb) */
+ART.epic = artFrames(8, (x, f) => { winBg(x, '#12061f', '#1e0c34', 6);
+  const ring = front => { for (let t = 0; t < 72; t++) { const a = t / 72 * Math.PI * 2, s = Math.sin(a); if ((s >= 0) !== front) continue; px1(x, Math.round(12 + 10.5 * Math.cos(a)), Math.round(13 + 3.2 * s), front ? '#e6c4ff' : '#5a2490'); } };
+  const sparks = front => { for (let i = 0; i < 3; i++) { const a = (f / 8 + i / 3) * Math.PI * 2, s = Math.sin(a); if ((s >= 0) !== front) continue; const sx = Math.round(12 + 10.5 * Math.cos(a)), sy = Math.round(13 + 3.2 * s); if (front) plus(x, sx, sy, '#e6c4ff', '#ffffff', false); else px1(x, sx, sy, '#b55cff'); } };
+  ring(false); sparks(false);
+  const G = grid(24, 24); G.ell(12, 12, 6.3, 6.3, 'M').ell(12, 12, 6.3, 6.3, 'd', (a, b) => (a - 12) + (b - 12) > 3).ell(10, 10, 2.4, 2.4, 'L'); G.set(9, 9, 'W'); G.outline('K');
+  paint(x, G.rows(), { M: '#b55cff', d: '#3e1470', L: '#e6c4ff', W: '#ffffff', K: '#0a0314' });
+  ring(true); sparks(true); });
+/* LEGENDARY: a golden flower (they grow in the Ruins); it sways and save stars pop around it */
+ART.legend = artFrames(8, (x, f) => { winBg(x, '#140b00', '#241500', 6);
+  const sw = f < 4 ? 0 : 1, G = grid(24, 24);
+  G.rect(12, 17, 12, 22, 'g').rect(12 + sw, 13, 12 + sw, 16, 'g');
+  G.ell(9.5, 19, 2.6, 1.3, 'G').ell(14.5, 21, 2.6, 1.3, 'G');
+  G.rect(7, 23, 17, 23, 'g');
+  for (let i = 0; i < 5; i++) { const a = (-90 + i * 72) * Math.PI / 180, cx = 12.5 + sw + 4.3 * Math.cos(a), cy = 9.5 + 4.3 * Math.sin(a); G.ell(cx, cy, 2.7, 2.7, 'Y').ell(cx, cy, 2.7, 2.7, 'y', (p, q) => q + .5 > cy + 1); G.set(Math.floor(cx) - 1, Math.floor(cy) - 1, 'L'); }
+  G.ell(12.5 + sw, 9.5, 2.2, 2.2, 'o'); G.set(11 + sw, 8, 'O');
+  G.outline('K'); paint(x, G.rows(), { g: '#2a8a3a', G: '#3ee05a', Y: '#ffd23d', y: '#c98a00', L: '#fff3a0', o: '#6a3c00', O: '#c98a00', K: '#0a0500' });
+  [[4, 5, 0], [20, 4, 2], [20, 16, 4], [3, 15, 6]].forEach(([a, b, s]) => { const k = (f - s + 8) % 8; if (k === 0) plus(x, a, b, '#ffd23d', '#ffffff', false); else if (k === 1) plus(x, a, b, '#ffd23d', '#ffffff', true); }); });
+/* MYTHIC: the seven human SOULs orbit a monster SOUL; motes rise. 28 frames so the loop closes */
+const MH = ['##.##', '#####', '.###.', '..#..'];
+const MONSTER = ['...#...', '..###..', '.#####.', '#######', '#######', '.##.##.'];
+ART.mythic = artFrames(28, (x, f) => { x.fillStyle = '#000'; x.fillRect(0, 0, 24, 24);
+  const r = rng(77); for (let i = 0; i < 12; i++) { const mx = Math.floor(r() * 24), my = Math.floor(r() * 24), c = ['#ffd0ee', '#ffffff', '#3cf0ff', '#ff5cc8'][Math.floor(r() * 4)]; px1(x, mx, ((my - Math.floor(f * 24 / 28)) % 24 + 24) % 24, c); }
+  const hs = SOULS7.map((c, i) => { const a = (i / 7 + f / 28) * Math.PI * 2; return { c, x: Math.round(12 + 8.5 * Math.cos(a)) - 2, y: Math.round(12 + 5.5 * Math.sin(a)) - 2, front: Math.sin(a) >= 0 }; });
+  const drawH = (h, dim) => MH.forEach((row, yy) => { for (let i = 0; i < 5; i++) if (row[i] === '#' && (!dim || (h.x + i + h.y + yy) % 2 === 0)) px1(x, h.x + i, h.y + yy, h.c); });
+  hs.filter(h => !h.front).forEach(h => drawH(h, true));
+  paint(x, MONSTER, { '#': '#ffffff' }, 9, 9);
+  hs.filter(h => h.front).forEach(h => drawH(h, false)); });
+/* HEXXED: static, and an eye that opens, looks around and tears (frames 5 and 13) */
+ART.hex = artFrames(16, (x, f) => { x.fillStyle = '#000'; x.fillRect(0, 0, 24, 24);
+  const r = rng(500 + f); for (let i = 0; i < 46; i++) { const v = r(); px1(x, Math.floor(r() * 24), Math.floor(r() * 24), v < .5 ? '#22222c' : v < .78 ? '#464654' : v < .92 ? '#ff1e8c' : '#3cf0ff'); }
+  const OPEN = [0, 0, .45, 1, 1, 1, 1, 1, 1, 1, .45, 0, .45, 1, 1, .45][f], DX = [0, 0, 0, 0, -3, -3, 0, 3, 3, 0, 0, 0, 0, 0, 2, 0][f], cy = 12, lid = '#ff1e8c';
+  if (!OPEN) { for (let a = 4; a <= 20; a++) px1(x, a, cy, lid); [[6, 13], [10, 14], [14, 14], [18, 13]].forEach(([a, b]) => px1(x, a, b, lid)); }
+  else for (let a = 3; a <= 21; a++) { const hh = Math.max(1, Math.round(6.5 * Math.sin(Math.PI * (a - 3) / 18) * OPEN)); px1(x, a, cy - hh, lid); px1(x, a, cy + hh, lid); if (hh > 1) px1(x, a, cy - hh - 1, '#5c0e44');
+    for (let b = cy - hh + 1; b < cy + hh; b++) { const d = Math.hypot(a + .5 - (12.5 + DX), b + .5 - 12.5); let c = '#ffffff'; if (d <= 4.4) c = d > 3.3 ? '#ff1e8c' : d > 1.7 ? '#5c0e44' : '#000000'; if (a === 11 + DX && b === 10) c = '#ffffff'; px1(x, a, b, c); } }
+  if (f === 5 || f === 13) { const img = x.getImageData(0, 9, 24, 4); x.putImageData(img, 3, 9); x.putImageData(img, -21, 9); x.fillStyle = '#3cf0ff'; x.fillRect(0, 8, 9, 1); x.fillRect(14, 13, 10, 1); } });
+for (const [k, fr] of Object.entries(ART)) setVar('--art-' + k, url(sheetOf(fr)));
+
 /* ============ portraits, avatars, items ============ */
-const BJ = [
-  '................................', '...........KKKKKKKK.............', '..........KhhhhhhHHK............', '..........KhhhhhhhHK..KKKKK.....',
-  '..........KhhhhhhhHK.KwwwwwK....', '..........KhhhhhhhHK.KwrwrwK....', '..........KhhhhhhhHK.KwrrrwK....', '..........KaaaaaaaAKKKwwrwwK....',
-  '..........KbbbbbbbaKKgwwwwwK....', '......KKKKKKKKKKKKKKKKKKKKKKKK..', '.....KhhhhhhhhhhhhhhhhhhhhhHHHK.', '......KKKKKKKKKKKKKKKKKKKKKKKK..',
-  '........KddKsssssssssKddK.......', '.......KddKsssssssssssKdK.......', '.......KdKssssssssssssSKK.......', '.......KdKsKKKKsssKKKKSK........',
-  '.......KdKKrrrKsssKwwKSK........', '.......KKsKKrKssssKKKssK........', '........KssssssssssssssK........', '........KsKKKKKKKKKKKKsK........',
-  '........KsKwwywwwwwwwKsK........', '.........KsKKKKKKKKKKsK.........', '..........KSsssssssSSK..........', '...........KKKKKKKKKK...........',
-  '..........KwwwwKKwwwwK..........', '........KKwwwwKaaKwwwwKK........', '......KKbbKwwKaAaaKwwKbbKK......', '.....KaabbbKKaaaaaaKKbbbaaK.....',
-  '....KaaabbbbbKaaaaKbbbbbaaaK....', '...KAaaabbbbbbKaaKbbbbbbaaaaK...', '..KAaaaabbbbbbbKKbbbbbbbaaaaaK..', '..KAaaaabbbbbbbbbbbbbbbbaaaaaK..',
-];
-const BJ_TALK = BJ.slice(); BJ_TALK[19] = '........KsKKKKKKKKKKKKsK........'; BJ_TALK[20] = '........KsKwwyKKKKKwwKsK........'; BJ_TALK[21] = '.........KsKrrrrrrrrKsK.........'; BJ_TALK[22] = '..........KSKKKKKKKKSK..........';
+/* BLACKJACK, 48x48 bust, built with the pixel painter so the shapes stay on the grid. Placeholder art. */
+function bj48(o = {}) {
+  const G = grid(48, 48);
+  G.poly([[2, 48], [5, 41], [12, 37.5], [20, 36], [28, 36], [36, 37.5], [43, 41], [46, 48]], 'a');
+  G.poly([[3, 48], [5.5, 41.5], [11, 38.5], [14, 38.5], [8.5, 43], [7, 48]], 'A');
+  G.poly([[45, 48], [42.5, 41.5], [37, 38.5], [35, 38.5], [40, 43], [41, 48]], 'b');
+  G.poly([[19, 36], [29, 36], [24, 46]], 'w');
+  G.poly([[19, 36], [24, 45.5], [18, 48], [13, 48], [16, 40]], 'b');
+  G.poly([[29, 36], [24, 45.5], [30, 48], [35, 48], [32, 40]], 'b');
+  G.poly([[19, 37], [23.5, 39.5], [19, 42]], 'r'); G.poly([[29, 37], [24.5, 39.5], [29, 42]], 'r'); G.rect(23, 38, 24, 40, 'R');
+  G.set(16, 42, 'w'); G.rect(15, 43, 17, 43, 'w'); G.set(16, 44, 'w');
+  G.rect(33, 41, 36, 41, 'w'); G.rect(33, 42, 36, 42, 'r');
+  G.rect(21, 33, 26, 36, 'S');
+  G.rect(15, 18, 32, 33, 's'); [[15, 32], [15, 33], [16, 33], [32, 32], [32, 33], [31, 33]].forEach(([a, b]) => { G.g[b][a] = '.'; });
+  G.rect(31, 19, 32, 31, 'S'); G.rect(17, 33, 30, 33, 'S'); G.rect(15, 18, 32, 18, 'S');
+  G.rect(13, 18, 15, 25, 'd'); G.rect(32, 18, 34, 25, 'd'); G.set(13, 26, 'd'); G.set(34, 26, 'd');
+  if (o.blink) { G.rect(17, 24, 21, 24, 'K'); G.rect(26, 24, 30, 24, 'K'); }
+  else { G.rect(17, 22, 21, 25, 'K'); G.rect(19, 23, 20, 24, 'r'); G.set(19, 23, 'w'); G.rect(26, 22, 30, 25, 'K'); G.rect(28, 23, 29, 24, 'w'); }
+  [[17, 21], [18, 21], [19, 20], [20, 20], [21, 20], [26, 19], [27, 19], [28, 20], [29, 20], [30, 21]].forEach(([a, b]) => G.set(a, b, 'K'));
+  G.set(24, 27, 'S'); G.set(24, 28, 'S'); G.set(23, 28, 'S');
+  if (o.talk) { G.rect(19, 28, 28, 28, 'K'); G.rect(18, 29, 29, 32, 'K'); G.rect(19, 29, 28, 29, 'w'); G.set(22, 29, 'K'); G.set(26, 29, 'K'); G.rect(24, 29, 25, 29, 'y'); G.rect(22, 31, 25, 32, 'r'); G.rect(20, 32, 27, 32, 'w'); G.rect(19, 33, 28, 33, 'K'); }
+  else { G.rect(19, 29, 28, 29, 'K'); G.set(17, 28, 'K'); G.set(18, 29, 'K'); G.set(30, 28, 'K'); G.set(29, 29, 'K'); G.set(18, 30, 'K'); G.set(29, 30, 'K'); G.rect(19, 30, 28, 31, 'w'); G.rect(22, 30, 22, 31, 'K'); G.rect(26, 30, 26, 31, 'K'); G.rect(24, 30, 25, 31, 'y'); G.rect(19, 32, 28, 32, 'K'); }
+  G.rect(9, 15, 38, 17, 'h'); G.rect(10, 15, 37, 15, 'H');
+  G.rect(16, 2, 31, 14, 'h'); G.rect(17, 2, 30, 2, 'H'); G.rect(29, 3, 30, 10, 'H');
+  G.rect(22, 3, 29, 3, 'K'); G.rect(22, 3, 22, 12, 'K'); G.rect(29, 3, 29, 12, 'K'); G.rect(23, 4, 28, 12, 'w');
+  G.set(24, 6, 'r'); G.set(26, 6, 'r'); G.rect(24, 7, 26, 7, 'r'); G.set(25, 8, 'r'); G.set(23, 4, o.glint ? 'W' : 'w');
+  G.rect(16, 11, 31, 13, 'a'); G.rect(16, 11, 31, 11, 'A');
+  if (o.glint) { G.rect(23, 5, 23, 6, 'y'); }
+  G.outline('K');
+  return G.rows();
+}
+const BJ = { base: bj48(), blink: bj48({ blink: true }), talk: bj48({ talk: true }), glint: bj48({ glint: true }) };
 const MINI = {
   tophat: ['................', '.....KKKKKK.....', '.....KhhhhK.....', '.....KhhhhK.....', '.....KaaaaK.....', '...KKKKKKKKKK...', '....KdssssdK....', '....KKKssKKK....', '....KrKssKwK....', '....KssssssK....', '....KsKwywKK....', '.....KKKKKK.....', '...KKwaaaawKK...', '..KbbbKaaKbbbK..', '.KaabbbKKbbbaaK.', '.KaabbbbbbbbaaK.'],
   ears: ['................', '..KK........KK..', '.KaaK......KaaK.', '.KawaKKKKKKawaK.', '.KaaassssssaaaK.', '..KasssssssssK..', '..KsKKssssKKsK..', '..KsKeKssKeKsK..', '..KssssKKssssK..', '...KssKwwKssK...', '....KKssssKK....', '.....KKKKKK.....', '....KwwwwwwK....', '..KKbaaaaaabKK..', '.KbbbaaaaaabbbK.', '.KbbbaaaaaabbbK.'],
@@ -1434,35 +1775,49 @@ const ITEMS = {
   deck: ['................', '.....KKKKKKKK...', '....KKwwwwwwwK..', '...KgKwwwwwwwK..', '..KgKwwrwwwwwK..', '..KgKwrrrwwwwK..', '..KgKwwrwwwwwK..', '..KgKwwwwwwwaK..', '..KgKwwwwwwwwK..', '..KgKwwwwwrwwK..', '..KgKawwwrrrwK..', '..KgKwwwwwrwwK..', '..KgKwwwwwwwwK..', '..KgKKKKKKKKKK..', '..KggggggggK....', '...KKKKKKKK.....'],
   glove: ['................', '.....K.K.K......', '....KaKaKaK.....', '....KaKaKaKK....', '....KaKaKaKaK...', '....KAKAKAKaK...', '....KaaaaaKaK...', '...KKaaaaaaaK...', '..KaKaaaaaaaK...', '..KAaKaaaaaaK...', '...KaaaaaaabK...', '....KaabbbbK....', '....KwwwwwwK....', '....KwwwwwwK....', '....KKKKKKKK....', '................'],
 };
-function charPal(acc, hair) { const r = acc === 'accent' ? RAMP : makeRamp(acc); return { K: '#000000', h: '#1c1c24', H: '#464654', a: r.a2, A: r.a3, b: r.a1, s: '#f2e6d8', S: '#bca89c', r: '#ff0000', w: '#ffffff', y: '#ffd23d', d: hair || '#5a2a22', g: '#808080', e: '#22222c' }; }
+function charPal(acc, hair) { const r = acc === 'accent' ? RAMP : makeRamp(acc); return { K: '#000000', h: '#1c1c24', H: '#464654', a: r.a2, A: r.a3, b: r.a1, s: '#f2e6d8', S: '#bca89c', r: '#ff0000', R: '#8c0014', w: '#ffffff', W: '#ffffff', y: '#ffd23d', d: hair || '#5a2a22', g: '#808080', e: '#22222c' }; }
 function bgDither(x, w, h, col) { x.fillStyle = '#000'; x.fillRect(0, 0, w, h); x.fillStyle = col; for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) if (BAYER[yy % 4][xx % 4] < Math.floor((yy / h) * 10)) x.fillRect(xx, yy, 1, 1); }
-function drawFace(c, talk) { const x = c.getContext('2d'); bgDither(x, 32, 32, RAMP.a0); paint(x, talk ? BJ_TALK : BJ, charPal('accent')); }
+function drawFace(c, v = 'base') { const x = c.getContext('2d'); bgDither(x, 48, 48, RAMP.a0); paint(x, BJ[v] || BJ.base, charPal('accent')); }
 function drawAvatars() {
   $$('canvas[data-av]').forEach(c => { const x = c.getContext('2d'); const acc = c.dataset.acc; const r = acc === 'accent' ? RAMP : makeRamp(acc); bgDither(x, 16, 16, r.a0); paint(x, MINI[c.dataset.av], charPal(acc, c.dataset.hair)); });
-  $$('canvas.portrait, canvas[data-face]').forEach(c => drawFace(c, false));
+  $$('canvas.portrait, canvas[data-face]').forEach(c => drawFace(c));
   $$('canvas[data-item]').forEach(c => { const x = c.getContext('2d'); x.clearRect(0, 0, 16, 16); paint(x, ITEMS[c.dataset.item], charPal('accent')); });
 }
 
 /* ============ accent-dependent sprites + tokens ============ */
 const EQ = [[3, 6, 2], [5, 3, 6], [7, 5, 4], [4, 7, 3]];
+const GEM8 = ['..4443..', '.443332.', '44333322', '33332221', '.333221.', '..3221..', '...21...', '........'];
+function gemFor(hex) { const r = makeRamp(hex); return url(sprite(GEM8, { 4: r.a4, 3: r.a3, 2: r.a2, 1: r.a1 })); }
 function applyAccent(hex, from) {
   RAMP = makeRamp(hex);
-  setVar('--accent', hex); setVar('--a0', RAMP.a0); setVar('--a1', RAMP.a1); setVar('--a2', RAMP.a2); setVar('--a3', RAMP.a3); setVar('--a4', RAMP.a4); setVar('--a-text', RAMP.text); setVar('--a-ink', RAMP.ink);
+  setVar('--accent', hex); ['a0', 'a1', 'a2', 'a3', 'a4', 'm0', 'm1', 'm2', 'm3'].forEach(k => setVar('--' + k, RAMP[k]));
+  setVar('--a-text', RAMP.text); setVar('--a-ink', RAMP.ink); setVar('--a3-ink', RAMP.ink3); setVar('--a1-ink', RAMP.ink1);
   setVar('--sh-soul-acc', url(sprite(SOUL, { '#': RAMP.a2 })));
   setVar('--tex-fade', url(fadeTex(RAMP.a0)));
-  const eq = cv(28, 8), ex = eq.getContext('2d'); EQ.forEach((f, i) => f.forEach((hh, b) => { ex.fillStyle = RAMP.a3; ex.fillRect(i * 7 + b * 2 + (b ? b * 0 : 0), 8 - hh, 1, hh); ex.fillStyle = RAMP.a2; ex.fillRect(i * 7 + b * 2 + 1, 8 - hh, 1, hh); })); setVar('--sh-eq', url(eq));
+  setVar('--tex-check-a0', url(checker(RAMP.a0)));
+  setVar('--tex-lintel', url(lintelTile(RAMP)));
+  setVar('--tex-wall', url(wallTile(RAMP)));
+  setVar('--sh-leaf', url(sheet(LEAF, { a: RAMP.a2, A: RAMP.a3, d: RAMP.a1 })));
+  const eq = cv(28, 8), ex = eq.getContext('2d'); EQ.forEach((f, i) => f.forEach((hh, b) => { ex.fillStyle = RAMP.a3; ex.fillRect(i * 7 + b * 2, 8 - hh, 1, hh); ex.fillStyle = RAMP.a2; ex.fillRect(i * 7 + b * 2 + 1, 8 - hh, 1, hh); })); setVar('--sh-eq', url(eq));
   tailR();
-  drawAvatars(); drawRadar(); drawNine(); drawRampNote(); cardBack = null; $$('#hand').forEach(hd => hd.story && hd.story());
+  drawAvatars(); drawRadar(); drawNine(); drawRampNote(); cardBack = null; $$('#hand').forEach(hd => hd.story && hd.story()); handRedraw && handRedraw();
   $$('.sw[data-hex]').forEach(b => { const on = b.dataset.hex.toLowerCase() === hex.toLowerCase(); b.setAttribute('aria-checked', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
   const preset = PRESETS.find(p => p[1].toLowerCase() === hex.toLowerCase());
   const nm = $('#sw-name'), hx = $('#sw-hex'); if (nm) nm.textContent = preset ? preset[0] : 'CUSTOM'; if (hx) hx.textContent = hex.toUpperCase();
   $$('.cus input').forEach(i => { if (from !== i) i.value = hex; });
   bgAll.forEach(b => b.dirty = true);
+  anims.forEach(a => { if (a.kind === 'face') a.dirty = true; });
   store.set('sp-accent', hex);
 }
 
 /* ============ stat bars, pity bars ============ */
+/* segment width is computed from the room left after icon, key and value, in whole art px (3 to 10 a segment),
+   so the 20 segments always fit; below 6 the bar drops under its label and takes the full width */
 function layoutBars() {
+  $$('.stats').forEach(st => { const p = pxOf(st), W = st.clientWidth / p; if (!W) return; const rg = document.createRange(), vmax = Math.max(0, ...$$('.stat .v', st).map(v => { rg.selectNodeContents(v); return rg.getBoundingClientRect().width / p; }));
+    let sw = Math.floor((W - 8 - 22 - Math.ceil(vmax) - 9 + 1) / 20) - 1, stack = false;
+    if (sw < 6) { stack = true; sw = Math.max(3, Math.min(10, Math.floor((W + 1) / 20) - 1)); }
+    st.style.setProperty('--sw', Math.min(10, sw)); st.classList.toggle('stack', stack); });
   $$('.bar[data-seg]').forEach(b => { const sw = parseFloat(getComputedStyle(b).getPropertyValue('--sw')) || 10; const s = parseFloat(b.dataset.seg); const whole = Math.floor(s); b.style.setProperty('--fill', Math.min(20, whole) * (sw + 1) + Math.round((s - whole) * sw)); });
 }
 $$('.pbar').forEach(p => { const n = +p.dataset.n, f = +p.dataset.f, close = f / n >= .8; let h = ''; for (let i = 0; i < n; i++) h += `<span class="${i < f ? 'f' : ''}${close && i >= f - 3 && i < f ? ' hot' : ''}${i === n - 1 ? ' goal' : ''}"></span>`; p.innerHTML = h; p.setAttribute('role', 'meter'); p.setAttribute('aria-valuemin', 0); p.setAttribute('aria-valuemax', n); p.setAttribute('aria-valuenow', f); p.setAttribute('aria-label', 'Pity'); });
@@ -1471,6 +1826,7 @@ $$('#lbar').forEach(l => { l.innerHTML = '<span></span>'.repeat(16); });
 /* ============ radar (Bresenham, dithered fill) ============ */
 function line(x, x0, y0, x1, y1, col, dot) { x.fillStyle = col; let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1, dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1, err = dx + dy, i = 0; for (;;) { if (!dot || i % 2 === 0) x.fillRect(x0, y0, 1, 1); i++; if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } } }
 const RADAR_V = [.36, 1, .86, .15, .78, .95];
+const STATC = ['#3ee05a', '#ffa13d', '#4a6cff', '#cf45ff', '#ffff00', '#3cf0ff'];
 function drawRadar() {
   $$('canvas.radar-c').forEach(c => {
     const x = c.getContext('2d'), W = 72, C = 36, R = 30; x.clearRect(0, 0, W, W);
@@ -1481,85 +1837,105 @@ function drawRadar() {
     const m = cv(W, W), mx = m.getContext('2d'); mx.fillStyle = '#fff'; mx.beginPath(); P.forEach(([a, b], i) => i ? mx.lineTo(a + .5, b + .5) : mx.moveTo(a + .5, b + .5)); mx.closePath(); mx.fill();
     const d = mx.getImageData(0, 0, W, W).data; x.fillStyle = RAMP.a1; for (let y = 0; y < W; y++) for (let xx = 0; xx < W; xx++) if (d[(y * W + xx) * 4 + 3] > 127 && (xx + y) % 2 === 0) x.fillRect(xx, y, 1, 1);
     P.forEach((p, i) => { const q = P[(i + 1) % 6]; line(x, p[0], p[1], q[0], q[1], RAMP.a3); });
-    P.forEach(([a, b], i) => { x.fillStyle = i === 1 ? '#ff3cff' : RAMP.a4; x.fillRect(a - 1, b - 1, 2, 2); });
+    P.forEach(([a, b], i) => { x.fillStyle = i === 1 ? '#ff3cff' : STATC[i]; x.fillRect(a - 1, b - 1, 3, 3); x.fillStyle = '#000'; x.fillRect(a, b, 1, 1); });
   });
 }
 
-/* ============ frame timer ============ */
+/* ============ frame timer: one rAF loop for every canvas and JS sprite, measured ============ */
 const anims = [];
-function addAnim(o) { o.last = 0; o.frame = 0; o.visible = true; anims.push(o); if (o.el && 'IntersectionObserver' in window) io.observe(o.el); return o; }
+function addAnim(o) { o.last = 0; o.frame = 0; o.visible = true; anims.push(o); if (o.el && io) io.observe(o.el); return o; }
 const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => anims.forEach(a => { if (a.el === e.target) a.visible = e.isIntersecting; })), { rootMargin: '100px' }) : null;
+let tickMs = 0, tickN = 0, tickT = 0;
 function tick(t) {
+  const t0 = performance.now();
   if (!document.hidden) for (const a of anims) {
     if (!a.visible) continue;
     const paused = !motionOK() || (perfOn() && a.kind !== 'ui');
     if (paused) { if (a.dirty || !a.drawnOnce) { a.fn(a.frame, true); a.drawnOnce = true; a.dirty = false; } continue; }
     if (t - a.last >= 1000 / a.fps) { a.last = t; a.frame++; a.fn(a.frame, false); a.drawnOnce = true; a.dirty = false; }
+    else if (a.dirty) { a.fn(a.frame, false); a.dirty = false; }
   }
+  tickMs += performance.now() - t0; tickN++;
+  if (t - tickT > 1000) { const pr = $('#perf-read'); if (pr) pr.textContent = `tick ${(tickMs / Math.max(1, tickN)).toFixed(2)} ms`; tickMs = 0; tickN = 0; tickT = t; }
   requestAnimationFrame(tick);
 }
 
-/* ============ backgrounds ============ */
+/* ============ backgrounds: six places ============ */
 const SUITS = [
   ['...#...', '..###..', '.#####.', '#######', '#######', '.#.#.#.', '...#...'],
   ['.##.##.', '#######', '#######', '#######', '.#####.', '..###..', '...#...'],
   ['...#...', '..###..', '.#####.', '#######', '.#####.', '..###..', '...#...'],
   ['..###..', '..###..', '##.#.##', '#######', '##.#.##', '...#...', '..###..'],
 ];
+const SNOW = { s0: '#dfe8f0', s1: '#9fb3c8', s2: '#5d6b78', p0: '#07120f', p1: '#0f2420' };
+const FLOWER = ['.A.A.', 'AAWAA', '.AAA.', '..b..', '.bb..', '..b..'];
 const BG = {
-  grid: { name: 'Battle grid', was: 'Checkerboard, crosshatch', fps: 6,
-    draw(x, w, h, f, s) { x.fillStyle = '#000'; x.fillRect(0, 0, w, h);
-      x.fillStyle = RAMP.a0; const o = f % 12; for (let i = -12 + o; i < w; i += 12) x.fillRect(i, 0, 1, h); for (let j = -12 + o; j < h; j += 12) x.fillRect(0, j, w, 1);
-      x.fillStyle = RAMP.a1; const O = Math.floor(f / 2) % 24; for (let i = -O; i < w; i += 24) x.fillRect(i, 0, 1, h); for (let j = -O; j < h; j += 24) x.fillRect(0, j, w, 1);
-      for (let i = -O, a = 0; i < w; i += 24, a++) for (let j = -O, b = 0; j < h; j += 24, b++) { if ((a + b) % 2) continue; x.fillStyle = RAMP.a2; x.fillRect(i - 1, j, 3, 1); x.fillRect(i, j - 1, 1, 3); x.fillStyle = RAMP.a4; x.fillRect(i, j, 1, 1); }
-      x.drawImage(s.fade, 0, 0); } },
-  stars: { name: 'Save field', was: 'Static noise, falling pixels', fps: 6,
-    init(s, w, h) { const r = rng(11); s.st = Array.from({ length: Math.max(12, Math.round(w * h / 160)) }, () => ({ x: Math.floor(r() * w), y: Math.floor(r() * h), p: Math.floor(r() * 32), k: r() < .03 ? 2 : r() < .2 ? 1 : 0 })); },
-    draw(x, w, h, f, s) { x.fillStyle = '#000'; x.fillRect(0, 0, w, h);
-      for (const t of s.st) { const ph = (f + t.p) % 32, xx = ((t.x - Math.floor(f / 4)) % w + w) % w, y = t.y;
-        if (t.k === 2) { x.drawImage(starSheet, ((f + t.p) % 4) * 9, 0, 9, 9, xx - 4, y - 4, 9, 9); continue; }
-        if (ph < 26) { x.fillStyle = t.k ? RAMP.a2 : RAMP.a1; x.fillRect(xx, y, 1, 1); }
-        else if (ph === 26 || ph === 31) { x.fillStyle = RAMP.a3; x.fillRect(xx, y, 1, 1); }
-        else { const big = ph === 28 || ph === 29; x.fillStyle = RAMP.a3; x.fillRect(xx - 1, y, 3, 1); x.fillRect(xx, y - 1, 1, 3); if (big) { x.fillStyle = RAMP.a2; x.fillRect(xx - 2, y, 1, 1); x.fillRect(xx + 2, y, 1, 1); x.fillRect(xx, y - 2, 1, 1); x.fillRect(xx, y + 2, 1, 1); x.fillStyle = '#fff'; x.fillRect(xx, y, 1, 1); } } } } },
-  fall: { name: 'Waterfall', was: 'Matrix rain, scrolling lines', fps: 10,
-    init(s, w, h) { const r = rng(5); s.d = Array.from({ length: Math.max(8, Math.round(w / 2.5)) }, () => ({ x: Math.floor(r() * w), y: Math.floor(r() * h * 1.5), l: 3 + Math.floor(r() * 7), v: 1 + Math.floor(r() * 3) })); s.m = Array.from({ length: Math.max(4, Math.round(w / 9)) }, () => ({ x: Math.floor(r() * w), y: Math.floor(r() * h), p: Math.floor(r() * 8) })); },
-    draw(x, w, h, f, s) { x.fillStyle = '#000'; x.fillRect(0, 0, w, h);
-      for (const d of s.d) { const y = (d.y + f * d.v) % (h + 20) - 10; for (let i = 0; i < d.l; i++) { x.fillStyle = i === 0 ? RAMP.a4 : i < 2 ? RAMP.a3 : i < d.l / 2 + 1 ? RAMP.a2 : RAMP.a1; x.fillRect(d.x, y - i, 1, 1); } }
-      for (const m of s.m) { const y = ((m.y - Math.floor(f / 2)) % h + h) % h; x.fillStyle = (f + m.p) % 8 < 2 ? '#fff' : RAMP.a3; x.fillRect(m.x, y, 1, 1); }
-      x.drawImage(s.fade, 0, 0); } },
+  ruins: { name: 'Ruins', was: 'Checkerboard, crosshatch', fps: 8,
+    init(s, w, h) { const r = rng(13); s.leaves = Array.from({ length: Math.max(6, Math.round(w * h / 1100)) }, () => ({ x: Math.floor(r() * w), y: Math.floor(r() * h), v: r() < .5 ? 1 : 2, p: Math.floor(r() * 8) })); s.lying = Array.from({ length: Math.max(6, Math.round(w * h / 520)) }, () => ({ x: Math.floor(r() * w), y: Math.floor(r() * h), k: Math.floor(r() * 4) })); s.stars = [[Math.floor(w * .86), Math.floor(h * .78), 0], [Math.floor(w * .1), Math.floor(h * .42), 2]]; },
+    draw(x, w, h, f, s) {
+      if (s.key !== RAMP.a2) { s.pat = x.createPattern(floorTile(RAMP), 'repeat'); s.leafC = LEAF.map(l => sprite(l, { a: RAMP.a2, A: RAMP.a3, d: RAMP.a1 })); s.leafD = LEAF.map(l => sprite(l, { a: RAMP.m3, A: RAMP.a1, d: RAMP.m2 })); s.key = RAMP.a2; }
+      x.fillStyle = s.pat; x.fillRect(0, 0, w, h);
+      for (const l of s.lying) x.drawImage(s.leafD[l.k], l.x, l.y);
+      for (const [a, b, o] of s.stars) x.drawImage(starSheet, ((f >> 1) + o) % 4 * 9, 0, 9, 9, a - 4, b - 4, 9, 9);
+      for (const l of s.leaves) { const t = f + l.p, y = (l.y + Math.floor(t * l.v / 2)) % (h + 10) - 5, sx = [0, 1, 1, 1, 0, -1, -1, -1][t % 8]; x.drawImage(s.leafC[(t >> 1) % 4], l.x + sx, y); } } },
+  fall: { name: 'Waterfall', was: 'Matrix rain, scrolling lines', fps: 8,
+    init(s, w, h) { const r = rng(5); s.pat = null; s.motes = Array.from({ length: Math.max(6, Math.round(w * h / 600)) }, () => ({ x: Math.floor(r() * w), y: Math.floor(r() * h), p: Math.floor(r() * 16) })); s.grass = []; for (let i = 1; i < w; i += 3 + Math.floor(r() * 5)) s.grass.push({ x: i, g: 3 + Math.floor(r() * 7), p: Math.floor(r() * 2) }); s.flowers = Array.from({ length: Math.max(2, Math.round(w / 64)) }, () => ({ x: 3 + Math.floor(r() * (w - 9)), p: Math.floor(r() * 16) })); s.drips = Array.from({ length: Math.max(3, Math.round(w / 22)) }, () => ({ x: Math.floor(r() * w), y: Math.floor(r() * h), l: 3 + Math.floor(r() * 5) })); s.crys = Array.from({ length: Math.max(6, Math.round(w / 9)) }, () => ({ x: Math.floor(r() * w), y: Math.floor(r() * 10), p: Math.floor(r() * 24) })); },
+    draw(x, w, h, f, s) { if (!s.pat) s.pat = x.createPattern(waterTile, 'repeat');
+      for (let b = 0, y = 0; y < h; b++, y += 8) { const o = ((Math.floor(f * (1 + b % 2) / 2) * (b % 2 ? 1 : -1)) % 32 + 32) % 32; x.save(); x.translate(o, 0); x.fillStyle = s.pat; x.fillRect(-o, y, w, 8); x.restore(); }
+      x.fillStyle = WATER.w0; x.fillRect(0, 0, w, 3); dither(x, 0, 3, w, 4, WATER.w0, 8);
+      for (const c of s.crys) { const k = (f + c.p) % 24; px1(x, c.x, c.y, k < 2 ? '#ffffff' : k < 5 ? RAMP.a3 : RAMP.a1); }
+      for (const d of s.drips) { const y = (d.y + f * 2) % (h + 12) - 6; for (let i = 0; i < d.l; i++) px1(x, d.x, y - i, i === 0 ? WATER.w4 : WATER.w3); }
+      for (const m of s.motes) { const y = ((m.y - Math.floor(f / 2)) % h + h) % h, k = (f + m.p) % 16; px1(x, m.x, y, k < 2 ? '#ffffff' : k < 8 ? RAMP.a3 : RAMP.a1); }
+      x.fillStyle = WATER.w0; x.fillRect(0, h - 3, w, 3);
+      for (const g of s.grass) { const lean = ((f >> 2) + g.p) % 2; for (let i = 0; i < g.g; i++) px1(x, g.x + (i > g.g - 3 ? lean : 0), h - 3 - i, i > g.g - 2 ? RAMP.a4 : i > g.g - 4 ? RAMP.a2 : RAMP.a1); }
+      for (const fl of s.flowers) { const glow = (f + fl.p) % 16 < 8; if (glow) dither(x, fl.x - 2, h - 15, 9, 9, RAMP.a0, 8); paint(x, FLOWER, { A: RAMP.a3, W: glow ? '#ffffff' : RAMP.a4, b: RAMP.a1 }, fl.x, h - 13 + 4); } } },
+  snow: { name: 'Snowdin', was: 'Static noise, falling pixels', fps: 8,
+    init(s, w, h) { const r = rng(17); s.flakes = Array.from({ length: Math.max(20, Math.round(w * h / 160)) }, () => ({ x: Math.floor(r() * w), y: Math.floor(r() * h), v: r() < .35 ? 2 : 1, k: r() < .12 ? 1 : 0, p: Math.floor(r() * 8) }));
+      const L = cv(w, h), lx = L.getContext('2d'), gh = Math.max(6, Math.floor(h * .14));
+      const tree = (cx, base, ht, col, sn) => { const tiers = 3; for (let t = 0; t < tiers; t++) { const top = base - ht + Math.floor(t * ht / 4), th = Math.floor(ht / 2.2); for (let q = 0; q < th; q++) { const half = Math.floor(q * .7) + 1 + t; lx.fillStyle = col; lx.fillRect(cx - half, top + q, half * 2 + 1, 1); lx.fillStyle = sn; if (q < 2) lx.fillRect(cx - half + 1, top + q, half * 2 - 1, 1); else if (q === th - 1) { lx.fillRect(cx - half, top + q, 2, 1); lx.fillRect(cx + half - 1, top + q, 2, 1); } else if (q % 2 === 0) lx.fillRect(cx - half, top + q, 1, 1); } } lx.fillStyle = col; lx.fillRect(cx - 1, base - 2, 3, 3); };
+      for (let i = 0; i < w; i += 9 + Math.floor(r() * 9)) tree(i, h - gh + 2, Math.floor(h * .3) + Math.floor(r() * 8), SNOW.p0, SNOW.s2);
+      for (let i = 4; i < w; i += 16 + Math.floor(r() * 18)) tree(i, h - gh + 4, Math.floor(h * .42) + Math.floor(r() * 10), SNOW.p1, SNOW.s1);
+      lx.fillStyle = SNOW.s1; lx.fillRect(0, h - gh, w, gh); lx.fillStyle = SNOW.s0; lx.fillRect(0, h - gh + 2, w, gh - 2); dither(lx, 0, h - gh - 2, w, 2, SNOW.s1, 8);
+      for (let i = 0; i < w; i += 5 + Math.floor(r() * 7)) { lx.fillStyle = SNOW.s1; lx.fillRect(i, h - gh + 3 + Math.floor(r() * (gh - 4)), 3, 1); }
+      s.layer = L; s.wire = []; const span = Math.max(30, Math.floor(w / 3)); for (let i = 0; i < w; i++) s.wire.push(6 + Math.round(5 * Math.sin(Math.PI * (i % span) / span))); },
+    draw(x, w, h, f, s) { x.fillStyle = '#000'; x.fillRect(0, 0, w, h); x.drawImage(s.layer, 0, 0);
+      x.fillStyle = '#22222c'; for (let i = 0; i < w; i++) x.fillRect(i, s.wire[i], 1, 1);
+      const cols = [RAMP.a1, RAMP.a2, RAMP.a3, RAMP.a4]; for (let i = 3, n = 0; i < w; i += 6, n++) { x.fillStyle = cols[(n + (f >> 1)) % 4]; x.fillRect(i, s.wire[i] + 1, 2, 2); }
+      for (const fl of s.flakes) { const t = f + fl.p, y = (fl.y + Math.floor(t * fl.v / 2)) % h, xx = (fl.x + [0, 0, 1, 1, 0, 0, -1, -1][t % 8] + w) % w; if (fl.k) plus(x, xx, y, SNOW.s1, '#ffffff', false); else px1(x, xx, y, fl.v === 2 ? '#ffffff' : SNOW.s1); } } },
   pulse: { name: 'Soul pulse', was: 'Pulse rings, heartbeat', fps: 8,
     draw(x, w, h, f) { x.fillStyle = '#000'; x.fillRect(0, 0, w, h); const cx = w >> 1, cy = h >> 1, max = Math.hypot(w, h) / 2;
       for (let k = 0; k < 8; k++) { const r = ((f - k * 10) % 80 + 80) % 80 * 2 + 6; if (r > max) continue; const col = r < 20 ? RAMP.a3 : r < 44 ? RAMP.a2 : r < 70 ? RAMP.a1 : RAMP.a0; circle(x, cx, cy, r, col, r > 56); }
-      const beat = f % 8 < 2; x.fillStyle = beat ? RAMP.a4 : RAMP.a2; paintMask(x, SOUL, cx - 4, cy - 4, beat ? RAMP.a4 : RAMP.a2);
-      if (beat) { x.fillStyle = RAMP.a1; circle(x, cx, cy, 8, RAMP.a1, true); } } },
+      const beat = f % 8 < 2; paintMask(x, SOUL, cx - 4, cy - 4, beat ? RAMP.a4 : RAMP.a2);
+      if (beat) circle(x, cx, cy, 8, RAMP.a1, true); } },
   ecg: { name: 'Core scan', was: 'Scan wave, heartbeat ECG', fps: 12,
-    init(s, w, h) { s.r = rng(9); s.buf = new Array(w).fill(0); s.head = 0; s.next = 10; s.amp = 1; s.hatch = cv(w, h); s.hatchFor = ''; const W = [0, 0, -1, -2, -1, 0, 0, 2, -12, 9, 3, 0, 0, -1, -3, -4, -3, -1, 0]; let n = 6; for (let i = 0; i < w; i++) { if (i >= n && i < n + W.length) s.buf[i] = W[i - n]; if (i === n + W.length) n += 40 + Math.floor(s.r() * 14); } s.head = Math.floor(w * .7); s.next = s.head + 8; },
-    draw(x, w, h, f, s) {
-      if (s.hatchFor !== RAMP.a0 + w + h) { const hx = s.hatch.getContext('2d'); hx.clearRect(0, 0, w, h); hx.fillStyle = RAMP.a0; for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) if ((i + y) % 8 === 0 || (i - y + 800) % 8 === 0) hx.fillRect(i, y, 1, 1); s.hatchFor = RAMP.a0 + w + h; }
-      x.fillStyle = '#000'; x.fillRect(0, 0, w, h); x.drawImage(s.hatch, 0, 0);
+    init(s, w, h) { s.r = rng(9); s.buf = new Array(w).fill(0); s.head = Math.floor(w * .7); s.next = s.head + 8; s.amp = 1; s.pat = null; },
+    draw(x, w, h, f, s) { if (!s.pat) s.pat = x.createPattern(grateTile, 'repeat');
+      x.fillStyle = s.pat; x.fillRect(0, 0, w, h);
       const mid = h >> 1, WAVE = [0, 0, -1, -2, -1, 0, 0, 2, -12, 9, 3, 0, 0, -1, -3, -4, -3, -1, 0];
+      x.fillStyle = '#000'; x.fillRect(0, mid - 14, w, 28); x.fillStyle = '#22222c'; x.fillRect(0, mid - 15, w, 1); x.fillRect(0, mid + 14, w, 1);
       for (let k = 0; k < 2; k++) { s.head = (s.head + 1) % w; const p = s.head - s.next; if (p === 0) s.amp = .7 + s.r() * .5; s.buf[s.head] = p >= 0 && p < WAVE.length ? Math.round(WAVE[p] * s.amp) : 0; if (p >= WAVE.length) s.next = s.head + 30 + Math.floor(s.r() * 20); if (s.next >= w) s.next -= w; }
       for (let i = 0; i < w; i++) { const age = (s.head - i + w) % w; if (age > w - 8) continue; const y0 = mid + s.buf[i], y1 = mid + s.buf[(i + 1) % w]; x.fillStyle = age < 6 ? RAMP.a4 : age < w * .3 ? RAMP.a2 : RAMP.a1; const a = Math.min(y0, y1), b = Math.max(y0, y1); x.fillRect(i, a, 1, Math.max(1, b - a)); }
       x.fillStyle = '#fff'; x.fillRect(s.head, mid + s.buf[s.head] - 1, 2, 2);
       const sy = f % (h + 16) - 8; x.fillStyle = RAMP.a1; for (let i = 0; i < w; i += 2) x.fillRect(i, sy, 1, 1); } },
   suits: { name: 'Suit drift', was: 'Bouncing diamonds', fps: 10,
     init(s, w, h) { const r = rng(21); s.p = Array.from({ length: Math.max(5, Math.round(w * h / 2200)) }, (_, i) => ({ x: Math.floor(r() * (w - 8)), y: Math.floor(r() * (h - 8)), vx: r() < .5 ? -1 : 1, vy: r() < .5 ? -1 : 1, k: i % 4, c: i % 3, t: [] })); },
-    draw(x, w, h, f, s) { x.fillStyle = '#000'; x.fillRect(0, 0, w, h); x.fillStyle = RAMP.a0; for (let y = 0; y < h; y += 4) for (let i = (y / 4) % 2 ? 2 : 0; i < w; i += 4) x.fillRect(i, y, 1, 1);
+    draw(x, w, h, f, s) { if (s.key !== RAMP.a2) { s.pat = x.createPattern(feltTile(RAMP), 'repeat'); s.key = RAMP.a2; } x.fillStyle = s.pat; x.fillRect(0, 0, w, h);
       for (const p of s.p) { p.t.unshift([p.x, p.y]); p.t.length = 3; p.x += p.vx; p.y += p.vy; if (p.x <= 0 || p.x >= w - 7) p.vx *= -1; if (p.y <= 0 || p.y >= h - 7) p.vy *= -1;
-        p.t.slice(1).forEach(([a, b], j) => paintMask(x, SUITS[p.k], a, b, j ? RAMP.a0 : RAMP.a1)); paintMask(x, SUITS[p.k], p.x, p.y, p.k === 1 ? '#ff0000' : [RAMP.a2, RAMP.a3, RAMP.a4][p.c]); } } },
+        p.t.slice(1).forEach(([a, b], j) => paintMask(x, SUITS[p.k], a, b, j ? RAMP.m2 : RAMP.a1)); paintMask(x, SUITS[p.k], p.x + 1, p.y + 1, '#000'); paintMask(x, SUITS[p.k], p.x, p.y, p.k === 1 ? '#ff0000' : [RAMP.a2, RAMP.a3, RAMP.a4][p.c]); } } },
 };
 function paintMask(x, rows, ox, oy, col) { x.fillStyle = col; rows.forEach((r, y) => { for (let i = 0; i < r.length; i++) if (r[i] === '#') x.fillRect(ox + i, oy + y, 1, 1); }); }
 function circle(x, cx, cy, r, col, dith) { x.fillStyle = col; let a = r, b = 0, e = 1 - r; const pl = (px, py) => { if (!dith || (px + py) % 2 === 0) x.fillRect(px, py, 1, 1); }; while (a >= b) { pl(cx + a, cy + b); pl(cx + b, cy + a); pl(cx - b, cy + a); pl(cx - a, cy + b); pl(cx - a, cy - b); pl(cx - b, cy - a); pl(cx + b, cy - a); pl(cx + a, cy - b); b++; if (e < 0) e += 2 * b + 1; else { a--; e += 2 * (b - a) + 1; } } }
-function fadeCanvas(w, h, from) { const c = cv(w, h), x = c.getContext('2d'), img = x.createImageData(w, h), d = img.data, y0 = Math.floor(h * from); for (let y = y0; y < h; y++) { const t = Math.floor(((y - y0) / Math.max(1, h - y0)) * 17); for (let i = 0; i < w; i++) if (BAYER[y % 4][i % 4] < t) d[(y * w + i) * 4 + 3] = 255; } x.putImageData(img, 0, 0); return c; }
 const starSheet = sheet(STAR, PALS.star);
 const bgAll = [];
+/* the canvas is (container / --px) art pixels, rounded UP, and its CSS size is exactly that times --px, so the scale is a whole 3 (or 2) */
 function mountBg(canvas, type) {
   const st = { canvas, type, x: canvas.getContext('2d'), w: 0, h: 0, s: {} };
-  const size = () => { const p = pxOf(canvas), w = Math.max(8, Math.ceil(canvas.clientWidth / p)), h = Math.max(8, Math.ceil(canvas.clientHeight / p)); if (w === st.w && h === st.h) return; st.w = w; st.h = h; canvas.width = w; canvas.height = h; st.s = {}; st.s.fade = fadeCanvas(w, h, .55); BG[st.type].init && BG[st.type].init(st.s, w, h); a.dirty = true; };
+  const par = canvas.parentElement;
+  const size = () => { const p = pxOf(canvas), w = Math.max(8, Math.ceil(par.clientWidth / p)), h = Math.max(8, Math.ceil(par.clientHeight / p)); if (w === st.w && h === st.h) return; st.w = w; st.h = h; canvas.width = w; canvas.height = h; canvas.style.width = w * p + 'px'; canvas.style.height = h * p + 'px'; st.s = {}; BG[st.type].init && BG[st.type].init(st.s, w, h); a.dirty = true; };
   const a = addAnim({ el: canvas, fps: BG[type].fps, kind: 'bg', fn: (f) => { if (!st.w) size(); BG[st.type].draw(st.x, st.w, st.h, f, st.s); } });
   st.anim = a; st.size = size; st.set = t => { st.type = t; a.fps = BG[t].fps; st.w = 0; size(); };
   Object.defineProperty(st, 'dirty', { set(v) { a.dirty = v; } });
-  if ('ResizeObserver' in window) new ResizeObserver(size).observe(canvas);
+  if ('ResizeObserver' in window) new ResizeObserver(size).observe(par);
   bgAll.push(st); return st;
 }
 
@@ -1569,11 +1945,13 @@ function typewriter(box) {
   let total = texts.reduce((a, t) => a + t.length, 0), i = total, hold = 1, open = false;
   const show = n => { let left = n; ps.forEach((p, k) => { const t = texts[k]; p.textContent = t.slice(0, Math.max(0, Math.min(t.length, left))); p.classList.toggle('tw-cur', left > 0 && left < t.length); left -= t.length; }); };
   addAnim({ el: box, fps: 30, kind: 'ui', fn: (f, paused) => {
-    if (paused) { show(total); if (face) drawFace(face, false); return; }
-    if (i < total) { i++; show(i); const ch = texts.join('')[i - 1]; if (face && f % 4 === 0) { open = !open && /\w/.test(ch); drawFace(face, open); } }
-    else { if (hold === 0 && face) drawFace(face, false); hold++; if (hold > 180) { hold = 0; i = 0; } }
+    if (paused) { show(total); if (face) drawFace(face); return; }
+    if (i < total) { i++; show(i); const ch = texts.join('')[i - 1]; if (face && f % 4 === 0) { open = !open && /\w/.test(ch); drawFace(face, open ? 'talk' : 'base'); } }
+    else { if (hold === 0 && face) drawFace(face); hold++; if (hold > 180) { hold = 0; i = 0; } }
   } });
 }
+/* header portrait idle: blink every 4.5 s, the card in the hatband glints */
+function idlePortrait(c) { addAnim({ el: c, fps: 8, kind: 'face', fn: (f, paused) => { const k = f % 36; drawFace(c, paused ? 'base' : k === 0 ? 'blink' : (k === 18 || k === 19) ? 'glint' : 'base'); } }); }
 
 /* ============ SOUL runner for command navs ============ */
 function soulNav(nav) {
@@ -1595,53 +1973,69 @@ function soulNav(nav) {
 }
 
 /* ============ trait roll: hand of 3 ============ */
-const POOL = [['Pocket Lint', 'common'], ['Card Counter', 'rare'], ['House Edge', 'epic'], ['All In', 'legend'], ['Second Deck', 'mythic'], ['Missing Number', 'hex'], ['Loaded Dice', 'rare'], ['Cold Read', 'common'], ['Bluff', 'epic'], ['Snake Eyes', 'rare']];
+const DEALS = [
+  [['All In', 'legend'], ['Card Counter', 'rare'], ['Missing Number', 'hex']],
+  [['House Edge', 'epic'], ['Second Deck', 'mythic'], ['Pocket Lint', 'common']],
+  [['Snake Eyes', 'rare'], ['Bluff', 'epic'], ['Loaded Dice', 'legend']],
+];
 const RNAME = { common: 'Common', rare: 'Rare', epic: 'Epic', legend: 'Legendary', mythic: 'Mythic', hex: 'Hexxed' };
 const RCOL = { common: ['#c3c3c3', '#ffffff', '#464654'], rare: ['#4aa8ff', '#bfe2ff', '#163c78'], epic: ['#b55cff', '#e6c4ff', '#3e1470'], legend: ['#ffd23d', '#fff3a0', '#6a3c00'], mythic: ['#ff5cc8', '#ffd0ee', '#5c0e44'], hex: ['#ff1e8c', '#ffffff', '#3a0018'] };
 const EMBLEM = { common: ['..#..', '.###.', '#####', '.###.', '..#..'], rare: ['..#..', '.#.#.', '#...#', '.#.#.', '..#..'], epic: ['#...#', '.#.#.', '..#..', '.#.#.', '#...#'], legend: ['..#..', '..#..', '#####', '.###.', '#...#'], mythic: ['#.#.#', '.###.', '##.##', '.###.', '#.#.#'], hex: ['##.##', '#...#', '..#..', '#...#', '##.##'] };
-let cardBack = null;
-const SOULS7 = ['#ff0000', '#ffa13d', '#ffff00', '#3ee05a', '#3cf0ff', '#4a6cff', '#cf45ff'];
-function cardArt(kind, w) { w = Math.max(2, w); const c = cv(w, 42), x = c.getContext('2d'), back = kind === 'back';
+const BIG = r => r === 'legend' || r === 'mythic' || r === 'hex';
+let cardBack = null, handRedraw = null; const faceCache = {};
+/* full-width card art, 30 x 42: frame, the rarity's art window (frame 0 of its sheet), emblem */
+function cardFull(kind) {
+  const c = cv(30, 42), x = c.getContext('2d'), back = kind === 'back';
   const [M, L, d] = back ? ['#ffffff', RAMP.a3, RAMP.a1] : RCOL[kind];
-  x.fillStyle = M; x.fillRect(0, 0, w, 42); if (w <= 2) return c;
-  x.fillStyle = back ? RAMP.a1 : d; x.fillRect(1, 1, w - 2, 40); if (w <= 4) return c;
-  x.fillStyle = back ? RAMP.a0 : '#000'; x.fillRect(2, 2, w - 4, 38);
-  if (w > 6) { x.fillStyle = L; x.fillRect(3, 3, w - 6, 1); x.fillRect(3, 38, w - 6, 1); x.fillRect(3, 3, 1, 36); x.fillRect(w - 4, 3, 1, 36); }
-  const sx = w / 30, mid = w / 2;
-  if (back) { x.fillStyle = RAMP.a1; for (let y = 5; y < 37; y++) for (let i = 5; i < 25; i++) if ((i + y) % 6 === 0 || (i - y + 60) % 6 === 0) x.fillRect(Math.floor(i * sx), y, 1, 1);
-    const hw = Math.max(1, Math.round(12 * sx)); x.fillStyle = '#000'; x.fillRect(Math.round(mid - hw / 2), 15, hw, 12);
-    SOUL.forEach((r, yy) => { for (let i = 0; i < 9; i++) if (r[i] === '#') { x.fillStyle = '#ff0000'; x.fillRect(Math.floor((10 + i) * sx), 17 + yy, 1, 1); } }); }
-  else { const em = EMBLEM[kind]; for (let y = 0; y < 5; y++) for (let i = 0; i < 5; i++) if (em[y][i] === '#') { x.fillStyle = kind === 'mythic' ? SOULS7[(i + y) % 7] : L; const a = Math.floor((10 + i * 2) * sx), b = Math.floor((12 + i * 2) * sx); x.fillRect(a, 16 + y * 2, Math.max(1, b - a), 2); }
-    x.fillStyle = M; for (const [a, b] of [[5, 5], [23, 5], [5, 35], [23, 35]]) x.fillRect(Math.floor(a * sx), b, Math.max(1, Math.round(2 * sx)), 2); }
-  return c; }
-function backCanvas() { return cardBack || (cardBack = cardArt('back', 30)); }
-function faceCanvas(r) { return cardArt(r, 30); }
-function drawCard(cvs, img, wFrac, dy, spark, kind) { const x = cvs.getContext('2d'); x.clearRect(0, 0, 32, 44); if (img) { const w = Math.max(2, Math.round(30 * wFrac / 2) * 2), ox = 1 + (30 - w) / 2; const art = w === 30 ? img : cardArt(kind || 'back', w); x.drawImage(art, ox, 1 + dy); }
-  if (spark) { x.fillStyle = spark; const s = spark === 'mythic' ? '#fff' : spark; x.fillStyle = s; for (const [a, b] of [[0, 4], [31, 8], [2, 40], [29, 38], [15, 0], [16, 43]]) x.fillRect(a, b, 1, 1); } }
+  x.fillStyle = M; x.fillRect(0, 0, 30, 42); x.fillStyle = back ? RAMP.a1 : d; x.fillRect(1, 1, 28, 40); x.fillStyle = back ? RAMP.a0 : '#000'; x.fillRect(2, 2, 26, 38);
+  if (back) { x.fillStyle = RAMP.a1; for (let y = 4; y < 38; y++) for (let i = 4; i < 26; i++) if ((i + y) % 6 === 0 || (i - y + 60) % 6 === 0) x.fillRect(i, y, 1, 1);
+    x.fillStyle = '#000'; x.fillRect(9, 15, 12, 12); x.fillStyle = L; x.fillRect(9, 15, 12, 1); x.fillRect(9, 26, 12, 1); x.fillRect(9, 15, 1, 12); x.fillRect(20, 15, 1, 12); paint(x, SOUL, { '#': '#ff0000' }, 11, 17); return c; }
+  x.fillStyle = M; x.fillRect(2, 2, 26, 1);
+  x.drawImage(ART[kind][kind === 'legend' ? 2 : kind === 'hex' ? 5 : 0], 3, 4);
+  x.fillStyle = L; x.fillRect(3, 29, 24, 1);
+  paint(x, EMBLEM[kind], { '#': kind === 'mythic' ? '#ffffff' : L }, 13, 32);
+  x.fillStyle = M; for (const [a, b] of [[4, 37], [24, 37]]) x.fillRect(a, b, 2, 2);
+  return c;
+}
+/* squash: drop whole columns (nearest neighbour), so every flip frame is drawn at art resolution, never scaleX */
+function squash(src, w) { const c = cv(Math.max(1, w), 42), x = c.getContext('2d'); for (let i = 0; i < w; i++) x.drawImage(src, Math.floor((i + .5) * 30 / w), 0, 1, 42, i, 0, 1, 42); return c; }
+const backCanvas = () => cardBack || (cardBack = cardFull('back'));
+const faceCanvas = r => faceCache[r] || (faceCache[r] = cardFull(r));
+function drawCard(cvs, img, wFrac, dy, burst, kind) {
+  const x = cvs.getContext('2d'); x.clearRect(0, 0, 40, 52);
+  if (img) { const w = Math.max(2, Math.round(30 * wFrac / 2) * 2), ox = 5 + (30 - w) / 2; x.drawImage(w === 30 ? img : squash(img, w), ox, 5 + dy); }
+  if (burst != null && kind) { const [M, L] = RCOL[kind]; const k = burst; [[5, 5, -1, -1], [34, 5, 1, -1], [5, 46, -1, 1], [34, 46, 1, 1]].forEach(([a, b, sx, sy], i) => { const o = k + (i % 2); plus(x, a + sx * o, b + sy * o, kind === 'mythic' ? SOULS7[(i + k) % 7] : M, '#ffffff', k < 3); });
+    if (k < 2) { x.fillStyle = L; x.fillRect(19, 0, 2, 2); x.fillRect(19, 50, 2, 2); x.fillRect(0, 25, 2, 2); x.fillRect(38, 25, 2, 2); } }
+}
+/* after the burst, Legendary and up keep a save star twinkling on one corner */
+function twinkle(c, t, r) { const x = c.getContext('2d'), k = (t >> 1) % 6; if (k > 3) return; x.drawImage(starSheet, k * 9, 0, 9, 9, 31, 0, 9, 9); }
 function handLoop(hand) {
-  const cs = $$('canvas', hand), caps = $$('figcaption', hand); let deal = [], t = 0;
-  const pick = () => { const r = rng(Date.now() & 0xffff); const out = []; while (out.length < 3) { const p = POOL[Math.floor(r() * POOL.length)]; if (!out.includes(p)) out.push(p); } return out; };
-  const reset = () => { deal = pick(); t = 0; caps.forEach(c => c.innerHTML = '&nbsp;'); };
-  reset(); t = 40; caps.forEach((c, i) => c.innerHTML = `${deal[i][0]}<small>${RNAME[deal[i][1]]}</small>`);
+  const figs = $$('figure', hand), cs = $$('canvas', hand), caps = $$('figcaption', hand); let n = 0, deal = DEALS[0], t = 0;
+  const cap = (i) => { caps[i].innerHTML = `${deal[i][0]}<small>${RNAME[deal[i][1]]}</small>`; figs[i].style.setProperty('--rl', RCOL[deal[i][1]][1]); };
+  const still = () => { cs.forEach((c, i) => { drawCard(c, faceCanvas(deal[i][1]), 1, 0, BIG(deal[i][1]) ? 1 : null, deal[i][1]); if (BIG(deal[i][1])) twinkle(c, 4, deal[i][1]); }); caps.forEach((c, i) => cap(i)); };
+  const next = () => { n = (n + 1) % DEALS.length; deal = DEALS[n]; t = 0; caps.forEach(c => c.innerHTML = '&nbsp;'); figs.forEach(f => f.style.removeProperty('--rl')); };
   const FLIP = [1, .66, .33, .07, .33, .66, 1];
+  let shakeUntil = -1; t = 60;
   const a = addAnim({ el: hand, fps: 10, kind: 'fx', fn: (f, paused) => {
-    if (paused) { cs.forEach((c, i) => drawCard(c, faceCanvas(deal[i][1]), 1, 0)); caps.forEach((c, i) => c.innerHTML = `${deal[i][0]}<small>${RNAME[deal[i][1]]}</small>`); return; }
+    if (paused) { hand.classList.remove('shake'); still(); return; }
     t++;
     cs.forEach((c, i) => {
-      const d0 = i * 2, f0 = 10 + i * 9;
+      const r = deal[i][1], d0 = i * 2, f0 = 10 + i * 9;
       if (t < d0) { drawCard(c, null); return; }
       if (t < d0 + 3) { drawCard(c, backCanvas(), 1, [-8, -4, 0][t - d0]); return; }
       if (t < f0) { drawCard(c, backCanvas(), 1, 0); return; }
       const k = t - f0;
-      if (k < 7) { drawCard(c, k < 4 ? backCanvas() : faceCanvas(deal[i][1]), FLIP[k], 0, null, k < 4 ? 'back' : deal[i][1]); if (k === 6) caps[i].innerHTML = `${deal[i][0]}<small>${RNAME[deal[i][1]]}</small>`; return; }
-      const r = deal[i][1], sp = (r === 'legend' || r === 'mythic' || r === 'hex') && k < 13 && k % 2 ? RCOL[r][1] : null;
-      drawCard(c, faceCanvas(r), 1, 0, sp);
+      if (k < 7) { drawCard(c, k < 4 ? backCanvas() : faceCanvas(r), FLIP[k], 0); if (k === 6) { cap(i); if (BIG(r)) shakeUntil = t + 3; } return; }
+      drawCard(c, faceCanvas(r), 1, 0, BIG(r) && k < 14 ? k - 7 : null, r);
+      if (BIG(r) && k >= 14) twinkle(c, t + i * 3, r);
     });
-    if (t > 70) reset();
+    hand.classList.toggle('shake', t < shakeUntil && t % 2 === 0);
+    if (t > 80) next();
   } });
-  $('#reroll') && $('#reroll').addEventListener('click', () => { reset(); a.dirty = true; });
-  const story = () => $$('canvas[data-story]').forEach(c => { const k = +c.dataset.story; if (k === 0) drawCard(c, backCanvas(), 1, 0); else if (k < 7) drawCard(c, k < 4 ? backCanvas() : faceCanvas('legend'), FLIP[k], 0, null, k < 4 ? 'back' : 'legend'); else drawCard(c, faceCanvas('legend'), 1, 0, '#fff3a0'); });
-  story(); hand.story = story;
+  $('#reroll') && $('#reroll').addEventListener('click', () => { next(); a.dirty = true; });
+  const story = () => $$('canvas[data-story]').forEach(c => { const k = +c.dataset.story; if (k === 0) drawCard(c, backCanvas(), 1, 0); else if (k < 7) drawCard(c, k < 4 ? backCanvas() : faceCanvas('legend'), FLIP[k], 0); else drawCard(c, faceCanvas('legend'), 1, 0, 0, 'legend'); });
+  story(); hand.story = story; handRedraw = () => { a.dirty = true; };
+  still();
 }
 
 /* ============ dice ============ */
@@ -1649,7 +2043,7 @@ const DIG = { 0: ['###', '#.#', '#.#', '#.#', '###'], 1: ['.#.', '##.', '.#.', '
 const D20 = ['..........##..........', '........##..##........', '......##......##......', '....##..........##....', '..##..............##..', '##..................##', '#....................#', '#....................#', '#....................#', '#....................#', '#....................#', '#....................#', '#....................#', '#....................#', '#....................#', '#....................#', '##..................##', '..##..............##..', '....##..........##....', '......##......##......', '........##..##........', '..........##..........'];
 function drawD20(c, n, j) { const x = c.getContext('2d'); x.clearRect(0, 0, 24, 24); const ox = 1 + (j ? j[0] : 0), oy = 1 + (j ? j[1] : 0);
   x.fillStyle = '#000'; D20.forEach((r, y) => { const a = r.indexOf('#'), b = r.lastIndexOf('#'); x.fillRect(ox + a, oy + y, b - a + 1, 1); });
-  paintMask(x, D20, ox, oy, RAMP.a3 ? '#ffffff' : '#fff'); line(x, ox + 4, oy + 16, ox + 17, oy + 16, '#464654', true); line(x, ox + 4, oy + 16, ox + 10, oy + 3, '#464654', true); line(x, ox + 17, oy + 16, ox + 11, oy + 3, '#464654', true);
+  paintMask(x, D20, ox, oy, '#ffffff'); line(x, ox + 4, oy + 16, ox + 17, oy + 16, '#464654', true); line(x, ox + 4, oy + 16, ox + 10, oy + 3, '#464654', true); line(x, ox + 17, oy + 16, ox + 11, oy + 3, '#464654', true);
   const s = String(n), w = s.length * 4 - 1, sx = ox + 11 - Math.floor(w / 2), sy = oy + 9; [...s].forEach((d, i) => paintMask(x, DIG[d], sx + i * 4, sy, n === 20 ? '#ffff00' : n === 1 ? '#ff3a3a' : '#ffffff')); }
 const PIPS = { 1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]], 5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]] };
 function drawD6(c, n, j) { const x = c.getContext('2d'); x.clearRect(0, 0, 24, 24); const ox = 4 + (j ? j[0] : 0), oy = 4 + (j ? j[1] : 0); x.fillStyle = '#fff'; x.fillRect(ox + 1, oy, 14, 16); x.fillRect(ox, oy + 1, 16, 14); x.fillStyle = '#000'; x.fillRect(ox + 1, oy + 1, 14, 14); x.fillStyle = RAMP.a2; x.fillRect(ox + 1, oy + 14, 14, 1); x.fillRect(ox + 14, oy + 1, 1, 14);
@@ -1679,22 +2073,33 @@ function loader() {
   } });
 }
 
-/* ============ hexxed glitch ============ */
+/* ============ hexxed glitch: 2 frames every 2.5 s ============ */
 function hexGlitch() {
   addAnim({ el: document.body, fps: 12, kind: 'fx', fn: (f, paused) => {
-    const on = !paused && f % 30 < 2 && f % 60 < 30;
-    $$('.trait.hex').forEach(t => { t.classList.toggle('glitch', on); const h = $('h4', t); if (!h.dataset.orig) h.dataset.orig = h.innerHTML; const want = on ? `${h.dataset.glitch}<q>"* ...."</q>` : h.dataset.orig; if (h.innerHTML !== want) h.innerHTML = want; });
+    const on = !paused && f % 30 < 2;
+    $$('.trait.hex').forEach(t => { t.classList.toggle('glitch', on); const h = $('h4', t); if (!h.dataset.glitch) return; if (!h.dataset.orig) h.dataset.orig = h.innerHTML; const want = on ? `${h.dataset.glitch}<q>"* ...."</q>` : h.dataset.orig; if (h.innerHTML !== want) h.innerHTML = want; });
   } });
 }
 
-/* ============ notes: palette, ramp, nine-slice diagrams ============ */
-const TOKENS = ['void', 'g1', 'g2', 'g3', 'g4', 'g5', 'ink', 'soul', 'soul-d', 'hp', 'hp-l', 'hp-d', 'hurt', 'hurt-l', 'hurt-d', 'kr', 'kr-l', 'kr-d', 'heal', 'gold', 'gold-l', 'gold-d', 'gold-o', 's-orange', 's-cyan', 's-blue', 's-purple', 'r-rare', 'r-epic', 'r-mythic', 'r-hex'];
+/* ============ notes: palette, ramp, nine-slice diagrams, accent proof ============ */
+const TOKENS = ['void', 'g1', 'g2', 'g3', 'g4', 'g5', 'ink', 'soul', 'soul-d', 'hp', 'hp-l', 'hp-d', 'hurt', 'hurt-l', 'hurt-d', 'kr', 'kr-l', 'kr-d', 'heal', 'gold', 'gold-l', 'gold-d', 'gold-o', 's-orange', 's-cyan', 's-blue', 's-purple', 'r-rare', 'r-epic', 'r-mythic', 'r-hex', 'w0', 'w1', 'w2', 'w3', 'w4', 'snow', 'snow-d', 'pine'];
 function drawPal() { const p = $('#pal'); if (!p) return; const cs = getComputedStyle(root); p.innerHTML = TOKENS.map(t => { const v = cs.getPropertyValue('--' + t).trim(); return `<div><i style="--c:var(--${t})"></i><span>--${t} ${v.toUpperCase()}</span></div>`; }).join(''); }
-function drawRampNote() { const r = $('#ramp'); if (!r) return; r.innerHTML = ['a0', 'a1', 'a2', 'a3', 'a4'].map(k => `<i style="--c:${RAMP[k]}" class="${lum(RAMP[k]) < .2 ? 'dk' : ''}">${k}</i>`).join(''); }
+function drawRampNote() { const r = $('#ramp'); if (!r) return; r.innerHTML = ['a0', 'a1', 'a2', 'a3', 'a4', 'm0', 'm1', 'm2', 'm3'].map(k => `<i style="--c:${RAMP[k]}" class="${lum(RAMP[k]) < .2 ? 'dk' : ''}">${k}</i>`).join(''); }
 function drawNine() {
   const leg = $('#nine-legend'); if (!leg) return;
   const x = leg.getContext('2d'), spr = frame9(RAR.legend.c, RAR.legend.e, RAR.legend.p); x.fillStyle = '#101016'; x.fillRect(0, 0, 45, 45); x.imageSmoothingEnabled = false; x.drawImage(spr, 0, 0, 45, 45);
   x.fillStyle = '#3cf0ff'; for (let i = 0; i < 45; i += 2) { x.fillRect(20, i, 1, 1); x.fillRect(24, i, 1, 1); x.fillRect(i, 20, 1, 1); x.fillRect(i, 24, 1, 1); }
+  [['#tile-lintel', lintelTile(RAMP)], ['#tile-wall', wallTile(RAMP)], ['#tile-floor', floorTile(RAMP)], ['#tile-water', waterTile]].forEach(([id, t]) => { const c = $(id); if (!c) return; const cx = c.getContext('2d'); cx.clearRect(0, 0, c.width, c.height); for (let i = 0; i < c.width; i += t.width) cx.drawImage(t, i, 0); });
+}
+/* the same sprites from six ramps side by side: portrait, lintel brick, flagstone, leaf, with the ramp under each */
+function drawProof() {
+  const box = $('#proof'); if (!box) return;
+  box.innerHTML = TB.map(n => PRESETS.find(p => p[0] === n)).map(([n, h]) => `<figure><canvas width="54" height="25" data-proof="${h}"></canvas><figcaption class="t-body mut">${n}</figcaption></figure>`).join('');
+  $$('canvas[data-proof]', box).forEach(c => { const R = makeRamp(c.dataset.proof), x = c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, 54, 25);
+    bgDither(x, 16, 16, R.a0); paint(x, MINI.tophat, charPal(c.dataset.proof));
+    x.drawImage(lintelTile(R), 19, 0, 16, 12, 19, 0, 16, 12); x.drawImage(floorTile(R), 0, 0, 16, 4, 19, 12, 16, 4);
+    x.drawImage(floorTile(R), 38, 0); paint(x, LEAF[0], { a: R.a2, A: R.a3, d: R.a1 }, 43, 5);
+    ['a0', 'a1', 'a2', 'a3', 'a4', 'm0', 'm1', 'm2', 'm3'].forEach((k, i) => { x.fillStyle = R[k]; x.fillRect(i * 6, 19, 5, 6); }); });
 }
 
 /* ============ button matrix ============ */
@@ -1707,32 +2112,58 @@ function buildButtons() {
   m.insertAdjacentHTML('beforeend', h);
 }
 
-/* ============ swatches ============ */
+/* ============ swatches: each one is a gem drawn from its own ramp ============ */
 const PRESETS = [['Red', '#ff3030'], ['Orange', '#ff8a1f'], ['Amber', '#ffc21a'], ['Lemon', '#f2e94e'], ['Lime', '#9be22d'], ['Green', '#2fcb5a'], ['Teal', '#20c9a6'], ['Cyan', '#22d3ee'], ['Sky', '#3fa9ff'], ['Blue', '#3d5bff'], ['Deep violet', '#7c3aed'], ['Purple', '#b04dff'], ['Magenta', '#e040fb'], ['Hot pink', '#ff4fa3'], ['Rose', '#ff7a8a'], ['Bone', '#e8e0d0']];
 const TB = ['Hot pink', 'Orange', 'Cyan', 'Lime', 'Deep violet', 'Bone'];
 function swatches(el, list) {
-  el.innerHTML = list.map(([n, h]) => `<button class="sw" type="button" role="radio" aria-checked="false" aria-label="${n}" title="${n}" data-hex="${h}" style="--sw:${h}"></button>`).join('') + `<label class="sw cus" title="Custom colour"><i class="ico" style="--i:var(--i-plus)"></i><input type="color" aria-label="Custom accent colour" value="#ff8a1f"></label>`;
+  el.innerHTML = list.map(([n, h]) => `<button class="sw" type="button" role="radio" aria-checked="false" aria-label="${n}" title="${n}" data-hex="${h}" style="--sw:${h};--swbg:#000;--gem:${gemFor(h)}"></button>`).join('') + `<label class="sw cus" title="Custom colour"><i class="ico" style="--i:var(--i-plus)"></i><input type="color" aria-label="Custom accent colour" value="#ff8a1f"></label>`;
   el.addEventListener('click', e => { const b = e.target.closest('.sw[data-hex]'); if (b) applyAccent(b.dataset.hex); });
   el.addEventListener('keydown', e => { const bs = $$('.sw[data-hex]', el), i = bs.indexOf(document.activeElement); if (i < 0) return; const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]; if (!d) return; e.preventDefault(); const n = bs[(i + d + bs.length) % bs.length]; n.focus(); applyAccent(n.dataset.hex); });
   const ci = $('.cus input', el); ci.addEventListener('input', () => applyAccent(ci.value, ci));
 }
 
+/* ============ grid snap: every sprite lands on a whole CSS pixel, so each art pixel is exactly --px wide ============ */
+const SNAP_PASSES = ['.trait,.pf,.item .ic,.sws', '.win', '.spr,.ico,canvas,.mk'];
+function snapPass(sel) {
+  const els = $$(sel); els.forEach(e => { e.style.translate = ''; });
+  const rs = els.map(e => e.getBoundingClientRect());
+  els.forEach((e, i) => { const r = rs[i]; if (!r.width) return; const dx = Math.round(r.left) - r.left, dy = Math.round(r.top) - r.top; if (Math.abs(dx) > .01 || Math.abs(dy) > .01) e.style.translate = `${dx.toFixed(3)}px ${dy.toFixed(3)}px`; });
+}
+let snapQ = 0;
+const snapAll = () => { if (snapQ) return; snapQ = requestAnimationFrame(() => { snapQ = 0; SNAP_PASSES.forEach(snapPass); }); };
+
+/* ============ drawer + page menu (a11y baseline) ============ */
+function setDrawer(app, open, focus = true) {
+  app.dataset.drawer = open ? 'open' : 'closed';
+  const t = $('.app-menu', app); if (t) t.setAttribute('aria-expanded', String(open));
+  [$('.sheet', app), $('.player', app)].forEach(el => { if (el) el.inert = open; });
+  if (focus) { if (open) { const si = $('.side-s input', app); si && si.focus({ preventScroll: true }); } else if (t) t.focus({ preventScroll: true }); }
+  snapAll();
+}
+function setPages(w, open, focus = true) {
+  w.classList.toggle('open', open); const b = $('[data-pages-toggle]', w); b.setAttribute('aria-expanded', String(open));
+  if (focus) { if (open) { const a = $('.pmenu a', w); a && a.focus({ preventScroll: true }); } else b.focus({ preventScroll: true }); }
+  snapAll();
+}
+function tabsOverflow() { $$('.tabs-x').forEach(x => { const t = $('.tabs', x); const upd = () => x.classList.toggle('more', t.scrollWidth - t.clientWidth - t.scrollLeft > 1); upd(); t.addEventListener('scroll', upd, { passive: true }); if ('ResizeObserver' in window) new ResizeObserver(upd).observe(t); }); }
+
 /* ============ boot ============ */
 // phone clones first so every draw pass below reaches them
 const app = $('#app');
-$$('[data-clone]').forEach((slot, k) => { const c = app.cloneNode(true); c.removeAttribute('id'); $$('[id]', c).forEach(n => { n.id = n.id + '-m' + k; }); c.dataset.drawer = slot.dataset.clone; slot.appendChild(c); });
+$$('[data-clone]').forEach((slot, k) => { const c = app.cloneNode(true); c.removeAttribute('id'); $$('[id]', c).forEach(n => { n.id = n.id + '-m' + k; }); $$('[aria-controls]', c).forEach(n => n.setAttribute('aria-controls', n.getAttribute('aria-controls') + '-m' + k)); slot.appendChild(c); setDrawer(c, slot.dataset.clone === 'open', false); });
 buildButtons();
 swatches($('#tb-sw'), TB.map(n => PRESETS.find(p => p[0] === n)));
 swatches($('#kit-sw'), PRESETS);
+$$('#hand').forEach(handLoop);
 const saved = store.get('sp-accent');
 applyAccent(saved && /^#[0-9a-f]{6}$/i.test(saved) ? saved : '#ff8a1f');
-drawPal();
+drawPal(); drawProof();
 layoutBars();
 if ('ResizeObserver' in window) { const ro = new ResizeObserver(() => layoutBars()); $$('.stats').forEach(s => ro.observe(s)); }
 
 const bgPick = $('#bg-pick'); bgPick.innerHTML = Object.entries(BG).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
-const mains = $$('canvas[data-bg="main"]').map(c => mountBg(c, 'grid'));
-const bgs = $('#bgs'); bgs.innerHTML = Object.entries(BG).map(([k, v]) => `<button class="bgt" type="button" data-bgk="${k}" aria-pressed="${k === 'grid'}"><span class="cv"><canvas class="bgc" data-bgtile="${k}" aria-hidden="true"></canvas></span><span class="cap2"><b>${v.name}</b><span class="t-body">${v.fps} fps. Replaces ${v.was.toLowerCase()}</span></span></button>`).join('');
+const mains = $$('canvas[data-bg="main"]').map(c => mountBg(c, 'ruins'));
+const bgs = $('#bgs'); bgs.innerHTML = Object.entries(BG).map(([k, v]) => `<button class="bgt" type="button" data-bgk="${k}" aria-pressed="${k === 'ruins'}"><span class="cv"><canvas class="bgc" data-bgtile="${k}" aria-hidden="true"></canvas></span><span class="cap2"><b>${v.name}</b><span class="t-body">${v.fps} fps. Replaces ${v.was.toLowerCase()}</span></span></button>`).join('');
 $$('canvas[data-bgtile]').forEach(c => mountBg(c, c.dataset.bgtile));
 const setBg = k => { mains.forEach(m => m.set(k)); bgPick.value = k; $$('.bgt').forEach(b => b.setAttribute('aria-pressed', b.dataset.bgk === k)); store.set('sp-bg', k); };
 bgPick.addEventListener('change', () => setBg(bgPick.value));
@@ -1740,9 +2171,9 @@ bgs.addEventListener('click', e => { const b = e.target.closest('.bgt'); if (b) 
 const sbg = store.get('sp-bg'); if (sbg && BG[sbg]) setBg(sbg);
 
 $$('[data-tw]').forEach(typewriter);
+$$('canvas.portrait').forEach(idlePortrait);
 $$('.soulnav').forEach(soulNav);
-$$('#hand').forEach(handLoop);
-dice(); loader(); hexGlitch();
+dice(); loader(); hexGlitch(); tabsOverflow();
 
 // toggles
 const perfT = $('#perf-t'), motT = $('#motion-t');
@@ -1752,17 +2183,24 @@ mqReduce.addEventListener && mqReduce.addEventListener('change', () => anims.for
 
 // app behaviours (all instances)
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-drawer-toggle]'); if (t) { const a = t.closest('.app'); a.dataset.drawer = a.dataset.drawer === 'open' ? 'closed' : 'open'; return; }
-  const f = e.target.closest('.fold-h'); if (f) { const on = f.getAttribute('aria-expanded') !== 'true'; f.setAttribute('aria-expanded', on); const ul = f.nextElementSibling; if (ul) ul.hidden = !on; return; }
-  const tab = e.target.closest('[role="tab"]'); if (tab) { $$('[role="tab"]', tab.parentElement).forEach(x => x.setAttribute('aria-selected', x === tab)); return; }
+  const t = e.target.closest('[data-drawer-toggle]'); if (t) { const a = t.closest('.app'); setDrawer(a, a.dataset.drawer !== 'open', !a.closest('.phone')); return; }
+  const pa = e.target.closest('.pmenu a'); if (pa) { e.preventDefault(); setPages(pa.closest('.app-pages'), false, !pa.closest('.phone')); return; }
+  const pt = e.target.closest('[data-pages-toggle]'); if (pt) { const w = pt.closest('.app-pages'); setPages(w, !w.classList.contains('open'), !w.closest('.phone')); return; }
+  $$('.app-pages.open').forEach(w => { if (!w.contains(e.target)) setPages(w, false, false); });
+  const f = e.target.closest('.fold-h'); if (f) { const on = f.getAttribute('aria-expanded') !== 'true'; f.setAttribute('aria-expanded', on); const ul = f.nextElementSibling; if (ul) ul.hidden = !on; snapAll(); return; }
+  const tab = e.target.closest('[role="tab"]'); if (tab) { $$('[role="tab"]', tab.parentElement).forEach(x => x.setAttribute('aria-selected', x === tab)); snapAll(); return; }
   const o = e.target.closest('.opt'); if (o) { $$('.opt', o.parentElement).forEach(x => x.classList.toggle('on', x === o)); return; }
-  const ent = e.target.closest('.ent'); if (ent) { e.preventDefault(); const a = ent.closest('.app'); $$('.ent', a).forEach(x => { x.classList.toggle('on', x === ent); x.toggleAttribute('aria-current', x === ent); }); const c = getComputedStyle(ent).getPropertyValue('--ca').trim(); if (/^#[0-9a-f]{6}$/i.test(c)) applyAccent(c); $('.cname', a).textContent = $('.nm', ent).textContent; if (a.dataset.drawer === 'open') a.dataset.drawer = 'closed'; return; }
+  const ent = e.target.closest('.ent'); if (ent) { e.preventDefault(); const a = ent.closest('.app'); $$('.ent', a).forEach(x => { x.classList.toggle('on', x === ent); x.toggleAttribute('aria-current', x === ent); }); const c = getComputedStyle(ent).getPropertyValue('--ca').trim(); if (/^#[0-9a-f]{6}$/i.test(c)) applyAccent(c); $('.cname', a).textContent = $('.nm', ent).textContent; if (a.dataset.drawer === 'open') setDrawer(a, false, !a.closest('.phone')); snapAll(); return; }
   const ctr = e.target.closest('.ctr button'); if (ctr) { const b = $('b', ctr.parentElement); b.textContent = Math.max(0, +b.textContent + (ctr.textContent.trim() === '+' ? 1 : -1)); return; }
   if (e.target.closest('a[href^="#"]') && e.target.closest('.app')) e.preventDefault();
 });
 document.addEventListener('keydown', e => {
   const o = e.target.closest && e.target.closest('.opt'); if (o && /Arrow(Left|Right)/.test(e.key)) { const os = $$('.opt', o.parentElement), i = os.indexOf(o), n = os[(i + (e.key === 'ArrowRight' ? 1 : -1) + os.length) % os.length]; os.forEach(x => x.classList.toggle('on', x === n)); n.focus(); e.preventDefault(); }
-  if (e.key === 'Escape') $$('.app[data-drawer="open"]').forEach(a => { if (a.closest('.phone') === null) a.dataset.drawer = 'closed'; });
+  const pm = e.target.closest && e.target.closest('.pmenu'); if (pm && /Arrow(Up|Down)/.test(e.key)) { const as = $$('a', pm), i = as.indexOf(document.activeElement); as[(i + (e.key === 'ArrowDown' ? 1 : -1) + as.length) % as.length].focus(); e.preventDefault(); }
+  if (e.key === 'Escape') {
+    $$('.app-pages.open').forEach(w => setPages(w, false, w.contains(document.activeElement)));
+    $$('.app[data-drawer="open"]').forEach(a => { if (!a.closest('.phone')) setDrawer(a, false); });
+  }
 });
 // keep the BLACKJACK entry on the page accent
 $$('.ent.on').forEach(e => e.style.setProperty('--ca', 'var(--a-text)'));
@@ -1770,7 +2208,13 @@ $$('.ent.on').forEach(e => e.style.setProperty('--ca', 'var(--a-text)'));
 $$('.rng input').forEach(r => { const upd = () => { const p = pxOf(r), w = r.clientWidth, v = (r.value - r.min) / (r.max - r.min); r.style.setProperty('--fillpx', Math.round(w * v / p) * p + 'px'); const o = $(`[data-out="${r.id}"]`); if (o) o.textContent = r.value; }; r.addEventListener('input', upd); upd(); if ('ResizeObserver' in window) new ResizeObserver(upd).observe(r); });
 // toasts re-enter every few seconds to show the stepped entrance
 const toasts = $('#toasts'); if (toasts) setInterval(() => { if (!motionOK() || perfOn()) return; $$('.toast', toasts).forEach((t, i) => { t.classList.remove('in'); void t.offsetWidth; setTimeout(() => t.classList.add('in'), i * 300); }); }, 4000);
+// snap after layout settles: fonts, resizes, interactions
+if ('ResizeObserver' in window) new ResizeObserver(snapAll).observe(document.body);
+document.fonts && document.fonts.ready.then(() => { layoutBars(); snapAll(); });
+addEventListener('load', snapAll);
+snapAll();
 
 requestAnimationFrame(tick);
 })();
 </script>
+
