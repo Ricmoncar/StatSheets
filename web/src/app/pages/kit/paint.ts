@@ -119,19 +119,51 @@ const GLYPHS: Record<string, string> = {
   ':': '000010000010000', '-': '000000111000000', '+': '000010111010000', '$': '011110010011110', '%': '101001010100101',
   "'": '010010000000000', '/': '001001010100100', '#': '101111101111101', '*': '000101010101000', '<': '001010100010001',
   '>': '100010001010100', '=': '000111000111000', '♥': '000101111111010', ' ': '000000000000000',
+  '{': '011010110010011', '}': '110010011010110', '(': '010100100100010', ')': '010001001001010',
+  '[': '110100100100110', ']': '011001001001011', ';': '000010000010100', '&': '010101010101011',
+  '|': '010010010010010', '÷': '010000111000010', '≠': '001111010111100', '¿': '010000010100111',
+  '¤': '000101010101000', '×': '000101010101000', '@': '011101111100011', '_': '000000000000111',
+  '^': '010101000000000', '~': '000000011110000', '"': '101101000000000', '\\': '100100010001001',
+  '→': '000001111001000',
 };
+/** ∞ is five pixels wide (and three tall, in the middle of the line). */
+const INF = ['01010', '10101', '01010'];
 /** Writes `s` (upper-cased) at x, y in the 3x5 font, `scale` pixels to a font pixel; returns the width drawn. */
 export function text(r: Raster, x: number, y: number, s: string, i: number, scale = 1): number {
   let cx = Math.round(x);
   for (const ch of s.toUpperCase()) {
+    if (ch === '∞') {
+      INF.forEach((row, j) => { for (let k = 0; k < 5; k++) if (row[k] === '1') r.rect(cx + k * scale, y + (j + 1) * scale, scale, scale, i); });
+      cx += 6 * scale;
+      continue;
+    }
     const g = GLYPHS[ch] ?? GLYPHS['?'];
     for (let k = 0; k < 15; k++) if (g[k] === '1') r.rect(cx + (k % 3) * scale, y + Math.floor(k / 3) * scale, scale, scale, i);
     cx += 4 * scale;
   }
   return cx - Math.round(x) - scale;
 }
+const MASKS = new Map<string, number>();
+/**
+ * One character of the 3x5 font at x, y, at one pixel to a font pixel: the
+ * fast path for a page that writes thousands of them a frame (code rain).
+ * ∞ is five wide, like in text().
+ */
+export function glyph(r: Raster, x: number, y: number, ch: string, i: number): void {
+  x = Math.round(x); y = Math.round(y);
+  if (x <= -5 || y <= -5 || x >= r.w || y >= r.h) return;
+  if (ch === '∞') { INF.forEach((row, j) => { for (let k = 0; k < 5; k++) if (row[k] === '1') r.set(x - 1 + k, y + j + 1, i); }); return; }
+  let m = MASKS.get(ch);
+  if (m === undefined) { m = parseInt(GLYPHS[ch.toUpperCase()] ?? GLYPHS['?'], 2); MASKS.set(ch, m); }
+  const { w, h, px } = r;
+  for (let k = 0; k < 15; k++) {
+    if (!((m >> (14 - k)) & 1)) continue;
+    const xx = x + (k % 3), yy = y + ((k / 3) | 0);
+    if (xx >= 0 && yy >= 0 && xx < w && yy < h) px[yy * w + xx] = i;
+  }
+}
 /** How wide `s` is in the 3x5 font. */
-export const textWidth = (s: string, scale = 1) => Math.max(0, s.length * 4 * scale - scale);
+export const textWidth = (s: string, scale = 1) => Math.max(0, (s.length + (s.split('∞').length - 1) * 2) * 4 * scale - scale);
 
 // ── shapes in their own frame: the old pages drew at the origin, then translated, rotated and scaled ──
 /** Where a shape sits: at (x, y), turned by `a`, `s` art pixels to its unit, mirrored across its axis when flip is -1. */

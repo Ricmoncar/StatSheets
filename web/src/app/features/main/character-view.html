@@ -74,7 +74,7 @@
     </ng-container>
     <div class="bars">
       @for (k of main; track k) {
-        <div class="row">
+        <div class="row" [attr.data-stat]="k">
           <span class="label"><ss-stat-icon [stat]="k" [size]="21" />{{ k.toUpperCase() }}@if (tierOf(k); as t) { <span class="tier" [style.--f]="tierFill(t)">T{{ t }}</span> }</span>
           <ss-stat-bar [stat]="k" [value]="eff()[k]" [showTier]="false" />
           <span class="num">{{ eff()[k] }}

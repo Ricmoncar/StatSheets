@@ -61,6 +61,16 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
   - [x] Bizzy: the hive (pulsing comb, honey cells, light shafts, drips, seven bees on the
         old flights, pollen), the bee cursor with its trail and orbiting swarm, petal and
         pollen bursts, two workers loose over the sheet, comb panels and a honey name
+  - [x] Riegen · Phoenix: the burning sky and the phoenix, the feather cursor and its embers
+  - [x] Fury: the fire hall (five fire channels, lava floor, banners, the footfall and the
+        roar), the chip cursor, eruptions, burning corners and vines, lava chrome
+  - [x] Sorrow: Fury's fire drained grey and pouring down, the googly-eyed doner wrap
+  - [x] Juko! · Code Garden, base and 0∞ on one page: code rain with tickers, snippets,
+        bokeh and light bands moving to her song; Juko the cat following the pointer; a
+        ring of streaming code round every panel; the equalizer under the sheet; the
+        song driving the chrome's glow. 0∞: the 22-second intro vignette, the corrupted
+        rain, static, tears and tracking bar, the boom at the drop, the swaying border,
+        the kick, the corrupted windows, ∞ stats (rebuild/tools/juko_e2e.js)
 
 ## Cutover
 

@@ -66,6 +66,9 @@ const SHEET_URL = /^\/(c\/|edit\/|new\b|[?#]|$)/;
  * hidden (unless BG is on), and a fallback through the original file and the
  * backup accounts when a song fails to load.
  */
+/** The theme's audio element, for the character pages that move to the song (they have no injector of their own). */
+export const themeAudio: { el: HTMLAudioElement | null } = { el: null };
+
 @Injectable({ providedIn: 'root' })
 export class ThemeMusic {
   private readonly doc = inject(DOCUMENT);
@@ -94,6 +97,7 @@ export class ThemeMusic {
   private wired = false;
 
   constructor() {
+    themeAudio.el = this.audio;
     this.audio.loop = false;   // looped by hand so startAt is respected
     this.audio.addEventListener('ended', () => {
       if (!this.song) return;

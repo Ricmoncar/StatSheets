@@ -3,6 +3,9 @@
 // or tear, and what counts as a control (a click on one must stay a click).
 import { Character } from '../core/data/models';
 
+/** The character whose page is open (kept by the main page), for pages that change with the form without being reloaded. */
+export const pageCharacter: { c: Character | null } = { c: null };
+
 /** The active form's name, '' for the base form. */
 export function activeFormName(c: Character | null | undefined): string {
   if (!c) return '';

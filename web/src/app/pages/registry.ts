@@ -58,6 +58,11 @@ export const CUSTOM_PAGES: readonly CustomPage[] = [
     load: () => import('./sorrow-fire/sorrow-fire'),
   },
   {
+    key: 'juko_code', label: "Juko! · Code Garden", accent: '#2fd09c', opacity: 0.3, ownCursor: false,
+    matches: c => /^Juko!?$/i.test(c.name || '') && !/^\s*1\s*$/.test(activeFormName(c)),
+    load: () => import('./juko-code/juko-code'),
+  },
+  {
     key: 'ivy_evil', label: 'Ivy · EVIL creature', accent: '#d61c30', opacity: 0.97, ownCursor: true,
     matches: c => IVY.test(c.name || '') && EVIL.test(activeFormName(c)),
     load: () => import('./ivy-evil/ivy-evil'),

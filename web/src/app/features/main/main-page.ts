@@ -10,6 +10,7 @@ import { PatternCanvas } from '../../ui/pattern-canvas';
 import { Icon } from '../../ui/icon';
 import { WorldCanvas } from '../../pages/world-canvas';
 import { customPageFor } from '../../pages/registry';
+import { pageCharacter } from '../../pages/host';
 
 /** Where the character list becomes a drawer (the styles below switch at the same width). */
 const PHONE = '(max-width: 760px)';
@@ -134,6 +135,8 @@ export class MainPage {
     // the whole page takes the open character's colour (or their own page's): frames, gems, buttons, scenes
     const theme = inject(PixelTheme);
     effect(() => theme.setAccent(this.page()?.accent ?? this.current()?.color));
+    // a page that changes with the form (Juko's) reads the character from here
+    effect(() => { pageCharacter.c = this.current(); });
     inject(DestroyRef).onDestroy(() => theme.setAccent(null));
     // At / (or an unknown id), open the start character once the list has loaded.
     effect(() => {

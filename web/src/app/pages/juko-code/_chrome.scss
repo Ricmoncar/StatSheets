@@ -1,0 +1,319 @@
+// JUKO! · THE CODE GARDEN: the sheet (the old juko-ui, -name, -pfp and the
+// 0∞ breakdown's chrome, in pixels). The panels lose their frames, because
+// the ring of streaming code the overlay draws round each one IS the frame;
+// the titles glow with the song (three variables the page writes on a beat:
+// --juko-glow, --juko-onset, --juko-glitch) over a sweeping underline; the
+// portrait gets scanlines, a HUD of corner brackets, a sheen and a blinking
+// </> tag; the name splits into red and cyan copies that jump on the beat.
+//
+// In 0∞ (html.pg-juko-0inf) it never settles: the sheet drifts, edges strobe
+// acid and white, ATK/DEF/MAG/IQ read ∞ with full shimmering bars, every
+// trait card turns the same green terminal, and the glitch reaches the top
+// bar and the list as well.
+@use '../kit/chrome' as kit;
+
+$hot: #2fd09c;
+$green: #4ade5a;
+$acid: #9bff3a;
+$cream: #eaffb0;
+// ∞ as pixels: nine by five for the stat, five by three for the tier badge
+$inf9: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 5' shape-rendering='crispEdges'%3E%3Cpath d='M1 0h2v1H1zM6 0h2v1H6zM0 1h1v3H0zM8 1h1v3H8zM3 1h1v1H3zM5 1h1v1H5zM4 2h1v1H4zM3 3h1v1H3zM5 3h1v1H5zM1 4h2v1H1zM6 4h2v1H6z'/%3E%3C/svg%3E");
+$inf5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 3' shape-rendering='crispEdges'%3E%3Cpath d='M1 0h1v1H1zM3 0h1v1H3zM0 1h1v1H0zM2 1h1v1H2zM4 1h1v1H4zM1 2h1v1H1zM3 2h1v1H3z'/%3E%3C/svg%3E");
+// a ring of single pixels round text, in one colour: a glow drawn with whole pixels
+@function halo($c) {
+  @return var(--px) 0 0 $c, calc(-1 * var(--px)) 0 0 $c, 0 var(--px) 0 $c, 0 calc(-1 * var(--px)) 0 $c;
+}
+
+@include kit.chrome('juko_code', #030805, #0c3a18, #1f7a3c, $hot, #8fe4b8, $cream) {
+  --juko-glow: 0; --juko-onset: 0; --juko-glitch: 0;
+  --jk-glow: color-mix(in srgb, #{$hot} calc(var(--juko-glow) * 85%), transparent);
+
+  ss-panel {
+    border-image: none;
+    border-color: transparent;
+    box-shadow: none;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 calc(3 * var(--px)), rgb(47 208 156 / 0.035) calc(3 * var(--px)) calc(4 * var(--px))),
+      rgb(2 9 5 / 0.8);
+    background-clip: padding-box;
+    > .head > .title {
+      position: relative;
+      background-color: #030805;
+      color: color-mix(in srgb, #{$hot} calc(60% + var(--juko-glow) * 40%), #8a9a90);
+      text-shadow: var(--p1) var(--p1) 0 #0c3a18, halo(var(--jk-glow));
+      &:hover { color: $cream; text-shadow: var(--p1) var(--p1) 0 #0c3a18, halo($hot); }
+      // the underline, a shimmer of code light running along it
+      &::after {
+        content: '';
+        position: absolute;
+        left: 0; right: 0; bottom: calc(-3 * var(--px)); height: var(--px);
+        background: linear-gradient(90deg, transparent 0 20%, #{$hot} 20% 38%, #{$cream} 38% 62%, #{$hot} 62% 80%, transparent 80%) 0 0 / 220% 100%;
+        box-shadow: 0 var(--px) 0 color-mix(in srgb, #{$hot} calc(var(--juko-onset) * 70%), transparent);
+        opacity: calc(0.45 + var(--juko-glow) * 0.55);
+        animation: jk-sweep 3s steps(30) infinite;
+        pointer-events: none;
+      }
+    }
+  }
+
+  // the portrait: her colour round it, glowing and kicking with the beat
+  .head .portrait {
+    box-shadow: 0 0 0 var(--px) #030805, 0 0 0 var(--p2) #{$hot}, 0 0 0 var(--p3) var(--jk-glow), var(--hard);
+    scale: calc(1 + var(--juko-onset) * 0.06);
+    // scrolling scanlines
+    &::before {
+      content: '';
+      position: absolute; inset: 0; z-index: 2;
+      background: repeating-linear-gradient(0deg, transparent 0 var(--p2), rgb(47 208 156 / 0.22) var(--p2) var(--p3)) 0 0 / 100% var(--p4);
+      opacity: calc(0.35 + var(--juko-glow) * 0.5);
+      mix-blend-mode: screen;
+      animation: jk-scan 4s steps(4) infinite;
+      pointer-events: none;
+    }
+    // a HUD of corner brackets that flares on the beat
+    &::after {
+      --b: calc(6 * var(--px));
+      content: '';
+      position: absolute; inset: var(--p2); z-index: 3;
+      background:
+        linear-gradient(#{$cream}, #{$cream}) 0 0 / var(--b) var(--px), linear-gradient(#{$cream}, #{$cream}) 0 0 / var(--px) var(--b),
+        linear-gradient(#{$cream}, #{$cream}) 100% 0 / var(--b) var(--px), linear-gradient(#{$cream}, #{$cream}) 100% 0 / var(--px) var(--b),
+        linear-gradient(#{$cream}, #{$cream}) 0 100% / var(--b) var(--px), linear-gradient(#{$cream}, #{$cream}) 0 100% / var(--px) var(--b),
+        linear-gradient(#{$cream}, #{$cream}) 100% 100% / var(--b) var(--px), linear-gradient(#{$cream}, #{$cream}) 100% 100% / var(--px) var(--b);
+      background-repeat: no-repeat;
+      opacity: calc(0.5 + var(--juko-onset) * 0.5);
+      pointer-events: none;
+    }
+    // a sheen sweeping across on its own timer, and the blinking </> tag
+    .pg-jk-fx { position: absolute; inset: 0; z-index: 4; overflow: hidden; pointer-events: none; }
+    .pg-jk-fx .sheen {
+      position: absolute; top: 0; bottom: 0; left: -40%; width: 30%;
+      background: linear-gradient(90deg, transparent 0 25%, rgb(234 255 176 / 0.35) 25% 50%, rgb(160 255 170 / 0.16) 50% 75%, transparent 75%);
+      mix-blend-mode: screen;
+      animation: jk-sheen 3.6s steps(18) infinite;
+    }
+    .pg-jk-fx .tag {
+      position: absolute; right: var(--p2); bottom: var(--p1);
+      font: 8px / 1 var(--f-ui); color: $cream;
+      text-shadow: halo(#0c3a18), var(--px) var(--px) 0 $green;
+      animation: jk-blink 1.4s steps(1, end) infinite;
+    }
+  }
+
+  // the name in her colour, with red and cyan copies split off it that jump on the beat
+  .head .name {
+    position: relative;
+    isolation: isolate;
+    color: $hot;
+    text-shadow: var(--edge);
+    &::before, &::after {
+      content: attr(data-text);
+      position: absolute; left: 0; top: 0; width: 100%;
+      overflow: hidden; pointer-events: none; text-shadow: none;
+      // behind the name (its outline keeps the letters apart), showing past its edges
+      z-index: -1;
+      opacity: calc(0.6 + var(--juko-glitch) * 0.4);
+    }
+    &::before {
+      color: #ff3b6b;
+      translate: calc(var(--juko-glitch) * -2 * var(--px) - var(--p2)) 0;
+      clip-path: inset(0 0 55% 0);
+      animation: jk-split-a 2.4s steps(1, end) infinite;
+    }
+    &::after {
+      color: #2fe6ff;
+      translate: calc(var(--juko-glitch) * 2 * var(--px) + var(--p2)) 0;
+      clip-path: inset(55% 0 0 0);
+      animation: jk-split-b 1.9s steps(1, end) infinite;
+    }
+  }
+}
+
+@keyframes jk-sweep { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@keyframes jk-scan { to { background-position: 0 calc(-4 * var(--px)); } }
+@keyframes jk-sheen { 0% { left: -40%; opacity: 0; } 8% { opacity: 1; } 45%, 100% { left: 130%; opacity: 0; } }
+@keyframes jk-blink { 0%, 70% { opacity: 1; } 71%, 85% { opacity: 0.25; } 86%, 100% { opacity: 1; } }
+@keyframes jk-split-a {
+  0%, 92%, 100% { clip-path: inset(0 0 55% 0); }
+  93% { clip-path: inset(10% 0 60% 0); translate: calc(-4 * var(--px)) 0; }
+  96% { clip-path: inset(40% 0 20% 0); translate: calc(3 * var(--px)) 0; }
+}
+@keyframes jk-split-b {
+  0%, 90%, 100% { clip-path: inset(55% 0 0 0); }
+  91% { clip-path: inset(60% 0 8% 0); translate: calc(4 * var(--px)) 0; }
+  95% { clip-path: inset(20% 0 45% 0); translate: calc(-3 * var(--px)) 0; }
+}
+
+// ── 0∞: still her green; acid and white only ever as the spikes of the glitch ──
+html.pg-juko-0inf ss-character-view[data-page='juko_code'] {
+  animation: jk0-drift 0.9s steps(1, end) infinite;
+  ss-panel {
+    outline: var(--px) solid $hot;
+    outline-offset: calc(-3 * var(--px));
+    animation: jk0-edge 1.4s steps(1, end) infinite;
+    > .head > .title { animation: jk0-strobe 0.9s steps(1, end) infinite; text-shadow: var(--p1) var(--p1) 0 #0c3a18, halo($hot); }
+    > .head > .title::after { animation-duration: 0.8s; }
+  }
+  .sheet > .tabs .u-tab { animation: jk0-strobe 1.5s steps(1, end) infinite; }
+  .sheet > .tabs .u-tab:nth-child(2) { animation-delay: -0.4s; }
+  .sheet > .tabs .u-tab:nth-child(3) { animation-delay: -0.8s; }
+  .sheet > .tabs .u-tab:nth-child(4) { animation-delay: -0.2s; }
+  .sheet > .tabs .u-tab:nth-child(5) { animation-delay: -1.1s; }
+  // one row at a time twitches, on long cycles, so something is always moving
+  .bars .row:nth-child(3n+1) { animation: jk0-twitch 3.4s steps(1, end) infinite; }
+  .bars .row:nth-child(3n+2) { animation: jk0-twitch 4.1s steps(1, end) -1.7s infinite; }
+
+  .head .portrait {
+    animation: jk0-drift 0.5s steps(1, end) infinite;
+    filter: contrast(1.35) saturate(1.5);
+    &::before { animation-duration: 0.9s; opacity: 0.85; }
+    &::after { animation: jk0-hud 0.7s steps(1, end) infinite; }
+    .pg-jk-fx .tag { animation: jk0-strobe 0.5s steps(1, end) infinite, jk-blink 0.4s steps(1, end) infinite; }
+  }
+  // the name never settles: a hard split into acid-lime and cyan, strobing
+  .head .name {
+    animation: jk0-strobe 0.5s steps(1, end) infinite;
+    &::before { color: $acid; translate: calc(-3 * var(--px)) 0; opacity: 0.95; animation-duration: 0.45s; }
+    &::after { color: #2fe6ff; translate: calc(3 * var(--px)) 0; opacity: 0.95; animation-duration: 0.35s; }
+  }
+
+  // ATK, DEF, MAG and IQ read ∞, with full shimmering bars, flashing back to the real number now and then
+  .bars .row:is([data-stat='atk'], [data-stat='def'], [data-stat='mag'], [data-stat='iq']) {
+    .tier { font-size: 0; gap: var(--px); grid-auto-flow: column; background: $hot; }
+    .tier::before { content: 'T'; font: var(--fs-ui) / 1 var(--f-ui); }
+    .tier::after { content: ''; width: calc(5 * var(--px)); height: calc(3 * var(--px)); background: currentColor; mask: $inf5 center / contain no-repeat; }
+    ss-stat-bar .seg { background: #04180a; }
+    ss-stat-bar .fill {
+      width: 100% !important;
+      background: repeating-linear-gradient(90deg, #12481f 0 var(--p2), #2fef5a var(--p2) var(--p4)) 0 0 / calc(8 * var(--px)) 100% !important;
+      animation: jk0-shimmer 1.1s steps(4) infinite, jk0-barglow 1.8s steps(3, end) infinite;
+    }
+    &:not([data-flash]) .num {
+      font-size: 0;
+      &::before {
+        content: '';
+        width: calc(9 * var(--px)); height: calc(5 * var(--px));
+        background: $hot;
+        mask: $inf9 center / contain no-repeat;
+        filter: drop-shadow(var(--px) var(--px) 0 #0c3a18);
+        animation: jk0-inf 1.8s steps(3, end) infinite;
+      }
+    }
+    &[data-flash] .num { color: #f2fff0; text-shadow: halo($acid); }
+  }
+
+  // every trait card, whatever its rarity, pulled into the same corrupted green terminal
+  ss-trait-card .card {
+    --r1: #0c3a18; --r2: #1f7a3c; --r3: #{$green}; --r4: #d9ffb0;
+    border-image-source: var(--f-tc-common) !important;
+    background-color: #04140a;
+    color: #d9ffb0;
+    animation: jk0-card 2.6s steps(1, end) infinite;
+    .ring, .dec, .sweep, .crest, .embers, .eye { display: none; }
+    .name { animation: jk0-strobe 1.4s steps(1, end) infinite; }
+    .desc { color: #9fd6a4; }
+  }
+}
+@keyframes jk0-drift {
+  0%, 100% { translate: 0 0; }
+  20% { translate: calc(-1 * var(--px)) var(--px); }
+  40% { translate: var(--px) calc(-1 * var(--px)); }
+  60% { translate: calc(-1 * var(--px)) 0; }
+  80% { translate: var(--px) var(--px); }
+}
+@keyframes jk0-twitch {
+  0%, 100% { translate: 0 0; }
+  25% { translate: calc(-1 * var(--px)) 0; }
+  50% { translate: var(--px) var(--px); }
+  75% { translate: 0 calc(-1 * var(--px)); }
+}
+@keyframes jk0-strobe {
+  0%, 60%, 84%, 100% { color: #{$hot}; }
+  68% { color: #{$acid}; }
+  76% { color: #ffffff; }
+}
+@keyframes jk0-edge {
+  0%, 60%, 70%, 84%, 93%, 100% { outline-color: #{$hot}; }
+  68% { outline-color: #{$acid}; }
+  82% { outline-color: #ffffff; }
+  92% { outline-color: transparent; }
+}
+@keyframes jk0-hud { 0%, 60%, 100% { opacity: 1; } 68% { opacity: 0.4; } 82% { opacity: 1; filter: brightness(1.6); } 92% { opacity: 0; } }
+@keyframes jk0-shimmer { to { background-position: calc(-8 * var(--px)) 0; } }
+@keyframes jk0-barglow { 0%, 100% { filter: brightness(1) saturate(1); } 50% { filter: brightness(1.4) saturate(1.5); } }
+@keyframes jk0-inf { 0%, 100% { opacity: 0.85; background: #{$hot}; } 50% { opacity: 1; background: #8fffd0; } }
+@keyframes jk0-card { 0%, 88%, 92%, 100% { filter: none; } 90% { filter: brightness(1.5) saturate(1.4); } }
+
+// the breakdown is not contained to her page: the top bar and the list glitch with it
+html.pg-juko-0inf {
+  header.topbar .logo { animation: jk0-strobe 1.1s steps(1, end) infinite; }
+  header.topbar :is(.nav-link, .acts .u-btn) { outline: var(--px) solid transparent; animation: jk0-edge 1.8s steps(1, end) infinite; }
+  header.topbar .nav-link:nth-child(2) { animation-delay: -0.3s; }
+  header.topbar .nav-link:nth-child(3) { animation-delay: -0.6s; }
+  header.topbar .nav-link:nth-child(4) { animation-delay: -0.9s; }
+  header.topbar .nav-link:nth-child(5) { animation-delay: -1.2s; }
+  header.topbar .acts .u-btn:nth-child(2) { animation-delay: -0.15s; }
+  ss-sidebar > .head .title { animation: jk0-strobe 1.3s steps(1, end) infinite; }
+  ss-sidebar .search { outline: var(--px) solid transparent; animation: jk0-edge 1.6s steps(1, end) infinite; }
+  ss-sidebar .entry.active, ss-sidebar .entry[aria-current] { outline: var(--px) solid transparent; animation: jk0-edge 1s steps(1, end) infinite; }
+  // a band of light rolling down the whole window
+  body::before {
+    content: '';
+    position: fixed; top: 0; left: 0; right: 0; height: calc(16 * var(--px));
+    z-index: 99997; pointer-events: none;
+    background: linear-gradient(transparent 0 20%, rgb(120 255 120 / 0.07) 20% 40%, rgb(230 255 230 / 0.1) 40% 60%, rgb(120 255 120 / 0.07) 60% 80%, transparent 80%);
+    animation: jk0-roll 3.4s steps(60) infinite;
+  }
+}
+@keyframes jk0-roll { from { transform: translateY(-60px); } to { transform: translateY(100vh); } }
+
+// ── the corrupted windows, opening round the sheet ──
+.pg-jk0-win {
+  position: fixed; z-index: 99990; pointer-events: none;
+  background: #030b05;
+  border: var(--px) solid $green;
+  box-shadow: 0 0 0 var(--px) #030805, var(--p2) var(--p2) 0 rgb(0 0 0 / 0.6), inset 0 0 0 var(--px) #0c3a18;
+  overflow: hidden;
+  transform-origin: 50% 0;
+  animation:
+    jk0-win-open 0.16s steps(3, end) both,
+    jk0-win-drift var(--jw-drift, 4s) steps(8, end) var(--jw-delay, 0s) infinite alternate,
+    jk0-win-flicker 2.8s steps(1, end) var(--jw-delay, 0s) infinite;
+  &.out { animation: jk0-win-close 0.26s steps(4, end) both; }
+  .bar {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--p2);
+    height: calc(6 * var(--px)); padding: 0 var(--p1);
+    background: linear-gradient(90deg, #0c3a18 0 50%, #14622a 50%);
+    border-bottom: var(--px) solid $green;
+    font: 8px / 1 var(--f-ui); color: #d6ffcf; text-transform: uppercase;
+  }
+  .title { white-space: nowrap; overflow: hidden; animation: jk0-strobe 0.9s steps(1, end) infinite; }
+  .x { color: $acid; }
+  .body { position: relative; line-height: 0; }
+  &.tear .body { translate: var(--jw-tear, 0px) 0; }
+  .body::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent 0 var(--p2), rgb(0 0 0 / 0.35) var(--p2) var(--p3));
+  }
+  .pfp img { display: block; width: 100%; image-rendering: pixelated; mix-blend-mode: screen; }
+  .text, .load { padding: var(--p2); font: 8px / 1.6 var(--f-ui); color: #63d97a; }
+  .hex { color: #3f9e55; }
+  .line { white-space: pre; overflow: hidden; }
+  .line.hot { color: #d8ffcc; text-shadow: halo(rgb(155 255 58 / 0.5)); }
+  .track { height: calc(4 * var(--px)); margin: var(--p1) 0; border: var(--px) solid #2f7a41; background: #05170a; overflow: hidden; }
+  .track i { display: block; height: 100%; transform-origin: 0 50%; background: repeating-linear-gradient(90deg, #{$green} 0 var(--p2), #0c3a18 var(--p2) var(--p3)); animation: jk0-win-load 1.5s steps(1, end) infinite; }
+}
+@keyframes jk0-win-open { 0% { opacity: 0; scale: 1 0.05; } 70% { opacity: 1; scale: 1 1.06; } 100% { opacity: 1; scale: 1 1; } }
+@keyframes jk0-win-close { 0% { opacity: 1; scale: 1 1; } 60% { opacity: 1; scale: 1.04 0.16; } 100% { opacity: 0; scale: 1.1 0.02; } }
+@keyframes jk0-win-load { 0% { transform: scaleX(0.08); } 30% { transform: scaleX(0.4); } 55% { transform: scaleX(0.71); } 62% { transform: scaleX(0.12); } 100% { transform: scaleX(0.08); } }
+@keyframes jk0-win-drift {
+  0% { translate: 0 0; }
+  35% { translate: calc(-4 * var(--px)) calc(3 * var(--px)); }
+  70% { translate: calc(4 * var(--px)) calc(-4 * var(--px)); }
+  100% { translate: calc(5 * var(--px)) calc(3 * var(--px)); }
+}
+@keyframes jk0-win-flicker { 0%, 84%, 88%, 95%, 100% { opacity: 1; } 86% { opacity: 0.32; } 94% { opacity: 0.55; } }
+
+html.perf {
+  ss-character-view[data-page='juko_code'] .head .portrait .pg-jk-fx { display: none; }
+}
