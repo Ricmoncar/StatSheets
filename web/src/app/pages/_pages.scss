@@ -2,6 +2,7 @@
 // sheet's data-page, and what every page shares.
 @use 'ivy-evil/chrome';
 @use 'bizzy-bees/chrome' as bizzy;
+@use 'riegen-phoenix/chrome' as riegen_phoenix;
 
 // while a page draws its own cursor and a mouse is pointing, the system one is hidden
 @media (pointer: fine) {

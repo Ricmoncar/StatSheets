@@ -1,0 +1,36 @@
+// RIEGEN · THE PHOENIX: charred panels lit from below by embers, a name of
+// living flame with the fire rising through it, and a smouldering portrait
+// (the old page's riegen-ui, -name and -pfp, in pixels).
+@use '../kit/chrome' as kit;
+
+@include kit.chrome('riegen_phoenix', #120503, #3a1006, #9a5a2e, #ff8a2a, #ffd9ae, #fff3e0) {
+  ss-panel {
+    // charred, the embers' light coming up from the bottom edge in bands
+    background:
+      linear-gradient(transparent 0 78%, rgb(255 120 40 / 0.06) 78% 86%, rgb(255 120 40 / 0.11) 86% 94%, rgb(255 140 50 / 0.16) 94%),
+      linear-gradient(rgb(26 8 4 / 0.93), rgb(44 14 6 / 0.95));
+    background-clip: padding-box;
+  }
+  // the name: the fire rises up through it and falls back
+  .head .name {
+    color: transparent;
+    background: linear-gradient(0deg, #ff5a14 0 14%, #ff8a2a 14% 34%, #ffc85a 34% 52%, #fff4c8 52% 70%, #ff8a2a 70%) 0 110% / 100% 260%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(var(--px) 0 0 #1a0500) drop-shadow(calc(-1 * var(--px)) 0 0 #1a0500) drop-shadow(0 var(--px) 0 #1a0500) drop-shadow(0 calc(-1 * var(--px)) 0 #1a0500) drop-shadow(var(--px) var(--px) 0 #6a1a00);
+    animation: riegen-rise 4.5s steps(16, end) infinite;
+  }
+  // the portrait smoulders: its ember ring brightens and dims unevenly
+  .head .portrait { animation: riegen-smoulder 3.2s steps(1, end) infinite; }
+}
+@keyframes riegen-rise { 0%, 100% { background-position: 0 110%; } 50% { background-position: 0 -30%; } }
+@keyframes riegen-smoulder {
+  0%, 60%, 100% { box-shadow: 0 0 0 var(--px) #120503, 0 0 0 var(--p2) #c2391a, var(--hard); }
+  30% { box-shadow: 0 0 0 var(--px) #120503, 0 0 0 var(--p2) #ffa040, 0 0 0 var(--p3) #6a1a00, var(--hard); }
+  45% { box-shadow: 0 0 0 var(--px) #120503, 0 0 0 var(--p2) #ff7a26, var(--hard); }
+  80% { box-shadow: 0 0 0 var(--px) #120503, 0 0 0 var(--p2) #ff8a2a, 0 0 0 var(--p3) #6a1a00, var(--hard); }
+}
+html.perf ss-character-view[data-page='riegen_phoenix'] {
+  .head .name, .head .portrait { animation: none; }
+}

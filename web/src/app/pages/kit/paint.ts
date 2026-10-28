@@ -132,3 +132,61 @@ export function text(r: Raster, x: number, y: number, s: string, i: number, scal
 }
 /** How wide `s` is in the 3x5 font. */
 export const textWidth = (s: string, scale = 1) => Math.max(0, s.length * 4 * scale - scale);
+
+// ── shapes in their own frame: the old pages drew at the origin, then translated, rotated and scaled ──
+/** Where a shape sits: at (x, y), turned by `a`, `s` art pixels to its unit, mirrored across its axis when flip is -1. */
+export interface Xf { x: number; y: number; a: number; s: number; flip?: number }
+/** A point of the shape's frame in the raster. */
+export function xfPt(f: Xf, u: number, v: number): [number, number] {
+  const c = Math.cos(f.a), s = Math.sin(f.a), vv = v * (f.flip ?? 1);
+  return [f.x + (u * c - vv * s) * f.s, f.y + (u * s + vv * c) * f.s];
+}
+/** The shape's frame coordinates of a raster pixel's middle. */
+export function xfInv(f: Xf, x: number, y: number): [number, number] {
+  const c = Math.cos(f.a), s = Math.sin(f.a), dx = (x + 0.5 - f.x) / f.s, dy = (y + 0.5 - f.y) / f.s;
+  return [dx * c + dy * s, (-dx * s + dy * c) * (f.flip ?? 1)];
+}
+/** Moves a flat list of the shape's points into the raster. */
+export function xfPts(f: Xf, pts: readonly number[]): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < pts.length; i += 2) out.push(...xfPt(f, pts[i], pts[i + 1]));
+  return out;
+}
+/** Appends the points of a cubic curve from (x0, y0) (not included) to (x3, y3) to `out`. */
+export function bez3(out: number[], x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, n = 10): number[] {
+  for (let i = 1; i <= n; i++) {
+    const t = i / n, m = 1 - t;
+    out.push(m * m * m * x0 + 3 * m * m * t * x1 + 3 * m * t * t * x2 + t * t * t * x3, m * m * m * y0 + 3 * m * m * t * y1 + 3 * m * t * t * y2 + t * t * t * y3);
+  }
+  return out;
+}
+/** Appends the points of a quadratic curve from (x0, y0) (not included) to (x2, y2). */
+export function bez2(out: number[], x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, n = 8): number[] {
+  for (let i = 1; i <= n; i++) {
+    const t = i / n, m = 1 - t;
+    out.push(m * m * x0 + 2 * m * t * x1 + t * t * x2, m * m * y0 + 2 * m * t * y1 + t * t * y2);
+  }
+  return out;
+}
+/**
+ * Fills a shape given in its own frame: `pts` (its outline) placed by `f`,
+ * each pixel coloured by `fill`, which gets the pixel and its position in the
+ * shape's frame (u, v), and may return 0 to leave it.
+ */
+export function shape(r: Raster, f: Xf, pts: readonly number[], fill: number | ((x: number, y: number, u: number, v: number) => number)): void {
+  const world = xfPts(f, pts);
+  if (typeof fill === 'number') { r.poly(world, fill); return; }
+  r.poly(world, (x, y) => { const [u, v] = xfInv(f, x, y); return fill(x, y, u, v); });
+}
+/** A filled ellipse in a shape's frame (centre cu, cv; radii ru, rv; turned by rot within the frame). */
+export function shapeOval(r: Raster, f: Xf, cu: number, cv: number, ru: number, rv: number, rot: number, fill: number | ((x: number, y: number) => number)): void {
+  const pts: number[] = [], n = Math.max(12, Math.ceil((ru + rv) * f.s * 1.5));
+  const c = Math.cos(rot), s = Math.sin(rot);
+  for (let i = 0; i < n; i++) { const a = (i / n) * TAU, x = Math.cos(a) * ru, y = Math.sin(a) * rv; pts.push(cu + x * c - y * s, cv + x * s + y * c); }
+  const world = xfPts(f, pts);
+  r.poly(world, typeof fill === 'number' ? fill : (x, y) => fill(x, y));
+  // a shape smaller than a pixel still shows as one
+  if (ru * f.s < 0.75 && rv * f.s < 0.75) { const [x, y] = xfPt(f, cu, cv); const k = typeof fill === 'number' ? fill : fill(Math.floor(x), Math.floor(y)); if (k) r.set(x, y, k); }
+}
+/** `i` where the dither passes `level`, else 0: for translucent fills (an old page's globalAlpha). */
+export const alpha = (i: number, level: number) => (x: number, y: number) => (level > bayer(x, y) ? i : 0);

@@ -43,6 +43,11 @@ export const CUSTOM_PAGES: readonly CustomPage[] = [
     load: () => import('./bizzy-bees/bizzy-bees'),
   },
   {
+    key: 'riegen_phoenix', label: "Riegen · Phoenix", accent: '#ff8a2a', opacity: 0.92, ownCursor: true,
+    matches: name(/^Riegen$/i),
+    load: () => import('./riegen-phoenix/riegen-phoenix'),
+  },
+  {
     key: 'ivy_evil', label: 'Ivy · EVIL creature', accent: '#d61c30', opacity: 0.97, ownCursor: true,
     matches: c => IVY.test(c.name || '') && EVIL.test(activeFormName(c)),
     load: () => import('./ivy-evil/ivy-evil'),
