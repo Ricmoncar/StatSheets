@@ -22,7 +22,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [x] Sidebar: search, folders with shared collapse, drafts, new/edit/delete folder, drag and drop of characters and folders (one batched write), right-click menu with edit/duplicate/delete/move (rebuild/tools/sidebar_e2e.js, 16 checks), chat button
 - [x] Character view header: portrait, name, owner, power level, gold, bio, shared form switcher, edit, delete
 - [x] Stats: bars, prestige tiers, sub-stats with diffs, SANITY, breakdown tooltips (parity-tested), radar chart, power level window (rebuild/tools/stats_e2e.js)
-- [x] Traits: per-form ownership, every interactive trait card, roll overlay with form chooser and auto-roll (replay-tested), codex, roll history, cultivation window, per-trait stat tooltips (parity-tested against 224 live tooltips)
+- [x] Traits: per-form ownership, every interactive trait card, roll overlay with form chooser and auto-roll (replay-tested), dealt face down with the old page's reels turning through trait names and slowing to land, a high card's tell, pixel bursts, rings and rays by rarity, and the card taken rising as the others fall away (rebuild/tools/roll_e2e.js), codex, roll history, cultivation window, per-trait stat tooltips (parity-tested against 224 live tooltips)
 - [x] Inventory: items, icon picker, image icons, mods, passives, equip, copy and paste
 - [x] Gold manager
 - [x] Editor: every field, alt forms (12), tags (8), avatar compression, drafts, pattern settings with a live preview and the faint full-screen pattern behind; Gaster easter egg

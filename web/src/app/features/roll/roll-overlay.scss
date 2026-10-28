@@ -10,9 +10,21 @@
   overflow-y: auto;
 }
 
-.backdrop { position: fixed; inset: 0; background-color: rgb(0 0 0 / 0.6); }
+.backdrop {
+  position: fixed; inset: 0; background-color: rgb(0 0 0 / 0.6);
+  transition: background-color 0.3s steps(3, end);
+  // a high card about to land: the room goes dark; a hexxed one, darker and purple
+  &.tense { background-color: rgb(0 0 0 / 0.84); }
+  &.hex { background-color: rgb(16 0 28 / 0.9); }
+}
+// the effects: rays behind the cards, bursts and rings in front, at the site's pixel size
+.fx { position: fixed; inset: 0; width: 100vw; height: 100vh; image-rendering: pixelated; pointer-events: none; }
+.fx-back { z-index: 0; }
+.fx-front { z-index: 2; }
+.glare { position: fixed; inset: 0; z-index: 3; pointer-events: none; background: var(--gc); animation: glare 0.3s steps(3, end) forwards; }
+@keyframes glare { from { opacity: 0.3; } to { opacity: 0; } }
 
-.chooser, .stage { position: relative; width: 100%; }
+.chooser, .stage { position: relative; z-index: 1; width: 100%; }
 
 // which form: a white dialogue box, "* FORM" with the SOUL on the current one
 .chooser { max-width: calc(180 * var(--px)); box-shadow: 0 var(--p3) 0 var(--c-void); }
@@ -35,7 +47,8 @@
 
 .pity { display: grid; gap: var(--p2); justify-items: center; }
 .pity-label { font: var(--fs-ui) / 1 var(--f-ui); color: var(--c-bone); small { margin-left: var(--p1); color: var(--c-mute); } }
-.pity-count { font: var(--fs-num) / 1 var(--f-body); color: var(--c-white); &.high { color: var(--c-vi3); } &.max { color: var(--c-yel); } }
+.pity-count { display: inline-block; font: var(--fs-num) / 1 var(--f-body); color: var(--c-white); animation: bump 0.3s steps(3, end); &.high { color: var(--c-vi3); } &.max { color: var(--c-yel); } }
+@keyframes bump { 40% { transform: translateY(calc(-2 * var(--px))) scale(1.3); color: var(--c-yel); } }
 .pity-cells { display: flex; gap: var(--px); flex-wrap: wrap; justify-content: center; }
 
 .title { margin: 0; font: 700 var(--fs-h) / 1 var(--f-display); letter-spacing: -0.125em; color: var(--c-white); text-shadow: var(--p1) var(--p1) 0 var(--ac1); }
@@ -71,10 +84,77 @@
   &.flash { filter: brightness(2.4); }
   &.shimmy { box-shadow: var(--hard), 0 0 0 var(--px) var(--c-void), 0 0 0 var(--p2) var(--r3); }
   &.notable { outline: var(--p1) solid var(--c-yel); outline-offset: var(--p2); }
-  &:not(:disabled):hover { background-color: var(--c-ink2); .cta { color: var(--c-yel); } }
+  &:not(:disabled):hover { background-color: var(--c-ink2); translate: 0 calc(-2 * var(--px)); .cta { color: var(--c-yel); } }
   &:disabled { cursor: default; }
 }
 .back { flex: 1; display: grid; place-items: center; }
+
+// ── the deal: each card flicked down onto the table, face down ──
+.card[data-phase='back'] { animation: deal 0.32s steps(5, end) both; animation-delay: calc(var(--i) * 90ms); }
+@keyframes deal {
+  0% { opacity: 0; transform: translateY(calc(-24 * var(--px))) rotate(-8deg) scale(0.7); }
+  60% { opacity: 1; transform: translateY(var(--p2)) rotate(2deg) scale(1.03); }
+  100% { transform: none; }
+}
+
+// ── the reel: a window in the card back, the traits rolling through it ──
+.window {
+  position: relative;
+  flex: 1;
+  display: grid;
+  align-content: start;
+  height: calc(52 * var(--px));
+  overflow: hidden;
+  padding: var(--p2) var(--p3);
+  background: var(--c-void);
+  box-shadow: inset 0 0 0 var(--px) var(--ac1), inset 0 var(--p3) 0 rgb(0 0 0 / 0.6);
+  // the glass: darker at the top and bottom edges, as a reel turns out of sight
+  &::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(var(--c-void) 0 var(--p2), transparent var(--p2) calc(100% - var(--p4)), rgb(0 0 0 / 0.7) calc(100% - var(--p4))); }
+}
+.strip {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--p2);
+  animation: reel 0.07s steps(2, end);
+  .desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: var(--c-mute); }
+}
+@keyframes reel { from { transform: translateY(-45%); } }
+
+// ── the tell: just before it lands, a high card gives away what it is ──
+.card[data-tell] .window { box-shadow: inset 0 0 0 var(--px) var(--tc), inset 0 var(--p3) 0 rgb(0 0 0 / 0.6); }
+.card[data-tell='soft'] { box-shadow: var(--hard), 0 0 0 var(--px) var(--c-void), 0 0 0 var(--p2) var(--tc); animation: glow 0.24s steps(1, end) infinite; }
+.card[data-tell='hard'] { box-shadow: var(--hard), 0 0 0 var(--px) var(--c-void), 0 0 0 var(--p2) var(--tc); animation: glow 0.16s steps(1, end) infinite, tremble 0.1s steps(1, end) infinite; }
+.card[data-tell='hex'] { box-shadow: var(--hard), 0 0 0 var(--px) var(--c-void), 0 0 0 var(--p2) var(--tc); animation: glitch 0.24s steps(1, end) infinite; }
+@keyframes glow { 50% { box-shadow: var(--hard), 0 0 0 var(--px) var(--c-void), 0 0 0 var(--p3) var(--tc), 0 0 0 var(--p4) var(--c-void); } }
+@keyframes tremble { 0% { translate: var(--px) 0; } 25% { translate: calc(-1 * var(--px)) var(--px); } 50% { translate: 0 calc(-1 * var(--px)); } 75% { translate: calc(-1 * var(--px)) 0; } }
+@keyframes glitch {
+  0% { translate: var(--p2) 0; filter: none; }
+  25% { translate: calc(-2 * var(--px)) var(--px); filter: invert(1) hue-rotate(180deg); }
+  50% { translate: 0 0; filter: saturate(0) brightness(0.5); }
+  75% { translate: var(--px) calc(-1 * var(--px)); filter: none; }
+}
+
+// ── landing: the card turns over and thumps down ──
+.card.landed { animation: land 0.34s steps(5, end); }
+@keyframes land {
+  0% { transform: scaleX(0.15) scaleY(1.08); }
+  40% { transform: scale(1.12); }
+  70% { transform: scale(0.97); }
+  100% { transform: none; }
+}
+// the hand, ready: the cards breathe, each in its own time
+.cards.ready .card { animation: breathe 1.6s steps(1, end) infinite; animation-delay: calc(var(--i) * -0.53s); }
+@keyframes breathe { 50% { transform: translateY(calc(-1 * var(--px))); } }
+// taking one: it rises in a burst, the others fall away
+.card.picked { z-index: 1; animation: picked 0.62s steps(8, end) forwards; }
+@keyframes picked { 30% { transform: translateY(calc(-6 * var(--px))) scale(1.12); filter: brightness(1.8); } 75% { opacity: 1; transform: translateY(calc(-9 * var(--px))) scale(1.16); filter: none; } 100% { opacity: 0; transform: translateY(calc(-12 * var(--px))) scale(1.18); } }
+.card.dropped { animation: dropped 0.42s steps(6, end) forwards; }
+.card.dropped:nth-child(odd) { --tilt: 5deg; }
+@keyframes dropped { to { opacity: 0; transform: translateY(calc(16 * var(--px))) rotate(var(--tilt, -5deg)); } }
+
+// performance mode and less motion: the cards still turn, without the show
+:host(.quiet) {
+  .card, .cards.ready .card, .card[data-tell], .strip, .pity-count { animation: none; }
+  .backdrop { transition: none; }
+}
 .rolling .rarity { align-self: center; color: var(--ac4); background: none; box-shadow: none; }
 .top { display: flex; align-items: center; gap: var(--p3); }
 .art { padding: var(--px); background: var(--c-void); box-shadow: 0 0 0 var(--px) var(--r3); line-height: 0; .u-spr { display: block; } }

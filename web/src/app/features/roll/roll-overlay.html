@@ -1,4 +1,5 @@
-<div class="backdrop u-scrim"></div>
+<div class="backdrop u-scrim" [class.tense]="tense() >= 3" [class.hex]="tense() >= 5"></div>
+<canvas class="fx fx-back" #fxBack aria-hidden="true"></canvas>
 
 @if (choosing()) {
   <section class="chooser u-voice" role="dialog" aria-modal="true" aria-label="Roll for which form?">
@@ -17,7 +18,7 @@
 } @else {
   <section class="stage" role="dialog" aria-modal="true" aria-label="Trait roll">
     <div class="pity">
-      <span class="pity-label">PITY <span class="pity-count" [class.max]="pity() >= 100" [class.high]="pity() >= 75 && pity() < 100">{{ pity() }}</span><small>/ 100</small></span>
+      <span class="pity-label">PITY @for (p of [pity()]; track p) { <span class="pity-count" [class.max]="p >= 100" [class.high]="p >= 75 && p < 100">{{ p }}</span> }<small>/ 100</small></span>
       <span class="pity-cells" aria-hidden="true">
         @for (n of cells; track n) { <i class="u-spr s-cell" [style.--f]="pity() >= n * 5 ? 2 : pity() > (n - 1) * 5 ? 1 : 0"></i> }
       </span>
@@ -26,14 +27,27 @@
     <h2 class="title">{{ title() }}</h2>
     <p class="sub">{{ sub() }}</p>
 
-    <div class="cards" [class.shake]="shakeHand()">
-      @for (c of cards(); track $index) {
-        <button type="button" class="card" [attr.data-rarity]="c.rarity" [class.rolling]="c.rolling" [class.flash]="c.flash"
-                [class.shimmy]="!!c.shimmy" [class.notable]="c.notable" [disabled]="!interactive()" (click)="pick($index)"
-                [style.border-image-source]="c.rolling ? 'var(--f-cardback)' : 'var(--f-tc-' + look(c.rarity) + ')'">
-          @if (c.rolling) {
+    <div class="cards" [class.shake]="shakeHand()" [class.ready]="interactive()" [class.taking]="picking() !== null">
+      @for (c of cards(); track $index; let i = $index) {
+        <button type="button" class="card" #card [attr.data-rarity]="c.rarity" [attr.data-phase]="c.phase" [attr.data-tell]="c.tell || null"
+                [class.rolling]="c.phase !== 'face'" [class.flash]="c.flash" [class.landed]="c.landed"
+                [class.shimmy]="!!c.shimmy" [class.notable]="c.notable" [class.picked]="picking() === i" [class.dropped]="picking() !== null && picking() !== i"
+                [style.--i]="i" [style.--tc]="c.tellCol || null" [disabled]="!interactive()" (click)="pick(i)"
+                [style.border-image-source]="c.phase !== 'face' ? 'var(--f-cardback)' : 'var(--f-tc-' + look(c.rarity) + ')'">
+          @if (c.phase === 'back') {
             <span class="back" aria-hidden="true"><i class="u-spr s-soul" style="--sc: 2"></i></span>
             <span class="rarity">???</span>
+          } @else if (c.phase === 'reel') {
+            <!-- the reel: a window in the card back, the traits rolling through it -->
+            <span class="window" aria-hidden="true">
+              @for (t of [c.tick]; track t) {
+                <span class="strip">
+                  <span class="rarity">{{ rarityLabel(c.rarity) }}</span>
+                  <span class="name">{{ c.name }}</span>
+                  <span class="desc">{{ c.desc }}</span>
+                </span>
+              }
+            </span>
           } @else {
             <span class="top">
               <span class="art"><i class="u-spr u-anim" [style.--sheet]="'var(--s-art-' + look(c.rarity) + ')'" style="--w: 20; --h: 20; --n: 8; --fps: 8"></i></span>
@@ -66,3 +80,5 @@
     }
   </section>
 }
+<canvas class="fx fx-front" #fxFront aria-hidden="true"></canvas>
+@if (glare(); as g) { @for (n of [g.n]; track n) { <div class="glare" [style.--gc]="g.col" aria-hidden="true"></div> } }
