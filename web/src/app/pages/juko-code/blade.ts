@@ -22,23 +22,26 @@ import { Void } from './void';
 const m = P1.ramp('m'), c = P1.ramp('c'), w = P1.ramp('w'), q = P1.ramp('q'), k = P1.ramp('k'), x4 = P1.ramp('x'), y3 = P1.ramp('y'), g = P1.ramp('g');
 const BAYER = Float32Array.from({ length: 16 }, (_, i) => bayer(i & 3, i >> 2));
 const TAU = Math.PI * 2;
-// ── her blade, from the drawing of her: CSS px, the point (the pointer's hot spot) at the origin, y down ──
+// ── her blade: CSS px, the point (the pointer's hot spot) at the origin, y down ──
 /** How far it reaches from the point, the slash's reach, and the angle it hangs at when at rest. */
 const REACH = 420, SWORD = 300, BASE = 0.83;
-/** The back of the crescent, laid in three parallel strokes from the brightest to the faintest. */
-const BACK_LINE = [[0, 0], [-4, 40], [-2, 85], [3, 140], [16, 190], [38, 226], [74, 252], [120, 265], [212, 265], [254, 238], [295, 171], [292, 124]];
-const BACK: [number[][], number][] = [0, 5, 10].map((o, i) => [BACK_LINE.map(([x, y]) => [x + o * (x < 150 ? 1 : -0.6), y - o * (y > 130 ? 1 : 0.2)]), 3 - i]);
-/** The inner edge, sawn into teeth that point into the hollow. */
-const EDGE = [[0, 0], [14, 70], [10, 120], [80, 126], [32, 200], [70, 232], [114, 164], [128, 240], [175, 245], [214, 118], [240, 232], [262, 210], [302, 56], [292, 124]];
-/** The smaller teeth nested inside the big ones. */
-const TEETH = [[[186, 238], [212, 158], [228, 236]], [[272, 200], [296, 96], [290, 180]], [[86, 230], [110, 188], [118, 236]], [[20, 150], [64, 136], [28, 178]]];
-/** The parallel strokes laid down the inside of its left wall. */
-const HATCH = [[[2, 112], [54, 162]], [[6, 160], [98, 236]], [[12, 182], [76, 244]]];
-const SPIRAL = [302, 110], EMBER = [[177, 87], [211, 123]];
-/** The middle of the hollow, that its colour runs round. */
-const HOLLOW = [150, 150];
-/** Its colour along it (0 the point, 1 the far end), as spectrum indices: yellow-green, green, mint, cyan, blue, violet, then back. */
-const RUN: [number, number][] = [[0, 5], [0.15, 4], [0.3, 3], [0.42, 2], [0.52, 1], [0.6, 0], [0.72, 1], [0.85, 2], [1, 3]];
+/**
+ * A curved sword, its blade an arc round one centre: it runs from the point
+ * (at angle A0 round the centre) back round to its root (at A1), where the
+ * hilt is. Its middle line sits at radius 115 near the point and a little
+ * further out by the root; the cutting edge is the inside of the curve.
+ */
+const A0 = 200, A1 = 10, R0 = 115, R1 = 125, WB = 24;
+const CEN = [-R0 * Math.cos((A0 * Math.PI) / 180), -R0 * Math.sin((A0 * Math.PI) / 180)];
+/** Along the blade (0 the point, 1 the root): its middle line's radius, its half width, and the two barbs on its back. */
+const midR = (u: number) => R0 + (R1 - R0) * u;
+const halfW = (u: number) => WB * Math.min(1, u / 0.2) ** 0.8 * (1 - 0.12 * u);
+const barb = (u: number) => { let b = 0; for (const at of [0.42, 0.66]) if (u > at - 0.07 && u <= at) b = Math.max(b, 15 * ((u - (at - 0.07)) / 0.07)); return b; };
+/** The root: where the hilt starts, the way the grip runs, and across it. */
+const RA = (A1 * Math.PI) / 180, ROOT = [CEN[0] + R1 * Math.cos(RA), CEN[1] + R1 * Math.sin(RA)], HD = [Math.sin(RA), -Math.cos(RA)], HN = [Math.cos(RA), Math.sin(RA)];
+const hilt = (along: number, across: number) => [ROOT[0] + HD[0] * along + HN[0] * across, ROOT[1] + HD[1] * along + HN[1] * across];
+/** Its colour along it, as spectrum indices: yellow-green at the point, through green and mint, to cyan and blue by the root. */
+const RUN: [number, number][] = [[0, 5], [0.25, 4], [0.5, 3], [0.75, 2], [1, 1]];
 const dith = (lv: number, x: number, y: number) => lv > BAYER[((y & 3) << 2) | (x & 3)];
 
 interface Wake { x: number; y: number; life: number; h: number; ch: string }
@@ -281,7 +284,7 @@ class Blade extends PageOverlay {
   /** The blade's own light, round the hollow of the crescent. */
   private bladeLight(r: Raster, t: number, beat: number): void {
     const px = this.px, rot = this.angle(t) - BASE, c2 = Math.cos(rot), s2 = Math.sin(rot), bob = Math.sin(t * 1.6) * 2.2;
-    const gx = this.x + 150 * c2 - 150 * s2, gy = this.y + bob + 150 * s2 + 150 * c2;
+    const gx = this.x + CEN[0] * c2 - CEN[1] * s2, gy = this.y + bob + CEN[0] * s2 + CEN[1] * c2;
     glow(r, gx / px, gy / px, (150 + beat * 30 + ONE.pulse * 40) / px, SPEC[2][0], 0.45);
   }
 
@@ -292,64 +295,67 @@ class Blade extends PageOverlay {
   }
 
   /**
-   * THE CURSOR: her blade, as she is drawn holding it: not a sword but a
-   * jagged crescent of neon strokes, its back laid down in three parallel
-   * lines, its inner edge sawn into teeth that point into the hollow (the
-   * big ones with smaller ones nested inside them), a spiral curled at its
-   * far point and one orange stroke loose inside it. Its colour runs round
-   * it like the prism's light: yellow-green at the point, through green and
-   * cyan, violet at the bottom, and back to blue and mint at the far end. A
-   * pulse of white runs along it on the beat, the teeth quiver with the song,
-   * and the point is the pointer's.
+   * THE CURSOR: her curved sword, on a canvas of its own with the point as
+   * its hot spot. One clean crescent of dark steel: a white cutting edge
+   * along the inside of the curve, the back edged in the spectrum with two
+   * barbs on it, a spectrum fuller with a surge of white riding down it; a
+   * guard with a spiral curl, a wrapped grip and a diamond pommel. Edged in
+   * black. A glint runs along the edge on the beat.
    */
   private drawSword(t: number, beat: number): void {
     if (!this.mouse) { this.cursor?.move(0, 0, this.px, false); return; }
     const px = this.px;
     if (this.swordPx !== px) { this.swordPx = px; const n = Math.ceil((2 * REACH) / px); this.sword = new Raster(n, n); }
     const r = this.sword, h = r.w / 2, f = Math.min(1, Math.hypot(this.vx, this.vy) / 520), pulse = ONE.pulse;
-    const bob = (Math.sin(t * 1.6) * 2.2 * (1 - f)) / px, rot = this.angle(t) - BASE, c2 = Math.cos(rot), s2 = Math.sin(rot), sc = 1 + beat * 0.03 + pulse * 0.05;
-    const at = (x: number, y: number): [number, number] => [h + ((x * c2 - y * s2) * sc) / px, h + bob + ((x * s2 + y * c2) * sc) / px];
-    // where along the crescent a raster pixel lies (0 at the point, 1 at the far end), from its angle round the hollow
-    const along = (X: number, Y: number) => {
-      const dx = (X + 0.5 - h) * px, dy = (Y + 0.5 - h - bob) * px, lx = (dx * c2 + dy * s2) / sc - HOLLOW[0], ly = (-dx * s2 + dy * c2) / sc - HOLLOW[1];
-      let a = (Math.atan2(ly, lx) * 180) / Math.PI;
-      if (a < -90) a += 360;
-      return Math.max(0, Math.min(1, (225 - a) / 235));
+    const bob = (Math.sin(t * 1.6) * 2.2 * (1 - f)) / px, rot = this.angle(t) - BASE, c2 = Math.cos(rot), s2 = Math.sin(rot);
+    const at = (x: number, y: number): [number, number] => [h + (x * c2 - y * s2) / px, h + bob + (x * s2 + y * c2) / px];
+    const local = (X: number, Y: number): [number, number] => {
+      const dx = (X + 0.5 - h) * px, dy = (Y + 0.5 - h - bob) * px;
+      return [dx * c2 + dy * s2, -dx * s2 + dy * c2];
     };
-    const hueAlong = (u: number) => { let i = 0; while (i < RUN.length - 2 && u > RUN[i + 1][0]) i++; const [u0, h0] = RUN[i], [u1, h1] = RUN[i + 1]; return Math.round(h0 + ((h1 - h0) * (u - u0)) / (u1 - u0)); };
-    const pulseAt = beat > 0.35 || pulse > 0.1 ? ((t * 0.9) % 1.4) : -1;
-    const stroke = (pts: number[][], level: number, halo: boolean, jitter = 0) => {
-      let prev: [number, number] | null = null;
-      pts.forEach(([x, y], i) => {
-        const j = jitter ? Math.sin(t * 9 + i * 2.3) * jitter : 0;
-        const q2 = at(x + j, y - j);
-        if (prev) {
-          const [ax, ay] = prev;
-          if (halo) for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) r.line(ax + ox, ay + oy, q2[0] + ox, q2[1] + oy, (X, Y) => (r.get(X, Y) ? 0 : SPEC[hueAlong(along(X, Y))][0]));
-          r.line(ax, ay, q2[0], q2[1], (X, Y) => { const u = along(X, Y); return Math.abs(u - pulseAt) < 0.035 ? w[4] : SPEC[hueAlong(u)][level]; });
-        }
-        prev = q2;
-      });
-    };
+    const hue = (u: number) => { let i = 0; while (i < RUN.length - 2 && u > RUN[i + 1][0]) i++; const [u0, h0] = RUN[i], [u1, h1] = RUN[i + 1]; return Math.round(h0 + ((h1 - h0) * (u - u0)) / (u1 - u0)); };
+    const glint = beat > 0.35 || pulse > 0.1 ? (t * 0.9) % 1.4 : -1, surge = 1 - ((t * 0.55) % 1.3);
     r.clear(0);
-    const quiver = beat * 2.2 + pulse * 3;
-    // the halo first, under everything, then the strokes from the faint layers up
-    for (const [pts, lv] of BACK) stroke(pts, lv, true);
-    stroke(EDGE, 3, true, quiver);
-    for (const pts of HATCH) stroke(pts, 2, true);
-    for (const pts of TEETH) stroke(pts, 3, true, quiver * 0.6);
-    for (const [pts, lv] of BACK) stroke(pts, lv, false);
-    stroke(EDGE, 3, false, quiver);
-    stroke(EDGE.map(([x, y]) => [x + 3, y - 3]), 2, false, quiver);
-    for (const pts of HATCH) stroke(pts, 2, false);
-    for (const pts of TEETH) stroke(pts, 3, false, quiver * 0.6);
-    // the spiral at the far point
-    const spiral: number[][] = [];
-    for (let i = 0; i <= 40; i++) { const a = (i / 40) * Math.PI * 3.2 + t * 0.8, rr = 2 + (i / 40) * 11; spiral.push([SPIRAL[0] + Math.cos(a) * rr, SPIRAL[1] + Math.sin(a) * rr]); }
-    stroke(spiral, 3, false);
-    // and the orange stroke loose inside it
-    const [o0, o1] = [at(EMBER[0][0], EMBER[0][1]), at(EMBER[1][0], EMBER[1][1])];
-    r.line(o0[0], o0[1], o1[0], o1[1], (_X, _Y, kk) => (kk < 3 ? x4[1] : y3[0]));
+
+    // THE BLADE, pixel by pixel round its centre
+    const span = A0 - A1, ext = R1 + WB + 16;
+    const [bx0, by0] = at(CEN[0] - ext, CEN[1] - ext), [bx1, by1] = at(CEN[0] + ext, CEN[1] + ext), [bx2, by2] = at(CEN[0] - ext, CEN[1] + ext), [bx3, by3] = at(CEN[0] + ext, CEN[1] - ext);
+    const X0 = Math.max(0, Math.floor(Math.min(bx0, bx1, bx2, bx3))), X1 = Math.min(r.w - 1, Math.ceil(Math.max(bx0, bx1, bx2, bx3)));
+    const Y0 = Math.max(0, Math.floor(Math.min(by0, by1, by2, by3))), Y1 = Math.min(r.h - 1, Math.ceil(Math.max(by0, by1, by2, by3)));
+    for (let Y = Y0; Y <= Y1; Y++) for (let X = X0; X <= X1; X++) {
+      const [lx, ly] = local(X, Y), dx = lx - CEN[0], dy = ly - CEN[1], rho = Math.hypot(dx, dy);
+      let a = (Math.atan2(dy, dx) * 180) / Math.PI;
+      if (a < A1 - 5) a += 360;
+      const u = (A0 - a) / span;
+      if (u < 0 || u > 1) continue;
+      const mid = midR(u), hw = halfW(u), inner = rho - (mid - hw), outer = mid + hw + barb(u) - rho;
+      if (inner < 0 || outer < 0) continue;
+      let ink: number;
+      if (inner < px) ink = Math.abs(u - glint) < 0.03 ? w[4] : w[3];             // the cutting edge, inside the curve
+      else if (inner < px * 2) ink = m[5];
+      else if (outer < px) ink = SPEC[hue(u)][3];                                  // the back, in the spectrum
+      else if (Math.abs(rho - mid) < px * 0.6 && u > 0.12 && u < 0.94) ink = Math.abs(u - surge) < 0.025 ? w[4] : SPEC[hue(u)][2];   // the fuller
+      else ink = inner < hw * 0.7 ? k[3] : k[2];                                   // the steel, lighter toward the edge
+      r.set(X, Y, ink);
+    }
+
+    // THE HILT: a guard across the root with a spiral curled at its outer end, the wrapped grip, a diamond pommel
+    const poly = (pts: number[][], fill: number, edge: number) => {
+      const P = pts.map(([x, y]) => at(x, y));
+      r.poly(P.flat(), fill);
+      for (let i = 0; i < P.length; i++) r.line(P[i][0], P[i][1], P[(i + 1) % P.length][0], P[(i + 1) % P.length][1], edge);
+    };
+    poly([hilt(-3, -30), hilt(-3, 30), hilt(6, 26), hilt(6, -26)], k[3], m[4]);
+    const curl: number[][] = [];
+    for (let i = 0; i <= 36; i++) { const a = (i / 36) * Math.PI * 3 + t * 0.6, rr = 2 + (i / 36) * 9; curl.push([hilt(2, 38)[0] + Math.cos(a) * rr, hilt(2, 38)[1] + Math.sin(a) * rr]); }
+    for (let i = 1; i < curl.length; i++) { const p0 = at(curl[i - 1][0], curl[i - 1][1]), p1 = at(curl[i][0], curl[i][1]); r.line(p0[0], p0[1], p1[0], p1[1], m[4]); }
+    poly([hilt(6, -6), hilt(6, 6), hilt(96, 5), hilt(96, -5)], k[1], m[3]);
+    for (let i = 0; i < 10; i++) { const p0 = at(...(hilt(10 + i * 9, -5) as [number, number])), p1 = at(...(hilt(15 + i * 9, 5) as [number, number])); r.line(p0[0], p0[1], p1[0], p1[1], k[4]); }
+    poly([hilt(96, 0), hilt(108, -9), hilt(120, 0), hilt(108, 9)], k[2], w[3]);
+    { const [gx, gy] = at(...(hilt(108, 0) as [number, number])); r.rect(gx - 1, gy - 1, 2, 2, pulse > 0.2 || beat > 0.5 ? w[4] : x4[2]); }
+
+    // edged in black, so it reads over anything
+    r.outline(k[0]);
     this.cursor?.set(r, P1.table, h, h, px, true);
     this.cursor?.move(this.x, this.y, px, true);
   }
