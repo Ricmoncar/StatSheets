@@ -1,0 +1,34 @@
+// FURY'S FIRE: the sheet steeped in lava (the old page's fury-ui, -name and
+// -pfp, in pixels): charred panels with molten light welling up from their
+// bottoms, a roaring blood-orange name
+// that flares and shudders, and the portrait wreathed in flame.
+@use '../kit/chrome' as kit;
+
+@include kit.chrome('fury_fire', #090201, #3a0602, #7a2a16, #ff3b10, #ff7a2a, #ffb070) {
+  ss-panel {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 calc(4 * var(--px)), rgb(255 60 10 / 0.05) calc(4 * var(--px)) calc(5 * var(--px))),
+      linear-gradient(transparent 0 70%, rgb(255 90 20 / 0.08) 70% 84%, rgb(255 90 20 / 0.16) 84% 94%, rgb(255 110 30 / 0.24) 94%),
+      linear-gradient(rgb(28 5 2 / 0.95), rgb(9 2 1 / 0.97));
+    background-clip: padding-box;
+  }
+  .sheet > .tabs .u-tab.on { --fg: #ff5a1a; --fgh: #ff7a2a; }
+  .head .name {
+    color: #ff3b10;
+    text-shadow: var(--edge), var(--p1) var(--p1) 0 #500600;
+    animation: fury-roar 2.6s steps(1, end) infinite;
+  }
+  .head .portrait { animation: fury-burn 1.1s steps(2, jump-none) infinite; }
+}
+@keyframes fury-roar {
+  0%, 46%, 58%, 100% { translate: 0 0; color: #ff3b10; }
+  50% { translate: calc(-1 * var(--px)) 0; color: #ff7a2a; text-shadow: var(--edge), var(--p1) var(--p1) 0 #500600, 0 0 0 #ff7a2a; }
+  54% { translate: var(--px) 0; color: #ff5a1a; }
+}
+@keyframes fury-burn {
+  0% { box-shadow: 0 0 0 var(--px) #090201, 0 0 0 var(--p2) #8f1206, var(--hard); }
+  100% { box-shadow: 0 0 0 var(--px) #090201, 0 0 0 var(--p2) #ff5a1a, 0 0 0 var(--p3) #6a1000, var(--hard); }
+}
+html.perf ss-character-view[data-page='fury_fire'] {
+  .head .name, .head .portrait { animation: none; }
+}

@@ -48,6 +48,8 @@ export class CursorLayer {
  */
 export abstract class PageOverlay {
   protected root: HTMLDivElement | null = null;
+  /** The cursor's own layer when the full-window one blends with the page (a blended cursor would wash out). */
+  private cursorRoot: HTMLDivElement | null = null;
   protected r = new Raster(1, 1);
   protected cursor: CursorLayer | null = null;
   protected W = 0; protected H = 0; protected px = 3;
@@ -99,12 +101,27 @@ export abstract class PageOverlay {
     removeEventListener('pointercancel', this.onUp);
     document.documentElement.removeEventListener('pointerleave', this.onLeave);
     removeEventListener('resize', this.onResize);
+    this.cursorRoot?.remove();
+    this.cursorRoot = null;
     if (this.root) { this.root.remove(); this.root = null; this.end(); }
     this.cursor = null;
     this.cv = null;
     this.drawn = false;
   }
 
+  /** How the full-window layer mixes with the window under it ('screen' adds light like the old pages' additive fire). */
+  protected blend(mode: string): void {
+    if (!this.root) return;
+    // the root is its own stacking context, so it is the root that blends with the page
+    this.root.style.mixBlendMode = mode;
+    if (this.cursor && !this.cursorRoot) {
+      const cr = this.cursorRoot = document.createElement('div');
+      cr.setAttribute('aria-hidden', 'true');
+      cr.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;contain:strict;';
+      cr.appendChild(this.cursor.cv);
+      document.body.appendChild(cr);
+    }
+  }
   /** Draws a frame of the overlay into `r`; true if anything is on it. */
   protected abstract frame(r: Raster, t: number, dt: number): boolean;
   /** A click or tap at (x, y) in art pixels. */

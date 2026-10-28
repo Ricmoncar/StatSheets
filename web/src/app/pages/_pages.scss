@@ -3,6 +3,7 @@
 @use 'ivy-evil/chrome';
 @use 'bizzy-bees/chrome' as bizzy;
 @use 'riegen-phoenix/chrome' as riegen_phoenix;
+@use 'fury-fire/chrome' as fury_fire;
 
 // while a page draws its own cursor and a mouse is pointing, the system one is hidden
 @media (pointer: fine) {

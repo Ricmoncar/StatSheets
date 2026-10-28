@@ -48,6 +48,11 @@ export const CUSTOM_PAGES: readonly CustomPage[] = [
     load: () => import('./riegen-phoenix/riegen-phoenix'),
   },
   {
+    key: 'fury_fire', label: "Fury's Fire", accent: '#ff0000', opacity: 0.3, ownCursor: true,
+    matches: name(/^Fury$/i),
+    load: () => import('./fury-fire/fury-fire'),
+  },
+  {
     key: 'ivy_evil', label: 'Ivy · EVIL creature', accent: '#d61c30', opacity: 0.97, ownCursor: true,
     matches: c => IVY.test(c.name || '') && EVIL.test(activeFormName(c)),
     load: () => import('./ivy-evil/ivy-evil'),
