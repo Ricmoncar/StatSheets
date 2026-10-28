@@ -55,3 +55,14 @@ export function palette(ramps: Record<string, readonly string[]>): Palette {
     },
   };
 }
+
+/** A palette's colour table drained toward grey by `amount` (1 is fully grey), keeping each colour's lightness. */
+export function greyTable(p: Palette, amount = 1): Uint32Array {
+  return table(p.hex.map(h => {
+    if (!h) return h;
+    const r = parseInt(h.slice(1, 3), 16), g = parseInt(h.slice(3, 5), 16), b = parseInt(h.slice(5, 7), 16);
+    const l = r * 0.299 + g * 0.587 + b * 0.114;
+    const m = (c: number) => Math.round(c + (l - c) * amount).toString(16).padStart(2, '0');
+    return '#' + m(r) + m(g) + m(b);
+  }));
+}

@@ -53,6 +53,11 @@ export const CUSTOM_PAGES: readonly CustomPage[] = [
     load: () => import('./fury-fire/fury-fire'),
   },
   {
+    key: 'sorrow_fire', label: "Sorrow", accent: '#9a9a9a', opacity: 0.3, ownCursor: false,
+    matches: name(/^Sorrow$/i),
+    load: () => import('./sorrow-fire/sorrow-fire'),
+  },
+  {
     key: 'ivy_evil', label: 'Ivy · EVIL creature', accent: '#d61c30', opacity: 0.97, ownCursor: true,
     matches: c => IVY.test(c.name || '') && EVIL.test(activeFormName(c)),
     load: () => import('./ivy-evil/ivy-evil'),

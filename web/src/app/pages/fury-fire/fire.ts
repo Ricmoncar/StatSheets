@@ -281,7 +281,7 @@ export abstract class FireOverlay extends PageOverlay {
     // a little gold at the top edge
     const top = this.flip ? [H - H * 0.2, H] : [0, H * 0.2];
     for (let y = Math.floor(top[0]); y < top[1]; y++) {
-      const u = this.flip ? (H - 1 - y) / (H * 0.2) : y / (H * 0.2), lv = 0.18 * (1 - u);
+      const u = this.flip ? (H - 1 - y) / (H * 0.2) : y / (H * 0.2), lv = 0.11 * (1 - u);
       for (let x = 0; x < W; x++) if (lv > bayer(x, y) && !r.px[y * W + x]) r.px[y * W + x] = C['g1'];
     }
     // sparks from clicks: thrown up, falling, cooling
