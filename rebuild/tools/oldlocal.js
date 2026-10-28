@@ -27,16 +27,23 @@ const EMULATOR = (process.env.FS_EMULATOR || '127.0.0.1:8085').split(':');
 
 const TO_EMULATOR = `<script>
 (function () {
-  var make = firebase.firestore, done = false;
-  firebase.firestore = new Proxy(make, { apply: function (target, self, args) {
-    var db = target.apply(self, args);
-    if (!done) {
-      done = true;
+  // every Firestore instance, the default app's or a named app's (the Encyclopaedia makes its own), goes to the emulator before its first use
+  var hooked = new WeakSet();
+  function hook(db) {
+    if (!hooked.has(db)) {
+      hooked.add(db);
       db.useEmulator(${JSON.stringify(EMULATOR[0])}, ${+EMULATOR[1]});
       db.enablePersistence = function () { return Promise.resolve(); };
     }
     return db;
-  } });
+  }
+  firebase.firestore = new Proxy(firebase.firestore, { apply: function (t, self, args) { return hook(t.apply(self, args)); } });
+  var init = firebase.initializeApp;
+  firebase.initializeApp = function () {
+    var app = init.apply(this, arguments), make = app.firestore;
+    app.firestore = function () { return hook(make.apply(app, arguments)); };
+    return app;
+  };
 })();
 </script>`;
 

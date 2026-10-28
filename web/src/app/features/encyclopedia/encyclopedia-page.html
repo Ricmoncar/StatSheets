@@ -1,0 +1,474 @@
+<header class="mast">
+  <a class="u-btn sm back" routerLink="/" aria-label="Back">&lt;<span class="bk">&nbsp;BACK</span></a>
+  <div class="title-block">
+    <h1 class="title" aria-label="Encyclop&aelig;dia"><span aria-hidden="true">ENCYCLOP<span class="ae">A</span>EDIA</span></h1>
+    <div class="sub">CODEX OF THE REALM</div>
+    <div class="deco" aria-hidden="true"><i></i><span class="gem"></span><i></i></div>
+  </div>
+  <button type="button" class="u-btn sm toc-btn" (click)="tocOpen.set(!tocOpen())" [attr.aria-expanded]="tocOpen()">INDEX &#9776;</button>
+</header>
+@if (tocOpen()) { <div class="toc-backdrop" (click)="tocOpen.set(false)" aria-hidden="true"></div> }
+
+<div class="book">
+  <!-- the left page: the index -->
+  <aside class="left" [class.open]="tocOpen()" aria-label="Index">
+    <div class="left-hd">
+      <div class="idx-label">{{ cfg().label }}</div>
+      <div class="idx-sub">{{ cfg().sub }}</div>
+    </div>
+    @if (section() === 'memories') {
+      <div class="mem-controls">
+        <div class="mem-modes" role="group" aria-label="Show">
+          <button type="button" class="mode" [class.on]="memView() === 'char'" (click)="memView.set('char')">BY CHARACTER</button>
+          <button type="button" class="mode" [class.on]="memView() === 'all'" (click)="memView.set('all')">ALL</button>
+        </div>
+        @if (memView() === 'char') {
+          <input class="u-input mem-search" type="text" placeholder="SEARCH CHARACTERS..." [value]="memSearch()" (input)="memSearch.set($any($event.target).value)" autocomplete="off" aria-label="Search characters" />
+        }
+      </div>
+    }
+    <div class="toc">
+      @switch (section()) {
+        @case ('statuses') {
+          @let g = statusGroups();
+          @for (f of FOLDERS; track f) {
+            <div class="group">
+              <button type="button" class="group-title" [class.over]="dragOver() === 'g:' + f" (click)="toggleFolder(f)"
+                      (dragover)="dragOverItem($event, 'g:' + f)" (dragleave)="dragOver.set(null)" (drop)="drop($event, { group: f })">
+                <span>{{ folderOpen()[f] ? '▾' : '▸' }}</span><span>{{ folderLabel(f) }}</span>
+              </button>
+              @if (folderOpen()[f]) {
+                <div class="group-body" [class.over]="dragOver() === 'b:' + f" (dragover)="dragOverItem($event, 'b:' + f)" (dragleave)="dragOver.set(null)" (drop)="drop($event, { group: f })">
+                  @for (x of g[f]; track x.s.id) {
+                    <div class="toc-item" [class.on]="x.i === idx()" [class.dragging]="dragId() === x.s.id" [class.over]="dragOver() === x.s.id"
+                         draggable="true" (dragstart)="dragStart($event, x.s.id)" (dragend)="dragEnd()" (dragover)="dragOverItem($event, x.s.id)" (dragleave)="dragOver.set(null)" (drop)="$event.stopPropagation(); drop($event, { id: x.s.id })"
+                         (click)="go(x.i)" role="button" tabindex="0" (keydown.enter)="go(x.i)">
+                      <span class="n">{{ toRoman(x.i + 1) }}</span><span class="txt">{{ x.s.name || 'UNNAMED' }}</span><i class="dot" [style.background]="x.s.color || cfg().col"></i>
+                    </div>
+                  } @empty { <div class="toc-empty">NO {{ f }} YET</div> }
+                </div>
+              }
+            </div>
+          }
+        }
+        @case ('memories') {
+          @if (memView() === 'all') {
+            @for (m of enc().memories; track m.id; let i = $index) {
+              <div class="toc-item" [class.on]="i === idx()" (click)="go(i)" role="button" tabindex="0" (keydown.enter)="go(i)">
+                <span class="n">{{ toRoman(i + 1) }}</span><span class="txt">{{ m.title || 'UNTITLED' }}</span><i class="dot"></i>
+              </div>
+            } @empty { <div class="toc-empty">NOTHING YET</div> }
+          } @else {
+            @for (grp of memGroups(); track grp.id) {
+              @let open = !memCollapsed().has(grp.id);
+              <div class="group">
+                <button type="button" class="group-title char" [class.shut]="!open" (click)="toggleMemChar(grp.id)">
+                  <i class="cdot" [class.nara]="grp.nara" [style.background]="grp.nara ? null : grp.col"></i>
+                  <span class="cname" [class.nara]="grp.nara" [style.color]="grp.nara ? null : grp.col">{{ grp.name }}</span>
+                  <span class="count">{{ grp.items.length }}</span><span class="arrow">▾</span>
+                </button>
+                @if (open) {
+                  <div class="group-body">
+                    @for (x of grp.items; track x.m.id) {
+                      <div class="toc-item" [class.on]="x.i === idx()" (click)="go(x.i)" role="button" tabindex="0" (keydown.enter)="go(x.i)">
+                        <span class="n">{{ toRoman(x.i + 1) }}</span><span class="txt">{{ x.m.title || 'UNTITLED' }}</span><i class="dot"></i>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            } @empty { <div class="toc-empty">{{ memSearch() ? 'NO MATCHES' : 'NOTHING YET' }}</div> }
+          }
+        }
+        @default {
+          @for (e of list(); track $index; let i = $index) {
+            <div class="toc-item" [class.on]="i === idx()" (click)="go(i)" role="button" tabindex="0" (keydown.enter)="go(i)">
+              <span class="n">{{ toRoman(i + 1) }}</span><span class="txt">{{ entryName(e) }}</span><i class="dot" [style.background]="dot(e)"></i>
+            </div>
+          } @empty { <div class="toc-empty">NOTHING YET</div> }
+        }
+      }
+    </div>
+    <div class="left-ft">
+      @if (section() === 'characters' || section() === 'items') {
+        <a class="u-btn sm block" routerLink="/">GO TO MAIN APP ↗</a>
+      } @else {
+        <button type="button" class="u-btn sm primary block" (click)="newEntry()">+ {{ newLabel() }}</button>
+      }
+    </div>
+  </aside>
+
+  <div class="spine" aria-hidden="true"><span>CODEX</span></div>
+
+  <!-- the right page: the entry -->
+  <section class="right">
+    <div class="content-col">
+      <div class="scroll" #scroll>
+        @for (t of [turn()]; track t.n) {
+          <article class="content turn-{{ t.dir }}">
+            @if (entry(); as e) {
+              @switch (section()) {
+                @case ('characters') { <ng-container *ngTemplateOutlet="charT; context: { $implicit: asChar(e) }" /> }
+                @case ('places') { <ng-container *ngTemplateOutlet="placeT; context: { $implicit: asPlace(e) }" /> }
+                @case ('statuses') { <ng-container *ngTemplateOutlet="statusT; context: { $implicit: asStatus(e) }" /> }
+                @case ('memories') { <ng-container *ngTemplateOutlet="memoryT; context: { $implicit: asMemory(e) }" /> }
+                @case ('items') { <ng-container *ngTemplateOutlet="itemT; context: { $implicit: asItem(e) }" /> }
+                @case ('npcs') { <ng-container *ngTemplateOutlet="npcT; context: { $implicit: asNpc(e) }" /> }
+              }
+            } @else {
+              <div class="empty">
+                <div class="empty-icon">{{ empty().icon }}</div>
+                <div class="empty-title">{{ empty().title }}</div>
+                <div class="empty-sub">{{ empty().sub }}</div>
+              </div>
+            }
+          </article>
+        }
+      </div>
+      <nav class="foot" aria-label="Pages">
+        <button type="button" class="pg" [disabled]="idx() <= 0" (click)="nav('prev')">&#8592; PREV</button>
+        <div class="pinfo">{{ list().length ? (idx() + 1) + '  /  ' + list().length : ':' }}</div>
+        <button type="button" class="pg" [disabled]="idx() >= list().length - 1" (click)="nav('next')">NEXT &#8594;</button>
+      </nav>
+    </div>
+    <nav class="tabs" aria-label="Sections">
+      @for (s of ORDER; track s) {
+        <button type="button" class="tab" [class.on]="section() === s" [style.--tc]="SECTIONS[s].col" (click)="setSection(s)" [attr.aria-pressed]="section() === s">
+          <span>{{ SECTIONS[s].tab }}</span>
+        </button>
+      }
+    </nav>
+  </section>
+</div>
+
+<!-- ═══ the entries ═══ -->
+<ng-template #label let-text let-col="col" let-nara="nara">
+  <div class="slabel" [style.color]="nara ? null : col"><span [class.nara]="nara">⬥ {{ text }}</span></div>
+</ng-template>
+
+<ng-template #charT let-c>
+  @let col = legible(c.color || '#c9a227');
+  @let nara = isNara(c);
+  @let info = c.info || {};
+  @let fields = infoFields(c);
+  <div class="hero">
+    <div class="portrait" [class.nara-border]="nara" [style.--pc]="col">
+      @if (c.avatar) { <img [src]="c.avatar" alt="" /> } @else { <span class="ph">◈</span> }
+    </div>
+    <div class="hero-info">
+      <div class="name big" [class.nara]="nara" [style.--nc]="nara ? null : col">{{ c.name || 'UNNAMED' }}</div>
+      <div class="band" [class.nara-band]="nara" [style.--bc]="col"></div>
+      @if (fields.length) {
+        <div class="quick">@for (f of fields.slice(0, 4); track f[0]; let last = $last) { <span class="qtag">{{ f[1] }}</span>@if (!last) { <span class="qsep">·</span> } }</div>
+      }
+    </div>
+  </div>
+  <ng-container *ngTemplateOutlet="label; context: { $implicit: 'COMBAT STATS', col, nara }" />
+  <div class="statbars">
+    @for (s of stats(c); track s.label) {
+      <div class="sbar"><span class="sl">{{ s.label }}</span><span class="sv">{{ s.val }}</span><span class="track"><i [style.--w]="s.pct + '%'" [style.background]="s.col"></i></span></div>
+    }
+  </div>
+  @let tr = traits(c);
+  @if (tr.length) {
+    <ng-container *ngTemplateOutlet="label; context: { $implicit: 'TRAITS', col, nara }" />
+    <div class="chips">@for (t of tr; track t.key) { <span class="trait r-{{ t.rarity }}" [class.shimmy]="t.shimmy">@if (t.shimmy) { <span class="sstar">✦</span> }{{ t.name }}</span> }</div>
+  }
+  @if (fields.length) {
+    <ng-container *ngTemplateOutlet="label; context: { $implicit: 'IDENTITY', col, nara }" />
+    <div class="info-grid">@for (f of fields; track f[0]) { <div class="ifield"><div class="ilbl">{{ f[0] }}</div><div class="ival">{{ f[1] }}</div></div> }</div>
+  }
+  @if (info.bio) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'BIOGRAPHY', col, nara }" /><div class="body">{{ info.bio }}</div> }
+  @if (info.personality) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'PERSONALITY', col, nara }" /><div class="body">{{ info.personality }}</div> }
+  @if (info.goals || info.fears) {
+    <div class="info-grid gf">
+      @if (info.goals) { <div><div class="ilbl">GOALS</div><div class="body">{{ info.goals }}</div></div> }
+      @if (info.fears) { <div><div class="ilbl">FEARS</div><div class="body">{{ info.fears }}</div></div> }
+    </div>
+  }
+  @if (c.abilities?.length) {
+    <ng-container *ngTemplateOutlet="label; context: { $implicit: 'ABILITIES', col, nara }" />
+    <div>@for (ab of c.abilities; track $index) {
+      @let tc = abColor(ab.type);
+      <div class="ability"><span class="aic" [style.color]="tc.text">{{ tc.icon }}</span><span class="anm">{{ ab.name || 'UNNAMED' }}</span><span class="aty" [style.color]="tc.text">{{ ab.type || 'ACTIVE' }}</span></div>
+    }</div>
+  }
+  @if (passives(c.charPassives).length) {
+    <ng-container *ngTemplateOutlet="label; context: { $implicit: 'PASSIVES', col, nara }" />
+    <div>@for (p of passives(c.charPassives); track $index) { <div class="passive">{{ p }}</div> }</div>
+  }
+  @if (info.notes) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'NOTES', col, nara }" /><div class="body">{{ info.notes }}</div> }
+</ng-template>
+
+<ng-template #npcT let-n>
+  @let col = legible(n.color || SECTIONS.npcs.col);
+  <div class="hero">
+    <div class="portrait" [style.--pc]="col">@if (n.image) { <img [src]="n.image" alt="" /> } @else { <span class="ph">◈</span> }</div>
+    <div class="hero-info">
+      <div class="name big" [style.--nc]="col">{{ n.name || 'UNNAMED' }}</div>
+      <div class="band" [style.--bc]="col"></div>
+      <div class="badges">
+        @if (n.role) { <span class="badge" [style.--bc]="col">{{ n.role }}</span> }
+        @if (n.affiliation) { <span class="badge" style="--bc: #a08050">{{ n.affiliation }}</span> }
+        @if (n.alignment) { <span class="badge" style="--bc: #888">{{ n.alignment }}</span> }
+      </div>
+    </div>
+  </div>
+  <div class="divider" [style.background]="col"></div>
+  @if (n.desc) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'DESCRIPTION', col }" /><div class="body">{{ n.desc }}</div> }
+  @if (n.personality) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'PERSONALITY', col }" /><div class="body">{{ n.personality }}</div> }
+  @if (n.notes) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'NOTES', col }" /><div class="body">{{ n.notes }}</div> }
+  <div class="actions"><button type="button" class="u-btn sm" (click)="editNpc(n.id)">EDIT</button><button type="button" class="u-btn sm danger" (click)="del('npc', n.id)">✕ DELETE</button></div>
+</ng-template>
+
+<ng-template #placeT let-p>
+  @let col = SECTIONS.places.col;
+  @if (p.image) {
+    <div class="pic" (pointermove)="lean($event)" (pointerleave)="unlean($event)" (click)="full.set(p.image)" role="button" tabindex="0" (keydown.enter)="full.set(p.image)" aria-label="Show the picture"><img [src]="p.image" alt="" /></div>
+  }
+  <div class="name" [style.--nc]="col">{{ p.name || 'UNNAMED' }}</div>
+  <div class="divider" [style.background]="col"></div>
+  <div class="badges">
+    @if (p.type) { <span class="badge" [style.--bc]="col">{{ p.type }}</span> }
+    @if (p.region) { <span class="badge" style="--bc: #a08050">{{ p.region }}</span> }
+  </div>
+  @if (p.desc) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'DESCRIPTION', col }" /><div class="body">{{ p.desc }}</div> }
+  @if (p.lore) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'LORE & HISTORY', col }" /><div class="body">{{ p.lore }}</div> }
+  @if (p.features) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'NOTABLE FEATURES', col }" /><div class="body">{{ p.features }}</div> }
+  @if (p.soundtracks?.length) {
+    <ng-container *ngTemplateOutlet="label; context: { $implicit: 'SOUNDTRACKS', col }" />
+    <div>@for (st of p.soundtracks; track $index) {
+      @let k = p.id + ':' + $index;
+      <div class="track-item">
+        <button type="button" class="track-hd" (click)="toggleTrack(k)" [attr.aria-expanded]="openTracks().has(k)">
+          <span class="ticon" [style.color]="col">▶</span><span class="tlbl">{{ st.label || 'TRACK ' + ($index + 1) }}</span><span class="ttog">{{ openTracks().has(k) ? '▲' : '▼' }}</span>
+        </button>
+        @if (openTracks().has(k) && embed(st.url); as src) { <div class="embed"><iframe [src]="src" allowfullscreen loading="lazy" title="Soundtrack"></iframe></div> }
+      </div>
+    }</div>
+  }
+  <div class="actions"><button type="button" class="u-btn sm" (click)="editPlace(p.id)">EDIT</button><button type="button" class="u-btn sm danger" (click)="del('place', p.id)">✕ DELETE</button></div>
+</ng-template>
+
+<ng-template #statusT let-s>
+  @let col = legible(s.color || '#aaaaaa');
+  @let tc = statusTypeColor(s.type);
+  <div class="status-top">
+    <div class="orb" [style.--oc]="col" (pointerenter)="sound.hover()" (click)="sound.click()"><ss-status-orb [shape]="s.shape" [color]="s.color || '#aaaaaa'" [size]="64" /></div>
+    <div>
+      <div class="name" [style.--nc]="col">{{ s.name || 'UNNAMED' }}</div>
+      <span class="badge" [style.--bc]="tc">{{ s.type || 'NEUTRAL' }}</span>
+    </div>
+  </div>
+  <div class="divider" [style.background]="col"></div>
+  <div class="stars">@for (x of stars(s.stars); track x) { <span class="star" [style.color]="col">★</span> }</div>
+  @if (s.desc) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'EFFECT', col }" /><div class="body">{{ s.desc }}</div> }
+  @if (s.duration) { <div class="duration"><span class="dl">DURATION</span><span class="dv">{{ s.duration }}</span></div> }
+  <div class="actions"><button type="button" class="u-btn sm" (click)="editStatus(s.id)">EDIT</button><button type="button" class="u-btn sm danger" (click)="del('status', s.id)">✕ DELETE</button></div>
+</ng-template>
+
+<ng-template #itemT let-i>
+  @let col = legible(i.characterColor || '#00ccaa');
+  <div class="item-hero">
+    <div class="item-frame" [class.equipped]="i.equipped" [style.--ic]="col">
+      @if (i.iconImage) { <img [src]="i.iconImage" alt="" /> } @else { <span class="emoji">{{ itemIcon(i) }}</span> }
+    </div>
+    <div>
+      <div class="name" [style.--nc]="col">{{ i.name || 'UNNAMED ITEM' }}</div>
+      <div class="istatus" [class.equipped]="i.equipped" [style.color]="col">{{ i.equipped ? '⚡ EQUIPPED' : '💼 IN INVENTORY' }}</div>
+    </div>
+  </div>
+  <div class="divider" [style.background]="col"></div>
+  @if (i.desc) { <ng-container *ngTemplateOutlet="label; context: { $implicit: 'DESCRIPTION', col }" /><div class="body">{{ i.desc }}</div> }
+  @if (i.mods?.length) {
+    <ng-container *ngTemplateOutlet="label; context: { $implicit: 'STAT MODIFIERS', col }" />
+    <div class="mods">@for (m of i.mods; track $index) { <span class="mod {{ m.op }}">{{ (m.stat || '').toUpperCase() }} {{ modSign(m.op) }}{{ m.value }}</span> }</div>
+  }
+  @if (passives(i.passives).length) {
+    <ng-container *ngTemplateOutlet="label; context: { $implicit: 'PASSIVES & ABILITIES', col }" />
+    <div class="ipass">@for (p of passives(i.passives); track $index) { <div class="passive">{{ p }}</div> }</div>
+  }
+  <ng-container *ngTemplateOutlet="label; context: { $implicit: 'OWNER PROFILE', col }" />
+  <div class="owner" [style.--oc]="col">
+    @if (i.characterAvatar) { <img [src]="i.characterAvatar" alt="" /> } @else { <span class="oph">◈</span> }
+    <div><div class="otitle">CARRIED BY</div><div class="oname" [style.color]="col">{{ i.characterName || 'UNKNOWN' }}</div></div>
+  </div>
+</ng-template>
+
+<ng-template #memoryT let-m>
+  @let col = SECTIONS.memories.col;
+  @if (m.image) {
+    <div class="pic cover" (pointermove)="lean($event)" (pointerleave)="unlean($event)" (click)="full.set(m.image)" role="button" tabindex="0" (keydown.enter)="full.set(m.image)" aria-label="Show the picture"><img [src]="m.image" alt="" /></div>
+  }
+  <div class="chapter">{{ m.arc || 'CHAPTER' }}</div>
+  <div class="name" [style.--nc]="col">{{ m.title || 'UNTITLED' }}</div>
+  <div class="divider" [style.background]="col"></div>
+  @if (m.date) { <div class="badges"><span class="badge" style="--bc: #a08050">{{ m.date }}</span></div> }
+  <ng-container *ngTemplateOutlet="label; context: { $implicit: 'SCENES', col }" />
+  <div class="scenes">
+    @for (sc of m.scenes || []; track $index) {
+      <div class="scene">
+        @if (sc.title) { <div class="scene-title">{{ sc.title }}</div> }
+        <div class="scene-text">{{ sc.text }}</div>
+        <div class="scene-btns"><button type="button" class="u-btn sm" (click)="openScene(m, $index)">EDIT</button><button type="button" class="u-btn sm danger" (click)="deleteScene(m, $index)" aria-label="Delete scene">✕</button></div>
+      </div>
+    }
+  </div>
+  <div class="add-scene"><button type="button" class="u-btn sm primary" (click)="openScene(m, null)">+ ADD SCENE</button></div>
+  @if (scene(); as f) {
+    @if (f.memId === m.id) {
+      <div class="scene-form">
+        <label class="ff"><span class="u-lbl">SCENE TITLE <small>(optional)</small></span><input class="u-input" type="text" maxlength="80" placeholder="e.g. A Quiet Night" [value]="f.title" (input)="setScene('title', $any($event.target).value)" /></label>
+        <label class="ff"><span class="u-lbl">SCENE TEXT *</span><textarea class="u-input" rows="6" placeholder="Write what happened in this scene..." [value]="f.text" (input)="setScene('text', $any($event.target).value)"></textarea></label>
+        <div class="row end"><button type="button" class="u-btn sm" (click)="scene.set(null)">CANCEL</button><button type="button" class="u-btn sm primary" (click)="saveScene()">{{ f.i !== null ? 'UPDATE SCENE' : 'ADD SCENE' }}</button></div>
+      </div>
+    }
+  }
+  <div class="actions"><button type="button" class="u-btn sm" (click)="editMemory(m.id)">EDIT CHAPTER</button><button type="button" class="u-btn sm danger" (click)="del('memory', m.id)">✕ DELETE CHAPTER</button></div>
+</ng-template>
+
+<!-- ═══ the editors ═══ -->
+@if (editing(); as e) {
+  @switch (e.kind) {
+    @case ('place') {
+      <ss-modal [title]="e.id ? 'EDIT PLACE' : 'NEW PLACE'" width="620px" (closed)="closeEdit()">
+        <div class="form">
+          <div class="two">
+            <label class="ff"><span class="u-lbl">NAME *</span><input class="u-input" type="text" maxlength="80" placeholder="e.g. The Shattered Spire" [value]="field('name')" (input)="set('name', $any($event.target).value)" /></label>
+            <label class="ff"><span class="u-lbl">REGION / AREA</span><input class="u-input" type="text" maxlength="60" placeholder="e.g. Northern Wastes" [value]="field('region')" (input)="set('region', $any($event.target).value)" /></label>
+          </div>
+          <label class="ff"><span class="u-lbl">TYPE</span><span class="u-field"><select [value]="field('type')" (change)="set('type', $any($event.target).value)">@for (t of PLACE_TYPES; track t) { <option [value]="t" [selected]="t === field('type')">{{ t }}</option> }</select></span></label>
+          <label class="ff"><span class="u-lbl">DESCRIPTION</span><textarea class="u-input" rows="3" placeholder="What does this place look like? What feeling does it give?" [value]="field('desc')" (input)="set('desc', $any($event.target).value)"></textarea></label>
+          <label class="ff"><span class="u-lbl">LORE &amp; HISTORY</span><textarea class="u-input" rows="3" placeholder="The history, myths, and significance of this place..." [value]="field('lore')" (input)="set('lore', $any($event.target).value)"></textarea></label>
+          <label class="ff"><span class="u-lbl">NOTABLE FEATURES</span><textarea class="u-input" rows="2" placeholder="Landmarks, hazards, unique properties..." [value]="field('features')" (input)="set('features', $any($event.target).value)"></textarea></label>
+          <ng-container *ngTemplateOutlet="imgField" />
+          <div class="ff">
+            <span class="u-lbl">SOUNDTRACKS <small>(YOUTUBE LINKS)</small></span>
+            @if (e.kind === 'place') {
+              @for (t of e.d.soundtracks || []; track $index) {
+                <div class="st-row">
+                  <input class="u-input st-lbl" type="text" placeholder="LABEL" maxlength="60" [value]="t.label" (input)="setTrack($index, 'label', $any($event.target).value)" aria-label="Label" />
+                  <input class="u-input st-url" type="url" placeholder="https://youtube.com/watch?v=..." [value]="t.url" (input)="setTrack($index, 'url', $any($event.target).value)" aria-label="Link" />
+                  <button type="button" class="u-btn sm danger" (click)="dropTrack($index)" aria-label="Remove">✕</button>
+                </div>
+              }
+            }
+            <button type="button" class="u-btn sm" (click)="addTrack()">+ ADD TRACK</button>
+          </div>
+          <div class="row end"><button type="button" class="u-btn" (click)="closeEdit()">CANCEL</button><button type="button" class="u-btn primary" (click)="save()">SAVE PLACE</button></div>
+        </div>
+      </ss-modal>
+    }
+    @case ('status') {
+      <ss-modal [title]="e.id ? 'EDIT STATUS' : 'NEW STATUS EFFECT'" width="620px" (closed)="closeEdit()">
+        <div class="form">
+          <div class="two">
+            <label class="ff"><span class="u-lbl">NAME *</span><input class="u-input" type="text" maxlength="60" placeholder="e.g. Burning" [value]="field('name')" (input)="set('name', $any($event.target).value)" /></label>
+            <label class="ff"><span class="u-lbl">TYPE</span><span class="u-field"><select (change)="set('type', $any($event.target).value)">@for (t of STATUS_TYPES; track t) { <option [value]="t" [selected]="t === field('type')">{{ t }}</option> }</select></span></label>
+          </div>
+          <div class="ff">
+            <span class="u-lbl">COLOR</span>
+            <div class="swatches">
+              <input class="color" type="color" [value]="field('color')" (input)="set('color', $any($event.target).value)" aria-label="Colour" />
+              @for (c of STATUS_SWATCHES; track c) { <button type="button" class="sw" [style.background]="c" [class.on]="c === field('color')" (click)="set('color', c)" [attr.aria-label]="c"></button> }
+            </div>
+          </div>
+          <div class="ff">
+            <span class="u-lbl">SEVERITY (STARS)</span>
+            <div class="star-pick">@for (n of [1, 2, 3, 4, 5]; track n) { <button type="button" class="sp" [class.lit]="n <= +field('stars')" (click)="pickStar(n)" [attr.aria-label]="n + ' stars'">★</button> }</div>
+          </div>
+          <label class="ff"><span class="u-lbl">SHAPE</span><span class="u-field"><select (change)="set('shape', $any($event.target).value)">@for (s of SHAPES; track s[0]) { <option [value]="s[0]" [selected]="s[0] === field('shape')">{{ s[1] }}</option> }</select></span></label>
+          <div class="ff">
+            <span class="u-lbl">PREVIEW</span>
+            <div class="preview">
+              <ss-status-orb [shape]="field('shape')" [color]="field('color')" [size]="48" />
+              <div class="stars">@for (x of previewStars(); track $index) { <span class="star" [class.dim]="!x" [style.color]="field('color')">★</span> }</div>
+            </div>
+          </div>
+          <label class="ff"><span class="u-lbl">EFFECT DESCRIPTION</span><textarea class="u-input" rows="4" placeholder="What does this status do? Include mechanics, damage, stat changes..." [value]="field('desc')" (input)="set('desc', $any($event.target).value)"></textarea></label>
+          <label class="ff"><span class="u-lbl">DURATION</span><input class="u-input" type="text" maxlength="80" placeholder="e.g. 3 turns, until healed, permanent" [value]="field('duration')" (input)="set('duration', $any($event.target).value)" /></label>
+          <div class="row end"><button type="button" class="u-btn" (click)="closeEdit()">CANCEL</button><button type="button" class="u-btn primary" (click)="save()">SAVE STATUS</button></div>
+        </div>
+      </ss-modal>
+    }
+    @case ('memory') {
+      <ss-modal [title]="e.id ? 'EDIT CHAPTER' : 'NEW CHAPTER'" width="620px" (closed)="closeEdit()">
+        <div class="form">
+          <label class="ff"><span class="u-lbl">CHAPTER TITLE *</span><input class="u-input" type="text" maxlength="100" placeholder="e.g. The Night of Falling Stars" [value]="field('title')" (input)="set('title', $any($event.target).value)" /></label>
+          <div class="two">
+            <label class="ff"><span class="u-lbl">ARC / SAGA</span><input class="u-input" type="text" maxlength="80" placeholder="e.g. Arc I: The Beginning" [value]="field('arc')" (input)="set('arc', $any($event.target).value)" /></label>
+            <label class="ff"><span class="u-lbl">IN-UNIVERSE DATE</span><input class="u-input" type="text" maxlength="60" placeholder="e.g. Year 302, 3rd Moon" [value]="field('date')" (input)="set('date', $any($event.target).value)" /></label>
+          </div>
+          <div class="ff">
+            <span class="u-lbl">CHARACTERS <small>(OPTIONAL: link this chapter to characters)</small></span>
+            <div class="char-pick">
+              @if (e.kind === 'memory') {
+                @for (c of characters(); track c.id) {
+                  @let on = (e.d.characterIds || []).includes(c.id);
+                  <label class="cp" [class.on]="on">
+                    <input type="checkbox" [checked]="on" (change)="toggleCharLink(c.id, $any($event.target).checked)" />
+                    <i class="cdot" [class.nara]="isNara(c)" [style.background]="isNara(c) ? null : (c.color || '#888')"></i>
+                    <span class="cname" [class.nara]="isNara(c)">{{ c.name || 'UNNAMED' }}</span>
+                  </label>
+                } @empty { <span class="none">NO CHARACTERS YET</span> }
+              }
+            </div>
+          </div>
+          <ng-container *ngTemplateOutlet="imgField; context: { cover: true }" />
+          <div class="row end"><button type="button" class="u-btn" (click)="closeEdit()">CANCEL</button><button type="button" class="u-btn primary" (click)="save()">SAVE CHAPTER</button></div>
+        </div>
+      </ss-modal>
+    }
+    @case ('npc') {
+      <ss-modal [title]="e.id ? 'EDIT NPC' : 'NEW NPC'" width="620px" (closed)="closeEdit()">
+        <div class="form">
+          <div class="two">
+            <label class="ff"><span class="u-lbl">NAME *</span><input class="u-input" type="text" maxlength="80" placeholder="e.g. The Archivist" [value]="field('name')" (input)="set('name', $any($event.target).value)" /></label>
+            <label class="ff"><span class="u-lbl">ROLE / TITLE</span><input class="u-input" type="text" maxlength="60" placeholder="e.g. Merchant, Guard Captain" [value]="field('role')" (input)="set('role', $any($event.target).value)" /></label>
+          </div>
+          <div class="two">
+            <label class="ff"><span class="u-lbl">AFFILIATION</span><input class="u-input" type="text" maxlength="80" placeholder="e.g. The Silver Guild" [value]="field('affiliation')" (input)="set('affiliation', $any($event.target).value)" /></label>
+            <label class="ff"><span class="u-lbl">ALIGNMENT</span><span class="u-field"><select (change)="set('alignment', $any($event.target).value)">@for (a of ALIGNMENTS; track a) { <option [value]="a" [selected]="a === field('alignment')">{{ a }}</option> }</select></span></label>
+          </div>
+          <div class="ff">
+            <span class="u-lbl">ACCENT COLOR</span>
+            <div class="swatches">
+              <input class="color" type="color" [value]="field('color')" (input)="set('color', $any($event.target).value)" aria-label="Colour" />
+              @for (c of NPC_SWATCHES; track c) { <button type="button" class="sw" [style.background]="c" [class.on]="c === field('color')" (click)="set('color', c)" [attr.aria-label]="c"></button> }
+            </div>
+          </div>
+          <label class="ff"><span class="u-lbl">DESCRIPTION</span><textarea class="u-input" rows="3" placeholder="Who is this NPC? What do they look like?" [value]="field('desc')" (input)="set('desc', $any($event.target).value)"></textarea></label>
+          <label class="ff"><span class="u-lbl">PERSONALITY</span><textarea class="u-input" rows="2" placeholder="How do they behave? What drives them?" [value]="field('personality')" (input)="set('personality', $any($event.target).value)"></textarea></label>
+          <label class="ff"><span class="u-lbl">NOTES</span><textarea class="u-input" rows="2" placeholder="DM notes, quest hooks, secrets..." [value]="field('notes')" (input)="set('notes', $any($event.target).value)"></textarea></label>
+          <ng-container *ngTemplateOutlet="imgField" />
+          <div class="row end"><button type="button" class="u-btn" (click)="closeEdit()">CANCEL</button><button type="button" class="u-btn primary" (click)="save()">SAVE NPC</button></div>
+        </div>
+      </ss-modal>
+    }
+  }
+}
+
+<ng-template #imgField let-cover="cover">
+  <div class="ff">
+    <span class="u-lbl imgl">{{ cover ? 'COVER IMAGE' : 'IMAGE' }} @if (cover) { <small>(optional)</small> }
+      <button type="button" class="upl" (click)="file.click()" [disabled]="uploading()">[UPLOAD]</button>
+    </span>
+    <input #file type="file" accept="image/*" hidden (change)="upload($event)" />
+    <div class="img-preview">@if (field('image')) { <img [src]="field('image')" alt="" /> } @else { <span class="noimg">NO IMAGE</span> }</div>
+    @if (field('image')) { <button type="button" class="u-btn sm" (click)="set('image', null)">✕ CLEAR</button> }
+  </div>
+</ng-template>
+
+@if (confirm()) {
+  <ss-modal title="ARE YOU SURE?" width="420px" (closed)="confirm.set(null)">
+    <p class="confirm-msg">DELETE THIS ENTRY?<br />THIS CANNOT BE UNDONE.</p>
+    <div class="row end"><button type="button" class="u-btn danger" (click)="confirmYes()">DELETE</button><button type="button" class="u-btn" (click)="confirm.set(null)">CANCEL</button></div>
+  </ss-modal>
+}
+
+@if (full(); as src) {
+  <div class="fullscreen" (click)="full.set(null)">
+    <button type="button" class="u-btn icon close" (click)="full.set(null)" aria-label="Close">✕</button>
+    <img [src]="src" alt="" (click)="$event.stopPropagation()" />
+  </div>
+}

@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { ENCYCLOPEDIA_PAGE, toOldPage } from './core/pages';
 
 // One route per page of the old site.
 export const routes: Routes = [
@@ -9,8 +8,7 @@ export const routes: Routes = [
   { path: 'edit/:id', loadComponent: () => import('./features/editor/character-editor').then(m => m.CharacterEditor), title: 'STATSHEETS - EDIT' },
   { path: 'utilities', loadComponent: () => import('./features/utilities/utilities-page').then(m => m.UtilitiesPage), title: 'STATSHEETS - UTILITIES' },
   { path: 'gallery', loadComponent: () => import('./features/gallery/gallery-page').then(m => m.GalleryPage), title: 'STATSHEETS - GALLERY' },
-  // the Encyclopaedia stays the old page for now; its address leads there
-  { path: 'encyclopedia', canActivate: [toOldPage(ENCYCLOPEDIA_PAGE)], children: [] },
+  { path: 'encyclopedia', loadComponent: () => import('./features/encyclopedia/encyclopedia-page').then(m => m.EncyclopediaPage), title: 'STATSHEETS - ENCYCLOPAEDIA' },
   { path: 'playlists', loadComponent: () => import('./features/playlists/playlists-page').then(m => m.PlaylistsPage), title: 'STATSHEETS - PLAYLISTS' },
   { path: 'bkscorner', loadComponent: () => import('./features/bkscorner/bk-corner-page').then(m => m.BkCornerPage), title: "STATSHEETS - BK'S CORNER" },
   { path: 'baddie', loadComponent: () => import('./features/baddie/baddie-page').then(m => m.BaddiePage), title: 'STATSHEETS - SPIN A BADDIE' },

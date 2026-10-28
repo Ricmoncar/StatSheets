@@ -2,13 +2,9 @@
   <a class="logo" routerLink="/" aria-label="StatSheets home">STAT<span>SHEETS</span></a>
   <nav class="nav" aria-label="Pages">
     @for (n of nav; track n.path) {
-      @if (n.href) {
-        <a class="nav-link u-soul-on" [href]="n.href" data-sfx-click data-sfx-hover><ss-icon name="ast" />{{ n.label }}</a>
-      } @else {
-        <a class="nav-link u-soul-on" [routerLink]="n.path" routerLinkActive #rla="routerLinkActive" [attr.aria-current]="rla.isActive ? 'page' : null" data-sfx-click data-sfx-hover>
-          <ss-icon name="ast" />{{ n.label }}
-        </a>
-      }
+      <a class="nav-link u-soul-on" [routerLink]="n.path" routerLinkActive #rla="routerLinkActive" [attr.aria-current]="rla.isActive ? 'page' : null" data-sfx-click data-sfx-hover>
+        <ss-icon name="ast" />{{ n.label }}
+      </a>
     }
   </nav>
   <div class="more" [class.open]="moreOpen()">
@@ -18,11 +14,7 @@
     @if (moreOpen()) {
       <div class="more-menu u-fr u-frost u-menu" id="more-menu" role="menu">
         @for (n of nav; track n.path) {
-          @if (n.href) {
-            <a class="u-menu-item" role="menuitem" [href]="n.href" data-sfx-click><ss-icon name="ast" />{{ n.label }}</a>
-          } @else {
-            <a class="u-menu-item" role="menuitem" [routerLink]="n.path" (click)="moreOpen.set(false)" data-sfx-click><ss-icon name="ast" />{{ n.label }}</a>
-          }
+          <a class="u-menu-item" role="menuitem" [routerLink]="n.path" (click)="moreOpen.set(false)" data-sfx-click><ss-icon name="ast" />{{ n.label }}</a>
         }
       </div>
     }
