@@ -1,0 +1,625 @@
+<canvas #bg class="bd-bg" aria-hidden="true"></canvas>
+<canvas #fx class="bd-fx" aria-hidden="true"></canvas>
+@for (f of [flash()]; track f.n) { @if (f.n) { <div class="bd-flash" [style.--fc]="f.col" aria-hidden="true"></div> } }
+@if (banner(); as b) {
+  @for (k of [b.n]; track k) { <div class="bd-banner" [style.--bc]="b.col" role="status">{{ b.title }}<small>{{ b.small }}</small></div> }
+}
+<div #pets class="bd-pets" aria-hidden="true"></div>
+<div class="bd-toasts" aria-live="polite">
+  @for (t of game.toasts(); track t.id) { <div class="bd-toast" [style.--tc]="t.col || null">{{ t.msg }}</div> }
+</div>
+
+@let S = st();
+<!-- a baddie's card, the same wherever it is shown -->
+<ng-template #card let-b let-click="click">
+  @let rm = rarMeta(b.rarity);
+  @let mm = modMeta(b.modifier);
+  <div class="bd-baddie mod-{{ b.modifier }} rar-{{ b.rarity.toLowerCase() }} {{ upClass(b) }}" [style.--rc]="rm.col" [class.clickable]="click !== false"
+       (click)="click !== false && openBaddie(b)" [attr.role]="click !== false ? 'button' : null" [attr.tabindex]="click !== false ? 0 : null" (keydown.enter)="click !== false && openBaddie(b)">
+    @if (over(b)) { <div class="ovr">OVERDRIVE</div> }
+    @if (b.level > 0) { <div class="lvl">LV {{ b.level }}</div> }
+    <div class="picwrap">
+      @if (broken().has(b.key)) { <div class="ph">{{ initials(b.key) }}</div> }
+      @else { <img class="pic" [src]="img(b.key)" alt="" (error)="brokenImg(b.key)" draggable="false" loading="lazy" /> }
+      <i class="aura" aria-hidden="true"></i>
+    </div>
+    <div class="meta">
+      <div class="nm">{{ b.key }}</div>
+      <div class="rr">{{ b.rarity.toUpperCase() }}</div>
+      @if (b.modifier !== 'None') { <div class="md" [style.color]="mm.col">{{ b.modifier }} x{{ mm.mult }}</div> }
+      <div class="inc"><i class="coin" aria-hidden="true"></i>{{ fmt(rate(b)) }}/s</div>
+    </div>
+  </div>
+</ng-template>
+
+<div class="bd-wrap" [class.shake]="shaking() % 2 === 1" [class.shake2]="shaking() > 0 && shaking() % 2 === 0">
+  <!-- the top bar -->
+  <header class="bd-top u-fr u-crystal">
+    <h1 class="bd-title">SPIN A BADDIE<small>STATSHEETS GACHA</small></h1>
+    <div class="stat"><span class="lbl">COINS</span><span class="val"><i class="coin spin" aria-hidden="true"></i><span data-test="coins">{{ fmt(S.coins) }}</span></span></div>
+    <div class="stat"><span class="lbl">PER SECOND</span><span class="val green"><i class="coin" aria-hidden="true"></i>{{ fmt(cps()) }}/s</span></div>
+    <div class="stat"><span class="lbl">BADDIES</span><span class="val plain">{{ S.baddies.length }}</span></div>
+    <div class="buffs">@for (f of buffs(); track $index) { <span class="buff {{ f.cls }}">{{ f.text }}</span> }</div>
+  </header>
+
+  <nav class="u-tabs bd-tabs" role="tablist">
+    @for (t of TABS; track t.id) {
+      <button type="button" class="u-btn u-tab" role="tab" [attr.aria-selected]="tab() === t.id" (click)="setTab(t.id)">{{ t.label }}</button>
+    }
+  </nav>
+
+  @switch (tab()) {
+    @case ('roll') {
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">ROLL THE DICE</h2>
+        <p class="bd-sub">Pick a die and roll to pull a baddie. Better dice and more luck push you toward rarer pulls. Every baddie can land with a random modifier.</p>
+        <div class="row dice-row">
+          @for (d of ownedDice(); track d.id) {
+            <button type="button" class="u-btn diebtn" [class.primary]="d.id === S.activeDie" (click)="game.selectDie(d.id)">
+              <ss-bd-sprite kind="die" [id]="d.id" [size]="9" />{{ d.name }}{{ d.id === S.activeDie ? ' [ACTIVE]' : '' }}
+            </button>
+          }
+        </div>
+        <div class="row">
+          <button type="button" class="u-btn primary big" (click)="doRoll()" data-test="roll">ROLL</button>
+          <button type="button" class="u-btn big" (click)="autoOpen()">AUTO ROLL</button>
+        </div>
+      </section>
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">RECENT PULLS</h2>
+        @if (game.lastRolls.length) {
+          <div class="grid">@for (b of game.lastRolls; track b.id) { <ng-container *ngTemplateOutlet="card; context: { $implicit: live(b) }" /> }</div>
+        } @else { <p class="bd-empty">NO PULLS YET</p> }
+      </section>
+    }
+
+    @case ('plot') {
+      <section class="bd-card u-fr u-crystal">
+        <div class="row spread">
+          <h2 class="bd-h flat">YOUR PLOT</h2>
+          <div class="row">
+            <button type="button" class="u-btn primary" (click)="game.autoPlace()">AUTO PLACE BEST</button>
+            <button type="button" class="u-btn danger" (click)="game.clearPlot()">CLEAR PLOT</button>
+          </div>
+        </div>
+        <div class="row spread mid">
+          <p class="bd-sub narrow">Placed baddies earn coins every second. Click a baddie to upgrade, crack it into overdrive, or pull it back to inventory.</p>
+          <div class="plot-inc"><i class="coin" aria-hidden="true"></i><b>{{ fmt(cps()) }}</b>/s &middot; {{ game.placedCount() }}/{{ game.plotCap() }} placed</div>
+        </div>
+        <div class="plot">
+          @for (b of plotSlots(); track $index) {
+            @if (b) { <div class="slot full" [style.--rc]="rarMeta(b.rarity).col"><ng-container *ngTemplateOutlet="card; context: { $implicit: b }" /></div> }
+            @else { <button type="button" class="slot empty" (click)="setTab('inv')" aria-label="Place a baddie"><span>+</span></button> }
+          }
+          @if (game.plotCap() < PLOT_MAX) {
+            <button type="button" class="slot buy" (click)="game.buyPlot()" title="Expand your plot"><span>+ PLOT<br /><b>{{ fmt(game.plotBuyCost()) }}</b></span></button>
+          }
+        </div>
+      </section>
+    }
+
+    @case ('inv') {
+      @let list = invList();
+      <section class="bd-card u-fr u-crystal" #invTop>
+        <div class="row spread">
+          <h2 class="bd-h flat">INVENTORY</h2>
+          <div class="row">
+            <div class="dd" [class.open]="openDD() === 'sort'">
+              <button type="button" class="u-btn dd-btn" (click)="openDD.set(openDD() === 'sort' ? null : 'sort')" [attr.aria-expanded]="openDD() === 'sort'">{{ sortLabel() }} &#9662;</button>
+              @if (openDD() === 'sort') {
+                <div class="dd-menu u-fr u-frost" role="listbox">
+                  @for (o of SORTS; track o.v) { <button type="button" class="u-menu-item" [class.sel]="o.v === invSort()" (click)="invSort.set(o.v); invPage.set(0); openDD.set(null)">{{ o.l }}</button> }
+                </div>
+              }
+            </div>
+            <button type="button" class="u-btn danger" (click)="sellAll()">SELL ALL UNPLACED</button>
+          </div>
+        </div>
+        <div class="row mid">
+          <span class="bd-sub">Bulk sell rarity and below:</span>
+          <div class="dd" [class.open]="openDD() === 'sell'">
+            <button type="button" class="u-btn dd-btn" (click)="openDD.set(openDD() === 'sell' ? null : 'sell')" [attr.aria-expanded]="openDD() === 'sell'">{{ sellRar() }} &#9662;</button>
+            @if (openDD() === 'sell') {
+              <div class="dd-menu u-fr u-frost" role="listbox">
+                @for (r of RARITIES; track r.key) { <button type="button" class="u-menu-item" [class.sel]="r.key === sellRar()" [style.color]="r.col" (click)="sellRar.set(r.key); openDD.set(null)">{{ r.key }}</button> }
+              </div>
+            }
+          </div>
+          <button type="button" class="u-btn danger" (click)="game.sellRarityAndBelow(sellRar())">SELL</button>
+        </div>
+        @if (list.length) {
+          <div class="grid">
+            @for (b of invSlice(list); track b.id) {
+              <div class="tagged"><ng-container *ngTemplateOutlet="card; context: { $implicit: b }" />@if (b.placed) { <div class="placed">PLACED</div> }</div>
+            }
+          </div>
+          <div class="row center pager">
+            @if (pages(list.length) <= 1) { <span class="bd-sub">{{ list.length }} BADDIES</span> }
+            @else {
+              <button type="button" class="u-btn" [disabled]="pageAt(list.length) <= 0" (click)="turnPage(-1, invTop)">&lt; PREV</button>
+              <span class="bd-sub">PAGE {{ pageAt(list.length) + 1 }} / {{ pages(list.length) }} &middot; {{ list.length }} BADDIES</span>
+              <button type="button" class="u-btn" [disabled]="pageAt(list.length) >= pages(list.length) - 1" (click)="turnPage(1, invTop)">NEXT &gt;</button>
+            }
+          </div>
+        } @else { <p class="bd-empty">EMPTY - GO ROLL SOME BADDIES</p> }
+      </section>
+    }
+
+    @case ('shop') {
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">DICE</h2>
+        <p class="bd-sub">Buy better dice. Once owned, select them on the ROLL tab. Higher dice greatly raise your odds of rare baddies.</p>
+        <div class="tiles">
+          @for (d of DICE; track d.id) {
+            <div class="tile u-fr u-inset">
+              <div class="ic"><ss-bd-sprite kind="die" [id]="d.id" [size]="16" /></div>
+              <div class="tn">{{ d.name }}</div>
+              <div class="odds">@for (o of odds(d.weights); track o.key) { <i [style.width.%]="o.pct" [style.background]="o.col" [title]="o.key + ' ' + o.pct.toFixed(2) + '%'"></i> }</div>
+              <div class="td">Top odds shown above. Better tail = rarer pulls.</div>
+              <div class="tc">{{ d.cost === 0 ? 'STARTER' : fmt(d.cost) + ' COINS' }}</div>
+              @if (S.dice.includes(d.id)) { <button type="button" class="u-btn" disabled>OWNED</button> }
+              @else { <button type="button" class="u-btn primary" [disabled]="S.coins < d.cost" (click)="game.buyDie(d.id)">BUY</button> }
+            </div>
+          }
+        </div>
+      </section>
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">POTIONS</h2>
+        <p class="bd-sub">Temporary buffs, 10 minutes each. Different types stack with one another, but only one of each type can be active at a time.</p>
+        <div class="tiles">
+          @for (type of POTION_TYPES; track type) {
+            @let P = POTIONS[type];
+            @let active = game.activePotion(type);
+            <div class="tile wide u-fr u-inset">
+              <div class="ic glyph" [style.color]="P.col">{{ P.icon }}</div>
+              <div class="tn">{{ P.name }}</div>
+              <div class="td">+{{ type }} multiplier, 10 min. Only ONE of each potion type is active at a time - buying again replaces it.</div>
+              @for (lv of P.levels; track $index) {
+                <button type="button" class="u-btn block lvbtn" [disabled]="S.coins < lv.cost" (click)="game.buyPotion(type, $index)">LV{{ $index + 1 }} x{{ lv.mult }} - {{ fmt(lv.cost) }}</button>
+              }
+              @if (active) { <div class="bd-sub" [style.color]="P.col">ACTIVE x{{ active.mult }} ({{ fmtTime(active.exp - now()) }})</div> }
+            </div>
+          }
+        </div>
+      </section>
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">CURSORS</h2>
+        <p class="bd-sub">Each cursor restyles your pointer and rolls the dice faster (manual and auto roll).</p>
+        <div class="tiles">
+          @for (c of CURSORS; track c.id) {
+            @let owned = S.cursors.owned.includes(c.id);
+            @let active = S.cursors.active === c.id;
+            <div class="tile u-fr u-inset" [class.on]="active" [style.--tc]="c.col">
+              <div class="ic"><img class="cur" [src]="cursorArt(c.id).img" alt="" /></div>
+              <div class="tn">{{ c.name }}</div>
+              <div class="td">ROLL SPEED x{{ c.speed }}</div>
+              <div class="tc">{{ c.cost === 0 ? 'STARTER' : fmt(c.cost) + ' COINS' }}</div>
+              @if (active) { <button type="button" class="u-btn" disabled>EQUIPPED</button> }
+              @else if (owned) { <button type="button" class="u-btn" (click)="game.equipCursor(c.id)">EQUIP</button> }
+              @else { <button type="button" class="u-btn primary" [disabled]="S.coins < c.cost" (click)="game.buyCursor(c.id)">BUY</button> }
+            </div>
+          }
+        </div>
+      </section>
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">MENU THEMES</h2>
+        <p class="bd-sub">Restyle the whole page with an animated backdrop. Buy once, switch any time.</p>
+        <div class="tiles">
+          @for (t of THEMES; track t.id) {
+            @let owned = S.themes.owned.includes(t.id);
+            @let active = S.themes.active === t.id;
+            <div class="tile u-fr u-inset" [class.on]="active" [style.--tc]="t.accent">
+              <div class="swatch" [style.--g0]="t.grad[0]" [style.--g1]="t.grad[1] || t.grad[0]">@for (c of t.pal.slice(0, 4); track $index) { <i [style.background]="c"></i> }</div>
+              <div class="tn" [style.color]="t.accent">{{ t.name }}{{ t.custom ? ' ★' : '' }}</div>
+              <div class="td">{{ t.custom ? 'Signature theme' : 'Theme' }} - {{ t.mode.toUpperCase() }}</div>
+              <div class="tc">{{ t.cost === 0 ? 'DEFAULT' : fmt(t.cost) + ' COINS' }}</div>
+              @if (active) { <button type="button" class="u-btn" disabled>ACTIVE</button> }
+              @else if (owned) { <button type="button" class="u-btn" (click)="game.equipTheme(t.id)">EQUIP</button> }
+              @else { <button type="button" class="u-btn primary" [disabled]="S.coins < t.cost" (click)="game.buyTheme(t.id)">BUY</button> }
+            </div>
+          }
+        </div>
+      </section>
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">SPECIALS</h2>
+        <div class="tiles">
+          <div class="tile wide u-fr u-inset">
+            <div class="ic glyph" style="color: #7CFF4A">&#8635;</div>
+            <div class="tn">AUTO ROLL</div>
+            <div class="td">Unlocks a floating window that auto-rolls one by one while you use the rest of the page.</div>
+            <div class="tc">{{ S.autoRoll ? 'OWNED' : fmt(AUTO_ROLL_COST) + ' COINS' }}</div>
+            <button type="button" class="u-btn primary" [disabled]="!S.autoRoll && S.coins < AUTO_ROLL_COST" (click)="buyAuto()">{{ S.autoRoll ? 'OPEN' : 'BUY' }}</button>
+          </div>
+          <div class="tile wide u-fr u-inset">
+            <div class="ic glyph" style="color: #ff66dd">&#9733;</div>
+            <div class="tn">CAPPY'S MILK</div>
+            <div class="td">Applies the CAPPYFIED x5 modifier to one baddie you choose. The rarest modifier there is.</div>
+            <div class="tc">{{ fmt(game.cappyCost()) }} COINS</div>
+            <button type="button" class="u-btn primary" [disabled]="S.coins < game.cappyCost()" (click)="cappy()">USE</button>
+          </div>
+        </div>
+      </section>
+    }
+
+    @case ('pets') {
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">EGGS</h2>
+        <p class="bd-sub">Hatch eggs for pets. Pets float around your screen and grant luck and money multipliers while equipped. One egg at a time.</p>
+        <div class="tiles">
+          @for (k of EGG_KEYS; track k) {
+            @let e = EGGS[k];
+            <div class="tile wide u-fr u-inset">
+              <div class="ic"><ss-bd-sprite kind="egg" [id]="k" /></div>
+              <div class="tn" [style.color]="e.col">{{ e.name }}</div>
+              <div class="td">@for (l of eggLines(k); track $index) { {{ l }}<br /> }</div>
+              <div class="tc">{{ fmt(e.cost) }} COINS</div>
+              <button type="button" class="u-btn primary" [disabled]="S.coins < e.cost" (click)="hatch(k)">HATCH</button>
+            </div>
+          }
+        </div>
+      </section>
+      <section class="bd-card u-fr u-crystal">
+        <div class="row spread">
+          <h2 class="bd-h flat">YOUR PETS</h2>
+          <div class="row">
+            <span class="bd-sub">EQUIPPED {{ S.pets.equipped.length }}/{{ S.pets.slots }}</span>
+            <button type="button" class="u-btn primary" [disabled]="S.coins < game.petSlotCost()" (click)="game.buyPetSlot()">BUY SLOT [{{ fmt(game.petSlotCost()) }}]</button>
+          </div>
+        </div>
+        @if (S.pets.list.length) {
+          <div class="tiles pets-grid">
+            @for (p of S.pets.list; track p.id) {
+              @let def = PETS[p.type];
+              @let eq = S.pets.equipped.includes(p.id);
+              <div class="petcard u-fr u-inset" [style.--pc]="def.col">
+                <div class="pic"><ss-bd-sprite kind="pet" [id]="p.type" /></div>
+                <div class="nm">{{ petName(p.type) }}</div>
+                <div class="pst">LUCK x{{ def.luck }}<br />MONEY x{{ def.money }}</div>
+                <button type="button" class="u-btn block" [class.primary]="eq" (click)="game.togglePet(p.id)">{{ eq ? 'EQUIPPED' : 'EQUIP' }}</button>
+                <button type="button" class="u-btn danger block" (click)="game.releasePet(p.id)">RELEASE</button>
+              </div>
+            }
+          </div>
+        } @else { <p class="bd-empty">NO PETS YET</p> }
+      </section>
+    }
+
+    @case ('index') {
+      @let idx = index();
+      <section class="bd-card u-fr u-crystal">
+        <div class="row spread">
+          <h2 class="bd-h flat">BADDIE INDEX</h2>
+          <span class="bd-sub">{{ found(idx) }} / {{ idx.length }} DISCOVERED</span>
+        </div>
+        <p class="bd-sub">Every baddie you have ever rolled. Locked ones stay hidden until you find them.</p>
+        <div class="index">
+          @for (e of idx; track e.key) {
+            <div class="itile" [class.found]="e.found" [style.--rc]="e.found ? rarMeta(e.rarity).col : null"
+                 (click)="e.found && showFull(e.key)" [attr.role]="e.found ? 'button' : null" [attr.tabindex]="e.found ? 0 : null" (keydown.enter)="e.found && showFull(e.key)">
+              <div class="ipic">
+                @if (!e.found) { <span class="q">?</span> }
+                @else if (broken().has(e.key)) { <span class="ini">{{ initials(e.key) }}</span> }
+                @else { <img [src]="img(e.key)" alt="" (error)="brokenImg(e.key)" loading="lazy" draggable="false" /> }
+              </div>
+              <div class="ilbl">{{ e.found ? label(e.key) : '???' }}</div>
+              <div class="irar">{{ e.found ? e.rarity : '' }}</div>
+              @if (e.found && !e.claimed) { <button type="button" class="claim" (click)="$event.stopPropagation(); game.indexClaim(e.key)">CLAIM {{ fmt(e.reward) }}</button> }
+              @else if (e.found) { <div class="claimed">CLAIMED</div> }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    @case ('bj') {
+      @let t = bj();
+      <section class="bd-card bj-card u-fr u-wood">
+        <div class="felt">
+          <h2 class="bj-title">BLACKJACK'S TABLE</h2>
+          <p class="bj-sub">Beat the dealer to 21 without busting. Blackjack pays 3:2. Dealer stands on 17.</p>
+          <div class="bj-area">
+            <div class="hand">
+              <div class="bj-lbl">DEALER <span>{{ dealerScore() }}</span></div>
+              <div class="cards">@for (c of t.dealer; track $index) {
+                @if (t.hideHole && $index === 1) { <div class="pcard back"></div> }
+                @else { <div class="pcard" [class.red]="c.red"><span class="corner">{{ c.rank }}{{ c.suit }}</span>{{ c.rank }}{{ c.suit }}<span class="corner br">{{ c.rank }}{{ c.suit }}</span></div> }
+              }</div>
+            </div>
+            <div class="hand">
+              <div class="bj-lbl">YOU <span>{{ t.player.length ? '(' + handValue(t.player) + ')' : '' }}</span></div>
+              <div class="cards">@for (c of t.player; track $index) {
+                <div class="pcard" [class.red]="c.red"><span class="corner">{{ c.rank }}{{ c.suit }}</span>{{ c.rank }}{{ c.suit }}<span class="corner br">{{ c.rank }}{{ c.suit }}</span></div>
+              }</div>
+            </div>
+          </div>
+          <div class="bj-msg {{ t.cls }}" role="status">{{ t.msg }}</div>
+          <div class="bj-controls">
+            <div class="betrow">
+              <span class="betlbl">BET</span>
+              <input class="u-input bet" type="text" inputmode="numeric" [value]="betIn()" (input)="betIn.set($any($event.target).value)" [disabled]="t.inRound" aria-label="Bet" />
+              <button type="button" class="u-btn sm" [disabled]="t.inRound" (click)="betAdd(1000)">+1K</button>
+              <button type="button" class="u-btn sm" [disabled]="t.inRound" (click)="betAdd(100000)">+100K</button>
+              <button type="button" class="u-btn sm" [disabled]="t.inRound" (click)="betAdd(10000000)">+10M</button>
+              <button type="button" class="u-btn sm" [disabled]="t.inRound" (click)="betMax()">MAX</button>
+              <button type="button" class="u-btn sm" [disabled]="t.inRound" (click)="betClear()">CLEAR</button>
+            </div>
+            <div class="row center">
+              <button type="button" class="u-btn primary big" [disabled]="t.inRound || dealing()" (click)="bjDeal()">DEAL</button>
+              <button type="button" class="u-btn big" [disabled]="!t.inRound || dealing()" (click)="bjHit()">HIT</button>
+              <button type="button" class="u-btn big" [disabled]="!t.inRound || dealing()" (click)="bjStand()">STAND</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+
+    @case ('saves') {
+      @let r = S.rebirths || 0;
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">REBIRTH</h2>
+        <p class="bd-sub tall">
+          REBIRTHS: <span class="gold">{{ r }} / 5</span><br />
+          CURRENT BONUS: <span class="green">x{{ game.rebirthMult().toFixed(2) }}</span> LUCK, MUTATION &amp; MONEY (additive per rebirth)<br />
+          <span class="dim">Rebirthing resets your plot, dice, coins, autoroll and potions. Keeps cursors, themes &amp; your index.</span>
+        </p>
+        <div class="steps">
+          @for (l of REBIRTH_LABELS; track $index) {
+            @let done = r > $index;
+            @let met = (S.maxRarityEver || 0) >= REBIRTH_REQ[$index];
+            <div class="step" [class.done]="done">
+              <span class="mark" [style.color]="done ? '#7CFF4A' : r === $index && met ? REBIRTH_COLORS[$index] : '#444'">{{ done ? '✔' : '◯' }}</span>
+              <span class="nm" [style.color]="REBIRTH_COLORS[$index]">REBIRTH {{ $index + 1 }}</span>
+              <span class="bd-sub">Reach <span [style.color]="REBIRTH_COLORS[$index]">{{ l }}</span> or higher</span>
+              @if (done) { <span class="bd-sub end green">DONE</span> } @else if (met) { <span class="bd-sub end gold">READY</span> }
+            </div>
+          }
+        </div>
+        @if (r < 5) {
+          <button type="button" class="u-btn primary big" [disabled]="!game.rebirthAvailable()" (click)="rebirth()">
+            {{ game.rebirthAvailable() ? '✦ REBIRTH NOW' : 'REBIRTH LOCKED - ROLL ' + REBIRTH_LABELS[r] + ' OR HIGHER' }}
+          </button>
+        } @else { <p class="bd-sub green center">MAX REBIRTHS REACHED. YOU ARE ASCENDED.</p> }
+      </section>
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">DAILY REWARD</h2>
+        @let d = daily();
+        <div class="row spread mid">
+          <p class="bd-sub tall">STREAK: <span class="gold">{{ d.streak }}</span> DAYS<br />{{ d.claimed ? 'COME BACK TOMORROW FOR MORE.' : 'CLAIM ' + fmt(d.amount) + ' COINS' + (d.milestone ? ' + FREE COMMON EGG' : '') }}</p>
+          <button type="button" class="u-btn primary big" [disabled]="d.claimed" (click)="game.claimDaily()">{{ d.claimed ? 'CLAIMED' : 'CLAIM' }}</button>
+        </div>
+      </section>
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">SAVE FILES</h2>
+        <p class="bd-sub">Your game auto-saves to this device. Save into a slot to get a transfer CODE you can paste on another device. Up to 3 slots.</p>
+        @for (s of slots(); track $index) {
+          <div class="slotcard u-fr u-inset">
+            @if (!s) {
+              <div class="row spread mid"><span class="bd-sub">SLOT {{ $index + 1 }} - EMPTY</span><button type="button" class="u-btn primary" (click)="game.slotSave($index)">SAVE HERE</button></div>
+            } @else {
+              <div class="row spread">
+                <span class="bd-sub tall">SLOT {{ $index + 1 }}<br />{{ fmt(s.coins || 0) }} COINS, {{ s.count || 0 }} BADDIES<br />{{ slotDate(s.t) }}</span>
+                <div class="col">
+                  <button type="button" class="u-btn primary" (click)="game.slotSave($index)">OVERWRITE</button>
+                  <button type="button" class="u-btn" (click)="modal.set({ kind: 'slotLoad', i: $index })">LOAD</button>
+                  <button type="button" class="u-btn" (click)="slotCode($index)">SHOW CODE</button>
+                  <button type="button" class="u-btn danger" (click)="game.slotDelete($index)">DELETE</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+      <section class="bd-card u-fr u-crystal">
+        <h2 class="bd-h">TRANSFER CODE</h2>
+        <p class="bd-sub">Load a save code from another device. This overwrites your current game.</p>
+        <div class="row">
+          <textarea class="u-input code" placeholder="PASTE CODE HERE" [value]="codeIn()" (input)="codeIn.set($any($event.target).value)" aria-label="Save code"></textarea>
+          <button type="button" class="u-btn primary" (click)="importCode()">LOAD CODE</button>
+        </div>
+        <div class="row">
+          <button type="button" class="u-btn" (click)="exportCurrent()">COPY CURRENT AS CODE</button>
+          <button type="button" class="u-btn danger" (click)="modal.set({ kind: 'hardReset' })">RESET CURRENT GAME</button>
+          <button type="button" class="u-btn danger" (click)="modal.set({ kind: 'fullWipe' })">START OVER (WIPE SAVE FILES)</button>
+        </div>
+      </section>
+    }
+  }
+</div>
+
+<!-- the roll -->
+@if (roll().on) {
+  @let r = roll();
+  <div class="ov" (click)="dismissRoll()">
+    <div class="stage" (click)="$event.stopPropagation()">
+      @if (r.busy) { <div class="rolling die-{{ dieAnim(r.die) }}"><ss-bd-sprite kind="die" [id]="r.die" [size]="16" [scale]="2" /></div> }
+      <div class="cyc" [style.color]="r.cycCol">{{ r.cyc }}</div>
+      @if (r.b; as b) {
+        <div class="land-wrap">
+          @if (RARITIES.indexOf(rarMeta(b.rarity)) >= 4) { <div class="rays" [style.--rc]="rarMeta(b.rarity).col" aria-hidden="true"></div> }
+          <div class="land"><ng-container *ngTemplateOutlet="card; context: { $implicit: live(b), click: false }" /></div>
+        </div>
+        <div class="info">
+          <span class="rar" [style.color]="rarMeta(b.rarity).col">{{ b.rarity.toUpperCase() }}</span>
+          @if (b.modifier !== 'None') { <span [style.color]="modMeta(b.modifier).col">{{ b.modifier }} x{{ modMeta(b.modifier).mult }}</span> }
+          <span class="green">{{ fmt(rate(b)) }}/s</span>
+        </div>
+      }
+      <div class="row center">
+        <button type="button" class="u-btn primary big" (click)="doRoll(true)" data-test="roll-again">ROLL AGAIN</button>
+        <button type="button" class="u-btn" (click)="dismissRoll()">CONTINUE</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- the egg -->
+@if (egg().on) {
+  @let e = egg();
+  <div class="ov" (click)="dismissEgg()">
+    <div class="stage" (click)="$event.stopPropagation()">
+      @if (!e.pet) {
+        <div class="egg-vis" [class.fast]="e.fast"><ss-bd-sprite kind="egg" [id]="e.key" [scale]="3" /></div>
+        <p class="bd-sub">HATCHING...</p>
+      } @else {
+        @let def = PETS[e.pet];
+        <div class="egg-pop"><ss-bd-sprite kind="pet" [id]="e.pet" [scale]="3" /></div>
+        <div class="pet-name" [style.color]="def.col">{{ petName(e.pet).toUpperCase() }}</div>
+        <p class="bd-sub">LUCK x{{ def.luck }} &nbsp; MONEY x{{ def.money }}</p>
+        <button type="button" class="u-btn" (click)="dismissEgg()">NICE</button>
+      }
+    </div>
+  </div>
+}
+
+<!-- the dialogs -->
+@if (modal(); as m) {
+  @switch (m.kind) {
+    @case ('baddie') {
+      @if (modalBaddie(); as b) {
+        @let k = menu(b);
+        @let rm = rarMeta(b.rarity);
+        <ss-modal [title]="b.key" width="460px" (closed)="modal.set(null)">
+          <div class="center">
+            <div class="one"><ng-container *ngTemplateOutlet="card; context: { $implicit: b, click: false }" /></div>
+            <p class="bd-sub tall">
+              LEVEL {{ b.level }} &nbsp; UPGRADE x{{ k.mult.toFixed(2) }}<br />
+              @if (k.atCap) { <span style="color: #2bd9d9">RARITY MAXED (COSMIC) BY LEVELING</span> }
+              @else if (k.nextBump) { NEXT RARITY BUMP AT <span [style.color]="rm.col">LV{{ k.nextBump }}</span> }<br />
+              SELL VALUE {{ fmt(k.sellV) }} COINS
+            </p>
+            <div class="col">
+              <button type="button" class="u-btn" (click)="act('place', b.id)">{{ b.placed ? 'REMOVE FROM PLOT' : 'PLACE ON PLOT' }}</button>
+              <button type="button" class="u-btn primary" [disabled]="!(k.canUp || k.upBusy)" (click)="act('upgrade', b.id)">{{ k.upLabel }}</button>
+              <button type="button" class="u-btn" [class.primary]="k.crackReady && !k.over" [disabled]="!(k.crackReady && !k.over)" (click)="act('crack', b.id)">{{ k.crackLabel }}</button>
+              <button type="button" class="u-btn danger" (click)="act('sell', b.id)">SELL FOR {{ fmt(k.sellV) }}</button>
+            </div>
+          </div>
+        </ss-modal>
+      }
+    }
+    @case ('sellAll') {
+      @let u = game.unplacedValue();
+      <ss-modal title="SELL ALL UNPLACED?" width="460px" (closed)="modal.set(null)">
+        <div class="center">
+          <p class="bd-sub">{{ u.n }} baddies for <span class="gold">{{ fmt(u.total) }}</span> coins. Placed baddies are kept safe.</p>
+          <div class="row center"><button type="button" class="u-btn danger" (click)="game.sellAllUnplaced(); modal.set(null)">CONFIRM SELL</button><button type="button" class="u-btn" (click)="modal.set(null)">CANCEL</button></div>
+        </div>
+      </ss-modal>
+    }
+    @case ('cappy') {
+      <ss-modal title="CAPPY'S MILK - PICK A BADDIE" width="720px" (closed)="modal.set(null)">
+        <p class="bd-sub">Applies CAPPYFIED x5. Cost {{ fmt(m.cost) }}.</p>
+        <div class="grid pick">
+          @for (b of cappyCandidates(); track b.id) {
+            <div class="pickable" (click)="game.cappyApply(b.id, m.cost) && modal.set(null)" role="button" tabindex="0" (keydown.enter)="game.cappyApply(b.id, m.cost) && modal.set(null)">
+              <ng-container *ngTemplateOutlet="card; context: { $implicit: b, click: false }" />
+            </div>
+          }
+        </div>
+      </ss-modal>
+    }
+    @case ('slotLoad') {
+      <ss-modal [title]="'LOAD SLOT ' + (m.i + 1) + '?'" width="460px" (closed)="modal.set(null)">
+        <div class="center">
+          <p class="bd-sub">This overwrites your current game (auto saved separately in slots).</p>
+          <div class="row center"><button type="button" class="u-btn primary" (click)="loadSlot(m.i)">LOAD IT</button><button type="button" class="u-btn" (click)="modal.set(null)">CANCEL</button></div>
+        </div>
+      </ss-modal>
+    }
+    @case ('code') {
+      <ss-modal [title]="m.title" width="560px" (closed)="modal.set(null)">
+        <p class="bd-sub">{{ m.sub }}</p>
+        <textarea class="u-input code out" readonly (click)="$any($event.target).select()" [value]="m.code" aria-label="Code"></textarea>
+        <button type="button" class="u-btn primary" (click)="copy(m.code)">COPY</button>
+      </ss-modal>
+    }
+    @case ('hardReset') {
+      <ss-modal title="RESET EVERYTHING?" width="460px" (closed)="modal.set(null)">
+        <div class="center">
+          <p class="bd-sub">Wipes your current game. Save slots are kept.</p>
+          <div class="row center"><button type="button" class="u-btn danger" (click)="game.hardReset(); afterLoadPublic(); modal.set(null)">YES, WIPE</button><button type="button" class="u-btn" (click)="modal.set(null)">CANCEL</button></div>
+        </div>
+      </ss-modal>
+    }
+    @case ('fullWipe') {
+      <ss-modal title="WIPE EVERYTHING?" width="460px" (closed)="modal.set(null)">
+        <div class="center">
+          <p class="bd-sub">This deletes ALL save slots and your current game. There is no undo.</p>
+          <div class="row center"><button type="button" class="u-btn danger" (click)="game.fullWipe(); afterLoadPublic(); modal.set(null)">YES, DELETE EVERYTHING</button><button type="button" class="u-btn" (click)="modal.set(null)">CANCEL</button></div>
+        </div>
+      </ss-modal>
+    }
+    @case ('reborn') {
+      @let mult = game.rebirthMult().toFixed(2);
+      <ss-modal [title]="'✦ REBIRTH ' + S.rebirths + ' ✦'" width="520px" (closed)="modal.set(null)">
+        <div class="center">
+          <p class="bd-sub tall">You have been reborn.<br /><span class="green">x{{ mult }} LUCK &nbsp;·&nbsp; x{{ mult }} MUTATION &nbsp;·&nbsp; x{{ mult }} MONEY</span><br />Your plot, dice and coins have been reset.<br />Cursors and themes were kept.</p>
+          <button type="button" class="u-btn primary big" (click)="modal.set(null)">CONTINUE</button>
+        </div>
+      </ss-modal>
+    }
+    @case ('full') {
+      @if (fullEntry(); as f) {
+        @let rm = rarMeta(f.rarity);
+        <ss-modal [title]="label(f.key)" width="460px" (closed)="modal.set(null)">
+          <div class="center full" [style.--rc]="rm.col">
+            @if (broken().has(f.key)) { <div class="fullph">{{ initials(f.key) }}</div> } @else { <img class="fullimg" [src]="img(f.key)" alt="" (error)="brokenImg(f.key)" /> }
+            <div class="fullname">{{ label(f.key) }}</div>
+            <div class="fullrar">{{ f.rarity.toUpperCase() }}</div>
+          </div>
+        </ss-modal>
+      }
+    }
+  }
+}
+
+<!-- the auto roll window -->
+@if (autoShown()) {
+  <div #auto class="auto u-fr u-frost" [style.left.px]="autoPos()?.x ?? null" [style.top.px]="autoPos()?.y ?? null" [class.moved]="!!autoPos()">
+    <div class="auto-head" (pointerdown)="autoDrag($event)">
+      <span>AUTO ROLL</span>
+      <span class="row"><button type="button" class="u-btn sm" [class.primary]="autoOn()" (click)="autoToggle()">{{ autoOn() ? 'STOP' : 'START' }}</button><button type="button" class="u-btn icon sm" (click)="autoHide()" aria-label="Close">&times;</button></span>
+    </div>
+    @let a = autoCyc();
+    <div class="auto-card">@if (a.b; as b) { <div class="land small"><ng-container *ngTemplateOutlet="card; context: { $implicit: live(b), click: false }" /></div> }</div>
+    <div class="auto-cyc" [style.color]="a.col">{{ a.text }}</div>
+    <div class="auto-foot"><span>{{ autoCount() }} ROLLS</span><span>keeps rolling while you play</span></div>
+  </div>
+}
+
+<!-- a pet's orders -->
+@if (orders(); as o) {
+  @if (orderPetDef(); as pd) {
+    <div class="orders u-fr u-frost" [style.left.px]="o.x" [style.top.px]="o.y" role="menu">
+      <div class="po-h" [style.color]="pd.def.col">{{ petName(pd.p.type) }}</div>
+      @for (mode of ['move', 'stay', 'follow']; track mode) {
+        <button type="button" class="u-menu-item" [class.on]="pd.p.mode === mode" (click)="orderPet($any(mode))">{{ mode.toUpperCase() }}</button>
+      }
+    </div>
+  }
+}
+
+<!-- test mode -->
+@if (test()) {
+  <aside class="cheat u-fr u-frost">
+    <h4>TEST / CHEAT MENU</h4>
+    <button type="button" (click)="game.cheatCoins(1e6)">+ 1M COINS</button>
+    <button type="button" (click)="game.cheatCoins(1e9)">+ 1B COINS</button>
+    <button type="button" (click)="game.cheatCoins(1e15)">+ 1Qa COINS</button>
+    <select class="u-input" [value]="cheatRar()" (change)="cheatRar.set($any($event.target).value)" aria-label="Rarity">@for (r of RARITIES; track r.key) { <option [value]="r.key">{{ r.key }}</option> }</select>
+    <select class="u-input" [value]="cheatMod()" (change)="cheatMod.set($any($event.target).value)" aria-label="Modifier">@for (x of MODIFIERS; track x.key) { <option [value]="x.key">{{ x.key }} x{{ x.mult }}</option> }</select>
+    <button type="button" (click)="game.cheatGive(cheatRar(), cheatMod())">GIVE BADDIE</button>
+    <button type="button" (click)="cheatEgg('common')">OPEN COMMON EGG FREE</button>
+    <button type="button" (click)="cheatEgg('forest')">OPEN FOREST EGG FREE</button>
+    <button type="button" (click)="cheatEgg('prismatic')">OPEN PRISMATIC EGG FREE</button>
+    <button type="button" (click)="cheatEgg('cosmic')">OPEN COSMIC EGG FREE</button>
+    <button type="button" (click)="game.cheatAllDice()">UNLOCK ALL DICE</button>
+    <button type="button" (click)="game.cheatResetCrack()">RESET CRACK COOLDOWN</button>
+    <button type="button" (click)="game.cheatFinishUpgrade()">FINISH UPGRADE NOW</button>
+    <button type="button" (click)="game.cheatResetDaily()">RESET DAILY</button>
+    <input class="u-input" type="number" placeholder="set luck mult e.g. 5" [value]="cheatLuckIn()" (input)="cheatLuckIn.set($any($event.target).value)" aria-label="Luck" />
+    <button type="button" (click)="game.cheatLuck(+cheatLuckIn())">APPLY DEBUG LUCK</button>
+    <button type="button" class="bad" (click)="game.cheatClear()">CLEAR ALL BADDIES</button>
+    <button type="button" class="off" (click)="hideCheat()">HIDE</button>
+  </aside>
+}

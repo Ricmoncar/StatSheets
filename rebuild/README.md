@@ -129,6 +129,15 @@ pattern) checks it turns on, that every event runs, that clicks on controls
 still work, performance mode, and that leaving the page puts the interface
 back exactly.
 
+### The old site against the emulator (`tools/oldlocal.js`)
+
+To look at an old page as often as needed without spending the live
+project's read quota: seed the emulator with the old collection names too
+(`OLD_SITE=1 node seed_emulator.js <snapshot-dir> fixtures`), serve the repo
+root on :8765, and open pages with `openOldLocal()`. It points the old
+site's Firestore at the emulator and aborts writes. `tools/old_pages_map.js`
+lists which character and form gets which custom page on the old site.
+
 ### Driving the OLD site headless (`tools/oldsite.js`)
 
 gstatic.com is blocked in the container, so the helper serves the Firebase SDK

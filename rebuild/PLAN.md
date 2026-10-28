@@ -37,10 +37,10 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 ## Secondary pages
 
 - [x] Utilities: dice roller, crit calculator, stat checker, status roller (pixel status orbs), trait and general suggestion boxes, shared tier lists, stat leaderboard in five views, compatibility tester (rebuild/tools/utilities_e2e.js), height chart (rebuild/tools/heightchart_e2e.js), game worlds: NO MORE TIME, ASYM HORROR, AUT, LOL, CRTL (rebuild/tools/games_e2e.js)
-- [x] Encyclopaedia: stays the old page as it is (not redesigned), like Spin a Baddie: shipped beside the app with encyclopedia.js, traits.js and style.css, linked from the nav, and `/encyclopedia` sends you there
+- [~] Encyclopaedia: for now the old page as it is, shipped beside the app with encyclopedia.js, traits.js and style.css, linked from the nav, and `/encyclopedia` sends you there; being ported next
 - [x] Gallery: character cards with server-counted picture badges, upload by picking or dropping (compressed to fit a document), rename, delete, lightbox with arrow keys (rebuild/tools/gallery_e2e.js)
 - [x] Playlists: every character's playlist with cover, title and description edited in place, MP3 uploads, reordering by dragging or the keyboard, and a player bar with shuffle, repeat, seek, volume and mute; playback follows the playlist it started in (rebuild/tools/playlists_e2e.js)
-- [x] Spin a Baddie: stays the old page as it is (not redesigned). Every build ships `baddie.html` beside the app, the nav links to it, and `/baddie` sends you there
+- [x] Spin a Baddie: ported in the pixel style at `/baddie` (features/baddie): every tab and rule of baddie.html, the same save keys in the browser (an old save loads as it is), the old drawings of dice, eggs and pets reduced to pixel sprites, themes as pixel backdrops (rebuild/tools/baddie_e2e.js)
 - [x] BK's Corner: art requests (filters, create with characters and references, complete, finished art, more references, delete) and the shared board that mirrors linked pictures into character galleries; the rose cursor kept as pixel art (rebuild/tools/bkscorner_e2e.js)
 - [x] Admin: the old password gate (remembered for the session), trait editor with three-way merged saves, quick stat override, rename, give / remove / nuke / wipe for every character (a batch that fails is retried one character at a time, and the ones that still fail are named), overview table (rebuild/tools/admin_e2e.js)
 - [x] sq.html, test.html: left as they are. Nothing links to them (sq.html is a hidden code-gated page; test.html is a GIF generator whose gifs and fonts collections are empty); they keep working at their own addresses
@@ -62,4 +62,4 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
 - [~] `/next/` preview: `rebuild/tools/build_next.sh` builds it into `next/` (base href `/StatSheets/next/`, addresses after `#/` so a reload works on Pages); live once `next/` is on `main`
 - [ ] Live build (`environment.live.ts`, real collections) and GitHub Pages
       switched to build from GitHub Actions
-- [ ] Redirect stubs for old page URLs (`utilities.html` and so on), but NOT for the pages kept as they are: baddie.html, encyclopedia.html, sq.html, test.html, which must stay served along with the files they load (encyclopedia.js, traits.js, style.css, gifshot.min.js, sounds/, baddies/)
+- [ ] Redirect stubs for old page URLs (`utilities.html` and so on), but NOT for the pages kept as they are: encyclopedia.html (until it is ported), sq.html, test.html, and baddie.html stays served too (old bookmarks, and its saves live in this origin either way), which must stay served along with the files they load (encyclopedia.js, traits.js, style.css, gifshot.min.js, sounds/, baddies/)
