@@ -53,17 +53,17 @@ export const CUSTOM_PAGES: readonly CustomPage[] = [
     load: () => import('./fury-fire/fury-fire'),
   },
   {
-    key: 'sorrow_fire', label: "Sorrow", accent: '#9a9a9a', opacity: 0.3, ownCursor: false,
+    key: 'sorrow_fire', label: "Sorrow", accent: '#9a9a9a', opacity: 0.3, ownCursor: true,
     matches: name(/^Sorrow$/i),
     load: () => import('./sorrow-fire/sorrow-fire'),
   },
   {
-    key: 'juko_one', label: "Juko · 1, the value left", accent: '#4ef0c4', opacity: 0.95, ownCursor: false,
+    key: 'juko_one', label: "Juko · 1, the value left", accent: '#4ef0c4', opacity: 0.95, ownCursor: true,
     matches: c => /^Juko!?$/i.test(c.name || '') && /^\s*1\s*$/.test(activeFormName(c)),
     load: () => import('./juko-code/juko-one'),
   },
   {
-    key: 'juko_code', label: "Juko! · Code Garden", accent: '#2fd09c', opacity: 0.3, ownCursor: false,
+    key: 'juko_code', label: "Juko! · Code Garden", accent: '#2fd09c', opacity: 0.3, ownCursor: true,
     matches: c => /^Juko!?$/i.test(c.name || '') && !/^\s*1\s*$/.test(activeFormName(c)),
     load: () => import('./juko-code/juko-code'),
   },

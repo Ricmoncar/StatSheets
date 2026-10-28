@@ -6,8 +6,8 @@
 // the whole window (the eclipse darkens all of it). The layer adds light,
 // like the old page's, so it is screened onto the app.
 //
-// The cursor is the rainbow sword: its point follows the pointer, the blade
-// falls away behind it with the prism set in the guard, and it leaves a
+// The cursor (in place of the heart) is her curved sword: its point is the
+// pointer, the blade curving away behind it to the hilt, and it leaves a
 // spectrum ribbon with the digits it cut loose riding on it. A click swings
 // it (a spectrum crescent off the edge), throws a split shockwave and a
 // scatter of digits, most of them already resolved, and the void answers.
@@ -111,12 +111,12 @@ class Blade extends PageOverlay {
   protected frame(r: Raster, t: number, dt: number): boolean {
     sync();
     const { W, H, px } = this, beat = J.song.beat, lvl = J.song.level, onset = J.song.onset, ev = ONE.ev;
-    // the same floaty spring the cat rode on
-    if (this.mouse) {
-      this.vx += ((this.mx - this.x) * 80 - this.vx * 10) * dt;
-      this.vy += ((this.my - this.y) * 80 - this.vy * 10) * dt;
-    }
-    this.x += this.vx * dt; this.y += this.vy * dt;
+    // the point is the pointer, exactly; how fast it moves still leans the blade and steers the eye
+    if (this.mouse && dt > 0) {
+      const k = Math.min(1, dt * 12);
+      this.vx += ((this.mx - this.x) / dt - this.vx) * k; this.vy += ((this.my - this.y) / dt - this.vy) * k;
+      this.x = this.mx; this.y = this.my;
+    } else { this.vx *= 0.9; this.vy *= 0.9; }
     ONE.pulse = Math.max(0, ONE.pulse - dt * 1.9);
     ONE.swing = Math.max(0, ONE.swing - dt * 1.35);
     ONE.tip = this.mouse ? { x: this.x, y: this.y } : null;

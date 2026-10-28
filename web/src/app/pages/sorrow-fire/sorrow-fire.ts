@@ -1,8 +1,8 @@
 // SORROW: the page. Exactly Fury's fire, as the old page had it, but drained
 // of colour and pouring down from above, behind the sheet and over the
-// window. The pointer stays the pointer; a googly-eyed doner wrap follows it
-// on a spring, its eyes looking where it is going, and a click makes it
-// bounce, blush and throw sparks.
+// window. The cursor (in place of the heart) is a googly-eyed doner wrap,
+// tilting into its motion, its eyes looking where it is going, and a click
+// makes it bounce, blush and throw sparks.
 import { Raster } from '../raster';
 import { greyTable, palette } from '../kit/palette';
 import { sceneModule } from '../kit/scene';
@@ -46,11 +46,12 @@ class SorrowOverlay extends FireOverlay {
 
   protected override decorate(_r: Raster, t: number, dt: number): void {
     // a floaty spring after the pointer
-    if (this.mouse) {
-      this.vx += ((this.mx - this.x) * 75 - this.vx * 9) * dt;
-      this.vy += ((this.my - this.y) * 75 - this.vy * 9) * dt;
-    }
-    this.x += this.vx * dt; this.y += this.vy * dt;
+    // the wrap is the pointer now, so it sits right on it; how fast it moves still tilts it and steers its eyes
+    if (this.mouse && dt > 0) {
+      const k = Math.min(1, dt * 12);
+      this.vx += ((this.mx - this.x) / dt - this.vx) * k; this.vy += ((this.my - this.y) / dt - this.vy) * k;
+      this.x = this.mx; this.y = this.my;
+    } else { this.vx *= 0.9; this.vy *= 0.9; }
     this.bounce = Math.max(0, this.bounce - dt * 3.2);
     this.happy = Math.max(0, this.happy - dt);
     if (!this.mouse) { this.cursor?.move(0, 0, this.px, false); return; }

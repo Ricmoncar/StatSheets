@@ -1,6 +1,6 @@
 // JUKO! · THE CODE GARDEN: what the page lays over the window. Juko herself
-// follows the pointer on a floaty spring (the pointer stays: she is company,
-// not the cursor), bumps to the beat, and a click makes her squish, go ^^ and
+// is the cursor (in place of the heart), leaning into the motion, bumping to
+// the beat, and a click makes her squish, go ^^ and
 // throw a puff of code tokens. Every panel's frame is a ring of streaming
 // code with a bright comet running round it. The song drives the sheet's
 // glow through three CSS variables, and an equalizer stands along the bottom
@@ -73,11 +73,12 @@ class Terminal extends PageOverlay {
 
     // the spring she follows the pointer on, the squish, and a bump on a strong beat
     const st = this.st;
-    if (this.mouse) {
-      st.vx += ((this.mx - this.x) * 80 - st.vx * 10) * dt;
-      st.vy += ((this.my - this.y) * 80 - st.vy * 10) * dt;
-    }
-    this.x += st.vx * dt; this.y += st.vy * dt;
+    // she is the pointer now, so she sits right on it; how fast it moves still leans and bumps her
+    if (this.mouse && dt > 0) {
+      const k = Math.min(1, dt * 12);
+      st.vx += ((this.mx - this.x) / dt - st.vx) * k; st.vy += ((this.my - this.y) / dt - st.vy) * k;
+      this.x = this.mx; this.y = this.my;
+    } else { st.vx *= 0.9; st.vy *= 0.9; }
     st.bounce = Math.max(0, st.bounce - dt * 3); st.happy = Math.max(0, st.happy - dt);
     if (onset > 0.5) st.bounce = Math.max(st.bounce, (onset - 0.5) * 1.1);
 
