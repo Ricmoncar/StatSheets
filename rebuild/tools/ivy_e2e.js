@@ -24,7 +24,7 @@ const until = async (fn, ms = 5000) => { const end = Date.now() + ms; while (Dat
   const state = () => page.evaluate(() => ({
     dataPage: document.querySelector('ss-character-view')?.getAttribute('data-page') || null,
     world: !!document.querySelector('ss-world-canvas'),
-    overlay: !!document.getElementById('ivyevil-overlay'),
+    overlay: !!document.getElementById('pg-ivy_evil'),
     ownCursor: document.documentElement.classList.contains('pg-own-cursor'),
     masked: [...document.querySelectorAll('*')].filter(e => e.style && e.style.maskImage).length,
     swayed: [...document.querySelectorAll('*')].filter(e => e.style && e.style.translate).length,
@@ -62,7 +62,7 @@ const until = async (fn, ms = 5000) => { const end = Date.now() + ms; while (Dat
     for (let i = 0; i < d.length; i += 4 * 31) { r += d[i]; g += d[i + 1]; n++; }
     return { r: r / n, g: g / n };
   });
-  const force = n => page.evaluate(n => document.getElementById('ivyevil-overlay').force(n), n);
+  const force = n => page.evaluate(n => document.getElementById('pg-ivy_evil').force(n), n);
   const calm = await mean();
   await force('bleed'); await page.waitForTimeout(1900);
   const drained = await mean();

@@ -1,6 +1,7 @@
 // The characters' own pages (phase 2): each page's chrome, keyed on the
 // sheet's data-page, and what every page shares.
 @use 'ivy-evil/chrome';
+@use 'bizzy-bees/chrome' as bizzy;
 
 // while a page draws its own cursor and a mouse is pointing, the system one is hidden
 @media (pointer: fine) {

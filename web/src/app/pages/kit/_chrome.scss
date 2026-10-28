@@ -1,0 +1,43 @@
+// The sheet in a page's colours: what most of the old pages' -ui, -name and
+// -pfp blocks did (dark panels in the character's colour, titles, tabs, the
+// stat bars, the name and the portrait), as pixels. A page includes it with
+// its six colours, darkest first, and adds its own touches in the @content
+// block, which lands inside ss-character-view[data-page='<page>'].
+//
+//   $void   the deepest dark, behind the panels
+//   $deep   the shadow of the page's colour (title shadows, bar starts)
+//   $mid    the page's colour in shade (tabs at rest)
+//   $hot    the page's colour (the name, the bars, the chevrons)
+//   $light  the page's colour lit (titles)
+//   $bone   the brightest, for hovers and the open tab
+//   $frame  which pixel frame the panels and plaques wear (crystal takes the accent the page sets)
+@use 'sass:color';
+
+@mixin chrome($page, $void, $deep, $mid, $hot, $light, $bone, $frame: crystal, $fw: 5) {
+  ss-character-view[data-page='#{$page}'] {
+    ss-panel {
+      border-width: calc(#{$fw} * var(--px));
+      border-image-source: var(--f-#{$frame});
+      border-image-slice: $fw;
+      background: linear-gradient(color.change($deep, $alpha: 0.94), color.change($void, $alpha: 0.97));
+      background-clip: padding-box;
+      > .head > .title {
+        border-image-source: var(--f-#{$frame});
+        background-color: $void;
+        color: $light;
+        text-shadow: var(--px) var(--px) 0 $deep;
+        .chev { color: $hot; }
+        &:hover { color: $bone; }
+      }
+    }
+    .sheet > .tabs .u-tab { --fg: #{$mid}; --fgh: #{$bone}; }
+    .sheet > .tabs .u-tab.on { --fg: #{$bone}; --fgh: #{$bone}; }
+    ss-stat-bar .fill {
+      --f: #{$hot} !important;
+      background: linear-gradient(90deg, $deep 0 30%, $hot 30% 80%, $light 80% 95%, $bone 95%) !important;
+    }
+    .head .name { color: $light; text-shadow: var(--edge), var(--p1) var(--p1) 0 $deep; }
+    .head .portrait { box-shadow: 0 0 0 var(--px) $void, 0 0 0 var(--p2) $hot, var(--hard); }
+    @content;
+  }
+}

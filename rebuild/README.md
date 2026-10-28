@@ -124,10 +124,30 @@ drawn anew rather than copied. Everything lives in `web/src/app/pages/`;
 
 `ss-world-canvas` runs it: the background at 30 frames a second (15 on
 phones), stopped off screen and in performance mode, and the overlay started
-and stopped with the page. An e2e test per page (`tools/ivy_e2e.js` is the
-pattern) checks it turns on, that every event runs, that clicks on controls
-still work, performance mode, and that leaving the page puts the interface
-back exactly.
+and stopped with the page.
+
+**The kit** (`pages/kit/`) is what most pages are built from: `palette()`
+(named ramps, darkest first, with `shift` along a ramp and `near` for a
+colour the old code used), `paint.ts` (dithered gradients, glows, tints,
+vignettes, stars, the old pages' kind of hash, a 3x5 pixel font for words in
+the world), `sceneModule()` (a Scene with `size`, `draw` and `colours`
+becomes the module the world canvas runs), `PageOverlay` (the full-window
+layer: pointer, clicks, a cursor layer of its own, and `force(name)` for
+tests; its root is `#pg-<key>`) and the `chrome()` mixin (the sheet in six
+of the page's colours, with the page's own touches in its content block).
+`pages/bizzy-bees/` is the plainest example.
+
+**To remake an old page**: `tools/old_page_ref.js <dir> <key>` opens it on
+the old site against the emulator and saves a screenshot, the background on
+its own, and the opacity and colour it set. Its code is in `script.js`
+(the `_draw...Pattern` function, its overlay and its chrome toggle) and
+`style.css` (its `-ui`, `-name`, `-pfp` blocks). `tools/pages_e2e.js [dir]
+[key...]` checks every page made so far the same way: it opens on its page,
+the world is drawn at art resolution and moves, its overlay is up,
+performance mode stops and restarts them, leaving puts everything back, and
+a phone shows it; `tools/fixtures/pages_map.json` (from `old_pages_map.js`)
+says whose page is whose. A page with more to it (events, cuts through the
+interface) also gets a test of its own, as `tools/ivy_e2e.js` does.
 
 ### The old site against the emulator (`tools/oldlocal.js`)
 

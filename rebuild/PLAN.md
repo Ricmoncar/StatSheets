@@ -56,6 +56,11 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
         candles, moonlight), eight events (lunge, bleed, sweep, bloom, hunger, waltz,
         shatter, mirror), the rapier cursor, cuts through the interface, the heartbeat
         shoving the sheet, thorned portrait and lacquer chrome (rebuild/tools/ivy_e2e.js)
+  - [x] The kit every page is built from (pages/kit) and one test for them all
+        (rebuild/tools/pages_e2e.js); the old page as reference (rebuild/tools/old_page_ref.js)
+  - [x] Bizzy: the hive (pulsing comb, honey cells, light shafts, drips, seven bees on the
+        old flights, pollen), the bee cursor with its trail and orbiting swarm, petal and
+        pollen bursts, two workers loose over the sheet, comb panels and a honey name
 
 ## Cutover
 

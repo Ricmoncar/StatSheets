@@ -33,8 +33,15 @@ export interface CustomPage {
 
 const IVY = /^\s*ivy\s*$/i;
 const EVIL = /evil/i;
+const name = (re: RegExp) => (c: Character) => re.test(c.name || '');
 
+// In the old site's order of precedence (its ptype ladder): a form's page before its base form's.
 export const CUSTOM_PAGES: readonly CustomPage[] = [
+  {
+    key: 'bizzy_bees', label: "Bizzy's Hive", accent: '#f0ac1e', opacity: 0.8, ownCursor: true,
+    matches: name(/^Bizzy$/i),
+    load: () => import('./bizzy-bees/bizzy-bees'),
+  },
   {
     key: 'ivy_evil', label: 'Ivy · EVIL creature', accent: '#d61c30', opacity: 0.97, ownCursor: true,
     matches: c => IVY.test(c.name || '') && EVIL.test(activeFormName(c)),

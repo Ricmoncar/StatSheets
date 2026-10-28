@@ -1,0 +1,52 @@
+// BIZZY'S HIVE: the sheet as part of the hive (the old page's bizzy-ui, -name
+// and -pfp, in pixels). Comb-meshed dark panels in an amber frame, honey
+// flowing through the comb under the pointer, a honey-gold name with a shine
+// that sweeps across it, and the portrait under the comb, breathing.
+@use '../kit/chrome' as kit;
+
+@include kit.chrome('bizzy_bees', #120b01, #3a2405, #9a7326, #f0ac1e, #ffe1a0, #fff2d2) {
+  ss-panel {
+    background:
+      var(--bizzy-comb) 0 0 / calc(12 * var(--px)) calc(7 * var(--px)),
+      linear-gradient(rgb(30 20 3 / 0.9), rgb(18 11 1 / 0.94));
+    background-clip: padding-box;
+    image-rendering: pixelated;
+    // the comb flows a cell at a time while the pointer is over it, and stays put otherwise
+    animation: bizzy-comb 3s steps(12, end) infinite paused;
+    &:hover { animation-play-state: running; }
+  }
+  // the name: honey-gold, with a pale shine sweeping across it and back
+  .head .name {
+    color: transparent;
+    background: linear-gradient(105deg, #ffcb3a 0 44%, #fff4c8 44% 50%, #ffe27a 50% 54%, #ffcb3a 54%) 130% 0 / 280% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(var(--px) 0 0 #1a0f00) drop-shadow(calc(-1 * var(--px)) 0 0 #1a0f00) drop-shadow(0 var(--px) 0 #1a0f00) drop-shadow(0 calc(-1 * var(--px)) 0 #1a0f00) drop-shadow(var(--px) var(--px) 0 #6a4100);
+    animation: bizzy-sweep 4.5s steps(18, end) infinite;
+  }
+  // the portrait: under a film of comb, its amber ring breathing
+  .head .portrait {
+    animation: bizzy-breathe 4.5s steps(2, jump-none) infinite;
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: var(--bizzy-comb) center / calc(12 * var(--px)) calc(7 * var(--px));
+      image-rendering: pixelated;
+      mix-blend-mode: screen;
+      opacity: 0.6;
+    }
+  }
+}
+@keyframes bizzy-comb { to { background-position: calc(12 * var(--px)) calc(7 * var(--px)), 0 0; } }
+@keyframes bizzy-sweep { 0%, 100% { background-position: 130% 0; } 50% { background-position: -130% 0; } }
+@keyframes bizzy-breathe {
+  0% { box-shadow: 0 0 0 var(--px) #120b01, 0 0 0 var(--p2) #b47012, var(--hard); }
+  100% { box-shadow: 0 0 0 var(--px) #120b01, 0 0 0 var(--p2) #ffc84a, 0 0 0 var(--p3) #6a4100, var(--hard); }
+}
+html.perf ss-character-view[data-page='bizzy_bees'] {
+  .head .name, .head .portrait { animation: none; }
+}

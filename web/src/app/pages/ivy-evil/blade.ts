@@ -96,7 +96,7 @@ export class Blade {
   start(): void {
     this.stop();
     const root = this.root = document.createElement('div');
-    root.id = 'ivyevil-overlay';
+    root.id = 'pg-ivy_evil';
     root.setAttribute('aria-hidden', 'true');
     // its own layer: what changes in it (a strip shown, a petal turning) repaints nothing of the page's
     root.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;contain:strict;will-change:transform;';

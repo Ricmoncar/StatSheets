@@ -1,0 +1,898 @@
+{
+ "pages": {
+  "bizzy_bees": [
+   {
+    "id": "mp876lm0swwl19s6aq",
+    "name": "Bizzy",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "riegen_phoenix": [
+   {
+    "id": "mp8iyc79tc9x244zg5",
+    "name": "Riegen",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "fury_fire": [
+   {
+    "id": "mp7gss6ylvwgdq4neyh",
+    "name": "Fury",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "juko_code": [
+   {
+    "id": "mp7hhy9t0kdessfvqzkr",
+    "name": "Juko!",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp7hhy9t0kdessfvqzkr",
+    "name": "Juko!",
+    "form": 1,
+    "formName": "0∞"
+   }
+  ],
+  "juko_one": [
+   {
+    "id": "mp7hhy9t0kdessfvqzkr",
+    "name": "Juko!",
+    "form": 2,
+    "formName": "1"
+   }
+  ],
+  "sorrow_fire": [
+   {
+    "id": "mp8d6vux68hukgplwhj",
+    "name": "Sorrow",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "lorraine_brass": [
+   {
+    "id": "mp8j4g53vk07dh3q3pl",
+    "name": "Lorraine",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "blackjack_neon": [
+   {
+    "id": "mp7grig28yapvrdxg4",
+    "name": "BLACKJACK",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp7grig28yapvrdxg4",
+    "name": "BLACKJACK",
+    "form": 1,
+    "formName": "21"
+   }
+  ],
+  "snaps_scales": [
+   {
+    "id": "mp7hiw0o6sib1fwyw12",
+    "name": "Snaps",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "katie_pond": [
+   {
+    "id": "mp7hqymjgpllanr5zp8",
+    "name": "Katie",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "leon_swords": [
+   {
+    "id": "mp7jzxz2nx73sigtnfs",
+    "name": "Leon",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "leon_warlord": [
+   {
+    "id": "mp7jzxz2nx73sigtnfs",
+    "name": "Leon",
+    "form": 1,
+    "formName": "Human"
+   }
+  ],
+  "valkyrie_rain": [
+   {
+    "id": "mp8dmyj0cwv58i4ei98",
+    "name": "Valkyrie",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp8dmyj0cwv58i4ei98",
+    "name": "Valkyrie",
+    "form": 1,
+    "formName": "REVIVED GHOST"
+   }
+  ],
+  "aether_forest": [
+   {
+    "id": "mp7jl162ihame8weji",
+    "name": "Aether",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "adam_ice": [
+   {
+    "id": "mp7jvswwjnssuutye2n",
+    "name": "Adam",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "adam_kingdom": [
+   {
+    "id": "mp7jvswwjnssuutye2n",
+    "name": "Adam",
+    "form": 1,
+    "formName": "Human"
+   }
+  ],
+  "oliver_west": [
+   {
+    "id": "mp7ipm1ujz8z3tkjh2s",
+    "name": "Oliver TimberWood",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "omen_stage": [
+   {
+    "id": "mp7j92p8cbnwh23edru",
+    "name": "Omen",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "omen_bar": [
+   {
+    "id": "mp7j92p8cbnwh23edru",
+    "name": "Omen",
+    "form": 1,
+    "formName": "Bartender!"
+   }
+  ],
+  "omen_janitor": [
+   {
+    "id": "mp7j92p8cbnwh23edru",
+    "name": "Omen",
+    "form": 2,
+    "formName": "Janitor!"
+   }
+  ],
+  "amber_arcana": [
+   {
+    "id": "mt6vcnxnzg2ry41wsqi",
+    "name": "Amber",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "divine_light": [
+   {
+    "id": "mp8c8c9ybmdjvn68ahk",
+    "name": "Divine",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "lucifer_unleashed": [
+   {
+    "id": "mp8arjehq5uf7c0ivog",
+    "name": "Lucifer",
+    "form": 1,
+    "formName": "Unleashed"
+   }
+  ],
+  "nara_ocean": [
+   {
+    "id": "mpo2gnuryoy7dgxygm9",
+    "name": "NARA!!!!!!!!!!!!!!!!!!!!",
+    "form": 1,
+    "formName": "BLUE"
+   }
+  ],
+  "nara_white": [
+   {
+    "id": "mpo2gnuryoy7dgxygm9",
+    "name": "NARA!!!!!!!!!!!!!!!!!!!!",
+    "form": 6,
+    "formName": "White"
+   }
+  ],
+  "nara_green": [
+   {
+    "id": "mpo2gnuryoy7dgxygm9",
+    "name": "NARA!!!!!!!!!!!!!!!!!!!!",
+    "form": 7,
+    "formName": "GREEN!!"
+   }
+  ],
+  "spruce_roses": [
+   {
+    "id": "mp7kbwb8m3i31wcsggh",
+    "name": "Spruce",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "haru_parasite": [
+   {
+    "id": "mpa86demxda6rley91",
+    "name": "Haru",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mpa86demxda6rley91",
+    "name": "Haru",
+    "form": 1,
+    "formName": "PURIFIED"
+   }
+  ],
+  "helios_sun": [
+   {
+    "id": "mp7kq1o2kgh3fa0wkrs",
+    "name": "Helios",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp7kq1o2kgh3fa0wkrs",
+    "name": "Helios",
+    "form": 1,
+    "formName": "Solvaron"
+   }
+  ],
+  "simmer_tide": [
+   {
+    "id": "mpa75omo4gt2qsz27oa",
+    "name": "Simmer",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "ex_glitch": [
+   {
+    "id": "mp7khczxp3tvw2ahecd",
+    "name": "EX",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "kardia_void": [
+   {
+    "id": "mp7k6s9ijg91zdydv8",
+    "name": "Kardia",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "cory_office": [
+   {
+    "id": "mp7ldxnwyke0htedpet",
+    "name": "Cory",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "astra_waterfall": [
+   {
+    "id": "mp8cpcfyrgzorrmei8h",
+    "name": "Astra",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "evelynn_moon": [
+   {
+    "id": "mpizef75fs3zabz284",
+    "name": "Evelynn",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "justin_cotton": [
+   {
+    "id": "mp7mfu6yg5wa59yfn2",
+    "name": "Justin",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp7mfu6yg5wa59yfn2",
+    "name": "Justin",
+    "form": 1,
+    "formName": "VOID EMPEROR."
+   }
+  ],
+  "anti_sanctuary": [
+   {
+    "id": "mp7nyc37ewswdtv6znw",
+    "name": "Anti",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp7nyc37ewswdtv6znw",
+    "name": "Anti",
+    "form": 1,
+    "formName": "magicalll girll"
+   }
+  ],
+  "mouseburger_dusk": [
+   {
+    "id": "mpfsg6korlcwmlpgxq",
+    "name": "MOUSEBURGER",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mpfsg6korlcwmlpgxq",
+    "name": "MOUSEBURGER",
+    "form": 1,
+    "formName": "HEON"
+   }
+  ],
+  "iris_starlight": [
+   {
+    "id": "mp81fw9t631d2s5fqnk",
+    "name": "Iris",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp81fw9t631d2s5fqnk",
+    "name": "Iris",
+    "form": 1,
+    "formName": "Lady of The Stars!"
+   }
+  ],
+  "libra_entropy": [
+   {
+    "id": "mrdr6w4c5o9itxmaiwq",
+    "name": "Libra",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "plumky_hallows": [
+   {
+    "id": "mri50obkx2jdi4vpfbq",
+    "name": "Plumky",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "lunar_moon": [
+   {
+    "id": "mp8cjy4z91zmw7i4n17",
+    "name": "Lunar",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp8cjy4z91zmw7i4n17",
+    "name": "Lunar",
+    "form": 1,
+    "formName": "Midnight Sun"
+   }
+  ],
+  "zoe_garden": [
+   {
+    "id": "mp82rsodjmiy54cwt3b",
+    "name": "Zoe",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "cappy_milk": [
+   {
+    "id": "mp85oi5f0qnzqt16pa2",
+    "name": "Cappy",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp8e2a0z9bk7uy888qh",
+    "name": "Toy Cappy",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp86dne171je8992pjk",
+    "name": "Funtime Cappy",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp86v6h6bjxqhy5dwzo",
+    "name": "Withered Cappy",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp8dwy50vv4cg2zw3kd",
+    "name": "Nightmare Cappy",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "jasmine_ribcage": [
+   {
+    "id": "mp8ban4cy8a9wh6zcm",
+    "name": "Jasmine",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mp8ban4cy8a9wh6zcm",
+    "name": "Jasmine",
+    "form": 1,
+    "formName": "Marion"
+   }
+  ],
+  "classic_ghost": [
+   {
+    "id": "mq9o694gkzn2bu0q29",
+    "name": "Classic",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "classic_det": [
+   {
+    "id": "mq9o694gkzn2bu0q29",
+    "name": "Classic",
+    "form": 1,
+    "formName": "Determination."
+   }
+  ],
+  "classic_save": [
+   {
+    "id": "mq9o694gkzn2bu0q29",
+    "name": "Classic",
+    "form": 2,
+    "formName": "SAVE"
+   }
+  ],
+  "ronnette_scrap": [
+   {
+    "id": "mp8bl612gei8pkif0us",
+    "name": "Ronnette",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "shi_souls": [
+   {
+    "id": "mp8foozlaavwi6z6vq7",
+    "name": "The Shi",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "jeckely_box": [
+   {
+    "id": "mpsin0lvzejn5otqqg",
+    "name": "Jeckely",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mpsin0lvzejn5otqqg",
+    "name": "Jeckely",
+    "form": 1,
+    "formName": "The Showrunner"
+   },
+   {
+    "id": "mpsin0lvzejn5otqqg",
+    "name": "Jeckely",
+    "form": 2,
+    "formName": "PDA Jeckely"
+   }
+  ],
+  "alsace_spiral": [
+   {
+    "id": "mq674zjnfg30tyovnw7",
+    "name": "ALSACE",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mq674zjnfg30tyovnw7",
+    "name": "ALSACE",
+    "form": 1,
+    "formName": "MASK OFF"
+   }
+  ],
+  "mimzy_bloom": [
+   {
+    "id": "mprn4dbnpw8dxe9tab",
+    "name": "Mimzy",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "momo_waste": [
+   {
+    "id": "mp8raucmiovr4llxysm",
+    "name": "Momo",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "diva_virus": [
+   {
+    "id": "mpvzvonscqbh9r32j85",
+    "name": "✨DIVA!!!!!!!✨",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mpvzvonscqbh9r32j85",
+    "name": "✨DIVA!!!!!!!✨",
+    "form": 1,
+    "formName": "VIRUS"
+   }
+  ],
+  "joni_jungle": [
+   {
+    "id": "mp9w1pmq8hzjvvkiotv",
+    "name": "Joni",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "jihau_vaporwave": [
+   {
+    "id": "mpk6j6i1il0rme3j84g",
+    "name": "JIHAU",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "gonela_frontier": [
+   {
+    "id": "mpmoyc7rhhcgcoqir7k",
+    "name": "Gonela",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "andy_goat": [
+   {
+    "id": "mpoeu4dro1n0qafmj5m",
+    "name": "Andy the Goat",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "leonor_muertos": [
+   {
+    "id": "mpoobvi3mimxe5yod9",
+    "name": "Leonor",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "cuckoo_clockwork": [
+   {
+    "id": "mpsfpt7de5hymg6eddt",
+    "name": "Cuckoo",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "miami_aero": [
+   {
+    "id": "mpsgrlkhfzt7cz5j16a",
+    "name": "Miami",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "layla_aurora": [
+   {
+    "id": "mpsh0c6dlkwwv9arlfq",
+    "name": "Layla",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "shooshi_sushi": [
+   {
+    "id": "mpsh3askpwh98j21x9c",
+    "name": "Shoo Shi",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "emporium_range": [
+   {
+    "id": "mpshjfydpq3g64irgu",
+    "name": "Emporium",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mpshjfydpq3g64irgu",
+    "name": "Emporium",
+    "form": 1,
+    "formName": "GUNSLINGER"
+   }
+  ],
+  "pawn_chess": [
+   {
+    "id": "mpzqu9y9d9e645ey1ov",
+    "name": "Pawn",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "rook_slam": [
+   {
+    "id": "mpzqwwmfmyaju2h67t",
+    "name": "ROOK",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "starry_aero": [
+   {
+    "id": "mqfuycc03y4z54jorp8",
+    "name": "Starry",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mqfuycc03y4z54jorp8",
+    "name": "Starry",
+    "form": 1,
+    "formName": "MAGICAL!"
+   }
+  ],
+  "oblitus_void": [
+   {
+    "id": "mqy7hbnvh381gpauvjo",
+    "name": "OBLITUS",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "actarius_mycelium": [
+   {
+    "id": "mqy71rt28b6ljl7zhvr",
+    "name": "Actarius",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "xyliar_sanctum": [
+   {
+    "id": "mt6uv6pj2128dfon45g",
+    "name": "Xyliar",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "lala_ward": [
+   {
+    "id": "mt6tsuhypu4m8olgk4k",
+    "name": "Lala",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "tobu_ward": [
+   {
+    "id": "mt6ua3t74pobsx4jicx",
+    "name": "Tobu",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "vikadan_casino": [
+   {
+    "id": "mr6z7fvuzgyatzao03",
+    "name": "Vikadan",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "annie_blitz": [
+   {
+    "id": "mrlozesx5yixvi2wzi4",
+    "name": "ANNIE",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "rody_heart": [
+   {
+    "id": "mrhs1wqhehecq7vvtja",
+    "name": "Rody",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mrhs1wqhehecq7vvtja",
+    "name": "Rody",
+    "form": 1,
+    "formName": "Noelly"
+   },
+   {
+    "id": "mrhs1wqhehecq7vvtja",
+    "name": "Rody",
+    "form": 2,
+    "formName": "Lumynette"
+   }
+  ],
+  "sevach_bloodsea": [
+   {
+    "id": "mrm5xeuotpl6v8p7wjc",
+    "name": "Sevach",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "ball_checks": [
+   {
+    "id": "msnphshus0uqbf5e3xb",
+    "name": "BALL",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "rady_wasteland": [
+   {
+    "id": "msxup2libhyde3pqqf6",
+    "name": "Rady",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "mahogany_thorns": [
+   {
+    "id": "mtew77tjay1u7gar2in",
+    "name": "'MAHOGANY'",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "lele_cold": [
+   {
+    "id": "mtf0yfsshd355juiwel",
+    "name": "Lele",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "flowey_vines": [
+   {
+    "id": "mtkmfg3vr1memxxvp2b",
+    "name": "AH!Flowey",
+    "form": 0,
+    "formName": ""
+   }
+  ],
+  "ivy_evil": [
+   {
+    "id": "mtow23ogt9yab1yg7qr",
+    "name": "Ivy",
+    "form": 1,
+    "formName": "EVIL creature"
+   }
+  ],
+  "aeden_puppet": [
+   {
+    "id": "mtovzg6vb2el6nnsgmn",
+    "name": "Aeden",
+    "form": 1,
+    "formName": "PUPPET"
+   }
+  ],
+  "sel_night": [
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 0,
+    "formName": ""
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 1,
+    "formName": "Violin"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 2,
+    "formName": "Cricket"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 3,
+    "formName": "1950"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 4,
+    "formName": "Steampunk"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 5,
+    "formName": "Cowboy"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 6,
+    "formName": "Beach"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 7,
+    "formName": "Poker"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 8,
+    "formName": "Nutcracker"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 9,
+    "formName": "Archmage"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 10,
+    "formName": "Scientist"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 11,
+    "formName": "Camp"
+   },
+   {
+    "id": "mtow4hobf8ewd0ciw1c",
+    "name": "Sel",
+    "form": 12,
+    "formName": "Ballet"
+   }
+  ]
+ },
+ "missing": [
+  "jimmy_muffin",
+  "kurio_nightgarden"
+ ]
+}
