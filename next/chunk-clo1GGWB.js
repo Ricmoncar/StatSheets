@@ -1,0 +1,1 @@
+var e={collectionPrefix:`next_`,sandboxLabel:`PREVIEW: TEST DATA`,assetBase:`../`,firestoreEmulator:null,hashRouting:!0};export{e as t};
