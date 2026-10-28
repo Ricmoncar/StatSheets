@@ -65,7 +65,7 @@ export const isJuko = (c: Character | null | undefined) => !!c && JUKO.test(c.na
 export const isJuko0Inf = (c: Character | null | undefined) => isJuko(c) && INF.test(activeFormName(c));
 /** "1", the form that has a page of its own. */
 export const isJuko1 = (c: Character | null | undefined) => isJuko(c) && ONE.test(activeFormName(c));
-export const SONG = 'sounds/juko.mp3', SONG_0INF = 'sounds/juko-0inf.mp3';
+export const SONG = 'sounds/juko.mp3', SONG_0INF = 'sounds/juko-0inf.mp3', SONG_1 = 'sounds/juko-1.mp3';
 
 /** What both layers share: the song, and where the 0∞ breakdown is. */
 export const J = {
@@ -93,7 +93,7 @@ export function sync(): void {
   if (chaos && !J.chaos) { J.entry = now; J.run++; J.anchored = false; J.skip = 0; }
   if (!chaos) J.entry = 0;
   J.chaos = chaos;
-  J.song.follow(chaos ? SONG_0INF : SONG);
+  J.song.follow(chaos ? SONG_0INF : isJuko1(pageCharacter.c) ? SONG_1 : SONG);
   J.song.sample(dt);
   J.el = chaos ? elapsed() + J.skip : 0;
   J.sev = chaos ? sevAt(J.el) : 0;

@@ -24,31 +24,34 @@ $inf5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
   @return var(--px) 0 0 $c, calc(-1 * var(--px)) 0 0 $c, 0 var(--px) 0 $c, 0 calc(-1 * var(--px)) 0 $c;
 }
 
-@include kit.chrome('juko_code', #030805, #0c3a18, #1f7a3c, $hot, #8fe4b8, $cream) {
+// The sheet as every one of her pages wears it: $h her colour, $c the light
+// (the HUD and the underline's middle), $d its shadow, $v the void behind,
+// $t the glow round the portrait's tag.
+@mixin juko-sheet($h, $c, $d, $v, $t) {
   --juko-glow: 0; --juko-onset: 0; --juko-glitch: 0;
-  --jk-glow: color-mix(in srgb, #{$hot} calc(var(--juko-glow) * 85%), transparent);
+  --jk-glow: color-mix(in srgb, #{$h} calc(var(--juko-glow) * 85%), transparent);
 
   ss-panel {
     border-image: none;
     border-color: transparent;
     box-shadow: none;
     background:
-      repeating-linear-gradient(0deg, transparent 0 calc(3 * var(--px)), rgb(47 208 156 / 0.035) calc(3 * var(--px)) calc(4 * var(--px))),
-      rgb(2 9 5 / 0.8);
+      repeating-linear-gradient(0deg, transparent 0 calc(3 * var(--px)), color-mix(in srgb, #{$h} 3.5%, transparent) calc(3 * var(--px)) calc(4 * var(--px))),
+      color-mix(in srgb, #{$v} 80%, transparent);
     background-clip: padding-box;
     > .head > .title {
       position: relative;
-      background-color: #030805;
-      color: color-mix(in srgb, #{$hot} calc(60% + var(--juko-glow) * 40%), #8a9a90);
-      text-shadow: var(--p1) var(--p1) 0 #0c3a18, halo(var(--jk-glow));
-      &:hover { color: $cream; text-shadow: var(--p1) var(--p1) 0 #0c3a18, halo($hot); }
+      background-color: $v;
+      color: color-mix(in srgb, #{$h} calc(60% + var(--juko-glow) * 40%), #8a9a90);
+      text-shadow: var(--p1) var(--p1) 0 $d, halo(var(--jk-glow));
+      &:hover { color: $c; text-shadow: var(--p1) var(--p1) 0 $d, halo($h); }
       // the underline, a shimmer of code light running along it
       &::after {
         content: '';
         position: absolute;
         left: 0; right: 0; bottom: calc(-3 * var(--px)); height: var(--px);
-        background: linear-gradient(90deg, transparent 0 20%, #{$hot} 20% 38%, #{$cream} 38% 62%, #{$hot} 62% 80%, transparent 80%) 0 0 / 220% 100%;
-        box-shadow: 0 var(--px) 0 color-mix(in srgb, #{$hot} calc(var(--juko-onset) * 70%), transparent);
+        background: linear-gradient(90deg, transparent 0 20%, #{$h} 20% 38%, #{$c} 38% 62%, #{$h} 62% 80%, transparent 80%) 0 0 / 220% 100%;
+        box-shadow: 0 var(--px) 0 color-mix(in srgb, #{$h} calc(var(--juko-onset) * 70%), transparent);
         opacity: calc(0.45 + var(--juko-glow) * 0.55);
         animation: jk-sweep 3s steps(30) infinite;
         pointer-events: none;
@@ -58,13 +61,13 @@ $inf5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
 
   // the portrait: her colour round it, glowing and kicking with the beat
   .head .portrait {
-    box-shadow: 0 0 0 var(--px) #030805, 0 0 0 var(--p2) #{$hot}, 0 0 0 var(--p3) var(--jk-glow), var(--hard);
+    box-shadow: 0 0 0 var(--px) $v, 0 0 0 var(--p2) #{$h}, 0 0 0 var(--p3) var(--jk-glow), var(--hard);
     scale: calc(1 + var(--juko-onset) * 0.06);
     // scrolling scanlines
     &::before {
       content: '';
       position: absolute; inset: 0; z-index: 2;
-      background: repeating-linear-gradient(0deg, transparent 0 var(--p2), rgb(47 208 156 / 0.22) var(--p2) var(--p3)) 0 0 / 100% var(--p4);
+      background: repeating-linear-gradient(0deg, transparent 0 var(--p2), color-mix(in srgb, #{$h} 22%, transparent) var(--p2) var(--p3)) 0 0 / 100% var(--p4);
       opacity: calc(0.35 + var(--juko-glow) * 0.5);
       mix-blend-mode: screen;
       animation: jk-scan 4s steps(4) infinite;
@@ -76,10 +79,10 @@ $inf5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
       content: '';
       position: absolute; inset: var(--p2); z-index: 3;
       background:
-        linear-gradient(#{$cream}, #{$cream}) 0 0 / var(--b) var(--px), linear-gradient(#{$cream}, #{$cream}) 0 0 / var(--px) var(--b),
-        linear-gradient(#{$cream}, #{$cream}) 100% 0 / var(--b) var(--px), linear-gradient(#{$cream}, #{$cream}) 100% 0 / var(--px) var(--b),
-        linear-gradient(#{$cream}, #{$cream}) 0 100% / var(--b) var(--px), linear-gradient(#{$cream}, #{$cream}) 0 100% / var(--px) var(--b),
-        linear-gradient(#{$cream}, #{$cream}) 100% 100% / var(--b) var(--px), linear-gradient(#{$cream}, #{$cream}) 100% 100% / var(--px) var(--b);
+        linear-gradient(#{$c}, #{$c}) 0 0 / var(--b) var(--px), linear-gradient(#{$c}, #{$c}) 0 0 / var(--px) var(--b),
+        linear-gradient(#{$c}, #{$c}) 100% 0 / var(--b) var(--px), linear-gradient(#{$c}, #{$c}) 100% 0 / var(--px) var(--b),
+        linear-gradient(#{$c}, #{$c}) 0 100% / var(--b) var(--px), linear-gradient(#{$c}, #{$c}) 0 100% / var(--px) var(--b),
+        linear-gradient(#{$c}, #{$c}) 100% 100% / var(--b) var(--px), linear-gradient(#{$c}, #{$c}) 100% 100% / var(--px) var(--b);
       background-repeat: no-repeat;
       opacity: calc(0.5 + var(--juko-onset) * 0.5);
       pointer-events: none;
@@ -94,8 +97,8 @@ $inf5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
     }
     .pg-jk-fx .tag {
       position: absolute; right: var(--p2); bottom: var(--p1);
-      font: 8px / 1 var(--f-ui); color: $cream;
-      text-shadow: halo(#0c3a18), var(--px) var(--px) 0 $green;
+      font: 8px / 1 var(--f-ui); color: $c;
+      text-shadow: halo($d), var(--px) var(--px) 0 $t;
       animation: jk-blink 1.4s steps(1, end) infinite;
     }
   }
@@ -104,7 +107,7 @@ $inf5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
   .head .name {
     position: relative;
     isolation: isolate;
-    color: $hot;
+    color: $h;
     text-shadow: var(--edge);
     &::before, &::after {
       content: attr(data-text);
@@ -127,6 +130,10 @@ $inf5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
       animation: jk-split-b 1.9s steps(1, end) infinite;
     }
   }
+}
+
+@include kit.chrome('juko_code', #030805, #0c3a18, #1f7a3c, $hot, #8fe4b8, $cream) {
+  @include juko-sheet($hot, $cream, #0c3a18, #030805, $green);
 }
 
 @keyframes jk-sweep { from { background-position: 120% 0; } to { background-position: -120% 0; } }
@@ -317,3 +324,93 @@ html.pg-juko-0inf {
 html.perf {
   ss-character-view[data-page='juko_code'] .head .portrait .pg-jk-fx { display: none; }
 }
+
+// ── JUKO · 1: the value that was left. The same sheet gone mint, and what the
+//    void adds: a page that has stopped hurrying, one light, and a name seen
+//    through a prism rather than through a fault. ──
+$mint: #4ef0c4;
+$mintw: #e6fff6;
+$rail: repeating-linear-gradient(90deg, #9a60ee 0 12.5%, #6092ff 12.5% 25%, #54deff 25% 37.5%, #4ef0c4 37.5% 50%, #96ff98 50% 62.5%, #d4ff78 62.5% 75%, #ffe270 75% 87.5%, #ff96a0 87.5% 100%);
+
+@include kit.chrome('juko_one', #02060a, #0a2b30, #1a6a60, $mint, #9af6dc, $mintw) {
+  @include juko-sheet($mint, $mintw, #0a2b30, #02060a, $mint);
+  // each panel sits in a pool of the void rather than on top of a picture of it
+  ss-panel { box-shadow: 0 0 0 calc(4 * var(--px)) rgb(0 4 7 / 0.18), 0 0 0 calc(9 * var(--px)) rgb(0 4 7 / 0.1); }
+  ss-panel > .head > .title { letter-spacing: 0; }
+  ss-panel > .head > .title::after { animation-duration: 6s; }
+  .sheet > .tabs .u-tab.on { text-shadow: var(--p1) var(--p1) 0 #0a2b30, var(--px) 0 0 color-mix(in srgb, #{$mint} calc(var(--juko-onset) * 90%), transparent), calc(-1 * var(--px)) 0 0 color-mix(in srgb, #{$mint} calc(var(--juko-onset) * 90%), transparent); }
+  ss-stat-bar .fill { box-shadow: 0 0 0 var(--px) color-mix(in srgb, #{$mint} calc(var(--juko-glow) * 55%), transparent); }
+  // the portrait sits in a prism: a slow spectrum sheen crawls across it, and the HUD goes the void's white
+  .head .portrait {
+    filter: saturate(1.1) contrast(1.05);
+    &::before { animation-duration: 9s; opacity: calc(0.18 + var(--juko-glow) * 0.3); }
+    .pg-jk-fx .sheen {
+      left: 0; width: 100%;
+      background: linear-gradient(115deg, transparent 0 38%, rgb(255 120 170 / 0.16) 38% 46%, rgb(120 255 220 / 0.22) 46% 54%, rgb(140 190 255 / 0.16) 54% 62%, transparent 62%) 0 0 / 300% 100%;
+      animation: jk1-refract 7s steps(28) infinite;
+    }
+    .pg-jk-fx .tag { color: #cffff0; animation: none; opacity: 0.8; }
+  }
+  // the name through the prism: the copies are the primaries a prism splits into, drifting apart and back
+  .head .name {
+    color: #dffff4;
+    &::before, &::after { clip-path: none; opacity: 0.55; }
+    &::before { color: #ff6a9c; animation: jk1-split-a 5.5s steps(6, jump-none) infinite; }
+    &::after { color: #6ad8ff; animation: jk1-split-b 5.5s steps(6, jump-none) infinite; }
+  }
+  // touching any control drops it into the void's resolution: what is under it goes soft, then a hard grid of cells over it
+  :is(.sheet > .tabs .u-tab, .u-btn, ss-trait-card, .bars .row, .forms .chip, ss-inventory-panel .item) { position: relative; }
+  :is(.sheet > .tabs .u-tab, .u-btn, ss-trait-card, .bars .row, .forms .chip, ss-inventory-panel .item)::before {
+    content: '';
+    position: absolute; inset: calc(-1 * var(--px)); z-index: 4;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.09s steps(3, end);
+    backdrop-filter: blur(1.6px) contrast(1.28) saturate(1.25);
+    background:
+      repeating-linear-gradient(0deg, rgb(2 10 14 / 0.42) 0 var(--px), transparent var(--px) calc(2 * var(--px))),
+      repeating-linear-gradient(90deg, rgb(2 10 14 / 0.42) 0 var(--px), transparent var(--px) calc(2 * var(--px)));
+    box-shadow: inset 0 0 0 var(--px) rgb(78 240 196 / 0.5);
+  }
+  :is(.sheet > .tabs .u-tab, .u-btn, ss-trait-card, .bars .row, .forms .chip, ss-inventory-panel .item):hover::before { opacity: 1; }
+}
+@keyframes jk1-refract { 0%, 100% { background-position: 100% 0; opacity: 0.5; } 50% { background-position: 0 0; opacity: 0.95; } }
+@keyframes jk1-split-a { 0%, 100% { translate: calc(-2 * var(--px)) 0; opacity: 0.45; } 50% { translate: calc(-3 * var(--px)) 0; opacity: 0.8; } }
+@keyframes jk1-split-b { 0%, 100% { translate: var(--p2) 0; opacity: 0.45; } 50% { translate: calc(3 * var(--px)) 0; opacity: 0.8; } }
+
+// While she is in this form the void is not confined to the sheet: the top bar, the list and the theme bar
+// take the same spectrum, the same one light, and the window gets the void's scanlines.
+html.pg-juko-one {
+  header.topbar {
+    position: relative;
+    // a spectrum rail under the bar, sliding: the one thing on the chrome that moves on its own
+    &::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: calc(-1 * var(--p2)); height: var(--px);
+      background: $rail 0 0 / calc(107 * var(--px)) 100%;
+      opacity: 0.65; pointer-events: none;
+      animation: jk1-rail 9s steps(107) infinite;
+    }
+    .logo { color: #dffff4; text-shadow: calc(-1 * var(--px)) 0 0 rgb(255 106 156 / 0.7), var(--px) 0 0 rgb(106 216 255 / 0.7), var(--p1) var(--p2) 0 #0a2b30; }
+    .logo span { color: $mint; }
+  }
+  ss-sidebar > .head .title { color: $mint; }
+  ss-sidebar .search { box-shadow: inset 0 0 0 var(--px) rgb(78 240 196 / 0.4); }
+  ss-sidebar .entry:hover { background: rgb(78 240 196 / 0.06); box-shadow: inset var(--p1) 0 0 rgb(78 240 196 / 0.55); }
+  ss-sidebar .entry.active { background: linear-gradient(90deg, rgb(78 240 196 / 0.16) 0 35%, rgb(78 240 196 / 0.08) 35% 70%, transparent 70%); box-shadow: inset var(--p1) 0 0 $mint; }
+  ss-theme-bar {
+    position: relative;
+    &::before {
+      content: ''; position: absolute; left: 0; right: 0; top: 0; height: var(--px); z-index: 1;
+      background: $rail 0 0 / calc(70 * var(--px)) 100%;
+      pointer-events: none;
+      animation: jk1-rail2 6s steps(70) infinite;
+    }
+  }
+  // the void's scanlines across the whole window, one pixel row in three
+  body::after {
+    content: ''; position: fixed; inset: 0; z-index: 99996; pointer-events: none;
+    background: repeating-linear-gradient(transparent 0 calc(2 * var(--px)), rgb(0 0 0 / 0.12) calc(2 * var(--px)) calc(3 * var(--px)));
+  }
+}
+@keyframes jk1-rail { to { background-position: calc(107 * var(--px)) 0; } }
+@keyframes jk1-rail2 { to { background-position: calc(70 * var(--px)) 0; } }

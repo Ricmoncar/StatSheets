@@ -11,90 +11,28 @@
 // page and clears over the 22-second intro; on the drop it breaks with a
 // flash, two shockwave rings and cracks, and a swaying green-to-yellow border
 // holds the page from then on.
-import { Raster, Screen, bayer } from '../raster';
+import { Raster, bayer } from '../raster';
 import { PageOverlay } from '../kit/overlay';
-import { glyph, text, textWidth } from '../kit/paint';
+import { text, textWidth } from '../kit/paint';
 import { Breakdown } from './breakdown';
-import { C, CatState, ERRORS, INTRO, J, LUM, P, RAIN, RAIN_CHAOS, TOKENS, drawCat, pick, restart, sync } from './look';
+import { C, CatState, ERRORS, INTRO, J, LUM, P, TOKENS, drawCat, pick, restart, sync } from './look';
+import { CodeRings, Equalizer, SheetPulse } from './sheet';
 
 const g = P.ramp('g'), y = P.ramp('y'), q = P.ramp('q'), z = P.ramp('z'), o = P.ramp('o'), n = P.ramp('n');
 const cy = P.ramp('c'), li = P.ramp('l');
-/** The code frame's cell, in art pixels. */
-const CELL = 6;
 const BAYER = Float32Array.from({ length: 16 }, (_, k) => bayer(k & 3, k >> 2));
 
 interface Bit { x: number; y: number; vx: number; vy: number; life: number; ch: string; yellow: boolean }
-interface Cell { x: number; y: number; ch: string; shade: number; warm: boolean; flick: number; mut: number }
-
-/** The equalizer: its own canvas along the bottom of the window, under the sheet (the old page's layer behind the panels). */
-class Equalizer {
-  readonly cv = document.createElement('canvas');
-  private readonly screen = new Screen(this.cv.getContext('2d')!);
-  private r = new Raster(1, 1);
-  private h = new Float32Array(0); private rate = new Float32Array(0); private ph = new Float32Array(0); private rnd = new Float32Array(0);
-
-  constructor() {
-    this.cv.setAttribute('aria-hidden', 'true');
-    this.cv.className = 'pg-jk-eq';
-    this.cv.style.cssText = 'position:fixed;left:0;bottom:0;z-index:0;pointer-events:none;image-rendering:pixelated;';
-  }
-  /** Behind the sheet's view, in front of the world. */
-  place(): void {
-    const stage = document.querySelector('ss-main-page .stage'), view = stage?.querySelector(':scope > .view');
-    if (stage && view && this.cv.parentElement !== stage) stage.insertBefore(this.cv, view);
-  }
-  draw(W: number, H: number, px: number, t: number, dt: number): void {
-    const chaos = J.chaos, sev = J.sev, lvl = J.song.level, beat = J.song.beat;
-    const eqH = Math.min(240, H * px * (chaos ? 0.26 + sev * 0.08 : 0.26)) / px, RH = Math.ceil(Math.min(240, H * px * 0.34) / px) + 2;
-    if (this.r.w !== W || this.r.h !== RH) {
-      this.r = new Raster(W, RH);
-      this.cv.width = W; this.cv.height = RH;
-      this.cv.style.width = W * px + 'px'; this.cv.style.height = RH * px + 'px';
-    }
-    const nb = Math.max(8, Math.floor(W / 2));
-    if (this.h.length !== nb) {
-      this.h = new Float32Array(nb);
-      this.rate = Float32Array.from({ length: nb }, () => 2 + Math.random() * 7);
-      this.ph = Float32Array.from({ length: nb }, () => Math.random() * Math.PI * 2);
-      this.rnd = Float32Array.from({ length: nb }, () => 0.55 + Math.random() * 0.45);
-    }
-    const r = this.r, ramp = chaos ? z : q, cap = chaos ? z[5] : q[5];
-    const kUp = Math.min(1, dt * (chaos ? 60 : 38)), kDn = Math.min(1, dt * (chaos ? 16 : 9));
-    r.clear(0);
-    for (let i = 0; i < nb; i++) {
-      const wave = 0.55 + 0.45 * Math.sin(t * this.rate[i] + this.ph[i]);
-      const idle = 0.018 + 0.012 * Math.sin(t * 1.4 + i * 0.4);
-      let target = Math.min(1, idle + (lvl * 0.5 + beat * 0.72) * wave * this.rnd[i]);
-      if (chaos) {
-        // random spikes slam bars to the top whatever the music does
-        if (Math.random() < 0.06 + sev * 0.14) target = Math.min(1, 0.5 + Math.random() * (0.5 + sev * 0.5));
-        target = Math.max(target, 0.12 + 0.28 * (0.5 + 0.5 * Math.sin(t * 9 + i * 0.9)) * (0.5 + sev));
-      }
-      this.h[i] += (target > this.h[i] ? kUp : kDn) * (target - this.h[i]);
-      const bh = Math.round(this.h[i] * eqH);
-      if (bh < 1) continue;
-      const x = i * 2 + (chaos && Math.random() < sev * 0.3 ? (Math.random() < 0.5 ? -1 : 1) : 0);
-      for (let k = 0; k < bh; k++) {
-        const yy = RH - 1 - k, u = (k / eqH) * (ramp.length - 1), s = Math.min(ramp.length - 2, Math.floor(u));
-        r.set(x, yy, u - s > BAYER[((yy & 3) << 2) | (x & 3)] ? ramp[s + 1] : ramp[s]);
-      }
-      // the lit cap
-      if (bh >= 2 && Math.min(chaos ? 0.8 : 0.6, this.h[i] * (chaos ? 0.9 : 0.75)) * 1.6 > BAYER[(((RH - bh) & 3) << 2) | (x & 3)]) r.set(x, RH - bh, cap);
-    }
-    this.screen.show(r, P.table);
-  }
-}
 
 class Terminal extends PageOverlay {
   private x = innerWidth / 2; private y = innerHeight / 2;
   private st: CatState = { vx: 0, vy: 0, bounce: 0, happy: 0 };
   private cat = new Raster(1, 1); private ghostR = new Raster(1, 1); private catPx = 0;
   private bits: Bit[] = [];
-  private frames = new WeakMap<Element, { w: number; h: number; cells: Cell[] }>();
-  private comet = 0;
-  private css = { g: -1, o: -1, x: -1, t: -9 };
+  private readonly rings = new CodeRings((b, lift, warm, glint) =>
+    glint ? C['e1'] : warm ? y[Math.min(5, Math.floor(b * 4.2) + lift)] : g[Math.min(9, Math.min(6, Math.floor(b * 5.5)) + lift)]);
+  private readonly pulse = new SheetPulse();
   private eq: Equalizer | null = null;
-  private fx: HTMLElement | null = null;
   private boom = { run: -1, t0: -1, cracks: [] as { ang: number; jag: number[] }[] };
   private readonly breakdown = new Breakdown();
 
@@ -104,17 +42,14 @@ class Terminal extends PageOverlay {
     restart();
     this.x = this.mx > -1000 ? this.mx : innerWidth / 2; this.y = this.my > -1000 ? this.my : innerHeight / 2;
     this.st = { vx: 0, vy: 0, bounce: 0, happy: 0 };
-    this.bits = []; this.css = { g: -1, o: -1, x: -1, t: -9 }; this.boom = { run: -1, t0: -1, cracks: [] };
-    this.eq = new Equalizer();
+    this.bits = []; this.pulse.reset(); this.boom = { run: -1, t0: -1, cracks: [] };
+    this.eq = new Equalizer({ table: P.table, calm: q, crash: z, capCalm: q[5], capCrash: z[5] });
   }
   protected override end(): void {
-    this.eq?.cv.remove(); this.eq = null;
-    this.fx?.remove(); this.fx = null;
+    this.eq?.remove(); this.eq = null;
+    this.pulse.clear();
     this.breakdown.stop(true);
     document.documentElement.classList.remove('pg-juko-0inf');
-    const view = document.querySelector<HTMLElement>('ss-character-view');
-    view?.style.removeProperty('--juko-glow'); view?.style.removeProperty('--juko-onset'); view?.style.removeProperty('--juko-glitch');
-    document.querySelector('ss-character-view .head .name')?.removeAttribute('data-text');
   }
   // she is placed every frame, where the spring has her
   protected override moved(): void { /* nothing */ }
@@ -146,7 +81,7 @@ class Terminal extends PageOverlay {
     st.bounce = Math.max(0, st.bounce - dt * 3); st.happy = Math.max(0, st.happy - dt);
     if (onset > 0.5) st.bounce = Math.max(st.bounce, (onset - 0.5) * 1.1);
 
-    let any = this.codeFrames(r, t, dt, chaos, sev, lvl, beat);
+    let any = this.rings.draw(r, px, t, dt, chaos ? sev : 0, lvl, beat);
 
     // the puff of tokens
     for (let i = this.bits.length - 1; i >= 0; i--) {
@@ -163,7 +98,7 @@ class Terminal extends PageOverlay {
     if (this.boomFrame(r, t, dropped)) any = true;
 
     this.drawCompanion(t, chaos, sev, lvl, onset);
-    this.chrome(t, lvl, beat);
+    this.pulse.tick(t, lvl, beat);
     this.eq?.place();
     this.eq?.draw(W, H, px, t, dt);
     if (chaos) this.breakdown.tick(performance.now() / 1000, sev, dropped, beat);
@@ -205,62 +140,6 @@ class Terminal extends PageOverlay {
       const l = LUM[v];
       r.px[k] = ramp[l < 60 ? 0 : l < 120 ? 1 : l < 190 ? 2 : 3];
     }
-  }
-
-  // ── every panel's frame as a ring of streaming code ──
-  private codeFrames(r: Raster, t: number, dt: number, chaos: boolean, cR: number, lvl: number, beat: number): boolean {
-    // over the sheet only, and not over a dialog, the trait roll or the open drawer
-    if (document.querySelector('ss-modal, ss-roll-overlay, ss-main-page > .scrim')) return false;
-    const view = document.querySelector('ss-main-page .view');
-    if (!view) return false;
-    // between the top bar and the theme bar, where the sheet shows
-    const px = this.px, vr = view.getBoundingClientRect();
-    const top = Math.max(vr.top, document.querySelector('header.topbar')?.getBoundingClientRect().bottom ?? 0);
-    const bottom = Math.min(vr.bottom, document.querySelector('ss-theme-bar')?.getBoundingClientRect().top ?? innerHeight);
-    const cx0 = Math.max(0, Math.floor(vr.left / px)), cy0 = Math.max(0, Math.floor(top / px));
-    const cx1 = Math.min(r.w, Math.ceil(vr.right / px)), cy1 = Math.min(r.h, Math.ceil(bottom / px));
-    const set = chaos && cR > 0.4 ? RAIN_CHAOS : RAIN;
-    this.comet += dt * (55 + lvl * 130) * (1 + cR * 1.6) / px;
-    const panels = view.querySelectorAll('ss-character-view ss-panel');
-    let drew = false;
-    panels.forEach((el, pi) => {
-      const pr = el.getBoundingClientRect();
-      if (pr.width < 24 || pr.bottom < vr.top - 40 || pr.top > vr.bottom + 40) return;
-      const w = Math.round(pr.width / px), h = Math.round(pr.height / px);
-      let f = this.frames.get(el);
-      if (!f || f.w !== w || f.h !== h) { f = { w, h, cells: ring(w, h) }; this.frames.set(el, f); }
-      const cells = f.cells, N = cells.length, head = (this.comet / CELL + pi * 7) % N;
-      const pjx = cR > 0 ? ((Math.random() - 0.5) * cR * 10) / px : 0, pjy = cR > 0 ? ((Math.random() - 0.5) * cR * 10) / px : 0;
-      const ox = pr.left / px, oy = pr.top / px;
-      // the ring goes round the panel's title plaque and its buttons, which sit on its edge
-      const holes = [...el.querySelectorAll(':scope > .head > .title, :scope > .head > .actions > *')].map(h => {
-        const b = h.getBoundingClientRect();
-        return [b.left / px - 1, b.top / px - 1, b.right / px + 1, b.bottom / px + 1];
-      });
-      for (let i = 0; i < N; i++) {
-        const c = cells[i];
-        c.mut -= dt * (1 + cR * 2.2);
-        if (c.mut <= 0) { c.ch = pick(set); c.mut = 0.25 + Math.random() * 1.7; }
-        let d = Math.abs(i - head);
-        if (d > N / 2) d = N - d;
-        const comet = Math.max(0, 1 - d / 7), flick = 0.8 + 0.2 * Math.sin(t * 7 + c.flick);
-        let b = c.shade * flick * (0.3 + lvl * 0.28) + comet * (0.55 + beat * 0.65) + beat * 0.12 + cR * 0.45;
-        if (b < 0.045) continue;
-        b = Math.min(1.3, b);
-        const lift = Math.round(comet * (0.5 + beat * 0.45) * 3);
-        let col: number;
-        if (cR > 0 && Math.random() < cR * 0.3) col = C['e1'];
-        else if (c.warm) col = y[Math.min(5, Math.floor(b * 4.2) + lift)];
-        else col = g[Math.min(9, Math.min(6, Math.floor(b * 5.5)) + lift)];
-        const gx = Math.round(ox + c.x - 1 + pjx + (cR > 0 ? ((Math.random() - 0.5) * cR * 6) / px : 0));
-        const gy = Math.round(oy + c.y - 2 + pjy + (cR > 0 ? ((Math.random() - 0.5) * cR * 6) / px : 0));
-        if (gx < cx0 || gy < cy0 || gx + 3 > cx1 || gy + 5 > cy1) continue;
-        if (holes.some(h => gx + 3 > h[0] && gx < h[2] && gy + 5 > h[1] && gy < h[3])) continue;
-        glyph(r, gx, gy, c.ch, col);
-        drew = true;
-      }
-    });
-    return drew;
   }
 
   // ── 0∞: the breakdown reaching past the page, over everything ──
@@ -372,50 +251,6 @@ class Terminal extends PageOverlay {
     }
     return true;
   }
-
-  // ── the sheet's chrome, pulsing with the song ──
-  private chrome(t: number, lvl: number, beat: number): void {
-    const view = document.querySelector<HTMLElement>('ss-character-view');
-    if (!view) return;
-    // the name's split copies read their text from data-text
-    const nm = view.querySelector('.head .name');
-    if (nm && nm.getAttribute('data-text') !== nm.textContent) nm.setAttribute('data-text', nm.textContent || '');
-    // the portrait's sheen and its blinking code tag
-    const pf = view.querySelector('.head .portrait');
-    if (pf && (!this.fx || this.fx.parentElement !== pf)) {
-      this.fx?.remove();
-      const fx = this.fx = document.createElement('span');
-      fx.className = 'pg-jk-fx'; fx.setAttribute('aria-hidden', 'true');
-      fx.innerHTML = '<i class="sheen"></i><b class="tag">&lt;/&gt;</b>';
-      pf.appendChild(fx);
-    }
-    // Rest dark and let the beat do the talking. Written on a jump, or at most four times a second
-    // (every write restyles everything under the sheet).
-    const glow = Math.min(1, 0.05 + 0.03 * Math.sin(t * 2) + lvl * 0.22 + beat * 0.92), on = Math.min(1, beat);
-    const glitch = beat > 0.5 ? 1 : Math.sin(t * 13) > 0.94 ? 0.5 : 0, c = this.css;
-    const jump = Math.abs(glow - c.g) > 0.13 || Math.abs(on - c.o) > 0.16 || glitch !== c.x;
-    const settle = t - c.t > 0.25 && (Math.abs(glow - c.g) > 0.03 || Math.abs(on - c.o) > 0.04);
-    if (jump || settle) {
-      view.style.setProperty('--juko-glow', glow.toFixed(3));
-      view.style.setProperty('--juko-onset', on.toFixed(3));
-      view.style.setProperty('--juko-glitch', glitch.toFixed(2));
-      c.g = glow; c.o = on; c.x = glitch; c.t = t;
-    }
-  }
-}
-
-/** The cells round a panel w x h (art pixels), one every CELL, riding just inside its edge, clockwise from the top left. */
-function ring(w: number, h: number): Cell[] {
-  const cells: Cell[] = [], m = CELL * 0.62;
-  const edge = (x0: number, y0: number, x1: number, y1: number) => {
-    const k = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / CELL));
-    for (let i = 0; i < k; i++) cells.push({
-      x: x0 + ((x1 - x0) * i) / k, y: y0 + ((y1 - y0) * i) / k, ch: pick(RAIN),
-      shade: 0.45 + Math.random() * 0.55, warm: Math.random() < 0.16, flick: Math.random() * Math.PI * 2, mut: 0.2 + Math.random() * 1.6,
-    });
-  };
-  edge(m, m, w - m, m); edge(w - m, m, w - m, h - m); edge(w - m, h - m, m, h - m); edge(m, h - m, m, m);
-  return cells;
 }
 
 export const terminal = new Terminal();

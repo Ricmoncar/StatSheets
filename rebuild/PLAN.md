@@ -71,6 +71,12 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
         song driving the chrome's glow. 0∞: the 22-second intro vignette, the corrupted
         rain, static, tears and tracking bar, the boom at the drop, the swaying border,
         the kick, the corrupted windows, ∞ stats (rebuild/tools/juko_e2e.js)
+  - [x] Juko · 1, the void: the prism (the one light) with its rings, spokes and shafts
+        through the span overhead, the field of digits coming at you and resolving to 1,
+        chains of digits, the wreck of the garden, debris going past, seven events
+        (comet, eclipse, garden, cascade, constellation, wingbeat, zero); over the
+        window the far field, the arms of digits, sparks and the spectrum fringe; her
+        blade (the jagged neon crescent from her drawing) as the pointer's companion
 
 ## Cutover
 

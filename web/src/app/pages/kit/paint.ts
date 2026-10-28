@@ -162,6 +162,12 @@ export function glyph(r: Raster, x: number, y: number, ch: string, i: number): v
     if (xx >= 0 && yy >= 0 && xx < w && yy < h) px[yy * w + xx] = i;
   }
 }
+/** A character's 3x5 bits (bit 14 the top left, row by row), for drawing it some other way. */
+export function glyphBits(ch: string): number {
+  let m = MASKS.get(ch);
+  if (m === undefined) { m = parseInt(GLYPHS[ch.toUpperCase()] ?? GLYPHS['?'], 2); MASKS.set(ch, m); }
+  return m;
+}
 /** How wide `s` is in the 3x5 font. */
 export const textWidth = (s: string, scale = 1) => Math.max(0, (s.length + (s.split('∞').length - 1) * 2) * 4 * scale - scale);
 

@@ -6,8 +6,9 @@
 // sheet; the song's three variables reach the sheet; and in 0∞ the page
 // breaks down (the class that restyles the app, ∞ stats that flash back to
 // the real number, the black vignette, and after the drop the windows and
-// the kick), then lets go of all of it on the way back to the base form and
-// on leaving the page.
+// the kick), then lets go of all of it on the way back to the base form; and
+// "1" opens on its own page (the void, the sword, every event, the eclipse
+// darkening the whole window); and leaving puts everything back.
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const BASE = 'http://127.0.0.1:8790';
 const DOCS = 'http://127.0.0.1:8085/v1/projects/statsheets-3668d/databases/(default)/documents/';
@@ -116,6 +117,37 @@ const setForm = (id, f) => fetch(DOCS + 'next_characters/' + id + '?updateMask.f
     await setForm(JUKO, 0);
     check(await until(async () => { const s = await st(); return !s.inf && s.wins === 0 && !s.kicked && s.flashes === 0; }, 6000), 'back in the base form the breakdown lets go');
 
+    // "1": its own page, the void and the sword
+    await setForm(JUKO, 2);
+    check(await until(async () => (await st()).page === 'juko_one', 8000), '"1" opens on the void (juko_one)');
+    await page.mouse.move(900, 500);
+    await page.mouse.move(1000, 430, { steps: 8 });
+    const one = () => page.evaluate(() => {
+      const root = document.getElementById('pg-juko_one');
+      const sword = [...document.querySelectorAll('body > div canvas')].find(c => c.parentElement !== root && c.width > 100 && c.width === c.height);
+      const lit = c => { if (!c) return 0; const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n; };
+      const film = [...document.querySelectorAll('body > div')].find(d => d.style.background && d.style.zIndex === '9998');
+      return {
+        overlay: !!root, blend: root?.style.mixBlendMode || '', cls: document.documentElement.classList.contains('pg-juko-one'),
+        sword: !!sword && getComputedStyle(sword).visibility === 'visible', swordLit: lit(sword),
+        eq: !!document.querySelector('.pg-jk-eq'), film: film ? +film.style.opacity : -1,
+      };
+    });
+    check(await until(async () => { const o = await one(); return o.overlay && o.blend === 'screen' && o.cls; }), 'its layer adds light over the app (screened), and the app takes the void\'s chrome');
+    check(await until(async () => { const o = await one(); return o.sword && o.swordLit > 150; }), 'the rainbow sword is the pointer\'s companion');
+    check((await one()).eq, 'the equalizer stands under the sheet in "1" too');
+    await page.mouse.click(1000, 430);
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: `${out}/juko-one-swing.png` });
+    await page.evaluate(() => document.getElementById('pg-juko_one').force('eclipse'));
+    check(await until(async () => (await one()).film > 0.3, 3000), 'an eclipse darkens the whole window');
+    for (const ev of ['comet', 'zero', 'cascade', 'constel', 'garden', 'wingbeat']) {
+      await page.evaluate(n => document.getElementById('pg-juko_one').force(n), ev);
+      await page.waitForTimeout(ev === 'comet' || ev === 'zero' ? 1500 : 700);
+      if (ev === 'comet' || ev === 'zero') await page.screenshot({ path: `${out}/juko-one-${ev}.png` });
+    }
+    check(!errors.length, 'every event in the void runs without an error' + (errors.length ? ': ' + errors.slice(0, 2).join(' | ') : ''));
+
     // leaving the page puts the sheet back
     await page.goto(BASE + '/c/' + PLAIN);
     await page.locator('ss-character-view').waitFor({ timeout: 30000 });
@@ -125,8 +157,10 @@ const setForm = (id, f) => fetch(DOCS + 'next_characters/' + id + '?updateMask.f
       glow: document.querySelector('ss-character-view')?.style.getPropertyValue('--juko-glow') || '',
       text: document.querySelector('ss-character-view .head .name')?.getAttribute('data-text') ?? null,
       fx: !!document.querySelector('.pg-jk-fx'), inf: document.documentElement.classList.contains('pg-juko-0inf'),
+      one: document.documentElement.classList.contains('pg-juko-one') || !!document.getElementById('pg-juko_one'),
+      film: [...document.querySelectorAll('body > div')].some(d => d.style.zIndex === '9998'),
     }));
-    check(!s2.eq && !s2.overlay && !s2.glow && s2.text === null && !s2.fx && !s2.inf, 'leaving her page puts everything back');
+    check(!s2.eq && !s2.overlay && !s2.glow && s2.text === null && !s2.fx && !s2.inf && !s2.one && !s2.film, 'leaving her page puts everything back');
     check(!errors.length, 'no errors' + (errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''));
   } catch (e) {
     bad.push('crashed: ' + e.message);

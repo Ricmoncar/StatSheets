@@ -63,6 +63,11 @@ real Firestore).
 Reseed between runs when a test leaves something behind; it replaces
 everything in the emulator.
 
+The emulator keeps a few hundred MB for every page load and never gives it
+back, so a long run (pages_e2e over every page) exhausts any heap: restart it
+(a kill -9: once out of memory it ignores a plain kill) and reseed every few
+pages.
+
 ### Building a character page (phase 2)
 
 Each custom page is remade from scratch in the pixel style, one at a time:
