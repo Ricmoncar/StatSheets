@@ -76,7 +76,7 @@ Status: `[x]` done and checked, `[~]` in progress, `[ ]` not started.
         chains of digits, the wreck of the garden, debris going past, seven events
         (comet, eclipse, garden, cascade, constellation, wingbeat, zero); over the
         window the far field, the arms of digits, sparks and the spectrum fringe; her
-        curved sword (a rainbow crescent with an eye cut through it, a spiked guard,
+        curved sword (dark steel with rainbow borders, an eye cut through it, a spiked guard,
         a gem, a wrapped grip and a prism pommel) as the pointer's companion
 
 ## Cutover

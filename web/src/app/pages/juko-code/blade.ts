@@ -296,14 +296,15 @@ class Blade extends PageOverlay {
 
   /**
    * THE CURSOR: her curved sword, on a canvas of its own with the point as
-   * its hot spot. One clean crescent, the whole rainbow flowing along it
-   * (light toward the white cutting edge inside the curve, deeper toward the
-   * back, which carries two barbs), a fuller with a surge of white riding
-   * down it, and an eye cut through its middle with a slit pupil that looks
-   * where it is going. The hilt: a collar, a swept guard whose ends flare
+   * its hot spot. One clean crescent of dark steel, every border of it in the
+   * rainbow, flowing toward the point: the cutting edge inside the curve, the
+   * back with its two barbs, and the rim of the eye cut through its middle,
+   * whose slit pupil looks where it is going. A fuller runs down the steel
+   * with a surge of white riding it. The hilt: a collar, a swept guard whose ends flare
    * into spikes with spirals curled behind them and the rainbow gem at its
    * heart, a grip wrapped in a rainbow crisscross, a ring and a
-   * prism-diamond pommel, spiked either side. Edged in black.
+   * prism-diamond pommel, spiked either side: dark, with rainbow borders.
+   * Edged in black.
    */
   private drawSword(t: number, beat: number): void {
     if (!this.mouse) { this.cursor?.move(0, 0, this.px, false); return; }
@@ -344,33 +345,37 @@ class Blade extends PageOverlay {
         // the rim (white, then gold), open space, and the slit pupil floating in it
         const pa = ea - look * 0.4, d = lens - Math.abs(er);
         if (Math.abs(pa) / 0.2 + Math.abs(er) / 0.72 <= 1) r.set(X, Y, Math.abs(pa) < 0.06 ? w[4] : SPEC[6][3]);
-        else if (d < px / EYE_H) r.set(X, Y, w[4]);
-        else if (d < (2 * px) / EYE_H) r.set(X, Y, SPEC[6][2]);
+        else if (d < px / EYE_H) r.set(X, Y, SPEC[hue(u, X, Y)][3]);
+        else if (d < (2 * px) / EYE_H) r.set(X, Y, SPEC[hue(u, X, Y)][2]);
         continue;
       }
       const H = SPEC[hue(u, X, Y)];
       let ink: number;
-      if (inner < px) ink = Math.abs(u - glint) < 0.03 ? w[4] : w[3];             // the cutting edge, inside the curve
-      else if (outer < px) ink = H[3];                                            // the back's rim
-      else if (Math.abs(rho - mid) < px * 0.6 && u > 0.12 && u < 0.94) ink = Math.abs(u - surge) < 0.025 ? w[4] : w[2];   // the fuller
-      else { const q2 = (rho - (mid - hw)) / (2 * hw + barb(u)); ink = q2 < 0.3 ? H[3] : q2 < 0.62 ? H[2] : H[1]; }
+      // its borders in the rainbow, two pixels deep; the steel between them dark
+      if (inner < px) ink = Math.abs(u - glint) < 0.03 ? w[4] : H[3];             // the cutting edge, inside the curve
+      else if (outer < px) ink = H[3];                                            // the back
+      else if (inner < px * 2 || outer < px * 2) ink = H[2];
+      else if (Math.abs(rho - mid) < px * 0.6 && u > 0.12 && u < 0.94) ink = Math.abs(u - surge) < 0.025 ? w[4] : k[4];   // the fuller
+      else ink = inner < hw * 0.6 ? k[2] : k[1];
       r.set(X, Y, ink);
     }
 
     // THE HILT
-    const poly = (pts: [number, number][], fill: number | ((x: number, y: number) => number), edge: number) => {
+    /** A border's colour: the rainbow, running along the hilt. */
+    const rim = (X: number, Y: number) => SPEC[((Math.floor((X + Y) / 3 - t * 3 + BAYER[((Y & 3) << 2) | (X & 3)]) % 8) + 8) % 8][3];
+    const poly = (pts: [number, number][], fill: number | ((x: number, y: number) => number), edge: number | null = null) => {
       r.poly(pts.flat(), fill);
-      for (let i = 0; i < pts.length; i++) r.line(pts[i][0], pts[i][1], pts[(i + 1) % pts.length][0], pts[(i + 1) % pts.length][1], edge);
+      for (let i = 0; i < pts.length; i++) r.line(pts[i][0], pts[i][1], pts[(i + 1) % pts.length][0], pts[(i + 1) % pts.length][1], edge ?? rim);
     };
     const hlocal = (X: number, Y: number) => {
       const [lx, ly] = local(X, Y), dx = lx - ROOT[0], dy = ly - ROOT[1];
       return [(dx * HD[0] + dy * HD[1]) / HS, (dx * HN[0] + dy * HN[1]) / HS];
     };
     // the collar, banded, where the blade leaves the hilt
-    poly([atH(-6, -13), atH(-6, 13), atH(2, 13), atH(2, -13)], (X, Y) => SPEC[((Math.floor((hlocal(X, Y)[1] + 13) / 4) + ((t * 3) | 0)) % 8 + 8) % 8][2], w[3]);
+    poly([atH(-6, -13), atH(-6, 13), atH(2, 13), atH(2, -13)], k[2]);
     // the guard, bowed, its ends flaring back into spikes along the blade
     const guard: [number, number][] = [[8, -28], [3, -40], [-22, -50], [-5, -36], [1, -14], [1, 14], [-5, 36], [-22, 50], [3, 40], [8, 28]].map(([al, ac]) => atH(al, ac));
-    poly(guard, (X, Y) => SPEC[((Math.floor((hlocal(X, Y)[1] + 50) / 12.5) + 8) % 8)][2], w[4]);
+    poly(guard, k[2]);
     // spirals curled behind the spikes
     for (const sd of [-1, 1]) {
       let prev: [number, number] | null = null;
@@ -385,7 +390,7 @@ class Blade extends PageOverlay {
     poly([atH(8, -7.5), atH(8, 7.5), atH(92, 7.5), atH(92, -7.5)], (X, Y) => {
       const [al, ac] = hlocal(X, Y), d1 = (((al + ac) % 10) + 10) % 10, d2 = (((al - ac) % 10) + 10) % 10;
       return d1 < 2.4 || d2 < 2.4 ? SPEC[((Math.floor(al / 10) - ((t * 2) | 0)) % 8 + 8) % 8][3] : k[1];
-    }, w[3]);
+    });
     // the gem at the guard's heart, turning: the four colours, a white edge, a white heart
     {
       const [gx, gy] = atH(2, 0), gr = ((9 + beat * 2 + pulse * 4) * HS) / px, gro = rot + t * 0.35 + Math.PI / 4, cr = Math.cos(gro), sr = Math.sin(gro);
@@ -398,11 +403,11 @@ class Blade extends PageOverlay {
     // the ring, and the prism diamond for a pommel, spiked either side
     const [ringX, ringY] = atH(98, 0);
     r.ring(ringX, ringY, (4.5 * HS) / px, (7.5 * HS) / px, w[3]);
-    for (const sd of [-1, 1]) poly([atH(108, sd * 6), atH(114, sd * 17), atH(118, sd * 6)], SPEC[sd > 0 ? 6 : 1][3], w[4]);
+    for (const sd of [-1, 1]) poly([atH(108, sd * 6), atH(114, sd * 17), atH(118, sd * 6)], k[2]);
     poly([atH(104, 0), atH(116, -9), atH(134, 0), atH(116, 9)], (X, Y) => {
       const [al, ac] = hlocal(X, Y), d = Math.abs(ac) / 9 + Math.abs(al - 116) / 18;
-      return d < 0.35 ? w[4] : d < 0.6 ? m[5] : m[4];
-    }, w[4]);
+      return d < 0.3 ? w[4] : d < 0.5 ? m[4] : k[2];
+    });
     // edged in black, so it reads over anything
     r.outline(k[0]);
     this.cursor?.set(r, P1.table, h, h, px, true);
